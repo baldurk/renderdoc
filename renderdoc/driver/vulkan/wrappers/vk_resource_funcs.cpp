@@ -1090,14 +1090,17 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pBuffer);
       record->AddChunk(chunk);
 
-      if(pCreateInfo->flags &
-         (VK_BUFFER_CREATE_SPARSE_BINDING_BIT | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT))
-      {
-        record->sparseInfo = new SparseMapping();
+      bool isSparse = (pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT |
+                                             VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
+      bool isExternal = FindNextStruct(&adjusted_info,
+                                       VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO) != NULL;
+
+      if(isSparse)
+      {
         // buffers are always bound opaquely and in arbitrary divisions, sparse residency
         // only means not all the buffer needs to be bound, which is not that interesting for
-        // our purposes
+        // our purposes. We just need to make sure sparse buffers are dirty.
 
         bool capframe = false;
 
@@ -1110,6 +1113,58 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
           GetResourceManager()->MarkPendingDirty(id);
         else
           GetResourceManager()->MarkDirtyResource(id);
+      }
+
+      if(isSparse || isExternal)
+      {
+        record->resInfo = new ResourceInfo();
+
+        // pre-populate memory requirements
+        ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(*pBuffer),
+                                                     &record->resInfo->memreqs);
+
+        // for external buffers, try creating a non-external version and take the worst case of
+        // memory requirements, in case the non-external one (as we will replay it) needs more
+        // memory or a stricter alignment
+        if(isExternal)
+        {
+          bool removed =
+              RemoveNextStruct(&adjusted_info, VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO);
+
+          RDCASSERTMSG("Couldn't find next struct indicating external memory", removed);
+
+          VkBuffer tmpbuf = VK_NULL_HANDLE;
+          VkResult vkr = ObjDisp(device)->CreateBuffer(Unwrap(device), &adjusted_info, NULL, &tmpbuf);
+
+          if(vkr == VK_SUCCESS && tmpbuf != VK_NULL_HANDLE)
+          {
+            VkMemoryRequirements mrq = {};
+            ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), tmpbuf, &mrq);
+
+            if(mrq.size > 0)
+            {
+              RDCDEBUG("External buffer requires %llu bytes at %llu alignment, in %x memory types",
+                       record->resInfo->memreqs.size, record->resInfo->memreqs.alignment,
+                       record->resInfo->memreqs.memoryTypeBits);
+              RDCDEBUG(
+                  "Non-external version requires %llu bytes at %llu alignment, in %x memory types",
+                  mrq.size, mrq.alignment, mrq.memoryTypeBits);
+
+              record->resInfo->memreqs.size = RDCMAX(record->resInfo->memreqs.size, mrq.size);
+              record->resInfo->memreqs.alignment =
+                  RDCMAX(record->resInfo->memreqs.size, mrq.alignment);
+              record->resInfo->memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+            }
+          }
+          else
+          {
+            RDCERR("Failed to create temporary non-external buffer to find memory requirements: %s",
+                   ToStr(vkr).c_str());
+          }
+
+          if(tmpbuf != VK_NULL_HANDLE)
+            ObjDisp(device)->DestroyBuffer(Unwrap(device), tmpbuf, NULL);
+        }
       }
     }
     else
@@ -1216,7 +1271,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
 
       // store the base resource
       record->baseResource = bufferRecord->baseResource;
-      record->sparseInfo = bufferRecord->sparseInfo;
+      record->resInfo = bufferRecord->resInfo;
     }
     else
     {
@@ -1466,28 +1521,79 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
         next = next->pNext;
       }
 
-      bool capframe = false;
-
-      {
-        SCOPED_LOCK(m_CapTransitionLock);
-        capframe = IsActiveCapturing(m_State);
-      }
-
       // sparse and external images are considered dirty from creation. For sparse images this is
       // so that we can serialise the tracked page table, for external images this is so we can be
       // sure to fetch their contents even if we don't see any writes.
       if(isSparse || isExternal)
       {
+        record->resInfo = new ResourceInfo();
+
+        bool capframe = false;
+
+        {
+          SCOPED_LOCK(m_CapTransitionLock);
+          capframe = IsActiveCapturing(m_State);
+        }
+
         if(capframe)
           GetResourceManager()->MarkPendingDirty(id);
         else
           GetResourceManager()->MarkDirtyResource(id);
+
+        // pre-populate memory requirements
+        ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage),
+                                                    &record->resInfo->memreqs);
+
+        // for external images, try creating a non-external version and take the worst case of
+        // memory requirements, in case the non-external one (as we will replay it) needs more
+        // memory or a stricter alignment
+        if(isExternal)
+        {
+          bool removed = false;
+          removed |= RemoveNextStruct(&createInfo_adjusted,
+                                      VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV);
+          removed |= RemoveNextStruct(&createInfo_adjusted,
+                                      VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
+
+          RDCASSERTMSG("Couldn't find next struct indicating external memory", removed);
+
+          VkImage tmpimg = VK_NULL_HANDLE;
+          VkResult vkr =
+              ObjDisp(device)->CreateImage(Unwrap(device), &createInfo_adjusted, NULL, &tmpimg);
+
+          if(vkr == VK_SUCCESS && tmpimg != VK_NULL_HANDLE)
+          {
+            VkMemoryRequirements mrq = {};
+            ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), tmpimg, &mrq);
+
+            if(mrq.size > 0)
+            {
+              RDCDEBUG("External image requires %llu bytes at %llu alignment, in %x memory types",
+                       record->resInfo->memreqs.size, record->resInfo->memreqs.alignment,
+                       record->resInfo->memreqs.memoryTypeBits);
+              RDCDEBUG(
+                  "Non-external version requires %llu bytes at %llu alignment, in %x memory types",
+                  mrq.size, mrq.alignment, mrq.memoryTypeBits);
+
+              record->resInfo->memreqs.size = RDCMAX(record->resInfo->memreqs.size, mrq.size);
+              record->resInfo->memreqs.alignment =
+                  RDCMAX(record->resInfo->memreqs.size, mrq.alignment);
+              record->resInfo->memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+            }
+          }
+          else
+          {
+            RDCERR("Failed to create temporary non-external image to find memory requirements: %s",
+                   ToStr(vkr).c_str());
+          }
+
+          if(tmpimg != VK_NULL_HANDLE)
+            ObjDisp(device)->DestroyImage(Unwrap(device), tmpimg, NULL);
+        }
       }
 
       if(isSparse)
       {
-        record->sparseInfo = new SparseMapping();
-
         if(pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)
         {
           // must record image and page dimension, and create page tables
@@ -1498,24 +1604,22 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
           RDCASSERT(numreqs > 0);
 
-          record->sparseInfo->pagedim = reqs[0].formatProperties.imageGranularity;
-          record->sparseInfo->imgdim = pCreateInfo->extent;
-          record->sparseInfo->imgdim.width /= record->sparseInfo->pagedim.width;
-          record->sparseInfo->imgdim.height /= record->sparseInfo->pagedim.height;
-          record->sparseInfo->imgdim.depth /= record->sparseInfo->pagedim.depth;
+          record->resInfo->pagedim = reqs[0].formatProperties.imageGranularity;
+          record->resInfo->imgdim = pCreateInfo->extent;
+          record->resInfo->imgdim.width /= record->resInfo->pagedim.width;
+          record->resInfo->imgdim.height /= record->resInfo->pagedim.height;
+          record->resInfo->imgdim.depth /= record->resInfo->pagedim.depth;
 
-          uint32_t numpages = record->sparseInfo->imgdim.width * record->sparseInfo->imgdim.height *
-                              record->sparseInfo->imgdim.depth;
+          uint32_t numpages = record->resInfo->imgdim.width * record->resInfo->imgdim.height *
+                              record->resInfo->imgdim.depth;
 
           for(uint32_t i = 0; i < numreqs; i++)
           {
             // assume all page sizes are the same for all aspects
-            RDCASSERT(record->sparseInfo->pagedim.width ==
-                          reqs[i].formatProperties.imageGranularity.width &&
-                      record->sparseInfo->pagedim.height ==
-                          reqs[i].formatProperties.imageGranularity.height &&
-                      record->sparseInfo->pagedim.depth ==
-                          reqs[i].formatProperties.imageGranularity.depth);
+            RDCASSERT(
+                record->resInfo->pagedim.width == reqs[i].formatProperties.imageGranularity.width &&
+                record->resInfo->pagedim.height == reqs[i].formatProperties.imageGranularity.height &&
+                record->resInfo->pagedim.depth == reqs[i].formatProperties.imageGranularity.depth);
 
             int a = 0;
             for(a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
@@ -1524,7 +1628,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                 break;
             }
 
-            record->sparseInfo->pages[a] = new pair<VkDeviceMemory, VkDeviceSize>[numpages];
+            record->resInfo->pages[a] = new pair<VkDeviceMemory, VkDeviceSize>[numpages];
           }
         }
         else
@@ -1673,7 +1777,7 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
       // to their memory, which we will also need so we store that separately
       record->baseResource = imageRecord->GetResourceID();
       record->baseResourceMem = imageRecord->baseResource;
-      record->sparseInfo = imageRecord->sparseInfo;
+      record->resInfo = imageRecord->resInfo;
       record->viewRange = pCreateInfo->subresourceRange;
     }
     else

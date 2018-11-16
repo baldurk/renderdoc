@@ -268,6 +268,32 @@ VkBaseInStructure *FindNextStruct(VkStruct *haystack, VkStructureType needle)
   return NULL;
 }
 
+template <typename VkStruct>
+bool RemoveNextStruct(VkStruct *haystack, VkStructureType needle)
+{
+  // start from the haystack, and iterate
+  VkBaseInStructure *root = (VkBaseInStructure *)haystack;
+  while(root && root->pNext)
+  {
+    // at each point, if the *next* struct is the needle, then point our next pointer at whatever
+    // its was - either the next in the chain or NULL if it was at the end. Then we can return true
+    // because we removed the struct (we assume no duplicates).
+    // Note that this can't remove the first struct in the chain but that's expected, we only want
+    // to remove extension structs.
+    if(root->pNext->sType == needle)
+    {
+      root->pNext = root->pNext->pNext;
+      return true;
+    }
+
+    // move to the next struct
+    root = (VkBaseInStructure *)root->pNext;
+  }
+
+  // struct wasn't found, bail
+  return false;
+}
+
 enum class MemoryScope : uint8_t
 {
   InitialContents,

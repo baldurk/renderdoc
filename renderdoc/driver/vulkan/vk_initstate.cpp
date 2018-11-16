@@ -88,7 +88,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     WrappedVkBuffer *buffer = (WrappedVkBuffer *)res;
 
     // buffers are only dirty if they are sparse
-    RDCASSERT(buffer->record->sparseInfo);
+    RDCASSERT(buffer->record->resInfo && buffer->record->resInfo->IsSparse());
 
     return Prepare_SparseInitialState(buffer);
   }
@@ -98,7 +98,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     WrappedVkImage *im = (WrappedVkImage *)res;
 
-    if(im->record->sparseInfo)
+    if(im->record->resInfo && im->record->resInfo->IsSparse())
     {
       // if the image is sparse we have to do a different kind of initial state prepare,
       // to serialise out the page mapping. The fetching of memory is also different

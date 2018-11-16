@@ -840,7 +840,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             {
               VkResourceRecord *sparserecord = GetResourceManager()->GetResourceRecord(refit->first);
 
-              GetResourceManager()->MarkSparseMapReferenced(sparserecord->sparseInfo);
+              GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
             }
           }
         }
@@ -1250,19 +1250,19 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
       for(uint32_t buf = 0; buf < pBindInfo[i].bufferBindCount; buf++)
       {
         const VkSparseBufferMemoryBindInfo &bind = pBindInfo[i].pBufferBinds[buf];
-        GetRecord(bind.buffer)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+        GetRecord(bind.buffer)->resInfo->Update(bind.bindCount, bind.pBinds);
       }
 
       for(uint32_t op = 0; op < pBindInfo[i].imageOpaqueBindCount; op++)
       {
         const VkSparseImageOpaqueMemoryBindInfo &bind = pBindInfo[i].pImageOpaqueBinds[op];
-        GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+        GetRecord(bind.image)->resInfo->Update(bind.bindCount, bind.pBinds);
       }
 
       for(uint32_t op = 0; op < pBindInfo[i].imageBindCount; op++)
       {
         const VkSparseImageMemoryBindInfo &bind = pBindInfo[i].pImageBinds[op];
-        GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+        GetRecord(bind.image)->resInfo->Update(bind.bindCount, bind.pBinds);
       }
     }
   }

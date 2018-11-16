@@ -832,7 +832,7 @@ VkResourceRecord::~VkResourceRecord()
 
   // bufferviews and imageviews have non-owning pointers to the sparseinfo struct
   if(resType == eResBuffer || resType == eResImage)
-    SAFE_DELETE(sparseInfo);
+    SAFE_DELETE(resInfo);
 
   if(resType == eResInstance || resType == eResDevice)
     SAFE_DELETE(instDevInfo);
@@ -868,7 +868,7 @@ VkResourceRecord::~VkResourceRecord()
     SAFE_DELETE(descTemplateInfo);
 }
 
-void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings)
+void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings)
 {
   // update image page table mappings
 
@@ -906,7 +906,7 @@ void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBind *
   }
 }
 
-void SparseMapping::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings)
+void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings)
 {
   // update opaque mappings
 

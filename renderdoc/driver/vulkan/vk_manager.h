@@ -404,7 +404,7 @@ public:
   }
 
   // helper for sparse mappings
-  void MarkSparseMapReferenced(SparseMapping *sparse);
+  void MarkSparseMapReferenced(ResourceInfo *sparse);
 
   void SetInternalResource(ResourceId id);
 

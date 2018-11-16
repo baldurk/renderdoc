@@ -354,7 +354,7 @@ template void VulkanResourceManager::SerialiseImageStates(WriteSerialiser &ser,
                                                           std::map<ResourceId, ImageLayouts> &states,
                                                           std::vector<VkImageMemoryBarrier> &barriers);
 
-void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
+void VulkanResourceManager::MarkSparseMapReferenced(ResourceInfo *sparse)
 {
   if(sparse == NULL)
   {

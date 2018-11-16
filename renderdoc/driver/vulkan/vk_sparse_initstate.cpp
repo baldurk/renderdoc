@@ -82,10 +82,10 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   map<VkDeviceMemory, VkDeviceSize> boundMems;
 
   // value will be filled out later once all memories are added
-  for(size_t i = 0; i < buf->record->sparseInfo->opaquemappings.size(); i++)
-    boundMems[buf->record->sparseInfo->opaquemappings[i].memory] = 0;
+  for(size_t i = 0; i < buf->record->resInfo->opaquemappings.size(); i++)
+    boundMems[buf->record->resInfo->opaquemappings[i].memory] = 0;
 
-  uint32_t numElems = (uint32_t)buf->record->sparseInfo->opaquemappings.size();
+  uint32_t numElems = (uint32_t)buf->record->resInfo->opaquemappings.size();
 
   VkInitialContents initContents;
 
@@ -97,7 +97,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   initContents.sparseBuffer.numUniqueMems = (uint32_t)boundMems.size();
   initContents.sparseBuffer.memDataOffs = new MemIDOffset[boundMems.size()];
 
-  memcpy(initContents.sparseBuffer.binds, &buf->record->sparseInfo->opaquemappings[0],
+  memcpy(initContents.sparseBuffer.binds, &buf->record->resInfo->opaquemappings[0],
          sizeof(VkSparseMemoryBind) * numElems);
 
   VkDevice d = GetDev();
@@ -201,7 +201,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 {
   ResourceId id = im->id;
 
-  SparseMapping *sparse = im->record->sparseInfo;
+  ResourceInfo *sparse = im->record->resInfo;
 
   // VKTODOLOW this is a bit conservative, as we save the whole memory object rather than just the
   // bound range.

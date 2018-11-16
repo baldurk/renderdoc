@@ -1165,8 +1165,8 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
       record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_Write);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
-      if(att->sparseInfo)
-        record->cmdInfo->sparse.insert(att->sparseInfo);
+      if(att->resInfo)
+        record->cmdInfo->sparse.insert(att->resInfo);
       record->cmdInfo->dirtied.insert(att->baseResource);
     }
 
@@ -1508,8 +1508,8 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
       record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_Write);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
-      if(att->sparseInfo)
-        record->cmdInfo->sparse.insert(att->sparseInfo);
+      if(att->resInfo)
+        record->cmdInfo->sparse.insert(att->resInfo);
       record->cmdInfo->dirtied.insert(att->baseResource);
     }
 
@@ -2136,8 +2136,8 @@ void WrappedVulkan::vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32
     {
       record->MarkResourceFrameReferenced(GetResID(pBuffers[i]), eFrameRef_Read);
       record->MarkResourceFrameReferenced(GetRecord(pBuffers[i])->baseResource, eFrameRef_Read);
-      if(GetRecord(pBuffers[i])->sparseInfo)
-        record->cmdInfo->sparse.insert(GetRecord(pBuffers[i])->sparseInfo);
+      if(GetRecord(pBuffers[i])->resInfo)
+        record->cmdInfo->sparse.insert(GetRecord(pBuffers[i])->resInfo);
     }
   }
 }
@@ -2213,8 +2213,8 @@ void WrappedVulkan::vkCmdBindIndexBuffer(VkCommandBuffer commandBuffer, VkBuffer
     record->AddChunk(scope.Get());
     record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
     record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
-    if(GetRecord(buffer)->sparseInfo)
-      record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
+    if(GetRecord(buffer)->resInfo)
+      record->cmdInfo->sparse.insert(GetRecord(buffer)->resInfo);
   }
 }
 
@@ -2286,8 +2286,8 @@ void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer de
     record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
     if(buf->baseResource != ResourceId())
       record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->sparseInfo)
-      record->cmdInfo->sparse.insert(buf->sparseInfo);
+    if(buf->resInfo)
+      record->cmdInfo->sparse.insert(buf->resInfo);
   }
 }
 
@@ -2355,8 +2355,8 @@ void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dest
     record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
     if(buf->baseResource != ResourceId())
       record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->sparseInfo)
-      record->cmdInfo->sparse.insert(buf->sparseInfo);
+    if(buf->resInfo)
+      record->cmdInfo->sparse.insert(buf->resInfo);
   }
 }
 
@@ -2728,8 +2728,8 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
     record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
     if(buf->baseResource != ResourceId())
       record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->sparseInfo)
-      record->cmdInfo->sparse.insert(buf->sparseInfo);
+    if(buf->resInfo)
+      record->cmdInfo->sparse.insert(buf->resInfo);
   }
 }
 
@@ -4023,8 +4023,8 @@ void WrappedVulkan::vkCmdWriteBufferMarkerAMD(VkCommandBuffer commandBuffer,
     record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
     if(buf->baseResource != ResourceId())
       record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->sparseInfo)
-      record->cmdInfo->sparse.insert(buf->sparseInfo);
+    if(buf->resInfo)
+      record->cmdInfo->sparse.insert(buf->resInfo);
   }
 }
 
@@ -4381,8 +4381,8 @@ void WrappedVulkan::vkCmdBindTransformFeedbackBuffersEXT(VkCommandBuffer command
     {
       record->MarkResourceFrameReferenced(GetResID(pBuffers[i]), eFrameRef_Read);
       record->MarkResourceFrameReferenced(GetRecord(pBuffers[i])->baseResource, eFrameRef_Read);
-      if(GetRecord(pBuffers[i])->sparseInfo)
-        record->cmdInfo->sparse.insert(GetRecord(pBuffers[i])->sparseInfo);
+      if(GetRecord(pBuffers[i])->resInfo)
+        record->cmdInfo->sparse.insert(GetRecord(pBuffers[i])->resInfo);
     }
   }
 }

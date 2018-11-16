@@ -965,7 +965,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         {
           VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
 
-          GetResourceManager()->MarkSparseMapReferenced(record->sparseInfo);
+          GetResourceManager()->MarkSparseMapReferenced(record->resInfo);
         }
       }
     }
