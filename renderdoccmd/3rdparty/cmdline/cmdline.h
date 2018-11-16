@@ -398,7 +398,7 @@ public:
     int argc=static_cast<int>(args.size());
     std::vector<const char*> argv(argc);
 
-    if (argc<1) return false;
+    if (argc<1) return processed_arg0;
 
     for (int i=0; i<argc; i++)
       argv[i]=args[i].c_str();
