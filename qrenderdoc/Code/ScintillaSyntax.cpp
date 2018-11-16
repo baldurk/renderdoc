@@ -255,6 +255,8 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   scintilla->styleSetBack(STYLE_DEFAULT, SC_COL(base));
   scintilla->styleSetFore(STYLE_DEFAULT, SC_COL(text));
 
+  scintilla->setCaretFore(SC_COL(text));
+
   // default all lexer styles up to STYLE_DEFAULT as the same, then override per-colour below
   for(sptr_t i = 0; i < STYLE_DEFAULT; i++)
   {
