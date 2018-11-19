@@ -859,6 +859,8 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
   updates.insert(updates.begin(), pCreateInfo->pDescriptorUpdateEntries,
                  pCreateInfo->pDescriptorUpdateEntries + pCreateInfo->descriptorUpdateEntryCount);
 
+  bindPoint = pCreateInfo->pipelineBindPoint;
+
   dataByteSize = 0;
 
   texelBufferViewCount = 0;
