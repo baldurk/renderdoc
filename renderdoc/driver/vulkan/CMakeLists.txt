@@ -43,7 +43,7 @@ set(sources
     official/vulkan_core.h
     official/vulkan_ios.h
     official/vulkan_macos.h
-    official/vulkan_mir.h
+    official/vulkan_fuchsia.h
     official/vulkan_vi.h
     official/vulkan_wayland.h
     official/vulkan_win32.h

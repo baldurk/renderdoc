@@ -195,9 +195,6 @@
     <ClInclude Include="official\vulkan_macos.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\vulkan_mir.h">
-      <Filter>official</Filter>
-    </ClInclude>
     <ClInclude Include="official\vulkan_vi.h">
       <Filter>official</Filter>
     </ClInclude>
@@ -214,6 +211,9 @@
       <Filter>official</Filter>
     </ClInclude>
     <ClInclude Include="official\vulkan_xlib_xrandr.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vulkan_fuchsia.h">
       <Filter>official</Filter>
     </ClInclude>
   </ItemGroup>

@@ -106,14 +106,6 @@ typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR GetPhysicalDeviceWaylandPresentationSupportKHR;
 #endif // VK_USE_PLATFORM_WAYLAND_KHR
 
-    // ---- VK_KHR_mir_surface extension commands
-#ifdef VK_USE_PLATFORM_MIR_KHR
-    PFN_vkCreateMirSurfaceKHR CreateMirSurfaceKHR;
-#endif // VK_USE_PLATFORM_MIR_KHR
-#ifdef VK_USE_PLATFORM_MIR_KHR
-    PFN_vkGetPhysicalDeviceMirPresentationSupportKHR GetPhysicalDeviceMirPresentationSupportKHR;
-#endif // VK_USE_PLATFORM_MIR_KHR
-
     // ---- VK_KHR_android_surface extension commands
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
     PFN_vkCreateAndroidSurfaceKHR CreateAndroidSurfaceKHR;
@@ -549,20 +541,19 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdSetViewportShadingRatePaletteNV CmdSetViewportShadingRatePaletteNV;
     PFN_vkCmdSetCoarseSampleOrderNV CmdSetCoarseSampleOrderNV;
 
-    // ---- VK_NVX_raytracing extension commands
-    PFN_vkCreateAccelerationStructureNVX CreateAccelerationStructureNVX;
-    PFN_vkDestroyAccelerationStructureNVX DestroyAccelerationStructureNVX;
-    PFN_vkGetAccelerationStructureMemoryRequirementsNVX GetAccelerationStructureMemoryRequirementsNVX;
-    PFN_vkGetAccelerationStructureScratchMemoryRequirementsNVX GetAccelerationStructureScratchMemoryRequirementsNVX;
-    PFN_vkBindAccelerationStructureMemoryNVX BindAccelerationStructureMemoryNVX;
-    PFN_vkCmdBuildAccelerationStructureNVX CmdBuildAccelerationStructureNVX;
-    PFN_vkCmdCopyAccelerationStructureNVX CmdCopyAccelerationStructureNVX;
-    PFN_vkCmdTraceRaysNVX CmdTraceRaysNVX;
-    PFN_vkCreateRaytracingPipelinesNVX CreateRaytracingPipelinesNVX;
-    PFN_vkGetRaytracingShaderHandlesNVX GetRaytracingShaderHandlesNVX;
-    PFN_vkGetAccelerationStructureHandleNVX GetAccelerationStructureHandleNVX;
-    PFN_vkCmdWriteAccelerationStructurePropertiesNVX CmdWriteAccelerationStructurePropertiesNVX;
-    PFN_vkCompileDeferredNVX CompileDeferredNVX;
+    // ---- VK_NV_ray_tracing extension commands
+    PFN_vkCreateAccelerationStructureNV CreateAccelerationStructureNV;
+    PFN_vkDestroyAccelerationStructureNV DestroyAccelerationStructureNV;
+    PFN_vkGetAccelerationStructureMemoryRequirementsNV GetAccelerationStructureMemoryRequirementsNV;
+    PFN_vkBindAccelerationStructureMemoryNV BindAccelerationStructureMemoryNV;
+    PFN_vkCmdBuildAccelerationStructureNV CmdBuildAccelerationStructureNV;
+    PFN_vkCmdCopyAccelerationStructureNV CmdCopyAccelerationStructureNV;
+    PFN_vkCmdTraceRaysNV CmdTraceRaysNV;
+    PFN_vkCreateRayTracingPipelinesNV CreateRayTracingPipelinesNV;
+    PFN_vkGetRayTracingShaderGroupHandlesNV GetRayTracingShaderGroupHandlesNV;
+    PFN_vkGetAccelerationStructureHandleNV GetAccelerationStructureHandleNV;
+    PFN_vkCmdWriteAccelerationStructuresPropertiesNV CmdWriteAccelerationStructuresPropertiesNV;
+    PFN_vkCompileDeferredNV CompileDeferredNV;
 
     // ---- VK_EXT_external_memory_host extension commands
     PFN_vkGetMemoryHostPointerPropertiesEXT GetMemoryHostPointerPropertiesEXT;
