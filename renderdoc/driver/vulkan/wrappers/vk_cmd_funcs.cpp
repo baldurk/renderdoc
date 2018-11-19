@@ -3832,6 +3832,31 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
       // recording to
       ApplyPushDescriptorWrites(layout, set, (uint32_t)apply.writes.size(), apply.writes.data());
 
+      // now unwrap everything in-place to save on temp allocs.
+      VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)apply.writes.data();
+
+      for(size_t i = 0; i < apply.writes.size(); i++)
+      {
+        for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
+        {
+          VkBufferView *pTexelBufferView = (VkBufferView *)writes[i].pTexelBufferView;
+          VkDescriptorBufferInfo *pBufferInfo = (VkDescriptorBufferInfo *)writes[i].pBufferInfo;
+          VkDescriptorImageInfo *pImageInfo = (VkDescriptorImageInfo *)writes[i].pImageInfo;
+
+          if(pTexelBufferView)
+            pTexelBufferView[d] = Unwrap(pTexelBufferView[d]);
+
+          if(pBufferInfo)
+            pBufferInfo[d].buffer = Unwrap(pBufferInfo[d].buffer);
+
+          if(pImageInfo)
+          {
+            pImageInfo[d].imageView = Unwrap(pImageInfo[d].imageView);
+            pImageInfo[d].sampler = Unwrap(pImageInfo[d].sampler);
+          }
+        }
+      }
+
       ObjDisp(commandBuffer)
           ->CmdPushDescriptorSetKHR(Unwrap(commandBuffer), bindPoint, Unwrap(layout), set,
                                     (uint32_t)apply.writes.size(), apply.writes.data());
@@ -3948,6 +3973,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
                                                     layout, set, pData);
 
     record->AddChunk(scope.Get());
+    record->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate), eFrameRef_Read);
     for(size_t i = 0; i < frameRefs.size(); i++)
       record->MarkResourceFrameReferenced(frameRefs[i].first, frameRefs[i].second);
   }
