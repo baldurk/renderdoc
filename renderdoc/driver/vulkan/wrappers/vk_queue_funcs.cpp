@@ -269,7 +269,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           // insert the baked command buffer in-line into this list of notes, assigning new event
           // and drawIDs
-          InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
+          InsertDrawsAndRefreshIDs(cmdBufInfo);
 
           for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
           {
@@ -515,8 +515,10 @@ bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescript
   return valid;
 }
 
-void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes)
+void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 {
+  vector<VulkanDrawcallTreeNode> &cmdBufNodes = cmdBufInfo.draw->children;
+
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
@@ -604,6 +606,15 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
 
           for(APIEvent &ev : cmdBufNodes[j].draw.events)
             ev.eventId -= shiftCount;
+        }
+
+        cmdBufInfo.eventCount -= shiftCount;
+        cmdBufInfo.drawCount -= shiftCount;
+
+        for(size_t j = 0; j < cmdBufInfo.debugMessages.size(); j++)
+        {
+          if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].draw.eventId + indirectCount + 2)
+            cmdBufInfo.debugMessages[j].eventId -= shiftCount;
         }
       }
 

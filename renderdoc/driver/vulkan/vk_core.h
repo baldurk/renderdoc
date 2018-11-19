@@ -809,7 +809,7 @@ private:
 
   bool PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescription &draw, byte *&argptr,
                          byte *argend);
-  void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes);
+  void InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
 
   list<VulkanDrawcallTreeNode *> m_DrawcallStack;
 
