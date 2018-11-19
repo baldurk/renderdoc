@@ -1582,9 +1582,10 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
       ret.unwrapped = GetWrapped((VkSurfaceKHR)object)->real.handle;
       break;
 
-    // VkDisplayKHR and VkDisplayModeKHR are not wrapped
+    // VkDisplayKHR, VkDisplayModeKHR, and VkValidationCacheEXT are not wrapped
     case VK_OBJECT_TYPE_DISPLAY_KHR:
     case VK_OBJECT_TYPE_DISPLAY_MODE_KHR:
+    case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT:
       ret.unwrapped = object;
       break;
 
@@ -1605,7 +1606,6 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
 
     // these objects are not supported
     case VK_OBJECT_TYPE_OBJECT_TABLE_NVX:
-    case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT:
     case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX:
     case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV:
     case VK_OBJECT_TYPE_UNKNOWN:
