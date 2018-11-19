@@ -208,6 +208,7 @@ std::string DoStringise(const MemoryScope &el)
   BEGIN_ENUM_STRINGISE(MemoryScope);
   {
     STRINGISE_ENUM_CLASS(InitialContents);
+    STRINGISE_ENUM_CLASS(IndirectReadback);
   }
   END_ENUM_STRINGISE()
 }
