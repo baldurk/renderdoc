@@ -4953,8 +4953,8 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceGroupProperties &el)
   SERIALISE_MEMBER(physicalDeviceCount);
   // manual call to Serialise to ensure we only serialise the number of devices, but also don't
   // allocate memory
-  ser.Serialise("physicalDevices", (VkPhysicalDevice *&)el.physicalDevices,
-                (uint64_t)el.physicalDeviceCount, SerialiserFlags::NoFlags);
+  VkPhysicalDevice *devs = el.physicalDevices;
+  ser.Serialise("physicalDevices", devs, (uint64_t)el.physicalDeviceCount, SerialiserFlags::NoFlags);
   SERIALISE_MEMBER(subsetAllocation);
 }
 
