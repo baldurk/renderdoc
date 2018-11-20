@@ -1450,7 +1450,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     VkPhysicalDeviceFeatures enabledFeatures = {0};
     if(createInfo.pEnabledFeatures != NULL)
       enabledFeatures = *createInfo.pEnabledFeatures;
-    createInfo.pEnabledFeatures = &enabledFeatures;
+
+    VkPhysicalDeviceFeatures2 *enabledFeatures2 = (VkPhysicalDeviceFeatures2 *)FindNextStruct(
+        &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2);
+
+    // VkPhysicalDeviceFeatures2 takes priority
+    if(enabledFeatures2)
+      enabledFeatures = enabledFeatures2->features;
+    else if(createInfo.pEnabledFeatures)
+      enabledFeatures = *createInfo.pEnabledFeatures;
 
     VkPhysicalDeviceFeatures availFeatures = {0};
     ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
@@ -1569,6 +1577,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCWARN(
           "sampleRateShading = false, save/load from depth 2DMS textures will not be "
           "possible");
+
+    // patch the enabled features
+    if(enabledFeatures2)
+      enabledFeatures2->features = enabledFeatures;
+    else if(createInfo.pEnabledFeatures)
+      createInfo.pEnabledFeatures = &enabledFeatures;
 
     uint32_t numExts = 0;
 
