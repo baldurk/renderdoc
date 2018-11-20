@@ -770,6 +770,11 @@ private:
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
 
+  void AdvanceFrame();
+  void Present(void *dev, void *wnd);
+
+  void HandleVRFrameMarkers(const char *marker, VkCommandBuffer commandBuffer);
+
   template <typename SerialiserType>
   bool Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderModule ShaderObject,
                                     std::string DebugPath);
