@@ -1,6 +1,7 @@
 set(sources
     vk_common.cpp
     vk_common.h
+    vk_next_chains.cpp
     vk_core.cpp
     vk_core.h
     vk_counters.cpp

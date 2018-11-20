@@ -105,6 +105,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="vk_msaa_array_conv.cpp" />
+    <ClCompile Include="vk_next_chains.cpp" />
     <ClCompile Include="vk_outputwindow.cpp" />
     <ClCompile Include="vk_overlay.cpp" />
     <ClCompile Include="vk_postvs.cpp" />

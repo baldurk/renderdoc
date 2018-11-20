@@ -130,6 +130,9 @@
     <ClCompile Include="vk_rendertext.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="vk_next_chains.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
