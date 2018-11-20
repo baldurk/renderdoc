@@ -929,6 +929,9 @@ struct CmdBufferRecordingInfo
   set<VkDescriptorSet> boundDescSets;
 
   vector<VkResourceRecord *> subcmds;
+
+  // AdvanceFrame/Present should be called after this buffer is submitted
+  bool present;
 };
 
 struct DescSetLayout;

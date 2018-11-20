@@ -1785,6 +1785,35 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   return true;
 }
 
+void WrappedVulkan::AdvanceFrame()
+{
+  if(IsBackgroundCapturing(m_State))
+  {
+    RenderDoc::Inst().Tick();
+    GetResourceManager()->FlushPendingDirty();
+  }
+  m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
+}
+
+void WrappedVulkan::Present(void *dev, void *wnd)
+{
+  bool activeWindow = wnd == NULL || RenderDoc::Inst().IsActiveWindow(dev, wnd);
+
+  RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
+  if(!activeWindow)
+    return;
+
+  if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
+    RenderDoc::Inst().EndFrameCapture(dev, wnd);
+
+  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
+  {
+    RenderDoc::Inst().StartFrameCapture(dev, wnd);
+
+    m_AppControlledCapture = false;
+  }
+}
+
 void WrappedVulkan::AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix)
 {
   ResourceDescription &descr = GetReplay()->GetResourceDesc(id);

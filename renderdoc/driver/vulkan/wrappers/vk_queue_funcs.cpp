@@ -779,6 +779,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                                                         unwrappedSubmits, Unwrap(fence)));
 
   bool capframe = false;
+  bool present = false;
+
   set<ResourceId> refdIDs;
 
   VkResourceRecord *queueRecord = GetRecord(queue);
@@ -790,6 +792,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       ResourceId cmd = GetResID(pSubmits[s].pCommandBuffers[i]);
 
       VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
+      present |= record->bakedCommands->cmdInfo->present;
 
       {
         SCOPED_LOCK(m_ImageLayoutsLock);
@@ -1003,6 +1006,12 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         GetResourceManager()->MarkResourceFrameReferenced(
             GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
     }
+  }
+
+  if(present)
+  {
+    AdvanceFrame();
+    Present(LayerDisp(m_Instance), NULL);
   }
 
   return ret;

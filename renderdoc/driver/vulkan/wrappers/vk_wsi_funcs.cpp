@@ -621,14 +621,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
 
 VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR *pPresentInfo)
 {
-  if(IsBackgroundCapturing(m_State))
-  {
-    RenderDoc::Inst().Tick();
-
-    GetResourceManager()->FlushPendingDirty();
-  }
-
-  m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
+  AdvanceFrame();
 
   if(pPresentInfo->swapchainCount > 1 && (m_FrameCounter % 100) == 0)
   {
@@ -787,21 +780,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   VkResult vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo);
 
-  RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
-
-  if(!activeWindow)
-    return vkr;
-
-  // kill any current capture that isn't application defined
-  if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
-    RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), swapInfo.wndHandle);
-
-  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
-  {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), swapInfo.wndHandle);
-
-    m_AppControlledCapture = false;
-  }
+  Present(LayerDisp(m_Instance), swapInfo.wndHandle);
 
   return vkr;
 }
