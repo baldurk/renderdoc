@@ -1527,6 +1527,140 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     CHECK_PHYS_FEATURE(variableMultisampleRate);
     CHECK_PHYS_FEATURE(inheritedQueries);
 
+#define BEGIN_PHYS_EXT_CHECK(struct, stype)                                                  \
+  if(struct *ext = (struct *)FindNextStruct(&createInfo, stype))                             \
+  {                                                                                          \
+    struct avail = {stype};                                                                  \
+    VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};    \
+    availBase.pNext = &avail;                                                                \
+    ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase); \
+    const char *structName = #struct;
+
+#define END_PHYS_EXT_CHECK() }
+
+#define CHECK_PHYS_EXT_FEATURE(feature)                          \
+  if(ext->feature && !avail.feature)                             \
+  {                                                              \
+    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported; \
+    RDCERR("Capture requires physical device feature '" #feature \
+           "' in struct '%s' which is not supported",            \
+           structName);                                          \
+    return false;                                                \
+  }
+
+    if(ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2)
+    {
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDevice8BitStorageFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(storageBuffer8BitAccess);
+        CHECK_PHYS_EXT_FEATURE(uniformAndStorageBuffer8BitAccess);
+        CHECK_PHYS_EXT_FEATURE(storagePushConstant8);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDevice16BitStorageFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(storageBuffer16BitAccess);
+        CHECK_PHYS_EXT_FEATURE(uniformAndStorageBuffer16BitAccess);
+        CHECK_PHYS_EXT_FEATURE(storagePushConstant16);
+        CHECK_PHYS_EXT_FEATURE(storageInputOutput16);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceASTCDecodeFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(decodeModeSharedExponent);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV);
+      {
+        CHECK_PHYS_EXT_FEATURE(fragmentShaderBarycentric);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceMultiviewFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(multiview);
+        CHECK_PHYS_EXT_FEATURE(multiviewGeometryShader);
+        CHECK_PHYS_EXT_FEATURE(multiviewTessellationShader);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceProtectedMemoryFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(protectedMemory);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceSamplerYcbcrConversionFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(samplerYcbcrConversion);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(shaderBufferInt64Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderSharedInt64Atomics);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderDrawParameterFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(shaderDrawParameters);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderImageFootprintFeaturesNV,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV);
+      {
+        CHECK_PHYS_EXT_FEATURE(imageFootprint);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceTransformFeedbackFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(transformFeedback);
+        CHECK_PHYS_EXT_FEATURE(geometryStreams);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVariablePointerFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(variablePointersStorageBuffer);
+        CHECK_PHYS_EXT_FEATURE(variablePointers);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(vertexAttributeInstanceRateDivisor);
+        CHECK_PHYS_EXT_FEATURE(vertexAttributeInstanceRateZeroDivisor);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVulkanMemoryModelFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModel);
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelDeviceScope);
+      }
+      END_PHYS_EXT_CHECK();
+    }
+
     if(availFeatures.depthClamp)
       enabledFeatures.depthClamp = true;
     else
