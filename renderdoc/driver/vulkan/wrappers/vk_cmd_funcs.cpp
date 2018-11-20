@@ -601,16 +601,20 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     // when loading, allocate a new resource ID for each push descriptor slot in this command buffer
     if(IsLoading(m_State))
     {
-      for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID); i++)
-        m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[i] =
-            ResourceIDGen::GetNewUniqueID();
+      for(int p = 0; p < 2; p++)
+        for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID[p]); i++)
+          m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[p][i] =
+              ResourceIDGen::GetNewUniqueID();
     }
 
     // clear/invalidate descriptor set state for this command buffer.
-    for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID); i++)
+    for(int p = 0; p < 2; p++)
     {
-      m_DescriptorSetState[m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[i]] =
-          DescriptorSetInfo(true);
+      for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID[p]); i++)
+      {
+        m_DescriptorSetState[m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[p][i]] =
+            DescriptorSetInfo(true);
+      }
     }
 
     m_BakedCmdBufferInfo[m_LastCmdBufferID].level = m_BakedCmdBufferInfo[BakedCommandBuffer].level =
@@ -3388,14 +3392,17 @@ void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
   }
 }
 
-void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineLayout layout, uint32_t set,
+void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPoint,
+                                              VkPipelineLayout layout, uint32_t set,
                                               uint32_t descriptorWriteCount,
                                               const VkWriteDescriptorSet *pDescriptorWrites)
 {
-  ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[set];
+  const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
+      m_CreationInfo.m_PipelineLayout[GetResID(layout)];
 
-  const std::vector<ResourceId> &descSetLayouts =
-      m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
+  ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[pipelineBindPoint][set];
+
+  const std::vector<ResourceId> &descSetLayouts = pipeLayoutInfo.descSetLayouts;
 
   const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
 
@@ -3503,7 +3510,8 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
-    ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[set];
+    ResourceId setId =
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[pipelineBindPoint][set];
 
     if(IsActiveReplaying(m_State))
     {
@@ -3555,7 +3563,8 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
       // without worrying about overlap. We just need to check that we're in the record range so
       // that we don't pull in descriptor updates after the point in the command buffer we're
       // recording to
-      ApplyPushDescriptorWrites(layout, set, descriptorWriteCount, pDescriptorWrites);
+      ApplyPushDescriptorWrites(pipelineBindPoint, layout, set, descriptorWriteCount,
+                                pDescriptorWrites);
 
       // now unwrap everything in-place to save on temp allocs.
       VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)pDescriptorWrites;
@@ -3773,7 +3782,10 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
-    ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[set];
+    VkPipelineBindPoint bindPoint =
+        m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint;
+
+    ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[bindPoint][set];
 
     if(IsActiveReplaying(m_State))
     {
@@ -3784,10 +3796,8 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
           std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
-              (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==
-               VK_PIPELINE_BIND_POINT_GRAPHICS)
-                  ? m_RenderState.graphics.descSets
-                  : m_RenderState.compute.descSets;
+              (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? m_RenderState.graphics.descSets
+                                                             : m_RenderState.compute.descSets;
 
           // expand as necessary
           if(descsets.size() < set + 1)
@@ -3823,14 +3833,12 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
 
     if(commandBuffer != VK_NULL_HANDLE)
     {
-      VkPipelineBindPoint bindPoint =
-          m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint;
-
       // since we version push descriptors per-command buffer, we can safely update them always
       // without worrying about overlap. We just need to check that we're in the record range so
       // that we don't pull in descriptor updates after the point in the command buffer we're
       // recording to
-      ApplyPushDescriptorWrites(layout, set, (uint32_t)apply.writes.size(), apply.writes.data());
+      ApplyPushDescriptorWrites(bindPoint, layout, set, (uint32_t)apply.writes.size(),
+                                apply.writes.data());
 
       // now unwrap everything in-place to save on temp allocs.
       VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)apply.writes.data();

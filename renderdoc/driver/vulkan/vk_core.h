@@ -557,7 +557,7 @@ private:
 
     std::vector<std::pair<ResourceId, ImageRegionState>> imgbarriers;
 
-    ResourceId pushDescriptorID[64];
+    ResourceId pushDescriptorID[2][64];
 
     VulkanDrawcallTreeNode *draw;    // the root draw to copy from when submitting
     uint32_t eventCount;             // how many events are in this cmd buffer, for quick skipping
@@ -1759,7 +1759,8 @@ public:
                               VkShaderInfoTypeAMD infoType, size_t *pInfoSize, void *pInfo);
 
   // VK_KHR_push_descriptor
-  void ApplyPushDescriptorWrites(VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount,
+  void ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout,
+                                 uint32_t set, uint32_t descriptorWriteCount,
                                  const VkWriteDescriptorSet *pDescriptorWrites);
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPushDescriptorSetKHR, VkCommandBuffer commandBuffer,
