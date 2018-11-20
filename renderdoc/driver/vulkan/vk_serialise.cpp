@@ -561,6 +561,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV,                                \
                VkExternalMemoryImageCreateInfoNV)                                                     \
                                                                                                       \
+  /* VK_NV_shader_image_footprint */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,                  \
+               VkPhysicalDeviceShaderImageFootprintFeaturesNV)                                        \
+                                                                                                      \
   /* Surface creation structs. These would pull in dependencies on OS-specific includes. */           \
   /* So treat them as unsupported. */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                \
@@ -697,9 +701,6 @@ SERIALISE_VK_HANDLES();
   /* VK_NV_scissor_exclusive */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_EXCLUSIVE_SCISSOR_STATE_CREATE_INFO_NV)       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXCLUSIVE_SCISSOR_FEATURES_NV)                  \
-                                                                                                      \
-  /* VK_NV_shader_image_footprint */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV)             \
                                                                                                       \
   /* VK_NV_shading_rate_image */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV)      \
@@ -4169,6 +4170,22 @@ void DoSerialise(SerialiserType &ser, VkExternalMemoryImageCreateInfoNV &el)
 
 template <>
 void Deserialise(const VkExternalMemoryImageCreateInfoNV &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderImageFootprintFeaturesNV &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(imageFootprint);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderImageFootprintFeaturesNV &el)
 {
   DeserialiseNext(el.pNext);
 }
