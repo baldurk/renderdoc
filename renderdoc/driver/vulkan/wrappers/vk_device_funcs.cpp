@@ -1876,8 +1876,19 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   // default to all off. This is equivalent to createInfo.pEnabledFeatures == NULL
   VkPhysicalDeviceFeatures enabledFeatures = {0};
 
-  // if the user enabled features, of course we want to enable them.
-  if(createInfo.pEnabledFeatures)
+  // allocate and unwrap the next chain, so we can patch features if we need to, as well as removing
+  // the loader info later when it comes time to serialise
+  byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo.pNext));
+
+  UnwrapNextChain(m_State, "VkDeviceCreateInfo", tempMem, (VkBaseInStructure *)&createInfo);
+
+  VkPhysicalDeviceFeatures2 *enabledFeatures2 = (VkPhysicalDeviceFeatures2 *)FindNextStruct(
+      &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2);
+
+  // VkPhysicalDeviceFeatures2 takes priority
+  if(enabledFeatures2)
+    enabledFeatures = enabledFeatures2->features;
+  else if(createInfo.pEnabledFeatures)
     enabledFeatures = *createInfo.pEnabledFeatures;
 
   if(availFeatures.shaderStorageImageWriteWithoutFormat)
@@ -1911,14 +1922,17 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   else
     RDCWARN("pipelineStatisticsQuery = false, pipeline counters will not work");
 
-  createInfo.pEnabledFeatures = &enabledFeatures;
+  // patch the enabled features
+  if(enabledFeatures2)
+    enabledFeatures2->features = enabledFeatures;
+  else if(createInfo.pEnabledFeatures)
+    createInfo.pEnabledFeatures = &enabledFeatures;
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice));
 
   // don't serialise out any of the pNext stuff for layer initialisation
-  // (note that we asserted above that there was nothing else in the chain)
-  createInfo.pNext = NULL;
+  RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO);
 
   if(ret == VK_SUCCESS)
   {
