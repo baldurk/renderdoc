@@ -43,6 +43,8 @@ IntelCounters::IntelCounters()
 
 IntelCounters::~IntelCounters()
 {
+  SAFE_RELEASE(m_deviceContext);
+
   if(CloseMetricsDevice)
   {
     CloseMetricsDevice(m_metricsDevice);
