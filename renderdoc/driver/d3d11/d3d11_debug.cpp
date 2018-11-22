@@ -1247,6 +1247,7 @@ void D3D11Replay::PixelPicking::Init(WrappedID3D11Device *device)
 
 void D3D11Replay::PixelPicking::Release()
 {
+  SAFE_RELEASE(Texture);
   SAFE_RELEASE(RTV);
   SAFE_RELEASE(StageTexture);
 }
