@@ -256,6 +256,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   }
 
   m_pInfoQueue = NULL;
+  m_WrappedDebug.m_pDebug = NULL;
+  m_WrappedDebug.m_pDebug1 = NULL;
+  m_WrappedDebug.m_pDebug2 = NULL;
   if(m_pDevice)
   {
     m_pDevice->QueryInterface(__uuidof(ID3D12InfoQueue), (void **)&m_pInfoQueue);
@@ -538,6 +541,48 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
           "Returning a dummy ID3D12DebugDevice that does nothing. This ID3D12DebugDevice will not "
           "work!");
       *ppvObject = (ID3D12DebugDevice *)&m_DummyDebug;
+      m_DummyDebug.AddRef();
+      return S_OK;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DebugDevice1))
+  {
+    // we queryinterface for this at startup, so if it's present we can
+    // return our wrapper
+    if(m_WrappedDebug.m_pDebug1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugDevice1 *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      RDCWARN(
+          "Returning a dummy ID3D12DebugDevice1 that does nothing. This ID3D12DebugDevice1 will "
+          "not "
+          "work!");
+      *ppvObject = (ID3D12DebugDevice1 *)&m_DummyDebug;
+      m_DummyDebug.AddRef();
+      return S_OK;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DebugDevice2))
+  {
+    // we queryinterface for this at startup, so if it's present we can
+    // return our wrapper
+    if(m_WrappedDebug.m_pDebug1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugDevice2 *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      RDCWARN(
+          "Returning a dummy ID3D12DebugDevice2 that does nothing. This ID3D12DebugDevice2 will "
+          "not "
+          "work!");
+      *ppvObject = (ID3D12DebugDevice2 *)&m_DummyDebug;
       m_DummyDebug.AddRef();
       return S_OK;
     }

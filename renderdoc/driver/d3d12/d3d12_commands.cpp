@@ -204,6 +204,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D12CommandQueue));
 
+  m_WrappedDebug.m_pReal = NULL;
   if(m_pReal)
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
 
@@ -260,6 +261,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
     *ppvObject = (ID3D12CommandQueue *)this;
     AddRef();
     return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12DebugCommandQueue))
+  {
+    if(m_WrappedDebug.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugCommandQueue *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else if(riid == __uuidof(ID3D12Pageable))
   {
@@ -782,14 +796,18 @@ WrappedID3D12GraphicsCommandList2::WrappedID3D12GraphicsCommandList2(ID3D12Graph
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(
         this, sizeof(WrappedID3D12GraphicsCommandList2));
 
+  m_pList1 = NULL;
+  m_pList2 = NULL;
+
+  m_WrappedDebug.m_pReal = NULL;
+  m_WrappedDebug.m_pReal1 = NULL;
+  m_WrappedDebug.m_pReal2 = NULL;
+
   if(m_pList)
   {
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList1), (void **)&m_WrappedDebug.m_pReal1);
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList2), (void **)&m_WrappedDebug.m_pReal2);
-
-    m_pList1 = NULL;
-    m_pList2 = NULL;
 
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList1), (void **)&m_pList1);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList2), (void **)&m_pList2);
@@ -917,6 +935,45 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList2::QueryInterface(REFI
     *ppvObject = (ID3D12GraphicsCommandList *)this;
     AddRef();
     return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12DebugCommandList))
+  {
+    if(m_WrappedDebug.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugCommandList *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DebugCommandList1))
+  {
+    if(m_WrappedDebug.m_pReal1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugCommandList1 *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DebugCommandList2))
+  {
+    if(m_WrappedDebug.m_pReal2)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DebugCommandList2 *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else if(riid == __uuidof(ID3D12GraphicsCommandList1))
   {
