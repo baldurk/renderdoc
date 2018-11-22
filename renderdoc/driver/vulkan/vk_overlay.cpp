@@ -1234,13 +1234,35 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       };
 
       ResourceId depthView = createinfo.m_Framebuffer[state.framebuffer].attachments[dsIdx].view;
-      ResourceId depthIm = createinfo.m_ImageView[depthView].image;
+      VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthView];
 
-      attDescs[1].format = createinfo.m_Image[depthIm].format;
+      ResourceId depthIm = depthViewInfo.image;
+      VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
+
+      attDescs[1].format = depthImageInfo.format;
       attDescs[0].samples = attDescs[1].samples = iminfo.samples;
 
+      std::vector<ImageRegionState> &depthStates =
+          m_pDriver->m_ImageLayouts[depthIm].subresourceStates;
+
+      for(ImageRegionState &ds : depthStates)
+      {
+        // find the state that overlaps the view's subresource range start. We assume all
+        // subresources are correctly in the same state (as they should be) so we just need to find
+        // the first match.
+        if(ds.subresourceRange.baseArrayLayer <= depthViewInfo.range.baseArrayLayer &&
+           ds.subresourceRange.baseArrayLayer + 1 > depthViewInfo.range.baseArrayLayer &&
+           ds.subresourceRange.baseMipLevel <= depthViewInfo.range.baseMipLevel &&
+           ds.subresourceRange.baseMipLevel + ds.subresourceRange.levelCount + 1 >
+               depthViewInfo.range.baseMipLevel)
+        {
+          attDescs[1].initialLayout = attDescs[1].finalLayout = ds.newLayout;
+          break;
+        }
+      }
+
       VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-      VkAttachmentReference dsRef = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+      VkAttachmentReference dsRef = {1, attDescs[1].initialLayout};
 
       VkSubpassDescription sub = {
           0,      VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1951,13 +1973,35 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
         };
 
         ResourceId depthView = createinfo.m_Framebuffer[state.framebuffer].attachments[dsIdx].view;
-        ResourceId depthIm = createinfo.m_ImageView[depthView].image;
+        VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthView];
 
-        attDescs[1].format = createinfo.m_Image[depthIm].format;
+        ResourceId depthIm = depthViewInfo.image;
+        VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
+
+        attDescs[1].format = depthImageInfo.format;
         attDescs[0].samples = attDescs[1].samples = iminfo.samples;
 
+        std::vector<ImageRegionState> &depthStates =
+            m_pDriver->m_ImageLayouts[depthIm].subresourceStates;
+
+        for(ImageRegionState &ds : depthStates)
+        {
+          // find the state that overlaps the view's subresource range start. We assume all
+          // subresources are correctly in the same state (as they should be) so we just need to
+          // find the first match.
+          if(ds.subresourceRange.baseArrayLayer <= depthViewInfo.range.baseArrayLayer &&
+             ds.subresourceRange.baseArrayLayer + 1 > depthViewInfo.range.baseArrayLayer &&
+             ds.subresourceRange.baseMipLevel <= depthViewInfo.range.baseMipLevel &&
+             ds.subresourceRange.baseMipLevel + ds.subresourceRange.levelCount + 1 >
+                 depthViewInfo.range.baseMipLevel)
+          {
+            attDescs[1].initialLayout = attDescs[1].finalLayout = ds.newLayout;
+            break;
+          }
+        }
+
         VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-        VkAttachmentReference dsRef = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+        VkAttachmentReference dsRef = {1, attDescs[1].initialLayout};
 
         VkSubpassDescription sub = {
             0,      VK_PIPELINE_BIND_POINT_GRAPHICS,
