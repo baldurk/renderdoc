@@ -295,6 +295,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       m_pInfoQueue->SetMuteDebugOutput(false);
 
       D3D12_MESSAGE_ID mute[] = {
+          // the runtime cries foul when you use normal APIs in expected ways (for simple markers)
+          D3D12_MESSAGE_ID_CORRUPTED_PARAMETER2,
+
           // super spammy, mostly just perf warning, and impossible to fix for our cases
           D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
           D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
