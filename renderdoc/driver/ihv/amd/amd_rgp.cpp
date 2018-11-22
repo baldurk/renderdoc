@@ -68,7 +68,7 @@ AMDRGPControl::AMDRGPControl()
   m_RGPDispatchTable->minorVersion = DEV_DRIVER_API_MINOR_VERSION;
   m_RGPContext = NULL;
 
-  const bool enabled = RenderDoc::Inst().GetConfigSetting("ExternalTool_RGPIntegration") != "0";
+  const bool enabled = RenderDoc::Inst().GetConfigSetting("ExternalTool_RGPIntegration") == "1";
 
   if(!enabled)
   {
