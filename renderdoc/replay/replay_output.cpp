@@ -681,15 +681,13 @@ void ReplayOutput::DisplayTex()
 
   if(m_MainOutput.outputID == 0)
     return;
-  if(m_RenderData.texDisplay.resourceId == ResourceId())
+  if(m_RenderData.texDisplay.resourceId == ResourceId() || m_Width <= 0 || m_Height <= 0)
   {
     FloatVector color;
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
     m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
     return;
   }
-  if(m_Width <= 0 || m_Height <= 0)
-    return;
 
   TextureDisplay texDisplay = m_RenderData.texDisplay;
   texDisplay.rawOutput = false;
