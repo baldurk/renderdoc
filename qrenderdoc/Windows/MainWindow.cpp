@@ -1265,6 +1265,9 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
                    });
 
   QObject::connect(req, &QNetworkReply::finished, [this, req, callback]() {
+    if(req->error() != QNetworkReply::NoError)
+      return;
+
     QString response = QString::fromUtf8(req->readAll());
 
     statusText->setText(QString());
