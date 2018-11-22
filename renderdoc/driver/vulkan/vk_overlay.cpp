@@ -413,13 +413,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
-  VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
-
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
 
   // if the overlay image is the wrong size, free it
   if(m_Overlay.Image != VK_NULL_HANDLE && (iminfo.extent.width != m_Overlay.ImageDim.width ||
