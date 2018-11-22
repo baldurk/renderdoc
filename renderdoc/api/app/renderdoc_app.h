@@ -195,6 +195,15 @@ typedef enum RENDERDOC_CaptureOption {
   // 0 - API debugging is displayed as normal
   eRENDERDOC_Option_DebugOutputMute = 11,
 
+  // Option to allow vendor extensions to be used even when they may be
+  // incompatible with RenderDoc and cause corrupted replays or crashes.
+  //
+  // Default - inactive
+  //
+  // No values are documented, this option should only be used when absolutely
+  // necessary as directed by a RenderDoc developer.
+  eRENDERDOC_Option_AllowUnsupportedVendorExtensions = 12,
+
 } RENDERDOC_CaptureOption;
 
 // Sets an option that controls how RenderDoc behaves on capture.

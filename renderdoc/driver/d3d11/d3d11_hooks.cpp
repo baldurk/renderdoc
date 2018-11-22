@@ -416,8 +416,16 @@ private:
     }
     else
     {
-      RDCWARN("Returning NULL for nvapi_QueryInterface(%x)", ID);
-      return NULL;
+      if(RenderDoc::Inst().IsVendorExtensionEnabled(VendorExtensions::NvAPI))
+      {
+        RDCDEBUG("NvAPI allowed: Returning %p for nvapi_QueryInterface(%x)", real, ID);
+        return real;
+      }
+      else
+      {
+        RDCWARN("NvAPI disabled: Returning NULL for nvapi_QueryInterface(%x)", ID);
+        return NULL;
+      }
     }
   }
 

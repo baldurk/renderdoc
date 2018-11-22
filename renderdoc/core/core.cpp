@@ -86,9 +86,21 @@ std::string DoStringise(const ReplayLogType &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayLogType);
   {
-    STRINGISE_ENUM_CLASS_NAMED(eReplay_Full, "Full replay including draw");
-    STRINGISE_ENUM_CLASS_NAMED(eReplay_WithoutDraw, "Replay without draw");
-    STRINGISE_ENUM_CLASS_NAMED(eReplay_OnlyDraw, "Replay only draw");
+    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including draw");
+    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without draw");
+    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only draw");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VendorExtensions &el)
+{
+  BEGIN_ENUM_STRINGISE(VendorExtensions);
+  {
+    STRINGISE_ENUM_CLASS(NvAPI);
+    STRINGISE_ENUM_CLASS_NAMED(OpenGL_Ext, "Unsupported GL extensions");
+    STRINGISE_ENUM_CLASS_NAMED(Vulkan_Ext, "Unsupported Vulkan extensions");
   }
   END_ENUM_STRINGISE();
 }
@@ -1045,6 +1057,18 @@ map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
     ret[it->first] = ToStr(it->first);
 
   return ret;
+}
+
+void RenderDoc::EnableVendorExtensions(VendorExtensions ext)
+{
+  m_VendorExts[(int)ext] = true;
+
+  RDCWARN("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+  RDCWARN("!!! Vendor Extension enabled: %s", ToStr(ext).c_str());
+  RDCWARN("!!! ");
+  RDCWARN("!!! This can cause crashes, incorrect replay, or other problems and");
+  RDCWARN("!!! is explicitly unsupported. Do not enable without understanding.");
+  RDCWARN("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 }
 
 void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)

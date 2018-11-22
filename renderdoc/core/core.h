@@ -206,6 +206,18 @@ enum ReplayLogType
 
 DECLARE_REFLECTION_ENUM(ReplayLogType);
 
+enum class VendorExtensions
+{
+  NvAPI = 0,
+  First = NvAPI,
+  OpenGL_Ext,
+  Vulkan_Ext,
+  Count,
+};
+
+DECLARE_REFLECTION_ENUM(VendorExtensions);
+ITERABLE_OPERATORS(VendorExtensions);
+
 struct CaptureData
 {
   CaptureData(string p, uint64_t t, RDCDriver d, uint32_t f)
@@ -385,6 +397,11 @@ public:
   void SetConfigSetting(string name, string value) { m_ConfigSettings[name] = value; }
   void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
                           RENDERDOC_PreviewWindowCallback previewWindow);
+
+  // can't be disabled, only enabled then latched
+
+  bool IsVendorExtensionEnabled(VendorExtensions ext) { return m_VendorExts[(int)ext]; }
+  void EnableVendorExtensions(VendorExtensions ext);
 
   void SetCaptureOptions(const CaptureOptions &opts);
   const CaptureOptions &GetCaptureOptions() const { return m_Options; }
@@ -641,6 +658,8 @@ private:
   map<void *, IFrameCapturer *> m_DeviceFrameCapturers;
 
   IFrameCapturer *MatchFrameCapturer(void *dev, void *wnd);
+
+  bool m_VendorExts[ENUM_ARRAY_SIZE(VendorExtensions)] = {};
 
   volatile bool m_TargetControlThreadShutdown;
   volatile bool m_ControlClientThreadShutdown;
