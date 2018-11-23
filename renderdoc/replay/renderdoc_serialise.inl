@@ -106,7 +106,7 @@ void DoSerialise(SerialiserType &ser, CaptureOptions &el)
   SERIALISE_MEMBER(captureCallstacks);
   SERIALISE_MEMBER(captureCallstacksOnlyDraws);
   SERIALISE_MEMBER(delayForDebugger);
-  SERIALISE_MEMBER(verifyMapWrites);
+  SERIALISE_MEMBER(verifyBufferAccess);
   SERIALISE_MEMBER(hookIntoChildren);
   SERIALISE_MEMBER(refAllResources);
   SERIALISE_MEMBER(captureAllCmdLists);

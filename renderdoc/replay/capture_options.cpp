@@ -42,7 +42,7 @@ int RENDERDOC_CC SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
       opts.captureCallstacksOnlyDraws = (val != 0);
       break;
     case eRENDERDOC_Option_DelayForDebugger: opts.delayForDebugger = val; break;
-    case eRENDERDOC_Option_VerifyMapWrites: opts.verifyMapWrites = (val != 0); break;
+    case eRENDERDOC_Option_VerifyBufferAccess: opts.verifyBufferAccess = (val != 0); break;
     case eRENDERDOC_Option_HookIntoChildren: opts.hookIntoChildren = (val != 0); break;
     case eRENDERDOC_Option_RefAllResources: opts.refAllResources = (val != 0); break;
     case eRENDERDOC_Option_SaveAllInitials:
@@ -77,7 +77,7 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
       opts.captureCallstacksOnlyDraws = (val != 0.0f);
       break;
     case eRENDERDOC_Option_DelayForDebugger: opts.delayForDebugger = (uint32_t)val; break;
-    case eRENDERDOC_Option_VerifyMapWrites: opts.verifyMapWrites = (val != 0.0f); break;
+    case eRENDERDOC_Option_VerifyBufferAccess: opts.verifyBufferAccess = (val != 0.0f); break;
     case eRENDERDOC_Option_HookIntoChildren: opts.hookIntoChildren = (val != 0.0f); break;
     case eRENDERDOC_Option_RefAllResources: opts.refAllResources = (val != 0.0f); break;
     case eRENDERDOC_Option_SaveAllInitials:
@@ -111,8 +111,8 @@ uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt)
       return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws ? 1 : 0);
     case eRENDERDOC_Option_DelayForDebugger:
       return (RenderDoc::Inst().GetCaptureOptions().delayForDebugger);
-    case eRENDERDOC_Option_VerifyMapWrites:
-      return (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites ? 1 : 0);
+    case eRENDERDOC_Option_VerifyBufferAccess:
+      return (RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 1 : 0);
     case eRENDERDOC_Option_HookIntoChildren:
       return (RenderDoc::Inst().GetCaptureOptions().hookIntoChildren ? 1 : 0);
     case eRENDERDOC_Option_RefAllResources:
@@ -148,8 +148,8 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
       return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws ? 1.0f : 0.0f);
     case eRENDERDOC_Option_DelayForDebugger:
       return (RenderDoc::Inst().GetCaptureOptions().delayForDebugger * 1.0f);
-    case eRENDERDOC_Option_VerifyMapWrites:
-      return (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites ? 1.0f : 0.0f);
+    case eRENDERDOC_Option_VerifyBufferAccess:
+      return (RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 1.0f : 0.0f);
     case eRENDERDOC_Option_HookIntoChildren:
       return (RenderDoc::Inst().GetCaptureOptions().hookIntoChildren ? 1.0f : 0.0f);
     case eRENDERDOC_Option_RefAllResources:
@@ -177,7 +177,7 @@ CaptureOptions::CaptureOptions()
   captureCallstacks = false;
   captureCallstacksOnlyDraws = false;
   delayForDebugger = 0;
-  verifyMapWrites = false;
+  verifyBufferAccess = false;
   hookIntoChildren = false;
   refAllResources = false;
   captureAllCmdLists = false;

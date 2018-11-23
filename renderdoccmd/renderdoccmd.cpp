@@ -1247,8 +1247,9 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
       cmd.add<int>("opt-delay-for-debugger", 0,
                    "Capturing Option: Specify a delay in seconds to wait for a debugger to attach.",
                    false, 0, cmdline::range(0, 10000));
-      cmd.add("opt-verify-map-writes", 0,
-              "Capturing Option: Verify any writes to mapped buffers, by bounds checking.");
+      cmd.add("opt-verify-buffer-access", 0,
+              "Capturing Option: Verify any writes to mapped buffers, by bounds checking, and "
+              "initialise buffers to invalid value if uninitialised.");
       cmd.add("opt-hook-children", 0,
               "Capturing Option: Hooks any system API calls that create child processes.");
       cmd.add("opt-ref-all-resources", 0,
@@ -1276,8 +1277,8 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
         opts.captureCallstacks = true;
       if(cmd.exist("opt-capture-callstacks-only-draws"))
         opts.captureCallstacksOnlyDraws = true;
-      if(cmd.exist("opt-verify-map-writes"))
-        opts.verifyMapWrites = true;
+      if(cmd.exist("opt-verify-buffer-access"))
+        opts.verifyBufferAccess = true;
       if(cmd.exist("opt-hook-children"))
         opts.hookIntoChildren = true;
       if(cmd.exist("opt-ref-all-resources"))

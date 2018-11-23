@@ -45,8 +45,10 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
   {
     fakeData.pSysMem = new byte[Descriptor.ByteWidth];
     fakeData.SysMemPitch = fakeData.SysMemSlicePitch = Descriptor.ByteWidth;
-    // fill with 0xfefefefe to indicate that the data is uninitialised.
-    memset((void *)fakeData.pSysMem, 0xfe, Descriptor.ByteWidth);
+    // fill with 0xdddddddd to indicate that the data is uninitialised, if that option is enabled
+    memset((void *)fakeData.pSysMem,
+           RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 0xdd : 0x0,
+           Descriptor.ByteWidth);
     pInitialData = &fakeData;
   }
 

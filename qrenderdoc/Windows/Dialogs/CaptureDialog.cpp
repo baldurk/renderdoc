@@ -872,7 +872,7 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->RefAllResources->setChecked(settings.options.refAllResources);
   ui->CaptureAllCmdLists->setChecked(settings.options.captureAllCmdLists);
   ui->DelayForDebugger->setValue(settings.options.delayForDebugger);
-  ui->VerifyMapWrites->setChecked(settings.options.verifyMapWrites);
+  ui->VerifyBufferAccess->setChecked(settings.options.verifyBufferAccess);
   ui->AutoStart->setChecked(settings.autoStart);
 
   // force flush this state
@@ -907,7 +907,7 @@ CaptureSettings CaptureDialog::Settings()
   ret.options.refAllResources = ui->RefAllResources->isChecked();
   ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
   ret.options.delayForDebugger = (uint32_t)ui->DelayForDebugger->value();
-  ret.options.verifyMapWrites = ui->VerifyMapWrites->isChecked();
+  ret.options.verifyBufferAccess = ui->VerifyBufferAccess->isChecked();
 
   return ret;
 }

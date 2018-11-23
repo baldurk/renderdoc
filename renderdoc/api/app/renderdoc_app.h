@@ -126,15 +126,24 @@ typedef enum RENDERDOC_CaptureOption {
   //
   eRENDERDOC_Option_DelayForDebugger = 5,
 
-  // Verify any writes to mapped buffers, by checking the memory after the
-  // bounds of the returned pointer to detect any modification.
+  // Verify buffer access. This includes checking the memory returned by a Map() call to
+  // detect any out-of-bounds modification, as well as initialising buffers with undefined contents
+  // to a marker value to catch use of uninitialised memory.
+  //
+  // NOTE: This option is only valid for OpenGL and D3D11. Explicit APIs such as D3D12 and Vulkan do
+  // not do the same kind of interception & checking and undefined contents are really undefined.
   //
   // Default - disabled
   //
-  // 1 - Verify any writes to mapped buffers
-  // 0 - No verification is performed, and overwriting bounds may cause
-  //     crashes or corruption in RenderDoc
-  eRENDERDOC_Option_VerifyMapWrites = 6,
+  // 1 - Verify buffer access
+  // 0 - No verification is performed, and overwriting bounds may cause crashes or corruption in
+  //     RenderDoc.
+  eRENDERDOC_Option_VerifyBufferAccess = 6,
+
+  // The old name for eRENDERDOC_Option_VerifyBufferAccess was eRENDERDOC_Option_VerifyMapWrites.
+  // This option now controls the filling of uninitialised buffers with 0xdddddddd which was
+  // previously always enabled
+  eRENDERDOC_Option_VerifyMapWrites = eRENDERDOC_Option_VerifyBufferAccess,
 
   // Hooks any system API calls that create child processes, and injects
   // RenderDoc into them recursively with the same options.
@@ -177,7 +186,7 @@ typedef enum RENDERDOC_CaptureOption {
   // and replayed many times will not be available and may cause a failure to
   // capture.
   //
-  // Note this is only true for APIs where multithreading is difficult or
+  // NOTE: This is only true for APIs where multithreading is difficult or
   // discouraged. Newer APIs like Vulkan and D3D12 will ignore this option
   // and always capture all command lists since the API is heavily oriented
   // around it and the overheads have been reduced by API design.
@@ -525,6 +534,7 @@ typedef enum RENDERDOC_Version {
   eRENDERDOC_API_Version_1_1_1 = 10101,    // RENDERDOC_API_1_1_1 = 1 01 01
   eRENDERDOC_API_Version_1_1_2 = 10102,    // RENDERDOC_API_1_1_2 = 1 01 02
   eRENDERDOC_API_Version_1_2_0 = 10200,    // RENDERDOC_API_1_2_0 = 1 02 00
+  eRENDERDOC_API_Version_1_3_0 = 10300,    // RENDERDOC_API_1_3_0 = 1 03 00
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -542,8 +552,14 @@ typedef enum RENDERDOC_Version {
 //         branch.
 // 1.2.0 - Added feature: SetCaptureFileComments() to add comments to a capture file that will be
 //         displayed in the UI program on load.
+// 1.3.0 - Added feature: New capture option eRENDERDOC_Option_AllowUnsupportedVendorExtensions
+//         which allows users to opt-in to allowing unsupported vendor extensions to function.
+//         Should be used at the user's own risk.
+//         Refactor: Renamed eRENDERDOC_Option_VerifyMapWrites to
+//         eRENDERDOC_Option_VerifyBufferAccess, which now also controls initialisation to
+//         0xdddddddd of uninitialised buffer contents.
 
-typedef struct RENDERDOC_API_1_2_0
+typedef struct RENDERDOC_API_1_3_0
 {
   pRENDERDOC_GetAPIVersion GetAPIVersion;
 
@@ -606,14 +622,15 @@ typedef struct RENDERDOC_API_1_2_0
 
   // new function in 1.2.0
   pRENDERDOC_SetCaptureFileComments SetCaptureFileComments;
-} RENDERDOC_API_1_2_0;
+} RENDERDOC_API_1_3_0;
 
-typedef RENDERDOC_API_1_2_0 RENDERDOC_API_1_0_0;
-typedef RENDERDOC_API_1_2_0 RENDERDOC_API_1_0_1;
-typedef RENDERDOC_API_1_2_0 RENDERDOC_API_1_0_2;
-typedef RENDERDOC_API_1_2_0 RENDERDOC_API_1_1_0;
-typedef RENDERDOC_API_1_2_0 RENDERDOC_API_1_1_1;
-typedef RENDERDOC_API_1_2_0 RENDERDOC_API_1_1_2;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_0_1;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_0_2;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_1_0;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_1_1;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_1_2;
+typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_2_0;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point

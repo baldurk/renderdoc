@@ -131,17 +131,23 @@ Default - 0 seconds
 )");
   uint32_t delayForDebugger;
 
-  DOCUMENT(R"(Verify any writes to mapped buffers, by checking the memory after the
-bounds of the returned pointer to detect any modification.
+  DOCUMENT(R"(Verify buffer access. This includes checking the memory returned by a Map() call to
+detect any out-of-bounds modification, as well as initialising buffers with undefined contents to
+a marker value to catch use of uninitialised memory.
+
+.. note::
+
+  This option is only valid for OpenGL and D3D11. Explicit APIs such as D3D12 and Vulkan do not
+  do the same kind of interception & checking and undefined contents are really undefined.
 
 Default - disabled
 
-``True`` - Verify any writes to mapped buffers.
+``True`` - Verify buffer access.
 
-``False`` - No verification is performed, and overwriting bounds may cause
-crashes or corruption in RenderDoc.
+``False`` - No verification is performed, and overwriting bounds may cause crashes or corruption in
+RenderDoc.
 )");
-  bool verifyMapWrites;
+  bool verifyBufferAccess;
 
   DOCUMENT(R"(Hooks any system API calls that create child processes, and injects
 RenderDoc into them recursively with the same options.

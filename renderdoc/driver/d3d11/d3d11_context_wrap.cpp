@@ -7237,12 +7237,13 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
 
     if(MapType == D3D11_MAP_WRITE_DISCARD)
     {
-      memset(appMem, 0xcc, mapLength);
+      if(RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
+        memset(appMem, 0xcc, mapLength);
       memcpy(record->GetShadowPtr(ctxMapID, 1), appMem, mapLength);
     }
 
     intercept = MapIntercept();
-    intercept.verifyWrite = (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites != 0);
+    intercept.verifyWrite = RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess;
     intercept.SetD3D(mappedResource);
     intercept.InitWrappedResource(resMap, Subresource, appMem);
     intercept.MapType = MapType;
@@ -7260,7 +7261,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
     mapLength = (size_t)record->Length;
 
     intercept = MapIntercept();
-    intercept.verifyWrite = (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites != 0);
+    intercept.verifyWrite = RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess;
     intercept.SetD3D(mappedResource);
     intercept.MapType = MapType;
     intercept.MapFlags = MapFlags;
@@ -7411,7 +7412,7 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 
       record->UpdateCount++;
 
-      if(record->UpdateCount > 60 && RenderDoc::Inst().GetCaptureOptions().verifyMapWrites == 0)
+      if(record->UpdateCount > 60 && !RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
       {
         m_HighTrafficResources.insert(Id);
         MarkDirtyResource(Id);

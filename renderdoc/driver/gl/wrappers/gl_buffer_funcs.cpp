@@ -479,7 +479,7 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
   if(IsCaptureMode(m_State) && data == NULL)
   {
     dummy = new byte[size];
-    memset(dummy, 0xdd, size);
+    memset(dummy, RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 0xdd : 0x0, size);
     data = dummy;
 
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
@@ -509,7 +509,7 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
   if(IsCaptureMode(m_State) && data == NULL)
   {
     dummy = new byte[size];
-    memset(dummy, 0xdd, size);
+    memset(dummy, RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 0xdd : 0x0, size);
     data = dummy;
 
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
@@ -573,7 +573,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
   if(IsCaptureMode(m_State) && data == NULL)
   {
     dummy = new byte[size];
-    memset(dummy, 0xdd, size);
+    memset(dummy, RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 0xdd : 0x0, size);
     data = dummy;
 
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
@@ -714,7 +714,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
   if(IsCaptureMode(m_State) && data == NULL)
   {
     dummy = new byte[size];
-    memset(dummy, 0xdd, size);
+    memset(dummy, RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess ? 0xdd : 0x0, size);
     data = dummy;
 
     GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
@@ -740,10 +740,9 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
     if(IsBackgroundCapturing(m_State) && record->HasDataPtr() &&
        size == (GLsizeiptr)record->Length && usage == record->usage)
     {
-      if(data)
-        memcpy(record->GetDataPtr(), data, (size_t)size);
-      else
-        memset(record->GetDataPtr(), 0xbe, (size_t)size);
+      // if data was NULL, it was set to dummy above.
+      RDCASSERT(data);
+      memcpy(record->GetDataPtr(), data, (size_t)size);
 
       SAFE_DELETE_ARRAY(dummy);
 
@@ -1934,7 +1933,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     if(record->Map.persistentPtr)
       directMap = false;
 
-    bool verifyWrite = (RenderDoc::Inst().GetCaptureOptions().verifyMapWrites != 0);
+    bool verifyWrite = RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess;
 
     // must also intercept to verify writes
     if(verifyWrite && (access & GL_MAP_WRITE_BIT))
@@ -2004,8 +2003,8 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
         // comparison & modified buffer in case the application calls glMemoryBarrier(..) at any
         // time.
 
-        // if we're invalidating, mark the whole range as 0xcc
-        if(invalidateMap)
+        // if we're invalidating and verifying, mark the whole range as 0xcc
+        if(invalidateMap && RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
         {
           memset(record->GetShadowPtr(0) + offset, 0xcc, length);
           memset(record->GetShadowPtr(1) + offset, 0xcc, length);
@@ -2050,7 +2049,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
         }
 
         // if we're invalidating, mark the whole range as 0xcc
-        if(invalidateMap)
+        if(invalidateMap && RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
         {
           memset(shadow + offset, 0xcc, length);
           memset(record->GetShadowPtr(1) + offset, 0xcc, length);
@@ -2077,10 +2076,10 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
           }
 
           // if we're not invalidating, we need the existing contents
-          if(!invalidateMap)
-            memcpy(shadow, record->GetDataPtr(), buflength);
-          else
+          if(invalidateMap && RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
             memset(shadow + offset, 0xcc, length);
+          else
+            memcpy(shadow, record->GetDataPtr(), buflength);
 
           ptr = shadow;
         }

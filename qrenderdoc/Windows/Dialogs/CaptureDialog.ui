@@ -520,9 +520,12 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="VerifyMapWrites">
+       <widget class="QCheckBox" name="VerifyBufferAccess">
+        <property name="toolTip">
+         <string>When enabled, verify some buffer access on OpenGL and D3D11. This initialises buffers with undefined contents on creation to 0xdddddddd instead of 0x0, and verifies that Map() bounds are not overrun.</string>
+        </property>
         <property name="text">
-         <string>Verify Map() Writes</string>
+         <string>Verify Buffer Access</string>
         </property>
        </widget>
       </item>

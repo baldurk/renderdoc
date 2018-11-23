@@ -99,7 +99,7 @@ CaptureSettings::operator QVariant() const
   opts[lit("captureCallstacks")] = options.captureCallstacks;
   opts[lit("captureCallstacksOnlyDraws")] = options.captureCallstacksOnlyDraws;
   opts[lit("delayForDebugger")] = options.delayForDebugger;
-  opts[lit("verifyMapWrites")] = options.verifyMapWrites;
+  opts[lit("verifyBufferAccess")] = options.verifyBufferAccess;
   opts[lit("hookIntoChildren")] = options.hookIntoChildren;
   opts[lit("refAllResources")] = options.refAllResources;
   opts[lit("captureAllCmdLists")] = options.captureAllCmdLists;
@@ -135,7 +135,11 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   options.captureCallstacks = opts[lit("captureCallstacks")].toBool();
   options.captureCallstacksOnlyDraws = opts[lit("captureCallstacksOnlyDraws")].toBool();
   options.delayForDebugger = opts[lit("delayForDebugger")].toUInt();
-  options.verifyMapWrites = opts[lit("verifyMapWrites")].toBool();
+  // old name for verifyBufferAccess was verifyMapWrites, so use that as a fallback
+  if(opts.contains(lit("verifyBufferAccess")))
+    options.verifyBufferAccess = opts[lit("verifyBufferAccess")].toBool();
+  else
+    options.verifyBufferAccess = opts[lit("verifyMapWrites")].toBool();
   options.hookIntoChildren = opts[lit("hookIntoChildren")].toBool();
   options.refAllResources = opts[lit("refAllResources")].toBool();
   options.captureAllCmdLists = opts[lit("captureAllCmdLists")].toBool();
