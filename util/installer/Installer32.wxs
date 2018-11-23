@@ -212,6 +212,8 @@
               <Component Id='spirv_plugin' Guid='749539F5-0AAA-4A26-B8F4-B2ABD1F7754E'>
                 <File Id='spirvcross' Name='spirv-cross.exe' DiskId='1' Source='dist/Release32/plugins/spirv/spirv-cross.exe' KeyPath='yes' />
                 <File Id='spirvdis' Name='spirv-dis.exe' DiskId='1' Source='dist/Release32/plugins/spirv/spirv-dis.exe' />
+                <File Id='spirvas' Name='spirv-as.exe' DiskId='1' Source='dist/Release32/plugins/spirv/spirv-as.exe' />
+                <File Id='glslang' Name='glslangValidator.exe' DiskId='1' Source='dist/Release32/plugins/spirv/glslangValidator.exe' />
               </Component>
             </Directory>
           </Directory>
