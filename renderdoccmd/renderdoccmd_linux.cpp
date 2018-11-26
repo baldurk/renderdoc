@@ -107,15 +107,13 @@ struct VulkanRegisterCommand : public Command
 
 void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
 {
-  VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
-  rdcarray<rdcstr> myJSONs;
-  rdcarray<rdcstr> otherJSONs;
+  VulkanLayerRegistrationInfo info;
 
-  bool needUpdate = RENDERDOC_NeedVulkanLayerRegistration(&flags, &myJSONs, &otherJSONs);
+  bool needUpdate = RENDERDOC_NeedVulkanLayerRegistration(&info);
 
   if(!needUpdate)
   {
-    if(!(flags & VulkanLayerFlags::Unfixable))
+    if(!(info.flags & VulkanLayerFlags::Unfixable))
       add_command("vulkanregister", new VulkanRegisterCommand(env));
     return;
   }
@@ -126,39 +124,39 @@ void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
             << std::endl;
   std::cerr << std::endl;
 
-  if(flags & VulkanLayerFlags::OtherInstallsRegistered)
+  if(info.flags & VulkanLayerFlags::OtherInstallsRegistered)
     std::cerr << "Multiple RenderDoc layers are registered, possibly from different builds."
               << std::endl;
 
-  if(!(flags & VulkanLayerFlags::ThisInstallRegistered))
+  if(!(info.flags & VulkanLayerFlags::ThisInstallRegistered))
     std::cerr << "This build's RenderDoc layer is not registered." << std::endl;
 
   std::cerr << "To fix this, the following actions must take place: " << std::endl << std::endl;
 
-  const bool registerAll = bool(flags & VulkanLayerFlags::RegisterAll);
-  const bool updateAllowed = bool(flags & VulkanLayerFlags::UpdateAllowed);
+  const bool registerAll = bool(info.flags & VulkanLayerFlags::RegisterAll);
+  const bool updateAllowed = bool(info.flags & VulkanLayerFlags::UpdateAllowed);
 
-  for(const rdcstr &j : otherJSONs)
+  for(const rdcstr &j : info.otherJSONs)
     std::cerr << (updateAllowed ? "Unregister/update: " : "Unregister: ") << j.c_str() << std::endl;
 
-  if(!(flags & VulkanLayerFlags::ThisInstallRegistered))
+  if(!(info.flags & VulkanLayerFlags::ThisInstallRegistered))
   {
     if(registerAll)
     {
-      for(const rdcstr &j : myJSONs)
+      for(const rdcstr &j : info.myJSONs)
         std::cerr << (updateAllowed ? "Register/update: " : "Register: ") << j.c_str() << std::endl;
     }
     else
     {
       std::cerr << (updateAllowed ? "Register one of:" : "Register/update one of:") << std::endl;
-      for(const rdcstr &j : myJSONs)
+      for(const rdcstr &j : info.myJSONs)
         std::cerr << "  -- " << j.c_str() << "\n";
     }
   }
 
   std::cerr << std::endl;
 
-  if(flags & VulkanLayerFlags::Unfixable)
+  if(info.flags & VulkanLayerFlags::Unfixable)
   {
     std::cerr << "NOTE: The renderdoc layer registered in /usr is reserved for distribution"
               << std::endl;

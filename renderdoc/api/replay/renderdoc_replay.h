@@ -2144,9 +2144,22 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
 // Vulkan layer handling
 //////////////////////////////////////////////////////////////////////////
 
+DOCUMENT("Structure containing all the information about vulkan layer registration");
+struct VulkanLayerRegistrationInfo
+{
+  DOCUMENT(":class:`VulkanLayerFlags` detailing the current registration.");
+  VulkanLayerFlags flags;
+
+  DOCUMENT("A list of jsons that should be registered");
+  rdcarray<rdcstr> myJSONs;
+
+  DOCUMENT("A list of jsons that should be unregistered / updated");
+  rdcarray<rdcstr> otherJSONs;
+};
+
 DOCUMENT("Internal function for determining vulkan layer registration status.");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
-    VulkanLayerFlags *flags, rdcarray<rdcstr> *myJSONs, rdcarray<rdcstr> *otherJSONs);
+extern "C" RENDERDOC_API bool RENDERDOC_CC
+RENDERDOC_NeedVulkanLayerRegistration(VulkanLayerRegistrationInfo *info);
 
 DOCUMENT("Internal function for updating vulkan layer registration.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool systemLevel);

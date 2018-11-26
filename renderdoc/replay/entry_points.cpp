@@ -485,8 +485,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
   rdoc->EndFrameCapture(NULL, NULL);
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
-    VulkanLayerFlags *flagsPtr, rdcarray<rdcstr> *myJSONsPtr, rdcarray<rdcstr> *otherJSONsPtr)
+extern "C" RENDERDOC_API bool RENDERDOC_CC
+RENDERDOC_NeedVulkanLayerRegistration(VulkanLayerRegistrationInfo *info)
 {
   VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
   std::vector<std::string> myJSONs;
@@ -494,21 +494,17 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration
 
   bool ret = RenderDoc::Inst().NeedVulkanLayerRegistration(flags, myJSONs, otherJSONs);
 
-  if(flagsPtr)
-    *flagsPtr = flags;
-
-  if(myJSONsPtr)
+  if(info)
   {
-    myJSONsPtr->resize(myJSONs.size());
+    info->flags = flags;
+
+    info->myJSONs.resize(myJSONs.size());
     for(size_t i = 0; i < myJSONs.size(); i++)
-      (*myJSONsPtr)[i] = myJSONs[i];
-  }
+      info->myJSONs[i] = myJSONs[i];
 
-  if(otherJSONsPtr)
-  {
-    otherJSONsPtr->resize(otherJSONs.size());
+    info->otherJSONs.resize(otherJSONs.size());
     for(size_t i = 0; i < otherJSONs.size(); i++)
-      (*otherJSONsPtr)[i] = otherJSONs[i];
+      info->otherJSONs[i] = otherJSONs[i];
   }
 
   return ret;
