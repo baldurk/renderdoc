@@ -680,27 +680,32 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     *ppvObject = (IUnknown *)this;
     return S_OK;
   }
-  else if(riid == __uuidof(ID3D11VideoDevice))
-  {
-    RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
-    *ppvObject = NULL;
-    return E_NOINTERFACE;
-  }
-  else if(riid == __uuidof(ID3D11VideoDevice1))
-  {
-    RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
-    *ppvObject = NULL;
-    return E_NOINTERFACE;
-  }
-  else if(riid == __uuidof(ID3D11VideoDevice2))
-  {
-    RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
-    *ppvObject = NULL;
-    return E_NOINTERFACE;
-  }
   else
   {
     WarnUnknownGUID("ID3D11Device", riid);
+  }
+
+  // nvencode requires ID3D11VideoDevice, so when it's allowed then pass these interfaces through.
+  if(!RenderDoc::Inst().IsVendorExtensionEnabled(VendorExtensions::NvAPI))
+  {
+    if(riid == __uuidof(ID3D11VideoDevice))
+    {
+      RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
+      *ppvObject = NULL;
+      return E_NOINTERFACE;
+    }
+    else if(riid == __uuidof(ID3D11VideoDevice1))
+    {
+      RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
+      *ppvObject = NULL;
+      return E_NOINTERFACE;
+    }
+    else if(riid == __uuidof(ID3D11VideoDevice2))
+    {
+      RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
+      *ppvObject = NULL;
+      return E_NOINTERFACE;
+    }
   }
 
   return m_RefCounter.QueryInterface(riid, ppvObject);
