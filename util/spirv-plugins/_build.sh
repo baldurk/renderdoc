@@ -33,6 +33,7 @@ pushd SPIRV-Cross
 			cmake --build . --config Release --target install
 		else
 			make -j$(nproc) install
+			strip --strip-unneeded ${OUT}/bin/*
 		fi
 
 	popd #build
@@ -56,6 +57,7 @@ pushd glslang
 			cmake --build . --config Release --target install
 		else
 			make -j$(nproc) install
+			strip --strip-unneeded ${OUT}/bin/*
 		fi
 
 	popd #build
