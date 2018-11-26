@@ -26,6 +26,11 @@
 #include "common/common.h"
 #include "common/threading.h"
 #include "serialise/serialiser.h"
+#include "strings/string_utils.h"
+
+// for GetDriverVersion()
+#include <devpkey.h>
+#include <setupapi.h>
 
 UINT GetFormatBPP(DXGI_FORMAT f)
 {
@@ -1365,6 +1370,91 @@ void WarnUnknownGUID(const char *name, REFIID riid)
     RDCWARN("Querying %s for interface: %s", name, ToStr(riid).c_str());
     warned.push_back(std::make_pair(riid, 1));
   }
+}
+
+static std::string GetDeviceProperty(HDEVINFO devs, PSP_DEVINFO_DATA data, const DEVPROPKEY *key)
+{
+  DEVPROPTYPE type = {};
+  DWORD bufSize = 0;
+
+  // this ALWAYS fails, we need to check if the er ror was just an insufficient buffer.
+  SetupDiGetDevicePropertyW(devs, data, key, &type, NULL, 0, &bufSize, 0);
+
+  if(GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    return "";
+
+  RDCASSERTEQUAL((uint32_t)type, DEVPROP_TYPE_STRING);
+
+  std::wstring string;
+  string.resize(bufSize);
+  BOOL success =
+      SetupDiGetDevicePropertyW(devs, data, key, &type, (PBYTE)string.data(), bufSize, &bufSize, 0);
+
+  if(!success)
+    return "";
+
+  return StringFormat::Wide2UTF8(string);
+}
+
+std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
+{
+  std::string device = StringFormat::Wide2UTF8(desc.Description);
+
+  // fixed GUID for graphics drivers, from
+  // https://msdn.microsoft.com/en-us/library/windows/hardware/ff553426%28v=vs.85%29.aspx
+  GUID display_class = {0x4d36e968, 0xe325, 0x11ce, {0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18}};
+
+  HDEVINFO devs = SetupDiGetClassDevs(&display_class, NULL, NULL, DIGCF_PRESENT);
+
+  if(devs == NULL)
+  {
+    RDCERR("Couldn't enumerate graphics adapters: %d", GetLastError());
+    return device;
+  }
+
+  std::string pci_match = StringFormat::Fmt("pci\\ven_%04x&dev_%04x", desc.VendorId, desc.DeviceId);
+
+  std::string driverVersion = "";
+
+  DWORD idx = 0;
+  SP_DEVINFO_DATA data = {};
+  data.cbSize = sizeof(data);
+  while(SetupDiEnumDeviceInfo(devs, idx, &data))
+  {
+    std::string version = GetDeviceProperty(devs, &data, &DEVPKEY_Device_DriverVersion);
+
+    if(version.empty())
+    {
+      SetupDiDestroyDeviceInfoList(devs);
+      return device;
+    }
+
+    // if we got a version, and didn't have one yet, set it
+    if(version.empty())
+      driverVersion = version;
+
+    std::string pciid = GetDeviceProperty(devs, &data, &DEVPKEY_Device_MatchingDeviceId);
+
+    if(version.empty())
+    {
+      SetupDiDestroyDeviceInfoList(devs);
+      return device;
+    }
+
+    pciid = strlower(pciid);
+
+    // if the PCI id matches, take it
+    if(pciid == pci_match)
+      driverVersion = version;
+
+    // move to the next device
+    RDCEraseEl(data);
+    data.cbSize = sizeof(data);
+    idx++;
+  }
+
+  SetupDiDestroyDeviceInfoList(devs);
+  return device + " " + driverVersion;
 }
 
 Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo)

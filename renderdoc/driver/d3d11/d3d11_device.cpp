@@ -146,6 +146,36 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_DeviceRecord->SubResources = NULL;
 
     RenderDoc::Inst().AddDeviceFrameCapturer((ID3D11Device *)this, this);
+
+    {
+      IDXGIDevice *pDXGIDevice = NULL;
+      HRESULT hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't get DXGI device from D3D device");
+      }
+      else
+      {
+        IDXGIAdapter *pDXGIAdapter = NULL;
+        hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+        if(SUCCEEDED(hr))
+        {
+          DXGI_ADAPTER_DESC desc = {};
+          pDXGIAdapter->GetDesc(&desc);
+
+          GPUVendor vendor = GPUVendorFromPCIVendor(desc.VendorId);
+          std::string descString = GetDriverVersion(desc);
+
+          RDCLOG("New D3D11 device created: %s / %s", ToStr(vendor).c_str(), descString.c_str());
+
+          SAFE_RELEASE(pDXGIAdapter);
+        }
+      }
+
+      SAFE_RELEASE(pDXGIDevice);
+    }
   }
 
   ID3D11DeviceContext *context = NULL;

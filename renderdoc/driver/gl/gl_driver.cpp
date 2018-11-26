@@ -1162,6 +1162,10 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     {
       ctxdata.built = true;
 
+      if(IsCaptureMode(m_State))
+        RDCLOG("Activating new GL context: %s / %s / %s", GL.glGetString(eGL_VENDOR),
+               GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
+
       const vector<string> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
 
       if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&

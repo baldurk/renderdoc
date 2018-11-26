@@ -104,6 +104,7 @@ public:
   void CreateResources();
   void DestroyResources();
 
+  DriverInformation GetDriverInfo() { return m_DriverInfo; }
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
@@ -240,8 +241,6 @@ private:
   bool m_WARP;
   bool m_Proxy;
 
-  GPUVendor m_Vendor = GPUVendor::Unknown;
-
   D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
   void BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
@@ -302,6 +301,8 @@ private:
   std::map<uint64_t, OutputWindow> m_OutputWindows;
 
   IDXGIFactory *m_pFactory = NULL;
+
+  DriverInformation m_DriverInfo;
 
   AMDCounters *m_pAMDCounters = NULL;
   NVCounters *m_pNVCounters = NULL;

@@ -170,6 +170,8 @@ public:
   virtual void FileChanged() = 0;
 
   virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
+
+  virtual DriverInformation GetDriverInfo() = 0;
 };
 
 class IReplayDriver : public IRemoteDriver

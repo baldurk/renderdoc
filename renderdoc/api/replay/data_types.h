@@ -1203,6 +1203,18 @@ worked around by re-sorting bindings.
 
 DECLARE_REFLECTION_STRUCT(APIProperties);
 
+DOCUMENT("Gives information about the driver for this API.");
+struct DriverInformation
+{
+  DOCUMENT("The :class:`GPUVendor` that provides this driver");
+  GPUVendor vendor;
+
+  DOCUMENT("The version string for the driver");
+  char version[128];
+};
+
+DECLARE_REFLECTION_STRUCT(DriverInformation);
+
 DOCUMENT("A 128-bit Uuid.");
 struct Uuid
 {

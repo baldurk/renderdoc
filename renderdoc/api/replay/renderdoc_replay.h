@@ -2214,6 +2214,13 @@ This will be in the form "0123456789abcdef0123456789abcdef01234567"
 )");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash();
 
+DOCUMENT(R"(Retrieves the driver information (if available) for a given graphics API.
+
+:return: The driver information.
+:rtype: ``DriverInformation``
+)");
+extern "C" RENDERDOC_API DriverInformation RENDERDOC_CC RENDERDOC_GetDriverInformation(GraphicsAPI api);
+
 DOCUMENT("Internal function for retrieving a config setting.");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
 

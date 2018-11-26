@@ -57,11 +57,13 @@ public:
   void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }
   void SetProxy(bool proxy) { m_Proxy = proxy; }
   bool IsRemoteProxy() { return m_Proxy; }
+  void Initialise();
   void Shutdown();
 
   void SetDevice(WrappedID3D12Device *d) { m_pDevice = d; }
   void CreateResources();
   void DestroyResources();
+  DriverInformation GetDriverInfo() { return m_DriverInfo; }
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
@@ -276,8 +278,6 @@ private:
 
   bool m_Proxy;
 
-  GPUVendor m_Vendor = GPUVendor::Unknown;
-
   vector<ID3D12Resource *> m_ProxyResources;
 
   struct OutputWindow
@@ -410,6 +410,8 @@ private:
 
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
+
+  DriverInformation m_DriverInfo;
 
   D3D12AMDDrawCallback *m_pAMDDrawCallback = NULL;
 

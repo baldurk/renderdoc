@@ -90,6 +90,8 @@ std::string DoStringise(const ReplayProxyPacket &el)
     STRINGISE_ENUM_NAMED(eReplayProxy_DisassembleShader, "DisassembleShader");
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDisassemblyTargets, "GetDisassemblyTargets");
     STRINGISE_ENUM_NAMED(eReplayProxy_GetTargetShaderEncodings, "GetTargetShaderEncodings");
+
+    STRINGISE_ENUM_NAMED(eReplayProxy_GetDriverInfo, "GetDriverInfo");
   }
   END_ENUM_STRINGISE();
 }
@@ -291,6 +293,35 @@ APIProperties ReplayProxy::Proxied_GetAPIProperties(ParamSerialiser &paramser,
 APIProperties ReplayProxy::GetAPIProperties()
 {
   PROXY_FUNCTION(GetAPIProperties);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
+DriverInformation ReplayProxy::Proxied_GetDriverInfo(ParamSerialiser &paramser,
+                                                     ReturnSerialiser &retser)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDriverInfo;
+  ReplayProxyPacket packet = eReplayProxy_GetDriverInfo;
+  DriverInformation ret = {};
+
+  {
+    BEGIN_PARAMS();
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->GetDriverInfo();
+  }
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+DriverInformation ReplayProxy::GetDriverInfo()
+{
+  PROXY_FUNCTION(GetDriverInfo);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2598,6 +2629,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_DisassembleShader: DisassembleShader(ResourceId(), NULL, ""); break;
     case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;
     case eReplayProxy_GetTargetShaderEncodings: GetTargetShaderEncodings(); break;
+    case eReplayProxy_GetDriverInfo: GetDriverInfo(); break;
     default: RDCERR("Unexpected command %u", type); return false;
   }
 

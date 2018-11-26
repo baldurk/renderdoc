@@ -180,6 +180,11 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash()
   return GitVersionHash;
 }
 
+extern "C" RENDERDOC_API DriverInformation RENDERDOC_CC RENDERDOC_GetDriverInformation(GraphicsAPI api)
+{
+  return RenderDoc::Inst().GetDriverInformation(api);
+}
+
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name)
 {
   return RenderDoc::Inst().GetConfigSetting(name).c_str();

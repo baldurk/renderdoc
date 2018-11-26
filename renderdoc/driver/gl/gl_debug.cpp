@@ -672,8 +672,11 @@ void GLReplay::InitDebugData()
 
   // try to identify the GPU we're running on.
   {
+    RDCEraseEl(m_DriverInfo);
+
     const char *vendor = (const char *)drv.glGetString(eGL_VENDOR);
     const char *renderer = (const char *)drv.glGetString(eGL_RENDERER);
+    const char *version = (const char *)drv.glGetString(eGL_VERSION);
 
     // we're just doing substring searches, so combine both for ease.
     std::string combined = (vendor ? vendor : "");
@@ -718,24 +721,34 @@ void GLReplay::InitDebugData()
     {
       if(combined.find(p.search) != std::string::npos)
       {
-        if(m_Vendor == GPUVendor::Unknown)
+        if(m_DriverInfo.vendor == GPUVendor::Unknown)
         {
-          m_Vendor = p.vendor;
+          m_DriverInfo.vendor = p.vendor;
         }
         else
         {
           // either we already found this with another pattern, or we've identified two patterns and
           // it's ambiguous. Keep the first one we found, arbitrarily, but print a warning.
-          if(m_Vendor != p.vendor)
+          if(m_DriverInfo.vendor != p.vendor)
           {
             RDCWARN("Already identified '%s' as %s, but now identified as %s", combined.c_str(),
-                    ToStr(m_Vendor).c_str(), ToStr(p.vendor).c_str());
+                    ToStr(m_DriverInfo.vendor).c_str(), ToStr(p.vendor).c_str());
           }
         }
       }
     }
 
-    RDCDEBUG("Identified GPU vendor '%s'", ToStr(m_Vendor).c_str());
+    RDCDEBUG("Identified GPU vendor '%s'", ToStr(m_DriverInfo.vendor).c_str());
+
+    std::string versionString = version;
+
+    versionString += " / ";
+    versionString += renderer;
+    versionString += " / ";
+    versionString += vendor;
+
+    versionString.resize(RDCMIN(versionString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
+    memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());
   }
 
   // these below need to be made on the replay context, as they are context-specific (not shared)

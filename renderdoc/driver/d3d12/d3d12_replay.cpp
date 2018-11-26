@@ -85,6 +85,8 @@ D3D12Replay::D3D12Replay()
   m_Proxy = false;
 
   m_HighlightCache.driver = this;
+
+  RDCEraseEl(m_DriverInfo);
 }
 
 void D3D12Replay::Shutdown()
@@ -98,46 +100,57 @@ void D3D12Replay::Shutdown()
   m_pDevice->Release();
 }
 
+void D3D12Replay::Initialise()
+{
+  typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
+  PFN_CREATE_DXGI_FACTORY createFunc =
+      (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+
+  HRESULT hr = createFunc(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  RDCEraseEl(m_DriverInfo);
+
+  if(m_pFactory)
+  {
+    RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+
+    LUID luid = m_pDevice->GetAdapterLuid();
+
+    IDXGIAdapter *pDXGIAdapter;
+    hr = m_pFactory->EnumAdapterByLuid(luid, __uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't get DXGI adapter by LUID from D3D device");
+    }
+    else
+    {
+      DXGI_ADAPTER_DESC desc = {};
+      pDXGIAdapter->GetDesc(&desc);
+
+      m_DriverInfo.vendor = GPUVendorFromPCIVendor(desc.VendorId);
+
+      std::string descString = GetDriverVersion(desc);
+      descString.resize(RDCMIN(descString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
+      memcpy(m_DriverInfo.version, descString.c_str(), descString.size());
+
+      RDCLOG("Running replay on %s / %s", ToStr(m_DriverInfo.vendor).c_str(), m_DriverInfo.version);
+    }
+  }
+}
+
 void D3D12Replay::CreateResources()
 {
   m_DebugManager = new D3D12DebugManager(m_pDevice);
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
-
-    PFN_CREATE_DXGI_FACTORY createFunc =
-        (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
-
-    HRESULT hr = createFunc(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
-    }
-
-    if(m_pFactory)
-    {
-      RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
-
-      LUID luid = m_pDevice->GetAdapterLuid();
-
-      IDXGIAdapter *pDXGIAdapter;
-      hr = m_pFactory->EnumAdapterByLuid(luid, __uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Couldn't get DXGI adapter by LUID from D3D device");
-      }
-      else
-      {
-        DXGI_ADAPTER_DESC desc = {};
-        pDXGIAdapter->GetDesc(&desc);
-
-        m_Vendor = GPUVendorFromPCIVendor(desc.VendorId);
-      }
-    }
-
     CreateSOBuffers();
 
     m_General.Init(m_pDevice, m_DebugManager);
@@ -149,14 +162,14 @@ void D3D12Replay::CreateResources()
 
     AMDCounters *counters = NULL;
 
-    if(m_Vendor == GPUVendor::AMD)
+    if(m_DriverInfo.vendor == GPUVendor::AMD)
     {
       RDCLOG("AMD GPU detected - trying to initialise AMD counters");
       counters = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
     }
     else
     {
-      RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+      RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
     }
 
     ID3D12Device *d3dDevice = m_pDevice->GetReal();
@@ -211,7 +224,7 @@ APIProperties D3D12Replay::GetAPIProperties()
 
   ret.pipelineType = GraphicsAPI::D3D12;
   ret.localRenderer = GraphicsAPI::D3D12;
-  ret.vendor = m_Vendor;
+  ret.vendor = m_DriverInfo.vendor;
   ret.degraded = false;
   ret.shadersMutable = false;
   ret.rgpCapture = m_RGP != NULL && m_RGP->DriverSupportsInterop();
@@ -3657,6 +3670,8 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   replay->SetProxy(rdc == NULL);
   replay->SetRGP(rgp);
+
+  replay->Initialise();
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;

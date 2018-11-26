@@ -196,6 +196,7 @@ public:
   void DestroyResources();
 
   void SetDriver(WrappedVulkan *d) { m_pDriver = d; }
+  DriverInformation GetDriverInfo() { return m_DriverInfo; }
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
@@ -338,6 +339,8 @@ public:
   static bool CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                std::vector<std::string> &otherJSONs);
   static void InstallVulkanLayer(bool systemLevel);
+  void GetInitialDriverVersion();
+  void SetDriverInformation(const VkPhysicalDeviceProperties &props);
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 private:
@@ -605,6 +608,8 @@ private:
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   VKPipe::State m_VulkanPipelineState;
+
+  DriverInformation m_DriverInfo;
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs);
 

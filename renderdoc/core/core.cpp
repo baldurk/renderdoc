@@ -1059,6 +1059,41 @@ map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
   return ret;
 }
 
+DriverInformation RenderDoc::GetDriverInformation(GraphicsAPI api)
+{
+  DriverInformation ret = {GPUVendor::Unknown, ""};
+
+  RDCDriver driverType = RDCDriver::Unknown;
+  switch(api)
+  {
+    case GraphicsAPI::D3D11: driverType = RDCDriver::D3D11; break;
+    case GraphicsAPI::D3D12: driverType = RDCDriver::D3D12; break;
+    case GraphicsAPI::OpenGL: driverType = RDCDriver::OpenGL; break;
+    case GraphicsAPI::Vulkan: driverType = RDCDriver::Vulkan; break;
+  }
+
+  if(driverType == RDCDriver::Unknown || !HasReplayDriver(driverType))
+    return ret;
+
+  IReplayDriver *driver = NULL;
+  ReplayStatus status = CreateProxyReplayDriver(driverType, &driver);
+
+  if(status == ReplayStatus::Succeeded)
+  {
+    ret = driver->GetDriverInfo();
+  }
+  else
+  {
+    RDCERR("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
+           ToStr(status).c_str());
+  }
+
+  if(driver)
+    driver->Shutdown();
+
+  return ret;
+}
+
 void RenderDoc::EnableVendorExtensions(VendorExtensions ext)
 {
   m_VendorExts[(int)ext] = true;

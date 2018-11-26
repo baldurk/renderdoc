@@ -221,6 +221,49 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_FrameCaptureRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
+
+    // create temporary factory to print the driver version info
+    if(m_pDevice)
+    {
+      typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
+      PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(
+          GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+
+      IDXGIFactory4 *tmpFactory = NULL;
+      HRESULT hr = createFunc(__uuidof(IDXGIFactory4), (void **)&tmpFactory);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
+      }
+
+      if(tmpFactory)
+      {
+        IDXGIAdapter *pDXGIAdapter = NULL;
+        hr = tmpFactory->EnumAdapterByLuid(m_pDevice->GetAdapterLuid(), __uuidof(IDXGIAdapter),
+                                           (void **)&pDXGIAdapter);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't get DXGI adapter by LUID from D3D12 device");
+        }
+        else
+        {
+          DXGI_ADAPTER_DESC desc = {};
+          pDXGIAdapter->GetDesc(&desc);
+
+          GPUVendor vendor = GPUVendorFromPCIVendor(desc.VendorId);
+          std::string descString = GetDriverVersion(desc);
+
+          RDCLOG("New D3D12 device created: %s / %s", ToStr(vendor).c_str(), descString.c_str());
+
+          SAFE_RELEASE(pDXGIAdapter);
+        }
+      }
+
+      SAFE_RELEASE(tmpFactory);
+    }
   }
   else
   {

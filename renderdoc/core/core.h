@@ -398,6 +398,8 @@ public:
   void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
                           RENDERDOC_PreviewWindowCallback previewWindow);
 
+  DriverInformation GetDriverInformation(GraphicsAPI api);
+
   // can't be disabled, only enabled then latched
 
   bool IsVendorExtensionEnabled(VendorExtensions ext) { return m_VendorExts[(int)ext]; }

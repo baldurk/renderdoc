@@ -480,6 +480,15 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DriverInformation &el)
+{
+  SERIALISE_MEMBER(vendor);
+  SERIALISE_MEMBER(version);
+
+  SIZE_CHECK(132);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, DebugMessage &el)
 {
   SERIALISE_MEMBER(eventId);
@@ -2170,6 +2179,7 @@ INSTANTIATE_SERIALISE_TYPE(ResourceDescription)
 INSTANTIATE_SERIALISE_TYPE(TextureDescription)
 INSTANTIATE_SERIALISE_TYPE(BufferDescription)
 INSTANTIATE_SERIALISE_TYPE(APIProperties)
+INSTANTIATE_SERIALISE_TYPE(DriverInformation)
 INSTANTIATE_SERIALISE_TYPE(DebugMessage)
 INSTANTIATE_SERIALISE_TYPE(APIEvent)
 INSTANTIATE_SERIALISE_TYPE(DrawcallDescription)

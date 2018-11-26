@@ -97,6 +97,8 @@ enum ReplayProxyPacket
   eReplayProxy_DisassembleShader,
   eReplayProxy_GetDisassemblyTargets,
   eReplayProxy_GetTargetShaderEncodings,
+
+  eReplayProxy_GetDriverInfo,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -447,6 +449,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(TextureDescription, GetTexture, ResourceId id);
 
   IMPLEMENT_FUNCTION_PROXIED(APIProperties, GetAPIProperties);
+  IMPLEMENT_FUNCTION_PROXIED(DriverInformation, GetDriverInfo);
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<DebugMessage>, GetDebugMessages);
 

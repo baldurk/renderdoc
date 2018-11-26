@@ -309,8 +309,11 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
 
   // we'll add the chunk later when we re-process it.
-  AddResource(params.InstanceID, ResourceType::Device, "Instance");
-  GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
+  if(params.InstanceID != ResourceId())
+  {
+    AddResource(params.InstanceID, ResourceType::Device, "Instance");
+    GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
+  }
 
   InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
 
@@ -918,6 +921,16 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         record->memProps = new VkPhysicalDeviceMemoryProperties();
 
         ObjDisp(devices[i])->GetPhysicalDeviceMemoryProperties(Unwrap(devices[i]), record->memProps);
+
+        VkPhysicalDeviceProperties physProps;
+
+        ObjDisp(devices[i])->GetPhysicalDeviceProperties(Unwrap(devices[i]), &physProps);
+
+        VkDriverInfo capturedVersion(physProps);
+
+        RDCLOG("physical device %u: %s (ver %u.%u patch 0x%x) - %04x:%04x", i, physProps.deviceName,
+               capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
+               physProps.vendorID, physProps.deviceID);
 
         m_PhysicalDevices[i] = devices[i];
 
@@ -1834,6 +1847,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
+
+    m_Replay.SetDriverInformation(m_PhysicalDeviceData.props);
 
     // MoltenVK reports 0x3fffffff for this limit so just ignore that value if it comes up
     RDCASSERT(m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets <

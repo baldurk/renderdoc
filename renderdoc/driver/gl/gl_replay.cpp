@@ -54,6 +54,7 @@ GLReplay::GLReplay()
   m_OutputWindowID = 1;
 
   RDCEraseEl(m_GetTexturePrevData);
+  RDCEraseEl(m_DriverInfo);
 }
 
 void GLReplay::Shutdown()
@@ -151,7 +152,7 @@ APIProperties GLReplay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::OpenGL;
   ret.localRenderer = GraphicsAPI::OpenGL;
   ret.degraded = m_Degraded;
-  ret.vendor = m_Vendor;
+  ret.vendor = m_DriverInfo.vendor;
   ret.shadersMutable = true;
 
   return ret;
@@ -259,14 +260,14 @@ void GLReplay::SetReplayData(GLWindowingData data)
   }
   else
   {
-    if(m_Vendor == GPUVendor::AMD)
+    if(m_DriverInfo.vendor == GPUVendor::AMD)
     {
       RDCLOG("AMD GPU detected - trying to initialise AMD counters");
       counters = new AMDCounters();
     }
     else
     {
-      RDCLOG("%s GPU detected - no counters available", ToStr(m_Vendor).c_str());
+      RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
     }
   }
 

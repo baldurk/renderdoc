@@ -55,6 +55,8 @@ VulkanReplay::VulkanReplay()
   m_BindDepth = false;
 
   m_DebugWidth = m_DebugHeight = 1;
+
+  RDCEraseEl(m_DriverInfo);
 }
 
 VulkanDebugManager *VulkanReplay::GetDebugManager()
@@ -805,6 +807,54 @@ bool VulkanReplay::IsRenderOutput(ResourceId id)
 
 void VulkanReplay::FileChanged()
 {
+}
+
+void VulkanReplay::GetInitialDriverVersion()
+{
+  RDCEraseEl(m_DriverInfo);
+
+  VkInstance inst = m_pDriver->GetInstance();
+
+  uint32_t count;
+  VkResult vkr = ObjDisp(inst)->EnumeratePhysicalDevices(Unwrap(inst), &count, NULL);
+
+  if(vkr != VK_SUCCESS)
+  {
+    RDCERR("Couldn't enumerate physical devices");
+    return;
+  }
+
+  if(count == 0)
+  {
+    RDCERR("No physical devices available");
+  }
+
+  count = 1;
+  VkPhysicalDevice firstDevice = VK_NULL_HANDLE;
+
+  vkr = ObjDisp(inst)->EnumeratePhysicalDevices(Unwrap(inst), &count, &firstDevice);
+
+  // incomplete is expected if multiple GPUs are present, and we're just grabbing the first
+  if(vkr != VK_SUCCESS && vkr != VK_INCOMPLETE)
+  {
+    RDCERR("Couldn't fetch first physical device");
+    return;
+  }
+
+  VkPhysicalDeviceProperties props;
+  ObjDisp(inst)->GetPhysicalDeviceProperties(firstDevice, &props);
+
+  SetDriverInformation(props);
+}
+
+void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props)
+{
+  VkDriverInfo info(props);
+  m_DriverInfo.vendor = info.Vendor();
+  std::string versionString =
+      StringFormat::Fmt("%s %u.%u.%u", props.deviceName, info.Major(), info.Minor(), info.Patch());
+  versionString.resize(RDCMIN(versionString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
+  memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());
 }
 
 void VulkanReplay::SavePipelineState()
@@ -3514,6 +3564,8 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   replay->SetRGP(rgp);
 
   *driver = (IReplayDriver *)replay;
+
+  replay->GetInitialDriverVersion();
 
   return ReplayStatus::Succeeded;
 }

@@ -63,6 +63,8 @@ D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo);
 
 void WarnUnknownGUID(const char *name, REFIID riid);
 
+std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc);
+
 DECLARE_REFLECTION_STRUCT(DXGI_SAMPLE_DESC);
 DECLARE_REFLECTION_STRUCT(IID);
 DECLARE_REFLECTION_ENUM(DXGI_FORMAT);
