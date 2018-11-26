@@ -49,11 +49,8 @@ pushd glslang
 	# Now build
 	mkdir build
 	pushd build
-
-		# Hack for now until there's a cmake option to turn this off.
-		export CXXFLAGS="-USPIRV_TIMER_ENABLED"
 	
-		cmake .. -DSPIRV_SKIP_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${OUT}"
+		cmake .. -DSPIRV_ALLOW_TIMERS=OFF -DSPIRV_SKIP_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${OUT}"
 
 		if [ "${PLATFORM:0:3}" == "win" ]; then
 			cmake --build . --config Release --target install
