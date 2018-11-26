@@ -1061,7 +1061,7 @@ map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
 
 DriverInformation RenderDoc::GetDriverInformation(GraphicsAPI api)
 {
-  DriverInformation ret = {GPUVendor::Unknown, ""};
+  DriverInformation ret = {};
 
   RDCDriver driverType = RDCDriver::Unknown;
   switch(api)

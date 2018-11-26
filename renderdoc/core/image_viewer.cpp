@@ -170,7 +170,11 @@ public:
     return ret;
   }
   void SavePipelineState() {}
-  DriverInformation GetDriverInfo() { return {GPUVendor::Unknown, ""}; }
+  DriverInformation GetDriverInfo()
+  {
+    DriverInformation ret = {};
+    return ret;
+  }
   const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
   const GLPipe::State *GetGLPipelineState() { return NULL; }
   const VKPipe::State *GetVulkanPipelineState() { return NULL; }
