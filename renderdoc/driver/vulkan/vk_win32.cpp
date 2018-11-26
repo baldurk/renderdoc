@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_replay.h"
 
@@ -163,19 +164,16 @@ void *LoadVulkanLibrary()
 
 std::wstring GetJSONPath(bool wow6432)
 {
-  wchar_t curFile[1024];
-  GetModuleFileNameW(NULL, curFile, 1024);
-
-  wchar_t *lastSlash = wcsrchr(curFile, '\\');
-  if(lastSlash)
-    *(lastSlash + 1) = 0;
+  std::string libPath;
+  FileIO::GetLibraryFilename(libPath);
+  std::string jsonPath = dirname(FileIO::GetFullPathname(libPath));
 
   if(wow6432)
-    wcscat_s(curFile, L"x86\\");
+    jsonPath += "\\x86";
 
-  wcscat_s(curFile, L"renderdoc.json");
+  jsonPath += "\\renderdoc.json";
 
-  return curFile;
+  return StringFormat::UTF82Wide(jsonPath);
 }
 
 static HKEY GetImplicitLayersKey(bool writeable, bool wow6432)
