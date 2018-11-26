@@ -592,6 +592,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   ctx->RSSetViewports(1, &view);
 
   ctx->IASetInputLayout(NULL);
+  ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   float blendFactor[] = {1.0f, 1.0f, 1.0f, 1.0f};
   ctx->OMSetBlendState(NULL, blendFactor, ~0U);
 
