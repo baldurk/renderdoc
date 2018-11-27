@@ -99,34 +99,56 @@ if uname -a | grep -iq msys; then
 	GENERATOR="MSYS Makefiles"
 fi
 
-# Build the arm32 variant
-mkdir -p build-android-arm32
-pushd build-android-arm32
+AAPT=$(ls $ANDROID_SDK/build-tools/*/aapt.exe | tail -n 1)
 
-cmake -G "${GENERATOR}" -DBUILD_ANDROID=1 -DANDROID_ABI=armeabi-v7a -DCMAKE_BUILD_TYPE=Release -DSTRIP_ANDROID_LIBRARY=On -DLLVM_DIR=$LLVM_ARM32/lib/cmake/llvm -DUSE_INTERCEPTOR_LIB=On .. 2>&1 | tee /tmp/cmake.log
-make -j$(nproc) 2>&1 | tee -a /tmp/cmake.log
+# Check to see if we already have this built, and don't rebuild
+VERSION32=$($AAPT dump badging build-android-arm32/bin/*apk 2>/dev/null | grep -Eo "versionName='[0-9a-f]*'" | grep -Eo "'.*'" | tr -d "'")
+VERSION64=$($AAPT dump badging build-android-arm64/bin/*apk 2>/dev/null | grep -Eo "versionName='[0-9a-f]*'" | grep -Eo "'.*'" | tr -d "'")
 
-if ! ls bin/*.apk; then
-	echo >> /tmp/cmake.log
-	echo "Failed to build android?" >> /tmp/cmake.log
-	$ERROR_SCRIPT /tmp/cmake.log
+if [ "$VERSION32" == "$GITTAG" ]; then
+
+	echo "Found existing compatible arm32 build at $GITTAG, not rebuilding";
+
+else
+
+	# Build the arm32 variant
+	mkdir -p build-android-arm32
+	pushd build-android-arm32
+
+	cmake -G "${GENERATOR}" -DBUILD_ANDROID=1 -DANDROID_ABI=armeabi-v7a -DCMAKE_BUILD_TYPE=Release -DSTRIP_ANDROID_LIBRARY=On -DLLVM_DIR=$LLVM_ARM32/lib/cmake/llvm -DUSE_INTERCEPTOR_LIB=On .. 2>&1 | tee /tmp/cmake.log
+	make -j$(nproc) 2>&1 | tee -a /tmp/cmake.log
+
+	if ! ls bin/*.apk; then
+		echo >> /tmp/cmake.log
+		echo "Failed to build android?" >> /tmp/cmake.log
+		$ERROR_SCRIPT /tmp/cmake.log
+	fi
+
+	popd # build-android-arm32
+
 fi
 
-popd # build-android-arm32
+if [ "$VERSION64" == "$GITTAG" ]; then
 
-mkdir -p build-android-arm64
-pushd build-android-arm64
+	echo "Found existing compatible arm64 build at $GITTAG, not rebuilding";
 
-cmake -G "${GENERATOR}" -DBUILD_ANDROID=1 -DANDROID_ABI=arm64-v8a -DCMAKE_BUILD_TYPE=Release -DSTRIP_ANDROID_LIBRARY=On -DLLVM_DIR=$LLVM_ARM64/lib/cmake/llvm -DUSE_INTERCEPTOR_LIB=On .. | tee /tmp/cmake.log
-make -j$(nproc) 2>&1 | tee -a /tmp/cmake.log
+else
 
-if ! ls bin/*.apk; then
-	echo >> /tmp/cmake.log
-	echo "Failed to build android?" >> /tmp/cmake.log
-	$ERROR_SCRIPT /tmp/cmake.log
+	mkdir -p build-android-arm64
+	pushd build-android-arm64
+
+	cmake -G "${GENERATOR}" -DBUILD_ANDROID=1 -DANDROID_ABI=arm64-v8a -DCMAKE_BUILD_TYPE=Release -DSTRIP_ANDROID_LIBRARY=On -DLLVM_DIR=$LLVM_ARM64/lib/cmake/llvm -DUSE_INTERCEPTOR_LIB=On .. | tee /tmp/cmake.log
+	make -j$(nproc) 2>&1 | tee -a /tmp/cmake.log
+
+	if ! ls bin/*.apk; then
+		echo >> /tmp/cmake.log
+		echo "Failed to build android?" >> /tmp/cmake.log
+		$ERROR_SCRIPT /tmp/cmake.log
+	fi
+
+	popd # build-android-arm64
+
 fi
-
-popd # build-android-arm64
 
 popd # $REPO_ROOT
 
