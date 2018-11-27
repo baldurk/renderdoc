@@ -166,7 +166,7 @@
               </Directory>
               
               <Directory Id='plugins_amd_rgp' Name='rgp'>
-                <Component Id='rgp_plugin' Guid='6F6ED705-A22F-4CE7-BC12-86332BC5263D'>
+                <Component Id='rgp_plugin' Win64="yes" Guid='6F6ED705-A22F-4CE7-BC12-86332BC5263D'>
                   <File Id='amdrgpDLL' Name='DevDriverAPI-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/rgp/DevDriverAPI-x64.dll' KeyPath='yes' />
                 </Component>
               </Directory>
