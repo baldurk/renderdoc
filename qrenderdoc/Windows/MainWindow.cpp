@@ -508,6 +508,16 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
     return;
 
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
+
+    if(isCapturableAppRunningOnAndroid())
+    {
+      RDDialog::warning(this, tr("RenderDoc is already capturing an app on this device"),
+                        tr("A running app on this device is already being captured with RenderDoc. "
+                           "First please close the app then try to launch again."),
+                        QMessageBox::Ok);
+      return;
+    }
+
     QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());
 
     ExecuteResult ret =
@@ -2847,4 +2857,14 @@ void MainWindow::showLaunchError(ReplayStatus status)
       break;
   }
   GUIInvoke::call(this, [this, title, message]() { RDDialog::warning(this, title, message); });
+}
+
+bool MainWindow::isCapturableAppRunningOnAndroid()
+{
+  if(!m_Ctx.Replay().CurrentRemote() || !m_Ctx.Replay().CurrentRemote()->IsADB())
+    return false;
+
+  rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
+  uint32_t ident = RENDERDOC_EnumerateRemoteTargets(host.c_str(), 0);
+  return ident != 0;
 }
