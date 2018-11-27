@@ -99,7 +99,7 @@ if uname -a | grep -iq msys; then
 	GENERATOR="MSYS Makefiles"
 fi
 
-AAPT=$(ls $ANDROID_SDK/build-tools/*/aapt.exe | tail -n 1)
+AAPT=$(ls $ANDROID_SDK/build-tools/*/aapt{,.exe} | tail -n 1)
 
 # Check to see if we already have this built, and don't rebuild
 VERSION32=$($AAPT dump badging build-android-arm32/bin/*apk 2>/dev/null | grep -Eo "versionName='[0-9a-f]*'" | grep -Eo "'.*'" | tr -d "'")
