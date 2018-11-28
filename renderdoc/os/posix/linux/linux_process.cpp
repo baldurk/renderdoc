@@ -27,7 +27,6 @@
 
 extern char **environ;
 
-#define INITIAL_WAIT_TIME 1
 #define MAX_WAIT_TIME 128000
 
 char **GetCurrentEnvironment()
@@ -41,26 +40,19 @@ int GetIdentPort(pid_t childPid)
 
   string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
 
-  int waitTime = INITIAL_WAIT_TIME;
-
   // try for a little while for the /proc entry to appear
-  while(ret == 0 && waitTime <= MAX_WAIT_TIME)
+  usleep(MAX_WAIT_TIME);
+
+  FILE *f = FileIO::fopen(procfile.c_str(), "r");
+
+  if(f == NULL)
   {
-    // back-off for each retry
-    usleep(waitTime);
-
-    waitTime *= 2;
-
-    FILE *f = FileIO::fopen(procfile.c_str(), "r");
-
-    if(f == NULL)
-    {
-      // try again in a bit
-      continue;
-    }
-
+    ret = 0;
+  }
+  else
+  {
     // read through the proc file to check for an open listen socket
-    while(ret == 0 && !feof(f))
+    while(!feof(f))
     {
       const size_t sz = 512;
       char line[sz];
@@ -77,10 +69,8 @@ int GetIdentPort(pid_t childPid)
         ret = hexport;
       }
     }
-
     FileIO::fclose(f);
   }
-
   if(ret == 0)
   {
     RDCWARN("Couldn't locate renderdoc target control listening port between %u and %u in %s",
