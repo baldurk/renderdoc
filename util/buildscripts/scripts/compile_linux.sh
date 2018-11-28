@@ -1,26 +1,23 @@
 #!/bin/bash
 
-rm -f /tmp/compile_errors /tmp/error_email
-
-# Store the path to the error-mail script
-ERROR_SCRIPT=$(readlink -f "${BUILD_ROOT}"/scripts/errormail.sh)
+echo "Building renderdoc-build docker image"
 
 # Ensure the docker image is prepared
 pushd "${BUILD_ROOT}"/scripts/docker
 docker build -t renderdoc-build .
 popd
 
+echo "Docker image built. Running build"
+
 # Run the docker compilation script inside the container above to build the main renderdoc project
 mkdir -p /tmp/rdoc_docker
 cp "${BUILD_ROOT}"/scripts/compile_docker.sh /tmp/rdoc_docker
-docker run --rm -v /tmp/rdoc_docker:/io -v $(readlink -f "${REPO_ROOT}"):/renderdoc:ro renderdoc-build bash /io/compile_docker.sh 2>&1 | tee /tmp/compile_errors
+docker run --rm -v /tmp/rdoc_docker:/io -v $(readlink -f "${REPO_ROOT}"):/renderdoc:ro renderdoc-build bash /io/compile_docker.sh
 
 if [ -d /tmp/rdoc_docker/dist ]; then
-	echo "No error.";
+	echo "Build successful.";
 else
-	echo "Error encountered.";
-	iconv -f UTF-8 -t ASCII//translit /tmp/compile_errors > /tmp/error_email
-	$ERROR_SCRIPT /tmp/error_email
+	echo "Error encountered during docker build.";
 	exit 1;
 fi
 
@@ -43,20 +40,13 @@ cp -R /tmp/rdoc_docker/pymodules build/bin
 # Step into the docs folder and build
 pushd docs
 make clean
-make html > /tmp/sphinx.log
-
-if [ $? -ne 0 ]; then
-	$ERROR_SCRIPT /tmp/sphinx.log
-	exit 1;
-fi
+make html
 
 popd; # docs
 
 # if we didn't produce an html file, bail out even if sphinx didn't return an error code above
 if [ ! -f ./Documentation/html/index.html ]; then
-	echo >> /tmp/sphinx.log
-	echo "Didn't auto-build html docs." >> /tmp/sphinx.log
-	$ERROR_SCRIPT /tmp/sphinx.log
+	echo "Didn't get successful build of html docs."
 	exit 1;
 fi
 
@@ -65,16 +55,12 @@ export PATH=$PATH:$ANDROID_SDK/tools/
 
 # Check that we're set up to build for android
 if [ ! -d $ANDROID_SDK/tools ] ; then
-	echo "\$ANDROID_SDK is not correctly configured: '$ANDROID_SDK'" >> /tmp/android.log
-	$ERROR_SCRIPT /tmp/android.log
-	# Don't return an error code, consider android errors non-fatal other than emailing
+	echo "\$ANDROID_SDK is not correctly configured: '$ANDROID_SDK'"
 	exit 0;
 fi
 
 if [ ! -d $LLVM_ARM32 ] || [ ! -d $LLVM_ARM64 ] ; then
-	echo "llvm is not available, expected $LLVM_ARM32 and $LLVM_ARM64 respectively." >> /tmp/android.log
-	$ERROR_SCRIPT /tmp/android.log
-	# Don't return an error code, consider android errors non-fatal other than emailing
+	echo "llvm is not available, expected $LLVM_ARM32 and $LLVM_ARM64 respectively."
 	exit 0;
 fi
 
@@ -86,9 +72,8 @@ cmake -DBUILD_ANDROID=1 -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 
 make -j8
 
 if ! ls bin/*.apk; then
-	echo >> /tmp/cmake.log
-	echo "Failed to build android?" >> /tmp/cmake.log
-	$ERROR_SCRIPT /tmp/cmake.log
+	echo "Android build failed"
+	exit 0;
 fi
 
 popd # build-android-arm32
@@ -100,9 +85,8 @@ cmake -DBUILD_ANDROID=1 -DANDROID_ABI=arm64-v8a -DANDROID_NATIVE_API_LEVEL=23 -D
 make -j8
 
 if ! ls bin/*.apk; then
-	echo >> /tmp/cmake.log
-	echo "Failed to build android?" >> /tmp/cmake.log
-	$ERROR_SCRIPT /tmp/cmake.log
+	echo "Android build failed"
+	exit 0;
 fi
 
 popd # build-android-arm64

@@ -3,7 +3,6 @@
 TYPE=""
 SNAPNAME=""
 SYMSTORE=""
-ERRORMAIL=""
 SKIPCOMPILE=""
 LLVM_ARM32=$(readlink -f $(dirname $0)/support/llvm_arm32)
 LLVM_ARM64=$(readlink -f $(dirname $0)/support/llvm_arm64)
@@ -14,7 +13,6 @@ usage() {
 	echo "  --symstore <symbol store>   [Windows only] Specify a path to a symbol store.";
 	echo "  --llvm_arm32 <path>         Give the path to an ARM32 build of LLVM, for android.";
 	echo "  --llvm_arm64 <path>         Give the path to an ARM64 build of LLVM, for android.";
-	echo "  --errormail <email>         Send emails on error";
 	echo "  --skipcompile               Skip compile steps, package already compiled binaries.";
 }
 
@@ -46,12 +44,6 @@ while [[ $# -gt 0 ]]; do
 		;;
 		--llvm_arm64)
 		LLVM_ARM64="$(readlink -f "$2")"
-		shift
-		shift
-		;;
-
-		--errormail)
-		ERRORMAIL="$2"
 		shift
 		shift
 		;;
@@ -95,8 +87,6 @@ if [[ "$SYMSTORE" != "" ]]; then
 	echo "Storing symbols in $SYMSTORE";
 	export SYMSTORE;
 fi
-
-export ERRORMAIL;
 
 echo "Using ARM32 LLVM from '$LLVM_ARM32' and ARM64 from '$LLVM_ARM64'"
 
