@@ -22,6 +22,8 @@ The other way is a closer integration, where your code will explicitly load Rend
 
     Note that version numbers follow `semantic versioning <http://semver.org>`_ which means the implementation returned may have a higher minor and/or patch version than requested.
 
+.. _renderdoc-api-example:
+
     Example code:
 
     .. highlight:: c++
@@ -34,12 +36,14 @@ The other way is a closer integration, where your code will explicitly load Rend
        // At init, on windows
        if(HMODULE mod = GetModuleHandleA("renderdoc.dll"))
        {
-           pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+           pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+               (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
            int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
            assert(ret == 1);
        }
 
-       // At init, on linux
+       // At init, on linux/android.
+       // For android replace librenderdoc.so with libVkLayer_GLES_RenderDoc.so
        if(void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD))
        {
            pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
@@ -47,8 +51,16 @@ The other way is a closer integration, where your code will explicitly load Rend
            assert(ret == 1);
        }
 
-       // When you wish to trigger the capture
-       if(rdoc_api) rdoc_api->TriggerCapture();
+       // To start a frame capture, call StartFrameCapture.
+       // You can specify NULL, NULL for the device to capture on if you have only one device and
+       // either no windows at all or only one window, and it will capture from that device.
+       // See the documentation below for a longer explanation
+       if(rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+
+       // Your rendering should happen here
+       
+       // stop the capture
+       if(rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
 
 
     :param RENDERDOC_Version version: is the version number of the API for which you want the interface struct.
