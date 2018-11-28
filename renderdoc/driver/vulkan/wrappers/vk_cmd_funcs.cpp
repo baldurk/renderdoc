@@ -922,8 +922,27 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           uint32_t numSubpasses =
               (uint32_t)m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size();
 
-          for(uint32_t sub = m_RenderState.subpass; sub < numSubpasses - 1; sub++)
+          // for each subpass we skip, and for the finalLayout transition at the end of the
+          // renderpass, update our tracking. These are executed implicitly but because we're
+          // sneaking past them here our tracking will get out of date.
+          uint32_t &sub = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
+
+          for(sub = m_RenderState.subpass; sub < numSubpasses - 1; sub++)
+          {
             ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), VK_SUBPASS_CONTENTS_INLINE);
+
+            std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+
+            GetResourceManager()->RecordBarriers(
+                m_BakedCmdBufferInfo[GetResID(commandBuffer)].imgbarriers, m_ImageLayouts,
+                (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+          }
+
+          std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+
+          GetResourceManager()->RecordBarriers(
+              m_BakedCmdBufferInfo[GetResID(commandBuffer)].imgbarriers, m_ImageLayouts,
+              (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 
           ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
         }

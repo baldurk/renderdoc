@@ -2881,6 +2881,13 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     VkResult vkr = VK_SUCCESS;
 
     bool rpWasActive = false;
+    // these are the image barriers to take the images from their current state to whatever is
+    // needed for the loadRP. This is because when creating the loadRP we set initial = final =
+    // attachment layout, to ensure it's in a known layout (and not transitioned from UNDEFINED or
+    // something). We do a 'safe' transition from current layout to what's expected in the
+    // attachment, which should always be a nop or overriding an UNDEFINED transition. Then we put
+    // it back again afterwards.
+    std::vector<VkImageMemoryBarrier> loadRPImgBarriers;
 
     // we'll need our own command buffer if we're replaying just a subsection
     // of events within a single command buffer record - always if it's only
@@ -2904,29 +2911,29 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       if(m_Partial[Primary].renderPassActive)
       {
         // first apply implicit transitions to the right subpass
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+        loadRPImgBarriers = GetImplicitRenderPassBarriers();
 
         // don't transition from undefined, or contents will be discarded, instead transition from
         // the current state.
-        for(size_t i = 0; i < imgBarriers.size(); i++)
+        for(size_t i = 0; i < loadRPImgBarriers.size(); i++)
         {
-          if(imgBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          if(loadRPImgBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
           {
             // TODO find overlapping range and transition that instead
-            imgBarriers[i].oldLayout =
-                m_ImageLayouts[GetResourceManager()->GetNonDispWrapper(imgBarriers[i].image)->id]
+            loadRPImgBarriers[i].oldLayout =
+                m_ImageLayouts[GetResourceManager()->GetNonDispWrapper(loadRPImgBarriers[i].image)->id]
                     .subresourceStates[0]
                     .newLayout;
           }
         }
 
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
-                                             m_ImageLayouts, (uint32_t)imgBarriers.size(),
-                                             &imgBarriers[0]);
+                                             m_ImageLayouts, (uint32_t)loadRPImgBarriers.size(),
+                                             &loadRPImgBarriers[0]);
 
         ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
-                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+                                         (uint32_t)loadRPImgBarriers.size(), &loadRPImgBarriers[0]);
 
         const DrawcallDescription *draw = GetDrawcall(endEventID);
 
@@ -2982,6 +2989,20 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       // even if it wasn't before (if the above event was a CmdBeginRenderPass)
       if(m_Partial[Primary].renderPassActive)
         m_RenderState.EndRenderPass(cmd);
+
+      // reverse the loadRPImgBarriers
+      for(size_t i = 0; i < loadRPImgBarriers.size(); i++)
+      {
+        std::swap(loadRPImgBarriers[i].oldLayout, loadRPImgBarriers[i].newLayout);
+      }
+
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
+                                           m_ImageLayouts, (uint32_t)loadRPImgBarriers.size(),
+                                           &loadRPImgBarriers[0]);
+
+      ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
+                                       (uint32_t)loadRPImgBarriers.size(), &loadRPImgBarriers[0]);
 
       // we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
       // but we want to keep the partial replay data state intact, so restore
