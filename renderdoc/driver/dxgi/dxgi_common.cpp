@@ -1396,6 +1396,18 @@ static std::string GetDeviceProperty(HDEVINFO devs, PSP_DEVINFO_DATA data, const
   return StringFormat::Wide2UTF8(string);
 }
 
+static uint32_t HexToInt(char hex)
+{
+  if(hex >= 'a' && hex <= 'f')
+    return (hex - 'a') + 0xa;
+  else if(hex >= 'A' && hex <= 'F')
+    return (hex - 'A') + 0xa;
+  else if(hex >= '0' && hex <= '9')
+    return hex - '0';
+
+  return 0;
+}
+
 std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
 {
   std::string device = StringFormat::Wide2UTF8(desc.Description);
@@ -1411,8 +1423,6 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
     RDCERR("Couldn't enumerate graphics adapters: %d", GetLastError());
     return device;
   }
-
-  std::string pci_match = StringFormat::Fmt("pci\\ven_%04x&dev_%04x", desc.VendorId, desc.DeviceId);
 
   std::string driverVersion = "";
 
@@ -1430,12 +1440,12 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
     }
 
     // if we got a version, and didn't have one yet, set it
-    if(version.empty())
+    if(driverVersion.empty())
       driverVersion = version;
 
     std::string pciid = GetDeviceProperty(devs, &data, &DEVPKEY_Device_MatchingDeviceId);
 
-    if(version.empty())
+    if(pciid.empty())
     {
       SetupDiDestroyDeviceInfoList(devs);
       return device;
@@ -1443,8 +1453,28 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
 
     pciid = strlower(pciid);
 
+    UINT VendorId = 0, DeviceId = 0;
+
+    char *end = &(*pciid.end());
+
+    const char *ven = strstr(pciid.c_str(), "ven_");
+    if(ven && ven + 8 <= end)
+    {
+      ven += 4;
+      VendorId =
+          HexToInt(ven[0]) << 12 | HexToInt(ven[1]) << 8 | HexToInt(ven[2]) << 4 | HexToInt(ven[3]);
+    }
+
+    const char *dev = strstr(pciid.c_str(), "dev_");
+    if(dev && dev + 8 <= end)
+    {
+      dev += 4;
+      DeviceId =
+          HexToInt(dev[0]) << 12 | HexToInt(dev[1]) << 8 | HexToInt(dev[2]) << 4 | HexToInt(dev[3]);
+    }
+
     // if the PCI id matches, take it
-    if(pciid == pci_match)
+    if(VendorId == desc.VendorId && DeviceId == desc.DeviceId)
       driverVersion = version;
 
     // move to the next device
