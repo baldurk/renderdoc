@@ -1728,7 +1728,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     // patch the enabled features
     if(enabledFeatures2)
       enabledFeatures2->features = enabledFeatures;
-    else if(createInfo.pEnabledFeatures)
+    else
       createInfo.pEnabledFeatures = &enabledFeatures;
 
     uint32_t numExts = 0;
@@ -2088,7 +2088,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   // patch the enabled features
   if(enabledFeatures2)
     enabledFeatures2->features = enabledFeatures;
-  else if(createInfo.pEnabledFeatures)
+  else
     createInfo.pEnabledFeatures = &enabledFeatures;
 
   VkResult ret;
