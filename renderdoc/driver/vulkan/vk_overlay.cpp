@@ -2261,6 +2261,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
         }
       }
 
+      vt->CmdEndRenderPass(Unwrap(cmd));
+
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
