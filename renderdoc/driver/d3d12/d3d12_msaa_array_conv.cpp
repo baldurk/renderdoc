@@ -71,12 +71,16 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
     {
       case DXGI_FORMAT_D32_FLOAT:
       case DXGI_FORMAT_R32_FLOAT:
-      case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
+      case DXGI_FORMAT_R32_TYPELESS:
+        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+        break;
 
       case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
       case DXGI_FORMAT_R32G8X24_TYPELESS:
       case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
       case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
         stencilFormat = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
         stencil = true;
@@ -86,13 +90,17 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
       case DXGI_FORMAT_R24G8_TYPELESS:
       case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
       case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
         stencilFormat = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
         stencil = true;
         break;
 
       case DXGI_FORMAT_D16_UNORM:
-      case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; break;
+      case DXGI_FORMAT_R16_TYPELESS:
+        dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
+        srvDesc.Format = DXGI_FORMAT_R16_FLOAT;
+        break;
     }
   }
 
@@ -326,12 +334,16 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
     {
       case DXGI_FORMAT_D32_FLOAT:
       case DXGI_FORMAT_R32_FLOAT:
-      case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
+      case DXGI_FORMAT_R32_TYPELESS:
+        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+        break;
 
       case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
       case DXGI_FORMAT_R32G8X24_TYPELESS:
       case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
       case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
         stencilFormat = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
         stencil = true;
@@ -341,13 +353,17 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
       case DXGI_FORMAT_R24G8_TYPELESS:
       case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
       case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
         stencilFormat = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
         stencil = true;
         break;
 
       case DXGI_FORMAT_D16_UNORM:
-      case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; break;
+      case DXGI_FORMAT_R16_TYPELESS:
+        dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
+        srvDesc.Format = DXGI_FORMAT_R16_FLOAT;
+        break;
     }
   }
 
