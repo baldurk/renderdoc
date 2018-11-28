@@ -47,6 +47,7 @@ public:
 
   std::set<HGLRC> contexts;
 
+  void RefreshWindowParameters(const GLWindowingData &data);
   void ProcessSwapBuffers(HDC dc);
   void PopulateFromContext(HDC dc, HGLRC rc);
   GLInitParams GetInitParamsForDC(HDC dc);
@@ -137,6 +138,19 @@ GLInitParams WGLHook::GetInitParamsForDC(HDC dc)
   return ret;
 }
 
+void WGLHook::RefreshWindowParameters(const GLWindowingData &data)
+{
+  if(haveContextCreation && data.ctx && data.wnd)
+  {
+    RECT r;
+    GetClientRect(data.wnd, &r);
+
+    GLInitParams &params = driver.GetInitParams(data);
+    params.width = r.right - r.left;
+    params.height = r.bottom - r.top;
+  }
+}
+
 void WGLHook::ProcessSwapBuffers(HDC dc)
 {
   HWND w = WindowFromDC(dc);
@@ -145,6 +159,13 @@ void WGLHook::ProcessSwapBuffers(HDC dc)
 
   if(w != NULL && haveContextCreation && !swapRecurse)
   {
+    GLWindowingData data;
+    data.DC = dc;
+    data.wnd = w;
+    data.ctx = WGL.wglGetCurrentContext();
+
+    RefreshWindowParameters(data);
+
     {
       SCOPED_LOCK(glLock);
       driver.SwapBuffers(w);
@@ -369,17 +390,10 @@ static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
     data.wnd = WindowFromDC(dc);
     data.ctx = rc;
 
+    wglhook.RefreshWindowParameters(data);
+
     if(wglhook.haveContextCreation && data.ctx && data.wnd)
-    {
-      RECT r;
-      GetClientRect(data.wnd, &r);
-
       wglhook.driver.ActivateContext(data);
-
-      GLInitParams &params = wglhook.driver.GetInitParams(data);
-      params.width = r.right - r.left;
-      params.height = r.bottom - r.top;
-    }
   }
 
   SetLastError(err);

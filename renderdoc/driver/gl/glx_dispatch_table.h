@@ -37,6 +37,7 @@ typedef int (*PFN_glXQueryContext)(Display *dpy, GLXContext ctx, int attribute, 
 typedef Bool (*PFN_glXIsDirect)(Display *dpy, GLXContext ctx);
 typedef __GLXextFuncPtr (*PFN_glXGetProcAddress)(const GLubyte *);
 typedef __GLXextFuncPtr (*PFN_glXGetProcAddressARB)(const GLubyte *);
+typedef GLXContext (*PFN_glXGetCurrentContext)();
 typedef const char *(*PFN_glXQueryExtensionsString)(Display *dpy, int screen);
 typedef PFNGLXGETVISUALFROMFBCONFIGPROC PFN_glXGetVisualFromFBConfig;
 typedef PFNGLXMAKECONTEXTCURRENTPROC PFN_glXMakeContextCurrent;
@@ -74,6 +75,7 @@ typedef void (*PFN_glEnd)();
   FUNC(glXDestroyWindow);
 
 #define GLX_NONHOOKED_SYMBOLS(FUNC) \
+  FUNC(glXGetCurrentContext);       \
   FUNC(glXGetConfig);               \
   FUNC(glXQueryContext);            \
   FUNC(glXIsDirect);                \

@@ -435,6 +435,16 @@ HOOK_EXPORT void glXSwapBuffers_renderdoc_hooked(Display *dpy, GLXDrawable drawa
 
   SCOPED_LOCK(glLock);
 
+  {
+    GLWindowingData data;
+    data.dpy = dpy;
+    data.wnd = drawable;
+    data.ctx = GLX.glXGetCurrentContext();
+    data.cfg = NULL;
+
+    glxhook.UpdateWindowSize(data, dpy, drawable);
+  }
+
   glxhook.driver.SwapBuffers((void *)drawable);
 
   GLX.glXSwapBuffers(dpy, drawable);

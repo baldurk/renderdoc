@@ -72,6 +72,34 @@ public:
     return false;
   }
 
+  void RefreshWindowParameters(const GLWindowingData &data)
+  {
+    EGLDisplay display = data.egl_dpy;
+    EGLContext ctx = data.egl_ctx;
+    EGLSurface draw = data.egl_wnd;
+
+    if(ctx && draw)
+    {
+      GLInitParams &params = driver.GetInitParams(data);
+
+      int height, width;
+      EGL.QuerySurface(display, draw, EGL_HEIGHT, &height);
+      EGL.QuerySurface(display, draw, EGL_WIDTH, &width);
+
+      int colorspace = 0;
+      EGL.QuerySurface(display, draw, EGL_GL_COLORSPACE, &colorspace);
+      // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
+      bool isSRGB = params.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
+
+      bool isYFlipped = IsYFlipped(display, draw);
+
+      params.width = width;
+      params.height = height;
+      params.isSRGB = isSRGB;
+      params.isYFlipped = isYFlipped;
+    }
+  }
+
 } eglhook;
 
 HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDisplayType display)
@@ -300,26 +328,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
 
     eglhook.driver.ActivateContext(data);
 
-    if(ctx && draw)
-    {
-      GLInitParams &params = eglhook.driver.GetInitParams(data);
-
-      int height, width;
-      EGL.QuerySurface(display, draw, EGL_HEIGHT, &height);
-      EGL.QuerySurface(display, draw, EGL_WIDTH, &width);
-
-      int colorspace = 0;
-      EGL.QuerySurface(display, draw, EGL_GL_COLORSPACE, &colorspace);
-      // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
-      bool isSRGB = params.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
-
-      bool isYFlipped = eglhook.IsYFlipped(display, draw);
-
-      params.width = width;
-      params.height = height;
-      params.isSRGB = isSRGB;
-      params.isYFlipped = isYFlipped;
-    }
+    eglhook.RefreshWindowParameters(data);
   }
 
   return ret;
@@ -339,7 +348,16 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
 
   eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
   if(!eglhook.driver.UsesVRFrameMarkers())
+  {
+    GLWindowingData data;
+    data.egl_dpy = dpy;
+    data.egl_wnd = surface;
+    data.egl_ctx = EGL.GetCurrentContext();
+
+    eglhook.RefreshWindowParameters(data);
+
     eglhook.driver.SwapBuffers(surface);
+  }
 
   return EGL.SwapBuffers(dpy, surface);
 }
