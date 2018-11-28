@@ -28,10 +28,8 @@ INPUTFILE="$1"
 # Don't convert any arguments automatically, convert paths if needed
 MSYS2_ARG_CONV_EXCL="*"
 
-if which cygpath >/dev/null 2>&1; then
-	KEYFILE=$(cygpath -w "${KEYFILE}")
-	INPUTFILE=$(cygpath -w "${INPUTFILE}")
-fi
+KEYFILE=$(native_path "${KEYFILE}")
+INPUTFILE=$(native_path "${INPUTFILE}")
 
 # First check to see if it is already signed.
 # An exit value of 1 from signtool indicates it is not signed.

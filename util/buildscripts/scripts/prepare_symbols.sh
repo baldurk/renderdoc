@@ -24,7 +24,9 @@ fi
 ##########################################################
 # Create a source-mapping file to embed into PDBs
 
-cat << EOF > /tmp/pdbstr.txt
+PDBSTR="${REPO_ROOT}"/pdbstr.txt
+
+cat << EOF > "${PDBSTR}"
 SRCSRV: ini ------------------------------------------------
 VERSION=2
 VERCTRL=http
@@ -40,16 +42,18 @@ for I in $(find "${REPO_ROOT}" \( -path '*/3rdparty' -o -path '*/build-android*'
 done |
   sed -e '{s#\*'"${REPO_ROOT}"'/\?#\*#g}' |
   sed -e '{s#^/\(.\)/#\1:/#g}' |
-  awk -F"*" '{gsub("/","\\",$1); print $1 "*" $2}' >> /tmp/pdbstr.txt
+  awk -F"*" '{gsub("/","\\",$1); print $1 "*" $2}' >> "${PDBSTR}"
 
-echo "SRCSRV: end ------------------------------------------------" >> /tmp/pdbstr.txt
+echo "SRCSRV: end ------------------------------------------------" >> "${PDBSTR}"
 
 ##########################################################
 
 # Apply the source-indexing mapping into every pdb file
 for PDB in "${REPO_ROOT}"/Win32/Release/*.pdb "${REPO_ROOT}"/x64/Release/*.pdb; do
-	"${BUILD_ROOT}"/support/pdbstr.exe -w -p:$PDB -s:srcsrv -i:/tmp/pdbstr.txt
+	"${BUILD_ROOT}"/support/pdbstr.exe -w -p:$(native_path $PDB) -s:srcsrv -i:$(native_path "${PDBSTR}")
 done
+
+rm "${PDBSTR}"
 
 if [ ! -f "${BUILD_ROOT}"/support/symstore.exe ]; then
 	echo "Need symstore.exe from Windows Debugger folder in build root."
@@ -63,11 +67,6 @@ if [[ "$SYMSTORE" == "" ]]; then
 fi
 
 TMPSTORE="${REPO_ROOT}"/symstore
-
-if which cygpath >/dev/null 2>&1; then
-	TMPSTORE=$(cygpath -w "${TMPSTORE}")
-	SYMSTORE=$(cygpath -w "${SYMSTORE}")
-fi
 
 echo "Storing symbols for $GITTAG in symbol store $SYMSTORE temporarily in $TMPSTORE"
 
@@ -95,7 +94,7 @@ for ARCH in Win32 x64; do
 	done
 
 	if [ -d "${TMPSTORE}" ]; then
-		MSYS2_ARG_CONV_EXCL="*" "${BUILD_ROOT}"/support/symstore.exe add /s "${SYMSTORE}" /compress /r /f "${TMPSTORE}" /t RenderDoc /v $GITTAG
+		MSYS2_ARG_CONV_EXCL="*" "${BUILD_ROOT}"/support/symstore.exe add /s "$(native_path "${SYMSTORE}")" /compress /r /f "$(native_path "${TMPSTORE}")" /t RenderDoc /v $GITTAG
 	fi
 
 done
