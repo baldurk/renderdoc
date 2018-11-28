@@ -1282,6 +1282,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
+        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+
         // always track this, for WrappedVulkan::IsDrawInRenderPass()
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
@@ -1292,8 +1294,6 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
         }
 
         ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
-
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1664,6 +1664,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
+        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+
         // always track this, for WrappedVulkan::IsDrawInRenderPass()
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
@@ -1674,8 +1676,6 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
         }
 
         ObjDisp(commandBuffer)->CmdEndRenderPass2KHR(Unwrap(commandBuffer), &unwrappedEndInfo);
-
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
