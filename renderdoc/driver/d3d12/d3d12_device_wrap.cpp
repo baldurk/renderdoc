@@ -1434,7 +1434,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
   SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID())
       .TypedAs("ID3D12Resource *");
 
-  SERIALISE_ELEMENT_LOCAL(gpuAddress, ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddress())
+  SERIALISE_ELEMENT_LOCAL(gpuAddress,
+                          ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
       .Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
