@@ -57,7 +57,7 @@ bool ApplyHook(FunctionHook &hook, void **IATentry, bool &already)
   }
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
-  RDCDEBUG("Patching IAT for %s: %p to %p", function.c_str(), IATentry, hookptr);
+  RDCDEBUG("Patching IAT for %s: %p to %p", hook.function.c_str(), IATentry, hook.hook);
 #endif
 
   {
@@ -797,7 +797,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         FARPROC realfunc = GetProcAddress(mod, func);
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
-        RDCDEBUG("Found hooked function, returning hook pointer %p", found->hookptr);
+        RDCDEBUG("Found hooked function, returning hook pointer %p", found->hook);
 #endif
 
         SetLastError(S_OK);
