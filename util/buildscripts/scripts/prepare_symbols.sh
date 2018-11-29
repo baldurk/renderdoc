@@ -38,10 +38,9 @@ SRCSRV: source files ---------------------------------------
 EOF
 
 for I in $(find "${REPO_ROOT}" \( -path '*/3rdparty' -o -path '*/build-android*' -o -path '*/generated' \) -prune -o \( -iname '*.cpp' -o -iname '*.c' -o -iname '*.h' -o -iname '*.inl' \) -print); do
-	echo ${I}*${I};
+	echo $(native_path ${I})*${I};
 done |
   sed -e '{s#\*'"${REPO_ROOT}"'/\?#\*#g}' |
-  sed -e '{s#^/\(.\)/#\1:/#g}' |
   awk -F"*" '{gsub("/","\\",$1); print $1 "*" $2}' >> "${PDBSTR}"
 
 echo "SRCSRV: end ------------------------------------------------" >> "${PDBSTR}"
