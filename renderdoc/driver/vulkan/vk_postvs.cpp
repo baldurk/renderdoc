@@ -1519,7 +1519,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
       WrappedVulkan::DescriptorSetInfo &setInfo =
           m_pDriver->m_DescriptorSetState[state.graphics.descSets[i].descSet];
 
+#if DISABLED(RDOC_ANDROID)
       if(setInfo.push)
+#endif
       {
         // push descriptors don't have a source to copy from, we need to add writes
         VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
@@ -1585,6 +1587,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           write.pTexelBufferView = NULL;
         }
       }
+#if DISABLED(RDOC_ANDROID)
       else
       {
         VkCopyDescriptorSet copy = {VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
@@ -1606,6 +1609,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           descCopies.push_back(copy);
         }
       }
+#endif
     }
 
     m_pDriver->vkUpdateDescriptorSets(dev, (uint32_t)descWrites.size(), descWrites.data(),
