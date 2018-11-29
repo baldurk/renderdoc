@@ -1,0 +1,115 @@
+body {
+	max-width: 1000px;
+	padding: 20px;
+	color: #222;
+}
+
+div.test {
+	background: linear-gradient(#afa 0px, #fff 3em);
+}
+
+div.test.failed {
+	background: linear-gradient(#faa 0px, #fff 3em);
+}
+
+div.diff pre {
+	border: 1px solid black;
+	border-radius: 8px;
+}
+
+div.diff code {
+	border-radius: 8px;
+}
+
+div.message, div.failure {
+	padding-left: 4px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+}
+
+div.message {
+	border-left: 8px #bbb solid;
+}
+
+div.failure {
+	border-left: 8px #f44 solid;
+}
+
+div.success {
+	border-left: 8px #4f4 solid;
+}
+
+div.failure > span.message {
+	font-weight: bold;
+}
+
+div.expandable {
+	min-height: 1.5em;
+	border: 1px solid black;
+	padding: 4px;
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+div.expandable div.contents {
+	display: none;
+}
+
+div.expandable div.title {
+	float: left;
+	line-height: 1.5em;
+}
+
+div.expanded > div.title {
+	float: none;
+	line-height: 1.5em;
+	height: 2em;
+}
+
+div.expanded > div.contents {
+	display: inherit;
+}
+
+span.expandtoggle:before {
+	content: '+';
+	float: left;
+	margin-right: 10px;
+	cursor: pointer;
+	border: 1px black solid;
+	width: 1.5em;
+	line-height: 1.5em;
+	text-align: center;
+	border-radius: 1em;
+	background-color: #eee;
+}
+
+span.expandtoggle:hover:before {
+	background-color: #ccc;
+}
+
+div.expanded > span.expandtoggle::before {
+	content: '--';
+}
+
+div.img-comp-container {
+	position: relative;
+}
+
+div.img-comp-container .img-comp {
+	float: left;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+}
+
+div.img-comp-container .img-clip {
+	overflow: hidden;
+}
+
+div.img-comp-container .img-b .img-clip {
+	border-right: 1px black solid;
+}
+
+div.img-comp-container .img-diff.hidden {
+	display: none;
+}

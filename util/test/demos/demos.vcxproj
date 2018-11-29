@@ -1,0 +1,269 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Development|x86">
+      <Configuration>Development</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64">
+      <Configuration>Development</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <UseNativeEnvironment>true</UseNativeEnvironment>
+    <ProjectGuid>{EC8C6087-E99E-44B3-B8DC-3C9FE7907F47}</ProjectGuid>
+    <RootNamespace>demos</RootNamespace>
+    <ProjectName>demos</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)</TargetName>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(ProjectDir)vk\official;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_WIN32_KHR;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <DisableSpecificWarnings>4100;4054;4055</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>kernel32.lib;user32.lib;msimg32.lib;gdi32.lib;shell32.lib;shlwapi.lib</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Development'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="$(Platform)=='x64' and exists('$(VULKAN_SDK)/lib/shaderc_combined.lib')">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_SHADERC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(VULKAN_SDK)/lib/shaderc_combined.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="$(Platform)=='x86' and exists('$(VULKAN_SDK)/lib32/shaderc_combined.lib')">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_SHADERC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(VULKAN_SDK)/lib32/shaderc_combined.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
+    <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
+    <ClCompile Include="d3d11\d3d11_binding_hazards.cpp" />
+    <ClCompile Include="d3d11\d3d11_byte_address_buffers.cpp" />
+    <ClCompile Include="d3d11\d3d11_cbuffer_zoo.cpp" />
+    <ClCompile Include="d3d11\d3d11_counter_query_pred.cpp" />
+    <ClCompile Include="d3d11\d3d11_deferred_updatesubresource.cpp" />
+    <ClCompile Include="d3d11\d3d11_discard_view.cpp" />
+    <ClCompile Include="d3d11\d3d11_divergent_shader.cpp" />
+    <ClCompile Include="d3d11\d3d11_draw_zoo.cpp" />
+    <ClCompile Include="d3d11\d3d11_empty_compute_dispatch.cpp" />
+    <ClCompile Include="d3d11\d3d11_empty_drawcall.cpp" />
+    <ClCompile Include="d3d11\d3d11_empty_viewports.cpp" />
+    <ClCompile Include="d3d11\d3d11_helpers.cpp" />
+    <ClCompile Include="d3d11\d3d11_many_rtvs.cpp" />
+    <ClCompile Include="d3d11\d3d11_map_overrun.cpp" />
+    <ClCompile Include="d3d11\d3d11_midframe_create.cpp" />
+    <ClCompile Include="d3d11\d3d11_mip_gen_rt.cpp" />
+    <ClCompile Include="d3d11\d3d11_mip_rtv.cpp" />
+    <ClCompile Include="d3d11\d3d11_overdraw_stress.cpp" />
+    <ClCompile Include="d3d11\d3d11_debug_shader.cpp" />
+    <ClCompile Include="d3d11\d3d11_overlay_test.cpp" />
+    <ClCompile Include="d3d11\d3d11_primitive_restart.cpp" />
+    <ClCompile Include="d3d11\d3d11_refcount_check.cpp" />
+    <ClCompile Include="d3d11\d3d11_saturate.cpp" />
+    <ClCompile Include="d3d11\d3d11_simple_dispatch.cpp" />
+    <ClCompile Include="d3d11\d3d11_simple_triangle.cpp" />
+    <ClCompile Include="d3d11\d3d11_streamout.cpp" />
+    <ClCompile Include="d3d11\d3d11_stripped_shaders.cpp" />
+    <ClCompile Include="d3d11\d3d11_structured_buffer_misaligned_dirty.cpp" />
+    <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
+    <ClCompile Include="d3d11\d3d11_test.cpp" />
+    <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
+    <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_helpers.cpp" />
+    <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
+    <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
+    <ClCompile Include="d3d12\d3d12_test.cpp" />
+    <ClCompile Include="dx\d3d_helpers.cpp" />
+    <ClCompile Include="3rdparty\glad\glad.c" />
+    <ClCompile Include="3rdparty\glad\glad_egl.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\glad\glad_glx.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\glad\glad_wgl.c" />
+    <ClCompile Include="gl\gl_buffer_updates.cpp" />
+    <ClCompile Include="gl\gl_cbuffer_zoo.cpp" />
+    <ClCompile Include="gl\gl_depthstencil_fbo.cpp" />
+    <ClCompile Include="gl\gl_dx_interop.cpp" />
+    <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
+    <ClCompile Include="gl\gl_map_overrun.cpp" />
+    <ClCompile Include="gl\gl_midframe_context_create.cpp" />
+    <ClCompile Include="gl\gl_multi_window.cpp" />
+    <ClCompile Include="gl\gl_overlay_test.cpp" />
+    <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp" />
+    <ClCompile Include="gl\gl_simple_triangle.cpp" />
+    <ClCompile Include="gl\gl_spirv_shader.cpp" />
+    <ClCompile Include="gl\gl_test.cpp" />
+    <ClCompile Include="gl\gl_test_linux.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="gl\gl_test_win32.cpp" />
+    <ClCompile Include="gl\gl_unsized_ms_fbo_attachment.cpp" />
+    <ClCompile Include="gl\gl_vao_0.cpp" />
+    <ClCompile Include="linux\linux_platform.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="linux\linux_window.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\lz4\lz4.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="test_common.cpp" />
+    <ClCompile Include="vk\vk_awkward_triangle.cpp" />
+    <ClCompile Include="vk\vk_cbuffer_zoo.cpp" />
+    <ClCompile Include="vk\vk_draw_zoo.cpp" />
+    <ClCompile Include="vk\vk_helpers.cpp" />
+    <ClCompile Include="vk\vk_indirect.cpp" />
+    <ClCompile Include="vk\vk_overlay_test.cpp" />
+    <ClCompile Include="vk\vk_secondary_cmdbuf.cpp" />
+    <ClCompile Include="vk\vk_vs_max_desc_set.cpp" />
+    <ClCompile Include="vk\vk_simple_triangle.cpp" />
+    <ClCompile Include="vk\vk_test.cpp" />
+    <ClCompile Include="3rdparty\volk\volk.c" />
+    <ClCompile Include="win32\win32_platform.cpp" />
+    <ClCompile Include="win32\win32_window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h" />
+    <ClInclude Include="d3d11\d3d11_helpers.h" />
+    <ClInclude Include="d3d11\d3d11_test.h" />
+    <ClInclude Include="d3d12\d3d12_helpers.h" />
+    <ClInclude Include="d3d12\d3d12_test.h" />
+    <ClInclude Include="dx\d3d_helpers.h" />
+    <ClInclude Include="dx\official\d3d11.h" />
+    <ClInclude Include="dx\official\d3d11sdklayers.h" />
+    <ClInclude Include="dx\official\d3d11_1.h" />
+    <ClInclude Include="dx\official\d3d11_2.h" />
+    <ClInclude Include="dx\official\d3d11_3.h" />
+    <ClInclude Include="dx\official\d3d11_4.h" />
+    <ClInclude Include="dx\official\d3d12.h" />
+    <ClInclude Include="dx\official\d3d12sdklayers.h" />
+    <ClInclude Include="dx\official\d3d8.h" />
+    <ClInclude Include="dx\official\d3d8caps.h" />
+    <ClInclude Include="dx\official\d3d8types.h" />
+    <ClInclude Include="dx\official\d3d9.h" />
+    <ClInclude Include="dx\official\d3d9caps.h" />
+    <ClInclude Include="dx\official\d3d9types.h" />
+    <ClInclude Include="dx\official\d3dcommon.h" />
+    <ClInclude Include="dx\official\d3dcompiler.h" />
+    <ClInclude Include="dx\official\dxgi.h" />
+    <ClInclude Include="dx\official\dxgi1_2.h" />
+    <ClInclude Include="dx\official\dxgi1_3.h" />
+    <ClInclude Include="dx\official\dxgi1_4.h" />
+    <ClInclude Include="dx\official\dxgi1_5.h" />
+    <ClInclude Include="dx\official\dxgi1_6.h" />
+    <ClInclude Include="dx\official\dxgiformat.h" />
+    <ClInclude Include="dx\official\dxgitype.h" />
+    <ClInclude Include="dx\official\winapifamily.h" />
+    <ClInclude Include="3rdparty\glad\glad.h" />
+    <ClInclude Include="3rdparty\glad\glad_egl.h" />
+    <ClInclude Include="3rdparty\glad\glad_glx.h" />
+    <ClInclude Include="3rdparty\glad\glad_wgl.h" />
+    <ClInclude Include="gl\official\khrplatform.h" />
+    <ClInclude Include="gl\gl_test.h" />
+    <ClInclude Include="linux\linux_platform.h">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="linux\linux_window.h">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="3rdparty\lz4\lz4.h" />
+    <ClInclude Include="3rdparty\nuklear\nuklear.h" />
+    <ClInclude Include="3rdparty\nuklear\nuklear_gdi.h" />
+    <ClInclude Include="3rdparty\nuklear\nuklear_xlib.h" />
+    <ClInclude Include="3rdparty\shaderc\shaderc.h" />
+    <ClInclude Include="test_common.h" />
+    <ClInclude Include="vk\vk_headers.h" />
+    <ClInclude Include="vk\vk_helpers.h" />
+    <ClInclude Include="vk\vk_test.h" />
+    <ClInclude Include="3rdparty\volk\volk.h" />
+    <ClInclude Include="vk\official\vulkan\vk_platform.h" />
+    <ClInclude Include="vk\official\vulkan\vulkan.h" />
+    <ClInclude Include="vk\official\vulkan\vulkan_core.h" />
+    <ClInclude Include="vk\official\vulkan\vulkan_win32.h" />
+    <ClInclude Include="vk\official\vulkan\vulkan_xcb.h" />
+    <ClInclude Include="vk\official\vulkan\vulkan_xlib.h" />
+    <ClInclude Include="win32\win32_platform.h" />
+    <ClInclude Include="win32\win32_window.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,468 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="d3d11\d3d11_simple_triangle.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_simple_triangle.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_unsized_ms_fbo_attachment.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_overdraw_stress.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_debug_shader.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_mip_rtv.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_many_rtvs.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_empty_compute_dispatch.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_array_interpolator.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_empty_drawcall.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_empty_viewports.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_simple_dispatch.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_depthstencil_fbo.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_discard_view.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_deferred_updatesubresource.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_stripped_shaders.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_divergent_shader.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_midframe_create.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_byte_address_buffers.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_mip_gen_rt.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_vao_0.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_streamout.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_texture_3d.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_buffer_updates.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_dx_interop.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_saturate.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_map_overrun.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_map_overrun.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_binding_hazards.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_primitive_restart.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_large_bcn_arrays.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_counter_query_pred.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_simple_triangle.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_draw_zoo.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_draw_zoo.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_cbuffer_zoo.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_cbuffer_zoo.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_cbuffer_zoo.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_refcount_check.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_awkward_triangle.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_spirv_shader.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_multi_window.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_helpers.cpp">
+      <Filter>D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_test.cpp">
+      <Filter>D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_structured_buffer_misaligned_dirty.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\win32_platform.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\win32_window.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="linux\linux_platform.cpp">
+      <Filter>Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_helpers.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_test.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_test.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_test_linux.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_test_win32.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_midframe_context_create.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_vs_max_desc_set.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_overlay_test.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_secondary_cmdbuf.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_indirect.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="linux\linux_window.cpp">
+      <Filter>Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_helpers.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_test.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_simple_triangle.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="dx\d3d_helpers.cpp">
+      <Filter>D3D</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_overlay_test.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_overlay_test.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_overlay_test.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="test_common.cpp" />
+    <ClCompile Include="3rdparty\lz4\lz4.c">
+      <Filter>3rdparty\lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\glad\glad.c">
+      <Filter>3rdparty\glad</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\glad\glad_egl.c">
+      <Filter>3rdparty\glad</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\glad\glad_glx.c">
+      <Filter>3rdparty\glad</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\glad\glad_wgl.c">
+      <Filter>3rdparty\glad</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\volk\volk.c">
+      <Filter>3rdparty\volk</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="D3D11">
+      <UniqueIdentifier>{2d925e41-46b9-4fc8-bed8-38f94377d4ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D11\demos">
+      <UniqueIdentifier>{ab751575-8361-4303-9660-a511267f4a6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenGL">
+      <UniqueIdentifier>{067b0d96-2253-4f97-b4e9-9a398e73698f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenGL\demos">
+      <UniqueIdentifier>{1da9ebf5-0432-4265-b118-9ffa5857a317}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Vulkan">
+      <UniqueIdentifier>{edb31c02-2b14-4e5f-8332-bcf87d98e80d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Vulkan\demos">
+      <UniqueIdentifier>{e5a064fd-f7f5-41f7-af8f-27d766122f53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Windows">
+      <UniqueIdentifier>{970b67b1-1dfa-4c31-89d5-87333c1cf866}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Linux">
+      <UniqueIdentifier>{9c5ec0e8-32a9-45b7-8cbc-e6507dfff362}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12">
+      <UniqueIdentifier>{1ce198b8-2024-4567-b8e2-086dd27725e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12\demos">
+      <UniqueIdentifier>{18e43376-43e9-4a0c-b1a9-031b399e9ede}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D">
+      <UniqueIdentifier>{200ba06c-394d-4759-84f8-b499013b4167}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D\official">
+      <UniqueIdentifier>{91707a1b-5bdd-455f-874f-0dd6ec31aefb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{2c14abdb-f558-4bc3-8f4a-186690f1beb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\lz4">
+      <UniqueIdentifier>{45c27b46-1f27-407a-9cf3-8f30dd23156c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\nuklear">
+      <UniqueIdentifier>{06e64450-43b4-42d5-bbf3-290c721ae555}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\shaderc">
+      <UniqueIdentifier>{e641fa6b-a639-49af-9bc3-387b87bdb066}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\glad">
+      <UniqueIdentifier>{526cfb18-bd0f-41b7-ac73-30a2fc90f449}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\volk">
+      <UniqueIdentifier>{831fcf8f-1d85-4684-a16e-273475a869b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\vma">
+      <UniqueIdentifier>{56a97009-9e25-4860-bcf1-76d915260697}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Vulkan\official">
+      <UniqueIdentifier>{c46e8d15-ce7e-42d4-ae59-1a960527567c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="d3d11\d3d11_helpers.h">
+      <Filter>D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11\d3d11_test.h">
+      <Filter>D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="win32\win32_platform.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="win32\win32_window.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="linux\linux_platform.h">
+      <Filter>Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\vk_helpers.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\vk_test.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\gl_test.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="linux\linux_window.h">
+      <Filter>Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12\d3d12_helpers.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12\d3d12_test.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d8.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d8caps.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d8types.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d9.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d9caps.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d9types.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d11.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d11_1.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d11_2.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d11_3.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d11_4.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d11sdklayers.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d12.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3d12sdklayers.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3dcommon.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\d3dcompiler.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgi.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgi1_2.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgi1_3.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgi1_4.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgi1_5.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgi1_6.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgiformat.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\dxgitype.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\official\winapifamily.h">
+      <Filter>D3D\official</Filter>
+    </ClInclude>
+    <ClInclude Include="dx\d3d_helpers.h">
+      <Filter>D3D</Filter>
+    </ClInclude>
+    <ClInclude Include="test_common.h" />
+    <ClInclude Include="vk\vk_headers.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\lz4\lz4.h">
+      <Filter>3rdparty\lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\nuklear\nuklear.h">
+      <Filter>3rdparty\nuklear</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\nuklear\nuklear_gdi.h">
+      <Filter>3rdparty\nuklear</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\nuklear\nuklear_xlib.h">
+      <Filter>3rdparty\nuklear</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\shaderc\shaderc.h">
+      <Filter>3rdparty\shaderc</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\official\khrplatform.h">
+      <Filter>3rdparty\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\glad\glad.h">
+      <Filter>3rdparty\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\glad\glad_egl.h">
+      <Filter>3rdparty\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\glad\glad_glx.h">
+      <Filter>3rdparty\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\glad\glad_wgl.h">
+      <Filter>3rdparty\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\volk\volk.h">
+      <Filter>3rdparty\volk</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\official\vulkan\vk_platform.h">
+      <Filter>Vulkan\official</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\official\vulkan\vulkan.h">
+      <Filter>Vulkan\official</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\official\vulkan\vulkan_core.h">
+      <Filter>Vulkan\official</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\official\vulkan\vulkan_win32.h">
+      <Filter>Vulkan\official</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\official\vulkan\vulkan_xcb.h">
+      <Filter>Vulkan\official</Filter>
+    </ClInclude>
+    <ClInclude Include="vk\official\vulkan\vulkan_xlib.h">
+      <Filter>Vulkan\official</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h">
+      <Filter>3rdparty\vma</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
