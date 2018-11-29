@@ -479,6 +479,9 @@ SWIGRUNTIME PyObject*
 SwigPyObject_richcompare(SwigPyObject *v, SwigPyObject *w, int op)
 {
   PyObject* res;
+  if( PyErr_Occurred() ) {
+    return NULL;
+  }
   if( op != Py_EQ && op != Py_NE ) {
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
