@@ -2229,8 +2229,9 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash();
 
 DOCUMENT(R"(Retrieves the driver information (if available) for a given graphics API.
 
-:return: The driver information.
-:rtype: ``DriverInformation``
+:param GraphicsAPI api: The API to get driver information for.
+:return: A :class:`DriverInformation` containing the driver information.
+:rtype: DriverInformation
 )");
 extern "C" RENDERDOC_API DriverInformation RENDERDOC_CC RENDERDOC_GetDriverInformation(GraphicsAPI api);
 
