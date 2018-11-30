@@ -32,6 +32,10 @@ static const QString glsl_stage4[ENUM_ARRAY_SIZE(ShaderStage)] = {
     lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
 };
 
+static const QString hlsl_stage2[ENUM_ARRAY_SIZE(ShaderStage)] = {
+    lit("vs"), lit("hs"), lit("ds"), lit("gs"), lit("ps"), lit("cs"),
+};
+
 template <>
 std::string DoStringise(const KnownShaderTool &el)
 {
@@ -202,6 +206,8 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
       arg = output_file = tmpPath(lit("shader_output"));
     if(arg == lit("{glsl_stage4}"))
       arg = glsl_stage4[int(shaderDetails->stage)];
+    if(arg == lit("{hlsl_stage2}"))
+      arg = hlsl_stage2[int(shaderDetails->stage)];
   }
 
   QFile binHandle(input_file);
@@ -246,6 +252,8 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
       arg = entryPoint;
     if(arg == lit("{glsl_stage4}"))
       arg = glsl_stage4[int(stage)];
+    if(arg == lit("{hlsl_stage2}"))
+      arg = hlsl_stage2[int(stage)];
   }
 
   QFile binHandle(input_file);
