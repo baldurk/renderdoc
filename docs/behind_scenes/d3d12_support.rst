@@ -20,7 +20,6 @@ RenderDoc has initial support for D3D12, but it contains some caveats. In additi
 * RenderDoc assumes that even if multiple GPUs are present, that only one will be used - i.e. NodeMask is always 0. Multiple queues are supported.
 * RenderDoc captures may not be portable between different systems, only currently supporting capture and replay on the same or similar enough machines.
 * Reserved resources are not supported.
-* Multisampled resources will be blank at the start of a frame, regardless of what contents were there during capture.
 * Shared resources/handles are not supported.
 * Pixel history is not implemented.
 * Shader debugging is not currently supported.
