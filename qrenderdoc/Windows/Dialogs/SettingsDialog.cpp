@@ -457,6 +457,7 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
 {
   QDialog dialog;
   dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+  dialog.setWindowTitle(tr("Configure Shader Processing Tool"));
 
   dialog.resize(400, 0);
 
