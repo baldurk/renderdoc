@@ -132,13 +132,9 @@ RenderDoc makes my bug go away! Or causes new artifacts that weren't there
 
 For various tedious reasons RenderDoc's replay isn't (and in most cases can't be) a perfect reproduction of what your code was executing in the application when captured, and it can change the circumstances while running.
 
-During capture the main impact of having RenderDoc enabled is that timings will change, and more memory (sometimes much more) will be allocated. There are also slight differences to the interception of Map() calls as they go through an intermediate buffer to be captured. Generally the only problem this can expose is that when capturing a frame, if something is timing dependent RenderDoc causes one or two very slow frames, and can cause the bug to disappear.
+During capture the main impact of having RenderDoc enabled is that timings will change, and more memory (sometimes much more) will be allocated. There are also slight differences to the interception of Map() calls as they may go through an intermediate buffer to be captured. Generally the only problem this can expose is that when capturing a frame, if something is timing dependent RenderDoc causes one or two very slow frames, and can cause the bug to disappear.
 
-The two primary causes of differences between the captured program and the replayed capture (for better or for worse) are:
-
-#. ``Map()`` s that use DISCARD are filled with a marker value, so any values that aren't written to the buffer will be different - in application you can get lucky and they can be previous values that were uploaded, but in replay they will be ``0xCCCCCCCC``.
-
-#. When buffers are created they have undefined contents - graphics APIs do not promise that they are filled with 0s. RenderDoc fills buffers with garbage data which can change behaviour.
+RenderDoc also isn't intended to handle invalid API use - this is better caught by each API's built-in validation features. If your program is using the API in an invalid way it may break RenderDoc in the same way that it may break a driver.
 
 
 I can't launch my program for capture directly. Can I capture it anyway?
@@ -161,12 +157,14 @@ RenderDoc supports these formats: ``.dds``, ``.hdr``, ``.exr``, ``.bmp``, ``.jpg
 
 Any modifications to the image while open in RenderDoc will be refreshed in the viewer. However if the image metadata changes (dimension, format, etc) then this will likely cause artifacts or incorrect rendering, and you'll have to re-open the image.
 
-I think I might be overwriting Map() boundaries, can I check this?
-------------------------------------------------------------------
+I think I might be overwriting Map() boundaries or relying on undefined buffer contents, can I check this?
+----------------------------------------------------------------------------------------------------------
 
 RenderDoc can be configured to insert a boundary marker at the end of the memory returned from a ``Map()`` call. If this marker gets overwritten during a captured frame then a message box will pop up alerting you, and clicking Yes will break into the program in the debugger so that you can investigate the callstack.
 
-To enable this behaviour, select the ``Verify Map() Writes`` option when :doc:`capturing <../window/capture_attach>`.
+It will also fill buffers with undefined contents on creation with a marker value, to help catch the use of undefined contents that may be assumed to be zero.
+
+To enable this behaviour, select the ``Verify Buffer Access`` option when :doc:`capturing <../window/capture_attach>`.
 
 Note this is only supported on D3D11 and OpenGL currently, since Vulkan and D3D12 are lower overhead and do not have the infrastructure to intercept map writes.
 

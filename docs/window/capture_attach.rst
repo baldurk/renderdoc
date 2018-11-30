@@ -133,11 +133,14 @@ If the application creates a command list early and replays it indefinitely with
 
 ----------
 
-  | :guilabel:`Verify Map() Writes` Default: ``Disabled``
+  | :guilabel:`Verify Buffer Access` Default: ``Disabled``
 
 This option adds checking to any ``Map()`` calls that adds a boundary marker after any ``Map()`` pointer returned during a captured frame. These markers are checked on ``Unmap()`` and if they have been modified a message box will pop up alerting you to this, and you can click Yes to break in the debugger in the target application and investigate the problem.
 
-Note this is only supported on D3D11 and OpenGL currently, since Vulkan and D3D12 are lower overhead and do not have the infrastructure to intercept map writes.
+It will also initialise any buffers with undefined contents after creation with a marker value to catch use of undefined contents that may not always be zero.
+
+.. note::
+   This option is only supported on D3D11 and OpenGL currently, since Vulkan and D3D12 are lower overhead and do not have the infrastructure to intercept map writes.
 
 ----------
 
