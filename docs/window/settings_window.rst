@@ -191,15 +191,25 @@ This option tries to make the disassembly of shaders easier to read by substitut
 
 ---------------
 
-  | :guilabel:`Vulkan Disassemblers`
+  | :guilabel:`Shader Processing Tools`
 
-.. _vulkan-disassem:
+.. _shader-processing-tools-config:
 
-Here you can configure external tools that disassemble binary SPIR-V into a human-readable representation.
+Here you can configure external tools that convert between shader representations, including compilers from a high-level language like HLSL/GLSL to a bytecode, as well as disassemblers from bytecode back to high-level language.
 
-Some built-in tools are supported such as SPIRV-Cross and spirv-dis, for these tools if they can be auto-detected they will already be present, and they may be distributed with RenderDoc builds in case a version isn't installed on the system.
+Some built-in tools are supported such as SPIRV-Cross, glslang, spirv-dis and spirv-as. For these tools if they can be auto-detected they will already be present, and they may be distributed with RenderDoc builds in case a version isn't installed on the system.
 
-Other custom tools can be configured, but for those the command line arguments must be configured. The command line arguments will have ``{spv_bin}`` replaced with the full path to the binary SPIR-V file, and ``{spv_disasm}`` with the path of where the human-readable output must be written to.
+Other custom tools can be configured, but for those the command line arguments must be configured. The command line arguments will have certain substitutions made to customise to the needs of the compile:
+
+* ``{input_file}`` will be replaced by the input filename.
+* ``{output_file}`` will be replaced by the output filename.
+* ``{entry_point}`` will be replaced by the entry point name, only when compiling a shader.
+* ``{glsl_stage4}`` will be replaced by the glsl stage short-hand, one of: vert, tesc, tese, geom, frag, or comp.
+* ``{hlsl_stage2}`` will be replaced by the hlsl stage short-hand, one of: vs, hs, ds, gs, ps, or cs.
+
+You must also select the input and output format of the tool, such as HLSL input and SPIR-V output. This will be used to match the tool against a given need at runtime with different types of shaders.
+
+Custom parameters can also be added each time the tool is invoked on the shader editing panel. For full information about using shader processing tools to decompile or compile shaders, see :ref:`the section on editing shaders <shader-processing-tools>`.
 
 Event Browser options
 ---------------------

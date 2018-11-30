@@ -20,7 +20,7 @@ The shader viewer displays the source code in the formats that are available. Wh
 
 Several different disassembly forms are possible, depending on the API and available plugins and hardware support. Above the disassembly tab will be a drop-down listing the possible representations including hardware specific ISA formats like AMD GCN.
 
-For Vulkan SPIR-V shaders, you can configure custom disassemblers :ref:`in the settings window <vulkan-disassem>` which allows for various customised disassemblers such as SPIRV-Cross and spirv-dis.
+You can configure shader processing tools :ref:`in the settings window <shader-processing-tools-config>` which allows for various customised disassemblers such as SPIRV-Cross and spirv-dis for SPIR-V.
 
 .. figure:: ../imgs/Screenshots/ShaderDisassembly.png
 
