@@ -40,6 +40,8 @@ Logging & Versioning
 .. autofunction:: renderdoc.SetDebugLogFile
 .. autofunction:: renderdoc.GetLogFile
 .. autofunction:: renderdoc.GetVersionString
+.. autofunction:: renderdoc.GetCommitHash
+.. autofunction:: renderdoc.GetDriverInformation
 
 Maths & Utilities
 -----------------
