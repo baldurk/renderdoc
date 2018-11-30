@@ -157,6 +157,12 @@ Here you can choose which locations to search in, and in which order, when looki
 
 For more information you can consult :ref:`the FAQ entry about providing unstripped shader debug information <unstripped-shader-info>`.
 
+  | :guilabel:`Enable Radeon GPU Profiler integration` Default: ``Off``
+
+Here you can choose to enable the RGP integration which is by default disabled.
+
+For more information you can see :doc:`../how/how_rgp_profile`.
+
   | :guilabel:`Radeon GPU Profiler executable` Default: ``Empty``
 
 Here you can choose where ``RadeonGPUProfiler`` executable is, for use with the RGP integration.

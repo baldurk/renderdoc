@@ -3,6 +3,11 @@ How do I generate an RGP profile?
 
 RenderDoc has integration with AMD's Radeon GPU Profiler. This allows you to generate an RGP profile from a RenderDoc capture, embed the profile in the capture file, and synchronise the view of the frames between RenderDoc and RGP.
 
+Enabling RGP integration
+------------------------
+
+By default the RGP integration is disabled. To enable it go to the :guilabel:`Settings` window and in the :guilabel:`Core` section enable :guilabel:`Enable Radeon GPU Profiler integration`.
+
 Generating a profile
 --------------------
 
