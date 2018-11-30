@@ -3,7 +3,7 @@ Features
 
 This page documents the current feature set of RenderDoc. This gives an overview of what RenderDoc is capable of, and where it is in its development. You might also be interested in the :doc:`../behind_scenes/planned_features`.
 
-Currently RenderDoc supports Vulkan, D3D11, D3D12, OpenGL, and OpenGL ES on Windows, Linux, and Android. The UI runs in Qt and will work on any desktop platform.
+Currently RenderDoc supports Vulkan, D3D11, D3D12, OpenGL, and OpenGL ES on Windows, Linux, Android, and Nintendo Switch :sup:`TM`. The UI runs in Qt and will work on any desktop platform.
 
 RenderDoc can also double as an image viewer in a simplistic fashion, separate to its functionality as a debugger. Drag in or open any of a variety of image file formats and RenderDoc will display them as if they were the only texture in a capture. This way it can be used as a simple e.g. dds viewer, with support for all sorts of formats, encodings and things typical image viewers don't tend to handle like mips, cubemaps and arrays.
 
