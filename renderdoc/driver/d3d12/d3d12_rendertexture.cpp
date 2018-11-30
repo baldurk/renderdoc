@@ -317,7 +317,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   DebugPixelCBufferData pixelData;
   HeatmapData heatmapData = {};
 
-  if(cfg.resourceId == m_Overlay.resourceId)
   {
     if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
     {

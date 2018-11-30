@@ -727,6 +727,14 @@ void ReplayOutput::DisplayTex()
 
   ClearBackground(m_MainOutput.outputID, texDisplay.backgroundColor);
 
+  // of the overlay isn't one that's applied while rendering the base texture - NaN/inf/-ve or
+  // clipping - then don't try and render any overlay. This prevents underlying code from trying to
+  // e.g. decode overlay data as a heatmap for quad overdraw/triangle size overlays
+  if(texDisplay.overlay != DebugOverlay::NaN && texDisplay.overlay != DebugOverlay::Clipping)
+  {
+    texDisplay.overlay = DebugOverlay::NoOverlay;
+  }
+
   m_pDevice->RenderTexture(texDisplay);
 
   if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw &&
@@ -738,6 +746,7 @@ void ReplayOutput::DisplayTex()
     texDisplay.resourceId = m_pDevice->GetLiveID(m_OverlayResourceId);
     texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
     texDisplay.rawOutput = false;
+    texDisplay.overlay = m_RenderData.texDisplay.overlay;
     texDisplay.customShaderId = ResourceId();
     texDisplay.scale = m_RenderData.texDisplay.scale;
     texDisplay.hdrMultiplier = -1.0f;

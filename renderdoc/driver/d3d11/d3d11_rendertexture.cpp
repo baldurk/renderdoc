@@ -423,7 +423,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   DebugPixelCBufferData pixelData;
   HeatmapData heatmapData = {};
 
-  if(cfg.resourceId == m_Overlay.resourceId)
   {
     if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
     {

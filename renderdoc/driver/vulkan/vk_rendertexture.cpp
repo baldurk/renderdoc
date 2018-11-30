@@ -319,7 +319,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   HeatmapData heatmapData = {};
 
-  if(cfg.resourceId == GetResID(m_Overlay.Image))
   {
     if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
     {

@@ -378,7 +378,6 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   HeatmapData heatmapData = {};
 
-  if(cfg.resourceId == DebugData.overlayTexId)
   {
     if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
     {
