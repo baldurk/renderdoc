@@ -1573,6 +1573,28 @@ void VulkanReplay::SavePipelineState()
       i++;
     }
   }
+
+  if(state.conditionalRendering.buffer != ResourceId())
+  {
+    m_VulkanPipelineState.conditionalRendering.bufferId =
+        rm->GetOriginalID(state.conditionalRendering.buffer);
+    m_VulkanPipelineState.conditionalRendering.byteOffset = state.conditionalRendering.offset;
+    m_VulkanPipelineState.conditionalRendering.isInverted =
+        state.conditionalRendering.flags == VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT;
+
+    bytebuf data;
+    GetBufferData(state.conditionalRendering.buffer, state.conditionalRendering.offset,
+                  sizeof(uint32_t), data);
+
+    uint32_t value;
+    memcpy(&value, data.data(), sizeof(uint32_t));
+
+    m_VulkanPipelineState.conditionalRendering.isPassing = value != 0;
+
+    if(m_VulkanPipelineState.conditionalRendering.isInverted)
+      m_VulkanPipelineState.conditionalRendering.isPassing =
+          !m_VulkanPipelineState.conditionalRendering.isPassing;
+  }
 }
 
 void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,

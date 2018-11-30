@@ -845,6 +845,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     if(overlay == DebugOverlay::Wireframe)
       m_pDriver->m_RenderState.lineWidth = 1.0f;
 
+    if(overlay == DebugOverlay::Drawcall || overlay == DebugOverlay::Wireframe)
+      m_pDriver->m_RenderState.conditionalRendering.forceDisable = true;
+
     if(patchedIndexCount == 0)
     {
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);

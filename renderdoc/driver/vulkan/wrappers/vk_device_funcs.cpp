@@ -1673,6 +1673,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelDeviceScope);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceConditionalRenderingFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(conditionalRendering);
+        CHECK_PHYS_EXT_FEATURE(inheritedConditionalRendering);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

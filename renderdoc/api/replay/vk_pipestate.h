@@ -909,6 +909,27 @@ struct ImageData
   rdcarray<ImageLayout> layouts;
 };
 
+DOCUMENT("Contains the current conditional rendering state.");
+struct ConditionalRendering
+{
+  DOCUMENT("");
+  ConditionalRendering() = default;
+  ConditionalRendering(const ConditionalRendering &) = default;
+
+  DOCUMENT(
+      "The :class:`ResourceId` of the buffer containing the predicate for conditional rendering.");
+  ResourceId bufferId;
+
+  DOCUMENT("The byte offset into buffer where the predicate is located.");
+  uint64_t byteOffset = 0;
+
+  DOCUMENT("``True`` if predicate result is inverted.");
+  bool isInverted = false;
+
+  DOCUMENT("``True`` if the current predicate would render.");
+  bool isPassing = false;
+};
+
 DOCUMENT("The full current Vulkan pipeline state.");
 struct State
 {
@@ -967,6 +988,9 @@ struct State
 
   DOCUMENT("A list of :class:`VKImageData` entries, one for each image.");
   rdcarray<ImageData> images;
+
+  DOCUMENT("A :class:`ConditionalRendering` describing the current conditional rendering state.");
+  ConditionalRendering conditionalRendering;
 };
 
 };    // namespace VKPipe
@@ -999,4 +1023,5 @@ DECLARE_REFLECTION_STRUCT(VKPipe::RenderArea);
 DECLARE_REFLECTION_STRUCT(VKPipe::CurrentPass);
 DECLARE_REFLECTION_STRUCT(VKPipe::ImageLayout);
 DECLARE_REFLECTION_STRUCT(VKPipe::ImageData);
+DECLARE_REFLECTION_STRUCT(VKPipe::ConditionalRendering);
 DECLARE_REFLECTION_STRUCT(VKPipe::State);

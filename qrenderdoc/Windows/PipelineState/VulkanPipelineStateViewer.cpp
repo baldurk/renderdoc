@@ -276,7 +276,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->scissors->setInstantTooltips(true);
   }
 
-  for(RDLabel *rp : {ui->renderpass, ui->framebuffer})
+  for(RDLabel *rp : {ui->renderpass, ui->framebuffer, ui->predicateBuffer})
   {
     rp->setAutoFillBackground(true);
     rp->setBackgroundRole(QPalette::ToolTipBase);
@@ -652,6 +652,8 @@ void VulkanPipelineStateViewer::clearState()
   ui->depthBounds->setText(lit("0.0-1.0"));
 
   ui->stencils->clear();
+
+  ui->conditionalRenderingGroup->setVisible(false);
 }
 
 QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, const QString &slotname,
@@ -2031,6 +2033,23 @@ void VulkanPipelineStateViewer::setState()
   ui->alphaToCoverage->setPixmap(state.colorBlend.alphaToCoverageEnable ? tick : cross);
 
   ////////////////////////////////////////////////
+  // Conditional Rendering
+
+  if(state.conditionalRendering.bufferId == ResourceId())
+  {
+    ui->conditionalRenderingGroup->setVisible(false);
+  }
+  else
+  {
+    ui->conditionalRenderingGroup->setVisible(true);
+    ui->predicateBuffer->setText(QFormatStr("%1 (Byte Offset %2)")
+                                     .arg(ToQStr(state.conditionalRendering.bufferId))
+                                     .arg(state.conditionalRendering.byteOffset));
+    ui->predicatePassing->setPixmap(state.conditionalRendering.isPassing ? tick : cross);
+    ui->predicateInverted->setPixmap(state.conditionalRendering.isInverted ? tick : cross);
+  }
+
+  ////////////////////////////////////////////////
   // Output Merger
 
   bool targets[32] = {};
@@ -3392,6 +3411,26 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
   }
 }
 
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml,
+                                           const VKPipe::ConditionalRendering &cr)
+{
+  if(cr.bufferId == ResourceId())
+    return;
+
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Conditional Rendering"));
+  xml.writeEndElement();
+
+  QString bufferName = m_Ctx.GetResourceName(cr.bufferId);
+
+  m_Common.exportHTMLTable(
+      xml, {tr("Predicate Passing"), tr("Is Inverted"), tr("Buffer"), tr("Byte Offset")},
+      {
+          cr.isPassing ? tr("Yes") : tr("No"), cr.isInverted ? tr("Yes") : tr("No"), bufferName,
+          (qulonglong)cr.byteOffset,
+      });
+}
+
 void VulkanPipelineStateViewer::on_exportHTML_clicked()
 {
   QXmlStreamWriter *xmlptr = m_Common.beginHTMLExport();
@@ -3440,7 +3479,10 @@ void VulkanPipelineStateViewer::on_exportHTML_clicked()
           exportHTML(xml, m_Ctx.CurVulkanPipelineState()->geometryShader);
           exportHTML(xml, m_Ctx.CurVulkanPipelineState()->transformFeedback);
           break;
-        case 5: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->rasterizer); break;
+        case 5:
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->rasterizer);
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
+          break;
         case 6: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->fragmentShader); break;
         case 7:
           // FB
@@ -3476,4 +3518,13 @@ void VulkanPipelineStateViewer::on_meshView_clicked()
   if(!m_Ctx.HasMeshPreview())
     m_Ctx.ShowMeshPreview();
   ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
+}
+
+void VulkanPipelineStateViewer::on_predicateBufferView_clicked()
+{
+  const VKPipe::ConditionalRendering &cr = m_Ctx.CurVulkanPipelineState()->conditionalRendering;
+
+  IBufferViewer *viewer = m_Ctx.ViewBuffer(cr.byteOffset, sizeof(uint32_t), cr.bufferId, "uint");
+
+  m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
 }

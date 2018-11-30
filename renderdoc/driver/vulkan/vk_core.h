@@ -528,6 +528,8 @@ private:
     VkCommandBufferLevel level;
     VkCommandBufferUsageFlags beginFlags;
 
+    bool inheritConditionalRendering = false;
+
     int markerCount;
 
     std::vector<std::pair<ResourceId, EventUsage>> resourceUsage;
@@ -553,6 +555,13 @@ private:
       ResourceId renderPass;
       ResourceId framebuffer;
       uint32_t subpass = 0;
+
+      struct ConditionalRendering
+      {
+        ResourceId buffer;
+        VkDeviceSize offset;
+        VkConditionalRenderingFlagsEXT flags;
+      } conditionalRendering;
     } state;
 
     std::vector<std::pair<ResourceId, ImageRegionState>> imgbarriers;
@@ -1980,4 +1989,10 @@ public:
                                 uint32_t instanceCount, uint32_t firstInstance,
                                 VkBuffer counterBuffer, VkDeviceSize counterBufferOffset,
                                 uint32_t counterOffset, uint32_t vertexStride);
+
+  // VK_EXT_conditional_rendering
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginConditionalRenderingEXT,
+                                VkCommandBuffer commandBuffer,
+                                const VkConditionalRenderingBeginInfoEXT *pConditionalRenderingBegin);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndConditionalRenderingEXT, VkCommandBuffer commandBuffer);
 };

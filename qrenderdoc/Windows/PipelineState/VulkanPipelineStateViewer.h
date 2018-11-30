@@ -66,6 +66,7 @@ private slots:
   void on_showEmpty_toggled(bool checked);
   void on_exportHTML_clicked();
   void on_meshView_clicked();
+  void on_predicateBufferView_clicked();
   void on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viAttrs_mouseMove(QMouseEvent *event);
@@ -122,6 +123,7 @@ private:
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::ColorBlendState &cb);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::CurrentPass &pass);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::ConditionalRendering &cr);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;

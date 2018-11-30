@@ -52,6 +52,8 @@ VulkanRenderState::VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *
 
   RDCEraseEl(ibuffer);
   vbuffers.clear();
+
+  RDCEraseEl(conditionalRendering);
 }
 
 VulkanRenderState &VulkanRenderState::operator=(const VulkanRenderState &o)
@@ -79,6 +81,8 @@ VulkanRenderState &VulkanRenderState::operator=(const VulkanRenderState &o)
 
   ibuffer = o.ibuffer;
   vbuffers = o.vbuffers;
+
+  conditionalRendering = o.conditionalRendering;
 
   return *this;
 }
@@ -151,6 +155,19 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
     ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(
         Unwrap(cmd), firstxfbcounter, (uint32_t)xfbcounters.size(), buffers.data(), offsets.data());
   }
+
+  if(IsConditionalRenderingEnabled())
+  {
+    VkConditionalRenderingBeginInfoEXT beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT;
+    beginInfo.pNext = VK_NULL_HANDLE;
+    beginInfo.buffer =
+        Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(conditionalRendering.buffer));
+    beginInfo.offset = conditionalRendering.offset;
+    beginInfo.flags = conditionalRendering.flags;
+
+    ObjDisp(cmd)->CmdBeginConditionalRenderingEXT(Unwrap(cmd), &beginInfo);
+  }
 }
 
 void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
@@ -175,6 +192,17 @@ void VulkanRenderState::EndTransformFeedback(VkCommandBuffer cmd)
     ObjDisp(cmd)->CmdEndTransformFeedbackEXT(
         Unwrap(cmd), firstxfbcounter, (uint32_t)xfbcounters.size(), buffers.data(), offsets.data());
   }
+}
+
+void VulkanRenderState::EndConditionalRendering(VkCommandBuffer cmd)
+{
+  if(IsConditionalRenderingEnabled())
+    ObjDisp(cmd)->CmdEndConditionalRenderingEXT(Unwrap(cmd));
+}
+
+bool VulkanRenderState::IsConditionalRenderingEnabled()
+{
+  return conditionalRendering.buffer != ResourceId() && !conditionalRendering.forceDisable;
 }
 
 void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0)

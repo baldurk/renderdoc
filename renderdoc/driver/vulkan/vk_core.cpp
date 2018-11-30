@@ -636,6 +636,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME, VK_EXT_ASTC_DECODE_MODE_SPEC_VERSION,
     },
     {
+        VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME, VK_EXT_CONDITIONAL_RENDERING_SPEC_VERSION,
+    },
+    {
         VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,
         VK_EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION,
     },
@@ -2682,7 +2685,10 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdDrawIndirectByteCountEXT:
       return Serialise_vkCmdDrawIndirectByteCountEXT(ser, VK_NULL_HANDLE, 0, 0, VK_NULL_HANDLE, 0,
                                                      0, 0);
-
+    case VulkanChunk::vkCmdBeginConditionalRenderingEXT:
+      return Serialise_vkCmdBeginConditionalRenderingEXT(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdEndConditionalRenderingEXT:
+      return Serialise_vkCmdEndConditionalRenderingEXT(ser, VK_NULL_HANDLE);
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
@@ -2894,6 +2900,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       // end any active XFB
       if(!m_RenderState.xfbcounters.empty())
         m_RenderState.EndTransformFeedback(cmd);
+
+      // end any active conditional rendering
+      if(m_RenderState.IsConditionalRenderingEnabled())
+        m_RenderState.EndConditionalRendering(cmd);
 
       // check if the render pass is active - it could have become active
       // even if it wasn't before (if the above event was a CmdBeginRenderPass).
