@@ -21,7 +21,7 @@ To use a remote machine, you define a replay context for that machine. Everythin
 Configuring Remote Hosts
 ------------------------
 
-To configure a remote host, open the manager by opening the Tools menu and select Manage Remote Servers.
+To configure a remote host, open the manager by opening the :guilabel:`Tools` menu and select :guilabel:`Manage Remote Servers`.
 
 .. figure:: ../imgs/Screenshots/RemoteHostManager.png
 

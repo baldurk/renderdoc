@@ -16,3 +16,4 @@ How do I ...?
 	how_annotate_capture
 	how_import_export
 	how_rgp_profile
+	how_python_extension

@@ -22,3 +22,4 @@ See Also
 --------
 
 * :doc:`../python_api/index`
+* :doc:`../how/how_python_extension`
