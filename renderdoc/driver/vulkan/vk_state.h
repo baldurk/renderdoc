@@ -51,10 +51,14 @@ struct VulkanRenderState
 
   void EndTransformFeedback(VkCommandBuffer cmd);
 
+  void EndConditionalRendering(VkCommandBuffer cmd);
+
   void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
   void BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
                          VkPipelineLayout layout, VkPipelineBindPoint bindPoint, uint32_t setIndex,
                          uint32_t *dynamicOffsets);
+
+  bool IsConditionalRenderingEnabled();
 
   // dynamic state
   vector<VkViewport> views;
@@ -123,6 +127,15 @@ struct VulkanRenderState
   };
   uint32_t firstxfbcounter = 0;
   vector<XFBCounter> xfbcounters;
+
+  struct ConditionalRendering
+  {
+    ResourceId buffer;
+    VkDeviceSize offset;
+    VkConditionalRenderingFlagsEXT flags;
+
+    bool forceDisable;
+  } conditionalRendering;
 
   VulkanResourceManager *GetResourceManager();
   VulkanCreationInfo *m_CreationInfo;

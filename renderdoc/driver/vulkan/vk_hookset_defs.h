@@ -353,7 +353,8 @@
   CheckExt(EXT_validation_cache, VKXX);           \
   CheckExt(KHR_shared_presentable_image, VKXX);   \
   CheckExt(KHR_create_renderpass2, VKXX);         \
-  CheckExt(EXT_transform_feedback, VKXX);
+  CheckExt(EXT_transform_feedback, VKXX);         \
+  CheckExt(EXT_conditional_rendering, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -480,6 +481,8 @@
   HookInitExtension(EXT_transform_feedback, CmdBeginQueryIndexedEXT);                              \
   HookInitExtension(EXT_transform_feedback, CmdEndQueryIndexedEXT);                                \
   HookInitExtension(EXT_transform_feedback, CmdDrawIndirectByteCountEXT);                          \
+  HookInitExtension(EXT_conditional_rendering, CmdBeginConditionalRenderingEXT);                   \
+  HookInitExtension(EXT_conditional_rendering, CmdEndConditionalRenderingEXT);                     \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1033,6 +1036,9 @@
   HookDefine7(void, vkCmdDrawIndirectByteCountEXT, VkCommandBuffer, commandBuffer, uint32_t,         \
               instanceCount, uint32_t, firstInstance, VkBuffer, counterBuffer, VkDeviceSize,         \
               counterBufferOffset, uint32_t, counterOffset, uint32_t, vertexStride);                 \
+  HookDefine2(void, vkCmdBeginConditionalRenderingEXT, VkCommandBuffer, commandBuffer,               \
+              const VkConditionalRenderingBeginInfoEXT *, pConditionalRenderingBegin);               \
+  HookDefine1(void, vkCmdEndConditionalRenderingEXT, VkCommandBuffer, commandBuffer);                \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

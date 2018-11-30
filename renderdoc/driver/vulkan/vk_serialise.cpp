@@ -279,6 +279,14 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                            \
                VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                 \
                                                                                                       \
+  /* VK_EXT_conditional_rendering */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,           \
+               VkCommandBufferInheritanceConditionalRenderingInfoEXT)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT,                  \
+               VkPhysicalDeviceConditionalRenderingFeaturesEXT)                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT,                                \
+               VkConditionalRenderingBeginInfoEXT)                                                    \
+                                                                                                      \
   /* VK_EXT_conservative_rasterization */                                                             \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT,           \
                VkPhysicalDeviceConservativeRasterizationPropertiesEXT)                                \
@@ -600,11 +608,6 @@ SERIALISE_VK_HANDLES();
                                                                                                       \
   /* VK_EXT_calibrated_timestamps */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT)                                  \
-                                                                                                      \
-  /* VK_EXT_conditional_rendering */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT)      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT)                           \
                                                                                                       \
   /* VK_EXT_descriptor_indexing */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT)            \
@@ -5551,6 +5554,56 @@ void Deserialise(const VkPhysicalDeviceSparseImageFormatInfo2 &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCommandBufferInheritanceConditionalRenderingInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(conditionalRenderingEnable);
+}
+
+template <>
+void Deserialise(const VkCommandBufferInheritanceConditionalRenderingInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceConditionalRenderingFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(conditionalRendering);
+  SERIALISE_MEMBER(inheritedConditionalRendering);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceConditionalRenderingFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkConditionalRenderingBeginInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER_TYPED(VkConditionalRenderingFlagsEXT, flags);
+}
+
+template <>
+void Deserialise(const VkConditionalRenderingBeginInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 // pNext structs - always have deserialise for the next chain
 INSTANTIATE_SERIALISE_TYPE(VkAcquireNextImageInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkApplicationInfo);
@@ -5570,6 +5623,7 @@ INSTANTIATE_SERIALISE_TYPE(VkBufferViewCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferInheritanceInfo);
+INSTANTIATE_SERIALISE_TYPE(VkCommandBufferInheritanceConditionalRenderingInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkCommandPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkComputePipelineCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCopyDescriptorSet);
@@ -5691,6 +5745,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVariablePointerFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkanMemoryModelFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineCacheCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineColorBlendStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineDepthStencilStateCreateInfo);
@@ -5743,6 +5798,7 @@ INSTANTIATE_SERIALISE_TYPE(VkTextureLODGatherFormatPropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFlagsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSet);
+INSTANTIATE_SERIALISE_TYPE(VkConditionalRenderingBeginInfoEXT);
 
 // plain structs with no next chain
 INSTANTIATE_SERIALISE_TYPE(VkAllocationCallbacks);

@@ -504,6 +504,8 @@ enum class VulkanChunk : uint32_t
   vkCmdBeginQueryIndexedEXT,
   vkCmdEndQueryIndexedEXT,
   vkCmdDrawIndirectByteCountEXT,
+  vkCmdBeginConditionalRenderingEXT,
+  vkCmdEndConditionalRenderingEXT,
   Max,
 };
 
@@ -568,9 +570,11 @@ DECLARE_REFLECTION_STRUCT(VkBufferMemoryRequirementsInfo2);
 DECLARE_REFLECTION_STRUCT(VkBufferViewCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferAllocateInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferBeginInfo);
+DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceConditionalRenderingInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandPoolCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkComputePipelineCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkConditionalRenderingBeginInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkCopyDescriptorSet);
 DECLARE_REFLECTION_STRUCT(VkDebugMarkerMarkerInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDebugMarkerObjectNameInfoEXT);
@@ -656,6 +660,7 @@ DECLARE_REFLECTION_STRUCT(VkMemoryRequirements2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevice16BitStorageFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevice8BitStorageFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceASTCDecodeFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDriverPropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalBufferInfo);
@@ -761,9 +766,11 @@ DECLARE_DESERIALISE_TYPE(VkBufferMemoryRequirementsInfo2);
 DECLARE_DESERIALISE_TYPE(VkBufferViewCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferBeginInfo);
+DECLARE_DESERIALISE_TYPE(VkCommandBufferInheritanceConditionalRenderingInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkCommandBufferInheritanceInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandPoolCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkComputePipelineCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkConditionalRenderingBeginInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkCopyDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDebugMarkerObjectNameInfoEXT);
@@ -849,6 +856,7 @@ DECLARE_DESERIALISE_TYPE(VkMemoryRequirements2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDriverPropertiesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);

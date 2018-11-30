@@ -1696,7 +1696,7 @@
        <property name="bottomMargin">
         <number>0</number>
        </property>
-       <item row="2" column="1">
+       <item row="3" column="1">
         <widget class="QGroupBox" name="scissorGroup">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -1751,7 +1751,7 @@
          </layout>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <widget class="QGroupBox" name="viewportsGroup">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -1802,6 +1802,81 @@
              <number>50</number>
             </attribute>
            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="2">
+        <widget class="QGroupBox" name="conditionalRenderingGroup">
+         <property name="title">
+          <string>Conditional Rendering</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_41">
+          <item>
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Passing:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="predicatePassing"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_6">
+            <property name="text">
+             <string>Inverted:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="predicateInverted"/>
+          </item>
+          <item>
+           <widget class="RDLabel" name="predicateBuffer">
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="predicateBufferView">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Open Predicate Buffer</string>
+            </property>
+            <property name="text">
+             <string>View</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </widget>
