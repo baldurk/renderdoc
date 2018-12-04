@@ -36,7 +36,8 @@ VkComputePipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkComputePipelineC
     unwrapped[i] = info[i];
     unwrapped[i].stage.module = Unwrap(unwrapped[i].stage.module);
     unwrapped[i].layout = Unwrap(unwrapped[i].layout);
-    unwrapped[i].basePipelineHandle = Unwrap(unwrapped[i].basePipelineHandle);
+    if(unwrapped[i].flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+      unwrapped[i].basePipelineHandle = Unwrap(unwrapped[i].basePipelineHandle);
   }
 
   return unwrapped;
@@ -70,7 +71,8 @@ VkGraphicsPipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkGraphicsPipelin
     unwrappedInfos[i].pStages = unwrappedStages;
     unwrappedInfos[i].layout = Unwrap(unwrappedInfos[i].layout);
     unwrappedInfos[i].renderPass = Unwrap(unwrappedInfos[i].renderPass);
-    unwrappedInfos[i].basePipelineHandle = Unwrap(unwrappedInfos[i].basePipelineHandle);
+    if(unwrappedInfos[i].flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+      unwrappedInfos[i].basePipelineHandle = Unwrap(unwrappedInfos[i].basePipelineHandle);
   }
 
   return unwrappedInfos;
@@ -473,8 +475,11 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
-    if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
-      DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+    if(CreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    {
+      if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+        DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+    }
     DerivedResource(origRP, Pipeline);
     DerivedResource(CreateInfo.layout, Pipeline);
     for(uint32_t i = 0; i < CreateInfo.stageCount; i++)
@@ -512,13 +517,17 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
           VkGraphicsPipelineCreateInfo modifiedCreateInfo;
           const VkGraphicsPipelineCreateInfo *createInfo = &pCreateInfos[i];
 
-          // since we serialise one by one, we need to fixup basePipelineIndex
-          if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+          if(createInfo->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
           {
-            modifiedCreateInfo = *createInfo;
-            modifiedCreateInfo.basePipelineHandle = pPipelines[modifiedCreateInfo.basePipelineIndex];
-            modifiedCreateInfo.basePipelineIndex = -1;
-            createInfo = &modifiedCreateInfo;
+            // since we serialise one by one, we need to fixup basePipelineIndex
+            if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+            {
+              modifiedCreateInfo = *createInfo;
+              modifiedCreateInfo.basePipelineHandle =
+                  pPipelines[modifiedCreateInfo.basePipelineIndex];
+              modifiedCreateInfo.basePipelineIndex = -1;
+              createInfo = &modifiedCreateInfo;
+            }
           }
 
           SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateGraphicsPipelines);
@@ -531,18 +540,22 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pPipelines[i]);
         record->AddChunk(chunk);
 
-        if(pCreateInfos[i].basePipelineHandle != VK_NULL_HANDLE)
+        if(pCreateInfos[i].flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
         {
-          VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
-          record->AddParent(baserecord);
+          if(pCreateInfos[i].basePipelineHandle != VK_NULL_HANDLE)
+          {
+            VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
+            record->AddParent(baserecord);
 
-          RDCDEBUG("Creating pipeline %llu base is %llu", record->GetResourceID(),
-                   baserecord->GetResourceID());
-        }
-        else if(pCreateInfos[i].basePipelineIndex != -1 && pCreateInfos[i].basePipelineIndex < (int)i)
-        {
-          VkResourceRecord *baserecord = GetRecord(pPipelines[pCreateInfos[i].basePipelineIndex]);
-          record->AddParent(baserecord);
+            RDCDEBUG("Creating pipeline %llu base is %llu", record->GetResourceID(),
+                     baserecord->GetResourceID());
+          }
+          else if(pCreateInfos[i].basePipelineIndex != -1 &&
+                  pCreateInfos[i].basePipelineIndex < (int)i)
+          {
+            VkResourceRecord *baserecord = GetRecord(pPipelines[pCreateInfos[i].basePipelineIndex]);
+            record->AddParent(baserecord);
+          }
         }
 
         if(pipelineCache != VK_NULL_HANDLE)
@@ -637,8 +650,11 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
-    if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
-      DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+    if(CreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    {
+      if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+        DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+    }
     DerivedResource(CreateInfo.layout, Pipeline);
     DerivedResource(CreateInfo.stage.module, Pipeline);
   }
@@ -673,13 +689,17 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
           VkComputePipelineCreateInfo modifiedCreateInfo;
           const VkComputePipelineCreateInfo *createInfo = &pCreateInfos[i];
 
-          // since we serialise one by one, we need to fixup basePipelineIndex
-          if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+          if(createInfo->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
           {
-            modifiedCreateInfo = *createInfo;
-            modifiedCreateInfo.basePipelineHandle = pPipelines[modifiedCreateInfo.basePipelineIndex];
-            modifiedCreateInfo.basePipelineIndex = -1;
-            createInfo = &modifiedCreateInfo;
+            // since we serialise one by one, we need to fixup basePipelineIndex
+            if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+            {
+              modifiedCreateInfo = *createInfo;
+              modifiedCreateInfo.basePipelineHandle =
+                  pPipelines[modifiedCreateInfo.basePipelineIndex];
+              modifiedCreateInfo.basePipelineIndex = -1;
+              createInfo = &modifiedCreateInfo;
+            }
           }
 
           SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateComputePipelines);
@@ -698,15 +718,19 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
           record->AddParent(cacherecord);
         }
 
-        if(pCreateInfos[i].basePipelineHandle != VK_NULL_HANDLE)
+        if(pCreateInfos[i].flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
         {
-          VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
-          record->AddParent(baserecord);
-        }
-        else if(pCreateInfos[i].basePipelineIndex != -1 && pCreateInfos[i].basePipelineIndex < (int)i)
-        {
-          VkResourceRecord *baserecord = GetRecord(pPipelines[pCreateInfos[i].basePipelineIndex]);
-          record->AddParent(baserecord);
+          if(pCreateInfos[i].basePipelineHandle != VK_NULL_HANDLE)
+          {
+            VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
+            record->AddParent(baserecord);
+          }
+          else if(pCreateInfos[i].basePipelineIndex != -1 &&
+                  pCreateInfos[i].basePipelineIndex < (int)i)
+          {
+            VkResourceRecord *baserecord = GetRecord(pPipelines[pCreateInfos[i].basePipelineIndex]);
+            record->AddParent(baserecord);
+          }
         }
 
         VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);

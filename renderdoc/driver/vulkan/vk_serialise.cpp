@@ -2291,8 +2291,13 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   SERIALISE_MEMBER(layout);
   SERIALISE_MEMBER(renderPass);
   SERIALISE_MEMBER(subpass);
-  SERIALISE_MEMBER(basePipelineHandle);
-  SERIALISE_MEMBER(basePipelineIndex);
+
+  if(el.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    SERIALISE_MEMBER(basePipelineHandle);
+  else
+    SERIALISE_MEMBER_EMPTY(basePipelineHandle);
+
+  SERIALISE_MEMBER_EMPTY(basePipelineIndex);
 }
 
 template <>
@@ -2363,7 +2368,12 @@ void DoSerialise(SerialiserType &ser, VkComputePipelineCreateInfo &el)
   SERIALISE_MEMBER_TYPED(VkPipelineCreateFlagBits, flags);
   SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(layout);
-  SERIALISE_MEMBER(basePipelineHandle);
+
+  if(el.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    SERIALISE_MEMBER(basePipelineHandle);
+  else
+    SERIALISE_MEMBER_EMPTY(basePipelineHandle);
+
   SERIALISE_MEMBER(basePipelineIndex);
 }
 

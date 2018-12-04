@@ -308,9 +308,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->commandPool));                                                    \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO, VkCommandBufferInheritanceInfo,   \
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
-  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, VkComputePipelineCreateInfo,         \
-                UnwrapInPlace(out->stage.module), UnwrapInPlace(out->layout),                        \
-                UnwrapInPlace(out->basePipelineHandle));                                             \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, VkCopyDescriptorSet,                          \
                 UnwrapInPlace(out->srcSet), UnwrapInPlace(out->dstSet));                             \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,                      \
@@ -552,6 +549,11 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkGraphicsPipelineCreateInfo *info = (VkGraphicsPipelineCreateInfo *)next;
         memSize += info->stageCount * sizeof(VkPipelineShaderStageCreateInfo);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
+      {
+        memSize += sizeof(VkComputePipelineCreateInfo);
         break;
       }
       case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
@@ -983,11 +985,27 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         *out = *in;
         UnwrapInPlace(out->layout);
         UnwrapInPlace(out->renderPass);
-        UnwrapInPlace(out->basePipelineHandle);
+        if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+          UnwrapInPlace(out->basePipelineHandle);
 
         out->pStages = outShaders;
         for(uint32_t i = 0; i < in->stageCount; i++)
           outShaders[i].module = Unwrap(in->pStages[i].module);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
+      {
+        const VkComputePipelineCreateInfo *in = (const VkComputePipelineCreateInfo *)nextInput;
+        VkComputePipelineCreateInfo *out = (VkComputePipelineCreateInfo *)tempMem;
+
+        *out = *in;
+        UnwrapInPlace(out->layout);
+        UnwrapInPlace(out->stage.module);
+        if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+          UnwrapInPlace(out->basePipelineHandle);
+
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
 
         break;
       }
