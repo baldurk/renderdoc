@@ -238,6 +238,8 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
+  SAFE_DELETE(m_FrameReader);
+
   if(m_QueueRecord)
     m_QueueRecord->Delete(m_pDevice->GetResourceManager());
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());

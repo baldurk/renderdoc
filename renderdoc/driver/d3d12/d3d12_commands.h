@@ -152,6 +152,7 @@ class WrappedID3D12CommandSignature;
 
 struct BakedCmdListInfo
 {
+  ~BakedCmdListInfo() { SAFE_DELETE(draw); }
   void ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx);
 
   struct ExecuteData
@@ -193,10 +194,10 @@ struct BakedCmdListInfo
   uint32_t beginChunk = 0;
   uint32_t endChunk = 0;
 
-  D3D12DrawcallTreeNode *draw;    // the root draw to copy from when submitting
-  uint32_t eventCount;            // how many events are in this cmd list, for quick skipping
-  uint32_t curEventID;            // current event ID while reading or executing
-  uint32_t drawCount;             // similar to above
+  D3D12DrawcallTreeNode *draw = NULL;    // the root draw to copy from when submitting
+  uint32_t eventCount;                   // how many events are in this cmd list, for quick skipping
+  uint32_t curEventID;                   // current event ID while reading or executing
+  uint32_t drawCount;                    // similar to above
 };
 
 class WrappedID3D12Device;

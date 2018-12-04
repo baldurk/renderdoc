@@ -568,7 +568,8 @@ public:
 
   static void RegisterD3DDeviceCallback(D3DDeviceCallback callback)
   {
-    m_D3DCallbacks.push_back(callback);
+    if(std::find(m_D3DCallbacks.begin(), m_D3DCallbacks.end(), callback) == m_D3DCallbacks.end())
+      m_D3DCallbacks.push_back(callback);
   }
 
   static ID3DDevice *GetD3DDevice(IUnknown *dev)
