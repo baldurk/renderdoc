@@ -26,6 +26,8 @@
 #include "vk_core.h"
 #include "vk_replay.h"
 
+#include <shlwapi.h>
+
 static int dllLocator = 0;
 
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
@@ -168,12 +170,47 @@ std::wstring GetJSONPath(bool wow6432)
   FileIO::GetLibraryFilename(libPath);
   std::string jsonPath = dirname(FileIO::GetFullPathname(libPath));
 
+  std::wstring jsonWide = StringFormat::UTF82Wide(jsonPath);
+
+  if(jsonWide[1] == L':' && PathIsNetworkPathW(jsonWide.c_str()))
+  {
+    using PFN_WNetGetUniversalNameW = decltype(&WNetGetUniversalNameW);
+
+    HMODULE mpr = LoadLibraryA("mpr.dll");
+    if(mpr)
+    {
+      PFN_WNetGetUniversalNameW getUniversal =
+          (PFN_WNetGetUniversalNameW)GetProcAddress(mpr, "WNetGetUniversalNameW");
+
+      DWORD bufSize = 2048;
+      byte *buf = new byte[bufSize];
+      memset(buf, 0, bufSize);
+      DWORD result = getUniversal(jsonWide.c_str(), UNIVERSAL_NAME_INFO_LEVEL, buf, &bufSize);
+      if(result == NO_ERROR)
+      {
+        UNIVERSAL_NAME_INFOW *nameInfo = (UNIVERSAL_NAME_INFOW *)buf;
+        RDCLOG("Converted %ls network path to %ls", jsonWide.c_str(), nameInfo->lpUniversalName);
+        jsonWide = nameInfo->lpUniversalName;
+      }
+      else
+      {
+        RDCERR("Error calling WNetGetUniversalNameW: %d", result);
+      }
+
+      delete[] buf;
+    }
+    else
+    {
+      RDCERR("Can't load mpr.dll for WNetGetUniversalNameW");
+    }
+  }
+
   if(wow6432)
-    jsonPath += "\\x86";
+    jsonWide += L"\\x86";
 
-  jsonPath += "\\renderdoc.json";
+  jsonWide += L"\\renderdoc.json";
 
-  return StringFormat::UTF82Wide(jsonPath);
+  return jsonWide;
 }
 
 static HKEY GetImplicitLayersKey(bool writeable, bool wow6432)
