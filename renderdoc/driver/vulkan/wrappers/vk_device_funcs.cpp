@@ -306,11 +306,12 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   RDCASSERTEQUAL(ret, VK_SUCCESS);
 
   GetResourceManager()->WrapResource(m_Instance, m_Instance);
-  GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
 
   // we'll add the chunk later when we re-process it.
   if(params.InstanceID != ResourceId())
   {
+    GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
+
     AddResource(params.InstanceID, ResourceType::Device, "Instance");
     GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
   }
