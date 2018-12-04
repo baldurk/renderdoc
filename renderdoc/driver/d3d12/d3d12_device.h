@@ -291,7 +291,7 @@ private:
   WrappedID3D12CommandQueue *m_Queue;
 
   ID3D12CommandAllocator *m_Alloc = NULL, *m_DataUploadAlloc = NULL;
-  ID3D12GraphicsCommandList *m_List = NULL, *m_DataUploadList = NULL;
+  ID3D12GraphicsCommandList *m_DataUploadList = NULL;
   ID3D12DescriptorHeap *m_RTVHeap = NULL;
   ID3D12Fence *m_GPUSyncFence;
   HANDLE m_GPUSyncHandle;

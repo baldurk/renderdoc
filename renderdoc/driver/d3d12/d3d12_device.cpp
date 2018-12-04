@@ -203,7 +203,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_HeaderChunk = NULL;
 
   m_Alloc = m_DataUploadAlloc = NULL;
-  m_List = m_DataUploadList = NULL;
+  m_DataUploadList = NULL;
   m_GPUSyncFence = NULL;
   m_GPUSyncHandle = NULL;
   m_GPUSyncCounter = 0;
@@ -416,6 +416,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_DELETE(m_ResourceManager);
 
+  SAFE_RELEASE(m_pDevice3);
+  SAFE_RELEASE(m_pDevice2);
   SAFE_RELEASE(m_pDevice1);
 
   SAFE_RELEASE(m_pInfoQueue);
@@ -2320,8 +2322,7 @@ void WrappedID3D12Device::DestroyInternalResources()
   ExecuteLists();
   FlushLists(true);
 
-  for(size_t i = 0; i < m_InternalCmds.pendingcmds.size(); i++)
-    SAFE_RELEASE(m_InternalCmds.pendingcmds[i]);
+  SAFE_RELEASE(m_RTVHeap);
 
   SAFE_DELETE(m_TextRenderer);
   SAFE_DELETE(m_ShaderCache);

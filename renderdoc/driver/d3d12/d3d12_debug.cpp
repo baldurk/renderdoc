@@ -360,8 +360,23 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(uavClearHeap);
   SAFE_RELEASE(samplerHeap);
 
+  SAFE_RELEASE(m_MeshVS);
+  SAFE_RELEASE(m_MeshGS);
+  SAFE_RELEASE(m_MeshPS);
+
   SAFE_RELEASE(m_CBOnlyRootSig);
   SAFE_RELEASE(m_ArrayMSAARootSig);
+  SAFE_RELEASE(m_FullscreenVS);
+
+  SAFE_RELEASE(m_IntMS2Array);
+  SAFE_RELEASE(m_FloatMS2Array);
+  SAFE_RELEASE(m_DepthMS2Array);
+
+  SAFE_RELEASE(m_IntArray2MS);
+  SAFE_RELEASE(m_FloatArray2MS);
+  SAFE_RELEASE(m_DepthArray2MS);
+
+  SAFE_RELEASE(m_ReadbackBuffer);
 
   SAFE_RELEASE(m_RingConstantBuffer);
 
@@ -1249,9 +1264,9 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
       RDCERR("Couldn't create m_OutlinePipe! HRESULT: %s", ToStr(hr).c_str());
     }
 
-    RDCASSERT(CheckerboardPS);
-    RDCASSERT(FullscreenVS);
-    RDCASSERT(FixedColPS);
+    SAFE_RELEASE(CheckerboardPS);
+    SAFE_RELEASE(FullscreenVS);
+    SAFE_RELEASE(FixedColPS);
   }
 
   shaderCache->SetCaching(false);
@@ -1502,6 +1517,7 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
 void D3D12Replay::OverlayRendering::Release()
 {
+  SAFE_RELEASE(MeshVS);
   SAFE_RELEASE(TriangleSizeGS);
   SAFE_RELEASE(TriangleSizePS);
   SAFE_RELEASE(QuadOverdrawWritePS);

@@ -141,6 +141,8 @@ void D3D12Replay::Initialise()
       memcpy(m_DriverInfo.version, descString.c_str(), descString.size());
 
       RDCLOG("Running replay on %s / %s", ToStr(m_DriverInfo.vendor).c_str(), m_DriverInfo.version);
+
+      SAFE_RELEASE(pDXGIAdapter);
     }
   }
 }
@@ -203,6 +205,8 @@ void D3D12Replay::DestroyResources()
 
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
+  SAFE_RELEASE(m_SOPatchedIndexBuffer);
+  SAFE_RELEASE(m_SOQueryHeap);
 
   SAFE_RELEASE(m_pFactory);
 
