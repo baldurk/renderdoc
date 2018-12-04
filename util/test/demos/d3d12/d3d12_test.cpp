@@ -329,6 +329,8 @@ D3D12GraphicsTest::~D3D12GraphicsTest()
 
   GPUSync();
 
+  infoqueue = NULL;
+
   pendingCommandBuffers.clear();
   freeCommandBuffers.clear();
 
@@ -338,16 +340,19 @@ D3D12GraphicsTest::~D3D12GraphicsTest()
   m_RTV = m_DSV = m_CBVUAVSRV = m_Sampler = NULL;
 
   m_Alloc = NULL;
-
-  queue = NULL;
+  m_DebugList = NULL;
 
   m_GPUSyncFence = NULL;
   CloseHandle(m_GPUSyncHandle);
 
-  dev = NULL;
+  bbTex[0] = bbTex[1] = NULL;
+
   swap = NULL;
   m_Factory = NULL;
   delete mainWindow;
+
+  queue = NULL;
+  dev = NULL;
 }
 
 bool D3D12GraphicsTest::Running()

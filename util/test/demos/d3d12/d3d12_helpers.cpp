@@ -249,9 +249,9 @@ D3D12BufferCreator &D3D12BufferCreator::Size(UINT size)
   return *this;
 }
 
-D3D12BufferCreator::operator ID3D12Resource *() const
+D3D12BufferCreator::operator ID3D12ResourcePtr() const
 {
-  ID3D12Resource *buf = NULL;
+  ID3D12ResourcePtr buf;
   CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc,
                                                 D3D12_RESOURCE_STATE_COMMON, NULL,
                                                 __uuidof(ID3D12Resource), (void **)&buf));
@@ -347,9 +347,9 @@ D3D12TextureCreator &D3D12TextureCreator::InitialState(D3D12_RESOURCE_STATES sta
   return *this;
 }
 
-D3D12TextureCreator::operator ID3D12Resource *() const
+D3D12TextureCreator::operator ID3D12ResourcePtr() const
 {
-  ID3D12Resource *tex = NULL;
+  ID3D12ResourcePtr tex;
   CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_TexDesc,
                                                 m_InitialState, NULL, __uuidof(ID3D12Resource),
                                                 (void **)&tex));
@@ -894,20 +894,18 @@ D3D12PSOCreator &D3D12PSOCreator::DSV(DXGI_FORMAT fmt)
   return *this;
 }
 
-D3D12PSOCreator::operator ID3D12PipelineState *() const
+D3D12PSOCreator::operator ID3D12PipelineStatePtr() const
 {
+  ID3D12PipelineStatePtr pso;
   if(ComputeDesc.CS.BytecodeLength > 0)
   {
-    ID3D12PipelineState *pso = NULL;
     CHECK_HR(m_Test->dev->CreateComputePipelineState(&ComputeDesc, __uuidof(ID3D12PipelineState),
                                                      (void **)&pso));
-    return pso;
   }
   else
   {
-    ID3D12PipelineState *pso = NULL;
     CHECK_HR(m_Test->dev->CreateGraphicsPipelineState(&GraphicsDesc, __uuidof(ID3D12PipelineState),
                                                       (void **)&pso));
-    return pso;
   }
+  return pso;
 }

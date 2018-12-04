@@ -235,6 +235,21 @@ void D3D11GraphicsTest::PostDeviceCreate()
 D3D11GraphicsTest::~D3D11GraphicsTest()
 {
   delete mainWindow;
+
+  swap = NULL;
+  defaultLayout = NULL;
+
+  bbTex = NULL;
+  bbRTV = NULL;
+
+  annot = NULL;
+  ctx2 = NULL;
+  ctx1 = NULL;
+  ctx = NULL;
+
+  dev1 = NULL;
+  dev2 = NULL;
+  dev = NULL;
 }
 
 bool D3D11GraphicsTest::Running()

@@ -240,9 +240,9 @@ D3D11BufferCreator &D3D11BufferCreator::Size(UINT size)
   return *this;
 }
 
-D3D11BufferCreator::operator ID3D11Buffer *() const
+D3D11BufferCreator::operator ID3D11BufferPtr() const
 {
-  ID3D11Buffer *buf = NULL;
+  ID3D11BufferPtr buf;
   CHECK_HR(m_Test->dev->CreateBuffer(&m_BufDesc, m_Initdata.pSysMem ? &m_Initdata : NULL, &buf));
   return buf;
 }
@@ -314,7 +314,7 @@ D3D11TextureCreator &D3D11TextureCreator::Staging()
   return *this;
 }
 
-D3D11TextureCreator::operator ID3D11Texture1D *() const
+D3D11TextureCreator::operator ID3D11Texture1DPtr() const
 {
   D3D11_TEXTURE1D_DESC texdesc;
 
@@ -327,12 +327,12 @@ D3D11TextureCreator::operator ID3D11Texture1D *() const
   texdesc.BindFlags = BindFlags;
   texdesc.Format = Format;
 
-  ID3D11Texture1D *tex = NULL;
+  ID3D11Texture1DPtr tex;
   CHECK_HR(m_Test->dev->CreateTexture1D(&texdesc, NULL, &tex));
   return tex;
 }
 
-D3D11TextureCreator::operator ID3D11Texture2D *() const
+D3D11TextureCreator::operator ID3D11Texture2DPtr() const
 {
   D3D11_TEXTURE2D_DESC texdesc;
 
@@ -348,12 +348,12 @@ D3D11TextureCreator::operator ID3D11Texture2D *() const
   texdesc.SampleDesc.Count = SampleDesc.Count;
   texdesc.SampleDesc.Quality = SampleDesc.Quality;
 
-  ID3D11Texture2D *tex = NULL;
+  ID3D11Texture2DPtr tex;
   CHECK_HR(m_Test->dev->CreateTexture2D(&texdesc, NULL, &tex));
   return tex;
 }
 
-D3D11TextureCreator::operator ID3D11Texture3D *() const
+D3D11TextureCreator::operator ID3D11Texture3DPtr() const
 {
   D3D11_TEXTURE3D_DESC texdesc;
 
@@ -367,7 +367,7 @@ D3D11TextureCreator::operator ID3D11Texture3D *() const
   texdesc.BindFlags = BindFlags;
   texdesc.Format = Format;
 
-  ID3D11Texture3D *tex = NULL;
+  ID3D11Texture3DPtr tex;
   CHECK_HR(m_Test->dev->CreateTexture3D(&texdesc, NULL, &tex));
   return tex;
 }
@@ -733,7 +733,7 @@ D3D11ViewCreator &D3D11ViewCreator::ReadOnlyStencil()
   return *this;
 }
 
-D3D11ViewCreator::operator ID3D11ShaderResourceView *()
+D3D11ViewCreator::operator ID3D11ShaderResourceViewPtr()
 {
   if(desc.srv.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
   {
@@ -761,12 +761,12 @@ D3D11ViewCreator::operator ID3D11ShaderResourceView *()
   TEST_ASSERT(m_Res, "Must have resource");
   TEST_ASSERT(m_Type == ViewType::SRV, "Casting non-SRV ViewCreator to SRV");
 
-  ID3D11ShaderResourceView *srv = NULL;
+  ID3D11ShaderResourceViewPtr srv;
   CHECK_HR(m_Test->dev->CreateShaderResourceView(m_Res, &desc.srv, &srv));
   return srv;
 }
 
-D3D11ViewCreator::operator ID3D11UnorderedAccessView *()
+D3D11ViewCreator::operator ID3D11UnorderedAccessViewPtr()
 {
   if(desc.uav.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
   {
@@ -791,27 +791,27 @@ D3D11ViewCreator::operator ID3D11UnorderedAccessView *()
   TEST_ASSERT(m_Res, "Must have resource");
   TEST_ASSERT(m_Type == ViewType::UAV, "Casting non-UAV ViewCreator to UAV");
 
-  ID3D11UnorderedAccessView *uav = NULL;
+  ID3D11UnorderedAccessViewPtr uav;
   CHECK_HR(m_Test->dev->CreateUnorderedAccessView(m_Res, &desc.uav, &uav));
   return uav;
 }
 
-D3D11ViewCreator::operator ID3D11RenderTargetView *()
+D3D11ViewCreator::operator ID3D11RenderTargetViewPtr()
 {
   TEST_ASSERT(m_Res, "Must have resource");
   TEST_ASSERT(m_Type == ViewType::RTV, "Casting non-RTV ViewCreator to RTV");
 
-  ID3D11RenderTargetView *rtv = NULL;
+  ID3D11RenderTargetViewPtr rtv;
   CHECK_HR(m_Test->dev->CreateRenderTargetView(m_Res, &desc.rtv, &rtv));
   return rtv;
 }
 
-D3D11ViewCreator::operator ID3D11DepthStencilView *()
+D3D11ViewCreator::operator ID3D11DepthStencilViewPtr()
 {
   TEST_ASSERT(m_Res, "Must have resource");
   TEST_ASSERT(m_Type == ViewType::DSV, "Casting non-DSV ViewCreator to DSV");
 
-  ID3D11DepthStencilView *dsv = NULL;
+  ID3D11DepthStencilViewPtr dsv;
   CHECK_HR(m_Test->dev->CreateDepthStencilView(m_Res, &desc.dsv, &dsv));
   return dsv;
 }

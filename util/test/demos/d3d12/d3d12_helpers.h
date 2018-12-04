@@ -82,11 +82,7 @@ public:
   D3D12PSOCreator &RTVs(const std::vector<DXGI_FORMAT> &fmts);
   D3D12PSOCreator &DSV(DXGI_FORMAT fmt);
 
-  operator ID3D12PipelineState *() const;
-  operator ID3D12PipelineStatePtr() const
-  {
-    return ID3D12PipelineStatePtr((ID3D12PipelineState *)*this);
-  }
+  operator ID3D12PipelineStatePtr() const;
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsDesc = {};
   D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc = {};
@@ -120,8 +116,8 @@ public:
     return Data(data.data()).Size(UINT(data.size() * sizeof(T)));
   }
 
-  operator ID3D12Resource *() const;
-  operator ID3D12ResourcePtr() const { return ID3D12ResourcePtr((ID3D12Resource *)*this); }
+  operator ID3D12ResourcePtr() const;
+
 private:
   D3D12GraphicsTest *m_Test;
 
@@ -149,8 +145,8 @@ public:
 
   D3D12TextureCreator &InitialState(D3D12_RESOURCE_STATES state);
 
-  operator ID3D12Resource *() const;
-  operator ID3D12ResourcePtr() const { return ID3D12ResourcePtr((ID3D12Resource *)*this); }
+  operator ID3D12ResourcePtr() const;
+
 protected:
   D3D12GraphicsTest *m_Test;
 

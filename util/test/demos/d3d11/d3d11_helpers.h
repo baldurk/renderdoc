@@ -112,8 +112,8 @@ public:
     return Data(data.data()).Size(UINT(data.size() * sizeof(T)));
   }
 
-  operator ID3D11Buffer *() const;
-  operator ID3D11BufferPtr() const { return ID3D11BufferPtr((ID3D11Buffer *)*this); }
+  operator ID3D11BufferPtr() const;
+
 private:
   D3D11GraphicsTest *m_Test;
 
@@ -139,12 +139,10 @@ public:
   D3D11TextureCreator &Mappable();
   D3D11TextureCreator &Staging();
 
-  operator ID3D11Texture1D *() const;
-  operator ID3D11Texture1DPtr() const { return ID3D11Texture1DPtr((ID3D11Texture1D *)*this); }
-  operator ID3D11Texture2D *() const;
-  operator ID3D11Texture2DPtr() const { return ID3D11Texture2DPtr((ID3D11Texture2D *)*this); }
-  operator ID3D11Texture3D *() const;
-  operator ID3D11Texture3DPtr() const { return ID3D11Texture3DPtr((ID3D11Texture3D *)*this); }
+  operator ID3D11Texture1DPtr() const;
+  operator ID3D11Texture2DPtr() const;
+  operator ID3D11Texture3DPtr() const;
+
 protected:
   D3D11GraphicsTest *m_Test;
 
@@ -206,27 +204,10 @@ public:
   D3D11ViewCreator &ReadOnlyDepth();
   D3D11ViewCreator &ReadOnlyStencil();
 
-  operator ID3D11ShaderResourceView *();
-  operator ID3D11ShaderResourceViewPtr()
-  {
-    return ID3D11ShaderResourceViewPtr((ID3D11ShaderResourceView *)*this);
-  }
-  operator ID3D11RenderTargetView *();
-  operator ID3D11RenderTargetViewPtr()
-  {
-    return ID3D11RenderTargetViewPtr((ID3D11RenderTargetView *)*this);
-  }
-  operator ID3D11DepthStencilView *();
-  operator ID3D11DepthStencilViewPtr()
-  {
-    return ID3D11DepthStencilViewPtr((ID3D11DepthStencilView *)*this);
-  }
-
-  operator ID3D11UnorderedAccessView *();
-  operator ID3D11UnorderedAccessViewPtr()
-  {
-    return ID3D11UnorderedAccessViewPtr((ID3D11UnorderedAccessView *)*this);
-  }
+  operator ID3D11ShaderResourceViewPtr();
+  operator ID3D11RenderTargetViewPtr();
+  operator ID3D11DepthStencilViewPtr();
+  operator ID3D11UnorderedAccessViewPtr();
 
 private:
   void SetupDescriptors(ViewType viewType, ResourceType resType);

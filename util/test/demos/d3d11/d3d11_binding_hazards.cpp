@@ -78,13 +78,14 @@ void main()
 
       ctx->CSSetShader(cs, NULL, 0);
 
-      ID3D11ShaderResourceView *tempSRV = MakeSRV(buf2).Format(DXGI_FORMAT_R32_UINT).NumElements(128);
+      ID3D11ShaderResourceViewPtr tempSRV =
+          MakeSRV(buf2).Format(DXGI_FORMAT_R32_UINT).NumElements(128);
 
-      ctx->CSSetShaderResources(1, 1, &tempSRV);
+      ctx->CSSetShaderResources(1, 1, &tempSRV.GetInterfacePtr());
 
       ULONG refcount = tempSRV->Release();
 
-      ID3D11ShaderResourceView *srvs[2] = {NULL, tempSRV};
+      ID3D11ShaderResourceView *srvs[2] = {NULL, tempSRV.GetInterfacePtr()};
 
       ctx->CSSetShaderResources(1, 2, srvs);
 
