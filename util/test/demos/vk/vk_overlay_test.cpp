@@ -115,6 +115,11 @@ void main()
         {Vec3f(0.5f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.5f, -0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
+        // depth clipped (i.e. not clamped)
+        {Vec3f(0.6f, 0.0f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, -0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, 0.0f, 1.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
         // small triangles
         // size=0.005
         {Vec3f(0.0f, -0.4f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
@@ -195,6 +200,7 @@ void main()
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
+    pipeCreateInfo.rasterizationState.depthClampEnable = VK_FALSE;
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
     pipeCreateInfo.depthStencilState.depthTestEnable = VK_TRUE;
@@ -263,7 +269,7 @@ void main()
       setMarker(cmd, "Test Begin");
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
-      vkCmdDraw(cmd, 21, 1, 9, 0);
+      vkCmdDraw(cmd, 24, 1, 9, 0);
 
       vkCmdEndRenderPass(cmd);
 

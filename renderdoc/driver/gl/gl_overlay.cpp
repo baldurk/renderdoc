@@ -325,11 +325,14 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   drv.glDisable(eGL_SCISSOR_TEST);
   drv.glDepthMask(GL_FALSE);
   drv.glDisable(eGL_CULL_FACE);
-  if(!IsGLES)
-    drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
   drv.glDisable(eGL_DEPTH_TEST);
   drv.glDisable(eGL_STENCIL_TEST);
   drv.glStencilMask(0);
+  if(!IsGLES)
+  {
+    drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+    drv.glEnable(eGL_DEPTH_CLAMP);
+  }
 
   if(overlay == DebugOverlay::NaN || overlay == DebugOverlay::Clipping)
   {
@@ -742,6 +745,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       drv.glStencilMaskSeparate(eGL_FRONT, rs.StencilFront.writemask);
       drv.glStencilMaskSeparate(eGL_BACK, rs.StencilBack.writemask);
     }
+
+    if(rs.Enabled[GLRenderState::eEnabled_CullFace])
+      drv.glEnable(eGL_CULL_FACE);
+    if(!IsGLES && !rs.Enabled[GLRenderState::eEnabled_DepthClamp])
+      drv.glDisable(eGL_DEPTH_CLAMP);
 
     // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
     SafeBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight, 0, 0,

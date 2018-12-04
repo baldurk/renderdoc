@@ -1320,17 +1320,17 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     VulkanRenderState prevstate = m_pDriver->m_RenderState;
 
     // make patched shader
-    VkShaderModule mod[2] = {0};
-    VkPipeline pipe[2] = {0};
+    VkShaderModule failmod = {}, passmod = {};
+    VkPipeline failpipe = {}, passpipe = {};
 
-    // first shader, no depth testing, writes red
-    GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
+    // first shader, no depth/stencil testing, writes red
+    GetDebugManager()->PatchFixedColShader(failmod, highlightCol);
 
     highlightCol[0] = 0.0f;
     highlightCol[1] = 1.0f;
 
-    // second shader, enabled depth testing, writes green
-    GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
+    // second shader, enabled depth/stencil testing, writes green
+    GetDebugManager()->PatchFixedColShader(passmod, highlightCol);
 
     // make patched pipeline
     VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -1347,14 +1347,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     VkBool32 origStencilTest = ds->stencilTestEnable;
     ds->stencilTestEnable = false;
     ds->depthBoundsTestEnable = false;
-
-    VkPipelineRasterizationStateCreateInfo *rs =
-        (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-    rs->cullMode = VK_CULL_MODE_NONE;
-    rs->rasterizerDiscardEnable = false;
-
-    if(m_pDriver->GetDeviceFeatures().depthClamp)
-      rs->depthClampEnable = true;
 
     VkPipelineColorBlendStateCreateInfo *cb =
         (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
@@ -1378,8 +1370,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       sc.extent.height = 16384;
     }
 
-    // set our renderpass and shader
-    pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+    // subpass 0 in either render pass
     pipeCreateInfo.subpass = 0;
 
     VkPipelineShaderStageCreateInfo *fragShader = NULL;
@@ -1390,7 +1381,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
           (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
       if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
       {
-        sh.module = mod[0];
         sh.pName = "main";
         fragShader = &sh;
         break;
@@ -1407,21 +1397,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       sh.pNext = NULL;
       sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-      sh.module = mod[0];
       sh.pName = "main";
       sh.pSpecializationInfo = NULL;
 
       fragShader = &sh;
     }
 
-    vkr = vt->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                               &pipe[0]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    fragShader->module = mod[1];
+    fragShader->module = passmod;
 
     if(depthRP != VK_NULL_HANDLE)
     {
@@ -1433,7 +1415,25 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     }
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                               &pipe[1]);
+                                               &passpipe);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    fragShader->module = failmod;
+
+    // set our renderpass and shader
+    pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+
+    // disable culling/discard and enable depth clamp. That way we show any failures due to these
+    VkPipelineRasterizationStateCreateInfo *rs =
+        (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+    rs->cullMode = VK_CULL_MODE_NONE;
+    rs->rasterizerDiscardEnable = false;
+
+    if(m_pDriver->GetDeviceFeatures().depthClamp)
+      rs->depthClampEnable = true;
+
+    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                               &failpipe);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // modify state
@@ -1441,7 +1441,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     m_pDriver->m_RenderState.subpass = 0;
     m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
 
-    m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
+    m_pDriver->m_RenderState.graphics.pipeline = GetResID(failpipe);
 
     // set dynamic scissors in case pipeline was using them
     for(size_t i = 0; i < m_pDriver->m_RenderState.scissors.size(); i++)
@@ -1452,9 +1452,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
     }
 
+    vkr = vt->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-    m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
+    m_pDriver->m_RenderState.graphics.pipeline = GetResID(passpipe);
     if(depthRP != VK_NULL_HANDLE)
     {
       m_pDriver->m_RenderState.renderPass = GetResID(depthRP);
@@ -1475,11 +1478,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     // restore state
     m_pDriver->m_RenderState = prevstate;
 
-    for(int i = 0; i < 2; i++)
-    {
-      m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
-      m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
-    }
+    m_pDriver->vkDestroyPipeline(m_Device, failpipe, NULL);
+    m_pDriver->vkDestroyShaderModule(m_Device, failmod, NULL);
+    m_pDriver->vkDestroyPipeline(m_Device, passpipe, NULL);
+    m_pDriver->vkDestroyShaderModule(m_Device, passmod, NULL);
 
     if(depthRP != VK_NULL_HANDLE)
     {

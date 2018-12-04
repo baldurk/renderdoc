@@ -75,6 +75,11 @@ struct D3D11_Overlay_Test : D3D11GraphicsTest
         {Vec3f(0.5f, -0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.5f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
+        // depth clipped (i.e. not clamped)
+        {Vec3f(0.6f, 0.0f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, 0.0f, 1.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
         // small triangles
         // size=0.01
         {Vec3f(0.0f, 0.4f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
@@ -153,7 +158,7 @@ struct D3D11_Overlay_Test : D3D11GraphicsTest
       depth.StencilEnable = TRUE;
       depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
       SetDepthState(depth);
-      ctx->Draw(21, 9);
+      ctx->Draw(24, 9);
 
       Present();
     }

@@ -70,6 +70,11 @@ struct D3D12_Overlay_Test : D3D12GraphicsTest
         {Vec3f(0.5f, -0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.5f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
+        // depth clipped (i.e. not clamped)
+        {Vec3f(0.6f, 0.0f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, 0.0f, 1.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
         // small triangles
         // size=0.005
         {Vec3f(0.0f, 0.4f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
@@ -100,6 +105,7 @@ struct D3D12_Overlay_Test : D3D12GraphicsTest
         DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
 
     creator.GraphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    creator.GraphicsDesc.RasterizerState.DepthClipEnable = TRUE;
 
     creator.GraphicsDesc.DepthStencilState.DepthEnable = TRUE;
     creator.GraphicsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -173,7 +179,7 @@ struct D3D12_Overlay_Test : D3D12GraphicsTest
       cmd->SetMarker(1, "Test Begin", sizeof("Test Begin"));
 
       cmd->SetPipelineState(pipe);
-      cmd->DrawInstanced(21, 1, 9, 0);
+      cmd->DrawInstanced(24, 1, 9, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 

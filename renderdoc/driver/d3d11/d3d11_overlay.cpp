@@ -1064,46 +1064,39 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     if(!cur.StencilEnable)
       cur.StencilEnable = D3D11_COMPARISON_ALWAYS;
 
-    // ensure culling doesn't hide the render, we're only showing the result of the depth test
+    // ensure culling/depth clipping doesn't hide the render for the fail draw
+    ID3D11RasterizerState *rs = NULL;
     {
-      ID3D11RasterizerState *rs = NULL;
+      D3D11_RASTERIZER_DESC rdesc;
+
+      m_pImmediateContext->RSGetState(&rs);
+
+      if(rs)
       {
-        D3D11_RASTERIZER_DESC rdesc;
-
-        m_pImmediateContext->RSGetState(&rs);
-
-        if(rs)
-        {
-          rs->GetDesc(&rdesc);
-        }
-        else
-        {
-          rdesc.FillMode = D3D11_FILL_SOLID;
-          rdesc.CullMode = D3D11_CULL_BACK;
-          rdesc.FrontCounterClockwise = FALSE;
-          rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
-          rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
-          rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-          rdesc.DepthClipEnable = TRUE;
-          rdesc.ScissorEnable = FALSE;
-          rdesc.MultisampleEnable = FALSE;
-          rdesc.AntialiasedLineEnable = FALSE;
-        }
-
-        SAFE_RELEASE(rs);
-
+        rs->GetDesc(&rdesc);
+      }
+      else
+      {
         rdesc.FillMode = D3D11_FILL_SOLID;
-        rdesc.CullMode = D3D11_CULL_NONE;
-        rdesc.DepthClipEnable = FALSE;
+        rdesc.CullMode = D3D11_CULL_BACK;
+        rdesc.FrontCounterClockwise = FALSE;
+        rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+        rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+        rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        rdesc.DepthClipEnable = TRUE;
+        rdesc.ScissorEnable = FALSE;
+        rdesc.MultisampleEnable = FALSE;
+        rdesc.AntialiasedLineEnable = FALSE;
+      }
 
-        hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
-        if(FAILED(hr))
-        {
-          RDCERR("Failed to create wireframe rast state HRESULT: %s", ToStr(hr).c_str());
-          return m_Overlay.resourceId;
-        }
+      rdesc.CullMode = D3D11_CULL_NONE;
+      rdesc.DepthClipEnable = FALSE;
 
-        m_pImmediateContext->RSSetState(rs);
+      hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create wireframe rast state HRESULT: %s", ToStr(hr).c_str());
+        return m_Overlay.resourceId;
       }
     }
 
@@ -1118,20 +1111,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
         dsDesc.DepthEnable = d.DepthEnable = TRUE;
         dsDesc.StencilEnable = d.StencilEnable = FALSE;
 
-        switch(cur.DepthFunc)
-        {
-          case D3D11_COMPARISON_ALWAYS: d.DepthFunc = D3D11_COMPARISON_NEVER; break;
-          case D3D11_COMPARISON_NEVER: d.DepthFunc = D3D11_COMPARISON_ALWAYS; break;
-
-          case D3D11_COMPARISON_EQUAL: d.DepthFunc = D3D11_COMPARISON_NOT_EQUAL; break;
-          case D3D11_COMPARISON_NOT_EQUAL: d.DepthFunc = D3D11_COMPARISON_EQUAL; break;
-
-          case D3D11_COMPARISON_LESS: d.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL; break;
-          case D3D11_COMPARISON_GREATER_EQUAL: d.DepthFunc = D3D11_COMPARISON_LESS; break;
-
-          case D3D11_COMPARISON_GREATER: d.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; break;
-          case D3D11_COMPARISON_LESS_EQUAL: d.DepthFunc = D3D11_COMPARISON_GREATER; break;
-        }
+        d.DepthFunc = D3D11_COMPARISON_ALWAYS;
       }
       else if(overlay == DebugOverlay::Stencil)
       {
@@ -1143,51 +1123,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
         dsDesc.StencilReadMask = d.StencilReadMask = cur.StencilReadMask;
         dsDesc.StencilWriteMask = d.StencilWriteMask = cur.StencilWriteMask;
 
-        switch(cur.FrontFace.StencilFunc)
-        {
-          case D3D11_COMPARISON_ALWAYS: d.FrontFace.StencilFunc = D3D11_COMPARISON_NEVER; break;
-          case D3D11_COMPARISON_NEVER: d.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS; break;
-
-          case D3D11_COMPARISON_EQUAL: d.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL; break;
-          case D3D11_COMPARISON_NOT_EQUAL: d.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL; break;
-
-          case D3D11_COMPARISON_LESS:
-            d.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER_EQUAL;
-            break;
-          case D3D11_COMPARISON_GREATER_EQUAL:
-            d.FrontFace.StencilFunc = D3D11_COMPARISON_LESS;
-            break;
-
-          case D3D11_COMPARISON_GREATER:
-            d.FrontFace.StencilFunc = D3D11_COMPARISON_LESS_EQUAL;
-            break;
-          case D3D11_COMPARISON_LESS_EQUAL:
-            d.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
-            break;
-        }
-
-        switch(cur.BackFace.StencilFunc)
-        {
-          case D3D11_COMPARISON_ALWAYS: d.BackFace.StencilFunc = D3D11_COMPARISON_NEVER; break;
-          case D3D11_COMPARISON_NEVER: d.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS; break;
-
-          case D3D11_COMPARISON_EQUAL: d.BackFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL; break;
-          case D3D11_COMPARISON_NOT_EQUAL: d.BackFace.StencilFunc = D3D11_COMPARISON_EQUAL; break;
-
-          case D3D11_COMPARISON_LESS:
-            d.BackFace.StencilFunc = D3D11_COMPARISON_GREATER_EQUAL;
-            break;
-          case D3D11_COMPARISON_GREATER_EQUAL:
-            d.BackFace.StencilFunc = D3D11_COMPARISON_LESS;
-            break;
-
-          case D3D11_COMPARISON_GREATER:
-            d.BackFace.StencilFunc = D3D11_COMPARISON_LESS_EQUAL;
-            break;
-          case D3D11_COMPARISON_LESS_EQUAL:
-            d.BackFace.StencilFunc = D3D11_COMPARISON_GREATER;
-            break;
-        }
+        d.BackFace.StencilFunc = d.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
       }
 
       SAFE_RELEASE(os);
@@ -1195,6 +1131,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       if(FAILED(hr))
       {
         RDCERR("Failed to create depth/stencil overlay depth state HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(rs);
         return m_Overlay.resourceId;
       }
 
@@ -1210,7 +1147,14 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
+      ID3D11RasterizerState *prevrs = NULL;
+      m_pImmediateContext->RSGetState(&prevrs);
+
+      m_pImmediateContext->RSSetState(rs);
+
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+      m_pImmediateContext->RSSetState(prevrs);
 
       SAFE_RELEASE(os);
 
@@ -1249,6 +1193,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       SAFE_RELEASE(os);
     }
+
+    SAFE_RELEASE(rs);
   }
   else
   {

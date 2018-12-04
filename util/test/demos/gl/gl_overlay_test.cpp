@@ -116,6 +116,11 @@ void main()
         {Vec3f(0.5f, -0.2f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.5f, 0.2f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
+        // depth clipped (i.e. not clamped)
+        {Vec3f(0.6f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, 0.2f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, 0.0f, 2.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
         // small triangles
         // size=0.005
         {Vec3f(0.0f, 0.4f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
@@ -180,6 +185,7 @@ void main()
 
       glDepthMask(GL_TRUE);
       glEnable(GL_DEPTH_TEST);
+      glDisable(GL_DEPTH_CLAMP);
       glDisable(GL_STENCIL_TEST);
       glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
       glStencilFunc(GL_ALWAYS, 0x55, 0xff);
@@ -210,7 +216,7 @@ void main()
 
       glEnable(GL_STENCIL_TEST);
       glStencilFunc(GL_GREATER, 0x55, 0xff);
-      glDrawArrays(GL_TRIANGLES, 9, 21);
+      glDrawArrays(GL_TRIANGLES, 9, 24);
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

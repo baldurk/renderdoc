@@ -1196,12 +1196,10 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
 
       psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
       psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
       psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
       psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
       psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-      psoDesc.RasterizerState.DepthClipEnable = FALSE;
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
@@ -1226,6 +1224,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
       psoDesc.DepthStencilState.StencilEnable = FALSE;
       psoDesc.DepthStencilState.DepthBoundsTestEnable = FALSE;
+
+      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      psoDesc.RasterizerState.DepthClipEnable = FALSE;
 
       psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
       psoDesc.PS.BytecodeLength = red->GetBufferSize();
