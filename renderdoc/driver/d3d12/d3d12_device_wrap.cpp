@@ -69,6 +69,9 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
       if(Descriptor.Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)
       {
         m_Queue = wrapped;
+        // we hold an extra ref on this during capture to keep it alive, for simplicity match that
+        // behaviour here.
+        m_Queue->AddRef();
         CreateInternalResources();
       }
 
@@ -121,6 +124,9 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
     if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)
     {
       m_Queue = wrapped;
+      // keep this queue alive even if the application frees it, for our own use
+      m_Queue->AddRef();
+      InternalRef();
       CreateInternalResources();
     }
 

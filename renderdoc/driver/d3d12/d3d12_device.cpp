@@ -381,6 +381,15 @@ WrappedID3D12Device::~WrappedID3D12Device()
 {
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
+  if(!m_InternalCmds.pendingcmds.empty())
+    ExecuteLists(m_Queue);
+
+  if(!m_InternalCmds.submittedcmds.empty())
+    FlushLists(true);
+
+  for(size_t i = 0; i < m_InternalCmds.freecmds.size(); i++)
+    SAFE_RELEASE(m_InternalCmds.freecmds[i]);
+
   if(!IsStructuredExporting(m_State))
     SAFE_DELETE(WrappedID3D12Resource::m_List);
 
@@ -399,6 +408,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
   m_Replay.DestroyResources();
 
   DestroyInternalResources();
+
+  SAFE_RELEASE(m_Queue);
 
   if(m_DeviceRecord)
   {
@@ -2253,7 +2264,9 @@ void WrappedID3D12Device::CreateInternalResources()
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_Alloc);
+  InternalRef();
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
+  InternalRef();
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
   GetResourceManager()->SetInternalResource(m_Alloc);
@@ -2261,11 +2274,13 @@ void WrappedID3D12Device::CreateInternalResources()
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_DataUploadAlloc);
+  InternalRef();
 
   GetResourceManager()->SetInternalResource(m_DataUploadAlloc);
 
   CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DataUploadAlloc, NULL,
                     __uuidof(ID3D12GraphicsCommandList), (void **)&m_DataUploadList);
+  InternalRef();
 
   D3D12_DESCRIPTOR_HEAP_DESC desc;
   desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -2274,6 +2289,7 @@ void WrappedID3D12Device::CreateInternalResources()
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
   CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_RTVHeap);
+  InternalRef();
 
   GetResourceManager()->SetInternalResource(m_RTVHeap);
 
@@ -2376,6 +2392,7 @@ ID3D12GraphicsCommandList2 *WrappedID3D12Device::GetNewList()
     ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+    InternalRef();
 
     // safe to upcast because this is a wrapped object.
     ret = (ID3D12GraphicsCommandList2 *)list;
@@ -2388,6 +2405,10 @@ ID3D12GraphicsCommandList2 *WrappedID3D12Device::GetNewList()
     if(IsReplayMode(m_State))
     {
       GetResourceManager()->AddLiveResource(GetResID(ret), ret);
+      // add a reference here so that when we release our internal resources on destruction we don't
+      // free this too soon before the resource manager can. We still want to have it tracked as a
+      // resource in the manager though.
+      ret->AddRef();
     }
   }
 

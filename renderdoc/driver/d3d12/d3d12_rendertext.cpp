@@ -45,6 +45,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
   hr = wrapper->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&descHeap);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
   {
@@ -83,6 +84,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   hr = wrapper->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                         D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                         __uuidof(ID3D12Resource), (void **)&uploadBuf);
+  // don't add InternalRef because this is temporary
 
   if(FAILED(hr))
     RDCERR("Failed to create uploadBuf HRESULT: %s", ToStr(hr).c_str());
@@ -105,6 +107,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   hr = wrapper->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &texDesc,
                                         D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                         __uuidof(ID3D12Resource), (void **)&Tex);
+  wrapper->InternalRef();
 
   Tex->SetName(L"FontTex");
 
@@ -222,6 +225,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   hr = wrapper->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc,
                                         D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                         __uuidof(ID3D12Resource), (void **)&GlyphData);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create GlyphData cbuffer! %s", ToStr(hr).c_str());
@@ -264,6 +268,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   hr = wrapper->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc,
                                         D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                         __uuidof(ID3D12Resource), (void **)&Constants);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create Constants cbuffer! %s", ToStr(hr).c_str());
@@ -274,6 +279,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   hr = wrapper->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc,
                                         D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                         __uuidof(ID3D12Resource), (void **)&CharBuffer);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create CharBuffer cbuffer! %s", ToStr(hr).c_str());
@@ -341,6 +347,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   hr = wrapper->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                     __uuidof(ID3D12RootSignature), (void **)&RootSig);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create RootSig! %s", ToStr(hr).c_str());
@@ -397,6 +404,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   hr = wrapper->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
                                             (void **)&Pipe[BGRA8_BACKBUFFER]);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create BGRA8 Pipe! HRESULT: %s", ToStr(hr).c_str());
@@ -407,6 +415,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   hr = wrapper->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
                                             (void **)&Pipe[RGBA8_BACKBUFFER]);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create RGBA8 Pipe! HRESULT: %s", ToStr(hr).c_str());
@@ -417,6 +426,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   hr = wrapper->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
                                             (void **)&Pipe[RGBA16_BACKBUFFER]);
+  wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create RGBA16 Pipe! HRESULT: %s", ToStr(hr).c_str());

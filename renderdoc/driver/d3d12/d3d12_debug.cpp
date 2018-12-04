@@ -102,7 +102,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D12DebugManager));
 
   m_pDevice = wrapper;
-  m_pDevice->InternalRef();
 
   D3D12ResourceManager *rm = wrapper->GetResourceManager();
 
@@ -117,6 +116,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   RDCCOMPILE_ASSERT(FIRST_WIN_RTV + 256 < 1024, "Increase size of RTV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&rtvHeap);
+  m_pDevice->InternalRef();
 
   if(FAILED(hr))
   {
@@ -131,6 +131,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   RDCCOMPILE_ASSERT(FIRST_WIN_DSV + 32 < 64, "Increase size of DSV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&dsvHeap);
+  m_pDevice->InternalRef();
 
   if(FAILED(hr))
   {
@@ -145,6 +146,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   RDCCOMPILE_ASSERT(MAX_SRV_SLOT < 4096, "Increase size of CBV/SRV/UAV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&uavClearHeap);
+  m_pDevice->InternalRef();
 
   if(FAILED(hr))
   {
@@ -157,6 +159,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
                                        (void **)&cbvsrvuavHeap);
+  m_pDevice->InternalRef();
 
   if(FAILED(hr))
   {
@@ -169,6 +172,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&samplerHeap);
+  m_pDevice->InternalRef();
 
   if(FAILED(hr))
   {
@@ -203,6 +207,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   m_RingConstantBuffer = MakeCBuffer(bufsize);
   m_RingConstantOffset = 0;
+  m_pDevice->InternalRef();
 
   D3D12ShaderCache *shaderCache = m_pDevice->GetShaderCache();
 
@@ -223,6 +228,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                         __uuidof(ID3D12RootSignature), (void **)&m_CBOnlyRootSig);
+    m_pDevice->InternalRef();
 
     SAFE_RELEASE(root);
 
@@ -243,6 +249,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                         __uuidof(ID3D12RootSignature), (void **)&m_ArrayMSAARootSig);
+    m_pDevice->InternalRef();
 
     SAFE_RELEASE(root);
 
@@ -312,6 +319,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc,
                                           D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                           __uuidof(ID3D12Resource), (void **)&m_ReadbackBuffer);
+  m_pDevice->InternalRef();
 
   m_ReadbackBuffer->SetName(L"m_ReadbackBuffer");
 
@@ -319,6 +327,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                          __uuidof(ID3D12CommandAllocator), (void **)&m_DebugAlloc);
+  m_pDevice->InternalRef();
 
   if(FAILED(hr))
   {
@@ -332,6 +341,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DebugAlloc, NULL,
                                     __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+  m_pDevice->InternalRef();
 
   // safe to upcast - this is a wrapped object
   m_DebugList = (ID3D12GraphicsCommandList2 *)list;
@@ -384,8 +394,6 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_DebugAlloc);
   SAFE_RELEASE(m_DebugList);
-
-  m_pDevice->InternalRelease();
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);

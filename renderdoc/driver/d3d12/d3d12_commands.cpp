@@ -238,6 +238,8 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
+  if(m_QueueRecord)
+    m_QueueRecord->Delete(m_pDevice->GetResourceManager());
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
   m_pDevice->RemoveQueue(this);
 
@@ -878,6 +880,9 @@ WrappedID3D12GraphicsCommandList2::~WrappedID3D12GraphicsCommandList2()
 
   if(m_ListRecord && m_ListRecord->bakedCommands)
     m_ListRecord->bakedCommands->Delete(m_pDevice->GetResourceManager());
+
+  if(m_ListRecord)
+    m_ListRecord->Delete(m_pDevice->GetResourceManager());
 
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
 

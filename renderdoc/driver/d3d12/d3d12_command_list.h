@@ -182,10 +182,10 @@ public:
 
   //////////////////////////////
   // implement IUnknown
-  ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.AddRef(); }
+  ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.SoftRef(m_pDevice); }
   ULONG STDMETHODCALLTYPE Release()
   {
-    unsigned int ret = m_RefCounter.Release();
+    unsigned int ret = m_RefCounter.SoftRelease(m_pDevice);
     if(ret == 0)
       delete this;
     return ret;
