@@ -181,7 +181,6 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
       QFile f(fileinfo.absoluteFilePath());
 
       QString package = fileinfo.absolutePath()
-                            .toLower()
                             .replace(extensionFolder, QString())
                             .replace(QLatin1Char('/'), QLatin1Char('.'));
 
