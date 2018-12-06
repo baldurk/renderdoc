@@ -278,9 +278,10 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
 
     GUIInvoke::call(this, [node]() { node->setItalic(false); });
 
-    m_Lookups.acquire();
-
-    GUIInvoke::call(this, [this]() { updateStatus(); });
+    GUIInvoke::call(this, [this]() {
+      m_Lookups.acquire();
+      updateStatus();
+    });
   });
   th->selfDelete(true);
   th->start();
