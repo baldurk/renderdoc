@@ -72,9 +72,9 @@ public:
                                 node->parentIndex = i;
                                 node->file = files[i];
                                 roots.push_back(node);
-
-                                home = indexForPath(homeDir);
                               }
+
+                              home = indexForPath(homeDir);
                             });
       }
       else
