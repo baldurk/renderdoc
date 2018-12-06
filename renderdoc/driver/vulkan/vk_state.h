@@ -44,10 +44,14 @@ struct VulkanRenderState
   VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo);
   VulkanRenderState &operator=(const VulkanRenderState &o);
   void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
-  void EndTransformFeedback(VkCommandBuffer cmd);
   void EndRenderPass(VkCommandBuffer cmd);
-  void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
 
+  void DoRenderPassBeginTransitions(VkCommandBuffer cmd);
+  void DoRenderpassEndTransitions(VkCommandBuffer cmd);
+
+  void EndTransformFeedback(VkCommandBuffer cmd);
+
+  void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
   void BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
                          VkPipelineLayout layout, VkPipelineBindPoint bindPoint, uint32_t setIndex,
                          uint32_t *dynamicOffsets);
@@ -123,4 +127,6 @@ struct VulkanRenderState
   VulkanResourceManager *GetResourceManager();
   VulkanCreationInfo *m_CreationInfo;
   WrappedVulkan *m_pDriver;
+
+  std::vector<VkImageMemoryBarrier> rpBarriers;
 };

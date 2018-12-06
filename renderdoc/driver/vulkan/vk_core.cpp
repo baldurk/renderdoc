@@ -2781,6 +2781,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     // it back again afterwards.
     std::vector<VkImageMemoryBarrier> loadRPImgBarriers;
 
+    m_RenderState.rpBarriers.clear();
+
     // we'll need our own command buffer if we're replaying just a subsection
     // of events within a single command buffer record - always if it's only
     // one drawcall, or if start event ID is > 0 we assume the outside code
@@ -2802,31 +2804,6 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
       if(m_Partial[Primary].renderPassActive)
       {
-        // first apply implicit transitions to the right subpass
-        loadRPImgBarriers = GetImplicitRenderPassBarriers();
-
-        // don't transition from undefined, or contents will be discarded, instead transition from
-        // the current state.
-        for(size_t i = 0; i < loadRPImgBarriers.size(); i++)
-        {
-          if(loadRPImgBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-          {
-            // TODO find overlapping range and transition that instead
-            loadRPImgBarriers[i].oldLayout =
-                m_ImageLayouts[GetResourceManager()->GetNonDispWrapper(loadRPImgBarriers[i].image)->id]
-                    .subresourceStates[0]
-                    .newLayout;
-          }
-        }
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
-                                             m_ImageLayouts, (uint32_t)loadRPImgBarriers.size(),
-                                             &loadRPImgBarriers[0]);
-
-        ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                                         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
-                                         (uint32_t)loadRPImgBarriers.size(), &loadRPImgBarriers[0]);
-
         const DrawcallDescription *draw = GetDrawcall(endEventID);
 
         bool rpUnneeded = false;
@@ -2878,23 +2855,13 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
         m_RenderState.EndTransformFeedback(cmd);
 
       // check if the render pass is active - it could have become active
-      // even if it wasn't before (if the above event was a CmdBeginRenderPass)
+      // even if it wasn't before (if the above event was a CmdBeginRenderPass).
+      // If we began our own custom single-draw loadrp, and it was ended by a CmdEndRenderPass,
+      // we need to reverse the virtual transitions we did above, as it won't happen otherwise
       if(m_Partial[Primary].renderPassActive)
         m_RenderState.EndRenderPass(cmd);
-
-      // reverse the loadRPImgBarriers
-      for(size_t i = 0; i < loadRPImgBarriers.size(); i++)
-      {
-        std::swap(loadRPImgBarriers[i].oldLayout, loadRPImgBarriers[i].newLayout);
-      }
-
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
-                                           m_ImageLayouts, (uint32_t)loadRPImgBarriers.size(),
-                                           &loadRPImgBarriers[0]);
-
-      ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
-                                       (uint32_t)loadRPImgBarriers.size(), &loadRPImgBarriers[0]);
+      else if(rpWasActive)
+        m_RenderState.DoRenderpassEndTransitions(cmd);
 
       // we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
       // but we want to keep the partial replay data state intact, so restore
