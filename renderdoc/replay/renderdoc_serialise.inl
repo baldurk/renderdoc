@@ -122,8 +122,7 @@ void DoSerialise(SerialiserType &ser, ResourceFormat &el)
   SERIALISE_MEMBER(compType);
   SERIALISE_MEMBER(compCount);
   SERIALISE_MEMBER(compByteWidth);
-  SERIALISE_MEMBER(bgraOrder);
-  SERIALISE_MEMBER(srgbCorrected);
+  SERIALISE_MEMBER(flags);
 
   SIZE_CHECK(6);
 }

@@ -839,7 +839,7 @@ void TextureViewer::UI_UpdateStatusText()
     float g = qBound(0.0f, m_CurHoverValue.floatValue[1], 1.0f);
     float b = qBound(0.0f, m_CurHoverValue.floatValue[2], 1.0f);
 
-    if(tex.format.srgbCorrected || (tex.creationFlags & TextureCategory::SwapBuffer))
+    if(tex.format.srgbCorrected() || (tex.creationFlags & TextureCategory::SwapBuffer))
     {
       r = powf(r, 1.0f / 2.2f);
       g = powf(g, 1.0f / 2.2f);
@@ -1404,7 +1404,7 @@ void TextureViewer::UI_UpdateChannels()
   }
   else
   {
-    if(tex != NULL && !tex->format.srgbCorrected)
+    if(tex != NULL && !tex->format.srgbCorrected())
       ENABLE(ui->gammaDisplay);
     else
       DISABLE(ui->gammaDisplay);
@@ -1413,7 +1413,7 @@ void TextureViewer::UI_UpdateChannels()
         !ui->gammaDisplay->isEnabled() || ui->gammaDisplay->isChecked();
   }
 
-  if(tex != NULL && tex->format.srgbCorrected)
+  if(tex != NULL && tex->format.srgbCorrected())
     m_TexDisplay.linearDisplayAsGamma = false;
 
   bool dsv = false;

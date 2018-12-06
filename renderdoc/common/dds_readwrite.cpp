@@ -252,17 +252,17 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_BC1_UNORM:
     case DXGI_FORMAT_BC1_UNORM_SRGB:
       special.type = ResourceFormatType::BC1;
-      special.srgbCorrected = (format == DXGI_FORMAT_BC1_UNORM_SRGB ? true : false);
+      special.setSrgbCorrected(format == DXGI_FORMAT_BC1_UNORM_SRGB);
       return special;
     case DXGI_FORMAT_BC2_UNORM:
     case DXGI_FORMAT_BC2_UNORM_SRGB:
       special.type = ResourceFormatType::BC2;
-      special.srgbCorrected = (format == DXGI_FORMAT_BC2_UNORM_SRGB ? true : false);
+      special.setSrgbCorrected(format == DXGI_FORMAT_BC2_UNORM_SRGB);
       return special;
     case DXGI_FORMAT_BC3_UNORM:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
       special.type = ResourceFormatType::BC3;
-      special.srgbCorrected = (format == DXGI_FORMAT_BC3_UNORM_SRGB ? true : false);
+      special.setSrgbCorrected(format == DXGI_FORMAT_BC3_UNORM_SRGB);
       return special;
     case DXGI_FORMAT_BC4_UNORM:
     case DXGI_FORMAT_BC4_SNORM:
@@ -282,7 +282,7 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB:
       special.type = ResourceFormatType::BC7;
-      special.srgbCorrected = (format == DXGI_FORMAT_BC7_UNORM_SRGB ? true : false);
+      special.setSrgbCorrected(format == DXGI_FORMAT_BC7_UNORM_SRGB);
       return special;
     case DXGI_FORMAT_R10G10B10A2_UNORM:
     case DXGI_FORMAT_R10G10B10A2_UINT:
@@ -291,18 +291,18 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return special;
     case DXGI_FORMAT_R11G11B10_FLOAT: special.type = ResourceFormatType::R11G11B10; return special;
     case DXGI_FORMAT_B5G6R5_UNORM:
-      fmt8.bgraOrder = true;
+      fmt8.setBgraOrder(true);
       special.type = ResourceFormatType::R5G6B5;
       return special;
     case DXGI_FORMAT_B5G5R5A1_UNORM:
-      fmt8.bgraOrder = true;
+      fmt8.setBgraOrder(true);
       special.type = ResourceFormatType::R5G5B5A1;
       return special;
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
       special.type = ResourceFormatType::R9G9B9E5;
       return special;
     case DXGI_FORMAT_B4G4R4A4_UNORM:
-      fmt8.bgraOrder = true;
+      fmt8.setBgraOrder(true);
       special.type = ResourceFormatType::R4G4B4A4;
       return special;
     case DXGI_FORMAT_D24_UNORM_S8_UINT: special.type = ResourceFormatType::D24S8; return special;
@@ -398,7 +398,7 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return fmt8;
     case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
       fmt8.compType = CompType::UNorm;
-      fmt8.srgbCorrected = true;
+      fmt8.setSrgbCorrected(true);
       fmt8.compCount = 4;
       return fmt8;
     case DXGI_FORMAT_R8G8B8A8_UNORM: fmt8.compCount = 4; return fmt8;
@@ -406,8 +406,8 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
       fmt8.compType = CompType::UNorm;
       fmt8.compCount = 4;
-      fmt8.bgraOrder = true;
-      fmt8.srgbCorrected = (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB ? true : false);
+      fmt8.setBgraOrder(true);
+      fmt8.setSrgbCorrected(format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
       return fmt8;
 
     case DXGI_FORMAT_R8G8_UINT:
@@ -442,11 +442,11 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
     switch(format.type)
     {
       case ResourceFormatType::BC1:
-        return format.srgbCorrected ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
+        return format.srgbCorrected() ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
       case ResourceFormatType::BC2:
-        return format.srgbCorrected ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
+        return format.srgbCorrected() ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
       case ResourceFormatType::BC3:
-        return format.srgbCorrected ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
+        return format.srgbCorrected() ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
       case ResourceFormatType::BC4:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_BC4_UNORM : DXGI_FORMAT_BC4_SNORM;
       case ResourceFormatType::BC5:
@@ -454,18 +454,20 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       case ResourceFormatType::BC6:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_BC6H_UF16 : DXGI_FORMAT_BC6H_SF16;
       case ResourceFormatType::BC7:
-        return format.srgbCorrected ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
+        return format.srgbCorrected() ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
       case ResourceFormatType::R10G10B10A2:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_R10G10B10A2_UNORM
                                                   : DXGI_FORMAT_R10G10B10A2_UINT;
       case ResourceFormatType::R11G11B10: return DXGI_FORMAT_R11G11B10_FLOAT;
-      case ResourceFormatType::R5G6B5: RDCASSERT(format.bgraOrder); return DXGI_FORMAT_B5G6R5_UNORM;
+      case ResourceFormatType::R5G6B5:
+        RDCASSERT(format.bgraOrder());
+        return DXGI_FORMAT_B5G6R5_UNORM;
       case ResourceFormatType::R5G5B5A1:
-        RDCASSERT(format.bgraOrder);
+        RDCASSERT(format.bgraOrder());
         return DXGI_FORMAT_B5G5R5A1_UNORM;
       case ResourceFormatType::R9G9B9E5: return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
       case ResourceFormatType::R4G4B4A4:
-        RDCASSERT(format.bgraOrder);
+        RDCASSERT(format.bgraOrder());
         return DXGI_FORMAT_B4G4R4A4_UNORM;
       case ResourceFormatType::D24S8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
       case ResourceFormatType::D32S8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
@@ -513,16 +515,16 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
         case CompType::SNorm: return DXGI_FORMAT_R8G8B8A8_SNORM;
         default:
         case CompType::UNorm:
-          if(format.srgbCorrected)
+          if(format.srgbCorrected())
           {
-            if(format.bgraOrder)
+            if(format.bgraOrder())
               return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
             else
               return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
           }
           else
           {
-            if(format.bgraOrder)
+            if(format.bgraOrder())
               return DXGI_FORMAT_B8G8R8A8_UNORM;
             else
               return DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -753,7 +755,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
     header.ddspf.dwBBitMask = 0x00ff0000;
     header.ddspf.dwABitMask = 0xff000000;
 
-    if(data.format.bgraOrder)
+    if(data.format.bgraOrder())
       std::swap(header.ddspf.dwRBitMask, header.ddspf.dwBBitMask);
   }
   else if(data.format.type == ResourceFormatType::BC1)
@@ -971,7 +973,7 @@ dds_data load_dds_from_file(FILE *f)
     ret.format.type = ResourceFormatType::Regular;
 
     if(header.ddspf.dwBBitMask < header.ddspf.dwRBitMask)
-      ret.format.bgraOrder = true;
+      ret.format.setBgraOrder(true);
   }
 
   uint32_t bytesPerPixel = 1;

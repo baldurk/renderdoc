@@ -858,7 +858,7 @@ void GLReplay::SavePipelineState()
     {
       fmt.compByteWidth = 1;
       fmt.compCount = 4;
-      fmt.bgraOrder = true;
+      fmt.setBgraOrder(true);
       fmt.compType = CompType::UNorm;
 
       if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
@@ -2997,7 +2997,7 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
   }
 
   // Swizzle R/B channels only for non BGRA textures
-  if(templateTex.format.bgraOrder && target != eGL_NONE && baseFormat != eGL_BGRA)
+  if(templateTex.format.bgraOrder() && target != eGL_NONE && baseFormat != eGL_BGRA)
   {
     if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
@@ -3196,7 +3196,7 @@ bool GLReplay::IsTextureSupported(const ResourceFormat &format)
 
   // BGRA is not accepted as an internal format in case of GL
   // EXT_texture_format_BGRA8888 is required for creating BGRA proxy textures in case of GLES
-  if(format.bgraOrder)
+  if(format.bgraOrder())
     return IsGLES && HasExt[EXT_texture_format_BGRA8888];
 
   return true;

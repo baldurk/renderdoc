@@ -1392,7 +1392,6 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
   ret.format.compByteWidth = 4;
   ret.format.compType = CompType::Float;
   ret.format.type = ResourceFormatType::Regular;
-  ret.format.bgraOrder = false;
 
   ret.showAlpha = false;
 

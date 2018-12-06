@@ -140,7 +140,7 @@ float ConvertComponent(const ResourceFormat &fmt, const byte *data)
     }
     else if(fmt.compType == CompType::UNorm)
     {
-      if(fmt.srgbCorrected)
+      if(fmt.srgbCorrected())
         return SRGB8_lookuptable[*u8];
       else
         return float(*u8) / 255.0f;
@@ -793,7 +793,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   // for non-HDR always downcast if we're not already RGBA8 unorm
   if(sd.destType != FileType::DDS && sd.destType != FileType::HDR && sd.destType != FileType::EXR &&
      (td.format.compByteWidth != 1 || td.format.compCount != 4 ||
-      td.format.compType != CompType::UNorm || td.format.bgraOrder))
+      td.format.compType != CompType::UNorm || td.format.bgraOrder()))
     downcast = true;
 
   // for HDR & EXR we can convert from most regular types as well as 10.10.10.2 and 11.11.10
@@ -1363,7 +1363,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
             srcData += pixStride;
           }
 
-          if(saveFmt.bgraOrder)
+          if(saveFmt.bgraOrder())
             std::swap(r, b);
 
           // HDR can't represent negative values

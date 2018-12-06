@@ -821,7 +821,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
             ret[a].format.compCount = (uint8_t)compCount;
             ret[a].format.compType = compType;
             ret[a].format.type = ResourceFormatType::Regular;
-            ret[a].format.srgbCorrected = false;
+            ret[a].format.setSrgbCorrected(false);
           }
         }
 

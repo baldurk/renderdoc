@@ -398,7 +398,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
   ret.compByteWidth = 0;
   ret.compCount = 0;
   ret.compType = CompType::Typeless;
-  ret.srgbCorrected = false;
 
   if(fmt == VK_FORMAT_UNDEFINED)
   {
@@ -516,7 +515,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_A2R10G10B10_USCALED_PACK32:
     case VK_FORMAT_A2R10G10B10_SSCALED_PACK32:
     case VK_FORMAT_A2R10G10B10_UINT_PACK32:
-    case VK_FORMAT_A2R10G10B10_SINT_PACK32: ret.bgraOrder = true; break;
+    case VK_FORMAT_A2R10G10B10_SINT_PACK32: ret.setBgraOrder(true); break;
     default: break;
   }
 
@@ -704,7 +703,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG:
     case VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG:
     case VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG:
-    case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: ret.srgbCorrected = true; break;
+    case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: ret.setSrgbCorrected(true); break;
     default: break;
   }
 
@@ -1011,16 +1010,16 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       case ResourceFormatType::BC1:
       {
         if(fmt.compCount == 3)
-          ret = fmt.srgbCorrected ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+          ret = fmt.srgbCorrected() ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
         else
-          ret = fmt.srgbCorrected ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+          ret = fmt.srgbCorrected() ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
         break;
       }
       case ResourceFormatType::BC2:
-        ret = fmt.srgbCorrected ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
+        ret = fmt.srgbCorrected() ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
         break;
       case ResourceFormatType::BC3:
-        ret = fmt.srgbCorrected ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
+        ret = fmt.srgbCorrected() ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
         break;
       case ResourceFormatType::BC4:
         ret = fmt.compType == CompType::SNorm ? VK_FORMAT_BC4_SNORM_BLOCK : VK_FORMAT_BC4_UNORM_BLOCK;
@@ -1033,16 +1032,16 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
                                               : VK_FORMAT_BC6H_UFLOAT_BLOCK;
         break;
       case ResourceFormatType::BC7:
-        ret = fmt.srgbCorrected ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
+        ret = fmt.srgbCorrected() ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
         break;
       case ResourceFormatType::ETC2:
       {
         if(fmt.compCount == 3)
-          ret = fmt.srgbCorrected ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK
-                                  : VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+          ret = fmt.srgbCorrected() ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK
+                                    : VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
         else
-          ret = fmt.srgbCorrected ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK
-                                  : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+          ret = fmt.srgbCorrected() ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK
+                                    : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
         break;
       }
       case ResourceFormatType::EAC:
@@ -1057,30 +1056,32 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       }
       case ResourceFormatType::R10G10B10A2:
         if(fmt.compType == CompType::UNorm)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_UNORM_PACK32
-                              : VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_UNORM_PACK32
+                                : VK_FORMAT_A2B10G10R10_UNORM_PACK32;
         else if(fmt.compType == CompType::UInt)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_UINT_PACK32 : VK_FORMAT_A2B10G10R10_UINT_PACK32;
+          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_UINT_PACK32
+                                : VK_FORMAT_A2B10G10R10_UINT_PACK32;
         else if(fmt.compType == CompType::UScaled)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_USCALED_PACK32
-                              : VK_FORMAT_A2B10G10R10_USCALED_PACK32;
+          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_USCALED_PACK32
+                                : VK_FORMAT_A2B10G10R10_USCALED_PACK32;
         else if(fmt.compType == CompType::SNorm)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SNORM_PACK32
-                              : VK_FORMAT_A2B10G10R10_SNORM_PACK32;
+          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_SNORM_PACK32
+                                : VK_FORMAT_A2B10G10R10_SNORM_PACK32;
         else if(fmt.compType == CompType::SInt)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SINT_PACK32 : VK_FORMAT_A2B10G10R10_SINT_PACK32;
+          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_SINT_PACK32
+                                : VK_FORMAT_A2B10G10R10_SINT_PACK32;
         else if(fmt.compType == CompType::SScaled)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SSCALED_PACK32
-                              : VK_FORMAT_A2B10G10R10_SSCALED_PACK32;
+          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_SSCALED_PACK32
+                                : VK_FORMAT_A2B10G10R10_SSCALED_PACK32;
         break;
       case ResourceFormatType::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
       case ResourceFormatType::R5G6B5: ret = VK_FORMAT_B5G6R5_UNORM_PACK16; break;
       case ResourceFormatType::R5G5B5A1:
-        ret = fmt.bgraOrder ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
         break;
       case ResourceFormatType::R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
       case ResourceFormatType::R4G4B4A4:
-        ret = fmt.bgraOrder ? VK_FORMAT_R4G4B4A4_UNORM_PACK16 : VK_FORMAT_B4G4R4A4_UNORM_PACK16;
+        ret = fmt.bgraOrder() ? VK_FORMAT_R4G4B4A4_UNORM_PACK16 : VK_FORMAT_B4G4R4A4_UNORM_PACK16;
         break;
       case ResourceFormatType::R4G4: ret = VK_FORMAT_R4G4_UNORM_PACK8; break;
       case ResourceFormatType::D24S8: ret = VK_FORMAT_D24_UNORM_S8_UINT; break;
@@ -1090,9 +1091,9 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 4)
   {
-    if(fmt.srgbCorrected)
+    if(fmt.srgbCorrected())
     {
-      ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB;
+      ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB;
     }
     else if(fmt.compByteWidth == 8)
     {
@@ -1138,17 +1139,17 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     else if(fmt.compByteWidth == 1)
     {
       if(fmt.compType == CompType::SInt)
-        ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SINT : VK_FORMAT_R8G8B8A8_SINT;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SINT : VK_FORMAT_R8G8B8A8_SINT;
       else if(fmt.compType == CompType::UInt)
-        ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_UINT : VK_FORMAT_R8G8B8A8_UINT;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_UINT : VK_FORMAT_R8G8B8A8_UINT;
       else if(fmt.compType == CompType::SNorm)
-        ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SNORM : VK_FORMAT_R8G8B8A8_SNORM;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SNORM : VK_FORMAT_R8G8B8A8_SNORM;
       else if(fmt.compType == CompType::UNorm)
-        ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
       else if(fmt.compType == CompType::SScaled)
-        ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SSCALED : VK_FORMAT_R8G8B8A8_SSCALED;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SSCALED : VK_FORMAT_R8G8B8A8_SSCALED;
       else if(fmt.compType == CompType::UScaled)
-        ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_USCALED : VK_FORMAT_R8G8B8A8_USCALED;
+        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_USCALED : VK_FORMAT_R8G8B8A8_USCALED;
       else
         RDCERR("Unrecognised component type");
     }
@@ -1159,7 +1160,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 3)
   {
-    if(fmt.srgbCorrected)
+    if(fmt.srgbCorrected())
     {
       ret = VK_FORMAT_R8G8B8_SRGB;
     }

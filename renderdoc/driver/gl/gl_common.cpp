@@ -1736,7 +1736,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
     ret.compByteWidth = 1;
     ret.compCount = 1;
     ret.compType = CompType::UNorm;
-    ret.srgbCorrected = false;
+    ret.setSrgbCorrected(false);
     return ret;
   }
 
@@ -1774,7 +1774,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
       case eGL_COMPRESSED_SRGB8_ETC2:
       case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-      case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC: ret.srgbCorrected = true; break;
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC: ret.setSrgbCorrected(true); break;
       default: break;
     }
 
@@ -1918,7 +1918,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
   if(iscol == GL_TRUE)
   {
     if(fmt == eGL_BGRA8_EXT || fmt == eGL_BGRA)
-      ret.bgraOrder = true;
+      ret.setBgraOrder(true);
 
     // colour format
 
@@ -1980,7 +1980,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
     }
 
     GL.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
-    ret.srgbCorrected = (edata[0] == eGL_SRGB);
+    ret.setSrgbCorrected(edata[0] == eGL_SRGB);
   }
   else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
   {
@@ -2043,20 +2043,20 @@ GLenum MakeGLFormat(ResourceFormat fmt)
       case ResourceFormatType::BC1:
       {
         if(fmt.compCount == 3)
-          ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT
-                                  : eGL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+          ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT
+                                    : eGL_COMPRESSED_RGB_S3TC_DXT1_EXT;
         else
-          ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT
-                                  : eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+          ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT
+                                    : eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
         break;
       }
       case ResourceFormatType::BC2:
-        ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
-                                : eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+        ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
+                                  : eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
         break;
       case ResourceFormatType::BC3:
-        ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
-                                : eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+        ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
+                                  : eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
       case ResourceFormatType::BC4:
         ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RED_RGTC1
@@ -2071,16 +2071,16 @@ GLenum MakeGLFormat(ResourceFormat fmt)
                                               : eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
         break;
       case ResourceFormatType::BC7:
-        ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB
-                                : eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+        ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB
+                                  : eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
         break;
       case ResourceFormatType::ETC2:
       {
         if(fmt.compCount == 3)
-          ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ETC2 : eGL_COMPRESSED_RGB8_ETC2;
+          ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB8_ETC2 : eGL_COMPRESSED_RGB8_ETC2;
         else
-          ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2
-                                  : eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+          ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2
+                                    : eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
         break;
       }
       case ResourceFormatType::EAC:
@@ -2092,8 +2092,8 @@ GLenum MakeGLFormat(ResourceFormat fmt)
           ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RG11_EAC
                                                 : eGL_COMPRESSED_RG11_EAC;
         else
-          ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC
-                                  : eGL_COMPRESSED_RGBA8_ETC2_EAC;
+          ret = fmt.srgbCorrected() ? eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC
+                                    : eGL_COMPRESSED_RGBA8_ETC2_EAC;
         break;
       }
       case ResourceFormatType::R10G10B10A2:
@@ -2117,11 +2117,11 @@ GLenum MakeGLFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 4)
   {
-    if(fmt.srgbCorrected)
+    if(fmt.srgbCorrected())
     {
       ret = eGL_SRGB8_ALPHA8;
     }
-    else if(fmt.bgraOrder)
+    else if(fmt.bgraOrder())
     {
       ret = eGL_BGRA8_EXT;
     }
@@ -2171,7 +2171,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 3)
   {
-    if(fmt.srgbCorrected)
+    if(fmt.srgbCorrected())
     {
       ret = eGL_SRGB8;
     }
