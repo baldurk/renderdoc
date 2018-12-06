@@ -129,10 +129,11 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       D3D12_RESOURCE_STATES destState = D3D12_RESOURCE_STATE_COPY_SOURCE;
       ID3D12Resource *unwrappedCopySource = r->GetReal();
 
+      bool isDepth =
+          IsDepthFormat(desc.Format) || (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
+
       if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && desc.SampleDesc.Count > 1)
       {
-        bool isDepth = IsDepthFormat(desc.Format);
-
         desc.Alignment = 0;
         desc.DepthOrArraySize *= (UINT16)desc.SampleDesc.Count;
         desc.SampleDesc.Count = 1;
@@ -207,8 +208,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         D3D12_RESOURCE_BARRIER b = {};
         b.Transition.pResource = arrayTexture;
         b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        b.Transition.StateBefore = IsDepthFormat(desc.Format) ? D3D12_RESOURCE_STATE_DEPTH_WRITE
-                                                              : D3D12_RESOURCE_STATE_RENDER_TARGET;
+        b.Transition.StateBefore =
+            isDepth ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_RENDER_TARGET;
         b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
         list->ResourceBarrier(1, &b);
 
@@ -589,7 +590,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
           arrayDesc.SampleDesc.Quality = 0;
           arrayDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-          bool isDepth = IsDepthFormat(resDesc.Format);
+          bool isDepth = IsDepthFormat(resDesc.Format) ||
+                         (resDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
 
           D3D12_RESOURCE_DESC msaaDesc = resDesc;
           arrayDesc.Alignment = 0;

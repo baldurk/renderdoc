@@ -59,13 +59,14 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
   dsvDesc.Texture2DArray.FirstArraySlice = 0;
   dsvDesc.Texture2DArray.MipSlice = 0;
 
-  bool depthFormat = IsDepthFormat(rtvDesc.Format);
+  bool isDepth = IsDepthFormat(rtvDesc.Format) ||
+                 (descMS.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
   bool intFormat = IsUIntFormat(rtvDesc.Format) || IsIntFormat(rtvDesc.Format);
 
   bool stencil = false;
   DXGI_FORMAT stencilFormat = DXGI_FORMAT_UNKNOWN;
 
-  if(depthFormat)
+  if(isDepth)
   {
     switch(descMS.Format)
     {
@@ -137,7 +138,7 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
   pipeDesc.RTVFormats[0] = rtvDesc.Format;
   pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
-  if(depthFormat)
+  if(isDepth)
   {
     pipeDesc.PS.BytecodeLength = m_DepthMS2Array->GetBufferSize();
     pipeDesc.PS.pShaderBytecode = m_DepthMS2Array->GetBufferPointer();
@@ -209,7 +210,7 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
       dsvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
       rtvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
 
-      if(depthFormat)
+      if(isDepth)
       {
         m_pDevice->GetReal()->CreateDepthStencilView(destArray, &dsvDesc, dsv);
         list->OMSetRenderTargets(0, NULL, FALSE, &dsv);
@@ -322,13 +323,14 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
   dsvDesc.Format = srvDesc.Format;
   dsvDesc.Texture2DMSArray.ArraySize = 1;
 
-  bool depthFormat = IsDepthFormat(rtvDesc.Format);
+  bool isDepth = IsDepthFormat(rtvDesc.Format) ||
+                 (descArr.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
   bool intFormat = IsUIntFormat(rtvDesc.Format) || IsIntFormat(rtvDesc.Format);
 
   bool stencil = false;
   DXGI_FORMAT stencilFormat = DXGI_FORMAT_UNKNOWN;
 
-  if(depthFormat)
+  if(isDepth)
   {
     switch(descMS.Format)
     {
@@ -411,7 +413,7 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
   pipeDesc.RTVFormats[0] = rtvDesc.Format;
   pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
-  if(depthFormat)
+  if(isDepth)
   {
     pipeDesc.PS.BytecodeLength = m_DepthArray2MS->GetBufferSize();
     pipeDesc.PS.pShaderBytecode = m_DepthArray2MS->GetBufferPointer();
@@ -482,7 +484,7 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
     rtvDesc.Texture2DMSArray.FirstArraySlice = slice;
     dsvDesc.Texture2DMSArray.FirstArraySlice = slice;
 
-    if(depthFormat)
+    if(isDepth)
     {
       m_pDevice->CreateDepthStencilView(destMS, &dsvDesc, dsv);
       list->OMSetRenderTargets(0, NULL, FALSE, &dsv);
