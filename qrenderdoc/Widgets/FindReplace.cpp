@@ -117,6 +117,7 @@ void FindReplace::setDirection(SearchDirection dir)
 void FindReplace::takeFocus()
 {
   ui->findText->setFocus();
+  ui->findText->lineEdit()->selectAll();
 }
 
 void FindReplace::keyPressEvent(QKeyEvent *event)
