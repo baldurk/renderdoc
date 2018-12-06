@@ -72,7 +72,7 @@
 
 // enable this to enable validation layers on replay, useful for debugging
 // problems with new replay code
-#define FORCE_VALIDATION_LAYERS OPTION_ON
+#define FORCE_VALIDATION_LAYERS OPTION_OFF
 
 // enable this to send replay-time validation layer messages to the UI.
 // By default we only display saved validation layer messages from capture, and then any runtime
