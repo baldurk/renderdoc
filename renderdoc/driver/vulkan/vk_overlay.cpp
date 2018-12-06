@@ -1413,6 +1413,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
         ds->stencilTestEnable = origStencilTest;
       pipeCreateInfo.renderPass = depthRP;
     }
+    else
+    {
+      pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+    }
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
                                                &passpipe);
