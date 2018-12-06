@@ -1147,10 +1147,46 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayingAndReading() && !imgBarriers.empty())
+  if(IsReplayingAndReading())
   {
     VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+    if(IsLoading(m_State))
+    {
+      // for the first load, ensure all images are in a non-undefined layout. Any images that don't
+      // have an initial layout to transition back into were likely created mid-frame so their state
+      // is expected to be transitioned from undefined in the capture itself.
+      for(auto it = m_ImageLayouts.begin(); it != m_ImageLayouts.end(); ++it)
+      {
+        for(auto stit = it->second.subresourceStates.begin();
+            stit != it->second.subresourceStates.end(); ++stit)
+        {
+          if(stit->newLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             GetResourceManager()->HasCurrentResource(it->first))
+          {
+            VkImage img = GetResourceManager()->GetCurrentHandle<VkImage>(it->first);
+
+            if(GetResID(img) != GetResourceManager()->GetOriginalID(GetResID(img)))
+            {
+              VkImageMemoryBarrier barrier = {};
+
+              stit->newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+              barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+              barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+              barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+              barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+              barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+              barrier.image = Unwrap(img);
+              barrier.subresourceRange = stit->subresourceRange;
+
+              imgBarriers.push_back(barrier);
+            }
+          }
+        }
+      }
+    }
 
     if(!imgBarriers.empty())
     {
