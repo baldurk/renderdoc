@@ -290,6 +290,6 @@ class TestCase:
         zipxml.Shutdown()
 
         if not util.md5_compare(recomp_path, conv_path):
-            raise TestFailureException("Recompressed capture file doesn't match re-imported capture file")
+            raise TestFailureException("Recompressed capture file doesn't match re-imported capture file", conv_path, recomp_path, conv_zipxml_path)
 
         log.success("Recompressed and re-imported capture files are identical")
