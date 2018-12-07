@@ -2175,11 +2175,11 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
         CACHE_THREAD_SERIALISER();
       
         SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateCommittedResource);
-        Serialise_CreateCommittedResource(ser, &heapProperties, heapFlags, &desc, 
-                                          InitialResourceState, pOptimizedClearValue, riid, 
+        Serialise_CreateCommittedResource(ser, &heapProperties, heapFlags, &desc,
+                                          InitialResourceState, pOptimizedClearValue, riid,
                                           (void **)&wrapped);
       
-        D3D12ResourceRecord *record = 
+        D3D12ResourceRecord *record =
             GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
         record->type = Resource_Resource;
         record->Length = 0;
