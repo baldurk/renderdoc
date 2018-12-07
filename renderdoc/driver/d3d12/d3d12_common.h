@@ -794,5 +794,6 @@ enum class D3D12Chunk : uint32_t
   List_SetSamplePositions,
   List_SetViewInstanceMask,
   List_WriteBufferImmediate,
+  Device_OpenSharedHandle,
   Max,
 };

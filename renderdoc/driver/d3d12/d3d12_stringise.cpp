@@ -28,7 +28,9 @@
 template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1096, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1097, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Device_OpenSharedHandle == 1096,
+                    "New chunks must be appended otherwise it breaks old captures");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -70,6 +72,7 @@ std::string DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateSampler, "ID3D12Device::CreateSampler");
     STRINGISE_ENUM_CLASS_NAMED(Device_CopyDescriptors, "ID3D12Device::CopyDescriptors");
     STRINGISE_ENUM_CLASS_NAMED(Device_CopyDescriptorsSimple, "ID3D12Device::CopyDescriptorsSimple");
+    STRINGISE_ENUM_CLASS_NAMED(Device_OpenSharedHandle, "ID3D12Device::OpenSharedHandle");
     STRINGISE_ENUM_CLASS_NAMED(Queue_ExecuteCommandLists,
                                "ID3D12CommandQueue::ExecuteCommandLists");
     STRINGISE_ENUM_CLASS_NAMED(Queue_Signal, "ID3D12CommandQueue::Signal");
