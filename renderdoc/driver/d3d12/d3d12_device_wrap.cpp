@@ -2134,7 +2134,7 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
-    if(IsReplayMode(m_State))
+  if(IsReplayMode(m_State))
   {
     RDCERR("Don't support opening shared handle during replay.");
     return E_NOTIMPL;
@@ -2162,7 +2162,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
 
       D3D12_HEAP_PROPERTIES heapProperties;
       D3D12_HEAP_FLAGS heapFlags;
-      real->GetHeapProperties( &heapProperties, &heapFlags );
+      real->GetHeapProperties(&heapProperties, &heapFlags);
       const D3D12_RESOURCE_DESC desc = real->GetDesc();
 
       D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -2175,10 +2175,12 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
         CACHE_THREAD_SERIALISER();
       
         SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateCommittedResource);
-        Serialise_CreateCommittedResource(ser, &heapProperties, heapFlags, &desc, InitialResourceState,
-                                          pOptimizedClearValue, riid, (void **)&wrapped);
+        Serialise_CreateCommittedResource(ser, &heapProperties, heapFlags, &desc, 
+                                          InitialResourceState, pOptimizedClearValue, riid, 
+                                          (void **)&wrapped);
       
-        D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+        D3D12ResourceRecord *record = 
+            GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
         record->type = Resource_Resource;
         record->Length = 0;
         wrapped->SetResourceRecord(record);
