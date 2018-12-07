@@ -175,7 +175,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   }
 
   status = m_pGPUPerfAPI->GPA_OpenContext(
-      pContext, GPA_OPENCONTEXT_HIDE_SOFTWARE_COUNTERS_BIT | GPA_OPENCONTEXT_CLOCK_MODE_PEAK_BIT,
+      pContext, GPA_OPENCONTEXT_HIDE_SOFTWARE_COUNTERS_BIT | GPA_OPENCONTEXT_CLOCK_MODE_NONE_BIT,
       &m_gpaContextId);
   if(AMD_FAILED(status))
   {
