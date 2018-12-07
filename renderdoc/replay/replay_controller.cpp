@@ -865,7 +865,10 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
       case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
       case ResourceFormatType::D16S8:
-      case ResourceFormatType::YUV:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
       case ResourceFormatType::R4G4:
         RDCERR("Unsupported file format %u", td.format.type);
         return false;

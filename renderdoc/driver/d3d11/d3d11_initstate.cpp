@@ -335,6 +335,8 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
         uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
         if(IsBlockFormat(desc.Format))
           numRows = AlignUp4(numRows) / 4;
+        else if(IsYUVPlanarFormat(desc.Format))
+          numRows = GetYUVNumRows(desc.Format, numRows);
 
         if(stage)
         {
@@ -712,6 +714,8 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
         uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
         if(IsBlockFormat(desc.Format))
           numRows = AlignUp4(numRows) / 4;
+        else if(IsYUVPlanarFormat(desc.Format))
+          numRows = GetYUVNumRows(desc.Format, numRows);
 
         void *SubresourceContents = NULL;
         uint32_t ContentsLength = 0;
@@ -883,6 +887,8 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
       if(IsBlockFormat(desc.Format))
         numRows = AlignUp4(numRows) / 4;
+      else if(IsYUVPlanarFormat(desc.Format))
+        numRows = GetYUVNumRows(desc.Format, numRows);
 
       void *SubresourceContents = NULL;
       uint32_t ContentsLength = 0;

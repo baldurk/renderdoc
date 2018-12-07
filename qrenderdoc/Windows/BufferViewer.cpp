@@ -844,7 +844,10 @@ private:
         case ResourceFormatType::D32S8: compCount = 2; break;
         case ResourceFormatType::BC4:
         case ResourceFormatType::S8: compCount = 1; break;
-        case ResourceFormatType::YUV:
+        case ResourceFormatType::YUV8:
+        case ResourceFormatType::YUV10:
+        case ResourceFormatType::YUV12:
+        case ResourceFormatType::YUV16:
         case ResourceFormatType::EAC:
         default: compCount = fmt.format.compCount;
       }

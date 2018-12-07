@@ -6985,6 +6985,9 @@ void MapIntercept::Init(ID3D11Texture1D *tex, UINT sub, void *appMemory)
   numRows = RDCMAX(1, numRows >> mip);
   numSlices = RDCMAX(1, numSlices >> mip);
 
+  if(IsYUVPlanarFormat(fmt))
+    numRows = GetYUVNumRows(fmt, numRows);
+
   app.RowPitch = GetByteSize(width, 1, 1, fmt, mip);
   app.DepthPitch = GetByteSize(width, height, 1, fmt, mip);
 
@@ -7017,6 +7020,9 @@ void MapIntercept::Init(ID3D11Texture2D *tex, UINT sub, void *appMemory)
   numRows = RDCMAX(1, numRows >> mip);
   numSlices = RDCMAX(1, numSlices >> mip);
 
+  if(IsYUVPlanarFormat(fmt))
+    numRows = GetYUVNumRows(fmt, numRows);
+
   app.RowPitch = GetByteSize(width, 1, 1, fmt, mip);
   app.DepthPitch = GetByteSize(width, height, 1, fmt, mip);
 
@@ -7047,6 +7053,9 @@ void MapIntercept::Init(ID3D11Texture3D *tex, UINT sub, void *appMemory)
 
   numRows = RDCMAX(1, numRows >> mip);
   numSlices = RDCMAX(1, numSlices >> mip);
+
+  if(IsYUVPlanarFormat(fmt))
+    numRows = GetYUVNumRows(fmt, numRows);
 
   app.RowPitch = GetByteSize(width, 1, 1, fmt, mip);
   app.DepthPitch = GetByteSize(width, height, 1, fmt, mip);

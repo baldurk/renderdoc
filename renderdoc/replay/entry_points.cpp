@@ -675,7 +675,61 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
       case ResourceFormatType::D32S8:
         return fmt.compType == CompType::Typeless ? "D32S8_TYPELESS" : "D32S8";
       case ResourceFormatType::S8: return "S8";
-      case ResourceFormatType::YUV: return "YUV";
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
+      {
+        int yuvbits = 0;
+
+        switch(fmt.type)
+        {
+          case ResourceFormatType::YUV8: yuvbits = 8; break;
+          case ResourceFormatType::YUV10: yuvbits = 10; break;
+          case ResourceFormatType::YUV12: yuvbits = 12; break;
+          case ResourceFormatType::YUV16: yuvbits = 16; break;
+          default: break;
+        }
+
+        uint32_t planeCount = fmt.yuvPlaneCount();
+        uint32_t subsampling = fmt.yuvSubsampling();
+
+        // special case formats that don't match the FOURCC format
+        if(yuvbits == 8 && planeCount == 2 && subsampling == 420)
+          return "NV12";
+        if(yuvbits == 8 && planeCount == 1 && subsampling == 444)
+          return "AYUV";
+        if(yuvbits == 8 && planeCount == 1 && subsampling == 422)
+          return "YUY2";
+
+        switch(subsampling)
+        {
+          case 444:
+            if(planeCount == 1)
+              return StringFormat::Fmt("Y4%02u", yuvbits);
+            else if(planeCount == 2)
+              return StringFormat::Fmt("P4%02u", yuvbits);
+            else
+              return StringFormat::Fmt("YUV_%uPlane_%ubit", planeCount, yuvbits);
+          case 422:
+            if(planeCount == 1)
+              return StringFormat::Fmt("Y2%02u", yuvbits);
+            else if(planeCount == 2)
+              return StringFormat::Fmt("P2%02u", yuvbits);
+            else
+              return StringFormat::Fmt("YUV_%uPlane_%ubit", planeCount, yuvbits);
+          case 420:
+            if(planeCount == 1)
+              return StringFormat::Fmt("Y0%02u", yuvbits);
+            else if(planeCount == 2)
+              return StringFormat::Fmt("P0%02u", yuvbits);
+            else
+              return StringFormat::Fmt("YUV_%uPlane_%ubit", planeCount, yuvbits);
+          default: RDCERR("Unexpected YUV Subsampling amount %u", subsampling);
+        }
+
+        return StringFormat::Fmt("YUV_%u_%uPlane_%ubit", subsampling, planeCount, yuvbits);
+      }
       case ResourceFormatType::PVRTC: return "PVRTC";
     }
   }

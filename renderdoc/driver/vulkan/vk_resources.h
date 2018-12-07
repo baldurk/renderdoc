@@ -1227,6 +1227,5 @@ bool IsSIntFormat(VkFormat f);
 bool IsYUVFormat(VkFormat f);
 
 VkFormat GetDepthOnlyFormat(VkFormat f);
-VkFormat GetUIntTypedFormat(VkFormat f);
 
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);

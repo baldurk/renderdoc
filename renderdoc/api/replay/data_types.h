@@ -184,6 +184,42 @@ struct ResourceFormat
 :rtype: ``bool``
 )");
   bool srgbCorrected() const { return (flags & ResourceFormat_SRGB) != 0; }
+  DOCUMENT(R"(Get the subsampling rate for a YUV format. Only valid when :data:`type` is
+a YUV format like :attr:`ResourceFormatType.YUV8`.
+
+For other formats, 0 is returned.
+
+:return: The subsampling rate, e.g. 444 for 4:4:4 or 420 for 4:2:0
+:rtype: ``int``
+)");
+  uint32_t yuvSubsampling() const
+  {
+    if(flags & ResourceFormat_444)
+      return 444;
+    else if(flags & ResourceFormat_422)
+      return 422;
+    else if(flags & ResourceFormat_420)
+      return 420;
+    return 0;
+  }
+
+  DOCUMENT(R"(Get the number of planes for a YUV format. Only valid when :data:`type` is
+a YUV format like :attr:`ResourceFormatType.YUV8`.
+
+For other formats, 1 is returned.
+
+:return: The number of planes
+:rtype: ``int``
+)");
+  uint32_t yuvPlaneCount() const
+  {
+    if(flags & ResourceFormat_3Planes)
+      return 3;
+    else if(flags & ResourceFormat_2Planes)
+      return 2;
+    return 1;
+  }
+
   DOCUMENT(R"(Set BGRA order flag. See :meth:`bgraOrder`.
 
 :param bool flag: The new flag value.
@@ -208,6 +244,38 @@ struct ResourceFormat
       flags &= ~ResourceFormat_SRGB;
   }
 
+  DOCUMENT(R"(Set YUV subsampling rate. See :meth:`yuvSubsampling`.
+
+The value should be e.g. 444 for 4:4:4 or 422 for 4:2:2. Invalid values will result in 0 being set.
+
+:param int subsample: The new subsampling rate.
+)");
+  void setYUVSubsampling(uint32_t subsampling)
+  {
+    flags &= ~ResourceFormat_SubSample_Mask;
+    if(subsampling == 444)
+      flags |= ResourceFormat_444;
+    else if(subsampling == 422)
+      flags |= ResourceFormat_422;
+    else if(subsampling == 420)
+      flags |= ResourceFormat_420;
+  }
+
+  DOCUMENT(R"(Set number of YUV planes. See :meth:`yuvPlaneCount`.
+
+Invalid values will result in 1 being set.
+
+:param int planes: The new number of YUV planes.
+)");
+  void setYUVPlaneCount(uint32_t planes)
+  {
+    flags &= ~ResourceFormat_Planes_Mask;
+    if(planes == 2)
+      flags |= ResourceFormat_2Planes;
+    else if(planes == 3)
+      flags |= ResourceFormat_3Planes;
+  }
+
   ResourceFormatType type;
 
   DOCUMENT("The :class:`type <CompType>` of each component.");
@@ -222,6 +290,15 @@ private:
   {
     ResourceFormat_BGRA = 0x001,
     ResourceFormat_SRGB = 0x002,
+
+    ResourceFormat_444 = 0x004,
+    ResourceFormat_422 = 0x008,
+    ResourceFormat_420 = 0x010,
+    ResourceFormat_SubSample_Mask = 0x01C,
+
+    ResourceFormat_2Planes = 0x020,
+    ResourceFormat_3Planes = 0x040,
+    ResourceFormat_Planes_Mask = 0x060,
   };
   uint16_t flags;
 

@@ -1206,9 +1206,25 @@ or formats that don't have equal byte-multiple sizes for each channel.
 
   Each pixel is an 8 bit stencil value.
 
-.. data:: YUV
+.. data:: YUV8
 
-  The pixel data is in an opaque YUV format.
+  The pixel data is 8-bit in YUV subsampled format. More information about subsampling setup is
+  stored separately
+
+.. data:: YUV10
+
+  The pixel data is 10-bit in YUV subsampled format. More information about subsampling setup is
+  stored separately
+
+.. data:: YUV12
+
+  The pixel data is 12-bit in YUV subsampled format. More information about subsampling setup is
+  stored separately
+
+.. data:: YUV16
+
+  The pixel data is 16-bit in YUV subsampled format. More information about subsampling setup is
+  stored separately
 
 .. data:: PVRTC
 
@@ -1239,7 +1255,10 @@ enum class ResourceFormatType : uint8_t
   D24S8,
   D32S8,
   S8,
-  YUV,
+  YUV8,
+  YUV10,
+  YUV12,
+  YUV16,
   PVRTC,
 };
 

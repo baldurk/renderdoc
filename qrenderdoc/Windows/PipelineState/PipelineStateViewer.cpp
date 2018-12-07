@@ -938,7 +938,10 @@ static uint32_t byteSize(const ResourceFormat &fmt)
       case ResourceFormatType::D24S8:
       case ResourceFormatType::D32S8:
       case ResourceFormatType::S8:
-      case ResourceFormatType::YUV:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
       case ResourceFormatType::PVRTC: return ~0U;
       case ResourceFormatType::R10G10B10A2:
       case ResourceFormatType::R11G11B10: return 4;

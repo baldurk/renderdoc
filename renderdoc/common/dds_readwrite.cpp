@@ -478,7 +478,10 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
       case ResourceFormatType::ASTC:
-      case ResourceFormatType::YUV:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
         RDCERR("Unsupported writing format %u", format.type);
         return DXGI_FORMAT_UNKNOWN;
     }
@@ -665,7 +668,10 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
       case ResourceFormatType::ASTC:
-      case ResourceFormatType::YUV:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
         RDCERR("Unsupported file format, %u", data.format.type);
         return false;
       default: break;
@@ -733,7 +739,10 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
       case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
       case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
       case ResourceFormatType::D16S8:
-      case ResourceFormatType::YUV:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
       case ResourceFormatType::R4G4:
         RDCERR("Unsupported file format %u", data.format.type);
         return false;
@@ -989,7 +998,10 @@ dds_data load_dds_from_file(FILE *f)
     case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
     case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
     case ResourceFormatType::D16S8:
-    case ResourceFormatType::YUV:
+    case ResourceFormatType::YUV8:
+    case ResourceFormatType::YUV10:
+    case ResourceFormatType::YUV12:
+    case ResourceFormatType::YUV16:
     case ResourceFormatType::R4G4:
       RDCERR("Unsupported file format %u", ret.format.type);
       return error;
@@ -1012,7 +1024,10 @@ dds_data load_dds_from_file(FILE *f)
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
       case ResourceFormatType::ASTC:
-      case ResourceFormatType::YUV:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
         RDCERR("Unsupported file format, %u", ret.format.type);
         return error;
       default: break;

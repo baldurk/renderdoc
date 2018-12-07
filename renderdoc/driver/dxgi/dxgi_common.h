@@ -33,9 +33,6 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);
 
 UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip);
 
-// returns block size for block-compressed formats
-UINT GetFormatBPP(DXGI_FORMAT f);
-
 DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType hint);
@@ -56,6 +53,8 @@ bool IsTypelessFormat(DXGI_FORMAT f);
 bool IsIntFormat(DXGI_FORMAT f);
 bool IsSRGBFormat(DXGI_FORMAT f);
 bool IsYUVFormat(DXGI_FORMAT f);
+bool IsYUVPlanarFormat(DXGI_FORMAT f);
+UINT GetYUVNumRows(DXGI_FORMAT f, UINT height);
 
 // not technically DXGI, but makes more sense to have it here common between D3D versions
 Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo);
