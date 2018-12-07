@@ -2134,8 +2134,87 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
-  D3D12NOTIMP("Shared Handles / API interop");
-  return m_pDevice->OpenSharedHandle(NTHandle, riid, ppvObj);
+    if(IsReplayMode(m_State))
+  {
+    RDCERR("Don't support opening shared handle during replay.");
+    return E_NOTIMPL;
+  }
+
+  if(ppvObj == NULL)
+    return E_INVALIDARG;
+
+  bool isRes = (riid == __uuidof(ID3D12Resource) ? true : false);
+  if(isRes)
+  {
+    void *res = NULL;
+    HRESULT hr;
+    SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedHandle(NTHandle, riid, &res));
+
+    if(FAILED(hr))
+    {
+      IUnknown *unk = (IUnknown *)res;
+      SAFE_RELEASE(unk);
+      return hr;
+    }
+    else
+    {
+      ID3D12Resource *real = (ID3D12Resource *)res;
+
+      D3D12_HEAP_PROPERTIES heapProperties;
+      D3D12_HEAP_FLAGS heapFlags;
+      real->GetHeapProperties( &heapProperties, &heapFlags );
+      const D3D12_RESOURCE_DESC desc = real->GetDesc();
+
+      D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+      const D3D12_CLEAR_VALUE *pOptimizedClearValue = nullptr;
+
+      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
+
+      if(IsCaptureMode(m_State))
+      {
+        CACHE_THREAD_SERIALISER();
+      
+        SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateCommittedResource);
+        Serialise_CreateCommittedResource(ser, &heapProperties, heapFlags, &desc, InitialResourceState,
+                                          pOptimizedClearValue, riid, (void **)&wrapped);
+      
+        D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+        record->type = Resource_Resource;
+        record->Length = 0;
+        wrapped->SetResourceRecord(record);
+      
+        record->m_MapsCount = GetNumSubresources(this, &desc);
+        record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
+      
+        record->AddChunk(scope.Get());
+      
+        {
+          SCOPED_READLOCK(m_CapTransitionLock);
+          if(IsBackgroundCapturing(m_State))
+            GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
+          else
+            GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
+        }
+      }
+      else
+      {
+        GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      }
+      
+      {
+        SCOPED_LOCK(m_ResourceStatesLock);
+        SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
+      
+        states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+      }
+      
+      *ppvObj = (ID3D12Resource *)wrapped;
+    }
+
+    return S_OK;
+  }
+
+  return E_NOINTERFACE;
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, HANDLE *pNTHandle)
