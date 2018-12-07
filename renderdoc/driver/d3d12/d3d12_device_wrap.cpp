@@ -2173,23 +2173,23 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
       if(IsCaptureMode(m_State))
       {
         CACHE_THREAD_SERIALISER();
-      
+
         SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateCommittedResource);
         Serialise_CreateCommittedResource(ser, &heapProperties, heapFlags, &desc,
                                           InitialResourceState, pOptimizedClearValue, riid,
                                           (void **)&wrapped);
-      
+
         D3D12ResourceRecord *record =
             GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
         record->type = Resource_Resource;
         record->Length = 0;
         wrapped->SetResourceRecord(record);
-      
+
         record->m_MapsCount = GetNumSubresources(this, &desc);
         record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
-      
+
         record->AddChunk(scope.Get());
-      
+
         {
           SCOPED_READLOCK(m_CapTransitionLock);
           if(IsBackgroundCapturing(m_State))
@@ -2202,14 +2202,14 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
       {
         GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
       }
-      
+
       {
         SCOPED_LOCK(m_ResourceStatesLock);
         SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
-      
+
         states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
       }
-      
+
       *ppvObj = (ID3D12Resource *)wrapped;
     }
 
