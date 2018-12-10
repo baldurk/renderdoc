@@ -2579,6 +2579,9 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Device_CreateHeapFromFileMapping:
       return Serialise_CreateHeap(ser, NULL, IID(), NULL);
       break;
+    case D3D12Chunk::Device_OpenSharedHandle:
+      return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
+      break;
     default:
     {
       SystemChunk system = (SystemChunk)context;

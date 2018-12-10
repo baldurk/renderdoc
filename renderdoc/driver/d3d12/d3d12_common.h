@@ -726,6 +726,7 @@ enum class D3D12Chunk : uint32_t
   Device_CreateSampler,
   Device_CopyDescriptors,
   Device_CopyDescriptorsSimple,
+  Device_OpenSharedHandle,
   Queue_ExecuteCommandLists,
   Queue_Signal,
   Queue_Wait,
