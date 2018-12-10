@@ -251,10 +251,17 @@ D3D12BufferCreator &D3D12BufferCreator::Size(UINT size)
 
 D3D12BufferCreator::operator ID3D12ResourcePtr() const
 {
+  D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
+
+  if(m_HeapDesc.Type == D3D12_HEAP_TYPE_UPLOAD)
+    initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
+  else if(m_HeapDesc.Type == D3D12_HEAP_TYPE_READBACK)
+    initialState = D3D12_RESOURCE_STATE_COPY_DEST;
+
   ID3D12ResourcePtr buf;
   CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc,
-                                                D3D12_RESOURCE_STATE_COMMON, NULL,
-                                                __uuidof(ID3D12Resource), (void **)&buf));
+                                                initialState, NULL, __uuidof(ID3D12Resource),
+                                                (void **)&buf));
 
   if(m_Initdata)
     m_Test->SetBufferData(buf, D3D12_RESOURCE_STATE_COMMON, (const byte *)m_Initdata,
