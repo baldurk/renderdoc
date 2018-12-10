@@ -425,7 +425,7 @@
     <ClInclude Include="3rdparty\shaderc\shaderc.h">
       <Filter>3rdparty\shaderc</Filter>
     </ClInclude>
-    <ClInclude Include="gl\official\khrplatform.h">
+    <ClInclude Include="3rdparty\glad\khrplatform.h">
       <Filter>3rdparty\glad</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\glad\glad.h">

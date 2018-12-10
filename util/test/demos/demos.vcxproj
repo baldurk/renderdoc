@@ -201,6 +201,7 @@
     <ClCompile Include="win32\win32_window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\glad\khrplatform.h" />
     <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h" />
     <ClInclude Include="d3d11\d3d11_helpers.h" />
     <ClInclude Include="d3d11\d3d11_test.h" />
@@ -236,7 +237,6 @@
     <ClInclude Include="3rdparty\glad\glad_egl.h" />
     <ClInclude Include="3rdparty\glad\glad_glx.h" />
     <ClInclude Include="3rdparty\glad\glad_wgl.h" />
-    <ClInclude Include="gl\official\khrplatform.h" />
     <ClInclude Include="gl\gl_test.h" />
     <ClInclude Include="linux\linux_platform.h">
       <ExcludedFromBuild>true</ExcludedFromBuild>
