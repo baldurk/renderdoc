@@ -74,9 +74,7 @@ float4 main(v2f IN) : SV_Target0
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
 
-    CD3D11_SAMPLER_DESC sampdesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-    ID3D11SamplerStatePtr samp;
-    CHECK_HR(dev->CreateSamplerState(&sampdesc, &samp));
+    ID3D11SamplerStatePtr samp = MakeSampler();
 
     ID3D11Texture3DPtr tex = MakeTexture(DXGI_FORMAT_R8_UNORM, 128, 128, 1024).Mips(8).SRV();
 

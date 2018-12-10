@@ -159,6 +159,66 @@ protected:
   UINT MiscFlags = 0;
 };
 
+class D3D11SamplerCreator
+{
+public:
+  D3D11SamplerCreator(D3D11GraphicsTest *test);
+
+  D3D11SamplerCreator &AddressU(D3D11_TEXTURE_ADDRESS_MODE addr)
+  {
+    m_Desc.AddressU = addr;
+    return *this;
+  }
+
+  D3D11SamplerCreator &AddressV(D3D11_TEXTURE_ADDRESS_MODE addr)
+  {
+    m_Desc.AddressV = addr;
+    return *this;
+  }
+
+  D3D11SamplerCreator &AddressW(D3D11_TEXTURE_ADDRESS_MODE addr)
+  {
+    m_Desc.AddressW = addr;
+    return *this;
+  }
+
+  D3D11SamplerCreator &Address(D3D11_TEXTURE_ADDRESS_MODE addr)
+  {
+    return AddressU(addr).AddressV(addr).AddressW(addr);
+  }
+
+  D3D11SamplerCreator &Filter(D3D11_FILTER filter)
+  {
+    m_Desc.Filter = filter;
+    return *this;
+  }
+
+  D3D11SamplerCreator &LODBias(float bias)
+  {
+    m_Desc.MipLODBias = bias;
+    return *this;
+  }
+
+  D3D11SamplerCreator &Aniso(UINT aniso)
+  {
+    m_Desc.MaxAnisotropy = aniso;
+    return *this;
+  }
+
+  D3D11SamplerCreator &Aniso(D3D11_COMPARISON_FUNC comp)
+  {
+    m_Desc.ComparisonFunc = comp;
+    return *this;
+  }
+
+  operator ID3D11SamplerStatePtr() const;
+
+protected:
+  D3D11GraphicsTest *m_Test;
+
+  D3D11_SAMPLER_DESC m_Desc;
+};
+
 enum class ResourceType
 {
   Buffer,

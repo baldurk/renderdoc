@@ -91,9 +91,7 @@ float4 main(v2f IN) : SV_Target0
     ID3D11RenderTargetViewPtr rtv[NumMips];
     ID3D11ShaderResourceViewPtr srv[NumMips];
 
-    CD3D11_SAMPLER_DESC sampdesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-    ID3D11SamplerStatePtr samp;
-    CHECK_HR(dev->CreateSamplerState(&sampdesc, &samp));
+    ID3D11SamplerStatePtr samp = MakeSampler();
 
     D3D11_VIEWPORT views[NumMips];
 

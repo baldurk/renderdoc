@@ -98,6 +98,7 @@ struct D3D11GraphicsTest : public GraphicsTest
     return D3D11TextureCreator(this, format, width, height, depth);
   }
 
+  D3D11SamplerCreator MakeSampler() { return D3D11SamplerCreator(this); }
   template <typename T>
   D3D11ViewCreator MakeSRV(T res)
   {

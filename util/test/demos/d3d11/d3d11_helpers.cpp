@@ -815,3 +815,29 @@ D3D11ViewCreator::operator ID3D11DepthStencilViewPtr()
   CHECK_HR(m_Test->dev->CreateDepthStencilView(m_Res, &desc.dsv, &dsv));
   return dsv;
 }
+
+D3D11SamplerCreator::D3D11SamplerCreator(D3D11GraphicsTest *test)
+{
+  m_Test = test;
+
+  m_Desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+  m_Desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+  m_Desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+  m_Desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+  m_Desc.MipLODBias = 0.0f;
+  m_Desc.MaxAnisotropy = 1;
+  m_Desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+  m_Desc.BorderColor[0] = 1.0f;
+  m_Desc.BorderColor[1] = 1.0f;
+  m_Desc.BorderColor[2] = 1.0f;
+  m_Desc.BorderColor[3] = 1.0f;
+  m_Desc.MinLOD = -FLT_MAX;
+  m_Desc.MaxLOD = FLT_MAX;
+}
+
+D3D11SamplerCreator::operator ID3D11SamplerStatePtr() const
+{
+  ID3D11SamplerStatePtr samp;
+  CHECK_HR(m_Test->dev->CreateSamplerState(&m_Desc, &samp));
+  return samp;
+}
