@@ -38,22 +38,40 @@ struct AllocatedBuffer
   VkBuffer buffer;
   VmaAllocation alloc;
 
+  AllocatedBuffer() {}
   AllocatedBuffer(VmaAllocator allocator, const VkBufferCreateInfo &bufInfo,
                   const VmaAllocationCreateInfo &allocInfo)
   {
-    this->allocator = allocator;
+    create(allocator, bufInfo, allocInfo);
+  }
+  AllocatedBuffer(const AllocatedBuffer &) = delete;
+  AllocatedBuffer &operator=(const AllocatedBuffer &) = delete;
+
+  void create(VmaAllocator vma, const VkBufferCreateInfo &bufInfo,
+              const VmaAllocationCreateInfo &allocInfo)
+  {
+    allocator = vma;
     VkBuffer buf;
     vmaCreateBuffer(allocator, &bufInfo, &allocInfo, &buf, &alloc, NULL);
     buffer = VkBuffer(buf);
   }
 
-  ~AllocatedBuffer() { vmaDestroyBuffer(allocator, (VkBuffer)buffer, alloc); }
+  ~AllocatedBuffer()
+  {
+    if(buffer != VK_NULL_HANDLE)
+      vmaDestroyBuffer(allocator, (VkBuffer)buffer, alloc);
+  }
   template <typename T, size_t N>
   void upload(const T (&data)[N])
   {
+    upload(data, sizeof(T) * N);
+  }
+
+  void upload(const void *data, size_t size)
+  {
     byte *ptr = map();
     if(ptr)
-      memcpy(ptr, data, sizeof(T) * N);
+      memcpy(ptr, data, size);
     unmap();
   }
 
@@ -77,16 +95,29 @@ struct AllocatedImage
   VkImage image;
   VmaAllocation alloc;
 
+  AllocatedImage() {}
   AllocatedImage(VmaAllocator allocator, const VkImageCreateInfo &imgInfo,
                  const VmaAllocationCreateInfo &allocInfo)
   {
-    this->allocator = allocator;
+    create(allocator, imgInfo, allocInfo);
+  }
+  AllocatedImage(const AllocatedImage &) = delete;
+  AllocatedImage &operator=(const AllocatedImage &) = delete;
+
+  void create(VmaAllocator vma, const VkImageCreateInfo &imgInfo,
+              const VmaAllocationCreateInfo &allocInfo)
+  {
+    allocator = vma;
     VkImage img;
     vmaCreateImage(allocator, &imgInfo, &allocInfo, &img, &alloc, NULL);
     image = VkImage(img);
   }
 
-  ~AllocatedImage() { vmaDestroyImage(allocator, (VkImage)image, alloc); }
+  ~AllocatedImage()
+  {
+    if(image != VK_NULL_HANDLE)
+      vmaDestroyImage(allocator, (VkImage)image, alloc);
+  }
 };
 
 #define CHECK_VKR(cmd)                                                               \
