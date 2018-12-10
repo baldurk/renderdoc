@@ -147,7 +147,8 @@ struct D3D12_Overlay_Test : D3D12GraphicsTest
 
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-      D3D12_CPU_DESCRIPTOR_HANDLE rtv = MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).Create(0);
+      D3D12_CPU_DESCRIPTOR_HANDLE rtv =
+          MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -158,7 +159,7 @@ struct D3D12_Overlay_Test : D3D12GraphicsTest
           cmd, {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-      OMSetRenderTargets(cmd, {rtv}, MakeDSV(dsv).Create(0));
+      OMSetRenderTargets(cmd, {rtv}, MakeDSV(dsv).CreateCPU(0));
 
       ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
       ClearDepthStencilView(cmd, dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);

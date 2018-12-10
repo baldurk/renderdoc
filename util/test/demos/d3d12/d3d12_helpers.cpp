@@ -370,6 +370,8 @@ D3D12ViewCreator::D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap
   D3D12_RESOURCE_DESC resdesc = res->GetDesc();
   D3D12_RESOURCE_DIMENSION dim = resdesc.Dimension;
 
+  Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
   if(dim == D3D12_RESOURCE_DIMENSION_BUFFER)
   {
     SetupDescriptors(viewType, ResourceType::Buffer);
@@ -500,130 +502,130 @@ void D3D12ViewCreator::SetupDescriptors(ViewType viewType, ResourceType resType)
     }
   }
 
-  UINT *pointers[4][8][4] = {
+  UINT *pointers[4][8][5] = {
       // SRV
       {
-          // &firstMip, &numMips, &firstSlice, &numSlices
+          // &firstMip, &numMips, &firstSlice, &numSlices, &planeSlice
+          {NULL, NULL, NULL, NULL, NULL},
           {
-              NULL, NULL, NULL, NULL,
-          },
-          {
-              &desc.srv.Texture1D.MostDetailedMip, &desc.srv.Texture1D.MipLevels, NULL, NULL,
+              &desc.srv.Texture1D.MostDetailedMip, &desc.srv.Texture1D.MipLevels, NULL, NULL, NULL,
           },
           {
               &desc.srv.Texture1DArray.MostDetailedMip, &desc.srv.Texture1DArray.MipLevels,
-              &desc.srv.Texture1DArray.FirstArraySlice, &desc.srv.Texture1DArray.ArraySize,
+              &desc.srv.Texture1DArray.FirstArraySlice, &desc.srv.Texture1DArray.ArraySize, NULL,
           },
           {
               &desc.srv.Texture2D.MostDetailedMip, &desc.srv.Texture2D.MipLevels, NULL, NULL,
+              &desc.srv.Texture2D.PlaneSlice,
           },
           {
               &desc.srv.Texture2DArray.MostDetailedMip, &desc.srv.Texture2DArray.MipLevels,
               &desc.srv.Texture2DArray.FirstArraySlice, &desc.srv.Texture2DArray.ArraySize,
+              &desc.srv.Texture2DArray.PlaneSlice,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
               NULL, NULL, &desc.srv.Texture2DMSArray.FirstArraySlice,
-              &desc.srv.Texture2DMSArray.ArraySize,
+              &desc.srv.Texture2DMSArray.ArraySize, NULL,
           },
           {
-              &desc.srv.Texture3D.MostDetailedMip, &desc.srv.Texture2D.MipLevels, NULL, NULL,
+              &desc.srv.Texture3D.MostDetailedMip, &desc.srv.Texture2D.MipLevels, NULL, NULL, NULL,
           },
       },
       // RTV
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
-              &desc.rtv.Texture1D.MipSlice, NULL, NULL, NULL,
+              &desc.rtv.Texture1D.MipSlice, NULL, NULL, NULL, NULL,
           },
           {
               &desc.rtv.Texture1DArray.MipSlice, NULL, &desc.rtv.Texture1DArray.FirstArraySlice,
-              &desc.rtv.Texture1DArray.ArraySize,
+              &desc.rtv.Texture1DArray.ArraySize, NULL,
           },
           {
-              &desc.rtv.Texture2D.MipSlice, NULL, NULL, NULL,
+              &desc.rtv.Texture2D.MipSlice, NULL, NULL, NULL, &desc.rtv.Texture2D.PlaneSlice,
           },
           {
               &desc.rtv.Texture2DArray.MipSlice, NULL, &desc.rtv.Texture2DArray.FirstArraySlice,
-              &desc.rtv.Texture2DArray.ArraySize,
+              &desc.rtv.Texture2DArray.ArraySize, &desc.rtv.Texture2DArray.PlaneSlice,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
               NULL, NULL, &desc.rtv.Texture2DMSArray.FirstArraySlice,
-              &desc.rtv.Texture2DMSArray.ArraySize,
+              &desc.rtv.Texture2DMSArray.ArraySize, NULL,
           },
           {
               &desc.rtv.Texture3D.MipSlice, NULL, &desc.rtv.Texture3D.FirstWSlice,
-              &desc.rtv.Texture3D.WSize,
+              &desc.rtv.Texture3D.WSize, NULL,
           },
       },
       // DSV
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
-              &desc.dsv.Texture1D.MipSlice, NULL, NULL, NULL,
+              &desc.dsv.Texture1D.MipSlice, NULL, NULL, NULL, NULL,
           },
           {
               &desc.dsv.Texture1DArray.MipSlice, NULL, &desc.dsv.Texture1DArray.FirstArraySlice,
-              &desc.dsv.Texture1DArray.ArraySize,
+              &desc.dsv.Texture1DArray.ArraySize, NULL,
           },
           {
-              &desc.dsv.Texture2D.MipSlice, NULL, NULL, NULL,
+              &desc.dsv.Texture2D.MipSlice, NULL, NULL, NULL, NULL,
           },
           {
               &desc.dsv.Texture2DArray.MipSlice, NULL, &desc.dsv.Texture2DArray.FirstArraySlice,
-              &desc.dsv.Texture2DArray.ArraySize,
+              &desc.dsv.Texture2DArray.ArraySize, NULL,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
               NULL, NULL, &desc.dsv.Texture2DMSArray.FirstArraySlice,
-              &desc.dsv.Texture2DMSArray.ArraySize,
+              &desc.dsv.Texture2DMSArray.ArraySize, NULL,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
       },
       // UAV
       {
           // &firstMip, &numMips, &firstSlice, &numSlices
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
-              &desc.uav.Texture1D.MipSlice, NULL, NULL, NULL,
+              &desc.uav.Texture1D.MipSlice, NULL, NULL, NULL, NULL,
           },
           {
               &desc.uav.Texture1DArray.MipSlice, NULL, &desc.uav.Texture1DArray.FirstArraySlice,
-              &desc.uav.Texture1DArray.ArraySize,
+              &desc.uav.Texture1DArray.ArraySize, NULL,
           },
           {
-              &desc.uav.Texture2D.MipSlice, NULL, NULL, NULL,
+              &desc.uav.Texture2D.MipSlice, NULL, NULL, NULL, &desc.uav.Texture2D.PlaneSlice,
           },
           {
               &desc.uav.Texture2DArray.MipSlice, NULL, &desc.uav.Texture2DArray.FirstArraySlice,
-              &desc.uav.Texture2DArray.ArraySize,
+              &desc.uav.Texture2DArray.ArraySize, &desc.uav.Texture2DArray.PlaneSlice,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
-              NULL, NULL, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
           },
           {
               &desc.uav.Texture3D.MipSlice, NULL, &desc.uav.Texture3D.FirstWSlice,
-              &desc.uav.Texture3D.WSize,
+              &desc.uav.Texture3D.WSize, NULL,
           },
       },
   };
@@ -634,6 +636,7 @@ void D3D12ViewCreator::SetupDescriptors(ViewType viewType, ResourceType resType)
     numMips = pointers[(int)viewType][(int)resType][1];
     firstSlice = pointers[(int)viewType][(int)resType][2];
     numSlices = pointers[(int)viewType][(int)resType][3];
+    planeSlice = pointers[(int)viewType][(int)resType][4];
 
     if(numMips)
       *numMips = ~0U;
@@ -723,6 +726,21 @@ D3D12ViewCreator &D3D12ViewCreator::NumSlices(UINT num)
   return *this;
 }
 
+D3D12ViewCreator &D3D12ViewCreator::Swizzle(UINT swizzle)
+{
+  Shader4ComponentMapping = swizzle;
+  return *this;
+}
+
+D3D12ViewCreator &D3D12ViewCreator::PlaneSlice(UINT plane)
+{
+  if(planeSlice)
+    *planeSlice = plane;
+  else
+    TEST_ERROR("This view & resource doesn't support NumSlices");
+  return *this;
+}
+
 D3D12ViewCreator &D3D12ViewCreator::ReadOnlyDepth()
 {
   desc.dsv.Flags |= D3D12_DSV_FLAG_READ_ONLY_DEPTH;
@@ -735,7 +753,8 @@ D3D12ViewCreator &D3D12ViewCreator::ReadOnlyStencil()
   return *this;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::Create(ID3D12DescriptorHeap *heap, uint32_t descriptor)
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *heap,
+                                                        uint32_t descriptor)
 {
   static UINT increment[] = {
       m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
@@ -776,6 +795,8 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::Create(ID3D12DescriptorHeap *heap,
         desc.srv.Buffer.NumElements = UINT(bufdesc.Width / std::max(elementStride, 1U));
     }
 
+    desc.srv.Shader4ComponentMapping = Shader4ComponentMapping;
+
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
     m_Test->dev->CreateShaderResourceView(m_Res, &desc.srv, cpu);
   }
@@ -802,6 +823,30 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::Create(ID3D12DescriptorHeap *heap,
   }
 
   return cpu;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateGPU(ID3D12DescriptorHeap *heap,
+                                                        uint32_t descriptor)
+{
+  CreateCPU(heap, descriptor);
+
+  static UINT increment[] = {
+      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+      0,    // D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
+      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
+      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
+  };
+
+  D3D12_GPU_DESCRIPTOR_HANDLE gpu = heap->GetGPUDescriptorHandleForHeapStart();
+
+  if(m_Type == ViewType::DSV)
+    gpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] * descriptor;
+  else if(m_Type == ViewType::RTV)
+    gpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] * descriptor;
+  else
+    gpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
+
+  return gpu;
 }
 
 D3D12PSOCreator::D3D12PSOCreator(D3D12GraphicsTest *test) : m_Test(test)

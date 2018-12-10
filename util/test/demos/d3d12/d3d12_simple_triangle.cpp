@@ -55,7 +55,8 @@ struct D3D12_Simple_Triangle : D3D12GraphicsTest
 
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-      D3D12_CPU_DESCRIPTOR_HANDLE rtv = MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).Create(0);
+      D3D12_CPU_DESCRIPTOR_HANDLE rtv =
+          MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
       ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
 

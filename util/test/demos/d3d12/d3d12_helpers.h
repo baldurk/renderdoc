@@ -198,14 +198,26 @@ public:
   D3D12ViewCreator &FirstSlice(UINT mip);
   D3D12ViewCreator &NumSlices(UINT num);
 
-  // TODO plane slice, swizzle, ResourceMinLODClamp
+  // TODO ResourceMinLODClamp
+  D3D12ViewCreator &Swizzle(UINT swizzle);
+  D3D12ViewCreator &PlaneSlice(UINT plane);
 
   // depth stencil only
   D3D12ViewCreator &ReadOnlyDepth();
   D3D12ViewCreator &ReadOnlyStencil();
 
-  D3D12_CPU_DESCRIPTOR_HANDLE Create(ID3D12DescriptorHeap *heap, uint32_t descriptor);
-  D3D12_CPU_DESCRIPTOR_HANDLE Create(uint32_t descriptor) { return Create(m_Heap, descriptor); }
+  D3D12_CPU_DESCRIPTOR_HANDLE CreateCPU(ID3D12DescriptorHeap *heap, uint32_t descriptor);
+  D3D12_GPU_DESCRIPTOR_HANDLE CreateGPU(ID3D12DescriptorHeap *heap, uint32_t descriptor);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE CreateCPU(uint32_t descriptor)
+  {
+    return CreateCPU(m_Heap, descriptor);
+  }
+  D3D12_GPU_DESCRIPTOR_HANDLE CreateGPU(uint32_t descriptor)
+  {
+    return CreateGPU(m_Heap, descriptor);
+  }
+
 private:
   void SetupDescriptors(ViewType viewType, ResourceType resType);
 
@@ -227,8 +239,11 @@ private:
     D3D12_UNORDERED_ACCESS_VIEW_DESC uav;
   } desc;
 
+  UINT Shader4ComponentMapping;
+
   UINT64 *firstElement = NULL;
   UINT *numElements = NULL;
+  UINT *planeSlice = NULL;
   UINT *firstMip = NULL, *numMips = NULL;
   UINT *firstSlice = NULL, *numSlices = NULL;
 };

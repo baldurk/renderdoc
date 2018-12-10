@@ -214,6 +214,8 @@ bool D3D12GraphicsTest::Init(int argc, char **argv)
 
     m_DSV->SetName(L"DSV heap");
 
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
     desc.NumDescriptors = 8;
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
@@ -669,7 +671,7 @@ void D3D12GraphicsTest::IASetVertexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D
 void D3D12GraphicsTest::ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd,
                                               ID3D12ResourcePtr rt, Vec4f col)
 {
-  cmd->ClearRenderTargetView(MakeRTV(rt).Create(0), &col.x, 0, NULL);
+  cmd->ClearRenderTargetView(MakeRTV(rt).CreateCPU(0), &col.x, 0, NULL);
 }
 
 void D3D12GraphicsTest::ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd,
@@ -681,7 +683,7 @@ void D3D12GraphicsTest::ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd,
 void D3D12GraphicsTest::ClearDepthStencilView(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr dsv,
                                               D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil)
 {
-  MakeDSV(dsv).Create(0);
+  MakeDSV(dsv).CreateCPU(0);
   cmd->ClearDepthStencilView(m_DSV->GetCPUDescriptorHandleForHeapStart(), flags, depth, stencil, 0,
                              NULL);
 }
@@ -703,10 +705,10 @@ void D3D12GraphicsTest::OMSetRenderTargets(ID3D12GraphicsCommandListPtr cmd,
   std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
   handles.resize(rtvs.size());
   for(size_t i = 0; i < rtvs.size(); i++)
-    handles[i] = MakeRTV(rtvs[i]).Create((uint32_t)i);
+    handles[i] = MakeRTV(rtvs[i]).CreateCPU((uint32_t)i);
 
   if(dsv)
-    OMSetRenderTargets(cmd, handles, MakeDSV(dsv).Create(0));
+    OMSetRenderTargets(cmd, handles, MakeDSV(dsv).CreateCPU(0));
   else
     OMSetRenderTargets(cmd, handles, {});
 }
