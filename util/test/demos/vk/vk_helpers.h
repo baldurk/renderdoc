@@ -635,6 +635,18 @@ struct DescriptorBufferInfo : public VkDescriptorBufferInfo
   }
 };
 
+struct DescriptorImageInfo : public VkDescriptorImageInfo
+{
+  DescriptorImageInfo(VkImageView imageView,
+                      VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VkSampler sampler = VK_NULL_HANDLE)
+  {
+    this->sampler = sampler;
+    this->imageView = imageView;
+    this->imageLayout = imageLayout;
+  }
+};
+
 struct WriteDescriptorSet : public VkWriteDescriptorSet
 {
   WriteDescriptorSet(VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t dstArrayElement,
