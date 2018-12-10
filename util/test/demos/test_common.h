@@ -105,6 +105,18 @@ struct Vec4f
   float x, y, z, w;
 };
 
+struct Vec4i
+{
+  Vec4i(int32_t X = 0, int32_t Y = 0, int32_t Z = 0, int32_t W = 0)
+  {
+    x = X;
+    y = Y;
+    z = Z;
+    w = W;
+  }
+  int32_t x, y, z, w;
+};
+
 struct DefaultA2V
 {
   Vec3f pos;
@@ -113,6 +125,16 @@ struct DefaultA2V
 };
 
 extern const DefaultA2V DefaultTri[3];
+extern const char *SmileyTexture[63];
+
+struct Texture
+{
+  uint32_t width;
+  uint32_t height;
+  std::vector<uint32_t> data;
+};
+
+void LoadXPM(const char **XPM, Texture &tex);
 
 struct GraphicsWindow
 {
