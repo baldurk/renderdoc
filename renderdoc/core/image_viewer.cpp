@@ -115,7 +115,8 @@ public:
   }
   bool RenderTexture(TextureDisplay cfg)
   {
-    cfg.resourceId = m_TextureID;
+    if(cfg.resourceId != m_TextureID && cfg.resourceId != m_CustomTexID)
+      cfg.resourceId = m_TextureID;
     return m_Proxy->RenderTexture(cfg);
   }
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
@@ -128,6 +129,10 @@ public:
   {
     return m_Proxy->PickVertex(eventId, width, height, cfg, x, y);
   }
+  rdcarray<ShaderEncoding> GetTargetShaderEncodings()
+  {
+    return m_Proxy->GetTargetShaderEncodings();
+  }
   void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                          ShaderStage type, ResourceId *id, string *errors)
   {
@@ -137,7 +142,9 @@ public:
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint)
   {
-    return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
+    m_CustomTexID =
+        m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
+    return m_CustomTexID;
   }
   const std::vector<ResourceDescription> &GetResources() { return m_Resources; }
   std::vector<ResourceId> GetTextures() { return {m_TextureID}; }
@@ -247,7 +254,6 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {}; }
   void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          string *errors)
@@ -293,7 +299,7 @@ private:
   D3D11Pipe::State m_PipelineState;
   IReplayDriver *m_Proxy;
   string m_Filename;
-  ResourceId m_TextureID;
+  ResourceId m_TextureID, m_CustomTexID;
   std::vector<ResourceDescription> m_Resources;
   SDFile m_File;
   TextureDescription m_TexDetails;
