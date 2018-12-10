@@ -2207,7 +2207,8 @@ void TextureViewer::render_mouseWheel(QWheelEvent *e)
   // scroll in logarithmic scale
   double logScale = logf(m_TexDisplay.scale);
   logScale += e->delta() / 2500.0;
-  UI_SetScale((float)expf(logScale), cursorPos.x(), cursorPos.y());
+  UI_SetScale((float)expf(logScale), cursorPos.x() * ui->render->devicePixelRatio(),
+              cursorPos.y() * ui->render->devicePixelRatio());
 
   e->accept();
 }
