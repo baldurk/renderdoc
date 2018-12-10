@@ -37,7 +37,6 @@
 #include <QToolTip>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
-#include "Resources/resource.h"
 #include "Widgets/Extended/RDLabel.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
