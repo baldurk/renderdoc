@@ -12,6 +12,7 @@ set(VULKAN_SRC
         vk/vk_overlay_test.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_simple_triangle.cpp
+        vk/vk_video_textures.cpp
         vk/vk_test.cpp
         vk/vk_vs_max_desc_set.cpp)
 

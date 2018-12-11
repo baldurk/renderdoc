@@ -144,11 +144,13 @@
     <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
     <ClCompile Include="d3d11\d3d11_test.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
+    <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
     <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
+    <ClCompile Include="d3d12\d3d12_video_textures.cpp" />
     <ClCompile Include="dx\d3d_helpers.cpp" />
     <ClCompile Include="3rdparty\glad\glad.c" />
     <ClCompile Include="3rdparty\glad\glad_egl.c">
@@ -193,6 +195,7 @@
     <ClCompile Include="vk\vk_indirect.cpp" />
     <ClCompile Include="vk\vk_overlay_test.cpp" />
     <ClCompile Include="vk\vk_secondary_cmdbuf.cpp" />
+    <ClCompile Include="vk\vk_video_textures.cpp" />
     <ClCompile Include="vk\vk_vs_max_desc_set.cpp" />
     <ClCompile Include="vk\vk_simple_triangle.cpp" />
     <ClCompile Include="vk\vk_test.cpp" />
