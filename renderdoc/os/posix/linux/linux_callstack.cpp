@@ -178,8 +178,7 @@ private:
       if(addr >= m_Modules[i].base && addr < m_Modules[i].end)
       {
         uint64_t relative = addr - m_Modules[i].base + m_Modules[i].offset;
-        string cmd =
-            StringFormat::Fmt("addr2line -j.text -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
+        string cmd = StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
 
         FILE *f = ::popen(cmd.c_str(), "r");
 
@@ -297,37 +296,7 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCal
             mod.path[i] = search[i];
           }
 
-          // addr2line wants offsets relative to text section, have to find offset of .text section
-          // in this
-          // mmapped section
-
-          int textoffs = 0;
-          string cmd = StringFormat::Fmt("readelf -WS \"%s\"", mod.path);
-
-          FILE *f = ::popen(cmd.c_str(), "r");
-
-          char result[4096] = {0};
-          fread(result, 1, 4095, f);
-
-          fclose(f);
-
-          // find .text line
-          char *find = strstr(result, ".text");
-
-          if(find)
-          {
-            find += 5;
-
-            while(isalpha(*find) || isspace(*find))
-              find++;
-
-            // virtual address is listed first, we want the offset
-            sscanf(find, "%*x %x", &textoffs);
-
-            mod.base += textoffs;
-
-            modules.push_back(mod);
-          }
+          modules.push_back(mod);
         }
       }
     }
