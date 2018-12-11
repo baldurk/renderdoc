@@ -173,7 +173,54 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
     return false;
   }
 
-  phys = physDevices[0];
+  std::vector<VkPhysicalDeviceProperties> physProps;
+  for(VkPhysicalDevice p : physDevices)
+  {
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(p, &props);
+    physProps.push_back(props);
+  }
+
+  // default to the first discrete card
+  for(size_t i = 0; i < physDevices.size(); i++)
+  {
+    if(physProps[i].deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+    {
+      phys = physDevices[i];
+      break;
+    }
+  }
+
+  // if none found, default to first
+  if(phys == VK_NULL_HANDLE)
+    phys = physDevices[0];
+
+  // allow command line override
+  for(int i = 0; i < argc; i++)
+  {
+    if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
+    {
+      std::string needle = strlower(argv[i + 1]);
+
+      const bool nv = (needle == "nv" || needle == "nvidia");
+      const bool amd = (needle == "amd");
+      const bool intel = (needle == "intel");
+
+      for(size_t p = 0; p < physDevices.size(); p++)
+      {
+        std::string haystack = strlower(physProps[p].deviceName);
+
+        if(haystack.find(needle) != std::string::npos || (nv && physProps[p].vendorID == 0x10DE) ||
+           (amd && physProps[p].vendorID == 0x1002) || (intel && physProps[p].vendorID == 0x8086))
+        {
+          phys = physDevices[p];
+          break;
+        }
+      }
+
+      break;
+    }
+  }
 
   std::vector<VkQueueFamilyProperties> queueProps;
   vkh::getQueueFamilyProperties(queueProps, phys);

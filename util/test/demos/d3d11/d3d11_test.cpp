@@ -30,6 +30,8 @@
 #include "../renderdoc_app.h"
 #include "../win32/win32_window.h"
 
+typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
 bool D3D11GraphicsTest::Init(int argc, char **argv)
 {
   // parse parameters here to override parameters
@@ -39,6 +41,7 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   // ...
 
   HMODULE d3d11 = LoadLibraryA("d3d11.dll");
+  HMODULE dxgi = LoadLibraryA("dxgi.dll");
   HMODULE d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
   if(!d3dcompiler)
     d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
@@ -49,11 +52,14 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   if(!d3dcompiler)
     d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
 
-  if(!d3d11 || !d3dcompiler)
+  if(!d3d11 || !dxgi || !d3dcompiler)
   {
     TEST_ERROR("Couldn't load D3D11");
     return false;
   }
+
+  PFN_CREATE_DXGI_FACTORY createFactory =
+      (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory");
 
   dyn_D3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(d3d11, "D3D11CreateDevice");
   dyn_D3D11CreateDeviceAndSwapChain = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
@@ -71,16 +77,91 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
 
   HRESULT hr = S_OK;
 
+  IDXGIFactoryPtr factory = NULL;
+
+  hr = createFactory(__uuidof(IDXGIFactory), (void **)&factory);
+
+  if(factory.GetInterfacePtr() == NULL || FAILED(hr))
+  {
+    TEST_ERROR("CreateDXGIFactory failed: %x", hr);
+    return false;
+  }
+
+  struct AdapterInfo
+  {
+    IDXGIAdapterPtr adapter;
+    DXGI_ADAPTER_DESC desc;
+  };
+
+  std::vector<AdapterInfo> adapters;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapterPtr a;
+    hr = factory->EnumAdapters(i, &a);
+    if(hr == S_OK && a)
+    {
+      DXGI_ADAPTER_DESC desc;
+      a->GetDesc(&desc);
+      adapters.push_back({a, desc});
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  IDXGIAdapterPtr adapter = NULL;
+
+  for(int i = 0; i < argc; i++)
+  {
+    if(!strcmp(argv[i], "--warp"))
+    {
+      driver = D3D_DRIVER_TYPE_WARP;
+      break;
+    }
+    if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
+    {
+      std::string needle = strlower(argv[i + 1]);
+
+      if(needle == "warp")
+      {
+        driver = D3D_DRIVER_TYPE_WARP;
+        break;
+      }
+
+      const bool nv = (needle == "nv" || needle == "nvidia");
+      const bool amd = (needle == "amd");
+      const bool intel = (needle == "intel");
+
+      for(size_t a = 0; a < adapters.size(); a++)
+      {
+        std::string haystack = strlower(Wide2UTF8(adapters[a].desc.Description));
+
+        if(haystack.find(needle) != std::string::npos || (nv && adapters[a].desc.VendorId == 0x10DE) ||
+           (amd && adapters[a].desc.VendorId == 0x1002) ||
+           (intel && adapters[a].desc.VendorId == 0x8086))
+        {
+          driver = D3D_DRIVER_TYPE_UNKNOWN;
+          adapter = adapters[a].adapter;
+          break;
+        }
+      }
+
+      break;
+    }
+  }
+
   if(headless)
   {
-    hr = dyn_D3D11CreateDevice(NULL, driver, NULL, debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
+    hr = dyn_D3D11CreateDevice(adapter, driver, NULL, debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
                                features, 1, D3D11_SDK_VERSION, &dev, NULL, &ctx);
 
     // if it failed but on a high feature level, try again on warp
     if(FAILED(hr) && features[0] != D3D_FEATURE_LEVEL_11_0)
     {
       driver = D3D_DRIVER_TYPE_WARP;
-      hr = dyn_D3D11CreateDevice(NULL, driver, NULL, debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
+      hr = dyn_D3D11CreateDevice(adapter, driver, NULL, debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
                                  features, 1, D3D11_SDK_VERSION, &dev, NULL, &ctx);
     }
 
@@ -88,7 +169,7 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
     if(FAILED(hr) && features[0] != D3D_FEATURE_LEVEL_11_0)
     {
       driver = D3D_DRIVER_TYPE_REFERENCE;
-      hr = dyn_D3D11CreateDevice(NULL, driver, NULL, debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
+      hr = dyn_D3D11CreateDevice(adapter, driver, NULL, debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0,
                                  features, 1, D3D11_SDK_VERSION, &dev, NULL, &ctx);
     }
 
@@ -121,7 +202,7 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
   swapDesc.Flags = 0;
 
-  hr = dyn_D3D11CreateDeviceAndSwapChain(NULL, driver, NULL,
+  hr = dyn_D3D11CreateDeviceAndSwapChain(adapter, driver, NULL,
                                          debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0, features, 1,
                                          D3D11_SDK_VERSION, &swapDesc, &swap, &dev, NULL, &ctx);
 
@@ -129,7 +210,7 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   if(FAILED(hr))
   {
     driver = D3D_DRIVER_TYPE_WARP;
-    hr = dyn_D3D11CreateDeviceAndSwapChain(NULL, driver, NULL,
+    hr = dyn_D3D11CreateDeviceAndSwapChain(adapter, driver, NULL,
                                            debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0, features, 1,
                                            D3D11_SDK_VERSION, &swapDesc, &swap, &dev, NULL, &ctx);
   }
@@ -138,7 +219,7 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   if(FAILED(hr))
   {
     driver = D3D_DRIVER_TYPE_REFERENCE;
-    hr = dyn_D3D11CreateDeviceAndSwapChain(NULL, driver, NULL,
+    hr = dyn_D3D11CreateDeviceAndSwapChain(adapter, driver, NULL,
                                            debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0, features, 1,
                                            D3D11_SDK_VERSION, &swapDesc, &swap, &dev, NULL, &ctx);
   }
@@ -211,6 +292,33 @@ bool D3D11GraphicsTest::IsSupported()
 
 void D3D11GraphicsTest::PostDeviceCreate()
 {
+  {
+    IDXGIDevicePtr pDXGIDevice;
+    HRESULT hr = dev->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+
+    if(FAILED(hr) || !pDXGIDevice)
+    {
+      TEST_ERROR("Couldn't get DXGI Device");
+    }
+    else
+    {
+      IDXGIAdapterPtr pDXGIAdapter;
+      hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+      if(FAILED(hr) || !pDXGIAdapter)
+      {
+        TEST_ERROR("Couldn't get DXGI Adapter");
+      }
+      else
+      {
+        DXGI_ADAPTER_DESC desc = {};
+        pDXGIAdapter->GetDesc(&desc);
+
+        TEST_LOG("Running D3D11 test on %ls", desc.Description);
+      }
+    }
+  }
+
   // if(d3d11_1)
   {
     dev->QueryInterface(__uuidof(ID3D11Device1), (void **)&dev1);

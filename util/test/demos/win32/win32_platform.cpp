@@ -40,3 +40,51 @@ std::string GetCWD()
 
   return cwdstr;
 }
+
+std::string Wide2UTF8(const std::wstring &s)
+{
+  int bytes_required = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
+
+  if(bytes_required == 0)
+    return "";
+
+  std::string ret;
+  ret.resize(bytes_required);
+
+  int res = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, &ret[0], bytes_required, NULL, NULL);
+
+  if(ret.back() == 0)
+    ret.pop_back();
+
+  if(res == 0)
+  {
+    TEST_WARN("Failed to convert wstring '%ls'", s.c_str());
+    return "";
+  }
+
+  return ret;
+}
+
+std::wstring UTF82Wide(const std::string &s)
+{
+  int chars_required = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
+
+  if(chars_required == 0)
+    return L"";
+
+  std::wstring ret;
+  ret.resize(chars_required);
+
+  int res = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &ret[0], chars_required);
+
+  if(ret.back() == 0)
+    ret.pop_back();
+
+  if(res == 0)
+  {
+    TEST_WARN("Failed to convert utf-8 string '%s'", s.c_str());
+    return L"";
+  }
+
+  return ret;
+}

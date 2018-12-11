@@ -52,7 +52,7 @@ bool D3D12GraphicsTest::Init(int argc, char **argv)
   if(!d3dcompiler)
     d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
 
-  if(!d3d12 || !d3dcompiler)
+  if(!d3d12 || !dxgi || !d3dcompiler)
   {
     TEST_ERROR("Couldn't load D3D12");
     return false;
@@ -114,26 +114,109 @@ bool D3D12GraphicsTest::Init(int argc, char **argv)
       return false;
     }
 
-    hr = dyn_D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void **)&dev);
+    struct AdapterInfo
+    {
+      IDXGIAdapterPtr adapter;
+      DXGI_ADAPTER_DESC desc;
+    };
+
+    std::vector<AdapterInfo> adapters;
+
+    for(UINT i = 0; i < 10; i++)
+    {
+      IDXGIAdapterPtr a;
+      hr = m_Factory->EnumAdapters(i, &a);
+      if(hr == S_OK && a)
+      {
+        DXGI_ADAPTER_DESC desc;
+        a->GetDesc(&desc);
+        adapters.push_back({a, desc});
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    IDXGIAdapterPtr warp = NULL;
+    m_Factory->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&warp);
+
+    IDXGIAdapterPtr adapter = NULL;
+
+    for(int i = 0; i < argc; i++)
+    {
+      if(!strcmp(argv[i], "--warp"))
+      {
+        adapter = warp;
+        break;
+      }
+      if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
+      {
+        std::string needle = strlower(argv[i + 1]);
+
+        if(needle == "warp")
+        {
+          adapter = warp;
+          break;
+        }
+
+        const bool nv = (needle == "nv" || needle == "nvidia");
+        const bool amd = (needle == "amd");
+        const bool intel = (needle == "intel");
+
+        for(size_t a = 0; a < adapters.size(); a++)
+        {
+          std::string haystack = strlower(Wide2UTF8(adapters[a].desc.Description));
+
+          if(haystack.find(needle) != std::string::npos ||
+             (nv && adapters[a].desc.VendorId == 0x10DE) ||
+             (amd && adapters[a].desc.VendorId == 0x1002) ||
+             (intel && adapters[a].desc.VendorId == 0x8086))
+          {
+            adapter = adapters[a].adapter;
+            break;
+          }
+        }
+
+        break;
+      }
+    }
+
+    hr = dyn_D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device),
+                               (void **)&dev);
 
     // if it failed, try again on warp
     if(FAILED(hr))
     {
-      IDXGIAdapter *adapter = NULL;
-      m_Factory->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&adapter);
-
+      adapter = warp;
       if(adapter)
-      {
         hr = dyn_D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device),
                                    (void **)&dev);
-        adapter->Release();
-      }
     }
 
     if(FAILED(hr))
     {
       TEST_ERROR("D3D12CreateDevice failed: %x", hr);
       return false;
+    }
+  }
+
+  {
+    LUID luid = dev->GetAdapterLuid();
+
+    IDXGIAdapterPtr pDXGIAdapter;
+    HRESULT hr = m_Factory->EnumAdapterByLuid(luid, __uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+    if(FAILED(hr))
+    {
+      TEST_ERROR("Couldn't get DXGI adapter by LUID from D3D device");
+    }
+    else
+    {
+      DXGI_ADAPTER_DESC desc = {};
+      pDXGIAdapter->GetDesc(&desc);
+
+      TEST_LOG("Running D3D12 test on %ls", desc.Description);
     }
   }
 

@@ -29,6 +29,11 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include <string>
+
+std::string Wide2UTF8(const std::wstring &s);
+std::wstring UTF82Wide(const std::string &s);
+
 #define DEBUG_BREAK()       \
   do                        \
   {                         \
