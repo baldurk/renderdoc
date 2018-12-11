@@ -2133,30 +2133,29 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE NTHandle, REFIID riid, void **ppvObj)
+bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE NTHandle,
+                                                     REFIID riid, void **ppvObj)
 {
-  ID3D12DeviceChild *devChild = ser.IsWriting() ? (ID3D12DeviceChild *)*ppvObj : NULL;
-
   SERIALISE_ELEMENT_LOCAL(ResourceRIID, riid);
-  SERIALISE_ELEMENT_LOCAL(ResourceId, GetResID(devChild));
 
   SERIALISE_CHECK_READ_ERRORS();
 
   bool isRes = (ResourceRIID == __uuidof(ID3D12Resource) ? true : false);
-  if ( isRes )
+  if (isRes)
   {
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapProperties;
     D3D12_HEAP_FLAGS heapFlags;
 
-    ID3D12Resource *res = (ID3D12Resource*)devChild;
-
+    ID3D12Resource *res{};
     if(ser.IsWriting())
     {
+      res = (ID3D12Resource *)*ppvObj;
       desc = res->GetDesc();
       res->GetHeapProperties(&heapProperties, &heapFlags);
     }
 
+    SERIALISE_ELEMENT_LOCAL(resourceId, GetResID(res));
     SERIALISE_ELEMENT(desc);
     SERIALISE_ELEMENT(heapProperties);
     SERIALISE_ELEMENT(heapFlags);
@@ -2171,9 +2170,8 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
 
       HRESULT hr;
       ID3D12Resource *ret;
-      hr = m_pDevice->CreateCommittedResource( &heapProperties, heapFlags, &desc, 
-                                               InitialResourceState, pOptimizedClearValue,
-                                               ResourceRIID, (void **)&ret );
+      hr = m_pDevice->CreateCommittedResource(&heapProperties, heapFlags, &desc, InitialResourceState,
+                                              pOptimizedClearValue, ResourceRIID, (void **)&ret);
       if(FAILED(hr))
       {
         RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
@@ -2182,18 +2180,18 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       else
       {
         SetObjName(ret, StringFormat::Fmt("Shared Resource %s ID %llu",
-                                          ToStr(desc.Dimension).c_str(), ResourceId));
+                                          ToStr(desc.Dimension).c_str(), resourceId));
 
         ret = new WrappedID3D12Resource(ret, this);
-        
-        GetResourceManager()->AddLiveResource(ResourceId, ret);
+
+        GetResourceManager()->AddLiveResource(resourceId, ret);
 
         SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
         states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
-        
+
         ResourceType type = ResourceType::Texture;
         const char *prefix = "Texture";
-        
+
         if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         {
           type = ResourceType::Buffer;
@@ -2202,7 +2200,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
         else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
         {
           prefix = desc.DepthOrArraySize > 1 ? "1D TextureArray" : "1D Texture";
-        
+
           if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
             prefix = "1D Render Target";
           else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
@@ -2211,7 +2209,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
         else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
         {
           prefix = desc.DepthOrArraySize > 1 ? "2D TextureArray" : "2D Texture";
-        
+
           if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
             prefix = "2D Render Target";
           else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
@@ -2220,14 +2218,14 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
         else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
         {
           prefix = "3D Texture";
-        
+
           if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
             prefix = "3D Render Target";
           else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
             prefix = "3D Depth Target";
         }
-        
-        AddResource(ResourceId, type, prefix);
+
+        AddResource(resourceId, type, prefix);
       }
     }
   }
@@ -2265,16 +2263,16 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
     }
     else
     {
-      ID3D12Resource *real = (ID3D12Resource*)ret;
+      ID3D12Resource *real = (ID3D12Resource *)ret;
 
       WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
       *ppvObj = (ID3D12Resource *)wrapped;
 
       CACHE_THREAD_SERIALISER();
-      
+
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_OpenSharedHandle);
-      Serialise_OpenSharedHandle(ser, NTHandle, riid, ppvObj );
-      
+      Serialise_OpenSharedHandle(ser, NTHandle, riid, ppvObj);
+
       D3D12_RESOURCE_DESC desc = wrapped->GetDesc();
       D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_COMMON;
 
@@ -2283,12 +2281,12 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
       record->type = Resource_Resource;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
-      
+
       record->m_MapsCount = GetNumSubresources(this, &desc);
       record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
       
       record->AddChunk(scope.Get());
-      
+
       {
         SCOPED_READLOCK(m_CapTransitionLock);
         if(IsBackgroundCapturing(m_State))
@@ -2296,14 +2294,14 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
         else
           GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
       }
-      
+
       {
         SCOPED_LOCK(m_ResourceStatesLock);
         SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
-      
+
         states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
       }
-      
+
       return S_OK;
     }
   }
@@ -2961,5 +2959,5 @@ INSTANTIATE_FUNCTION_SERIALISED(HRESULT, WrappedID3D12Device, EnqueueMakeResiden
                                 D3D12_RESIDENCY_FLAGS Flags, UINT NumObjects,
                                 ID3D12Pageable *const *ppObjects, ID3D12Fence *pFenceToSignal,
                                 UINT64 FenceValueToSignal);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, OpenSharedHandle,
-                                HANDLE NTHandle, REFIID riid, void **ppvObj);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, OpenSharedHandle, HANDLE NTHandle,
+                                REFIID riid, void **ppvObj);

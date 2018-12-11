@@ -29,6 +29,7 @@ template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1097, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Device_OpenSharedHandle == 1096, "New chunks must be appended otherwise it breaks old captures");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
