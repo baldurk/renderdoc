@@ -2141,7 +2141,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
   SERIALISE_CHECK_READ_ERRORS();
 
   bool isRes = (ResourceRIID == __uuidof(ID3D12Resource) ? true : false);
-  if (isRes)
+  if(isRes)
   {
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapProperties;
@@ -2276,15 +2276,14 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
       D3D12_RESOURCE_DESC desc = wrapped->GetDesc();
       D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_COMMON;
 
-      D3D12ResourceRecord *record =
-          GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Resource;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
       record->m_MapsCount = GetNumSubresources(this, &desc);
       record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
-      
+
       record->AddChunk(scope.Get());
 
       {
