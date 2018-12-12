@@ -53,3 +53,5 @@ License
 RenderDoc is released under the MIT license, see [the main github repository](https://github.com/baldurk/renderdoc) for full details.
 
 The tests use [GLAD](https://github.com/Dav1dde/glad) for extension loading, which is MIT licensed. [LZ4](https://github.com/lz4/lz4) for compression, which is BSD licensed. [volk](https://github.com/zeux/volk) for vulkan loading, which is MIT licensed. [nuklear](https://github.com/vurtun/nuklear) for the launcher UI, which is MIT licensed. [shaderc](https://github.com/google/shaderc) for building SPIR-V shaders, which is Apache-2.0 licensed.
+
+A short clip from [Caminandes](http://www.caminandes.com/), available under the [Creative Commons Attribution 3.0 license (CC) caminandes.com](http://www.caminandes.com/sharing/), is used as a demo video.

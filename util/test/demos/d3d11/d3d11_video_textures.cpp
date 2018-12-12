@@ -24,6 +24,21 @@
 
 #include "d3d11_test.h"
 
+// forward declare a couple of interfaces trimmed out of our local copy of the MF headers
+struct IMediaBuffer;
+struct IPropertyStore;
+struct INamedPropertyStore;
+
+#include "dx/official/mfapi.h"
+#include "dx/official/mfmediaengine.h"
+
+COM_SMARTPTR(IMFDXGIDeviceManager);
+COM_SMARTPTR(IMFMediaEngineClassFactory);
+COM_SMARTPTR(IMFAttributes);
+COM_SMARTPTR(IMFMediaEngine);
+COM_SMARTPTR(IMFMediaEngineEx);
+COM_SMARTPTR(IMFByteStream);
+
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +52,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-struct D3D11_Video_Textures : D3D11GraphicsTest
+struct D3D11_Video_Textures : D3D11GraphicsTest, IMFMediaEngineNotify
 {
   static constexpr const char *Description = "Tests of YUV textures";
 
@@ -169,11 +184,181 @@ float4 main(v2f IN) : SV_Target0
     Vec4i config[2];
   };
 
+  bool video_loaded = false;
+
+  // implement IUnknown
+  ULONG AddRef() { return 1; }
+  ULONG Release() { return 1; }
+  HRESULT QueryInterface(const IID &iid, void **obj)
+  {
+    if(iid == __uuidof(IUnknown))
+    {
+      *obj = (IUnknown *)this;
+      return S_OK;
+    }
+    else if(iid == __uuidof(IMFMediaEngineNotify))
+    {
+      *obj = (IMFMediaEngineNotify *)this;
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+  // implement IMFMediaEngineNotify
+  HRESULT EventNotify(DWORD ev, DWORD_PTR param1, DWORD param2)
+  {
+    if(ev == MF_MEDIA_ENGINE_EVENT_CANPLAY)
+      video_loaded = true;
+    else if(ev == MF_MEDIA_ENGINE_EVENT_ERROR)
+      TEST_ERROR("Error loading video: %x", param2);
+    return S_OK;
+  }
+
   int main(int argc, char **argv)
   {
+    // call this early to parse any data path parameters
+    GraphicsTest::Init(argc, argv);
+
+    // check for the existence of the test video
+    std::string video_filename = GetDataPath("h264_yu420p_192x108_24fps.mp4");
+
+    FILE *f = fopen(video_filename.c_str(), "rb");
+    if(f)
+      fclose(f);
+    else
+      video_filename = "";
+
+    using PFN_MFCreateDXGIDeviceManager = decltype(&MFCreateDXGIDeviceManager);
+    using PFN_MFStartup = decltype(&MFStartup);
+    using PFN_MFCreateFile = decltype(&MFCreateFile);
+    using PFN_MFShutdown = decltype(&MFShutdown);
+    using PFN_MFCreateAttributes = decltype(&MFCreateAttributes);
+
+    PFN_MFCreateDXGIDeviceManager dyn_MFCreateDXGIDeviceManager = NULL;
+    PFN_MFStartup dyn_MFStartup = NULL;
+    PFN_MFCreateFile dyn_MFCreateFile = NULL;
+    PFN_MFShutdown dyn_MFShutdown = NULL;
+    PFN_MFCreateAttributes dyn_MFCreateAttributes = NULL;
+
+    HMODULE mfplat = LoadLibraryA("mfplat.dll");
+
+    if(mfplat && !video_filename.empty())
+    {
+      dyn_MFCreateDXGIDeviceManager =
+          (PFN_MFCreateDXGIDeviceManager)GetProcAddress(mfplat, "MFCreateDXGIDeviceManager");
+      dyn_MFStartup = (PFN_MFStartup)GetProcAddress(mfplat, "MFStartup");
+      dyn_MFShutdown = (PFN_MFShutdown)GetProcAddress(mfplat, "MFShutdown");
+      dyn_MFCreateFile = (PFN_MFCreateFile)GetProcAddress(mfplat, "MFCreateFile");
+      dyn_MFCreateAttributes = (PFN_MFCreateAttributes)GetProcAddress(mfplat, "MFCreateAttributes");
+
+      if(dyn_MFCreateDXGIDeviceManager && dyn_MFStartup && dyn_MFCreateFile && dyn_MFCreateAttributes)
+      {
+        createFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_VIDEO_SUPPORT;
+
+        CoInitializeEx(NULL, COINIT_MULTITHREADED);
+        dyn_MFStartup(MF_VERSION, MFSTARTUP_FULL);
+
+        TEST_LOG("Initialising MediaFoundation");
+      }
+      else
+      {
+        dyn_MFCreateDXGIDeviceManager = NULL;
+        dyn_MFStartup = NULL;
+        dyn_MFShutdown = NULL;
+        dyn_MFCreateFile = NULL;
+        dyn_MFCreateAttributes = NULL;
+
+        TEST_LOG("MediaFoundation not available");
+      }
+    }
+
     // initialise, create window, create device, etc
     if(!Init(argc, argv))
       return 3;
+
+    IMFMediaEnginePtr engine = NULL;
+
+    // if we initialised MF this create flag will be set
+    if(createFlags & D3D11_CREATE_DEVICE_VIDEO_SUPPORT)
+    {
+      // need to enable multithreaded as MediaFoundation breaks threading rules if any rendering is
+      // going on
+      {
+        ID3D11MultithreadPtr mt;
+        dev->QueryInterface(&mt);
+        mt->SetMultithreadProtected(true);
+      }
+
+      IMFDXGIDeviceManagerPtr dxgiManager;
+
+      // create DXGI Manager
+      {
+        UINT resetToken = 0;
+        CHECK_HR(dyn_MFCreateDXGIDeviceManager(&resetToken, &dxgiManager));
+
+        CHECK_HR(dxgiManager->ResetDevice(dev, resetToken));
+      }
+
+      // create class factory
+      IMFMediaEngineClassFactoryPtr classFactory;
+      CHECK_HR(CoCreateInstance(CLSID_MFMediaEngineClassFactory, NULL, CLSCTX_INPROC_SERVER,
+                                __uuidof(IMFMediaEngineClassFactory), (void **)&classFactory));
+
+      // initialise attributes where we'll store our init properties
+      IMFAttributesPtr attr;
+      dyn_MFCreateAttributes(&attr, 3);
+
+      CHECK_HR(attr->SetUnknown(MF_MEDIA_ENGINE_DXGI_MANAGER, dxgiManager));
+      CHECK_HR(attr->SetUINT32(MF_MEDIA_ENGINE_VIDEO_OUTPUT_FORMAT, DXGI_FORMAT_NV12));
+      CHECK_HR(attr->SetUnknown(MF_MEDIA_ENGINE_CALLBACK, this));
+
+      // create the media engine itself
+      CHECK_HR(classFactory->CreateInstance(0, attr, &engine));
+
+      // set it looping
+      CHECK_HR(engine->SetLoop(true));
+
+      const std::wstring filename = UTF82Wide(video_filename);
+
+      // open a bytestream for the file
+      IMFByteStreamPtr byteStream;
+      CHECK_HR(dyn_MFCreateFile(MF_ACCESSMODE_READ, MF_OPENMODE_FAIL_IF_NOT_EXIST,
+                                MF_FILEFLAGS_NONE, filename.c_str(), &byteStream));
+
+      size_t len = filename.length();
+
+      // make a BSTR with the URL
+      wchar_t *url = new wchar_t[len + 1 + 8];
+
+      memcpy(url + 1 + 8, filename.c_str(), len * sizeof(wchar_t));
+      memcpy(url + 1, L"file:///", 8 * sizeof(wchar_t));
+      url[0] = (wchar_t)(len + 8);
+
+      for(size_t i = 1; i < len + 1 + 8; i++)
+        if(url[i] == '\\')
+          url[i] = '/';
+
+      // query for IMFMediaEngineEx so we can set the source from a byte stream
+      {
+        IMFMediaEngineExPtr engineex;
+        CHECK_HR(engine->QueryInterface(&engineex));
+
+        CHECK_HR(engineex->SetSourceFromByteStream(byteStream, url));
+      }
+
+      delete[] url;
+
+      // wait for the video to load
+      for(int i = 0; i < 300; i++)
+      {
+        if(video_loaded)
+          break;
+        Sleep(10);
+      }
+
+      if(!video_loaded)
+        TEST_FATAL("Video wasn't playable after 3 seconds");
+    }
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(pixel, "main", "ps_4_0");
@@ -549,6 +734,28 @@ float4 main(v2f IN) : SV_Target0
     // don't do sRGB conversion, as we won't in the shader either
     ID3D11RenderTargetViewPtr bbDirectRTV = MakeRTV(bbTex).Format(DXGI_FORMAT_R8G8B8A8_UNORM);
 
+    IDXGISurfacePtr videoSurface = NULL;
+    ID3D11ShaderResourceViewPtr videoSRVs[2] = {};
+
+    // if we got a media engine, create a surface to render to
+    if(engine)
+    {
+      DWORD videoWidth = 0, videoHeight = 0;
+      CHECK_HR(engine->GetNativeVideoSize(&videoWidth, &videoHeight));
+
+      if(videoWidth > 0 && videoHeight > 0)
+      {
+        ID3D11Texture2DPtr tex =
+            MakeTexture(DXGI_FORMAT_NV12, videoWidth, videoHeight).Mips(1).SRV().RTV();
+        tex->QueryInterface(&videoSurface);
+        videoSRVs[0] = MakeSRV(tex).Format(DXGI_FORMAT_R8_UNORM);
+        videoSRVs[1] = MakeSRV(tex).Format(DXGI_FORMAT_R8G8_UNORM);
+      }
+
+      // start playing the video
+      CHECK_HR(engine->Play());
+    }
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
@@ -591,8 +798,38 @@ float4 main(v2f IN) : SV_Target0
         }
       }
 
+      if(engine && videoSurface)
+      {
+        DWORD videoWidth = 0, videoHeight = 0;
+        CHECK_HR(engine->GetNativeVideoSize(&videoWidth, &videoHeight));
+
+        LONGLONG timestamp = 0;
+        if(engine->OnVideoStreamTick(&timestamp) == S_OK)
+        {
+          MFVideoNormalizedRect srcRect = {0.0f, 0.0f, 1.0f, 1.0f};
+          RECT dstRect = {0, 0, (LONG)videoWidth, (LONG)videoHeight};
+          MFARGB fillColor = {};
+
+          engine->TransferVideoFrame(videoSurface, &srcRect, &dstRect, &fillColor);
+        }
+
+        RSSetViewport({0.0f, 100.0f, 356.0f, 200.0f, 0.0f, 1.0f});
+
+        Vec4i videoConfig[] = {
+            Vec4i(videoWidth, videoHeight, 2, 2), Vec4i(0, 4, 5, 1),
+        };
+
+        ctx->UpdateSubresource(cb, 0, NULL, videoConfig, sizeof(videoConfig), sizeof(videoConfig));
+
+        ctx->PSSetShaderResources(0, 2, (ID3D11ShaderResourceView **)videoSRVs);
+        ctx->Draw(4, 0);
+      }
+
       Present();
     }
+
+    if(dyn_MFShutdown)
+      dyn_MFShutdown();
 
     return 0;
   }
