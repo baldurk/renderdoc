@@ -1696,6 +1696,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
       case VK_FORMAT_R12X4_UNORM_PACK16:
       case VK_FORMAT_R12X4G12X4_UNORM_2PACK16:
       case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16: ret.setYUVSubsampling(444); break;
+      default: break;
     }
   }
 
@@ -2526,6 +2527,9 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+
 #include "3rdparty/catch/catch.hpp"
 
 TEST_CASE("Vulkan formats", "[format][vulkan]")
