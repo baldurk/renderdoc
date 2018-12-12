@@ -123,7 +123,7 @@ static void StripUnwantedLayers(vector<string> &Layers)
        *it == "VK_LAYER_LUNARG_device_limits" || *it == "VK_LAYER_LUNARG_image" ||
        *it == "VK_LAYER_LUNARG_object_tracker" || *it == "VK_LAYER_LUNARG_parameter_validation" ||
        *it == "VK_LAYER_LUNARG_swapchain" || *it == "VK_LAYER_GOOGLE_threading" ||
-       *it == "VK_LAYER_GOOGLE_unique_objects")
+       *it == "VK_LAYER_GOOGLE_unique_objects" || *it == "VK_LAYER_LUNARG_assistant_layer")
     {
       it = Layers.erase(it);
       continue;
