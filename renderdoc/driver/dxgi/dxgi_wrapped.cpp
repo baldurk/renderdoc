@@ -784,6 +784,11 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void 
     *ppvObject = m_pD3DDevice->GetDeviceInterface(riid);
     return S_OK;
   }
+  else if(riid == __uuidof(ID3D11Multithread))
+  {
+    // forward to the device as the lock is shared amongst all things
+    return m_pD3DDevice->QueryInterface(riid, ppvObject);
+  }
   else if(riid == __uuidof(IDXGIDevice))
   {
     AddRef();

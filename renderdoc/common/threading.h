@@ -32,8 +32,17 @@ namespace Threading
 class ScopedLock
 {
 public:
-  ScopedLock(CriticalSection &cs) : m_CS(&cs) { m_CS->Lock(); }
-  ~ScopedLock() { m_CS->Unlock(); }
+  ScopedLock(CriticalSection *cs) : m_CS(cs)
+  {
+    if(m_CS)
+      m_CS->Lock();
+  }
+  ~ScopedLock()
+  {
+    if(m_CS)
+      m_CS->Unlock();
+  }
+
 private:
   CriticalSection *m_CS;
 };
@@ -82,7 +91,9 @@ private:
 };
 };
 
-#define SCOPED_LOCK(cs) Threading::ScopedLock CONCAT(scopedlock, __LINE__)(cs);
+#define SCOPED_LOCK(cs) Threading::ScopedLock CONCAT(scopedlock, __LINE__)(&cs);
+#define SCOPED_LOCK_OPTIONAL(cs, cond) \
+  Threading::ScopedLock CONCAT(scopedlock, __LINE__)(cond ? &cs : NULL);
 
 #define SCOPED_READLOCK(rw) Threading::ScopedReadLock CONCAT(scopedlock, __LINE__)(rw);
 #define SCOPED_WRITELOCK(rw) Threading::ScopedWriteLock CONCAT(scopedlock, __LINE__)(rw);

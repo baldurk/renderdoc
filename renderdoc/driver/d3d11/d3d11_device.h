@@ -74,45 +74,23 @@ class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;
 class WrappedShader;
 
-// declare this here as we don't want to pull in the whole D3D10 headers
-MIDL_INTERFACE("9B7E4E00-342C-4106-A19F-4F2704F689F0")
-ID3D10Multithread : public IUnknown
+struct WrappedD3D11Multithread : public ID3D11Multithread
 {
-public:
-  virtual void STDMETHODCALLTYPE Enter(void) = 0;
+  WrappedID3D11Device *m_pDevice = NULL;
+  ID3D11Multithread *m_pReal = NULL;
 
-  virtual void STDMETHODCALLTYPE Leave(void) = 0;
-
-  virtual BOOL STDMETHODCALLTYPE SetMultithreadProtected(
-      /* [annotation] */
-      _In_ BOOL bMTProtect) = 0;
-
-  virtual BOOL STDMETHODCALLTYPE GetMultithreadProtected(void) = 0;
-};
-
-struct DummyID3D10Multithread : public ID3D10Multithread
-{
-  WrappedID3D11Device *m_pDevice;
-
-  DummyID3D10Multithread() : m_pDevice(NULL) {}
   //////////////////////////////
   // implement IUnknown
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
   ULONG STDMETHODCALLTYPE AddRef();
   ULONG STDMETHODCALLTYPE Release();
 
   //////////////////////////////
-  // implement ID3D10Multithread
-  virtual void STDMETHODCALLTYPE Enter(void) { return; }
-  virtual void STDMETHODCALLTYPE Leave(void) { return; }
-  virtual BOOL STDMETHODCALLTYPE SetMultithreadProtected(
-      /* [annotation] */
-      _In_ BOOL bMTProtect)
-  {
-    return TRUE;
-  }
-
-  virtual BOOL STDMETHODCALLTYPE GetMultithreadProtected(void) { return TRUE; }
+  // implement ID3D11Multithread
+  virtual void STDMETHODCALLTYPE Enter();
+  virtual void STDMETHODCALLTYPE Leave();
+  virtual BOOL STDMETHODCALLTYPE SetMultithreadProtected(BOOL bMTProtect);
+  virtual BOOL STDMETHODCALLTYPE GetMultithreadProtected();
 };
 
 // We can pass through all calls to ID3D11Debug without intercepting, this
@@ -316,7 +294,7 @@ private:
 
   D3D11Replay m_Replay;
 
-  DummyID3D10Multithread m_DummyD3D10Multithread;
+  WrappedD3D11Multithread m_WrappedMultithread;
   DummyID3D11InfoQueue m_DummyInfoQueue;
   DummyID3D11Debug m_DummyDebug;
   WrappedID3D11Debug m_WrappedDebug;
@@ -355,6 +333,9 @@ private:
   // ensure all calls in via the D3D wrapped interface are thread safe
   // protects wrapped resource creation and serialiser access
   Threading::CriticalSection m_D3DLock;
+
+  // behaviour that can be enabled by ID3D11Multithread, to auto-lock all context functions
+  bool m_D3DThreadSafe = false;
 
   WriteSerialiser m_ScratchSerialiser;
   std::set<std::string> m_StringDB;
@@ -436,6 +417,8 @@ public:
   D3D11DebugManager *GetDebugManager() { return m_DebugManager; }
   D3D11Replay *GetReplay() { return &m_Replay; }
   Threading::CriticalSection &D3DLock() { return m_D3DLock; }
+  bool D3DThreadSafe() const { return m_D3DThreadSafe; }
+  void SetD3DThreadSafe(bool safe) { m_D3DThreadSafe = safe; }
   WrappedID3D11DeviceContext *GetImmediateContext() { return m_pImmediateContext; }
   size_t GetNumDeferredContexts() { return m_DeferredContexts.size(); }
   void AddDeferredContext(WrappedID3D11DeviceContext *defctx);

@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d11_context.h"
+#include "d3d11_device.h"
 
 /////////////////////////////////
 // implement ID3D11DeviceContext2
@@ -126,15 +127,21 @@ BOOL WrappedID3D11DeviceContext::IsAnnotationEnabled()
 
 void WrappedID3D11DeviceContext::SetMarkerInt(LPCWSTR pLabel, INT Data)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   SetMarker(0, pLabel);
 }
 
 void WrappedID3D11DeviceContext::BeginEventInt(LPCWSTR pLabel, INT Data)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   PushMarker(0, pLabel);
 }
 
 void WrappedID3D11DeviceContext::EndEvent()
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   PopMarker();
 }

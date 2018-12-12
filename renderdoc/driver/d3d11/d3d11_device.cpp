@@ -96,9 +96,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_Alive = true;
 
   m_DummyInfoQueue.m_pDevice = this;
-  m_DummyD3D10Multithread.m_pDevice = this;
   m_DummyDebug.m_pDevice = this;
   m_WrappedDebug.m_pDevice = this;
+  m_WrappedMultithread.m_pDevice = this;
 
   m_FrameCounter = 0;
   m_FailedFrame = 0;
@@ -192,6 +192,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   {
     realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
     realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
+    realDevice->QueryInterface(__uuidof(ID3D11Multithread), (void **)&m_WrappedMultithread.m_pReal);
   }
 
   // useful for marking regions during replay for self-captures
@@ -311,6 +312,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_DELETE(m_ResourceManager);
 
   SAFE_RELEASE(m_pInfoQueue);
+  SAFE_RELEASE(m_WrappedMultithread.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pDebug);
   SAFE_RELEASE(m_pDevice);
 
@@ -344,18 +346,6 @@ void WrappedID3D11Device::CheckForDeath()
   }
 }
 
-ULONG STDMETHODCALLTYPE DummyID3D10Multithread::AddRef()
-{
-  m_pDevice->AddRef();
-  return 1;
-}
-
-ULONG STDMETHODCALLTYPE DummyID3D10Multithread::Release()
-{
-  m_pDevice->Release();
-  return 1;
-}
-
 ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::AddRef()
 {
   m_pDevice->AddRef();
@@ -383,6 +373,65 @@ ULONG STDMETHODCALLTYPE DummyID3D11Debug::Release()
 {
   m_pDevice->Release();
   return 1;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedD3D11Multithread::QueryInterface(REFIID riid, void **ppvObject)
+{
+  if(riid == __uuidof(IUnknown))
+  {
+    *ppvObject = (IUnknown *)this;
+    AddRef();
+    return S_OK;
+  }
+  if(riid == __uuidof(ID3D11Multithread))
+  {
+    *ppvObject = (ID3D11Multithread *)this;
+    AddRef();
+    return S_OK;
+  }
+  return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE WrappedD3D11Multithread::AddRef()
+{
+  m_pDevice->AddRef();
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE WrappedD3D11Multithread::Release()
+{
+  m_pDevice->Release();
+  return 1;
+}
+
+void STDMETHODCALLTYPE WrappedD3D11Multithread::Enter()
+{
+  m_pDevice->D3DLock().Lock();
+  if(m_pReal)
+    m_pReal->Enter();
+}
+
+void STDMETHODCALLTYPE WrappedD3D11Multithread::Leave()
+{
+  if(m_pReal)
+    m_pReal->Leave();
+  m_pDevice->D3DLock().Unlock();
+}
+
+BOOL STDMETHODCALLTYPE WrappedD3D11Multithread::SetMultithreadProtected(BOOL bMTProtect)
+{
+  bool old = m_pDevice->D3DThreadSafe();
+  m_pDevice->SetD3DThreadSafe(bMTProtect == TRUE);
+  if(m_pReal)
+    m_pReal->SetMultithreadProtected(bMTProtect);
+  // TODO - unclear if m_MultithreadProtected just enables Enter/Leave to work, or if it enables
+  // auto-thread safety on all D3D interfaces
+  return old ? TRUE : FALSE;
+}
+
+BOOL STDMETHODCALLTYPE WrappedD3D11Multithread::GetMultithreadProtected()
+{
+  return m_pDevice->D3DThreadSafe() ? TRUE : FALSE;
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void **ppvObject)
@@ -607,13 +656,10 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
-  else if(riid == __uuidof(ID3D10Multithread))
+  else if(riid == __uuidof(ID3D11Multithread))
   {
-    RDCWARN(
-        "Returning a dummy ID3D10Multithread that does nothing. This ID3D10Multithread will not "
-        "work!");
-    *ppvObject = (ID3D10Multithread *)&m_DummyD3D10Multithread;
-    m_DummyD3D10Multithread.AddRef();
+    AddRef();
+    *ppvObject = (ID3D11Multithread *)&m_WrappedMultithread;
     return S_OK;
   }
   else if(riid == ID3D11ShaderTraceFactory_uuid)

@@ -274,6 +274,8 @@ void WrappedID3D11DeviceContext::IAGetInputLayout(ID3D11InputLayout **ppInputLay
 {
   if(ppInputLayout)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11InputLayout *real = NULL;
     m_pRealContext->IAGetInputLayout(&real);
 
@@ -289,6 +291,8 @@ void WrappedID3D11DeviceContext::IAGetVertexBuffers(UINT StartSlot, UINT NumBuff
                                                     ID3D11Buffer **ppVertexBuffers, UINT *pStrides,
                                                     UINT *pOffsets)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11Buffer *real[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {0};
   m_pRealContext->IAGetVertexBuffers(StartSlot, NumBuffers, real, pStrides, pOffsets);
 
@@ -314,6 +318,8 @@ void WrappedID3D11DeviceContext::IAGetIndexBuffer(ID3D11Buffer **pIndexBuffer, D
 {
   if(pIndexBuffer)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real = NULL;
     m_pRealContext->IAGetIndexBuffer(&real, Format, Offset);
 
@@ -332,6 +338,8 @@ void WrappedID3D11DeviceContext::IAGetIndexBuffer(ID3D11Buffer **pIndexBuffer, D
 
 void WrappedID3D11DeviceContext::IAGetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY *pTopology)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_pRealContext->IAGetPrimitiveTopology(pTopology);
   if(pTopology)
     RDCASSERT(*pTopology == m_CurrentPipelineState->IA.Topo);
@@ -357,6 +365,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetPrimitiveTopology(SerialiserType
 
 void WrappedID3D11DeviceContext::IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -400,6 +410,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetInputLayout(SerialiserType &ser,
 
 void WrappedID3D11DeviceContext::IASetInputLayout(ID3D11InputLayout *pInputLayout)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -465,6 +477,8 @@ void WrappedID3D11DeviceContext::IASetVertexBuffers(UINT StartSlot, UINT NumBuff
                                                     ID3D11Buffer *const *ppVertexBuffers,
                                                     const UINT *pStrides, const UINT *pOffsets)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -528,6 +542,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetIndexBuffer(SerialiserType &ser,
 void WrappedID3D11DeviceContext::IASetIndexBuffer(ID3D11Buffer *pIndexBuffer, DXGI_FORMAT Format,
                                                   UINT Offset)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -563,6 +579,8 @@ void WrappedID3D11DeviceContext::VSGetConstantBuffers(UINT StartSlot, UINT NumBu
 {
   if(ppConstantBuffers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->VSGetConstantBuffers(StartSlot, NumBuffers, real);
 
@@ -582,6 +600,8 @@ void WrappedID3D11DeviceContext::VSGetShaderResources(UINT StartSlot, UINT NumVi
 {
   if(ppShaderResourceViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->VSGetShaderResources(StartSlot, NumViews, real);
 
@@ -602,6 +622,8 @@ void WrappedID3D11DeviceContext::VSGetSamplers(UINT StartSlot, UINT NumSamplers,
 {
   if(ppSamplers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->VSGetSamplers(StartSlot, NumSamplers, real);
 
@@ -622,6 +644,8 @@ void WrappedID3D11DeviceContext::VSGetShader(ID3D11VertexShader **ppVertexShader
 {
   if(ppVertexShader == NULL && ppClassInstances == NULL && pNumClassInstances == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11ClassInstance *realInsts[D3D11_SHADER_MAX_INTERFACES] = {0};
   UINT numInsts = 0;
@@ -695,6 +719,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers(SerialiserType &
 void WrappedID3D11DeviceContext::VSSetConstantBuffers(UINT StartSlot, UINT NumBuffers,
                                                       ID3D11Buffer *const *ppConstantBuffers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -763,6 +789,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShaderResources(
 void WrappedID3D11DeviceContext::VSSetShaderResources(
     UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -830,6 +858,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetSamplers(SerialiserType &ser, UI
 void WrappedID3D11DeviceContext::VSSetSamplers(UINT StartSlot, UINT NumSamplers,
                                                ID3D11SamplerState *const *ppSamplers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -900,6 +930,8 @@ void WrappedID3D11DeviceContext::VSSetShader(ID3D11VertexShader *pVertexShader,
                                              ID3D11ClassInstance *const *ppClassInstances,
                                              UINT NumClassInstances)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -942,6 +974,8 @@ void WrappedID3D11DeviceContext::HSGetConstantBuffers(UINT StartSlot, UINT NumBu
 {
   if(ppConstantBuffers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->HSGetConstantBuffers(StartSlot, NumBuffers, real);
 
@@ -961,6 +995,8 @@ void WrappedID3D11DeviceContext::HSGetShaderResources(UINT StartSlot, UINT NumVi
 {
   if(ppShaderResourceViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->HSGetShaderResources(StartSlot, NumViews, real);
 
@@ -981,6 +1017,8 @@ void WrappedID3D11DeviceContext::HSGetSamplers(UINT StartSlot, UINT NumSamplers,
 {
   if(ppSamplers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->HSGetSamplers(StartSlot, NumSamplers, real);
 
@@ -1001,6 +1039,8 @@ void WrappedID3D11DeviceContext::HSGetShader(ID3D11HullShader **ppHullShader,
 {
   if(ppHullShader == NULL && ppClassInstances == NULL && pNumClassInstances == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11ClassInstance *realInsts[D3D11_SHADER_MAX_INTERFACES] = {0};
   UINT numInsts = 0;
@@ -1074,6 +1114,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers(SerialiserType &
 void WrappedID3D11DeviceContext::HSSetConstantBuffers(UINT StartSlot, UINT NumBuffers,
                                                       ID3D11Buffer *const *ppConstantBuffers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1142,6 +1184,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShaderResources(
 void WrappedID3D11DeviceContext::HSSetShaderResources(
     UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1209,6 +1253,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetSamplers(SerialiserType &ser, UI
 void WrappedID3D11DeviceContext::HSSetSamplers(UINT StartSlot, UINT NumSamplers,
                                                ID3D11SamplerState *const *ppSamplers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1278,6 +1324,8 @@ void WrappedID3D11DeviceContext::HSSetShader(ID3D11HullShader *pHullShader,
                                              ID3D11ClassInstance *const *ppClassInstances,
                                              UINT NumClassInstances)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1320,6 +1368,8 @@ void WrappedID3D11DeviceContext::DSGetConstantBuffers(UINT StartSlot, UINT NumBu
 {
   if(ppConstantBuffers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->DSGetConstantBuffers(StartSlot, NumBuffers, real);
 
@@ -1339,6 +1389,8 @@ void WrappedID3D11DeviceContext::DSGetShaderResources(UINT StartSlot, UINT NumVi
 {
   if(ppShaderResourceViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->DSGetShaderResources(StartSlot, NumViews, real);
 
@@ -1359,6 +1411,8 @@ void WrappedID3D11DeviceContext::DSGetSamplers(UINT StartSlot, UINT NumSamplers,
 {
   if(ppSamplers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->DSGetSamplers(StartSlot, NumSamplers, real);
 
@@ -1379,6 +1433,8 @@ void WrappedID3D11DeviceContext::DSGetShader(ID3D11DomainShader **ppDomainShader
 {
   if(ppDomainShader == NULL && ppClassInstances == NULL && pNumClassInstances == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11ClassInstance *realInsts[D3D11_SHADER_MAX_INTERFACES] = {0};
   UINT numInsts = 0;
@@ -1452,6 +1508,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers(SerialiserType &
 void WrappedID3D11DeviceContext::DSSetConstantBuffers(UINT StartSlot, UINT NumBuffers,
                                                       ID3D11Buffer *const *ppConstantBuffers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1520,6 +1578,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShaderResources(
 void WrappedID3D11DeviceContext::DSSetShaderResources(
     UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1587,6 +1647,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetSamplers(SerialiserType &ser, UI
 void WrappedID3D11DeviceContext::DSSetSamplers(UINT StartSlot, UINT NumSamplers,
                                                ID3D11SamplerState *const *ppSamplers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1657,6 +1719,8 @@ void WrappedID3D11DeviceContext::DSSetShader(ID3D11DomainShader *pDomainShader,
                                              ID3D11ClassInstance *const *ppClassInstances,
                                              UINT NumClassInstances)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1699,6 +1763,8 @@ void WrappedID3D11DeviceContext::GSGetConstantBuffers(UINT StartSlot, UINT NumBu
 {
   if(ppConstantBuffers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->GSGetConstantBuffers(StartSlot, NumBuffers, real);
 
@@ -1718,6 +1784,8 @@ void WrappedID3D11DeviceContext::GSGetShaderResources(UINT StartSlot, UINT NumVi
 {
   if(ppShaderResourceViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->GSGetShaderResources(StartSlot, NumViews, real);
 
@@ -1738,6 +1806,8 @@ void WrappedID3D11DeviceContext::GSGetSamplers(UINT StartSlot, UINT NumSamplers,
 {
   if(ppSamplers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->GSGetSamplers(StartSlot, NumSamplers, real);
 
@@ -1758,6 +1828,8 @@ void WrappedID3D11DeviceContext::GSGetShader(ID3D11GeometryShader **ppGeometrySh
 {
   if(ppGeometryShader == NULL && ppClassInstances == NULL && pNumClassInstances == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11ClassInstance *realInsts[D3D11_SHADER_MAX_INTERFACES] = {0};
   UINT numInsts = 0;
@@ -1832,6 +1904,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers(SerialiserType &
 void WrappedID3D11DeviceContext::GSSetConstantBuffers(UINT StartSlot, UINT NumBuffers,
                                                       ID3D11Buffer *const *ppConstantBuffers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1900,6 +1974,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShaderResources(
 void WrappedID3D11DeviceContext::GSSetShaderResources(
     UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1967,6 +2043,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetSamplers(SerialiserType &ser, UI
 void WrappedID3D11DeviceContext::GSSetSamplers(UINT StartSlot, UINT NumSamplers,
                                                ID3D11SamplerState *const *ppSamplers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2037,6 +2115,8 @@ void WrappedID3D11DeviceContext::GSSetShader(ID3D11GeometryShader *pShader,
                                              ID3D11ClassInstance *const *ppClassInstances,
                                              UINT NumClassInstances)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2078,6 +2158,8 @@ void WrappedID3D11DeviceContext::SOGetTargets(UINT NumBuffers, ID3D11Buffer **pp
 {
   if(ppSOTargets)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_SO_BUFFER_SLOT_COUNT] = {0};
     m_pRealContext->SOGetTargets(NumBuffers, real);
 
@@ -2177,6 +2259,8 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
 void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *const *ppSOTargets,
                                               const UINT *pOffsets)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2283,6 +2367,8 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 
 void WrappedID3D11DeviceContext::RSGetViewports(UINT *pNumViewports, D3D11_VIEWPORT *pViewports)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_pRealContext->RSGetViewports(pNumViewports, pViewports);
 
   if(pViewports)
@@ -2292,6 +2378,8 @@ void WrappedID3D11DeviceContext::RSGetViewports(UINT *pNumViewports, D3D11_VIEWP
 
 void WrappedID3D11DeviceContext::RSGetScissorRects(UINT *pNumRects, D3D11_RECT *pRects)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_pRealContext->RSGetScissorRects(pNumRects, pRects);
 
   if(pRects)
@@ -2303,6 +2391,8 @@ void WrappedID3D11DeviceContext::RSGetState(ID3D11RasterizerState **ppRasterizer
 {
   if(ppRasterizerState)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11RasterizerState *real = NULL;
     m_pRealContext->RSGetState(&real);
 
@@ -2347,6 +2437,8 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetViewports(SerialiserType &ser, U
 
 void WrappedID3D11DeviceContext::RSSetViewports(UINT NumViewports, const D3D11_VIEWPORT *pViewports)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2393,6 +2485,8 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetScissorRects(SerialiserType &ser
 
 void WrappedID3D11DeviceContext::RSSetScissorRects(UINT NumRects, const D3D11_RECT *pRects)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2437,6 +2531,8 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(SerialiserType &ser,
 
 void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerState)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2470,6 +2566,8 @@ void WrappedID3D11DeviceContext::PSGetConstantBuffers(UINT StartSlot, UINT NumBu
 {
   if(ppConstantBuffers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->PSGetConstantBuffers(StartSlot, NumBuffers, real);
 
@@ -2489,6 +2587,8 @@ void WrappedID3D11DeviceContext::PSGetShaderResources(UINT StartSlot, UINT NumVi
 {
   if(ppShaderResourceViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->PSGetShaderResources(StartSlot, NumViews, real);
 
@@ -2509,6 +2609,8 @@ void WrappedID3D11DeviceContext::PSGetSamplers(UINT StartSlot, UINT NumSamplers,
 {
   if(ppSamplers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->PSGetSamplers(StartSlot, NumSamplers, real);
 
@@ -2529,6 +2631,8 @@ void WrappedID3D11DeviceContext::PSGetShader(ID3D11PixelShader **ppPixelShader,
 {
   if(ppPixelShader == NULL && ppClassInstances == NULL && pNumClassInstances == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11ClassInstance *realInsts[D3D11_SHADER_MAX_INTERFACES] = {0};
   UINT numInsts = 0;
@@ -2602,6 +2706,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers(SerialiserType &
 void WrappedID3D11DeviceContext::PSSetConstantBuffers(UINT StartSlot, UINT NumBuffers,
                                                       ID3D11Buffer *const *ppConstantBuffers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2670,6 +2776,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShaderResources(
 void WrappedID3D11DeviceContext::PSSetShaderResources(
     UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2737,6 +2845,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetSamplers(SerialiserType &ser, UI
 void WrappedID3D11DeviceContext::PSSetSamplers(UINT StartSlot, UINT NumSamplers,
                                                ID3D11SamplerState *const *ppSamplers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2807,6 +2917,8 @@ void WrappedID3D11DeviceContext::PSSetShader(ID3D11PixelShader *pPixelShader,
                                              ID3D11ClassInstance *const *ppClassInstances,
                                              UINT NumClassInstances)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -2851,6 +2963,8 @@ void WrappedID3D11DeviceContext::OMGetRenderTargets(UINT NumViews,
   if(ppRenderTargetViews == NULL && ppDepthStencilView == NULL)
     return;
 
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11RenderTargetView *rtv[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
   ID3D11DepthStencilView *dsv = NULL;
   m_pRealContext->OMGetRenderTargets(NumViews, rtv, &dsv);
@@ -2888,6 +3002,8 @@ void WrappedID3D11DeviceContext::OMGetRenderTargetsAndUnorderedAccessViews(
 {
   if(ppRenderTargetViews == NULL && ppDepthStencilView == NULL && ppUnorderedAccessViews == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11RenderTargetView *rtv[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
   ID3D11UnorderedAccessView *uav[D3D11_1_UAV_SLOT_COUNT] = {0};
@@ -2939,6 +3055,8 @@ void WrappedID3D11DeviceContext::OMGetRenderTargetsAndUnorderedAccessViews(
 void WrappedID3D11DeviceContext::OMGetBlendState(ID3D11BlendState **ppBlendState,
                                                  FLOAT BlendFactor[4], UINT *pSampleMask)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11BlendState *real = NULL;
   m_pRealContext->OMGetBlendState(&real, BlendFactor, pSampleMask);
 
@@ -2968,6 +3086,8 @@ void WrappedID3D11DeviceContext::OMGetBlendState(ID3D11BlendState **ppBlendState
 void WrappedID3D11DeviceContext::OMGetDepthStencilState(ID3D11DepthStencilState **ppDepthStencilState,
                                                         UINT *pStencilRef)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11DepthStencilState *real = NULL;
   m_pRealContext->OMGetDepthStencilState(&real, pStencilRef);
 
@@ -3041,6 +3161,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
                                                     ID3D11RenderTargetView *const *ppRenderTargetViews,
                                                     ID3D11DepthStencilView *pDepthStencilView)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -3332,6 +3454,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
     ID3D11DepthStencilView *pDepthStencilView, UINT UAVStartSlot, UINT NumUAVs,
     ID3D11UnorderedAccessView *const *ppUnorderedAccessViews, const UINT *pUAVInitialCounts)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -3551,6 +3675,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(SerialiserType &ser,
 void WrappedID3D11DeviceContext::OMSetBlendState(ID3D11BlendState *pBlendState,
                                                  const FLOAT BlendFactor[4], UINT SampleMask)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -3610,6 +3736,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetDepthStencilState(
 void WrappedID3D11DeviceContext::OMSetDepthStencilState(ID3D11DepthStencilState *pDepthStencilState,
                                                         UINT StencilRef)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -3717,6 +3845,8 @@ void WrappedID3D11DeviceContext::DrawIndexedInstanced(UINT IndexCountPerInstance
                                                       UINT StartIndexLocation, INT BaseVertexLocation,
                                                       UINT StartInstanceLocation)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -3787,6 +3917,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(SerialiserType &ser,
 void WrappedID3D11DeviceContext::DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount,
                                                UINT StartVertexLocation, UINT StartInstanceLocation)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -3852,6 +3984,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(SerialiserType &ser, UINT
 void WrappedID3D11DeviceContext::DrawIndexed(UINT IndexCount, UINT StartIndexLocation,
                                              INT BaseVertexLocation)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -3911,6 +4045,8 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(SerialiserType &ser, UINT Vertex
 
 void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -4022,6 +4158,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
 
 void WrappedID3D11DeviceContext::DrawAuto()
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -4147,6 +4285,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
 void WrappedID3D11DeviceContext::DrawIndexedInstancedIndirect(ID3D11Buffer *pBufferForArgs,
                                                               UINT AlignedByteOffsetForArgs)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -4273,6 +4413,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
 void WrappedID3D11DeviceContext::DrawInstancedIndirect(ID3D11Buffer *pBufferForArgs,
                                                        UINT AlignedByteOffsetForArgs)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -4308,6 +4450,8 @@ void WrappedID3D11DeviceContext::CSGetConstantBuffers(UINT StartSlot, UINT NumBu
 {
   if(ppConstantBuffers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->CSGetConstantBuffers(StartSlot, NumBuffers, real);
 
@@ -4327,6 +4471,8 @@ void WrappedID3D11DeviceContext::CSGetShaderResources(UINT StartSlot, UINT NumVi
 {
   if(ppShaderResourceViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->CSGetShaderResources(StartSlot, NumViews, real);
 
@@ -4347,6 +4493,8 @@ void WrappedID3D11DeviceContext::CSGetUnorderedAccessViews(
 {
   if(ppUnorderedAccessViews)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11UnorderedAccessView *real[D3D11_1_UAV_SLOT_COUNT] = {0};
     m_pRealContext->CSGetUnorderedAccessViews(StartSlot, NumUAVs, real);
 
@@ -4367,6 +4515,8 @@ void WrappedID3D11DeviceContext::CSGetSamplers(UINT StartSlot, UINT NumSamplers,
 {
   if(ppSamplers)
   {
+    SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->CSGetSamplers(StartSlot, NumSamplers, real);
 
@@ -4387,6 +4537,8 @@ void WrappedID3D11DeviceContext::CSGetShader(ID3D11ComputeShader **ppComputeShad
 {
   if(ppComputeShader == NULL && ppClassInstances == NULL && pNumClassInstances == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3D11ClassInstance *realInsts[D3D11_SHADER_MAX_INTERFACES] = {0};
   UINT numInsts = 0;
@@ -4460,6 +4612,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers(SerialiserType &
 void WrappedID3D11DeviceContext::CSSetConstantBuffers(UINT StartSlot, UINT NumBuffers,
                                                       ID3D11Buffer *const *ppConstantBuffers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -4528,6 +4682,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(
 void WrappedID3D11DeviceContext::CSSetShaderResources(
     UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -4598,6 +4754,8 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(
     UINT StartSlot, UINT NumUAVs, ID3D11UnorderedAccessView *const *ppUnorderedAccessViews,
     const UINT *pUAVInitialCounts)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -4675,6 +4833,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetSamplers(SerialiserType &ser, UI
 void WrappedID3D11DeviceContext::CSSetSamplers(UINT StartSlot, UINT NumSamplers,
                                                ID3D11SamplerState *const *ppSamplers)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -4745,6 +4905,8 @@ void WrappedID3D11DeviceContext::CSSetShader(ID3D11ComputeShader *pComputeShader
                                              ID3D11ClassInstance *const *ppClassInstances,
                                              UINT NumClassInstances)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -4839,6 +5001,8 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(SerialiserType &ser, UINT Th
 void WrappedID3D11DeviceContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY,
                                           UINT ThreadGroupCountZ)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -4958,6 +5122,8 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
 void WrappedID3D11DeviceContext::DispatchIndirect(ID3D11Buffer *pBufferForArgs,
                                                   UINT AlignedByteOffsetForArgs)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   MarkAPIActive();
@@ -5067,6 +5233,8 @@ bool WrappedID3D11DeviceContext::Serialise_PostExecuteCommandList(SerialiserType
 void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandList,
                                                     BOOL RestoreContextState)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -5207,6 +5375,8 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
                                "The call has been dropped from the capture.");
     return DXGI_ERROR_INVALID_CALL;
   }
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   DrainAnnotationQueue();
 
@@ -5364,6 +5534,8 @@ bool WrappedID3D11DeviceContext::Serialise_Flush(SerialiserType &ser)
 
 void WrappedID3D11DeviceContext::Flush()
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->Flush());
@@ -5456,6 +5628,8 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion(ID3D11Resource *pDstResou
                                                        UINT DstZ, ID3D11Resource *pSrcResource,
                                                        UINT SrcSubresource, const D3D11_BOX *pSrcBox)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -5599,6 +5773,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
 void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
                                               ID3D11Resource *pSrcResource)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -5711,6 +5887,8 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
                                                    const D3D11_BOX *pDstBox, const void *pSrcData,
                                                    UINT SrcRowPitch, UINT SrcDepthPitch)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -6037,6 +6215,8 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
                                                     UINT DstAlignedByteOffset,
                                                     ID3D11UnorderedAccessView *pSrcView)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -6148,6 +6328,8 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
                                                     UINT DstSubresource, ID3D11Resource *pSrcResource,
                                                     UINT SrcSubresource, DXGI_FORMAT Format)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -6223,6 +6405,8 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(SerialiserType &ser,
 
 void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderResourceView)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -6276,6 +6460,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearState(SerialiserType &ser)
 
 void WrappedID3D11DeviceContext::ClearState()
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->ClearState());
@@ -6347,6 +6533,8 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
 
   if(pRenderTargetView == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   m_EmptyCommandList = false;
 
@@ -6426,6 +6614,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
 void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
     ID3D11UnorderedAccessView *pUnorderedAccessView, const UINT Values[4])
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->ClearUnorderedAccessViewUint(
@@ -6504,6 +6694,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
 void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
     ID3D11UnorderedAccessView *pUnorderedAccessView, const FLOAT Values[4])
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->ClearUnorderedAccessViewFloat(
@@ -6595,6 +6787,8 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
   if(pDepthStencilView == NULL)
     return;
 
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->ClearDepthStencilView(
@@ -6656,6 +6850,8 @@ bool WrappedID3D11DeviceContext::Serialise_Begin(SerialiserType &ser, ID3D11Asyn
 
 void WrappedID3D11DeviceContext::Begin(ID3D11Asynchronous *pAsync)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11Asynchronous *unwrapped = NULL;
   ResourceId id;
 
@@ -6722,6 +6918,8 @@ bool WrappedID3D11DeviceContext::Serialise_End(SerialiserType &ser, ID3D11Asynch
 
 void WrappedID3D11DeviceContext::End(ID3D11Asynchronous *pAsync)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11Asynchronous *unwrapped = NULL;
   ResourceId id;
 
@@ -6763,6 +6961,8 @@ void WrappedID3D11DeviceContext::End(ID3D11Asynchronous *pAsync)
 HRESULT WrappedID3D11DeviceContext::GetData(ID3D11Asynchronous *pAsync, void *pData, UINT DataSize,
                                             UINT GetDataFlags)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   ID3D11Asynchronous *unwrapped = NULL;
 
   if(WrappedID3D11Query1::IsAlloc(pAsync))
@@ -6806,6 +7006,8 @@ bool WrappedID3D11DeviceContext::Serialise_SetPredication(SerialiserType &ser,
 
 void WrappedID3D11DeviceContext::SetPredication(ID3D11Predicate *pPredicate, BOOL PredicateValue)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->Predicate, pPredicate);
@@ -6861,6 +7063,8 @@ bool WrappedID3D11DeviceContext::Serialise_SetResourceMinLOD(SerialiserType &ser
 
 void WrappedID3D11DeviceContext::SetResourceMinLOD(ID3D11Resource *pResource, FLOAT MinLOD)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   m_EmptyCommandList = false;
 
   SERIALISE_TIME_CALL(m_pRealContext->SetResourceMinLOD(
@@ -7343,6 +7547,8 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
                                         D3D11_MAP MapType, UINT MapFlags,
                                         D3D11_MAPPED_SUBRESOURCE *pMappedResource)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -7696,6 +7902,8 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
 
 void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresource)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;

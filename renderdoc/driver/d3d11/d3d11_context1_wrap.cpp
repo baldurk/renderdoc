@@ -360,6 +360,8 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
   if(m_pRealContext1 == NULL)
     return;
 
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -443,6 +445,8 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstReso
 {
   if(m_pRealContext1 == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   DrainAnnotationQueue();
 
@@ -552,6 +556,8 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
 {
   if(m_pRealContext1 == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   DrainAnnotationQueue();
 
@@ -667,6 +673,8 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        const UINT *pFirstConstant,
                                                        const UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -796,6 +804,8 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        const UINT *pFirstConstant,
                                                        const UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -925,6 +935,8 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        const UINT *pFirstConstant,
                                                        const UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1054,6 +1066,8 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        const UINT *pFirstConstant,
                                                        const UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1183,6 +1197,8 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        const UINT *pFirstConstant,
                                                        const UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1312,6 +1328,8 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        const UINT *pFirstConstant,
                                                        const UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
@@ -1384,6 +1402,8 @@ void WrappedID3D11DeviceContext::VSGetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        ID3D11Buffer **ppConstantBuffers,
                                                        UINT *pFirstConstant, UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   if(m_pRealContext1 == NULL || !m_SetCBuffer1)
   {
     VSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
@@ -1425,6 +1445,8 @@ void WrappedID3D11DeviceContext::HSGetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        ID3D11Buffer **ppConstantBuffers,
                                                        UINT *pFirstConstant, UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   if(m_pRealContext1 == NULL || !m_SetCBuffer1)
   {
     HSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
@@ -1466,6 +1488,8 @@ void WrappedID3D11DeviceContext::DSGetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        ID3D11Buffer **ppConstantBuffers,
                                                        UINT *pFirstConstant, UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   if(m_pRealContext1 == NULL || !m_SetCBuffer1)
   {
     DSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
@@ -1507,6 +1531,8 @@ void WrappedID3D11DeviceContext::GSGetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        ID3D11Buffer **ppConstantBuffers,
                                                        UINT *pFirstConstant, UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   if(m_pRealContext1 == NULL || !m_SetCBuffer1)
   {
     GSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
@@ -1548,6 +1574,8 @@ void WrappedID3D11DeviceContext::PSGetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        ID3D11Buffer **ppConstantBuffers,
                                                        UINT *pFirstConstant, UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   if(m_pRealContext1 == NULL || !m_SetCBuffer1)
   {
     PSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
@@ -1589,6 +1617,8 @@ void WrappedID3D11DeviceContext::CSGetConstantBuffers1(UINT StartSlot, UINT NumB
                                                        ID3D11Buffer **ppConstantBuffers,
                                                        UINT *pFirstConstant, UINT *pNumConstants)
 {
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   if(m_pRealContext1 == NULL || !m_SetCBuffer1)
   {
     CSGetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
@@ -1675,6 +1705,8 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
 {
   if(m_pRealContext1 == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   DrainAnnotationQueue();
 
@@ -1798,6 +1830,8 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
 {
   if(m_pRealContext1 == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   DrainAnnotationQueue();
 
@@ -1936,6 +1970,8 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
   if(m_pRealContext1 == NULL)
     return;
 
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
+
   DrainAnnotationQueue();
 
   if(pResourceView == NULL)
@@ -2027,6 +2063,8 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
 {
   if(m_pRealContext1 == NULL)
     return;
+
+  SCOPED_LOCK_OPTIONAL(m_pDevice->D3DLock(), m_pDevice->D3DThreadSafe());
 
   ID3DDeviceContextState *prev = NULL;
 

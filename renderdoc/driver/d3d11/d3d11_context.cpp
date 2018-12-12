@@ -1402,8 +1402,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
   }
   else if(riid == __uuidof(ID3D11Multithread))
   {
-    RDCWARN("ID3D11Multithread is not supported");
-    return E_NOINTERFACE;
+    // forward to the device as the lock is shared amongst all things
+    return m_pDevice->QueryInterface(riid, ppvObject);
   }
   else if(riid == __uuidof(ID3DUserDefinedAnnotation))
   {
