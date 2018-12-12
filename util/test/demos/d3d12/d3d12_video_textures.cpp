@@ -338,7 +338,7 @@ float4 main(v2f IN) : SV_Target0
 
             for(UINT row = 0; row < numrows[i]; row++)
             {
-              memcpy(dstptr, srcptr, rowsizes[i]);
+              memcpy(dstptr, srcptr, (size_t)rowsizes[i]);
               srcptr += rowsizes[i];
               dstptr += layouts[i].Footprint.RowPitch;
             }

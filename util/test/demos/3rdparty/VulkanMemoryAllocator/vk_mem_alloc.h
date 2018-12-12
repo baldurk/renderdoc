@@ -10521,8 +10521,8 @@ void VmaRecorder::RecordCreatePool(uint32_t frameIndex, const VmaPoolCreateInfo&
         createInfo.memoryTypeIndex,
         createInfo.flags,
         createInfo.blockSize,
-        createInfo.minBlockCount,
-        createInfo.maxBlockCount,
+        (uint64_t)createInfo.minBlockCount,
+        (uint64_t)createInfo.maxBlockCount,
         createInfo.frameInUseCount,
         pool);
     Flush();

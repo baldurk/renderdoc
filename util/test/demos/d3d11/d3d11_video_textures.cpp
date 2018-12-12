@@ -187,9 +187,9 @@ float4 main(v2f IN) : SV_Target0
   bool video_loaded = false;
 
   // implement IUnknown
-  ULONG AddRef() { return 1; }
-  ULONG Release() { return 1; }
-  HRESULT QueryInterface(const IID &iid, void **obj)
+  ULONG STDMETHODCALLTYPE AddRef() { return 1; }
+  ULONG STDMETHODCALLTYPE Release() { return 1; }
+  HRESULT STDMETHODCALLTYPE QueryInterface(const IID &iid, void **obj)
   {
     if(iid == __uuidof(IUnknown))
     {
@@ -205,7 +205,7 @@ float4 main(v2f IN) : SV_Target0
     return E_NOINTERFACE;
   }
   // implement IMFMediaEngineNotify
-  HRESULT EventNotify(DWORD ev, DWORD_PTR param1, DWORD param2)
+  HRESULT STDMETHODCALLTYPE EventNotify(DWORD ev, DWORD_PTR param1, DWORD param2)
   {
     if(ev == MF_MEDIA_ENGINE_EVENT_CANPLAY)
       video_loaded = true;
