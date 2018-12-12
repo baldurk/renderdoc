@@ -380,7 +380,6 @@ struct SDObject
     for(size_t i = 0; i < data.children.size(); i++)
       if(data.children[i]->name == childName)
         return data.children[i];
-
     return NULL;
   }
 
@@ -389,10 +388,11 @@ struct SDObject
   {
     if(index < data.children.size())
       return data.children[index];
-
     return NULL;
   }
 
+  DOCUMENT("Get the number of child objects.");
+  inline size_t NumChildren() const { return data.children.size(); }
   DOCUMENT("Get a ``list`` of :class:`SDObject` children.");
   inline StructuredObjectList &GetChildren() { return data.children; }
 #if !defined(SWIG)
@@ -413,7 +413,7 @@ struct SDObject
   }
   inline double AsDouble() const { return data.basic.d; }
   inline float AsFloat() const { return (float)data.basic.d; }
-  inline float AsChar() const { return (float)data.basic.c; }
+  inline char AsChar() const { return data.basic.c; }
   inline std::string AsString() const { return data.str; }
   inline uint64_t AsUInt64() const { return (uint64_t)data.basic.u; }
   inline int64_t AsInt64() const { return (int64_t)data.basic.i; }
@@ -423,6 +423,72 @@ struct SDObject
   inline int16_t AsInt16() const { return (int16_t)data.basic.i; }
   inline uint8_t AsUInt8() const { return (uint8_t)data.basic.u; }
   inline int8_t AsInt8() const { return (int8_t)data.basic.i; }
+  inline double &Double() { return data.basic.d; }
+  inline uint64_t &UInt64() { return data.basic.u; }
+  inline int64_t &Int64() { return data.basic.i; }
+  inline bool IsStruct() const { return type.basetype == SDBasic::Struct; }
+  inline bool IsNULL() const
+  {
+    return type.basetype == SDBasic::Null || (IsArray() && NumChildren() == 0) ||
+           (IsString() && (type.flags & SDTypeFlags::NullString));
+  }
+  inline bool IsUInt() const { return type.basetype == SDBasic::UnsignedInteger; }
+  inline bool IsInt() const { return type.basetype == SDBasic::SignedInteger; }
+  inline bool IsFloat() const { return type.basetype == SDBasic::Float; }
+  inline bool IsString() const { return type.basetype == SDBasic::String; }
+  inline bool IsArray() const { return type.basetype == SDBasic::Array; }
+  inline bool IsFixedArray(uint64_t size = 0) const
+  {
+    return IsArray() && (type.flags & SDTypeFlags::FixedArray) &&
+           (size > 0 ? NumChildren() <= size : true);
+  }
+  inline bool IsVariableArray() const
+  {
+    return IsArray() && ((type.flags & SDTypeFlags::FixedArray) == SDTypeFlags::NoFlags);
+  }
+  inline bool IsEnum() const { return type.basetype == SDBasic::Enum; }
+  inline bool IsBuffer() const { return type.basetype == SDBasic::Buffer; }
+  inline bool IsPointer() const
+  {
+    return (type.flags & SDTypeFlags::Nullable) && (NumChildren() != 0);
+  }
+  inline bool IsResource() const { return type.basetype == SDBasic::Resource; }
+  inline bool IsUnion() const
+  {
+    return (type.basetype == SDBasic::Struct) && (type.flags & SDTypeFlags::Union);
+  }
+  inline bool IsSimpleType() const
+  {
+    return IsNULL() || (!IsStruct() && !IsArray() && !IsPointer() && !IsUnion());
+  }
+
+  // Is it possible to fully inline the data structure declaration?
+  inline bool IsInlineable() const
+  {
+    // if it has elements that are not inlineable, return false.
+    for(size_t i = 0; i < NumChildren(); i++)
+      if(!GetChild(i)->IsInlineable())
+        return false;
+    if((IsPointer() || IsVariableArray()) && !IsNULL())
+      return false;
+    if(IsUnion())
+      return false;
+    return true;
+  }
+  const char *Type() const { return type.name.c_str(); }
+  const char *Name() const { return name.c_str(); }
+  SDObject *SetTypeName(const char *customTypeName)
+  {
+    type.name = customTypeName;
+    return this;
+  }
+  SDObject *SetCustomString(const char *customString)
+  {
+    data.str = customString;
+    type.flags = SDTypeFlags::HasCustomString;
+    return this;
+  }
+
 #endif
 
   // these are common to both python and C++
@@ -676,10 +742,16 @@ inline SDObject *makeSDStruct(const char *name, const char *structtype)
 // concept of different width types like 32-bit vs 64-bit ints
 #if !defined(SWIG)
 
-#define SDOBJECT_MAKER(basetype, makeSDFunc)                      \
-  inline SDObject *makeSDObject(const char *name, basetype value) \
-  {                                                               \
-    return makeSDFunc(name, value);                               \
+#define SDOBJECT_MAKER(basetype, makeSDFunc)                                                       \
+  inline SDObject *makeSDObject(const char *name, basetype value, const char *customString = NULL, \
+                                const char *customTypeName = NULL)                                 \
+  {                                                                                                \
+    SDObject *ptr = makeSDFunc(name, value);                                                       \
+    if(customString)                                                                               \
+      ptr->SetCustomString(customString);                                                          \
+    if(customTypeName)                                                                             \
+      ptr->SetTypeName(customTypeName);                                                            \
+    return ptr;                                                                                    \
   }
 
 SDOBJECT_MAKER(int64_t, makeSDInt64);

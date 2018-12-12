@@ -51,7 +51,7 @@ std::string ToStr(const T &el)
 // helper macros for common enum switch
 #define BEGIN_ENUM_STRINGISE(type)                               \
   using enumType = type;                                         \
-  static const char unknown_prefix[] = #type "<";                \
+  static const char unknown_prefix[] = #type "(";                \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   (void)(enumType) el;                                           \
@@ -78,7 +78,7 @@ std::string ToStr(const T &el)
 // end enum switches
 #define END_ENUM_STRINGISE() \
   }                          \
-  return unknown_prefix + ToStr((uint32_t)el) + ">";
+  return unknown_prefix + ToStr((uint32_t)el) + ")";
 
 // helper macros for common bitfield check-and-append
 #define BEGIN_BITFIELD_STRINGISE(type)                           \
