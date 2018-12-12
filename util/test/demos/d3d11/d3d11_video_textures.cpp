@@ -800,12 +800,18 @@ float4 main(v2f IN) : SV_Target0
 
       if(engine && videoSurface)
       {
+        if(annot)
+          annot->BeginEvent(L"Video");
+
         DWORD videoWidth = 0, videoHeight = 0;
         CHECK_HR(engine->GetNativeVideoSize(&videoWidth, &videoHeight));
 
         LONGLONG timestamp = 0;
         if(engine->OnVideoStreamTick(&timestamp) == S_OK)
         {
+          if(annot)
+            annot->SetMarker(L"Video Surface Update");
+
           MFVideoNormalizedRect srcRect = {0.0f, 0.0f, 1.0f, 1.0f};
           RECT dstRect = {0, 0, (LONG)videoWidth, (LONG)videoHeight};
           MFARGB fillColor = {};
@@ -819,10 +825,16 @@ float4 main(v2f IN) : SV_Target0
             Vec4i(videoWidth, videoHeight, 2, 2), Vec4i(0, 4, 5, 1),
         };
 
+        if(annot)
+          annot->SetMarker(L"Video Surface Blit");
+
         ctx->UpdateSubresource(cb, 0, NULL, videoConfig, sizeof(videoConfig), sizeof(videoConfig));
 
         ctx->PSSetShaderResources(0, 2, (ID3D11ShaderResourceView **)videoSRVs);
         ctx->Draw(4, 0);
+
+        if(annot)
+          annot->EndEvent();
       }
 
       Present();
