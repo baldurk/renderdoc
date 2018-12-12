@@ -90,6 +90,7 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
   {
     // allocate new slot array
     DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
+    memset(newSlots, 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
 
     // copy over any previous bindings that overlapped
     if(i < prevLayout.bindings.size())
