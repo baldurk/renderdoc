@@ -120,6 +120,9 @@
     <ClCompile Include="d3d11_shader_cache.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_video.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">
@@ -178,6 +181,9 @@
     </ClInclude>
     <ClInclude Include="d3d11_shader_cache.h">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_video.h">
+      <Filter>Wrapped</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

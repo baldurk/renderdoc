@@ -99,6 +99,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_DummyDebug.m_pDevice = this;
   m_WrappedDebug.m_pDevice = this;
   m_WrappedMultithread.m_pDevice = this;
+  m_WrappedVideo.m_pDevice = this;
 
   m_FrameCounter = 0;
   m_FailedFrame = 0;
@@ -193,6 +194,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
     realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
     realDevice->QueryInterface(__uuidof(ID3D11Multithread), (void **)&m_WrappedMultithread.m_pReal);
+    realDevice->QueryInterface(__uuidof(ID3D11VideoDevice), (void **)&m_WrappedVideo.m_pReal);
+    realDevice->QueryInterface(__uuidof(ID3D11VideoDevice1), (void **)&m_WrappedVideo.m_pReal1);
+    realDevice->QueryInterface(__uuidof(ID3D11VideoDevice2), (void **)&m_WrappedVideo.m_pReal2);
   }
 
   // useful for marking regions during replay for self-captures
@@ -313,6 +317,9 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   SAFE_RELEASE(m_pInfoQueue);
   SAFE_RELEASE(m_WrappedMultithread.m_pReal);
+  SAFE_RELEASE(m_WrappedVideo.m_pReal);
+  SAFE_RELEASE(m_WrappedVideo.m_pReal1);
+  SAFE_RELEASE(m_WrappedVideo.m_pReal2);
   SAFE_RELEASE(m_WrappedDebug.m_pDebug);
   SAFE_RELEASE(m_pDevice);
 
@@ -726,33 +733,13 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     *ppvObject = (IUnknown *)this;
     return S_OK;
   }
-  else
+  else if(riid == __uuidof(ID3D11VideoDevice) || riid == __uuidof(ID3D11VideoDevice1) ||
+          riid == __uuidof(ID3D11VideoDevice2))
   {
-    WarnUnknownGUID("ID3D11Device", riid);
+    return m_WrappedVideo.QueryInterface(riid, ppvObject);
   }
 
-  // nvencode requires ID3D11VideoDevice, so when it's allowed then pass these interfaces through.
-  if(!RenderDoc::Inst().IsVendorExtensionEnabled(VendorExtensions::NvAPI))
-  {
-    if(riid == __uuidof(ID3D11VideoDevice))
-    {
-      RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
-      *ppvObject = NULL;
-      return E_NOINTERFACE;
-    }
-    else if(riid == __uuidof(ID3D11VideoDevice1))
-    {
-      RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
-      *ppvObject = NULL;
-      return E_NOINTERFACE;
-    }
-    else if(riid == __uuidof(ID3D11VideoDevice2))
-    {
-      RDCWARN("Trying to get ID3D11VideoDevice - not supported.");
-      *ppvObject = NULL;
-      return E_NOINTERFACE;
-    }
-  }
+  WarnUnknownGUID("ID3D11Device", riid);
 
   return m_RefCounter.QueryInterface(riid, ppvObject);
 }

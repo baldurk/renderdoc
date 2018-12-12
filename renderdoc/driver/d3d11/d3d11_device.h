@@ -35,6 +35,7 @@
 #include "d3d11_common.h"
 #include "d3d11_manager.h"
 #include "d3d11_replay.h"
+#include "d3d11_video.h"
 
 class D3D11TextRenderer;
 class D3D11ShaderCache;
@@ -298,6 +299,7 @@ private:
   DummyID3D11InfoQueue m_DummyInfoQueue;
   DummyID3D11Debug m_DummyDebug;
   WrappedID3D11Debug m_WrappedDebug;
+  WrappedID3D11VideoDevice2 m_WrappedVideo;
 
   ID3DUserDefinedAnnotation *m_RealAnnotations;
   int m_ReplayEventCount;

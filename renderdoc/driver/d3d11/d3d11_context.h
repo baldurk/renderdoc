@@ -31,6 +31,7 @@
 #include "core/core.h"
 #include "d3d11_common.h"
 #include "d3d11_manager.h"
+#include "d3d11_video.h"
 
 using std::map;
 using std::list;
@@ -146,6 +147,8 @@ private:
   ID3D11DeviceContext2 *m_pRealContext2;
   ID3D11DeviceContext3 *m_pRealContext3;
   ID3D11DeviceContext4 *m_pRealContext4;
+
+  WrappedID3D11VideoContext2 m_WrappedVideo;
 
   bool m_NeedUpdateSubWorkaround;
 
