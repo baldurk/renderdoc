@@ -8,7 +8,9 @@ LLVM_ARM32=$(readlink -f $(dirname $0)/support/llvm_arm32)
 LLVM_ARM64=$(readlink -f $(dirname $0)/support/llvm_arm64)
 
 native_path() {
-	if which cygpath >/dev/null 2>&1; then
+	if echo "${1}" | grep -q :; then
+		echo "${1}";
+	elif which cygpath >/dev/null 2>&1; then
 		cygpath -w "${1}";
 	elif which wslpath >/dev/null 2>&1; then
 		wslpath -w "${1}";
