@@ -350,7 +350,7 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
       SubresourceContents = NULL;
 
       // calculate tightly packed pitches
-      descs[i].SysMemPitch = GetByteSize(w, 1, 1, fmt, mip);
+      descs[i].SysMemPitch = GetRowPitch(w, fmt, mip);
       descs[i].SysMemSlicePitch = GetByteSize(w, h, 1, fmt, mip);
     }
   }

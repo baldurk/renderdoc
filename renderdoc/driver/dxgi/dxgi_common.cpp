@@ -311,6 +311,99 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
   return ret;
 }
 
+UINT GetRowPitch(int Width, DXGI_FORMAT Format, int mip)
+{
+  // only YUV formats can have different rowpitch to their actual width
+  if(!IsYUVFormat(Format))
+    return GetByteSize(Width, 1, 1, Format, mip);
+
+  UINT ret = RDCMAX(Width >> mip, 1);
+
+  switch(Format)
+  {
+    case DXGI_FORMAT_AYUV:
+      // 4:4:4 lossless packed, 8-bit. Equivalent size to R8G8B8A8
+      ret *= 4;
+      break;
+    case DXGI_FORMAT_Y410:
+      // 4:4:4 lossless packed. Equivalent size to R10G10B10A2, unlike most 10-bit/16-bit formats is
+      // not equivalent to the 16-bit format.
+      ret *= 4;
+      break;
+    case DXGI_FORMAT_Y416:
+      // 4:4:4 lossless packed. Equivalent size to R16G16B16A16
+      ret *= 8;
+      break;
+    case DXGI_FORMAT_NV12:
+      // 4:2:0 planar. Since we can assume even width and height, resulting row pitch is 1 byte per
+      // pixel - 1 byte luma each, and half subsampled chroma U/V in 1 byte total per pixel.
+      break;
+    case DXGI_FORMAT_P010:
+    // 10-bit formats are stored identically to 16-bit formats
+    // deliberate fallthrough
+    case DXGI_FORMAT_P016:
+      // Similar to NV12 but 16-bit elements
+      ret *= 2;
+      break;
+    case DXGI_FORMAT_420_OPAQUE:
+      // same size as NV12 - planar 4:2:0 but opaque layout
+      break;
+    case DXGI_FORMAT_YUY2:
+      // 4:2:2 packed 8-bit, so 1 byte per pixel for luma and 1 byte per pixel for chroma (2 chroma
+      // samples, with 50% subsampling = 1 byte per pixel)
+      ret *= 2;
+      break;
+    case DXGI_FORMAT_Y210:
+    // 10-bit formats are stored identically to 16-bit formats
+    // deliberate fallthrough
+    case DXGI_FORMAT_Y216:
+      // 4:2:2 packed 16-bit
+      ret *= 4;
+      break;
+    case DXGI_FORMAT_NV11:
+      // similar to NV12 - planar 4:1:1 4 horizontal downsampling but no vertical downsampling. For
+      // row pitch calculation amounts to the same result.
+      ret = ret;
+      break;
+    case DXGI_FORMAT_AI44:
+    // special format, 1 byte per pixel, palletised values in 4 most significant bits, alpha in 4
+    // least significant bits.
+    // deliberate fallthrough
+    case DXGI_FORMAT_IA44:
+      // same as above but swapped MSB/LSB
+      break;
+    case DXGI_FORMAT_P8:
+      // 8 bits of palletised data
+      break;
+    case DXGI_FORMAT_A8P8:
+      // 8 bits palletised data, 8 bits alpha data. Seems to be packed (no indication in docs of
+      // planar)
+      ret *= 2;
+      break;
+    case DXGI_FORMAT_P208:
+      // 4:2:2 planar 8-bit. 1 byte per pixel of luma, then separately 1 byte per pixel of chroma.
+      // Identical pitch to 4:2:0, just more rows in second plane
+      break;
+    case DXGI_FORMAT_V208:
+      // unclear, seems to be packed 4:4:0 8-bit. Thus 1 byte per pixel for luma, 2 chroma samples
+      // every 2 rows = 1 byte per pixel for chroma
+      ret *= 2;
+      break;
+    case DXGI_FORMAT_V408:
+      // unclear, seems to be packed 4:4:4 8-bit
+      ret *= 4;
+      break;
+
+    case DXGI_FORMAT_UNKNOWN:
+      RDCERR("Getting row pitch of unknown DXGI format");
+      ret = 0;
+      break;
+    default: RDCERR("Unrecognised DXGI Format: %d", Format); break;
+  }
+
+  return ret;
+}
+
 bool IsBlockFormat(DXGI_FORMAT f)
 {
   switch(f)

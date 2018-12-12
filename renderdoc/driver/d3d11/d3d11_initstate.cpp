@@ -301,7 +301,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
     {
       UINT mip = GetMipForSubresource(tex, sub);
 
-      const UINT RowPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+      const UINT RowPitch = GetRowPitch(desc.Width, desc.Format, mip);
 
       ret += RowPitch;
       ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
@@ -760,7 +760,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           // use the RowPitch provided when we mapped in the first place, since we read the whole
           // buffer including padding
           subData[sub].SysMemPitch = RowPitch;
-          subData[sub].SysMemSlicePitch = ContentsLength;
+          subData[sub].SysMemSlicePitch = RowPitch * numRows;
         }
       }
 

@@ -32,6 +32,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt);
 DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);
 
 UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip);
+UINT GetRowPitch(int Width, DXGI_FORMAT Format, int mip);
 
 DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f);

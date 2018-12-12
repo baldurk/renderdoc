@@ -303,7 +303,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
         subHeight = RDCMAX(1U, desc.Height >> mipLevel);
       }
 
-      UINT SourceRowPitch = GetByteSize(subWidth, 1, 1, fmt, 0);
+      UINT SourceRowPitch = GetRowPitch(subWidth, fmt, 0);
       UINT SourceDepthPitch = GetByteSize(subWidth, subHeight, 1, fmt, 0);
 
       if(IsReplayingAndReading() && m_CurEventID > 0)

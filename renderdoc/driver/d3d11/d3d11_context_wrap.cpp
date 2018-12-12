@@ -6079,8 +6079,8 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
 
           UINT boxTop = pDstBox ? pDstBox->top : 0;
 
-          UINT DstRowPitch = GetByteSize(subWidth, 1, 1, fmt, 0);
-          UINT DstBoxRowPitch = GetByteSize(boxWidth, 1, 1, fmt, 0);
+          UINT DstRowPitch = GetRowPitch(subWidth, fmt, 0);
+          UINT DstBoxRowPitch = GetRowPitch(boxWidth, fmt, 0);
           UINT DstSlicePitch = GetByteSize(subWidth, subHeight, 1, fmt, 0);
 
           // for block formats, rows are in blocks (so height is squished essentially)
@@ -7192,7 +7192,7 @@ void MapIntercept::Init(ID3D11Texture1D *tex, UINT sub, void *appMemory)
   if(IsYUVPlanarFormat(fmt))
     numRows = GetYUVNumRows(fmt, numRows);
 
-  app.RowPitch = GetByteSize(width, 1, 1, fmt, mip);
+  app.RowPitch = GetRowPitch(width, fmt, mip);
   app.DepthPitch = GetByteSize(width, height, 1, fmt, mip);
 
   if(d3d.DepthPitch == 0)
@@ -7227,7 +7227,7 @@ void MapIntercept::Init(ID3D11Texture2D *tex, UINT sub, void *appMemory)
   if(IsYUVPlanarFormat(fmt))
     numRows = GetYUVNumRows(fmt, numRows);
 
-  app.RowPitch = GetByteSize(width, 1, 1, fmt, mip);
+  app.RowPitch = GetRowPitch(width, fmt, mip);
   app.DepthPitch = GetByteSize(width, height, 1, fmt, mip);
 
   if(d3d.DepthPitch == 0)
@@ -7261,7 +7261,7 @@ void MapIntercept::Init(ID3D11Texture3D *tex, UINT sub, void *appMemory)
   if(IsYUVPlanarFormat(fmt))
     numRows = GetYUVNumRows(fmt, numRows);
 
-  app.RowPitch = GetByteSize(width, 1, 1, fmt, mip);
+  app.RowPitch = GetRowPitch(width, fmt, mip);
   app.DepthPitch = GetByteSize(width, height, 1, fmt, mip);
 }
 
