@@ -840,6 +840,8 @@ float4 main(v2f IN) : SV_Target0
       Present();
     }
 
+    engine = NULL;
+
     if(dyn_MFShutdown)
       dyn_MFShutdown();
 
