@@ -183,6 +183,7 @@
     <ClInclude Include="common\wrapped_pool.h" />
     <ClInclude Include="core\core.h" />
     <ClInclude Include="core\crash_handler.h" />
+    <ClInclude Include="core\intervals.h" />
     <ClInclude Include="core\plugins.h" />
     <ClInclude Include="core\precompiled.h" />
     <ClInclude Include="core\replay_proxy.h" />
@@ -213,6 +214,7 @@
     <ClInclude Include="os\win32\win32_specific.h" />
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />
+    <ClInclude Include="serialise\codecs\vk_cpp_codec_common.h" />
     <ClInclude Include="serialise\lz4io.h" />
     <ClInclude Include="serialise\rdcfile.h" />
     <ClInclude Include="serialise\serialiser.h" />
