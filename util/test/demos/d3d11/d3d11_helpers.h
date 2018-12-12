@@ -31,6 +31,7 @@
 #include "dx/official/d3d11.h"
 #include "dx/official/d3d11_1.h"
 #include "dx/official/d3d11_2.h"
+#include "dx/official/d3d11_4.h"
 
 #define COM_SMARTPTR(classname) _COM_SMARTPTR_TYPEDEF(classname, __uuidof(classname))
 
@@ -39,6 +40,7 @@ COM_SMARTPTR(IDXGISwapChain);
 COM_SMARTPTR(IDXGIFactory);
 COM_SMARTPTR(IDXGIDevice);
 COM_SMARTPTR(IDXGIAdapter);
+COM_SMARTPTR(IDXGISurface);
 
 COM_SMARTPTR(ID3D11Device);
 COM_SMARTPTR(ID3D11Device1);
@@ -47,6 +49,8 @@ COM_SMARTPTR(ID3D11Device2);
 COM_SMARTPTR(ID3D11DeviceContext);
 COM_SMARTPTR(ID3D11DeviceContext1);
 COM_SMARTPTR(ID3D11DeviceContext2);
+
+COM_SMARTPTR(ID3D11Multithread);
 
 COM_SMARTPTR(ID3D11CommandList);
 
