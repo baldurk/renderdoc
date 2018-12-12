@@ -350,11 +350,15 @@ bool GraphicsTest::Init(int argc, char **argv)
 {
   srand(0U);
 
+  dataRoot = GetEnvVar("RENDERDOC_DEMOS_DATA");
+
+  if(dataRoot.empty())
+    dataRoot = GetCWD() + "/data/demos/";
+
   // parse parameters
   for(int i = 0; i < argc; i++)
   {
-    if(!strcmp(argv[i], "--debug") || !strcmp(argv[i], "-debug") ||
-       !strcmp(argv[i], "--validate") || !strcmp(argv[i], "-validate"))
+    if(!strcmp(argv[i], "--debug") || !strcmp(argv[i], "--validate"))
     {
       debugDevice = true;
     }
@@ -363,6 +367,14 @@ bool GraphicsTest::Init(int argc, char **argv)
                         !strcmp(argv[i], "--max-frames")))
     {
       maxFrameCount = atoi(argv[i + 1]);
+    }
+
+    if(i + 1 < argc && !strcmp(argv[i], "--data"))
+    {
+      dataRoot = argv[i + 1];
+      while(dataRoot.back() == '/' || dataRoot.back() == '\\')
+        dataRoot.pop_back();
+      dataRoot += "/";
     }
   }
 
@@ -384,6 +396,11 @@ bool GraphicsTest::Init(int argc, char **argv)
 #endif
 
   return true;
+}
+
+std::string GraphicsTest::GetDataPath(const std::string &filename)
+{
+  return dataRoot + filename;
 }
 
 bool GraphicsTest::FrameLimit()

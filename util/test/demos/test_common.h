@@ -151,7 +151,11 @@ struct GraphicsTest
   virtual bool IsSupported() { return false; }
   virtual bool Init(int argc, char **argv);
 
+  std::string GetDataPath(const std::string &filename);
+
   bool FrameLimit();
+
+  std::string dataRoot;
 
   int curFrame = 0;
   int maxFrameCount = -1;
@@ -239,6 +243,7 @@ void RegisterTest(TestMetadata test);
   static TestRegistration Anon##__LINE__;
 
 std::string GetCWD();
+std::string GetEnvVar(const char *var);
 
 #ifndef ARRAY_COUNT
 #define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))

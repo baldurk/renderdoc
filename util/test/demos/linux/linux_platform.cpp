@@ -40,3 +40,8 @@ std::string GetCWD()
 
   return cwdstr;
 }
+
+std::string GetEnvVar(const char *var)
+{
+  return getenv(var);
+}

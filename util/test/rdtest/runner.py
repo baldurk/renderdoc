@@ -224,6 +224,8 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
             log.print("Couldn't register vulkan layer properly, might need admin rights")
             sys.exit(1)
 
+    os.environ['RENDERDOC_DEMOS_DATA'] = util.get_data_path('demos')
+
     testcases = get_tests()
 
     include_regexp = re.compile(test_include, re.IGNORECASE)

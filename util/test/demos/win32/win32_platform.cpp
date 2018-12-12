@@ -88,3 +88,15 @@ std::wstring UTF82Wide(const std::string &s)
 
   return ret;
 }
+
+std::string GetEnvVar(const char *var)
+{
+  std::wstring wvar = UTF82Wide(var);
+  wchar_t wval[1024] = {};
+  DWORD len = GetEnvironmentVariableW(wvar.c_str(), wval, 1023);
+
+  if(len > 0 && len <= 1023)
+    return Wide2UTF8(wval);
+
+  return "";
+}
