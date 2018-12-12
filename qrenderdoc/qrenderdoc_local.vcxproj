@@ -955,7 +955,6 @@
     <ClInclude Include="$(IntDir)generated\ui_VirtualFileDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Code\RGPInterop.h" />
-    <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Code\CaptureContext.h" />
     <ClInclude Include="Styles\StyleData.h" />
     <ClInclude Include="Code\qprocessinfo.h" />
