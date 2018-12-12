@@ -154,6 +154,7 @@ struct D3D11GraphicsTest : public GraphicsTest
   int backbufferMSAA = 1;
   bool d3d11_1 = false;
   bool d3d11_2 = false;
+  UINT createFlags = 0;
 
   D3D11_FEATURE_DATA_D3D11_OPTIONS opts;
   D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1;
