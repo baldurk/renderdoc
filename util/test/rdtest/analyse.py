@@ -177,7 +177,7 @@ def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
         value = tuple((float(value[i]) if (value[i] == max_neg) else (float(value[i]) / divisor)) for i in value)
 
     # If the format is BGRA, swap the two components
-    if fmt.bgraOrder:
+    if fmt.bgraOrder():
         value = tuple(value[i] for i in [2, 1, 0, 3])
 
     return value
