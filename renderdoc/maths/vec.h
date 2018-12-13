@@ -26,6 +26,7 @@
 #pragma once
 
 #include <math.h>
+#include <stdint.h>
 
 struct Vec2f
 {
@@ -104,3 +105,15 @@ inline Vec3f operator+=(Vec3f &a, const Vec3f &b)
   a = a + b;
   return a;
 }
+
+struct Vec4u
+{
+  Vec4u(uint32_t X = 0, uint32_t Y = 0, uint32_t Z = 0, uint32_t W = 0)
+  {
+    x = X;
+    y = Y;
+    z = Z;
+    w = W;
+  }
+  uint32_t x, y, z, w;
+};

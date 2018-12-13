@@ -42,11 +42,6 @@
 #define BINDING(b)
 #define INST_NAME(name)
 
-struct Vec4u
-{
-  uint32_t x, y, z, w;
-};
-
 #define uvec4 Vec4u
 
 #if !defined(VULKAN) && !defined(OPENGL)
