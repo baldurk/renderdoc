@@ -1325,7 +1325,10 @@ void MainWindow::ShowLiveCapture(LiveCapture *live)
 {
   m_LiveCaptures.push_back(live);
 
-  m_Ctx.AddDockWindow(live, DockReference::MainToolArea, this);
+  if(m_Ctx.HasCaptureDialog())
+    m_Ctx.AddDockWindow(live, DockReference::AddTo, m_Ctx.GetCaptureDialog()->Widget());
+  else
+    m_Ctx.AddDockWindow(live, DockReference::MainToolArea, this);
 }
 
 void MainWindow::LiveCaptureClosed(LiveCapture *live)
