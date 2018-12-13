@@ -517,6 +517,7 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
                    &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->hdrMul, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
+  QObject::connect(ui->hdrMul, &QComboBox::currentTextChanged, [this] { UI_UpdateChannels(); });
   QObject::connect(ui->customShader, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->customShader, &QComboBox::currentTextChanged, [this] { UI_UpdateChannels(); });
