@@ -226,6 +226,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::CreateVideoDecoderOutputVie
   if(SUCCEEDED(hr))
   {
     *ppVDOVView = new WrappedID3D11VideoDecoderOutputView(real, m_pDevice);
+
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
   }
   else
   {
@@ -255,6 +257,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::CreateVideoProcessorInputVi
   if(SUCCEEDED(hr))
   {
     *ppVPIView = new WrappedID3D11VideoProcessorInputView(real, m_pDevice);
+
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
   }
   else
   {
@@ -284,6 +288,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::CreateVideoProcessorOutputV
   if(SUCCEEDED(hr))
   {
     *ppVPOView = new WrappedID3D11VideoProcessorOutputView(real, m_pDevice);
+
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
   }
   else
   {
