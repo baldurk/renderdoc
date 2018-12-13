@@ -50,12 +50,10 @@ static UINT UpdateDataSize(UINT width, UINT height, UINT depth, DXGI_FORMAT fmt,
   if(width == 0 || height == 0 || depth == 0)
     return 0;
 
-  UINT rowheight = 1;
   if(IsBlockFormat(fmt))
-  {
     height = RDCMAX(1U, AlignUp4(height) / 4);
-    rowheight = 4;
-  }
+  else if(IsYUVPlanarFormat(fmt))
+    height = GetYUVNumRows(fmt, height);
 
   UINT SourceDataLength = 0;
 
@@ -68,7 +66,7 @@ static UINT UpdateDataSize(UINT width, UINT height, UINT depth, DXGI_FORMAT fmt,
     SourceDataLength += SrcRowPitch * (height - 1);
 
   // lastly, the final row (or block row) consumes just a tightly packed amount of data
-  SourceDataLength += GetByteSize(width, rowheight, 1, fmt, 0);
+  SourceDataLength += GetRowPitch(width, fmt, 0);
 
   return SourceDataLength;
 }
