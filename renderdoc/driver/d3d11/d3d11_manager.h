@@ -203,19 +203,19 @@ struct D3D11InitialContents
     UAVCount,
   };
   D3D11InitialContents(D3D11ResourceType t, ID3D11DeviceChild *r)
-      : resourceType(t), tag(Copy), resource(r), uavCount(0)
+      : resourceType(t), tag(Copy), resource(r), resource2(NULL), uavCount(0)
   {
   }
-  D3D11InitialContents(D3D11ResourceType t, ID3D11RenderTargetView *r)
-      : resourceType(t), tag(ClearRTV), resource(r), uavCount(0)
+  D3D11InitialContents(D3D11ResourceType t, ID3D11RenderTargetView *r, ID3D11RenderTargetView *r2)
+      : resourceType(t), tag(ClearRTV), resource(r), resource2(r2), uavCount(0)
   {
   }
   D3D11InitialContents(D3D11ResourceType t, ID3D11DepthStencilView *r)
-      : resourceType(t), tag(ClearDSV), resource(r), uavCount(0)
+      : resourceType(t), tag(ClearDSV), resource(r), resource2(NULL), uavCount(0)
   {
   }
   D3D11InitialContents(D3D11ResourceType t, uint32_t c)
-      : resourceType(t), tag(UAVCount), resource(NULL), uavCount(c)
+      : resourceType(t), tag(UAVCount), resource(NULL), resource2(NULL), uavCount(c)
   {
   }
   D3D11InitialContents() : resourceType(Resource_Unknown), tag(Copy), resource(NULL), uavCount(0) {}
@@ -223,11 +223,12 @@ struct D3D11InitialContents
   void Free(ResourceManager<Configuration> *rm)
   {
     SAFE_RELEASE(resource);
+    SAFE_RELEASE(resource2);
   }
 
   D3D11ResourceType resourceType;
   Tag tag;
-  ID3D11DeviceChild *resource;
+  ID3D11DeviceChild *resource, *resource2;
   uint32_t uavCount;
 };
 

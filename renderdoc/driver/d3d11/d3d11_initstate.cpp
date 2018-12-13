@@ -1168,19 +1168,50 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       if(isMS)
         rdesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
 
-      ID3D11RenderTargetView *clearRTV = NULL;
+      ID3D11RenderTargetView *clearRTV = NULL, *clear2RTV = NULL;
 
-      HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, tex2D), &rdesc,
-                                                     &clearRTV);
-
-      if(FAILED(hr))
+      if(IsYUVFormat(desc.Format))
       {
-        RDCERR("Failed to create fast-clear RTV while creating initial states HRESULT: %s",
-               ToStr(hr).c_str());
+        rdesc.Format = GetYUVViewPlane0Format(desc.Format);
+
+        HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, tex2D),
+                                                       &rdesc, &clearRTV);
+
+        if(SUCCEEDED(hr))
+        {
+          rdesc.Format = GetYUVViewPlane1Format(desc.Format);
+
+          if(rdesc.Format != DXGI_FORMAT_UNKNOWN)
+            hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, tex2D), &rdesc,
+                                                   &clear2RTV);
+        }
+
+        if(FAILED(hr))
+        {
+          RDCERR(
+              "Failed to create fast-clear RTVs while creating initial states for YUV texture %s "
+              "HRESULT: %s",
+              ToStr(desc.Format).c_str(), ToStr(hr).c_str());
+        }
+        else
+        {
+          m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV, clear2RTV));
+        }
       }
       else
       {
-        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV));
+        HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, tex2D),
+                                                       &rdesc, &clearRTV);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Failed to create fast-clear RTV while creating initial states HRESULT: %s",
+                 ToStr(hr).c_str());
+        }
+        else
+        {
+          m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV));
+        }
       }
     }
     else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -1305,6 +1336,10 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11Initi
       float emptyCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->GetReal()->ClearRenderTargetView(
           (ID3D11RenderTargetView *)initial.resource, emptyCol);
+
+      if(initial.resource2)
+        m_pImmediateContext->GetReal()->ClearRenderTargetView(
+            (ID3D11RenderTargetView *)initial.resource2, emptyCol);
     }
     else if(initial.tag == D3D11InitialContents::ClearDSV)
     {
