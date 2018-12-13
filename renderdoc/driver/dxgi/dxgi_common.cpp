@@ -1406,6 +1406,62 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
   }
 }
 
+DXGI_FORMAT GetYUVViewPlane0Format(DXGI_FORMAT f)
+{
+  switch(f)
+  {
+    case DXGI_FORMAT_AYUV: return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case DXGI_FORMAT_Y410: return DXGI_FORMAT_R10G10B10A2_UNORM;
+    case DXGI_FORMAT_Y416: return DXGI_FORMAT_R16G16B16A16_UNORM;
+    case DXGI_FORMAT_NV11:
+    case DXGI_FORMAT_NV12:
+    case DXGI_FORMAT_P208: return DXGI_FORMAT_R8_UNORM;
+    case DXGI_FORMAT_P010:
+    case DXGI_FORMAT_P016: return DXGI_FORMAT_R16_UNORM;
+    case DXGI_FORMAT_YUY2: return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case DXGI_FORMAT_Y210:
+    case DXGI_FORMAT_Y216: return DXGI_FORMAT_R16G16B16A16_UNORM;
+    case DXGI_FORMAT_AI44:
+    case DXGI_FORMAT_IA44: return DXGI_FORMAT_R8G8_UNORM;
+    case DXGI_FORMAT_P8: return DXGI_FORMAT_R8_UNORM;
+    case DXGI_FORMAT_A8P8: return DXGI_FORMAT_R8G8_UNORM;
+    case DXGI_FORMAT_V208:
+    case DXGI_FORMAT_V408: return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case DXGI_FORMAT_420_OPAQUE: return DXGI_FORMAT_UNKNOWN;
+    default: break;
+  }
+
+  return f;
+}
+
+DXGI_FORMAT GetYUVViewPlane1Format(DXGI_FORMAT f)
+{
+  switch(f)
+  {
+    case DXGI_FORMAT_NV11:
+    case DXGI_FORMAT_NV12:
+    case DXGI_FORMAT_P208: return DXGI_FORMAT_R8G8_UNORM;
+    case DXGI_FORMAT_P010:
+    case DXGI_FORMAT_P016: return DXGI_FORMAT_R16G16_UNORM;
+    case DXGI_FORMAT_AYUV:
+    case DXGI_FORMAT_Y410:
+    case DXGI_FORMAT_Y416:
+    case DXGI_FORMAT_YUY2:
+    case DXGI_FORMAT_Y210:
+    case DXGI_FORMAT_Y216:
+    case DXGI_FORMAT_420_OPAQUE:
+    case DXGI_FORMAT_AI44:
+    case DXGI_FORMAT_IA44:
+    case DXGI_FORMAT_P8:
+    case DXGI_FORMAT_A8P8:
+    case DXGI_FORMAT_V208:
+    case DXGI_FORMAT_V408: return DXGI_FORMAT_UNKNOWN;
+    default: break;
+  }
+
+  return f;
+}
+
 D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo)
 {
   switch(Topo)
