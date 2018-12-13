@@ -576,6 +576,11 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12Device4))
+  {
+    RDCERR("ID3D12Device4 not supported");
+    return E_NOINTERFACE;
+  }
   else if(riid == __uuidof(ID3D12InfoQueue))
   {
     RDCWARN(

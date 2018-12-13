@@ -994,6 +994,11 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList2::QueryInterface(REFI
     AddRef();
     return S_OK;
   }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList3))
+  {
+    RDCERR("ID3D12GraphicsCommandList3 not supported");
+    return E_NOINTERFACE;
+  }
   else if(riid == __uuidof(ID3D12CommandList))
   {
     *ppvObject = (ID3D12CommandList *)this;
