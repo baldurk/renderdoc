@@ -1004,7 +1004,7 @@ struct VkResourceRecord : public ResourceRecord
 public:
   enum
   {
-    NullResource = (unsigned int)NULL
+    NullResource = VK_NULL_HANDLE
   };
 
   static byte markerValue[32];
