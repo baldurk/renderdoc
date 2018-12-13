@@ -345,7 +345,8 @@ void WrappedVulkan::FlushQ()
   // see comment in SubmitQ()
   if(m_Queue != VK_NULL_HANDLE)
   {
-    ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
+    VkResult vkr = ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
