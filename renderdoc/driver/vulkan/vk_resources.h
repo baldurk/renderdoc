@@ -1231,6 +1231,8 @@ uint32_t GetYUVNumRows(VkFormat f, uint32_t height);
 VkFormat GetYUVViewPlaneFormat(VkFormat f, uint32_t plane);
 VkFormat GetDepthOnlyFormat(VkFormat f);
 
+void GetYUVShaderParameters(VkFormat f, Vec4u &YUVDownsampleRate, Vec4u &YUVAChannels);
+
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);
 uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
                           uint32_t mip, uint32_t plane);

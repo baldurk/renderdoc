@@ -60,7 +60,7 @@ void main(void)
 	const bool sintTex = false;
 #endif
 
-#endif
+#endif // OPENGL
 
 	int texType = (texdisplay.OutputDisplayFormat & TEXDISPLAY_TYPEMASK);
 
@@ -129,7 +129,8 @@ void main(void)
 	else
 	{
 		col = SampleTextureFloat4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
-		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS,
+		                          texdisplay.YUVDownsampleRate, texdisplay.YUVAChannels);
 	}
 	
 	if(texdisplay.RawOutput != 0)
@@ -192,6 +193,24 @@ void main(void)
 			// error! invalid heatmap mode
 		}
 	}
+
+#ifdef VULKAN
+	// YUV decoding
+	if(texdisplay.DecodeYUV != 0)
+	{
+		// assume col is now YUVA, perform a default conversion to RGBA
+		const float Kr = 0.2126f;
+		const float Kb = 0.0722f;
+
+		float L = col.g;
+		float Pb = col.b - 0.5f;
+		float Pr = col.r - 0.5f;
+
+		col.b = L + (Pb / 0.5f) * (1 - Kb);
+		col.r = L + (Pr / 0.5f) * (1 - Kr);
+		col.g = (L - Kr * col.r - Kb * col.b) / (1.0f - Kr - Kb);
+	}
+#endif
 
 	// RGBM encoding
 	if(texdisplay.HDRMul > 0.0f)

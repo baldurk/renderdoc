@@ -75,6 +75,8 @@ There are several constant parameters available, each detailed below with the va
 		uint TextureType;
 		uint SelectedSliceFace;
 		int SelectedSample;
+		uvec4 YUVDownsampleRate;
+		uvec4 YUVAChannels;
 	} RENDERDOC;
 
 In this way you can access the properties as ``RENDERDOC.TexDim`` instead of ``RENDERDOC_TexDim``.
@@ -88,13 +90,31 @@ Texture dimensions
 	uint4 RENDERDOC_TexDim; // hlsl
 	uniform uvec4 RENDERDOC_TexDim; // glsl
 
+	uint4 RENDERDOC_YUVDownsampleRate; // hlsl / vulkan glsl only
+	uint4 RENDERDOC_YUVAChannels; // hlsl / vulkan glsl only
 
-This variable will be filled out with the following values:
+
+``RENDERDOC_TexDim`` will be filled out with the following values:
 
 * ``.x``  Width
 * ``.y``  Height (if 2D or 3D)
 * ``.z``  Depth if 3D or array size if an array
 * ``.w``  Number of mip levels
+
+
+``RENDERDOC_YUVDownsampleRate`` will be filled out with the following values:
+
+* ``.x``  Horizontal downsample rate. 1 for equal luma and chroma width, 2 for half rate.
+* ``.y``  Vertical downsample rate. 1 for equal luma and chroma height, 2 for half rate.
+* ``.z``  Number of planes in the input texture, 1 for packed, 2+ for planar
+* ``.w``  Number of bits per component, e.g. 8, 10 or 16.
+
+
+``RENDERDOC_YUVAChannels`` will be filled out an index indicating where each channel comes from in the source textures. The order is ``.x`` for ``Y``, ``.y`` for ``U``, ``.z`` for ``V`` and ``.w`` for ``A``.
+
+The indices for channels in the first texture in the normal 2D slot are ``0, 1, 2, 3``. Indices from ``4`` to ``7` indicate channels in the second texture, and so on.
+
+If a channel is not present, e.g. alpha is commonly not available, it will be set to ``0xff == 255``.
 
 Selected Mip level
 ~~~~~~~~~~~~~~~~~~
@@ -213,6 +233,7 @@ D3D11 or D3D12 / HLSL
 	Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);
 	Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
 	Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
+	Texture2DArray<float4> texDisplayYUVArray : register(t10);
 
 	Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
 	Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
@@ -279,6 +300,7 @@ Vulkan / GLSL
 	layout(binding = 7) uniform sampler2DArray tex2DArray;
 	layout(binding = 8) uniform sampler3D tex3D;
 	layout(binding = 9) uniform sampler2DMS tex2DMS;
+	layout(binding = 10) uniform sampler2DArray texYUV;
 
 	// Unsigned int samplers
 
@@ -306,6 +328,9 @@ To determine which resource to sample from you can use the ``RENDERDOC_TexType``
 Usually the float textures are used, but for unsigned and signed integer formats, the relevant integer resources are used.
 
 As with the samplers, these textures are bound by slot and not by name, so while you are free to name the variables as you wish, you must bind them explicitly to the slots listed here.
+
+.. note::
+  YUV textures may have additional planes bound as separate textures - for D3D this is ``texDisplayYUVArray`` and for Vulkan it's ``texYUV`` above. Whether to use these planes or not is specified in the texture dimension variables.
 
 See Also
 --------

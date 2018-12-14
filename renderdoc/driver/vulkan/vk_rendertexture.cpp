@@ -38,7 +38,7 @@ void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage li
 
   if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
   {
-    if(iminfo.stencilView != VK_NULL_HANDLE)
+    if(iminfo.altViews[0] != VK_NULL_HANDLE)
       return;
   }
   else
@@ -67,19 +67,50 @@ void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage li
   if(iminfo.type == VK_IMAGE_TYPE_3D)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
 
-  VkImageView view;
+  VkResult vkr = VK_SUCCESS;
+  ResourceId viewid;
 
-  VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &view);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  if(IsYUVFormat(iminfo.format))
+  {
+    VkImageView views[3] = {};
 
-  ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), view);
-  // register as a live-only resource, so it is cleaned up properly
-  m_pDriver->GetResourceManager()->AddLiveResource(viewid, view);
+    const uint32_t planeCount = GetYUVPlaneCount(iminfo.format);
 
-  if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
-    iminfo.stencilView = view;
+    for(uint32_t i = 0; i < planeCount; i++)
+    {
+      viewInfo.format = GetYUVViewPlaneFormat(iminfo.format, i);
+
+      if(planeCount > 1)
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_PLANE_0_BIT << i;
+
+      vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &views[i]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), views[i]);
+      // register as a live-only resource, so it is cleaned up properly
+      m_pDriver->GetResourceManager()->AddLiveResource(viewid, views[i]);
+    }
+
+    iminfo.view = views[0];
+    iminfo.altViews[0] = views[1];
+    iminfo.altViews[1] = views[2];
+  }
   else
-    iminfo.view = view;
+  {
+    VkImageView view;
+
+    vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &view);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), view);
+    // register as a live-only resource, so it is cleaned up properly
+    m_pDriver->GetResourceManager()->AddLiveResource(viewid, view);
+
+    if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+      iminfo.altViews[0] = view;
+    else
+      iminfo.view = view;
+  }
 }
 
 bool VulkanReplay::RenderTexture(TextureDisplay cfg)
@@ -176,7 +207,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   CreateTexImageView(aspectFlags, liveIm, iminfo);
 
   VkImageView liveImView =
-      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
+      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.altViews[0] : iminfo.view);
 
   RDCASSERT(liveImView != VK_NULL_HANDLE);
 
@@ -192,6 +223,15 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   data->Position.x = x;
   data->Position.y = y;
   data->HDRMul = cfg.hdrMultiplier;
+  data->DecodeYUV = cfg.decodeYUV ? 1 : 0;
+
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(iminfo.format, YUVDownsampleRate, YUVAChannels);
+
+  data->YUVDownsampleRate = YUVDownsampleRate;
+  data->YUVAChannels = YUVAChannels;
 
   int32_t tex_x = iminfo.extent.width;
   int32_t tex_y = iminfo.extent.height;
@@ -301,6 +341,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
       uint32_t texType;
       uint32_t selectedSliceFace;
       int32_t selectedSample;
+      Vec4u YUVDownsampleRate;
+      Vec4u YUVAChannels;
     };
 
     CustomTexDisplayUBOData *customData = (CustomTexDisplayUBOData *)data;
@@ -313,6 +355,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     customData->selectedSliceFace = cfg.sliceFace;
     customData->selectedSample = sampleIdx;
     customData->texType = (uint32_t)textype;
+    customData->YUVDownsampleRate = YUVDownsampleRate;
+    customData->YUVAChannels = YUVAChannels;
   }
 
   m_TexRender.UBO.Unmap();
@@ -354,6 +398,17 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   if(cfg.mip == 0 && cfg.scale < 1.0f)
     imdesc.sampler = Unwrap(m_TexRender.LinearSampler);
 
+  VkDescriptorImageInfo altimdesc[2] = {0};
+  for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
+  {
+    RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
+    altimdesc[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    altimdesc[i].imageView = Unwrap(iminfo.altViews[i]);
+    altimdesc[i].sampler = Unwrap(m_General.PointSampler);
+    if(cfg.mip == 0 && cfg.scale < 1.0f)
+      altimdesc[i].sampler = Unwrap(m_TexRender.LinearSampler);
+  }
+
   VkDescriptorSet descset = m_TexRender.GetDescSet();
 
   VkDescriptorBufferInfo ubodesc = {}, heatubodesc = {};
@@ -361,8 +416,14 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   m_TexRender.HeatmapUBO.FillDescriptor(heatubodesc);
 
   VkWriteDescriptorSet writeSet[] = {
+      // sampled view
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), descSetBinding, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
+      // YUV secondary planes (if needed)
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), 10, 0,
+       GetYUVPlaneCount(iminfo.format) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, altimdesc,
+       NULL, NULL},
+      // UBOs
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &ubodesc, NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descset), 1, 0, 1,
@@ -371,7 +432,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   vector<VkWriteDescriptorSet> writeSets;
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
-    writeSets.push_back(writeSet[i]);
+  {
+    if(writeSet[i].descriptorCount > 0)
+      writeSets.push_back(writeSet[i]);
+  }
 
   for(size_t i = 0; i < ARRAY_COUNT(m_TexRender.DummyWrites); i++)
   {
@@ -380,6 +444,15 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     // don't write dummy data in the actual slot
     if(write.dstBinding == descSetBinding)
       continue;
+
+    // don't overwrite YUV texture slots if it's a YUV planar format
+    if(write.dstBinding == 10)
+    {
+      if(write.dstArrayElement == 0 && GetYUVPlaneCount(iminfo.format) >= 2)
+        continue;
+      if(write.dstArrayElement == 1 && GetYUVPlaneCount(iminfo.format) >= 3)
+        continue;
+    }
 
     write.dstSet = Unwrap(descset);
     writeSets.push_back(write);

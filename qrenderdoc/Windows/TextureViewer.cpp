@@ -641,7 +641,7 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 
   ui->statusbar->addWidget(statusflowWidget);
 
-  ui->channels->addItems({tr("RGBA"), tr("RGBM"), tr("Custom")});
+  ui->channels->addItems({lit("RGBA"), lit("RGBM"), lit("YUVA decode"), tr("Custom")});
 
   ui->zoomOption->addItems({lit("10%"), lit("25%"), lit("50%"), lit("75%"), lit("100%"),
                             lit("200%"), lit("400%"), lit("800%")});
@@ -1067,7 +1067,13 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   status += lit(" - ") + current.format.Name();
 
-  if(current.format.compType != m_TexDisplay.typeHint && m_TexDisplay.typeHint != CompType::Typeless)
+  const bool yuv = (current.format.type == ResourceFormatType::YUV8 ||
+                    current.format.type == ResourceFormatType::YUV10 ||
+                    current.format.type == ResourceFormatType::YUV12 ||
+                    current.format.type == ResourceFormatType::YUV16);
+
+  if(current.format.compType != m_TexDisplay.typeHint &&
+     m_TexDisplay.typeHint != CompType::Typeless && !yuv)
   {
     status += tr(" Viewed as %1").arg(ToQStr(m_TexDisplay.typeHint));
   }
@@ -1422,7 +1428,24 @@ void TextureViewer::UI_UpdateChannels()
     dsv = (tex->creationFlags & TextureCategory::DepthTarget) ||
           (tex->format.compType == CompType::Depth);
 
-  if(dsv && ui->channels->currentIndex() != 2)
+  bool yuv = false;
+  if(tex != NULL)
+    yuv = (tex->format.type == ResourceFormatType::YUV8 ||
+           tex->format.type == ResourceFormatType::YUV10 ||
+           tex->format.type == ResourceFormatType::YUV12 ||
+           tex->format.type == ResourceFormatType::YUV16);
+
+  const bool defaultDisplay = ui->channels->currentIndex() == 0;
+  const bool rgbmDisplay = ui->channels->currentIndex() == 1;
+  const bool yuvDecodeDisplay = ui->channels->currentIndex() == 2;
+  const bool customDisplay = ui->channels->currentIndex() == 3;
+
+  ui->channels->setItemText(0, yuv ? lit("YUVA") : lit("RGBA"));
+  ui->channelRed->setText(lit("R"));
+  ui->channelGreen->setText(lit("G"));
+  ui->channelBlue->setText(lit("B"));
+
+  if(dsv && !customDisplay)
   {
     // Depth display (when not using custom)
 
@@ -1451,6 +1474,7 @@ void TextureViewer::UI_UpdateChannels()
       ui->depthDisplay->setChecked(true);
     }
 
+    m_TexDisplay.decodeYUV = false;
     m_TexDisplay.hdrMultiplier = -1.0f;
     if(m_TexDisplay.customShaderId != ResourceId())
     {
@@ -1460,9 +1484,9 @@ void TextureViewer::UI_UpdateChannels()
     }
     m_TexDisplay.customShaderId = ResourceId();
   }
-  else if(ui->channels->currentIndex() == 0 || !m_Ctx.IsCaptureLoaded())
+  else if(defaultDisplay || yuvDecodeDisplay || !m_Ctx.IsCaptureLoaded())
   {
-    // RGBA
+    // RGBA. YUV Decode is almost identical but we set decodeYUV
     SHOW(ui->channelRed);
     SHOW(ui->channelGreen);
     SHOW(ui->channelBlue);
@@ -1482,6 +1506,14 @@ void TextureViewer::UI_UpdateChannels()
     m_TexDisplay.blue = ui->channelBlue->isChecked();
     m_TexDisplay.alpha = ui->channelAlpha->isChecked();
 
+    if(!yuvDecodeDisplay && yuv)
+    {
+      ui->channelRed->setText(lit("V"));
+      ui->channelGreen->setText(lit("Y"));
+      ui->channelBlue->setText(lit("U"));
+    }
+
+    m_TexDisplay.decodeYUV = yuvDecodeDisplay;
     m_TexDisplay.hdrMultiplier = -1.0f;
     if(m_TexDisplay.customShaderId != ResourceId())
     {
@@ -1491,7 +1523,7 @@ void TextureViewer::UI_UpdateChannels()
     }
     m_TexDisplay.customShaderId = ResourceId();
   }
-  else if(ui->channels->currentIndex() == 1)
+  else if(rgbmDisplay)
   {
     // RGBM
     SHOW(ui->channelRed);
@@ -1522,6 +1554,7 @@ void TextureViewer::UI_UpdateChannels()
       ui->hdrMul->setCurrentText(lit("32"));
     }
 
+    m_TexDisplay.decodeYUV = false;
     m_TexDisplay.hdrMultiplier = mul;
     if(m_TexDisplay.customShaderId != ResourceId())
     {
@@ -1531,7 +1564,7 @@ void TextureViewer::UI_UpdateChannels()
     }
     m_TexDisplay.customShaderId = ResourceId();
   }
-  else if(ui->channels->currentIndex() == 2)
+  else if(customDisplay)
   {
     // custom shaders
     SHOW(ui->channelRed);
@@ -1553,6 +1586,7 @@ void TextureViewer::UI_UpdateChannels()
     m_TexDisplay.blue = ui->channelBlue->isChecked();
     m_TexDisplay.alpha = ui->channelAlpha->isChecked();
 
+    m_TexDisplay.decodeYUV = false;
     m_TexDisplay.hdrMultiplier = -1.0f;
 
     m_TexDisplay.customShaderId = ResourceId();
@@ -2676,6 +2710,8 @@ void TextureViewer::OnCaptureClosed()
   ui->saveTex->setEnabled(false);
   ui->locationGoto->setEnabled(false);
   ui->viewTexBuffer->setEnabled(false);
+
+  UI_UpdateChannels();
 }
 
 void TextureViewer::OnEventChanged(uint32_t eventId)

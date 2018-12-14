@@ -1055,6 +1055,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
   cdata->HistogramMax = 1.0f;
   cdata->HistogramChannels = 0xf;
 
+  cdata->HistogramYUVDownsampleRate = {};
+  cdata->HistogramYUVAChannels = {};
+
   int progIdx = texSlot;
 
   if(intIdx == 1)
@@ -1285,6 +1288,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   if(sample == ~0U)
     cdata->HistogramSample = -int(details.msSamp);
   cdata->HistogramMin = minval;
+
+  cdata->HistogramYUVDownsampleRate = {};
+  cdata->HistogramYUVAChannels = {};
 
   // The calculation in the shader normalises each value between min and max, then multiplies by the
   // number of buckets.

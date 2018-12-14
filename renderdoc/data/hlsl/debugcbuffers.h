@@ -30,6 +30,7 @@
 #define cbuffer struct
 #define float2 Vec2f
 #define float3 Vec3f
+#define uint4 Vec4u
 #define float4 Vec4f
 #define float4x4 Matrix4f
 #define uint uint32_t
@@ -92,6 +93,9 @@ cbuffer DebugPixelCBufferData REG(b0)
 
   int RawOutput;
   float3 TextureResolutionPS;
+
+  uint4 YUVDownsampleRate;
+  uint4 YUVAChannels;
 };
 
 #define HEATMAP_DISABLED 0
@@ -123,6 +127,9 @@ cbuffer HistogramCBufferData REG(b0)
 
   float3 HistogramTextureResolution;
   float Padding3;
+
+  uint4 HistogramYUVDownsampleRate;
+  uint4 HistogramYUVAChannels;
 };
 
 // some constants available to both C++ and HLSL for configuring display
@@ -167,7 +174,7 @@ cbuffer HistogramCBufferData REG(b0)
 //
 // these values are in each dimension
 #define HGRAM_PIXELS_PER_TILE 64
-#define HGRAM_TILES_PER_BLOCK 32
+#define HGRAM_TILES_PER_BLOCK 10
 
 #define HGRAM_NUM_BUCKETS 256
 

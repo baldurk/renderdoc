@@ -29,8 +29,10 @@ layout(binding = 6) uniform sampler1DArray tex1DArray;
 layout(binding = 7) uniform sampler2DArray tex2DArray;
 layout(binding = 8) uniform sampler3D tex3D;
 layout(binding = 9) uniform sampler2DMS tex2DMS;
+layout(binding = 10) uniform sampler2DArray texYUV[2];
 
-vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
+                         uvec4 YUVDownsampleRate, uvec4 YUVAChannels)
 {
   vec4 col;
 
@@ -69,6 +71,67 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
     }
 #endif
   }
+
+#ifdef VULKAN
+  // Vulkan supports YUV textures, so fetch secondary planes as needed and swizzle to standard
+  // layout
+  if(YUVDownsampleRate.w > 0)
+  {
+    vec4 col2 = vec4(0, 0, 0, 0);
+    vec4 col3 = vec4(0, 0, 0, 0);
+
+    if(YUVDownsampleRate.z >= 2)
+      col2 = textureLod(texYUV[0], vec3(pos, slice), float(mipLevel));
+
+    if(YUVDownsampleRate.z >= 3)
+      col3 = textureLod(texYUV[1], vec3(pos, slice), float(mipLevel));
+
+    // for interleaved 4:2:2, co-ords are in 2x1 blocks
+    if(YUVDownsampleRate.x == 2 && YUVDownsampleRate.y == 1 && YUVDownsampleRate.z == 1)
+    {
+      int xcoord = int(pos.x * texRes.x);
+
+      // texels come out as RG, so we need to fetch the adjacent texel to get the other half of the
+      // uv data, the y sample is left as-is
+      if((xcoord & 1) != 0)
+      {
+        col.b = textureLodOffset(tex2DArray, vec3(pos, slice), float(mipLevel), ivec2(-1, 0)).g;
+      }
+      else
+      {
+        col.b = col.g;
+        col.g = textureLodOffset(tex2DArray, vec3(pos, slice), float(mipLevel), ivec2(1, 0)).g;
+      }
+    }
+
+    float data[] = {
+        // plane 0
+        col.x, col.y, col.z, col.w,
+        // plane 1
+        col2.x, col2.y, col2.z, col2.w,
+        // plane 3
+        col3.x, col3.y, col3.z, col3.w,
+    };
+
+    col = vec4(0, 0, 0, 1);
+
+    // luma
+    if(YUVAChannels.x != 0xff)
+      col.g = data[YUVAChannels.x];
+
+    // chroma (U)
+    if(YUVAChannels.y != 0xff)
+      col.b = data[YUVAChannels.y];
+
+    // chroma (V)
+    if(YUVAChannels.z != 0xff)
+      col.r = data[YUVAChannels.z];
+
+    // alpha
+    if(YUVAChannels.w != 0xff)
+      col.a = data[YUVAChannels.w];
+  }
+#endif
 
   return col;
 }

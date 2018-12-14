@@ -356,6 +356,16 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
     }
   }
 
+  if(IsYUVFormat(srvFormat))
+  {
+    // assume YUV textures are 2D or 2D arrays
+    RDCASSERT(details.texType == eTexType_2D);
+
+    srvDesc[details.texType].Format = GetYUVViewPlane0Format(srvFormat);
+
+    GetYUVShaderParameters(srvFormat, details.YUVDownsampleRate, details.YUVAChannels);
+  }
+
   if(msaaDepth)
   {
     srvDesc[eTexType_Stencil].ViewDimension = srvDesc[eTexType_Depth].ViewDimension =
@@ -381,6 +391,26 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
   }
 
   details.srv[details.texType] = cache.srv[0];
+
+  if(IsYUVFormat(srvFormat))
+  {
+    srvDesc[details.texType].Format = GetYUVViewPlane1Format(srvFormat);
+
+    if(srvDesc[details.texType].Format != DXGI_FORMAT_UNKNOWN)
+    {
+      if(!cache.created)
+      {
+        hr = m_pDevice->CreateShaderResourceView(details.srvResource, &srvDesc[details.texType],
+                                                 &cache.srv[1]);
+
+        if(FAILED(hr))
+          RDCERR("Failed to create cache YUV SRV 1, type %d HRESULT: %s", details.texType,
+                 ToStr(hr).c_str());
+      }
+
+      details.srv[eTexType_YUV] = cache.srv[1];
+    }
+  }
 
   if(details.texType == eTexType_Depth && srvDesc[eTexType_Stencil].Format != DXGI_FORMAT_UNKNOWN)
   {
@@ -477,6 +507,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   }
 
   pixelData.WireframeColour.x = cfg.hdrMultiplier;
+  pixelData.WireframeColour.y = cfg.decodeYUV ? 1.0f : 0.0f;
 
   pixelData.RawOutput = cfg.rawOutput ? 1 : 0;
 
@@ -519,6 +550,9 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   vertexData.Scale = cfg.scale;
   pixelData.ScalePS = cfg.scale;
+
+  pixelData.YUVDownsampleRate = details.YUVDownsampleRate;
+  pixelData.YUVAChannels = details.YUVAChannels;
 
   if(cfg.scale <= 0.0f)
   {
@@ -590,6 +624,18 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
                   RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %s",
                           var.name.c_str());
                 }
+              }
+              else if(var.name == "RENDERDOC_YUVDownsampleRate")
+              {
+                Vec4u *d = (Vec4u *)(byteData + var.descriptor.offset);
+
+                *d = details.YUVDownsampleRate;
+              }
+              else if(var.name == "RENDERDOC_YUVAChannels")
+              {
+                Vec4u *d = (Vec4u *)(byteData + var.descriptor.offset);
+
+                *d = details.YUVAChannels;
               }
               else if(var.name == "RENDERDOC_SelectedMip")
               {

@@ -2631,6 +2631,8 @@ void ShaderViewer::insertVulkanUBO()
                               "    int TextureType;\n"
                               "    uint SelectedSliceFace;\n"
                               "    int SelectedSample;\n"
+                              "    uvec4 YUVDownsampleRate;\n"
+                              "    uvec4 YUVAChannels;\n"
                               "} RENDERDOC;\n\n");
 }
 
@@ -2645,7 +2647,9 @@ void ShaderViewer::snippet_textureDimensions()
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// xyz == width, height, depth. w == # mips\n"
-                                "uint4 RENDERDOC_TexDim; \n\n");
+                                "uint4 RENDERDOC_TexDim;\n"
+                                "uint4 RENDERDOC_YUVDownsampleRate;\n"
+                                "uint4 RENDERDOC_YUVAChannels; \n\n");
   }
   else if(api == GraphicsAPI::OpenGL)
   {
@@ -2811,6 +2815,7 @@ void ShaderViewer::snippet_resources()
         "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);\n"
         "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);\n"
         "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);\n"
+        "Texture2DArray<float4> texDisplayYUVArray : register(t10);\n"
         "\n"
         "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);\n"
         "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);\n"
@@ -2873,6 +2878,7 @@ void ShaderViewer::snippet_resources()
                                 "layout(binding = 7) uniform sampler2DArray tex2DArray;\n"
                                 "layout(binding = 8) uniform sampler3D tex3D;\n"
                                 "layout(binding = 9) uniform sampler2DMS tex2DMS;\n"
+                                "layout(binding = 10) uniform sampler2DArray texYUVArray[2];\n"
                                 "\n"
                                 "// Unsigned int samplers\n"
                                 "layout(binding = 11) uniform usampler1DArray texUInt1DArray;\n"

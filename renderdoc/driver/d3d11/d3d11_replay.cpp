@@ -1566,6 +1566,14 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
     cdata.HistogramChannels |= 0x8;
   cdata.HistogramFlags = 0;
 
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(details.texFmt, YUVDownsampleRate, YUVAChannels);
+
+  cdata.HistogramYUVDownsampleRate = YUVDownsampleRate;
+  cdata.HistogramYUVAChannels = YUVAChannels;
+
   int srvOffset = 0;
   int intIdx = 0;
 
@@ -1660,6 +1668,14 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   cdata.HistogramMax = 1.0f;
   cdata.HistogramChannels = 0xf;
   cdata.HistogramFlags = 0;
+
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(details.texFmt, YUVDownsampleRate, YUVAChannels);
+
+  cdata.HistogramYUVDownsampleRate = YUVDownsampleRate;
+  cdata.HistogramYUVAChannels = YUVAChannels;
 
   int srvOffset = 0;
   int intIdx = 0;

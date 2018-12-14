@@ -687,7 +687,7 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
                                      const VkImageCreateInfo *pCreateInfo)
 {
   view = VK_NULL_HANDLE;
-  stencilView = VK_NULL_HANDLE;
+  altViews[0] = altViews[1] = VK_NULL_HANDLE;
 
   type = pCreateInfo->imageType;
   format = pCreateInfo->format;

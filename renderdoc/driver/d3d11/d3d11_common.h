@@ -160,6 +160,7 @@ enum D3D11TextureDetailsType
   eTexType_StencilMS,
   eTexType_Unused,    // removed, kept just to keep slots the same
   eTexType_2DMS,
+  eTexType_YUV,
   eTexType_Max
 };
 

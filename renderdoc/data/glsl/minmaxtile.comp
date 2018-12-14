@@ -131,7 +131,9 @@ void main()
 												histogram_minmax.HistogramSlice,
 												histogram_minmax.HistogramMip,
 												histogram_minmax.HistogramSample,
-												histogram_minmax.HistogramTextureResolution);
+												histogram_minmax.HistogramTextureResolution,
+												histogram_minmax.HistogramYUVDownsampleRate,
+												histogram_minmax.HistogramYUVAChannels);
 
 				if(i == 0)
 				{

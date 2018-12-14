@@ -116,7 +116,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				float4 data = SampleTextureFloat4(texType, false, float2(x, y)/float2(texDim.xy),
-													HistogramSlice, HistogramMip, HistogramSample, texDim);
+													HistogramSlice, HistogramMip, HistogramSample, texDim, HistogramYUVDownsampleRate, HistogramYUVAChannels);
 
 				if(i == 0)
 				{
@@ -309,7 +309,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #else
 			{
 				float4 data = SampleTextureFloat4(texType, false, float2(x, y)/float2(texDim.xy),
-					HistogramSlice, HistogramMip, HistogramSample, texDim);
+					HistogramSlice, HistogramMip, HistogramSample, texDim, HistogramYUVDownsampleRate, HistogramYUVAChannels);
 
 				float divisor = 0.0f;
 				float sum = 0.0f;

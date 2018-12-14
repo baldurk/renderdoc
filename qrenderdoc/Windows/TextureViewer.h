@@ -106,7 +106,7 @@ struct TexSettings
     typeHint = CompType::Typeless;
   }
 
-  int displayType;    // RGBA, RGBM, Custom
+  int displayType;    // RGBA, RGBM, YUV Decode, Custom
   QString customShader;
   bool r, g, b, a;
   bool depth, stencil;

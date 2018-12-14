@@ -1761,6 +1761,15 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   m_Histogram.m_MinMaxResult.FillDescriptor(bufdescs[1]);
   m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[2]);
 
+  VkDescriptorImageInfo altimdesc[2] = {0};
+  for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
+  {
+    RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
+    altimdesc[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    altimdesc[i].imageView = Unwrap(iminfo.altViews[i]);
+    altimdesc[i].sampler = Unwrap(m_General.PointSampler);
+  }
+
   VkWriteDescriptorSet writeSet[] = {
 
       // first pass on tiles
@@ -1776,8 +1785,14 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
       },
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 2,
        0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
+
+      // sampled view
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
+      // YUV secondary planes (if needed)
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 10,
+       0, GetYUVPlaneCount(iminfo.format) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, altimdesc,
+       NULL, NULL},
 
       // second pass from tiles to result
       {
@@ -1809,6 +1824,15 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     if(write.dstBinding == descSetBinding)
       continue;
 
+    // don't overwrite YUV texture slots if it's a YUV planar format
+    if(write.dstBinding == 10)
+    {
+      if(write.dstArrayElement == 0 && GetYUVPlaneCount(iminfo.format) >= 2)
+        continue;
+      if(write.dstArrayElement == 1 && GetYUVPlaneCount(iminfo.format) >= 3)
+        continue;
+    }
+
     write.dstSet = Unwrap(m_Histogram.m_HistogramDescSet[0]);
     writeSets.push_back(write);
   }
@@ -1832,6 +1856,14 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   data->HistogramMin = 0.0f;
   data->HistogramMax = 1.0f;
   data->HistogramChannels = 0xf;
+
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(iminfo.format, YUVDownsampleRate, YUVAChannels);
+
+  data->HistogramYUVDownsampleRate = YUVDownsampleRate;
+  data->HistogramYUVAChannels = YUVAChannels;
 
   m_Histogram.m_HistogramUBO.Unmap();
 
@@ -2046,7 +2078,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   }
 
   VkImageView liveImView =
-      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
+      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.altViews[0] : iminfo.view);
 
   RDCASSERT(liveImView != VK_NULL_HANDLE);
 
@@ -2059,6 +2091,15 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   RDCEraseEl(bufdescs);
   m_Histogram.m_HistogramBuf.FillDescriptor(bufdescs[0]);
   m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[1]);
+
+  VkDescriptorImageInfo altimdesc[2] = {0};
+  for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
+  {
+    RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
+    altimdesc[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    altimdesc[i].imageView = Unwrap(iminfo.altViews[i]);
+    altimdesc[i].sampler = Unwrap(m_General.PointSampler);
+  }
 
   VkWriteDescriptorSet writeSet[] = {
 
@@ -2075,8 +2116,13 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
       },
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 2,
        0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[1], NULL},
+      // sampled view
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]),
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
+      // YUV secondary planes (if needed)
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 10,
+       0, GetYUVPlaneCount(iminfo.format) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, altimdesc,
+       NULL, NULL},
   };
 
   vector<VkWriteDescriptorSet> writeSets;
@@ -2093,6 +2139,15 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
     // don't write dummy data in the actual slot
     if(write.dstBinding == descSetBinding)
       continue;
+
+    // don't overwrite YUV texture slots if it's a YUV planar format
+    if(write.dstBinding == 10)
+    {
+      if(write.dstArrayElement == 0 && GetYUVPlaneCount(iminfo.format) >= 2)
+        continue;
+      if(write.dstArrayElement == 1 && GetYUVPlaneCount(iminfo.format) >= 3)
+        continue;
+    }
 
     write.dstSet = Unwrap(m_Histogram.m_HistogramDescSet[0]);
     writeSets.push_back(write);
@@ -2133,6 +2188,14 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   data->HistogramChannels = chans;
   data->HistogramFlags = 0;
+
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(iminfo.format, YUVDownsampleRate, YUVAChannels);
+
+  data->HistogramYUVDownsampleRate = YUVDownsampleRate;
+  data->HistogramYUVAChannels = YUVAChannels;
 
   m_Histogram.m_HistogramUBO.Unmap();
 

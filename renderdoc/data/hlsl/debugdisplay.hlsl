@@ -96,7 +96,7 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 	else
 	{
 		col = SampleTextureFloat4(OutputDisplayFormat & TEXDISPLAY_TYPEMASK, (ScalePS < 1 && MipLevel == 0),
-								  uvTex, Slice, MipLevel, SampleIdx, TextureResolutionPS);
+								  uvTex, Slice, MipLevel, SampleIdx, TextureResolutionPS, YUVDownsampleRate, YUVAChannels);
 	}
 	
 	if(RawOutput)
@@ -107,6 +107,21 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 			return asfloat(scol);
 		else
 			return col;
+	}
+
+	if(WireframeColour.y > 0.0f)
+	{
+		// assume col is now YUVA, perform a default conversion to RGBA
+		const float Kr = 0.2126f;
+		const float Kb = 0.0722f;
+
+		float L = col.g;
+		float Pb = col.b - 0.5f;
+		float Pr = col.r - 0.5f;
+
+		col.b = L + (Pb / 0.5f) * (1 - Kb);
+		col.r = L + (Pr / 0.5f) * (1 - Kr);
+		col.g = (L - Kr * col.r - Kb * col.b) / (1.0f - Kr - Kb);
 	}
 
   if(HeatmapMode)

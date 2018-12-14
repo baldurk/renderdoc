@@ -355,7 +355,7 @@ struct VulkanCreationInfo
               const VkImageCreateInfo *pCreateInfo);
 
     VkImageView view;
-    VkImageView stencilView;
+    VkImageView altViews[2];
 
     VkImageType type;
     VkFormat format;

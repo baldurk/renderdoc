@@ -83,6 +83,9 @@ struct TextureShaderDetails
   UINT sampleCount;
   UINT sampleQuality;
 
+  Vec4u YUVDownsampleRate;
+  Vec4u YUVAChannels;
+
   D3D11TextureDetailsType texType;
 
   ID3D11Resource *srvResource;

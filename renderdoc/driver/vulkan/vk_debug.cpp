@@ -1525,7 +1525,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                     {7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {9, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
-                    {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, VK_SHADER_STAGE_ALL, NULL},
                     {11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
@@ -1695,8 +1695,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         curOffset += mrq.size;
 
         // fill out the descriptor set write to the write binding - set will be filled out
-        // on demand when we're actulaly using these writes.
-        DummyWrites[index].descriptorCount = 1;
+        // on demand when we're actually using these writes.
         DummyWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         DummyWrites[index].pNext = NULL;
         DummyWrites[index].dstSet = VK_NULL_HANDLE;
@@ -1716,6 +1715,27 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
       }
     }
 
+    // add the last one for the odd-one-out YUV texture
+
+    DummyWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    DummyWrites[index].pNext = NULL;
+    DummyWrites[index].dstSet = VK_NULL_HANDLE;
+    DummyWrites[index].dstBinding = 10;    // texYUV
+    DummyWrites[index].dstArrayElement = 0;
+    DummyWrites[index].descriptorCount = 1;
+    DummyWrites[index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    DummyWrites[index].pImageInfo = &DummyInfos[index];
+    DummyWrites[index].pBufferInfo = NULL;
+    DummyWrites[index].pTexelBufferView = NULL;
+
+    DummyWrites[index + 1] = DummyWrites[index];
+    DummyWrites[index + 1].dstArrayElement = 1;
+
+    DummyInfos[index].sampler = Unwrap(DummySampler);
+    DummyInfos[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    DummyInfos[index + 1].sampler = Unwrap(DummySampler);
+    DummyInfos[index + 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
     // align up a bit just to be safe
     allocInfo.allocationSize = AlignUp(curOffset, (VkDeviceSize)1024ULL);
 
@@ -1726,6 +1746,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     // bind all the image memory
     for(index = 0; index < (int)ARRAY_COUNT(DummyImages); index++)
     {
+      // there are a couple of empty images at the end for YUV textures which re-use the 2D image
+      if(DummyImages[index] == VK_NULL_HANDLE)
+        continue;
+
       vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[index], DummyMemory,
                                       offsets[index]);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -1777,6 +1801,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         index++;
       }
     }
+
+    // duplicate 2D dummy image into YUV
+    DummyInfos[index].imageView = DummyInfos[1].imageView;
+    DummyInfos[index + 1].imageView = DummyInfos[1].imageView;
 
     ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
   }
@@ -2291,6 +2319,7 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
                     {7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {9, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, VK_SHADER_STAGE_ALL, NULL},
                     {11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},

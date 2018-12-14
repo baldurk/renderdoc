@@ -320,8 +320,8 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
 
 rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 {
-  PixelValue minval;
-  PixelValue maxval;
+  PixelValue minval = {0.0f, 0.0f, 0.0f, 0.0f};
+  PixelValue maxval = {1.0f, 1.0f, 1.0f, 1.0f};
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 

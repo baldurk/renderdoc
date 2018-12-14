@@ -1462,6 +1462,83 @@ DXGI_FORMAT GetYUVViewPlane1Format(DXGI_FORMAT f)
   return f;
 }
 
+void GetYUVShaderParameters(DXGI_FORMAT f, Vec4u &YUVDownsampleRate, Vec4u &YUVAChannels)
+{
+  YUVDownsampleRate = {};
+  YUVAChannels = {};
+
+// YUVDownsampleRate = { horizontal downsampling, vertical downsampling, # planes, # bits }
+#define PACKED_444(bits) \
+  {                      \
+    1, 1, 1, bits        \
+  }
+#define PACKED_422(bits) \
+  {                      \
+    2, 1, 1, bits        \
+  }
+#define PACKED_420(bits) \
+  {                      \
+    2, 2, 1, bits        \
+  }
+#define PLANAR_422(bits) \
+  {                      \
+    2, 1, 2, bits        \
+  }
+#define PLANAR_420(bits) \
+  {                      \
+    2, 2, 2, bits        \
+  }
+
+  // YUVAChannels = { Y index, U index, V index, A index }
+  // where index is 0,1,2,3 for rgba in first texture, 0,1,2,3 for rgba in second texture
+  // 0xff for alpha means not available
+
+  switch(f)
+  {
+    case DXGI_FORMAT_AYUV:
+      YUVDownsampleRate = PACKED_444(8);
+      YUVAChannels = {2, 1, 0, 3};
+      break;
+    case DXGI_FORMAT_Y410:
+      YUVDownsampleRate = PACKED_444(10);
+      YUVAChannels = {1, 0, 2, 3};
+      break;
+    case DXGI_FORMAT_Y416:
+      YUVDownsampleRate = PACKED_444(16);
+      YUVAChannels = {1, 0, 2, 3};
+      break;
+    case DXGI_FORMAT_NV12:
+      YUVDownsampleRate = PLANAR_420(8);
+      YUVAChannels = {0, 4, 5, 0xff};
+      break;
+    case DXGI_FORMAT_P010:
+      YUVDownsampleRate = PLANAR_420(10);
+      YUVAChannels = {0, 4, 5, 0xff};
+      break;
+    case DXGI_FORMAT_P016:
+      YUVDownsampleRate = PLANAR_420(16);
+      YUVAChannels = {0, 4, 5, 0xff};
+      break;
+    case DXGI_FORMAT_YUY2:
+      YUVDownsampleRate = PACKED_422(8);
+      YUVAChannels = {0, 1, 3, 0xff};
+      break;
+    case DXGI_FORMAT_Y210:
+      YUVDownsampleRate = PACKED_422(10);
+      YUVAChannels = {0, 1, 3, 0xff};
+      break;
+    case DXGI_FORMAT_Y216:
+      YUVDownsampleRate = PACKED_422(16);
+      YUVAChannels = {0, 1, 3, 0xff};
+      break;
+    case DXGI_FORMAT_P208:
+      YUVDownsampleRate = PLANAR_422(8);
+      YUVAChannels = {0, 4, 5, 0xff};
+      break;
+    default: break;
+  }
+}
+
 D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo)
 {
   switch(Topo)

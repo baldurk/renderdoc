@@ -140,6 +140,7 @@ Channels selector
 
 .. |RGBAChannels| image:: ../imgs/Screenshots/RGBAChannels.png
 .. |RGBMChannels| image:: ../imgs/Screenshots/RGBMChannels.png
+.. |YUVADecodeChannels| image:: ../imgs/Screenshots/YUVADecodeChannels.png
 .. |CustomDisplay| image:: ../imgs/Screenshots/CustomDisplay.png
 .. |add| image:: ../imgs/icons/add.png
 .. |page_white_edit| image:: ../imgs/icons/page_white_edit.png
@@ -149,6 +150,7 @@ Channels selector
 
   | |RGBAChannels| Default RGBA channels
   | |RGBMChannels| RGBM mode
+  | |YUVADecodeChannels| YUVA Decode to RGBA
   | |CustomDisplay| :doc:`Custom Shader mode <../how/how_custom_visualisation>`
 
 This selector switches between displaying standard RGBA channels, RGBM encoding with a custom multiplier and using a custom visualiser shader.
@@ -157,12 +159,16 @@ When in **RGBA** mode, by default only the RGB channels are displayed and alpha 
 
 Also note that when a single channel is displayed solo, the image is rendered as grayscale in that channel rather than displaying a monochromatic colored image.
 
+If the texture is a YUV format texture, this will show as ``YUVA`` and allow selecting the luminance and chrominance channels in a similar way to RGBA.
+
 .. tip::
   Right clicking on one of the channel buttons in the texture viewer (R, G, B, A) will either select only that channel, or if it's already the only one selected it will select all of the others. This is useful e.g. to toggle between viewing RGB and alpha, or for looking at individual channels in a packed texture or render target.
 
 Note that these channel selections are by default saved as per-texture state, so switching to a different texture will revert back to the default RGB, but going back to the first texture will remember which channels you were viewing. See the option in the :doc:`settings_window`.
 
 When **RGBM** is selected, the RGB value will be multiplied by the specified multiplier and then by the alpha value. This is a common encoding used to pack HDR values into an 8-bit RGBA image by using the alpha channel as a scaling factor.
+
+When **YUVA Decode** is selected, the YUVA data will be transformed with a default full-range conversion using Rec. 709 conversion values.
 
 With **Custom** selected a dropdown will be populated with any custom shaders available for decoding and displaying textures. When choosing a custom shader the raw image will be passed through this shader before being displayed with the usual controls on the main display. For more information see :doc:`../how/how_custom_visualisation`.
 

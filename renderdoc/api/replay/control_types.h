@@ -231,6 +231,9 @@ If only one channel is selected, it will be rendered in grayscale
   DOCUMENT("If ``>= 0.0`` the RGBA values will be viewed as HDRM with this as the multiplier.");
   float hdrMultiplier = -1.0f;
 
+  DOCUMENT("``True`` if the texture should be decoded as if it contains YUV data.");
+  bool decodeYUV = false;
+
   DOCUMENT(R"(``True`` if the texture should be interpreted as gamma.
 
 See :ref:`the FAQ entry <gamma-linear-display>`.

@@ -2236,6 +2236,14 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   cdata.HistogramChannels = 0xf;
   cdata.HistogramFlags = 0;
 
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(resourceDesc.Format, YUVDownsampleRate, YUVAChannels);
+
+  cdata.HistogramYUVDownsampleRate = YUVDownsampleRate;
+  cdata.HistogramYUVAChannels = YUVAChannels;
+
   int intIdx = 0;
 
   DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
@@ -2405,6 +2413,14 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
     cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
   cdata.HistogramMin = minval;
   cdata.HistogramFlags = 0;
+
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(resourceDesc.Format, YUVDownsampleRate, YUVAChannels);
+
+  cdata.HistogramYUVDownsampleRate = YUVDownsampleRate;
+  cdata.HistogramYUVAChannels = YUVAChannels;
 
   // The calculation in the shader normalises each value between min and max, then multiplies by the
   // number of buckets.

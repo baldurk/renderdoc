@@ -144,7 +144,9 @@ void main()
 												histogram_minmax.HistogramSlice,
 												histogram_minmax.HistogramMip,
 												histogram_minmax.HistogramSample,
-												histogram_minmax.HistogramTextureResolution);
+												histogram_minmax.HistogramTextureResolution,
+												histogram_minmax.HistogramYUVDownsampleRate,
+												histogram_minmax.HistogramYUVAChannels);
 
 				float divisor = 0.0f;
 				float sum = 0.0f;

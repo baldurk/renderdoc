@@ -374,6 +374,10 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(cfg.sampleIdx == ~0U)
     ubo->SampleIdx = -texDetails.samples;
 
+  ubo->DecodeYUV = 0;
+  ubo->YUVDownsampleRate = {};
+  ubo->YUVAChannels = {};
+
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
   HeatmapData heatmapData = {};

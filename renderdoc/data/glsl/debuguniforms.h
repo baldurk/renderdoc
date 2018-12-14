@@ -138,7 +138,11 @@ BINDING(0) uniform TexDisplayUBOData
 
   int SampleIdx;
   float MipShift;
-  vec2 Padding;
+  int DecodeYUV;
+  float Padding;
+
+  uvec4 YUVDownsampleRate;
+  uvec4 YUVAChannels;
 }
 INST_NAME(texdisplay);
 
@@ -236,6 +240,9 @@ BINDING(2) uniform HistogramUBOData
 
   vec3 HistogramTextureResolution;
   float Padding3;
+
+  uvec4 HistogramYUVDownsampleRate;
+  uvec4 HistogramYUVAChannels;
 }
 INST_NAME(histogram_minmax);
 

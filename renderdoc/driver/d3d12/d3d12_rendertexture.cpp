@@ -96,7 +96,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
       D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
   bool copy = false;
 
-  D3D12_SHADER_RESOURCE_VIEW_DESC stencilSRVDesc = {};
+  D3D12_SHADER_RESOURCE_VIEW_DESC altSRVDesc = {};
 
   // for non-typeless depth formats, we need to copy to a typeless resource for read
   if(IsDepthFormat(resourceDesc.Format) &&
@@ -109,13 +109,13 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
     {
       case DXGI_FORMAT_R32G8X24_TYPELESS:
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-        stencilSRVDesc = srvDesc;
-        stencilSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+        altSRVDesc = srvDesc;
+        altSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
         break;
       case DXGI_FORMAT_R24G8_TYPELESS:
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-        stencilSRVDesc = srvDesc;
-        stencilSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+        altSRVDesc = srvDesc;
+        altSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
         break;
       case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
       case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_UNORM; break;
@@ -126,32 +126,45 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
     }
   }
 
+  if(IsYUVFormat(resourceDesc.Format))
+  {
+    altSRVDesc = srvDesc;
+    srvDesc.Format = GetYUVViewPlane0Format(resourceDesc.Format);
+    altSRVDesc.Format = GetYUVViewPlane1Format(resourceDesc.Format);
+
+    // assume YUV textures are 2D or 2D arrays
+    RDCASSERT(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+
+    // the second SRV, if used, is always for the second plane
+    altSRVDesc.Texture2DArray.PlaneSlice = 1;
+  }
+
   // even for non-copies, we need to make two SRVs to sample stencil as well
-  if(IsDepthAndStencilFormat(resourceDesc.Format) && stencilSRVDesc.Format == DXGI_FORMAT_UNKNOWN)
+  if(IsDepthAndStencilFormat(resourceDesc.Format) && altSRVDesc.Format == DXGI_FORMAT_UNKNOWN)
   {
     switch(GetTypelessFormat(srvDesc.Format))
     {
       case DXGI_FORMAT_R32G8X24_TYPELESS:
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-        stencilSRVDesc = srvDesc;
-        stencilSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+        altSRVDesc = srvDesc;
+        altSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
         break;
       case DXGI_FORMAT_R24G8_TYPELESS:
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-        stencilSRVDesc = srvDesc;
-        stencilSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+        altSRVDesc = srvDesc;
+        altSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
         break;
     }
   }
 
-  if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
+  if(altSRVDesc.Format != DXGI_FORMAT_UNKNOWN && !IsYUVFormat(resourceDesc.Format))
   {
     D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
     formatInfo.Format = srvDesc.Format;
     m_pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
 
-    if(formatInfo.PlaneCount > 1 && stencilSRVDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
-      stencilSRVDesc.Texture2DArray.PlaneSlice = 1;
+    if(formatInfo.PlaneCount > 1 && altSRVDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+      altSRVDesc.Texture2DArray.PlaneSlice = 1;
   }
 
   // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
@@ -290,10 +303,20 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   srv.ptr += srvOffset * sizeof(D3D12Descriptor);
 
   m_pDevice->CreateShaderResourceView(resource, &srvDesc, srv);
-  if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
+  if(altSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
   {
-    srv.ptr += sizeof(D3D12Descriptor);
-    m_pDevice->CreateShaderResourceView(resource, &stencilSRVDesc, srv);
+    if(IsYUVFormat(resourceDesc.Format))
+    {
+      srv = GetCPUHandle(FIRST_TEXDISPLAY_SRV);
+      // YUV second plane is in slot 10
+      srv.ptr += 10 * sizeof(D3D12Descriptor);
+      m_pDevice->CreateShaderResourceView(resource, &altSRVDesc, srv);
+    }
+    else
+    {
+      srv.ptr += sizeof(D3D12Descriptor);
+      m_pDevice->CreateShaderResourceView(resource, &altSRVDesc, srv);
+    }
   }
 }
 
@@ -370,6 +393,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   }
 
   pixelData.WireframeColour.x = cfg.hdrMultiplier;
+  pixelData.WireframeColour.y = cfg.decodeYUV ? 1.0f : 0.0f;
 
   pixelData.RawOutput = cfg.rawOutput ? 1 : 0;
 
@@ -458,6 +482,13 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 
+  Vec4u YUVDownsampleRate = {}, YUVAChannels = {};
+
+  GetYUVShaderParameters(resourceDesc.Format, YUVDownsampleRate, YUVAChannels);
+
+  pixelData.YUVDownsampleRate = YUVDownsampleRate;
+  pixelData.YUVAChannels = YUVAChannels;
+
   ID3D12PipelineState *customPSO = NULL;
 
   D3D12_GPU_VIRTUAL_ADDRESS psCBuf = 0;
@@ -536,6 +567,18 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
               RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %s",
                       var.name.c_str());
             }
+          }
+          else if(var.name == "RENDERDOC_YUVDownsampleRate")
+          {
+            Vec4u *d = (Vec4u *)(byteData + var.descriptor.offset);
+
+            *d = YUVDownsampleRate;
+          }
+          else if(var.name == "RENDERDOC_YUVAChannels")
+          {
+            Vec4u *d = (Vec4u *)(byteData + var.descriptor.offset);
+
+            *d = YUVAChannels;
           }
           else if(var.name == "RENDERDOC_SelectedMip")
           {
