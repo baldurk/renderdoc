@@ -522,7 +522,7 @@ CompareFunction MakeCompareFunc(VkCompareOp func)
   return CompareFunction::AlwaysTrue;
 }
 
-static FilterMode MakeFilterMode(VkFilter f)
+FilterMode MakeFilterMode(VkFilter f)
 {
   switch(f)
   {

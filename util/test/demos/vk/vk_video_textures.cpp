@@ -791,7 +791,7 @@ void main()
       VkPipeline pipe = VK_NULL_HANDLE;
       VkPipelineLayout layout = VK_NULL_HANDLE;
       VkDescriptorSet descset = VK_NULL_HANDLE;
-    } ycbcr[2];
+    } ycbcr[6];
 
     VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcrFeats = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES};
@@ -808,6 +808,9 @@ void main()
     {
       createInfo.chromaFilter = VK_FILTER_LINEAR;
       createInfo.format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+      createInfo.xChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+      createInfo.yChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+
       createInfo.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020;
       createInfo.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
 
@@ -818,7 +821,31 @@ void main()
       createInfo.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
 
       vkCreateSamplerYcbcrConversionKHR(device, &createInfo, NULL, &ycbcr[1].conv);
-      ycbcr[0].name = "YCbCr 601 Narrow";
+      ycbcr[1].name = "YCbCr 601 Narrow";
+
+      createInfo.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY;
+      createInfo.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
+
+      vkCreateSamplerYcbcrConversionKHR(device, &createInfo, NULL, &ycbcr[2].conv);
+      ycbcr[2].name = "RGB Identity Narrow";
+
+      createInfo.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY;
+      createInfo.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+
+      vkCreateSamplerYcbcrConversionKHR(device, &createInfo, NULL, &ycbcr[3].conv);
+      ycbcr[3].name = "RGB Identity Full";
+
+      createInfo.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY;
+      createInfo.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
+
+      vkCreateSamplerYcbcrConversionKHR(device, &createInfo, NULL, &ycbcr[4].conv);
+      ycbcr[4].name = "YCbCr Identity Narrow";
+
+      createInfo.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY;
+      createInfo.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+
+      vkCreateSamplerYcbcrConversionKHR(device, &createInfo, NULL, &ycbcr[5].conv);
+      ycbcr[5].name = "YCbCr Identity Full";
 
       pipeCreateInfo.stages = {
           CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
@@ -933,7 +960,7 @@ void main()
           vkCmdDraw(cmd, 4, 1, 0, 0);
         }
 
-        x += 100.0f;
+        x += 60.0f;
       }
 
       vkCmdEndRenderPass(cmd);

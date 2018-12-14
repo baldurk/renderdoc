@@ -1800,7 +1800,17 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(borderColor);
   SERIALISE_MEMBER(unnormalized);
 
-  SIZE_CHECK(152);
+  SERIALISE_MEMBER(ycbcrSampler);
+
+  SERIALISE_MEMBER(ycbcrModel);
+  SERIALISE_MEMBER(ycbcrRange);
+  SERIALISE_MEMBER(ycbcrSwizzle);
+  SERIALISE_MEMBER(xChromaOffset);
+  SERIALISE_MEMBER(yChromaOffset);
+  SERIALISE_MEMBER(chromaFilter);
+  SERIALISE_MEMBER(forceExplicitReconstruction);
+
+  SIZE_CHECK(200);
 };
 
 template <typename SerialiserType>

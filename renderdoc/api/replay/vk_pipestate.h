@@ -166,6 +166,28 @@ struct BindingElement
   DOCUMENT("For samplers - ``True`` if unnormalized co-ordinates are used in this sampler.");
   bool unnormalized = false;
 
+  DOCUMENT(R"(For samplers - the :class:`ResourceId` of the ycbcr conversion object associated with
+this sampler.
+)");
+  ResourceId ycbcrSampler;
+
+  DOCUMENT("For ycbcr samplers - the :class:`YcbcrConversion` used for conversion.");
+  YcbcrConversion ycbcrModel;
+  DOCUMENT("For ycbcr samplers - the :class:`YcbcrRange` used for conversion.");
+  YcbcrRange ycbcrRange;
+  DOCUMENT(R"(For ycbcr samplers - Four :class:`TextureSwizzle` elements indicating the swizzle
+applied before conversion.
+)");
+  TextureSwizzle ycbcrSwizzle[4];
+  DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` X-axis chroma offset.");
+  ChromaSampleLocation xChromaOffset;
+  DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` Y-axis chroma offset.");
+  ChromaSampleLocation yChromaOffset;
+  DOCUMENT("For ycbcr samplers - the :class:`FilterMode` describing the chroma filtering mode.");
+  FilterMode chromaFilter;
+  DOCUMENT("For ycbcr samplers - ``True`` if explicit reconstruction is force enabled.");
+  bool forceExplicitReconstruction;
+
   DOCUMENT(R"(For samplers - check if the border color is used in this Vulkan sampler.
 
 :return: ``True`` if the border color is used, ``False`` otherwise.

@@ -738,12 +738,14 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   {
     reductionMode = reduction->reductionMode;
   }
-}
 
-void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
-                                            VulkanCreationInfo &info,
-                                            const VkSamplerYcbcrConversionCreateInfo *pCreateInfo)
-{
+  const VkSamplerYcbcrConversionInfo *ycbcrInfo =
+      (const VkSamplerYcbcrConversionInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO);
+  if(ycbcrInfo)
+  {
+    ycbcr = GetResID(ycbcrInfo->conversion);
+  }
 }
 
 static TextureSwizzle Convert(VkComponentSwizzle s, int i)
@@ -761,6 +763,55 @@ static TextureSwizzle Convert(VkComponentSwizzle s, int i)
   }
 
   return TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
+}
+
+void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
+                                            VulkanCreationInfo &info,
+                                            const VkSamplerYcbcrConversionCreateInfo *pCreateInfo)
+{
+  switch(pCreateInfo->ycbcrModel)
+  {
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY: ycbcrModel = YcbcrConversion::Raw; break;
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY:
+      ycbcrModel = YcbcrConversion::RangeOnly;
+      break;
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709: ycbcrModel = YcbcrConversion::BT709; break;
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601: ycbcrModel = YcbcrConversion::BT601; break;
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020: ycbcrModel = YcbcrConversion::BT2020; break;
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_MAX_ENUM:
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_RANGE_SIZE: break;
+  }
+
+  switch(pCreateInfo->ycbcrRange)
+  {
+    case VK_SAMPLER_YCBCR_RANGE_ITU_FULL: ycbcrRange = YcbcrRange::ITUFull; break;
+    case VK_SAMPLER_YCBCR_RANGE_ITU_NARROW: ycbcrRange = YcbcrRange::ITUNarrow; break;
+    case VK_SAMPLER_YCBCR_RANGE_MAX_ENUM:
+    case VK_SAMPLER_YCBCR_RANGE_RANGE_SIZE: break;
+  }
+
+  switch(pCreateInfo->xChromaOffset)
+  {
+    case VK_CHROMA_LOCATION_COSITED_EVEN: xChromaOffset = ChromaSampleLocation::CositedEven; break;
+    case VK_CHROMA_LOCATION_MIDPOINT: xChromaOffset = ChromaSampleLocation::Midpoint; break;
+    case VK_CHROMA_LOCATION_MAX_ENUM:
+    case VK_CHROMA_LOCATION_RANGE_SIZE: break;
+  }
+
+  switch(pCreateInfo->yChromaOffset)
+  {
+    case VK_CHROMA_LOCATION_COSITED_EVEN: yChromaOffset = ChromaSampleLocation::CositedEven; break;
+    case VK_CHROMA_LOCATION_MIDPOINT: yChromaOffset = ChromaSampleLocation::Midpoint; break;
+    case VK_CHROMA_LOCATION_MAX_ENUM:
+    case VK_CHROMA_LOCATION_RANGE_SIZE: break;
+  }
+
+  swizzle[0] = Convert(pCreateInfo->components.r, 0);
+  swizzle[1] = Convert(pCreateInfo->components.g, 1);
+  swizzle[2] = Convert(pCreateInfo->components.b, 2);
+  swizzle[3] = Convert(pCreateInfo->components.a, 3);
+  chromaFilter = MakeFilterMode(pCreateInfo->chromaFilter);
+  forceExplicitReconstruction = pCreateInfo->forceExplicitReconstruction != 0;
 }
 
 void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

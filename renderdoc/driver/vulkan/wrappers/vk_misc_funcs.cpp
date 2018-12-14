@@ -466,6 +466,12 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
 
     AddResource(Sampler, ResourceType::Sampler, "Sampler");
     DerivedResource(device, Sampler);
+    const VkSamplerYcbcrConversionInfo *ycbcr = (const VkSamplerYcbcrConversionInfo *)FindNextStruct(
+        &CreateInfo, VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO);
+    if(ycbcr)
+    {
+      DerivedResource(ycbcr->conversion, Sampler);
+    }
   }
 
   return true;
@@ -503,6 +509,15 @@ VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateIn
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSampler);
       record->AddChunk(chunk);
+
+      const VkSamplerYcbcrConversionInfo *ycbcr =
+          (const VkSamplerYcbcrConversionInfo *)FindNextStruct(
+              pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO);
+      if(ycbcr)
+      {
+        VkResourceRecord *ycbcrRecord = GetRecord(ycbcr->conversion);
+        record->AddParent(ycbcrRecord);
+      }
     }
     else
     {

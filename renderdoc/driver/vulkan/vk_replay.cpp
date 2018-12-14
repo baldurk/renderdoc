@@ -1414,6 +1414,20 @@ void VulkanReplay::SavePipelineState()
                 el.maxLOD = sampl.maxLod;
                 MakeBorderColor(sampl.borderColor, (FloatVector *)el.borderColor);
                 el.unnormalized = sampl.unnormalizedCoordinates;
+
+                if(sampl.ycbcr != ResourceId())
+                {
+                  const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];
+                  el.ycbcrSampler = rm->GetOriginalID(sampl.ycbcr);
+
+                  el.ycbcrModel = ycbcr.ycbcrModel;
+                  el.ycbcrRange = ycbcr.ycbcrRange;
+                  memcpy(el.ycbcrSwizzle, ycbcr.swizzle, sizeof(TextureSwizzle) * 4);
+                  el.xChromaOffset = ycbcr.xChromaOffset;
+                  el.yChromaOffset = ycbcr.yChromaOffset;
+                  el.chromaFilter = ycbcr.chromaFilter;
+                  el.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
+                }
               }
             }
 

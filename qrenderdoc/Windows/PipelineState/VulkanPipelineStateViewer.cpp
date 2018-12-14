@@ -711,17 +711,57 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
           .arg((descriptor.minLOD == -FLT_MAX ? lit("0") : QString::number(descriptor.minLOD)))
           .arg((descriptor.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(descriptor.maxLOD)));
 
+  // omit lod clamp if this is an immutable sampler and the attached resource is entirely within the
+  // range
+  if(descriptor.immutableSampler)
+  {
+    TextureDescription *tex = m_Ctx.GetTexture(descriptor.resourceResourceId);
+    if(tex && descriptor.minLOD <= 0.0f && descriptor.maxLOD >= (float)(tex->mips - 1))
+    {
+      lod = QString();
+    }
+  }
+
   if(descriptor.mipBias != 0.0f)
     lod += lit(" Bias %1").arg(descriptor.mipBias);
 
-  return {QString(),
-          bindset,
-          slotname,
-          descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
-          descriptor.samplerResourceId,
-          addressing,
-          filter + lit(", ") + lod,
-          QString()};
+  if(!lod.isEmpty())
+    lod = lit(", ") + lod;
+
+  QString obj = ToQStr(descriptor.samplerResourceId);
+
+  if(descriptor.ycbcrSampler != ResourceId())
+  {
+    obj += lit(" ") + ToQStr(descriptor.ycbcrSampler);
+
+    if(descriptor.ycbcrSwizzle[0] != TextureSwizzle::Red ||
+       descriptor.ycbcrSwizzle[1] != TextureSwizzle::Green ||
+       descriptor.ycbcrSwizzle[2] != TextureSwizzle::Blue ||
+       descriptor.ycbcrSwizzle[3] != TextureSwizzle::Alpha)
+    {
+      obj += tr(" swizzle[%1%2%3%4]")
+                 .arg(ToQStr(descriptor.swizzle[0]))
+                 .arg(ToQStr(descriptor.swizzle[1]))
+                 .arg(ToQStr(descriptor.swizzle[2]))
+                 .arg(ToQStr(descriptor.swizzle[3]));
+    }
+
+    filter +=
+        QFormatStr(", %1 %2").arg(ToQStr(descriptor.ycbcrModel)).arg(ToQStr(descriptor.ycbcrRange));
+
+    addressing += tr(", Chroma %1 [%2,%3]")
+                      .arg(ToQStr(descriptor.chromaFilter))
+                      .arg(ToQStr(descriptor.xChromaOffset))
+                      .arg(ToQStr(descriptor.yChromaOffset));
+
+    if(descriptor.forceExplicitReconstruction)
+      addressing += tr(" Explicit");
+  }
+
+  return {QString(),    bindset,
+          slotname,     descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
+          obj,          addressing,
+          filter + lod, QString()};
 }
 
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,

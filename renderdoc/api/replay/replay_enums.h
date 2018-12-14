@@ -315,6 +315,33 @@ enum class AddressMode : uint32_t
 
 DECLARE_REFLECTION_ENUM(AddressMode);
 
+enum YcbcrConversion
+{
+  Raw,
+  RangeOnly,
+  BT709,
+  BT601,
+  BT2020,
+};
+
+DECLARE_REFLECTION_ENUM(YcbcrConversion);
+
+enum YcbcrRange
+{
+  ITUFull,
+  ITUNarrow,
+};
+
+DECLARE_REFLECTION_ENUM(YcbcrRange);
+
+enum ChromaSampleLocation
+{
+  CositedEven,
+  Midpoint,
+};
+
+DECLARE_REFLECTION_ENUM(ChromaSampleLocation);
+
 DOCUMENT(R"(The type of a resource referred to by binding or API usage.
 
 In some cases there is a little overlap or fudging when mapping API concepts - this is primarily

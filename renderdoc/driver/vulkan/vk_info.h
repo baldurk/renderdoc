@@ -386,6 +386,8 @@ struct VulkanCreationInfo
     VkBorderColor borderColor;
     bool unnormalizedCoordinates;
     VkSamplerReductionModeEXT reductionMode;
+
+    ResourceId ycbcr;
   };
   map<ResourceId, Sampler> m_Sampler;
 
@@ -393,6 +395,14 @@ struct VulkanCreationInfo
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkSamplerYcbcrConversionCreateInfo *pCreateInfo);
+
+    YcbcrConversion ycbcrModel;
+    YcbcrRange ycbcrRange;
+    TextureSwizzle swizzle[4];
+    ChromaSampleLocation xChromaOffset;
+    ChromaSampleLocation yChromaOffset;
+    FilterMode chromaFilter;
+    bool forceExplicitReconstruction;
   };
   map<ResourceId, YCbCrSampler> m_YCbCrSampler;
 

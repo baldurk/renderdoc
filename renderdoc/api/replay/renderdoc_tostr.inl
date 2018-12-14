@@ -440,6 +440,42 @@ std::string DoStringise(const AddressMode &el)
 }
 
 template <>
+std::string DoStringise(const YcbcrConversion &el)
+{
+  BEGIN_ENUM_STRINGISE(YcbcrConversion);
+  {
+    STRINGISE_ENUM_CLASS(Raw);
+    STRINGISE_ENUM_CLASS_NAMED(RangeOnly, "Range Only");
+    STRINGISE_ENUM_CLASS_NAMED(BT709, "BT.709");
+    STRINGISE_ENUM_CLASS_NAMED(BT601, "BT.601");
+    STRINGISE_ENUM_CLASS_NAMED(BT2020, "BT.2020");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const YcbcrRange &el)
+{
+  BEGIN_ENUM_STRINGISE(YcbcrRange);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(ITUFull, "Full");
+    STRINGISE_ENUM_CLASS_NAMED(ITUNarrow, "Narrow");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const ChromaSampleLocation &el)
+{
+  BEGIN_ENUM_STRINGISE(ChromaSampleLocation);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(CositedEven, "Even");
+    STRINGISE_ENUM_CLASS_NAMED(Midpoint, "Mid");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const ResourceType &el)
 {
   BEGIN_ENUM_STRINGISE(ResourceType)

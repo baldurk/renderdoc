@@ -2635,6 +2635,10 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
       break;
 
+    case VulkanChunk::vkCreateSamplerYcbcrConversion:
+      return Serialise_vkCreateSamplerYcbcrConversion(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
+      break;
+
     case VulkanChunk::vkCmdSetDeviceMask:
       return Serialise_vkCmdSetDeviceMask(ser, VK_NULL_HANDLE, 0);
       break;

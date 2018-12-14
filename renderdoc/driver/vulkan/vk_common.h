@@ -91,6 +91,7 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(Topology Topo);
 AddressMode MakeAddressMode(VkSamplerAddressMode addr);
 void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor);
 CompareFunction MakeCompareFunc(VkCompareOp func);
+FilterMode MakeFilterMode(VkFilter f);
 TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,
                          bool anisoEnable, bool compareEnable, VkSamplerReductionModeEXT reduction);
 LogicOperation MakeLogicOp(VkLogicOp op);
