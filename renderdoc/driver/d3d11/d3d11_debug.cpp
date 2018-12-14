@@ -137,24 +137,43 @@ void D3D11DebugManager::InitCommonResources()
 
   std::string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
-  CopyMSToArrayPS =
-      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
-  m_pDevice->InternalRef();
-  CopyArrayToMSPS =
-      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
-  m_pDevice->InternalRef();
-  FloatCopyMSToArrayPS =
-      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
-  m_pDevice->InternalRef();
-  FloatCopyArrayToMSPS =
-      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
-  m_pDevice->InternalRef();
-  DepthCopyMSToArrayPS =
-      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
-  m_pDevice->InternalRef();
-  DepthCopyArrayToMSPS =
-      shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
-  m_pDevice->InternalRef();
+  if(m_pDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
+  {
+    CopyMSToArrayPS =
+        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_4_0");
+    if(CopyMSToArrayPS)
+      m_pDevice->InternalRef();
+    CopyArrayToMSPS =
+        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_4_0");
+    if(CopyArrayToMSPS)
+      m_pDevice->InternalRef();
+    FloatCopyMSToArrayPS =
+        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_4_0");
+    if(FloatCopyMSToArrayPS)
+      m_pDevice->InternalRef();
+    FloatCopyArrayToMSPS =
+        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_4_0");
+    if(FloatCopyArrayToMSPS)
+      m_pDevice->InternalRef();
+    DepthCopyMSToArrayPS =
+        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_4_0");
+    if(DepthCopyMSToArrayPS)
+      m_pDevice->InternalRef();
+    DepthCopyArrayToMSPS =
+        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_4_0");
+    if(DepthCopyArrayToMSPS)
+      m_pDevice->InternalRef();
+  }
+  else
+  {
+    RDCWARN("Device feature level below 11_0, MSAA <-> Array copies will not be supported.");
+    CopyMSToArrayPS = NULL;
+    CopyArrayToMSPS = NULL;
+    FloatCopyMSToArrayPS = NULL;
+    FloatCopyArrayToMSPS = NULL;
+    DepthCopyMSToArrayPS = NULL;
+    DepthCopyArrayToMSPS = NULL;
+  }
 
   // mark created resources as internal during capture so they aren't included in capture files.
   rm->SetInternalResource(CopyMSToArrayPS);

@@ -51,7 +51,7 @@ ID3D11DeviceChild *D3D11ResourceManager::UnwrapResource(ID3D11DeviceChild *res)
 
 void D3D11ResourceManager::SetInternalResource(ID3D11DeviceChild *res)
 {
-  if(!RenderDoc::Inst().IsReplayApp())
+  if(res && !RenderDoc::Inst().IsReplayApp())
   {
     D3D11ResourceRecord *record = GetResourceRecord(GetIDForResource(res));
     if(record)
