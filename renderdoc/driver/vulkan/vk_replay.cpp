@@ -1744,7 +1744,26 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
        0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
   };
 
-  vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+  vector<VkWriteDescriptorSet> writeSets;
+  for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
+  {
+    if(writeSet[i].descriptorCount > 0)
+      writeSets.push_back(writeSet[i]);
+  }
+
+  for(size_t i = 0; i < ARRAY_COUNT(m_TexRender.DummyWrites); i++)
+  {
+    VkWriteDescriptorSet &write = m_TexRender.DummyWrites[i];
+
+    // don't write dummy data in the actual slot
+    if(write.dstBinding == descSetBinding)
+      continue;
+
+    write.dstSet = Unwrap(m_Histogram.m_HistogramDescSet[0]);
+    writeSets.push_back(write);
+  }
+
+  vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
   HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
 
@@ -1989,7 +2008,26 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
   };
 
-  vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+  vector<VkWriteDescriptorSet> writeSets;
+  for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
+  {
+    if(writeSet[i].descriptorCount > 0)
+      writeSets.push_back(writeSet[i]);
+  }
+
+  for(size_t i = 0; i < ARRAY_COUNT(m_TexRender.DummyWrites); i++)
+  {
+    VkWriteDescriptorSet &write = m_TexRender.DummyWrites[i];
+
+    // don't write dummy data in the actual slot
+    if(write.dstBinding == descSetBinding)
+      continue;
+
+    write.dstSet = Unwrap(m_Histogram.m_HistogramDescSet[0]);
+    writeSets.push_back(write);
+  }
+
+  vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
   HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
 
