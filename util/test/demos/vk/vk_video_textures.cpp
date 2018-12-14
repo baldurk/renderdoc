@@ -877,9 +877,13 @@ void main()
 
         ycbcr[i].descset = allocateDescriptorSet(setlayout);
 
-        VkImageView view = createImageView(vkh::ImageViewCreateInfo(
+        vkh::ImageViewCreateInfo viewCreateInfo(
             textures[nv12idx].tex.image, VK_IMAGE_VIEW_TYPE_2D, createInfo.format, {},
-            vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT)));
+            vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT));
+
+        viewCreateInfo.pNext = &ycbcrChain;
+
+        VkImageView view = createImageView(viewCreateInfo);
 
         vkh::updateDescriptorSets(
             device, {
