@@ -112,7 +112,7 @@ Texture dimensions
 
 ``RENDERDOC_YUVAChannels`` will be filled out an index indicating where each channel comes from in the source textures. The order is ``.x`` for ``Y``, ``.y`` for ``U``, ``.z`` for ``V`` and ``.w`` for ``A``.
 
-The indices for channels in the first texture in the normal 2D slot are ``0, 1, 2, 3``. Indices from ``4`` to ``7` indicate channels in the second texture, and so on.
+The indices for channels in the first texture in the normal 2D slot are ``0, 1, 2, 3``. Indices from ``4`` to ``7`` indicate channels in the second texture, and so on.
 
 If a channel is not present, e.g. alpha is commonly not available, it will be set to ``0xff == 255``.
 
