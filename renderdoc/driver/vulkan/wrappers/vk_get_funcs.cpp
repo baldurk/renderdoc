@@ -70,6 +70,10 @@ void WrappedVulkan::vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physica
     pFormatProperties->linearTilingFeatures = 0;
   if((pFormatProperties->optimalTilingFeatures & minRequiredMask) != minRequiredMask)
     pFormatProperties->optimalTilingFeatures = 0;
+
+  // don't report support for DISJOINT_BIT_KHR binding
+  pFormatProperties->linearTilingFeatures &= ~VK_FORMAT_FEATURE_DISJOINT_BIT;
+  pFormatProperties->optimalTilingFeatures &= ~VK_FORMAT_FEATURE_DISJOINT_BIT;
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
@@ -97,6 +101,10 @@ void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2(VkPhysicalDevice physic
     pFormatProperties->formatProperties.linearTilingFeatures = 0;
   if((pFormatProperties->formatProperties.optimalTilingFeatures & minRequiredMask) != minRequiredMask)
     pFormatProperties->formatProperties.optimalTilingFeatures = 0;
+
+  // don't report support for DISJOINT_BIT_KHR binding
+  pFormatProperties->formatProperties.linearTilingFeatures &= ~VK_FORMAT_FEATURE_DISJOINT_BIT;
+  pFormatProperties->formatProperties.optimalTilingFeatures &= ~VK_FORMAT_FEATURE_DISJOINT_BIT;
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
