@@ -171,6 +171,12 @@ struct Tex2DMSToArrayStateTracker
 void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray,
                                            UINT selectedSlice)
 {
+  if(!CopyArrayToMSPS)
+  {
+    RDCWARN("Can't copy array to MSAA texture, contents will be undefined.");
+    return;
+  }
+
   bool singleSliceMode = (selectedSlice != ~0U);
 
   D3D11MarkerRegion copy("CopyArrayToTex2DMS");
@@ -508,6 +514,12 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
 void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Texture2D *srcMS)
 {
+  if(!CopyMSToArrayPS)
+  {
+    RDCWARN("Can't copy array to MSAA texture, contents will be undefined.");
+    return;
+  }
+
   // we have to use exclusively the unwrapped context here as this might be happening during
   // capture and we don't want to serialise any of this work, and the parameters might not exist
   // as wrapped objects for that reason
