@@ -398,7 +398,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   if(cfg.mip == 0 && cfg.scale < 1.0f)
     imdesc.sampler = Unwrap(m_TexRender.LinearSampler);
 
-  VkDescriptorImageInfo altimdesc[2] = {0};
+  VkDescriptorImageInfo altimdesc[2] = {};
   for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
   {
     RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
