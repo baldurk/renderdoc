@@ -349,6 +349,9 @@ private:
 
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
+  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                 CompType typeHint, bool stencil, float *minval, float *maxval);
+
   void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm,
                           VulkanCreationInfo::Image &iminfo);
 

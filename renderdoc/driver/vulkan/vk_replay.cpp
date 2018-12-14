@@ -1640,6 +1640,45 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                              CompType typeHint, float *minval, float *maxval)
 {
+  ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
+
+  if(IsDepthAndStencilFormat(layouts.format))
+  {
+    // for depth/stencil we need to run the code twice - once to fetch depth and once to fetch
+    // stencil - since we can't process float depth and int stencil at the same time
+    Vec4f depth[2] = {
+        {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f},
+    };
+    Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
+
+    bool success =
+        GetMinMax(texid, sliceFace, mip, sample, typeHint, false, &depth[0].x, &depth[1].x);
+
+    if(!success)
+      return false;
+
+    success = GetMinMax(texid, sliceFace, mip, sample, typeHint, true, (float *)&stencil[0].x,
+                        (float *)&stencil[1].x);
+
+    if(!success)
+      return false;
+
+    // copy across into green channel, casting up to float, dividing by the range for this texture
+    depth[0].y = float(stencil[0].x) / 255.0f;
+    depth[1].y = float(stencil[1].x) / 255.0f;
+
+    memcpy(minval, &depth[0].x, sizeof(depth[0]));
+    memcpy(maxval, &depth[1].x, sizeof(depth[1]));
+
+    return true;
+  }
+
+  return GetMinMax(texid, sliceFace, mip, sample, typeHint, false, minval, maxval);
+}
+
+bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                             CompType typeHint, bool stencil, float *minval, float *maxval)
+{
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -1650,13 +1689,22 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
   if(IsStencilOnlyFormat(layouts.format))
+  {
     aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
   else if(IsDepthOrStencilFormat(layouts.format))
+  {
     aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    // do a stencil min/max if stencil is selected
+    if(stencil)
+      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
 
   CreateTexImageView(aspectFlags, liveIm, iminfo);
 
-  VkImageView liveImView = iminfo.view;
+  VkImageView liveImView =
+      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.altViews[0] : iminfo.view);
 
   RDCASSERT(liveImView != VK_NULL_HANDLE);
 
@@ -1696,14 +1744,16 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
       textype = RESTYPE_TEX2DMS;
   }
 
+  if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+  {
+    descSetBinding = 10;
+    intTypeIndex = 1;
+  }
+
   descSetBinding += textype;
 
   if(m_Histogram.m_MinMaxTilePipe[textype][intTypeIndex] == VK_NULL_HANDLE)
-  {
-    *minval = 0.0f;
-    *maxval = 1.0f;
     return false;
-  }
 
   VkDescriptorBufferInfo bufdescs[3];
   RDCEraseEl(bufdescs);
@@ -1927,9 +1977,17 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
   if(IsStencilOnlyFormat(layouts.format))
+  {
     aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
   else if(IsDepthOrStencilFormat(layouts.format))
+  {
     aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    // detect if stencil is selected
+    if(!channels[0] && channels[1] && !channels[2] && !channels[3])
+      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
 
   CreateTexImageView(aspectFlags, liveIm, iminfo);
 
@@ -1962,6 +2020,19 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
     textype = RESTYPE_TEX2D;
     if(iminfo.samples != VK_SAMPLE_COUNT_1_BIT)
       textype = RESTYPE_TEX2DMS;
+  }
+
+  if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+  {
+    descSetBinding = 10;
+    intTypeIndex = 1;
+
+    // rescale the range so that stencil seems to fit to 0-1
+    minval *= 255.0f;
+    maxval *= 255.0f;
+
+    // shuffle the channel selection, since stencil comes back in red
+    std::swap(channels[0], channels[1]);
   }
 
   descSetBinding += textype;
