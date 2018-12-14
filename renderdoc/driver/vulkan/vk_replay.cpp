@@ -1783,7 +1783,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   m_Histogram.m_MinMaxResult.FillDescriptor(bufdescs[1]);
   m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[2]);
 
-  VkDescriptorImageInfo altimdesc[2] = {0};
+  VkDescriptorImageInfo altimdesc[2] = {};
   for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
   {
     RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
@@ -2114,7 +2114,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   m_Histogram.m_HistogramBuf.FillDescriptor(bufdescs[0]);
   m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[1]);
 
-  VkDescriptorImageInfo altimdesc[2] = {0};
+  VkDescriptorImageInfo altimdesc[2] = {};
   for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
   {
     RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
