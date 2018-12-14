@@ -1226,6 +1226,11 @@ bool IsDoubleFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);
 bool IsYUVFormat(VkFormat f);
 
+uint32_t GetYUVPlaneCount(VkFormat f);
+uint32_t GetYUVNumRows(VkFormat f, uint32_t height);
+VkFormat GetYUVViewPlaneFormat(VkFormat f, uint32_t plane);
 VkFormat GetDepthOnlyFormat(VkFormat f);
 
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);
+uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
+                          uint32_t mip, uint32_t plane);

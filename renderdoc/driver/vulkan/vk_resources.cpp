@@ -493,6 +493,54 @@ uint32_t GetYUVNumRows(VkFormat f, uint32_t height)
   return height;
 }
 
+VkFormat GetYUVViewPlaneFormat(VkFormat f, uint32_t plane)
+{
+  switch(f)
+  {
+    case VK_FORMAT_G8B8G8R8_422_UNORM:
+    case VK_FORMAT_B8G8R8G8_422_UNORM:
+    case VK_FORMAT_R10X6_UNORM_PACK16:
+    case VK_FORMAT_R10X6G10X6_UNORM_2PACK16:
+    case VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
+    case VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16:
+    case VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16:
+    case VK_FORMAT_R12X4_UNORM_PACK16:
+    case VK_FORMAT_R12X4G12X4_UNORM_2PACK16:
+    case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16:
+    case VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16:
+    case VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16:
+    case VK_FORMAT_G16B16G16R16_422_UNORM:
+    case VK_FORMAT_B16G16R16G16_422_UNORM: return f;
+    case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+    case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
+    case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM: return VK_FORMAT_R8_UNORM;
+    case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+    case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
+      return plane == 0 ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8G8_UNORM;
+    case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+    case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16: return VK_FORMAT_R10X6_UNORM_PACK16;
+    case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+      return plane == 0 ? VK_FORMAT_R10X6_UNORM_PACK16 : VK_FORMAT_R10X6G10X6_UNORM_2PACK16;
+    case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16: return VK_FORMAT_R12X4_UNORM_PACK16;
+    case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+      return plane == 0 ? VK_FORMAT_R12X4_UNORM_PACK16 : VK_FORMAT_R12X4G12X4_UNORM_2PACK16;
+    case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
+    case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
+    case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM: return VK_FORMAT_R16_UNORM;
+    case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM:
+    case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
+      return plane == 0 ? VK_FORMAT_R16_UNORM : VK_FORMAT_R16G16_UNORM;
+    default: break;
+  }
+
+  return f;
+}
+
 VkFormat GetDepthOnlyFormat(VkFormat f)
 {
   switch(f)
@@ -938,6 +986,86 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
   }
 
   return ret;
+}
+
+uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
+                          uint32_t mip, uint32_t plane)
+{
+  switch(Format)
+  {
+    case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R8_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), RDCMAX(1U, Height >> 1), Depth,
+                           VK_FORMAT_R8G8_UNORM, mip);
+
+    case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM:
+    case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R16_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), RDCMAX(1U, Height >> 1), Depth,
+                           VK_FORMAT_R16G16_UNORM, mip);
+
+    case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R8_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), Height, Depth, VK_FORMAT_R8G8_UNORM, mip);
+
+    case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
+    case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R16_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), Height, Depth, VK_FORMAT_R16G16_UNORM, mip);
+
+    case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R8_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), RDCMAX(1U, Height >> 1), Depth,
+                           VK_FORMAT_R8_UNORM, mip);
+
+    case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+    case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
+
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R16_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), RDCMAX(1U, Height >> 1), Depth,
+                           VK_FORMAT_R16_UNORM, mip);
+
+    case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R8_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), Height, Depth, VK_FORMAT_R8_UNORM, mip);
+
+    case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+    case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
+      if(plane == 0)
+        return GetByteSize(Width, Height, Depth, VK_FORMAT_R16_UNORM, mip);
+      else
+        return GetByteSize(RDCMAX(1U, Width >> 1), Height, Depth, VK_FORMAT_R16_UNORM, mip);
+
+    case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
+      return GetByteSize(Width, Height, Depth, VK_FORMAT_R8_UNORM, mip);
+
+    case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+    case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+    case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
+      return GetByteSize(Width, Height, Depth, VK_FORMAT_R16_UNORM, mip);
+
+    default: break;
+  }
+
+  return GetByteSize(Width, Height, Depth, Format, mip);
 }
 
 ResourceFormat MakeResourceFormat(VkFormat fmt)
@@ -3038,6 +3166,47 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
       CHECK(yuvsizes[i++] == GetByteSize(width, height, 1, f, 0));
     }
   };
+
+  SECTION("GetPlaneByteSize for planar YUV formats")
+  {
+    const uint32_t width = 24, height = 24;
+
+    for(VkFormat f : {
+            VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM,
+            VK_FORMAT_G8_B8R8_2PLANE_420_UNORM,
+            VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM,
+            VK_FORMAT_G8_B8R8_2PLANE_422_UNORM,
+            VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM,
+            VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16,
+            VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16,
+            VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16,
+            VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16,
+            VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16,
+            VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16,
+            VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16,
+            VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16,
+            VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16,
+            VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16,
+            VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM,
+            VK_FORMAT_G16_B16R16_2PLANE_420_UNORM,
+            VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM,
+            VK_FORMAT_G16_B16R16_2PLANE_422_UNORM,
+            VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM,
+        })
+    {
+      INFO("Format is " << ToStr(f));
+
+      uint32_t planeCount = GetYUVPlaneCount(f);
+
+      CHECK(planeCount > 1);
+
+      uint32_t planeSum = 0;
+      for(uint32_t p = 0; p < planeCount; p++)
+        planeSum += GetPlaneByteSize(width, height, 1, f, 0, p);
+
+      CHECK(planeSum == GetByteSize(width, height, 1, f, 0));
+    }
+  }
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)
