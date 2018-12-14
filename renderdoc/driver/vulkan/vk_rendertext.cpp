@@ -515,7 +515,7 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
   m_TextStringUBO.FillDescriptor(bufInfo[2]);
 
   VkDescriptorImageInfo atlasImInfo;
-  atlasImInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  atlasImInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   atlasImInfo.imageView = Unwrap(m_TextAtlasView);
   atlasImInfo.sampler = Unwrap(m_LinearSampler);
 
