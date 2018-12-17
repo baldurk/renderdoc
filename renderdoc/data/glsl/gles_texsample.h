@@ -58,7 +58,8 @@ layout(binding = 9) uniform PRECISION usamplerBuffer texUIntBuffer;
 layout(binding = 10) uniform PRECISION usampler2DMS texUInt2DMS;
 #endif
 
-vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
+                         uvec4 YUVDownsampleRate, uvec4 YUVAChannels)
 {
   return vec4(0.0f, 0.0f, 0.0f, 0.0f);
 }
@@ -125,7 +126,8 @@ layout(binding = 9) uniform PRECISION isamplerBuffer texSIntBuffer;
 layout(binding = 10) uniform PRECISION isampler2DMS texSInt2DMS;
 #endif
 
-vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
+                         uvec4 YUVDownsampleRate, uvec4 YUVAChannels)
 {
   return vec4(0.0f, 0.0f, 0.0f, 0.0f);
 }
@@ -194,7 +196,8 @@ layout(binding = 9) uniform PRECISION samplerBuffer texBuffer;
 layout(binding = 10) uniform PRECISION sampler2DMS tex2DMS;
 #endif
 
-vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
+                         uvec4 YUVDownsampleRate, uvec4 YUVAChannels)
 {
   vec4 col;
   if(type == RESTYPE_TEX2D)
