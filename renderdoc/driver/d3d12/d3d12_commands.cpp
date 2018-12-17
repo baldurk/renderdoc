@@ -1529,10 +1529,15 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
         m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID());
   }
 
-  if(m_LastCmdListID != ResourceId())
-    m_BakedCmdListInfo[m_LastCmdListID].drawCount++;
-  else
-    m_RootDrawcallID++;
+  // markers don't increment drawcall ID
+  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PassBoundary;
+  if(!(draw.flags & MarkerMask))
+  {
+    if(m_LastCmdListID != ResourceId())
+      m_BakedCmdListInfo[m_LastCmdListID].drawCount++;
+    else
+      m_RootDrawcallID++;
+  }
 
   if(hasEvents)
   {

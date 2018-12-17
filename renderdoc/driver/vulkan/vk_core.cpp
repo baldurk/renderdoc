@@ -3338,10 +3338,15 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     }
   }
 
-  if(m_LastCmdBufferID != ResourceId())
-    m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount++;
-  else
-    m_RootDrawcallID++;
+  // markers don't increment drawcall ID
+  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PassBoundary;
+  if(!(draw.flags & MarkerMask))
+  {
+    if(m_LastCmdBufferID != ResourceId())
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount++;
+    else
+      m_RootDrawcallID++;
+  }
 
   if(hasEvents)
   {
