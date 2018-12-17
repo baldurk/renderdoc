@@ -69,6 +69,7 @@ void ShutdownSPIRVCompiler();
 
 struct SPVInstruction;
 
+enum class GraphicsAPI : uint32_t;
 enum class ShaderStage : uint32_t;
 enum class ShaderBuiltin : uint32_t;
 struct ShaderReflection;
@@ -145,8 +146,9 @@ struct SPVModule
   std::vector<std::string> EntryPoints() const;
   ShaderStage StageForEntry(const string &entryPoint) const;
 
-  void MakeReflection(ShaderStage stage, const string &entryPoint, ShaderReflection &reflection,
-                      ShaderBindpointMapping &mapping, SPIRVPatchData &patchData) const;
+  void MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const string &entryPoint,
+                      ShaderReflection &reflection, ShaderBindpointMapping &mapping,
+                      SPIRVPatchData &patchData) const;
 };
 
 string CompileSPIRV(const SPIRVCompilationSettings &settings, const vector<string> &sources,

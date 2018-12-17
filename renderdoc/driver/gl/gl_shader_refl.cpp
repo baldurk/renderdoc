@@ -2006,7 +2006,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
     return;
   }
 
-  // in case of bugs, we readback into this array instead of
+  // in case of bugs, we readback into this array instead of a single int
   GLint dummyReadback[32];
 
 #if ENABLED(RDOC_DEVEL)
@@ -2275,6 +2275,111 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
       if(loc >= 0 && loc < numVAttribBindings)
       {
         mapping.inputAttributes[loc] = i;
+      }
+    }
+  }
+
+#if ENABLED(RDOC_DEVEL)
+  for(size_t i = 1; i < ARRAY_COUNT(dummyReadback); i++)
+    if(dummyReadback[i] != 0x6c7b8a9d)
+      RDCERR("Invalid uniform readback - data beyond first element modified!");
+#endif
+}
+
+void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
+                                   ShaderBindpointMapping &mapping)
+{
+  // this is similar in principle to GetBindpointMapping - we want to look up the actual uniform
+  // values right now and replace the bindpoint mapping list. However for SPIR-V we can't call
+  // glGetUniformLocation. Instead we assume the *current* bind value is a location, and we
+  // overwrite it with the read uniform value.
+
+  // in case of bugs, we readback into this array instead of a single int
+  GLint dummyReadback[32];
+
+#if ENABLED(RDOC_DEVEL)
+  for(size_t i = 1; i < ARRAY_COUNT(dummyReadback); i++)
+    dummyReadback[i] = 0x6c7b8a9d;
+#endif
+
+  // GL_ARB_gl_spirv spec says that glBindAttribLocation does nothing on SPIR-V, so we don't have to
+  // remap inputAttributes.
+
+  // It's fuzzy on whether UBOs can be remapped with glUniformBlockBinding so for now we hope that
+  // anyone using UBOs and SPIR-V will at least specify immutable bindings in the SPIR-V.
+  for(size_t i = 0; i < mapping.constantBlocks.size(); i++)
+  {
+    Bindpoint &bind = mapping.constantBlocks[i];
+
+    if(!bind.used)
+      continue;
+
+    if(bind.bind < 0)
+    {
+      RDCERR("Invalid constant block binding found: '%s' = %d",
+             refl->constantBlocks[i].name.c_str(), bind.bind);
+      bind.bind = 0;
+    }
+  }
+
+  // shouldn't have any separate samplers - this is GL
+  RDCASSERT(mapping.samplers.size() == 0);
+
+  // for other resources we handle textures only, other resource types are assumed to have valid fix
+  // binds already. Any negative inputs are locations, so get the uniform value and assign it as the
+  // binding index.
+  for(size_t i = 0; i < refl->readOnlyResources.size(); i++)
+  {
+    if(!mapping.readOnlyResources[i].used)
+      continue;
+
+    if(refl->readOnlyResources[i].isTexture && mapping.readOnlyResources[i].bind < 0)
+    {
+      GL.glGetUniformiv(curProg, -mapping.readOnlyResources[i].bind, dummyReadback);
+      mapping.readOnlyResources[i].bind = dummyReadback[0];
+
+      if(mapping.readOnlyResources[i].bind < 0)
+      {
+        RDCERR("Invalid uniform value retrieved: '%s' = %d",
+               refl->readOnlyResources[i].name.c_str(), mapping.readOnlyResources[i].bind);
+        mapping.readOnlyResources[i].bind = 0;
+      }
+    }
+    else
+    {
+      if(mapping.readOnlyResources[i].bind < 0)
+      {
+        RDCERR("Invalid read-only resource binding found: '%s' = %d",
+               refl->readOnlyResources[i].name.c_str(), mapping.readOnlyResources[i].bind);
+        mapping.readOnlyResources[i].bind = 0;
+      }
+    }
+  }
+
+  for(size_t i = 0; i < refl->readWriteResources.size(); i++)
+  {
+    if(!mapping.readWriteResources[i].used)
+      continue;
+
+    if(refl->readWriteResources[i].isTexture && mapping.readWriteResources[i].bind < 0)
+    {
+      GL.glGetUniformiv(curProg, -mapping.readWriteResources[i].bind, dummyReadback);
+      mapping.readWriteResources[i].bind = dummyReadback[0];
+
+      if(mapping.readWriteResources[i].bind < 0)
+      {
+        RDCERR("Invalid uniform value retrieved: '%s' = %d",
+               refl->readWriteResources[i].name.c_str(), mapping.readWriteResources[i].bind);
+        mapping.readWriteResources[i].bind = 0;
+      }
+    }
+    else
+    {
+      if(mapping.readWriteResources[i].bind < 0)
+      {
+        RDCERR("Invalid read-only resource binding found: '%s' = %d",
+               refl->readWriteResources[i].name.c_str(), mapping.readWriteResources[i].bind);
+        mapping.readWriteResources[i].bind = 0;
       }
     }
   }

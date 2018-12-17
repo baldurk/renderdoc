@@ -696,7 +696,7 @@ string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
   auto &shaderDetails =
       m_pDriver->m_Shaders[m_pDriver->GetResourceManager()->GetLiveID(refl->resourceId)];
 
-  if(shaderDetails.sources.empty())
+  if(shaderDetails.sources.empty() && shaderDetails.spirvWords.empty())
     return "; Invalid Shader Specified";
 
   if(target == SPIRVDisassemblyTarget || target.empty())
@@ -960,6 +960,8 @@ void GLReplay::SavePipelineState()
           {
             stages[i]->bindpointMapping = shaderDetails.mapping;
             spirv[i] = true;
+
+            EvaluateSPIRVBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
           }
           else
           {
@@ -1000,6 +1002,8 @@ void GLReplay::SavePipelineState()
         {
           stages[i]->bindpointMapping = shaderDetails.mapping;
           spirv[i] = true;
+
+          EvaluateSPIRVBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
         }
         else
         {
@@ -2120,6 +2124,10 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
       }
 
       FillSpecConstantVariables(cblock.variables, outvars, specconsts);
+    }
+    else if(!cblock.bufferBacked)
+    {
+      FillCBufferVariables(curProg, false, "", cblock.variables, outvars, data);
     }
     else
     {

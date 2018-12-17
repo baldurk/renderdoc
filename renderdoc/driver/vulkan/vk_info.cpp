@@ -859,7 +859,8 @@ void VulkanCreationInfo::ShaderModule::Reflection::Init(VulkanResourceManager *r
     entryPoint = entry;
     stageIndex = StageIndex(stage);
 
-    spv.MakeReflection(ShaderStage(stageIndex), entryPoint, refl, mapping, patchData);
+    spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, refl, mapping,
+                       patchData);
 
     refl.resourceId = resourceMan->GetOriginalID(id);
     refl.entryPoint = entryPoint;

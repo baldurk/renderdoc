@@ -524,6 +524,9 @@ void ClearGLErrors();
 GLuint GetBoundVertexBuffer(GLuint idx);
 GLint GetNumVertexBuffers();
 
+void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
+                                   ShaderBindpointMapping &mapping);
+
 void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
                          ShaderBindpointMapping &mapping);
 

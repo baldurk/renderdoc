@@ -893,7 +893,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
     {
       for(const ConstantBlock &bind : shaderDetails->constantBlocks)
       {
-        if(mapping.constantBlocks[bind.bindPoint].bind == i)
+        if(bind.bufferBacked && mapping.constantBlocks[bind.bindPoint].bind == i)
         {
           shaderCBuf = &bind;
           map = &mapping.constantBlocks[bind.bindPoint];

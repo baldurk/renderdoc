@@ -69,7 +69,8 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
   // we discard this too, because we don't need it - we don't do any SPIR-V patching in GL
   SPIRVPatchData patchData;
 
-  spirv.MakeReflection(ShaderStage(ShaderIdx(type)), pEntryPoint, reflection, mapping, patchData);
+  spirv.MakeReflection(GraphicsAPI::OpenGL, ShaderStage(ShaderIdx(type)), pEntryPoint, reflection,
+                       mapping, patchData);
 
   version = 460;
 

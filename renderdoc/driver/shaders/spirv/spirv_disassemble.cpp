@@ -75,6 +75,8 @@ namespace spv
 // show the offset/arraystride/matrixstride decorations for structure packing
 #define SHOW_STRUCT_PACKING 0
 
+#define INVALID_BIND -INT_MAX
+
 namespace spv
 {
 Op OpUnknown = (Op)~0U;
@@ -3758,12 +3760,12 @@ struct bindpair
     if(map.bindset != o.map.bindset)
       return map.bindset < o.map.bindset;
 
-    // sort -1 to the end
-    if(map.bind == -1 && o.map.bind == -1)    // equal
+    // sort INVALID_BIND to the end
+    if(map.bind == INVALID_BIND && o.map.bind == INVALID_BIND)    // equal
       return false;
-    if(map.bind == -1)    // -1 not less than anything
+    if(map.bind == INVALID_BIND)    // INVALID_BIND not less than anything
       return false;
-    if(o.map.bind == -1)    // anything less than -1
+    if(o.map.bind == INVALID_BIND)    // anything less than INVALID_BIND
       return true;
 
     return map.bind < o.map.bind;
@@ -3996,7 +3998,7 @@ ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
   return ShaderStage::Count;
 }
 
-void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
+void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const string &entryPoint,
                                ShaderReflection &reflection, ShaderBindpointMapping &mapping,
                                SPIRVPatchData &patchData) const
 {
@@ -4037,6 +4039,8 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   reflection.dispatchThreadsDimension[0] = 0;
   reflection.dispatchThreadsDimension[1] = 0;
   reflection.dispatchThreadsDimension[2] = 0;
+
+  ConstantBlock globalsblock;
 
   for(size_t i = 0; i < globals.size(); i++)
   {
@@ -4211,15 +4215,42 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
       if(type->type == SPVTypeData::ePointer)
         type = type->baseType;
 
+      bool isArray = false;
       uint32_t arraySize = 1;
       if(type->type == SPVTypeData::eArray)
       {
+        isArray = true;
         if(type->arraySize != ~0U)
           arraySize = type->arraySize;
         type = type->baseType;
       }
 
-      if(type->type == SPVTypeData::eStruct)
+      if(type->type < SPVTypeData::eCompositeCount)
+      {
+        // global loose variable - add to $Globals block
+        RDCASSERT(type->type != SPVTypeData::ePointer);
+        RDCASSERT(sourceAPI == GraphicsAPI::OpenGL);
+
+        ShaderConstant constant;
+
+        MakeConstantBlockVariable(constant, type, inst->str, inst->decorations);
+
+        if(isArray)
+          constant.type.descriptor.elements = arraySize;
+        else
+          constant.type.descriptor.elements = 0;
+
+        for(size_t d = 0; d < inst->decorations.size(); d++)
+        {
+          if(inst->decorations[d].decoration == spv::DecorationLocation)
+            constant.reg.vec = (int32_t)inst->decorations[d].val;
+        }
+
+        constant.reg.comp = 0;
+
+        globalsblock.variables.push_back(constant);
+      }
+      else if(type->type == SPVTypeData::eStruct)
       {
         ConstantBlock cblock;
 
@@ -4233,9 +4264,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
         Bindpoint bindmap;
         // set can be implicitly 0, but the binding must be set explicitly.
-        // If no binding is found, we set -1 and sort to the end of the resources
+        // If no binding is found, we set INVALID_BIND and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
-        bindmap.bind = -1;
+        bindmap.bind = INVALID_BIND;
 
         bool ssbo = false;
 
@@ -4304,9 +4335,22 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           }
         }
 
-        // should never have elements that have no binding declared but
-        // are used, unless it's push constants (which is handled elsewhere)
-        RDCASSERT(!bindmap.used || !cblock.bufferBacked || bindmap.bind >= 0);
+        // we should always have a location. Put that in as the bind, it will be overwritten
+        // dynamically with the actual value.
+        if(sourceAPI == GraphicsAPI::OpenGL)
+        {
+          for(size_t d = 0; d < inst->decorations.size(); d++)
+          {
+            if(inst->decorations[d].decoration == spv::DecorationLocation)
+              bindmap.bind = -(int32_t)inst->decorations[d].val;
+          }
+        }
+
+        // on Vulkan should never have elements that have no binding declared but are used, unless
+        // it's push constants (which is handled elsewhere). On GL we should have gotten a location
+        // above, which will be rewritten later when looking up the pipeline state since it's
+        // mutable from draw to draw in theory.
+        RDCASSERT(!bindmap.used || !cblock.bufferBacked || bindmap.bind != INVALID_BIND);
 
         if(ssbo)
           rwresources.push_back(shaderrespair(bindmap, res));
@@ -4395,9 +4439,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
         Bindpoint bindmap;
         // set can be implicitly 0, but the binding must be set explicitly.
-        // If no binding is found, we set -1 and sort to the end of the resources
+        // If no binding is found, we set INVALID_BIND and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
-        bindmap.bind = -1;
+        bindmap.bind = INVALID_BIND;
 
         for(size_t d = 0; d < inst->decorations.size(); d++)
         {
@@ -4426,9 +4470,22 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           }
         }
 
-        // should never have elements that have no binding declared but
-        // are used
-        RDCASSERT(!bindmap.used || bindmap.bind >= 0);
+        // we should always have a location. Put that in as the bind, it will be overwritten
+        // dynamically with the actual value.
+        if(sourceAPI == GraphicsAPI::OpenGL)
+        {
+          for(size_t d = 0; d < inst->decorations.size(); d++)
+          {
+            if(inst->decorations[d].decoration == spv::DecorationLocation)
+              bindmap.bind = -(int32_t)inst->decorations[d].val;
+          }
+        }
+
+        // on Vulkan should never have elements that have no binding declared but are used, unless
+        // it's push constants (which is handled elsewhere). On GL we should have gotten a location
+        // above, which will be rewritten later when looking up the pipeline state since it's
+        // mutable from draw to draw in theory.
+        RDCASSERT(!bindmap.used || bindmap.bind != INVALID_BIND);
 
         if(sepSampler)
           samplers.push_back(shaderrespair(bindmap, res));
@@ -4463,7 +4520,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     // set something crazy so this doesn't overlap with a real buffer binding
     // also identify this as specialization constant data
     bindmap.bindset = SpecializationConstantBindSet;
-    bindmap.bind = -1;
+    bindmap.bind = INVALID_BIND;
     bindmap.arraySize = 1;
     bindmap.used = true;
 
@@ -4503,6 +4560,21 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     }
 
     cblocks.push_back(cblockpair(bindmap, cblock));
+  }
+
+  if(!globalsblock.variables.empty())
+  {
+    globalsblock.name = "$Globals";
+    globalsblock.bufferBacked = false;
+    globalsblock.bindPoint = (int)cblocks.size();
+
+    Bindpoint bindmap;
+    bindmap.bindset = 0;
+    bindmap.bind = INVALID_BIND;
+    bindmap.arraySize = 1;
+    bindmap.used = true;
+
+    cblocks.push_back(cblockpair(bindmap, globalsblock));
   }
 
   // look for execution modes that affect the reflection and apply them
@@ -4624,7 +4696,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
   mapping.inputAttributes.resize(numInputs);
   for(size_t i = 0; i < numInputs; i++)
-    mapping.inputAttributes[i] = -1;
+    mapping.inputAttributes[i] = INVALID_BIND;
 
   for(size_t i = 0; i < reflection.inputSignature.size(); i++)
     if(reflection.inputSignature[i].systemValue == ShaderBuiltin::Undefined)
@@ -4650,10 +4722,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   for(size_t i = 0; i < cblocks.size(); i++)
   {
     mapping.constantBlocks[i] = cblocks[i].map;
-    // fix up any bind points marked with -1. They were sorted to the end
+    // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.constantBlocks[i].bind == -1)
+    if(mapping.constantBlocks[i].bind == INVALID_BIND)
       mapping.constantBlocks[i].bind = 0;
     reflection.constantBlocks[i] = cblocks[i].bindres;
     reflection.constantBlocks[i].bindPoint = (int32_t)i;
@@ -4662,10 +4734,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   for(size_t i = 0; i < samplers.size(); i++)
   {
     mapping.samplers[i] = samplers[i].map;
-    // fix up any bind points marked with -1. They were sorted to the end
+    // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.samplers[i].bind == -1)
+    if(mapping.samplers[i].bind == INVALID_BIND)
       mapping.samplers[i].bind = 0;
     reflection.samplers[i].name = samplers[i].bindres.name;
     reflection.samplers[i].bindPoint = (int32_t)i;
@@ -4674,10 +4746,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   for(size_t i = 0; i < roresources.size(); i++)
   {
     mapping.readOnlyResources[i] = roresources[i].map;
-    // fix up any bind points marked with -1. They were sorted to the end
+    // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.readOnlyResources[i].bind == -1)
+    if(mapping.readOnlyResources[i].bind == INVALID_BIND)
       mapping.readOnlyResources[i].bind = 0;
     reflection.readOnlyResources[i] = roresources[i].bindres;
     reflection.readOnlyResources[i].bindPoint = (int32_t)i;
@@ -4686,10 +4758,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   for(size_t i = 0; i < rwresources.size(); i++)
   {
     mapping.readWriteResources[i] = rwresources[i].map;
-    // fix up any bind points marked with -1. They were sorted to the end
+    // fix up any bind points marked with INVALID_BIND. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping.readWriteResources[i].bind == -1)
+    if(mapping.readWriteResources[i].bind == INVALID_BIND)
       mapping.readWriteResources[i].bind = 0;
     reflection.readWriteResources[i] = rwresources[i].bindres;
     reflection.readWriteResources[i].bindPoint = (int32_t)i;
