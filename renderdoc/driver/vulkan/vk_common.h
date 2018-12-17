@@ -219,6 +219,12 @@ enum
   VkCheckExt_Max,
 };
 
+enum
+{
+  VkCheckLayer_unique_objects,
+  VkCheckLayer_Max,
+};
+
 DECLARE_REFLECTION_STRUCT(VkBaseInStructure);
 
 // we cast to this type when serialising as a placeholder indicating that

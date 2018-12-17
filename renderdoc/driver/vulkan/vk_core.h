@@ -815,7 +815,8 @@ private:
 
   VulkanDrawcallTreeNode m_ParentDrawcall;
 
-  bool m_ExtensionsEnabled[VkCheckExt_Max];
+  bool m_ExtensionsEnabled[VkCheckExt_Max] = {};
+  bool m_LayersEnabled[VkCheckLayer_Max] = {};
 
   // in vk_<platform>.cpp
   void AddRequiredExtensions(bool instance, vector<string> &extensionList,

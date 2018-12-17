@@ -2946,6 +2946,76 @@ void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
     ScopedDebugMessageSink *sink = GetDebugMessageSink();
     if(sink)
       DebugMessages.swap(sink->msgs);
+
+    // if we have the unique objects layer we can assume all objects have a unique ID, and replace
+    // any text that looks like an object reference (0xHEX).
+    if(m_LayersEnabled[VkCheckLayer_unique_objects])
+    {
+      for(DebugMessage &msg : DebugMessages)
+      {
+        if(strstr(msg.description.c_str(), "0x"))
+        {
+          std::string desc = msg.description;
+
+          size_t offs = desc.find("0x");
+          while(offs != std::string::npos)
+          {
+            // if we're on a word boundary
+            if(offs == 0 || !isalnum(desc[offs - 1]))
+            {
+              size_t end = offs + 2;
+
+              uint64_t val = 0;
+
+              // consume all hex chars
+              while(end < desc.length())
+              {
+                if(desc[end] >= '0' && desc[end] <= '9')
+                {
+                  val <<= 4;
+                  val += (desc[end] - '0');
+                  end++;
+                }
+                else if(desc[end] >= 'A' && desc[end] <= 'F')
+                {
+                  val <<= 4;
+                  val += (desc[end] - 'A') + 0xA;
+                  end++;
+                }
+                else if(desc[end] >= 'a' && desc[end] <= 'f')
+                {
+                  val <<= 4;
+                  val += (desc[end] - 'a') + 0xA;
+                  end++;
+                }
+                else
+                {
+                  break;
+                }
+              }
+
+              // unique objects layer implies this is a unique search so we don't have to worry
+              // about type aliases
+              ResourceId id = GetResourceManager()->GetFirstIDForHandle(val);
+
+              if(id != ResourceId())
+              {
+                std::string idstr = StringFormat::Fmt(" (%s)", ToStr(id).c_str());
+
+                desc.insert(end, idstr.c_str());
+
+                offs = desc.find("0x", end + idstr.length());
+                continue;
+              }
+            }
+
+            offs = desc.find("0x", offs + 1);
+          }
+
+          msg.description = desc;
+        }
+      }
+    }
   }
 
   SERIALISE_ELEMENT(DebugMessages);

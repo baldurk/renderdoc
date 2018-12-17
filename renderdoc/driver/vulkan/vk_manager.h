@@ -223,6 +223,8 @@ public:
     return ret;
   }
 
+  ResourceId GetFirstIDForHandle(uint64_t handle);
+
   // easy path for getting the unwrapped handle cast to the
   // write type. Saves a lot of work casting to either WrappedVkNonDispRes
   // or WrappedVkDispRes depending on the type, then ->real, then casting

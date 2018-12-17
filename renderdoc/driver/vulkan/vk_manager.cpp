@@ -576,6 +576,32 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
   }
 }
 
+ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
+{
+  for(auto it = m_ResourceRecords.begin(); it != m_ResourceRecords.end(); ++it)
+  {
+    WrappedVkRes *res = it->second->Resource;
+
+    if(!res)
+      continue;
+
+    if(IsDispatchableRes(res))
+    {
+      WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
+      if(disp->real.handle == handle)
+        return disp->id;
+    }
+    else
+    {
+      WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
+      if(nondisp->real.handle == handle)
+        return nondisp->id;
+    }
+  }
+
+  return ResourceId();
+}
+
 bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res, bool prepare)
 {
   return false;

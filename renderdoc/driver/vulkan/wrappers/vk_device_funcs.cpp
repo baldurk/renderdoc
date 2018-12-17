@@ -165,8 +165,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     }
   }
 
-  RDCEraseEl(m_ExtensionsEnabled);
-
   std::set<string> supportedExtensions;
 
   for(size_t i = 0; i <= params.Layers.size(); i++)
@@ -488,6 +486,18 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
     modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
   }
+
+  for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
+  {
+    if(!strcmp(modifiedCreateInfo.ppEnabledLayerNames[i], "VK_LAYER_LUNARG_standard_validation") ||
+       !strcmp(modifiedCreateInfo.ppEnabledLayerNames[i], "VK_LAYER_GOOGLE_unique_objects"))
+    {
+      m_LayersEnabled[VkCheckLayer_unique_objects] = true;
+    }
+  }
+
+  // if we forced on API validation, it's also available
+  m_LayersEnabled[VkCheckLayer_unique_objects] |= RenderDoc::Inst().GetCaptureOptions().apiValidation;
 
   VkResult ret = createFunc(&modifiedCreateInfo, pAllocator, pInstance);
 
