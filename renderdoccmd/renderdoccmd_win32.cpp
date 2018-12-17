@@ -439,12 +439,14 @@ struct UpgradeCommand : public Command
 struct CrashHandlerCommand : public Command
 {
   CrashHandlerCommand(const GlobalEnvironment &env) : Command(env) {}
-  virtual void AddOptions(cmdline::parser &parser) {}
+  virtual void AddOptions(cmdline::parser &parser) { parser.add<string>("pipe", 0, ""); }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
+    std::wstring pipe = conv(parser.get<string>("pipe"));
+
     CrashGenerationServer *crashServer = NULL;
 
     wchar_t tempPath[MAX_PATH] = {0};
@@ -457,9 +459,8 @@ struct CrashHandlerCommand : public Command
 
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 
-    crashServer = new CrashGenerationServer(L"\\\\.\\pipe\\RenderDocBreakpadServer", NULL, NULL,
-                                            NULL, OnClientCrashed, NULL, OnClientExited, NULL, NULL,
-                                            NULL, true, &dumpFolder);
+    crashServer = new CrashGenerationServer(pipe.c_str(), NULL, NULL, NULL, OnClientCrashed, NULL,
+                                            OnClientExited, NULL, NULL, NULL, true, &dumpFolder);
 
     if(!crashServer->Start())
     {
