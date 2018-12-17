@@ -24,22 +24,22 @@
 
 //#extension_nongles GL_ARB_compute_shader : require
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform PRECISION usampler2DMSArray srcMS;
 // binding = 1 used as stencil read in the depth-stencil copy fragment shaders
 layout(rgba32ui, binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 
-
 #ifdef VULKAN
 
 layout(push_constant) uniform multisamplePush
 {
-	int numMultiSamples;
-	int currentSample;
-	int currentSlice;
-	uint currentStencil;
-} mscopy;
+  int numMultiSamples;
+  int currentSample;
+  int currentSlice;
+  uint currentStencil;
+}
+mscopy;
 
 #define numMultiSamples (mscopy.numMultiSamples)
 #define currentSample (mscopy.currentSample)
@@ -59,12 +59,12 @@ uniform ivec4 mscopy;
 
 void main()
 {
-	ivec3 id = ivec3(gl_GlobalInvocationID);
+  ivec3 id = ivec3(gl_GlobalInvocationID);
 
-	int slice = int(id.z / numMultiSamples);
-	int sampleIdx = int(id.z % numMultiSamples);
+  int slice = int(id.z / numMultiSamples);
+  int sampleIdx = int(id.z % numMultiSamples);
 
-	uvec4 data = texelFetch(srcMS, ivec3(int(id.x), int(id.y), slice), sampleIdx);
+  uvec4 data = texelFetch(srcMS, ivec3(int(id.x), int(id.y), slice), sampleIdx);
 
-	imageStore(dstArray, ivec3(int(id.x), int(id.y), int(id.z)), data);
+  imageStore(dstArray, ivec3(int(id.x), int(id.y), int(id.z)), data);
 }

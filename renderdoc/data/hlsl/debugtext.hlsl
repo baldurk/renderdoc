@@ -1,19 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2018 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,48 +28,45 @@
 
 struct glyph
 {
-	float4 posdata;
-	float4 uvdata;
+  float4 posdata;
+  float4 uvdata;
 };
 
 cbuffer glyphdata : register(b1)
 {
-	glyph glyphs[127-32];
+  glyph glyphs[127 - 32];
 };
 
 cbuffer stringdata : register(b2)
 {
-	uint4 chars[256];
+  uint4 chars[256];
 };
 
 struct v2f
 {
-	float4 pos : SV_Position;
-	float4 tex : TEX;
-	float2 glyphuv : GLYPH;
+  float4 pos : SV_Position;
+  float4 tex : TEX;
+  float2 glyphuv : GLYPH;
 };
 
 v2f RENDERDOC_TextVS(uint vid : SV_VertexID, uint inst : SV_InstanceID)
 {
-	v2f OUT = (v2f)0;
+  v2f OUT = (v2f)0;
 
-	float2 verts[] = {
-		float2( 0.0,  0.0),
-		float2( 1.0,  0.0),
-		float2( 0.0,  1.0),
-		float2( 1.0,  1.0),
-	};
+  float2 verts[] = {
+      float2(0.0, 0.0), float2(1.0, 0.0), float2(0.0, 1.0), float2(1.0, 1.0),
+  };
 
-	float2 pos = verts[vid];
+  float2 pos = verts[vid];
 
-	float2 charPos = float2(float(inst) + pos.x + TextPosition.x, -pos.y - TextPosition.y);
-	glyph G = glyphs[ chars[inst].x ];
+  float2 charPos = float2(float(inst) + pos.x + TextPosition.x, -pos.y - TextPosition.y);
+  glyph G = glyphs[chars[inst].x];
 
-	OUT.pos = float4(charPos.xy*2.0f*TextSize*FontScreenAspect.xy + float2(-1, 1), 1, 1);
-	OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUT.tex = G.uvdata * CharacterSize.xyxy;
+  OUT.pos = float4(charPos.xy * 2.0f * TextSize * FontScreenAspect.xy + float2(-1, 1), 1, 1);
+  OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
+  OUT.tex = G.uvdata * CharacterSize.xyxy;
 
-	return OUT;
+  return OUT;
 }
 
 SamplerState pointSample : register(s0);
@@ -79,16 +76,15 @@ Texture2D fontTexture : register(t0);
 
 float4 RENDERDOC_TextPS(v2f IN) : SV_Target0
 {
-	float text = 0;
+  float text = 0;
 
-	if(IN.glyphuv.x >= 0.0f && IN.glyphuv.x <= 1.0f && 
-	   IN.glyphuv.y >= 0.0f && IN.glyphuv.y <= 1.0f)
-	{
-		float2 uv;
-		uv.x = lerp(IN.tex.x, IN.tex.z, IN.glyphuv.x);
-		uv.y = lerp(IN.tex.y, IN.tex.w, IN.glyphuv.y);
-		text = fontTexture.Sample(linearSample, uv.xy).x;
-	}
+  if(IN.glyphuv.x >= 0.0f && IN.glyphuv.x <= 1.0f && IN.glyphuv.y >= 0.0f && IN.glyphuv.y <= 1.0f)
+  {
+    float2 uv;
+    uv.x = lerp(IN.tex.x, IN.tex.z, IN.glyphuv.x);
+    uv.y = lerp(IN.tex.y, IN.tex.w, IN.glyphuv.y);
+    text = fontTexture.Sample(linearSample, uv.xy).x;
+  }
 
-	return float4(text.xxx, saturate(text + 0.5f));
+  return float4(text.xxx, saturate(text + 0.5f));
 }

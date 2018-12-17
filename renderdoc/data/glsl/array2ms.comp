@@ -25,7 +25,7 @@
 //#extension_nongles GL_ARB_compute_shader : require
 //#extension_gles GL_OES_texture_storage_multisample_2d_array : require
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform PRECISION usampler2DArray srcArray;
 // binding = 1 used as stencil read in the depth-stencil copy fragment shaders
@@ -35,11 +35,12 @@ layout(rgba32ui, binding = 2) writeonly uniform PRECISION uimage2DMSArray dstMS;
 
 layout(push_constant) uniform multisamplePush
 {
-	int numMultiSamples;
-	int sampleOffset;
-	int sliceOffset;
-	uint currentStencil;
-} mscopy;
+  int numMultiSamples;
+  int sampleOffset;
+  int sliceOffset;
+  uint currentStencil;
+}
+mscopy;
 
 #define numMultiSamples (mscopy.numMultiSamples)
 #define sampleOffset (mscopy.sampleOffset)
@@ -59,12 +60,13 @@ uniform ivec4 mscopy;
 
 void main()
 {
-	ivec3 id = ivec3(gl_GlobalInvocationID);
+  ivec3 id = ivec3(gl_GlobalInvocationID);
 
-	int slice = sliceOffset + int(id.z / numMultiSamples);
-	int sampleIdx = sampleOffset + int(id.z % numMultiSamples);
+  int slice = sliceOffset + int(id.z / numMultiSamples);
+  int sampleIdx = sampleOffset + int(id.z % numMultiSamples);
 
-	uvec4 data = texelFetch(srcArray, ivec3(int(id.x), int(id.y), slice * numMultiSamples + sampleIdx), 0);
+  uvec4 data =
+      texelFetch(srcArray, ivec3(int(id.x), int(id.y), slice *numMultiSamples + sampleIdx), 0);
 
-	imageStore(dstMS, ivec3(int(id.x), int(id.y), slice), sampleIdx, data);
+  imageStore(dstMS, ivec3(int(id.x), int(id.y), slice), sampleIdx, data);
 }

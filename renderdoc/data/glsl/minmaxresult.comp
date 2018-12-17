@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014-2018 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,84 +22,87 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(binding=0, std140) writeonly buffer minmaxresultdest
+layout(binding = 0, std140) writeonly buffer minmaxresultdest
 {
 #if UINT_TEX
-	uvec4 result[2];
+  uvec4 result[2];
 #elif SINT_TEX
-	ivec4 result[2];
+  ivec4 result[2];
 #else
-	vec4 result[2];
+  vec4 result[2];
 #endif
-} dest;
+}
+dest;
 
-layout(binding=1, std140) readonly buffer minmaxtilesrc
+layout(binding = 1, std140) readonly buffer minmaxtilesrc
 {
 #if UINT_TEX
-	uvec4 tiles[];
+  uvec4 tiles[];
 #elif SINT_TEX
-	ivec4 tiles[];
+  ivec4 tiles[];
 #else
-	vec4 tiles[];
+  vec4 tiles[];
 #endif
-} src;
+}
+src;
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {
-	uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
+  uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
 
-	uint blocksX = uint(ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
-	uint blocksY = uint(ceil(float(texDim.y)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
+  uint blocksX = uint(ceil(float(texDim.x) / float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK)));
+  uint blocksY = uint(ceil(float(texDim.y) / float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK)));
 
 #if UINT_TEX
-	uvec4 minvalU = src.tiles[0];
-	uvec4 maxvalU = src.tiles[1];
+  uvec4 minvalU = src.tiles[0];
+  uvec4 maxvalU = src.tiles[1];
 #elif SINT_TEX
-	ivec4 minvalI = src.tiles[0];
-	ivec4 maxvalI = src.tiles[1];
+  ivec4 minvalI = src.tiles[0];
+  ivec4 maxvalI = src.tiles[1];
 #else
-	vec4 minvalF = src.tiles[0];
-	vec4 maxvalF = src.tiles[1];
+  vec4 minvalF = src.tiles[0];
+  vec4 maxvalF = src.tiles[1];
 #endif
-	
-	// i is the tile we're looking at
-	for(uint i=1u; i < blocksX*blocksY*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK; i++)
-	{
-		uint blockIdx = i/(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK);
-		uint tileIdx = i%(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK);
 
-		// which block and tile is this in
-		uvec2 blockXY = uvec2(blockIdx % blocksX, blockIdx / blocksX);
-		uvec2 tileXY = uvec2(tileIdx % HGRAM_TILES_PER_BLOCK, tileIdx / HGRAM_TILES_PER_BLOCK);
+  // i is the tile we're looking at
+  for(uint i = 1u; i < blocksX * blocksY * HGRAM_TILES_PER_BLOCK * HGRAM_TILES_PER_BLOCK; i++)
+  {
+    uint blockIdx = i / (HGRAM_TILES_PER_BLOCK * HGRAM_TILES_PER_BLOCK);
+    uint tileIdx = i % (HGRAM_TILES_PER_BLOCK * HGRAM_TILES_PER_BLOCK);
 
-		// if this is at least partially within the texture, include it.
-		if(blockXY.x*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.x*HGRAM_PIXELS_PER_TILE < texDim.x &&
-		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
-		{
+    // which block and tile is this in
+    uvec2 blockXY = uvec2(blockIdx % blocksX, blockIdx / blocksX);
+    uvec2 tileXY = uvec2(tileIdx % HGRAM_TILES_PER_BLOCK, tileIdx / HGRAM_TILES_PER_BLOCK);
+
+    // if this is at least partially within the texture, include it.
+    if(blockXY.x * (HGRAM_TILES_PER_BLOCK * HGRAM_PIXELS_PER_TILE) + tileXY.x * HGRAM_PIXELS_PER_TILE <
+           texDim.x &&
+       blockXY.y * (HGRAM_TILES_PER_BLOCK * HGRAM_PIXELS_PER_TILE) + tileXY.y * HGRAM_PIXELS_PER_TILE <
+           texDim.y)
+    {
 #if UINT_TEX
-			minvalU = min(minvalU, src.tiles[i*2u + 0u]);
-			maxvalU = max(maxvalU, src.tiles[i*2u + 1u]);
+      minvalU = min(minvalU, src.tiles[i * 2u + 0u]);
+      maxvalU = max(maxvalU, src.tiles[i * 2u + 1u]);
 #elif SINT_TEX
-			minvalI = min(minvalI, src.tiles[i*2u + 0u]);
-			maxvalI = max(maxvalI, src.tiles[i*2u + 1u]);
+      minvalI = min(minvalI, src.tiles[i * 2u + 0u]);
+      maxvalI = max(maxvalI, src.tiles[i * 2u + 1u]);
 #else
-			minvalF = min(minvalF, src.tiles[i*2u + 0u]);
-			maxvalF = max(maxvalF, src.tiles[i*2u + 1u]);
+      minvalF = min(minvalF, src.tiles[i * 2u + 0u]);
+      maxvalF = max(maxvalF, src.tiles[i * 2u + 1u]);
 #endif
-		}
-	}
-	
+    }
+  }
+
 #if UINT_TEX
-	dest.result[0] = minvalU;
-	dest.result[1] = maxvalU;
+  dest.result[0] = minvalU;
+  dest.result[1] = maxvalU;
 #elif SINT_TEX
-	dest.result[0] = minvalI;
-	dest.result[1] = maxvalI;
+  dest.result[0] = minvalI;
+  dest.result[1] = maxvalI;
 #else
-	dest.result[0] = minvalF;
-	dest.result[1] = maxvalF;
+  dest.result[0] = minvalF;
+  dest.result[1] = maxvalF;
 #endif
 }
-

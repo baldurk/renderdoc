@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2016-2018 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,208 +24,209 @@
 
 layout(binding = 1, std140) readonly buffer vertex_data
 {
-	vec4 data[];
-} vb;
+  vec4 data[];
+}
+vb;
 
 layout(binding = 2, std430) readonly buffer index_data
 {
-	uint data[];
-} ib;
+  uint data[];
+}
+ib;
 
 layout(binding = 3, std140) buffer pickresult_buffer
 {
-	uint counter;
-	// individual padding to prevent uint/uint3 packing woes
-	uint pad0;
-	uint pad1;
-	uint pad2;
+  uint counter;
+  // individual padding to prevent uint/uint3 packing woes
+  uint pad0;
+  uint pad1;
+  uint pad2;
 
-	uvec4 results[];
-} pickresult;
+  uvec4 results[];
+}
+pickresult;
 
-layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
-	vec3 RayPosition, vec3 RayDirection, out vec3 HitPosition)
+bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C, vec3 RayPosition, vec3 RayDirection,
+                          out vec3 HitPosition)
 {
-	bool Result = false;
+  bool Result = false;
 
-	vec3 v0v1 = B - A;
-	vec3 v0v2 = C - A;
-	vec3 pvec = cross(RayDirection, v0v2);
-	float det = dot(v0v1, pvec);
+  vec3 v0v1 = B - A;
+  vec3 v0v2 = C - A;
+  vec3 pvec = cross(RayDirection, v0v2);
+  float det = dot(v0v1, pvec);
 
-	// if the determinant is negative the triangle is backfacing, but we still take those!
-	// if the determinant is close to 0, the ray misses the triangle
-	if (abs(det) > 0.0f)
-	{
-		float invDet = 1.0f / det;
+  // if the determinant is negative the triangle is backfacing, but we still take those!
+  // if the determinant is close to 0, the ray misses the triangle
+  if(abs(det) > 0.0f)
+  {
+    float invDet = 1.0f / det;
 
-		vec3 tvec = RayPosition - A;
-		vec3 qvec = cross(tvec, v0v1);
-		float u = dot(tvec, pvec) * invDet;
-		float v = dot(RayDirection, qvec) * invDet;
+    vec3 tvec = RayPosition - A;
+    vec3 qvec = cross(tvec, v0v1);
+    float u = dot(tvec, pvec) * invDet;
+    float v = dot(RayDirection, qvec) * invDet;
 
-		if (u >= 0.0f && u <= 1.0f &&
-			v >= 0.0f && u + v <= 1.0f)
-		{
-			float t = dot(v0v2, qvec) * invDet;
-			if (t > 0.0f)
-			{
-				HitPosition = RayPosition + (RayDirection * t);
-				Result = true;
-			}
+    if(u >= 0.0f && u <= 1.0f && v >= 0.0f && u + v <= 1.0f)
+    {
+      float t = dot(v0v2, qvec) * invDet;
+      if(t > 0.0f)
+      {
+        HitPosition = RayPosition + (RayDirection * t);
+        Result = true;
+      }
+    }
+  }
 
-		}
-	}
-
-	return Result;
+  return Result;
 }
 
 void trianglePath(uint threadID)
 {
-	uint vertid = uint(mod(float(threadID), float(meshpick.numVerts)));
+  uint vertid = uint(mod(float(threadID), float(meshpick.numVerts)));
 
-	uint vertid0 = 0u;
-	uint vertid1 = 0u;
-	uint vertid2 = 0u;
-	switch (meshpick.meshMode)
-	{
-		case MESH_TRIANGLE_LIST:
-		{
-			vertid *= 3u;
-			vertid0 = vertid;
-			vertid1 = vertid+1u;
-			vertid2 = vertid+2u;
-			break;
-		}
-		case MESH_TRIANGLE_STRIP:
-		{
-			vertid0 = vertid;
-			vertid1 = vertid+1u;
-			vertid2 = vertid+2u;
-			break;
-		}
-		case MESH_TRIANGLE_FAN:
-		{
-			vertid0 = 0u;
-			vertid1 = vertid+1u;
-			vertid2 = vertid+2u;
-			break;
-		}
-		case MESH_TRIANGLE_LIST_ADJ:
-		{
-			vertid *= 6u;
-			vertid0 = vertid;
-			vertid1 = vertid+2u;
-			vertid2 = vertid+4u;
-			break;
-		}
-		case MESH_TRIANGLE_STRIP_ADJ:
-		{
-			vertid *= 2u;
-			vertid0 = vertid;
-			vertid1 = vertid+2u;
-			vertid2 = vertid+4u;
-			break;
-		}
-	}
+  uint vertid0 = 0u;
+  uint vertid1 = 0u;
+  uint vertid2 = 0u;
+  switch(meshpick.meshMode)
+  {
+    case MESH_TRIANGLE_LIST:
+    {
+      vertid *= 3u;
+      vertid0 = vertid;
+      vertid1 = vertid + 1u;
+      vertid2 = vertid + 2u;
+      break;
+    }
+    case MESH_TRIANGLE_STRIP:
+    {
+      vertid0 = vertid;
+      vertid1 = vertid + 1u;
+      vertid2 = vertid + 2u;
+      break;
+    }
+    case MESH_TRIANGLE_FAN:
+    {
+      vertid0 = 0u;
+      vertid1 = vertid + 1u;
+      vertid2 = vertid + 2u;
+      break;
+    }
+    case MESH_TRIANGLE_LIST_ADJ:
+    {
+      vertid *= 6u;
+      vertid0 = vertid;
+      vertid1 = vertid + 2u;
+      vertid2 = vertid + 4u;
+      break;
+    }
+    case MESH_TRIANGLE_STRIP_ADJ:
+    {
+      vertid *= 2u;
+      vertid0 = vertid;
+      vertid1 = vertid + 2u;
+      vertid2 = vertid + 4u;
+      break;
+    }
+  }
 
-	vec4 pos0 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid0]] : vb.data[vertid0];
-	vec4 pos1 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid1]] : vb.data[vertid1];
-	vec4 pos2 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid2]] : vb.data[vertid2];
+  vec4 pos0 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid0]] : vb.data[vertid0];
+  vec4 pos1 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid1]] : vb.data[vertid1];
+  vec4 pos2 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid2]] : vb.data[vertid2];
 
 #ifdef VULKAN
-	if(meshpick.unproject == 1u)
-	{
-		pos0 = vec4(pos0.x, -pos0.y, pos0.z, pos0.w);
-		pos1 = vec4(pos1.x, -pos1.y, pos1.z, pos1.w);
-		pos2 = vec4(pos2.x, -pos2.y, pos2.z, pos2.w);
-	}
+  if(meshpick.unproject == 1u)
+  {
+    pos0 = vec4(pos0.x, -pos0.y, pos0.z, pos0.w);
+    pos1 = vec4(pos1.x, -pos1.y, pos1.z, pos1.w);
+    pos2 = vec4(pos2.x, -pos2.y, pos2.z, pos2.w);
+  }
 #endif
 
-	vec3 hitPosition;
-	bool hit;
-	if (meshpick.unproject == 1u)
-	{
-		hit = TriangleRayIntersect(pos0.xyz / pos0.w, pos1.xyz / pos1.w, pos2.xyz / pos2.w,
-									meshpick.rayPos, meshpick.rayDir,
-									/*out*/ hitPosition);
-	}
-	else
-	{
-		hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz,
-									meshpick.rayPos, meshpick.rayDir,
-									/*out*/ hitPosition);
-	}
+  vec3 hitPosition;
+  bool hit;
+  if(meshpick.unproject == 1u)
+  {
+    hit = TriangleRayIntersect(pos0.xyz / pos0.w, pos1.xyz / pos1.w, pos2.xyz / pos2.w,
+                               meshpick.rayPos, meshpick.rayDir,
+                               /*out*/ hitPosition);
+  }
+  else
+  {
+    hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz, meshpick.rayPos, meshpick.rayDir,
+                               /*out*/ hitPosition);
+  }
 
-	// ray hit a triangle, so return the vertex that was closest
-	// to the triangle/ray intersection point
-	if (hit)
-	{
-		float dist0 = distance(pos0.xyz/pos0.w, hitPosition);
-		float dist1 = distance(pos1.xyz/pos1.w, hitPosition);
-		float dist2 = distance(pos2.xyz/pos2.w, hitPosition);
+  // ray hit a triangle, so return the vertex that was closest
+  // to the triangle/ray intersection point
+  if(hit)
+  {
+    float dist0 = distance(pos0.xyz / pos0.w, hitPosition);
+    float dist1 = distance(pos1.xyz / pos1.w, hitPosition);
+    float dist2 = distance(pos2.xyz / pos2.w, hitPosition);
 
-		uint result_idx = atomicAdd(pickresult.counter, 1u);
+    uint result_idx = atomicAdd(pickresult.counter, 1u);
 
-		uint meshVert = vertid0;
-		if (dist1 < dist0 && dist1 < dist2)
-		{
-			meshVert = vertid1;
-		}
-		else if (dist2 < dist0 && dist2 < dist1)
-		{
-			meshVert = vertid2;
-		}
-		pickresult.results[result_idx] = uvec4(meshVert,
-			floatBitsToUint(hitPosition.x), floatBitsToUint(hitPosition.y), floatBitsToUint(hitPosition.z));
-	}
-
+    uint meshVert = vertid0;
+    if(dist1 < dist0 && dist1 < dist2)
+    {
+      meshVert = vertid1;
+    }
+    else if(dist2 < dist0 && dist2 < dist1)
+    {
+      meshVert = vertid2;
+    }
+    pickresult.results[result_idx] =
+        uvec4(meshVert, floatBitsToUint(hitPosition.x), floatBitsToUint(hitPosition.y),
+              floatBitsToUint(hitPosition.z));
+  }
 }
 
 void defaultPath(uint threadID)
 {
-	uint vertid = threadID;
+  uint vertid = threadID;
 
-	if(vertid >= meshpick.numVerts)
-		return;
+  if(vertid >= meshpick.numVerts)
+    return;
 
-	uint idx = meshpick.use_indices != 0u ? ib.data[vertid] : vertid;
+  uint idx = meshpick.use_indices != 0u ? ib.data[vertid] : vertid;
 
-	vec4 pos = vb.data[idx];
+  vec4 pos = vb.data[idx];
 
 #ifdef VULKAN
-	if(meshpick.unproject == 1u)
-		pos = vec4(pos.x, -pos.y, pos.z, pos.w);
+  if(meshpick.unproject == 1u)
+    pos = vec4(pos.x, -pos.y, pos.z, pos.w);
 #endif
 
-	vec4 wpos = meshpick.mvp * pos;
+  vec4 wpos = meshpick.mvp * pos;
 
-	if(meshpick.unproject == 1u)
-		wpos.xyz /= wpos.www;
+  if(meshpick.unproject == 1u)
+    wpos.xyz /= wpos.www;
 
-	wpos.xy *= vec2(1.0f, -1.0f);
+  wpos.xy *= vec2(1.0f, -1.0f);
 
-	vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
+  vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
 
-	// close to target co-ords? add to list
-	float len = length(scr - meshpick.coords);
-	if(len < 35.0f)
-	{
-		uint result_idx = atomicAdd(pickresult.counter, 1u);
-		pickresult.results[result_idx] = uvec4(vertid, idx, floatBitsToUint(len), floatBitsToUint(wpos.z));
-	}
+  // close to target co-ords? add to list
+  float len = length(scr - meshpick.coords);
+  if(len < 35.0f)
+  {
+    uint result_idx = atomicAdd(pickresult.counter, 1u);
+    pickresult.results[result_idx] =
+        uvec4(vertid, idx, floatBitsToUint(len), floatBitsToUint(wpos.z));
+  }
 }
 
 void main()
 {
-	if (meshpick.meshMode == MESH_OTHER)
-	{
-		defaultPath(gl_GlobalInvocationID.x);
-	}
-	else
-	{
-		trianglePath(gl_GlobalInvocationID.x);
-	}
+  if(meshpick.meshMode == MESH_OTHER)
+  {
+    defaultPath(gl_GlobalInvocationID.x);
+  }
+  else
+  {
+    trianglePath(gl_GlobalInvocationID.x);
+  }
 }

@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014-2018 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,170 +24,169 @@
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
-layout(binding=0, std430) buffer minmaxresultdest
+layout(binding = 0, std430) buffer minmaxresultdest
 {
-	uint result[HGRAM_NUM_BUCKETS];
-} dest;
+  uint result[HGRAM_NUM_BUCKETS];
+}
+dest;
 
-layout (local_size_x = HGRAM_TILES_PER_BLOCK, local_size_y = HGRAM_TILES_PER_BLOCK) in;
+layout(local_size_x = HGRAM_TILES_PER_BLOCK, local_size_y = HGRAM_TILES_PER_BLOCK) in;
 
 void main()
 {
-	uvec3 tid = gl_LocalInvocationID;
-	uvec3 gid = gl_WorkGroupID;
+  uvec3 tid = gl_LocalInvocationID;
+  uvec3 gid = gl_WorkGroupID;
 
-	int texType = SHADER_RESTYPE;
+  int texType = SHADER_RESTYPE;
 
-	uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
+  uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
 
-	uint blocksX = uint(ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
+  uint blocksX = uint(ceil(float(texDim.x) / float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK)));
 
-	uvec2 topleft = (gid.xy*HGRAM_TILES_PER_BLOCK + tid.xy)*HGRAM_PIXELS_PER_TILE;
+  uvec2 topleft = (gid.xy * HGRAM_TILES_PER_BLOCK + tid.xy) * HGRAM_PIXELS_PER_TILE;
 
-	int i=0;
+  int i = 0;
 
-	for(uint y=topleft.y; y < min(texDim.y, topleft.y + HGRAM_PIXELS_PER_TILE); y++)
-	{
-		for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
-		{
-			uint bucketIdx = HGRAM_NUM_BUCKETS+1u;
+  for(uint y = topleft.y; y < min(texDim.y, topleft.y + HGRAM_PIXELS_PER_TILE); y++)
+  {
+    for(uint x = topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
+    {
+      uint bucketIdx = HGRAM_NUM_BUCKETS + 1u;
 
 #if UINT_TEX
-			{
-				uvec4 data = SampleTextureUInt4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
-												histogram_minmax.HistogramSlice,
-												histogram_minmax.HistogramMip,
-												histogram_minmax.HistogramSample,
-												histogram_minmax.HistogramTextureResolution);
+      {
+        uvec4 data = SampleTextureUInt4(
+            texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
+            histogram_minmax.HistogramSlice, histogram_minmax.HistogramMip,
+            histogram_minmax.HistogramSample, histogram_minmax.HistogramTextureResolution);
 
-				float divisor = 0.0f;
-				uint sum = 0u;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
-				{
-					sum += data.x;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
-				{
-					sum += data.y;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
-				{
-					sum += data.z;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
-				{
-					sum += data.w;
-					divisor += 1.0f;
-				}
+        float divisor = 0.0f;
+        uint sum = 0u;
+        if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
+        {
+          sum += data.x;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
+        {
+          sum += data.y;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
+        {
+          sum += data.z;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
+        {
+          sum += data.w;
+          divisor += 1.0f;
+        }
 
-				if(divisor > 0.0f)
-				{
-					float val = float(sum)/divisor;
+        if(divisor > 0.0f)
+        {
+          float val = float(sum) / divisor;
 
-					float normalisedVal = (val - histogram_minmax.HistogramMin)/(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
+          float normalisedVal = (val - histogram_minmax.HistogramMin) /
+                                (histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
-					if(normalisedVal < 0.0f)
-						normalisedVal = 2.0f;
+          if(normalisedVal < 0.0f)
+            normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
-				}
-			}
+          bucketIdx = uint(floor(normalisedVal * float(HGRAM_NUM_BUCKETS)));
+        }
+      }
 #elif SINT_TEX
-			{
-				ivec4 data = SampleTextureSInt4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
-												histogram_minmax.HistogramSlice,
-												histogram_minmax.HistogramMip,
-												histogram_minmax.HistogramSample,
-												histogram_minmax.HistogramTextureResolution);
+      {
+        ivec4 data = SampleTextureSInt4(
+            texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
+            histogram_minmax.HistogramSlice, histogram_minmax.HistogramMip,
+            histogram_minmax.HistogramSample, histogram_minmax.HistogramTextureResolution);
 
-				float divisor = 0.0f;
-				int sum = 0;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
-				{
-					sum += data.x;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
-				{
-					sum += data.y;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
-				{
-					sum += data.z;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
-				{
-					sum += data.w;
-					divisor += 1.0f;
-				}
+        float divisor = 0.0f;
+        int sum = 0;
+        if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
+        {
+          sum += data.x;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
+        {
+          sum += data.y;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
+        {
+          sum += data.z;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
+        {
+          sum += data.w;
+          divisor += 1.0f;
+        }
 
-				if(divisor > 0.0f)
-				{
-					float val = float(sum)/divisor;
+        if(divisor > 0.0f)
+        {
+          float val = float(sum) / divisor;
 
-					float normalisedVal = (val - histogram_minmax.HistogramMin)/(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
+          float normalisedVal = (val - histogram_minmax.HistogramMin) /
+                                (histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
-					if(normalisedVal < 0.0f)
-						normalisedVal = 2.0f;
+          if(normalisedVal < 0.0f)
+            normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
-				}
-			}
+          bucketIdx = uint(floor(normalisedVal * float(HGRAM_NUM_BUCKETS)));
+        }
+      }
 #else
-			{
-				vec4 data = SampleTextureFloat4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
-												histogram_minmax.HistogramSlice,
-												histogram_minmax.HistogramMip,
-												histogram_minmax.HistogramSample,
-												histogram_minmax.HistogramTextureResolution,
-												histogram_minmax.HistogramYUVDownsampleRate,
-												histogram_minmax.HistogramYUVAChannels);
+      {
+        vec4 data = SampleTextureFloat4(
+            texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
+            histogram_minmax.HistogramSlice, histogram_minmax.HistogramMip,
+            histogram_minmax.HistogramSample, histogram_minmax.HistogramTextureResolution,
+            histogram_minmax.HistogramYUVDownsampleRate, histogram_minmax.HistogramYUVAChannels);
 
-				float divisor = 0.0f;
-				float sum = 0.0f;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
-				{
-					sum += data.x;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
-				{
-					sum += data.y;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
-				{
-					sum += data.z;
-					divisor += 1.0f;
-				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
-				{
-					sum += data.w;
-					divisor += 1.0f;
-				}
+        float divisor = 0.0f;
+        float sum = 0.0f;
+        if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
+        {
+          sum += data.x;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
+        {
+          sum += data.y;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
+        {
+          sum += data.z;
+          divisor += 1.0f;
+        }
+        if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
+        {
+          sum += data.w;
+          divisor += 1.0f;
+        }
 
-				if(divisor > 0.0f)
-				{
-					float val = sum/divisor;
+        if(divisor > 0.0f)
+        {
+          float val = sum / divisor;
 
-					float normalisedVal = (val - histogram_minmax.HistogramMin)/(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
+          float normalisedVal = (val - histogram_minmax.HistogramMin) /
+                                (histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
-					if(normalisedVal < 0.0f)
-						normalisedVal = 2.0f;
+          if(normalisedVal < 0.0f)
+            normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
-				}
-			}
+          bucketIdx = uint(floor(normalisedVal * float(HGRAM_NUM_BUCKETS)));
+        }
+      }
 #endif
 
-			if(bucketIdx < HGRAM_NUM_BUCKETS)
-				atomicAdd(dest.result[bucketIdx], 1U);
-		}
-	}
+      if(bucketIdx < HGRAM_NUM_BUCKETS)
+        atomicAdd(dest.result[bucketIdx], 1U);
+    }
+  }
 }
-
