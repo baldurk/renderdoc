@@ -262,7 +262,7 @@ void RDHeaderView::resizeSections(QHeaderView::ResizeMode mode)
   }
 
   if(!m_customSizing)
-    return resizeSections(mode);
+    return QHeaderView::resizeSections(mode);
 
   if(mode != ResizeToContents)
     return;

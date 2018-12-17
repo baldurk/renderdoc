@@ -1069,6 +1069,10 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   QMenu *menu = new QMenu(this);
 
+  ui->vsinData->setCustomHeaderSizing(true);
+  ui->vsoutData->setCustomHeaderSizing(true);
+  ui->gsoutData->setCustomHeaderSizing(true);
+
   QObject::connect(ui->vsinData, &RDTableView::customContextMenuRequested,
                    [this, menu](const QPoint &pos) { stageRowMenu(MeshDataStage::VSIn, menu, pos); });
 

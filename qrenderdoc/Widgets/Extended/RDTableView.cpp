@@ -37,7 +37,6 @@
 RDTableView::RDTableView(QWidget *parent) : QTableView(parent)
 {
   m_horizontalHeader = new RDHeaderView(Qt::Horizontal, this);
-  m_horizontalHeader->setCustomSizing(true);
   setHorizontalHeader(m_horizontalHeader);
 
   QObject::connect(m_horizontalHeader, &QHeaderView::sectionResized,
@@ -408,6 +407,9 @@ void RDTableView::scrollTo(const QModelIndex &index, ScrollHint hint)
 
 void RDTableView::updateGeometries()
 {
+  if(!m_horizontalHeader->customSizing())
+    return QTableView::updateGeometries();
+
   static bool recurse = false;
   if(recurse)
     return;

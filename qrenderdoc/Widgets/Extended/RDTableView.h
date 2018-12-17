@@ -43,6 +43,7 @@ public:
   void setColumnWidths(const QList<int> &widths);
   void resizeColumnsToContents();
 
+  void setCustomHeaderSizing(bool sizing) { m_horizontalHeader->setCustomSizing(sizing); }
   // these ones we CAN override, so even though the implementation is identical to QTableView we
   // reimplement so it can pick up the above functions
   QRect visualRect(const QModelIndex &index) const override;

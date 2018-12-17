@@ -65,6 +65,7 @@ public:
   void setPinnedColumns(int numColumns) { m_pinnedColumns = numColumns; }
   int pinnedColumns() const { return m_pinnedColumns; }
   void setCustomSizing(bool sizing) { m_customSizing = sizing; }
+  bool customSizing() const { return m_customSizing; }
   int pinnedWidth() { return m_pinnedWidth; }
 public slots:
   void setRootIndex(const QModelIndex &index) override;
