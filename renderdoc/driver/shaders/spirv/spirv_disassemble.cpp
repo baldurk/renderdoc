@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <limits.h>
 #include <algorithm>
 #include <utility>
 #include "api/replay/renderdoc_replay.h"
