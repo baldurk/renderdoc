@@ -41,6 +41,11 @@
 
 typedef uint8_t byte;
 
+enum class SPIRVTarget
+{
+  opengl,
+  vulkan
+};
 enum class ShaderLang
 {
   glsl,
@@ -57,8 +62,8 @@ enum class ShaderStage
 };
 
 bool SpvCompilationSupported();
-std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, ShaderLang lang,
-                                         ShaderStage stage, const char *entry_point);
+std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTarget target,
+                                         ShaderLang lang, ShaderStage stage, const char *entry_point);
 
 struct Vec2f
 {

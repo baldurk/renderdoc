@@ -578,7 +578,8 @@ VkPipelineShaderStageCreateInfo VulkanGraphicsTest::CompileShaderModule(
 {
   VkShaderModule ret = VK_NULL_HANDLE;
 
-  std::vector<uint32_t> spirv = ::CompileShaderToSpv(source_text, lang, stage, entry_point);
+  std::vector<uint32_t> spirv =
+      ::CompileShaderToSpv(source_text, SPIRVTarget::vulkan, lang, stage, entry_point);
 
   if(spirv.empty())
     return {};

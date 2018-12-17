@@ -29,7 +29,7 @@ struct SPIRV_Shader : OpenGLGraphicsTest
   static constexpr const char *Description = "Draws using a SPIR-V shader pipeline.";
 
   std::string vertex = R"EOSHADER(
-#version 420 core
+#version 430 core
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec4 Color;
@@ -39,25 +39,21 @@ layout(location = 0) out vec4 oPos;
 layout(location = 1) out vec4 oCol;
 layout(location = 2) out vec2 oUV;
 
-layout(binding = 0, std140) uniform vsconstsbuf
-{
-  vec4 offset;
-  vec4 scale;
-
-  vec2 UVscroll;
-} vsconsts;
+layout(location = 2) uniform vec4 offset;
+layout(location = 8) uniform vec4 scale;
+layout(location = 13) uniform vec4 UVscroll;
 
 void main()
 {
-	gl_Position = oPos = vec4(Position.xyz * vsconsts.scale.xyz + vsconsts.offset.xyz, 1);
+	gl_Position = oPos = vec4(Position.xyz * scale.xyz + offset.xyz, 1);
 	oCol = Color;
-	oUV = UV + vsconsts.UVscroll.xy;
+	oUV = UV + UVscroll.xy;
 }
 
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
-#version 420 core
+#version 430 core
 
 layout(location = 0) in vec4 iPos;
 layout(location = 1) in vec4 iCol;
@@ -65,16 +61,13 @@ layout(location = 2) in vec2 iUV;
 
 layout(location = 0) out vec4 Color;
 
-layout(binding = 0) uniform sampler2D tex2D;
+layout(location = 5) uniform sampler2D tex2D;
 
-layout(binding = 1, std140) uniform fsconstsbuf
-{
-  vec4 tint;
-} fsconsts;
+layout(location = 7) uniform vec4 tint;
 
 void main()
 {
-	Color = (iCol + fsconsts.tint) * textureLod(tex2D, iUV, 0.0f);
+	Color = (iCol + tint) * textureLod(tex2D, iUV, 0.0f);
 }
 
 )EOSHADER";
@@ -127,6 +120,8 @@ void main()
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     GLuint vsbuf = MakeBuffer();
     glBindBuffer(GL_UNIFORM_BUFFER, vsbuf);
     glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f) * 3, 0, GL_DYNAMIC_STORAGE_BIT);
@@ -147,10 +142,10 @@ void main()
       GLuint vs = glCreateShader(GL_VERTEX_SHADER);
       GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
 
-      std::vector<uint32_t> vsSPIRV =
-          CompileShaderToSpv(vertex, ShaderLang::glsl, ShaderStage::vert, "main");
-      std::vector<uint32_t> fsSPIRV =
-          CompileShaderToSpv(pixel, ShaderLang::glsl, ShaderStage::frag, "main");
+      std::vector<uint32_t> vsSPIRV = CompileShaderToSpv(
+          vertex, SPIRVTarget::opengl, ShaderLang::glsl, ShaderStage::vert, "main");
+      std::vector<uint32_t> fsSPIRV = CompileShaderToSpv(
+          pixel, SPIRVTarget::opengl, ShaderLang::glsl, ShaderStage::frag, "main");
 
       glShaderBinary(1, &vs, GL_SHADER_BINARY_FORMAT_SPIR_V, vsSPIRV.data(),
                      (GLsizei)vsSPIRV.size() * 4);
@@ -219,6 +214,9 @@ void main()
 
     fsdata = Vec4f(0.1f, 0.2f, 0.3f, 1.0f);
 
+    glActiveTexture(GL_TEXTURE9);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
     while(Running())
     {
       float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
@@ -227,12 +225,26 @@ void main()
       vsdata.UVscroll.x += 0.01f;
       vsdata.UVscroll.y += 0.02f;
 
+      for(GLuint prog : {glslprogram, spirvprogram})
+      {
+        glUseProgram(prog);
+        // tex2D location 5
+        glUniform1i(5, 9);
+
+        // offset location 2
+        // scale location 8
+        // UVscroll location 13
+        glUniform4fv(2, 1, &vsdata.offset.x);
+        glUniform4fv(8, 1, &vsdata.scale.x);
+        glUniform4fv(13, 1, &vsdata.UVscroll.x);
+
+        // tint location 7
+        glUniform4fv(7, 1, &fsdata.x);
+      }
+
       glBindVertexArray(vao);
 
       glViewport(0, 0, GLsizei(screenWidth) >> 1, GLsizei(screenHeight));
-
-      glNamedBufferSubData(vsbuf, 0, sizeof(vsdata), &vsdata);
-      glNamedBufferSubData(fsbuf, 0, sizeof(fsdata), &fsdata);
 
       glUseProgram(glslprogram);
       glDrawArrays(GL_TRIANGLES, 0, 3);
