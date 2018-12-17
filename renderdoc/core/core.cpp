@@ -1296,11 +1296,14 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       props.version = 1;
       StreamWriter *w = rdc->WriteSection(props);
 
+      // if this file format ever changes, be sure to update the XML export which has a special
+      // handling for this case.
+
       ExtThumbnailHeader header;
       header.width = thumb.width;
       header.height = thumb.height;
       header.len = thumb.len;
-      header.format = (uint32_t)thumb.format;
+      header.format = thumb.format;
       w->Write(header);
       w->Write(thumb.pixels, thumb.len);
 

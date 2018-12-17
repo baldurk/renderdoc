@@ -52,7 +52,7 @@ struct ExtThumbnailHeader
   uint16_t width;
   uint16_t height;
   uint32_t len;
-  uint32_t format;
+  FileType format;
 };
 
 class RDCFile

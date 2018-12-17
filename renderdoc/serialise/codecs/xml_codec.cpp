@@ -29,6 +29,12 @@
 #include "3rdparty/miniz/miniz.h"
 #include "3rdparty/pugixml/pugixml.hpp"
 
+struct ThumbTypeAndData
+{
+  FileType format;
+  bytebuf data;
+};
+
 static const char *typeNames[] = {
     "chunk", "struct", "array", "null", "buffer", "string",     "enum",
     "uint",  "int",    "float", "bool", "char",   "ResourceId",
@@ -316,6 +322,36 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
 
     StreamReader *reader = file.ReadSection(i);
 
+    if(props.type == SectionType::ExtendedThumbnail)
+    {
+      ExtThumbnailHeader thumbHeader = {};
+      if(reader->Read(thumbHeader))
+      {
+        // don't need to read the data, that's handled in Buffers2ZIP
+        bool succeeded = reader->SkipBytes(thumbHeader.len) && !reader->IsErrored();
+        if(succeeded && (uint32_t)thumbHeader.format < (uint32_t)FileType::Count)
+        {
+          pugi::xml_node xExtThumbnail = xRoot.append_child("extended_thumbnail");
+
+          xExtThumbnail.append_attribute("width") = thumbHeader.width;
+          xExtThumbnail.append_attribute("height") = thumbHeader.height;
+          xExtThumbnail.append_attribute("length") = thumbHeader.len;
+
+          if(thumbHeader.format == FileType::JPG)
+            xExtThumbnail.text() = "ext_thumb.jpg";
+          else if(thumbHeader.format == FileType::PNG)
+            xExtThumbnail.text() = "ext_thumb.png";
+          else if(thumbHeader.format == FileType::Raw)
+            xExtThumbnail.text() = "ext_thumb.raw";
+          else
+            RDCERR("Unexpected extended thumbnail format %s", ToStr(thumbHeader.format).c_str());
+        }
+      }
+
+      delete reader;
+      continue;
+    }
+
     pugi::xml_node xSection = xRoot.append_child("section");
 
     if(props.flags & SectionFlags::ASCIIStored)
@@ -506,7 +542,8 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   return ret;
 }
 
-static ReplayStatus XML2Structured(const char *xml, FileType thumbFormat, const bytebuf &thumbBytes,
+static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thumb,
+                                   const ThumbTypeAndData &extThumb,
                                    const StructuredBufferList &buffers, RDCFile *rdc,
                                    uint64_t &version, StructuredChunkList &chunks,
                                    RENDERDOC_ProgressCallback progress)
@@ -556,24 +593,46 @@ static ReplayStatus XML2Structured(const char *xml, FileType thumbFormat, const 
     }
 
     RDCThumb th;
-    th.format = thumbFormat;
+    th.format = thumb.format;
     th.width = (uint16_t)xThumbnail.attribute("width").as_uint();
     th.height = (uint16_t)xThumbnail.attribute("height").as_uint();
 
-    RDCThumb *thumb = NULL;
+    RDCThumb *rdcthumb = NULL;
 
-    if(th.width > 0 && th.height > 0 && !thumbBytes.empty())
+    if(th.width > 0 && th.height > 0 && !thumb.data.empty())
     {
-      th.pixels = thumbBytes.data();
-      th.len = (uint32_t)thumbBytes.size();
-      thumb = &th;
+      th.pixels = thumb.data.data();
+      th.len = (uint32_t)thumb.data.size();
+      rdcthumb = &th;
     }
 
-    rdc->SetData(driver, driverName.c_str(), machineIdent, thumb);
+    rdc->SetData(driver, driverName.c_str(), machineIdent, rdcthumb);
   }
 
   // push in other sections
   pugi::xml_node xSection = xHeader.next_sibling();
+
+  if(!strcmp(xSection.name(), "extended_thumbnail"))
+  {
+    SectionProperties props = {};
+    props.type = SectionType::ExtendedThumbnail;
+    props.version = 1;
+    StreamWriter *w = rdc->WriteSection(props);
+
+    ExtThumbnailHeader header;
+    header.width = (uint16_t)xSection.attribute("width").as_uint();
+    header.height = (uint16_t)xSection.attribute("height").as_uint();
+    header.len = (uint32_t)extThumb.data.size();
+    header.format = extThumb.format;
+    w->Write(header);
+    w->Write(extThumb.data.data(), extThumb.data.size());
+
+    w->Finish();
+
+    delete w;
+
+    xSection = xSection.next_sibling();
+  }
 
   if(progress)
     progress(StructuredProgress(0.1f));
@@ -762,14 +821,52 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
       RDCERR("Unexpected thumbnail format %s", ToStr(th.format).c_str());
   }
 
+  for(int i = 0; i < file.NumSections(); i++)
+  {
+    const SectionProperties &props = file.GetSectionProperties(i);
+
+    if(props.type == SectionType::ExtendedThumbnail)
+    {
+      StreamReader *reader = file.ReadSection(i);
+
+      ExtThumbnailHeader thumbHeader = {};
+      if(reader->Read(thumbHeader))
+      {
+        byte *thumb_bytes = new byte[thumbHeader.len];
+
+        bool succeeded = reader->Read(thumb_bytes, thumbHeader.len) && !reader->IsErrored();
+        if(succeeded && (uint32_t)thumbHeader.format < (uint32_t)FileType::Count)
+        {
+          if(thumbHeader.format == FileType::JPG)
+            mz_zip_writer_add_mem(&zip, "ext_thumb.jpg", thumb_bytes, thumbHeader.len,
+                                  MZ_BEST_COMPRESSION);
+          else if(thumbHeader.format == FileType::PNG)
+            mz_zip_writer_add_mem(&zip, "ext_thumb.png", thumb_bytes, thumbHeader.len,
+                                  MZ_BEST_COMPRESSION);
+          else if(thumbHeader.format == FileType::Raw)
+            mz_zip_writer_add_mem(&zip, "ext_thumb.raw", thumb_bytes, thumbHeader.len,
+                                  MZ_BEST_COMPRESSION);
+          else
+            RDCERR("Unexpected extended thumbnail format %s", ToStr(thumbHeader.format).c_str());
+        }
+
+        delete[] thumb_bytes;
+      }
+
+      delete reader;
+      break;
+    }
+  }
+
   mz_zip_writer_finalize_archive(&zip);
   mz_zip_writer_end(&zip);
 
   return ReplayStatus::Succeeded;
 }
 
-static bool ZIP2Buffers(const std::string &filename, FileType &thumbFormat, bytebuf &thumbBytes,
-                        StructuredBufferList &buffers, RENDERDOC_ProgressCallback progress)
+static bool ZIP2Buffers(const std::string &filename, ThumbTypeAndData &thumb,
+                        ThumbTypeAndData &extThumb, StructuredBufferList &buffers,
+                        RENDERDOC_ProgressCallback progress)
 {
   std::string zipFile = filename;
   zipFile.erase(zipFile.size() - 4);    // remove the .xml, leave only the .zip
@@ -800,23 +897,20 @@ static bool ZIP2Buffers(const std::string &filename, FileType &thumbFormat, byte
 
       byte *buf = (byte *)mz_zip_reader_extract_to_heap(&zip, i, &sz, 0);
 
-      if(!strcmp(zstat.m_filename, "thumb.jpg"))
+      // thumbnails are stored separately
+      if(strstr(zstat.m_filename, "thumb"))
       {
-        // we store the thumbnail separately
-        thumbFormat = FileType::JPG;
-        thumbBytes.assign(buf, sz);
-      }
-      else if(!strcmp(zstat.m_filename, "thumb.png"))
-      {
-        // we store the thumbnail separately
-        thumbFormat = FileType::PNG;
-        thumbBytes.assign(buf, sz);
-      }
-      else if(!strcmp(zstat.m_filename, "thumb.raw"))
-      {
-        // we store the thumbnail separately
-        thumbFormat = FileType::Raw;
-        thumbBytes.assign(buf, sz);
+        FileType type = FileType::JPG;
+        if(strstr(zstat.m_filename, ".png"))
+          type = FileType::PNG;
+        else if(strstr(zstat.m_filename, ".raw"))
+          type = FileType::Raw;
+
+        if(strstr(zstat.m_filename, "ext_thumb"))
+        {
+          extThumb.format = type;
+          extThumb.data.assign(buf, sz);
+        }
       }
       else
       {
@@ -842,11 +936,10 @@ static bool ZIP2Buffers(const std::string &filename, FileType &thumbFormat, byte
 ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc,
                         SDFile &structData, RENDERDOC_ProgressCallback progress)
 {
-  FileType thumbFormat = FileType::JPG;
-  bytebuf thumbBytes;
+  ThumbTypeAndData thumb, extThumb;
   if(filename)
   {
-    bool success = ZIP2Buffers(filename, thumbFormat, thumbBytes, structData.buffers, progress);
+    bool success = ZIP2Buffers(filename, thumb, extThumb, structData.buffers, progress);
     if(!success)
     {
       RDCERR("Couldn't load zip to go with %s", filename);
@@ -859,7 +952,7 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
   reader.Read(buf, (size_t)len);
   buf[len] = 0;
 
-  return XML2Structured(buf, thumbFormat, thumbBytes, structData.buffers, rdc, structData.version,
+  return XML2Structured(buf, thumb, extThumb, structData.buffers, rdc, structData.version,
                         structData.chunks, progress);
 }
 
