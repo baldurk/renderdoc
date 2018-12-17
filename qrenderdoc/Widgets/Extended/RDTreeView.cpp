@@ -37,34 +37,21 @@ RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : ForwardingDelegate(vi
 
 QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-  m_suppressIcon = m_View->ignoreIconSize();
   QSize ret = ForwardingDelegate::sizeHint(option, index);
-  m_suppressIcon = false;
+
+  if(m_View->ignoreIconSize())
+    ret.setHeight(qMax(option.decorationSize.height() + 2, ret.height()));
 
   // expand a pixel for the grid lines
   if(m_View->visibleGridLines())
-  {
     ret.setWidth(ret.width() + 1);
-    ret.setHeight(ret.height() + 1);
-  }
 
   // ensure we have at least the margin on top of font size. If the style applied more, don't add to
   // it.
-  ret.setHeight(qMax(ret.height(), option.fontMetrics.height() + m_View->verticalItemMargin()));
+  int minHeight = option.fontMetrics.height();
+  ret.setHeight(qMax(ret.height(), minHeight + m_View->verticalItemMargin()));
 
   return ret;
-}
-
-void RDTreeViewDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const
-{
-  QStyledItemDelegate::initStyleOption(option, index);
-
-  if(m_suppressIcon)
-  {
-    option->icon = QIcon();
-    option->features &= ~QStyleOptionViewItem::HasDecoration;
-    option->decorationSize = QSize();
-  }
 }
 
 RDTipLabel::RDTipLabel(QWidget *listener) : QLabel(NULL), mouseListener(listener)

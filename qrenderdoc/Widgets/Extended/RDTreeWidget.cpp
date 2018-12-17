@@ -36,6 +36,7 @@
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Widgets/Extended/RDTableView.h"
 
 class RDTreeWidgetModel : public QAbstractItemModel
 {
@@ -568,163 +569,12 @@ RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
   return *this;
 }
 
-RDTreeWidgetDelegate::RDTreeWidgetDelegate(RDTreeWidget *parent)
-    : m_widget(parent), RDTreeViewDelegate(parent)
-{
-}
-
-RDTreeWidgetDelegate::~RDTreeWidgetDelegate()
-{
-}
-
-void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
-                                 const QModelIndex &index) const
-{
-  RDTreeWidgetModel *model = m_widget->m_model;
-  if(index.isValid() && model == index.model())
-  {
-    RDTreeWidgetItem *item = model->itemForIndex(index);
-
-    if(index.column() < item->m_text.count())
-    {
-      QVariant v = item->m_text[index.column()];
-
-      if(RichResourceTextCheck(v))
-      {
-        // draw the item without text, so we get the proper background/selection/etc.
-        // we'd like to be able to use the parent delegate's paint here, but either it calls to
-        // QStyledItemDelegate which will re-fetch the text (bleh), or it calls to the manual
-        // delegate which could do anything. So for this case we just use the style and skip the
-        // delegate and hope it works out.
-        QStyleOptionViewItem opt = option;
-        QStyledItemDelegate::initStyleOption(&opt, index);
-        opt.text.clear();
-        m_widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, m_widget);
-
-        painter->save();
-
-        QRect rect = option.rect;
-        if(!opt.icon.isNull())
-        {
-          QIcon::Mode mode;
-          if((opt.state & QStyle::State_Enabled) == 0)
-            mode = QIcon::Disabled;
-          else if(opt.state & QStyle::State_Selected)
-            mode = QIcon::Selected;
-          else
-            mode = QIcon::Normal;
-          QIcon::State state = opt.state & QStyle::State_Open ? QIcon::On : QIcon::Off;
-          rect.setX(rect.x() + opt.icon.actualSize(opt.decorationSize, mode, state).width());
-        }
-
-        RichResourceTextPaint(m_widget, painter, rect, option.font, option.palette,
-                              option.state & QStyle::State_MouseOver,
-                              m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
-
-        painter->restore();
-        return;
-      }
-    }
-  }
-
-  return RDTreeViewDelegate::paint(painter, option, index);
-}
-
-QSize RDTreeWidgetDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
-{
-  RDTreeWidgetModel *model = m_widget->m_model;
-  if(index.isValid() && model == index.model())
-  {
-    RDTreeWidgetItem *item = model->itemForIndex(index);
-
-    if(index.column() < item->m_text.count())
-    {
-      QVariant v = item->m_text[index.column()];
-
-      if(RichResourceTextCheck(v))
-        return QSize(RichResourceTextWidthHint(m_widget, v), option.fontMetrics.height());
-    }
-  }
-
-  return RDTreeViewDelegate::sizeHint(option, index);
-}
-
-bool RDTreeWidgetDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
-                                       const QStyleOptionViewItem &option, const QModelIndex &index)
-{
-  RDTreeWidgetModel *rdmodel = m_widget->m_model;
-  if(event->type() == QEvent::MouseButtonRelease && index.isValid() && rdmodel == model)
-  {
-    RDTreeWidgetItem *item = rdmodel->itemForIndex(index);
-
-    if(index.column() < item->m_text.count())
-    {
-      QVariant v = item->m_text[index.column()];
-
-      if(RichResourceTextCheck(v))
-      {
-        QRect rect = option.rect;
-
-        if(!item->m_icons[index.column()].isNull())
-        {
-          QIcon::Mode mode;
-          if((option.state & QStyle::State_Enabled) == 0)
-            mode = QIcon::Disabled;
-          else if(option.state & QStyle::State_Selected)
-            mode = QIcon::Selected;
-          else
-            mode = QIcon::Normal;
-          QIcon::State state = option.state & QStyle::State_Open ? QIcon::On : QIcon::Off;
-          rect.setX(rect.x() + option.icon.actualSize(option.decorationSize, mode, state).width());
-        }
-
-        // ignore the return value, we always consume clicks on this cell
-        RichResourceTextMouseEvent(m_widget, v, rect, (QMouseEvent *)event);
-        return true;
-      }
-    }
-  }
-
-  return RDTreeViewDelegate::editorEvent(event, model, option, index);
-}
-
-bool RDTreeWidgetDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)
-{
-  if(index.isValid())
-  {
-    RDTreeWidgetItem *item = m_widget->m_model->itemForIndex(index);
-
-    if(index.column() < item->m_text.count())
-    {
-      QVariant v = item->m_text[index.column()];
-
-      if(RichResourceTextCheck(v))
-      {
-        QRect rect = m_widget->visualRect(index);
-
-        QIcon icon = item->m_icons[index.column()];
-
-        if(!icon.isNull())
-        {
-          rect.setX(
-              rect.x() +
-              icon.actualSize(QSize(rect.height(), rect.height()), QIcon::Normal, QIcon::On).width());
-        }
-
-        return RichResourceTextMouseEvent(m_widget, v, rect, e);
-      }
-    }
-  }
-
-  return false;
-}
-
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
   // we'll call this ourselves in drawBranches()
   RDTreeView::enableBranchRectFill(false);
 
-  m_delegate = new RDTreeWidgetDelegate(this);
+  m_delegate = new RichTextViewDelegate(this);
   RDTreeView::setItemDelegate(m_delegate);
 
   header()->setSectionsMovable(false);

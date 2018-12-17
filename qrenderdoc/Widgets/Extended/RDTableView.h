@@ -27,6 +27,8 @@
 #include <QTableView>
 #include "RDHeaderView.h"
 
+class RichTextViewDelegate;
+
 class RDTableView : public QTableView
 {
   Q_OBJECT
@@ -44,6 +46,9 @@ public:
   void resizeColumnsToContents();
 
   void setCustomHeaderSizing(bool sizing) { m_horizontalHeader->setCustomSizing(sizing); }
+  void setItemDelegate(QAbstractItemDelegate *delegate);
+  QAbstractItemDelegate *itemDelegate() const;
+
   // these ones we CAN override, so even though the implementation is identical to QTableView we
   // reimplement so it can pick up the above functions
   QRect visualRect(const QModelIndex &index) const override;
@@ -57,6 +62,7 @@ public:
   void setPinnedColumns(int numColumns);
   int pinnedColumns() const { return m_pinnedColumns; }
 protected:
+  void mouseMoveEvent(QMouseEvent *e) override;
   void keyPressEvent(QKeyEvent *e) override;
   void paintEvent(QPaintEvent *e) override;
   void updateGeometries() override;
@@ -69,4 +75,11 @@ private:
   int m_columnGroupRole = 0;
 
   RDHeaderView *m_horizontalHeader;
+
+  QModelIndex m_currentHoverIndex;
+
+  QAbstractItemDelegate *m_userDelegate = NULL;
+  RichTextViewDelegate *m_delegate;
+
+  friend class RichTextViewDelegate;
 };

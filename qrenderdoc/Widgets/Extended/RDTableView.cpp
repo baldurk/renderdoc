@@ -39,8 +39,22 @@ RDTableView::RDTableView(QWidget *parent) : QTableView(parent)
   m_horizontalHeader = new RDHeaderView(Qt::Horizontal, this);
   setHorizontalHeader(m_horizontalHeader);
 
+  m_delegate = new RichTextViewDelegate(this);
+  QTableView::setItemDelegate(m_delegate);
+
   QObject::connect(m_horizontalHeader, &QHeaderView::sectionResized,
                    [this](int, int, int) { viewport()->update(); });
+}
+
+void RDTableView::setItemDelegate(QAbstractItemDelegate *delegate)
+{
+  m_userDelegate = delegate;
+  m_delegate->setForwardDelegate(m_userDelegate);
+}
+
+QAbstractItemDelegate *RDTableView::itemDelegate() const
+{
+  return m_userDelegate;
 }
 
 int RDTableView::columnViewportPosition(int column) const
@@ -306,9 +320,40 @@ void RDTableView::paintCell(QPainter *painter, const QModelIndex &index,
   if(selectionModel() && selectionModel()->isSelected(index))
     cellopt.state |= QStyle::State_Selected;
 
+  if(cellopt.rect.contains(viewport()->mapFromGlobal(QCursor::pos())))
+    cellopt.state |= QStyle::State_MouseOver;
+
+  if(index.row() == 1 && index.column() == 5)
+    qInfo() << cellopt.state;
+
   // draw the background, then the cell
   style()->drawPrimitive(QStyle::PE_PanelItemViewRow, &cellopt, painter, this);
-  itemDelegate(index)->paint(painter, cellopt, index);
+  QTableView::itemDelegate(index)->paint(painter, cellopt, index);
+}
+
+void RDTableView::mouseMoveEvent(QMouseEvent *e)
+{
+  QModelIndex oldHover = m_currentHoverIndex;
+
+  QTableView::mouseMoveEvent(e);
+
+  QModelIndex newHover = m_currentHoverIndex = indexAt(e->pos());
+
+  update(newHover);
+
+  if(m_delegate && m_delegate->linkHover(e, newHover))
+  {
+    setCursor(QCursor(Qt::PointingHandCursor));
+  }
+  else
+  {
+    unsetCursor();
+  }
+
+  if(oldHover == newHover)
+    return;
+
+  update(oldHover);
 }
 
 void RDTableView::scrollTo(const QModelIndex &index, ScrollHint hint)

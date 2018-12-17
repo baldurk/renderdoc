@@ -111,7 +111,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   ui->events->header()->setCascadingSectionResizes(false);
 
-  ui->events->setItemVerticalMargin(4);
+  ui->events->setItemVerticalMargin(0);
   ui->events->setIgnoreIconSize(true);
 
   // set up default section layout. This will be overridden in restoreState()

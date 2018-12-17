@@ -38,19 +38,11 @@ class RDTreeViewDelegate : public ForwardingDelegate
 private:
   Q_OBJECT
 
-  // I hate the mutable keyword, but it's necessary to modify it inside sizeHint to access in
-  // initStyleOption. There's no other way to only remove the icon while in sizeHint, and not in
-  // other places that call initStyleOption. We don't want to try and manually init, since if
-  // there's a forwarded delegate it might do something different.
-  mutable bool m_suppressIcon = false;
   RDTreeView *m_View;
 
 public:
   RDTreeViewDelegate(RDTreeView *view);
   QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-protected:
-  void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const override;
 };
 
 class RDTipLabel : public QLabel

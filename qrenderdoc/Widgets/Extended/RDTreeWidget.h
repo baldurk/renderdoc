@@ -198,25 +198,7 @@ private:
   RDTreeWidgetItem *m_Current;
 };
 
-class RDTreeWidgetDelegate : public RDTreeViewDelegate
-{
-  Q_OBJECT
-public:
-  explicit RDTreeWidgetDelegate(RDTreeWidget *parent);
-  ~RDTreeWidgetDelegate();
-
-  void paint(QPainter *painter, const QStyleOptionViewItem &option,
-             const QModelIndex &index) const override;
-  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-  bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option,
-                   const QModelIndex &index) override;
-
-  bool linkHover(QMouseEvent *e, const QModelIndex &index);
-
-private:
-  RDTreeWidget *m_widget;
-};
+class RichTextViewDelegate;
 
 class RDTreeWidget : public RDTreeView
 {
@@ -313,7 +295,7 @@ private:
   RDTreeWidgetModel *m_model;
 
   QAbstractItemDelegate *m_userDelegate = NULL;
-  RDTreeWidgetDelegate *m_delegate;
+  RichTextViewDelegate *m_delegate;
 
   bool m_clearing = false;
 

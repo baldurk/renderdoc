@@ -467,6 +467,28 @@ private:
   QAbstractItemDelegate *m_delegate = NULL;
 };
 
+// delegate that will handle painting, hovering and clicking on rich text items.
+// owning view needs to call linkHover, and adjust its cursor and repaint as necessary.
+class RichTextViewDelegate : public ForwardingDelegate
+{
+  Q_OBJECT
+public:
+  explicit RichTextViewDelegate(QAbstractItemView *parent);
+  ~RichTextViewDelegate();
+
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const override;
+  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+  bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override;
+
+  bool linkHover(QMouseEvent *e, const QModelIndex &index);
+
+private:
+  QAbstractItemView *m_widget;
+};
+
 class QMenu;
 
 // helper for doing a manual blocking invoke of a dialog

@@ -106,7 +106,12 @@ public:
           case 2: return sort ? QVariant((uint32_t)msg.severity) : QVariant(ToQStr(msg.severity));
           case 3: return ToQStr(msg.category);
           case 4: return msg.messageID;
-          case 5: return msg.description;
+          case 5:
+          {
+            QVariant desc = msg.description;
+            RichResourceTextInitialise(desc);
+            return desc;
+          }
           default: break;
         }
       }
@@ -207,6 +212,11 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
 
   ui->messages->setSortingEnabled(true);
   ui->messages->sortByColumn(0, Qt::AscendingOrder);
+
+  ui->messages->setMouseTracking(true);
+  ui->messages->setAutoScroll(false);
+
+  ui->messages->horizontalHeader()->setStretchLastSection(false);
 
   ui->messages->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->messages, &QWidget::customContextMenuRequested, this,
