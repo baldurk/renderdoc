@@ -1462,7 +1462,8 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
     if(runToInstruction >= 0 && m_Trace->states[step].nextInstruction == (uint32_t)runToInstruction)
       break;
 
-    if(!firstStep && (m_Trace->states[step + inc].flags & condition))
+    if(!firstStep && (step + inc >= 0) && (step + inc < m_Trace->states.count()) &&
+       (m_Trace->states[step + inc].flags & condition))
       break;
 
     if(!firstStep && m_Breakpoints.contains((int)m_Trace->states[step].nextInstruction))
