@@ -333,7 +333,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       SPIRVId id = it.word(1);
       std::string oldName = (const char *)&it.word(2);
       editor.Remove(it);
-      editor.SetName(id, ("emulated_" + oldName).c_str());
+      if(typeReplacements.find(id) == typeReplacements.end())
+        editor.SetName(id, ("emulated_" + oldName).c_str());
     }
 
     // remove any OpName for the old entry points
