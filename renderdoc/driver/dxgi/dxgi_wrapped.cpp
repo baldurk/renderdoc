@@ -1052,17 +1052,26 @@ HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_
 
   if(wrapDevice)
   {
-    if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen && pDesc)
+    DXGI_SWAP_CHAIN_DESC local = {};
+    DXGI_SWAP_CHAIN_DESC *desc = NULL;
+
+    if(pDesc)
     {
-      pDesc->Windowed = TRUE;
+      local = *pDesc;
+      desc = &local;
     }
 
-    HRESULT ret = m_pReal->CreateSwapChain(wrapDevice->GetRealIUnknown(), pDesc, ppSwapChain);
+    local.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+      local.Windowed = TRUE;
+
+    HRESULT ret = m_pReal->CreateSwapChain(wrapDevice->GetRealIUnknown(), desc, ppSwapChain);
 
     if(SUCCEEDED(ret))
     {
       *ppSwapChain =
-          new WrappedIDXGISwapChain4(*ppSwapChain, pDesc ? pDesc->OutputWindow : NULL, wrapDevice);
+          new WrappedIDXGISwapChain4(*ppSwapChain, desc ? desc->OutputWindow : NULL, wrapDevice);
     }
 
     return ret;
@@ -1085,12 +1094,23 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForHwnd(
 
   if(wrapDevice)
   {
+    DXGI_SWAP_CHAIN_DESC1 local;
+    DXGI_SWAP_CHAIN_DESC1 *desc = NULL;
+
+    if(pDesc)
+    {
+      local = *pDesc;
+      desc = &local;
+    }
+
+    local.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
     if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen && pFullscreenDesc)
     {
       pFullscreenDesc = NULL;
     }
 
-    HRESULT ret = m_pReal2->CreateSwapChainForHwnd(wrapDevice->GetRealIUnknown(), hWnd, pDesc,
+    HRESULT ret = m_pReal2->CreateSwapChainForHwnd(wrapDevice->GetRealIUnknown(), hWnd, desc,
                                                    pFullscreenDesc, unwrappedOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
@@ -1126,8 +1146,19 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForCoreWindow(IUnknown *pDevice, IUn
 
   if(wrapDevice)
   {
+    DXGI_SWAP_CHAIN_DESC1 local = {};
+    DXGI_SWAP_CHAIN_DESC1 *desc = NULL;
+
+    if(pDesc)
+    {
+      local = *pDesc;
+      desc = &local;
+    }
+
+    local.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
     HRESULT ret = m_pReal2->CreateSwapChainForCoreWindow(wrapDevice->GetRealIUnknown(), pWindow,
-                                                         pDesc, unwrappedOutput, ppSwapChain);
+                                                         desc, unwrappedOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
     {
@@ -1166,7 +1197,18 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForComposition(IUnknown *pDevice,
 
   if(wrapDevice)
   {
-    HRESULT ret = m_pReal2->CreateSwapChainForComposition(wrapDevice->GetRealIUnknown(), pDesc,
+    DXGI_SWAP_CHAIN_DESC1 local = {};
+    DXGI_SWAP_CHAIN_DESC1 *desc = NULL;
+
+    if(pDesc)
+    {
+      local = *pDesc;
+      desc = &local;
+    }
+
+    local.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    HRESULT ret = m_pReal2->CreateSwapChainForComposition(wrapDevice->GetRealIUnknown(), desc,
                                                           unwrappedOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
