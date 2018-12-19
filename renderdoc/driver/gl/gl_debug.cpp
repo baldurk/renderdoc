@@ -793,6 +793,8 @@ void GLReplay::InitDebugData()
 
   if(!HasExt[ARB_shader_image_load_store] || !HasExt[ARB_compute_shader])
   {
+    RDCWARN(
+        "Don't have shader image load/store or compute shaders, functionality will be degraded.");
     m_Degraded = true;
   }
 }
