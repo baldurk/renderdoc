@@ -133,51 +133,52 @@ void DisplayGenericSplash()
   eglBindAPI(EGL_OPENGL_ES_API);
 
   EGLDisplay eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-  eglTerminate(eglDisplay);
 
   ANativeWindow *previewWindow = android_state->window;
 
   if(eglDisplay && previewWindow)
   {
     int major = 0, minor = 0;
-    eglInitialize(eglDisplay, &major, &minor);
+    EGLBoolean initialised = eglInitialize(eglDisplay, &major, &minor);
 
-    const EGLint configAttribs[] = {EGL_RED_SIZE,
-                                    8,
-                                    EGL_GREEN_SIZE,
-                                    8,
-                                    EGL_BLUE_SIZE,
-                                    8,
-                                    EGL_SURFACE_TYPE,
-                                    EGL_WINDOW_BIT,
-                                    EGL_COLOR_BUFFER_TYPE,
-                                    EGL_RGB_BUFFER,
-                                    EGL_RENDERABLE_TYPE,
-                                    EGL_OPENGL_ES2_BIT,
-                                    EGL_NONE};
-
-    EGLint numConfigs;
-    EGLConfig config;
-    if(eglChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
+    if(initialised && major >= 1)
     {
-      // we only need GLES 2 for this
-      static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+      const EGLint configAttribs[] = {EGL_RED_SIZE,
+                                      8,
+                                      EGL_GREEN_SIZE,
+                                      8,
+                                      EGL_BLUE_SIZE,
+                                      8,
+                                      EGL_SURFACE_TYPE,
+                                      EGL_WINDOW_BIT,
+                                      EGL_COLOR_BUFFER_TYPE,
+                                      EGL_RGB_BUFFER,
+                                      EGL_RENDERABLE_TYPE,
+                                      EGL_OPENGL_ES2_BIT,
+                                      EGL_NONE};
 
-      EGLContext ctx = eglCreateContext(eglDisplay, config, NULL, ctxAttribs);
-      if(ctx)
+      EGLint numConfigs;
+      EGLConfig config;
+      if(eglChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
       {
-        EGLSurface surface = eglCreateWindowSurface(eglDisplay, config, previewWindow, NULL);
+        // we only need GLES 2 for this
+        static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 
-        if(surface)
+        EGLContext ctx = eglCreateContext(eglDisplay, config, NULL, ctxAttribs);
+        if(ctx)
         {
-          eglMakeCurrent(eglDisplay, surface, surface, ctx);
+          EGLSurface surface = eglCreateWindowSurface(eglDisplay, config, previewWindow, NULL);
 
-          // simple pass through shader for the fullscreen triangle verts
-          const char *vertex =
-              "attribute vec2 pos;\n"
-              "void main() { gl_Position = vec4(pos, 0.5, 1.0); }";
+          if(surface)
+          {
+            eglMakeCurrent(eglDisplay, surface, surface, ctx);
 
-          const char *fragment = R"(
+            // simple pass through shader for the fullscreen triangle verts
+            const char *vertex =
+                "attribute vec2 pos;\n"
+                "void main() { gl_Position = vec4(pos, 0.5, 1.0); }";
+
+            const char *fragment = R"(
 precision highp float;
 
 float circle(in vec2 uv, in vec2 centre, in float radius)
@@ -222,88 +223,92 @@ void main()
 }
 )";
 
-          // compile the shaders and link into a program
-          GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-          glShaderSource(vs, 1, &vertex, NULL);
-          glCompileShader(vs);
+            // compile the shaders and link into a program
+            GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(vs, 1, &vertex, NULL);
+            glCompileShader(vs);
 
-          GLint status = 0;
-          char buffer[1025] = {0};
-          glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
-          if(status == 0)
+            GLint status = 0;
+            char buffer[1025] = {0};
+            glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
+            if(status == 0)
+            {
+              glGetShaderInfoLog(vs, 1024, NULL, buffer);
+              ANDROID_LOG("VS error: %s", buffer);
+            }
+
+            GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(fs, 1, &fragment, NULL);
+            glCompileShader(fs);
+
+            status = 0;
+            glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
+            if(status == 0)
+            {
+              glGetShaderInfoLog(fs, 1024, NULL, buffer);
+              ANDROID_LOG("FS error: %s", buffer);
+            }
+
+            GLuint prog = glCreateProgram();
+            glAttachShader(prog, vs);
+            glAttachShader(prog, fs);
+            glLinkProgram(prog);
+
+            status = 0;
+            glGetProgramiv(prog, GL_LINK_STATUS, &status);
+            if(status == 0)
+            {
+              glGetProgramInfoLog(prog, 1024, NULL, buffer);
+              ANDROID_LOG("Program Error: %s", buffer);
+            }
+
+            glUseProgram(prog);
+
+            // set the resolution
+            GLuint loc = glGetUniformLocation(prog, "iResolution");
+            glUniform2f(loc, float(ANativeWindow_getWidth(previewWindow)),
+                        float(ANativeWindow_getHeight(previewWindow)));
+
+            // fullscreen triangle
+            float verts[] = {
+                -1.0f, -1.0f,    // vertex 0
+                3.0f,  -1.0f,    // vertex 1
+                -1.0f, 3.0f,     // vertex 2
+            };
+
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, verts);
+            glEnableVertexAttribArray(0);
+
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+
+            eglSwapBuffers(eglDisplay, surface);
+          }
+          else
           {
-            glGetShaderInfoLog(vs, 1024, NULL, buffer);
-            ANDROID_LOG("VS error: %s", buffer);
+            ANDROID_LOG("failed making surface: %x", eglGetError());
           }
 
-          GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-          glShaderSource(fs, 1, &fragment, NULL);
-          glCompileShader(fs);
-
-          status = 0;
-          glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
-          if(status == 0)
-          {
-            glGetShaderInfoLog(fs, 1024, NULL, buffer);
-            ANDROID_LOG("FS error: %s", buffer);
-          }
-
-          GLuint prog = glCreateProgram();
-          glAttachShader(prog, vs);
-          glAttachShader(prog, fs);
-          glLinkProgram(prog);
-
-          status = 0;
-          glGetProgramiv(prog, GL_LINK_STATUS, &status);
-          if(status == 0)
-          {
-            glGetProgramInfoLog(prog, 1024, NULL, buffer);
-            ANDROID_LOG("Program Error: %s", buffer);
-          }
-
-          glUseProgram(prog);
-
-          // set the resolution
-          GLuint loc = glGetUniformLocation(prog, "iResolution");
-          glUniform2f(loc, float(ANativeWindow_getWidth(previewWindow)),
-                      float(ANativeWindow_getHeight(previewWindow)));
-
-          // fullscreen triangle
-          float verts[] = {
-              -1.0f, -1.0f,    // vertex 0
-              3.0f,  -1.0f,    // vertex 1
-              -1.0f, 3.0f,     // vertex 2
-          };
-
-          glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, verts);
-          glEnableVertexAttribArray(0);
-
-          glDrawArrays(GL_TRIANGLES, 0, 3);
-
-          eglSwapBuffers(eglDisplay, surface);
+          eglMakeCurrent(eglDisplay, 0L, 0L, NULL);
+          eglDestroyContext(eglDisplay, ctx);
+          eglDestroySurface(eglDisplay, surface);
         }
         else
         {
-          ANDROID_LOG("failed making surface: %x", eglGetError());
+          ANDROID_LOG("failed making context: %x", eglGetError());
         }
-
-        eglMakeCurrent(eglDisplay, 0L, 0L, NULL);
-        eglDestroyContext(eglDisplay, ctx);
-        eglDestroySurface(eglDisplay, surface);
-        eglTerminate(eglDisplay);
       }
       else
       {
-        ANDROID_LOG("failed making context: %x", eglGetError());
+        ANDROID_LOG("failed choosing config");
       }
+
+      eglTerminate(eglDisplay);
     }
     else
     {
-      ANDROID_LOG("failed choosing config");
+      ANDROID_LOG("failed to initialise EGL");
     }
   }
-
-  dlclose(libEGL);
 
   m_DrawLock.unlock();
   ANDROID_LOG("Done splashing");
