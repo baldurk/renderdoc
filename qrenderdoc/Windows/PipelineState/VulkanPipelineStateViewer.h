@@ -66,7 +66,6 @@ private slots:
   void on_showEmpty_toggled(bool checked);
   void on_exportHTML_clicked();
   void on_meshView_clicked();
-  void on_predicateBufferView_clicked();
   void on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viAttrs_mouseMove(QMouseEvent *event);
@@ -77,6 +76,7 @@ private slots:
   void shaderView_clicked();
 
   void shaderSave_clicked();
+  void predicateBufferView_clicked();
   void resource_itemActivated(RDTreeWidgetItem *item, int column);
   void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
