@@ -120,6 +120,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
       ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
   };
 
+  QToolButton *viewPredicateBufferButtons[] = {
+      ui->predicateBufferViewButton, ui->csPredicateBufferViewButton,
+  };
+
   RDTreeWidget *resources[] = {
       ui->vsResources, ui->tcsResources, ui->tesResources,
       ui->gsResources, ui->fsResources,  ui->csResources,
@@ -145,6 +149,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderSave_clicked);
+
+  for(QToolButton *b : viewPredicateBufferButtons)
+    QObject::connect(b, &QToolButton::clicked, this,
+                     &VulkanPipelineStateViewer::predicateBufferView_clicked);
 
   QObject::connect(ui->viAttrs, &RDTreeWidget::leave, this, &VulkanPipelineStateViewer::vertex_leave);
   QObject::connect(ui->viBuffers, &RDTreeWidget::leave, this,
@@ -276,7 +284,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->scissors->setInstantTooltips(true);
   }
 
-  for(RDLabel *rp : {ui->renderpass, ui->framebuffer, ui->predicateBuffer})
+  for(RDLabel *rp : {ui->renderpass, ui->framebuffer, ui->predicateBuffer, ui->csPredicateBuffer})
   {
     rp->setAutoFillBackground(true);
     rp->setBackgroundRole(QPalette::ToolTipBase);
@@ -654,6 +662,7 @@ void VulkanPipelineStateViewer::clearState()
   ui->stencils->clear();
 
   ui->conditionalRenderingGroup->setVisible(false);
+  ui->csConditionalRenderingGroup->setVisible(false);
 }
 
 QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, const QString &slotname,
@@ -2038,6 +2047,7 @@ void VulkanPipelineStateViewer::setState()
   if(state.conditionalRendering.bufferId == ResourceId())
   {
     ui->conditionalRenderingGroup->setVisible(false);
+    ui->csConditionalRenderingGroup->setVisible(false);
   }
   else
   {
@@ -2047,6 +2057,13 @@ void VulkanPipelineStateViewer::setState()
                                      .arg(state.conditionalRendering.byteOffset));
     ui->predicatePassing->setPixmap(state.conditionalRendering.isPassing ? tick : cross);
     ui->predicateInverted->setPixmap(state.conditionalRendering.isInverted ? tick : cross);
+
+    ui->csConditionalRenderingGroup->setVisible(true);
+    ui->csPredicateBuffer->setText(QFormatStr("%1 (Byte Offset %2)")
+                                       .arg(ToQStr(state.conditionalRendering.bufferId))
+                                       .arg(state.conditionalRendering.byteOffset));
+    ui->csPredicatePassing->setPixmap(state.conditionalRendering.isPassing ? tick : cross);
+    ui->csPredicateInverted->setPixmap(state.conditionalRendering.isInverted ? tick : cross);
   }
 
   ////////////////////////////////////////////////
@@ -2640,6 +2657,15 @@ void VulkanPipelineStateViewer::shaderSave_clicked()
     return;
 
   m_Common.SaveShaderFile(shaderDetails);
+}
+
+void VulkanPipelineStateViewer::predicateBufferView_clicked()
+{
+  const VKPipe::ConditionalRendering &cr = m_Ctx.CurVulkanPipelineState()->conditionalRendering;
+
+  IBufferViewer *viewer = m_Ctx.ViewBuffer(cr.byteOffset, sizeof(uint32_t), cr.bufferId, "uint");
+
+  m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
 }
 
 void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::VertexInput &vi)
@@ -3501,7 +3527,10 @@ void VulkanPipelineStateViewer::on_exportHTML_clicked()
           xml.writeEndElement();
           exportHTML(xml, m_Ctx.CurVulkanPipelineState()->currentPass);
           break;
-        case 8: exportHTML(xml, m_Ctx.CurVulkanPipelineState()->computeShader); break;
+        case 8:
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->computeShader);
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState()->conditionalRendering);
+          break;
       }
 
       xml.writeEndElement();
@@ -3518,13 +3547,4 @@ void VulkanPipelineStateViewer::on_meshView_clicked()
   if(!m_Ctx.HasMeshPreview())
     m_Ctx.ShowMeshPreview();
   ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
-}
-
-void VulkanPipelineStateViewer::on_predicateBufferView_clicked()
-{
-  const VKPipe::ConditionalRendering &cr = m_Ctx.CurVulkanPipelineState()->conditionalRendering;
-
-  IBufferViewer *viewer = m_Ctx.ViewBuffer(cr.byteOffset, sizeof(uint32_t), cr.bufferId, "uint");
-
-  m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
 }
