@@ -256,6 +256,18 @@ std::string GetEnvVar(const char *var);
 
 #define RANDF(mn, mx) ((float(rand()) / float(RAND_MAX)) * ((mx) - (mn)) + (mn))
 
+template <typename T>
+inline T AlignUp(T x, T a)
+{
+  return (x + (a - 1)) & (~(a - 1));
+}
+
+template <typename T, typename A>
+inline T AlignUpPtr(T x, A a)
+{
+  return (T)AlignUp<uintptr_t>((uintptr_t)x, (uintptr_t)a);
+}
+
 std::string strlower(const std::string &str);
 std::string strupper(const std::string &str);
 std::string trim(const std::string &str);
