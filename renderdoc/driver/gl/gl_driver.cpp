@@ -2079,6 +2079,14 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
       AttemptCapture();
       BeginCaptureFrame();
+
+      // serialise out the context configuration for this current context first
+      {
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(GLChunk::ContextConfiguration);
+        Serialise_ContextConfiguration(ser, GetCtx().ctx);
+        GetContextRecord()->AddChunk(scope.Get());
+      }
     }
 
     if(switchctx.ctx != prevctx.ctx)
