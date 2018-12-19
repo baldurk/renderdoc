@@ -257,6 +257,12 @@ struct DeviceCreateInfo : public VkDeviceCreateInfo
   {
   }
 
+  DeviceCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkDeviceCreateInfo *() const { return this; }
 };
 

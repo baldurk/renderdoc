@@ -335,7 +335,8 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
 
   CHECK_VKR(vkCreateDevice(phys,
                            vkh::DeviceCreateInfo({vkh::DeviceQueueCreateInfo(queueFamilyIndex, 1)},
-                                                 layers, devExts, features),
+                                                 layers, devExts, features)
+                               .next(devInfoNext),
                            NULL, &device));
 
   volkLoadDevice(device);

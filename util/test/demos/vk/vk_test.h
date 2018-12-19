@@ -188,6 +188,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<const char *> instExts;
   std::vector<const char *> devExts;
 
+  // a custom struct to pass to vkDeviceCreateInfo::pNext
+  const void *devInfoNext = NULL;
+
   // optional extensions
   std::vector<const char *> optInstExts;
   std::vector<const char *> optDevExts;
