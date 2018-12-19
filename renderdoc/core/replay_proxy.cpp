@@ -2519,6 +2519,7 @@ bool ReplayProxy::CheckError(ReplayProxyPacket receivedPacket, ReplayProxyPacket
   if(m_Writer.IsErrored() || m_Reader.IsErrored() || m_IsErrored)
   {
     RDCERR("Error during processing of %s", ToStr(expectedPacket).c_str());
+    m_IsErrored = true;
     return true;
   }
 

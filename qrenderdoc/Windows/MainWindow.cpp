@@ -1635,18 +1635,28 @@ void MainWindow::messageCheck()
     }
 
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-      rdcarray<DebugMessage> msgs = r->GetDebugMessages();
+      rdcarray<DebugMessage> msgs;
 
       bool disconnected = false;
 
       if(m_Ctx.Replay().CurrentRemote())
       {
-        bool prev = m_Ctx.Replay().CurrentRemote()->serverRunning;
+        bool wasRunning = m_Ctx.Replay().CurrentRemote()->serverRunning;
 
         m_Ctx.Replay().PingRemote();
 
-        if(prev != m_Ctx.Replay().CurrentRemote()->serverRunning)
+        if(wasRunning != m_Ctx.Replay().CurrentRemote()->serverRunning)
+        {
+          qCritical() << "Remote server disconnected";
           disconnected = true;
+        }
+
+        if(!disconnected && wasRunning)
+          msgs = r->GetDebugMessages();
+      }
+      else
+      {
+        msgs = r->GetDebugMessages();
       }
 
       GUIInvoke::call(this, [this, disconnected, msgs] {

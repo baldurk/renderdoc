@@ -39,6 +39,8 @@ static std::string wsaerr_string(int err)
 {
   switch(err)
   {
+    case WSAENOTSOCK:
+      return "WSAENOTSOCK: An operation was attempted on something that is not a socket";
     case WSAEWOULDBLOCK:
       return "WSAEWOULDBLOCK: A non-blocking socket operation could not be completed immediately";
     case WSAEADDRINUSE:
