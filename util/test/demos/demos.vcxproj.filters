@@ -255,6 +255,9 @@
     <ClCompile Include="vk\vk_adv_cbuffer_zoo.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_buffer_address.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
     <ClCompile Include="d3d11\d3d11_structured_buffer_nested.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>

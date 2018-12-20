@@ -193,6 +193,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="vk\vk_awkward_triangle.cpp" />
+    <ClCompile Include="vk\vk_buffer_address.cpp" />
     <ClCompile Include="vk\vk_cbuffer_zoo.cpp" />
     <ClCompile Include="vk\vk_discard_rects.cpp" />
     <ClCompile Include="vk\vk_draw_zoo.cpp" />

@@ -414,6 +414,13 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                             \
                VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                  \
                                                                                                        \
+  /* VK_EXT_buffer_device_address */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT, VkBufferDeviceAddressInfoEXT)         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,                                \
+               VkBufferDeviceAddressCreateInfoEXT)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,                          \
+               VkPhysicalDeviceBufferAddressFeaturesEXT)                                               \
+                                                                                                       \
   /* VK_EXT_calibrated_timestamps */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT, VkCalibratedTimestampInfoEXT)          \
                                                                                                        \
@@ -826,11 +833,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT)             \
-                                                                                                       \
-  /* VK_EXT_buffer_device_address */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT)                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT)                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT)                           \
                                                                                                        \
   /* VK_EXT_descriptor_indexing */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT)             \
@@ -4230,6 +4232,54 @@ void Deserialise(const VkPhysicalDeviceASTCDecodeFeaturesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBufferDeviceAddressInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(buffer);
+}
+
+template <>
+void Deserialise(const VkBufferDeviceAddressInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBufferDeviceAddressCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(deviceAddress);
+}
+
+template <>
+void Deserialise(const VkBufferDeviceAddressCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceBufferAddressFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(bufferDeviceAddress);
+  SERIALISE_MEMBER(bufferDeviceAddressCaptureReplay);
+  SERIALISE_MEMBER(bufferDeviceAddressMultiDevice);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceBufferAddressFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkValidationCacheCreateInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT);
@@ -6390,6 +6440,8 @@ INSTANTIATE_SERIALISE_TYPE(VkBindImageMemorySwapchainInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindImagePlaneMemoryInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBindSparseInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBufferCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkBufferDeviceAddressInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkBufferDeviceAddressCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryBarrier);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkBufferViewCreateInfo);
@@ -6488,6 +6540,7 @@ INSTANTIATE_SERIALISE_TYPE(VkMultisamplePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferAddressFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthStencilResolvePropertiesKHR);

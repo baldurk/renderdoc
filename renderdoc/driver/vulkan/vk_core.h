@@ -699,6 +699,47 @@ private:
   vector<VkResourceRecord *> m_CoherentMaps;
   Threading::CriticalSection m_CoherentMapsLock;
 
+  std::map<ResourceId, FrameRefType> m_ForcedReferences;
+  Threading::CriticalSection m_ForcedReferencesLock;
+
+  std::map<ResourceId, FrameRefType> GetForcedReferences()
+  {
+    std::map<ResourceId, FrameRefType> ret;
+
+    {
+      SCOPED_LOCK(m_ForcedReferencesLock);
+      ret = m_ForcedReferences;
+    }
+
+    return ret;
+  }
+
+  bool IsForcedReference(ResourceId id)
+  {
+    bool ret = false;
+
+    {
+      SCOPED_LOCK(m_ForcedReferencesLock);
+      ret = (m_ForcedReferences.find(id) != m_ForcedReferences.end());
+    }
+
+    return ret;
+  }
+
+  void AddForcedReference(ResourceId id, FrameRefType ref)
+  {
+    SCOPED_LOCK(m_ForcedReferencesLock);
+    m_ForcedReferences[id] = ref;
+
+    // also add it immediately in case we're mid-way through a frame, and the forced references have
+    // already been processed for this frame.
+    // Note we force read-before-write because this resource is implicitly untracked so we have no
+    // way of knowing how it's used
+    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
+    if(ref != eFrameRef_Read)
+      GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+  }
+
   // used both on capture and replay side to track image layouts. Only locked
   // in capture
   map<ResourceId, ImageLayouts> m_ImageLayouts;
@@ -2025,4 +2066,8 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkResetQueryPoolEXT, VkDevice device, VkQueryPool queryPool,
                                 uint32_t firstQuery, uint32_t queryCount);
+
+  // VK_EXT_buffer_device_address
+  VkDeviceAddress vkGetBufferDeviceAddressEXT(VkDevice device,
+                                              const VkBufferDeviceAddressInfoEXT *pInfo);
 };

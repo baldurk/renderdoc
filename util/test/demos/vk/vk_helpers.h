@@ -556,6 +556,12 @@ struct DescriptorSetLayoutCreateInfo : public VkDescriptorSetLayoutCreateInfo
     this->pBindings = bindings.data();
   }
 
+  DescriptorSetLayoutCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkDescriptorSetLayoutCreateInfo *() const { return this; }
 };
 

@@ -511,6 +511,8 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
     }
   }
 
+  m_ForcedReferences.erase(GetResID(memory));
+
   GetResourceManager()->ReleaseWrappedResource(memory);
 
   ObjDisp(device)->FreeMemory(Unwrap(device), unwrappedMem, pAllocator);
@@ -908,6 +910,25 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     record->AddParent(GetRecord(memory));
     record->baseResource = GetResID(memory);
     record->memOffset = memoryOffset;
+
+    // if the buffer was force-referenced, do the same with the memory
+    if(IsForcedReference(GetResID(buffer)))
+    {
+      AddForcedReference(GetResID(memory), eFrameRef_ReadBeforeWrite);
+
+      // the memory is immediately dirty because we have no way of tracking writes to it
+      bool capframe = false;
+
+      {
+        SCOPED_LOCK(m_CapTransitionLock);
+        capframe = IsActiveCapturing(m_State);
+      }
+
+      if(capframe)
+        GetResourceManager()->MarkPendingDirty(GetResID(memory));
+      else
+        GetResourceManager()->MarkDirtyResource(GetResID(memory));
+    }
   }
 
   return ret;
@@ -1073,6 +1094,11 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   // on replay, so that the memory requirements are the same
   adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
+  // If we're using this buffer for device addresses, ensure we force on capture replay bit.
+  // We ensured the physical device can support this feature before whitelisting the extension.
+  if(adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT)
+    adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT;
+
   byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
 
   UnwrapNextChain(m_State, "VkBufferCreateInfo", tempMem, (VkBaseInStructure *)&adjusted_info);
@@ -1089,11 +1115,43 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
     {
       Chunk *chunk = NULL;
 
+      VkBufferCreateInfo serialisedCreateInfo = *pCreateInfo;
+      VkBufferDeviceAddressCreateInfoEXT bufferDeviceAddress = {
+          VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,
+      };
+
+      // if we're using VK_EXT_buffer_device_address, we fetch the device address that's been
+      // allocated and insert it into the next chain and patch the flags so that it replays
+      // naturally.
+      if(GetRecord(device)->instDevInfo->ext_EXT_buffer_device_address &&
+         (pCreateInfo->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT) != 0)
+      {
+        VkBufferDeviceAddressInfoEXT getInfo = {
+            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT, NULL, Unwrap(*pBuffer),
+        };
+
+        bufferDeviceAddress.deviceAddress =
+            ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
+
+        RDCASSERT(bufferDeviceAddress.deviceAddress);
+
+        // push this struct onto the start of the chain
+        bufferDeviceAddress.pNext = serialisedCreateInfo.pNext;
+        serialisedCreateInfo.pNext = &bufferDeviceAddress;
+
+        // tell the driver we're giving it a pre-allocated address to use
+        serialisedCreateInfo.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT;
+
+        // this buffer must be forced to be in any captures, since we can't track when it's used by
+        // address
+        AddForcedReference(GetResID(*pBuffer), eFrameRef_Read);
+      }
+
       {
         CACHE_THREAD_SERIALISER();
 
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateBuffer);
-        Serialise_vkCreateBuffer(ser, device, pCreateInfo, NULL, pBuffer);
+        Serialise_vkCreateBuffer(ser, device, &serialisedCreateInfo, NULL, pBuffer);
 
         chunk = scope.Get();
       }
@@ -1940,6 +1998,25 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       bufrecord->AddParent(memrecord);
       bufrecord->baseResource = memrecord->GetResourceID();
       bufrecord->memOffset = pBindInfos[i].memoryOffset;
+
+      // if the buffer was force-referenced, do the same with the memory
+      if(IsForcedReference(GetResID(pBindInfos[i].buffer)))
+      {
+        AddForcedReference(GetResID(pBindInfos[i].memory), eFrameRef_ReadBeforeWrite);
+
+        // the memory is immediately dirty because we have no way of tracking writes to it
+        bool capframe = false;
+
+        {
+          SCOPED_LOCK(m_CapTransitionLock);
+          capframe = IsActiveCapturing(m_State);
+        }
+
+        if(capframe)
+          GetResourceManager()->MarkPendingDirty(GetResID(pBindInfos[i].memory));
+        else
+          GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
+      }
     }
   }
 

@@ -1895,6 +1895,25 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(ycbcrImageArrays);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceBufferAddressFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(bufferDeviceAddress);
+        CHECK_PHYS_EXT_FEATURE(bufferDeviceAddressCaptureReplay);
+        CHECK_PHYS_EXT_FEATURE(bufferDeviceAddressMultiDevice);
+
+        if(ext->bufferDeviceAddress && !avail.bufferDeviceAddressCaptureReplay)
+        {
+          m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+          RDCERR(
+              "Capture requires bufferDeviceAddress support, which is available, but "
+              "bufferDeviceAddressCaptureReplay support is not available which is required to "
+              "replay");
+          return false;
+        }
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -2341,6 +2360,17 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   if(fragmentDensityMapFeatures && !fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages)
   {
     fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages = true;
+  }
+
+  VkPhysicalDeviceBufferAddressFeaturesEXT *bufferAddressFeatures =
+      (VkPhysicalDeviceBufferAddressFeaturesEXT *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT);
+
+  if(bufferAddressFeatures)
+  {
+    // we must turn on bufferDeviceAddressCaptureReplay. We verified that this feature was available
+    // before we whitelisted the extension
+    bufferAddressFeatures->bufferDeviceAddressCaptureReplay = VK_TRUE;
   }
 
   VkResult ret;

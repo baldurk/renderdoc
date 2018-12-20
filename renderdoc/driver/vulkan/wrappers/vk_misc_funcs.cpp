@@ -95,6 +95,7 @@ VkFramebufferCreateInfo WrappedVulkan::UnwrapInfo(const VkFramebufferCreateInfo 
     if(obj == VK_NULL_HANDLE)                                                                      \
       return;                                                                                      \
     type unwrappedObj = Unwrap(obj);                                                               \
+    m_ForcedReferences.erase(GetResID(obj));                                                       \
     GetResourceManager()->ReleaseWrappedResource(obj, true);                                       \
     ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator);                               \
   }

@@ -8,6 +8,7 @@ set(VULKAN_SRC
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
         vk/vk_awkward_triangle.cpp
+        vk/vk_buffer_address.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_discard_rects.cpp
         vk/vk_draw_zoo.cpp

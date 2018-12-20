@@ -721,3 +721,11 @@ VkResult WrappedVulkan::vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t t
   return ObjDisp(device)->GetCalibratedTimestampsEXT(Unwrap(device), timestampCount,
                                                      pTimestampInfos, pTimestamps, pMaxDeviation);
 }
+
+VkDeviceAddress WrappedVulkan::vkGetBufferDeviceAddressEXT(VkDevice device,
+                                                           const VkBufferDeviceAddressInfoEXT *pInfo)
+{
+  VkBufferDeviceAddressInfoEXT unwrappedInfo = *pInfo;
+  unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+  return ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &unwrappedInfo);
+}
