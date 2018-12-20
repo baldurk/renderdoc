@@ -76,6 +76,8 @@ static uint64_t GetHandle(WindowingData window)
 
 ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, ReplayOutputType type)
 {
+  m_ThreadID = Threading::GetCurrentID();
+
   m_pRenderer = parent;
 
   m_MainOutput.dirty = true;
@@ -116,6 +118,8 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
 
 void ReplayOutput::SetDimensions(int32_t width, int32_t height)
 {
+  CHECK_REPLAY_THREAD();
+
   if(m_MainOutput.outputID == 0)
   {
     m_Width = width;
@@ -125,6 +129,8 @@ void ReplayOutput::SetDimensions(int32_t width, int32_t height)
 
 ReplayOutput::~ReplayOutput()
 {
+  CHECK_REPLAY_THREAD();
+
   m_pDevice->DestroyOutputWindow(m_MainOutput.outputID);
   m_pDevice->DestroyOutputWindow(m_PixelContext.outputID);
 
@@ -135,11 +141,15 @@ ReplayOutput::~ReplayOutput()
 
 void ReplayOutput::Shutdown()
 {
+  CHECK_REPLAY_THREAD();
+
   m_pRenderer->ShutdownOutput(this);
 }
 
 void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
+  CHECK_REPLAY_THREAD();
+
   if(o.overlay != m_RenderData.texDisplay.overlay || o.typeHint != m_RenderData.texDisplay.typeHint ||
      o.resourceId != m_RenderData.texDisplay.resourceId)
   {
@@ -159,6 +169,8 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 
 void ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
 {
+  CHECK_REPLAY_THREAD();
+
   if(o.showWholePass != m_RenderData.meshDisplay.showWholePass)
     m_OverlayDirty = true;
   m_RenderData.meshDisplay = o;
@@ -167,6 +179,8 @@ void ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
 
 void ReplayOutput::SetFrameEvent(int eventId)
 {
+  CHECK_REPLAY_THREAD();
+
   m_EventID = eventId;
 
   m_OverlayDirty = true;
@@ -180,6 +194,8 @@ void ReplayOutput::SetFrameEvent(int eventId)
 
 void ReplayOutput::RefreshOverlay()
 {
+  CHECK_REPLAY_THREAD();
+
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   passEvents = m_pDevice->GetPassEvents(m_EventID);
@@ -236,11 +252,15 @@ void ReplayOutput::RefreshOverlay()
 
 ResourceId ReplayOutput::GetCustomShaderTexID()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_CustomShaderResourceId;
 }
 
 ResourceId ReplayOutput::GetDebugOverlayTexID()
 {
+  CHECK_REPLAY_THREAD();
+
   if(m_OverlayDirty)
   {
     m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
@@ -253,6 +273,8 @@ ResourceId ReplayOutput::GetDebugOverlayTexID()
 
 void ReplayOutput::ClearThumbnails()
 {
+  CHECK_REPLAY_THREAD();
+
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
     m_pDevice->DestroyOutputWindow(m_Thumbnails[i].outputID);
 
@@ -261,6 +283,8 @@ void ReplayOutput::ClearThumbnails()
 
 bool ReplayOutput::SetPixelContext(WindowingData window)
 {
+  CHECK_REPLAY_THREAD();
+
   m_PixelContext.outputID = m_pDevice->MakeOutputWindow(window, false);
   m_PixelContext.texture = ResourceId();
   m_PixelContext.depthMode = false;
@@ -272,6 +296,8 @@ bool ReplayOutput::SetPixelContext(WindowingData window)
 
 bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint)
 {
+  CHECK_REPLAY_THREAD();
+
   OutputPair p;
 
   RDCASSERT(window.system != WindowingSystem::Unknown);
@@ -320,6 +346,8 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
 
 rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 {
+  CHECK_REPLAY_THREAD();
+
   PixelValue minval = {{0.0f, 0.0f, 0.0f, 0.0f}};
   PixelValue maxval = {{1.0f, 1.0f, 1.0f, 1.0f}};
 
@@ -347,6 +375,8 @@ rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 
 rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4])
 {
+  CHECK_REPLAY_THREAD();
+
   vector<uint32_t> hist;
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
@@ -373,6 +403,8 @@ rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool c
 PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y,
                                    uint32_t sliceFace, uint32_t mip, uint32_t sample)
 {
+  CHECK_REPLAY_THREAD();
+
   PixelValue ret;
 
   RDCEraseEl(ret.floatValue);
@@ -408,6 +440,8 @@ PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x
 
 rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t x, uint32_t y)
 {
+  CHECK_REPLAY_THREAD();
+
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(eventId);
 
   const rdcpair<uint32_t, uint32_t> errorReturn = make_rdcpair(~0U, ~0U);
@@ -481,6 +515,8 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t 
 
 void ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
 {
+  CHECK_REPLAY_THREAD();
+
   m_ContextX = RDCMAX((float)x, 0.0f);
   m_ContextY = RDCMAX((float)y, 0.0f);
 
@@ -489,6 +525,8 @@ void ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
 
 void ReplayOutput::DisablePixelContext()
 {
+  CHECK_REPLAY_THREAD();
+
   m_ContextX = -1.0f;
   m_ContextY = -1.0f;
 
@@ -497,6 +535,8 @@ void ReplayOutput::DisablePixelContext()
 
 void ReplayOutput::ClearBackground(uint64_t outputID, const FloatVector &backgroundColor)
 {
+  CHECK_REPLAY_THREAD();
+
   if(m_RenderData.texDisplay.backgroundColor.x == 0.0f &&
      m_RenderData.texDisplay.backgroundColor.y == 0.0f &&
      m_RenderData.texDisplay.backgroundColor.z == 0.0f &&
@@ -508,6 +548,8 @@ void ReplayOutput::ClearBackground(uint64_t outputID, const FloatVector &backgro
 
 void ReplayOutput::DisplayContext()
 {
+  CHECK_REPLAY_THREAD();
+
   if(m_PixelContext.outputID == 0)
     return;
   m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
@@ -570,6 +612,8 @@ void ReplayOutput::DisplayContext()
 
 void ReplayOutput::Display()
 {
+  CHECK_REPLAY_THREAD();
+
   if(m_pDevice->CheckResizeOutputWindow(m_MainOutput.outputID))
   {
     m_pDevice->GetOutputWindowDimensions(m_MainOutput.outputID, m_Width, m_Height);
@@ -677,6 +721,8 @@ void ReplayOutput::Display()
 
 void ReplayOutput::DisplayTex()
 {
+  CHECK_REPLAY_THREAD();
+
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   if(m_MainOutput.outputID == 0)
@@ -760,6 +806,8 @@ void ReplayOutput::DisplayTex()
 
 void ReplayOutput::DisplayMesh()
 {
+  CHECK_REPLAY_THREAD();
+
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   if(draw == NULL || m_MainOutput.outputID == 0 || m_Width <= 0 || m_Height <= 0 ||

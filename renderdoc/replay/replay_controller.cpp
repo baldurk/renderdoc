@@ -170,6 +170,8 @@ static void fileWriteFunc(void *context, void *data, int size)
 
 ReplayController::ReplayController()
 {
+  m_ThreadID = Threading::GetCurrentID();
+
   m_pDevice = NULL;
 
   m_EventID = 100000;
@@ -185,6 +187,8 @@ ReplayController::ReplayController()
 
 ReplayController::~ReplayController()
 {
+  CHECK_REPLAY_THREAD();
+
   RDCLOG("Shutting down replay renderer");
 
   for(size_t i = 0; i < m_Outputs.size(); i++)
@@ -209,6 +213,8 @@ ReplayController::~ReplayController()
 
 void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 {
+  CHECK_REPLAY_THREAD();
+
   if(eventId != m_EventID || force)
   {
     m_EventID = eventId;
@@ -226,31 +232,43 @@ void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 
 const D3D11Pipe::State *ReplayController::GetD3D11PipelineState()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_D3D11PipelineState;
 }
 
 const D3D12Pipe::State *ReplayController::GetD3D12PipelineState()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_D3D12PipelineState;
 }
 
 const GLPipe::State *ReplayController::GetGLPipelineState()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_GLPipelineState;
 }
 
 const VKPipe::State *ReplayController::GetVulkanPipelineState()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_VulkanPipelineState;
 }
 
 const PipeState &ReplayController::GetPipelineState()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_PipeState;
 }
 
 rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
 {
+  CHECK_REPLAY_THREAD();
+
   rdcarray<rdcstr> ret;
 
   vector<string> targets = m_pDevice->GetDisassemblyTargets();
@@ -268,6 +286,8 @@ rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
 rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                            const char *target)
 {
+  CHECK_REPLAY_THREAD();
+
   for(const std::string &t : m_GCNTargets)
     if(t == target)
       return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
@@ -277,16 +297,22 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
 
 FrameDescription ReplayController::GetFrameInfo()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_FrameRecord.frameInfo;
 }
 
 const SDFile &ReplayController::GetStructuredFile()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetStructuredFile();
 }
 
 DrawcallDescription *ReplayController::GetDrawcallByEID(uint32_t eventId)
 {
+  CHECK_REPLAY_THREAD();
+
   if(eventId >= m_Drawcalls.size())
     return NULL;
 
@@ -295,11 +321,15 @@ DrawcallDescription *ReplayController::GetDrawcallByEID(uint32_t eventId)
 
 const rdcarray<DrawcallDescription> &ReplayController::GetDrawcalls()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_FrameRecord.drawcallList;
 }
 
 bool ReplayController::ContainsMarker(const rdcarray<DrawcallDescription> &draws)
 {
+  CHECK_REPLAY_THREAD();
+
   bool ret = false;
 
   for(const DrawcallDescription &d : draws)
@@ -317,6 +347,8 @@ bool ReplayController::ContainsMarker(const rdcarray<DrawcallDescription> &draws
 
 bool ReplayController::PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b)
 {
+  CHECK_REPLAY_THREAD();
+
   // don't group draws and compute executes
   if((a.flags & DrawFlags::Dispatch) != (b.flags & DrawFlags::Dispatch))
     return false;
@@ -387,6 +419,8 @@ bool ReplayController::PassEquivalent(const DrawcallDescription &a, const Drawca
 
 void ReplayController::AddFakeMarkers()
 {
+  CHECK_REPLAY_THREAD();
+
   rdcarray<DrawcallDescription> &draws = m_FrameRecord.drawcallList;
 
   if(ContainsMarker(draws))
@@ -502,6 +536,8 @@ void ReplayController::AddFakeMarkers()
 
 rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounter> &counters)
 {
+  CHECK_REPLAY_THREAD();
+
   std::vector<GPUCounter> counterArray(counters.begin(), counters.end());
 
   return m_pDevice->FetchCounters(counterArray);
@@ -509,46 +545,64 @@ rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounte
 
 rdcarray<GPUCounter> ReplayController::EnumerateCounters()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->EnumerateCounters();
 }
 
 CounterDescription ReplayController::DescribeCounter(GPUCounter counterID)
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->DescribeCounter(counterID);
 }
 
 const rdcarray<ResourceDescription> &ReplayController::GetResources()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_Resources;
 }
 
 const rdcarray<BufferDescription> &ReplayController::GetBuffers()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_Buffers;
 }
 
 const rdcarray<TextureDescription> &ReplayController::GetTextures()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_Textures;
 }
 
 rdcarray<DebugMessage> ReplayController::GetDebugMessages()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetDebugMessages();
 }
 
 rdcarray<ShaderEntryPoint> ReplayController::GetShaderEntryPoints(ResourceId shader)
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetShaderEntryPoints(m_pDevice->GetLiveID(shader));
 }
 
 ShaderReflection *ReplayController::GetShader(ResourceId shader, ShaderEntryPoint entry)
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetShader(m_pDevice->GetLiveID(shader), entry);
 }
 
 rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)
 {
+  CHECK_REPLAY_THREAD();
+
   id = m_pDevice->GetLiveID(id);
   if(id == ResourceId())
     return rdcarray<EventUsage>();
@@ -557,6 +611,8 @@ rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)
 
 MeshFormat ReplayController::GetPostVSData(uint32_t instID, uint32_t viewID, MeshDataStage stage)
 {
+  CHECK_REPLAY_THREAD();
+
   DrawcallDescription *draw = GetDrawcallByEID(m_EventID);
 
   MeshFormat ret;
@@ -574,6 +630,8 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, uint32_t viewID, Mes
 
 bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
+  CHECK_REPLAY_THREAD();
+
   bytebuf retData;
 
   if(buff == ResourceId())
@@ -594,6 +652,8 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
 
 bytebuf ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip)
 {
+  CHECK_REPLAY_THREAD();
+
   bytebuf ret;
 
   ResourceId liveId = m_pDevice->GetLiveID(tex);
@@ -611,6 +671,8 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint
 
 bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path)
 {
+  CHECK_REPLAY_THREAD();
+
   TextureSave sd = saveData;    // mutable copy
   ResourceId liveid = m_pDevice->GetLiveID(sd.resourceId);
 
@@ -1492,6 +1554,8 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
                                                            uint32_t y, uint32_t slice, uint32_t mip,
                                                            uint32_t sampleIdx, CompType typeHint)
 {
+  CHECK_REPLAY_THREAD();
+
   rdcarray<PixelModification> ret;
 
   for(size_t t = 0; t < m_Textures.size(); t++)
@@ -1600,6 +1664,8 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
                                                 uint32_t instOffset, uint32_t vertOffset)
 {
+  CHECK_REPLAY_THREAD();
+
   ShaderDebugTrace *ret = new ShaderDebugTrace;
 
   *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, instOffset, vertOffset);
@@ -1612,6 +1678,8 @@ ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid
 ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
                                                uint32_t primitive)
 {
+  CHECK_REPLAY_THREAD();
+
   ShaderDebugTrace *ret = new ShaderDebugTrace;
 
   *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
@@ -1623,6 +1691,8 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
 
 ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const uint32_t threadid[3])
 {
+  CHECK_REPLAY_THREAD();
+
   ShaderDebugTrace *ret = new ShaderDebugTrace;
 
   *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
@@ -1634,12 +1704,16 @@ ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const
 
 void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 {
+  CHECK_REPLAY_THREAD();
+
   delete trace;
 }
 
 rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
     ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs)
 {
+  CHECK_REPLAY_THREAD();
+
   bytebuf data;
   if(buffer != ResourceId())
   {
@@ -1660,11 +1734,15 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
 
 rdcarray<WindowingSystem> ReplayController::GetSupportedWindowSystems()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetSupportedWindowSystems();
 }
 
 rdcstr ReplayController::CreateRGPProfile(WindowingData window)
 {
+  CHECK_REPLAY_THREAD();
+
   AMDRGPControl *rgp = m_pDevice->GetRGPControl();
 
   if(!rgp)
@@ -1734,6 +1812,8 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
 
 void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
 {
+  CHECK_REPLAY_THREAD();
+
   ReplayOutput *output = CreateOutput(window, ReplayOutputType::Texture);
 
   TextureDisplay d;
@@ -1777,6 +1857,8 @@ void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
 
 void ReplayController::CancelReplayLoop()
 {
+  CHECK_REPLAY_THREAD();
+
   Atomic::Inc32(&m_ReplayLoopCancel);
 
   // wait for it to actually finish before returning
@@ -1786,6 +1868,8 @@ void ReplayController::CancelReplayLoop()
 
 ReplayOutput *ReplayController::CreateOutput(WindowingData window, ReplayOutputType type)
 {
+  CHECK_REPLAY_THREAD();
+
   ReplayOutput *out = new ReplayOutput(this, window, type);
 
   m_Outputs.push_back(out);
@@ -1801,6 +1885,8 @@ ReplayOutput *ReplayController::CreateOutput(WindowingData window, ReplayOutputT
 
 void ReplayController::ShutdownOutput(IReplayOutput *output)
 {
+  CHECK_REPLAY_THREAD();
+
   for(auto it = m_Outputs.begin(); it != m_Outputs.end(); ++it)
   {
     if((IReplayOutput *)*it == output)
@@ -1816,11 +1902,15 @@ void ReplayController::ShutdownOutput(IReplayOutput *output)
 
 void ReplayController::Shutdown()
 {
+  CHECK_REPLAY_THREAD();
+
   delete this;
 }
 
 rdcarray<ShaderEncoding> ReplayController::GetTargetShaderEncodings()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetTargetShaderEncodings();
 }
 
@@ -1828,6 +1918,8 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
     const char *entry, ShaderEncoding sourceEncoding, bytebuf source,
     const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
+  CHECK_REPLAY_THREAD();
+
   rdcarray<ShaderEncoding> encodings = m_pDevice->GetTargetShaderEncodings();
 
   if(encodings.indexOf(sourceEncoding) == -1)
@@ -1860,6 +1952,8 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
 rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
     const char *entry, const char *source, const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
+  CHECK_REPLAY_THREAD();
+
   ResourceId id;
   string errs;
 
@@ -1884,18 +1978,24 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
 
 void ReplayController::FreeTargetResource(ResourceId id)
 {
+  CHECK_REPLAY_THREAD();
+
   m_TargetResources.erase(id);
   m_pDevice->FreeTargetResource(id);
 }
 
 void ReplayController::FreeCustomShader(ResourceId id)
 {
+  CHECK_REPLAY_THREAD();
+
   m_CustomShaders.erase(id);
   m_pDevice->FreeCustomShader(id);
 }
 
 void ReplayController::ReplaceResource(ResourceId from, ResourceId to)
 {
+  CHECK_REPLAY_THREAD();
+
   m_pDevice->ReplaceResource(from, to);
 
   SetFrameEvent(m_EventID, true);
@@ -1907,6 +2007,8 @@ void ReplayController::ReplaceResource(ResourceId from, ResourceId to)
 
 void ReplayController::RemoveReplacement(ResourceId id)
 {
+  CHECK_REPLAY_THREAD();
+
   m_pDevice->RemoveReplacement(id);
 
   SetFrameEvent(m_EventID, true);
@@ -1918,6 +2020,8 @@ void ReplayController::RemoveReplacement(ResourceId id)
 
 ReplayStatus ReplayController::CreateDevice(RDCFile *rdc)
 {
+  CHECK_REPLAY_THREAD();
+
   IReplayDriver *driver = NULL;
   ReplayStatus status = RenderDoc::Inst().CreateReplayDriver(rdc, &driver);
 
@@ -1933,6 +2037,8 @@ ReplayStatus ReplayController::CreateDevice(RDCFile *rdc)
 
 ReplayStatus ReplayController::SetDevice(IReplayDriver *device)
 {
+  CHECK_REPLAY_THREAD();
+
   if(device)
   {
     RDCLOG("Got replay driver.");
@@ -1945,6 +2051,8 @@ ReplayStatus ReplayController::SetDevice(IReplayDriver *device)
 
 ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
 {
+  CHECK_REPLAY_THREAD();
+
   m_pDevice = device;
 
   ReplayStatus status = m_pDevice->ReadLogInitialisation(rdc, false);
@@ -1992,16 +2100,22 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 
 void ReplayController::FileChanged()
 {
+  CHECK_REPLAY_THREAD();
+
   m_pDevice->FileChanged();
 }
 
 APIProperties ReplayController::GetAPIProperties()
 {
+  CHECK_REPLAY_THREAD();
+
   return m_pDevice->GetAPIProperties();
 }
 
 void ReplayController::FetchPipelineState()
 {
+  CHECK_REPLAY_THREAD();
+
   m_pDevice->SavePipelineState();
 
   m_D3D11PipelineState = m_pDevice->GetD3D11PipelineState();

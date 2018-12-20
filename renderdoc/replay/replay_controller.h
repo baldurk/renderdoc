@@ -32,6 +32,8 @@
 #include "core/core.h"
 #include "replay/replay_driver.h"
 
+#define CHECK_REPLAY_THREAD() RDCASSERT(Threading::GetCurrentID() == m_ThreadID);
+
 struct ReplayController;
 
 struct ReplayOutput : public IReplayOutput
@@ -75,6 +77,8 @@ private:
   void DisplayTex();
 
   void DisplayMesh();
+
+  uint64_t m_ThreadID;
 
   ReplayController *m_pRenderer;
 
@@ -218,6 +222,8 @@ private:
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;
   vector<DrawcallDescription *> m_Drawcalls;
+
+  uint64_t m_ThreadID;
 
   APIProperties m_APIProps;
   std::vector<std::string> m_GCNTargets;
