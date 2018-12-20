@@ -1173,42 +1173,43 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
           if(!usedSlot)
             setInactiveRow(node);
-        }
 
-        if(bindType == BindType::ImageSampler)
-        {
-          if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
+          if(bindType == BindType::ImageSampler)
           {
-            samplerNode = new RDTreeWidgetItem({
-                QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
-                QString(),
-            });
-
-            setEmptyRow(node);
-          }
-          else
-          {
-            if(!samplers.contains(descriptorBind->samplerResourceId))
+            if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
             {
-              samplerNode = new RDTreeWidgetItem(makeSampler(QString(), QString(), *descriptorBind));
+              samplerNode = new RDTreeWidgetItem({
+                  QString(), setname, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+                  QString(),
+              });
 
-              if(!filledSlot)
-                setEmptyRow(samplerNode);
-
-              if(!usedSlot)
-                setInactiveRow(samplerNode);
-
-              SamplerData sampData;
-              sampData.node = samplerNode;
-              samplerNode->setTag(QVariant::fromValue(sampData));
-
-              samplers.insert(descriptorBind->samplerResourceId, sampData);
+              setEmptyRow(samplerNode);
             }
-
-            if(node != NULL)
+            else
             {
-              m_CombinedImageSamplers[node] = samplers[descriptorBind->samplerResourceId].node;
-              samplers[descriptorBind->samplerResourceId].images.push_back(node);
+              if(!samplers.contains(descriptorBind->samplerResourceId))
+              {
+                samplerNode =
+                    new RDTreeWidgetItem(makeSampler(QString(), QString(), *descriptorBind));
+
+                if(!filledSlot)
+                  setEmptyRow(samplerNode);
+
+                if(!usedSlot)
+                  setInactiveRow(samplerNode);
+
+                SamplerData sampData;
+                sampData.node = samplerNode;
+                samplerNode->setTag(QVariant::fromValue(sampData));
+
+                samplers.insert(descriptorBind->samplerResourceId, sampData);
+              }
+
+              if(node != NULL)
+              {
+                m_CombinedImageSamplers[node] = samplers[descriptorBind->samplerResourceId].node;
+                samplers[descriptorBind->samplerResourceId].images.push_back(node);
+              }
             }
           }
         }
