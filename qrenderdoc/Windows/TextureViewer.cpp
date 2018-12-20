@@ -3480,7 +3480,13 @@ void TextureViewer::on_saveTex_clicked()
       m_SaveConfig.resourceId = id;
   }
 
-  const ResourceId overlayTexID = m_Output->GetDebugOverlayTexID();
+  ResourceId overlayTexID;
+  if(m_TexDisplay.overlay != DebugOverlay::NoOverlay)
+  {
+    m_Ctx.Replay().BlockInvoke([this, &overlayTexID](IReplayController *r) {
+      overlayTexID = m_Output->GetDebugOverlayTexID();
+    });
+  }
   const bool hasSelectedOverlay = (m_TexDisplay.overlay != DebugOverlay::NoOverlay);
   const bool hasOverlay = (hasSelectedOverlay && overlayTexID != ResourceId());
   TextureSaveDialog saveDialog(*texptr, hasOverlay, m_SaveConfig, this);
