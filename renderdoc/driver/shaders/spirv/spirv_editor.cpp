@@ -143,168 +143,134 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   // Note that a couple of sections are optional and could be skipped over, at which point we insert
   // a dummy OpNop so they're not empty (which will be stripped later) and record them as in
   // between.
-  enum class SectionState
-  {
-    Preamble,          // OpCapability, OpExtension, anything before OpEntryPoint
-    EntryPoints,       // REQUIRED: OpEntryPoint
-    ExecutionMode,     // OpExecutionMode
-    Debug,             // OPTIONAL: debug instructions (OpString, OpSource*, Op*Name, etc)
-    Decoration,        // OPTIONAL (technically): Op*Decorate*
-    TypeVar,           // REQUIRED: OpType*, OpVariable
-    FunctionBodies,    // REQUIRED: OpFunction*
-  } section;
+  //
+  // We only handle single-shader modules at the moment, so some things are required by virtue of
+  // being required in a shader - e.g. at least the Shader capability, at least one entry point, etc
+  //
+  // Capabilities: REQUIRED (we assume - must declare Shader capability)
+  // Extensions: OPTIONAL
+  // ExtInst: OPTIONAL
+  // MemoryModel: REQUIRED (required by spec)
+  // EntryPoints: REQUIRED (we assume)
+  // ExecutionMode: OPTIONAL
+  // Debug: OPTIONAL
+  // Annotations: OPTIONAL (in theory - would require empty shader)
+  // TypesVariables: REQUIRED (must at least have the entry point function type)
+  // Functions: REQUIRED (must have the entry point)
 
-  section = SectionState::Preamble;
+  // set the book-ends: start of the first section and end of the last
+  sections[SPIRVSection::Count - 1].endOffset = spirvWords.size();
+
+#define START_SECTION(section)           \
+  if(sections[section].startOffset == 0) \
+    sections[section].startOffset = it.offset;
 
   for(SPIRVIterator it(spirv, FirstRealWord); it; it++)
   {
     spv::Op opcode = it.opcode();
 
-    if(opcode == spv::OpEntryPoint)
+    if(opcode == spv::OpCapability)
     {
-      if(section != SectionState::Preamble && section != SectionState::EntryPoints)
-        RDCERR("Unexpected current section when encountering OpEntryPoint: %d", section);
-
-      if(section != SectionState::EntryPoints)
-        entryPointSection.startOffset = it.offset;
-
-      section = SectionState::EntryPoints;
+      START_SECTION(SPIRVSection::Capabilities);
     }
-    else if(opcode == spv::OpExecutionMode)
+    else if(opcode == spv::OpExtension)
     {
-      if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode)
-        RDCERR("Unexpected current section when encountering OpExecutionMode: %d", section);
-
-      if(section == SectionState::EntryPoints)
-        entryPointSection.endOffset = it.offset;
-
-      section = SectionState::ExecutionMode;
+      START_SECTION(SPIRVSection::Extensions);
     }
-    else if(opcode == spv::OpString || opcode == spv::OpSource || opcode == spv::OpSourceContinued ||
-            opcode == spv::OpSourceExtension || opcode == spv::OpName || opcode == spv::OpMemberName)
+    else if(opcode == spv::OpExtInstImport)
     {
-      if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode &&
-         section != SectionState::Debug)
-        RDCERR("Unexpected current section when encountering debug instruction %s: %d",
-               ToStr(opcode).c_str(), section);
-
-      if(section == SectionState::EntryPoints)
-        entryPointSection.endOffset = it.offset;
-
-      if(section != SectionState::Debug)
-        debugSection.startOffset = it.offset;
-
-      section = SectionState::Debug;
+      START_SECTION(SPIRVSection::ExtInst);
+    }
+    else if(opcode == spv::OpMemoryModel)
+    {
+      START_SECTION(SPIRVSection::MemoryModel);
+    }
+    else if(opcode == spv::OpEntryPoint)
+    {
+      START_SECTION(SPIRVSection::EntryPoints);
+    }
+    else if(opcode == spv::OpExecutionMode || opcode == spv::OpExecutionModeId)
+    {
+      START_SECTION(SPIRVSection::ExecutionMode);
+    }
+    else if(opcode == spv::OpString || opcode == spv::OpSource ||
+            opcode == spv::OpSourceContinued || opcode == spv::OpSourceExtension ||
+            opcode == spv::OpName || opcode == spv::OpMemberName || opcode == spv::OpModuleProcessed)
+    {
+      START_SECTION(SPIRVSection::Debug);
     }
     else if(opcode == spv::OpDecorate || opcode == spv::OpMemberDecorate ||
             opcode == spv::OpGroupDecorate || opcode == spv::OpGroupMemberDecorate ||
             opcode == spv::OpDecorationGroup)
     {
-      if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode &&
-         section != SectionState::Debug && section != SectionState::Decoration)
-        RDCERR("Unexpected current section when encountering decoration instruction %s: %d",
-               ToStr(opcode).c_str(), section);
-
-      if(section == SectionState::EntryPoints)
-        entryPointSection.endOffset = it.offset;
-
-      if(section == SectionState::Debug)
-      {
-        debugSection.endOffset = it.offset;
-      }
-      else if(section != SectionState::Decoration)
-      {
-        // coming from some other section that isn't debug, insert a dummy debug section
-        RDCDEBUG("Debug section is empty, inserting OpNop which will later be stripped");
-        spirv.insert(spirv.begin() + it.offset, SPV_NOP);
-
-        debugSection.startOffset = it.offset;
-        it.offset++;
-        debugSection.endOffset = it.offset;
-      }
-
-      if(section != SectionState::Decoration)
-        decorationSection.startOffset = it.offset;
-
-      section = SectionState::Decoration;
+      START_SECTION(SPIRVSection::Annotations);
     }
     else if(opcode == spv::OpFunction)
     {
-      if(section != SectionState::FunctionBodies)
-      {
-        if(section != SectionState::TypeVar)
-          RDCERR("Unexpected current section when encountering OpFunction: %d", section);
-
-        // we've now met the function bodies
-        section = SectionState::FunctionBodies;
-
-        typeVarSection.endOffset = it.offset;
-
-        if(typeVarSection.startOffset == typeVarSection.endOffset || typeVarSection.startOffset == 0)
-          RDCERR("No types found in this shader! There should be at least one for the entry point");
-      }
+      START_SECTION(SPIRVSection::Functions);
     }
     else
     {
-      // if we've reached another instruction, ignore it if we've reached the function bodies. Also
-      // ignore during preamble
-      if(section != SectionState::FunctionBodies && section != SectionState::Preamble)
+      // if we've reached another instruction, check if we've reached the function section yet. If
+      // we have then assume it's an instruction inside a function and ignore. If we haven't, assume
+      // it's a type/variable/constant type instruction
+      if(sections[SPIRVSection::Functions].startOffset == 0)
       {
-        // if it's an instruction not covered above, and we haven't hit the functions, it's a
-        // type/variable/constant instruction.
-        if(section != SectionState::EntryPoints && section != SectionState::ExecutionMode &&
-           section != SectionState::Debug && section != SectionState::Decoration &&
-           section != SectionState::TypeVar)
-          RDCERR("Unexpected current section when encountering type/variable instruction %s: %d",
-                 ToStr(opcode).c_str(), section);
-
-        if(section == SectionState::EntryPoints)
-          entryPointSection.endOffset = it.offset;
-
-        if(section == SectionState::Decoration)
-        {
-          // if we're coming from decoration, all is well. We inserted a dummy debug section if
-          // needed above before starting it.
-          decorationSection.endOffset = it.offset;
-        }
-        else if(section == SectionState::Debug)
-        {
-          debugSection.endOffset = it.offset;
-
-          // if we're coming straight from debug, we need to insert a dummy decoration section
-          RDCDEBUG("Decoration section is empty, inserting OpNop which will later be stripped");
-          spirv.insert(spirv.begin() + it.offset, SPV_NOP);
-
-          decorationSection.startOffset = it.offset;
-          it.offset++;
-          decorationSection.endOffset = it.offset;
-        }
-        else if(section != SectionState::TypeVar)
-        {
-          // coming from some other section that isn't debug or decoration, insert a dummy debug
-          // AND a dummy decoration section.
-          RDCDEBUG("Debug/decoration sections empty, inserting OpNops to later be stripped");
-          spirv.insert(spirv.begin() + it.offset, SPV_NOP);
-
-          debugSection.startOffset = it.offset;
-          it.offset++;
-          debugSection.endOffset = it.offset;
-
-          spirv.insert(spirv.begin() + it.offset, SPV_NOP);
-
-          decorationSection.startOffset = it.offset;
-          it.offset++;
-          decorationSection.endOffset = it.offset;
-        }
-
-        if(section != SectionState::TypeVar)
-          typeVarSection.startOffset = it.offset;
-
-        section = SectionState::TypeVar;
+        START_SECTION(SPIRVSection::TypesVariablesConstants);
       }
     }
 
     RegisterOp(it);
+  }
+
+#undef START_SECTION
+
+  // ensure we got everything right. First section should start at the beginning
+  RDCASSERTEQUAL(sections[SPIRVSection::First].startOffset, FirstRealWord);
+
+  // we now set the endOffset of each section to the start of the next. Any empty sections
+  // temporarily have startOffset set to endOffset, we'll pad them with a nop below.
+  for(int s = SPIRVSection::Count - 1; s > 0; s--)
+  {
+    RDCASSERTEQUAL(sections[s - 1].endOffset, 0);
+    sections[s - 1].endOffset = sections[s].startOffset;
+    if(sections[s - 1].startOffset == 0)
+      sections[s - 1].startOffset = sections[s - 1].endOffset;
+  }
+
+  // find any empty sections and insert a nop into the stream there. We need to fixup later section
+  // offsets by hand as addWords doesn't handle empty sections properly (it thinks we're inserting
+  // into the later section by offset since the offsets overlap). That's why we're adding these
+  // padding nops in the first place!
+  for(uint32_t s = 0; s < SPIRVSection::Count; s++)
+  {
+    if(sections[s].startOffset == sections[s].endOffset)
+    {
+      spirv.insert(spirv.begin() + sections[s].startOffset, SPV_NOP);
+      sections[s].endOffset++;
+
+      for(uint32_t t = s + 1; t < SPIRVSection::Count; t++)
+      {
+        sections[t].startOffset++;
+        sections[t].endOffset++;
+      }
+    }
+  }
+
+  // each section should now precisely match each other end-to-end and not be empty
+  for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+  {
+    RDCASSERTNOTEQUAL(sections[s].startOffset, 0);
+    RDCASSERTNOTEQUAL(sections[s].endOffset, 0);
+
+    RDCASSERT(sections[s].endOffset - sections[s].startOffset > 0, sections[s].startOffset,
+              sections[s].endOffset);
+
+    if(s != 0)
+      RDCASSERTEQUAL(sections[s - 1].endOffset, sections[s].startOffset);
+
+    if(s + 1 < SPIRVSection::Count)
+      RDCASSERTEQUAL(sections[s].endOffset, sections[s + 1].startOffset);
   }
 }
 
@@ -348,16 +314,20 @@ void SPIRVEditor::SetName(uint32_t id, const char *name)
 
   SPIRVOperation op(spv::OpName, uintName);
 
-  spirv.insert(spirv.begin() + debugSection.endOffset, op.begin(), op.end());
-  RegisterOp(SPIRVIterator(spirv, debugSection.endOffset));
-  addWords(debugSection.endOffset, op.size());
+  size_t offset = sections[SPIRVSection::Debug].endOffset;
+
+  spirv.insert(spirv.begin() + offset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, offset));
+  addWords(offset, op.size());
 }
 
 void SPIRVEditor::AddDecoration(const SPIRVOperation &op)
 {
-  spirv.insert(spirv.begin() + decorationSection.endOffset, op.begin(), op.end());
-  RegisterOp(SPIRVIterator(spirv, decorationSection.endOffset));
-  addWords(decorationSection.endOffset, op.size());
+  size_t offs = sections[SPIRVSection::Annotations].endOffset;
+
+  spirv.insert(spirv.begin() + offs, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, offs));
+  addWords(offs, op.size());
 }
 
 void SPIRVEditor::AddCapability(spv::Capability cap)
@@ -397,6 +367,20 @@ void SPIRVEditor::AddExtension(const std::string &extension)
   addWords(it.offset, op.size());
 }
 
+void SPIRVEditor::AddExecutionMode(SPIRVId entry, spv::ExecutionMode mode,
+                                   std::vector<uint32_t> params)
+{
+  size_t offset = sections[SPIRVSection::ExecutionMode].endOffset;
+
+  params.insert(params.begin(), (uint32_t)mode);
+  params.insert(params.begin(), (uint32_t)entry);
+
+  SPIRVOperation op(spv::OpExecutionMode, params);
+  spirv.insert(spirv.begin() + offset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, offset));
+  addWords(offset, op.size());
+}
+
 SPIRVId SPIRVEditor::ImportExtInst(const char *setname)
 {
   SPIRVId ret = extSets[setname];
@@ -432,31 +416,37 @@ SPIRVId SPIRVEditor::ImportExtInst(const char *setname)
 
 SPIRVId SPIRVEditor::AddType(const SPIRVOperation &op)
 {
+  size_t offset = sections[SPIRVSection::Types].endOffset;
+
   SPIRVId id = op[1];
-  idOffsets[id] = typeVarSection.endOffset;
-  spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
-  RegisterOp(SPIRVIterator(spirv, typeVarSection.endOffset));
-  addWords(typeVarSection.endOffset, op.size());
+  idOffsets[id] = offset;
+  spirv.insert(spirv.begin() + offset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, offset));
+  addWords(offset, op.size());
   return id;
 }
 
 SPIRVId SPIRVEditor::AddVariable(const SPIRVOperation &op)
 {
+  size_t offset = sections[SPIRVSection::Variables].endOffset;
+
   SPIRVId id = op[2];
-  idOffsets[id] = typeVarSection.endOffset;
-  spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
-  RegisterOp(SPIRVIterator(spirv, typeVarSection.endOffset));
-  addWords(typeVarSection.endOffset, op.size());
+  idOffsets[id] = offset;
+  spirv.insert(spirv.begin() + offset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, offset));
+  addWords(offset, op.size());
   return id;
 }
 
 SPIRVId SPIRVEditor::AddConstant(const SPIRVOperation &op)
 {
+  size_t offset = sections[SPIRVSection::Constants].endOffset;
+
   SPIRVId id = op[2];
-  idOffsets[id] = typeVarSection.endOffset;
-  spirv.insert(spirv.begin() + typeVarSection.endOffset, op.begin(), op.end());
-  RegisterOp(SPIRVIterator(spirv, typeVarSection.endOffset));
-  addWords(typeVarSection.endOffset, op.size());
+  idOffsets[id] = offset;
+  spirv.insert(spirv.begin() + offset, op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, offset));
+  addWords(offset, op.size());
   return id;
 }
 
@@ -482,8 +472,8 @@ SPIRVIterator SPIRVEditor::GetID(SPIRVId id)
 
 SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
 {
-  SPIRVIterator it(spirv, entryPointSection.startOffset);
-  SPIRVIterator end(spirv, entryPointSection.endOffset);
+  SPIRVIterator it(spirv, sections[SPIRVSection::EntryPoints].startOffset);
+  SPIRVIterator end(spirv, sections[SPIRVSection::EntryPoints].endOffset);
 
   while(it && it < end)
   {
@@ -493,51 +483,6 @@ SPIRVIterator SPIRVEditor::GetEntry(SPIRVId id)
   }
 
   return SPIRVIterator();
-}
-
-SPIRVIterator SPIRVEditor::BeginEntries()
-{
-  return SPIRVIterator(spirv, entryPointSection.startOffset);
-}
-
-SPIRVIterator SPIRVEditor::BeginDebug()
-{
-  return SPIRVIterator(spirv, debugSection.startOffset);
-}
-
-SPIRVIterator SPIRVEditor::BeginDecorations()
-{
-  return SPIRVIterator(spirv, decorationSection.startOffset);
-}
-
-SPIRVIterator SPIRVEditor::BeginTypes()
-{
-  return SPIRVIterator(spirv, typeVarSection.startOffset);
-}
-
-SPIRVIterator SPIRVEditor::BeginFunctions()
-{
-  return SPIRVIterator(spirv, typeVarSection.endOffset);
-}
-
-SPIRVIterator SPIRVEditor::EndEntries()
-{
-  return SPIRVIterator(spirv, entryPointSection.endOffset);
-}
-
-SPIRVIterator SPIRVEditor::EndDebug()
-{
-  return SPIRVIterator(spirv, debugSection.endOffset);
-}
-
-SPIRVIterator SPIRVEditor::EndDecorations()
-{
-  return SPIRVIterator(spirv, decorationSection.endOffset);
-}
-
-SPIRVIterator SPIRVEditor::EndTypes()
-{
-  return SPIRVIterator(spirv, typeVarSection.endOffset);
 }
 
 SPIRVId SPIRVEditor::DeclareStructType(std::vector<uint32_t> members)
@@ -597,6 +542,11 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
     entry.name = (const char *)&it.word(3);
 
     entries.push_back(entry);
+  }
+  else if(opcode == spv::OpMemoryModel)
+  {
+    addressmodel = (spv::AddressingModel)it.word(2);
+    memorymodel = (spv::MemoryModel)it.word(3);
   }
   else if(opcode == spv::OpCapability)
   {
@@ -848,8 +798,7 @@ void SPIRVEditor::addWords(size_t offs, int32_t num)
   // look through every section, any that are >= this point, adjust the offsets
   // note that if we're removing words then any offsets pointing directly to the removed words
   // will go backwards - but they no longer have anywhere valid to point.
-  for(LogicalSection *section :
-      {&entryPointSection, &debugSection, &decorationSection, &typeVarSection})
+  for(LogicalSection &section : sections)
   {
     // we have three cases to consider: either the offset matches start, is within (up to and
     // including end) or is outside the section.
@@ -858,24 +807,24 @@ void SPIRVEditor::addWords(size_t offs, int32_t num)
     // one section or inside the next. Note this means we don't support inserting at the start of a
     // section.
 
-    if(offs == section->startOffset)
+    if(offs == section.startOffset)
     {
       // if the offset matches the start, we're appending at the end of the previous section so move
       // both
-      section->startOffset += num;
-      section->endOffset += num;
+      section.startOffset += num;
+      section.endOffset += num;
     }
-    else if(offs > section->startOffset && offs <= section->endOffset)
+    else if(offs > section.startOffset && offs <= section.endOffset)
     {
       // if the offset is in the section (up to and including the end) then we're inserting in this
       // section, so move the end only
-      section->endOffset += num;
+      section.endOffset += num;
     }
-    else if(section->startOffset >= offs)
+    else if(section.startOffset >= offs)
     {
       // otherwise move both or neither depending on which side the offset is.
-      section->startOffset += num;
-      section->endOffset += num;
+      section.startOffset += num;
+      section.endOffset += num;
     }
   }
 
@@ -926,3 +875,183 @@ std::map<SPIRVFunction, SPIRVId> &SPIRVEditor::GetTable<SPIRVFunction>()
 {
   return functionTypes;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+#include "core/core.h"
+#include "spirv_common.h"
+
+static void RemoveSection(std::vector<uint32_t> &spirv, size_t offsets[SPIRVSection::Count][2],
+                          SPIRVSection::Type section)
+{
+  SPIRVEditor ed(spirv);
+
+  for(SPIRVIterator it = ed.Begin(section), end = ed.End(section); it < end; it++)
+    ed.Remove(it);
+
+  size_t oldLength = offsets[section][1] - offsets[section][0];
+
+  // section will still contain a nop
+  offsets[section][1] = offsets[section][0] + 4;
+
+  // subsequent sections will be shorter by the length - 4, because a nop will still be inserted
+  // as padding to ensure no section is truly empty.
+  size_t delta = oldLength - 4;
+
+  for(uint32_t s = section + 1; s < SPIRVSection::Count; s++)
+  {
+    offsets[s][0] -= delta;
+    offsets[s][1] -= delta;
+  }
+}
+
+TEST_CASE("Test SPIR-V editor section handling", "[spirv]")
+{
+  InitSPIRVCompiler();
+  RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+
+  SPIRVCompilationSettings settings;
+  settings.entryPoint = "main";
+  settings.lang = SPIRVSourceLanguage::VulkanGLSL;
+  settings.stage = SPIRVShaderStage::Fragment;
+
+  // simple shader that has at least something in every section
+  std::vector<std::string> sources = {
+      R"(#version 450 core
+
+#extension GL_EXT_shader_16bit_storage : require
+
+layout(binding = 0) uniform block {
+	float16_t val;
+};
+
+layout(location = 0) out vec4 col;
+
+void main() {
+  col = vec4(sin(gl_FragCoord.x)*float(val), 0, 0, 1);
+}
+)",
+  };
+
+  std::vector<uint32_t> spirv;
+  std::string errors = CompileSPIRV(settings, sources, spirv);
+
+  INFO("SPIR-V compilation" << errors);
+
+  // ensure that compilation succeeded
+  REQUIRE(spirv.size() > 0);
+
+  // these offsets may change if the compiler changes above. Verify manually with spirv-dis that
+  // they should be updated.
+  // For convenience the offsets are in bytes (which spirv-dis uses) and are converted in the loops
+  // below.
+  size_t offsets[SPIRVSection::Count][2] = {
+      // Capabilities
+      {0x14, 0x2c},
+      // Extensions
+      {0x2c, 0x6c},
+      // ExtInst
+      {0x6c, 0x84},
+      // MemoryModel
+      {0x84, 0x90},
+      // EntryPoints
+      {0x90, 0xac},
+      // ExecutionMode
+      {0xac, 0xb8},
+      // Debug
+      {0xb8, 0x144},
+      // Annotations
+      {0x144, 0x1a4},
+      // TypesVariables
+      {0x1a4, 0x2cc},
+      // Functions
+      {0x2cc, 0x39c},
+  };
+
+  SECTION("Check that SPIR-V is correct with no changes")
+  {
+    SPIRVEditor ed(spirv);
+
+    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+    {
+      INFO("Section " << s);
+      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+    }
+  }
+
+  // we remove all sections we consider optional in arbitrary order. We don't care about keeping the
+  // SPIR-V valid all we're testing is the section offsets are correct.
+  RemoveSection(spirv, offsets, SPIRVSection::Extensions);
+
+  SECTION("Check with extensions removed")
+  {
+    SPIRVEditor ed(spirv);
+
+    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+    {
+      INFO("Section " << s);
+      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+    }
+  }
+
+  RemoveSection(spirv, offsets, SPIRVSection::Debug);
+
+  SECTION("Check with debug removed")
+  {
+    SPIRVEditor ed(spirv);
+
+    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+    {
+      INFO("Section " << s);
+      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+    }
+  }
+
+  RemoveSection(spirv, offsets, SPIRVSection::ExtInst);
+
+  SECTION("Check with extension imports removed")
+  {
+    SPIRVEditor ed(spirv);
+
+    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+    {
+      INFO("Section " << s);
+      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+    }
+  }
+
+  RemoveSection(spirv, offsets, SPIRVSection::ExecutionMode);
+
+  SECTION("Check with execution mode removed")
+  {
+    SPIRVEditor ed(spirv);
+
+    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+    {
+      INFO("Section " << s);
+      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+    }
+  }
+
+  RemoveSection(spirv, offsets, SPIRVSection::Annotations);
+
+  SECTION("Check with annotations removed")
+  {
+    SPIRVEditor ed(spirv);
+
+    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+    {
+      INFO("Section " << s);
+      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+    }
+  }
+}
+
+#endif

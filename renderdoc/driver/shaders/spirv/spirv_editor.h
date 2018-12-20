@@ -87,6 +87,7 @@ public:
   spv::Op opcode() { return spv::Op(cur() & spv::OpCodeMask); }
   uint32_t &word(size_t idx) { return words->at(offset + idx); }
   const uint32_t &word(size_t idx) const { return words->at(offset + idx); }
+  size_t offs() const { return offset; }
   size_t size() const { return cur() >> spv::WordCountShift; }
 private:
   inline uint32_t &cur() { return words->at(offset); }
@@ -355,6 +356,30 @@ struct SPIRVFunction
   SPIRVOperation decl(SPIRVEditor &editor) const;
 };
 
+// hack around enum class being useless for array indices :(
+struct SPIRVSection
+{
+  enum Type
+  {
+    Capabilities,
+    First = Capabilities,
+    Extensions,
+    ExtInst,
+    MemoryModel,
+    EntryPoints,
+    ExecutionMode,
+    Debug,
+    Annotations,
+    TypesVariablesConstants,
+    // handy aliases
+    Types = TypesVariablesConstants,
+    Variables = TypesVariablesConstants,
+    Constants = TypesVariablesConstants,
+    Functions,
+    Count,
+  };
+};
+
 class SPIRVEditor
 {
 public:
@@ -385,6 +410,7 @@ public:
   void AddDecoration(const SPIRVOperation &op);
   void AddCapability(spv::Capability cap);
   void AddExtension(const std::string &extension);
+  void AddExecutionMode(SPIRVId entry, spv::ExecutionMode mode, std::vector<uint32_t> params = {});
   SPIRVId ImportExtInst(const char *setname);
   SPIRVId AddType(const SPIRVOperation &op);
   SPIRVId AddVariable(const SPIRVOperation &op);
@@ -395,15 +421,14 @@ public:
   // the entry point has 'two' opcodes, the entrypoint declaration and the function.
   // This returns the first, GetID returns the second.
   SPIRVIterator GetEntry(SPIRVId id);
-  SPIRVIterator BeginEntries();
-  SPIRVIterator BeginDebug();
-  SPIRVIterator BeginDecorations();
-  SPIRVIterator BeginTypes();
-  SPIRVIterator BeginFunctions();
-  SPIRVIterator EndEntries();
-  SPIRVIterator EndDebug();
-  SPIRVIterator EndDecorations();
-  SPIRVIterator EndTypes();
+  SPIRVIterator Begin(SPIRVSection::Type section)
+  {
+    return SPIRVIterator(spirv, sections[section].startOffset);
+  }
+  SPIRVIterator End(SPIRVSection::Type section)
+  {
+    return SPIRVIterator(spirv, sections[section].endOffset);
+  }
 
   // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
   // will be declared and the new ID returned
@@ -479,10 +504,10 @@ private:
     size_t endOffset = 0;
   };
 
-  LogicalSection entryPointSection;
-  LogicalSection debugSection;
-  LogicalSection decorationSection;
-  LogicalSection typeVarSection;
+  LogicalSection sections[SPIRVSection::Count];
+
+  spv::AddressingModel addressmodel;
+  spv::MemoryModel memorymodel;
 
   std::vector<size_t> idOffsets;
 

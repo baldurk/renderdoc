@@ -61,7 +61,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   uint32_t numOutputs = (uint32_t)refl.outputSignature.size();
   RDCASSERT(numOutputs > 0);
 
-  for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it < end; ++it)
+  for(SPIRVIterator it = editor.Begin(SPIRVSection::Annotations),
+                    end = editor.End(SPIRVSection::Annotations);
+      it < end; ++it)
   {
     // we will use descriptor set 0 bindings 0..N for our own purposes.
     //
@@ -118,7 +120,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   std::map<SPIRVId, SPIRVId> typeReplacements;
 
   // rewrite any inputs and outputs to be private storage class
-  for(SPIRVIterator it = editor.BeginTypes(), end = editor.EndTypes(); it < end; ++it)
+  for(SPIRVIterator it = editor.Begin(SPIRVSection::TypesVariablesConstants),
+                    end = editor.End(SPIRVSection::TypesVariablesConstants);
+      it < end; ++it)
   {
     // rewrite any input/output variables to private, and build up inputs/outputs list
     if(it.opcode() == spv::OpTypePointer)
@@ -254,7 +258,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     }
   }
 
-  for(SPIRVIterator it = editor.BeginFunctions(); it; ++it)
+  for(SPIRVIterator it = editor.Begin(SPIRVSection::Functions); it; ++it)
   {
     // identify functions with result types we might want to replace
     if(it.opcode() == spv::OpFunction || it.opcode() == spv::OpFunctionParameter ||
@@ -275,7 +279,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   }
 
   // detect builtin inputs or outputs, and remove builtin decorations
-  for(SPIRVIterator it = editor.BeginDecorations(), end = editor.EndDecorations(); it < end; ++it)
+  for(SPIRVIterator it = editor.Begin(SPIRVSection::Annotations),
+                    end = editor.End(SPIRVSection::Annotations);
+      it < end; ++it)
   {
     // remove any builtin decorations
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBuiltIn)
@@ -325,7 +331,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   RDCASSERT(entryID);
 
-  for(SPIRVIterator it = editor.BeginDebug(), end2 = editor.EndDebug(); it < end2; ++it)
+  for(SPIRVIterator it = editor.Begin(SPIRVSection::Debug), end2 = editor.End(SPIRVSection::Debug);
+      it < end2; ++it)
   {
     if(it.opcode() == spv::OpName &&
        (inputs.find(it.word(1)) != inputs.end() || outputs.find(it.word(1)) != outputs.end()))
@@ -632,7 +639,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   // editor.SetName(wrapperEntry, "RenderDoc_MeshFetch_Wrapper_Entrypoint");
 
   // we remove all entry points and just create one of our own.
-  SPIRVIterator it = editor.BeginEntries();
+  SPIRVIterator it = editor.Begin(SPIRVSection::EntryPoints);
 
   {
     // there should already have been at least one entry point
@@ -657,11 +664,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     ++it;
   }
 
-  for(SPIRVIterator end = editor.EndEntries(); it < end; ++it)
+  for(SPIRVIterator end = editor.End(SPIRVSection::EntryPoints); it < end; ++it)
     editor.Remove(it);
 
   // Strip away any execution modes from the original shaders
-  for(it = editor.BeginEntries(); it < editor.BeginDebug(); ++it)
+  for(it = editor.Begin(SPIRVSection::ExecutionMode); it < editor.End(SPIRVSection::ExecutionMode);
+      ++it)
   {
     if(it.opcode() == spv::OpExecutionMode)
     {
@@ -694,9 +702,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   }
 
   // Add our compute shader execution mode
-  editor.AddOperation(
-      it, SPIRVOperation(spv::OpExecutionMode, {wrapperEntry, spv::ExecutionModeLocalSize,
-                                                MeshOutputDispatchWidth, 1, 1}));
+  editor.AddExecutionMode(wrapperEntry, spv::ExecutionModeLocalSize, {MeshOutputDispatchWidth, 1, 1});
 
   SPIRVId uint32ID = editor.DeclareType(scalar<uint32_t>());
 
@@ -971,7 +977,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
               ops.push_back(SPIRVOperation(
                   spv::OpVectorShuffle, {uvec2Type, packed, result, result2, c * 2 + 0, c * 2 + 1}));
 
-              editor.SetName(packed, StringFormat::Fmt("packed_%c", "xyzw"[c]).c_str());
+              char swizzle[] = "xyzw";
+
+              editor.SetName(packed, StringFormat::Fmt("packed_%c", swizzle[c]).c_str());
 
               // double comp = PackDouble2x32(packed);
               comps[c] = editor.MakeId();
@@ -1140,7 +1148,8 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
 
   bool hasXFB = false;
 
-  for(SPIRVIterator it = editor.EndEntries(); it < editor.BeginDebug(); ++it)
+  for(SPIRVIterator it = editor.Begin(SPIRVSection::ExecutionMode);
+      it < editor.End(SPIRVSection::ExecutionMode); ++it)
   {
     if(it.opcode() == spv::OpExecutionMode && it.word(1) == entryid &&
        it.word(2) == spv::ExecutionModeXfb)
@@ -1152,7 +1161,8 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
 
   if(hasXFB)
   {
-    for(SPIRVIterator it = editor.BeginDecorations(); it < editor.EndDecorations(); ++it)
+    for(SPIRVIterator it = editor.Begin(SPIRVSection::Annotations);
+        it < editor.End(SPIRVSection::Annotations); ++it)
     {
       // remove any existing xfb decorations
       if(it.opcode() == spv::OpDecorate &&
@@ -1210,8 +1220,7 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
   }
   else
   {
-    editor.AddOperation(editor.EndEntries(),
-                        SPIRVOperation(spv::OpExecutionMode, {entryid, spv::ExecutionModeXfb}));
+    editor.AddExecutionMode(entryid, spv::ExecutionModeXfb);
   }
 
   editor.AddCapability(spv::CapabilityTransformFeedback);
