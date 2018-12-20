@@ -1364,18 +1364,18 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
         if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          bind[idx].texelBufferView = writes[i].pTexelBufferView[idx];
+          bind[idx].texelBufferView = writes[i].pTexelBufferView[d];
         }
         else if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
         {
-          bind[idx].bufferInfo = writes[i].pBufferInfo[idx];
+          bind[idx].bufferInfo = writes[i].pBufferInfo[d];
         }
         else
         {
-          bind[idx].imageInfo = writes[i].pImageInfo[idx];
+          bind[idx].imageInfo = writes[i].pImageInfo[d];
         }
       }
     }
