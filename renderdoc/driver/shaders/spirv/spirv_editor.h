@@ -359,7 +359,7 @@ class SPIRVEditor
 {
 public:
   SPIRVEditor(std::vector<uint32_t> &spirvWords);
-
+  ~SPIRVEditor() { StripNops(); }
   void StripNops();
 
   SPIRVId MakeId();

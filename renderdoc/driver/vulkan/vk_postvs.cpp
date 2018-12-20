@@ -1117,8 +1117,6 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     editor.AddFunction(ops.data(), ops.size());
   }
-
-  editor.StripNops();
 }
 
 static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
@@ -1267,8 +1265,6 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
       vars.insert(outpatch[i].ID);
     }
   }
-
-  editor.StripNops();
 }
 
 void VulkanReplay::ClearPostVSCache()
