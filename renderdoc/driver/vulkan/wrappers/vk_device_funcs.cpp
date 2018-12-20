@@ -1759,6 +1759,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     return false;                                                \
   }
 
+    VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexingFeatures = {};
+
     if(ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2)
     {
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDevice8BitStorageFeaturesKHR,
@@ -1927,6 +1929,34 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         }
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDescriptorIndexingFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT);
+      {
+        descIndexingFeatures = *ext;
+
+        CHECK_PHYS_EXT_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderUniformBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderSampledImageArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageImageArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingUpdateUnusedWhilePending);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingPartiallyBound);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingVariableDescriptorCount);
+        CHECK_PHYS_EXT_FEATURE(runtimeDescriptorArray);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -1947,12 +1977,44 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "geometryShader = false, lit mesh rendering will not be available if rendering on this "
           "device.");
 
-    if(availFeatures.robustBufferAccess)
-      enabledFeatures.robustBufferAccess = true;
-    else
+    bool descIndexingAllowsRBA = true;
+
+    if(descIndexingFeatures.descriptorBindingUniformBufferUpdateAfterBind ||
+       descIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind ||
+       descIndexingFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind ||
+       descIndexingFeatures.descriptorBindingStorageTexelBufferUpdateAfterBind)
+    {
+      // if any update after bind feature is enabled, check robustBufferAccessUpdateAfterBind
+      VkPhysicalDeviceDescriptorIndexingPropertiesEXT descIndexingProps = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT,
+      };
+
+      VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+      availBase.pNext = &descIndexingProps;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &availBase);
+
+      descIndexingAllowsRBA = descIndexingProps.robustBufferAccessUpdateAfterBind != VK_FALSE;
+    }
+
+    if(availFeatures.robustBufferAccess && !descIndexingAllowsRBA)
+    {
+      // if the feature is available but we can't use it, warn
       RDCWARN(
-          "robustBufferAccess = false, out of bounds access due to bugs in application or "
-          "RenderDoc may cause crashes");
+          "robustBufferAccess is available, but cannot be enabled due to "
+          "robustBufferAccessUpdateAfterBind not being avilable and some UpdateAfterBind features "
+          "being enabled. "
+          "out of bounds access due to bugs in application or RenderDoc may cause crashes");
+    }
+    else
+    {
+      // either the feature is available, and we enable it, or it's not available at all.
+      if(availFeatures.robustBufferAccess)
+        enabledFeatures.robustBufferAccess = true;
+      else
+        RDCWARN(
+            "robustBufferAccess = false, out of bounds access due to bugs in application or "
+            "RenderDoc may cause crashes");
+    }
 
     if(availFeatures.shaderInt64)
       enabledFeatures.shaderInt64 = true;

@@ -2449,6 +2449,19 @@ std::string DoStringise(const VkPipelineCreationFeedbackFlagBitsEXT &el)
 }
 
 template <>
+std::string DoStringise(const VkDescriptorBindingFlagBitsEXT &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkDescriptorBindingFlagBitsEXT);
+  {
+    STRINGISE_BITFIELD_BIT(VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT)
+    STRINGISE_BITFIELD_BIT(VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT)
+    STRINGISE_BITFIELD_BIT(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT)
+    STRINGISE_BITFIELD_BIT(VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT)
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

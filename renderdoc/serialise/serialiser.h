@@ -2020,6 +2020,18 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
 #define SERIALISE_MEMBER_ARRAY(arrayObj, countObj) \
   ser.Serialise(#arrayObj, el.arrayObj, el.countObj, SerialiserFlags::AllocateMemory)
 
+#define SERIALISE_MEMBER_ARRAY_TYPED(type, arrayObj, countObj)                     \
+  if(ser.IsReading())                                                              \
+    el.arrayObj = NULL;                                                            \
+  union                                                                            \
+  {                                                                                \
+    type **t;                                                                      \
+    decltype(el.arrayObj) *o;                                                      \
+  } CONCAT(union, __LINE__);                                                       \
+  CONCAT(union, __LINE__).o = &el.arrayObj;                                        \
+  ser.template Serialise<type>(#arrayObj, *CONCAT(union, __LINE__).t, el.countObj, \
+                               SerialiserFlags::AllocateMemory)
+
 // a member that is a pointer and could be NULL, so needs a hidden 'present'
 // flag serialised out
 #define SERIALISE_MEMBER_OPT(obj) ser.SerialiseNullable(#obj, el.obj)
