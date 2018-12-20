@@ -373,6 +373,30 @@ void SPIRVEditor::AddCapability(spv::Capability cap)
   addWords(FirstRealWord, op.size());
 }
 
+void SPIRVEditor::AddExtension(const std::string &extension)
+{
+  // don't add duplicate extensions
+  if(extensions.find(extension) != extensions.end())
+    return;
+
+  // start at the beginning
+  SPIRVIterator it(spirv, FirstRealWord);
+
+  // skip past any capabilities
+  while(it.opcode() == spv::OpCapability)
+    it++;
+
+  // insert the extension instruction
+  size_t sz = extension.size();
+  std::vector<uint32_t> uintName((sz / 4) + 1);
+  memcpy(&uintName[0], extension.c_str(), sz);
+
+  SPIRVOperation op(spv::OpExtension, uintName);
+  spirv.insert(spirv.begin() + it.offset, op.begin(), op.end());
+  RegisterOp(it);
+  addWords(it.offset, op.size());
+}
+
 SPIRVId SPIRVEditor::ImportExtInst(const char *setname)
 {
   SPIRVId ret = extSets[setname];
@@ -578,6 +602,11 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
   {
     capabilities.insert((spv::Capability)it.word(1));
   }
+  else if(opcode == spv::OpExtension)
+  {
+    const char *name = (const char *)&it.word(1);
+    extensions.insert(name);
+  }
   else if(opcode == spv::OpExtInstImport)
   {
     SPIRVId id = it.word(1);
@@ -715,6 +744,11 @@ void SPIRVEditor::UnregisterOp(SPIRVIterator it)
   else if(opcode == spv::OpCapability)
   {
     capabilities.erase((spv::Capability)it.word(1));
+  }
+  else if(opcode == spv::OpExtension)
+  {
+    const char *name = (const char *)&it.word(1);
+    extensions.erase(name);
   }
   else if(opcode == spv::OpExtInstImport)
   {

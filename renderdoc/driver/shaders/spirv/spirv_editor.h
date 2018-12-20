@@ -384,6 +384,7 @@ public:
   void SetName(uint32_t id, const char *name);
   void AddDecoration(const SPIRVOperation &op);
   void AddCapability(spv::Capability cap);
+  void AddExtension(const std::string &extension);
   SPIRVId ImportExtInst(const char *setname);
   SPIRVId AddType(const SPIRVOperation &op);
   SPIRVId AddVariable(const SPIRVOperation &op);
@@ -487,6 +488,7 @@ private:
 
   std::vector<SPIRVEntry> entries;
   std::vector<SPIRVId> functions;
+  std::set<std::string> extensions;
   std::set<spv::Capability> capabilities;
 
   std::map<std::string, SPIRVId> extSets;
