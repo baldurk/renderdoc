@@ -830,8 +830,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
         // skipping any invalid descriptors.
 
         // quick check for slots that were completely uninitialised and so don't have valid data
-        if(src->texelBufferView == VK_NULL_HANDLE && src->imageInfo.sampler == VK_NULL_HANDLE &&
-           src->imageInfo.imageView == VK_NULL_HANDLE && src->bufferInfo.buffer == VK_NULL_HANDLE)
+        if(descriptorCount == 1 && src->texelBufferView == VK_NULL_HANDLE &&
+           src->imageInfo.sampler == VK_NULL_HANDLE && src->imageInfo.imageView == VK_NULL_HANDLE &&
+           src->bufferInfo.buffer == VK_NULL_HANDLE)
         {
           // do nothing - don't increment bind so that the same write descriptor is used next time.
           continue;
