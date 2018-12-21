@@ -124,6 +124,7 @@ class AMDCounters;
 class WrappedVulkan;
 class VulkanDebugManager;
 class VulkanResourceManager;
+struct VulkanStatePipeline;
 struct VulkanAMDDrawCallback;
 
 struct VulkanPostVSData
@@ -180,6 +181,40 @@ struct VulkanPostVSData
 
     return vsin;
   }
+};
+
+struct BindIdx
+{
+  uint32_t set, bind, arrayidx;
+
+  bool operator<(const BindIdx &o) const
+  {
+    if(set != o.set)
+      return set < o.set;
+    else if(bind != o.bind)
+      return bind < o.bind;
+    return arrayidx < o.arrayidx;
+  }
+
+  bool operator>(const BindIdx &o) const
+  {
+    if(set != o.set)
+      return set > o.set;
+    else if(bind != o.bind)
+      return bind > o.bind;
+    return arrayidx > o.arrayidx;
+  }
+
+  bool operator==(const BindIdx &o) const
+  {
+    return set == o.set && bind == o.bind && arrayidx == o.arrayidx;
+  }
+};
+
+struct DynamicUsedBinds
+{
+  bool compute = false, valid = false;
+  std::vector<BindIdx> used;
 };
 
 class VulkanReplay : public IReplayDriver
@@ -262,8 +297,6 @@ public:
 
   // indicates that EID alias is the same as eventId
   void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVS.Alias[alias] = eventId; }
-  void ClearPostVSCache();
-
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
                               MeshDataStage stage);
 
@@ -344,8 +377,19 @@ public:
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 private:
+  void FetchShaderFeedback(uint32_t eventId);
+  void ClearFeedbackCache();
+
+  void PatchReservedDescriptors(const VulkanStatePipeline &pipe, VkDescriptorPool &descpool,
+                                std::vector<VkDescriptorSetLayout> &setLayouts,
+                                std::vector<VkDescriptorSet> &descSets,
+                                VkShaderStageFlagBits patchedBindingStage,
+                                const VkDescriptorSetLayoutBinding *newBindings,
+                                size_t newBindingsCount);
+
   void FetchVSOut(uint32_t eventId);
   void FetchTessGSOut(uint32_t eventId);
+  void ClearPostVSCache();
 
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
@@ -606,6 +650,15 @@ private:
     std::map<uint32_t, VulkanPostVSData> Data;
     std::map<uint32_t, uint32_t> Alias;
   } m_PostVS;
+
+  struct Feedback
+  {
+    void Destroy(WrappedVulkan *driver);
+
+    GPUBuffer FeedbackBuffer;
+
+    std::map<uint32_t, DynamicUsedBinds> Usage;
+  } m_BindlessFeedback;
 
   std::vector<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;

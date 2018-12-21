@@ -73,7 +73,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // that requires knowing which variables are in set 0 and it's simpler to increase all bindings.
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBinding)
     {
-      RDCASSERT(it.word(2) < (0xffffffff - MeshOutputReservedBindings));
+      RDCASSERT(it.word(3) < (0xffffffff - MeshOutputReservedBindings));
       it.word(3) += MeshOutputReservedBindings;
     }
   }
@@ -1300,120 +1300,57 @@ void VulkanReplay::ClearPostVSCache()
   m_PostVS.Data.clear();
 }
 
-void VulkanReplay::FetchVSOut(uint32_t eventId)
+void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
+                                            VkDescriptorPool &descpool,
+                                            std::vector<VkDescriptorSetLayout> &setLayouts,
+                                            std::vector<VkDescriptorSet> &descSets,
+                                            VkShaderStageFlagBits patchedBindingStage,
+                                            const VkDescriptorSetLayoutBinding *newBindings,
+                                            size_t newBindingsCount)
 {
-  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  VkDevice dev = m_Device;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
+  const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[pipe.pipeline];
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-
-  const VulkanCreationInfo::ShaderModule &moduleInfo =
-      creationInfo.m_ShaderModule[pipeInfo.shaders[0].module];
-
-  ShaderReflection *refl = pipeInfo.shaders[0].refl;
-
-  // set defaults so that we don't try to fetch this output again if something goes wrong and the
-  // same event is selected again
-  {
-    m_PostVS.Data[eventId].vsin.topo = pipeInfo.topology;
-    m_PostVS.Data[eventId].vsout.buf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].vsout.bufmem = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].vsout.instStride = 0;
-    m_PostVS.Data[eventId].vsout.vertStride = 0;
-    m_PostVS.Data[eventId].vsout.numViews = 1;
-    m_PostVS.Data[eventId].vsout.nearPlane = 0.0f;
-    m_PostVS.Data[eventId].vsout.farPlane = 0.0f;
-    m_PostVS.Data[eventId].vsout.useIndices = false;
-    m_PostVS.Data[eventId].vsout.hasPosOut = false;
-    m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
-    m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
-
-    m_PostVS.Data[eventId].vsout.topo = pipeInfo.topology;
-  }
-
-  // no outputs from this shader? unexpected but theoretically possible (dummy VS before
-  // tessellation maybe). Just fill out an empty data set
-  if(refl->outputSignature.empty())
-    return;
-
-  // we go through the driver for all these creations since they need to be properly
-  // registered in order to be put in the partial replay state
   VkResult vkr = VK_SUCCESS;
-  VkDevice dev = m_Device;
 
-  VkDescriptorPool descpool;
-  std::vector<VkDescriptorSetLayout> setLayouts;
-  std::vector<VkDescriptorSet> descSets;
-
-  VkPipelineLayout pipeLayout;
-
-  VkGraphicsPipelineCreateInfo pipeCreateInfo;
-
-  // get pipeline create info
-  m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
-
-  // create a duplicate set of descriptor sets, with all bindings shifted, and copy the bindings
-  // into them
   {
     std::vector<VkWriteDescriptorSet> descWrites;
     std::vector<VkDescriptorImageInfo *> allocImgWrites;
     std::vector<VkDescriptorBufferInfo *> allocBufWrites;
     std::vector<VkBufferView *> allocBufViewWrites;
 
-    // one for each descriptor type. 1 of each to start with plus enough for our internal resources,
-    // we then increment for each descriptor we need to allocate
+    // one for each descriptor type. 1 of each to start with, we then increment for each descriptor
+    // we need to allocate
     VkDescriptorPoolSize poolSizes[11] = {
         {VK_DESCRIPTOR_TYPE_SAMPLER, 1},
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
         {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1},
         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
-        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 50},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1},
         {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1},
         {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1},
         {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1},
     };
 
+    // count up our own
+    for(size_t i = 0; i < newBindingsCount; i++)
+      poolSizes[newBindings[i].descriptorType].descriptorCount += newBindings[i].descriptorCount;
+
     const std::vector<ResourceId> &descSetLayoutIds =
         creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
 
-    std::vector<VkDescriptorSetLayoutBinding> newBindings;
-
-    // need to add our own bindings to the first descriptor set
-    {
-      // output buffer
-      newBindings.push_back({
-          0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
-      });
-      // index buffer (if needed)
-      newBindings.push_back({
-          1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
-      });
-      // vertex buffers (float type)
-      newBindings.push_back({
-          2, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
-          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
-      });
-      // vertex buffers (uint32_t type)
-      newBindings.push_back({
-          3, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
-          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
-      });
-      // vertex buffers (int32_t type)
-      newBindings.push_back({
-          4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
-          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
-      });
-    }
+    // need to add our added bindings to the first descriptor set
+    std::vector<VkDescriptorSetLayoutBinding> bindings(newBindings, newBindings + newBindingsCount);
 
     // if there are fewer sets bound than were declared in the pipeline layout, only process the
     // bound sets (as otherwise we'd fail to copy from them). Assume the application knew what it
     // was doing and the other sets are statically unused.
-    setLayouts.resize(RDCMIN(state.graphics.descSets.size(), descSetLayoutIds.size()));
+    setLayouts.resize(RDCMIN(pipe.descSets.size(), descSetLayoutIds.size()));
 
     // need at least one set, if the shader isn't using any we'll just make our own
     if(setLayouts.empty())
@@ -1425,7 +1362,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
       // except for the first layout we need to start from scratch
       if(i > 0)
-        newBindings.clear();
+        bindings.clear();
 
       // if the shader had no descriptor sets at all, i will be invalid, so just skip and add a set
       // with only our own bindings.
@@ -1445,8 +1382,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           poolSizes[bind.descriptorType].descriptorCount += bind.descriptorCount;
 
           VkDescriptorSetLayoutBinding newBind;
-          // offset the binding
-          newBind.binding = (uint32_t)b + MeshOutputReservedBindings;
+          // offset the binding. We offset all sets to make it easier for patching - don't need to
+          // conditionally patch shader bindings depending on which set they're in.
+          newBind.binding = uint32_t(b + newBindingsCount);
           newBind.descriptorCount = bind.descriptorCount;
           newBind.descriptorType = bind.descriptorType;
 
@@ -1458,7 +1396,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           // Instead of trying to remap offsets to match, we simply make every binding compute
           // visible so the ordering is still the same. Since compute and graphics are disjoint this
           // is safe.
-          newBind.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+          if(patchedBindingStage)
+            newBind.stageFlags = patchedBindingStage;
+          else
+            newBind.stageFlags = bind.stageFlags;
 
           if(bind.immutableSampler)
           {
@@ -1474,7 +1415,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
             newBind.pImmutableSamplers = NULL;
           }
 
-          newBindings.push_back(newBind);
+          bindings.push_back(newBind);
         }
       }
 
@@ -1482,8 +1423,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
           NULL,
           0,
-          (uint32_t)newBindings.size(),
-          newBindings.data(),
+          (uint32_t)bindings.size(),
+          bindings.data(),
       };
 
       // create new offseted descriptor layout
@@ -1492,7 +1433,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
       if(hasImmutableSamplers)
       {
-        for(const VkDescriptorSetLayoutBinding &bind : newBindings)
+        for(const VkDescriptorSetLayoutBinding &bind : bindings)
           delete[] bind.pImmutableSamplers;
       }
     }
@@ -1525,14 +1466,14 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     {
       const DescSetLayout &origLayout = creationInfo.m_DescSetLayout[descSetLayoutIds[i]];
 
-      if(i >= state.graphics.descSets.size())
+      if(i >= pipe.descSets.size())
         continue;
 
-      if(state.graphics.descSets[i].descSet == ResourceId())
+      if(pipe.descSets[i].descSet == ResourceId())
         continue;
 
       WrappedVulkan::DescriptorSetInfo &setInfo =
-          m_pDriver->m_DescriptorSetState[state.graphics.descSets[i].descSet];
+          m_pDriver->m_DescriptorSetState[pipe.descSets[i].descSet];
 
       {
         // push descriptors don't have a source to copy from, we need to add writes
@@ -1549,7 +1490,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
           DescriptorSetSlot *slot = setInfo.currentBindings[b];
 
-          write.dstBinding = (uint32_t)b + MeshOutputReservedBindings;
+          write.dstBinding = uint32_t(b + newBindingsCount);
           write.dstArrayElement = 0;
           write.descriptorCount = bind.descriptorCount;
           write.descriptorType = bind.descriptorType;
@@ -1648,6 +1589,90 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     for(VkBufferView *a : allocBufViewWrites)
       delete[] a;
   }
+}
+
+void VulkanReplay::FetchVSOut(uint32_t eventId)
+{
+  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
+
+  const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
+
+  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+
+  const VulkanCreationInfo::ShaderModule &moduleInfo =
+      creationInfo.m_ShaderModule[pipeInfo.shaders[0].module];
+
+  ShaderReflection *refl = pipeInfo.shaders[0].refl;
+
+  // set defaults so that we don't try to fetch this output again if something goes wrong and the
+  // same event is selected again
+  {
+    m_PostVS.Data[eventId].vsin.topo = pipeInfo.topology;
+    m_PostVS.Data[eventId].vsout.buf = VK_NULL_HANDLE;
+    m_PostVS.Data[eventId].vsout.bufmem = VK_NULL_HANDLE;
+    m_PostVS.Data[eventId].vsout.instStride = 0;
+    m_PostVS.Data[eventId].vsout.vertStride = 0;
+    m_PostVS.Data[eventId].vsout.numViews = 1;
+    m_PostVS.Data[eventId].vsout.nearPlane = 0.0f;
+    m_PostVS.Data[eventId].vsout.farPlane = 0.0f;
+    m_PostVS.Data[eventId].vsout.useIndices = false;
+    m_PostVS.Data[eventId].vsout.hasPosOut = false;
+    m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
+    m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
+
+    m_PostVS.Data[eventId].vsout.topo = pipeInfo.topology;
+  }
+
+  // no outputs from this shader? unexpected but theoretically possible (dummy VS before
+  // tessellation maybe). Just fill out an empty data set
+  if(refl->outputSignature.empty())
+    return;
+
+  // we go through the driver for all these creations since they need to be properly
+  // registered in order to be put in the partial replay state
+  VkResult vkr = VK_SUCCESS;
+  VkDevice dev = m_Device;
+
+  VkDescriptorPool descpool;
+  std::vector<VkDescriptorSetLayout> setLayouts;
+  std::vector<VkDescriptorSet> descSets;
+
+  VkPipelineLayout pipeLayout;
+
+  VkGraphicsPipelineCreateInfo pipeCreateInfo;
+
+  // get pipeline create info
+  m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
+
+  VkDescriptorSetLayoutBinding newBindings[] = {
+      // output buffer
+      {
+          0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      },    // index buffer (if needed)
+      {
+          1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      },    // vertex buffers (float type)
+      {
+          2, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      },    // vertex buffers (uint32_t type)
+      {
+          3, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      },    // vertex buffers (int32_t type)
+      {
+          4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, MeshOutputTBufferArraySize,
+          VK_SHADER_STAGE_COMPUTE_BIT, NULL,
+      },
+  };
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(newBindings) == MeshOutputReservedBindings,
+                    "MeshOutputReservedBindings is wrong");
+
+  // create a duplicate set of descriptor sets, all visible to compute, with bindings shifted to
+  // account for new ones we need. This also copies the existing bindings into the new sets
+  PatchReservedDescriptors(m_pDriver->m_RenderState.graphics, descpool, setLayouts, descSets,
+                           VK_SHADER_STAGE_COMPUTE_BIT, newBindings, ARRAY_COUNT(newBindings));
 
   // create pipeline layout with new descriptor set layouts
   {
@@ -2947,7 +2972,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0, 1);
 
     // fill destination buffer with 0s to ensure unwritten vertices have sane data
-    ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(meshBuffer), 0, bufInfo.size, 0xbbaaddee);
+    ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(meshBuffer), 0, bufInfo.size, 0);
 
     VkBufferMemoryBarrier meshbufbarrier = {
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,

@@ -1292,6 +1292,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "geometry/tessellation stages will not be available");
     }
 
+    if(supportedExtensions.find(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) !=
+       supportedExtensions.end())
+    {
+      Extensions.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+      RDCLOG("Enabling VK_EXT_buffer_device_address");
+    }
+    else
+    {
+      RDCWARN(
+          "VK_EXT_buffer_device_address not available, feedback from "
+          "bindless shader access will use less reliable fallback");
+    }
+
     createInfo.enabledLayerCount = (uint32_t)Layers.size();
 
     const char **layerArray = NULL;
@@ -1940,6 +1953,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCWARN(
           "robustBufferAccess = false, out of bounds access due to bugs in application or "
           "RenderDoc may cause crashes");
+
+    if(availFeatures.shaderInt64)
+      enabledFeatures.shaderInt64 = true;
+    else
+      RDCWARN(
+          "shaderInt64 = false, feedback from bindless shader access will use less reliable "
+          "fallback.");
 
     if(availFeatures.shaderStorageImageWriteWithoutFormat)
       enabledFeatures.shaderStorageImageWriteWithoutFormat = true;

@@ -1349,7 +1349,7 @@ void VulkanReplay::SavePipelineState()
         &m_VulkanPipelineState.graphics.descriptorSets, &m_VulkanPipelineState.compute.descriptorSets,
     };
 
-    const vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> *srcs[] = {
+    const std::vector<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
         &state.graphics.descSets, &state.compute.descSets,
     };
 
@@ -3618,6 +3618,7 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
   rm->ReplaceResource(liveid, to);
 
   ClearPostVSCache();
+  ClearFeedbackCache();
 }
 
 void VulkanReplay::RemoveReplacement(ResourceId id)
@@ -3664,6 +3665,7 @@ void VulkanReplay::RemoveReplacement(ResourceId id)
   }
 
   ClearPostVSCache();
+  ClearFeedbackCache();
 }
 
 vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,

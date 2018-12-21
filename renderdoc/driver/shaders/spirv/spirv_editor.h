@@ -31,6 +31,7 @@
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "api/replay/renderdoc_replay.h"
+#include "common/common.h"
 
 class SPIRVOperation;
 class SPIRVEditor;
@@ -167,8 +168,79 @@ struct SPIRVEntry
   std::string name;
 };
 
+struct SPIRVVariable
+{
+  SPIRVId id;
+  SPIRVId type;
+  spv::StorageClass storageClass;
+  SPIRVId init;
+
+  bool operator<(const SPIRVVariable &o) const
+  {
+    if(id != o.id)
+      return id < o.id;
+    if(type != o.type)
+      return type < o.type;
+    if(storageClass != o.storageClass)
+      return storageClass < o.storageClass;
+    return init < o.init;
+  }
+
+  bool operator!=(const SPIRVVariable &o) const { return !operator==(o); }
+  bool operator==(const SPIRVVariable &o) const
+  {
+    return id == o.id && type == o.type && storageClass == o.storageClass && init == o.init;
+  }
+};
+
+struct SPIRVDecoration
+{
+  SPIRVId id;
+  spv::Decoration dec = spv::DecorationMax;
+  uint32_t parameters[4] = {};
+
+  bool operator<(const SPIRVDecoration &o) const
+  {
+    if(id != o.id)
+      return id < o.id;
+    if(dec != o.dec)
+      return dec < o.dec;
+
+    for(size_t i = 0; i < ARRAY_COUNT(parameters); i++)
+      if(parameters[i] != o.parameters[i])
+        return parameters[i] < o.parameters[i];
+
+    return false;
+  }
+
+  bool operator!=(const SPIRVDecoration &o) const { return !operator==(o); }
+  bool operator==(const SPIRVDecoration &o) const
+  {
+    return id == o.id && dec == o.dec && !memcmp(parameters, o.parameters, sizeof(parameters));
+  }
+};
+
+struct SPIRVBinding
+{
+  SPIRVBinding() = default;
+  SPIRVBinding(uint32_t s, uint32_t b) : set(s), binding(b) {}
+  uint32_t set = 0;
+  uint32_t binding = ~0U;
+
+  bool operator<(const SPIRVBinding &o) const
+  {
+    if(set != o.set)
+      return set < o.set;
+    return binding < o.binding;
+  }
+
+  bool operator!=(const SPIRVBinding &o) const { return !operator==(o); }
+  bool operator==(const SPIRVBinding &o) const { return set == o.set && binding == o.binding; }
+};
+
 struct SPIRVScalar
 {
+  SPIRVScalar() : type(spv::OpMax), width(0), signedness(false) {}
   constexpr SPIRVScalar(spv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
   SPIRVScalar(SPIRVIterator op);
 
@@ -219,10 +291,14 @@ inline constexpr SPIRVScalar scalar();
 
 SCALAR_TYPE(void, spv::OpTypeVoid, 0, false);
 SCALAR_TYPE(bool, spv::OpTypeBool, 0, false);
+SCALAR_TYPE(uint8_t, spv::OpTypeInt, 8, false);
 SCALAR_TYPE(uint16_t, spv::OpTypeInt, 16, false);
 SCALAR_TYPE(uint32_t, spv::OpTypeInt, 32, false);
+SCALAR_TYPE(uint64_t, spv::OpTypeInt, 64, false);
+SCALAR_TYPE(int8_t, spv::OpTypeInt, 8, true);
 SCALAR_TYPE(int16_t, spv::OpTypeInt, 16, true);
 SCALAR_TYPE(int32_t, spv::OpTypeInt, 32, true);
+SCALAR_TYPE(int64_t, spv::OpTypeInt, 64, true);
 SCALAR_TYPE(float, spv::OpTypeFloat, 32, false);
 SCALAR_TYPE(double, spv::OpTypeFloat, 64, false);
 
@@ -324,6 +400,15 @@ struct SPIRVImage
   SPIRVOperation decl(SPIRVEditor &editor) const;
 };
 
+struct SPIRVSampler
+{
+  // no properties, all sampler types are equal
+  bool operator<(const SPIRVSampler &o) const { return false; }
+  bool operator!=(const SPIRVSampler &o) const { return false; }
+  bool operator==(const SPIRVSampler &o) const { return true; }
+  SPIRVOperation decl(SPIRVEditor &editor) const;
+};
+
 struct SPIRVSampledImage
 {
   SPIRVSampledImage(SPIRVId b) : baseId(b) {}
@@ -355,6 +440,12 @@ struct SPIRVFunction
   }
   SPIRVOperation decl(SPIRVEditor &editor) const;
 };
+
+template <typename SPIRVType>
+using SPIRVTypeId = std::pair<SPIRVType, SPIRVId>;
+
+template <typename SPIRVType>
+using SPIRVTypeIds = std::vector<SPIRVTypeId<SPIRVType>>;
 
 // hack around enum class being useless for array indices :(
 struct SPIRVSection
@@ -462,6 +553,33 @@ public:
     return SPIRVId();
   }
 
+  template <typename SPIRVType>
+  SPIRVTypeIds<SPIRVType> GetTypes()
+  {
+    std::map<SPIRVType, SPIRVId> &table = GetTable<SPIRVType>();
+
+    SPIRVTypeIds<SPIRVType> ret;
+
+    for(auto it = table.begin(); it != table.end(); ++it)
+      ret.push_back(*it);
+
+    return ret;
+  }
+
+  template <typename SPIRVType>
+  const std::map<SPIRVType, SPIRVId> &GetTypeInfo() const
+  {
+    return GetTable<SPIRVType>();
+  }
+
+  SPIRVBinding GetBinding(SPIRVId id) const
+  {
+    auto it = bindings.find(id);
+    if(it == bindings.end())
+      return SPIRVBinding();
+    return it->second;
+  }
+  const std::set<SPIRVId> &GetStructTypes() const { return structTypes; }
   SPIRVId DeclareStructType(std::vector<uint32_t> members);
 
   // helper for AddConstant
@@ -490,7 +608,9 @@ public:
 
   // accessors to structs/vectors of data
   const std::vector<SPIRVEntry> &GetEntries() { return entries; }
+  const std::vector<SPIRVVariable> &GetVariables() { return variables; }
   const std::vector<SPIRVId> &GetFunctions() { return functions; }
+  SPIRVId GetIDType(SPIRVId id) { return idTypes[id]; }
 private:
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
   void addWords(size_t offs, int32_t num);
@@ -509,9 +629,15 @@ private:
   spv::AddressingModel addressmodel;
   spv::MemoryModel memorymodel;
 
+  std::vector<SPIRVDecoration> decorations;
+
+  std::map<SPIRVId, SPIRVBinding> bindings;
+
   std::vector<size_t> idOffsets;
+  std::vector<SPIRVId> idTypes;
 
   std::vector<SPIRVEntry> entries;
+  std::vector<SPIRVVariable> variables;
   std::vector<SPIRVId> functions;
   std::set<std::string> extensions;
   std::set<spv::Capability> capabilities;
@@ -523,11 +649,17 @@ private:
   std::map<SPIRVMatrix, SPIRVId> matrixTypes;
   std::map<SPIRVPointer, SPIRVId> pointerTypes;
   std::map<SPIRVImage, SPIRVId> imageTypes;
+  std::map<SPIRVSampler, SPIRVId> samplerTypes;
   std::map<SPIRVSampledImage, SPIRVId> sampledImageTypes;
   std::map<SPIRVFunction, SPIRVId> functionTypes;
 
+  std::set<SPIRVId> structTypes;
+
   template <typename SPIRVType>
   std::map<SPIRVType, SPIRVId> &GetTable();
+
+  template <typename SPIRVType>
+  const std::map<SPIRVType, SPIRVId> &GetTable() const;
 
   std::vector<uint32_t> &spirv;
 };

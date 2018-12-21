@@ -2007,7 +2007,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
+          std::vector<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
               (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                   ? m_RenderState.graphics.descSets
                   : m_RenderState.compute.descSets;
@@ -3617,7 +3617,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
+          std::vector<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
               (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                   ? m_RenderState.graphics.descSets
                   : m_RenderState.compute.descSets;
@@ -3888,7 +3888,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
+          std::vector<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
               (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? m_RenderState.graphics.descSets
                                                              : m_RenderState.compute.descSets;
 

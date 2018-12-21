@@ -32,6 +32,18 @@ class VulkanResourceManager;
 class WrappedVulkan;
 struct DescSetLayout;
 
+struct VulkanStatePipeline
+{
+  ResourceId pipeline;
+
+  struct DescriptorAndOffsets
+  {
+    ResourceId descSet;
+    vector<uint32_t> offsets;
+  };
+  vector<DescriptorAndOffsets> descSets;
+};
+
 struct VulkanRenderState
 {
   enum PipelineBinding
@@ -92,17 +104,7 @@ struct VulkanRenderState
   ResourceId framebuffer;
   VkRect2D renderArea;
 
-  struct Pipeline
-  {
-    ResourceId pipeline;
-
-    struct DescriptorAndOffsets
-    {
-      ResourceId descSet;
-      vector<uint32_t> offsets;
-    };
-    vector<DescriptorAndOffsets> descSets;
-  } compute, graphics;
+  VulkanStatePipeline compute, graphics;
 
   struct IdxBuffer
   {

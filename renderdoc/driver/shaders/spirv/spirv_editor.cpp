@@ -23,9 +23,398 @@
  ******************************************************************************/
 
 #include "spirv_editor.h"
+#include <algorithm>
 #include <utility>
 #include "common/common.h"
 #include "serialise/serialiser.h"
+
+// hopefully this will be in the official spirv.hpp soon
+// clang-format off
+namespace spv
+{
+inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
+    *hasResult = *hasResultType = false;
+    switch (opcode) {
+    default: /* unknown opcode */ break;
+    case OpNop: *hasResult = false; *hasResultType = false; break;
+    case OpUndef: *hasResult = true; *hasResultType = true; break;
+    case OpSourceContinued: *hasResult = false; *hasResultType = false; break;
+    case OpSource: *hasResult = false; *hasResultType = false; break;
+    case OpSourceExtension: *hasResult = false; *hasResultType = false; break;
+    case OpName: *hasResult = false; *hasResultType = false; break;
+    case OpMemberName: *hasResult = false; *hasResultType = false; break;
+    case OpString: *hasResult = true; *hasResultType = false; break;
+    case OpLine: *hasResult = false; *hasResultType = false; break;
+    case OpExtension: *hasResult = false; *hasResultType = false; break;
+    case OpExtInstImport: *hasResult = true; *hasResultType = false; break;
+    case OpExtInst: *hasResult = true; *hasResultType = true; break;
+    case OpMemoryModel: *hasResult = false; *hasResultType = false; break;
+    case OpEntryPoint: *hasResult = false; *hasResultType = false; break;
+    case OpExecutionMode: *hasResult = false; *hasResultType = false; break;
+    case OpCapability: *hasResult = false; *hasResultType = false; break;
+    case OpTypeVoid: *hasResult = true; *hasResultType = false; break;
+    case OpTypeBool: *hasResult = true; *hasResultType = false; break;
+    case OpTypeInt: *hasResult = true; *hasResultType = false; break;
+    case OpTypeFloat: *hasResult = true; *hasResultType = false; break;
+    case OpTypeVector: *hasResult = true; *hasResultType = false; break;
+    case OpTypeMatrix: *hasResult = true; *hasResultType = false; break;
+    case OpTypeImage: *hasResult = true; *hasResultType = false; break;
+    case OpTypeSampler: *hasResult = true; *hasResultType = false; break;
+    case OpTypeSampledImage: *hasResult = true; *hasResultType = false; break;
+    case OpTypeArray: *hasResult = true; *hasResultType = false; break;
+    case OpTypeRuntimeArray: *hasResult = true; *hasResultType = false; break;
+    case OpTypeStruct: *hasResult = true; *hasResultType = false; break;
+    case OpTypeOpaque: *hasResult = true; *hasResultType = false; break;
+    case OpTypePointer: *hasResult = true; *hasResultType = false; break;
+    case OpTypeFunction: *hasResult = true; *hasResultType = false; break;
+    case OpTypeEvent: *hasResult = true; *hasResultType = false; break;
+    case OpTypeDeviceEvent: *hasResult = true; *hasResultType = false; break;
+    case OpTypeReserveId: *hasResult = true; *hasResultType = false; break;
+    case OpTypeQueue: *hasResult = true; *hasResultType = false; break;
+    case OpTypePipe: *hasResult = true; *hasResultType = false; break;
+    case OpTypeForwardPointer: *hasResult = false; *hasResultType = false; break;
+    case OpConstantTrue: *hasResult = true; *hasResultType = true; break;
+    case OpConstantFalse: *hasResult = true; *hasResultType = true; break;
+    case OpConstant: *hasResult = true; *hasResultType = true; break;
+    case OpConstantComposite: *hasResult = true; *hasResultType = true; break;
+    case OpConstantSampler: *hasResult = true; *hasResultType = true; break;
+    case OpConstantNull: *hasResult = true; *hasResultType = true; break;
+    case OpSpecConstantTrue: *hasResult = true; *hasResultType = true; break;
+    case OpSpecConstantFalse: *hasResult = true; *hasResultType = true; break;
+    case OpSpecConstant: *hasResult = true; *hasResultType = true; break;
+    case OpSpecConstantComposite: *hasResult = true; *hasResultType = true; break;
+    case OpSpecConstantOp: *hasResult = true; *hasResultType = true; break;
+    case OpFunction: *hasResult = true; *hasResultType = true; break;
+    case OpFunctionParameter: *hasResult = true; *hasResultType = true; break;
+    case OpFunctionEnd: *hasResult = false; *hasResultType = false; break;
+    case OpFunctionCall: *hasResult = true; *hasResultType = true; break;
+    case OpVariable: *hasResult = true; *hasResultType = true; break;
+    case OpImageTexelPointer: *hasResult = true; *hasResultType = true; break;
+    case OpLoad: *hasResult = true; *hasResultType = true; break;
+    case OpStore: *hasResult = false; *hasResultType = false; break;
+    case OpCopyMemory: *hasResult = false; *hasResultType = false; break;
+    case OpCopyMemorySized: *hasResult = false; *hasResultType = false; break;
+    case OpAccessChain: *hasResult = true; *hasResultType = true; break;
+    case OpInBoundsAccessChain: *hasResult = true; *hasResultType = true; break;
+    case OpPtrAccessChain: *hasResult = true; *hasResultType = true; break;
+    case OpArrayLength: *hasResult = true; *hasResultType = true; break;
+    case OpGenericPtrMemSemantics: *hasResult = true; *hasResultType = true; break;
+    case OpInBoundsPtrAccessChain: *hasResult = true; *hasResultType = true; break;
+    case OpDecorate: *hasResult = false; *hasResultType = false; break;
+    case OpMemberDecorate: *hasResult = false; *hasResultType = false; break;
+    case OpDecorationGroup: *hasResult = true; *hasResultType = false; break;
+    case OpGroupDecorate: *hasResult = false; *hasResultType = false; break;
+    case OpGroupMemberDecorate: *hasResult = false; *hasResultType = false; break;
+    case OpVectorExtractDynamic: *hasResult = true; *hasResultType = true; break;
+    case OpVectorInsertDynamic: *hasResult = true; *hasResultType = true; break;
+    case OpVectorShuffle: *hasResult = true; *hasResultType = true; break;
+    case OpCompositeConstruct: *hasResult = true; *hasResultType = true; break;
+    case OpCompositeExtract: *hasResult = true; *hasResultType = true; break;
+    case OpCompositeInsert: *hasResult = true; *hasResultType = true; break;
+    case OpCopyObject: *hasResult = true; *hasResultType = true; break;
+    case OpTranspose: *hasResult = true; *hasResultType = true; break;
+    case OpSampledImage: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleDrefImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleDrefExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleProjImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleProjExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleProjDrefImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleProjDrefExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageFetch: *hasResult = true; *hasResultType = true; break;
+    case OpImageGather: *hasResult = true; *hasResultType = true; break;
+    case OpImageDrefGather: *hasResult = true; *hasResultType = true; break;
+    case OpImageRead: *hasResult = true; *hasResultType = true; break;
+    case OpImageWrite: *hasResult = false; *hasResultType = false; break;
+    case OpImage: *hasResult = true; *hasResultType = true; break;
+    case OpImageQueryFormat: *hasResult = true; *hasResultType = true; break;
+    case OpImageQueryOrder: *hasResult = true; *hasResultType = true; break;
+    case OpImageQuerySizeLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageQuerySize: *hasResult = true; *hasResultType = true; break;
+    case OpImageQueryLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageQueryLevels: *hasResult = true; *hasResultType = true; break;
+    case OpImageQuerySamples: *hasResult = true; *hasResultType = true; break;
+    case OpConvertFToU: *hasResult = true; *hasResultType = true; break;
+    case OpConvertFToS: *hasResult = true; *hasResultType = true; break;
+    case OpConvertSToF: *hasResult = true; *hasResultType = true; break;
+    case OpConvertUToF: *hasResult = true; *hasResultType = true; break;
+    case OpUConvert: *hasResult = true; *hasResultType = true; break;
+    case OpSConvert: *hasResult = true; *hasResultType = true; break;
+    case OpFConvert: *hasResult = true; *hasResultType = true; break;
+    case OpQuantizeToF16: *hasResult = true; *hasResultType = true; break;
+    case OpConvertPtrToU: *hasResult = true; *hasResultType = true; break;
+    case OpSatConvertSToU: *hasResult = true; *hasResultType = true; break;
+    case OpSatConvertUToS: *hasResult = true; *hasResultType = true; break;
+    case OpConvertUToPtr: *hasResult = true; *hasResultType = true; break;
+    case OpPtrCastToGeneric: *hasResult = true; *hasResultType = true; break;
+    case OpGenericCastToPtr: *hasResult = true; *hasResultType = true; break;
+    case OpGenericCastToPtrExplicit: *hasResult = true; *hasResultType = true; break;
+    case OpBitcast: *hasResult = true; *hasResultType = true; break;
+    case OpSNegate: *hasResult = true; *hasResultType = true; break;
+    case OpFNegate: *hasResult = true; *hasResultType = true; break;
+    case OpIAdd: *hasResult = true; *hasResultType = true; break;
+    case OpFAdd: *hasResult = true; *hasResultType = true; break;
+    case OpISub: *hasResult = true; *hasResultType = true; break;
+    case OpFSub: *hasResult = true; *hasResultType = true; break;
+    case OpIMul: *hasResult = true; *hasResultType = true; break;
+    case OpFMul: *hasResult = true; *hasResultType = true; break;
+    case OpUDiv: *hasResult = true; *hasResultType = true; break;
+    case OpSDiv: *hasResult = true; *hasResultType = true; break;
+    case OpFDiv: *hasResult = true; *hasResultType = true; break;
+    case OpUMod: *hasResult = true; *hasResultType = true; break;
+    case OpSRem: *hasResult = true; *hasResultType = true; break;
+    case OpSMod: *hasResult = true; *hasResultType = true; break;
+    case OpFRem: *hasResult = true; *hasResultType = true; break;
+    case OpFMod: *hasResult = true; *hasResultType = true; break;
+    case OpVectorTimesScalar: *hasResult = true; *hasResultType = true; break;
+    case OpMatrixTimesScalar: *hasResult = true; *hasResultType = true; break;
+    case OpVectorTimesMatrix: *hasResult = true; *hasResultType = true; break;
+    case OpMatrixTimesVector: *hasResult = true; *hasResultType = true; break;
+    case OpMatrixTimesMatrix: *hasResult = true; *hasResultType = true; break;
+    case OpOuterProduct: *hasResult = true; *hasResultType = true; break;
+    case OpDot: *hasResult = true; *hasResultType = true; break;
+    case OpIAddCarry: *hasResult = true; *hasResultType = true; break;
+    case OpISubBorrow: *hasResult = true; *hasResultType = true; break;
+    case OpUMulExtended: *hasResult = true; *hasResultType = true; break;
+    case OpSMulExtended: *hasResult = true; *hasResultType = true; break;
+    case OpAny: *hasResult = true; *hasResultType = true; break;
+    case OpAll: *hasResult = true; *hasResultType = true; break;
+    case OpIsNan: *hasResult = true; *hasResultType = true; break;
+    case OpIsInf: *hasResult = true; *hasResultType = true; break;
+    case OpIsFinite: *hasResult = true; *hasResultType = true; break;
+    case OpIsNormal: *hasResult = true; *hasResultType = true; break;
+    case OpSignBitSet: *hasResult = true; *hasResultType = true; break;
+    case OpLessOrGreater: *hasResult = true; *hasResultType = true; break;
+    case OpOrdered: *hasResult = true; *hasResultType = true; break;
+    case OpUnordered: *hasResult = true; *hasResultType = true; break;
+    case OpLogicalEqual: *hasResult = true; *hasResultType = true; break;
+    case OpLogicalNotEqual: *hasResult = true; *hasResultType = true; break;
+    case OpLogicalOr: *hasResult = true; *hasResultType = true; break;
+    case OpLogicalAnd: *hasResult = true; *hasResultType = true; break;
+    case OpLogicalNot: *hasResult = true; *hasResultType = true; break;
+    case OpSelect: *hasResult = true; *hasResultType = true; break;
+    case OpIEqual: *hasResult = true; *hasResultType = true; break;
+    case OpINotEqual: *hasResult = true; *hasResultType = true; break;
+    case OpUGreaterThan: *hasResult = true; *hasResultType = true; break;
+    case OpSGreaterThan: *hasResult = true; *hasResultType = true; break;
+    case OpUGreaterThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpSGreaterThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpULessThan: *hasResult = true; *hasResultType = true; break;
+    case OpSLessThan: *hasResult = true; *hasResultType = true; break;
+    case OpULessThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpSLessThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFOrdEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFUnordEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFOrdNotEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFUnordNotEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFOrdLessThan: *hasResult = true; *hasResultType = true; break;
+    case OpFUnordLessThan: *hasResult = true; *hasResultType = true; break;
+    case OpFOrdGreaterThan: *hasResult = true; *hasResultType = true; break;
+    case OpFUnordGreaterThan: *hasResult = true; *hasResultType = true; break;
+    case OpFOrdLessThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFUnordLessThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFOrdGreaterThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpFUnordGreaterThanEqual: *hasResult = true; *hasResultType = true; break;
+    case OpShiftRightLogical: *hasResult = true; *hasResultType = true; break;
+    case OpShiftRightArithmetic: *hasResult = true; *hasResultType = true; break;
+    case OpShiftLeftLogical: *hasResult = true; *hasResultType = true; break;
+    case OpBitwiseOr: *hasResult = true; *hasResultType = true; break;
+    case OpBitwiseXor: *hasResult = true; *hasResultType = true; break;
+    case OpBitwiseAnd: *hasResult = true; *hasResultType = true; break;
+    case OpNot: *hasResult = true; *hasResultType = true; break;
+    case OpBitFieldInsert: *hasResult = true; *hasResultType = true; break;
+    case OpBitFieldSExtract: *hasResult = true; *hasResultType = true; break;
+    case OpBitFieldUExtract: *hasResult = true; *hasResultType = true; break;
+    case OpBitReverse: *hasResult = true; *hasResultType = true; break;
+    case OpBitCount: *hasResult = true; *hasResultType = true; break;
+    case OpDPdx: *hasResult = true; *hasResultType = true; break;
+    case OpDPdy: *hasResult = true; *hasResultType = true; break;
+    case OpFwidth: *hasResult = true; *hasResultType = true; break;
+    case OpDPdxFine: *hasResult = true; *hasResultType = true; break;
+    case OpDPdyFine: *hasResult = true; *hasResultType = true; break;
+    case OpFwidthFine: *hasResult = true; *hasResultType = true; break;
+    case OpDPdxCoarse: *hasResult = true; *hasResultType = true; break;
+    case OpDPdyCoarse: *hasResult = true; *hasResultType = true; break;
+    case OpFwidthCoarse: *hasResult = true; *hasResultType = true; break;
+    case OpEmitVertex: *hasResult = false; *hasResultType = false; break;
+    case OpEndPrimitive: *hasResult = false; *hasResultType = false; break;
+    case OpEmitStreamVertex: *hasResult = false; *hasResultType = false; break;
+    case OpEndStreamPrimitive: *hasResult = false; *hasResultType = false; break;
+    case OpControlBarrier: *hasResult = false; *hasResultType = false; break;
+    case OpMemoryBarrier: *hasResult = false; *hasResultType = false; break;
+    case OpAtomicLoad: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicStore: *hasResult = false; *hasResultType = false; break;
+    case OpAtomicExchange: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicCompareExchange: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicCompareExchangeWeak: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicIIncrement: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicIDecrement: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicIAdd: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicISub: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicSMin: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicUMin: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicSMax: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicUMax: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicAnd: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicOr: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicXor: *hasResult = true; *hasResultType = true; break;
+    case OpPhi: *hasResult = true; *hasResultType = true; break;
+    case OpLoopMerge: *hasResult = false; *hasResultType = false; break;
+    case OpSelectionMerge: *hasResult = false; *hasResultType = false; break;
+    case OpLabel: *hasResult = true; *hasResultType = false; break;
+    case OpBranch: *hasResult = false; *hasResultType = false; break;
+    case OpBranchConditional: *hasResult = false; *hasResultType = false; break;
+    case OpSwitch: *hasResult = false; *hasResultType = false; break;
+    case OpKill: *hasResult = false; *hasResultType = false; break;
+    case OpReturn: *hasResult = false; *hasResultType = false; break;
+    case OpReturnValue: *hasResult = false; *hasResultType = false; break;
+    case OpUnreachable: *hasResult = false; *hasResultType = false; break;
+    case OpLifetimeStart: *hasResult = false; *hasResultType = false; break;
+    case OpLifetimeStop: *hasResult = false; *hasResultType = false; break;
+    case OpGroupAsyncCopy: *hasResult = true; *hasResultType = true; break;
+    case OpGroupWaitEvents: *hasResult = false; *hasResultType = false; break;
+    case OpGroupAll: *hasResult = true; *hasResultType = true; break;
+    case OpGroupAny: *hasResult = true; *hasResultType = true; break;
+    case OpGroupBroadcast: *hasResult = true; *hasResultType = true; break;
+    case OpGroupIAdd: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFAdd: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFMin: *hasResult = true; *hasResultType = true; break;
+    case OpGroupUMin: *hasResult = true; *hasResultType = true; break;
+    case OpGroupSMin: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFMax: *hasResult = true; *hasResultType = true; break;
+    case OpGroupUMax: *hasResult = true; *hasResultType = true; break;
+    case OpGroupSMax: *hasResult = true; *hasResultType = true; break;
+    case OpReadPipe: *hasResult = true; *hasResultType = true; break;
+    case OpWritePipe: *hasResult = true; *hasResultType = true; break;
+    case OpReservedReadPipe: *hasResult = true; *hasResultType = true; break;
+    case OpReservedWritePipe: *hasResult = true; *hasResultType = true; break;
+    case OpReserveReadPipePackets: *hasResult = true; *hasResultType = true; break;
+    case OpReserveWritePipePackets: *hasResult = true; *hasResultType = true; break;
+    case OpCommitReadPipe: *hasResult = false; *hasResultType = false; break;
+    case OpCommitWritePipe: *hasResult = false; *hasResultType = false; break;
+    case OpIsValidReserveId: *hasResult = true; *hasResultType = true; break;
+    case OpGetNumPipePackets: *hasResult = true; *hasResultType = true; break;
+    case OpGetMaxPipePackets: *hasResult = true; *hasResultType = true; break;
+    case OpGroupReserveReadPipePackets: *hasResult = true; *hasResultType = true; break;
+    case OpGroupReserveWritePipePackets: *hasResult = true; *hasResultType = true; break;
+    case OpGroupCommitReadPipe: *hasResult = false; *hasResultType = false; break;
+    case OpGroupCommitWritePipe: *hasResult = false; *hasResultType = false; break;
+    case OpEnqueueMarker: *hasResult = true; *hasResultType = true; break;
+    case OpEnqueueKernel: *hasResult = true; *hasResultType = true; break;
+    case OpGetKernelNDrangeSubGroupCount: *hasResult = true; *hasResultType = true; break;
+    case OpGetKernelNDrangeMaxSubGroupSize: *hasResult = true; *hasResultType = true; break;
+    case OpGetKernelWorkGroupSize: *hasResult = true; *hasResultType = true; break;
+    case OpGetKernelPreferredWorkGroupSizeMultiple: *hasResult = true; *hasResultType = true; break;
+    case OpRetainEvent: *hasResult = false; *hasResultType = false; break;
+    case OpReleaseEvent: *hasResult = false; *hasResultType = false; break;
+    case OpCreateUserEvent: *hasResult = true; *hasResultType = true; break;
+    case OpIsValidEvent: *hasResult = true; *hasResultType = true; break;
+    case OpSetUserEventStatus: *hasResult = false; *hasResultType = false; break;
+    case OpCaptureEventProfilingInfo: *hasResult = false; *hasResultType = false; break;
+    case OpGetDefaultQueue: *hasResult = true; *hasResultType = true; break;
+    case OpBuildNDRange: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleDrefImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleDrefExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleProjImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleProjExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleProjDrefImplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseSampleProjDrefExplicitLod: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseFetch: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseGather: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseDrefGather: *hasResult = true; *hasResultType = true; break;
+    case OpImageSparseTexelsResident: *hasResult = true; *hasResultType = true; break;
+    case OpNoLine: *hasResult = false; *hasResultType = false; break;
+    case OpAtomicFlagTestAndSet: *hasResult = true; *hasResultType = true; break;
+    case OpAtomicFlagClear: *hasResult = false; *hasResultType = false; break;
+    case OpImageSparseRead: *hasResult = true; *hasResultType = true; break;
+    case OpSizeOf: *hasResult = true; *hasResultType = true; break;
+    case OpTypePipeStorage: *hasResult = true; *hasResultType = false; break;
+    case OpConstantPipeStorage: *hasResult = true; *hasResultType = true; break;
+    case OpCreatePipeFromPipeStorage: *hasResult = true; *hasResultType = true; break;
+    case OpGetKernelLocalSizeForSubgroupCount: *hasResult = true; *hasResultType = true; break;
+    case OpGetKernelMaxNumSubgroups: *hasResult = true; *hasResultType = true; break;
+    case OpTypeNamedBarrier: *hasResult = true; *hasResultType = false; break;
+    case OpNamedBarrierInitialize: *hasResult = true; *hasResultType = true; break;
+    case OpMemoryNamedBarrier: *hasResult = false; *hasResultType = false; break;
+    case OpModuleProcessed: *hasResult = false; *hasResultType = false; break;
+    case OpExecutionModeId: *hasResult = false; *hasResultType = false; break;
+    case OpDecorateId: *hasResult = false; *hasResultType = false; break;
+    case OpGroupNonUniformElect: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformAll: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformAny: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformAllEqual: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBroadcast: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBroadcastFirst: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBallot: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformInverseBallot: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBallotBitExtract: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBallotBitCount: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBallotFindLSB: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBallotFindMSB: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformShuffle: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformShuffleXor: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformShuffleUp: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformShuffleDown: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformIAdd: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformFAdd: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformIMul: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformFMul: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformSMin: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformUMin: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformFMin: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformSMax: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformUMax: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformFMax: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBitwiseAnd: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBitwiseOr: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformBitwiseXor: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformLogicalAnd: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformLogicalOr: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformLogicalXor: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformQuadBroadcast: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformQuadSwap: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupBallotKHR: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupFirstInvocationKHR: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupAllKHR: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupAnyKHR: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupAllEqualKHR: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupReadInvocationKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupIAddNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFAddNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFMinNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupUMinNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupSMinNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFMaxNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupUMaxNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpGroupSMaxNonUniformAMD: *hasResult = true; *hasResultType = true; break;
+    case OpFragmentMaskFetchAMD: *hasResult = true; *hasResultType = true; break;
+    case OpFragmentFetchAMD: *hasResult = true; *hasResultType = true; break;
+    case OpWritePackedPrimitiveIndices4x8NV: *hasResult = false; *hasResultType = false; break;
+    case OpReportIntersectionNV: *hasResult = true; *hasResultType = true; break;
+    case OpIgnoreIntersectionNV: *hasResult = false; *hasResultType = false; break;
+    case OpTerminateRayNV: *hasResult = false; *hasResultType = false; break;
+    case OpTraceNV: *hasResult = false; *hasResultType = false; break;
+    case OpTypeAccelerationStructureNV: *hasResult = true; *hasResultType = false; break;
+    case OpExecuteCallableNV: *hasResult = false; *hasResultType = false; break;
+    case OpSubgroupShuffleINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupShuffleDownINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupShuffleUpINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupShuffleXorINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupBlockReadINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupBlockWriteINTEL: *hasResult = false; *hasResultType = false; break;
+    case OpSubgroupImageBlockReadINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpSubgroupImageBlockWriteINTEL: *hasResult = false; *hasResultType = false; break;
+    case OpDecorateStringGOOGLE: *hasResult = false; *hasResultType = false; break;
+    case OpMemberDecorateStringGOOGLE: *hasResult = false; *hasResultType = false; break;
+    case OpGroupNonUniformPartitionNV: *hasResult = true; *hasResultType = true; break;
+    case OpImageSampleFootprintNV: *hasResult = true; *hasResultType = true; break;
+    }
+}
+};    // namespace spv
+// clang-format on
 
 static const uint32_t FirstRealWord = 5;
 
@@ -106,6 +495,11 @@ SPIRVOperation SPIRVImage::decl(SPIRVEditor &editor) const
                                            arrayed, ms, sampled, (uint32_t)format});
 }
 
+SPIRVOperation SPIRVSampler::decl(SPIRVEditor &editor) const
+{
+  return SPIRVOperation(spv::OpTypeSampler, {0U});
+}
+
 SPIRVOperation SPIRVSampledImage::decl(SPIRVEditor &editor) const
 {
   return SPIRVOperation(spv::OpTypeSampledImage, {0U, baseId});
@@ -135,6 +529,7 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   moduleVersion.minor = uint8_t((spirv[1] & 0x0000ff00) >> 8);
   generator = spirv[2];
   idOffsets.resize(spirv[3]);
+  idTypes.resize(spirv[3]);
 
   // [4] is reserved
   RDCASSERT(spirv[4] == 0);
@@ -307,6 +702,7 @@ SPIRVId SPIRVEditor::MakeId()
   uint32_t ret = spirv[3];
   spirv[3]++;
   idOffsets.resize(spirv[3]);
+  idTypes.resize(spirv[3]);
   return ret;
 }
 
@@ -548,6 +944,17 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
 {
   spv::Op opcode = it.opcode();
 
+  {
+    bool hasResult = false, hasResultType = false;
+    spv::HasResultAndType(opcode, &hasResult, &hasResultType);
+
+    if(hasResult && hasResultType)
+    {
+      RDCASSERT(it.word(2) < idTypes.size());
+      idTypes[it.word(2)] = it.word(1);
+    }
+  }
+
   if(opcode == spv::OpEntryPoint)
   {
     SPIRVEntry entry;
@@ -582,6 +989,36 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
     idOffsets[id] = it.offset;
 
     functions.push_back(id);
+  }
+  else if(opcode == spv::OpVariable)
+  {
+    SPIRVVariable var;
+    var.type = it.word(1);
+    var.id = it.word(2);
+    var.storageClass = (spv::StorageClass)it.word(3);
+    if(it.size() > 4)
+      var.init = it.word(4);
+
+    variables.push_back(var);
+  }
+  else if(opcode == spv::OpDecorate)
+  {
+    SPIRVDecoration decoration;
+    decoration.id = it.word(1);
+    decoration.dec = (spv::Decoration)it.word(2);
+
+    RDCASSERTMSG("Too many parameters in decoration", it.size() <= 7, it.size());
+
+    for(size_t i = 0; i + 3 < it.size() && i < ARRAY_COUNT(decoration.parameters); i++)
+      decoration.parameters[i] = it.word(i + 3);
+
+    auto it = std::lower_bound(decorations.begin(), decorations.end(), decoration);
+    decorations.insert(it, decoration);
+
+    if(decoration.dec == spv::DecorationDescriptorSet)
+      bindings[decoration.id].set = decoration.parameters[0];
+    if(decoration.dec == spv::DecorationBinding)
+      bindings[decoration.id].binding = decoration.parameters[0];
   }
   else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
           opcode == spv::OpTypeFloat)
@@ -641,6 +1078,13 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
     imageTypes[SPIRVImage(scalarIt, (spv::Dim)it.word(3), it.word(4), it.word(5), it.word(6),
                           it.word(7), (spv::ImageFormat)it.word(8))] = id;
   }
+  else if(opcode == spv::OpTypeSampler)
+  {
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    samplerTypes[SPIRVSampler()] = id;
+  }
   else if(opcode == spv::OpTypeSampledImage)
   {
     SPIRVId id = it.word(1);
@@ -659,7 +1103,10 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
   }
   else if(opcode == spv::OpTypeStruct)
   {
-    idOffsets[it.word(1)] = it.offset;
+    SPIRVId id = it.word(1);
+    idOffsets[id] = it.offset;
+
+    structTypes.insert(id);
   }
   else if(opcode == spv::OpTypeFunction)
   {
@@ -678,6 +1125,14 @@ void SPIRVEditor::RegisterOp(SPIRVIterator it)
 void SPIRVEditor::UnregisterOp(SPIRVIterator it)
 {
   spv::Op opcode = it.opcode();
+
+  {
+    bool hasResult = false, hasResultType = false;
+    spv::HasResultAndType(opcode, &hasResult, &hasResultType);
+
+    if(hasResult && hasResultType)
+      idTypes[it.word(2)] = 0;
+  }
 
   SPIRVId id;
 
@@ -703,6 +1158,38 @@ void SPIRVEditor::UnregisterOp(SPIRVIterator it)
         break;
       }
     }
+  }
+  else if(opcode == spv::OpVariable)
+  {
+    id = it.word(2);
+    for(auto varIt = variables.begin(); varIt != variables.end(); ++varIt)
+    {
+      if(varIt->id == id)
+      {
+        variables.erase(varIt);
+        break;
+      }
+    }
+  }
+  else if(opcode == spv::OpDecorate)
+  {
+    SPIRVDecoration decoration;
+    decoration.id = it.word(1);
+    decoration.dec = (spv::Decoration)it.word(2);
+
+    RDCASSERTMSG("Too many parameters in decoration", it.size() <= 7, it.size());
+
+    for(size_t i = 0; i + 3 < it.size() && i < ARRAY_COUNT(decoration.parameters); i++)
+      decoration.parameters[i] = it.word(i + 3);
+
+    auto it = std::find(decorations.begin(), decorations.end(), decoration);
+    if(it != decorations.end())
+      decorations.erase(it);
+
+    if(decoration.dec == spv::DecorationDescriptorSet)
+      bindings[decoration.id].set = SPIRVBinding().set;
+    if(decoration.dec == spv::DecorationBinding)
+      bindings[decoration.id].binding = SPIRVBinding().binding;
   }
   else if(opcode == spv::OpCapability)
   {
@@ -772,6 +1259,12 @@ void SPIRVEditor::UnregisterOp(SPIRVIterator it)
     imageTypes.erase(SPIRVImage(scalarIt, (spv::Dim)it.word(3), it.word(4), it.word(5), it.word(6),
                                 it.word(7), (spv::ImageFormat)it.word(8)));
   }
+  else if(opcode == spv::OpTypeSampler)
+  {
+    id = it.word(1);
+
+    samplerTypes.erase(SPIRVSampler());
+  }
   else if(opcode == spv::OpTypeSampledImage)
   {
     id = it.word(1);
@@ -789,6 +1282,8 @@ void SPIRVEditor::UnregisterOp(SPIRVIterator it)
   else if(opcode == spv::OpTypeStruct)
   {
     id = it.word(1);
+
+    structTypes.erase(id);
   }
   else if(opcode == spv::OpTypeFunction)
   {
@@ -847,47 +1342,26 @@ void SPIRVEditor::addWords(size_t offs, int32_t num)
       o += num;
 }
 
-template <>
-std::map<SPIRVScalar, SPIRVId> &SPIRVEditor::GetTable<SPIRVScalar>()
-{
-  return scalarTypes;
-}
+#define TYPETABLE(StructType, variable)                                          \
+  template <>                                                                    \
+  std::map<StructType, SPIRVId> &SPIRVEditor::GetTable<StructType>()             \
+  {                                                                              \
+    return variable;                                                             \
+  }                                                                              \
+  template <>                                                                    \
+  const std::map<StructType, SPIRVId> &SPIRVEditor::GetTable<StructType>() const \
+  {                                                                              \
+    return variable;                                                             \
+  }
 
-template <>
-std::map<SPIRVVector, SPIRVId> &SPIRVEditor::GetTable<SPIRVVector>()
-{
-  return vectorTypes;
-}
-
-template <>
-std::map<SPIRVMatrix, SPIRVId> &SPIRVEditor::GetTable<SPIRVMatrix>()
-{
-  return matrixTypes;
-}
-
-template <>
-std::map<SPIRVPointer, SPIRVId> &SPIRVEditor::GetTable<SPIRVPointer>()
-{
-  return pointerTypes;
-}
-
-template <>
-std::map<SPIRVImage, SPIRVId> &SPIRVEditor::GetTable<SPIRVImage>()
-{
-  return imageTypes;
-}
-
-template <>
-std::map<SPIRVSampledImage, SPIRVId> &SPIRVEditor::GetTable<SPIRVSampledImage>()
-{
-  return sampledImageTypes;
-}
-
-template <>
-std::map<SPIRVFunction, SPIRVId> &SPIRVEditor::GetTable<SPIRVFunction>()
-{
-  return functionTypes;
-}
+TYPETABLE(SPIRVScalar, scalarTypes);
+TYPETABLE(SPIRVVector, vectorTypes);
+TYPETABLE(SPIRVMatrix, matrixTypes);
+TYPETABLE(SPIRVPointer, pointerTypes);
+TYPETABLE(SPIRVImage, imageTypes);
+TYPETABLE(SPIRVSampler, samplerTypes);
+TYPETABLE(SPIRVSampledImage, sampledImageTypes);
+TYPETABLE(SPIRVFunction, functionTypes);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 

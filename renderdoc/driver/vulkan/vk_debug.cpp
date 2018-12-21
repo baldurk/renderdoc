@@ -1633,6 +1633,7 @@ void VulkanReplay::CreateResources()
 void VulkanReplay::DestroyResources()
 {
   ClearPostVSCache();
+  ClearFeedbackCache();
 
   m_General.Destroy(m_pDriver);
   m_TexRender.Destroy(m_pDriver);
@@ -2573,4 +2574,9 @@ void VulkanReplay::PostVS::Destroy(WrappedVulkan *driver)
 {
   if(XFBQueryPool != VK_NULL_HANDLE)
     driver->vkDestroyQueryPool(driver->GetDev(), XFBQueryPool, NULL);
+}
+
+void VulkanReplay::Feedback::Destroy(WrappedVulkan *driver)
+{
+  FeedbackBuffer.Destroy();
 }

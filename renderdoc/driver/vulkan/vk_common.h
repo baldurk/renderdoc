@@ -145,6 +145,7 @@ struct GPUBuffer
     eGPUBufferSSBO = 0x8,
     eGPUBufferGPULocal = 0x10,
     eGPUBufferIndirectBuffer = 0x20,
+    eGPUBufferAddressable = 0x40,
   };
 
   void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,

@@ -8,6 +8,7 @@ set(sources
     vk_debug.h
     vk_debug.cpp
     vk_postvs.cpp
+    vk_bindless_feedback.cpp
     vk_overlay.cpp
     vk_msaa_array_conv.cpp
     vk_outputwindow.cpp
