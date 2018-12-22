@@ -15,6 +15,7 @@ if(ANDROID)
         PRIVATE -landroid)
 elseif(APPLE)
     list(APPEND RDOC_LIBRARIES
+        PRIVATE -liconv
         PRIVATE -lm
         PRIVATE -ldl)
 

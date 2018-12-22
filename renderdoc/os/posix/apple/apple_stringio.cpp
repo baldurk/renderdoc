@@ -23,12 +23,15 @@
  ******************************************************************************/
 
 #include <dlfcn.h>
+#include <errno.h>
+#include <iconv.h>
 #include <mach-o/dyld.h>
 #include <pwd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
+#include "common/threading.h"
 #include "os/os_specific.h"
 
 namespace Keyboard
@@ -129,14 +132,67 @@ void GetLibraryFilename(string &selfName)
 
 namespace StringFormat
 {
-string Wide2UTF8(const std::wstring &s)
-{
-  RDCFATAL("Converting wide strings to UTF-8 is not supported on Apple!");
-  return "";
-}
+// cache iconv_t descriptor to save on iconv_open/iconv_close each time
+iconv_t iconvWide2UTF8 = (iconv_t)-1;
+
+// iconv is not thread safe when sharing an iconv_t descriptor
+// I don't expect much contention but if it happens we could TryLock
+// before creating a temporary iconv_t, or hold two iconv_ts, or something.
+Threading::CriticalSection lockWide2UTF8;
 
 void Shutdown()
 {
+  SCOPED_LOCK(lockWide2UTF8);
+  if(iconvWide2UTF8 != (iconv_t)-1)
+    iconv_close(iconvWide2UTF8);
+  iconvWide2UTF8 = (iconv_t)-1;
+}
+
+string Wide2UTF8(const std::wstring &s)
+{
+  // include room for null terminator, assuming unicode input (not ucs)
+  // utf-8 characters can be max 4 bytes.
+  size_t len = (s.length() + 1) * 4;
+
+  vector<char> charBuffer;
+
+  if(charBuffer.size() < len)
+    charBuffer.resize(len);
+
+  size_t ret;
+
+  {
+    SCOPED_LOCK(lockWide2UTF8);
+
+    if(iconvWide2UTF8 == (iconv_t)-1)
+      iconvWide2UTF8 = iconv_open("UTF-8", "WCHAR_T");
+
+    if(iconvWide2UTF8 == (iconv_t)-1)
+    {
+      RDCERR("Couldn't open iconv for WCHAR_T to UTF-8: %d", errno);
+      return "";
+    }
+
+    char *inbuf = (char *)s.c_str();
+    size_t insize = (s.length() + 1) * sizeof(wchar_t);    // include null terminator
+    char *outbuf = &charBuffer[0];
+    size_t outsize = len;
+
+    ret = iconv(iconvWide2UTF8, &inbuf, &insize, &outbuf, &outsize);
+  }
+
+  if(ret == (size_t)-1)
+  {
+#if ENABLED(RDOC_DEVEL)
+    RDCWARN("Failed to convert wstring");
+#endif
+    return "";
+  }
+
+  // convert to string from null-terminated string - utf-8 never contains
+  // 0 bytes before the null terminator, and this way we don't care if
+  // charBuffer is larger than the string
+  return string(&charBuffer[0]);
 }
 };
 
