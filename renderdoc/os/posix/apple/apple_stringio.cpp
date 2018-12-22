@@ -125,8 +125,8 @@ void GetLibraryFilename(string &selfName)
   else
   {
     RDCERR("dladdr failed to get library path");
+    selfName = "";
   }
-  selfName = "";
 }
 };
 
