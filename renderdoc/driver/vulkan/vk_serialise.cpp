@@ -1144,16 +1144,16 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceLimits &el)
   SERIALISE_MEMBER(maxFramebufferWidth);
   SERIALISE_MEMBER(maxFramebufferHeight);
   SERIALISE_MEMBER(maxFramebufferLayers);
-  SERIALISE_MEMBER(framebufferColorSampleCounts);
-  SERIALISE_MEMBER(framebufferDepthSampleCounts);
-  SERIALISE_MEMBER(framebufferStencilSampleCounts);
-  SERIALISE_MEMBER(framebufferNoAttachmentsSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, framebufferColorSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, framebufferDepthSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, framebufferStencilSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, framebufferNoAttachmentsSampleCounts);
   SERIALISE_MEMBER(maxColorAttachments);
-  SERIALISE_MEMBER(sampledImageColorSampleCounts);
-  SERIALISE_MEMBER(sampledImageIntegerSampleCounts);
-  SERIALISE_MEMBER(sampledImageDepthSampleCounts);
-  SERIALISE_MEMBER(sampledImageStencilSampleCounts);
-  SERIALISE_MEMBER(storageImageSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, sampledImageColorSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, sampledImageIntegerSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, sampledImageDepthSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, sampledImageStencilSampleCounts);
+  SERIALISE_MEMBER_TYPED(VkSampleCountFlagBits, storageImageSampleCounts);
   SERIALISE_MEMBER(maxSampleMaskWords);
   SERIALISE_MEMBER(timestampComputeAndGraphics);
   SERIALISE_MEMBER(timestampPeriod);
@@ -1722,7 +1722,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineRasterizationStateCreateInfo &el
   SERIALISE_MEMBER(depthClampEnable);
   SERIALISE_MEMBER(rasterizerDiscardEnable);
   SERIALISE_MEMBER(polygonMode);
-  SERIALISE_MEMBER(cullMode);
+  SERIALISE_MEMBER_TYPED(VkCullModeFlagBits, cullMode);
   SERIALISE_MEMBER(frontFace);
   SERIALISE_MEMBER(depthBiasEnable);
   SERIALISE_MEMBER(depthBiasConstantFactor);
@@ -1770,7 +1770,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineColorBlendAttachmentState &el)
   SERIALISE_MEMBER(srcAlphaBlendFactor);
   SERIALISE_MEMBER(dstAlphaBlendFactor);
   SERIALISE_MEMBER(alphaBlendOp);
-  SERIALISE_MEMBER(colorWriteMask);
+  SERIALISE_MEMBER_TYPED(VkColorComponentFlagBits, colorWriteMask);
 }
 
 template <typename SerialiserType>
@@ -2824,7 +2824,7 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   SERIALISE_MEMBER(imageColorSpace);
   SERIALISE_MEMBER(imageExtent);
   SERIALISE_MEMBER(imageArrayLayers);
-  SERIALISE_MEMBER(imageUsage);
+  SERIALISE_MEMBER_TYPED(VkImageUsageFlagBits, imageUsage);
   SERIALISE_MEMBER(imageSharingMode);
 
   // pQueueFamilyIndices should *only* be read if the sharing mode is concurrent, and if the capture
@@ -3921,7 +3921,7 @@ void DoSerialise(SerialiserType &ser, VkAttachmentReference2KHR &el)
 
   SERIALISE_MEMBER(attachment);
   SERIALISE_MEMBER(layout);
-  SERIALISE_MEMBER(aspectMask);
+  SERIALISE_MEMBER_TYPED(VkImageAspectFlagBits, aspectMask);
 }
 
 template <>
@@ -4263,8 +4263,8 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExternalBufferInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(flags);
-  SERIALISE_MEMBER(usage);
+  SERIALISE_MEMBER_TYPED(VkBufferCreateFlagBits, flags);
+  SERIALISE_MEMBER_TYPED(VkBufferUsageFlagBits, usage);
   SERIALISE_MEMBER(handleType);
 }
 
@@ -5471,8 +5471,8 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceImageFormatInfo2 &el)
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(tiling);
-  SERIALISE_MEMBER(usage);
-  SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER_TYPED(VkImageUsageFlagBits, usage);
+  SERIALISE_MEMBER_TYPED(VkImageCreateFlagBits, flags);
 }
 
 template <>
@@ -5544,7 +5544,7 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSparseImageFormatInfo2 &el
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(samples);
-  SERIALISE_MEMBER(usage);
+  SERIALISE_MEMBER_TYPED(VkImageUsageFlagBits, usage);
   SERIALISE_MEMBER(tiling);
 }
 

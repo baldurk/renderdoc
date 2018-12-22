@@ -790,6 +790,19 @@ std::string DoStringise(const VkCullModeFlagBits &el)
 }
 
 template <>
+std::string DoStringise(const VkColorComponentFlagBits &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkColorComponentFlagBits);
+  {
+    STRINGISE_BITFIELD_BIT(VK_COLOR_COMPONENT_R_BIT)
+    STRINGISE_BITFIELD_BIT(VK_COLOR_COMPONENT_G_BIT)
+    STRINGISE_BITFIELD_BIT(VK_COLOR_COMPONENT_B_BIT)
+    STRINGISE_BITFIELD_BIT(VK_COLOR_COMPONENT_A_BIT)
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkPipelineBindPoint &el)
 {
   BEGIN_ENUM_STRINGISE(VkPipelineBindPoint);
