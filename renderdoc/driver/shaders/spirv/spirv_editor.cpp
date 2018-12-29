@@ -314,11 +314,18 @@ void SPIRVEditor::SetName(uint32_t id, const char *name)
 
   SPIRVOperation op(spv::OpName, uintName);
 
-  size_t offset = sections[SPIRVSection::Debug].endOffset;
+  SPIRVIterator it;
 
-  spirv.insert(spirv.begin() + offset, op.begin(), op.end());
-  RegisterOp(SPIRVIterator(spirv, offset));
-  addWords(offset, op.size());
+  // OpName must be before OpModuleProcessed.
+  for(it = Begin(SPIRVSection::Debug); it < End(SPIRVSection::Debug); ++it)
+  {
+    if(it.opcode() == spv::OpModuleProcessed)
+      break;
+  }
+
+  spirv.insert(spirv.begin() + it.offs(), op.begin(), op.end());
+  RegisterOp(SPIRVIterator(spirv, it.offs()));
+  addWords(it.offs(), op.size());
 }
 
 void SPIRVEditor::AddDecoration(const SPIRVOperation &op)
