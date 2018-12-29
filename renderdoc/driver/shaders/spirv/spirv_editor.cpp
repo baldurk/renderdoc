@@ -201,7 +201,8 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
     }
     else if(opcode == spv::OpDecorate || opcode == spv::OpMemberDecorate ||
             opcode == spv::OpGroupDecorate || opcode == spv::OpGroupMemberDecorate ||
-            opcode == spv::OpDecorationGroup)
+            opcode == spv::OpDecorationGroup || opcode == spv::OpDecorateStringGOOGLE ||
+            opcode == spv::OpMemberDecorateStringGOOGLE)
     {
       START_SECTION(SPIRVSection::Annotations);
     }
