@@ -139,7 +139,7 @@ win32 {
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
 		ICON = $$OSX_ICONFILE
 		
-		librd.files = $$files($$DESTDIR/librenderdoc.dylib)
+		librd.files = $$files($$DESTDIR/../lib/librenderdoc.dylib)
 		librd.path = Contents/lib
 		QMAKE_BUNDLE_DATA += librd
 
