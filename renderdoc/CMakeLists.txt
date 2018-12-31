@@ -471,6 +471,7 @@ if(APPLE)
     set_target_properties(renderdoc PROPERTIES INSTALL_RPATH "@executable_path/../lib")
     set_target_properties(renderdoc PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib")
     set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_RPATH 1)
+    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_NAME_DIR 1)
 endif()
 
 if(ANDROID)
