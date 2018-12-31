@@ -124,7 +124,7 @@ file(WRITE
      "LIB_SUBFOLDER_TRAIL_SLASH=${LIB_SUBFOLDER_TRAIL_SLASH}\n"
      "\n"
      # search for -lrenderdoc here
-     "LIBS+=-L${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\n"
+     "LIBS+=-L${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\n"
      "\n"
      # include and link against python
      "INCLUDEPATH+=${PYTHON_INCLUDE_DIR}\n"
