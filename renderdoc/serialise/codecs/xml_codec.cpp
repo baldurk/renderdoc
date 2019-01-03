@@ -911,6 +911,11 @@ static bool ZIP2Buffers(const std::string &filename, ThumbTypeAndData &thumb,
           extThumb.format = type;
           extThumb.data.assign(buf, sz);
         }
+        else
+        {
+          thumb.format = type;
+          thumb.data.assign(buf, sz);
+        }
       }
       else
       {
