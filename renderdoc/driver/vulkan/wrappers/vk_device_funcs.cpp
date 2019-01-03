@@ -1867,6 +1867,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
 
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
+
     m_Replay.SetDriverInformation(m_PhysicalDeviceData.props);
 
     // MoltenVK reports 0x3fffffff for this limit so just ignore that value if it comes up
@@ -1899,7 +1901,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
-    APIProps.vendor = GetDriverVersion().Vendor();
+    APIProps.vendor = GetDriverInfo().Vendor();
 
     m_ShaderCache = new VulkanShaderCache(this);
 
@@ -2243,6 +2245,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
+
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
 
     for(int i = VK_FORMAT_BEGIN_RANGE + 1; i < VK_FORMAT_END_RANGE; i++)
       ObjDisp(physicalDevice)

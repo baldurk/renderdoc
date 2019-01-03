@@ -1432,7 +1432,7 @@ void VulkanReplay::CreateResources()
 
   AMDCounters *counters = NULL;
 
-  GPUVendor vendor = m_pDriver->GetDriverVersion().Vendor();
+  GPUVendor vendor = m_pDriver->GetDriverInfo().Vendor();
 
   if(vendor == GPUVendor::AMD)
   {
@@ -2354,7 +2354,7 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
       std::string defines = "";
 
-      if(driver->GetDriverVersion().TexelFetchBrokenDriver())
+      if(driver->GetDriverInfo().TexelFetchBrokenDriver())
         defines += "#define NO_TEXEL_FETCH\n";
       defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
