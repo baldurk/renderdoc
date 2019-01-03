@@ -991,6 +991,24 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
 }
 
+bool WrappedOpenGL::ForceSharedObjects(void *oldContext, void *newContext)
+{
+  ContextData &olddata = m_ContextData[oldContext];
+  ContextData &newdata = m_ContextData[newContext];
+
+  RDCLOG("Forcibly sharing %p with %p", newContext, oldContext);
+
+  if(newdata.built)
+  {
+    RDCERR("wglShareLists called after wglMakeCurrent - this is not supported and will break.");
+    return false;
+  }
+
+  newdata.shareGroup = olddata.shareGroup;
+
+  return true;
+}
+
 void WrappedOpenGL::RegisterReplayContext(GLWindowingData winData, void *shareContext, bool core,
                                           bool attribsCreate)
 {
@@ -1656,9 +1674,12 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     ctxdata.AssociateWindow(this, windowHandle);
   }
 
-  // do this as late as possible to avoid creating objects on contexts
-  // that might be shared later (wglShareLists requires contexts to be
-  // pristine, so can't create this from wglMakeCurrent)
+  // we used to do this here so it was as late as possible to avoid creating objects on contexts
+  // that might be shared later. wglShareLists requires contexts to have no objects and can be
+  // called after wglMakeCurrent. However we also need other objects like client-memory buffers and
+  // vendor checks inside makecurrent that it is not feasible to defer until later, since there's no
+  // other sync point after wglMakeCurrent before we'll need the information. So we don't support
+  // calling wglShareLists after wglMakeCurrent.
   if(!ctxdata.ready)
     ctxdata.CreateDebugData();
 

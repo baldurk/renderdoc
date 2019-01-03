@@ -29,6 +29,7 @@
 // exported wgl functions
 typedef HGLRC(WINAPI *PFN_wglCreateContext)(HDC);
 typedef BOOL(WINAPI *PFN_wglDeleteContext)(HGLRC);
+typedef BOOL(WINAPI *PFN_wglShareLists)(HGLRC, HGLRC);
 typedef HGLRC(WINAPI *PFN_wglCreateLayerContext)(HDC, int);
 typedef BOOL(WINAPI *PFN_wglMakeCurrent)(HDC, HGLRC);
 typedef PROC(WINAPI *PFN_wglGetProcAddress)(const char *);
@@ -70,6 +71,7 @@ typedef LONG(WINAPI *PFN_ChangeDisplaySettingsExW)(LPCWSTR, DEVMODEW *, HWND, DW
   FUNC("opengl32.dll", wglMakeCurrent);         \
   FUNC("opengl32.dll", wglGetProcAddress);      \
   FUNC("opengl32.dll", wglSwapBuffers);         \
+  FUNC("opengl32.dll", wglShareLists);          \
   FUNC("opengl32.dll", wglSwapLayerBuffers);    \
   FUNC("opengl32.dll", wglSwapMultipleBuffers); \
   FUNC("", wglCreateContextAttribsARB);         \

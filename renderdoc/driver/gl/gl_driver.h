@@ -541,6 +541,7 @@ public:
     return m_ContextData[winData.ctx].initParams;
   }
   void ActivateContext(GLWindowingData winData);
+  bool ForceSharedObjects(void *oldContext, void *newContext);
   void SwapBuffers(void *windowHandle);
   void HandleVRFrameMarkers(const GLchar *buf, GLsizei length);
   bool UsesVRFrameMarkers() { return m_UsesVRMarkers; }

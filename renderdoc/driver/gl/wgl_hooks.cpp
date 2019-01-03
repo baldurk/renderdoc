@@ -361,6 +361,24 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
   return ret;
 }
 
+static BOOL WINAPI wglShareLists_hooked(HGLRC oldContext, HGLRC newContext)
+{
+  bool ret = WGL.wglShareLists(oldContext, newContext) == TRUE;
+
+  DWORD err = GetLastError();
+
+  if(ret)
+  {
+    SCOPED_LOCK(glLock);
+
+    ret &= wglhook.driver.ForceSharedObjects(oldContext, newContext);
+  }
+
+  SetLastError(err);
+
+  return ret ? TRUE : FALSE;
+}
+
 static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
 {
   BOOL ret = WGL.wglMakeCurrent(dc, rc);
