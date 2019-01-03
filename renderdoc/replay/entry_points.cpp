@@ -379,12 +379,15 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   else
     nextIdent++;
 
+  bool isAndroid = false;
   uint32_t lastIdent = RenderDoc_LastTargetControlPort;
   if(host != NULL && Android::IsHostADB(host))
   {
     int index = 0;
     std::string deviceID;
     Android::ExtractDeviceIDAndIndex(host, index, deviceID);
+
+    isAndroid = true;
 
     // each subsequent device gets a new range of ports. The deviceID isn't needed since we already
     // forwarded the ports to the right devices.
@@ -401,6 +404,17 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
 
     if(sock)
     {
+      if(isAndroid)
+      {
+        Threading::Sleep(100);
+        (void)sock->IsRecvDataWaiting();
+        if(!sock->Connected())
+        {
+          SAFE_DELETE(sock);
+          return 0;
+        }
+      }
+
       SAFE_DELETE(sock);
       return nextIdent;
     }
