@@ -192,6 +192,11 @@ public:
   // A workaround for a couple of bugs, removing texelFetch use from shaders.
   // It means broken functionality but at least no instant crashes
   bool TexelFetchBrokenDriver() { return texelFetchBrokenDriver; }
+  // Older AMD driver versions could sometimes cause image memory requirements to vary randomly
+  // between identical images. This means the memory required at capture could be less than at
+  // replay. To counteract this, on drivers with this issue we pad out the memory requirements
+  // enough to account for the change
+  bool UnreliableImageMemoryRequirements() { return unreliableImgMemReqs; }
   // another workaround, on some AMD driver versions creating an MSAA image with STORAGE_BIT
   // causes graphical corruption trying to sample from it. We workaround it by preventing the
   // MSAA <-> Array pipelines from creating, which removes the STORAGE_BIT and skips the copies.
@@ -207,6 +212,7 @@ private:
   uint32_t m_Major, m_Minor, m_Patch;
 
   bool texelFetchBrokenDriver = false;
+  bool unreliableImgMemReqs = false;
   bool amdStorageMSAABrokenDriver = false;
   bool qualcommLeakingUBOOffsets = false;
 };

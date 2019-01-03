@@ -738,6 +738,10 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 
     if(Major() < 1)
       texelFetchBrokenDriver = true;
+
+    // driver 18.5.2 which is vulkan version >= 2.0.33 contains the fix
+    if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
+      unreliableImgMemReqs = true;
   }
 #endif
 
