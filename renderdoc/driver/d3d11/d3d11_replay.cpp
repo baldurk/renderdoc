@@ -3792,7 +3792,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       break;
 
     if(i >= 0)
-      initParams.DriverType = driverTypes[i / 2];
+      driverType = driverTypes[i / 2];
 
     if(i % 2 == 0)
     {
