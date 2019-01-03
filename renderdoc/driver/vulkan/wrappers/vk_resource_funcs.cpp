@@ -794,7 +794,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
       if(state->mappedPtr == NULL)
       {
-        RDCERR("Flushing memory that isn't currently mapped");
+        RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
         continue;
       }
 
