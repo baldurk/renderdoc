@@ -2545,7 +2545,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="7" rowspan="2">
+          <item row="2" column="7">
            <widget class="QLabel" name="sampleMask">
             <property name="font">
              <font>
