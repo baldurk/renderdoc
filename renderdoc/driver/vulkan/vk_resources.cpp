@@ -547,7 +547,7 @@ void GetYUVShaderParameters(VkFormat f, Vec4u &YUVDownsampleRate, Vec4u &YUVACha
   {
     ResourceFormat fmt = MakeResourceFormat(f);
 
-    switch(fmt.yuvSubsampling())
+    switch(fmt.YUVSubsampling())
     {
       case 444:
         YUVDownsampleRate.x = 1;
@@ -563,7 +563,7 @@ void GetYUVShaderParameters(VkFormat f, Vec4u &YUVDownsampleRate, Vec4u &YUVACha
         break;
       default: break;
     }
-    YUVDownsampleRate.z = fmt.yuvPlaneCount();
+    YUVDownsampleRate.z = fmt.YUVPlaneCount();
     switch(fmt.type)
     {
       case ResourceFormatType::YUV8: YUVDownsampleRate.w = 8; break;
@@ -1334,7 +1334,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_B8G8R8G8_422_UNORM:
     case VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16:
     case VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16:
-    case VK_FORMAT_B16G16R16G16_422_UNORM: ret.setBgraOrder(true); break;
+    case VK_FORMAT_B16G16R16G16_422_UNORM: ret.SetBGRAOrder(true); break;
     default: break;
   }
 
@@ -1566,7 +1566,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG:
     case VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG:
     case VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG:
-    case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: ret.setSrgbCorrected(true); break;
+    case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: ret.SetSRGBCorrected(true); break;
     default: break;
   }
 
@@ -1878,7 +1878,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 
   if(IsYUVFormat(fmt))
   {
-    ret.setYUVPlaneCount(GetYUVPlaneCount(fmt));
+    ret.SetYUVPlaneCount(GetYUVPlaneCount(fmt));
 
     switch(fmt)
     {
@@ -1889,7 +1889,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
       case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
       case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
       case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
-      case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM: ret.setYUVSubsampling(420); break;
+      case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM: ret.SetYUVSubsampling(420); break;
       case VK_FORMAT_G8B8G8R8_422_UNORM:
       case VK_FORMAT_B8G8R8G8_422_UNORM:
       case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
@@ -1905,7 +1905,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
       case VK_FORMAT_G16B16G16R16_422_UNORM:
       case VK_FORMAT_B16G16R16G16_422_UNORM:
       case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
-      case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM: ret.setYUVSubsampling(422); break;
+      case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM: ret.SetYUVSubsampling(422); break;
       case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
       case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
       case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
@@ -1915,7 +1915,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
       case VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
       case VK_FORMAT_R12X4_UNORM_PACK16:
       case VK_FORMAT_R12X4G12X4_UNORM_2PACK16:
-      case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16: ret.setYUVSubsampling(444); break;
+      case VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16: ret.SetYUVSubsampling(444); break;
       default: break;
     }
   }
@@ -1935,16 +1935,16 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       case ResourceFormatType::BC1:
       {
         if(fmt.compCount == 3)
-          ret = fmt.srgbCorrected() ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+          ret = fmt.SRGBCorrected() ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
         else
-          ret = fmt.srgbCorrected() ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+          ret = fmt.SRGBCorrected() ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
         break;
       }
       case ResourceFormatType::BC2:
-        ret = fmt.srgbCorrected() ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
+        ret = fmt.SRGBCorrected() ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
         break;
       case ResourceFormatType::BC3:
-        ret = fmt.srgbCorrected() ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
+        ret = fmt.SRGBCorrected() ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
         break;
       case ResourceFormatType::BC4:
         ret = fmt.compType == CompType::SNorm ? VK_FORMAT_BC4_SNORM_BLOCK : VK_FORMAT_BC4_UNORM_BLOCK;
@@ -1957,15 +1957,15 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
                                               : VK_FORMAT_BC6H_UFLOAT_BLOCK;
         break;
       case ResourceFormatType::BC7:
-        ret = fmt.srgbCorrected() ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
+        ret = fmt.SRGBCorrected() ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
         break;
       case ResourceFormatType::ETC2:
       {
         if(fmt.compCount == 3)
-          ret = fmt.srgbCorrected() ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK
+          ret = fmt.SRGBCorrected() ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK
                                     : VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
         else
-          ret = fmt.srgbCorrected() ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK
+          ret = fmt.SRGBCorrected() ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK
                                     : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
         break;
       }
@@ -1981,34 +1981,34 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       }
       case ResourceFormatType::R10G10B10A2:
         if(fmt.compType == CompType::UNorm)
-          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_UNORM_PACK32
+          ret = fmt.BGRAOrder() ? VK_FORMAT_A2R10G10B10_UNORM_PACK32
                                 : VK_FORMAT_A2B10G10R10_UNORM_PACK32;
         else if(fmt.compType == CompType::UInt)
-          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_UINT_PACK32
+          ret = fmt.BGRAOrder() ? VK_FORMAT_A2R10G10B10_UINT_PACK32
                                 : VK_FORMAT_A2B10G10R10_UINT_PACK32;
         else if(fmt.compType == CompType::UScaled)
-          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_USCALED_PACK32
+          ret = fmt.BGRAOrder() ? VK_FORMAT_A2R10G10B10_USCALED_PACK32
                                 : VK_FORMAT_A2B10G10R10_USCALED_PACK32;
         else if(fmt.compType == CompType::SNorm)
-          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_SNORM_PACK32
+          ret = fmt.BGRAOrder() ? VK_FORMAT_A2R10G10B10_SNORM_PACK32
                                 : VK_FORMAT_A2B10G10R10_SNORM_PACK32;
         else if(fmt.compType == CompType::SInt)
-          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_SINT_PACK32
+          ret = fmt.BGRAOrder() ? VK_FORMAT_A2R10G10B10_SINT_PACK32
                                 : VK_FORMAT_A2B10G10R10_SINT_PACK32;
         else if(fmt.compType == CompType::SScaled)
-          ret = fmt.bgraOrder() ? VK_FORMAT_A2R10G10B10_SSCALED_PACK32
+          ret = fmt.BGRAOrder() ? VK_FORMAT_A2R10G10B10_SSCALED_PACK32
                                 : VK_FORMAT_A2B10G10R10_SSCALED_PACK32;
         break;
       case ResourceFormatType::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
       case ResourceFormatType::R5G6B5:
-        ret = fmt.bgraOrder() ? VK_FORMAT_B5G6R5_UNORM_PACK16 : VK_FORMAT_R5G6B5_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B5G6R5_UNORM_PACK16 : VK_FORMAT_R5G6B5_UNORM_PACK16;
         break;
       case ResourceFormatType::R5G5B5A1:
-        ret = fmt.bgraOrder() ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
         break;
       case ResourceFormatType::R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
       case ResourceFormatType::R4G4B4A4:
-        ret = fmt.bgraOrder() ? VK_FORMAT_B4G4R4A4_UNORM_PACK16 : VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B4G4R4A4_UNORM_PACK16 : VK_FORMAT_R4G4B4A4_UNORM_PACK16;
         break;
       case ResourceFormatType::R4G4: ret = VK_FORMAT_R4G4_UNORM_PACK8; break;
       case ResourceFormatType::D16S8: ret = VK_FORMAT_D16_UNORM_S8_UINT; break;
@@ -2016,8 +2016,8 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       case ResourceFormatType::D32S8: ret = VK_FORMAT_D32_SFLOAT_S8_UINT; break;
       case ResourceFormatType::YUV8:
       {
-        int subsampling = fmt.yuvSubsampling();
-        int planeCount = fmt.yuvPlaneCount();
+        int subsampling = fmt.YUVSubsampling();
+        int planeCount = fmt.YUVPlaneCount();
 
         // don't support anything but 3 components
         if(fmt.compCount != 3)
@@ -2031,7 +2031,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         else if(subsampling == 422)
         {
           if(planeCount == 1)
-            return fmt.bgraOrder() ? VK_FORMAT_B8G8R8G8_422_UNORM : VK_FORMAT_G8B8G8R8_422_UNORM;
+            return fmt.BGRAOrder() ? VK_FORMAT_B8G8R8G8_422_UNORM : VK_FORMAT_G8B8G8R8_422_UNORM;
           else if(planeCount == 2)
             return VK_FORMAT_G8_B8R8_2PLANE_422_UNORM;
           else if(planeCount == 3)
@@ -2051,8 +2051,8 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       }
       case ResourceFormatType::YUV10:
       {
-        int subsampling = fmt.yuvSubsampling();
-        int planeCount = fmt.yuvPlaneCount();
+        int subsampling = fmt.YUVSubsampling();
+        int planeCount = fmt.YUVPlaneCount();
 
         if(fmt.compCount == 1)
         {
@@ -2082,7 +2082,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         else if(subsampling == 422)
         {
           if(planeCount == 1)
-            return fmt.bgraOrder() ? VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16
+            return fmt.BGRAOrder() ? VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16
                                    : VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16;
           else if(planeCount == 2)
             return VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16;
@@ -2103,8 +2103,8 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       }
       case ResourceFormatType::YUV12:
       {
-        int subsampling = fmt.yuvSubsampling();
-        int planeCount = fmt.yuvPlaneCount();
+        int subsampling = fmt.YUVSubsampling();
+        int planeCount = fmt.YUVPlaneCount();
 
         if(fmt.compCount == 1)
         {
@@ -2134,7 +2134,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         else if(subsampling == 422)
         {
           if(planeCount == 1)
-            return fmt.bgraOrder() ? VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16
+            return fmt.BGRAOrder() ? VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16
                                    : VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16;
           else if(planeCount == 2)
             return VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16;
@@ -2155,8 +2155,8 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       }
       case ResourceFormatType::YUV16:
       {
-        int subsampling = fmt.yuvSubsampling();
-        int planeCount = fmt.yuvPlaneCount();
+        int subsampling = fmt.YUVSubsampling();
+        int planeCount = fmt.YUVPlaneCount();
 
         if(subsampling == 444)
         {
@@ -2166,7 +2166,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         else if(subsampling == 422)
         {
           if(planeCount == 1)
-            return fmt.bgraOrder() ? VK_FORMAT_B16G16R16G16_422_UNORM
+            return fmt.BGRAOrder() ? VK_FORMAT_B16G16R16G16_422_UNORM
                                    : VK_FORMAT_G16B16G16R16_422_UNORM;
           else if(planeCount == 2)
             return VK_FORMAT_G16_B16R16_2PLANE_422_UNORM;
@@ -2190,9 +2190,9 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 4)
   {
-    if(fmt.srgbCorrected())
+    if(fmt.SRGBCorrected())
     {
-      ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB;
+      ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB;
     }
     else if(fmt.compByteWidth == 8)
     {
@@ -2238,17 +2238,17 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     else if(fmt.compByteWidth == 1)
     {
       if(fmt.compType == CompType::SInt)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SINT : VK_FORMAT_R8G8B8A8_SINT;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_SINT : VK_FORMAT_R8G8B8A8_SINT;
       else if(fmt.compType == CompType::UInt)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_UINT : VK_FORMAT_R8G8B8A8_UINT;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_UINT : VK_FORMAT_R8G8B8A8_UINT;
       else if(fmt.compType == CompType::SNorm)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SNORM : VK_FORMAT_R8G8B8A8_SNORM;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_SNORM : VK_FORMAT_R8G8B8A8_SNORM;
       else if(fmt.compType == CompType::UNorm)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
       else if(fmt.compType == CompType::SScaled)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_SSCALED : VK_FORMAT_R8G8B8A8_SSCALED;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_SSCALED : VK_FORMAT_R8G8B8A8_SSCALED;
       else if(fmt.compType == CompType::UScaled)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8A8_USCALED : VK_FORMAT_R8G8B8A8_USCALED;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8A8_USCALED : VK_FORMAT_R8G8B8A8_USCALED;
       else
         RDCERR("Unrecognised component type");
     }
@@ -2259,9 +2259,9 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 3)
   {
-    if(fmt.srgbCorrected())
+    if(fmt.SRGBCorrected())
     {
-      ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_SRGB : VK_FORMAT_R8G8B8_SRGB;
+      ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_SRGB : VK_FORMAT_R8G8B8_SRGB;
     }
     else if(fmt.compByteWidth == 8)
     {
@@ -2307,17 +2307,17 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     else if(fmt.compByteWidth == 1)
     {
       if(fmt.compType == CompType::SInt)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_SINT : VK_FORMAT_R8G8B8_SINT;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_SINT : VK_FORMAT_R8G8B8_SINT;
       else if(fmt.compType == CompType::UInt)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_UINT : VK_FORMAT_R8G8B8_UINT;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_UINT : VK_FORMAT_R8G8B8_UINT;
       else if(fmt.compType == CompType::SNorm)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_SNORM : VK_FORMAT_R8G8B8_SNORM;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_SNORM : VK_FORMAT_R8G8B8_SNORM;
       else if(fmt.compType == CompType::UNorm)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_UNORM : VK_FORMAT_R8G8B8_UNORM;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_UNORM : VK_FORMAT_R8G8B8_UNORM;
       else if(fmt.compType == CompType::SScaled)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_SSCALED : VK_FORMAT_R8G8B8_SSCALED;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_SSCALED : VK_FORMAT_R8G8B8_SSCALED;
       else if(fmt.compType == CompType::UScaled)
-        ret = fmt.bgraOrder() ? VK_FORMAT_B8G8R8_USCALED : VK_FORMAT_R8G8B8_USCALED;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_B8G8R8_USCALED : VK_FORMAT_R8G8B8_USCALED;
       else
         RDCERR("Unrecognised component type");
     }
@@ -2328,7 +2328,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 2)
   {
-    if(fmt.srgbCorrected())
+    if(fmt.SRGBCorrected())
     {
       ret = VK_FORMAT_R8G8_SRGB;
     }
@@ -2397,7 +2397,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 1)
   {
-    if(fmt.srgbCorrected())
+    if(fmt.SRGBCorrected())
     {
       ret = VK_FORMAT_R8_SRGB;
     }
@@ -3111,7 +3111,7 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
 
       if(IsSRGBFormat(f))
       {
-        CHECK(fmt.srgbCorrected());
+        CHECK(fmt.SRGBCorrected());
       }
     }
   };

@@ -1790,7 +1790,7 @@ void GLPipelineStateViewer::setState()
           format = tex->format.Name();
           typeName = ToQStr(tex->type);
 
-          if(tex->format.srgbCorrected() && !state.framebuffer.framebufferSRGB)
+          if(tex->format.SRGBCorrected() && !state.framebuffer.framebufferSRGB)
             format += lit(" (GL_FRAMEBUFFER_SRGB = 0)");
         }
 

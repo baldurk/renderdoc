@@ -620,15 +620,15 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
       case ResourceFormatType::BC1:
         if(fmt.compType == CompType::Typeless)
           return "BC1_TYPELESS";
-        return fmt.srgbCorrected() ? "BC1_SRGB" : "BC1_UNORM";
+        return fmt.SRGBCorrected() ? "BC1_SRGB" : "BC1_UNORM";
       case ResourceFormatType::BC2:
         if(fmt.compType == CompType::Typeless)
           return "BC2_TYPELESS";
-        return fmt.srgbCorrected() ? "BC2_SRGB" : "BC2_UNORM";
+        return fmt.SRGBCorrected() ? "BC2_SRGB" : "BC2_UNORM";
       case ResourceFormatType::BC3:
         if(fmt.compType == CompType::Typeless)
           return "BC3_TYPELESS";
-        return fmt.srgbCorrected() ? "BC3_SRGB" : "BC3_UNORM";
+        return fmt.SRGBCorrected() ? "BC3_SRGB" : "BC3_UNORM";
       case ResourceFormatType::BC4:
         if(fmt.compType == CompType::Typeless)
           return "BC4_TYPELESS";
@@ -644,8 +644,8 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
       case ResourceFormatType::BC7:
         if(fmt.compType == CompType::Typeless)
           return "BC7_TYPELESS";
-        return fmt.srgbCorrected() ? "BC7_SRGB" : "BC7_UNORM";
-      case ResourceFormatType::ETC2: return fmt.srgbCorrected() ? "ETC2_SRGB" : "ETC_UNORM";
+        return fmt.SRGBCorrected() ? "BC7_SRGB" : "BC7_UNORM";
+      case ResourceFormatType::ETC2: return fmt.SRGBCorrected() ? "ETC2_SRGB" : "ETC_UNORM";
       case ResourceFormatType::EAC:
       {
         if(fmt.compCount == 1)
@@ -654,19 +654,19 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
           return fmt.compType == CompType::UNorm ? "EAC_RG_UNORM" : "EAC_RG_SNORM";
       }
       case ResourceFormatType::ASTC:
-        return fmt.srgbCorrected() ? "ASTC_SRGB" : "ASTC_UNORM";
+        return fmt.SRGBCorrected() ? "ASTC_SRGB" : "ASTC_UNORM";
       // 10:10:10 A2 is the only format that can have all the usual format types (unorm, snorm,
       // etc). So we break and handle it like any other format below.
       case ResourceFormatType::R10G10B10A2:
-        ret = fmt.bgraOrder() ? "B10G10R10A2" : "R10G10B10A2";
+        ret = fmt.BGRAOrder() ? "B10G10R10A2" : "R10G10B10A2";
         break;
       case ResourceFormatType::R11G11B10: return "R11G11B10_FLOAT";
-      case ResourceFormatType::R5G6B5: return fmt.bgraOrder() ? "R5G6B5_UNORM" : "B5G6R5_UNORM";
+      case ResourceFormatType::R5G6B5: return fmt.BGRAOrder() ? "R5G6B5_UNORM" : "B5G6R5_UNORM";
       case ResourceFormatType::R5G5B5A1:
-        return fmt.bgraOrder() ? "R5G5B5A1_UNORM" : "B5G5R5A1_UNORM";
+        return fmt.BGRAOrder() ? "R5G5B5A1_UNORM" : "B5G5R5A1_UNORM";
       case ResourceFormatType::R9G9B9E5: return "R9G9B9E5_FLOAT";
       case ResourceFormatType::R4G4B4A4:
-        return fmt.bgraOrder() ? "R4G4B4A4_UNORM" : "B4G4R4A4_UNORM";
+        return fmt.BGRAOrder() ? "R4G4B4A4_UNORM" : "B4G4R4A4_UNORM";
       case ResourceFormatType::R4G4: return "R4G4_UNORM";
       case ResourceFormatType::D16S8:
         return fmt.compType == CompType::Typeless ? "D16S8_TYPELESS" : "D16S8";
@@ -691,8 +691,8 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
           default: break;
         }
 
-        uint32_t planeCount = fmt.yuvPlaneCount();
-        uint32_t subsampling = fmt.yuvSubsampling();
+        uint32_t planeCount = fmt.YUVPlaneCount();
+        uint32_t subsampling = fmt.YUVSubsampling();
 
         // special case formats that don't match the FOURCC format
         if(yuvbits == 8 && planeCount == 2 && subsampling == 420)
@@ -741,14 +741,14 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
   {
     char comps[] = "RGBA";
 
-    if(fmt.bgraOrder())
+    if(fmt.BGRAOrder())
       std::swap(comps[0], comps[2]);
 
     for(uint32_t i = 0; i < fmt.compCount; i++)
       ret += StringFormat::Fmt("%c%u", comps[i], fmt.compByteWidth * 8);
   }
 
-  if(fmt.srgbCorrected())
+  if(fmt.SRGBCorrected())
     return ret + "_SRGB";
 
   switch(fmt.compType)

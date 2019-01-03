@@ -2121,9 +2121,9 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
       params.remap = RemapTexture::RGBA8;
   }
 
-  // since the texture type is unsupported, remove the bgraOrder() flag and remap it to RGBA
-  if(tex.format.bgraOrder() && m_APIProps.localRenderer == GraphicsAPI::OpenGL)
-    tex.format.setBgraOrder(false);
+  // since the texture type is unsupported, remove the BGRAOrder() flag and remap it to RGBA
+  if(tex.format.BGRAOrder() && m_APIProps.localRenderer == GraphicsAPI::OpenGL)
+    tex.format.SetBGRAOrder(false);
 
   switch(params.remap)
   {

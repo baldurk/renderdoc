@@ -1667,7 +1667,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
             fp.pitch = mapped.RowPitch;
             fp.stride = fmt.compByteWidth * fmt.compCount;
             fp.bpc = fmt.compByteWidth;
-            fp.bgra = fmt.bgraOrder();
+            fp.bgra = fmt.BGRAOrder();
             fp.max_width = maxSize;
             fp.pitch_requirement = 8;
             switch(fmt.type)

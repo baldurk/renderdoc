@@ -179,11 +179,11 @@ struct ResourceFormat
   DOCUMENT(R"(:return: ``True`` if the components are to be read in ``BGRA`` order.
 :rtype: ``bool``
 )");
-  bool bgraOrder() const { return (flags & ResourceFormat_BGRA) != 0; }
+  bool BGRAOrder() const { return (flags & ResourceFormat_BGRA) != 0; }
   DOCUMENT(R"(:return: ``True`` if the components are SRGB corrected on read and write.
 :rtype: ``bool``
 )");
-  bool srgbCorrected() const { return (flags & ResourceFormat_SRGB) != 0; }
+  bool SRGBCorrected() const { return (flags & ResourceFormat_SRGB) != 0; }
   DOCUMENT(R"(Get the subsampling rate for a YUV format. Only valid when :data:`type` is
 a YUV format like :attr:`ResourceFormatType.YUV8`.
 
@@ -192,7 +192,7 @@ For other formats, 0 is returned.
 :return: The subsampling rate, e.g. 444 for 4:4:4 or 420 for 4:2:0
 :rtype: ``int``
 )");
-  uint32_t yuvSubsampling() const
+  uint32_t YUVSubsampling() const
   {
     if(flags & ResourceFormat_444)
       return 444;
@@ -211,7 +211,7 @@ For other formats, 1 is returned.
 :return: The number of planes
 :rtype: ``int``
 )");
-  uint32_t yuvPlaneCount() const
+  uint32_t YUVPlaneCount() const
   {
     if(flags & ResourceFormat_3Planes)
       return 3;
@@ -220,11 +220,11 @@ For other formats, 1 is returned.
     return 1;
   }
 
-  DOCUMENT(R"(Set BGRA order flag. See :meth:`bgraOrder`.
+  DOCUMENT(R"(Set BGRA order flag. See :meth:`BGRAOrder`.
 
 :param bool flag: The new flag value.
 )");
-  void setBgraOrder(bool flag)
+  void SetBGRAOrder(bool flag)
   {
     if(flag)
       flags |= ResourceFormat_BGRA;
@@ -232,11 +232,11 @@ For other formats, 1 is returned.
       flags &= ~ResourceFormat_BGRA;
   }
 
-  DOCUMENT(R"(Set SRGB correction flag. See :meth:`srgbCorrected`.
+  DOCUMENT(R"(Set SRGB correction flag. See :meth:`SRGBCorrected`.
 
 :param bool flag: The new flag value.
 )");
-  void setSrgbCorrected(bool flag)
+  void SetSRGBCorrected(bool flag)
   {
     if(flag)
       flags |= ResourceFormat_SRGB;
@@ -244,13 +244,13 @@ For other formats, 1 is returned.
       flags &= ~ResourceFormat_SRGB;
   }
 
-  DOCUMENT(R"(Set YUV subsampling rate. See :meth:`yuvSubsampling`.
+  DOCUMENT(R"(Set YUV subsampling rate. See :meth:`YUVSubsampling`.
 
 The value should be e.g. 444 for 4:4:4 or 422 for 4:2:2. Invalid values will result in 0 being set.
 
 :param int subsample: The new subsampling rate.
 )");
-  void setYUVSubsampling(uint32_t subsampling)
+  void SetYUVSubsampling(uint32_t subsampling)
   {
     flags &= ~ResourceFormat_SubSample_Mask;
     if(subsampling == 444)
@@ -261,13 +261,13 @@ The value should be e.g. 444 for 4:4:4 or 422 for 4:2:2. Invalid values will res
       flags |= ResourceFormat_420;
   }
 
-  DOCUMENT(R"(Set number of YUV planes. See :meth:`yuvPlaneCount`.
+  DOCUMENT(R"(Set number of YUV planes. See :meth:`YUVPlaneCount`.
 
 Invalid values will result in 1 being set.
 
 :param int planes: The new number of YUV planes.
 )");
-  void setYUVPlaneCount(uint32_t planes)
+  void SetYUVPlaneCount(uint32_t planes)
   {
     flags &= ~ResourceFormat_Planes_Mask;
     if(planes == 2)

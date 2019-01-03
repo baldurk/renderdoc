@@ -351,7 +351,7 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
     out++;
   }
 
-  if(fmt.bgraOrder())
+  if(fmt.BGRAOrder())
   {
     FloatVector reversed;
     reversed.x = ret.z;

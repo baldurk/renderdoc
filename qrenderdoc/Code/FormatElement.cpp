@@ -554,7 +554,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
     ret.push_back((float)((packed >> 10) & 0x1f) / 31.0f);
     ret.push_back(((packed & 0x8000) > 0) ? 1.0f : 0.0f);
 
-    if(format.bgraOrder())
+    if(format.BGRAOrder())
     {
       QVariant tmp = ret[2];
       ret[2] = ret[0];
@@ -569,7 +569,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
     ret.push_back((float)((packed >> 5) & 0x3f) / 63.0f);
     ret.push_back((float)((packed >> 11) & 0x1f) / 31.0f);
 
-    if(format.bgraOrder())
+    if(format.BGRAOrder())
     {
       QVariant tmp = ret[2];
       ret[2] = ret[0];
@@ -585,7 +585,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
     ret.push_back((float)((packed >> 8) & 0xf) / 15.0f);
     ret.push_back((float)((packed >> 12) & 0xf) / 15.0f);
 
-    if(format.bgraOrder())
+    if(format.BGRAOrder())
     {
       QVariant tmp = ret[2];
       ret[2] = ret[0];
@@ -604,7 +604,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       uint32_t b = (packed >> 20) & 0x3ff;
       uint32_t a = (packed >> 30) & 0x003;
 
-      if(format.bgraOrder())
+      if(format.BGRAOrder())
       {
         uint32_t tmp = b;
         b = r;
@@ -838,7 +838,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       }
     }
 
-    if(format.bgraOrder())
+    if(format.BGRAOrder())
     {
       QVariant tmp = ret[2];
       ret[2] = ret[0];
