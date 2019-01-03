@@ -9,6 +9,8 @@ class VK_Simple_Triangle(rdtest.TestCase):
     def check_capture(self):
         self.check_final_backbuffer()
 
+        self.check_export(self.capture_filename)
+
         draw = self.find_draw("Draw")
 
         self.controller.SetFrameEvent(draw.eventId, False)

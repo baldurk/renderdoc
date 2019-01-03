@@ -10,5 +10,3 @@ class GL_DX_Interop(rdtest.TestCase):
     def check_capture(self):
         self.check_final_backbuffer()
 
-        self.check_export(self.capture_filename)
-

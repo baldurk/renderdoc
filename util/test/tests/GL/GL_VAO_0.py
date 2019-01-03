@@ -9,8 +9,6 @@ class GL_VAO_0(rdtest.TestCase):
     def check_capture(self):
         self.check_final_backbuffer()
 
-        self.check_export(self.capture_filename)
-
         draw = self.find_draw("Draw")
 
         # There are 4 draws with variations on client-memory VBs or IBs
