@@ -261,7 +261,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
     {
       std::string method_doc = method->ml_doc;
 
-      checkname(typeobj->tp_name, method->ml_name, NameType::Method);
+      errors_found |= checkname(typeobj->tp_name, method->ml_name, NameType::Method);
 
       size_t i = 0;
       while(method_doc[i] == '\n')
