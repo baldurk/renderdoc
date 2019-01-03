@@ -323,9 +323,6 @@ void RDTableView::paintCell(QPainter *painter, const QModelIndex &index,
   if(cellopt.rect.contains(viewport()->mapFromGlobal(QCursor::pos())))
     cellopt.state |= QStyle::State_MouseOver;
 
-  if(index.row() == 1 && index.column() == 5)
-    qInfo() << cellopt.state;
-
   // draw the background, then the cell
   style()->drawPrimitive(QStyle::PE_PanelItemViewRow, &cellopt, painter, this);
   QTableView::itemDelegate(index)->paint(painter, cellopt, index);
