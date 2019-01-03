@@ -1648,6 +1648,7 @@ public:
       : Serialiser(new StreamReader(StreamReader::DummyStream), Ownership::Stream, obj)
   {
     ConfigureStructuredExport(lookup, false);
+    SetStreamingMode(true);
   }
 };
 #endif
