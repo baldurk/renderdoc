@@ -2031,7 +2031,7 @@ ReplayStatus ReplayController::CreateDevice(RDCFile *rdc)
     return PostCreateInit(driver, rdc);
   }
 
-  RDCERR("Couldn't create a replay device :(.");
+  RDCERR("Couldn't create a replay device.");
   return status;
 }
 

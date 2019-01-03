@@ -3664,9 +3664,16 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   bool EnableDebugLayer = false;
 
+  RDCLOG("Creating D3D12 replay device, minimum feature level %s",
+         ToStr(initParams.MinimumFeatureLevel).c_str());
+
 #if ENABLED(RDOC_DEVEL)
   // in development builds, always enable debug layer during replay
   EnableDebugLayer = EnableD3D12DebugLayer();
+
+  RDCLOG(
+      "Development RenderDoc builds require D3D debug layers available, "
+      "ensure you have the windows SDK or windows feature needed.");
 #endif
 
   ID3D12Device *dev = NULL;
@@ -3675,7 +3682,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create a d3d12 device :(.");
+    RDCERR("Couldn't create a d3d12 device.");
 
     SAFE_DELETE(rgp);
 

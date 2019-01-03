@@ -3750,6 +3750,11 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     flags &= ~D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+    RDCLOG(
+        "Creating D3D11 replay device, driver type %s, flags %x, %d feature levels (first %s)",
+        ToStr(driverType).c_str(), flags, numFeatureLevels,
+        (numFeatureLevels > 0 && featureLevelArray) ? ToStr(featureLevelArray[0]).c_str() : "NULL");
+
     hr = CreateDeviceAndSwapChain(
         /*pAdapter=*/NULL, driverType, /*Software=*/NULL, flags,
         /*pFeatureLevels=*/featureLevelArray, /*nFeatureLevels=*/numFeatureLevels, D3D11_SDK_VERSION,
@@ -3779,6 +3784,8 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       return ReplayStatus::Succeeded;
     }
 
+    RDCLOG("Device creation failed, %s", ToStr(hr).c_str());
+
     if(i == -1)
     {
       RDCWARN("Couldn't create device with similar settings to capture.");
@@ -3806,7 +3813,12 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     }
   }
 
-  RDCERR("Couldn't create any compatible d3d11 device :(.");
+  RDCERR("Couldn't create any compatible d3d11 device.");
+
+  if(flags & D3D11_CREATE_DEVICE_DEBUG)
+    RDCLOG(
+        "Development RenderDoc builds require D3D debug layers available, "
+        "ensure you have the windows SDK or windows feature needed.");
 
   return ReplayStatus::APIHardwareUnsupported;
 }
