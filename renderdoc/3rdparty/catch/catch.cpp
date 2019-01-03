@@ -265,21 +265,21 @@ public:
   }
 };
 
-std::ostream *stream = NULL;
+std::ostream *catch_stream = NULL;
 
 namespace Catch
 {
 std::ostream &cout()
 {
-  return *stream;
+  return *catch_stream;
 }
 std::ostream &cerr()
 {
-  return *stream;
+  return *catch_stream;
 }
 std::ostream &clog()
 {
-  return *stream;
+  return *catch_stream;
 }
 }
 
@@ -288,7 +288,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &c
 {
   LogOutputter logbuf;
   std::ostream logstream(&logbuf);
-  stream = &logstream;
+  catch_stream = &logstream;
 
   Catch::Session session;
 
