@@ -39,7 +39,7 @@ os.environ["PATH"] += os.pathsep + os.path.abspath(binpath + 'Development/')
 os.environ["PATH"] += os.pathsep + os.path.abspath(binpath + 'Release/')
 
 # path to module libraries for linux
-sys.path.insert(0, os.path.abspath('../build/bin'))
+sys.path.insert(0, os.path.abspath('../build/lib'))
 
 sys.path.insert(0, os.path.abspath('sphinx_exts'))
 
