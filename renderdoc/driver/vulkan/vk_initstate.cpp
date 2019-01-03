@@ -117,6 +117,14 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       layout = &m_ImageLayouts[im->id];
     }
 
+    if(layout->queueFamilyIndex == VK_QUEUE_FAMILY_EXTERNAL ||
+       layout->queueFamilyIndex == VK_QUEUE_FAMILY_FOREIGN_EXT)
+    {
+      RDCWARN("Image %s in external/foreign queue family, initial contents impossible to fetch.",
+              ToStr(im->id).c_str());
+      return true;
+    }
+
     if(layout->queueFamilyIndex != m_QueueFamilyIdx)
     {
       // get a command buffer for giving up ownership before the copy and acquiring it afterwards.

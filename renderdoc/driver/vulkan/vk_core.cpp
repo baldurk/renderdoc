@@ -1180,8 +1180,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
               barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
               barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
               barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-              barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-              barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+              barrier.srcQueueFamilyIndex = m_QueueFamilyIdx;
+              barrier.dstQueueFamilyIndex = m_QueueFamilyIdx;
               barrier.image = Unwrap(img);
               barrier.subresourceRange = stit->subresourceRange;
 
