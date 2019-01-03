@@ -3502,7 +3502,7 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             curDraw.numIndices = args->IndexCountPerInstance;
             curDraw.numInstances = args->InstanceCount;
             curDraw.baseVertex = args->BaseVertexLocation;
-            curDraw.vertexOffset = args->StartIndexLocation;
+            curDraw.indexOffset = args->StartIndexLocation;
             curDraw.instanceOffset = args->StartInstanceLocation;
             curDraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed |
                              DrawFlags::Indirect;
