@@ -987,7 +987,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           depthObj = stencilObj;
         }
 
-        if(depthObj)
+        if(depthObj && type != eGL_RENDERBUFFER)
         {
           drv.glGetNamedFramebufferAttachmentParameterivEXT(
               drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &level);
@@ -1001,19 +1001,16 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
             drv.glGetNamedFramebufferAttachmentParameterivEXT(
                 drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &layer);
 
-          if(type != eGL_RENDERBUFFER)
+          ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, depthObj));
+          WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+
+          if(details.curType == eGL_TEXTURE_CUBE_MAP)
           {
-            ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, depthObj));
-            WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+            GLenum face;
+            drv.glGetNamedFramebufferAttachmentParameterivEXT(
+                drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
-            if(details.curType == eGL_TEXTURE_CUBE_MAP)
-            {
-              GLenum face;
-              drv.glGetNamedFramebufferAttachmentParameterivEXT(
-                  drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
-
-              layer = CubeTargetIndex(face);
-            }
+            layer = CubeTargetIndex(face);
           }
         }
 
@@ -1328,13 +1325,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         drv.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
                                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
                                                           (GLint *)&depthType);
-        drv.glGetNamedFramebufferAttachmentParameterivEXT(
-            rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
 
         GLenum fmt = eGL_DEPTH32F_STENCIL8;
 
         if(depthType == eGL_TEXTURE)
         {
+          drv.glGetNamedFramebufferAttachmentParameterivEXT(
+              rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
           drv.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip,
                                               eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
         }
