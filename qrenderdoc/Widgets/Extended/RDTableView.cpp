@@ -233,7 +233,11 @@ void RDTableView::paintEvent(QPaintEvent *e)
   int firstRow = qMax(verticalHeader()->visualIndexAt(0), 0);
   int lastRow = verticalHeader()->visualIndexAt(viewport()->height());
   if(lastRow < 0)
-    lastRow = verticalHeader()->count() - 1;
+  {
+    // if lastRow is negative, display as many will fit. This is a reasonable upper bound without
+    // displaying all rows which could be massive
+    lastRow = firstRow + (viewport()->height() / qMax(1, rowHeight(firstRow))) + 1;
+  }
   lastRow = qMin(lastRow, verticalHeader()->count() - 1);
 
   int firstCol = qMax(horizontalHeader()->visualIndexAt(horizontalHeader()->pinnedWidth() + 1), 0);
