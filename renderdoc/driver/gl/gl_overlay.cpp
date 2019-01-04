@@ -53,6 +53,10 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   GLuint shaders[4] = {0};
   GLuint programs[4] = {0};
 
+  // temporary programs created as needed if the original program was created with
+  // glCreateShaderProgramv and we don't have a shader to attach
+  GLuint tmpShaders[4] = {0};
+
   // the reflection for the vertex shader, used to copy vertex bindings
   ShaderReflection *vsRefl = NULL;
 
@@ -65,7 +69,7 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
     else
     {
       ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(ctx, Pipeline));
-      auto &pipeDetails = m_pDriver->m_Pipelines[id];
+      const WrappedOpenGL::PipelineData &pipeDetails = m_pDriver->m_Pipelines[id];
 
       // fetch the corresponding shaders and programs for each stage
       for(size_t i = 0; i < 4; i++)
@@ -77,6 +81,38 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
           shaders[i] =
               m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stageShaders[i]).name;
 
+          if(pipeDetails.stagePrograms[i] == pipeDetails.stageShaders[i])
+          {
+            const WrappedOpenGL::ProgramData &progDetails =
+                m_pDriver->m_Programs[pipeDetails.stagePrograms[i]];
+
+            if(progDetails.shaderProgramUnlinkable)
+            {
+              const WrappedOpenGL::ShaderData &shadDetails =
+                  m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
+
+              std::vector<const char *> sources;
+              sources.reserve(shadDetails.sources.size());
+
+              for(const std::string &s : shadDetails.sources)
+                sources.push_back(s.c_str());
+
+              shaders[i] = tmpShaders[i] = drv.glCreateShader(ShaderEnum(i));
+              drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
+              drv.glCompileShader(tmpShaders[i]);
+
+              GLint status = 0;
+              drv.glGetShaderiv(tmpShaders[i], eGL_COMPILE_STATUS, &status);
+
+              if(status == 0)
+              {
+                char buffer[1024] = {};
+                drv.glGetShaderInfoLog(tmpShaders[i], 1024, NULL, buffer);
+                RDCERR("Trying to recreate overlay program, couldn't compile shader:\n%s", buffer);
+              }
+            }
+          }
+
           if(i == 0)
             vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
         }
@@ -85,7 +121,7 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   }
   else
   {
-    auto &progDetails =
+    const WrappedOpenGL::ProgramData &progDetails =
         m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, Program))];
 
     // fetch any and all non-fragment shader shaders
@@ -123,6 +159,11 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
       drv.glDetachShader(DebugData.overlayProg, shaders[i]);
 
   drv.glDetachShader(DebugData.overlayProg, fragShader);
+
+  // delete any temporaries
+  for(size_t i = 0; i < 4; i++)
+    if(tmpShaders[i])
+      drv.glDeleteShader(tmpShaders[i]);
 
   // check that the link succeeded
   char buffer[1024] = {};
