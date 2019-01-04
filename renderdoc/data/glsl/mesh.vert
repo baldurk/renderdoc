@@ -22,8 +22,18 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 IN_secondary;
+// this allows overrides from outside to change to e.g. dvec4
+
+#ifndef POSITION_TYPE
+#define POSITION_TYPE vec4
+#endif
+
+#ifndef SECONDARY_TYPE
+#define SECONDARY_TYPE vec4
+#endif
+
+layout(location = 0) in POSITION_TYPE position;
+layout(location = 1) in SECONDARY_TYPE IN_secondary;
 
 #ifndef OPENGL_ES
 out gl_PerVertex
@@ -41,21 +51,21 @@ void main(void)
   vec2 psprite[4] =
       vec2[](vec2(-1.0f, -1.0f), vec2(-1.0f, 1.0f), vec2(1.0f, -1.0f), vec2(1.0f, 1.0f));
 
-  vec4 pos = position;
+  vec4 pos = vec4(position);
   if(Mesh.homogenousInput == 0u)
   {
-    pos = vec4(position.xyz, 1);
+    pos = vec4(pos.xyz, 1);
   }
   else
   {
 #ifdef VULKAN
-    pos = vec4(position.x, -position.y, position.z, position.w);
+    pos = vec4(pos.x, -pos.y, pos.z, pos.w);
 #endif
   }
 
   gl_Position = Mesh.mvp * pos;
   gl_Position.xy += Mesh.pointSpriteSize.xy * 0.01f * psprite[VERTEX_ID % 4] * gl_Position.w;
-  secondary = IN_secondary;
+  secondary = vec4(IN_secondary);
   norm = vec4(0, 0, 1, 1);
 
 #ifdef VULKAN

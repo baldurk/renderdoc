@@ -60,14 +60,10 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
   GLenum topo = MakeGLPrimitiveTopology(cfg.position.topology);
 
-  GLuint prog = DebugData.meshProg;
-
   MeshUBOData uboParams = {};
   MeshUBOData *uboptr = NULL;
 
   drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-
-  drv.glUseProgram(prog);
 
   if(HasExt[EXT_framebuffer_sRGB])
     drv.glEnable(eGL_FRAMEBUFFER_SRGB);
@@ -109,6 +105,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
     drv.glEnableVertexAttribArray(0);
     drv.glDisableVertexAttribArray(1);
 
+    drv.glUseProgram(DebugData.meshProg[0]);
+
     for(size_t i = 0; i < secondaryDraws.size(); i++)
     {
       const MeshFormat &fmt = secondaryDraws[i];
@@ -148,6 +146,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       }
     }
   }
+
+  int progidx = 0;
 
   for(uint32_t i = 0; i < 2; i++)
   {
@@ -239,6 +239,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
     else if(meshData[i]->format.compType == CompType::Double)
     {
       drv.glVertexAttribLFormat(i, meshData[i]->format.compCount, eGL_DOUBLE, 0);
+
+      progidx |= (1 << i);
     }
 
     GLintptr offs = (GLintptr)meshData[i]->vertexByteOffset;
@@ -256,6 +258,16 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       drv.glVertexAttribDivisor(i, 0);
   }
 
+  GLuint prog = DebugData.meshProg[progidx];
+
+  if(prog == 0)
+  {
+    RDCWARN("Couldn't compile right double-compatible mesh display shader");
+    prog = DebugData.meshProg[0];
+  }
+
+  drv.glUseProgram(prog);
+
   // enable position attribute
   drv.glEnableVertexAttribArray(0);
   drv.glDisableVertexAttribArray(1);
@@ -269,10 +281,16 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
     GLuint solidProg = prog;
 
-    if(cfg.solidShadeMode == SolidShade::Lit && DebugData.meshgsProg)
+    if(cfg.solidShadeMode == SolidShade::Lit && DebugData.meshgsProg[0])
     {
       // pick program with GS for per-face lighting
-      solidProg = DebugData.meshgsProg;
+      solidProg = DebugData.meshgsProg[progidx];
+
+      if(solidProg == 0)
+      {
+        RDCWARN("Couldn't compile right double-compatible mesh display shader");
+        solidProg = DebugData.meshgsProg[0];
+      }
 
       ClearGLErrors();
       drv.glUseProgram(solidProg);
@@ -376,6 +394,9 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       drv.glDrawArrays(topo != eGL_PATCHES ? topo : eGL_POINTS, 0, cfg.position.numIndices);
     }
   }
+
+  // helpers always use basic float-input program
+  drv.glUseProgram(DebugData.meshProg[0]);
 
   if(cfg.showBBox)
   {

@@ -338,21 +338,60 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
     GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_mesh_geom), glslBaseVer);
 
-    DebugData.meshProg = CreateShaderProgram(vs, fs);
-    DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
+    DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
+    DebugData.meshgsProg[0] = CreateShaderProgram(vs, fs, gs);
 
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_trisize_frag), glslBaseVer);
     GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_trisize_geom), glslBaseVer);
 
     DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
+
+    if(HasExt[ARB_gpu_shader_fp64] && HasExt[ARB_vertex_attrib_64bit])
+    {
+      GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
+
+      std::string extensions =
+          "#extension GL_ARB_gpu_shader_fp64 : require\n"
+          "#extension GL_ARB_vertex_attrib_64bit : require\n";
+
+      // position only dvec4
+      GenerateGLSLShader(vs, shaderType, extensions + "#define POSITION_TYPE dvec4",
+                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+
+      DebugData.meshProg[1] = CreateShaderProgram(vs, fs);
+      DebugData.meshgsProg[1] = CreateShaderProgram(vs, fs, gs);
+
+      // secondary only dvec4
+      GenerateGLSLShader(vs, shaderType, extensions + "#define SECONDARY_TYPE dvec4",
+                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+
+      DebugData.meshProg[2] = CreateShaderProgram(vs, fs);
+      DebugData.meshgsProg[2] = CreateShaderProgram(vs, fs, gs);
+
+      // both dvec4
+      GenerateGLSLShader(vs, shaderType, extensions +
+                                             "#define POSITION_TYPE dvec4\n"
+                                             "#define SECONDARY_TYPE dvec4",
+                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+
+      DebugData.meshProg[3] = CreateShaderProgram(vs, fs);
+      DebugData.meshgsProg[3] = CreateShaderProgram(vs, fs, gs);
+    }
+    else
+    {
+      // we don't warn about the lack of double support, assuming that if the driver doesn't support
+      // it then it's highly unlikely that the capture uses it.
+      DebugData.meshProg[1] = DebugData.meshProg[2] = DebugData.meshProg[3] = 0;
+      DebugData.meshgsProg[1] = DebugData.meshgsProg[2] = DebugData.meshgsProg[3] = 0;
+    }
   }
   else
   {
     GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
 
-    DebugData.meshProg = CreateShaderProgram(vs, fs);
-    DebugData.meshgsProg = 0;
+    DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
+    RDCEraseEl(DebugData.meshgsProg);
     DebugData.trisizeProg = 0;
 
     const char *warning_msg =
@@ -361,6 +400,39 @@ void GLReplay::InitDebugData()
     RDCWARN(warning_msg);
     m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
                                MessageSource::RuntimeWarning, warning_msg);
+
+    if(HasExt[ARB_gpu_shader_fp64] && HasExt[ARB_vertex_attrib_64bit])
+    {
+      std::string extensions =
+          "#extension GL_ARB_gpu_shader_fp64 : require\n"
+          "#extension GL_ARB_vertex_attrib_64bit : require\n";
+
+      // position only dvec4
+      GenerateGLSLShader(vs, shaderType, extensions + "#define POSITION_TYPE dvec4",
+                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+
+      DebugData.meshProg[1] = CreateShaderProgram(vs, fs);
+
+      // secondary only dvec4
+      GenerateGLSLShader(vs, shaderType, extensions + "#define SECONDARY_TYPE dvec4",
+                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+
+      DebugData.meshProg[2] = CreateShaderProgram(vs, fs);
+
+      // both dvec4
+      GenerateGLSLShader(vs, shaderType, extensions +
+                                             "#define POSITION_TYPE dvec4\n"
+                                             "#define SECONDARY_TYPE dvec4",
+                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+
+      DebugData.meshProg[3] = CreateShaderProgram(vs, fs);
+    }
+    else
+    {
+      // we don't warn about the lack of double support, assuming that if the driver doesn't support
+      // it then it's highly unlikely that the capture uses it.
+      DebugData.meshProg[1] = DebugData.meshProg[2] = DebugData.meshProg[3] = 0;
+    }
   }
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
@@ -829,8 +901,12 @@ void GLReplay::DeleteDebugData()
   drv.glDeleteProgram(DebugData.checkerProg);
   if(DebugData.fixedcolFragShader)
     drv.glDeleteShader(DebugData.fixedcolFragShader);
-  drv.glDeleteProgram(DebugData.meshProg);
-  drv.glDeleteProgram(DebugData.meshgsProg);
+
+  for(size_t i = 0; i < ARRAY_COUNT(DebugData.meshProg); i++)
+  {
+    drv.glDeleteProgram(DebugData.meshProg[i]);
+    drv.glDeleteProgram(DebugData.meshgsProg[i]);
+  }
   drv.glDeleteProgram(DebugData.trisizeProg);
 
   drv.glDeleteSamplers(1, &DebugData.linearSampler);

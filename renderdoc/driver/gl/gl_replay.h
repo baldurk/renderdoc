@@ -340,8 +340,9 @@ private:
 
     GLuint fixedcolFragShader;
 
-    GLuint meshProg;
-    GLuint meshgsProg;
+    // 0 = both floats, 1 = position doubles, 2 = secondary doubles, 3 = both doubles
+    GLuint meshProg[4];
+    GLuint meshgsProg[4];
     GLuint trisizeProg;
 
     GLuint meshVAO;
