@@ -170,8 +170,12 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(driverVersion.TexelFetchBrokenDriver())
       defines += "#define NO_TEXEL_FETCH\n";
 
+    // add UBO definitions as needed, to workaround ARM bug
     if(config.builtin == BuiltinShader::TextVS || config.builtin == BuiltinShader::TextFS)
       defines += "#define FONT_UBOS\n";
+
+    if(config.builtin == BuiltinShader::TexDisplayFS)
+      defines += "#define HEATMAP_UBO\n";
 
     GenerateGLSLShader(sources, eShaderVulkan, defines, GetDynamicEmbeddedResource(config.resource),
                        430, config.uniforms);
