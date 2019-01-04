@@ -157,6 +157,8 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
     case Android::ABI::x86: libPath += "lib/x86"; break;
   }
 
+  RDCLOG("Injecting RenderDoc from library in %s", libPath.c_str());
+
   if(conn.IsErrored())
     return false;
 
@@ -377,13 +379,12 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   // call Runtime.load() on our library. This will load the library and from then on it's
   // responsible for injecting its hooks into GLES on its own. See android_hook.cpp for more
   // information on the implementation
-  value ret =
-      conn.InvokeInstance(thread, runtime, load, runtimeObject.Object,
-                          {conn.NewString(thread, libPath + "/libVkLayer_GLES_RenderDoc.so")});
+  value ret = conn.InvokeInstance(thread, runtime, load, runtimeObject.Object,
+                                  {conn.NewString(thread, libPath + "/" RENDERDOC_ANDROID_LIBRARY)});
 
   if(ret.tag != Tag::Void)
   {
-    RDCERR("Failed to call load()!");
+    RDCERR("Failed to call load(%s/%s)!", libPath.c_str(), RENDERDOC_ANDROID_LIBRARY);
     return false;
   }
 

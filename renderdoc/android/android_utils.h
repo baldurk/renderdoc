@@ -69,3 +69,5 @@ std::string GetPathForPackage(const std::string &deviceID, const std::string &pa
 
 bool PatchManifest(std::vector<byte> &manifest);
 };
+
+DECLARE_REFLECTION_ENUM(Android::ABI);

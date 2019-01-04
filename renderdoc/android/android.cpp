@@ -630,6 +630,10 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteS
 
   std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
 
+  RDCLOG("Starting RenderDoc server, supported ABIs:");
+  for(Android::ABI abi : abis)
+    RDCLOG("  - %s", ToStr(abi).c_str());
+
   if(abis.empty())
     return ReplayStatus::UnknownError;
 

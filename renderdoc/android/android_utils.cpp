@@ -174,3 +174,17 @@ std::string GetFriendlyName(std::string deviceID)
   return combined;
 }
 };
+
+template <>
+std::string DoStringise(const Android::ABI &el)
+{
+  BEGIN_ENUM_STRINGISE(Android::ABI);
+  {
+    STRINGISE_ENUM_CLASS(unknown);
+    STRINGISE_ENUM_CLASS(armeabi_v7a);
+    STRINGISE_ENUM_CLASS(arm64_v8a);
+    STRINGISE_ENUM_CLASS(x86);
+    STRINGISE_ENUM_CLASS(x86_64);
+  }
+  END_ENUM_STRINGISE();
+}
