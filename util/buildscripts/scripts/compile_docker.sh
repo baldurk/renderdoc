@@ -13,7 +13,7 @@ make install
 
 # Copy python modules
 mkdir /io/pymodules
-cp -R bin/*.so /io/pymodules
+cp -R lib/*.so /io/pymodules
 
 # Copy python lib folder, and trim
 mkdir -p /io/dist/share/renderdoc/pylibs/lib
