@@ -507,35 +507,6 @@ void D3D12PipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
   node->setForegroundColor(QColor(0, 0, 0));
 }
 
-bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view,
-                                                      TextureDescription *tex)
-{
-  // we don't count 'upgrade typeless to typed' as important, we just display the typed format
-  // in the row since there's no real hidden important information there. The formats can't be
-  // different for any other reason (if the SRV format differs from the texture format, the
-  // texture must have been typeless.
-  if(view.firstMip > 0 || view.firstSlice > 0 || (view.numMips < tex->mips && tex->mips > 1) ||
-     (view.numSlices < tex->arraysize && tex->arraysize > 1))
-    return true;
-
-  // in the case of the swapchain case, types can be different and it won't have shown
-  // up as taking the view's format because the swapchain already has one. Make sure to mark it
-  // as important
-  if(view.viewFormat.compType != CompType::Typeless && view.viewFormat != tex->format)
-    return true;
-
-  return false;
-}
-
-bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view,
-                                                      BufferDescription *buf)
-{
-  if(view.firstElement > 0 || view.numElements * view.elementByteSize < buf->length)
-    return true;
-
-  return false;
-}
-
 void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view,
                                               TextureDescription *tex)
 {
@@ -557,7 +528,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
     }
   }
 
-  if(res.viewFormat != tex->format)
+  if(res.viewFormat.compType != CompType::Typeless && res.viewFormat != tex->format)
   {
     text += tr("The texture is format %1, the view treats it as %2.\n")
                 .arg(tex->format.Name())
@@ -635,8 +606,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   bool viewdetails = false;
 
-  if((res.firstElement * res.elementByteSize) > 0 ||
-     (res.numElements * res.elementByteSize) < buf->length)
+  if(res.firstElement > 0 || (res.numElements * res.elementByteSize) < buf->length)
   {
     text += tr("The view covers bytes %1-%2 (%3 elements).\nThe buffer is %4 bytes in length (%5 "
                "elements).")
@@ -755,9 +725,6 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
       if(tex->format != r.viewFormat)
         format = tr("Viewed as %1").arg(r.viewFormat.Name());
-
-      if(HasImportantViewParams(r, tex))
-        viewDetails = true;
     }
 
     BufferDescription *buf = m_Ctx.GetBuffer(r.resourceId);
@@ -797,9 +764,6 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
         else
           format = r.viewFormat.Name();
       }
-
-      if(HasImportantViewParams(r, buf))
-        viewDetails = true;
     }
 
     RDTreeWidgetItem *node = NULL;
@@ -815,13 +779,10 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
     node->setTag(QVariant::fromValue(view));
 
-    if(viewDetails)
-    {
-      if(tex)
-        setViewDetails(node, view, tex);
-      else if(buf)
-        setViewDetails(node, view, buf);
-    }
+    if(tex)
+      setViewDetails(node, view, tex);
+    else if(buf)
+      setViewDetails(node, view, buf);
 
     if(!filledSlot)
       setEmptyRow(node);
@@ -1406,6 +1367,15 @@ void D3D12PipelineStateViewer::setState()
                                                (draw ? draw->indexOffset * draw->indexByteWidth : 0),
                                            iformat)));
 
+      for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
+      {
+        if(res.resourceId == state.inputAssembly.indexBuffer.resourceId)
+        {
+          node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
+          break;
+        }
+      }
+
       if(!ibufferUsed)
         setInactiveRow(node);
 
@@ -1443,6 +1413,15 @@ void D3D12PipelineStateViewer::setState()
                                            state.inputAssembly.indexBuffer.byteOffset +
                                                (draw ? draw->indexOffset * draw->indexByteWidth : 0),
                                            iformat)));
+
+      for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
+      {
+        if(res.resourceId == state.inputAssembly.indexBuffer.resourceId)
+        {
+          node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
+          break;
+        }
+      }
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -1504,6 +1483,15 @@ void D3D12PipelineStateViewer::setState()
 
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(v.resourceId, v.byteOffset, m_Common.GetVBufferFormatString(i))));
+
+      for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
+      {
+        if(res.resourceId == v.resourceId)
+        {
+          node->setToolTip(tr("Buffer is in the '%1' state").arg(res.states[0].name));
+          break;
+        }
+      }
 
       if(!filledSlot)
       {

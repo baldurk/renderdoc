@@ -98,9 +98,6 @@ private:
   QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);
   const D3D12Pipe::Shader *stageForSender(QWidget *widget);
 
-  bool HasImportantViewParams(const D3D12Pipe::View &view, TextureDescription *tex);
-  bool HasImportantViewParams(const D3D12Pipe::View &view, BufferDescription *buf);
-
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, TextureDescription *tex);
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, BufferDescription *buf);
 
