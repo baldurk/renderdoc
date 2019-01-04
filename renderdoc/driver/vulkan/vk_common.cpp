@@ -754,8 +754,9 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 #if ENABLED(RDOC_WIN32)
   if(m_Vendor == GPUVendor::AMD)
   {
-    // not fixed yet
-    amdStorageMSAABrokenDriver = true;
+    // driver 18.5.2 which is vulkan version >= 2.0.33 contains the fix
+    if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
+      amdStorageMSAABrokenDriver = true;
   }
 #endif
 
