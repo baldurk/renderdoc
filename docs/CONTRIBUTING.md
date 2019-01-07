@@ -8,7 +8,7 @@ If you're a regular contributor or if you have a larger amount of code to change
 
 ## Code of Conduct
 
-I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. This includes any comments on issues or any public discussion e.g. in the #renderdoc IRC channel.
+I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. This includes any comments on issues or any public discussion e.g. in the #renderdoc IRC channel or discord server.
 
 If you have any queries or concerns in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
 
