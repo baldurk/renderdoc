@@ -105,10 +105,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       return Prepare_SparseInitialState((WrappedVkImage *)res);
     }
 
-    VkDevice d = GetDev();
-    // INITSTATEBATCH
-    VkCommandBuffer cmd = GetNextCmd();
-
     VkCommandBuffer extQCmd = VK_NULL_HANDLE;
 
     ImageLayouts *layout = NULL;
@@ -124,6 +120,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
               ToStr(im->id).c_str());
       return true;
     }
+
+    VkDevice d = GetDev();
+    // INITSTATEBATCH
+    VkCommandBuffer cmd = GetNextCmd();
 
     if(layout->queueFamilyIndex != m_QueueFamilyIdx)
     {
@@ -1009,22 +1009,25 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     // during writing, we already have the memory copied off - we just need to map it.
     if(ser.IsWriting())
     {
-      mappedMem = initContents.mem;
-      vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initContents.mem.offs,
-                                  initContents.mem.size, 0, (void **)&Contents);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      if(initContents.mem.mem != VK_NULL_HANDLE)
+      {
+        mappedMem = initContents.mem;
+        vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initContents.mem.offs,
+                                    initContents.mem.size, 0, (void **)&Contents);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      // invalidate the cpu cache for this memory range to avoid reading stale data
-      VkMappedMemoryRange range = {
-          VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-          NULL,
-          Unwrap(mappedMem.mem),
-          mappedMem.offs,
-          mappedMem.size,
-      };
+        // invalidate the cpu cache for this memory range to avoid reading stale data
+        VkMappedMemoryRange range = {
+            VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+            NULL,
+            Unwrap(mappedMem.mem),
+            mappedMem.offs,
+            mappedMem.size,
+        };
 
-      vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
     }
     else if(IsReplayingAndReading() && !ser.IsErrored())
     {
@@ -1081,7 +1084,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
     // if we're handling a device memory object, we're done - we note the memory object to delete at
     // the end of the program, and store the buffer to copy off in Apply
-    if(IsReplayingAndReading())
+    if(IsReplayingAndReading() && ContentsSize > 0)
     {
       ResourceId liveid = GetResourceManager()->GetLiveID(id);
 
