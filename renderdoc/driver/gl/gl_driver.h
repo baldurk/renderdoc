@@ -550,6 +550,7 @@ public:
   void ReplayMarkers(bool replay) { m_ReplayMarkers = replay; }
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+  bool DiscardFrameCapture(void *dev, void *wnd);
 
   // map with key being mip level, value being stored data
   typedef std::map<int, std::vector<byte>> CompressedDataStore;

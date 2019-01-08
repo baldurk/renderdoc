@@ -1862,6 +1862,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->ClearReferencedResources();
 
+    GetResourceManager()->FreeInitialContents();
+
     // if it's a capture triggered from application code, immediately
     // give up as it's not reasonable to expect applications to detect and retry.
     // otherwise we can retry in case the next frame works.
@@ -1932,6 +1934,71 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     return false;
   }
+}
+
+bool WrappedID3D11Device::DiscardFrameCapture(void *dev, void *wnd)
+{
+  SCOPED_LOCK(m_D3DLock);
+
+  if(!IsActiveCapturing(m_State))
+    return true;
+
+  RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
+
+  m_pImmediateContext->CleanupCapture();
+
+  for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+  {
+    WrappedID3D11DeviceContext *context = *it;
+
+    if(context)
+      context->CleanupCapture();
+    else
+      RDCERR("NULL deferred context in resource record!");
+  }
+
+  GetResourceManager()->ClearReferencedResources();
+
+  GetResourceManager()->FreeInitialContents();
+
+  m_pImmediateContext->FinishCapture();
+
+  m_CapturedFrames.pop_back();
+
+  for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+  {
+    WrappedID3D11DeviceContext *context = *it;
+
+    if(context)
+    {
+      context->FinishCapture();
+    }
+    else
+    {
+      RDCERR("NULL deferred context in resource record!");
+    }
+  }
+
+  m_pImmediateContext->FreeCaptureData();
+
+  m_State = CaptureState::BackgroundCapturing;
+
+  for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+  {
+    WrappedID3D11DeviceContext *context = *it;
+
+    if(context)
+      context->CleanupCapture();
+    else
+      RDCERR("NULL deferred context in resource record!");
+  }
+
+  GetResourceManager()->MarkUnwrittenResources();
+
+  if(m_pInfoQueue)
+    m_pInfoQueue->ClearStoredMessages();
+
+  return true;
 }
 
 void WrappedID3D11Device::LockForChunkFlushing()

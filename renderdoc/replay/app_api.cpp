@@ -233,28 +233,33 @@ static uint32_t EndFrameCapture(void *device, void *wndHandle)
   return RenderDoc::Inst().EndFrameCapture(device, wndHandle) ? 1 : 0;
 }
 
+static uint32_t DiscardFrameCapture(void *device, void *wndHandle)
+{
+  return RenderDoc::Inst().DiscardFrameCapture(device, wndHandle) ? 1 : 0;
+}
+
 // defined in capture_options.cpp
 int RENDERDOC_CC SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val);
 int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_3_0(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_4_0(int *major, int *minor, int *patch)
 {
   if(major)
     *major = 1;
   if(minor)
-    *minor = 3;
+    *minor = 4;
   if(patch)
     *patch = 0;
 }
 
-RENDERDOC_API_1_3_0 api_1_3_0;
-void Init_1_3_0()
+RENDERDOC_API_1_4_0 api_1_4_0;
+void Init_1_4_0()
 {
-  RENDERDOC_API_1_3_0 &api = api_1_3_0;
+  RENDERDOC_API_1_4_0 &api = api_1_4_0;
 
-  api.GetAPIVersion = &GetAPIVersion_1_3_0;
+  api.GetAPIVersion = &GetAPIVersion_1_4_0;
 
   api.SetCaptureOptionU32 = &SetCaptureOptionU32;
   api.SetCaptureOptionF32 = &SetCaptureOptionF32;
@@ -291,6 +296,8 @@ void Init_1_3_0()
   api.TriggerMultiFrameCapture = &TriggerMultiFrameCapture;
 
   api.SetCaptureFileComments = &SetCaptureFileComments;
+
+  api.DiscardFrameCapture = &DiscardFrameCapture;
 }
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version version,
@@ -317,14 +324,15 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     ret = 1;                                                       \
   }
 
-  API_VERSION_HANDLE(1_0_0, 1_3_0);
-  API_VERSION_HANDLE(1_0_1, 1_3_0);
-  API_VERSION_HANDLE(1_0_2, 1_3_0);
-  API_VERSION_HANDLE(1_1_0, 1_3_0);
-  API_VERSION_HANDLE(1_1_1, 1_3_0);
-  API_VERSION_HANDLE(1_1_2, 1_3_0);
-  API_VERSION_HANDLE(1_2_0, 1_3_0);
-  API_VERSION_HANDLE(1_3_0, 1_3_0);
+  API_VERSION_HANDLE(1_0_0, 1_4_0);
+  API_VERSION_HANDLE(1_0_1, 1_4_0);
+  API_VERSION_HANDLE(1_0_2, 1_4_0);
+  API_VERSION_HANDLE(1_1_0, 1_4_0);
+  API_VERSION_HANDLE(1_1_1, 1_4_0);
+  API_VERSION_HANDLE(1_1_2, 1_4_0);
+  API_VERSION_HANDLE(1_2_0, 1_4_0);
+  API_VERSION_HANDLE(1_3_0, 1_4_0);
+  API_VERSION_HANDLE(1_4_0, 1_4_0);
 
 #undef API_VERSION_HANDLE
 

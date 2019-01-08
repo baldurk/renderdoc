@@ -1717,6 +1717,57 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   return true;
 }
 
+bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
+{
+  if(!IsActiveCapturing(m_State))
+    return true;
+
+  RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
+
+  m_CapturedFrames.pop_back();
+
+  // transition back to IDLE atomically
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+
+    m_State = CaptureState::BackgroundCapturing;
+
+    // m_SuccessfulCapture = false;
+
+    ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+
+    {
+      SCOPED_LOCK(m_CoherentMapsLock);
+      for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
+      {
+        FreeAlignedBuffer((*it)->memMapState->refData);
+        (*it)->memMapState->refData = NULL;
+        (*it)->memMapState->needRefData = false;
+      }
+    }
+  }
+
+  SAFE_DELETE(m_HeaderChunk);
+
+  // delete cmd buffers now - had to keep them alive until after serialiser flush.
+  for(size_t i = 0; i < m_CmdBufferRecords.size(); i++)
+    m_CmdBufferRecords[i]->Delete(GetResourceManager());
+
+  m_CmdBufferRecords.clear();
+
+  GetResourceManager()->MarkUnwrittenResources();
+
+  GetResourceManager()->ClearReferencedResources();
+
+  GetResourceManager()->FreeInitialContents();
+
+  GetResourceManager()->FlushPendingDirty();
+
+  FreeAllMemory(MemoryScope::InitialContents);
+
+  return true;
+}
+
 void WrappedVulkan::AdvanceFrame()
 {
   if(IsBackgroundCapturing(m_State))

@@ -1782,7 +1782,51 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   SAFE_DELETE(m_HeaderChunk);
 
-  m_State = CaptureState::BackgroundCapturing;
+  for(auto it = queues.begin(); it != queues.end(); ++it)
+    (*it)->ClearAfterCapture();
+
+  GetResourceManager()->MarkUnwrittenResources();
+
+  GetResourceManager()->ClearReferencedResources();
+
+  GetResourceManager()->FreeInitialContents();
+
+  GetResourceManager()->FlushPendingDirty();
+
+  FlushPendingDescriptorWrites();
+
+  return true;
+}
+
+bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
+{
+  if(!IsActiveCapturing(m_State))
+    return true;
+
+  RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
+
+  m_CapturedFrames.pop_back();
+
+  std::vector<WrappedID3D12CommandQueue *> queues;
+
+  // transition back to IDLE and readback initial states atomically
+  {
+    SCOPED_WRITELOCK(m_CapTransitionLock);
+
+    m_State = CaptureState::BackgroundCapturing;
+
+    GPUSync();
+
+    {
+      SCOPED_LOCK(m_MapsLock);
+      for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
+        GetWrapped(it->res)->FreeShadow();
+    }
+
+    queues = m_Queues;
+  }
+
+  SAFE_DELETE(m_HeaderChunk);
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
     (*it)->ClearAfterCapture();

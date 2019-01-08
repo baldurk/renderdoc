@@ -1756,7 +1756,10 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   }
 
   if(IsActiveCapturing(m_State) && m_AppControlledCapture)
+  {
+    delete m_BackbufferImages[windowHandle];
     m_BackbufferImages[windowHandle] = SaveBackbufferImage();
+  }
 
   RenderDoc::Inst().AddActiveDriver(GetDriverType(), true);
 
@@ -2075,6 +2078,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->ClearReferencedResources();
 
+    GetResourceManager()->FreeInitialContents();
+
     // if it's a capture triggered from application code, immediately
     // give up as it's not reasonable to expect applications to detect and retry.
     // otherwise we can retry in case the next frame works.
@@ -2118,6 +2123,38 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     return false;
   }
+}
+
+bool WrappedOpenGL::DiscardFrameCapture(void *dev, void *wnd)
+{
+  if(!IsActiveCapturing(m_State))
+    return true;
+
+  SCOPED_LOCK(glLock);
+
+  RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
+
+  CleanupCapture();
+
+  GetResourceManager()->ClearReferencedResources();
+
+  GetResourceManager()->FreeInitialContents();
+
+  FinishCapture();
+
+  m_CapturedFrames.pop_back();
+
+  FreeCaptureData();
+
+  m_State = CaptureState::BackgroundCapturing;
+
+  GetResourceManager()->MarkUnwrittenResources();
+
+  for(auto it = m_BackbufferImages.begin(); it != m_BackbufferImages.end(); ++it)
+    delete it->second;
+  m_BackbufferImages.clear();
+
+  return true;
 }
 
 void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)

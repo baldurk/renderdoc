@@ -415,6 +415,22 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
 
     There will be undefined results if there is not an active frame capture for the device/window combination.
 
+.. cpp:function:: void DiscardFrameCapture(RENDERDOC_DevicePointer device, RENDERDOC_WindowHandle wndHandle)
+
+    This function is similar to :cpp:func:`EndFrameCapture` but the capture contents will be discarded immediately, and not processed and written to disk. This will be more efficient than :cpp:func:`EndFrameCapture` if the frame capture is not needed.
+
+    :param RENDERDOC_DevicePointer device: is a handle to the API 'device' object that will be set active. May be NULL to wildcard match.
+    :param RENDERDOC_WindowHandle wndHandle: is a handle to the platform window handle that will be set active. May be NULL to wildcard match.
+
+.. note::
+
+    ``RENDERDOC_DevicePointer`` and ``RENDERDOC_WindowHandle`` are described above in :cpp:func:`SetActiveWindow`.
+    ``device`` and ``wndHandle`` can either or both be set to ``NULL`` to wildcard match against active device/window combinations. This wildcard matching can be used if the handle is difficult to obtain where frame captures are triggered.
+
+    Wildcard matching of `device` and `wndHandle` is described above in :cpp:func:`BeginFrameCapture`.
+
+    There will be undefined results if there is not an active frame capture for the device/window combination.
+
 .. cpp:function:: void TriggerMultiFrameCapture(uint32_t numFrames)
 
     This function will trigger multiple sequential frame captures as if the user had pressed one of the capture hotkeys before each frame. The captures will be taken from the next frames presented to whichever window is considered current.

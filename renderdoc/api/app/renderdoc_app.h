@@ -513,6 +513,13 @@ typedef uint32_t(RENDERDOC_CC *pRENDERDOC_IsFrameCapturing)();
 typedef uint32_t(RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(RENDERDOC_DevicePointer device,
                                                            RENDERDOC_WindowHandle wndHandle);
 
+// Ends capturing immediately and discard any data stored without saving to disk.
+//
+// This will return 1 if the capture was discarded, and 0 if there was an error or no capture
+// was in progress
+typedef uint32_t(RENDERDOC_CC *pRENDERDOC_DiscardFrameCapture)(RENDERDOC_DevicePointer device,
+                                                               RENDERDOC_WindowHandle wndHandle);
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API versions
 //
@@ -535,6 +542,7 @@ typedef enum RENDERDOC_Version {
   eRENDERDOC_API_Version_1_1_2 = 10102,    // RENDERDOC_API_1_1_2 = 1 01 02
   eRENDERDOC_API_Version_1_2_0 = 10200,    // RENDERDOC_API_1_2_0 = 1 02 00
   eRENDERDOC_API_Version_1_3_0 = 10300,    // RENDERDOC_API_1_3_0 = 1 03 00
+  eRENDERDOC_API_Version_1_4_0 = 10400,    // RENDERDOC_API_1_4_0 = 1 04 00
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -558,8 +566,10 @@ typedef enum RENDERDOC_Version {
 //         Refactor: Renamed eRENDERDOC_Option_VerifyMapWrites to
 //         eRENDERDOC_Option_VerifyBufferAccess, which now also controls initialisation to
 //         0xdddddddd of uninitialised buffer contents.
+// 1.4.0 - Added feature: DiscardFrameCapture() to discard a frame capture in progress and stop
+//         capturing without saving anything to disk.
 
-typedef struct RENDERDOC_API_1_3_0
+typedef struct RENDERDOC_API_1_4_0
 {
   pRENDERDOC_GetAPIVersion GetAPIVersion;
 
@@ -622,15 +632,19 @@ typedef struct RENDERDOC_API_1_3_0
 
   // new function in 1.2.0
   pRENDERDOC_SetCaptureFileComments SetCaptureFileComments;
-} RENDERDOC_API_1_3_0;
 
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_0_0;
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_0_1;
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_0_2;
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_1_0;
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_1_1;
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_1_2;
-typedef RENDERDOC_API_1_3_0 RENDERDOC_API_1_2_0;
+  // new function in 1.4.0
+  pRENDERDOC_DiscardFrameCapture DiscardFrameCapture;
+} RENDERDOC_API_1_4_0;
+
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_0_1;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_0_2;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_1_0;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_1_1;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_1_2;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_2_0;
+typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_3_0;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point

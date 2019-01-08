@@ -458,6 +458,7 @@ public:
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+  bool DiscardFrameCapture(void *dev, void *wnd);
 
   ID3DUserDefinedAnnotation *GetAnnotations() { return m_RealAnnotations; }
   // interface for DXGI

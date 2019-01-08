@@ -61,6 +61,7 @@ struct IFrameCapturer
 {
   virtual void StartFrameCapture(void *dev, void *wnd) = 0;
   virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
+  virtual bool DiscardFrameCapture(void *dev, void *wnd) = 0;
 };
 
 // In most cases you don't need to check these individually, use the utility functions below
@@ -534,6 +535,7 @@ public:
   bool IsFrameCapturing() { return m_CapturesActive > 0; }
   void SetActiveWindow(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+  bool DiscardFrameCapture(void *dev, void *wnd);
 
   bool MatchClosestWindow(void *&dev, void *&wnd);
 

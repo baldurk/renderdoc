@@ -168,6 +168,12 @@ bool WrappedD3DDevice8::EndFrameCapture(void *dev, void *wnd)
   return false;
 }
 
+bool WrappedD3DDevice8::DiscardFrameCapture(void *dev, void *wnd)
+{
+  RDCERR("Capture not supported on D3D8");
+  return false;
+}
+
 HRESULT __stdcall WrappedD3DDevice8::TestCooperativeLevel()
 {
   return m_device->TestCooperativeLevel();

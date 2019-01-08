@@ -40,6 +40,7 @@ public:
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+  bool DiscardFrameCapture(void *dev, void *wnd);
 
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }

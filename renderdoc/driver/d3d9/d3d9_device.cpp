@@ -122,6 +122,12 @@ bool WrappedD3DDevice9::EndFrameCapture(void *dev, void *wnd)
   return false;
 }
 
+bool WrappedD3DDevice9::DiscardFrameCapture(void *dev, void *wnd)
+{
+  RDCERR("Capture not supported on D3D9");
+  return false;
+}
+
 HRESULT __stdcall WrappedD3DDevice9::TestCooperativeLevel()
 {
   return m_device->TestCooperativeLevel();

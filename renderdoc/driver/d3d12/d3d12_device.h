@@ -552,6 +552,7 @@ public:
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+  bool DiscardFrameCapture(void *dev, void *wnd);
 
   template <typename SerialiserType>
   bool Serialise_BeginCaptureFrame(SerialiserType &ser);

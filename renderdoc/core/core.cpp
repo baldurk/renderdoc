@@ -527,6 +527,18 @@ bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
   return false;
 }
 
+bool RenderDoc::DiscardFrameCapture(void *dev, void *wnd)
+{
+  IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
+  if(frameCap)
+  {
+    bool ret = frameCap->DiscardFrameCapture(dev, wnd);
+    m_CapturesActive--;
+    return ret;
+  }
+  return false;
+}
+
 bool RenderDoc::IsTargetControlConnected()
 {
   SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
@@ -1321,6 +1333,10 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
     }
 
     delete rdc;
+  }
+  else
+  {
+    RDCLOG("Discarded capture, Frame %u", frameNumber);
   }
 
   RenderDoc::Inst().SetProgress(CaptureProgress::FileWriting, 1.0f);
