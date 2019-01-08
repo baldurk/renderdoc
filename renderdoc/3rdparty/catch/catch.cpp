@@ -80,18 +80,13 @@ struct AppVeyorListener : Catch::TestEventListenerBase
 
       SAFE_DELETE(sock);
     }
+
+    Catch::TestEventListenerBase::testRunStarting(testRunInfo);
   }
 
-  std::string curTest;
-  std::vector<std::string> sectionStack;
-
-  virtual void testCaseStarting(Catch::TestCaseInfo const &testInfo) { curTest = testInfo.name; }
   virtual void sectionStarting(Catch::SectionInfo const &sectionInfo)
   {
-    if(curTest == sectionInfo.name)
-      return;
-
-    sectionStack.push_back(sectionInfo.name);
+    Catch::TestEventListenerBase::sectionStarting(sectionInfo);
 
     if(enabled)
     {
@@ -111,6 +106,8 @@ struct AppVeyorListener : Catch::TestEventListenerBase
 
   virtual bool assertionEnded(Catch::AssertionStats const &assertionStats)
   {
+    Catch::TestEventListenerBase::assertionEnded(assertionStats);
+
     using namespace Catch;
 
     if(!assertionStats.assertionResult.isOk())
@@ -154,9 +151,6 @@ struct AppVeyorListener : Catch::TestEventListenerBase
 
   virtual void sectionEnded(Catch::SectionStats const &sectionStats)
   {
-    if(curTest == sectionStats.sectionInfo.name)
-      return;
-
     if(enabled)
     {
       Network::Socket *sock = Network::CreateClientSocket(hostname.c_str(), port, 10);
@@ -173,7 +167,7 @@ struct AppVeyorListener : Catch::TestEventListenerBase
       SAFE_DELETE(sock);
     }
 
-    sectionStack.pop_back();
+    Catch::TestEventListenerBase::sectionEnded(sectionStats);
   }
 
 private:
@@ -188,13 +182,19 @@ private:
     if(update)
       outcome = passed ? "Passed" : "Failed";
 
+    std::string fileName;
     std::string testName;
-    for(const std::string &section : sectionStack)
+    for(const Catch::SectionInfo &section : m_sectionStack)
     {
       if(!testName.empty())
         testName += " > ";
-      testName += section;
+      testName += section.name;
     }
+
+    if(m_sectionStack.empty())
+      fileName = currentTestCaseInfo->name;
+    else
+      fileName = m_sectionStack[0].lineInfo.file;
 
     json = StringFormat::Fmt(R"(
 {
@@ -208,8 +208,8 @@ private:
     "StdOut": "",
     "StdErr": ""
 })",
-                             testName.c_str(), curTest.c_str(), outcome,
-                             RDCMAX(msDuration * 1000.0, 0.0), escape(trim(errorList)).c_str());
+                             testName.c_str(), fileName.c_str(), outcome, RDCMAX(msDuration, 0.0),
+                             escape(trim(errorList)).c_str());
 
     std::string http;
     http += StringFormat::Fmt("%s /api/tests HTTP/1.1\r\n", update ? "PUT" : "POST");
