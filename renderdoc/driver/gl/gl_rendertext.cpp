@@ -370,6 +370,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     // we read 6 * len vec2 positions and 6 * len float characters
     GL.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(float) * 5 * len * 6, vertexData);
 
+    delete[] vertexData;
+
     //////////////////////////////////////////////////////////////////////////////////
     // Make sure if you change any other state in here, that you also update the push
     // and pop functions in GLPushPopState
