@@ -509,6 +509,10 @@ void D3D12GraphicsTest::Present()
       ++it;
     }
   }
+
+  GPUSync();
+
+  m_Alloc->Reset();
 }
 
 std::vector<byte> D3D12GraphicsTest::GetBufferData(ID3D12ResourcePtr buffer,
