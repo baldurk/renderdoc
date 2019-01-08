@@ -722,6 +722,11 @@ void ResourceManager<Configuration>::FreeInitialContents()
     if(!m_InitialContents.empty())
       m_InitialContents.erase(m_InitialContents.begin());
   }
+
+  for(auto it = m_InitialChunks.begin(); it != m_InitialChunks.end(); ++it)
+    delete it->second;
+
+  m_InitialChunks.clear();
 }
 
 template <typename Configuration>
