@@ -252,6 +252,7 @@
     <ClInclude Include="3rdparty\nuklear\nuklear_gdi.h" />
     <ClInclude Include="3rdparty\nuklear\nuklear_xlib.h" />
     <ClInclude Include="3rdparty\shaderc\shaderc.h" />
+    <ClInclude Include="renderdoc_app.h" />
     <ClInclude Include="test_common.h" />
     <ClInclude Include="vk\vk_headers.h" />
     <ClInclude Include="vk\vk_helpers.h" />

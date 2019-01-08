@@ -473,5 +473,6 @@
     <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h">
       <Filter>3rdparty\vma</Filter>
     </ClInclude>
+    <ClInclude Include="renderdoc_app.h" />
   </ItemGroup>
 </Project>
