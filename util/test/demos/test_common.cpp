@@ -388,10 +388,15 @@ bool GraphicsTest::Init(int argc, char **argv)
   {
     pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
 
-    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc);
+    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_4_0, (void **)&rdoc);
 
     if(ret != 1)
       rdoc = NULL;
+
+    ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc100);
+
+    if(ret != 1)
+      rdoc100 = NULL;
   }
 
 #else

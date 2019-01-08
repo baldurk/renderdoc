@@ -172,7 +172,8 @@ struct GraphicsTest
   bool debugDevice = false;
   bool headless = false;
 
-  RENDERDOC_API_1_0_0 *rdoc = NULL;
+  RENDERDOC_API_1_0_0 *rdoc100 = NULL;
+  RENDERDOC_API_1_4_0 *rdoc = NULL;
 };
 
 enum class TestAPI
