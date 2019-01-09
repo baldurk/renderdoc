@@ -542,7 +542,7 @@ bool WrappedOpenGL::Serialise_glCreateMemoryObjectsEXT(SerialiserType &ser, GLsi
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
-    GL.glGenSemaphoresEXT(1, &real);
+    GL.glCreateMemoryObjectsEXT(1, &real);
 
     GLResource res = ExtMemRes(GetCtx(), real);
 
