@@ -818,6 +818,12 @@ void TextureViewer::UI_UpdateStatusText()
   bool uintTex = (tex.format.compType == CompType::UInt);
   bool sintTex = (tex.format.compType == CompType::SInt);
 
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::UInt)
+    uintTex = true;
+
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::SInt)
+    sintTex = true;
+
   if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
      m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
      m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
