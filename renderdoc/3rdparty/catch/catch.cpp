@@ -44,7 +44,20 @@ struct AppVeyorListener : Catch::TestEventListenerBase
   std::string errorList;
   double durationInSeconds = 0.0;
 
-  virtual bool assertionEnded(Catch::AssertionStats const &assertionStats)
+  struct TestCase
+  {
+    double durationInSeconds;
+    bool passed;
+    std::string errorList;
+    std::string name;
+    std::string filename;
+
+    std::string MakeJSON();
+  };
+
+  std::vector<TestCase> m_testcases;
+
+  virtual bool assertionEnded(Catch::AssertionStats const &assertionStats) override
   {
     Catch::TestEventListenerBase::assertionEnded(assertionStats);
 
@@ -98,27 +111,14 @@ struct AppVeyorListener : Catch::TestEventListenerBase
     return true;
   }
 
-  struct TestCase
-  {
-    double durationInSeconds;
-    bool passed;
-    std::string errorList;
-    std::string name;
-    std::string filename;
-
-    std::string MakeJSON();
-  };
-
-  std::vector<TestCase> m_testcases;
-
-  virtual void sectionEnded(Catch::SectionStats const &sectionStats)
+  virtual void sectionEnded(Catch::SectionStats const &sectionStats) override
   {
     durationInSeconds += sectionStats.durationInSeconds;
 
     Catch::TestEventListenerBase::sectionEnded(sectionStats);
   }
 
-  virtual void testCaseEnded(Catch::TestCaseStats const &testCaseStats)
+  virtual void testCaseEnded(Catch::TestCaseStats const &testCaseStats) override
   {
     m_testcases.push_back({
         durationInSeconds, testCaseStats.totals.assertions.allOk(), errorList,
