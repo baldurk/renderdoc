@@ -202,11 +202,12 @@ struct D3D11InitialContents
     ClearDSV,
     UAVCount,
   };
-  D3D11InitialContents(D3D11ResourceType t, ID3D11DeviceChild *r)
+  D3D11InitialContents(D3D11ResourceType t, ID3D11Resource *r)
       : resourceType(t), tag(Copy), resource(r), resource2(NULL), uavCount(0)
   {
   }
-  D3D11InitialContents(D3D11ResourceType t, ID3D11RenderTargetView *r, ID3D11RenderTargetView *r2)
+  D3D11InitialContents(D3D11ResourceType t, ID3D11RenderTargetView *r,
+                       ID3D11RenderTargetView *r2 = NULL)
       : resourceType(t), tag(ClearRTV), resource(r), resource2(r2), uavCount(0)
   {
   }
