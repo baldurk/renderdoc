@@ -2902,6 +2902,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glCreateBuffers: return Serialise_glCreateBuffers(ser, 0, 0);
 
     case GLChunk::glBufferStorage:
+    case GLChunk::glBufferStorageEXT:
     case GLChunk::glNamedBufferStorage:
     case GLChunk::glNamedBufferStorageEXT:
       return Serialise_glNamedBufferStorageEXT(ser, 0, 0, 0, 0);

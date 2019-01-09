@@ -2072,6 +2072,8 @@ enum class GLChunk : uint32_t
 
   glTextureFoveationParametersQCOM,
 
+  glBufferStorageEXT,
+
   Max,
 };
 
