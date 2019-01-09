@@ -252,9 +252,9 @@ void UpdateDialog::on_update_clicked()
 
       QDir::setCurrent(dir.absolutePath());
 
-      success = RunProcessAsAdmin(dir.absoluteFilePath(cmd), QStringList()
-                                                                 << lit("upgrade") << lit("--path")
-                                                                 << appDir.absolutePath());
+      success = RunProcessAsAdmin(
+          dir.absoluteFilePath(cmd),
+          QStringList() << lit("upgrade") << lit("--path") << appDir.absolutePath(), NULL, true);
 
       exit(0);
 

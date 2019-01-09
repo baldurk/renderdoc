@@ -585,7 +585,7 @@ typedef std::function<bool()> ProgressFinishedMethod;
 QStringList ParseArgsList(const QString &args);
 bool IsRunningAsAdmin();
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
-                       QWidget *parent = NULL,
+                       QWidget *parent = NULL, bool hidden = false,
                        std::function<void()> finishedCallback = std::function<void()>());
 
 void RevealFilenameInExternalFileBrowser(const QString &filePath);

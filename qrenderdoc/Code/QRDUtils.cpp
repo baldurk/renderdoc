@@ -1516,7 +1516,7 @@ bool IsRunningAsAdmin()
 }
 
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
-                       QWidget *parent, std::function<void()> finishedCallback)
+                       QWidget *parent, bool hidden, std::function<void()> finishedCallback)
 {
 #if defined(Q_OS_WIN32)
 
@@ -1536,7 +1536,7 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
   info.lpVerb = L"runas";
   info.lpFile = wideExe.c_str();
   info.lpParameters = wideParams.c_str();
-  info.nShow = SW_SHOWNORMAL;
+  info.nShow = hidden ? SW_HIDE : SW_SHOWNORMAL;
 
   ShellExecuteExW(&info);
 

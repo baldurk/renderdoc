@@ -431,11 +431,11 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
         }
 
         RunProcessAsAdmin(cmd, QStringList() << lit("vulkanregister") << lit("--system"), this,
-                          [this]() { ui->vulkanLayerWarn->setVisible(false); });
+                          true, [this]() { ui->vulkanLayerWarn->setVisible(false); });
 #else
         RunProcessAsAdmin(qApp->applicationFilePath(),
                           QStringList() << lit("--install_vulkan_layer") << lit("root"), this,
-                          [this]() { ui->vulkanLayerWarn->setVisible(false); });
+                          false, [this]() { ui->vulkanLayerWarn->setVisible(false); });
 #endif
         return;
       }

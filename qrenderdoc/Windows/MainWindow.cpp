@@ -1019,6 +1019,9 @@ void MainWindow::SetTitle(const QString &filename)
                 .arg(lit(FULL_VERSION_STRING))
                 .arg(QString::fromLatin1(GitVersionHash));
 
+  if(IsRunningAsAdmin())
+    text += tr(" (Administrator)");
+
   if(QString::fromLatin1(RENDERDOC_GetVersionString()) != lit(MAJOR_MINOR_VERSION_STRING))
     text += tr(" - !! VERSION MISMATCH DETECTED !!");
 

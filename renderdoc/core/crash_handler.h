@@ -124,6 +124,11 @@ public:
     RDCEraseEl(pi);
     RDCEraseEl(si);
 
+    // hide the console window
+    si.cb = sizeof(si);
+    si.dwFlags |= STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+
     HANDLE waitEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
 
     wchar_t radpath[MAX_PATH] = {0};
@@ -157,7 +162,8 @@ public:
 
     wcscpy_s(paramsAlloc, 511, cmdline.c_str());
 
-    BOOL ret = CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    BOOL ret = CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL,
+                              &si, &pi);
 
     if(!ret)
       RDCERR("Failed to create crashhandle server: %d", GetLastError());

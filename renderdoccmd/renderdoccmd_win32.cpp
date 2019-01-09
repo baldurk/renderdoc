@@ -752,20 +752,11 @@ std::string getParentExe()
   return "";
 }
 
-int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
-                    _In_ int nShowCmd)
+// ignore the argc/argv we get here, convert from wide to be sure we're unicode safe.
+int main(int, char *)
 {
   LPWSTR *wargv;
   int argc;
-
-  if(AttachConsole(ATTACH_PARENT_PROCESS))
-  {
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-
-    std::cout.sync_with_stdio();
-    std::cerr.sync_with_stdio();
-  }
 
   wargv = CommandLineToArgvW(GetCommandLine(), &argc);
 
@@ -789,13 +780,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
       parent[i] = '/';
   }
 
-  if(strstr(parent.c_str(), "/cmd.exe") && AttachConsole(ATTACH_PARENT_PROCESS))
-  {
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-  }
-
-  hInstance = hInst;
+  hInstance = GetModuleHandleA(NULL);
 
   WNDCLASSEX wc;
   wc.cbSize = sizeof(WNDCLASSEX);

@@ -781,6 +781,11 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
     RDCEraseEl(pSec);
     RDCEraseEl(tSec);
 
+    // hide the console window
+    si.cb = sizeof(si);
+    si.dwFlags |= STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+
     pSec.nLength = sizeof(pSec);
     tSec.nLength = sizeof(tSec);
 
@@ -863,8 +868,8 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
       commandLine = (wchar_t *)cmdWithEnv.c_str();
     }
 
-    BOOL retValue = CreateProcessW(NULL, commandLine, &pSec, &tSec, false, CREATE_SUSPENDED, NULL,
-                                   NULL, &si, &pi);
+    BOOL retValue = CreateProcessW(NULL, commandLine, &pSec, &tSec, false,
+                                   CREATE_NEW_CONSOLE | CREATE_SUSPENDED, NULL, NULL, &si, &pi);
 
     SAFE_DELETE_ARRAY(paramsAlloc);
 
@@ -1440,6 +1445,8 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
   pSec.nLength = sizeof(pSec);
   tSec.nLength = sizeof(tSec);
 
+  si.cb = sizeof(si);
+
   std::wstring paramsAlloc;
   paramsAlloc.resize(2048);
 
@@ -1461,7 +1468,10 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
   paramsAlloc[2047] = 0;
 
   // we'll be setting stdin
-  si.dwFlags |= STARTF_USESTDHANDLES;
+  si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+
+  // hide the console window
+  si.wShowWindow = SW_HIDE;
 
   // this is the end of the pipe that the child will inherit and use as stdin
   HANDLE childEnd = NULL;
@@ -1497,7 +1507,8 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
   }
 
   // launch the process
-  BOOL retValue = CreateProcessW(NULL, &paramsAlloc[0], &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
+  BOOL retValue = CreateProcessW(NULL, &paramsAlloc[0], &pSec, &tSec, true, CREATE_NEW_CONSOLE,
+                                 NULL, NULL, &si, &pi);
 
   // we don't need this end anymore, the child has it
   CloseHandle(childEnd);
@@ -1553,7 +1564,8 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
     si.hStdInput = childEnd;
   }
 
-  retValue = CreateProcessW(NULL, &paramsAlloc[0], &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
+  retValue = CreateProcessW(NULL, &paramsAlloc[0], &pSec, &tSec, true, CREATE_NEW_CONSOLE, NULL,
+                            NULL, &si, &pi);
 
   // we don't need this end anymore
   CloseHandle(childEnd);
