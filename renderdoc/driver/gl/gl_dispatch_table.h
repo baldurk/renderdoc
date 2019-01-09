@@ -329,7 +329,7 @@ struct GLDispatchTable
   PFNGLQUERYCOUNTERPROC glQueryCounter;      // aliases glQueryCounterEXT
   PFNGLDELETEQUERIESPROC glDeleteQueries;    // aliases glDeleteQueriesARB, glDeleteQueriesEXT
   PFNGLBUFFERDATAPROC glBufferData;          // aliases glBufferDataARB
-  PFNGLBUFFERSTORAGEPROC glBufferStorage;
+  PFNGLBUFFERSTORAGEPROC glBufferStorage;    // aliases glBufferStorageEXT
   PFNGLBUFFERSUBDATAPROC glBufferSubData;    // aliases glBufferSubDataARB
   PFNGLCOPYBUFFERSUBDATAPROC glCopyBufferSubData;
   PFNGLBINDBUFFERBASEPROC glBindBufferBase;      // aliases glBindBufferBaseEXT
