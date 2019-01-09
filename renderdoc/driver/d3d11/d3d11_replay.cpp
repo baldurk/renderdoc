@@ -1187,7 +1187,8 @@ void D3D11Replay::SavePipelineState()
         view.elementByteSize =
             desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
-        if(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER))
+        if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
+           (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
         {
           view.bufferStructCount = GetDebugManager()->GetStructCount(rs->OM.UAVs[s]);
         }
