@@ -110,28 +110,28 @@ std::string ToStr(const T &el)
 #define STRINGISE_BITFIELD_BIT(b) \
   if(el & b)                      \
   {                               \
-    local -= (uint32_t)b;         \
+    local &= ~uint32_t(b);        \
     ret += " | " #b;              \
   }
 
 #define STRINGISE_BITFIELD_CLASS_BIT(b) \
   if(el & enumType::b)                  \
   {                                     \
-    local -= (uint32_t)enumType::b;     \
+    local &= ~uint32_t(enumType::b);    \
     ret += " | " #b;                    \
   }
 
 #define STRINGISE_BITFIELD_BIT_NAMED(b, str) \
   if(el & b)                                 \
   {                                          \
-    local -= (uint32_t)b;                    \
+    local &= ~uint32_t(b);                   \
     ret += " | " str;                        \
   }
 
 #define STRINGISE_BITFIELD_CLASS_BIT_NAMED(b, str) \
   if(el & enumType::b)                             \
   {                                                \
-    local -= (uint32_t)enumType::b;                \
+    local &= ~uint32_t(enumType::b);               \
     ret += " | " str;                              \
   }
 
