@@ -1323,7 +1323,13 @@ public:
       SDObject &current = *m_StructureStack.back();
 
       if(!current.data.children.empty())
-        current.data.children.back()->type.name = name;
+      {
+        SDObject *last = current.data.children.back();
+        last->type.name = name;
+
+        for(SDObject *obj : last->data.children)
+          obj->type.name = name;
+      }
     }
 
     return *this;

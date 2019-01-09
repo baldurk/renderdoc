@@ -2411,7 +2411,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(layout);
-  SERIALISE_ELEMENT_TYPED(VkShaderStageFlagBits, stageFlags);
+  SERIALISE_ELEMENT_TYPED(VkShaderStageFlagBits, stageFlags).TypedAs("VkShaderStageFlags");
   SERIALISE_ELEMENT(start);
   SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT_ARRAY(values, length);
@@ -2487,9 +2487,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
     uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier *pImageMemoryBarriers)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask);
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, destStageMask);
-  SERIALISE_ELEMENT_TYPED(VkDependencyFlagBits, dependencyFlags);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask).TypedAs("VkPipelineStageFlags");
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, destStageMask).TypedAs("VkPipelineStageFlags");
+  SERIALISE_ELEMENT_TYPED(VkDependencyFlagBits, dependencyFlags).TypedAs("VkDependencyFlags");
   SERIALISE_ELEMENT(memoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pMemoryBarriers, memoryBarrierCount);
   SERIALISE_ELEMENT(bufferMemoryBarrierCount);
@@ -2710,7 +2710,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
   SERIALISE_ELEMENT(destBuffer);
   SERIALISE_ELEMENT(destOffset);
   SERIALISE_ELEMENT(destStride);
-  SERIALISE_ELEMENT_TYPED(VkQueryResultFlagBits, flags);
+  SERIALISE_ELEMENT_TYPED(VkQueryResultFlagBits, flags).TypedAs("VkQueryResultFlags");
 
   Serialise_DebugMessages(ser);
 
@@ -2784,7 +2784,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginQuery(SerialiserType &ser, VkCommandBuff
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(queryPool);
   SERIALISE_ELEMENT(query);
-  SERIALISE_ELEMENT_TYPED(VkQueryControlFlagBits, flags);
+  SERIALISE_ELEMENT_TYPED(VkQueryControlFlagBits, flags).TypedAs("VkQueryControlFlags");
 
   Serialise_DebugMessages(ser);
 
@@ -4659,7 +4659,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginQueryIndexedEXT(SerialiserType &ser,
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(queryPool);
   SERIALISE_ELEMENT(query);
-  SERIALISE_ELEMENT_TYPED(VkQueryControlFlagBits, flags);
+  SERIALISE_ELEMENT_TYPED(VkQueryControlFlagBits, flags).TypedAs("VkQueryControlFlags");
   SERIALISE_ELEMENT(index);
 
   Serialise_DebugMessages(ser);

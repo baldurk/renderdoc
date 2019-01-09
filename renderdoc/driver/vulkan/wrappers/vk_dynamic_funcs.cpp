@@ -410,7 +410,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
                                                          uint32_t compareMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags");
   SERIALISE_ELEMENT(compareMask);
 
   Serialise_DebugMessages(ser);
@@ -476,7 +476,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
                                                        uint32_t writeMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags");
   SERIALISE_ELEMENT(writeMask);
 
   Serialise_DebugMessages(ser);
@@ -542,7 +542,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
                                                        uint32_t reference)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags");
   SERIALISE_ELEMENT(reference);
 
   Serialise_DebugMessages(ser);

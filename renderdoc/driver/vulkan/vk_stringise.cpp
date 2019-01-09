@@ -741,6 +741,16 @@ std::string DoStringise(const VkDebugUtilsMessageSeverityFlagBitsEXT &el)
 }
 
 template <>
+std::string DoStringise(const VkConditionalRenderingFlagBitsEXT &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkConditionalRenderingFlagBitsEXT);
+  {
+    STRINGISE_BITFIELD_BIT(VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkDebugUtilsMessageTypeFlagBitsEXT &el)
 {
   BEGIN_BITFIELD_STRINGISE(VkDebugUtilsMessageTypeFlagBitsEXT);

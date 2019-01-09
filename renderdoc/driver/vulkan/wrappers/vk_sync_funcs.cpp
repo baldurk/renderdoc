@@ -615,7 +615,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(SerialiserType &ser, VkCommandBuffer
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(event);
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask).TypedAs("VkPipelineStageFlags");
 
   Serialise_DebugMessages(ser);
 
@@ -670,7 +670,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(SerialiserType &ser, VkCommandBuff
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(event);
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask).TypedAs("VkPipelineStageFlags");
 
   Serialise_DebugMessages(ser);
 
@@ -735,8 +735,8 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
   SERIALISE_ELEMENT(eventCount);
   SERIALISE_ELEMENT_ARRAY(pEvents, eventCount);
 
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask);
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, dstStageMask);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask).TypedAs("VkPipelineStageFlags");
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, dstStageMask).TypedAs("VkPipelineStageFlags");
 
   SERIALISE_ELEMENT(memoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pMemoryBarriers, memoryBarrierCount);
