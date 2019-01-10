@@ -206,10 +206,11 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
   // if(m_State == WRITING_IDLE)
   RenderDoc::Inst().Tick();
 
-  IDirect3DSwapChain9 *swapChain;
+  IDirect3DSwapChain9 *swapChain = NULL;
   m_device->GetSwapChain(0, &swapChain);
-  D3DPRESENT_PARAMETERS presentParams;
-  swapChain->GetPresentParameters(&presentParams);
+  D3DPRESENT_PARAMETERS presentParams = {};
+  if(swapChain)
+    swapChain->GetPresentParameters(&presentParams);
 
   HWND wnd = presentParams.hDeviceWindow;
   if(hDestWindowOverride != NULL)
@@ -220,12 +221,11 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
   m_FrameCounter++;
 
   // if (m_State == WRITING_IDLE)
+  if(wnd != NULL)
   {
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-    static bool debugRenderOverlay = true;
-
-    if(overlay & eRENDERDOC_Overlay_Enabled && debugRenderOverlay)
+    if(overlay & eRENDERDOC_Overlay_Enabled)
     {
       HRESULT res = S_OK;
       res = m_device->BeginScene();
