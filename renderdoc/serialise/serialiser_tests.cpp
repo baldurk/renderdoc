@@ -1317,4 +1317,215 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
   delete buf;
 };
 
+enum class TestEnumClass
+{
+  A = 1,
+  B = 2,
+  C = 2,
+};
+
+DECLARE_REFLECTION_ENUM(TestEnumClass);
+
+template <>
+std::string DoStringise(const TestEnumClass &el)
+{
+  BEGIN_ENUM_STRINGISE(TestEnumClass)
+  {
+    STRINGISE_ENUM_CLASS(A);
+    STRINGISE_ENUM_CLASS_NAMED(B, "Beta");
+    // can't add this because B == C
+    // STRINGISE_ENUM_CLASS_NAMED(C, "Charlie");
+  }
+  END_ENUM_STRINGISE();
+}
+
+enum TestEnum
+{
+  TestA = 1,
+  TestB = 2,
+  TestC = 2,
+};
+
+DECLARE_REFLECTION_ENUM(TestEnum);
+
+template <>
+std::string DoStringise(const TestEnum &el)
+{
+  BEGIN_ENUM_STRINGISE(TestEnum)
+  {
+    STRINGISE_ENUM(TestA);
+    STRINGISE_ENUM_NAMED(TestB, "Beta");
+    // can't add this because B == C
+    // STRINGISE_ENUM_NAMED(TestC, "Charlie");
+  }
+  END_ENUM_STRINGISE();
+}
+
+enum class TestBitfieldClass
+{
+  A = 1,
+  B = 2,
+  AandB = 3,
+  C = 4,
+  AandC = 5,
+  Dupe = 4,
+};
+
+DECLARE_REFLECTION_ENUM(TestBitfieldClass);
+
+BITMASK_OPERATORS(TestBitfieldClass);
+
+template <>
+std::string DoStringise(const TestBitfieldClass &el)
+{
+  BEGIN_BITFIELD_STRINGISE(TestBitfieldClass)
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE(AandB);
+    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(AandC, "A and C");
+    STRINGISE_BITFIELD_CLASS_BIT(A);
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(B, "Beta");
+    STRINGISE_BITFIELD_CLASS_BIT(C);
+    // this duplicated bit should be displayed as well
+    STRINGISE_BITFIELD_CLASS_BIT(Dupe);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+enum TestBitfield
+{
+  TestBitA = 1,
+  TestBitB = 2,
+  TestAandB = 3,
+  TestBitC = 4,
+  TestAandC = 5,
+  TestBitDupe = 4,
+};
+
+DECLARE_REFLECTION_ENUM(TestBitfield);
+
+template <>
+std::string DoStringise(const TestBitfield &el)
+{
+  BEGIN_BITFIELD_STRINGISE(TestBitfield)
+  {
+    STRINGISE_BITFIELD_VALUE(TestAandB);
+    STRINGISE_BITFIELD_VALUE_NAMED(TestAandC, "A and C");
+    STRINGISE_BITFIELD_BIT(TestBitA);
+    STRINGISE_BITFIELD_BIT_NAMED(TestBitB, "Beta");
+    STRINGISE_BITFIELD_BIT(TestBitC);
+    // this duplicated bit should be displayed as well
+    STRINGISE_BITFIELD_BIT(TestBitDupe);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+TEST_CASE("Test stringification works as expected", "[tostr]")
+{
+  SECTION("Enum classes")
+  {
+    TestEnumClass foo = TestEnumClass::A;
+
+    CHECK(ToStr(foo) == "A");
+
+    foo = TestEnumClass::B;
+
+    CHECK(ToStr(foo) == "Beta");
+
+    // identical enum value, will be identified as the first entry
+    foo = TestEnumClass::C;
+
+    CHECK(ToStr(foo) == "Beta");
+
+    // unknown value
+    foo = (TestEnumClass)0;
+
+    CHECK(ToStr(foo) == "TestEnumClass(0)");
+  };
+
+  SECTION("plain enums")
+  {
+    TestEnum foo = TestA;
+
+    CHECK(ToStr(foo) == "TestA");
+
+    foo = TestB;
+
+    CHECK(ToStr(foo) == "Beta");
+
+    // identical enum value, will be identified as the first entry
+    foo = TestC;
+
+    CHECK(ToStr(foo) == "Beta");
+
+    // unknown value
+    foo = (TestEnum)0;
+
+    CHECK(ToStr(foo) == "TestEnum(0)");
+  };
+
+  SECTION("Enum class bitfields")
+  {
+    TestBitfieldClass foo = TestBitfieldClass::A;
+
+    CHECK(ToStr(foo) == "A");
+
+    foo = TestBitfieldClass::A | TestBitfieldClass::B;
+
+    // special cased combo
+    CHECK(ToStr(foo) == "AandB");
+
+    foo = TestBitfieldClass::A | TestBitfieldClass::C;
+
+    // special cased combo
+    CHECK(ToStr(foo) == "A and C");
+
+    // auto-generated combo
+    foo = TestBitfieldClass::A | TestBitfieldClass::B | TestBitfieldClass::C;
+
+    CHECK(ToStr(foo) == "A | Beta | C | Dupe");
+
+    // duplicate bit will be printed as first entry
+    foo = TestBitfieldClass::A | TestBitfieldClass::B | TestBitfieldClass::Dupe;
+
+    CHECK(ToStr(foo) == "A | Beta | C | Dupe");
+
+    // unknown bits will be appended
+    foo = TestBitfieldClass::A | TestBitfieldClass::B | TestBitfieldClass(0x800);
+
+    CHECK(ToStr(foo) == "A | Beta | TestBitfieldClass(2048)");
+  };
+
+  SECTION("plain enum bitfields")
+  {
+    TestBitfield foo = TestBitA;
+
+    CHECK(ToStr(foo) == "TestBitA");
+
+    foo = TestBitfield(TestBitA | TestBitB);
+
+    // special cased combo
+    CHECK(ToStr(foo) == "TestAandB");
+
+    foo = TestBitfield(TestBitA | TestBitC);
+
+    // special cased combo
+    CHECK(ToStr(foo) == "A and C");
+
+    // auto-generated combo
+    foo = TestBitfield(TestBitA | TestBitB | TestBitC);
+
+    CHECK(ToStr(foo) == "TestBitA | Beta | TestBitC | TestBitDupe");
+
+    // duplicate bit will be printed as first entry
+    foo = TestBitfield(TestBitA | TestBitB | TestBitDupe);
+
+    CHECK(ToStr(foo) == "TestBitA | Beta | TestBitC | TestBitDupe");
+
+    // unknown bits will be appended
+    foo = TestBitfield(TestBitA | TestBitB | 0x800);
+
+    CHECK(ToStr(foo) == "TestBitA | Beta | TestBitfield(2048)");
+  };
+};
+
 #endif    // ENABLED(ENABLE_UNIT_TESTS)
