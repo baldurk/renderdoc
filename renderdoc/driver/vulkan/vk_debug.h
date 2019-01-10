@@ -97,6 +97,11 @@ private:
 
   VkSampler m_ArrayMSSampler = VK_NULL_HANDLE;
 
+  // [0] = non-MSAA, [1] = MSAA
+  VkDeviceMemory m_DummyStencilMemory = VK_NULL_HANDLE;
+  VkImage m_DummyStencilImage[2] = {VK_NULL_HANDLE};
+  VkImageView m_DummyStencilView[2] = {VK_NULL_HANDLE};
+
   // one per depth/stencil output format
   VkPipeline m_DepthMS2ArrayPipe[6] = {VK_NULL_HANDLE};
   // one per depth/stencil output format, per sample count

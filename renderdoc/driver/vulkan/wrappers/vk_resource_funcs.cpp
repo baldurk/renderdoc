@@ -1471,7 +1471,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     {
       if(!IsDepthOrStencilFormat(createInfo_adjusted.format))
       {
-        if(GetDebugManager()->IsMS2ArraySupported())
+        // need to check the debug manager here since we might be creating this internal image from
+        // its constructor
+        if(GetDebugManager() && GetDebugManager()->IsMS2ArraySupported())
           createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else

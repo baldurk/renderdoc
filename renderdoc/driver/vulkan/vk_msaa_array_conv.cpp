@@ -232,6 +232,21 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
   srcdesc[1].imageView = srcStencilView;
   srcdesc[1].sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
 
+  if((aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT) == 0)
+  {
+    if(m_DummyStencilView[1] != VK_NULL_HANDLE)
+    {
+      srcdesc[1].imageView = Unwrap(m_DummyStencilView[1]);
+    }
+    else
+    {
+      // as a last fallback, hope that setting an incompatible view (float not int) will not break
+      // too badly. This only gets hit when the implementation has such poor format support that
+      // there are no uint formats that can be sampled as MSAA.
+      srcdesc[1].imageView = srcDepthView;
+    }
+  }
+
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
@@ -239,10 +254,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
   };
 
-  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
-    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 2, writeSet, 0, NULL);
-  else
-    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 1, writeSet, 0, NULL);
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 2, writeSet, 0, NULL);
 
   // create a bespoke framebuffer and renderpass for rendering
   VkAttachmentDescription attDesc = {0,
@@ -583,6 +595,21 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
   srcdesc[1].imageView = srcStencilView;
   srcdesc[1].sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
 
+  if((aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT) == 0)
+  {
+    if(m_DummyStencilView[0] != VK_NULL_HANDLE)
+    {
+      srcdesc[1].imageView = Unwrap(m_DummyStencilView[0]);
+    }
+    else
+    {
+      // as a last fallback, hope that setting an incompatible view (float not int) will not break
+      // too badly. This only gets hit when the implementation has such poor format support that
+      // there are no uint formats that can be sampled as MSAA.
+      srcdesc[1].imageView = srcDepthView;
+    }
+  }
+
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
@@ -590,10 +617,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
   };
 
-  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
-    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 2, writeSet, 0, NULL);
-  else
-    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 1, writeSet, 0, NULL);
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 2, writeSet, 0, NULL);
 
   // create a bespoke framebuffer and renderpass for rendering
   VkAttachmentDescription attDesc = {0,
