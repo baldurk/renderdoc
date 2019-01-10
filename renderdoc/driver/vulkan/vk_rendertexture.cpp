@@ -64,8 +64,10 @@ void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage li
 
   if(iminfo.type == VK_IMAGE_TYPE_1D)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
-  if(iminfo.type == VK_IMAGE_TYPE_3D)
+  else if(iminfo.type == VK_IMAGE_TYPE_3D)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+  else if(iminfo.samples > VK_SAMPLE_COUNT_1_BIT)
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
   VkResult vkr = VK_SUCCESS;
   ResourceId viewid;
