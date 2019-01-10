@@ -382,6 +382,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_ARM_rgba8");
   m_GLESExtensions.push_back("GL_EXT_base_instance");
   m_GLESExtensions.push_back("GL_EXT_blend_minmax");
+  m_GLESExtensions.push_back("GL_EXT_buffer_storage");
   m_GLESExtensions.push_back("GL_EXT_clip_cull_distance");
   m_GLESExtensions.push_back("GL_EXT_color_buffer_float");
   m_GLESExtensions.push_back("GL_EXT_color_buffer_half_float");
