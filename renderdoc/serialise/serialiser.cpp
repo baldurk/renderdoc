@@ -85,6 +85,8 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint32_t)
       uint32_t numFrames = 0;
       m_Read->Read(numFrames);
 
+      m_ChunkMetadata.flags |= SDChunkFlags::HasCallstack;
+
       m_ChunkMetadata.callstack.resize((size_t)numFrames);
       m_Read->Read(m_ChunkMetadata.callstack.data(), m_ChunkMetadata.callstack.byteSize());
     }
@@ -297,6 +299,8 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint3
           }
         }
 
+        m_ChunkMetadata.flags |= SDChunkFlags::HasCallstack;
+
         uint32_t numFrames = (uint32_t)m_ChunkMetadata.callstack.size();
         m_Write->Write(numFrames);
 
@@ -433,7 +437,7 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
 
     m_ChunkFlags = 0;
 
-    if(!m_ChunkMetadata.callstack.empty())
+    if(m_ChunkMetadata.flags & SDChunkFlags::HasCallstack)
       m_ChunkFlags |= ChunkCallstack;
 
     if(m_ChunkMetadata.threadID != 0)

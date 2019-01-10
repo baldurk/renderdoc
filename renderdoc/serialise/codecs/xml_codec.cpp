@@ -414,7 +414,7 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
       xChunk.append_attribute("timestamp") = chunk->metadata.timestampMicro;
     if(chunk->metadata.durationMicro >= 0)
       xChunk.append_attribute("duration") = chunk->metadata.durationMicro;
-    if(!chunk->metadata.callstack.empty())
+    if(chunk->metadata.flags & SDChunkFlags::HasCallstack)
     {
       pugi::xml_node stack = xChunk.append_child("callstack");
 
@@ -746,6 +746,8 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
     pugi::xml_node callstack = xChunk.child("callstack");
     if(callstack)
     {
+      chunk->metadata.flags |= SDChunkFlags::HasCallstack;
+
       size_t i = 0;
       for(pugi::xml_node address = callstack.first_child(); address; address = address.next_sibling())
       {

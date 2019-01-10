@@ -206,11 +206,17 @@ DOCUMENT(R"(Bitfield flags that could be applied to an :class:`SDChunk`.
 
   This chunk wasn't supported for decoding or was skipped for another reason and was detailed as
   an opaque byte stream. It should be preserved as-is and will remain in native RDC format.
+
+.. data:: HasCallstack
+
+  This chunk has a callstack. Used to indicate the presence of a callstack even if it's empty
+  (perhaps due to failure to collect the stack frames).
 )");
 enum class SDChunkFlags : uint64_t
 {
   NoFlags = 0x0,
   OpaqueChunk = 0x1,
+  HasCallstack = 0x2,
 };
 
 BITMASK_OPERATORS(SDChunkFlags);
