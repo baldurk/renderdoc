@@ -305,6 +305,7 @@ public:
     return true;
   }
 
+  void moveObjectToThread(QObject *o) { o->moveToThread(m_Thread); }
   bool isCurrentThread() { return QThread::currentThread() == m_Thread; }
 };
 

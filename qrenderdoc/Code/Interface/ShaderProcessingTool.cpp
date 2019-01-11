@@ -110,6 +110,8 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
   QByteArray stdout_data;
   QProcess process;
 
+  QThread *mainThread = QThread::currentThread();
+
   LambdaThread *thread = new LambdaThread([&]() {
     if(readStdin)
       process.setStandardInputFile(input_file);
@@ -151,7 +153,12 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
     // QFile::remove(input_file);
     QFile::remove(output_file);
     QFile::remove(stdout_file);
+
+    process.moveToThread(mainThread);
   });
+
+  thread->moveObjectToThread(&process);
+
   thread->start();
 
   ShowProgressDialog(window, QApplication::translate("ShaderProcessingTool",
