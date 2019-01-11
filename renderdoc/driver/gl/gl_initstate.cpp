@@ -409,7 +409,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   if(res.Namespace == eResBuffer)
   {
     // get the length of the buffer
-    uint32_t length = 1;
+    uint32_t length = 4;
     GL.glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, (GLint *)&length);
 
     // save old bindings
@@ -421,13 +421,14 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     GLuint buf = 0;
     GL.glGenBuffers(1, &buf);
     GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
-    GL.glNamedBufferDataEXT(buf, (GLsizeiptr)length, NULL, eGL_STATIC_READ);
+    GL.glNamedBufferDataEXT(buf, (GLsizeiptr)RDCMAX(length, 4U), NULL, eGL_STATIC_READ);
 
     // bind the live buffer for copying
     GL.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
 
     // do the actual copy
-    GL.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0, (GLsizeiptr)length);
+    if(length > 0)
+      GL.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0, (GLsizeiptr)length);
 
     // restore old bindings
     GL.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
@@ -1772,8 +1773,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
     GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, live.name);
 
     // do the actual copy
-    GL.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0,
-                           (GLsizeiptr)initial.bufferLength);
+    if(initial.bufferLength > 0)
+      GL.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0,
+                             (GLsizeiptr)initial.bufferLength);
 
     // restore old bindings
     GL.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
