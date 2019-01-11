@@ -133,6 +133,9 @@
     <ClCompile Include="vk_next_chains.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="cpp_codec\vk_cpp_codec_state.cpp">
+      <Filter>C++ Codec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
@@ -219,6 +222,9 @@
     <ClInclude Include="official\vulkan_fuchsia.h">
       <Filter>official</Filter>
     </ClInclude>
+    <ClInclude Include="cpp_codec\vk_cpp_codec_state.h">
+      <Filter>C++ Codec</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="OS">
@@ -250,6 +256,9 @@
     </Filter>
     <Filter Include="PCH">
       <UniqueIdentifier>{356d20c5-9ffd-4c8d-86cc-4e674104f275}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C++ Codec">
+      <UniqueIdentifier>{f5b8428d-7cad-413c-883f-3b93af48a786}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

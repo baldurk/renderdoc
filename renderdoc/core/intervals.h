@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <map>
 
+#include "common/common.h"
+
 template <typename T>
 struct Intervals;
 

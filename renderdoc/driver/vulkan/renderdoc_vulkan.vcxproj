@@ -99,6 +99,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cpp_codec\vk_cpp_codec_state.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -157,6 +158,7 @@
     <ClCompile Include="wrappers\vk_wsi_funcs.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cpp_codec\vk_cpp_codec_state.h" />
     <ClInclude Include="official\vk_layer.h" />
     <ClInclude Include="official\vk_layer_dispatch_table.h" />
     <ClInclude Include="official\vk_platform.h" />
