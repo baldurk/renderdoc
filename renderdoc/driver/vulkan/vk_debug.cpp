@@ -526,7 +526,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     rm->SetInternalResource(GetResID(m_DummyStencilImage[1]));
 
-    VkMemoryRequirements mrq[2] = {0};
+    VkMemoryRequirements mrq[2] = {};
     driver->vkGetImageMemoryRequirements(driver->GetDev(), m_DummyStencilImage[0], &mrq[0]);
     driver->vkGetImageMemoryRequirements(driver->GetDev(), m_DummyStencilImage[1], &mrq[1]);
 
