@@ -33,8 +33,12 @@ struct D3D12DrawcallTreeNode
 {
   D3D12DrawcallTreeNode() {}
   explicit D3D12DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
+  D3D12DrawcallTreeNode(const D3D12DrawcallTreeNode &other) { *this = other; }
+  ~D3D12DrawcallTreeNode() { SAFE_DELETE(state); }
   DrawcallDescription draw;
   vector<D3D12DrawcallTreeNode> children;
+
+  D3D12RenderState *state = NULL;
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
@@ -43,6 +47,22 @@ struct D3D12DrawcallTreeNode
   D3D12DrawcallTreeNode &operator=(const DrawcallDescription &d)
   {
     *this = D3D12DrawcallTreeNode(d);
+    return *this;
+  }
+
+  D3D12DrawcallTreeNode &operator=(const D3D12DrawcallTreeNode &d)
+  {
+    draw = d.draw;
+    children = d.children;
+
+    if(d.state)
+      state = new D3D12RenderState(*d.state);
+    else
+      state = NULL;
+
+    resourceUsage = d.resourceUsage;
+
+    executedCmds = d.executedCmds;
     return *this;
   }
 
@@ -348,6 +368,6 @@ struct D3D12CommandData
 
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage = true);
   void AddEvent();
-  void AddUsage(D3D12DrawcallTreeNode &drawNode);
+  void AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
 };

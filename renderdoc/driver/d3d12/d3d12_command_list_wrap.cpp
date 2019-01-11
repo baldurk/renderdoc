@@ -3332,6 +3332,8 @@ void WrappedID3D12GraphicsCommandList2::ReserveExecuteIndirect(ID3D12GraphicsCom
           // add dummy event and drawcall
           m_Cmd->AddEvent();
           m_Cmd->AddDrawcall(DrawcallDescription(), true);
+          m_Cmd->GetDrawcallStack().back()->children.back().state =
+              new D3D12RenderState(cmdInfo.state);
           cmdInfo.curEventID++;
           break;
         case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
@@ -3416,6 +3418,10 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
   idx++;
   eid++;
 
+  RDCASSERT(draws[idx].state);
+
+  D3D12RenderState state = *draws[idx].state;
+
   SDChunk *baseChunk = m_Cmd->m_StructuredFile->chunks[draws[idx].draw.events[0].chunkIndex];
 
   for(uint32_t i = 0; i < count; i++)
@@ -3485,7 +3491,7 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             // assign the draw's EID
             eid = curDraw.eventId;
 
-            m_Cmd->AddUsage(draws[idx]);
+            m_Cmd->AddUsage(state, draws[idx]);
 
             // advance
             idx++;
@@ -3518,7 +3524,7 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             // assign the draw's EID
             eid = curDraw.eventId;
 
-            m_Cmd->AddUsage(draws[idx]);
+            m_Cmd->AddUsage(state, draws[idx]);
 
             // advance
             idx++;
@@ -3548,7 +3554,7 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             // assign the draw's EID
             eid = curDraw.eventId;
 
-            m_Cmd->AddUsage(draws[idx]);
+            m_Cmd->AddUsage(state, draws[idx]);
 
             // advance
             idx++;
@@ -3565,6 +3571,14 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants()", i, a);
 
             structuriser.Serialise("Values", data32, arg.Constant.Num32BitValuesToSet);
+
+            if(arg.Constant.RootParameterIndex < state.graphics.sigelems.size())
+              state.graphics.sigelems[arg.Constant.RootParameterIndex].constants.assign(
+                  data32, data32 + arg.Constant.Num32BitValuesToSet);
+
+            if(arg.Constant.RootParameterIndex < state.compute.sigelems.size())
+              state.compute.sigelems[arg.Constant.RootParameterIndex].constants.assign(
+                  data32, data32 + arg.Constant.Num32BitValuesToSet);
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -3584,6 +3598,14 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             RDCASSERT(res);
             if(res)
               vb->BufferLocation = res->GetGPUVirtualAddress() + offs;
+
+            if(arg.VertexBuffer.Slot >= state.vbuffers.size())
+              state.vbuffers.resize(arg.VertexBuffer.Slot + 1);
+
+            state.vbuffers[arg.VertexBuffer.Slot].buf = id;
+            state.vbuffers[arg.VertexBuffer.Slot].offs = offs;
+            if(res)
+              state.vbuffers[arg.VertexBuffer.Slot].size = UINT(res->GetDesc().Width - offs);
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
 
@@ -3607,6 +3629,11 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             RDCASSERT(res);
             if(res)
               ib->BufferLocation = res->GetGPUVirtualAddress() + offs;
+
+            state.ibuffer.buf = id;
+            state.ibuffer.offs = offs;
+            if(res)
+              state.ibuffer.size = UINT(res->GetDesc().Width - offs);
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
 
@@ -3632,6 +3659,20 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             RDCASSERT(res);
             if(res)
               *addr = res->GetGPUVirtualAddress() + offs;
+
+            // ConstantBufferView, ShaderResourceView and UnorderedAccessView all have one member -
+            // RootParameterIndex
+            if(arg.ConstantBufferView.RootParameterIndex < state.graphics.sigelems.size())
+            {
+              state.graphics.sigelems[arg.ConstantBufferView.RootParameterIndex].id = id;
+              state.graphics.sigelems[arg.ConstantBufferView.RootParameterIndex].offset = offs;
+            }
+
+            if(arg.ConstantBufferView.RootParameterIndex < state.compute.sigelems.size())
+            {
+              state.compute.sigelems[arg.ConstantBufferView.RootParameterIndex].id = id;
+              state.compute.sigelems[arg.ConstantBufferView.RootParameterIndex].offset = offs;
+            }
 
             const char *viewTypeStr = "?";
 

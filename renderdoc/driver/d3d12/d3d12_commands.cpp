@@ -1305,11 +1305,10 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, 
   drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(EID, usage)));
 }
 
-void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
+void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode)
 {
   DrawcallDescription &d = drawNode.draw;
 
-  const D3D12RenderState &state = m_BakedCmdListInfo[m_LastCmdListID].state;
   uint32_t e = d.eventId;
 
   DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
@@ -1558,7 +1557,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
     node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
 
     if(m_LastCmdListID != ResourceId() && addUsage)
-      AddUsage(node);
+      AddUsage(m_BakedCmdListInfo[m_LastCmdListID].state, node);
 
     node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
     GetDrawcallStack().back()->children.push_back(node);
