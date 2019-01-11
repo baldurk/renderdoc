@@ -3604,8 +3604,8 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
 
             state.vbuffers[arg.VertexBuffer.Slot].buf = id;
             state.vbuffers[arg.VertexBuffer.Slot].offs = offs;
-            if(res)
-              state.vbuffers[arg.VertexBuffer.Slot].size = UINT(res->GetDesc().Width - offs);
+            state.vbuffers[arg.VertexBuffer.Slot].size = vb->SizeInBytes;
+            state.vbuffers[arg.VertexBuffer.Slot].stride = vb->StrideInBytes;
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
 
@@ -3632,8 +3632,8 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
 
             state.ibuffer.buf = id;
             state.ibuffer.offs = offs;
-            if(res)
-              state.ibuffer.size = UINT(res->GetDesc().Width - offs);
+            state.ibuffer.size = ib->SizeInBytes;
+            state.ibuffer.bytewidth = ib->Format == DXGI_FORMAT_R32_UINT ? 4 : 2;
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
 
