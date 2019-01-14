@@ -167,6 +167,7 @@
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
     <ClCompile Include="gl\gl_midframe_context_create.cpp" />
+    <ClCompile Include="gl\gl_mip_gen_rt.cpp" />
     <ClCompile Include="gl\gl_multi_window.cpp" />
     <ClCompile Include="gl\gl_overlay_test.cpp" />
     <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp" />

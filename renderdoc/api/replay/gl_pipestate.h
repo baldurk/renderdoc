@@ -212,7 +212,7 @@ struct Texture
 
   bool operator==(const Texture &o) const
   {
-    return resourceId == o.resourceId && firstSlice == o.firstSlice && firstMip == o.firstMip &&
+    return resourceId == o.resourceId && firstMip == o.firstMip && numMips == o.numMips &&
            type == o.type && swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] &&
            swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] &&
            depthReadChannel == o.depthReadChannel;
@@ -221,10 +221,10 @@ struct Texture
   {
     if(!(resourceId == o.resourceId))
       return resourceId < o.resourceId;
-    if(!(firstSlice == o.firstSlice))
-      return firstSlice < o.firstSlice;
     if(!(firstMip == o.firstMip))
       return firstMip < o.firstMip;
+    if(!(numMips == o.numMips))
+      return numMips < o.numMips;
     if(!(type == o.type))
       return type < o.type;
     if(!(swizzle[0] == o.swizzle[0]))
@@ -241,10 +241,10 @@ struct Texture
   }
   DOCUMENT("The :class:`ResourceId` of the underlying resource the view refers to.");
   ResourceId resourceId;
-  DOCUMENT("Valid for texture arrays or 3D textures - the first slice available.");
-  uint32_t firstSlice = 0;
-  DOCUMENT("Valid for textures - the highest mip that is available.");
+  DOCUMENT("Valid for textures - the first mip that is available.");
   uint32_t firstMip = 0;
+  DOCUMENT("Valid for textures - the number of mips that are available.");
+  uint32_t numMips = 0;
   DOCUMENT("The :class:`TextureType` of the texture.");
   TextureType type = TextureType::Unknown;
 

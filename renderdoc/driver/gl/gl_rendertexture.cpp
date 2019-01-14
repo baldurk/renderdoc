@@ -49,6 +49,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(texDetails.internalFormat == eGL_NONE)
     return false;
 
+  CacheTexture(cfg.resourceId);
+
   bool renderbuffer = false;
 
   int intIdx = 0;
@@ -168,7 +170,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   drv.glBindProgramPipeline(0);
   drv.glUseProgram(DebugData.texDisplayProg[intIdx]);
 
-  int numMips = GetNumMips(target, texname, texDetails.width, texDetails.height, texDetails.depth);
+  uint32_t numMips = m_CachedTextures[cfg.resourceId].mips;
 
   GLuint customProgram = 0;
 
@@ -246,18 +248,21 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   // defined as arrays mostly for Coverity code analysis to stay calm about passing
   // them to the *TexParameter* functions
+  GLint baseLevel[4] = {-1};
   GLint maxlevel[4] = {-1};
-  GLint clampmaxlevel[4] = {};
+  GLint forcedparam[4] = {};
 
-  if(cfg.resourceId != DebugData.CustomShaderTexID)
-    clampmaxlevel[0] = GLint(numMips - 1);
-
+  drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
   drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
-  // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
-  if(clampmaxlevel[0] != maxlevel[0] && cfg.resourceId != DebugData.CustomShaderTexID)
+  // ensure texture is mipmap complete and we can view all mips (if the range has been reduced) by
+  // forcing TEXTURE_MAX_LEVEL to cover all valid mips.
+  if(cfg.resourceId != DebugData.CustomShaderTexID)
   {
-    drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, clampmaxlevel);
+    forcedparam[0] = 0;
+    drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, forcedparam);
+    forcedparam[0] = GLint(numMips - 1);
+    drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, forcedparam);
   }
   else
   {
@@ -430,6 +435,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   drv.glBindVertexArray(DebugData.emptyVAO);
   drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+
+  if(baseLevel[0] >= 0)
+    drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
 
   if(maxlevel[0] >= 0)
     drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);

@@ -1071,7 +1071,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
 
         val.resourceId = m_GL->textures[i].resourceId;
         val.firstMip = (int)m_GL->textures[i].firstMip;
-        val.firstSlice = (int)m_GL->textures[i].firstSlice;
+        val.firstSlice = 0;
         val.typeHint = CompType::Typeless;
 
         ret.push_back(BoundResourceArray(key, {val}));

@@ -359,6 +359,9 @@ TextureDescription GLReplay::GetTexture(ResourceId id)
 
 void GLReplay::CacheTexture(ResourceId id)
 {
+  if(m_CachedTextures.find(id) != m_CachedTextures.end())
+    return;
+
   TextureDescription tex = {};
 
   MakeCurrentReplayContext(&m_ReplayCtx);
@@ -1175,7 +1178,8 @@ void GLReplay::SavePipelineState()
       if(tex == 0)
       {
         pipe.textures[unit].resourceId = ResourceId();
-        pipe.textures[unit].firstSlice = 0;
+        pipe.textures[unit].firstMip = 0;
+        pipe.textures[unit].numMips = 1;
         pipe.textures[unit].type = TextureType::Unknown;
         pipe.textures[unit].depthReadChannel = -1;
         pipe.textures[unit].swizzle[0] = TextureSwizzle::Red;
@@ -1197,18 +1201,19 @@ void GLReplay::SavePipelineState()
       }
       else
       {
-        // very bespoke/specific
-        GLint firstSlice = 0, firstMip = 0;
+        GLint firstMip = 0, numMips = 1;
 
-        if(target != eGL_TEXTURE_BUFFER && HasExt[ARB_texture_view])
+        if(target != eGL_TEXTURE_BUFFER)
         {
-          drv.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstMip);
-          drv.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER, &firstSlice);
+          drv.glGetTexParameteriv(target, eGL_TEXTURE_BASE_LEVEL, &firstMip);
+          drv.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &numMips);
+
+          numMips = numMips - firstMip + 1;
         }
 
         pipe.textures[unit].resourceId = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
         pipe.textures[unit].firstMip = (uint32_t)firstMip;
-        pipe.textures[unit].firstSlice = (uint32_t)firstSlice;
+        pipe.textures[unit].numMips = (uint32_t)numMips;
         pipe.textures[unit].type = resType;
 
         pipe.textures[unit].depthReadChannel = -1;
@@ -1461,6 +1466,8 @@ void GLReplay::SavePipelineState()
         pipe.images[i].writeAllowed = true;
       }
       pipe.images[i].imageFormat = MakeResourceFormat(eGL_TEXTURE_2D, rs.Images[i].format);
+
+      CacheTexture(id);
 
       pipe.images[i].type = m_CachedTextures[id].type;
     }

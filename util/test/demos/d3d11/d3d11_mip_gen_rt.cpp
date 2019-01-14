@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Mip_Gen_RT : D3D11GraphicsTest
+struct D3D11_Mip_Gen_RT : D3D11GraphicsTest
 {
   static constexpr const char *Description =
       "Tests rendering from one mip to another to do a downsample chain";
@@ -155,4 +155,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(Mip_Gen_RT);
+REGISTER_TEST(D3D11_Mip_Gen_RT);

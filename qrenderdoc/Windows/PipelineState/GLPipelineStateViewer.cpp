@@ -470,6 +470,28 @@ void GLPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
   node->setForegroundColor(QColor(0, 0, 0));
 }
 
+void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescription *tex,
+                                           uint32_t firstMip, uint32_t numMips)
+{
+  if((tex->mips > 1 && firstMip > 0) || numMips < tex->mips)
+  {
+    QString text;
+
+    if(numMips == 1)
+      text += tr("The texture has %1 mips, the view covers mip %2.").arg(tex->mips).arg(firstMip);
+    else
+      text += tr("The texture has %1 mips, the view covers mips %2-%3.")
+                  .arg(tex->mips)
+                  .arg(firstMip)
+                  .arg(firstMip + numMips - 1);
+
+    node->setToolTip(text);
+
+    node->setBackgroundColor(QColor(127, 255, 212));
+    node->setForegroundColor(QColor(0, 0, 0));
+  }
+}
+
 bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
   const bool showDisabled = ui->showDisabled->isChecked();
@@ -740,6 +762,9 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
             new RDTreeWidgetItem({slotname, r.resourceId, typeName, w, h, d, a, format, QString()});
 
         node->setTag(QVariant::fromValue(r.resourceId));
+
+        if(tex)
+          setViewDetails(node, tex, r.firstMip, r.numMips);
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -1096,6 +1121,9 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
           new RDTreeWidgetItem({binding, slotname, id, dimensions, format, access, QString()});
 
       node->setTag(tag);
+
+      if(im && tex)
+        setViewDetails(node, tex, im->mipLevel, 1);
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1826,7 +1854,11 @@ void GLPipelineStateViewer::setState()
             new RDTreeWidgetItem({i, p, typeName, w, h, d, a, format, QString()});
 
         if(tex)
+        {
+          if(r)
+            setViewDetails(node, tex, r->mipLevel, 1);
           node->setTag(QVariant::fromValue(p));
+        }
 
         if(p == ResourceId())
         {
@@ -1848,9 +1880,15 @@ void GLPipelineStateViewer::setState()
         state.framebuffer.drawFBO.stencilAttachment.resourceId,
     };
 
+    uint32_t dsMips[] = {
+        state.framebuffer.drawFBO.depthAttachment.mipLevel,
+        state.framebuffer.drawFBO.stencilAttachment.mipLevel,
+    };
+
     for(int dsIdx = 0; dsIdx < 2; dsIdx++)
     {
       ResourceId ds = dsObjects[dsIdx];
+      uint32_t mip = dsMips[dsIdx];
 
       bool filledSlot = (ds != ResourceId());
       bool usedSlot = filledSlot;
@@ -1897,7 +1935,10 @@ void GLPipelineStateViewer::setState()
             new RDTreeWidgetItem({slot, ds, typeName, w, h, d, a, format, QString()});
 
         if(tex)
+        {
+          setViewDetails(node, tex, mip, 1);
           node->setTag(QVariant::fromValue(ds));
+        }
 
         if(ds == ResourceId())
           setEmptyRow(node);
@@ -2680,7 +2721,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
           }
         }
 
-        textureRows.push_back({slotname, name, typeName, w, h, d, a, format});
+        textureRows.push_back({slotname, name, typeName, w, h, d, a, format, r.firstMip, r.numMips});
       }
 
       // do sampler
@@ -2939,9 +2980,10 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
     xml.writeCharacters(tr("Textures"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Name"), tr("Type"), tr("Width"), tr("Height"),
-                                   tr("Depth"), tr("Array Size"), tr("Format")},
-                             textureRows);
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Name"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
+              tr("Array Size"), tr("Format"), tr("First Mip"), tr("Num Mips")},
+        textureRows);
   }
 
   {

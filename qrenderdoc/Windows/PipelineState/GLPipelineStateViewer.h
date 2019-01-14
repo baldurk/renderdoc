@@ -105,6 +105,9 @@ private:
 
   bool showNode(bool usedSlot, bool filledSlot);
 
+  void setViewDetails(RDTreeWidgetItem *node, TextureDescription *tex, uint32_t firstMip,
+                      uint32_t numMips);
+
   void exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx);
   void exportHTML(QXmlStreamWriter &xml, const GLPipe::Shader &sh);
   void exportHTML(QXmlStreamWriter &xml, const GLPipe::Feedback &xfb);

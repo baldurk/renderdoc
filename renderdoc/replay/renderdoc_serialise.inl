@@ -1543,8 +1543,8 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GLPipe::Texture &el)
 {
   SERIALISE_MEMBER(resourceId);
-  SERIALISE_MEMBER(firstSlice);
   SERIALISE_MEMBER(firstMip);
+  SERIALISE_MEMBER(numMips);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(swizzle);
   SERIALISE_MEMBER(depthReadChannel);
