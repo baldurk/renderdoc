@@ -4413,7 +4413,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ClearRenderTargetView(
 
         DrawcallDescription draw;
         draw.name = StringFormat::Fmt("ClearRenderTargetView(%f, %f, %f, %f)", ColorRGBA[0],
-                                      ColorRGBA[0], ColorRGBA[0], ColorRGBA[0]);
+                                      ColorRGBA[1], ColorRGBA[2], ColorRGBA[3]);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
 
