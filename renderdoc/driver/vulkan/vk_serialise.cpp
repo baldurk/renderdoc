@@ -517,6 +517,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, VkMemoryDedicatedRequirements)        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO, VkMemoryDedicatedAllocateInfo)       \
                                                                                                       \
+  /* VK_KHR_depth_stencil_resolve */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR,                \
+               VkPhysicalDeviceDepthStencilResolvePropertiesKHR)                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR,                       \
+               VkSubpassDescriptionDepthStencilResolveKHR)                                            \
+                                                                                                      \
   /* VK_KHR_descriptor_update_template */                                                             \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO,                              \
                VkDescriptorUpdateTemplateCreateInfo)                                                  \
@@ -673,6 +679,14 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR,                    \
                VkPhysicalDeviceShaderAtomicInt64FeaturesKHR)                                          \
                                                                                                       \
+  /* VK_KHR_shader_float16_int8 */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR,                           \
+               VkPhysicalDeviceFloat16Int8FeaturesKHR)                                                \
+                                                                                                      \
+  /* VK_KHR_shader_float_controls */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR,                       \
+               VkPhysicalDeviceFloatControlsPropertiesKHR)                                            \
+                                                                                                      \
   /* VK_KHR_shared_presentable_image */                                                               \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,                             \
                VkSharedPresentSurfaceCapabilitiesKHR)                                                 \
@@ -811,16 +825,6 @@ SERIALISE_VK_HANDLES();
                                                                                                       \
   /* VK_GOOGLE_display_timing */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                      \
-                                                                                                      \
-  /* VK_KHR_depth_stencil_resolve */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR)           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR)                  \
-                                                                                                      \
-  /* VK_KHR_shader_float16_int8 */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR)                      \
-                                                                                                      \
-  /* VK_KHR_shader_float_controls */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR)                  \
                                                                                                       \
   /* VK_NV_clip_space_w_scaling */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)               \
@@ -3392,6 +3396,43 @@ void Deserialise(const VkPhysicalDeviceConservativeRasterizationPropertiesEXT &e
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceDepthStencilResolvePropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(supportedDepthResolveModes);
+  SERIALISE_MEMBER(supportedStencilResolveModes);
+  SERIALISE_MEMBER(independentResolveNone);
+  SERIALISE_MEMBER(independentResolve);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceDepthStencilResolvePropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassDescriptionDepthStencilResolveKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(depthResolveMode);
+  SERIALISE_MEMBER(stencilResolveMode);
+  SERIALISE_MEMBER_OPT(pDepthStencilResolveAttachment);
+}
+
+template <>
+void Deserialise(const VkSubpassDescriptionDepthStencilResolveKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPipelineRasterizationConservativeStateCreateInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -5035,6 +5076,55 @@ void Deserialise(const VkPhysicalDeviceShaderAtomicInt64FeaturesKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFloat16Int8FeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderFloat16);
+  SERIALISE_MEMBER(shaderInt8);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFloat16Int8FeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFloatControlsPropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(separateDenormSettings);
+  SERIALISE_MEMBER(separateRoundingModeSettings);
+  SERIALISE_MEMBER(shaderSignedZeroInfNanPreserveFloat16);
+  SERIALISE_MEMBER(shaderSignedZeroInfNanPreserveFloat32);
+  SERIALISE_MEMBER(shaderSignedZeroInfNanPreserveFloat64);
+  SERIALISE_MEMBER(shaderDenormPreserveFloat16);
+  SERIALISE_MEMBER(shaderDenormPreserveFloat32);
+  SERIALISE_MEMBER(shaderDenormPreserveFloat64);
+  SERIALISE_MEMBER(shaderDenormFlushToZeroFloat16);
+  SERIALISE_MEMBER(shaderDenormFlushToZeroFloat32);
+  SERIALISE_MEMBER(shaderDenormFlushToZeroFloat64);
+  SERIALISE_MEMBER(shaderRoundingModeRTEFloat16);
+  SERIALISE_MEMBER(shaderRoundingModeRTEFloat32);
+  SERIALISE_MEMBER(shaderRoundingModeRTEFloat64);
+  SERIALISE_MEMBER(shaderRoundingModeRTZFloat16);
+  SERIALISE_MEMBER(shaderRoundingModeRTZFloat32);
+  SERIALISE_MEMBER(shaderRoundingModeRTZFloat64);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFloatControlsPropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSamplerYcbcrConversionInfo &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO);
@@ -5876,6 +5966,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthStencilResolvePropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDriverPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
@@ -5952,6 +6043,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassBeginInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDependency2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescription2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkSubpassDescriptionDepthStencilResolveKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassEndInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2KHR);

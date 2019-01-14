@@ -327,10 +327,15 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
     swapinfo.images.resize(NumImages);
 
+    VkImageCreateFlags imageFlags = 0;
+
+    if(CreateInfo.flags & VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR)
+      imageFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
     const VkImageCreateInfo imInfo = {
         VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         NULL,
-        0,
+        imageFlags,
         VK_IMAGE_TYPE_2D,
         CreateInfo.imageFormat,
         {CreateInfo.imageExtent.width, CreateInfo.imageExtent.height, 1},

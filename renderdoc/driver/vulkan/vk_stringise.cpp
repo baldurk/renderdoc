@@ -519,6 +519,20 @@ std::string DoStringise(const VkAttachmentDescriptionFlagBits &el)
 }
 
 template <>
+std::string DoStringise(const VkResolveModeFlagBitsKHR &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkResolveModeFlagBitsKHR);
+  {
+    STRINGISE_BITFIELD_VALUE(VK_RESOLVE_MODE_NONE_KHR);
+    STRINGISE_BITFIELD_BIT(VK_RESOLVE_MODE_SAMPLE_ZERO_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_RESOLVE_MODE_AVERAGE_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_RESOLVE_MODE_MIN_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_RESOLVE_MODE_MAX_BIT_KHR);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkSampleCountFlagBits &el)
 {
   BEGIN_BITFIELD_STRINGISE(VkSampleCountFlagBits);
