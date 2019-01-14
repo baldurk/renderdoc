@@ -335,21 +335,19 @@ void GLReplay::InitDebugData()
   if(HasExt[ARB_geometry_shader4])
   {
     GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_trisize_frag), glslBaseVer);
+    GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_trisize_geom), glslBaseVer);
+
+    DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
+
     GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
     GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_mesh_geom), glslBaseVer);
 
     DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
     DebugData.meshgsProg[0] = CreateShaderProgram(vs, fs, gs);
 
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_trisize_frag), glslBaseVer);
-    GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_trisize_geom), glslBaseVer);
-
-    DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
-
     if(HasExt[ARB_gpu_shader_fp64] && HasExt[ARB_vertex_attrib_64bit])
     {
-      GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
-
       std::string extensions =
           "#extension GL_ARB_gpu_shader_fp64 : require\n"
           "#extension GL_ARB_vertex_attrib_64bit : require\n";
