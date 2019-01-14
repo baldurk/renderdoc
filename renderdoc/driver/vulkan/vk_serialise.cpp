@@ -82,7 +82,7 @@ DECL_VKFLAG(VkFormatFeature);
 DECL_VKFLAG(VkImageAspect);
 DECL_VKFLAG(VkImageUsage);
 DECL_VKFLAG(VkImageCreate);
-DECL_VKFLAG_EMPTY(VkImageViewCreate);
+DECL_VKFLAG(VkImageViewCreate);
 DECL_VKFLAG_EMPTY(VkInstanceCreate);
 DECL_VKFLAG(VkFenceCreate);
 DECL_VKFLAG(VkFenceImport);
@@ -112,7 +112,7 @@ DECL_VKFLAG_EMPTY(VkQueryPoolCreate);
 DECL_VKFLAG(VkQueryResult);
 DECL_VKFLAG(VkQueue);
 DECL_VKFLAG_EMPTY(VkRenderPassCreate);
-DECL_VKFLAG_EMPTY(VkSamplerCreate);
+DECL_VKFLAG(VkSamplerCreate);
 DECL_VKFLAG(VkSampleCount);
 DECL_VKFLAG_EMPTY(VkSemaphoreCreate);
 DECL_VKFLAG(VkSemaphoreImport);
@@ -740,6 +740,11 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT)        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT)            \
                                                                                                       \
+  /* VK_EXT_buffer_device_address */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT)                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT)                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT)                          \
+                                                                                                      \
   /* VK_EXT_calibrated_timestamps */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT)                                  \
                                                                                                       \
@@ -759,6 +764,11 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)            \
                                                                                                       \
+  /* VK_EXT_fragment_density_map */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT)            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT)               \
+                                                                                                      \
   /* VK_EXT_hdr_metadata */                                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HDR_METADATA_EXT)                                               \
                                                                                                       \
@@ -776,6 +786,13 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT)           \
                                                                                                       \
+  /* VK_EXT_memory_budget */                                                                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT)                   \
+                                                                                                      \
+  /* VK_EXT_memory_priority */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT)                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT)                              \
+                                                                                                      \
   /* VK_EXT_sample_locations */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT)                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT)                    \
@@ -789,8 +806,21 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_separate_stencil_usage */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT)                            \
                                                                                                       \
+  /* VK_EXT_validation_features */                                                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT)                                        \
+                                                                                                      \
   /* VK_GOOGLE_display_timing */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                      \
+                                                                                                      \
+  /* VK_KHR_depth_stencil_resolve */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR)           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR)                  \
+                                                                                                      \
+  /* VK_KHR_shader_float16_int8 */                                                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR)                      \
+                                                                                                      \
+  /* VK_KHR_shader_float_controls */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR)                  \
                                                                                                       \
   /* VK_NV_clip_space_w_scaling */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)               \

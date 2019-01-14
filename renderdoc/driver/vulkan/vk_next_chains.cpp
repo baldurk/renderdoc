@@ -81,6 +81,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkBindImageMemoryDeviceGroupInfo);                                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO, VkBindImagePlaneMemoryInfo);           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, VkBufferCreateInfo);                             \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,                               \
+              VkBufferDeviceAddressCreateInfoEXT);                                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VkCommandBufferBeginInfo);                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,           \
               VkCommandBufferInheritanceConditionalRenderingInfoEXT);                                \
@@ -136,6 +138,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, VkMemoryAllocateInfo);                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_BARRIER, VkMemoryBarrier);                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, VkMemoryDedicatedRequirements);       \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT, VkMemoryPriorityAllocateInfoEXT); \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2, VkMemoryRequirements2);                       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,                              \
               VkPhysicalDevice16BitStorageFeatures);                                                 \
@@ -143,8 +146,12 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDevice8BitStorageFeaturesKHR);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                            \
               VkPhysicalDeviceASTCDecodeFeaturesEXT);                                                \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,                         \
+              VkPhysicalDeviceBufferAddressFeaturesEXT);                                             \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT,           \
               VkPhysicalDeviceConservativeRasterizationPropertiesEXT);                               \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR,                \
+              VkPhysicalDeviceDepthStencilResolvePropertiesKHR);                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,                               \
               VkPhysicalDeviceDriverPropertiesKHR);                                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO,                                \
@@ -154,13 +161,25 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,                             \
               VkPhysicalDeviceExternalSemaphoreInfo);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, VkPhysicalDeviceFeatures2);              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR,                       \
+              VkPhysicalDeviceFloatControlsPropertiesKHR);                                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR,                           \
+              VkPhysicalDeviceFloat16Int8FeaturesKHR);                                               \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT,                   \
+              VkPhysicalDeviceFragmentDensityMapFeaturesEXT);                                        \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT,                 \
+              VkPhysicalDeviceFragmentDensityMapPropertiesEXT);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES, VkPhysicalDeviceIDProperties);        \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,                                 \
               VkPhysicalDeviceImageFormatInfo2);                                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,                            \
               VkPhysicalDeviceMaintenance3Properties);                                               \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,                        \
+              VkPhysicalDeviceMemoryBudgetPropertiesEXT);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,                                 \
               VkPhysicalDeviceMemoryProperties2);                                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT,                        \
+              VkPhysicalDeviceMemoryPriorityFeaturesEXT);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,                                  \
               VkPhysicalDeviceMultiviewFeatures);                                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES,                                \
@@ -239,6 +258,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2, VkQueueFamilyProperties2);                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, VkRenderPassCreateInfo);                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR, VkRenderPassCreateInfo2KHR);          \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT,                    \
+              VkRenderPassFragmentDensityMapCreateInfoEXT);                                          \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO,                     \
               VkRenderPassInputAttachmentAspectCreateInfo);                                          \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO, VkRenderPassMultiviewCreateInfo); \
@@ -259,6 +280,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO_KHR, VkSubpassBeginInfoKHR);                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR, VkSubpassDependency2KHR);                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR, VkSubpassDescription2KHR);                \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR,                       \
+              VkSubpassDescriptionDepthStencilResolveKHR);                                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_END_INFO_KHR, VkSubpassEndInfoKHR);                          \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR);              \
@@ -266,6 +289,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                            \
               VkTextureLODGatherFormatPropertiesAMD);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT, VkValidationCacheCreateInfoEXT);   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT, VkValidationFeaturesEXT);                   \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO,                            \
                            VkLayerInstanceCreateInfo);                                               \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO, VkLayerDeviceCreateInfo);    \
@@ -303,6 +327,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO, VkBindImageMemoryInfo,                     \
                 UnwrapInPlace(out->image), UnwrapInPlace(out->memory));                              \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, VkBufferMemoryBarrier,                      \
+                UnwrapInPlace(out->buffer));                                                         \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT, VkBufferDeviceAddressInfoEXT,      \
                 UnwrapInPlace(out->buffer));                                                         \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,                                 \
                 VkBufferMemoryRequirementsInfo2, UnwrapInPlace(out->buffer));                        \

@@ -2,7 +2,7 @@
 #define VULKAN_H_ 1
 
 /*
-** Copyright (c) 2015-2018 The Khronos Group Inc.
+** Copyright (c) 2015-2019 The Khronos Group Inc.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -70,7 +70,13 @@
 
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
 #include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
+
+// RenderDoc modification
+// Don't want to depend on Xrandr for this
+//#include <X11/extensions/Xrandr.h>
+
+typedef unsigned int RROutput;
+
 #include "vulkan_xlib_xrandr.h"
 #endif
 

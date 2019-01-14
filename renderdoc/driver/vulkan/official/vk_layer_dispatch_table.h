@@ -575,6 +575,9 @@ typedef struct VkLayerDispatchTable_ {
     // ---- VK_NV_device_diagnostic_checkpoints extension commands
     PFN_vkCmdSetCheckpointNV CmdSetCheckpointNV;
     PFN_vkGetQueueCheckpointDataNV GetQueueCheckpointDataNV;
+
+    // ---- VK_EXT_buffer_device_address extension commands
+    PFN_vkGetBufferDeviceAddressEXT GetBufferDeviceAddressEXT;
 } VkLayerDispatchTable;
 
 
