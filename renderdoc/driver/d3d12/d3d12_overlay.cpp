@@ -86,17 +86,21 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       // Instead move them into an unused space.
       for(size_t i = 0; i < modsig.params.size(); i++)
       {
-        if(modsig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_PIXEL)
+        if(modsig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_PIXEL ||
+           modsig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
         {
+          // use different register spaces for each just in case
+          UINT regSpace = modsig.maxSpaceIndex + modsig.params[i].ShaderVisibility;
+
           if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
           {
-            modsig.params[i].Descriptor.RegisterSpace = modsig.maxSpaceIndex;
+            modsig.params[i].Descriptor.RegisterSpace = regSpace;
           }
           else if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
           {
             for(size_t r = 0; r < modsig.params[i].ranges.size(); r++)
             {
-              modsig.params[i].ranges[r].RegisterSpace = modsig.maxSpaceIndex;
+              modsig.params[i].ranges[r].RegisterSpace = regSpace;
             }
           }
         }
