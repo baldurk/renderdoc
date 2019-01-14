@@ -2000,24 +2000,42 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
   }
 
   if(fmt.compType == CompType::Typeless)
+  {
     ret = GetTypelessFormat(ret);
+  }
   else if(fmt.compType == CompType::Float)
+  {
     ret = GetFloatTypedFormat(ret);
+  }
   else if(fmt.compType == CompType::Depth)
+  {
     ret = GetDepthTypedFormat(ret);
+  }
   else if(fmt.compType == CompType::UNorm)
+  {
     ret = GetUnormTypedFormat(ret);
+  }
   else if(fmt.compType == CompType::SNorm)
+  {
     ret = GetSnormTypedFormat(ret);
+  }
   else if(fmt.compType == CompType::UInt)
+  {
     ret = GetUIntTypedFormat(ret);
+  }
   else if(fmt.compType == CompType::SInt)
+  {
     ret = GetSIntTypedFormat(ret);
-  else
-    return DXGI_FORMAT_UNKNOWN;
-
-  if(fmt.SRGBCorrected())
+  }
+  else if(fmt.compType == CompType::UNormSRGB)
+  {
     ret = GetSRGBFormat(ret);
+  }
+  else
+  {
+    RDCERR("Unexpected component type %x", fmt.compType);
+    return DXGI_FORMAT_UNKNOWN;
+  }
 
   return ret;
 }
@@ -2028,8 +2046,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 
   ret.compCount = ret.compByteWidth = 0;
   ret.compType = CompType::Float;
-
-  ret.SetSRGBCorrected(IsSRGBFormat(fmt));
 
   switch(fmt)
   {
@@ -2249,7 +2265,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_R16G16_FLOAT:
     case DXGI_FORMAT_R32_FLOAT:
     case DXGI_FORMAT_R16_FLOAT: ret.compType = CompType::Float; break;
-    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
     case DXGI_FORMAT_R8G8B8A8_UNORM:
     case DXGI_FORMAT_R16G16B16A16_UNORM:
     case DXGI_FORMAT_R16G16_UNORM:
@@ -2323,8 +2338,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_B5G5R5A1_UNORM:
     case DXGI_FORMAT_B8G8R8A8_UNORM:
     case DXGI_FORMAT_B8G8R8X8_UNORM:
-    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
     case DXGI_FORMAT_R1_UNORM:
     case DXGI_FORMAT_BC1_UNORM:
     case DXGI_FORMAT_BC2_UNORM:
@@ -2332,11 +2345,14 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC4_UNORM:
     case DXGI_FORMAT_BC5_UNORM:
     case DXGI_FORMAT_BC6H_UF16:
-    case DXGI_FORMAT_BC7_UNORM:
+    case DXGI_FORMAT_BC7_UNORM: ret.compType = CompType::UNorm; break;
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
     case DXGI_FORMAT_BC1_UNORM_SRGB:
     case DXGI_FORMAT_BC2_UNORM_SRGB:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
-    case DXGI_FORMAT_BC7_UNORM_SRGB: ret.compType = CompType::UNorm; break;
+    case DXGI_FORMAT_BC7_UNORM_SRGB: ret.compType = CompType::UNormSRGB; break;
 
     case DXGI_FORMAT_UNKNOWN:
     case DXGI_FORMAT_FORCE_UINT: ret.compType = CompType::Typeless; break;
@@ -2593,21 +2609,22 @@ TEST_CASE("DXGI formats", "[format][d3d]")
 
       ResourceFormat fmt = MakeResourceFormat(f);
 
-      DXGI_FORMAT dxgi = MakeDXGIFormat(fmt);
+      DXGI_FORMAT original = f;
+      DXGI_FORMAT reconstructed = MakeDXGIFormat(fmt);
 
       // we are OK with remapping these formats to a single value instead of preserving the view
       // type.
       if(f == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS || f == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT)
       {
-        CHECK(dxgi == DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
+        CHECK(reconstructed == DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
       }
       else if(f == DXGI_FORMAT_R24_UNORM_X8_TYPELESS || f == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
       {
-        CHECK(dxgi == DXGI_FORMAT_D24_UNORM_S8_UINT);
+        CHECK(reconstructed == DXGI_FORMAT_D24_UNORM_S8_UINT);
       }
       else
       {
-        CHECK(dxgi == f);
+        CHECK(reconstructed == original);
       }
     }
   };
@@ -2724,13 +2741,14 @@ TEST_CASE("DXGI formats", "[format][d3d]")
       {
         CompType typeHint = fmt.compType;
 
+        DXGI_FORMAT original = f;
         DXGI_FORMAT typeless = GetTypelessFormat(f);
         DXGI_FORMAT typed = GetTypedFormat(typeless, typeHint);
 
         if(fmt.SRGBCorrected())
           typed = GetSRGBFormat(typed);
 
-        CHECK(f == typed);
+        CHECK(original == typed);
       }
     }
   };

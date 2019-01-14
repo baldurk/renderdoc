@@ -252,17 +252,20 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_BC1_UNORM:
     case DXGI_FORMAT_BC1_UNORM_SRGB:
       special.type = ResourceFormatType::BC1;
-      special.SetSRGBCorrected(format == DXGI_FORMAT_BC1_UNORM_SRGB);
+      special.compType =
+          (format == DXGI_FORMAT_BC1_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
       return special;
     case DXGI_FORMAT_BC2_UNORM:
     case DXGI_FORMAT_BC2_UNORM_SRGB:
       special.type = ResourceFormatType::BC2;
-      special.SetSRGBCorrected(format == DXGI_FORMAT_BC2_UNORM_SRGB);
+      special.compType =
+          (format == DXGI_FORMAT_BC2_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
       return special;
     case DXGI_FORMAT_BC3_UNORM:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
       special.type = ResourceFormatType::BC3;
-      special.SetSRGBCorrected(format == DXGI_FORMAT_BC3_UNORM_SRGB);
+      special.compType =
+          (format == DXGI_FORMAT_BC3_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
       return special;
     case DXGI_FORMAT_BC4_UNORM:
     case DXGI_FORMAT_BC4_SNORM:
@@ -282,7 +285,8 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB:
       special.type = ResourceFormatType::BC7;
-      special.SetSRGBCorrected(format == DXGI_FORMAT_BC7_UNORM_SRGB);
+      special.compType =
+          (format == DXGI_FORMAT_BC7_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
       return special;
     case DXGI_FORMAT_R10G10B10A2_UNORM:
     case DXGI_FORMAT_R10G10B10A2_UINT:
@@ -397,17 +401,16 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       fmt8.compCount = 4;
       return fmt8;
     case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-      fmt8.compType = CompType::UNorm;
-      fmt8.SetSRGBCorrected(true);
+      fmt8.compType = CompType::UNormSRGB;
       fmt8.compCount = 4;
       return fmt8;
     case DXGI_FORMAT_R8G8B8A8_UNORM: fmt8.compCount = 4; return fmt8;
     case DXGI_FORMAT_B8G8R8A8_UNORM:
     case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-      fmt8.compType = CompType::UNorm;
       fmt8.compCount = 4;
       fmt8.SetBGRAOrder(true);
-      fmt8.SetSRGBCorrected(format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
+      fmt8.compType =
+          (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
       return fmt8;
 
     case DXGI_FORMAT_R8G8_UINT:

@@ -105,6 +105,7 @@ std::string DoStringise(const CompType &el)
     STRINGISE_ENUM_CLASS(SScaled);
     STRINGISE_ENUM_CLASS_NAMED(Depth, "Depth/Stencil");
     STRINGISE_ENUM_CLASS(Double);
+    STRINGISE_ENUM_CLASS_NAMED(UNormSRGB, "sRGB");
   }
   END_ENUM_STRINGISE();
 }

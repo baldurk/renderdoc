@@ -225,6 +225,11 @@ DOCUMENT(R"(Represents the component type of a channel in a texture or element i
 .. data:: Double
 
   A double-precision (64-bit) floating point value.
+
+.. data:: UNormSRGB
+
+  Similar to :data:`UNorm` normalised between the minimum and maximum unsigned values to ``0.0`` -
+  ``1.0``, but with an sRGB gamma curve applied.
 )");
 enum class CompType : uint8_t
 {
@@ -238,6 +243,7 @@ enum class CompType : uint8_t
   SScaled,
   Depth,
   Double,
+  UNormSRGB,
 };
 
 DECLARE_REFLECTION_ENUM(CompType);

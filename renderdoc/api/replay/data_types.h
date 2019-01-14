@@ -180,10 +180,12 @@ struct ResourceFormat
 :rtype: ``bool``
 )");
   bool BGRAOrder() const { return (flags & ResourceFormat_BGRA) != 0; }
-  DOCUMENT(R"(:return: ``True`` if the components are SRGB corrected on read and write.
+  DOCUMENT(R"(Equivalent to checking if :data:`compType` is :data:`CompType.UNormSRGB`
+
+:return: ``True`` if the components are SRGB corrected on read and write.
 :rtype: ``bool``
 )");
-  bool SRGBCorrected() const { return (flags & ResourceFormat_SRGB) != 0; }
+  bool SRGBCorrected() const { return compType == CompType::UNormSRGB; }
   DOCUMENT(R"(Get the subsampling rate for a YUV format. Only valid when :data:`type` is
 a YUV format like :attr:`ResourceFormatType.YUV8`.
 
@@ -232,18 +234,6 @@ For other formats, 1 is returned.
       flags &= ~ResourceFormat_BGRA;
   }
 
-  DOCUMENT(R"(Set SRGB correction flag. See :meth:`SRGBCorrected`.
-
-:param bool flag: The new flag value.
-)");
-  void SetSRGBCorrected(bool flag)
-  {
-    if(flag)
-      flags |= ResourceFormat_SRGB;
-    else
-      flags &= ~ResourceFormat_SRGB;
-  }
-
   DOCUMENT(R"(Set YUV subsampling rate. See :meth:`YUVSubsampling`.
 
 The value should be e.g. 444 for 4:4:4 or 422 for 4:2:2. Invalid values will result in 0 being set.
@@ -289,7 +279,6 @@ private:
   enum
   {
     ResourceFormat_BGRA = 0x001,
-    ResourceFormat_SRGB = 0x002,
 
     ResourceFormat_444 = 0x004,
     ResourceFormat_422 = 0x008,

@@ -762,9 +762,6 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
       ret += StringFormat::Fmt("%c%u", comps[i], fmt.compByteWidth * 8);
   }
 
-  if(fmt.SRGBCorrected())
-    return ret + "_SRGB";
-
   switch(fmt.compType)
   {
     case CompType::Typeless: return ret + "_TYPELESS";
@@ -776,6 +773,7 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
     case CompType::SInt: return ret + "_SINT";
     case CompType::UScaled: return ret + "_USCALED";
     case CompType::SScaled: return ret + "_SSCALED";
+    case CompType::UNormSRGB: return ret + "_SRGB";
     case CompType::Depth:
       // we already special-cased depth component type above to be Dx instead of Rx
       return ret;
