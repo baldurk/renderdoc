@@ -133,36 +133,73 @@ static void StripUnwantedLayers(vector<string> &Layers)
   }
 }
 
+static void StripUnwantedFunctions(std::vector<std::string> &Extensions)
+{
+  // strip out any WSI/direct display extensions. We'll add the ones we want for creating windows
+  // on the current platforms below, and we don't replay any of the WSI functionality
+  // directly so these extensions aren't needed
+  for(auto it = Extensions.begin(); it != Extensions.end();)
+  {
+    // remove surface extensions
+    if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
+       *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
+       *it == "VK_MVK_macos_surface " || *it == "VK_KHR_android_surface" ||
+       *it == "VK_KHR_win32_surface")
+    {
+      it = Extensions.erase(it);
+      continue;
+    }
+
+    // remove direct display extensions
+    if(*it == "VK_KHR_display" || *it == "VK_EXT_direct_mode_display" ||
+       *it == "VK_EXT_acquire_xlib_display" || *it == "VK_EXT_display_surface_counter")
+    {
+      it = Extensions.erase(it);
+      continue;
+    }
+
+    ++it;
+  }
+}
+
 ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion)
 {
   m_InitParams = params;
   m_SectionVersion = sectionVersion;
 
-  // PORTABILITY verify that layers/extensions are available
   StripUnwantedLayers(params.Layers);
+  StripUnwantedFunctions(params.Extensions);
 
 #if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
   params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
-  // strip out any WSI/direct display extensions. We'll add the ones we want for creating windows
-  // on the current platforms below, and we don't replay any of the WSI functionality
-  // directly so these extensions aren't needed
-  for(auto it = params.Extensions.begin(); it != params.Extensions.end();)
+  std::set<std::string> supportedLayers;
+
   {
-    if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
-       *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
-       *it == "VK_MVK_macos_surface " || *it == "VK_KHR_android_surface" ||
-       *it == "VK_KHR_win32_surface" || *it == "VK_KHR_display" ||
-       *it == "VK_EXT_direct_mode_display" || *it == "VK_EXT_acquire_xlib_display" ||
-       *it == "VK_EXT_display_surface_counter")
+    uint32_t count = 0;
+    GetInstanceDispatchTable(NULL)->EnumerateInstanceLayerProperties(&count, NULL);
+
+    VkLayerProperties *props = new VkLayerProperties[count];
+    GetInstanceDispatchTable(NULL)->EnumerateInstanceLayerProperties(&count, props);
+
+    for(uint32_t e = 0; e < count; e++)
+      supportedLayers.insert(props[e].layerName);
+
+    SAFE_DELETE_ARRAY(props);
+  }
+
+  // complain about any missing layers, but remove them from the list and continue
+  for(auto it = params.Layers.begin(); it != params.Layers.end();)
+  {
+    if(supportedLayers.find(*it) == supportedLayers.end())
     {
-      it = params.Extensions.erase(it);
+      RDCERR("Capture used layer '%s' which is not available, continuing without it", it->c_str());
+      it = params.Layers.erase(it);
+      continue;
     }
-    else
-    {
-      ++it;
-    }
+
+    ++it;
   }
 
   std::set<string> supportedExtensions;
@@ -179,21 +216,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
     for(uint32_t e = 0; e < count; e++)
       supportedExtensions.insert(props[e].extensionName);
-
-    SAFE_DELETE_ARRAY(props);
-  }
-
-  std::set<string> supportedLayers;
-
-  {
-    uint32_t count = 0;
-    GetInstanceDispatchTable(NULL)->EnumerateInstanceLayerProperties(&count, NULL);
-
-    VkLayerProperties *props = new VkLayerProperties[count];
-    GetInstanceDispatchTable(NULL)->EnumerateInstanceLayerProperties(&count, props);
-
-    for(uint32_t e = 0; e < count; e++)
-      supportedLayers.insert(props[e].layerName);
 
     SAFE_DELETE_ARRAY(props);
   }
@@ -228,16 +250,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     }
   }
 
-  // verify that extensions & layers are supported
-  for(size_t i = 0; i < params.Layers.size(); i++)
-  {
-    if(supportedLayers.find(params.Layers[i]) == supportedLayers.end())
-    {
-      RDCERR("Capture requires layer '%s' which is not supported", params.Layers[i].c_str());
-      return ReplayStatus::APIHardwareUnsupported;
-    }
-  }
-
+  // verify that extensions are supported
   for(size_t i = 0; i < params.Extensions.size(); i++)
   {
     if(supportedExtensions.find(params.Extensions[i]) == supportedExtensions.end())
