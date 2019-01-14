@@ -59,6 +59,7 @@ typedef const char *(EGLAPIENTRY *PFN_eglQueryString)(EGLDisplay dpy, EGLint nam
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 
 #define EGL_HOOKED_SYMBOLS(FUNC)    \
+  FUNC(BindAPI, false);             \
   FUNC(GetProcAddress, false);      \
   FUNC(GetDisplay, false);          \
   FUNC(CreateContext, false);       \
@@ -69,7 +70,6 @@ typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
   FUNC(PostSubBufferNV, true);
 
 #define EGL_NONHOOKED_SYMBOLS(FUNC)  \
-  FUNC(BindAPI, false);              \
   FUNC(ChooseConfig, false);         \
   FUNC(CreatePbufferSurface, false); \
   FUNC(DestroySurface, false);       \

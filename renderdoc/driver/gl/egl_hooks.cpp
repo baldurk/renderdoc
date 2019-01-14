@@ -48,6 +48,8 @@ public:
   EGLHook() : driver(GetEGLPlatform()) {}
   void RegisterHooks();
 
+  RDCDriver activeAPI = RDCDriver::OpenGLES;
+
   void *handle = DEFAULT_HANDLE;
   WrappedOpenGL driver;
   std::set<EGLContext> contexts;
@@ -117,6 +119,24 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDispl
 #endif
 
   return EGL.GetDisplay(display);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglBindAPI_renderdoc_hooked(EGLenum api)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.GetDisplay)
+      EGL.PopulateForReplay();
+
+    return EGL.BindAPI(api);
+  }
+
+  EGLBoolean ret = EGL.BindAPI(api);
+
+  if(ret)
+    eglhook.activeAPI = api == EGL_OPENGL_API ? RDCDriver::OpenGL : RDCDriver::OpenGLES;
+
+  return ret;
 }
 
 HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay display,
@@ -222,7 +242,7 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
   eglhook.configs[ret] = config;
 
   EnableGLHooks();
-  eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
+  eglhook.driver.SetDriverType(eglhook.activeAPI);
   {
     SCOPED_LOCK(glLock);
     eglhook.driver.CreateContext(data, shareContext, init, true, true);
@@ -241,7 +261,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext_renderdoc_hooked(EGLDisplay
     return EGL.DestroyContext(dpy, ctx);
   }
 
-  eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
+  eglhook.driver.SetDriverType(eglhook.activeAPI);
   {
     SCOPED_LOCK(glLock);
     eglhook.driver.DeleteContext(ctx);
@@ -324,7 +344,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
     // we could query this out technically but it's easier to keep a map
     data.egl_cfg = eglhook.configs[ctx];
 
-    eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
+    eglhook.driver.SetDriverType(eglhook.activeAPI);
 
     eglhook.driver.ActivateContext(data);
 
@@ -346,7 +366,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
 
   SCOPED_LOCK(glLock);
 
-  eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
+  eglhook.driver.SetDriverType(eglhook.activeAPI);
   if(!eglhook.driver.UsesVRFrameMarkers())
   {
     GLWindowingData data;
@@ -377,7 +397,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDispla
 
   SCOPED_LOCK(glLock);
 
-  eglhook.driver.SetDriverType(RDCDriver::OpenGLES);
+  eglhook.driver.SetDriverType(eglhook.activeAPI);
   if(!eglhook.driver.UsesVRFrameMarkers())
     eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
 
@@ -434,6 +454,10 @@ eglGetProcAddress_renderdoc_hooked(const char *func)
 // instead find the location fo the function pointer instead of our hook function. For this reason
 // we always refer to the _renderdoc_hooked name, but we still must export the functions under their
 // real names and just forward to the hook implementation.
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglBindAPI(EGLenum api)
+{
+  return eglBindAPI_renderdoc_hooked(api);
+}
 
 HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
 {
@@ -582,7 +606,6 @@ EGL_PASSTHRU_2(EGLBoolean, eglSwapInterval, EGLDisplay, dpy, EGLint, interval)
 
 /* EGL 1.2 */
 
-EGL_PASSTHRU_1(EGLBoolean, eglBindAPI, EGLenum, api)
 EGL_PASSTHRU_0(EGLenum, eglQueryAPI)
 EGL_PASSTHRU_5(EGLSurface, eglCreatePbufferFromClientBuffer, EGLDisplay, dpy, EGLenum, buftype,
                EGLClientBuffer, buffer, EGLConfig, config, const EGLint *, attrib_list)
