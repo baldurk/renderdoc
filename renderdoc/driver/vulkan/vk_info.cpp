@@ -686,9 +686,6 @@ void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,
 void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                      const VkImageCreateInfo *pCreateInfo)
 {
-  view = VK_NULL_HANDLE;
-  altViews[0] = altViews[1] = VK_NULL_HANDLE;
-
   type = pCreateInfo->imageType;
   format = pCreateInfo->format;
   extent = pCreateInfo->extent;

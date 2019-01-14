@@ -352,9 +352,6 @@ private:
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                  CompType typeHint, bool stencil, float *minval, float *maxval);
 
-  void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm,
-                          VulkanCreationInfo::Image &iminfo);
-
   VulkanDebugManager *GetDebugManager();
   VulkanResourceManager *GetResourceManager();
 
@@ -442,6 +439,18 @@ private:
     VkSampler PointSampler = VK_NULL_HANDLE;
   } m_General;
 
+  struct TextureDisplayViews
+  {
+    CompType typeHint;
+    VkFormat castedFormat;    // the format after applying the above type hint
+
+    // for a color/depth-only textures, views[0] is the view and views[1] and views[2] are NULL
+    // for stencil-only textures similarly, views[0] is the view and views[1] and views[2] are NULL
+    // for a depth-stencil texture, views[0] is depth, views[1] is stencil and views[2] is NULL
+    // for a YUV texture, each views[i] is a plane, and the remainder are NULL
+    VkImageView views[3];
+  };
+
   struct TextureRendering
   {
     void Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool);
@@ -474,6 +483,8 @@ private:
     VkDescriptorImageInfo DummyInfos[14] = {};
     VkDeviceMemory DummyMemory = VK_NULL_HANDLE;
     VkSampler DummySampler = VK_NULL_HANDLE;
+
+    std::map<ResourceId, TextureDisplayViews> TextureViews;
 
     VkDescriptorSet GetDescSet()
     {
@@ -613,6 +624,9 @@ private:
   VKPipe::State m_VulkanPipelineState;
 
   DriverInformation m_DriverInfo;
+
+  void CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
+                          CompType typeHint, TextureDisplayViews &views);
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs);
 

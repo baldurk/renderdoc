@@ -354,9 +354,6 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkImageCreateInfo *pCreateInfo);
 
-    VkImageView view;
-    VkImageView altViews[2];
-
     VkImageType type;
     VkFormat format;
     VkExtent3D extent;

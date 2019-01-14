@@ -1707,26 +1707,19 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+  TextureDisplayViews &texviews = m_TexRender.TextureViews[texid];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 
-  VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-  if(IsStencilOnlyFormat(layouts.format))
-  {
-    aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-  }
-  else if(IsDepthOrStencilFormat(layouts.format))
-  {
-    aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  if(!IsStencilFormat(iminfo.format))
+    stencil = false;
 
-    // do a stencil min/max if stencil is selected
-    if(stencil)
-      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-  }
+  CreateTexImageView(liveIm, iminfo, typeHint, texviews);
 
-  CreateTexImageView(aspectFlags, liveIm, iminfo);
+  VkImageView liveImView = texviews.views[0];
 
-  VkImageView liveImView =
-      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.altViews[0] : iminfo.view);
+  // if it's not stencil-only and we're displaying stencil, use view 1
+  if(texviews.castedFormat != VK_FORMAT_S8_UINT && stencil)
+    liveImView = texviews.views[1];
 
   RDCASSERT(liveImView != VK_NULL_HANDLE);
 
@@ -1738,12 +1731,12 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   uint32_t descSetBinding = 0;
   uint32_t intTypeIndex = 0;
 
-  if(IsUIntFormat(iminfo.format))
+  if(IsUIntFormat(texviews.castedFormat))
   {
     descSetBinding = 10;
     intTypeIndex = 1;
   }
-  else if(IsSIntFormat(iminfo.format))
+  else if(IsSIntFormat(texviews.castedFormat))
   {
     descSetBinding = 15;
     intTypeIndex = 2;
@@ -1756,17 +1749,21 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   int textype = 0;
 
   if(iminfo.type == VK_IMAGE_TYPE_1D)
+  {
     textype = RESTYPE_TEX1D;
-  if(iminfo.type == VK_IMAGE_TYPE_3D)
+  }
+  else if(iminfo.type == VK_IMAGE_TYPE_3D)
+  {
     textype = RESTYPE_TEX3D;
-  if(iminfo.type == VK_IMAGE_TYPE_2D)
+  }
+  else if(iminfo.type == VK_IMAGE_TYPE_2D)
   {
     textype = RESTYPE_TEX2D;
     if(iminfo.samples != VK_SAMPLE_COUNT_1_BIT)
       textype = RESTYPE_TEX2DMS;
   }
 
-  if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+  if(stencil)
   {
     descSetBinding = 10;
     intTypeIndex = 1;
@@ -1784,12 +1781,12 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[2]);
 
   VkDescriptorImageInfo altimdesc[2] = {};
-  for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
+  for(uint32_t i = 1; i < GetYUVPlaneCount(texviews.castedFormat); i++)
   {
-    RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
-    altimdesc[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    altimdesc[i].imageView = Unwrap(iminfo.altViews[i]);
-    altimdesc[i].sampler = Unwrap(m_General.PointSampler);
+    RDCASSERT(texviews.views[i] != VK_NULL_HANDLE);
+    altimdesc[i - 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    altimdesc[i - 1].imageView = Unwrap(texviews.views[i]);
+    altimdesc[i - 1].sampler = Unwrap(m_General.PointSampler);
   }
 
   VkWriteDescriptorSet writeSet[] = {
@@ -1813,8 +1810,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
       // YUV secondary planes (if needed)
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 10,
-       0, GetYUVPlaneCount(iminfo.format) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, altimdesc,
-       NULL, NULL},
+       0, GetYUVPlaneCount(texviews.castedFormat) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+       altimdesc, NULL, NULL},
 
       // second pass from tiles to result
       {
@@ -1849,9 +1846,9 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     // don't overwrite YUV texture slots if it's a YUV planar format
     if(write.dstBinding == 10)
     {
-      if(write.dstArrayElement == 0 && GetYUVPlaneCount(iminfo.format) >= 2)
+      if(write.dstArrayElement == 0 && GetYUVPlaneCount(texviews.castedFormat) >= 2)
         continue;
-      if(write.dstArrayElement == 1 && GetYUVPlaneCount(iminfo.format) >= 3)
+      if(write.dstArrayElement == 1 && GetYUVPlaneCount(texviews.castedFormat) >= 3)
         continue;
     }
 
@@ -1882,7 +1879,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   Vec4u YUVDownsampleRate = {};
   Vec4u YUVAChannels = {};
 
-  GetYUVShaderParameters(iminfo.format, YUVDownsampleRate, YUVAChannels);
+  GetYUVShaderParameters(texviews.castedFormat, YUVDownsampleRate, YUVAChannels);
 
   data->HistogramYUVDownsampleRate = YUVDownsampleRate;
   data->HistogramYUVAChannels = YUVAChannels;
@@ -2027,33 +2024,25 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+  TextureDisplayViews &texviews = m_TexRender.TextureViews[texid];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 
-  VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-  if(IsStencilOnlyFormat(layouts.format))
-  {
-    aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-  }
-  else if(IsDepthOrStencilFormat(layouts.format))
-  {
-    aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  bool stencil = false;
+  // detect if stencil is selected
+  if(IsStencilFormat(iminfo.format) && !channels[0] && channels[1] && !channels[2] && !channels[3])
+    stencil = true;
 
-    // detect if stencil is selected
-    if(!channels[0] && channels[1] && !channels[2] && !channels[3])
-      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-  }
-
-  CreateTexImageView(aspectFlags, liveIm, iminfo);
+  CreateTexImageView(liveIm, iminfo, typeHint, texviews);
 
   uint32_t descSetBinding = 0;
   uint32_t intTypeIndex = 0;
 
-  if(IsUIntFormat(iminfo.format))
+  if(IsUIntFormat(texviews.castedFormat))
   {
     descSetBinding = 10;
     intTypeIndex = 1;
   }
-  else if(IsSIntFormat(iminfo.format))
+  else if(IsSIntFormat(texviews.castedFormat))
   {
     descSetBinding = 15;
     intTypeIndex = 2;
@@ -2066,17 +2055,21 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   int textype = 0;
 
   if(iminfo.type == VK_IMAGE_TYPE_1D)
+  {
     textype = RESTYPE_TEX1D;
-  if(iminfo.type == VK_IMAGE_TYPE_3D)
+  }
+  else if(iminfo.type == VK_IMAGE_TYPE_3D)
+  {
     textype = RESTYPE_TEX3D;
-  if(iminfo.type == VK_IMAGE_TYPE_2D)
+  }
+  else if(iminfo.type == VK_IMAGE_TYPE_2D)
   {
     textype = RESTYPE_TEX2D;
     if(iminfo.samples != VK_SAMPLE_COUNT_1_BIT)
       textype = RESTYPE_TEX2DMS;
   }
 
-  if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+  if(stencil)
   {
     descSetBinding = 10;
     intTypeIndex = 1;
@@ -2099,8 +2092,11 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
     return false;
   }
 
-  VkImageView liveImView =
-      (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.altViews[0] : iminfo.view);
+  VkImageView liveImView = texviews.views[0];
+
+  // if it's not stencil-only and we're displaying stencil, use view 1
+  if(stencil && texviews.castedFormat != VK_FORMAT_S8_UINT)
+    liveImView = texviews.views[1];
 
   RDCASSERT(liveImView != VK_NULL_HANDLE);
 
@@ -2115,12 +2111,12 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   m_Histogram.m_HistogramUBO.FillDescriptor(bufdescs[1]);
 
   VkDescriptorImageInfo altimdesc[2] = {};
-  for(uint32_t i = 0; i < GetYUVPlaneCount(iminfo.format) - 1; i++)
+  for(uint32_t i = 1; i < GetYUVPlaneCount(texviews.castedFormat); i++)
   {
-    RDCASSERT(iminfo.altViews[i] != VK_NULL_HANDLE);
-    altimdesc[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    altimdesc[i].imageView = Unwrap(iminfo.altViews[i]);
-    altimdesc[i].sampler = Unwrap(m_General.PointSampler);
+    RDCASSERT(texviews.views[i] != VK_NULL_HANDLE);
+    altimdesc[i - 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    altimdesc[i - 1].imageView = Unwrap(texviews.views[i]);
+    altimdesc[i - 1].sampler = Unwrap(m_General.PointSampler);
   }
 
   VkWriteDescriptorSet writeSet[] = {
@@ -2143,8 +2139,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
        descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &imdesc, NULL, NULL},
       // YUV secondary planes (if needed)
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_Histogram.m_HistogramDescSet[0]), 10,
-       0, GetYUVPlaneCount(iminfo.format) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, altimdesc,
-       NULL, NULL},
+       0, GetYUVPlaneCount(texviews.castedFormat) - 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+       altimdesc, NULL, NULL},
   };
 
   vector<VkWriteDescriptorSet> writeSets;
@@ -2165,9 +2161,9 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
     // don't overwrite YUV texture slots if it's a YUV planar format
     if(write.dstBinding == 10)
     {
-      if(write.dstArrayElement == 0 && GetYUVPlaneCount(iminfo.format) >= 2)
+      if(write.dstArrayElement == 0 && GetYUVPlaneCount(texviews.castedFormat) >= 2)
         continue;
-      if(write.dstArrayElement == 1 && GetYUVPlaneCount(iminfo.format) >= 3)
+      if(write.dstArrayElement == 1 && GetYUVPlaneCount(texviews.castedFormat) >= 3)
         continue;
     }
 
@@ -2214,7 +2210,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   Vec4u YUVDownsampleRate = {};
   Vec4u YUVAChannels = {};
 
-  GetYUVShaderParameters(iminfo.format, YUVDownsampleRate, YUVAChannels);
+  GetYUVShaderParameters(texviews.castedFormat, YUVDownsampleRate, YUVAChannels);
 
   data->HistogramYUVDownsampleRate = YUVDownsampleRate;
   data->HistogramYUVAChannels = YUVAChannels;
