@@ -413,7 +413,9 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     {
       RDCERR("RenderDoc does not support instance extension '%s'.",
              modifiedCreateInfo.ppEnabledExtensionNames[i]);
-      RDCERR("File an issue on github to request support: https://github.com/baldurk/renderdoc");
+      RDCERR(
+          "For KHR/EXT extensions file an issue on github to request support: "
+          "https://github.com/baldurk/renderdoc");
 
       // see if any debug report callbacks were passed in the pNext chain
       VkDebugReportCallbackCreateInfoEXT *report =
@@ -1934,6 +1936,20 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
                                        const VkAllocationCallbacks *pAllocator, VkDevice *pDevice)
 {
   VkDeviceCreateInfo createInfo = *pCreateInfo;
+
+  for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
+  {
+    if(!IsSupportedExtension(createInfo.ppEnabledExtensionNames[i]))
+    {
+      RDCERR("RenderDoc does not support device extension '%s'.",
+             createInfo.ppEnabledExtensionNames[i]);
+      RDCERR(
+          "For KHR/EXT extensions file an issue on github to request support: "
+          "https://github.com/baldurk/renderdoc");
+
+      return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+  }
 
   uint32_t qCount = 0;
   VkResult vkr = VK_SUCCESS;
