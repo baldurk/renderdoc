@@ -92,6 +92,7 @@ private slots:
 
   void on_saveSettings_clicked();
   void on_loadSettings_clicked();
+  void on_loadLastCapture_clicked();
 
   void on_launch_clicked();
   void on_close_clicked();
@@ -118,6 +119,11 @@ private:
   bool m_Inject;
   void fillProcessList();
   void initWarning(RDLabel *label);
+
+  QString mostRecentFilename();
+
+  void PopulateMostRecent();
+  CaptureSettings LoadSettingsFromDisk(const rdcstr &filename);
 
   void CheckAndroidSetup(QString &filename);
   AndroidFlags m_AndroidFlags;

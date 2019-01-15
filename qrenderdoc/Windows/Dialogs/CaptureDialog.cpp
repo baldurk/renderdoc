@@ -92,6 +92,32 @@ void CaptureDialog::initWarning(RDLabel *warning)
   warning->setVisible(false);
 }
 
+QString CaptureDialog::mostRecentFilename()
+{
+  return configFilePath(lit("most_recent.cap"));
+}
+
+void CaptureDialog::PopulateMostRecent()
+{
+  QString filename = mostRecentFilename();
+
+  if(QFile::exists(filename))
+  {
+    CaptureSettings settings = LoadSettingsFromDisk(filename);
+
+    if(!settings.executable.isEmpty())
+    {
+      ui->loadLastCapture->setEnabled(true);
+      ui->loadLastCapture->setText(
+          tr("Load Last Settings - %1").arg(QFileInfo(QString(settings.executable)).completeBaseName()));
+      return;
+    }
+  }
+
+  ui->loadLastCapture->setEnabled(false);
+  ui->loadLastCapture->setText(tr("Load Last Settings"));
+}
+
 CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
                              OnInjectMethod injectCallback, MainWindow *main, QWidget *parent)
     : QFrame(parent), ui(new Ui::CaptureDialog), m_Ctx(ctx), m_Main(main)
@@ -167,6 +193,8 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
   SetSettings(CaptureSettings());
 
   UpdateGlobalHook();
+
+  PopulateMostRecent();
 }
 
 CaptureDialog::~CaptureDialog()
@@ -836,6 +864,11 @@ void CaptureDialog::on_loadSettings_clicked()
   }
 }
 
+void CaptureDialog::on_loadLastCapture_clicked()
+{
+  LoadSettings(mostRecentFilename());
+}
+
 void CaptureDialog::on_launch_clicked()
 {
   TriggerCapture();
@@ -1004,6 +1037,11 @@ void CaptureDialog::SetCommandLine(const rdcstr &cmd)
 
 void CaptureDialog::LoadSettings(const rdcstr &filename)
 {
+  SetSettings(LoadSettingsFromDisk(filename));
+}
+
+CaptureSettings CaptureDialog::LoadSettingsFromDisk(const rdcstr &filename)
+{
   QFile f(filename);
   if(f.open(QIODevice::ReadOnly | QIODevice::Text))
   {
@@ -1013,8 +1051,7 @@ void CaptureDialog::LoadSettings(const rdcstr &filename)
 
     if(success)
     {
-      CaptureSettings settings(values[lit("settings")]);
-      SetSettings(settings);
+      return CaptureSettings(values[lit("settings")]);
     }
     else
     {
@@ -1026,6 +1063,8 @@ void CaptureDialog::LoadSettings(const rdcstr &filename)
   {
     RDDialog::critical(this, tr("Error loading config"), tr("Couldn't open path %1.").arg(filename));
   }
+
+  return CaptureSettings();
 }
 
 void CaptureDialog::UpdateGlobalHook()
@@ -1142,6 +1181,10 @@ void CaptureDialog::TriggerCapture()
     }
 
     QString cmdLine = ui->cmdline->text();
+
+    SaveSettings(mostRecentFilename());
+
+    PopulateMostRecent();
 
     m_CaptureCallback(exe, workingDir, cmdLine, Settings().environment, Settings().options,
                       [this](LiveCapture *live) {

@@ -761,6 +761,22 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="loadLastCapture">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Load the most recently used capture settings</string>
+        </property>
+        <property name="text">
+         <string>Load Last Settings</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="buttonsSpace">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
