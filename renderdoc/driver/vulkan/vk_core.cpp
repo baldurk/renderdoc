@@ -1020,6 +1020,7 @@ void WrappedVulkan::FilterToSupportedExtensions(std::vector<VkExtensionPropertie
 }
 
 VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev,
+                                                        const char *pLayerName,
                                                         uint32_t *pPropertyCount,
                                                         VkExtensionProperties *pProperties)
 {
@@ -1027,13 +1028,14 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
   // first fetch the list of extensions ourselves
   uint32_t numExts;
-  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts, NULL);
+  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), pLayerName, &numExts,
+                                                             NULL);
 
   if(vkr != VK_SUCCESS)
     return vkr;
 
   std::vector<VkExtensionProperties> exts(numExts);
-  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts,
+  vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), pLayerName, &numExts,
                                                              &exts[0]);
 
   if(vkr != VK_SUCCESS)
@@ -1048,11 +1050,14 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
   filtered.reserve(exts.size());
   FilterToSupportedExtensions(exts, filtered);
 
-  // now we can add extensions that we provide ourselves (note this isn't sorted, but we
-  // don't have to sort the results, the sorting was just so we could filter optimally).
-  filtered.insert(
-      filtered.end(), &renderdocProvidedDeviceExtensions[0],
-      &renderdocProvidedDeviceExtensions[0] + ARRAY_COUNT(renderdocProvidedDeviceExtensions));
+  if(pLayerName == NULL)
+  {
+    // now we can add extensions that we provide ourselves (note this isn't sorted, but we
+    // don't have to sort the results, the sorting was just so we could filter optimally).
+    filtered.insert(
+        filtered.end(), &renderdocProvidedDeviceExtensions[0],
+        &renderdocProvidedDeviceExtensions[0] + ARRAY_COUNT(renderdocProvidedDeviceExtensions));
+  }
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
                                   pProperties);
@@ -1087,11 +1092,14 @@ VkResult WrappedVulkan::FilterInstanceExtensionProperties(
 
   FilterToSupportedExtensions(exts, filtered);
 
-  // now we can add extensions that we provide ourselves (note this isn't sorted, but we
-  // don't have to sort the results, the sorting was just so we could filter optimally).
-  filtered.insert(
-      filtered.end(), &renderdocProvidedInstanceExtensions[0],
-      &renderdocProvidedInstanceExtensions[0] + ARRAY_COUNT(renderdocProvidedInstanceExtensions));
+  if(pLayerName == NULL)
+  {
+    // now we can add extensions that we provide ourselves (note this isn't sorted, but we
+    // don't have to sort the results, the sorting was just so we could filter optimally).
+    filtered.insert(
+        filtered.end(), &renderdocProvidedInstanceExtensions[0],
+        &renderdocProvidedInstanceExtensions[0] + ARRAY_COUNT(renderdocProvidedInstanceExtensions));
+  }
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
                                   pProperties);

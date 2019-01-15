@@ -240,7 +240,7 @@ VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(VkPhysicalDevice ph
   // This is our chance to filter out any reported extensions that we don't support
   if(physicalDevice != NULL && (pLayerName == NULL || strcmp(pLayerName, RENDERDOC_VULKAN_LAYER_NAME)))
     return CoreDisp(physicalDevice)
-        ->FilterDeviceExtensionProperties(physicalDevice, pPropertyCount, pProperties);
+        ->FilterDeviceExtensionProperties(physicalDevice, pLayerName, pPropertyCount, pProperties);
 
   return WrappedVulkan::GetProvidedDeviceExtensionProperties(pPropertyCount, pProperties);
 }

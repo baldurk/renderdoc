@@ -958,7 +958,8 @@ public:
   static bool IsSupportedExtension(const char *extName);
   static void FilterToSupportedExtensions(std::vector<VkExtensionProperties> &exts,
                                           std::vector<VkExtensionProperties> &filtered);
-  VkResult FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount,
+  VkResult FilterDeviceExtensionProperties(VkPhysicalDevice physDev, const char *pLayerName,
+                                           uint32_t *pPropertyCount,
                                            VkExtensionProperties *pProperties);
   static VkResult FilterInstanceExtensionProperties(
       const VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
