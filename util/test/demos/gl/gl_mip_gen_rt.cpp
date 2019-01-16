@@ -29,20 +29,8 @@ struct GL_Mip_Gen_RT : OpenGLGraphicsTest
   static constexpr const char *Description =
       "Tests rendering from one mip to another to do a downsample chain";
 
-  std::string common = R"EOSHADER(
-
-#version 420 core
-
-#define v2f v2f_block \
-{                     \
-	vec4 pos;           \
-	vec4 col;           \
-	vec4 uv;            \
-}
-
-)EOSHADER";
-
   std::string vertex = R"EOSHADER(
+#version 420 core
 
 out vec2 uv;
 
@@ -58,6 +46,7 @@ void main()
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
+#version 420 core
 
 in vec2 uv;
 
@@ -94,7 +83,7 @@ void main()
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    GLuint program = MakeProgram(common + vertex, common + pixel);
+    GLuint program = MakeProgram(vertex, pixel);
     glObjectLabel(GL_PROGRAM, program, -1, "Full program");
 
     GLuint tex = MakeTexture();
