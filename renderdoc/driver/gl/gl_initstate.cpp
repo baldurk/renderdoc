@@ -1187,10 +1187,17 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
       GLuint initProg = GL.glCreateProgram();
 
+      uint32_t numShaders = 0;
+
       std::vector<std::string> vertexOutputs;
-      for(size_t i = 0; i < details.shaders.size(); i++)
+      for(size_t i = 0; i < ARRAY_COUNT(details.stageShaders); i++)
       {
-        const auto &shadDetails = m_Driver->m_Shaders[details.shaders[i]];
+        if(details.stageShaders[i] == ResourceId())
+          continue;
+
+        numShaders++;
+
+        const auto &shadDetails = m_Driver->m_Shaders[details.stageShaders[i]];
 
         GLuint shad = GL.glCreateShader(shadDetails.type);
 
@@ -1282,7 +1289,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
       if(status == 0)
       {
-        if(details.shaders.size() == 0)
+        if(numShaders == 0)
         {
           RDCWARN("No shaders attached to program");
         }
