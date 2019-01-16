@@ -432,7 +432,12 @@ struct GLPushPopState
   GLenum ActiveTexture;
   GLuint tex0;
   GLuint arraybuf;
-  GLuint idxubo[3];
+  struct IndexedBuffer
+  {
+    GLuint buf;
+    GLuint64 offs;
+    GLuint64 size;
+  } idxubo[3];
   GLuint ubo;
   GLuint prog;
   GLuint pipe;

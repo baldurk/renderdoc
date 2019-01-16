@@ -944,9 +944,12 @@ void GLPushPopState::Push(bool modern)
     // the non-indexed bind is separate from the indexed binds
     GL.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&ubo);
 
-    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&idxubo[0]);
-    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint *)&idxubo[1]);
-    GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint *)&idxubo[2]);
+    for(size_t i = 0; i < ARRAY_COUNT(idxubo); i++)
+    {
+      GL.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, (GLuint)i, (GLint *)&idxubo[i].buf);
+      GL.glGetInteger64i_v(eGL_UNIFORM_BUFFER_START, (GLuint)i, (GLint64 *)&idxubo[i].offs);
+      GL.glGetInteger64i_v(eGL_UNIFORM_BUFFER_SIZE, (GLuint)i, (GLint64 *)&idxubo[i].size);
+    }
 
     GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
   }
@@ -1083,9 +1086,9 @@ void GLPushPopState::Pop(bool modern)
 
   if(modern)
   {
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, idxubo[0]);
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, idxubo[1]);
-    GL.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, idxubo[2]);
+    for(size_t i = 0; i < ARRAY_COUNT(idxubo); i++)
+      GL.glBindBufferRange(eGL_UNIFORM_BUFFER, (GLuint)i, idxubo[i].buf, (GLintptr)idxubo[i].offs,
+                           (GLsizeiptr)idxubo[i].size);
 
     GL.glBindBuffer(eGL_UNIFORM_BUFFER, ubo);
 
