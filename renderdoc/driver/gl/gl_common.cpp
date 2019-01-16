@@ -1141,6 +1141,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x1D)
     return true;
 
+  // 0x1E -> 0x1F - added initial states for samplers that are modified a lot
+  if(ver == 0x1E)
+    return true;
+
   return false;
 }
 

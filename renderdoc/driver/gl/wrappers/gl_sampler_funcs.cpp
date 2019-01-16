@@ -273,13 +273,26 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
 
   if(IsCaptureMode(m_State))
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler));
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       IsBackgroundCapturing(m_State))
+      return;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSamplerParameteri(ser, sampler, pname, param);
 
     if(IsBackgroundCapturing(m_State))
     {
-      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 20)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
     }
     else
     {
@@ -320,13 +333,26 @@ void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat pa
 
   if(IsCaptureMode(m_State))
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler));
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       IsBackgroundCapturing(m_State))
+      return;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSamplerParameterf(ser, sampler, pname, param);
 
     if(IsBackgroundCapturing(m_State))
     {
-      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 20)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
     }
     else
     {
@@ -368,13 +394,26 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
 
   if(IsCaptureMode(m_State))
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler));
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       IsBackgroundCapturing(m_State))
+      return;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSamplerParameteriv(ser, sampler, pname, params);
 
     if(IsBackgroundCapturing(m_State))
     {
-      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 20)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
     }
     else
     {
@@ -416,13 +455,26 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
 
   if(IsCaptureMode(m_State))
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler));
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       IsBackgroundCapturing(m_State))
+      return;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSamplerParameterfv(ser, sampler, pname, params);
 
     if(IsBackgroundCapturing(m_State))
     {
-      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 20)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
     }
     else
     {
@@ -464,13 +516,26 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
 
   if(IsCaptureMode(m_State))
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler));
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       IsBackgroundCapturing(m_State))
+      return;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSamplerParameterIiv(ser, sampler, pname, params);
 
     if(IsBackgroundCapturing(m_State))
     {
-      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 20)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
     }
     else
     {
@@ -512,13 +577,26 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
 
   if(IsCaptureMode(m_State))
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler));
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       IsBackgroundCapturing(m_State))
+      return;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glSamplerParameterIuiv(ser, sampler, pname, params);
 
     if(IsBackgroundCapturing(m_State))
     {
-      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 20)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
     }
     else
     {

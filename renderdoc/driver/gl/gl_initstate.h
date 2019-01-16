@@ -99,6 +99,20 @@ struct FramebufferInitialData
 
 DECLARE_REFLECTION_STRUCT(FramebufferInitialData);
 
+struct SamplerInitialData
+{
+  bool valid;
+  float border[4];
+  GLenum compareFunc, compareMode;
+  float lodBias;
+  float minLod, maxLod;
+  GLenum minFilter, magFilter;
+  float maxAniso;
+  GLenum wrap[3];
+};
+
+DECLARE_REFLECTION_STRUCT(SamplerInitialData);
+
 struct PipelineInitialData
 {
   bool valid;
@@ -164,6 +178,7 @@ struct GLInitialContents
     VAOInitialData vao;
     FeedbackInitialData xfb;
     FramebufferInitialData fbo;
+    SamplerInitialData samp;
     PipelineInitialData pipe;
     TextureStateInitialData tex;
   };

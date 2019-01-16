@@ -109,6 +109,22 @@ void DoSerialise(SerialiserType &ser, PipelineInitialData &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, SamplerInitialData &el)
+{
+  SERIALISE_MEMBER(valid);
+  SERIALISE_MEMBER(border);
+  SERIALISE_MEMBER(compareFunc);
+  SERIALISE_MEMBER(compareMode);
+  SERIALISE_MEMBER(lodBias);
+  SERIALISE_MEMBER(minLod);
+  SERIALISE_MEMBER(maxLod);
+  SERIALISE_MEMBER(minFilter);
+  SERIALISE_MEMBER(magFilter);
+  SERIALISE_MEMBER(maxAniso);
+  SERIALISE_MEMBER(wrap);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, TextureStateInitialData &el)
 {
   SERIALISE_MEMBER(internalformat);
@@ -286,6 +302,47 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     GL.glGetProgramPipelineiv(res.name, eGL_TESS_CONTROL_SHADER, (GLint *)&data.programs[1].name);
     GL.glGetProgramPipelineiv(res.name, eGL_TESS_EVALUATION_SHADER, (GLint *)&data.programs[2].name);
     GL.glGetProgramPipelineiv(res.name, eGL_COMPUTE_SHADER, (GLint *)&data.programs[5].name);
+  }
+  else if(res.Namespace == eResSampler)
+  {
+    SamplerInitialData &data = initContents.samp;
+
+    RDCASSERT(!data.valid);
+    data.valid = true;
+
+    GLenum activeTexture = eGL_TEXTURE0;
+    GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTexture);
+
+    GL.glActiveTexture(eGL_TEXTURE0);
+
+    GLuint prevsampler = 0;
+    GL.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&prevsampler);
+
+    {
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&data.compareFunc);
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_COMPARE_MODE, (GLint *)&data.compareMode);
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_MIN_FILTER, (GLint *)&data.minFilter);
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_MAG_FILTER, (GLint *)&data.magFilter);
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_WRAP_R, (GLint *)&data.wrap[0]);
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_WRAP_S, (GLint *)&data.wrap[1]);
+      GL.glGetSamplerParameteriv(res.name, eGL_TEXTURE_WRAP_T, (GLint *)&data.wrap[2]);
+      GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_MIN_LOD, &data.minLod);
+      GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_MAX_LOD, &data.maxLod);
+      if(!IsGLES)
+        GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_LOD_BIAS, &data.lodBias);
+
+      // technically border color has been in since GL 1.0, but since this extension was really
+      // early and dovetails nicely with OES_texture_border_color which added both border colors and
+      // clamping, we check it.
+      if(HasExt[ARB_texture_border_clamp])
+        GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_BORDER_COLOR, &data.border[0]);
+      else
+        data.border[0] = data.border[1] = data.border[2] = data.border[3] = 1.0f;
+    }
+
+    GL.glBindSampler(0, prevsampler);
+
+    GL.glActiveTexture(activeTexture);
   }
   else if(res.Namespace == eResFeedback)
   {
@@ -487,6 +544,20 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     }
   }
   else if(res.Namespace == eResProgramPipe)
+  {
+    // queue initial state fetching if we're not on the right context, see above in FBOs for more
+    // explanation of this.
+    ContextPair &ctx = m_Driver->GetCtx();
+    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
+    {
+      m_Driver->QueuePrepareInitialState(res);
+    }
+    else
+    {
+      ContextPrepare_InitialState(res);
+    }
+  }
+  else if(res.Namespace == eResSampler)
   {
     // queue initial state fetching if we're not on the right context, see above in FBOs for more
     // explanation of this.
@@ -1088,6 +1159,11 @@ uint32_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource re
   {
     return sizeof(FramebufferInitialData);
   }
+  else if(res.Namespace == eResSampler)
+  {
+    // reserve some extra size to account for array count
+    return sizeof(SamplerInitialData) + 32;
+  }
   else if(res.Namespace == eResFeedback)
   {
     return sizeof(FeedbackInitialData);
@@ -1671,6 +1747,22 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
       SetInitialContents(Id, initContents);
     }
   }
+  else if(Type == eResSampler)
+  {
+    SamplerInitialData &SamplerState = initContents.samp;
+
+    SERIALISE_ELEMENT(SamplerState);
+
+    SERIALISE_CHECK_READ_ERRORS();
+
+    if(IsReplayingAndReading())
+    {
+      byte *blob = AllocAlignedBuffer(sizeof(SamplerState));
+      memcpy(blob, &SamplerState, sizeof(SamplerState));
+
+      SetInitialContents(Id, initContents);
+    }
+  }
   else if(Type == eResFeedback)
   {
     FeedbackInitialData &TransformFeedbackState = initContents.xfb;
@@ -2178,6 +2270,43 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
 
       GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
       GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
+    }
+  }
+  else if(live.Namespace == eResSampler)
+  {
+    const SamplerInitialData &data = initial.samp;
+
+    if(data.valid)
+    {
+      GLenum activeTexture = eGL_TEXTURE0;
+      GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTexture);
+
+      GL.glActiveTexture(eGL_TEXTURE0);
+
+      GLuint prevsampler = 0;
+      GL.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&prevsampler);
+
+      {
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_COMPARE_FUNC, (GLint)data.compareFunc);
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_COMPARE_MODE, (GLint)data.compareMode);
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_MIN_FILTER, (GLint)data.minFilter);
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_MAG_FILTER, (GLint)data.magFilter);
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_WRAP_R, (GLint)data.wrap[0]);
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_WRAP_S, (GLint)data.wrap[1]);
+        GL.glSamplerParameteri(live.name, eGL_TEXTURE_WRAP_T, (GLint)data.wrap[2]);
+        GL.glSamplerParameterf(live.name, eGL_TEXTURE_MIN_LOD, data.minLod);
+        GL.glSamplerParameterf(live.name, eGL_TEXTURE_MAX_LOD, data.maxLod);
+        if(!IsGLES)
+          GL.glSamplerParameterf(live.name, eGL_TEXTURE_LOD_BIAS, data.lodBias);
+
+        // see fetch in PrepareTextureInitialContents
+        if(HasExt[ARB_texture_border_clamp])
+          GL.glSamplerParameterfv(live.name, eGL_TEXTURE_BORDER_COLOR, &data.border[0]);
+      }
+
+      GL.glBindSampler(0, prevsampler);
+
+      GL.glActiveTexture(activeTexture);
     }
   }
   else if(live.Namespace == eResFeedback)
