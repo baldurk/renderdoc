@@ -2079,6 +2079,8 @@ enum class GLChunk : uint32_t
 
   glBufferStorageEXT,
 
+  CoherentMapWrite,
+
   Max,
 };
 

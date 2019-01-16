@@ -43,6 +43,8 @@ std::string DoStringise(const GLChunk &el)
 
     STRINGISE_ENUM_CLASS_NAMED(ContextConfiguration, "Context Configuration");
 
+    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Coherent Mapped Memory Write");
+
 // re-use list of GL functions as chunks. Many of these will be aliased. This may not appear in the
 // same order as the definition, but that's OK.
 #define StringiseFunction(function, alias) STRINGISE_ENUM_CLASS_NAMED(alias, STRINGIZE(alias));

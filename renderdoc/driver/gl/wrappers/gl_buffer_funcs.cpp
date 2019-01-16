@@ -443,27 +443,6 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
       record->Length = (int32_t)size;
       record->DataInSerialiser = true;
     }
-
-    // We immediately map the whole range with appropriate flags, to be copied into whenever we
-    // need to propogate changes. Note: Coherent buffers are not mapped coherent, but this is
-    // because the user code isn't writing into them anyway and we're inserting invisible sync
-    // points - so there's no need for it to be coherently mapped (and there's no requirement
-    // that a buffer declared as coherent must ALWAYS be mapped as coherent).
-    uint32_t persistentWriteFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT;
-    if((flags & persistentWriteFlags) == persistentWriteFlags)
-    {
-      record->Map.persistentPtr = (byte *)GL.glMapNamedBufferRangeEXT(
-          record->Resource.name, 0, size,
-          GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_PERSISTENT_BIT);
-      RDCASSERT(record->Map.persistentPtr);
-
-      // persistent maps always need both sets of shadow storage, so allocate up front.
-      record->AllocShadowStorage(size);
-
-      // ensure shadow pointers have up to date data for diffing
-      memcpy(record->GetShadowPtr(0), data, size);
-      memcpy(record->GetShadowPtr(1), data, size);
-    }
   }
   else
   {
@@ -487,10 +466,17 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
       record->Map.orphaned = true;
   }
 
+  GLbitfield origflags = flags;
+
+  // if we're persistently writing, we want to be able to read as well, enable that.
+  uint32_t persistentWriteFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT;
+  if((flags & persistentWriteFlags) == persistentWriteFlags)
+    flags |= GL_MAP_READ_BIT;
+
   SERIALISE_TIME_CALL(GL.glNamedBufferStorageEXT(buffer, size, data, flags));
 
   Common_glNamedBufferStorageEXT(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)), size,
-                                 data, flags);
+                                 data, origflags);
 
   SAFE_DELETE_ARRAY(dummy);
 }
@@ -517,11 +503,18 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
       record->Map.orphaned = true;
   }
 
+  GLbitfield origflags = flags;
+
+  // if we're persistently writing, we want to be able to read as well, enable that.
+  uint32_t persistentWriteFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT;
+  if((flags & persistentWriteFlags) == persistentWriteFlags)
+    flags |= GL_MAP_READ_BIT;
+
   SERIALISE_TIME_CALL(GL.glBufferStorage(target, size, data, flags));
 
   if(IsCaptureMode(m_State))
     Common_glNamedBufferStorageEXT(GetCtxData().m_BufferRecord[BufferIdx(target)]->GetResourceID(),
-                                   size, data, flags);
+                                   size, data, origflags);
   else
     RDCERR("Internal buffers should be allocated via dsa interfaces");
 
@@ -1703,35 +1696,33 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * [NB: Since our buffer contents should be perfect at this point, we may not need to worry about
  * non-invalidating maps. Potential future improvement.]
  *
- * At this point, if the map is to be done directly, we pass the parameters onto GL and return
- * the result, marking the map with status GLResourceRecord::Mapped_Ignore_Real. Note that this
- * means we have no idea what happens with the map, and the buffer contents after that are to us
- * undefined.
+ * Read-only maps can similarly be mapped directly because we don't need to intercept them at all.
  *
- * If not, we will be intercepting the map. If it's read-only this is relatively simple to satisfy,
- * as we just need to fetch the current buffer contents and return the appropriately offsetted
- * pointer. [NB: Again our buffer contents should still be perfect here, this fetch may be
- * redundant.] The map status is recorded as GLResourceRecord::Mapped_Read
+ * At this point, if the map is to be done directly, we pass the parameters onto GL and return
+ * the result, marking the map with status GLResourceRecord::Mapped_Direct. Note that this
+ * means we have no idea what happens with the map, and the buffer contents after that are to us
+ * undefined. [NB: this is not true for persistent maps, see below]
  *
  * At this point we are intercepting a map for write, and it depends on whether or not we are
  * capturing a frame or just idle.
  *
- * If idle the handling is relatively simple, we just offset the pointer and return, marking the
- * map as GLResourceRecord::Mapped_Write. Note that here we also increment a counter, and if this
- * counter reaches a high enough number (arbitrary limit), we mark the buffer as high-traffic so
- * that we'll stop intercepting maps and reduce overhead on this buffer.
+ * If idle the handling is relatively simple, we just offset the pointer into our backing store and
+ * return, marking the map as GLResourceRecord::Mapped_Write. Note that here we also increment a
+ * counter, and if this counter reaches a high enough number (arbitrary limit), we mark the buffer
+ * as high-traffic so that we'll stop intercepting maps and reduce overhead on this buffer.
  *
  * If frame capturing it is more complex. The backing store of the buffer must be preserved as it
- * will contain the contents at the start of the frame. Instead we allocate two shadow storage
- * copies on first use. Shadow storage [1] contains the 'current' contents of the buffer -
- * when first allocated, if the map is non-invalidating, it will be filled with the buffer contents
- * at that point. If the map is invalidating, it will be reset to 0xcc to help find bugs caused by
- * leaving valid data behind in invalidated buffer memory.
+ * will contain the contents at the start of the frame. Instead we allocate shadow storage for the
+ * map. shadow[1] contains the contents of the mapped region as of the start of the map.
+ * When first allocated, if the map is non-invalidating, it will be filled with the buffer contents
+ * at that point. If the map is invalidating and we have buffer access verification enabled, it will
+ * be reset to 0xcc to help find bugs caused by leaving valid data behind in invalidated buffer
+ * memory.
  *
- * Shadow buffer [0] is the buffer that is returned to the user code. Every time it is updated
- * with the contents of [1]. This way both buffers are always identical and contain the latest
- * buffer contents. These buffers are used later in unmap, but Map() will return the appropriately
- * offsetted pointer, and mark the map as GLResourceRecord::Mapped_Write.
+ * shadow[0] is the buffer that is returned to the user code. Whenever the same buffer range is
+ * re-mapped shadow[0] is updated with the contents of shadow[1]. This way both buffers are always
+ * identical and contain the latest buffer contents. These buffers are used later in unmap, but
+ * Map() will return the pointer, and mark the map as GLResourceRecord::Mapped_Write.
  *
  *
  * glUnmapNamedBufferEXT:
@@ -1745,27 +1736,26 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * GLResourceRecord::Unmapped is an error case, indicating we haven't had a corresponding Map()
  * call.
  *
- * GLResourceRecord::Mapped_Read is a no-op as we can just discard it, the pointer we returned from
- * Map() was into our backing store.
- *
- * GLResourceRecord::Mapped_Ignore_Real is likewise a no-op as the GL pointer was updated directly
- * by user code, we weren't involved. However if we are now capturing a frame, it indicates a Map()
- * was made before this frame began, so this frame cannot be captured - we will need to try again
- * next frame, where a map will not be allowed to go into GLResourceRecord::Mapped_Ignore_Real.
+ * GLResourceRecord::Mapped_Direct is a case we can't handle for normal maps, as the GL pointer was
+ * updated directly by user code and we weren't involved. However if we hit this case and are
+ * capturing a frame it indicates that a Map() was made before this frame began, so this frame
+ * cannot be captured. We will need to try again next frame where a map will not be allowed to go
+ * into GLResourceRecord::Mapped_Direct.
  *
  * GLResourceRecord::Mapped_Write is the only case that will generate a serialised unmap chunk. If
- * we are idle, then all we need to do is map the 'real' GL buffer, copy across our backing store,
- * and unmap. We only map the range that was modified. Then everything is complete as the user code
- * updated our backing store. If we are capturing a frame, then we go into the serialise function
- * and serialise out a chunk.
+ * we are idle, then all we need to do is map the 'real' GL buffer, copy across our backing store
+ * from shadow[0] where the user was writing, and unmap. We only map the range that was modified.
+ * Then everything is complete as the user code updated our backing store. If we are capturing a
+ * frame, then we go into the serialise function and serialise out a chunk.
  *
  * Finally we set the map status back to GLResourceRecord::Unmapped.
  *
  * When serialising out a map, we serialise the details of the map (which buffer, offset, length)
  * and then for non-invalidating maps of >512 byte buffers we perform a difference compare between
- * the two shadow storage buffers that were set up in glMapNamedBufferRangeEXT. We then serialise
- * out a buffer of the difference segment, and on replay we map and update this segment of the
- * buffer.
+ * the two shadow storage buffers that were set up in glMapNamedBufferRangeEXT. As above, shadow[1]
+ * contains the unmodified data from the start of the map, and shadow[0] contains the potentially
+ * modified data. We then serialise out the difference segment, and on replay we map and update this
+ * segment of the buffer.
  *
  * The reason for finding the actual difference segment is that many maps will be of a large region
  * or even the whole buffer, but only update a small section, perhaps once per drawcall. So
@@ -1785,9 +1775,9 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * discarded. Instead we will serialise out a chunk for each glFlushMappedNamedBufferRangeEXT call.
  * We will also include flush explicit maps along with the others that we choose to map directly
  * when possible - so if we're capturing idle a flush explicit map will go straight to GL and be
- * handled as with GLResourceRecord::Mapped_Ignore_Real above.
+ * handled as with GLResourceRecord::Mapped_Direct above.
  *
- * For this reason, if a map status is GLResourceRecord::Mapped_Ignore_Real then we simply pass the
+ * For this reason, if a map status is GLResourceRecord::Mapped_Direct then we simply pass the
  * flush range along to real GL. Again if we are capturing a frame now, this map has been 'missed'
  * and we must try again next frame to capture. Likewise as with Unmap GLResourceRecord::Unmapped is
  * an error, and for flushing we do not need to consider GLResourceRecord::Mapped_Read (it doesn't
@@ -1815,24 +1805,43 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * performance penalty even when RenderDoc is not used and it is simply the user code using GL
  * directly.
  *
- * The important thing is that persistent maps *must always* be intercepted regardless of
- * circumstance, as in theory they may never be mapped again. We get hints to help us with these
- * maps, as the buffers must have been created with glBufferStorage and must have the matching
- * persistent and optionally coherent bits set in the flags bitfield.
- *
  * Note also that non-coherent maps tend to go hand in hand with flush explicit maps (although this
- * is not guaranteed, it is highly likely).
+ * is not guaranteed, it is highly likely). For this reason they don't need any special handling
+ * aside from noting when a map exists to do an implicit flush when
+ * glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT) is called - see below.
  *
- * Non-coherent mappable buffers are GL-mapped on creation, and remain GL-mapped until their
- * destruction regardless of what user code does. We keep this 'real' GL-mapped buffer around
- * permanently but it is never returned to user code. Instead we handle maps otherwise as above
- * (taking care to always intercept), and return the user a pointer to our backing store. Then every
- * time a map flush happens instead of temporarily mapping and unmapping the GL buffer, we copy into
- * the appropriate place in our persistent map pointer. If an unmap happens and the map wasn't
- * flush-explicit, we copy the mapped region then. In this way we maintain correctness - the copies
- * are "delayed" by the time between user code writing into our memory, and us copying into the real
- * memory. However this is valid as it happens synchronously with a flush, unmap or other event and
- * by definition non-coherent maps aren't visible to the GPU until after those operations.
+ * Similarly, read-only maps are also 'easy' because we can just pass them through directly and
+ * don't need to intercept at all.
+ *
+ * For coherent maps that can be written to, we modify the GL calls to ensure we can read from them
+ * again. We return the GL mapped pointer directly to users so that when we aren't actively
+ * capturing there is little overhead and the user code can run as normal. Our special handling only
+ * needs to kick in when actively frame capturing.
+ *
+ * When frame capturing, we insert an implicit call to PersistentMapMemoryBarrier() over all
+ * coherent maps whenever any GL function is called that could conceivably read from buffer memory.
+ * This is at the very least all draw calls but also any texture calls that could read from a PBO or
+ * other calls. When PersistentMapMemoryBarrier() is called we check to see what has changed and
+ * serialise it - similar in principle to an implicit call to glFlushMappedBufferRange() over the
+ * whole buffer.
+ *
+ * The first time this happens we don't have any data to compare against - because we mapped
+ * directly no shadow storage was allocated. This means the whole buffer is serialised the first
+ * time, as it may have changed from any initial contents. We generate an implicit
+ * glFlushMappedBufferRange call. Every time after that we compare against the shadow storage from
+ * previously, serialise out any changes, and update our shadow storage.
+ *
+ * This is the reason why we make sure all maps can be read from - we compare our shadow storage vs
+ * the actual direct GL pointer and not against any other shadow storage, since the direct GL
+ * pointer is what the application fetched to write into.
+ *
+ * Note that this also involves a behaviour change that affects correctness - a user write to memory
+ * is not visible as soon as the write happens, but only on the next api point where the write could
+ * have an effect. In correct code this should not be a problem as relying on any other behaviour
+ * would be impossible - if you wrote into memory expecting commands in flight to be affected you
+ * could not ensure correct ordering. However, obvious from that description, this is precisely a
+ * race condition bug if user code did do that - which means race condition bugs will be hidden by
+ * the nature of this tracing.
  *
  * There is also the function glMemoryBarrier with bit GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT. This has
  * the effect of acting as if all currently persistent-mapped regions were simultaneously flushed.
@@ -1841,48 +1850,17 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * glFlushMappedNamedBufferRangeEXT() with the appropriate parameters and handling is otherwise
  * identical.
  *
- * The final piece of the puzzle is coherent mapped buffers. Since we must break the coherency
- * carefully (see below), we map coherent buffers as non-coherent at creation time, the same as
- * above.
- *
- * To satisfy the demands of being coherent, we need to transparently propogate any changes between
- * the user written data and the 'real' memory, without any call to intercept - there would be no
- * need to call glMemoryBarrier or glFlushMappedNamedBufferRangeEXT. To do this, we have shadow
- * storage allocated as in the "normal" mapping path all the time, and we insert a manual call to
- * essentially the same code as glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT) in every
- * intercepted function call that could depend on the results of the buffer. We then check if any
- * write/change has happened by comparing to the shadow storage, and if so we perform a manual flush
- * of that changed region and update the shadow storage for next time.
- *
- * This "fake coherency" is the reason we can map the buffer as non-coherent, since we will be
- * performing copies and flushes manually to emulate the coherency to allow our interception in the
- * middle.
- *
- * By definition, there will be *many* of these places where the buffer results could be used, not
- * least any buffer copy, any texture copy (since a texture buffer could be created), any draw or
- * dispatch, etc. At each of these points there will be a cost for each coherent map of checking for
- * changes and it will scale with the size of the buffers. This is a large performance penalty but
- * one that can't be easily avoided. This is another reason why coherent maps should be avoided.
- *
- * Note that this also involves a behaviour change that affects correctness - a user write to memory
- * is not visible as soon as the write happens, but only on the next api point where the write could
- * have an effect. In correct code this should not be a problem as relying on any other behaviour
- * would be impossible - if you wrote into memory expecting commands in flight to be affected you
- * could not ensure correct ordering. However, obvious from that description, this is precisely a
- * race condition bug if user code did do that - which means race condition bugs will be hidden by
- * the nature of this tracing. This is unavoidable without the extreme performance hit of making all
- * coherent maps read-write, and performing a read-back at every sync point to find every change.
- * Which by itself may also hide race conditions anyway.
- *
  *
  * Implementation notes:
  *
  * The record->Map.ptr is the *offsetted* pointer, ie. a pointer to the beginning of the mapped
  * region, at record->Map.offset bytes from the start of the buffer.
  *
- * record->Map.persistentPtr points to the *base* of the buffer, not offsetted by any current map.
+ * Likewise the shadow storage pointers point to the base of the mapped range and not to the base of
+ * the buffer.
  *
- * Likewise the shadow storage pointers point to the base of a buffer-sized allocation each.
+ * Coherent persistent maps have their shadow storage freed at the end of every frame capture, to
+ * ensure it does not hang around and pollute captures after that with stale data.
  *
  ************************************************************************/
 
@@ -1904,6 +1882,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
       record->Map.orphaned = false;
     }
 
+    // are we mapping directly - returning GL's pointer
     bool directMap = false;
 
     // first check if we've already given up on these buffers
@@ -1923,185 +1902,122 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
        IsBackgroundCapturing(m_State))
       directMap = true;
 
-    // read-only persistent maps can also be made directly
-    uint32_t persistentReadFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT;
-    if((access & persistentReadFlags) == persistentReadFlags)
-      directMap = true;
-
-    // persistent maps must ALWAYS be intercepted if they are writeable. if it's a read-only
-    // persistent map we never allocated a persistent pointer so we can skip this
-    if(record->Map.persistentPtr)
-      directMap = false;
-
     bool verifyWrite = RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess;
 
-    // must also intercept to verify writes
-    if(verifyWrite && (access & GL_MAP_WRITE_BIT))
+    bool persistent = false;
+
+    // persistent maps are always made directly
+    if(access & GL_MAP_PERSISTENT_BIT)
+    {
+      // reading must be available
+      access |= GL_MAP_READ_BIT;
+      directMap = true;
+      persistent = true;
+    }
+
+    // must also intercept to verify writes, where possible
+    if(verifyWrite && (access & GL_MAP_WRITE_BIT) && !persistent)
       directMap = false;
 
-    if(directMap)
+    // read-only maps can be mapped directly as well
+    if((access & (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT)) == GL_MAP_READ_BIT)
+      directMap = true;
+
+    // anything which is directly mapped for write becomes dirty/high traffic
+    if(directMap && (access & GL_MAP_WRITE_BIT))
     {
       m_HighTrafficResources.insert(record->GetResourceID());
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     }
 
+    // store the map properties
     record->Map.offset = offset;
     record->Map.length = length;
     record->Map.access = access;
     record->Map.invalidate = invalidateMap;
     record->Map.verifyWrite = verifyWrite;
+    record->Map.persistent = persistent;
 
     // store a list of all persistent writing maps, and subset of all coherent maps
     uint32_t persistentWriteFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT;
     if((access & persistentWriteFlags) == persistentWriteFlags)
     {
-      Atomic::Inc64(&record->Map.persistentMaps);
       m_PersistentMaps.insert(record);
       if(record->Map.access & GL_MAP_COHERENT_BIT)
         m_CoherentMaps.insert(record);
     }
 
-    // if we're doing a direct map, pass onto GL and return
+    // if we're doing a direct map, pass onto GL now and return the pointer
     if(directMap)
     {
       record->Map.ptr = (byte *)GL.glMapNamedBufferRangeEXT(buffer, offset, length, access);
-      record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
+      record->Map.status = GLResourceRecord::Mapped_Direct;
 
       return record->Map.ptr;
     }
 
-    // only squirrel away read-only maps, read-write can just be treated as write-only
-    if((access & (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT)) == GL_MAP_READ_BIT)
-    {
-      byte *ptr = record->GetDataPtr();
-
-      if(record->Map.persistentPtr)
-        ptr = record->GetShadowPtr(0);
-
-      RDCASSERT(ptr);
-
-      ptr += offset;
-
-      GL.glGetNamedBufferSubDataEXT(buffer, offset, length, ptr);
-
-      record->Map.ptr = ptr;
-      record->Map.status = GLResourceRecord::Mapped_Read;
-
-      return ptr;
-    }
-
     // below here, handle write maps to the backing store
-    byte *ptr = record->GetDataPtr();
+    byte *backingStore = record->GetDataPtr();
 
-    RDCASSERT(ptr);
+    // we should have backing store data allocated by either glBufferData or glBufferStorage.
+    RDCASSERT(backingStore);
+
+    record->Map.status = GLResourceRecord::Mapped_Write;
+
+    if(IsActiveCapturing(m_State))
     {
-      // persistent maps get particular handling
-      if(access & GL_MAP_PERSISTENT_BIT)
+      // allocate shadow buffers
+      record->AllocShadowStorage(length);
+
+      // if we're not invalidating, we need the existing contents
+      if(!invalidateMap)
+        GL.glGetNamedBufferSubDataEXT(buffer, offset, length, record->GetShadowPtr(0));
+
+      // copy into second shadow buffer ready for comparison later
+      memcpy(record->GetShadowPtr(1), record->GetShadowPtr(0), length);
+
+      // if we're invalidating, mark the whole range as 0xcc
+      if(invalidateMap && verifyWrite)
       {
-        // persistent pointers are always into the shadow storage, this way we can use the backing
-        // store for 'initial' buffer contents as with any other buffer. We also need to keep a
-        // comparison & modified buffer in case the application calls glMemoryBarrier(..) at any
-        // time.
-
-        // if we're invalidating and verifying, mark the whole range as 0xcc
-        if(invalidateMap && RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
-        {
-          memset(record->GetShadowPtr(0) + offset, 0xcc, length);
-          memset(record->GetShadowPtr(1) + offset, 0xcc, length);
-        }
-
-        record->Map.ptr = ptr = record->GetShadowPtr(0) + offset;
-        record->Map.status = GLResourceRecord::Mapped_Write;
+        memset(record->GetShadowPtr(0), 0xcc, length);
+        memset(record->GetShadowPtr(1), 0xcc, length);
       }
-      else if(IsActiveCapturing(m_State))
+
+      // return to the user our shadow[0] buffer to update, we'll check for differences against
+      // shadow[1] on unmap
+      record->Map.ptr = record->GetShadowPtr(0);
+    }
+    else if(IsBackgroundCapturing(m_State))
+    {
+      // return pointer into backing store so that the user updates it
+      record->Map.ptr = backingStore + offset;
+
+      // if we're verifying writes intercept with shadow storage
+      if(verifyWrite)
       {
-        byte *shadow = (byte *)record->GetShadowPtr(0);
+        // intercept with shadow storage
+        record->AllocShadowStorage(length);
 
-        // if we don't have a shadow pointer, need to allocate & initialise
-        if(shadow == NULL)
-        {
-          GLint buflength;
-          GL.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
+        // if we're not invalidating, we need the existing contents
+        if(!invalidateMap)
+          GL.glGetNamedBufferSubDataEXT(buffer, offset, length, record->GetShadowPtr(0));
+        else
+          memset(record->GetShadowPtr(0), 0xcc, length);
 
-          // allocate our shadow storage
-          record->AllocShadowStorage(buflength);
-          shadow = (byte *)record->GetShadowPtr(0);
-
-          // if we're not invalidating, we need the existing contents
-          if(!invalidateMap)
-          {
-            // need to fetch the whole buffer's contents, not just the mapped range,
-            // as next time we won't re-fetch and might need the rest of the contents
-            if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
-            {
-              // Perhaps we could get these contents from the frame initial state buffer?
-
-              GL.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
-            }
-            else
-            {
-              memcpy(shadow, record->GetDataPtr(), buflength);
-            }
-          }
-
-          // copy into second shadow buffer ready for comparison later
-          memcpy(record->GetShadowPtr(1), shadow, buflength);
-        }
-
-        // if we're invalidating, mark the whole range as 0xcc
-        if(invalidateMap && RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
-        {
-          memset(shadow + offset, 0xcc, length);
-          memset(record->GetShadowPtr(1) + offset, 0xcc, length);
-        }
-
-        record->Map.ptr = ptr = shadow + offset;
-        record->Map.status = GLResourceRecord::Mapped_Write;
+        record->Map.ptr = record->GetShadowPtr(0);
       }
-      else if(IsBackgroundCapturing(m_State))
+
+      record->UpdateCount++;
+
+      // mark as high-traffic if we update it often enough
+      if(record->UpdateCount > 60)
       {
-        if(verifyWrite)
-        {
-          byte *shadow = record->GetShadowPtr(0);
-
-          GLint buflength;
-          GL.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
-
-          // if we don't have a shadow pointer, need to allocate & initialise
-          if(shadow == NULL)
-          {
-            // allocate our shadow storage
-            record->AllocShadowStorage(buflength);
-            shadow = (byte *)record->GetShadowPtr(0);
-          }
-
-          // if we're not invalidating, we need the existing contents
-          if(invalidateMap && RenderDoc::Inst().GetCaptureOptions().verifyBufferAccess)
-            memset(shadow + offset, 0xcc, length);
-          else
-            memcpy(shadow, record->GetDataPtr(), buflength);
-
-          ptr = shadow;
-        }
-
-        // return buffer backing store pointer, offsetted
-        ptr += offset;
-
-        record->Map.ptr = ptr;
-        record->Map.status = GLResourceRecord::Mapped_Write;
-
-        record->UpdateCount++;
-
-        // mark as high-traffic if we update it often enough
-        if(record->UpdateCount > 60)
-        {
-          m_HighTrafficResources.insert(record->GetResourceID());
-          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-        }
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
       }
     }
 
-    return ptr;
+    return record->Map.ptr;
   }
 
   return GL.glMapNamedBufferRangeEXT(buffer, offset, length, access);
@@ -2227,8 +2143,7 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
     {
       size_t s = (size_t)diffStart;
       size_t e = (size_t)diffEnd;
-      bool found =
-          FindDiffRange(record->Map.ptr, record->GetShadowPtr(1) + offset, (size_t)length, s, e);
+      bool found = FindDiffRange(record->Map.ptr, record->GetShadowPtr(1), (size_t)length, s, e);
       diffStart = (uint64_t)s;
       diffEnd = (uint64_t)e;
 
@@ -2257,13 +2172,6 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
       // update the data pointer to be rebased to the start of the diff data.
       MapWrittenData += diffStart;
     }
-
-    // update shadow stores for future diff'ing
-    if(IsActiveCapturing(m_State) && record->GetShadowPtr(1))
-    {
-      memcpy(record->GetShadowPtr(1) + (size_t)offset + (size_t)diffStart, MapWrittenData,
-             size_t(diffEnd - diffStart));
-    }
   }
 
   SERIALISE_ELEMENT(diffStart);
@@ -2273,26 +2181,20 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(!IsStructuredExporting(m_State) && diffEnd > diffStart)
+  if(IsReplayingAndReading() && diffEnd > diffStart && MapWrittenData && length > 0)
   {
-    if(record && record->Map.persistentPtr)
+    void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(offset + diffStart),
+                                            GLsizeiptr(diffEnd - diffStart), GL_MAP_WRITE_BIT);
+    if(ptr)
     {
-      // if we have a persistent mapped pointer, copy the range into the 'real' memory and
-      // do a flush. Note the persistent pointer is always to the base of the buffer so we
-      // need to account for the offset
-
-      memcpy(record->Map.persistentPtr + (size_t)offset + (size_t)diffStart,
-             record->Map.ptr + (size_t)diffStart, size_t(diffEnd - diffStart));
-      GL.glFlushMappedNamedBufferRangeEXT(buffer.name, GLintptr(offset + diffStart),
-                                          GLsizeiptr(diffEnd - diffStart));
-    }
-    else if(MapWrittenData && length > 0)
-    {
-      void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(offset + diffStart),
-                                              GLsizeiptr(diffEnd - diffStart), GL_MAP_WRITE_BIT);
       memcpy(ptr, MapWrittenData, size_t(diffEnd - diffStart));
-      GL.glUnmapNamedBufferEXT(buffer.name);
     }
+    else
+    {
+      RDCERR("Failed to map GL buffer");
+      return false;
+    }
+    GL.glUnmapNamedBufferEXT(buffer.name);
   }
 
   return true;
@@ -2319,13 +2221,14 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
     switch(status)
     {
       case GLResourceRecord::Unmapped:
+      {
         RDCERR("Unmapped buffer being passed to glUnmapBuffer");
         break;
-      case GLResourceRecord::Mapped_Read:
-        // can ignore
-        break;
-      case GLResourceRecord::Mapped_Ignore_Real:
-        if(IsActiveCapturing(m_State))
+      }
+      case GLResourceRecord::Mapped_Direct:
+      {
+        // if it was writeable, this is a problem while capturing a frame
+        if(IsActiveCapturing(m_State) && (record->Map.access & GL_MAP_WRITE_BIT))
         {
           RDCERR(
               "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
@@ -2336,6 +2239,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
         // need to do the real unmap
         ret = GL.glUnmapNamedBufferEXT(buffer);
         break;
+      }
       case GLResourceRecord::Mapped_Write:
       {
         if(record->Map.verifyWrite)
@@ -2354,7 +2258,8 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
             }
           }
 
-          // copy from shadow to backing store, so we're consistent
+          // copy from updated shadow to backing store, so we're consistent with the non-verifying
+          // path
           memcpy(record->GetDataPtr() + record->Map.offset, record->Map.ptr, record->Map.length);
         }
 
@@ -2365,37 +2270,21 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
         }
         else if(IsActiveCapturing(m_State))
         {
+          // serialise the write to the buffer
           USE_SCRATCH_SERIALISER();
           SCOPED_SERIALISE_CHUNK(gl_CurChunk);
           Serialise_glUnmapNamedBufferEXT(ser, buffer);
           GetContextRecord()->AddChunk(scope.Get());
         }
-        else if(IsBackgroundCapturing(m_State))
+
         {
-          if(record->Map.persistentPtr)
-          {
-            // if we have a persistent mapped pointer, copy the range into the 'real' memory and
-            // do a flush. Note the persistent pointer is always to the base of the buffer so we
-            // need to account for the offset
-
-            memcpy(record->Map.persistentPtr + record->Map.offset, record->Map.ptr,
-                   record->Map.length);
-            GL.glFlushMappedNamedBufferRangeEXT(buffer, record->Map.offset, record->Map.length);
-
-            // update shadow storage
-            memcpy(record->GetShadowPtr(1) + record->Map.offset, record->Map.ptr, record->Map.length);
-
-            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-          }
-          else
-          {
-            // if we are here for background capturing, the app wrote directly into our backing
-            // store memory. Just need to copy the data across to GL, no other work needed
-            void *ptr = GL.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset,
-                                                    GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
-            memcpy(ptr, record->Map.ptr, record->Map.length);
-            GL.glUnmapNamedBufferEXT(buffer);
-          }
+          // the app wrote directly into our own pointer (either the backing store or a shadow
+          // pointer depending on the mode above).
+          // We need to copy the data across to GL
+          void *ptr = GL.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset,
+                                                  GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
+          memcpy(ptr, record->Map.ptr, record->Map.length);
+          GL.glUnmapNamedBufferEXT(buffer);
         }
 
         break;
@@ -2406,13 +2295,9 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
     // made the last unmap to a buffer
     if(record->Map.access & GL_MAP_PERSISTENT_BIT)
     {
-      int64_t ref = Atomic::Dec64(&record->Map.persistentMaps);
-      if(ref == 0)
-      {
-        m_PersistentMaps.erase(record);
-        if(record->Map.access & GL_MAP_COHERENT_BIT)
-          m_CoherentMaps.erase(record);
-      }
+      m_PersistentMaps.erase(record);
+      if(record->Map.access & GL_MAP_COHERENT_BIT)
+        m_CoherentMaps.erase(record);
     }
 
     record->Map.status = GLResourceRecord::Unmapped;
@@ -2457,41 +2342,42 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
   GLResourceRecord *record = NULL;
 
   byte *FlushedData = NULL;
+  uint64_t MapOffset = 0;
 
   if(ser.IsWriting())
   {
     record = GetResourceManager()->GetResourceRecord(buffer);
 
-    FlushedData = record->Map.ptr + offset - record->Map.offset;
-
-    // update the comparison buffer in case this buffer is subsequently mapped and we want to find
-    // the difference region
-    if(IsActiveCapturing(m_State) && record->GetShadowPtr(1))
-    {
-      memcpy(record->GetShadowPtr(1) + (size_t)offset, FlushedData, (size_t)length);
-    }
+    FlushedData = record->Map.ptr + offset;
+    MapOffset = record->Map.offset;
   }
 
   SERIALISE_ELEMENT_ARRAY(FlushedData, length);
 
+  if(ser.VersionAtLeast(0x1F))
+  {
+    SERIALISE_ELEMENT(MapOffset).Hidden();
+
+    // we don't need any special handling if this is missing - before 0x1F the map offset was baked
+    // into the offset parameter, so letting it be 0 is fine.
+  }
+
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(record && record->Map.persistentPtr)
-  {
-    // if we have a persistent mapped pointer, copy the range into the 'real' memory and
-    // do a flush. Note the persistent pointer is always to the base of the buffer so we
-    // need to account for the offset
-
-    memcpy(record->Map.persistentPtr + (size_t)offset,
-           record->Map.ptr + (size_t)(offset - record->Map.offset), (size_t)length);
-    GL.glFlushMappedNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length);
-  }
-  else if(buffer.name && FlushedData && length > 0)
+  if(IsReplayingAndReading() && buffer.name && FlushedData && length > 0)
   {
     // perform a map of the range and copy the data, to emulate the modified region being flushed
-    void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length,
-                                            GL_MAP_WRITE_BIT);
-    memcpy(ptr, FlushedData, (size_t)length);
+    void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(MapOffset + offset),
+                                            (GLsizeiptr)length, GL_MAP_WRITE_BIT);
+    if(ptr)
+    {
+      memcpy(ptr, FlushedData, size_t(length));
+    }
+    else
+    {
+      RDCERR("Failed to map GL buffer");
+      return false;
+    }
     GL.glUnmapNamedBufferEXT(buffer.name);
   }
 
@@ -2513,7 +2399,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 
   // note that we only want to flush the range with GL if we've actually
   // mapped it. Otherwise the map is 'virtual' and just pointing to our backing store data
-  if(record && record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
+  if(record && record->Map.status == GLResourceRecord::Mapped_Direct)
   {
     GL.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
   }
@@ -2530,13 +2416,46 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
       {
         RDCWARN("Unmapped buffer being flushed, ignoring");
       }
-      else if(record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
+      else if(record->Map.status == GLResourceRecord::Mapped_Direct)
       {
-        RDCERR(
-            "Failed to cap frame - we saw an FlushMappedBuffer() that we didn't capture the "
-            "corresponding Map() for");
-        m_SuccessfulCapture = false;
-        m_FailureReason = CaptureFailed_UncappedUnmap;
+        if((record->Map.access & GL_MAP_WRITE_BIT) == 0)
+        {
+          // read-only map, we can ignore
+        }
+        else if(record->Map.persistent)
+        {
+          if(offset < 0 || offset + length > record->Map.length)
+          {
+            RDCWARN("Flushed buffer range is outside of mapped range, clamping");
+
+            // maintain the length/end boundary of the flushed range if the flushed offset
+            // is below the mapped range
+            if(offset < 0)
+            {
+              offset = 0;
+              length += offset;
+            }
+
+            // clamp the length if it's beyond the mapped range.
+            if(offset + length > record->Map.length)
+            {
+              length = (record->Map.length - offset);
+            }
+          }
+
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+          Serialise_glFlushMappedNamedBufferRangeEXT(ser, buffer, offset, length);
+          GetContextRecord()->AddChunk(scope.Get());
+        }
+        else
+        {
+          RDCERR(
+              "Failed to cap frame - we saw an FlushMappedBuffer() that we didn't capture the "
+              "corresponding Map() for");
+          m_SuccessfulCapture = false;
+          m_FailureReason = CaptureFailed_UncappedUnmap;
+        }
       }
       else if(record->Map.status == GLResourceRecord::Mapped_Write)
       {
@@ -2561,24 +2480,21 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-        Serialise_glFlushMappedNamedBufferRangeEXT(ser, buffer, record->Map.offset + offset, length);
+        Serialise_glFlushMappedNamedBufferRangeEXT(ser, buffer, offset, length);
         GetContextRecord()->AddChunk(scope.Get());
+
+        // update the comparison buffer
+        if(IsActiveCapturing(m_State) && record->GetShadowPtr(1))
+        {
+          memcpy(record->GetShadowPtr(1) + (size_t)offset, record->GetShadowPtr(0) + (size_t)offset,
+                 (size_t)length);
+        }
       }
-      // other statuses is GLResourceRecord::Mapped_Read
     }
   }
   else if(IsBackgroundCapturing(m_State))
   {
-    // if this is a flush of a persistent map, we need to copy through to
-    // the real pointer and perform a real flush.
-    if(record && record->Map.persistentPtr)
-    {
-      memcpy(record->Map.persistentPtr + record->Map.offset + offset, record->Map.ptr + offset,
-             length);
-      GL.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
-
-      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-    }
+    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
   }
 }
 
@@ -2618,21 +2534,27 @@ void WrappedOpenGL::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &ma
   {
     GLResourceRecord *record = *it;
 
-    RDCASSERT(record && record->Map.persistentPtr);
+    RDCASSERT(record && record->Map.ptr);
 
-    size_t diffStart = 0, diffEnd = 0;
-    bool found = FindDiffRange(record->GetShadowPtr(0), record->GetShadowPtr(1),
-                               (size_t)record->Length, diffStart, diffEnd);
-    if(found)
+    size_t diffStart = 0, diffEnd = record->Map.length;
+    bool found = true;
+
+    if(record->GetShadowPtr(0))
+      found = FindDiffRange(record->GetShadowPtr(0), record->Map.ptr, (size_t)record->Map.length,
+                            diffStart, diffEnd);
+
+    if(found && diffEnd > diffStart)
     {
       // update the modified region in the 'comparison' shadow buffer for next check
-      memcpy(record->GetShadowPtr(1) + diffStart, record->GetShadowPtr(0) + diffStart,
-             diffEnd - diffStart);
+      if(record->GetShadowPtr(0) == NULL)
+        record->AllocShadowStorage(record->Map.length);
+      else
+        memcpy(record->GetShadowPtr(0) + diffStart, record->Map.ptr + diffStart, diffEnd - diffStart);
 
       // we use our own flush function so it will serialise chunks when necessary, and it
       // also handles copying into the persistent mapped pointer and flushing the real GL
       // buffer
-      gl_CurChunk = GLChunk::glFlushMappedNamedBufferRangeEXT;
+      gl_CurChunk = GLChunk::CoherentMapWrite;
       glFlushMappedNamedBufferRangeEXT(record->Resource.name, GLintptr(diffStart),
                                        GLsizeiptr(diffEnd - diffStart));
     }
@@ -4664,13 +4586,10 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
       if(record)
       {
         // if we have a persistent pointer, make sure to unmap it
-        if(record->Map.persistentPtr)
         {
           m_PersistentMaps.erase(record);
           if(record->Map.access & GL_MAP_COHERENT_BIT)
             m_CoherentMaps.erase(record);
-
-          GL.glUnmapNamedBufferEXT(res.name);
         }
 
         // free any shadow storage

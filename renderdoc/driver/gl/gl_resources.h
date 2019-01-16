@@ -223,9 +223,8 @@ struct GLResourceRecord : public ResourceRecord
   enum MapStatus
   {
     Unmapped,
-    Mapped_Read,
     Mapped_Write,
-    Mapped_Ignore_Real,
+    Mapped_Direct,
   };
 
   struct
@@ -237,10 +236,8 @@ struct GLResourceRecord : public ResourceRecord
     bool invalidate;
     bool verifyWrite;
     bool orphaned;
+    bool persistent;
     byte *ptr;
-
-    byte *persistentPtr;
-    int64_t persistentMaps;    // counter indicating how many coherent maps are 'live'
   } Map;
 
   void VerifyDataType(GLenum target)
@@ -270,6 +267,9 @@ struct GLResourceRecord : public ResourceRecord
 
   void AllocShadowStorage(size_t size)
   {
+    if(ShadowSize != size)
+      FreeShadowStorage();
+
     if(ShadowPtr[0] == NULL)
     {
       ShadowPtr[0] = AllocAlignedBuffer(size + sizeof(markerValue));
@@ -301,6 +301,7 @@ struct GLResourceRecord : public ResourceRecord
       FreeAlignedBuffer(ShadowPtr[1]);
     }
     ShadowPtr[0] = ShadowPtr[1] = NULL;
+    ShadowSize = 0;
   }
 
   byte *GetShadowPtr(int p) { return ShadowPtr[p]; }

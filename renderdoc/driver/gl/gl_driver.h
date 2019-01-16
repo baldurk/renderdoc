@@ -207,7 +207,7 @@ private:
   // check and jump
   inline void CoherentMapImplicitBarrier()
   {
-    if(!m_CoherentMaps.empty())
+    if(m_State == CaptureState::ActiveCapturing && !m_CoherentMaps.empty())
       PersistentMapMemoryBarrier(m_CoherentMaps);
 
     if(!m_MarkedActive)

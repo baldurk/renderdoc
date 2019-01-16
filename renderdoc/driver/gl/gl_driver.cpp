@@ -2038,6 +2038,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->FreeInitialContents();
 
+    for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
+    {
+      GLResourceRecord *record = *it;
+
+      record->FreeShadowStorage();
+    }
+
     if(switchctx.ctx != prevctx.ctx)
     {
       m_Platform.MakeContextCurrent(prevctx);
@@ -2080,6 +2087,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     GetResourceManager()->ClearReferencedResources();
 
     GetResourceManager()->FreeInitialContents();
+
+    for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
+    {
+      GLResourceRecord *record = *it;
+
+      record->FreeShadowStorage();
+    }
 
     // if it's a capture triggered from application code, immediately
     // give up as it's not reasonable to expect applications to detect and retry.
@@ -2142,6 +2156,13 @@ bool WrappedOpenGL::DiscardFrameCapture(void *dev, void *wnd)
   GetResourceManager()->FreeInitialContents();
 
   FinishCapture();
+
+  for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
+  {
+    GLResourceRecord *record = *it;
+
+    record->FreeShadowStorage();
+  }
 
   m_CapturedFrames.pop_back();
 
@@ -2937,6 +2958,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glUnmapBufferOES:
     case GLChunk::glUnmapNamedBuffer:
     case GLChunk::glUnmapNamedBufferEXT: return Serialise_glUnmapNamedBufferEXT(ser, 0);
+    case GLChunk::CoherentMapWrite:
     case GLChunk::glFlushMappedBufferRange:
     case GLChunk::glFlushMappedNamedBufferRange:
     case GLChunk::glFlushMappedNamedBufferRangeEXT:
