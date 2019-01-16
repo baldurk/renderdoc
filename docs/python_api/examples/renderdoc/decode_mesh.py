@@ -64,7 +64,7 @@ def unpackData(fmt, data):
 		value = tuple((float(value[i]) if (value[i] == maxNeg) else (float(value[i]) / divisor)) for i in value)
 
 	# If the format is BGRA, swap the two components
-	if fmt.bgraOrder:
+	if fmt.BGRAOrder():
 		value = tuple(value[i] for i in [2, 1, 0, 3])
 
 	return value
@@ -241,7 +241,7 @@ def sampleCode(controller):
 	print("Decoding mesh outputs\n\n")
 
 	# Fetch the postvs data
-	postvs = controller.GetPostVSData(0, rd.MeshDataStage.VSOut)
+	postvs = controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
 
 	# Calcualte the mesh configuration from that
 	meshOutputs = getMeshOutputs(controller, postvs)
