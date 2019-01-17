@@ -659,13 +659,21 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
         if(fmt.compType == CompType::Typeless)
           return "BC7_TYPELESS";
         return fmt.SRGBCorrected() ? "BC7_SRGB" : "BC7_UNORM";
-      case ResourceFormatType::ETC2: return fmt.SRGBCorrected() ? "ETC2_SRGB" : "ETC_UNORM";
+      case ResourceFormatType::ETC2:
+      {
+        if(fmt.compCount == 3)
+          return fmt.SRGBCorrected() ? "ETC2_RGB8_SRGB" : "ETC2_RGB8_UNORM";
+        else if(fmt.compCount == 4)
+          return fmt.SRGBCorrected() ? "ETC2_RGB8A1_SRGB" : "ETC2_RGB8A1_UNORM";
+      }
       case ResourceFormatType::EAC:
       {
         if(fmt.compCount == 1)
-          return fmt.compType == CompType::UNorm ? "EAC_R_UNORM" : "EAC_R_SNORM";
+          return fmt.compType == CompType::UNorm ? "EAC_R11_UNORM" : "EAC_R11_SNORM";
+        else if(fmt.compCount == 2)
+          return fmt.compType == CompType::UNorm ? "EAC_RG11_UNORM" : "EAC_RG11_SNORM";
         else
-          return fmt.compType == CompType::UNorm ? "EAC_RG_UNORM" : "EAC_RG_SNORM";
+          return fmt.SRGBCorrected() ? "ETC2_EAC_RGBA8_SRGB" : "ETC2_EAC_RGBA8_UNORM";
       }
       case ResourceFormatType::ASTC:
         return fmt.SRGBCorrected() ? "ASTC_SRGB" : "ASTC_UNORM";
