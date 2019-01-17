@@ -24,52 +24,38 @@
 
 #include "gl_test.h"
 
-struct Buffer_Updates : OpenGLGraphicsTest
+struct GL_Buffer_Updates : OpenGLGraphicsTest
 {
   static constexpr const char *Description =
       "Test of buffer updates, both buffers that are updated regularly and get marked as "
       "dirty, as well as buffers updated mid-frame";
 
-  std::string common = R"EOSHADER(
-
-#version 420 core
-
-#define v2f v2f_block \
-{                     \
-	vec4 pos;           \
-	vec4 col;           \
-	vec4 uv;            \
-}
-
-)EOSHADER";
-
   std::string vertex = R"EOSHADER(
-
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 2) in vec2 UV;
-
-out v2f vertOut;
+#version 420 core
 
 void main()
 {
-  vertOut.pos = vec4(Position.xyz, 1);
-  gl_Position = vertOut.pos;
-  vertOut.col = Color;
-  vertOut.uv = vec4(UV.xy, 0, 1);
+  const vec4 verts[4] = vec4[4](vec4(-1.0, -1.0, 0.5, 1.0), vec4(1.0, -1.0, 0.5, 1.0),
+                                vec4(-1.0, 1.0, 0.5, 1.0), vec4(1.0, 1.0, 0.5, 1.0));
+
+  gl_Position = verts[gl_VertexID];
 }
 
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
-
-in v2f vertIn;
+#version 420 core
 
 layout(location = 0, index = 0) out vec4 Color;
 
+layout(binding = 0, std140) uniform constsbuf
+{
+  vec4 col;
+};
+
 void main()
 {
-  Color = vertIn.col;
+	Color = col;
 }
 
 )EOSHADER";
@@ -80,48 +66,172 @@ void main()
     if(!Init(argc, argv))
       return 3;
 
-    DefaultA2V leftTri[] = {
-        {Vec3f(-0.8f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.5f, 0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.2f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-    };
-
-    DefaultA2V rightTri[] = {
-        {Vec3f(0.2f, 0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.8f, 0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-    };
-
     GLuint vao = MakeVAO();
     glBindVertexArray(vao);
 
-    GLuint vb = MakeBuffer();
-    glBindBuffer(GL_ARRAY_BUFFER, vb);
-    glBufferStorage(GL_ARRAY_BUFFER, sizeof(leftTri), leftTri, GL_DYNAMIC_STORAGE_BIT);
+    Vec4f red(1.0f, 0.0f, 0.0f, 1.0f);
+    Vec4f cyan(0.0f, 1.0f, 1.0f, 1.0f);
+    Vec4f green(0.0f, 1.0f, 0.0f, 1.0f);
 
-    DefaultA2V dummy[2];
-    memset(dummy, 0xbb, sizeof(dummy));
+// clang-format explodes on these for some reason
+#define TEST_CASES()                            \
+  BUFFER_TEST(BufferDataImmutable)              \
+  BUFFER_TEST(BufferStorageImmutable)           \
+  BUFFER_TEST(BufferDataOrphanedOnce)           \
+  BUFFER_TEST(BufferDataOrphanedMany)           \
+  BUFFER_TEST(BufferDataOrphanedPerFrame)       \
+  BUFFER_TEST(BufferDataUpdatedOnce)            \
+  BUFFER_TEST(BufferDataUpdatedMany)            \
+  BUFFER_TEST(BufferDataUpdatedPerFrame)        \
+  BUFFER_TEST(BufferStorageUpdatedOnce)         \
+  BUFFER_TEST(BufferStorageUpdatedMany)         \
+  BUFFER_TEST(BufferStorageUpdatedPerFrame)     \
+  BUFFER_TEST(SingleMapBufferReadback)          \
+  BUFFER_TEST(SingleMapBufferRangeReadback)     \
+  BUFFER_TEST(CoherentMapBufferRangeReadback)   \
+  BUFFER_TEST(CleanBufferMapWriteInvalidate)    \
+  BUFFER_TEST(CleanBufferMapWriteNonInvalidate) \
+  BUFFER_TEST(DirtyBufferMapWriteInvalidate)    \
+  BUFFER_TEST(DirtyBufferMapWriteNonInvalidate) \
+  BUFFER_TEST(CleanBufferMapFlushExplicit)      \
+  BUFFER_TEST(DirtyBufferMapFlushExplicit)      \
+  BUFFER_TEST(CoherentMapWrite)                 \
+  BUFFER_TEST(NonCoherentMapFlush)              \
+  BUFFER_TEST(OffsetMapWrite)                   \
+  BUFFER_TEST(OffsetMapFlush)
 
-    // do lots of trash updates
-    for(int i = 0; i < 20; i++)
-      glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(dummy), dummy);
+#undef BUFFER_TEST
+#define BUFFER_TEST(name) name,
+    enum
+    {
+      TEST_CASES() TestCount,
+    };
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(DefaultA2V), (void *)(0));
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(DefaultA2V), (void *)(sizeof(Vec3f)));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(DefaultA2V),
-                          (void *)(sizeof(Vec3f) + sizeof(Vec4f)));
+#undef BUFFER_TEST
+#define BUFFER_TEST(name) #name,
+    const char *TestNames[TestCount] = {TEST_CASES()};
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
+    Vec4f *ptrs[TestCount] = {};
+    GLuint buffers[TestCount] = {};
+    for(int i = 0; i < TestCount; i++)
+    {
+      buffers[i] = MakeBuffer();
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[i]);
+    }
 
-    // set the right data
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(leftTri), leftTri);
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataImmutable]);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &green, GL_STATIC_DRAW);
 
-    GLuint program = MakeProgram(common + vertex, common + pixel);
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferStorageImmutable]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &green, 0);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataOrphanedOnce]);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &green, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataOrphanedMany]);
+    for(int i = 0; i < 100; i++)
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &green, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataOrphanedPerFrame]);
+    for(int i = 0; i < 100; i++)
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataUpdatedOnce]);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &green);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataUpdatedMany]);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &green);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataUpdatedPerFrame]);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferStorageUpdatedOnce]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_STORAGE_BIT);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &green);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferStorageUpdatedMany]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_STORAGE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &green);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferStorageUpdatedPerFrame]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_STORAGE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[SingleMapBufferReadback]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_READ_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[SingleMapBufferRangeReadback]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_READ_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[CoherentMapBufferRangeReadback]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+    ptrs[CoherentMapBufferRangeReadback] =
+        (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+                                  GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteInvalidate]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteNonInvalidate]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapFlushExplicit]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[CoherentMapWrite]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+    ptrs[CoherentMapWrite] =
+        (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+                                  GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+
+    ptrs[NonCoherentMapFlush] = (Vec4f *)glMapBufferRange(
+        GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+        GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapWrite]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &cyan, GL_MAP_WRITE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapFlush]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &cyan, GL_MAP_WRITE_BIT);
+    for(int i = 0; i < 100; i++)
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
+
+    // these buffers are used for indicating a CPU readback passed or failed
+    GLuint pass = MakeBuffer();
+    glBindBuffer(GL_UNIFORM_BUFFER, pass);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &green, 0);
+    GLuint fail = MakeBuffer();
+    glBindBuffer(GL_UNIFORM_BUFFER, fail);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, 0);
+
+    GLuint program = MakeProgram(vertex, pixel);
     glObjectLabel(GL_PROGRAM, program, -1, "Full program");
-
-    int framecounter = 1;
 
     while(Running())
     {
@@ -132,25 +242,193 @@ void main()
 
       glUseProgram(program);
 
-      glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
+      glGenBuffers(1, &buffers[CleanBufferMapWriteInvalidate]);
+      glGenBuffers(1, &buffers[CleanBufferMapWriteNonInvalidate]);
+      glGenBuffers(1, &buffers[CleanBufferMapFlushExplicit]);
 
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataOrphanedPerFrame]);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &green, GL_DYNAMIC_DRAW);
 
-      if(framecounter == 100)
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferDataUpdatedPerFrame]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &green);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[BufferStorageUpdatedPerFrame]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &green);
+
+      glBindBuffer(GL_COPY_READ_BUFFER, pass);
+      glBindBuffer(GL_COPY_WRITE_BUFFER, buffers[SingleMapBufferReadback]);
+      glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, sizeof(Vec4f));
+
+      glBindBuffer(GL_COPY_READ_BUFFER, pass);
+      glBindBuffer(GL_COPY_WRITE_BUFFER, buffers[SingleMapBufferRangeReadback]);
+      glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, sizeof(Vec4f));
+
+      glBindBuffer(GL_COPY_READ_BUFFER, pass);
+      glBindBuffer(GL_COPY_WRITE_BUFFER, buffers[CoherentMapBufferRangeReadback]);
+      glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, sizeof(Vec4f));
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[CleanBufferMapWriteInvalidate]);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+
+      Vec4f *ptr = NULL;
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      memcpy(ptr, &green, sizeof(Vec4f));
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[CleanBufferMapWriteNonInvalidate]);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), GL_MAP_WRITE_BIT);
+      ptr->x = 0.0f;
+      ptr->y = 1.0f;
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteInvalidate]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+                                      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      memcpy(ptr, &green, sizeof(Vec4f));
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteNonInvalidate]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), GL_MAP_WRITE_BIT);
+      ptr->x = 0.0f;
+      ptr->y = 1.0f;
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[CleanBufferMapFlushExplicit]);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+                                      GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+      ptr->x = 0.0f;
+      ptr->y = 1.0f;
+      glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 2);
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapFlushExplicit]);
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
+                                      GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+      ptr->x = 0.0f;
+      ptr->y = 1.0f;
+      glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 2);
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      memcpy(ptrs[CoherentMapWrite], &red, sizeof(Vec4f));
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
+      memcpy(ptrs[NonCoherentMapFlush], &red, sizeof(Vec4f));
+      glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 4);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapWrite]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, sizeof(float) * 2, sizeof(float),
+                                      GL_MAP_WRITE_BIT);
+      ptr->x = 0.0f;
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapFlush]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, sizeof(float) * 2, sizeof(float),
+                                      GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+      ptr->x = 0.0f;
+      glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float));
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      const int squareSize = 50;
+
+      int buf = 0;
+
+      for(int y = 0; y < screenHeight && buf < TestCount; y += squareSize)
       {
-        // update with different data
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(rightTri), rightTri);
+        for(int x = 0; x < screenWidth && buf < TestCount; x += squareSize)
+        {
+          glViewport(x + 1, y + 1, squareSize - 2, squareSize - 2);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+          glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 0,
+                               GL_DEBUG_SEVERITY_HIGH, -1, TestNames[buf]);
+
+          if(buf == CoherentMapWrite)
+            memcpy(ptrs[CoherentMapWrite], &green, sizeof(Vec4f));
+
+          if(buf == NonCoherentMapFlush)
+          {
+            glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
+            memcpy(ptrs[NonCoherentMapFlush], &green, sizeof(Vec4f));
+            glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 4);
+          }
+
+          if(buf == SingleMapBufferReadback)
+          {
+            glBindBuffer(GL_COPY_READ_BUFFER, buffers[buf]);
+            void *mapped = glMapBuffer(GL_COPY_READ_BUFFER, GL_READ_ONLY);
+
+            if(mapped && !memcmp(mapped, &green, sizeof(Vec4f)))
+              glBindBufferBase(GL_UNIFORM_BUFFER, 0, pass);
+            else
+              glBindBufferBase(GL_UNIFORM_BUFFER, 0, fail);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            glUnmapBuffer(GL_COPY_READ_BUFFER);
+          }
+          else if(buf == SingleMapBufferRangeReadback)
+          {
+            glBindBuffer(GL_COPY_READ_BUFFER, buffers[buf]);
+            void *mapped = glMapBufferRange(GL_COPY_READ_BUFFER, 0, sizeof(Vec4f), GL_MAP_READ_BIT);
+
+            if(mapped && !memcmp(mapped, &green, sizeof(Vec4f)))
+              glBindBufferBase(GL_UNIFORM_BUFFER, 0, pass);
+            else
+              glBindBufferBase(GL_UNIFORM_BUFFER, 0, fail);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            glUnmapBuffer(GL_COPY_READ_BUFFER);
+          }
+          else if(buf == CoherentMapBufferRangeReadback)
+          {
+            if(ptrs[buf] && !memcmp(ptrs[buf], &green, sizeof(Vec4f)))
+              glBindBufferBase(GL_UNIFORM_BUFFER, 0, pass);
+            else
+              glBindBufferBase(GL_UNIFORM_BUFFER, 0, fail);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+          }
+          else
+          {
+            // default, just make sure it has green data by rendering
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffers[buf]);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+          }
+
+          buf++;
+        }
       }
 
       Present();
 
-      framecounter++;
+      glDeleteBuffers(1, &buffers[CleanBufferMapWriteInvalidate]);
+      glDeleteBuffers(1, &buffers[CleanBufferMapWriteNonInvalidate]);
+      glDeleteBuffers(1, &buffers[CleanBufferMapFlushExplicit]);
+    }
+
+    // unmap any persistent buffers
+    for(int i = 0; i < TestCount; i++)
+    {
+      if(ptrs[i])
+      {
+        glBindBuffer(GL_UNIFORM_BUFFER, buffers[i]);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+      }
     }
 
     return 0;
   }
 };
 
-REGISTER_TEST(Buffer_Updates);
+REGISTER_TEST(GL_Buffer_Updates);
