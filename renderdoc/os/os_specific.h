@@ -166,7 +166,7 @@ public:
 
   uint32_t GetTimeout() const { return timeoutMS; }
   void SetTimeout(uint32_t milliseconds) { timeoutMS = milliseconds; }
-  Socket *AcceptClient(bool wait);
+  Socket *AcceptClient(uint32_t timeoutMilliseconds);
 
   uint32_t GetRemoteIP() const;
 

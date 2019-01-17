@@ -895,7 +895,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 
   while(!killReplay())
   {
-    Network::Socket *client = sock->AcceptClient(false);
+    Network::Socket *client = sock->AcceptClient(0);
 
     if(activeClientData && activeClientData->killServer)
       break;

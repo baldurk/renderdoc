@@ -377,7 +377,7 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
   while(!RenderDoc::Inst().m_TargetControlThreadShutdown)
   {
-    Network::Socket *client = sock->AcceptClient(false);
+    Network::Socket *client = sock->AcceptClient(0);
 
     if(client == NULL)
     {

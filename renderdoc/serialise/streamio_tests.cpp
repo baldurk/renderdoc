@@ -115,7 +115,7 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
 
   REQUIRE(sender);
 
-  Network::Socket *receiver = server->AcceptClient(false);
+  Network::Socket *receiver = server->AcceptClient(50);
 
   REQUIRE(receiver);
 

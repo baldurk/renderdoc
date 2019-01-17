@@ -100,7 +100,7 @@ bool Socket::Connected() const
   return (int)socket != -1;
 }
 
-Socket *Socket::AcceptClient(bool wait)
+Socket *Socket::AcceptClient(uint32_t timeoutMilliseconds)
 {
   do
   {
@@ -125,8 +125,12 @@ Socket *Socket::AcceptClient(bool wait)
       Shutdown();
     }
 
-    Threading::Sleep(4);
-  } while(wait);
+    const uint32_t sleeptime = 4;
+
+    Threading::Sleep(sleeptime);
+
+    timeoutMilliseconds = RDCMIN(0U, timeoutMilliseconds - sleeptime);
+  } while(timeoutMilliseconds);
 
   return NULL;
 }
