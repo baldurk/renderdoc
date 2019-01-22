@@ -79,22 +79,33 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   // we need the shaders themselves to re-link into a single program.
   GLuint vsProg = 0;
 
-  GLuint vsShad = 0;
-  GLuint tcsShad = 0;
-  GLuint tesShad = 0;
-  GLuint gsShad = 0;
+  // one shader per stage (vs = 0, etc)
+  GLuint stageShaders[4] = {};
+
+  // temporary programs created as needed if the original program was created with
+  // glCreateShaderProgramv and we don't have a shader to attach
+  GLuint tmpShaders[4] = {};
 
   // these are the 'real' programs with uniform values that we need to copy over to our separable
   // programs. They may be duplicated if there's one program bound to multiple ages
-  GLuint vsProgSrc = 0;
-  GLuint tcsProgSrc = 0;
-  GLuint tesProgSrc = 0;
-  GLuint gsProgSrc = 0;
+  // one program per stage (vs = 0, etc)
+  GLuint stageSrcPrograms[4] = {};
+
+  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+
+  if(drawcall->numIndices == 0 || !(drawcall->flags & DrawFlags::Drawcall) ||
+     ((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances == 0))
+  {
+    // draw is 0 length, nothing to do
+    m_PostVSData[eventId] = GLPostVSData();
+    return;
+  }
 
   if(rs.Program.name == 0)
   {
     if(rs.Pipeline.name == 0)
     {
+      RDCERR("No program or pipeline bound at draw");
       return;
     }
     else
@@ -102,29 +113,59 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       ResourceId id = rm->GetID(rs.Pipeline);
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-      if(pipeDetails.stageShaders[0] != ResourceId())
+      for(int i = 0; i < 4; i++)
       {
-        vsRefl = GetShader(pipeDetails.stageShaders[0], ShaderEntryPoint());
-        vsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].prog;
-        vsShad = rm->GetCurrentResource(pipeDetails.stageShaders[0]).name;
-        vsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[0]).name;
-      }
-      if(pipeDetails.stageShaders[1] != ResourceId())
-      {
-        tcsShad = rm->GetCurrentResource(pipeDetails.stageShaders[1]).name;
-        tcsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[1]).name;
-      }
-      if(pipeDetails.stageShaders[2] != ResourceId())
-      {
-        tesRefl = GetShader(pipeDetails.stageShaders[2], ShaderEntryPoint());
-        tesShad = rm->GetCurrentResource(pipeDetails.stageShaders[2]).name;
-        tesProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[2]).name;
-      }
-      if(pipeDetails.stageShaders[3] != ResourceId())
-      {
-        gsRefl = GetShader(pipeDetails.stageShaders[3], ShaderEntryPoint());
-        gsShad = rm->GetCurrentResource(pipeDetails.stageShaders[3]).name;
-        gsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[3]).name;
+        if(pipeDetails.stageShaders[i] != ResourceId())
+        {
+          if(i == 0)
+          {
+            vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
+            vsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]].prog;
+          }
+          else if(i == 2)
+          {
+            tesRefl = GetShader(pipeDetails.stageShaders[2], ShaderEntryPoint());
+          }
+          else if(i == 3)
+          {
+            gsRefl = GetShader(pipeDetails.stageShaders[3], ShaderEntryPoint());
+          }
+
+          stageShaders[i] = rm->GetCurrentResource(pipeDetails.stageShaders[i]).name;
+          stageSrcPrograms[i] = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+
+          if(stageShaders[i] == stageSrcPrograms[i])
+          {
+            const WrappedOpenGL::ProgramData &progDetails =
+                m_pDriver->m_Programs[pipeDetails.stagePrograms[i]];
+
+            if(progDetails.shaderProgramUnlinkable)
+            {
+              const WrappedOpenGL::ShaderData &shadDetails =
+                  m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
+
+              std::vector<const char *> sources;
+              sources.reserve(shadDetails.sources.size());
+
+              for(const std::string &s : shadDetails.sources)
+                sources.push_back(s.c_str());
+
+              stageShaders[i] = tmpShaders[i] = drv.glCreateShader(ShaderEnum(i));
+              drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
+              drv.glCompileShader(tmpShaders[i]);
+
+              GLint status = 0;
+              drv.glGetShaderiv(tmpShaders[i], eGL_COMPILE_STATUS, &status);
+
+              if(status == 0)
+              {
+                char buffer[1024] = {};
+                drv.glGetShaderInfoLog(tmpShaders[i], 1024, NULL, buffer);
+                RDCERR("Trying to recreate postvs program, couldn't compile shader:\n%s", buffer);
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -132,45 +173,42 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   {
     auto &progDetails = m_pDriver->m_Programs[rm->GetID(rs.Program)];
 
-    if(progDetails.stageShaders[0] != ResourceId())
+    for(int i = 0; i < 4; i++)
     {
-      vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
-      vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
-      vsShad = rm->GetCurrentResource(progDetails.stageShaders[0]).name;
-    }
-    if(progDetails.stageShaders[1] != ResourceId())
-    {
-      tcsShad = rm->GetCurrentResource(progDetails.stageShaders[1]).name;
-    }
-    if(progDetails.stageShaders[2] != ResourceId())
-    {
-      tesRefl = GetShader(progDetails.stageShaders[2], ShaderEntryPoint());
-      tesShad = rm->GetCurrentResource(progDetails.stageShaders[2]).name;
-    }
-    if(progDetails.stageShaders[3] != ResourceId())
-    {
-      gsRefl = GetShader(progDetails.stageShaders[3], ShaderEntryPoint());
-      gsShad = rm->GetCurrentResource(progDetails.stageShaders[3]).name;
-    }
+      if(progDetails.stageShaders[0] != ResourceId())
+      {
+        if(i == 0)
+        {
+          vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
+          vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
+        }
+        else if(i == 2)
+        {
+          tesRefl = GetShader(progDetails.stageShaders[2], ShaderEntryPoint());
+        }
+        else if(i == 3)
+        {
+          gsRefl = GetShader(progDetails.stageShaders[3], ShaderEntryPoint());
+        }
 
-    vsProgSrc = tcsProgSrc = tesProgSrc = gsProgSrc = rs.Program.name;
+        stageShaders[i] = rm->GetCurrentResource(progDetails.stageShaders[i]).name;
+      }
+
+      stageSrcPrograms[i] = rs.Program.name;
+    }
   }
 
-  if(vsRefl == NULL)
+  if(vsRefl == NULL || stageShaders[0] == 0)
   {
     // no vertex shader bound (no vertex processing - compute only program
     // or no program bound, for a clear etc)
     m_PostVSData[eventId] = GLPostVSData();
-    return;
-  }
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+    // delete any temporaries
+    for(size_t i = 0; i < 4; i++)
+      if(tmpShaders[i])
+        drv.glDeleteShader(tmpShaders[i]);
 
-  if(drawcall->numIndices == 0 ||
-     ((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances == 0))
-  {
-    // draw is 0 length, nothing to do
-    m_PostVSData[eventId] = GLPostVSData();
     return;
   }
 
@@ -180,7 +218,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   // we don't want to do any work, so just discard before rasterizing
   drv.glEnable(eGL_RASTERIZER_DISCARD);
 
-  CopyProgramAttribBindings(vsProgSrc, vsProg, vsRefl);
+  CopyProgramAttribBindings(stageSrcPrograms[0], vsProg, vsRefl);
 
   varyings.clear();
 
@@ -351,12 +389,18 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     drv.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
     RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
     m_PostVSData[eventId] = GLPostVSData();
+
+    // delete any temporaries
+    for(size_t i = 0; i < 4; i++)
+      if(tmpShaders[i])
+        drv.glDeleteShader(tmpShaders[i]);
+
     return;
   }
 
   // copy across any uniform values, bindings etc from the real program containing
   // the vertex stage
-  CopyProgramUniforms(vsProgSrc, vsProg);
+  CopyProgramUniforms(stageSrcPrograms[0], vsProg);
 
   // bind our program and do the feedback draw
   drv.glUseProgram(vsProg);
@@ -649,6 +693,12 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       drv.glEnable(eGL_RASTERIZER_DISCARD);
 
     m_PostVSData[eventId] = GLPostVSData();
+
+    // delete any temporaries
+    for(size_t i = 0; i < 4; i++)
+      if(tmpShaders[i])
+        drv.glDeleteShader(tmpShaders[i]);
+
     return;
   }
 
@@ -765,13 +815,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     lastFeedbackProg = drv.glCreateProgram();
 
     // attach the shaders
-    drv.glAttachShader(lastFeedbackProg, vsShad);
-    if(tesShad)
-      drv.glAttachShader(lastFeedbackProg, tesShad);
-    if(tcsShad)
-      drv.glAttachShader(lastFeedbackProg, tcsShad);
-    if(gsShad)
-      drv.glAttachShader(lastFeedbackProg, gsShad);
+    for(int i = 0; i < 4; i++)
+      if(stageShaders[i])
+        drv.glAttachShader(lastFeedbackProg, stageShaders[i]);
 
     varyings.clear();
 
@@ -889,13 +935,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
 
     // detach the shaders now that linking is complete
-    drv.glDetachShader(lastFeedbackProg, vsShad);
-    if(tesShad)
-      drv.glDetachShader(lastFeedbackProg, tesShad);
-    if(tcsShad)
-      drv.glDetachShader(lastFeedbackProg, tcsShad);
-    if(gsShad)
-      drv.glDetachShader(lastFeedbackProg, gsShad);
+    for(int i = 0; i < 4; i++)
+      if(stageShaders[i])
+        drv.glDetachShader(lastFeedbackProg, stageShaders[i]);
 
     if(status == 0)
     {
@@ -907,18 +949,18 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     {
       // copy across any uniform values, bindings etc from the real program containing
       // the vertex stage
-      CopyProgramUniforms(vsProgSrc, lastFeedbackProg);
+      CopyProgramUniforms(stageSrcPrograms[0], lastFeedbackProg);
 
       // if tessellation is enabled, bind & copy uniforms. Note, control shader is optional
       // independent of eval shader (default values are used for the tessellation levels).
-      if(tcsProgSrc)
-        CopyProgramUniforms(tcsProgSrc, lastFeedbackProg);
-      if(tesProgSrc)
-        CopyProgramUniforms(tesProgSrc, lastFeedbackProg);
+      if(stageSrcPrograms[1])
+        CopyProgramUniforms(stageSrcPrograms[1], lastFeedbackProg);
+      if(stageSrcPrograms[2])
+        CopyProgramUniforms(stageSrcPrograms[2], lastFeedbackProg);
 
       // if we have a geometry shader, bind & copy uniforms
-      if(gsProgSrc)
-        CopyProgramUniforms(gsProgSrc, lastFeedbackProg);
+      if(stageSrcPrograms[3])
+        CopyProgramUniforms(stageSrcPrograms[3], lastFeedbackProg);
 
       // bind our program and do the feedback draw
       drv.glUseProgram(lastFeedbackProg);
@@ -1261,6 +1303,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         else
           drv.glEnable(eGL_RASTERIZER_DISCARD);
 
+        // delete any temporaries
+        for(size_t i = 0; i < 4; i++)
+          if(tmpShaders[i])
+            drv.glDeleteShader(tmpShaders[i]);
+
         return;
       }
 
@@ -1396,6 +1443,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     drv.glDisable(eGL_RASTERIZER_DISCARD);
   else
     drv.glEnable(eGL_RASTERIZER_DISCARD);
+
+  // delete any temporaries
+  for(size_t i = 0; i < 4; i++)
+    if(tmpShaders[i])
+      drv.glDeleteShader(tmpShaders[i]);
 }
 
 void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
