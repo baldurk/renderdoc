@@ -1036,6 +1036,12 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
+      size_t size = 0;
+      for(int space = 0; space < s.spaces.count(); space++)
+        size += s.spaces[space].srvs.size();
+
+      ret.reserve(size);
+
       for(int space = 0; space < s.spaces.count(); space++)
       {
         for(int reg = 0; reg < s.spaces[space].srvs.count(); reg++)
@@ -1086,6 +1092,12 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
                                                             : m_Vulkan->graphics.descriptorSets;
 
       ShaderStageMask mask = MaskForStage(stage);
+
+      size_t size = 0;
+      for(int set = 0; set < descsets.count(); set++)
+        size += descsets[set].bindings.size();
+
+      ret.reserve(size);
 
       for(int set = 0; set < descsets.count(); set++)
       {
@@ -1179,6 +1191,12 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
+      size_t size = 0;
+      for(int space = 0; space < s.spaces.count(); space++)
+        size += s.spaces[space].uavs.size();
+
+      ret.reserve(size);
+
       for(int space = 0; space < s.spaces.count(); space++)
       {
         for(int reg = 0; reg < s.spaces[space].uavs.count(); reg++)
@@ -1225,6 +1243,12 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
                                                             : m_Vulkan->graphics.descriptorSets;
 
       ShaderStageMask mask = MaskForStage(stage);
+
+      size_t size = 0;
+      for(int set = 0; set < descsets.count(); set++)
+        size += descsets[set].bindings.size();
+
+      ret.reserve(size);
 
       for(int set = 0; set < descsets.count(); set++)
       {
