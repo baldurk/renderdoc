@@ -1036,9 +1036,37 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
   SERIALISE_ELEMENT(Resource);
   SERIALISE_ELEMENT(Subresource);
 
+  // tracks if we've already uploaded the data to a persistent buffer and don't need to re-serialise
+  // pointlessly
+  bool alreadyuploaded = false;
+
+  if(IsReplayingAndReading() && Resource)
+  {
+    ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
+    if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
+    {
+      // while loading, we still have yet to create the buffer so it's not already uploaded. Once
+      // we've loaded, it is.
+      alreadyuploaded = IsActiveReplaying(m_State);
+    }
+  }
+
   MappedData += range.Begin;
 
-  SERIALISE_ELEMENT_ARRAY(MappedData, range.End - range.Begin);
+  // we serialise MappedData manually, so that when we don't need it we just skip instead of
+  // actually allocating and memcpy'ing the buffer.
+  ScopedDeserialiseArray<SerialiserType, byte *> deserialise_map(ser, &MappedData);
+  SerialiserFlags flags = SerialiserFlags::AllocateMemory;
+  if(alreadyuploaded)
+  {
+    // set the array to explicitly NULL (so it doesn't crash on deserialise) and don't allocate.
+    // This will cause it to be skipped
+    MappedData = NULL;
+    flags = SerialiserFlags::NoFlags;
+  }
+
+  ser.Serialise("MappedData", MappedData, range.End - range.Begin, flags);
+
   SERIALISE_ELEMENT(range);
 
   uint64_t rangeSize = range.End - range.Begin;
