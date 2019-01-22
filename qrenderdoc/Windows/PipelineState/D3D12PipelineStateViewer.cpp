@@ -669,15 +669,6 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     }
   }
 
-  bool viewDetails = false;
-
-  if(view.type == D3D12ViewTag::OMDepth)
-    viewDetails = m_Ctx.CurD3D12PipelineState()->outputMerger.depthReadOnly ||
-                  m_Ctx.CurD3D12PipelineState()->outputMerger.stencilReadOnly;
-
-  QString rootel = r.immediate ? tr("#%1 Direct").arg(r.rootElement)
-                               : tr("#%1 Table[%2]").arg(r.rootElement).arg(r.tableIndex);
-
   bool filledSlot = (r.resourceId != ResourceId());
   bool usedSlot = (bind && bind->used);
 
@@ -769,13 +760,22 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     RDTreeWidgetItem *node = NULL;
 
     if(view.type == D3D12ViewTag::OMTarget)
+    {
       node = new RDTreeWidgetItem({view.reg, r.resourceId, typeName, w, h, d, a, format, QString()});
+    }
     else if(view.type == D3D12ViewTag::OMDepth)
+    {
       node =
           new RDTreeWidgetItem({tr("Depth"), r.resourceId, typeName, w, h, d, a, format, QString()});
+    }
     else
+    {
+      QString rootel = r.immediate ? tr("#%1 Direct").arg(r.rootElement)
+                                   : tr("#%1 Table[%2]").arg(r.rootElement).arg(r.tableIndex);
+
       node = new RDTreeWidgetItem(
           {rootel, view.space, regname, r.resourceId, typeName, w, h, d, a, format, QString()});
+    }
 
     node->setTag(QVariant::fromValue(view));
 
