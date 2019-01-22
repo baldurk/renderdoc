@@ -243,6 +243,9 @@
     <ClCompile Include="gl\gl_mip_gen_rt.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_separable_geometry_shader.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

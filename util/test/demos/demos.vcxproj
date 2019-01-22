@@ -171,6 +171,7 @@
     <ClCompile Include="gl\gl_multi_window.cpp" />
     <ClCompile Include="gl\gl_overlay_test.cpp" />
     <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp" />
+    <ClCompile Include="gl\gl_separable_geometry_shader.cpp" />
     <ClCompile Include="gl\gl_simple_triangle.cpp" />
     <ClCompile Include="gl\gl_spirv_shader.cpp" />
     <ClCompile Include="gl\gl_test.cpp" />
