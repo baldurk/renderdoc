@@ -665,6 +665,7 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
           return fmt.SRGBCorrected() ? "ETC2_RGB8_SRGB" : "ETC2_RGB8_UNORM";
         else if(fmt.compCount == 4)
           return fmt.SRGBCorrected() ? "ETC2_RGB8A1_SRGB" : "ETC2_RGB8A1_UNORM";
+        break;
       }
       case ResourceFormatType::EAC:
       {
