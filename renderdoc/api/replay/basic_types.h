@@ -170,18 +170,6 @@ struct ItemHelper
       new(first + i) T();
   }
 
-  static void copyRange(T *dest, const T *src, int32_t count)
-  {
-    for(int32_t i = 0; i < count; i++)
-      new(dest + i) T(src[i]);
-  }
-
-  static void destroyRange(T *first, int32_t count)
-  {
-    for(int32_t i = 0; i < count; i++)
-      (first + i)->~T();
-  }
-
   static bool equalRange(T *a, T *b, int32_t count)
   {
     for(int32_t i = 0; i < count; i++)
@@ -205,16 +193,50 @@ template <typename T>
 struct ItemHelper<T, true>
 {
   static void initRange(T *first, int32_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
-  static void copyRange(T *dest, const T *src, int32_t count)
-  {
-    memcpy(dest, src, count * sizeof(T));
-  }
-  static void destroyRange(T *first, int32_t itemCount) {}
   static bool equalRange(T *a, T *b, int32_t count) { return !memcmp(a, b, count * sizeof(T)); }
   static bool lessthanRange(T *a, T *b, int32_t count)
   {
     return memcmp(a, b, count * sizeof(T)) < 0;
   }
+};
+
+// ItemCopyHelper checks if memcpy can be used over placement new
+
+template <typename T, bool isStd = std::is_trivially_copyable<T>::value>
+struct ItemCopyHelper
+{
+  static void copyRange(T *dest, const T *src, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      new(dest + i) T(src[i]);
+  }
+};
+
+template <typename T>
+struct ItemCopyHelper<T, true>
+{
+  static void copyRange(T *dest, const T *src, int32_t count)
+  {
+    memcpy(dest, src, count * sizeof(T));
+  }
+};
+
+// ItemDestroyHelper checks if the destructor is trivial/do-nothing and can be skipped
+
+template <typename T, bool isStd = std::is_trivially_destructible<T>::value>
+struct ItemDestroyHelper
+{
+  static void destroyRange(T *first, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      (first + i)->~T();
+  }
+};
+
+template <typename T>
+struct ItemDestroyHelper<T, true>
+{
+  static void destroyRange(T *first, int32_t itemCount) {}
 };
 
 template <typename T>
@@ -326,10 +348,10 @@ public:
     if(elems)
     {
       // copy the elements to new storage
-      ItemHelper<T>::copyRange(newElems, elems, usedCount);
+      ItemCopyHelper<T>::copyRange(newElems, elems, usedCount);
 
       // delete the old elements
-      ItemHelper<T>::destroyRange(elems, usedCount);
+      ItemDestroyHelper<T>::destroyRange(elems, usedCount);
     }
 
     // deallocate tee old storage
@@ -366,7 +388,7 @@ public:
       // resizing down, we just need to update the count and destruct removed elements
       setUsedCount((int32_t)s);
 
-      ItemHelper<T>::destroyRange(elems + usedCount, oldCount - usedCount);
+      ItemDestroyHelper<T>::destroyRange(elems + usedCount, oldCount - usedCount);
     }
   }
 
@@ -626,7 +648,7 @@ public:
     setUsedCount((int32_t)in.size());
 
     // copy construct the new elems
-    ItemHelper<T>::copyRange(elems, in.data(), usedCount);
+    ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
 
     null_terminator<T>::fixup(elems, usedCount);
 
@@ -671,7 +693,7 @@ public:
     setUsedCount((int32_t)in.size());
 
     // copy construct the new elems
-    ItemHelper<T>::copyRange(elems, in.data(), usedCount);
+    ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
 
     null_terminator<T>::fixup(elems, usedCount);
 
@@ -690,7 +712,7 @@ public:
     setUsedCount((int32_t)count);
 
     // copy construct the new elems
-    ItemHelper<T>::copyRange(elems, in, usedCount);
+    ItemCopyHelper<T>::copyRange(elems, in, usedCount);
   }
 
 #if defined(RENDERDOC_QT_COMPAT)
