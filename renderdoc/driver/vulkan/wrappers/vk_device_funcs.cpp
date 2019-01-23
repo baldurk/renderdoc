@@ -1110,6 +1110,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_AMD_gpa_interface");
     }
 
+    // enable VK_AMD_shader_core_properties if it's available, for AMD counter support
+    if(supportedExtensions.find(VK_AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME) !=
+       supportedExtensions.end())
+    {
+      Extensions.push_back(VK_AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME);
+      RDCLOG("Enabling VK_AMD_shader_core_properties");
+    }
+
     // enable VK_MVK_moltenvk if it's available, for detecting/controlling moltenvk.
     // Currently this is used opaquely (extension present or not) rather than using anything the
     // extension provides.
