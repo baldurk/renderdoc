@@ -2288,7 +2288,11 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
 
         string name = "vkCmdClearAttachments(";
         for(uint32_t a = 0; a < attachmentCount; a++)
+        {
           name += ToStr(pAttachments[a].colorAttachment);
+          if(a + 1 < attachmentCount)
+            name += ", ";
+        }
         name += ")";
 
         DrawcallDescription draw;
