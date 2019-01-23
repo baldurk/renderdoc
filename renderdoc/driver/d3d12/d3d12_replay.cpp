@@ -856,6 +856,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
 }
 
 void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
+                                     const ShaderBindpointMapping &mapping,
                                      rdcarray<D3D12Pipe::RegisterSpace> &dstSpaces,
                                      D3D12_SHADER_VISIBILITY visibility)
 {
@@ -1005,7 +1006,36 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
           if(num == UINT_MAX)
           {
             // find out how many descriptors are left after
-            num = heap->GetNumDescriptors() - offset - UINT(e->offset);
+            UINT availDescriptors = heap->GetNumDescriptors() - offset - UINT(e->offset);
+
+            // if this is an unbounded size table, find the matching bindpoint to try and
+            // upper-bound its size.
+            // due to D3D12's messed up resource matching, an array of descriptors in the root
+            // signature might match multiple bindings in the HLSL. So we just need to pick the
+            // highest-register item in the space and use its size.
+
+            const Bindpoint *bind = NULL;
+
+            // find the
+            for(const Bindpoint &b : mapping.readOnlyResources)
+            {
+              if(b.bindset == (int32_t)range.RegisterSpace && (bind == NULL || bind->bind < b.bind))
+                bind = &b;
+            }
+
+            // the size is however many registers are between the base of this range and that last
+            // bind, plus the size of the bind (at least 1 if it's not arrayed).
+            // If we didn't find any bind, clamp to 128 instead to prevent massive descriptor heaps
+            // from being passed through.
+            if(bind)
+            {
+              num = RDCMIN(availDescriptors,
+                           bind->bind - range.BaseShaderRegister + RDCMAX(1U, bind->arraySize));
+            }
+            else
+            {
+              num = RDCMIN(availDescriptors, 128U);
+            }
           }
         }
         else if(num == UINT_MAX)
@@ -1261,7 +1291,8 @@ void D3D12Replay::SavePipelineState()
     state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
 
     if(rs.compute.rootsig != ResourceId())
-      FillRegisterSpaces(rs.compute, state.computeShader.spaces, D3D12_SHADER_VISIBILITY_ALL);
+      FillRegisterSpaces(rs.compute, state.computeShader.bindpointMapping,
+                         state.computeShader.spaces, D3D12_SHADER_VISIBILITY_ALL);
   }
   else if(pipe)
   {
@@ -1298,7 +1329,7 @@ void D3D12Replay::SavePipelineState()
       }
 
       if(rs.graphics.rootsig != ResourceId())
-        FillRegisterSpaces(rs.graphics, dst.spaces, visibility[stage]);
+        FillRegisterSpaces(rs.graphics, dst.bindpointMapping, dst.spaces, visibility[stage]);
     }
 
     state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
