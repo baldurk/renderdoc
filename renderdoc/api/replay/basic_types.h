@@ -30,6 +30,7 @@
 #include <string.h>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 typedef uint8_t byte;
