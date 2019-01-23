@@ -1146,14 +1146,12 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }
 
-void WrappedVulkan::FirstFrame(VkSwapchainKHR swap)
+void WrappedVulkan::FirstFrame()
 {
-  SwapchainInfo *swapdesc = GetRecord(swap)->swapInfo;
-
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), swapdesc ? swapdesc->wndHandle : NULL);
+    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
 
     m_AppControlledCapture = false;
   }

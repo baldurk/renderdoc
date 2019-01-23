@@ -2312,6 +2312,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   SAFE_DELETE_ARRAY(props);
   SAFE_DELETE_ARRAY(modQueues);
 
+  FirstFrame();
+
   return ret;
 }
 

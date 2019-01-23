@@ -594,8 +594,6 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
       SAFE_DELETE_ARRAY(images);
     }
-
-    FirstFrame(*pSwapChain);
   }
   else
   {

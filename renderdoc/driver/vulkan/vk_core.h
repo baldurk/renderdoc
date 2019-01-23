@@ -767,7 +767,7 @@ private:
   bool Serialise_BeginCaptureFrame(SerialiserType &ser);
   void EndCaptureFrame(VkImage presentImage);
 
-  void FirstFrame(VkSwapchainKHR swap);
+  void FirstFrame();
 
   bool CheckMemoryRequirements(const char *resourceName, ResourceId memId,
                                VkDeviceSize memoryOffset, VkMemoryRequirements mrq);

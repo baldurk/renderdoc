@@ -448,6 +448,11 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    FirstFrame(NULL);
+  }
 }
 
 HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
@@ -752,7 +757,10 @@ void WrappedID3D12Device::CheckForDeath()
 
 void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain4 *swap)
 {
-  DXGI_SWAP_CHAIN_DESC swapdesc = swap->GetDescWithHWND();
+  DXGI_SWAP_CHAIN_DESC swapdesc = {};
+
+  if(swap)
+    swapdesc = swap->GetDescWithHWND();
 
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
