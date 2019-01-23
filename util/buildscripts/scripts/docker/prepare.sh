@@ -16,7 +16,7 @@ wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 apt-get update
 
 # install dependencies
-apt-get install --force-yes -y libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev gcc g++ clang-3.8 clang++-3.8 make pkg-config git libcurl4-openssl-dev libpcre3-dev
+apt-get install --force-yes -y libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev gcc g++ clang-3.8 clang++-3.8 make pkg-config git libcurl4-openssl-dev libpcre3-dev libstdc++-6-dev
 
 # install dependencies for building qt
 apt-get install --force-yes -y libproxy-dev autoconf autogen libtool xutils-dev bison
