@@ -425,21 +425,12 @@ eglGetProcAddress_renderdoc_hooked(const char *func)
   if(realFunc == NULL)
     return realFunc;
 
-  // return our egl hooks
-  if(!strcmp(func, "eglCreateContext"))
-    return (__eglMustCastToProperFunctionPointerType)&eglCreateContext_renderdoc_hooked;
-  if(!strcmp(func, "eglGetDisplay"))
-    return (__eglMustCastToProperFunctionPointerType)&eglGetDisplay_renderdoc_hooked;
-  if(!strcmp(func, "eglDestroyContext"))
-    return (__eglMustCastToProperFunctionPointerType)&eglDestroyContext_renderdoc_hooked;
-  if(!strcmp(func, "eglMakeCurrent"))
-    return (__eglMustCastToProperFunctionPointerType)&eglMakeCurrent_renderdoc_hooked;
-  if(!strcmp(func, "eglSwapBuffers"))
-    return (__eglMustCastToProperFunctionPointerType)&eglSwapBuffers_renderdoc_hooked;
-  if(!strcmp(func, "eglPostSubBufferNV"))
-    return (__eglMustCastToProperFunctionPointerType)&eglPostSubBufferNV_renderdoc_hooked;
-  if(!strcmp(func, "eglGetProcAddress"))
-    return (__eglMustCastToProperFunctionPointerType)&eglGetProcAddress_renderdoc_hooked;
+// return our egl hooks
+#define GPA_FUNCTION(name)                                                                          \
+  if(!strcmp(func, "egl" STRINGIZE(name)))                                                          \
+    return (__eglMustCastToProperFunctionPointerType)&CONCAT(egl, CONCAT(name, _renderdoc_hooked)); \
+  EGL_HOOKED_SYMBOLS(GPA_FUNCTION)
+#undef GPA_FUNCTION
 
   // any other egl functions are safe to pass through unchanged
   if(!strncmp(func, "egl", 3))
