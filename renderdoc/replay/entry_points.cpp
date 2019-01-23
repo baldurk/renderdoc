@@ -661,10 +661,10 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
         return fmt.SRGBCorrected() ? "BC7_SRGB" : "BC7_UNORM";
       case ResourceFormatType::ETC2:
       {
-        if(fmt.compCount == 3)
-          return fmt.SRGBCorrected() ? "ETC2_RGB8_SRGB" : "ETC2_RGB8_UNORM";
-        else if(fmt.compCount == 4)
+        if(fmt.compCount == 4)
           return fmt.SRGBCorrected() ? "ETC2_RGB8A1_SRGB" : "ETC2_RGB8A1_UNORM";
+        else
+          return fmt.SRGBCorrected() ? "ETC2_RGB8_SRGB" : "ETC2_RGB8_UNORM";
       }
       case ResourceFormatType::EAC:
       {
