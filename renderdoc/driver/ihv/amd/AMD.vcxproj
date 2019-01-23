@@ -115,13 +115,13 @@
     <ClInclude Include="official\DXExt\AmdExtD3DCommandListMarkerApi.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPACounterGenerator.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h" />
-    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterAccessor.h" />
-    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterScheduler.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-VK.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPICounters.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterAccessor.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterScheduler.h" />
     <ClInclude Include="official\RGA\Common\AmdDxGsaCompile.h" />
     <ClInclude Include="official\RGA\Common\asic_reg\devices.h" />
     <ClInclude Include="official\RGA\elf\elf32.h" />

@@ -27,9 +27,9 @@
 #endif
 
 #if DISABLE_GPA
-    #define USE_GPA 0 ///< Macro used to determine if GPA fucntions should be stubbed out
+    #define USE_GPA 0 ///< Macro used to determine if GPA functions should be stubbed out
 #else
-    #define USE_GPA 1 ///< Macro used to determine if GPA fucntions should be stubbed out
+    #define USE_GPA 1 ///< Macro used to determine if GPA functions should be stubbed out
 #endif
 
 #include "GPUPerfAPITypes.h"
@@ -44,7 +44,7 @@ typedef struct _GPAFunctionTable
     gpa_uint32 m_majorVer; ///< API major version
     gpa_uint32 m_minorVer; ///< API minor version
 
-#define GPA_FUNCTION_PREFIX(func) func##PtrType func;
+#define GPA_FUNCTION_PREFIX(func) func##PtrType func; ///< Macro used by GPAFunctions.h
 #include "GPAFunctions.h"
 #undef GPA_FUNCTION_PREFIX
 
@@ -54,7 +54,7 @@ typedef struct _GPAFunctionTable
     {
         m_majorVer = GPA_FUNCTION_TABLE_MAJOR_VERSION_NUMBER;
         m_minorVer = GPA_FUNCTION_TABLE_MINOR_VERSION_NUMBER;
-#define GPA_FUNCTION_PREFIX(func) func = nullptr;
+#define GPA_FUNCTION_PREFIX(func) func = nullptr; ///< Macro used by GPAFunctions.h
 #include "GPAFunctions.h"
 #undef GPA_FUNCTION_PREFIX
     }
@@ -63,6 +63,21 @@ typedef struct _GPAFunctionTable
 } GPAFunctionTable;
 
 #if USE_GPA
+
+// GPA API Version
+
+/// \brief Gets the GPA version
+///
+/// \param[out] pMajorVersion The value that will hold the major version of GPA upon successful execution.
+/// \param[out] pMinorVersion The value that will hold the minor version of GPA upon successful execution.
+/// \param[out] pBuild The value that will hold the build number of GPA upon successful execution.
+/// \param[out] pUpdateVersion The value that will hold the update version of GPA upon successful execution.
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_GetVersion(
+    gpa_uint32* pMajorVersion,
+    gpa_uint32* pMinorVersion,
+    gpa_uint32* pBuild,
+    gpa_uint32* pUpdateVersion);
 
 // GPA API Table
 
@@ -524,12 +539,24 @@ GPALIB_DECL GPA_Status GPA_CopySecondarySamples(
 /// \brief Gets the number of samples created for the specified session.
 ///
 /// This is useful if samples are conditionally created and a count is not kept.
-/// \param[in] sessionId pass Id to get the number of samples for.
+/// \param[in] sessionId Unique identifier of the GPA Session Object.
 /// \param[out] pSampleCount The value which will hold the number of samples contained within the session upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetSampleCount(
     GPA_SessionId sessionId,
     gpa_uint32* pSampleCount);
+
+/// \brief Gets the sample id by index
+///
+/// This is useful if sample ids are either not zero-based or not consecutive.
+/// \param[in] sessionId Unique identifier of the GPA Session Object.
+/// \param[in] index The index of the sample. Must lie between 0 and (GPA_GetSampleCount result - 1).
+/// \param[out] pSampleId The value that will hold the id of the sample upon successful execution.
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_GetSampleId(
+    GPA_SessionId sessionId,
+    gpa_uint32 index,
+    gpa_uint32* pSampleId);
 
 // Query Results
 
@@ -539,7 +566,7 @@ GPALIB_DECL GPA_Status GPA_GetSampleCount(
 /// This function allows you to determine when the pass has finished and associated resources are no longer needed in the application.
 /// The function does not block, permitting periodic polling.
 /// The application must not free its resources until this function returns GPA_STATUS_OK.
-/// \param[in] sessionId session id.
+/// \param[in] sessionId Unique identifier of the GPA Session Object.
 /// \param[in] passIndex 0-based index of the pass.
 /// \return GPA_STATUS_OK if pass is complete else GPA_STATUS_RESULT_NOT_READY.
 GPALIB_DECL GPA_Status GPA_IsPassComplete(
@@ -563,12 +590,12 @@ GPALIB_DECL GPA_Status GPA_IsSessionComplete(
 /// result size for one sample and use that when retrieving results for all samples.
 /// \param[in] sessionId Unique identifier of the GPA Session Object.
 /// \param[in] sampleId The identifier of the sample to get the result size for.
-/// \param[out] sampleResultSizeInBytes The value that will be set to the result size upon successful execution  - this value needs to be passed to GetSampleResult.
+/// \param[out] pSampleResultSizeInBytes The value that will be set to the result size upon successful execution  - this value needs to be passed to GetSampleResult.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetSampleResultSize(
     GPA_SessionId sessionId,
     gpa_uint32 sampleId,
-    size_t* sampleResultSizeInBytes);
+    size_t* pSampleResultSizeInBytes);
 
 /// \brief Gets the result data for a given sample.
 ///

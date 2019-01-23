@@ -13,8 +13,11 @@
 
 #include "GPUPerfAPITypes.h"
 
+// GPA API Version
+typedef GPA_Status(*GPA_GetVersionPtrType)(gpa_uint32*, gpa_uint32*, gpa_uint32*, gpa_uint32*); ///< Typedef for a function pointer for GPA_GetVersion
+
 // GPA API Table
-typedef GPA_Status(*GPA_GetFuncTablePtrType)(void*); ///< Typedef for a function pointer for GPA_GetFuncTablePtrType
+typedef GPA_Status(*GPA_GetFuncTablePtrType)(void*); ///< Typedef for a function pointer for GPA_GetFuncTable
 
 // Logging
 typedef void(*GPA_LoggingCallbackPtrType)(GPA_Logging_Type, const char*); ///< Typedef for a function pointer for a logging callback function
@@ -75,6 +78,7 @@ typedef GPA_Status(*GPA_EndSamplePtrType)(GPA_CommandListId);  ///< Typedef for 
 typedef GPA_Status(*GPA_ContinueSampleOnCommandListPtrType)(gpa_uint32, GPA_CommandListId);  ///< Typedef for a function pointer for GPA_ContinueSampleOnCommandList
 typedef GPA_Status(*GPA_CopySecondarySamplesPtrType)(GPA_CommandListId, GPA_CommandListId, gpa_uint32, gpa_uint32*);  ///< Typedef for a function pointer for GPA_CopySecondarySamples
 typedef GPA_Status(*GPA_GetSampleCountPtrType)(GPA_SessionId, gpa_uint32*);  ///< Typedef for a function pointer for GPA_GetSampleCount
+typedef GPA_Status(*GPA_GetSampleIdPtrType)(GPA_SessionId, gpa_uint32, gpa_uint32*);  ///< Typedef for a function pointer for GPA_GetSampleId
 
 // Query Results
 typedef GPA_Status(*GPA_IsSessionCompletePtrType)(GPA_SessionId);  ///< Typedef for a function pointer for GPA_IsSessionComplete

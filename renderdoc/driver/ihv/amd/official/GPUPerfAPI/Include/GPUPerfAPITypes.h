@@ -76,7 +76,9 @@ typedef unsigned int     gpa_uint32;  ///< GPA specific type for 32-bit unsigned
     typedef unsigned int       UINT;       ///< GPA specific type to define UINT on Linux
     typedef unsigned long long gpa_uint64; ///< GPA specific type for 64-bit unsigned integer
 
-    #define UNREFERENCED_PARAMETER(x)
+#ifndef UNREFERENCED_PARAMETER
+    #define UNREFERENCED_PARAMETER(x) (void)(x)
+#endif
 
     #define _strcmpi(a, b) strcasecmp(a, b)
     #define _stricmp(a, b) strcasecmp(a, b)
@@ -85,6 +87,8 @@ typedef unsigned int     gpa_uint32;  ///< GPA specific type for 32-bit unsigned
     #define strcpy_s(dst, ndst, src) strcpy(dst, src)
     #define strcat_s(dst, ndst, src) strcat(dst, src)
     #define strtok_s(a, b, c) strtok(a, b)
+    #define strnlen_s(a, b) strlen(a)
+    #define strncpy_s(a, b, c, d) strncpy(a, c, d)
 
     #ifndef TRUE
         #define TRUE 1
@@ -162,7 +166,13 @@ typedef enum
     GPA_STATUS_ERROR_SESSION_ALREADY_STARTED = -35,
     GPA_STATUS_ERROR_SESSION_NOT_STARTED = -36,
     GPA_STATUS_ERROR_SESSION_NOT_ENDED = -37,
-    GPA_STATUS_MIN = GPA_STATUS_ERROR_SESSION_NOT_ENDED,
+    GPA_STATUS_ERROR_INVALID_DATATYPE = -38,
+    GPA_STATUS_ERROR_INVALID_COUNTER_EQUATION = -39,
+    GPA_STATUS_ERROR_TIMEOUT = -40,
+    GPA_STATUS_ERROR_LIB_ALREADY_LOADED = -41,
+    GPA_STATUS_ERROR_OTHER_SESSION_ACTIVE = -42,
+    GPA_STATUS_ERROR_EXCEPTION = -43,
+    GPA_STATUS_MIN = GPA_STATUS_ERROR_EXCEPTION,
     // following are status codes used internally within GPUPerfAPI
     GPA_STATUS_INTERNAL = 256,
 } GPA_Status;
@@ -213,6 +223,7 @@ typedef enum
     GPA_USAGE_TYPE_BYTES,        ///< Result is in bytes
     GPA_USAGE_TYPE_ITEMS,        ///< Result is a count of items or objects (ie, vertices, triangles, threads, pixels, texels, etc)
     GPA_USAGE_TYPE_KILOBYTES,    ///< Result is in kilobytes
+    GPA_USAGE_TYPE_NANOSECONDS,  ///< Result is in nanoseconds
     GPA_USAGE_TYPE__LAST         ///< Marker indicating last element
 } GPA_Usage_Type;
 
@@ -233,6 +244,7 @@ typedef enum
     GPA_LOGGING_DEBUG_MESSAGE = 0x0200,                                                                ///< Log debugging messages
     GPA_LOGGING_DEBUG_TRACE = 0x0400,                                                                  ///< Log debugging traces
     GPA_LOGGING_DEBUG_COUNTERDEFS = 0x0800,                                                            ///< Log debugging counter defs
+    GPA_LOGGING_INTERNAL = 0x1000,                                                                     ///< Log internal GPA
     GPA_LOGGING_DEBUG_ALL = 0xFF00                                                                     ///< Log all debugging
 } GPA_Logging_Type;
 
@@ -244,7 +256,8 @@ typedef enum
     GPA_API_DIRECTX_12,                  ///< DirectX 12 API
     GPA_API_OPENGL,                      ///< OpenGL API
     GPA_API_OPENCL,                      ///< OpenCL API
-    GPA_API_HSA,                         ///< HSA API
+    GPA_API_ROCM,                        ///< ROCm API
+    GPA_API_HSA = GPA_API_ROCM,          ///< HSA API -- maps to ROCm API, enum value left here for backwards compatibility
     GPA_API_VULKAN,                      ///< Vulkan API
     GPA_API_NO_SUPPORT,                  ///< APIs which are not yet supported or for which support has been removed
     GPA_API__LAST                        ///< Marker indicating last element

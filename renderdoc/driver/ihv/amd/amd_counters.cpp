@@ -328,6 +328,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
       desc.unit = CounterUnit::Cycles;
       break;
     case GPA_USAGE_TYPE_MILLISECONDS:    ///< Result is in milliseconds
+    case GPA_USAGE_TYPE_NANOSECONDS:     ///< Result is in nanoseconds
       desc.unit = CounterUnit::Seconds;
       break;
     case GPA_USAGE_TYPE_KILOBYTES:    ///< Result is in kilobytes
@@ -621,6 +622,10 @@ std::vector<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint3
           else if(usageType == GPA_USAGE_TYPE_MILLISECONDS)
           {
             value /= 1000.0;
+          }
+          else if(usageType == GPA_USAGE_TYPE_NANOSECONDS)
+          {
+            value /= 1.0e+9;
           }
 
           ret.push_back(CounterResult(eventIDs[s], counters[c], value));

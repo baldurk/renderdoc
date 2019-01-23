@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2012-2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2012-2018 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  An accessor interface for the GPA_CounterGeneratorBase class
@@ -9,35 +9,44 @@
 #ifndef _GPA_I_COUNTER_ACCESSOR_H_
 #define _GPA_I_COUNTER_ACCESSOR_H_
 
+#include <cstdint>
 #include <vector>
 #include "GPUPerfAPITypes.h"
 
 struct GPA_HardwareCounterDescExt;
 class GPA_HWInfo;
-class GPA_PublicCounter;
+class GPA_HardwareCounters;
+class GPA_SoftwareCounters;
+class GPA_DerivedCounter;
 class GPA_CounterResultLocation;
 
-/// Types of counter
-enum GPACounterType { PUBLIC_COUNTER, HARDWARE_COUNTER, SOFTWARE_COUNTER, UNKNOWN_COUNTER };
-
-/// Stores the type of counter and its local index into that family of counters
-struct GPACounterTypeInfo
+/// Indicates the source or origin of a counter
+enum class GPACounterSource : uint32_t
 {
-    gpa_uint32 m_localIndex;      ///< the local index of the counter
-    GPACounterType m_counterType; ///< the type of the counter
+    UNKNOWN,        /// Invalid or unknown counter
+    PUBLIC,         /// Counter is defined by GPA using other Hardware counters or hardware info
+    HARDWARE,       /// Counter comes from the hardware
+    SOFTWARE,       /// Counter comes from software (ie, an API-level query)
+};
+
+/// Stores the source of the counter and its local index into that family of counters
+struct GPACounterSourceInfo
+{
+    gpa_uint32 m_localIndex;            ///< The local index of the counter
+    GPACounterSource m_counterSource;   ///< The source of the counter
 
     /// Sets the data for
     /// \param localIndex the local index to set
-    /// \param type the type to set
-    void Set(gpa_uint32 localIndex, GPACounterType type)
+    /// \param source the type to set
+    void Set(gpa_uint32 localIndex, GPACounterSource source)
     {
         m_localIndex = localIndex;
-        m_counterType = type;
+        m_counterSource = source;
     }
 };
 
 /// An accessor interface for the GPA_CounterGeneratorBase class
-class GPA_ICounterAccessor
+class IGPACounterAccessor
 {
 public:
 
@@ -59,7 +68,7 @@ public:
     /// Gets the category of the specified counter
     /// \param index The index of the counter whose category is needed
     /// \return The category of the specified counter
-    virtual const char* GetCounterCategory(gpa_uint32 index) const = 0;
+    virtual const char* GetCounterGroup(gpa_uint32 index) const = 0;
 
     /// Gets a counter's description
     /// \param index The index of a counter, must be between 0 and the value returned from GetNumPublicCounters()
@@ -69,17 +78,27 @@ public:
     /// Gets the data type of a public counter
     /// \param index The index of a counter
     /// \return The data type of the the desired counter
-    virtual GPA_Type GetCounterDataType(gpa_uint32 index) const = 0;
+    virtual GPA_Data_Type GetCounterDataType(gpa_uint32 index) const = 0;
 
     /// Gets the usage type of a public counter
     /// \param index The index of a counter
     /// \return The usage of the the desired counter
     virtual GPA_Usage_Type GetCounterUsageType(gpa_uint32 index) const = 0;
 
+    /// Gets a counter's GPA_UUID
+    /// \param index The index of a counter, must be between 0 and the value returned from GetNumPublicCounters()
+    /// \return The counter UUID
+    virtual GPA_UUID GetCounterUuid(gpa_uint32 index) const = 0;
+
+    /// Gets the supported sample type of a counter
+    /// \param index The index of a counter
+    /// \return the counter's supported sample type
+    virtual GPA_Counter_Sample_Type GetCounterSampleType(gpa_uint32 index) const = 0;
+
     /// Gets a public counter
     /// \param index The index of the public counter to return
     /// \return A public counter
-    virtual const GPA_PublicCounter* GetPublicCounter(gpa_uint32 index) const = 0;
+    virtual const GPA_DerivedCounter* GetPublicCounter(gpa_uint32 index) const = 0;
 
     /// Gets a hardware counter
     /// \param index The index of a hardware counter to return
@@ -101,12 +120,20 @@ public:
     /// \param[in] internalCounterTypes A vector of counter types
     /// \param[inout] pResult The computed counter result
     /// \param[in] pHwInfo Information about the hardware on which the result was generated
-    virtual void ComputePublicCounterValue(gpa_uint32 counterIndex, std::vector<char*>& results, std::vector<GPA_Type>& internalCounterTypes, void* pResult, GPA_HWInfo* pHwInfo) = 0;
+    /// \return GPA_STATUS_OK on success, otherwise an error code
+    virtual GPA_Status ComputePublicCounterValue(gpa_uint32 counterIndex, std::vector<gpa_uint64*>& results, std::vector<GPA_Data_Type>& internalCounterTypes, void* pResult, const GPA_HWInfo* pHwInfo) const = 0;
+
+    /// Compute a software counter value
+    /// \param softwareCounterIndex the index of the counter (within the range of software counters) whose value is needed
+    /// \param value the value of the counter
+    /// \param[out] pResult the resulting value
+    /// \param pHwInfo the hardware info
+    virtual void ComputeSWCounterValue(gpa_uint32 softwareCounterIndex, gpa_uint64 value, void* pResult, const GPA_HWInfo* pHwInfo) const = 0;
 
     /// Gets the counter type information based on the global counter index
     /// \param globalIndex The index into the main list of counters
     /// \return The info about the counter
-    virtual GPACounterTypeInfo GetCounterTypeInfo(gpa_uint32 globalIndex) const = 0;
+    virtual GPACounterSourceInfo GetCounterSourceInfo(gpa_uint32 globalIndex) const = 0;
 
     /// Gets a counter's index
     /// \param pName The name of a counter
@@ -114,8 +141,16 @@ public:
     /// \return true if the counter is found, false otherwise
     virtual bool GetCounterIndex(const char* pName, gpa_uint32* pIndex) const = 0;
 
+    /// Get the hardware counters
+    /// \return the hardware counters
+    virtual const GPA_HardwareCounters* GetHardwareCounters() const = 0;
+
+    /// Get the software counters
+    /// \return the software counters
+    virtual const GPA_SoftwareCounters* GetSoftwareCounters() const = 0;
+
     /// Virtual Destructor
-    virtual ~GPA_ICounterAccessor() = default;
+    virtual ~IGPACounterAccessor() = default;
 };
 
 #endif //_GPA_I_COUNTER_ACCESSOR_H_

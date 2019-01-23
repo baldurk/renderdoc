@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2012-2017 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2012-2018 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  GPUPerfAPI Counter Generator function
@@ -19,6 +19,7 @@
 /// \param[in] vendorId The vendor id to generate counters for
 /// \param[in] deviceId The device id to generate counters for
 /// \param[in] revisionId The revision id to generate counters for
+/// \param[in] flags Flags used to initialize the context. Should be a combination of GPA_OpenContext_Bits
 /// \param[in] generateAsicSpecificCounters Flag that indicates whether the counters should be ASIC specific, if available.
 /// \param[inout] ppCounterAccessorOut Address of a GPA_ICounterAccessor pointer which will be set to the necessary counter accessor
 /// \param[inout] ppCounterSchedulerOut Address of a GPA_ICounterScheduler pointer which will be set to the necessary counter scheduler
@@ -32,6 +33,7 @@ GPA_Status GenerateCounters(
     gpa_uint32 vendorId,
     gpa_uint32 deviceId,
     gpa_uint32 revisionId,
+    GPA_OpenContextFlags flags,
     gpa_uint8 generateAsicSpecificCounters,
     IGPACounterAccessor** ppCounterAccessorOut,
     IGPACounterScheduler** ppCounterSchedulerOut);

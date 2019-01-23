@@ -92,12 +92,6 @@
     <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h">
       <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterAccessor.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterScheduler.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI.h">
       <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
@@ -114,5 +108,11 @@
       <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
     <ClInclude Include="amd_rgp.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterAccessor.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterScheduler.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

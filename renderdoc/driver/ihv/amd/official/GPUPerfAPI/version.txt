@@ -1,1 +1,3 @@
-Release: GPUPerfAPI 2.22.1
+Release: GPUPerfAPI 3.3
+
+https://github.com/GPUOpen-Tools/GPA @ 1eaee4a094925bd30624defd1377c5a7efc92591
