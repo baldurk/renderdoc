@@ -287,8 +287,10 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_Reset(SerialiserType &ser,
       if(!GetResourceManager()->HasLiveResource(BakedCommandList))
       {
         ID3D12GraphicsCommandList *list = NULL;
-        m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
-                                     __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+        HRESULT hr =
+            m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
+                                         __uuidof(ID3D12GraphicsCommandList), (void **)&list);
+        RDCASSERTEQUAL(hr, S_OK);
 
         m_pDevice->AddResource(BakedCommandList, ResourceType::CommandBuffer, "Baked Command List");
         m_pDevice->GetReplay()->GetResourceDesc(BakedCommandList).initialisationChunks.clear();
