@@ -799,6 +799,7 @@ void ReplayOutput::DisplayTex()
     texDisplay.flipY = m_RenderData.texDisplay.flipY;
     texDisplay.rangeMin = 0.0f;
     texDisplay.rangeMax = 1.0f;
+    texDisplay.linearDisplayAsGamma = false;
 
     m_pDevice->RenderTexture(texDisplay);
   }
