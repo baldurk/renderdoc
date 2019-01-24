@@ -1028,7 +1028,7 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
     {
       // for the last attribute, ensure the total size doesn't overlap stride
       if(attrs[i].byteOffset + cursz > stride && stride > 0)
-        return tr("// vertex stride %1 less than total data fetched %1")
+        return tr("// vertex stride %1 less than total data fetched %2")
             .arg(stride)
             .arg(attrs[i].byteOffset + cursz);
     }
