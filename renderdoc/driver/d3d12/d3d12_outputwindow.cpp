@@ -210,6 +210,8 @@ void D3D12Replay::DestroyOutputWindow(uint64_t id)
 
   OutputWindow &outw = it->second;
 
+  m_pDevice->FlushLists(true);
+
   SAFE_RELEASE(outw.swap);
   SAFE_RELEASE(outw.bb[0]);
   SAFE_RELEASE(outw.bb[1]);
