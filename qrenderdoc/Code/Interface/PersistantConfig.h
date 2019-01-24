@@ -389,6 +389,8 @@ enum class TimeUnit : int
   Count,
 };
 
+DECLARE_REFLECTION_ENUM(TimeUnit);
+
 DOCUMENT(R"(Gets the suffix for a time unit.
 
 :return: The one or two character suffix.

@@ -30,6 +30,19 @@
 #include "Styles/StyleData.h"
 #include "QRDInterface.h"
 
+template <>
+std::string DoStringise(const TimeUnit &el)
+{
+  BEGIN_ENUM_STRINGISE(TimeUnit)
+  {
+    STRINGISE_ENUM_CLASS(Seconds);
+    STRINGISE_ENUM_CLASS(Milliseconds);
+    STRINGISE_ENUM_CLASS(Microseconds);
+    STRINGISE_ENUM_CLASS(Nanoseconds);
+  }
+  END_ENUM_STRINGISE();
+}
+
 #define JSON_ID "rdocConfigData"
 #define JSON_VER 1
 

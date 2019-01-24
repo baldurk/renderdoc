@@ -690,7 +690,7 @@ void EventBrowser::on_exportDraws_clicked()
 
         if(!m_Times.empty())
         {
-          line += QFormatStr(" | %1").arg(ui->events->headerText(COL_DURATION));
+          line += QFormatStr(" | %1 (%2)").arg(tr("Duration")).arg(ToQStr(m_TimeUnit));
         }
 
         stream << line << "\n";
