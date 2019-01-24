@@ -183,12 +183,14 @@ void main()
                                   GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT);
 
     glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteInvalidate]);
-    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
     for(int i = 0; i < 100; i++)
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
 
     glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteNonInvalidate]);
-    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
     for(int i = 0; i < 100; i++)
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
 
@@ -213,12 +215,14 @@ void main()
         GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
     glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapWrite]);
-    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &cyan, GL_MAP_WRITE_BIT);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &cyan,
+                    GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
     for(int i = 0; i < 100; i++)
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
 
     glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapFlush]);
-    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &cyan, GL_MAP_WRITE_BIT);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &cyan,
+                    GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
     for(int i = 0; i < 100; i++)
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
 
