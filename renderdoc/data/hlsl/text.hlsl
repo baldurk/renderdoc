@@ -23,6 +23,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "hlsl_cbuffers.h"
+
 // text shader, used for the overlay in game so that we can pass indices in the positon stream
 // and it figures out the right place in the text texture to sample.
 

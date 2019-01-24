@@ -22,6 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define MESH_UBO
+
+#include "glsl_ubos.h"
+
+#if !defined(OPENGL_ES)
+#extension GL_ARB_explicit_attrib_location : require
+#endif
+
 // this allows overrides from outside to change to e.g. dvec4
 
 #ifndef POSITION_TYPE
@@ -35,16 +43,8 @@
 layout(location = 0) in POSITION_TYPE position;
 layout(location = 1) in SECONDARY_TYPE IN_secondary;
 
-#ifndef OPENGL_ES
-out gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-};
-#endif
-
-layout(location = 0) out vec4 secondary;
-layout(location = 1) out vec4 norm;
+IO_LOCATION(0) out vec4 vsout_secondary;
+IO_LOCATION(1) out vec4 vsout_norm;
 
 void main(void)
 {
@@ -65,8 +65,8 @@ void main(void)
 
   gl_Position = Mesh.mvp * pos;
   gl_Position.xy += Mesh.pointSpriteSize.xy * 0.01f * psprite[VERTEX_ID % 4] * gl_Position.w;
-  secondary = vec4(IN_secondary);
-  norm = vec4(0, 0, 1, 1);
+  vsout_secondary = vec4(IN_secondary);
+  vsout_norm = vec4(0, 0, 1, 1);
 
 #ifdef VULKAN
   // GL->VK conventions

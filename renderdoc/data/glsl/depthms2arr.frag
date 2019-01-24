@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#extension GL_ARB_shading_language_420pack : require
+
+#include "glsl_globals.h"
+
 layout(binding = 0) uniform PRECISION sampler2DMSArray srcDepthMS;
 layout(binding = 1) uniform PRECISION usampler2DMSArray srcStencilMS;
 // binding = 2 used as an image in the colour copy compute shaders

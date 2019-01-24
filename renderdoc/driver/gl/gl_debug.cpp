@@ -36,18 +36,14 @@
 #include "gl_resources.h"
 
 #define OPENGL 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
-GLuint GLReplay::CreateShader(GLenum shaderType, const std::vector<std::string> &sources)
+GLuint GLReplay::CreateShader(GLenum shaderType, const std::string &src)
 {
   GLuint ret = GL.glCreateShader(shaderType);
 
-  std::vector<const char *> srcs;
-  srcs.reserve(sources.size());
-  for(size_t i = 0; i < sources.size(); i++)
-    srcs.push_back(sources[i].c_str());
-
-  GL.glShaderSource(ret, (GLsizei)srcs.size(), &srcs[0], NULL);
+  const char *csrc = src.c_str();
+  GL.glShaderSource(ret, 1, &csrc, NULL);
 
   GL.glCompileShader(ret);
 
@@ -64,14 +60,14 @@ GLuint GLReplay::CreateShader(GLenum shaderType, const std::vector<std::string> 
   return ret;
 }
 
-GLuint GLReplay::CreateCShaderProgram(const std::vector<std::string> &csSources)
+GLuint GLReplay::CreateCShaderProgram(const std::string &src)
 {
   if(m_pDriver == NULL)
     return 0;
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  GLuint cs = CreateShader(eGL_COMPUTE_SHADER, csSources);
+  GLuint cs = CreateShader(eGL_COMPUTE_SHADER, src);
   if(cs == 0)
     return 0;
 
@@ -97,16 +93,13 @@ GLuint GLReplay::CreateCShaderProgram(const std::vector<std::string> &csSources)
   return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(const std::vector<std::string> &vs,
-                                     const std::vector<std::string> &fs)
+GLuint GLReplay::CreateShaderProgram(const std::string &vs, const std::string &fs)
 {
-  std::vector<std::string> empty;
-  return CreateShaderProgram(vs, fs, empty);
+  return CreateShaderProgram(vs, fs, "");
 }
 
-GLuint GLReplay::CreateShaderProgram(const std::vector<std::string> &vsSources,
-                                     const std::vector<std::string> &fsSources,
-                                     const std::vector<std::string> &gsSources)
+GLuint GLReplay::CreateShaderProgram(const std::string &vsSrc, const std::string &fsSrc,
+                                     const std::string &gsSrc)
 {
   if(m_pDriver == NULL)
     return 0;
@@ -117,29 +110,29 @@ GLuint GLReplay::CreateShaderProgram(const std::vector<std::string> &vsSources,
   GLuint fs = 0;
   GLuint gs = 0;
 
-  if(vsSources.empty())
+  if(vsSrc.empty())
   {
     RDCERR("Must have vertex shader - no separable programs supported.");
     return 0;
   }
 
-  if(fsSources.empty())
+  if(fsSrc.empty())
   {
     RDCERR("Must have fragment shader - no separable programs supported.");
     return 0;
   }
 
-  vs = CreateShader(eGL_VERTEX_SHADER, vsSources);
+  vs = CreateShader(eGL_VERTEX_SHADER, vsSrc);
   if(vs == 0)
     return 0;
 
-  fs = CreateShader(eGL_FRAGMENT_SHADER, fsSources);
+  fs = CreateShader(eGL_FRAGMENT_SHADER, fsSrc);
   if(fs == 0)
     return 0;
 
-  if(!gsSources.empty())
+  if(!gsSrc.empty())
   {
-    gs = CreateShader(eGL_GEOMETRY_SHADER, gsSources);
+    gs = CreateShader(eGL_GEOMETRY_SHADER, gsSrc);
     if(gs == 0)
       return 0;
   }
@@ -230,15 +223,17 @@ void GLReplay::InitDebugData()
   DebugData.outWidth = 0.0f;
   DebugData.outHeight = 0.0f;
 
-  std::vector<std::string> vs;
-  std::vector<std::string> fs;
-  std::vector<std::string> gs;
-  std::vector<std::string> cs;
+  std::string vs;
+  std::string fs;
+  std::string gs;
+  std::string cs;
 
   int glslVersion;
   int glslBaseVer;
   int glslCSVer;    // compute shader
   ShaderType shaderType;
+
+  std::string texSampleDefines;
 
   if(IsGLES)
   {
@@ -247,15 +242,39 @@ void GLReplay::InitDebugData()
 
     if(GLCoreVersion >= 32)
       glslVersion = glslBaseVer = glslCSVer = 320;
+
+    if(HasExt[OES_texture_cube_map_array] || HasExt[EXT_texture_cube_map_array])
+      texSampleDefines += "#define TEXSAMPLE_CUBE_ARRAY 1\n";
+
+    if(HasExt[OES_texture_cube_map_array])
+      texSampleDefines += "#extension GL_OES_texture_cube_map_array : require\n";
+
+    if(HasExt[EXT_texture_cube_map_array])
+      texSampleDefines += "#extension GL_EXT_texture_cube_map_array : require\n";
+
+    if(HasExt[EXT_texture_buffer])
+      texSampleDefines +=
+          "#define TEXSAMPLE_BUFFER 1\n"
+          "#extension GL_EXT_texture_buffer : require\n";
   }
   else
   {
     glslVersion = glslBaseVer = 150;
     glslCSVer = 420;
     shaderType = eShaderGLSL;
+
+    if(HasExt[ARB_texture_cube_map_array])
+      texSampleDefines +=
+          "#define TEXSAMPLE_CUBE_ARRAY 1\n"
+          "#extension GL_ARB_texture_cube_map_array : require\n";
+
+    if(HasExt[ARB_texture_multisample])
+      texSampleDefines +=
+          "#define TEXSAMPLE_MULTISAMPLE 1\n"
+          "#extension GL_ARB_texture_multisample : require\n";
   }
 
-  GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
+  vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
 
   // used to combine with custom shaders.
   DebugData.texDisplayVertexShader = CreateShader(eGL_VERTEX_SHADER, vs);
@@ -265,8 +284,8 @@ void GLReplay::InitDebugData()
     string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
     defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-    GenerateGLSLShader(fs, shaderType, defines, GetEmbeddedResource(glsl_texdisplay_frag),
-                       glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_texdisplay_frag), shaderType, glslBaseVer,
+                            defines + texSampleDefines);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(vs, fs);
   }
@@ -296,7 +315,7 @@ void GLReplay::InitDebugData()
 
   RDCLOG("GLSL version %d", glslVersion);
 
-  GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
+  vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
 
   DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
   DebugData.quadoverdrawResolveProg = 0;
@@ -314,7 +333,7 @@ void GLReplay::InitDebugData()
   }
   else if(HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
   {
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_quadresolve_frag), glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_quadresolve_frag), shaderType, glslBaseVer);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
   }
@@ -329,19 +348,19 @@ void GLReplay::InitDebugData()
                                "disabling quad overdraw feature.");
   }
 
-  GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_checkerboard_frag), glslBaseVer);
+  fs = GenerateGLSLShader(GetEmbeddedResource(glsl_checkerboard_frag), shaderType, glslBaseVer);
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
   if(HasExt[ARB_geometry_shader4])
   {
-    GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_trisize_frag), glslBaseVer);
-    GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_trisize_geom), glslBaseVer);
+    vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_trisize_frag), shaderType, glslBaseVer);
+    gs = GenerateGLSLShader(GetEmbeddedResource(glsl_trisize_geom), shaderType, glslBaseVer);
 
     DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
 
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
-    GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_mesh_geom), glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer);
+    gs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_geom), shaderType, glslBaseVer);
 
     DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
     DebugData.meshgsProg[0] = CreateShaderProgram(vs, fs, gs);
@@ -353,24 +372,24 @@ void GLReplay::InitDebugData()
           "#extension GL_ARB_vertex_attrib_64bit : require\n";
 
       // position only dvec4
-      GenerateGLSLShader(vs, shaderType, extensions + "#define POSITION_TYPE dvec4",
-                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+      vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
+                              extensions + "#define POSITION_TYPE dvec4\n");
 
       DebugData.meshProg[1] = CreateShaderProgram(vs, fs);
       DebugData.meshgsProg[1] = CreateShaderProgram(vs, fs, gs);
 
       // secondary only dvec4
-      GenerateGLSLShader(vs, shaderType, extensions + "#define SECONDARY_TYPE dvec4",
-                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+      vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
+                              extensions + "#define SECONDARY_TYPE dvec4\n");
 
       DebugData.meshProg[2] = CreateShaderProgram(vs, fs);
       DebugData.meshgsProg[2] = CreateShaderProgram(vs, fs, gs);
 
       // both dvec4
-      GenerateGLSLShader(vs, shaderType, extensions +
-                                             "#define POSITION_TYPE dvec4\n"
-                                             "#define SECONDARY_TYPE dvec4",
-                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+      vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
+                              extensions +
+                                  "#define POSITION_TYPE dvec4\n"
+                                  "#define SECONDARY_TYPE dvec4\n");
 
       DebugData.meshProg[3] = CreateShaderProgram(vs, fs);
       DebugData.meshgsProg[3] = CreateShaderProgram(vs, fs, gs);
@@ -385,8 +404,8 @@ void GLReplay::InitDebugData()
   }
   else
   {
-    GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
+    vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer);
 
     DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
     RDCEraseEl(DebugData.meshgsProg);
@@ -406,22 +425,22 @@ void GLReplay::InitDebugData()
           "#extension GL_ARB_vertex_attrib_64bit : require\n";
 
       // position only dvec4
-      GenerateGLSLShader(vs, shaderType, extensions + "#define POSITION_TYPE dvec4",
-                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+      vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
+                              extensions + "#define POSITION_TYPE dvec4");
 
       DebugData.meshProg[1] = CreateShaderProgram(vs, fs);
 
       // secondary only dvec4
-      GenerateGLSLShader(vs, shaderType, extensions + "#define SECONDARY_TYPE dvec4",
-                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+      vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
+                              extensions + "#define SECONDARY_TYPE dvec4");
 
       DebugData.meshProg[2] = CreateShaderProgram(vs, fs);
 
       // both dvec4
-      GenerateGLSLShader(vs, shaderType, extensions +
-                                             "#define POSITION_TYPE dvec4\n"
-                                             "#define SECONDARY_TYPE dvec4",
-                         GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+      vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
+                              extensions +
+                                  "#define POSITION_TYPE dvec4\n"
+                                  "#define SECONDARY_TYPE dvec4");
 
       DebugData.meshProg[3] = CreateShaderProgram(vs, fs);
     }
@@ -503,15 +522,6 @@ void GLReplay::InitDebugData()
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
 
-    string extensions;
-
-    if(!IsGLES)
-    {
-      extensions =
-          "#extension GL_ARB_compute_shader : require\n"
-          "#extension GL_ARB_shader_storage_buffer_object : require\n";
-    }
-
     if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_storage_buffer_object])
     {
       for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
@@ -526,38 +536,40 @@ void GLReplay::InitDebugData()
             idx |= TEXDISPLAY_SINT_TEX;
 
           {
-            string defines = extensions;
+            string defines;
             defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
             defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
             defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            defines += texSampleDefines;
 
-            GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
-                               glslCSVer);
+            cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), shaderType,
+                                    glslCSVer, defines);
 
             DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
           }
 
           {
-            string defines = extensions;
+            string defines;
             defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
             defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
             defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            defines += texSampleDefines;
 
-            GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_histogram_comp),
-                               glslCSVer);
+            cs = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), shaderType, glslCSVer,
+                                    defines);
 
             DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
           }
 
           if(t == 1)
           {
-            string defines = extensions;
+            string defines;
             defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
             defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
             defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-            GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_minmaxresult_comp),
-                               glslCSVer);
+            cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), shaderType,
+                                    glslCSVer, defines);
 
             DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
           }
@@ -594,14 +606,14 @@ void GLReplay::InitDebugData()
 
   if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_image_load_store])
   {
-    GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_ms2array_comp), glslCSVer);
+    cs = GenerateGLSLShader(GetEmbeddedResource(glsl_ms2array_comp), shaderType, glslCSVer);
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
     // GLES doesn't have multisampled image load/store even with any extension
     DebugData.Array2MS = 0;
     if(!IsGLES)
     {
-      GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_array2ms_comp), glslCSVer);
+      cs = GenerateGLSLShader(GetEmbeddedResource(glsl_array2ms_comp), shaderType, glslCSVer);
       DebugData.Array2MS = CreateCShaderProgram(cs);
     }
   }
@@ -622,12 +634,12 @@ void GLReplay::InitDebugData()
 
   if(HasExt[ARB_texture_multisample])
   {
-    GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
+    vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
 
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_depthms2arr_frag), glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depthms2arr_frag), shaderType, glslBaseVer);
     DebugData.DepthMS2Array = CreateShaderProgram(vs, fs);
 
-    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_deptharr2ms_frag), glslBaseVer);
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_deptharr2ms_frag), shaderType, glslBaseVer);
     DebugData.DepthArray2MS = CreateShaderProgram(vs, fs);
   }
   else
@@ -642,15 +654,7 @@ void GLReplay::InitDebugData()
 
   if(HasExt[ARB_compute_shader])
   {
-    string defines;
-
-    if(!IsGLES)
-    {
-      defines =
-          "#extension GL_ARB_compute_shader : require\n"
-          "#extension GL_ARB_shader_storage_buffer_object : require";
-    }
-    GenerateGLSLShader(cs, shaderType, defines, GetEmbeddedResource(glsl_mesh_comp), glslCSVer);
+    cs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_comp), shaderType, glslCSVer);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
   else
@@ -732,11 +736,6 @@ void GLReplay::InitDebugData()
 
   drv.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
   drv.glEnableVertexAttribArray(0);
-
-  GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
-  GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_outline_frag), glslBaseVer);
-
-  DebugData.outlineQuadProg = CreateShaderProgram(vs, fs);
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -962,8 +961,6 @@ void GLReplay::DeleteDebugData()
 
   drv.glDeleteBuffers(1, &DebugData.axisFrustumBuffer);
   drv.glDeleteBuffers(1, &DebugData.triHighlightBuffer);
-
-  drv.glDeleteProgram(DebugData.outlineQuadProg);
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
@@ -2028,11 +2025,18 @@ void GLReplay::RenderCheckerboard()
 
   drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
-  Vec4f *ubo = (Vec4f *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(Vec4f) * 2,
-                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+  CheckerboardUBOData *ubo =
+      (CheckerboardUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(CheckerboardUBOData),
+                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-  ubo[0] = RenderDoc::Inst().LightCheckerboardColor();
-  ubo[1] = RenderDoc::Inst().DarkCheckerboardColor();
+  ubo->BorderWidth = 0.0f;
+  ubo->RectPosition = Vec2f();
+  ubo->RectSize = Vec2f();
+  ubo->CheckerSquareDimension = 64.0f;
+  ubo->InnerColor = Vec4f();
+
+  ubo->PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
+  ubo->SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

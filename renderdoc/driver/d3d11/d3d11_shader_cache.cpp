@@ -71,6 +71,33 @@ struct D3DBlobShaderCallbacks
   pD3DCreateBlob m_BlobCreate;
 } D3D11ShaderCacheCallbacks;
 
+struct EmbeddedD3D11Includer : public ID3DInclude
+{
+  std::string texsample = GetEmbeddedResource(hlsl_texsample_h);
+  std::string cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
+
+  virtual HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData,
+                       LPCVOID *ppData, UINT *pBytes) override
+  {
+    std::string *str;
+
+    if(!strcmp(pFileName, "hlsl_texsample.h"))
+      str = &texsample;
+    else if(!strcmp(pFileName, "hlsl_cbuffers.h"))
+      str = &cbuffers;
+    else
+      return E_FAIL;
+
+    if(ppData)
+      *ppData = str->c_str();
+    if(pBytes)
+      *pBytes = (uint32_t)str->size();
+
+    return S_OK;
+  }
+  virtual HRESULT Close(LPCVOID pData) override { return S_OK; }
+};
+
 D3D11ShaderCache::D3D11ShaderCache(WrappedID3D11Device *wrapper)
 {
   m_pDevice = wrapper;
@@ -100,9 +127,13 @@ std::string D3D11ShaderCache::GetShaderBlob(const char *source, const char *entr
                                             const uint32_t compileFlags, const char *profile,
                                             ID3DBlob **srcblob)
 {
+  EmbeddedD3D11Includer includer;
+
   uint32_t hash = strhash(source);
   hash = strhash(entry, hash);
   hash = strhash(profile, hash);
+  hash = strhash(includer.cbuffers.c_str(), hash);
+  hash = strhash(includer.texsample.c_str(), hash);
   hash ^= compileFlags;
 
   if(m_ShaderCache.find(hash) != m_ShaderCache.end())
@@ -133,8 +164,8 @@ std::string D3D11ShaderCache::GetShaderBlob(const char *source, const char *entr
 
   uint32_t flags = compileFlags & ~D3DCOMPILE_NO_PRESHADER;
 
-  hr = compileFunc(source, strlen(source), entry, NULL, NULL, entry, profile, flags, 0, &byteBlob,
-                   &errBlob);
+  hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
+                   &byteBlob, &errBlob);
 
   std::string errors = "";
 

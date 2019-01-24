@@ -22,26 +22,21 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// enable these extensions if possible
-//#extension GL_OES_texture_cube_map_array : enable
-//#extension GL_EXT_texture_cube_map_array : enable
-//#extension GL_EXT_texture_buffer : enable
+// since we pre-process externally, we can't preserve preprocessor commands through to use them for
+// optional extensions. Instead we set defines externally and use those entirely, and require the
+// extension whenever they're set.
+//
+// TEXSAMPLE_CUBE_ARRAY: GL_OES_texture_cube_map_array or GL_EXT_texture_cube_map_array
+// TEXSAMPLE_BUFFER: GL_EXT_texture_buffer
 
+// no extension for this one, it just became core in GLES 3.1
 #if __VERSION__ >= 310
-#define GLES_texture_multisample 1
-#endif
-
-#if defined(GL_OES_texture_cube_map_array) || defined(GL_EXT_texture_cube_map_array)
-#define GLES_texture_cube_map_array 1
-#endif
-
-#if defined(GL_EXT_texture_buffer)
-#define GLES_texture_buffer 1
+#define TEXSAMPLE_MULTISAMPLE 1
 #endif
 
 #if UINT_TEX
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // 1d = 1
 layout(binding = 2) uniform PRECISION usampler2D texUInt2D;
@@ -51,10 +46,10 @@ layout(binding = 3) uniform PRECISION usampler3D texUInt3D;
 layout(binding = 6) uniform PRECISION usampler2DArray texUInt2DArray;
 // cube array = 7
 // 2d rect = 8
-#ifdef GLES_texture_buffer
+#ifdef TEXSAMPLE_BUFFER
 layout(binding = 9) uniform PRECISION usamplerBuffer texUIntBuffer;
 #endif
-#ifdef GLES_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
 layout(binding = 10) uniform PRECISION usampler2DMS texUInt2DMS;
 #endif
 
@@ -73,7 +68,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
-#ifdef GLES_texture_buffer
+#ifdef TEXSAMPLE_BUFFER
     col = texelFetch(texUIntBuffer, int(pos.x * texRes.x));
 #else
     col = uvec4(0u, 0u, 0u, 0u);
@@ -81,7 +76,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-#ifdef GLES_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -109,7 +104,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 #elif SINT_TEX
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // 1d = 1
 layout(binding = 2) uniform PRECISION isampler2D texSInt2D;
@@ -119,10 +114,10 @@ layout(binding = 3) uniform PRECISION isampler3D texSInt3D;
 layout(binding = 6) uniform PRECISION isampler2DArray texSInt2DArray;
 // cube array = 7
 // 2d rect = 8
-#ifdef GLES_texture_buffer
+#ifdef TEXSAMPLE_BUFFER
 layout(binding = 9) uniform PRECISION isamplerBuffer texSIntBuffer;
 #endif
-#ifdef GLES_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
 layout(binding = 10) uniform PRECISION isampler2DMS texSInt2DMS;
 #endif
 
@@ -146,7 +141,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
-#ifdef GLES_texture_buffer
+#ifdef TEXSAMPLE_BUFFER
     col = texelFetch(texSIntBuffer, int(pos.x * texRes.x));
 #else
     col = ivec4(0, 0, 0, 0);
@@ -154,7 +149,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-#ifdef GLES_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -177,7 +172,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 #else
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // 1d = 1
 layout(binding = 2) uniform PRECISION sampler2D tex2D;
@@ -185,14 +180,14 @@ layout(binding = 3) uniform PRECISION sampler3D tex3D;
 layout(binding = 4) uniform PRECISION samplerCube texCube;
 // 1d array = 5
 layout(binding = 6) uniform PRECISION sampler2DArray tex2DArray;
-#ifdef GLES_texture_cube_map_array
+#ifdef TEXSAMPLE_CUBE_ARRAY
 layout(binding = 7) uniform PRECISION samplerCubeArray texCubeArray;
 #endif
 // 2d rect = 8
-#ifdef GLES_texture_buffer
+#ifdef TEXSAMPLE_BUFFER
 layout(binding = 9) uniform PRECISION samplerBuffer texBuffer;
 #endif
-#ifdef GLES_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
 layout(binding = 10) uniform PRECISION sampler2DMS tex2DMS;
 #endif
 
@@ -206,7 +201,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
-#ifdef GLES_texture_buffer
+#ifdef TEXSAMPLE_BUFFER
     col = texelFetch(texBuffer, int(pos.x * texRes.x));
 #else
     col = vec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -220,7 +215,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-#ifdef GLES_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
     if(sampleIdx < 0)
     {
       int sampleCount = -sampleIdx;
@@ -295,7 +290,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else    // type == RESTYPE_TEXCUBEARRAY
   {
-#ifdef GLES_texture_cube_map_array
+#ifdef TEXSAMPLE_CUBE_ARRAY
     vec3 cubeCoord = CalcCubeCoord(pos, int(slice) % 6);
     vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
 

@@ -32,7 +32,7 @@
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                                   const MeshFormat &secondary)
@@ -88,12 +88,14 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   if(cache.pipes[(uint32_t)SolidShade::NoSolid] != NULL)
     return cache;
 
+  cache.rootsig = m_MeshRootSig;
+
   // should we try and evict old pipelines from the cache here?
   // or just keep them forever
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
   RDCEraseEl(pipeDesc);
-  pipeDesc.pRootSignature = m_CBOnlyRootSig;
+  pipeDesc.pRootSignature = m_MeshRootSig;
   pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
   pipeDesc.SampleMask = 0xFFFFFFFF;
   pipeDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
@@ -237,9 +239,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   D3D12_RECT scissor = {0, 0, outw.width, outw.height};
   list->RSSetScissorRects(1, &scissor);
 
-  DebugVertexCBuffer vertexData;
-
-  vertexData.LineStrip = 0;
+  MeshVertexCBuffer vertexData;
 
   Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, viewport.Width / viewport.Height);
   Matrix4f InvProj = projMat.Inverse();
@@ -251,12 +251,10 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   vertexData.ModelViewProj = projMat.Mul(camMat);
   vertexData.SpriteSize = Vec2f();
 
-  DebugPixelCBufferData pixelData;
+  MeshPixelCBuffer pixelData;
 
-  pixelData.AlwaysZero = 0.0f;
-
-  pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-  pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
+  pixelData.MeshColour = Vec3f(0.0f, 0.0f, 0.0f);
+  pixelData.MeshDisplayFormat = MESHDISPLAY_SOLID;
 
   if(cfg.position.unproject)
   {
@@ -282,25 +280,29 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
   if(!secondaryDraws.empty())
   {
-    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
-
-    list->SetGraphicsRootConstantBufferView(0, vsCB);
-    list->SetGraphicsRootConstantBufferView(
-        1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
-    list->SetGraphicsRootConstantBufferView(2, vsCB);
+    ID3D12RootSignature *rootSig = NULL;
 
     for(size_t i = 0; i < secondaryDraws.size(); i++)
     {
       const MeshFormat &fmt = secondaryDraws[i];
 
-      DebugVertexCBuffer vdata;
-
       if(fmt.vertexResourceId != ResourceId())
       {
-        list->SetGraphicsRoot32BitConstants(3, 4, &fmt.meshColor.x, 0);
-
         MeshDisplayPipelines secondaryCache =
             GetDebugManager()->CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
+
+        if(secondaryCache.rootsig != rootSig)
+        {
+          rootSig = secondaryCache.rootsig;
+          list->SetGraphicsRootSignature(rootSig);
+          list->SetGraphicsRootConstantBufferView(0, vsCB);
+          list->SetGraphicsRootConstantBufferView(1, vsCB);    // geometry - dummy fill
+        }
+
+        pixelData.MeshColour.x = fmt.meshColor.x;
+        pixelData.MeshColour.y = fmt.meshColor.y;
+        pixelData.MeshColour.z = fmt.meshColor.z;
+        list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
         list->SetPipelineState(secondaryCache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 
@@ -413,33 +415,31 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
     }
 
-    pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
+    pixelData.MeshDisplayFormat = (int)cfg.solidShadeMode;
     if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
-      pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-    pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
+      pixelData.MeshDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+    pixelData.MeshColour = Vec3f(0.8f, 0.8f, 0.0f);
 
     list->SetPipelineState(pipe);
-    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
+    list->SetGraphicsRootSignature(cache.rootsig);
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
-    list->SetGraphicsRootConstantBufferView(
-        1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
 
     if(solidShadeMode == SolidShade::Lit)
     {
-      DebugGeometryCBuffer geomData;
+      MeshGeometryCBuffer geomData;
       geomData.InvProj = projMat.Inverse();
 
       list->SetGraphicsRootConstantBufferView(
-          2, GetDebugManager()->UploadConstants(&geomData, sizeof(geomData)));
+          1, GetDebugManager()->UploadConstants(&geomData, sizeof(geomData)));
     }
     else
     {
-      list->SetGraphicsRootConstantBufferView(2, vsCB);
+      list->SetGraphicsRootConstantBufferView(1, vsCB);    // dummy fill for geometry
     }
 
     Vec4f colour(0.8f, 0.8f, 0.0f, 1.0f);
-    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
     if(cfg.position.indexByteStride)
     {
@@ -470,17 +470,19 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     Vec4f wireCol =
         Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
 
-    pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+    pixelData.MeshDisplayFormat = MESHDISPLAY_SOLID;
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
-    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
+    list->SetGraphicsRootSignature(cache.rootsig);
 
     list->SetGraphicsRootConstantBufferView(0, vsCB);
-    list->SetGraphicsRootConstantBufferView(
-        1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
-    list->SetGraphicsRootConstantBufferView(2, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, vsCB);
 
-    list->SetGraphicsRoot32BitConstants(3, 4, &cfg.position.meshColor.x, 0);
+    pixelData.MeshColour.x = cfg.position.meshColor.x;
+    pixelData.MeshColour.y = cfg.position.meshColor.y;
+    pixelData.MeshColour.z = cfg.position.meshColor.z;
+
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
     if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
     {
@@ -512,10 +514,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
   helper.vertexByteStride = sizeof(Vec4f);
 
-  pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-
-  list->SetGraphicsRootConstantBufferView(
-      1, GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData)));
+  pixelData.MeshDisplayFormat = MESHDISPLAY_SOLID;
 
   // cache pipelines for use in drawing wireframe helpers
   cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
@@ -553,8 +552,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
     list->IASetVertexBuffers(0, 1, &view);
 
-    Vec4f colour(0.2f, 0.2f, 1.0f, 1.0f);
-    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    pixelData.MeshColour = Vec3f(0.2f, 0.2f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 
@@ -580,16 +579,16 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
 
-    Vec4f colour(1.0f, 0.0f, 0.0f, 1.0f);
-    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    pixelData.MeshColour = Vec3f(1.0f, 0.0f, 0.0f);
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
     list->DrawInstanced(2, 1, 0, 0);
 
-    colour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    pixelData.MeshColour = Vec3f(0.0f, 1.0f, 0.0f);
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
     list->DrawInstanced(2, 1, 2, 0);
 
-    colour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
-    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    pixelData.MeshColour = Vec3f(0.0f, 0.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
     list->DrawInstanced(2, 1, 4, 0);
   }
 
@@ -624,8 +623,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
     list->IASetVertexBuffers(0, 1, &view);
 
-    Vec4f colour(1.0f, 1.0f, 1.0f, 1.0f);
-    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    pixelData.MeshColour = Vec3f(1.0f, 1.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
 
@@ -701,8 +700,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       // render primitives
 
       // Draw active primitive (red)
-      Vec4f colour(1.0f, 0.0f, 0.0f, 1.0f);
-      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+      pixelData.MeshColour = Vec3f(1.0f, 0.0f, 0.0f);
+      list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
       D3D12_VERTEX_BUFFER_VIEW view = {};
       view.StrideInBytes = sizeof(Vec4f);
@@ -719,8 +718,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       }
 
       // Draw adjacent primitives (green)
-      colour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+      pixelData.MeshColour = Vec3f(0.0f, 1.0f, 0.0f);
+      list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
@@ -745,8 +744,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
           0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
 
       // Draw active vertex (blue)
-      colour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
-      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+      pixelData.MeshColour = Vec3f(0.0f, 0.0f, 1.0f);
+      list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
       // vertices are drawn with tri strips
       helper.topology = Topology::TriangleStrip;
@@ -773,8 +772,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       }
 
       // Draw inactive vertices (green)
-      colour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+      pixelData.MeshColour = Vec3f(0.0f, 1.0f, 0.0f);
+      list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
       if(!inactiveVertices.empty())
       {

@@ -22,7 +22,22 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-//#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
+#if defined(OPENGL_CORE)
+#extension GL_ARB_compute_shader : require
+#extension GL_ARB_shader_storage_buffer_object : require
+#endif
+
+#define HISTOGRAM_UBO
+
+#include "glsl_ubos.h"
+
+#if defined(VULKAN)
+#include "vk_texsample.h"
+#elif defined(OPENGL_ES)
+#include "gles_texsample.h"
+#elif defined(OPENGL)
+#include "gl_texsample.h"
+#endif
 
 layout(binding = 0, std140) writeonly buffer minmaxtiledest
 {

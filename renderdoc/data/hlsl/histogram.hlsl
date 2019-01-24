@@ -23,6 +23,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "hlsl_cbuffers.h"
+#include "hlsl_texsample.h"
+
 // compute shaders that figure out the min/max values or histogram in a texture heirarchically
 // note that we have to conditionally compile this shader for float/uint/sint as doing that
 // dynamically produces a shader with too many temp registers unfortunately.

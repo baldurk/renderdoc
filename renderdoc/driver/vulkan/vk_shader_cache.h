@@ -43,7 +43,6 @@ enum class BuiltinShader
   MeshGS,
   MeshFS,
   MeshCS,
-  OutlineFS,
   QuadResolveFS,
   QuadWriteFS,
   TrisizeGS,
@@ -63,8 +62,8 @@ public:
   VulkanShaderCache(WrappedVulkan *driver);
   ~VulkanShaderCache();
 
-  std::string GetSPIRVBlob(const SPIRVCompilationSettings &settings,
-                           const std::vector<std::string> &sources, SPIRVBlob &outBlob);
+  std::string GetSPIRVBlob(const SPIRVCompilationSettings &settings, const std::string &src,
+                           SPIRVBlob &outBlob);
 
   SPIRVBlob GetBuiltinBlob(BuiltinShader builtin) { return m_BuiltinShaderBlobs[(size_t)builtin]; }
   VkShaderModule GetBuiltinModule(BuiltinShader builtin)

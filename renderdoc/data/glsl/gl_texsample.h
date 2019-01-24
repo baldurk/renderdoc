@@ -22,13 +22,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// enable these extensions if possible
-//#extension GL_ARB_texture_cube_map_array : enable
-//#extension GL_ARB_texture_multisample : enable
+// since we pre-process externally, we can't preserve preprocessor commands through to use them for
+// optional extensions. Instead we set defines externally and use those entirely, and require the
+// extension whenever they're set.
+//
+// TEXSAMPLE_CUBE_ARRAY: GL_ARB_texture_cube_map_array
+// TEXSAMPLE_MULTISAMPLE: GL_ARB_texture_multisample
 
 #if UINT_TEX
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 layout(binding = 1) uniform usampler1D texUInt1D;
 layout(binding = 2) uniform usampler2D texUInt2D;
@@ -39,7 +42,7 @@ layout(binding = 6) uniform usampler2DArray texUInt2DArray;
 // cube array = 7
 layout(binding = 8) uniform usampler2DRect texUInt2DRect;
 layout(binding = 9) uniform usamplerBuffer texUIntBuffer;
-#ifdef GL_ARB_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
 layout(binding = 10) uniform usampler2DMS texUInt2DMS;
 #endif
 
@@ -74,7 +77,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-#ifdef GL_ARB_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -102,7 +105,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 #elif SINT_TEX
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 layout(binding = 1) uniform isampler1D texSInt1D;
 layout(binding = 2) uniform isampler2D texSInt2D;
@@ -113,7 +116,7 @@ layout(binding = 6) uniform isampler2DArray texSInt2DArray;
 // cube array = 7
 layout(binding = 8) uniform isampler2DRect texSInt2DRect;
 layout(binding = 9) uniform isamplerBuffer texSIntBuffer;
-#ifdef GL_ARB_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
 layout(binding = 10) uniform isampler2DMS texSInt2DMS;
 #endif
 
@@ -153,7 +156,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-#ifdef GL_ARB_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -176,7 +179,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 #else
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 layout(binding = 1) uniform sampler1D tex1D;
 layout(binding = 2) uniform sampler2D tex2D;
@@ -184,12 +187,12 @@ layout(binding = 3) uniform sampler3D tex3D;
 layout(binding = 4) uniform samplerCube texCube;
 layout(binding = 5) uniform sampler1DArray tex1DArray;
 layout(binding = 6) uniform sampler2DArray tex2DArray;
-#ifdef GL_ARB_texture_cube_map_array
+#ifdef TEXSAMPLE_CUBE_ARRAY
 layout(binding = 7) uniform samplerCubeArray texCubeArray;
 #endif
 layout(binding = 8) uniform sampler2DRect tex2DRect;
 layout(binding = 9) uniform samplerBuffer texBuffer;
-#ifdef GL_ARB_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
 layout(binding = 10) uniform sampler2DMS tex2DMS;
 #endif
 
@@ -219,7 +222,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-#ifdef GL_ARB_texture_multisample
+#ifdef TEXSAMPLE_MULTISAMPLE
     if(sampleIdx < 0)
     {
       int sampleCount = -sampleIdx;
@@ -294,7 +297,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else    // type == RESTYPE_TEXCUBEARRAY
   {
-#ifdef GL_ARB_texture_cube_map_array
+#ifdef TEXSAMPLE_CUBE_ARRAY
     vec3 cubeCoord = CalcCubeCoord(pos, int(slice) % 6);
     vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
 

@@ -22,7 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-//#extension_glcore GL_ARB_sample_shading : require
+#if defined(OPENGL_CORE)
+#extension GL_ARB_sample_shading : require
+#endif
+
+#extension GL_ARB_shading_language_420pack : require
+
+#include "glsl_globals.h"
 
 layout(binding = 0) uniform PRECISION sampler2DArray srcDepthArray;
 layout(binding = 1) uniform PRECISION usampler2DArray srcStencilArray;

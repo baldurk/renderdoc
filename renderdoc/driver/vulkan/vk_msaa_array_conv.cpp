@@ -27,7 +27,7 @@
 #include "vk_debug.h"
 
 #define VULKAN 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
                                             uint32_t layers, uint32_t samples, VkFormat fmt)

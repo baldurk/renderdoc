@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "hlsl_cbuffers.h"
+
 struct meshV2F
 {
   float4 pos : SV_Position;
@@ -115,14 +117,9 @@ float4 RENDERDOC_TriangleSizePS(triSizeV2F IN) : SV_Target0
   TriStream.RestartStrip();
 }
 
-cbuffer MeshColourPush : register(b2)
-{
-  float4 MeshColour;
-}
-
 float4 RENDERDOC_MeshPS(meshV2F IN) : SV_Target0
 {
-  uint type = OutputDisplayFormat;
+  uint type = MeshDisplayFormat;
 
   if(type == MESHDISPLAY_SECONDARY)
     return float4(IN.secondary.xyz, 1);
@@ -141,24 +138,6 @@ float4 RENDERDOC_MeshPS(meshV2F IN) : SV_Target0
 Buffer<uint> index : register(t0);
 Buffer<float4> vertex : register(t1);
 AppendStructuredBuffer<uint4> pickresult : register(u0);
-
-cbuffer MeshPickData : register(b0)
-{
-  float3 PickRayPos;
-  uint PickIdx;
-
-  float3 PickRayDir;
-  uint PickNumVerts;
-
-  float2 PickCoords;
-  float2 PickViewport;
-
-  uint PickMeshMode;
-  uint PickUnproject;
-  float2 Padding;
-
-  row_major float4x4 PickMVP;
-};
 
 bool TriangleRayIntersect(float3 A, float3 B, float3 C, float3 RayPosition, float3 RayDirection,
                           out float3 HitPosition)

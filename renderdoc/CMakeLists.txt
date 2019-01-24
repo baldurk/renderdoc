@@ -122,11 +122,8 @@ set(sources
     core/plugins.h
     core/resource_manager.cpp
     core/resource_manager.h
-    data/hlsl/debugcbuffers.h
-    data/glsl/debuguniforms.h
-    data/glsl/vk_texsample.h
-    data/glsl/gl_texsample.h
-    data/glsl/gles_texsample.h
+    data/glsl/glsl_ubos.h
+    data/glsl/glsl_ubos_cpp.h
     data/glsl_shaders.cpp
     data/glsl_shaders.h
     hooks/hooks.cpp
@@ -319,7 +316,8 @@ endif()
 set(data
     data/glsl/blit.vert
     data/glsl/checkerboard.frag
-    data/glsl/debuguniforms.h
+    data/glsl/glsl_ubos.h
+    data/glsl/glsl_globals.h
     data/glsl/fixedcol.frag
     data/glsl/histogram.comp
     data/glsl/mesh.comp
@@ -328,7 +326,6 @@ set(data
     data/glsl/mesh.vert
     data/glsl/minmaxresult.comp
     data/glsl/minmaxtile.comp
-    data/glsl/outline.frag
     data/glsl/quadresolve.frag
     data/glsl/quadwrite.frag
     data/glsl/texdisplay.frag

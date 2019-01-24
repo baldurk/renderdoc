@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // binding = 5 + RESTYPE_x
 layout(binding = 6) uniform sampler1DArray tex1DArray;
@@ -136,7 +136,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   return col;
 }
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // binding = 10 + RESTYPE_x
 layout(binding = 11) uniform usampler1DArray texUInt1DArray;
@@ -173,7 +173,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   return col;
 }
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // binding = 15 + RESTYPE_x
 layout(binding = 16) uniform isampler1DArray texSInt1DArray;

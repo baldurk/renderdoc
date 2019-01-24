@@ -22,9 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(location = 0) in float pixarea;
+#include "glsl_globals.h"
 
-layout(location = 0) out vec4 color_out;
+IO_LOCATION(0) in float pixarea;
+
+IO_LOCATION(0) out vec4 color_out;
 
 void main(void)
 {

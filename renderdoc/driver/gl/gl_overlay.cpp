@@ -35,7 +35,7 @@
 #include "gl_resources.h"
 
 #define OPENGL 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader)
 {
@@ -248,10 +248,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
   // this is always compatible.
   {
-    std::vector<std::string> sources;
-    GenerateGLSLShader(sources, shaderType, "", GetEmbeddedResource(glsl_fixedcol_frag), glslVer,
-                       false);
-    DebugData.fixedcolFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
+    std::string source =
+        GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), shaderType, glslVer);
+    DebugData.fixedcolFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
   }
 
   // this is not supported on GLES
@@ -273,10 +272,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       glslVer = 450;
     }
 
-    std::vector<std::string> sources;
-    GenerateGLSLShader(sources, shaderType, defines, GetEmbeddedResource(glsl_quadwrite_frag),
-                       glslVer, false);
-    DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, sources);
+    std::string source =
+        GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), shaderType, glslVer, defines);
+    DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
   }
   else
   {
@@ -496,7 +494,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
     // don't need to use the existing program at all!
-    drv.glUseProgram(DebugData.outlineQuadProg);
+    drv.glUseProgram(DebugData.checkerProg);
     drv.glBindProgramPipeline(0);
 
     if(HasExt[ARB_viewport_array])
@@ -534,15 +532,20 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     drv.glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-    OutlineUBOData *cdata =
-        (OutlineUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
-                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    CheckerboardUBOData *cdata = (CheckerboardUBOData *)drv.glMapBufferRange(
+        eGL_UNIFORM_BUFFER, 0, sizeof(CheckerboardUBOData),
+        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-    cdata->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
-    cdata->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-    cdata->ViewRect =
-        Vec4f(rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width, rs.Viewports[0].height);
-    cdata->Scissor = 0;
+    cdata->BorderWidth = 3;
+    cdata->CheckerSquareDimension = 16.0f;
+
+    // set primary/secondary to the same to 'disable' checkerboard
+    cdata->PrimaryColor = cdata->SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+    cdata->InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+
+    // set viewport rect
+    cdata->RectPosition = Vec2f(rs.Viewports[0].x, rs.Viewports[0].y);
+    cdata->RectSize = Vec2f(rs.Viewports[0].width, rs.Viewports[0].height);
 
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -559,13 +562,22 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         drv.glViewport(rs.Scissors[0].x, rs.Scissors[0].y, rs.Scissors[0].width,
                        rs.Scissors[0].height);
 
-      cdata = (OutlineUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
-                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      cdata = (CheckerboardUBOData *)drv.glMapBufferRange(
+          eGL_UNIFORM_BUFFER, 0, sizeof(CheckerboardUBOData),
+          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-      cdata->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
-      cdata->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-      cdata->ViewRect = scissor;
-      cdata->Scissor = 1;
+      cdata->BorderWidth = 3;
+      cdata->CheckerSquareDimension = 16.0f;
+
+      // black/white checkered border
+      cdata->PrimaryColor = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+      cdata->SecondaryColor = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+
+      // nothing at all inside
+      cdata->InnerColor = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+
+      cdata->RectPosition = Vec2f(scissor.x, scissor.y);
+      cdata->RectSize = Vec2f(scissor.z, scissor.w);
 
       drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

@@ -37,7 +37,7 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                                       uint32_t eventId, const vector<uint32_t> &passEvents)
@@ -359,7 +359,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     m_pImmediateContext->HSSetShader(NULL, NULL, 0);
     m_pImmediateContext->DSSetShader(NULL, NULL, 0);
     m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->PSSetShader(m_Overlay.OutlinePS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_General.CheckerboardPS, NULL, 0);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     m_pImmediateContext->IASetInputLayout(NULL);
 
@@ -439,22 +439,24 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
     m_pImmediateContext->RSSetState(rs);
 
-    DebugPixelCBufferData pixelData = {0};
+    CheckerboardCBuffer pixelData = {0};
 
     UINT dummy = 1;
     D3D11_VIEWPORT views[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {0};
     m_pImmediateContext->RSGetViewports(&dummy, views);
 
-    // border colour (dark, 2px, opaque)
-    pixelData.WireframeColour = Vec3f(0.1f, 0.1f, 0.1f);
-    // inner colour (light, transparent)
-    pixelData.Channels = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
-    pixelData.OutputDisplayFormat = 0;
-    pixelData.RangeMinimum = views[0].TopLeftX;
-    pixelData.InverseRangeSize = views[0].TopLeftY;
-    pixelData.TextureResolutionPS = Vec3f(views[0].Width, views[0].Height, 0.0f);
+    pixelData.BorderWidth = 3;
+    pixelData.CheckerSquareDimension = 16.0f;
 
-    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+    // set primary/secondary to the same to 'disable' checkerboard
+    pixelData.PrimaryColor = pixelData.SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+    pixelData.InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+
+    // set viewport rect
+    pixelData.RectPosition = Vec2f(views[0].TopLeftX, views[0].TopLeftY);
+    pixelData.RectSize = Vec2f(views[0].Width, views[0].Height);
+
+    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
@@ -476,12 +478,18 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       m_pImmediateContext->RSSetViewports(1, &scissorview);
 
-      pixelData.OutputDisplayFormat = 1;
-      pixelData.RangeMinimum = scissorview.TopLeftX;
-      pixelData.InverseRangeSize = scissorview.TopLeftY;
-      pixelData.TextureResolutionPS = Vec3f(scissorview.Width, scissorview.Height, 0.0f);
+      // black/white checkered border
+      pixelData.PrimaryColor = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+      pixelData.SecondaryColor = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
 
-      buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+      // nothing at all inside
+      pixelData.InnerColor = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+
+      // set scissor rect
+      pixelData.RectPosition = Vec2f(scissorview.TopLeftX, scissorview.TopLeftY);
+      pixelData.RectSize = Vec2f(scissorview.Width, scissorview.Height);
+
+      buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
@@ -643,11 +651,10 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       m_MeshRender.MeshLayout = NULL;
     }
 
-    DebugVertexCBuffer vertexData = {};
-    vertexData.LineStrip = 0;
+    MeshVertexCBuffer vertexData = {};
     vertexData.ModelViewProj = Matrix4f::Identity();
     vertexData.SpriteSize = Vec2f();
-    ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
+    ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(vertexData));
 
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);

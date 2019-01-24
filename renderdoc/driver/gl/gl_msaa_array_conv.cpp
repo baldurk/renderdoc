@@ -26,7 +26,7 @@
 #include "gl_driver.h"
 
 #define OPENGL 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
                                   GLint arraySize, GLint samples, GLenum intFormat)

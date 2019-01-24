@@ -29,7 +29,7 @@
 #include "vk_debug.h"
 
 #define VULKAN 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
                                       CompType typeHint, TextureDisplayViews &views)

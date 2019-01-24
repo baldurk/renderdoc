@@ -30,7 +30,7 @@
 #include "d3d11_device.h"
 #include "d3d11_resources.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, CompType typeHint,
                                                                bool raw)
@@ -449,8 +449,8 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
 
 bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 {
-  DebugVertexCBuffer vertexData;
-  DebugPixelCBufferData pixelData;
+  TexDisplayVSCBuffer vertexData = {};
+  TexDisplayPSCBuffer pixelData = {};
   HeatmapData heatmapData = {};
 
   {
@@ -473,8 +473,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     }
   }
 
-  pixelData.AlwaysZero = 0.0f;
-
   float x = cfg.xOffset;
   float y = cfg.yOffset;
 
@@ -487,8 +485,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
   vertexData.TextureResolution.y = 1.0f;
-
-  vertexData.LineStrip = 0;
 
   if(cfg.rangeMax <= cfg.rangeMin)
     cfg.rangeMax += 0.00001f;
@@ -777,16 +773,16 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
   }
 
-  ID3D11Buffer *vsCBuffer = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
-  ID3D11Buffer *psCBuffer = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
-  ID3D11Buffer *psHeatCBuffer = GetDebugManager()->MakeCBuffer(&heatmapData, sizeof(HeatmapData));
+  ID3D11Buffer *vsCBuffer = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(vertexData));
+  ID3D11Buffer *psCBuffer = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));
+  ID3D11Buffer *psHeatCBuffer = GetDebugManager()->MakeCBuffer(&heatmapData, sizeof(heatmapData));
 
   // can't just clear state because we need to keep things like render targets.
   {
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     m_pImmediateContext->IASetInputLayout(NULL);
 
-    m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
+    m_pImmediateContext->VSSetShader(m_TexRender.TexDisplayVS, NULL, 0);
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuffer);
 
     m_pImmediateContext->HSSetShader(NULL, NULL, 0);

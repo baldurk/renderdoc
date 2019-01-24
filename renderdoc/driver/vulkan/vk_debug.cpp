@@ -35,7 +35,7 @@
 #include "vk_shader_cache.h"
 
 #define VULKAN 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16 * 1024 * 1024ULL;
 
@@ -1572,10 +1572,6 @@ void VulkanReplay::CreateResources()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
-  m_Checkerboard.Init(m_pDriver, m_General.DescriptorPool);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.5f);
-
   m_MeshRender.Init(m_pDriver, m_General.DescriptorPool);
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
@@ -1627,7 +1623,6 @@ void VulkanReplay::DestroyResources()
   m_General.Destroy(m_pDriver);
   m_TexRender.Destroy(m_pDriver);
   m_Overlay.Destroy(m_pDriver);
-  m_Checkerboard.Destroy(m_pDriver);
   m_VertexPick.Destroy(m_pDriver);
   m_PixelPick.Destroy(m_pDriver);
   m_Histogram.Destroy(m_pDriver);
@@ -2010,7 +2005,13 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 {
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
 
-  CREATE_OBJECT(m_OutlineDescSetLayout,
+  VkRenderPass SRGBA8RP = VK_NULL_HANDLE;
+  VkRenderPass SRGBA8MSRP = VK_NULL_HANDLE;
+
+  CREATE_OBJECT(SRGBA8RP, VK_FORMAT_R8G8B8A8_SRGB);
+  CREATE_OBJECT(SRGBA8MSRP, VK_FORMAT_R8G8B8A8_SRGB, VULKAN_MESH_VIEW_SAMPLES);
+
+  CREATE_OBJECT(m_CheckerDescSetLayout,
                 {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL}});
 
   CREATE_OBJECT(m_QuadDescSetLayout,
@@ -2024,42 +2025,51 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                     {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
 
+  CREATE_OBJECT(m_CheckerPipeLayout, m_CheckerDescSetLayout, 0);
   CREATE_OBJECT(m_QuadResolvePipeLayout, m_QuadDescSetLayout, 0);
   CREATE_OBJECT(m_TriSizePipeLayout, m_TriSizeDescSetLayout, 0);
-  CREATE_OBJECT(m_OutlinePipeLayout, m_OutlineDescSetLayout, 0);
   CREATE_OBJECT(m_QuadDescSet, descriptorPool, m_QuadDescSetLayout);
   CREATE_OBJECT(m_TriSizeDescSet, descriptorPool, m_TriSizeDescSetLayout);
-  CREATE_OBJECT(m_OutlineDescSet, descriptorPool, m_OutlineDescSetLayout);
+  CREATE_OBJECT(m_CheckerDescSet, descriptorPool, m_CheckerDescSetLayout);
 
-  m_OutlineUBO.Create(driver, driver->GetDev(), 128, 10, 0);
-  RDCCOMPILE_ASSERT(sizeof(OutlineUBOData) <= 128, "outline UBO size");
+  m_CheckerUBO.Create(driver, driver->GetDev(), 128, 10, 0);
+  RDCCOMPILE_ASSERT(sizeof(CheckerboardUBOData) <= 128, "checkerboard UBO size");
 
-  ConciseGraphicsPipeline outlineInfo = {
-      VK_NULL_HANDLE,
-      m_OutlinePipeLayout,
+  m_TriSizeUBO.Create(driver, driver->GetDev(), sizeof(Vec4f), 4096, 0);
+
+  ConciseGraphicsPipeline pipeInfo = {
+      SRGBA8RP,
+      m_CheckerPipeLayout,
       shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
-      shaderCache->GetBuiltinModule(BuiltinShader::OutlineFS),
+      shaderCache->GetBuiltinModule(BuiltinShader::CheckerboardFS),
       {VK_DYNAMIC_STATE_VIEWPORT},
       VK_SAMPLE_COUNT_1_BIT,
       false,    // sampleRateShading
       false,    // depthEnable
       false,    // stencilEnable
       VK_STENCIL_OP_KEEP,
-      true,    // colourOutput
-      true,    // blendEnable
+      true,     // colourOutput
+      false,    // blendEnable
       VK_BLEND_FACTOR_SRC_ALPHA,
       VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
       0xf,    // writeMask
   };
 
+  CREATE_OBJECT(m_CheckerPipeline, pipeInfo);
+
+  pipeInfo.renderPass = SRGBA8MSRP;
+  pipeInfo.sampleCount = VULKAN_MESH_VIEW_SAMPLES;
+
+  CREATE_OBJECT(m_CheckerMSAAPipeline, pipeInfo);
+
   uint32_t samplesHandled = 0;
 
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(m_OutlinePipeline) == ARRAY_COUNT(m_OutlinePipeline),
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(m_CheckerF16Pipeline) == ARRAY_COUNT(m_QuadResolvePipeline),
                     "Arrays are mismatched in size!");
 
   uint32_t supportedSampleCounts = driver->GetDeviceProps().limits.framebufferColorSampleCounts;
 
-  for(size_t i = 0; i < ARRAY_COUNT(m_OutlinePipeline); i++)
+  for(size_t i = 0; i < ARRAY_COUNT(m_CheckerF16Pipeline); i++)
   {
     VkSampleCountFlagBits samples = VkSampleCountFlagBits(1 << i);
 
@@ -2076,22 +2086,22 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
       continue;
 
     // if we this sample count is supported then create a pipeline
-    outlineInfo.renderPass = RGBA16MSRP;
-    outlineInfo.sampleCount = VkSampleCountFlagBits(1 << i);
+    pipeInfo.renderPass = RGBA16MSRP;
+    pipeInfo.sampleCount = VkSampleCountFlagBits(1 << i);
 
     // set up outline pipeline configuration
-    outlineInfo.blendEnable = true;
-    outlineInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::OutlineFS);
-    outlineInfo.pipeLayout = m_OutlinePipeLayout;
+    pipeInfo.blendEnable = true;
+    pipeInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::CheckerboardFS);
+    pipeInfo.pipeLayout = m_CheckerPipeLayout;
 
-    CREATE_OBJECT(m_OutlinePipeline[i], outlineInfo);
+    CREATE_OBJECT(m_CheckerF16Pipeline[i], pipeInfo);
 
     // set up quad resolve pipeline configuration
-    outlineInfo.blendEnable = false;
-    outlineInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::QuadResolveFS);
-    outlineInfo.pipeLayout = m_QuadResolvePipeLayout;
+    pipeInfo.blendEnable = false;
+    pipeInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::QuadResolveFS);
+    pipeInfo.pipeLayout = m_QuadResolvePipeLayout;
 
-    CREATE_OBJECT(m_QuadResolvePipeline[i], outlineInfo);
+    CREATE_OBJECT(m_QuadResolvePipeline[i], pipeInfo);
 
     driver->vkDestroyRenderPass(driver->GetDev(), RGBA16MSRP, NULL);
   }
@@ -2099,21 +2109,20 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   RDCASSERTEQUAL((uint32_t)driver->GetDeviceProps().limits.framebufferColorSampleCounts,
                  samplesHandled);
 
-  m_TriSizeUBO.Create(driver, driver->GetDev(), sizeof(Vec4f), 4096, 0);
-
-  VkDescriptorBufferInfo outlineUBO = {};
-  VkDescriptorBufferInfo overdrawramp = {};
-
-  m_OutlineUBO.FillDescriptor(outlineUBO);
+  VkDescriptorBufferInfo checkerboard = {};
+  m_CheckerUBO.FillDescriptor(checkerboard);
 
   VkWriteDescriptorSet writes[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_OutlineDescSet), 0, 0, 1,
-       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &outlineUBO, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_CheckerDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &checkerboard, NULL},
   };
 
   VkDevice dev = driver->GetDev();
 
   ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writes), writes, 0, NULL);
+
+  driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8RP, NULL);
+  driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8MSRP, NULL);
 }
 
 void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
@@ -2132,89 +2141,18 @@ void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
   for(size_t i = 0; i < ARRAY_COUNT(m_QuadResolvePipeline); i++)
     driver->vkDestroyPipeline(driver->GetDev(), m_QuadResolvePipeline[i], NULL);
 
-  driver->vkDestroyDescriptorSetLayout(driver->GetDev(), m_OutlineDescSetLayout, NULL);
-  driver->vkDestroyPipelineLayout(driver->GetDev(), m_OutlinePipeLayout, NULL);
-  for(size_t i = 0; i < ARRAY_COUNT(m_OutlinePipeline); i++)
-    driver->vkDestroyPipeline(driver->GetDev(), m_OutlinePipeline[i], NULL);
+  driver->vkDestroyDescriptorSetLayout(driver->GetDev(), m_CheckerDescSetLayout, NULL);
+  driver->vkDestroyPipelineLayout(driver->GetDev(), m_CheckerPipeLayout, NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(m_CheckerF16Pipeline); i++)
+    driver->vkDestroyPipeline(driver->GetDev(), m_CheckerF16Pipeline[i], NULL);
+  driver->vkDestroyPipeline(driver->GetDev(), m_CheckerPipeline, NULL);
+  driver->vkDestroyPipeline(driver->GetDev(), m_CheckerMSAAPipeline, NULL);
 
-  m_OutlineUBO.Destroy();
+  m_CheckerUBO.Destroy();
 
   m_TriSizeUBO.Destroy();
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), m_TriSizeDescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), m_TriSizePipeLayout, NULL);
-}
-
-void VulkanReplay::CheckerboardRendering::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
-{
-  VulkanShaderCache *shaderCache = driver->GetShaderCache();
-
-  VkRenderPass SRGBA8RP = VK_NULL_HANDLE;
-  VkRenderPass SRGBA8MSRP = VK_NULL_HANDLE;
-
-  CREATE_OBJECT(SRGBA8RP, VK_FORMAT_R8G8B8A8_SRGB);
-  CREATE_OBJECT(SRGBA8MSRP, VK_FORMAT_R8G8B8A8_SRGB, VULKAN_MESH_VIEW_SAMPLES);
-
-  CREATE_OBJECT(DescSetLayout,
-                {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL}});
-
-  CREATE_OBJECT(PipeLayout, DescSetLayout, 0);
-
-  CREATE_OBJECT(DescSet, descriptorPool, DescSetLayout);
-
-  UBO.Create(driver, driver->GetDev(), 128, 10, 0);
-
-  ConciseGraphicsPipeline checkerInfo = {
-      SRGBA8RP,
-      PipeLayout,
-      shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
-      shaderCache->GetBuiltinModule(BuiltinShader::CheckerboardFS),
-      {VK_DYNAMIC_STATE_VIEWPORT},
-      VK_SAMPLE_COUNT_1_BIT,
-      false,    // sampleRateShading
-      false,    // depthEnable
-      false,    // stencilEnable
-      VK_STENCIL_OP_KEEP,
-      true,     // colourOutput
-      false,    // blendEnable
-      VK_BLEND_FACTOR_ONE,
-      VK_BLEND_FACTOR_ZERO,
-      0xf,    // writeMask
-  };
-
-  CREATE_OBJECT(Pipeline, checkerInfo);
-
-  checkerInfo.renderPass = SRGBA8MSRP;
-  checkerInfo.sampleCount = VULKAN_MESH_VIEW_SAMPLES;
-
-  CREATE_OBJECT(MSAAPipeline, checkerInfo);
-
-  VkDescriptorBufferInfo checkerboard = {};
-  UBO.FillDescriptor(checkerboard);
-
-  VkWriteDescriptorSet writes[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(DescSet), 0, 0, 1,
-       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &checkerboard, NULL},
-  };
-
-  VkDevice dev = driver->GetDev();
-
-  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writes), writes, 0, NULL);
-
-  driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8RP, NULL);
-  driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8MSRP, NULL);
-}
-
-void VulkanReplay::CheckerboardRendering::Destroy(WrappedVulkan *driver)
-{
-  if(DescSetLayout == VK_NULL_HANDLE)
-    return;
-
-  driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);
-  driver->vkDestroyPipelineLayout(driver->GetDev(), PipeLayout, NULL);
-  driver->vkDestroyPipeline(driver->GetDev(), Pipeline, NULL);
-  driver->vkDestroyPipeline(driver->GetDev(), MSAAPipeline, NULL);
-
-  UBO.Destroy();
 }
 
 void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
@@ -2473,7 +2411,7 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
   shaderCache->SetCaching(true);
 
-  std::vector<std::string> sources;
+  std::string glsl;
 
   CREATE_OBJECT(m_HistogramDescSetLayout,
                 {
@@ -2524,12 +2462,11 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
       defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
       defines += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
-      defines += "#define HISTOGRAM_UBOS\n";
 
-      GenerateGLSLShader(sources, eShaderVulkan, defines, GetEmbeddedResource(glsl_histogram_comp),
-                         430);
+      glsl =
+          GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), eShaderVulkan, 430, defines);
 
-      err = shaderCache->GetSPIRVBlob(compileSettings, sources, histogram);
+      err = shaderCache->GetSPIRVBlob(compileSettings, glsl, histogram);
       if(!err.empty())
       {
         RDCERR("Error compiling histogram shader: %s. Defines are:\n%s", err.c_str(),
@@ -2537,10 +2474,10 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
         histogram = NULL;
       }
 
-      GenerateGLSLShader(sources, eShaderVulkan, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
-                         430);
+      glsl =
+          GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), eShaderVulkan, 430, defines);
 
-      err = shaderCache->GetSPIRVBlob(compileSettings, sources, minmaxtile);
+      err = shaderCache->GetSPIRVBlob(compileSettings, glsl, minmaxtile);
       if(!err.empty())
       {
         RDCERR("Error compiling min/max tile shader: %s. Defines are:\n%s", err.c_str(),
@@ -2553,10 +2490,10 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
       if(t == 1)
       {
-        GenerateGLSLShader(sources, eShaderVulkan, defines,
-                           GetEmbeddedResource(glsl_minmaxresult_comp), 430);
+        glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), eShaderVulkan, 430,
+                                  defines);
 
-        err = shaderCache->GetSPIRVBlob(compileSettings, sources, minmaxresult);
+        err = shaderCache->GetSPIRVBlob(compileSettings, glsl, minmaxresult);
         if(!err.empty())
         {
           RDCERR("Error compiling min/max result shader: %s. Defines are:\n%s", err.c_str(),

@@ -102,13 +102,16 @@ END
 #endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
 
-RESOURCE_debugdisplay_hlsl TYPE_EMBED   "hlsl/debugdisplay.hlsl"
-RESOURCE_debugtext_hlsl    TYPE_EMBED   "hlsl/debugtext.hlsl"
-RESOURCE_debugcommon_hlsl  TYPE_EMBED   "hlsl/debugcommon.hlsl"
+RESOURCE_misc_hlsl         TYPE_EMBED   "hlsl/misc.hlsl"
+RESOURCE_text_hlsl         TYPE_EMBED   "hlsl/text.hlsl"
+RESOURCE_hlsl_texsample_h  TYPE_EMBED   "hlsl/hlsl_texsample.h"
 RESOURCE_histogram_hlsl    TYPE_EMBED   "hlsl/histogram.hlsl"
-RESOURCE_debugcbuffers_h   TYPE_EMBED   "hlsl/debugcbuffers.h"
+RESOURCE_hlsl_cbuffers_h   TYPE_EMBED   "hlsl/hlsl_cbuffers.h"
 RESOURCE_multisample_hlsl  TYPE_EMBED   "hlsl/multisample.hlsl"
 RESOURCE_mesh_hlsl         TYPE_EMBED   "hlsl/mesh.hlsl"
+RESOURCE_texdisplay_hlsl   TYPE_EMBED   "hlsl/texdisplay.hlsl"
+RESOURCE_pixelhistory_hlsl TYPE_EMBED   "hlsl/pixelhistory.hlsl"
+RESOURCE_quadoverdraw_hlsl TYPE_EMBED   "hlsl/quadoverdraw.hlsl"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 
@@ -124,8 +127,7 @@ RESOURCE_glsl_mesh_frag         TYPE_EMBED   "glsl/mesh.frag"
 RESOURCE_glsl_minmaxtile_comp   TYPE_EMBED   "glsl/minmaxtile.comp"
 RESOURCE_glsl_minmaxresult_comp TYPE_EMBED   "glsl/minmaxresult.comp"
 RESOURCE_glsl_histogram_comp    TYPE_EMBED   "glsl/histogram.comp"
-RESOURCE_glsl_outline_frag      TYPE_EMBED   "glsl/outline.frag"
-RESOURCE_glsl_debuguniforms_h   TYPE_EMBED   "glsl/debuguniforms.h"
+RESOURCE_glsl_glsl_ubos_h       TYPE_EMBED   "glsl/glsl_ubos.h"
 RESOURCE_glsl_gl_texsample_h    TYPE_EMBED   "glsl/gl_texsample.h"
 RESOURCE_glsl_vk_texsample_h    TYPE_EMBED   "glsl/vk_texsample.h"
 RESOURCE_glsl_quadresolve_frag  TYPE_EMBED   "glsl/quadresolve.frag"
@@ -140,6 +142,7 @@ RESOURCE_glsl_depthms2arr_frag  TYPE_EMBED   "glsl/depthms2arr.frag"
 RESOURCE_glsl_gles_texsample_h  TYPE_EMBED   "glsl/gles_texsample.h"
 RESOURCE_glsl_gltext_vert       TYPE_EMBED   "glsl/gltext.vert"
 RESOURCE_glsl_gltext_frag       TYPE_EMBED   "glsl/gltext.frag"
+RESOURCE_glsl_glsl_globals_h    TYPE_EMBED   "glsl/glsl_globals.h"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

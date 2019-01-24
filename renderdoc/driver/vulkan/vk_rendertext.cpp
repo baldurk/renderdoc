@@ -28,7 +28,7 @@
 #include "vk_shader_cache.h"
 
 #define VULKAN 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
 {

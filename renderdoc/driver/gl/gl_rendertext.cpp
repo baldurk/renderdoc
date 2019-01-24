@@ -40,7 +40,7 @@ stbtt_bakedchar chardata[numChars];
 
 void WrappedOpenGL::ContextData::CreateDebugData()
 {
-  // if these constants change, update debuguniforms.h and gltext.vert
+  // if these constants change, update glsl_ubos.h and gltext.vert
   RDCCOMPILE_ASSERT(FONT_FIRST_CHAR == int(' '), "FONT_FIRST_CHAR is incorrect");
   RDCCOMPILE_ASSERT(FONT_LAST_CHAR == 126, "FONT_LAST_CHAR is incorrect");
 
@@ -150,8 +150,8 @@ void WrappedOpenGL::ContextData::CreateDebugData()
          GL.glGetShaderInfoLog && GL.glDeleteShader && GL.glCreateProgram && GL.glAttachShader &&
          GL.glLinkProgram && GL.glGetProgramiv && GL.glGetProgramInfoLog)
       {
-        vector<string> vs;
-        vector<string> fs;
+        string vs;
+        string fs;
 
         ShaderType shaderType;
         int glslVersion;
@@ -182,27 +182,18 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 #endif
         }
 
-        GenerateGLSLShader(vs, shaderType, vertDefines.c_str(),
-                           GetEmbeddedResource(glsl_gltext_vert), glslVersion, false);
-        GenerateGLSLShader(fs, shaderType, fragDefines.c_str(),
-                           GetEmbeddedResource(glsl_gltext_frag), glslVersion, false);
-
-        vector<const char *> vsc;
-        vsc.reserve(vs.size());
-        vector<const char *> fsc;
-        fsc.reserve(fs.size());
-
-        for(size_t i = 0; i < vs.size(); i++)
-          vsc.push_back(vs[i].c_str());
-
-        for(size_t i = 0; i < fs.size(); i++)
-          fsc.push_back(fs[i].c_str());
+        vs = GenerateGLSLShader(GetEmbeddedResource(glsl_gltext_vert), shaderType, glslVersion,
+                                vertDefines);
+        fs = GenerateGLSLShader(GetEmbeddedResource(glsl_gltext_frag), shaderType, glslVersion,
+                                fragDefines);
 
         GLuint vert = GL.glCreateShader(eGL_VERTEX_SHADER);
         GLuint frag = GL.glCreateShader(eGL_FRAGMENT_SHADER);
 
-        GL.glShaderSource(vert, (GLsizei)vs.size(), &vsc[0], NULL);
-        GL.glShaderSource(frag, (GLsizei)fs.size(), &fsc[0], NULL);
+        const char *csrc = vs.c_str();
+        GL.glShaderSource(vert, 1, &csrc, NULL);
+        csrc = fs.c_str();
+        GL.glShaderSource(frag, 1, &csrc, NULL);
 
         GL.glCompileShader(vert);
         GL.glCompileShader(frag);

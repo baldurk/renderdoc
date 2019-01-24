@@ -189,12 +189,14 @@
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="data\embedded_files.h" />
-    <ClInclude Include="data\glsl\debuguniforms.h" />
+    <ClInclude Include="data\glsl\glsl_ubos.h" />
+    <ClInclude Include="data\glsl\glsl_ubos_cpp.h" />
     <ClInclude Include="data\glsl\gl_texsample.h" />
     <ClInclude Include="data\glsl\gles_texsample.h" />
+    <ClInclude Include="data\glsl\glsl_globals.h" />
     <ClInclude Include="data\glsl\vk_texsample.h" />
     <ClInclude Include="data\glsl_shaders.h" />
-    <ClInclude Include="data\hlsl\debugcbuffers.h" />
+    <ClInclude Include="data\hlsl\hlsl_cbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
@@ -546,7 +548,6 @@
     <None Include="data\glsl\minmaxresult.comp" />
     <None Include="data\glsl\minmaxtile.comp" />
     <None Include="data\glsl\ms2array.comp" />
-    <None Include="data\glsl\outline.frag" />
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />
     <None Include="data\glsl\texdisplay.frag" />
@@ -554,12 +555,15 @@
     <None Include="data\glsl\vktext.vert" />
     <None Include="data\glsl\trisize.frag" />
     <None Include="data\glsl\trisize.geom" />
-    <None Include="data\hlsl\debugcommon.hlsl" />
-    <None Include="data\hlsl\debugdisplay.hlsl" />
-    <None Include="data\hlsl\debugtext.hlsl" />
+    <None Include="data\hlsl\hlsl_texsample.h" />
+    <None Include="data\hlsl\misc.hlsl" />
+    <None Include="data\hlsl\text.hlsl" />
     <None Include="data\hlsl\histogram.hlsl" />
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
+    <None Include="data\hlsl\pixelhistory.hlsl" />
+    <None Include="data\hlsl\quadoverdraw.hlsl" />
+    <None Include="data\hlsl\texdisplay.hlsl" />
     <None Include="os\win32\comexport.def" />
     <None Include="replay\renderdoc_serialise.inl" />
   </ItemGroup>

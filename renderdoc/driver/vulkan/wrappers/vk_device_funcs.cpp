@@ -1082,6 +1082,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                  VK_AMD_NEGATIVE_VIEWPORT_HEIGHT_EXTENSION_NAME) != Extensions.end())
       m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport] = true;
 
+    if(std::find(Extensions.begin(), Extensions.end(), VK_KHR_MAINTENANCE1_EXTENSION_NAME) !=
+       Extensions.end())
+      m_ExtensionsEnabled[VkCheckExt_KHR_maintenance1] = true;
+
     if(std::find(Extensions.begin(), Extensions.end(),
                  VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME) != Extensions.end())
       m_ExtensionsEnabled[VkCheckExt_EXT_conserv_rast] = true;

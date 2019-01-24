@@ -30,7 +30,7 @@
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 {
@@ -356,20 +356,14 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   SAFE_RELEASE(root);
 
-  std::string fullhlsl = "";
-  {
-    std::string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
-    std::string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
-
-    fullhlsl = debugShaderCBuf + textShaderHLSL;
-  }
+  std::string hlsl = GetEmbeddedResource(text_hlsl);
 
   ID3DBlob *TextVS = NULL;
   ID3DBlob *TextPS = NULL;
 
-  shaderCache->GetShaderBlob(fullhlsl.c_str(), "RENDERDOC_TextVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TextVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                              "vs_5_0", &TextVS);
-  shaderCache->GetShaderBlob(fullhlsl.c_str(), "RENDERDOC_TextPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TextPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                              "ps_5_0", &TextPS);
 
   RDCASSERT(TextVS);

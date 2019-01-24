@@ -35,7 +35,7 @@
 #include "d3d11_renderstate.h"
 #include "d3d11_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 {
@@ -183,11 +183,9 @@ void D3D11DebugManager::InitCommonResources()
   rm->SetInternalResource(DepthCopyMSToArrayPS);
   rm->SetInternalResource(DepthCopyArrayToMSPS);
 
-  std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-  displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-  displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+  std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
-  MSArrayCopyVS = shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+  MSArrayCopyVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
   m_pDevice->InternalRef();
 
   rm->SetInternalResource(MSArrayCopyVS);
@@ -209,14 +207,12 @@ void D3D11DebugManager::InitReplayResources()
   HRESULT hr = S_OK;
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(pixelhistory_hlsl);
 
     PixelHistoryUnusedCS =
-        shaderCache->MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
+        shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
     PixelHistoryCopyCS =
-        shaderCache->MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
+        shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
   }
 
   RDCCOMPILE_ASSERT(eTexType_1D == RESTYPE_TEX1D, "Tex type enum doesn't match shader defines");
@@ -446,24 +442,29 @@ void D3D11Replay::GeneralMisc::Init(WrappedID3D11Device *device)
   if(FAILED(hr))
     RDCERR("Failed to create default rasterizer state HRESULT: %s", ToStr(hr).c_str());
 
+  rastDesc.ScissorEnable = TRUE;
+
+  hr = device->CreateRasterizerState(&rastDesc, &RasterScissorState);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create scissoring rasterizer state HRESULT: %s", ToStr(hr).c_str());
+
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
-    GenericVS = shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
+    FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
-    FixedColPS = shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_FixedColPS", "ps_4_0");
-    CheckerboardPS =
-        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+    FixedColPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_FixedColPS", "ps_4_0");
+    CheckerboardPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
   }
 }
 
 void D3D11Replay::GeneralMisc::Release()
 {
   SAFE_RELEASE(RasterState);
+  SAFE_RELEASE(RasterScissorState);
 
-  SAFE_RELEASE(GenericVS);
+  SAFE_RELEASE(FullscreenVS);
   SAFE_RELEASE(CheckerboardPS);
   SAFE_RELEASE(FixedColPS);
 }
@@ -475,12 +476,10 @@ void D3D11Replay::TextureRendering::Init(WrappedID3D11Device *device)
   HRESULT hr = S_OK;
 
   {
-    string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    string hlsl = GetEmbeddedResource(texdisplay_hlsl);
 
-    TexDisplayPS =
-        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
+    TexDisplayVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_TexDisplayVS", "vs_4_0");
+    TexDisplayPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
   }
 
   {
@@ -540,6 +539,7 @@ void D3D11Replay::TextureRendering::Release()
   SAFE_RELEASE(PointSampState);
   SAFE_RELEASE(LinearSampState);
   SAFE_RELEASE(BlendState);
+  SAFE_RELEASE(TexDisplayVS);
   SAFE_RELEASE(TexDisplayPS);
 }
 
@@ -548,22 +548,18 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
   D3D11ShaderCache *shaderCache = device->GetShaderCache();
 
   {
-    string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    string hlsl = GetEmbeddedResource(misc_hlsl);
 
-    FullscreenVS =
-        shaderCache->MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+    FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
-    QuadOverdrawPS =
-        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
-    QOResolvePS = shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
+    hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
-    OutlinePS = shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_OutlinePS", "ps_4_0");
+    QuadOverdrawPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
+    QOResolvePS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
   }
 
   {
-    std::string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     TriangleSizeGS =
         shaderCache->MakeGShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", "gs_4_0");
@@ -577,7 +573,6 @@ void D3D11Replay::OverlayRendering::Release()
   SAFE_RELEASE(FullscreenVS);
   SAFE_RELEASE(QuadOverdrawPS);
   SAFE_RELEASE(QOResolvePS);
-  SAFE_RELEASE(OutlinePS);
   SAFE_RELEASE(TriangleSizeGS);
   SAFE_RELEASE(TriangleSizePS);
 
@@ -671,7 +666,7 @@ void D3D11Replay::MeshRendering::Init(WrappedID3D11Device *device)
         {"pos", 0, DXGI_FORMAT_R32G32B32A32_FLOAT}, {"sec", 0, DXGI_FORMAT_R8G8B8A8_UNORM},
     };
 
-    std::string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     std::vector<byte> bytecode;
 
@@ -686,11 +681,9 @@ void D3D11Replay::MeshRendering::Init(WrappedID3D11Device *device)
   }
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
-    WireframePS = shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
+    WireframePS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
   }
 
   {
@@ -798,7 +791,7 @@ void D3D11Replay::VertexPicking::Init(WrappedID3D11Device *device)
 
   HRESULT hr = S_OK;
 
-  std::string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+  std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
   MeshPickCS = shaderCache->MakeCShader(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", "cs_5_0");
 
@@ -1030,9 +1023,7 @@ void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
   if(FAILED(hr))
     RDCERR("Failed to create result UAV 2 HRESULT: %s", ToStr(hr).c_str());
 
-  std::string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
-  histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
-  histogramhlsl += GetEmbeddedResource(histogram_hlsl);
+  std::string histogramhlsl = GetEmbeddedResource(histogram_hlsl);
 
   for(int t = eTexType_1D; t < eTexType_Max; t++)
   {
@@ -1175,12 +1166,9 @@ void D3D11Replay::PixelHistory::Init(WrappedID3D11Device *device)
   }
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(pixelhistory_hlsl);
 
-    PrimitiveIDPS =
-        shaderCache->MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
+    PrimitiveIDPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
   }
 }
 

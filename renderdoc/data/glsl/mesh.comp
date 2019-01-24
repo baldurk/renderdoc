@@ -22,6 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#if defined(OPENGL_CORE)
+#extension GL_ARB_compute_shader : require
+#extension GL_ARB_shader_storage_buffer_object : require
+#endif
+
+#define MESH_PICK_UBO
+
+#include "glsl_ubos.h"
+
 layout(binding = 1, std140) readonly buffer vertex_data
 {
   vec4 data[];

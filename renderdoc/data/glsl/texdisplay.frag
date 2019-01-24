@@ -22,17 +22,34 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(location = 0) out vec4 color_out;
-#ifdef OPENGL_ES
-// Required otherwise the shader compiler could remove the 'uv' from the vertex shader also.
-layout(location = 0) in vec2 uv;
+#if defined(OPENGL_ES)
+
+#extension GL_EXT_texture_cube_map_array : enable
+#extension GL_EXT_texture_buffer : enable
+
+#else
+
+#extension GL_ARB_gpu_shader5 : enable
+
 #endif
 
-//#extension_gles GL_EXT_texture_cube_map_array : enable
-//#extension_gles GL_EXT_texture_buffer : enable
-//#extension_nongles GL_ARB_gpu_shader5 : enable
+#define HEATMAP_UBO
+#define TEXDISPLAY_UBO
 
-//#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
+#include "glsl_ubos.h"
+
+#if defined(VULKAN)
+#include "vk_texsample.h"
+#elif defined(OPENGL_ES)
+#include "gles_texsample.h"
+#elif defined(OPENGL)
+#include "gl_texsample.h"
+#endif
+
+// for GLES compatibility where we must match blit.vert
+IO_LOCATION(0) in vec2 uv;
+
+IO_LOCATION(0) out vec4 color_out;
 
 float ConvertSRGBToLinear(float srgb)
 {

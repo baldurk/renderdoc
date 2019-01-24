@@ -22,11 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-out gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-};
+#define FONT_UBO
+
+#include "glsl_ubos.h"
 
 layout(location = 0) out vec4 tex;
 layout(location = 1) out vec2 glyphuv;
@@ -37,10 +35,10 @@ void main(void)
 
                                 vec3(1.0, 0.0, 0.5), vec3(0.0, 1.0, 0.5), vec3(1.0, 1.0, 0.5));
 
-  uint vert = uint(VERTEX_ID) % 6u;
+  uint vert = uint(gl_VertexIndex) % 6u;
 
   vec3 pos = verts[vert];
-  uint strindex = uint(VERTEX_ID) / 6u;
+  uint strindex = uint(gl_VertexIndex) / 6u;
 
   vec2 charPos =
       vec2(float(strindex) + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);

@@ -22,33 +22,24 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-//#extension_gles GL_EXT_geometry_shader : enable
-//#extension_gles GL_OES_geometry_shader : enable
-//#extension_gles GL_EXT_geometry_point_size : enable
+#if defined(OPENGL_ES)
+#extension GL_EXT_geometry_shader : enable
+#extension GL_OES_geometry_shader : enable
+#extension GL_EXT_geometry_point_size : enable
+#endif
+
+#define MESH_UBO
+
+#include "glsl_ubos.h"
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout(location = 0) in vec4 IN_secondary[3];
-layout(location = 1) in vec4 IN_norm[3];
+IO_LOCATION(0) in vec4 vsout_secondary[3];
+IO_LOCATION(1) in vec4 vsout_norm[3];
 
-layout(location = 0) out vec4 secondary;
-layout(location = 1) out vec4 norm;
-
-#ifndef OPENGL_ES
-in gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-}
-gl_in[];
-
-out gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-};
-#endif
+IO_LOCATION(0) out vec4 secondary;
+IO_LOCATION(1) out vec4 norm;
 
 void main()
 {
@@ -59,7 +50,7 @@ void main()
   for(int i = 0; i < 3; i++)
   {
     gl_Position = gl_in[i].gl_Position;
-    secondary = IN_secondary[i];
+    secondary = vsout_secondary[i];
     norm = vec4(faceNormal.xyz, 1);
     EmitVertex();
   }

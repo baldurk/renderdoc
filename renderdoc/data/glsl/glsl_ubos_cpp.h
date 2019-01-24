@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2019 Baldur Karlsson
+ * Copyright (c) 2019 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,39 +22,32 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(location = 0) out vec4 color_out;
+#pragma once
 
-void main(void)
-{
-  vec4 ret = outline.Inner_Color;
+// use some preprocessor hacks to compile the same header in both GLSL and C++ so we can define
+// classes that represent a whole cbuffer
 
-  vec2 rectPos = gl_FragCoord.xy - outline.ViewRect.xy;
-  vec2 rectSize = outline.ViewRect.zw;
+#include "common/common.h"
+#include "maths/matrix.h"
+#include "maths/vec.h"
 
-  vec2 ab = mod(rectPos.xy, vec2(32.0f));
+#define uniform struct
 
-  bool checkerVariant = ((ab.x < 16.0f && ab.y < 16.0f) || (ab.x > 16.0f && ab.y > 16.0f));
+#define vec2 Vec2f
+#define vec3 Vec3f
+#define vec4 Vec4f
 
-  if(outline.Scissor == 0u)
-  {
-    if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f || rectPos.y < 3.0f ||
-       rectPos.y > rectSize.y - 3.0f)
-    {
-      ret = outline.Border_Color;
-    }
-  }
-  else
-  {
-    if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f || rectPos.y < 3.0f ||
-       rectPos.y > rectSize.y - 3.0f)
-    {
-      ret = checkerVariant ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
-    }
-    else
-    {
-      ret = vec4(0, 0, 0, 0);
-    }
-  }
+#define mat4 Matrix4f
 
-  color_out = ret;
-}
+#define uint uint32_t
+#define uvec4 Vec4u
+
+#if !defined(VULKAN) && !defined(OPENGL)
+#error Must define VULKAN or OPENGL before including glsl_ubos.h
+#endif
+
+#if defined(VULKAN) && defined(OPENGL)
+#error Only one of VULKAN and OPENGL must be defined in glsl_ubos.h
+#endif
+
+#include "glsl_ubos.h"

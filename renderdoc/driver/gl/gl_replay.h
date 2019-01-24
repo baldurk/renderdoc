@@ -305,12 +305,10 @@ private:
     GLuint minmaxResult;              // Vec4f[2] final result buffer
     GLuint histogramBuf;              // uint32_t * num buckets buffer
     GLuint minmaxResultProgram[3];    // float/uint/sint tile result -> final result program
-    GLuint minmaxTileProgram[64];     // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc |
+    GLuint minmaxTileProgram[64];     // RESTYPE indexed (see glsl_ubos.h, 1d/2d/3d etc |
                                       // uint/sint) src tex -> tile result buf program
-    GLuint histogramProgram[64];      // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc |
+    GLuint histogramProgram[64];      // RESTYPE indexed (see glsl_ubos.h, 1d/2d/3d etc |
                                       // uint/sint) src tex -> histogram result buf program
-
-    GLuint outlineQuadProg;
 
     GLuint texDisplayVertexShader;
     GLuint texDisplayProg[3];    // float/uint/sint
@@ -395,11 +393,10 @@ private:
   void FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
                   const vector<GPUCounter> &counters);
 
-  GLuint CreateShader(GLenum shaderType, const std::vector<std::string> &sources);
-  GLuint CreateShaderProgram(const std::vector<std::string> &vs, const std::vector<std::string> &fs,
-                             const std::vector<std::string> &gs);
-  GLuint CreateShaderProgram(const std::vector<std::string> &vs, const std::vector<std::string> &fs);
-  GLuint CreateCShaderProgram(const std::vector<std::string> &cs);
+  GLuint CreateShader(GLenum shaderType, const std::string &src);
+  GLuint CreateShaderProgram(const std::string &vs, const std::string &fs, const std::string &gs);
+  GLuint CreateShaderProgram(const std::string &vs, const std::string &fs);
+  GLuint CreateCShaderProgram(const std::string &cs);
 
   void InitOutputWindow(OutputWindow &outwin);
   void CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth);

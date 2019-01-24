@@ -321,10 +321,10 @@ private:
     void Release();
 
     ID3D12Resource *ResultReadbackBuffer = NULL;
-    ID3D12RootSignature *ConstOnlyRootSig = NULL;
+    ID3D12RootSignature *CheckerboardRootSig = NULL;
     ID3D12PipelineState *CheckerboardPipe = NULL;
     ID3D12PipelineState *CheckerboardMSAAPipe = NULL;
-    ID3D12PipelineState *FixedColPipe = NULL;
+    ID3D12PipelineState *CheckerboardF16Pipe[8] = {NULL};
   } m_General;
 
   struct TextureRendering

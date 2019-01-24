@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2019 Baldur Karlsson
+ * Copyright (c) 2019 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,52 +22,50 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if defined(OPENGL_ES)
-#extension GL_OES_shader_image_atomic : enable
-#extension GL_OES_sample_variables : enable
-#else
-#extension GL_ARB_derivative_control : enable
-#extension GL_ARB_shader_image_load_store : require
-#extension GL_ARB_gpu_shader5 : require
-#endif
-
 ////////////////////////////////////////////////////////////////////////////////////////////
-// Below shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially
+// Below shaders courtesy of Stephen Hill (@self_shadow)
 //
 // http://blog.selfshadow.com/2012/11/12/counting-quads/
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef VULKAN
-// descriptor set will be patched from 0 to whichever descriptor set we're using in code
-layout(set = 0, binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
-#else    // OPENGL and OPENGL_ES
-layout(r32ui) uniform coherent uimage2DArray overdrawImage;
-#endif
-layout(early_fragment_tests) in;
+RWTexture2DArray<uint> overdrawUAV : register(u0);
+Texture2DArray<uint> overdrawSRV : register(t0);
 
-void main()
-{
-  uint c0 = uint(gl_SampleMaskIn[0]);
-
+[earlydepthstencil] void RENDERDOC_QuadOverdrawPS(float4 vpos
+                                                  : SV_Position, uint c0
+                                                  : SV_Coverage) {
   // Obtain coverage for all pixels in the quad, via 'message passing'*.
   // (* For more details, see:
   // "Shader Amortization using Pixel Quad Message Passing", Eric Penner, GPU Pro 2.)
-  uvec2 p = uvec2(uint(gl_FragCoord.x) & 1u, uint(gl_FragCoord.y) & 1u);
-  ivec2 sign = ivec2(p.x > 0u ? -1 : 1, p.y > 0u ? -1 : 1);
-  uint c1 = c0 + uint(sign.x * int(dFdxFine(c0)));
-  uint c2 = c0 + uint(sign.y * int(dFdyFine(c0)));
-  uint c3 = c2 + uint(sign.x * int(dFdxFine(c2)));
+  uint2 p = uint2(vpos.xy) & 1;
+  int2 sign = p ? -1 : 1;
+  uint c1 = c0 + sign.x * ddx_fine(c0);
+  uint c2 = c0 + sign.y * ddy_fine(c0);
+  uint c3 = c2 + sign.x * ddx_fine(c2);
 
   // Count the live pixels, minus 1 (zero indexing)
-  uint pixelCount = c0 + c1 + c2 + c3 - 1u;
+  uint pixelCount = c0 + c1 + c2 + c3 - 1;
 
-  ivec3 quad = ivec3(gl_FragCoord.xy * 0.5, pixelCount);
-  imageAtomicAdd(overdrawImage, quad, 1);
+  uint3 quad = uint3(vpos.xy * 0.5, pixelCount);
+  InterlockedAdd(overdrawUAV[quad], 1);
+}
+
+float4 RENDERDOC_QOResolvePS(float4 vpos
+                             : SV_POSITION)
+    : SV_Target0
+{
+  uint2 quad = vpos.xy * 0.5;
+
+  uint overdraw = 0;
+  for(int i = 0; i < 4; i++)
+    overdraw += overdrawSRV[uint3(quad, i)] / (i + 1);
+
+  return float(overdraw).xxxx;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// Above shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially
+// Above shaders courtesy of Stephen Hill (@self_shadow)
 //
 // http://blog.selfshadow.com/2012/11/12/counting-quads/
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx

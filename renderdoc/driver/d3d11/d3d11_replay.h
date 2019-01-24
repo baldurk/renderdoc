@@ -339,8 +339,9 @@ private:
     void Release();
 
     ID3D11RasterizerState *RasterState = NULL;
+    ID3D11RasterizerState *RasterScissorState = NULL;
 
-    ID3D11VertexShader *GenericVS = NULL;
+    ID3D11VertexShader *FullscreenVS = NULL;
     ID3D11PixelShader *FixedColPS = NULL;
     ID3D11PixelShader *CheckerboardPS = NULL;
   } m_General;
@@ -353,6 +354,7 @@ private:
     ID3D11SamplerState *PointSampState = NULL;
     ID3D11SamplerState *LinearSampState = NULL;
     ID3D11BlendState *BlendState = NULL;
+    ID3D11VertexShader *TexDisplayVS = NULL;
     ID3D11PixelShader *TexDisplayPS = NULL;
   } m_TexRender;
 
@@ -364,7 +366,6 @@ private:
     ID3D11VertexShader *FullscreenVS = NULL;
     ID3D11PixelShader *QuadOverdrawPS = NULL;
     ID3D11PixelShader *QOResolvePS = NULL;
-    ID3D11PixelShader *OutlinePS = NULL;
     ID3D11PixelShader *TriangleSizePS = NULL;
     ID3D11GeometryShader *TriangleSizeGS = NULL;
 

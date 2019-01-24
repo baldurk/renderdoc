@@ -22,7 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-//#extension_nongles GL_ARB_shader_image_load_store : require
+#if !defined(OPENGL_ES)
+#extension GL_ARB_shader_image_load_store : require
+#extension GL_ARB_shading_language_420pack : require
+#endif
+
+#include "glsl_globals.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Below shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially
@@ -33,7 +38,7 @@
 
 layout(binding = 0, r32ui) uniform PRECISION coherent uimage2DArray overdrawImage;
 
-layout(location = 0) out vec4 color_out;
+IO_LOCATION(0) out vec4 color_out;
 
 void main()
 {

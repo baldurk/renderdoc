@@ -28,6 +28,7 @@
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/amd_rgp.h"
 #include "maths/camera.h"
+#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "d3d12_command_queue.h"
@@ -36,7 +37,7 @@
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 
@@ -1615,28 +1616,12 @@ void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 
 void D3D12Replay::RenderCheckerboard()
 {
-  DebugVertexCBuffer vertexData;
+  CheckerboardCBuffer pixelData = {};
 
-  vertexData.Scale = 2.0f;
-  vertexData.Position.x = vertexData.Position.y = 0;
+  pixelData.PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
+  pixelData.SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+  pixelData.CheckerSquareDimension = 64.0f;
 
-  vertexData.ScreenAspect.x = 1.0f;
-  vertexData.ScreenAspect.y = 1.0f;
-
-  vertexData.TextureResolution.x = 1.0f;
-  vertexData.TextureResolution.y = 1.0f;
-
-  vertexData.LineStrip = 0;
-
-  DebugPixelCBufferData pixelData;
-
-  pixelData.AlwaysZero = 0.0f;
-
-  pixelData.Channels = RenderDoc::Inst().LightCheckerboardColor();
-  pixelData.WireframeColour = RenderDoc::Inst().DarkCheckerboardColor();
-
-  D3D12_GPU_VIRTUAL_ADDRESS vs =
-      GetDebugManager()->UploadConstants(&vertexData, sizeof(DebugVertexCBuffer));
   D3D12_GPU_VIRTUAL_ADDRESS ps = GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData));
 
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
@@ -1656,14 +1641,9 @@ void D3D12Replay::RenderCheckerboard()
 
     list->SetPipelineState(outw.depth ? m_General.CheckerboardMSAAPipe : m_General.CheckerboardPipe);
 
-    list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
+    list->SetGraphicsRootSignature(m_General.CheckerboardRootSig);
 
-    list->SetGraphicsRootConstantBufferView(0, vs);
-    list->SetGraphicsRootConstantBufferView(1, ps);
-    list->SetGraphicsRootConstantBufferView(2, vs);
-
-    Vec4f dummy;
-    list->SetGraphicsRoot32BitConstants(3, 4, &dummy.x, 0);
+    list->SetGraphicsRootConstantBufferView(0, ps);
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     list->OMSetBlendFactor(factor);
@@ -1776,24 +1756,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   if(cfg.position.numIndices == 0)
     return ~0U;
 
-  struct MeshPickData
-  {
-    Vec3f RayPos;
-    uint32_t PickIdx;
-
-    Vec3f RayDir;
-    uint32_t PickNumVerts;
-
-    Vec2f PickCoords;
-    Vec2f PickViewport;
-
-    uint32_t MeshMode;
-    uint32_t PickUnproject;
-    Vec2f Padding;
-
-    Matrix4f PickMVP;
-
-  } cbuf;
+  MeshPickData cbuf = {};
 
   cbuf.PickCoords = Vec2f((float)x, (float)y);
   cbuf.PickViewport = Vec2f((float)width, (float)height);
@@ -1872,8 +1835,8 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
     }
   }
 
-  cbuf.RayPos = rayPos;
-  cbuf.RayDir = rayDir;
+  cbuf.PickRayPos = rayPos;
+  cbuf.PickRayDir = rayDir;
 
   cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
 
@@ -1882,27 +1845,27 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   {
     case Topology::TriangleList:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      cbuf.PickMeshMode = MESH_TRIANGLE_LIST;
       break;
     }
     case Topology::TriangleStrip:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      cbuf.PickMeshMode = MESH_TRIANGLE_STRIP;
       break;
     }
     case Topology::TriangleList_Adj:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      cbuf.PickMeshMode = MESH_TRIANGLE_LIST_ADJ;
       break;
     }
     case Topology::TriangleStrip_Adj:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      cbuf.PickMeshMode = MESH_TRIANGLE_STRIP_ADJ;
       break;
     }
     default:    // points, lines, patchlists, unknown
     {
-      cbuf.MeshMode = MESH_OTHER;
+      cbuf.PickMeshMode = MESH_OTHER;
       isTriangleMesh = false;
     }
   }

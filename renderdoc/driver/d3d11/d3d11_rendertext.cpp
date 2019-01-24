@@ -30,7 +30,7 @@
 #include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
 {
@@ -218,23 +218,17 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   m_pDevice->InternalRef();
   rm->SetInternalResource(CharBuffer);
 
-  std::string fullhlsl = "";
-  {
-    std::string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
-    std::string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
-
-    fullhlsl = debugShaderCBuf + textShaderHLSL;
-  }
+  std::string hlsl = GetEmbeddedResource(text_hlsl);
 
   D3D11ShaderCache *shaderCache = wrapper->GetShaderCache();
 
   shaderCache->SetCaching(true);
 
-  VS = shaderCache->MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0");
+  VS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0");
   m_pDevice->InternalRef();
   rm->SetInternalResource(VS);
 
-  PS = shaderCache->MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
+  PS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
   m_pDevice->InternalRef();
   rm->SetInternalResource(PS);
 

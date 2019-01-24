@@ -22,28 +22,42 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#if !defined(OPENGL_ES)
+#extension GL_ARB_shading_language_420pack : require
+#endif
+
+#define CHECKER_UBO
+
+#include "glsl_ubos.h"
+
 // for GLES compatibility where we must match blit.vert
-layout(location = 0) in vec2 uv;
+IO_LOCATION(0) in vec2 uv;
 
-layout(location = 0) out vec4 color_out;
-
-layout(binding = 0, std140) uniform checkeruniforms
-{
-  vec4 lightCol;
-  vec4 darkCol;
-}
-checker;
+IO_LOCATION(0) out vec4 color_out;
 
 void main(void)
 {
-  vec2 ab = mod(gl_FragCoord.xy, vec2(128.0f));
+  vec2 RectRelativePos = gl_FragCoord.xy - checker.RectPosition;
 
-  if((ab.x < 64.0f && ab.y < 64.0f) || (ab.x > 64.0f && ab.y > 64.0f))
+  // if we have a border, and our pos is inside the border, return inner color
+  if(checker.BorderWidth >= 0.0f)
   {
-    color_out = vec4(checker.darkCol.rgb * checker.darkCol.rgb, 1);
+    if(RectRelativePos.x >= checker.BorderWidth &&
+       RectRelativePos.x <= checker.RectSize.x - checker.BorderWidth &&
+       RectRelativePos.y >= checker.BorderWidth &&
+       RectRelativePos.y <= checker.RectSize.y - checker.BorderWidth)
+    {
+      color_out = checker.InnerColor;
+      return;
+    }
   }
-  else
-  {
-    color_out = vec4(checker.lightCol.rgb * checker.lightCol.rgb, 1);
-  }
+
+  vec2 ab = mod(RectRelativePos.xy, vec2(checker.CheckerSquareDimension * 2.0f));
+
+  bool checkerVariant =
+      ((ab.x < checker.CheckerSquareDimension && ab.y < checker.CheckerSquareDimension) ||
+       (ab.x > checker.CheckerSquareDimension && ab.y > checker.CheckerSquareDimension));
+
+  // otherwise return checker pattern
+  color_out = checkerVariant ? checker.PrimaryColor : checker.SecondaryColor;
 }

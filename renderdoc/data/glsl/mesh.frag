@@ -22,10 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(location = 0) in vec4 secondary;
-layout(location = 1) in vec4 norm;
+#define MESH_UBO
 
-layout(location = 0) out vec4 color_out;
+#include "glsl_ubos.h"
+
+IO_LOCATION(0) in vec4 secondary;
+IO_LOCATION(1) in vec4 norm;
+
+IO_LOCATION(0) out vec4 color_out;
 
 void main(void)
 {

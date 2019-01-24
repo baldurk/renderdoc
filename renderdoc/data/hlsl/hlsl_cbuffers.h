@@ -54,27 +54,16 @@ cbuffer FontCBuffer REG(b0)
   float2 FontScreenAspect;
 };
 
-cbuffer DebugVertexCBuffer REG(b0)
+cbuffer TexDisplayVSCBuffer REG(b0)
 {
   float2 Position;
-  float2 SpriteSize;
-
   float2 TextureResolution;
+
   float2 ScreenAspect;
-
-  row_major float4x4 ModelViewProj;
-
   float Scale;
-  uint LineStrip;
-  float2 dummy1;
 };
 
-cbuffer DebugGeometryCBuffer REG(b0)
-{
-  row_major float4x4 InvProj;
-};
-
-cbuffer DebugPixelCBufferData REG(b0)
+cbuffer TexDisplayPSCBuffer REG(b0)
 {
   float4 Channels;
 
@@ -98,6 +87,55 @@ cbuffer DebugPixelCBufferData REG(b0)
   uint4 YUVAChannels;
 };
 
+cbuffer CheckerboardCBuffer REG(b0)
+{
+  float2 RectPosition;
+  float2 RectSize;
+
+  float4 PrimaryColor;
+  float4 SecondaryColor;
+  float4 InnerColor;
+
+  float CheckerSquareDimension;
+  float BorderWidth;
+};
+
+cbuffer MeshVertexCBuffer REG(b0)
+{
+  row_major float4x4 ModelViewProj;
+
+  float2 SpriteSize;
+};
+
+cbuffer MeshGeometryCBuffer REG(b0)
+{
+  row_major float4x4 InvProj;
+};
+
+cbuffer MeshPixelCBuffer REG(b0)
+{
+  float3 MeshColour;
+  uint MeshDisplayFormat;
+};
+
+cbuffer MeshPickData REG(b0)
+{
+  float3 PickRayPos;
+  uint PickIdx;
+
+  float3 PickRayDir;
+  uint PickNumVerts;
+
+  float2 PickCoords;
+  float2 PickViewport;
+
+  uint PickMeshMode;
+  uint PickUnproject;
+  float2 Padding;
+
+  row_major float4x4 PickMVP;
+};
+
 #define HEATMAP_DISABLED 0
 #define HEATMAP_LINEAR 1
 #define HEATMAP_TRISIZE 2
@@ -107,7 +145,7 @@ cbuffer DebugPixelCBufferData REG(b0)
 cbuffer HeatmapData REG(b1)
 {
   int HeatmapMode;
-  float3 Dummy;
+  float3 HeatmapPadding;
 
   // must match size of colorRamp on C++ side
   float4 ColorRamp[HEATMAP_RAMPSIZE];

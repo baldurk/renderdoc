@@ -23,99 +23,140 @@
  ******************************************************************************/
 
 #include "glsl_shaders.h"
-#include "os/os_specific.h"
+#include "3rdparty/glslang/glslang/Public/ShaderLang.h"
+#include "common/common.h"
+#include "driver/shaders/spirv/spirv_common.h"
 
-void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
-                        const std::string &defines, const std::string &shader, int version,
-                        bool uniforms)
+#define GLSL_HEADERS(HEADER) \
+  HEADER(glsl_globals)       \
+  HEADER(glsl_ubos)          \
+  HEADER(vk_texsample)       \
+  HEADER(gl_texsample)       \
+  HEADER(gles_texsample)
+
+class EmbeddedIncluder : public glslang::TShader::Includer
 {
-  sources.resize(4);
+#define DECL(header) std::string header = GetEmbeddedResource(CONCAT(glsl_, CONCAT(header, _h)));
+  GLSL_HEADERS(DECL)
+#undef DECL
+
+public:
+  // For the "system" or <>-style includes; search the "system" paths.
+  virtual IncludeResult *includeSystem(const char *headerName, const char *includerName,
+                                       size_t inclusionDepth) override
+  {
+#define GET(header)                               \
+  if(!strcmp(headerName, STRINGIZE(header) ".h")) \
+    return new IncludeResult(headerName, header.data(), header.length(), NULL);
+    GLSL_HEADERS(GET)
+#undef GET
+
+    return NULL;
+  }
+
+  // For the "local"-only aspect of a "" include. Should not search in the
+  // "system" paths, because on returning a failure, the parser will
+  // call includeSystem() to look in the "system" locations.
+  virtual IncludeResult *includeLocal(const char *headerName, const char *includerName,
+                                      size_t inclusionDepth) override
+  {
+    return includeSystem(headerName, includerName, inclusionDepth);
+  }
+
+  virtual void releaseInclude(IncludeResult *result) override { delete result; }
+};
+
+std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int version,
+                               const std::string &defines)
+{
+  // shader stage doesn't matter for us since we're just pre-processing.
+  glslang::TShader sh(EShLangFragment);
+
+  std::string combined;
+
   if(type == eShaderGLSLES)
   {
     if(version == 100)
-      sources[0] = "#version 100";    // no es suffix
+      combined = "#version 100\n";    // no es suffix
     else
-      sources[0] = StringFormat::Fmt("#version %d es\n", version);
+      combined = StringFormat::Fmt("#version %d es\n", version);
   }
   else
   {
     if(version == 110)
-      sources[0] = "#version 110";    // no core suffix
+      combined = "#version 110\n";    // no core suffix
     else
-      sources[0] = StringFormat::Fmt("#version %d core\n", version);
+      combined = StringFormat::Fmt("#version %d core\n", version);
   }
 
-  if(uniforms)
+  // glslang requires the google extension, but we don't want it in the final shader, so remember it
+  // and remove it later.
+  std::string include_ext = "#extension GL_GOOGLE_include_directive : require\n";
+
+  combined += include_ext;
+
+  if(type == eShaderGLSLES)
+    combined +=
+        "#define OPENGL 1\n"
+        "#define OPENGL_ES 1\n"
+        "precision highp float;\n"
+        "precision highp int;\n";
+  else if(type == eShaderGLSL)
+    combined +=
+        "#define OPENGL 1\n"
+        "#define OPENGL_CORE 1\n";
+
+  combined += defines;
+
+  combined += shader;
+
+  const char *c_src = combined.c_str();
+  glslang::EShClient client =
+      type == eShaderVulkan ? glslang::EShClientVulkan : glslang::EShClientOpenGL;
+  glslang::EShTargetClientVersion targetversion =
+      type == eShaderVulkan ? glslang::EShTargetVulkan_1_0 : glslang::EShTargetOpenGL_450;
+
+  sh.setStrings(&c_src, 1);
+  sh.setEnvInput(glslang::EShSourceGlsl, EShLangFragment, client, 100);
+  sh.setEnvClient(client, targetversion);
+  sh.setEnvTarget(glslang::EShTargetNone, glslang::EShTargetSpv_1_0);
+
+  EmbeddedIncluder incl;
+
+  EShMessages flags = EShMsgOnlyPreprocessor;
+
+  if(type == eShaderVulkan)
+    flags = EShMessages(flags | EShMsgSpvRules | EShMsgVulkanRules);
+
+  std::string ret;
+
+  bool success = sh.preprocess(&DefaultResources, 100, ENoProfile, false, false, flags, &ret, incl);
+
+  size_t offs = ret.find(include_ext);
+  if(offs != std::string::npos)
+    ret.erase(offs, include_ext.size());
+
+  // strip any #line directives that got added
+  offs = ret.find("\n#line ");
+  while(offs != std::string::npos)
   {
-    sources[1] = GetEmbeddedResource(glsl_debuguniforms_h);
-  }
-  else
-  {
-    if(type == eShaderGLSLES)
-      sources[1] = "precision highp float; precision highp int;";
+    size_t eol = ret.find('\n', offs + 2);
+
+    if(eol == std::string::npos)
+      ret.erase(offs + 1);
     else
-      sources[1] = "";
+      ret.erase(offs + 1, eol - offs);
+
+    offs = ret.find("\n#line ", offs);
   }
 
-  if(shader.find("#include \"texsample.h\"") != string::npos)
+  if(!success)
   {
-    if(type == eShaderVulkan)
-      sources[2] = GetEmbeddedResource(glsl_vk_texsample_h);
-    else if(type == eShaderGLSL)
-      sources[2] = GetEmbeddedResource(glsl_gl_texsample_h);
-    else if(type == eShaderGLSLES)
-      sources[2] = GetEmbeddedResource(glsl_gles_texsample_h);
-    else
-      RDCERR("Unknown type! %d", type);
-  }
-  else
-  {
-    sources[2] = "";
+    RDCLOG("glslang failed to build internal shader:\n\n%s\n\n%s", sh.getInfoLog(),
+           sh.getInfoDebugLog());
+
+    return "";
   }
 
-  sources[3] = shader;
-
-  for(int i = 0; i < 4; i++)
-  {
-    // hoist up any #extension directives
-    size_t extsearch = 0;
-    do
-    {
-      extsearch = sources[i].find("#extension", extsearch);
-
-      if(extsearch == string::npos)
-        break;
-
-      size_t begin = extsearch;
-      extsearch = sources[i].find('\n', extsearch);
-
-      string ext = sources[i].substr(begin, extsearch - begin + 1);
-
-      if(ext.find("#extension_gles") == 0)
-      {
-        if(type != eShaderGLSLES)
-          continue;
-
-        ext.erase(ext.find("_gles"), 5);
-      }
-      else if(ext.find("#extension_glcore") == 0)
-      {
-        if(type != eShaderGLSL)
-          continue;
-
-        ext.erase(ext.find("_glcore"), 7);
-      }
-      else if(ext.find("#extension_nongles") == 0)
-      {
-        if(type == eShaderGLSLES)
-          continue;
-
-        ext.erase(ext.find("_nongles"), 8);
-      }
-
-      sources[0] += ext;
-    } while(extsearch != string::npos);
-  }
-
-  sources[0] += "\n" + defines + "\n";
+  return ret;
 }

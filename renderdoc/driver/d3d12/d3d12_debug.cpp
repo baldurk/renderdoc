@@ -37,7 +37,7 @@
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 inline static D3D12_ROOT_PARAMETER1 cbvParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg)
 {
@@ -214,28 +214,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   shaderCache->SetCaching(true);
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig(
-        {
-            cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-            cbvParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 0),
-            // push constant CBV
-            constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 2, 4),
-        },
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-    RDCASSERT(root);
-
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature), (void **)&m_CBOnlyRootSig);
-    m_pDevice->InternalRef();
-
-    SAFE_RELEASE(root);
-
-    rm->SetInternalResource(m_CBOnlyRootSig);
-  }
-
-  {
     ID3DBlob *root = shaderCache->MakeRootSig({
         // cbuffer
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
@@ -257,7 +235,28 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   {
-    std::string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+    ID3DBlob *root = shaderCache->MakeRootSig(
+        {
+            cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
+            cbvParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 0),
+            // 'push constant' CBV
+            constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0, 4),
+        },
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    RDCASSERT(root);
+
+    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                        __uuidof(ID3D12RootSignature), (void **)&m_MeshRootSig);
+    m_pDevice->InternalRef();
+
+    SAFE_RELEASE(root);
+
+    rm->SetInternalResource(m_MeshRootSig);
+  }
+
+  {
+    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                                "vs_5_0", &m_MeshVS);
@@ -268,11 +267,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &m_FullscreenVS);
   }
 
@@ -373,8 +370,8 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_MeshVS);
   SAFE_RELEASE(m_MeshGS);
   SAFE_RELEASE(m_MeshPS);
+  SAFE_RELEASE(m_MeshRootSig);
 
-  SAFE_RELEASE(m_CBOnlyRootSig);
   SAFE_RELEASE(m_ArrayMSAARootSig);
   SAFE_RELEASE(m_FullscreenVS);
 
@@ -816,47 +813,35 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
   }
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig(
-        {
-            cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-            cbvParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 0),
-            // push constant CBV
-            constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 2, 4),
-        },
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    ID3DBlob *root = shaderCache->MakeRootSig({
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+    });
 
     RDCASSERT(root);
 
     hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&ConstOnlyRootSig);
+                                     __uuidof(ID3D12RootSignature), (void **)&CheckerboardRootSig);
 
     SAFE_RELEASE(root);
   }
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
     ID3DBlob *FullscreenVS = NULL;
     ID3DBlob *CheckerboardPS = NULL;
-    ID3DBlob *FixedColPS = NULL;
 
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &FullscreenVS);
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_CheckerboardPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &CheckerboardPS);
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_OutlinePS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &FixedColPS);
 
     RDCASSERT(CheckerboardPS);
     RDCASSERT(FullscreenVS);
-    RDCASSERT(FixedColPS);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
 
-    pipeDesc.pRootSignature = ConstOnlyRootSig;
+    pipeDesc.pRootSignature = CheckerboardRootSig;
     pipeDesc.VS.BytecodeLength = FullscreenVS->GetBufferSize();
     pipeDesc.VS.pShaderBytecode = FullscreenVS->GetBufferPointer();
     pipeDesc.PS.BytecodeLength = CheckerboardPS->GetBufferSize();
@@ -897,26 +882,32 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
       RDCERR("Couldn't create m_CheckerboardMSAAPipe! HRESULT: %s", ToStr(hr).c_str());
     }
 
-    pipeDesc.SampleDesc.Count = 1;
-
     pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-
-    pipeDesc.PS.BytecodeLength = FixedColPS->GetBufferSize();
-    pipeDesc.PS.pShaderBytecode = FixedColPS->GetBufferPointer();
-
     pipeDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
 
-    hr = device->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                             (void **)&FixedColPipe);
-
-    if(FAILED(hr))
+    for(size_t i = 0; i < ARRAY_COUNT(CheckerboardF16Pipe); i++)
     {
-      RDCERR("Couldn't create m_OutlinePipe! HRESULT: %s", ToStr(hr).c_str());
+      pipeDesc.SampleDesc.Count = UINT(1 << i);
+
+      D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS check = {};
+      check.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      check.SampleCount = pipeDesc.SampleDesc.Count;
+      device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &check, sizeof(check));
+
+      if(check.NumQualityLevels == 0)
+        continue;
+
+      hr = device->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                               (void **)&CheckerboardF16Pipe[i]);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create CheckerboardF16Pipe[%zu]! HRESULT: %s", i, ToStr(hr).c_str());
+      }
     }
 
     SAFE_RELEASE(CheckerboardPS);
     SAFE_RELEASE(FullscreenVS);
-    SAFE_RELEASE(FixedColPS);
   }
 
   shaderCache->SetCaching(false);
@@ -925,10 +916,11 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
 void D3D12Replay::GeneralMisc::Release()
 {
   SAFE_RELEASE(ResultReadbackBuffer);
-  SAFE_RELEASE(ConstOnlyRootSig);
+  SAFE_RELEASE(CheckerboardRootSig);
   SAFE_RELEASE(CheckerboardPipe);
   SAFE_RELEASE(CheckerboardMSAAPipe);
-  SAFE_RELEASE(FixedColPipe);
+  for(size_t i = 0; i < ARRAY_COUNT(CheckerboardF16Pipe); i++)
+    SAFE_RELEASE(CheckerboardF16Pipe[i]);
 }
 
 void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12DebugManager *debug)
@@ -967,17 +959,15 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
   }
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(texdisplay_hlsl);
 
     ID3DBlob *TexDisplayPS = NULL;
 
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexDisplayVS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &VS);
     RDCASSERT(VS);
 
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexDisplayPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexDisplayPS);
     RDCASSERT(TexDisplayPS);
 
@@ -1079,7 +1069,7 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   shaderCache->SetCaching(true);
 
   {
-    std::string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "gs_5_0", &TriangleSizeGS);
@@ -1089,11 +1079,9 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                                "vs_5_0", &MeshVS);
 
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QuadOverdrawWritePS);
   }
 
@@ -1112,17 +1100,17 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   }
 
   {
-    std::string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-    displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
     ID3DBlob *FullscreenVS = NULL;
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &FullscreenVS);
     RDCASSERT(FullscreenVS);
 
+    hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
+
     ID3DBlob *QOResolvePS = NULL;
-    shaderCache->GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QOResolvePS",
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QOResolvePS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QOResolvePS);
     RDCASSERT(QOResolvePS);
 
@@ -1204,7 +1192,7 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
   }
 
   {
-    std::string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     ID3DBlob *meshPickCS;
 
@@ -1377,9 +1365,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
   }
 
   {
-    std::string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
-    histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
-    histogramhlsl += GetEmbeddedResource(histogram_hlsl);
+    std::string histogramhlsl = GetEmbeddedResource(histogram_hlsl);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC compPipeDesc = {};
 

@@ -22,15 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef OPENGL_ES
-out gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-};
-#endif
+#include "glsl_globals.h"
 
-layout(location = 0) out vec2 uv;
+IO_LOCATION(0) out vec2 uv;
 
 void main(void)
 {

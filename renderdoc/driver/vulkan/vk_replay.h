@@ -506,35 +506,24 @@ private:
     VkFramebuffer NoDepthFB = VK_NULL_HANDLE;
     VkRenderPass NoDepthRP = VK_NULL_HANDLE;
 
+    VkDescriptorSetLayout m_CheckerDescSetLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_CheckerPipeLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_CheckerDescSet = VK_NULL_HANDLE;
+    VkPipeline m_CheckerPipeline = VK_NULL_HANDLE;
+    VkPipeline m_CheckerMSAAPipeline = VK_NULL_HANDLE;
+    VkPipeline m_CheckerF16Pipeline[8] = {VK_NULL_HANDLE};
+    GPUBuffer m_CheckerUBO;
+
     VkDescriptorSetLayout m_QuadDescSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_QuadDescSet = VK_NULL_HANDLE;
     VkPipelineLayout m_QuadResolvePipeLayout = VK_NULL_HANDLE;
     VkPipeline m_QuadResolvePipeline[8] = {VK_NULL_HANDLE};
-
-    VkDescriptorSetLayout m_OutlineDescSetLayout = VK_NULL_HANDLE;
-    VkPipelineLayout m_OutlinePipeLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_OutlineDescSet = VK_NULL_HANDLE;
-    VkPipeline m_OutlinePipeline[8] = {VK_NULL_HANDLE};
-    GPUBuffer m_OutlineUBO;
 
     GPUBuffer m_TriSizeUBO;
     VkDescriptorSetLayout m_TriSizeDescSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_TriSizeDescSet = VK_NULL_HANDLE;
     VkPipelineLayout m_TriSizePipeLayout = VK_NULL_HANDLE;
   } m_Overlay;
-
-  struct CheckerboardRendering
-  {
-    void Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool);
-    void Destroy(WrappedVulkan *driver);
-
-    VkDescriptorSetLayout DescSetLayout = VK_NULL_HANDLE;
-    VkPipelineLayout PipeLayout = VK_NULL_HANDLE;
-    VkDescriptorSet DescSet = VK_NULL_HANDLE;
-    VkPipeline Pipeline = VK_NULL_HANDLE;
-    VkPipeline MSAAPipeline = VK_NULL_HANDLE;
-    GPUBuffer UBO;
-  } m_Checkerboard;
 
   struct MeshRendering
   {

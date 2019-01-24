@@ -164,6 +164,25 @@ inline float ConvertFromSRGB8(uint8_t comp)
   return SRGB8_lookuptable[comp];
 }
 
+inline float ConvertSRGBToLinear(float srgbF)
+{
+  if(srgbF <= 0.04045f)
+    return srgbF / 12.92f;
+
+  if(srgbF < 0.0f)
+    srgbF = 0.0f;
+  else if(srgbF > 1.0f)
+    srgbF = 1.0f;
+
+  return powf((0.055f + srgbF) / 1.055f, 2.4f);
+}
+
+inline Vec4f ConvertSRGBToLinear(Vec4f srgbF)
+{
+  return Vec4f(ConvertSRGBToLinear(srgbF.x), ConvertSRGBToLinear(srgbF.y),
+               ConvertSRGBToLinear(srgbF.z), srgbF.w);
+}
+
 struct ResourceFormat;
 float ConvertComponent(const ResourceFormat &fmt, const byte *data);
 

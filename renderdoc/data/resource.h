@@ -1,16 +1,20 @@
+// clang-format off
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by renderdoc.rc
 //
 #define TYPE_EMBED          256
 
-#define RESOURCE_debugdisplay_hlsl  101
-#define RESOURCE_debugtext_hlsl     102
-#define RESOURCE_debugcbuffers_h    103
-#define RESOURCE_debugcommon_hlsl   104
+#define RESOURCE_misc_hlsl          101
+#define RESOURCE_text_hlsl          102
+#define RESOURCE_hlsl_cbuffers_h    103
+#define RESOURCE_hlsl_texsample_h   104
 #define RESOURCE_histogram_hlsl     105
 #define RESOURCE_multisample_hlsl   106
 #define RESOURCE_mesh_hlsl          107
+#define RESOURCE_texdisplay_hlsl    108
+#define RESOURCE_pixelhistory_hlsl  109
+#define RESOURCE_quadoverdraw_hlsl  110
 
 #define RESOURCE_sourcecodepro_ttf  301
 
@@ -26,8 +30,7 @@
 #define RESOURCE_glsl_minmaxtile_comp   412
 #define RESOURCE_glsl_minmaxresult_comp 413
 #define RESOURCE_glsl_histogram_comp    414
-#define RESOURCE_glsl_outline_frag      415
-#define RESOURCE_glsl_debuguniforms_h   416
+#define RESOURCE_glsl_glsl_ubos_h       416
 #define RESOURCE_glsl_gl_texsample_h    417
 #define RESOURCE_glsl_vk_texsample_h    418
 #define RESOURCE_glsl_quadresolve_frag  419
@@ -42,6 +45,7 @@
 #define RESOURCE_glsl_gles_texsample_h  428
 #define RESOURCE_glsl_gltext_vert       429
 #define RESOURCE_glsl_gltext_frag       430
+#define RESOURCE_glsl_glsl_globals_h    440
 
 // Next default values for new objects
 // 

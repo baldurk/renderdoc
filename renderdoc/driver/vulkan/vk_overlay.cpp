@@ -35,7 +35,7 @@
 #include "vk_shader_cache.h"
 
 #define VULKAN 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
@@ -953,23 +953,30 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
       uint32_t uboOffs = 0;
 
-      OutlineUBOData *ubo = (OutlineUBOData *)m_Overlay.m_OutlineUBO.Map(&uboOffs);
+      CheckerboardUBOData *ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
 
-      ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
-      ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-      ubo->Scissor = 0;
-      ubo->ViewRect = Vec4f(viewport.x, viewport.y, viewport.width, viewport.height);
+      ubo->BorderWidth = 3;
+      ubo->CheckerSquareDimension = 16.0f;
 
-      if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport])
-        ubo->ViewRect.w = fabs(viewport.height);
+      // set primary/secondary to the same to 'disable' checkerboard
+      ubo->PrimaryColor = ubo->SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+      ubo->InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
 
-      m_Overlay.m_OutlineUBO.Unmap();
+      // set viewport rect
+      ubo->RectPosition = Vec2f(viewport.x, viewport.y);
+      ubo->RectSize = Vec2f(viewport.width, viewport.height);
+
+      if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport] ||
+         m_pDriver->m_ExtensionsEnabled[VkCheckExt_KHR_maintenance1])
+        ubo->RectSize.y = fabs(viewport.height);
+
+      m_Overlay.m_CheckerUBO.Unmap();
 
       vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          Unwrap(m_Overlay.m_OutlinePipeline[SampleIndex(iminfo.samples)]));
+                          Unwrap(m_Overlay.m_CheckerF16Pipeline[SampleIndex(iminfo.samples)]));
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                Unwrap(m_Overlay.m_OutlinePipeLayout), 0, 1,
-                                UnwrapPtr(m_Overlay.m_OutlineDescSet), 1, &uboOffs);
+                                Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
+                                UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);
 
       vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
@@ -980,14 +987,22 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
                       (float)m_pDriver->m_RenderState.scissors[0].extent.width,
                       (float)m_pDriver->m_RenderState.scissors[0].extent.height);
 
-        ubo = (OutlineUBOData *)m_Overlay.m_OutlineUBO.Map(&uboOffs);
+        ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
 
-        ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
-        ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-        ubo->Scissor = 1;
-        ubo->ViewRect = scissor;
+        ubo->BorderWidth = 3;
+        ubo->CheckerSquareDimension = 16.0f;
 
-        m_Overlay.m_OutlineUBO.Unmap();
+        // black/white checkered border
+        ubo->PrimaryColor = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+        ubo->SecondaryColor = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+
+        // nothing at all inside
+        ubo->InnerColor = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+
+        ubo->RectPosition = Vec2f(scissor.x, scissor.y);
+        ubo->RectSize = Vec2f(scissor.z, scissor.w);
+
+        m_Overlay.m_CheckerUBO.Unmap();
 
         viewport.x = scissor.x;
         viewport.y = scissor.y;
@@ -996,8 +1011,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
         vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
         vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  Unwrap(m_Overlay.m_OutlinePipeLayout), 0, 1,
-                                  UnwrapPtr(m_Overlay.m_OutlineDescSet), 1, &uboOffs);
+                                  Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
+                                  UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);
 
         vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
       }

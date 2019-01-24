@@ -112,6 +112,7 @@ struct MeshDisplayPipelines
   };
 
   ID3D12PipelineState *pipes[ePipe_Count];
+  ID3D12RootSignature *rootsig;
 };
 
 class D3D12DebugManager
@@ -126,6 +127,7 @@ public:
   void FillBuffer(ID3D12Resource *buf, size_t offset, const void *data, size_t size);
   D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
 
+  ID3D12RootSignature *GetMeshRootSig() { return m_MeshRootSig; }
   ID3D12GraphicsCommandList2 *ResetDebugList();
   void ResetDebugAlloc();
 
@@ -171,10 +173,10 @@ private:
   UINT64 m_RingConstantOffset = 0;
 
   // CacheMeshDisplayPipelines
-  ID3D12RootSignature *m_CBOnlyRootSig = NULL;
   ID3DBlob *m_MeshVS = NULL;
   ID3DBlob *m_MeshGS = NULL;
   ID3DBlob *m_MeshPS = NULL;
+  ID3D12RootSignature *m_MeshRootSig = NULL;
   std::map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 
   // GetBufferData

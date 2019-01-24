@@ -30,7 +30,7 @@
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint,
                                                int &resType,
@@ -336,8 +336,8 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   if(resource == NULL)
     return false;
 
-  DebugVertexCBuffer vertexData;
-  DebugPixelCBufferData pixelData;
+  TexDisplayVSCBuffer vertexData = {};
+  TexDisplayPSCBuffer pixelData = {};
   HeatmapData heatmapData = {};
 
   {
@@ -360,8 +360,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     }
   }
 
-  pixelData.AlwaysZero = 0.0f;
-
   float x = cfg.xOffset;
   float y = cfg.yOffset;
 
@@ -373,8 +371,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
   vertexData.TextureResolution.y = 1.0f;
-
-  vertexData.LineStrip = 0;
 
   if(cfg.rangeMax <= cfg.rangeMin)
     cfg.rangeMax += 0.00001f;

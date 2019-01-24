@@ -38,7 +38,7 @@
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 {
@@ -767,30 +767,27 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-      list->SetPipelineState(m_General.FixedColPipe);
+      list->SetPipelineState(m_General.CheckerboardF16Pipe[overlayTexDesc.SampleDesc.Count - 1]);
 
-      list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
+      list->SetGraphicsRootSignature(m_General.CheckerboardRootSig);
 
-      DebugPixelCBufferData pixelData = {0};
+      CheckerboardCBuffer pixelData = {0};
 
-      // border colour (dark, 2px, opaque)
-      pixelData.WireframeColour = Vec3f(0.1f, 0.1f, 0.1f);
-      // inner colour (light, transparent)
-      pixelData.Channels = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
-      pixelData.OutputDisplayFormat = 0;
-      pixelData.RangeMinimum = viewport.TopLeftX;
-      pixelData.InverseRangeSize = viewport.TopLeftY;
-      pixelData.TextureResolutionPS = Vec3f(viewport.Width, viewport.Height, 0.0f);
+      pixelData.BorderWidth = 3;
+      pixelData.CheckerSquareDimension = 16.0f;
+
+      // set primary/secondary to the same to 'disable' checkerboard
+      pixelData.PrimaryColor = pixelData.SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+      pixelData.InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+
+      // set viewport rect
+      pixelData.RectPosition = Vec2f(viewport.TopLeftX, viewport.TopLeftY);
+      pixelData.RectSize = Vec2f(viewport.Width, viewport.Height);
 
       D3D12_GPU_VIRTUAL_ADDRESS viewCB =
           GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData));
 
       list->SetGraphicsRootConstantBufferView(0, viewCB);
-      list->SetGraphicsRootConstantBufferView(1, viewCB);
-      list->SetGraphicsRootConstantBufferView(2, viewCB);
-
-      Vec4f dummy;
-      list->SetGraphicsRoot32BitConstants(3, 4, &dummy.x, 0);
 
       float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       list->OMSetBlendFactor(factor);
@@ -803,15 +800,21 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       viewport.Height = (float)(rs.scissors[0].bottom - rs.scissors[0].top);
       list->RSSetViewports(1, &viewport);
 
-      pixelData.OutputDisplayFormat = 1;
-      pixelData.RangeMinimum = viewport.TopLeftX;
-      pixelData.InverseRangeSize = viewport.TopLeftY;
-      pixelData.TextureResolutionPS = Vec3f(viewport.Width, viewport.Height, 0.0f);
+      // black/white checkered border
+      pixelData.PrimaryColor = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+      pixelData.SecondaryColor = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+
+      // nothing at all inside
+      pixelData.InnerColor = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+
+      // set scissor rect
+      pixelData.RectPosition = Vec2f(viewport.TopLeftX, viewport.TopLeftY);
+      pixelData.RectSize = Vec2f(viewport.Width, viewport.Height);
 
       D3D12_GPU_VIRTUAL_ADDRESS scissorCB =
           GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData));
 
-      list->SetGraphicsRootConstantBufferView(1, scissorCB);
+      list->SetGraphicsRootConstantBufferView(0, scissorCB);
 
       list->DrawInstanced(3, 1, 0, 0);
     }
@@ -854,7 +857,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
       pipe->Fill(pipeDesc);
-      pipeDesc.pRootSignature = m_General.ConstOnlyRootSig;
+      pipeDesc.pRootSignature = GetDebugManager()->GetMeshRootSig();
       pipeDesc.SampleMask = 0xFFFFFFFF;
       pipeDesc.SampleDesc.Count = 1;
       pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
@@ -901,8 +904,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       // enough for all primitive topology types
       ID3D12PipelineState *pipes[D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH + 1] = {};
 
-      DebugVertexCBuffer vertexData = {};
-      vertexData.LineStrip = 0;
+      MeshVertexCBuffer vertexData = {};
       vertexData.ModelViewProj = Matrix4f::Identity();
       vertexData.SpriteSize = Vec2f();
 
@@ -922,15 +924,13 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       list->OMSetStencilRef(rs.stencilRef);
       list->OMSetBlendFactor(rs.blendFactor);
 
-      list->SetGraphicsRootSignature(m_General.ConstOnlyRootSig);
+      list->SetGraphicsRootSignature(GetDebugManager()->GetMeshRootSig());
 
       list->SetGraphicsRootConstantBufferView(
           0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
       list->SetGraphicsRootConstantBufferView(
-          1, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
-      list->SetGraphicsRootConstantBufferView(
-          2, GetDebugManager()->UploadConstants(&viewport, sizeof(viewport)));
-      list->SetGraphicsRoot32BitConstants(3, 4, &viewport.x, 0);
+          1, GetDebugManager()->UploadConstants(&viewport, sizeof(viewport)));
+      list->SetGraphicsRoot32BitConstants(2, 4, &viewport.x, 0);
 
       for(size_t i = 0; i < events.size(); i++)
       {

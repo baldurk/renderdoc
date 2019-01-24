@@ -69,8 +69,6 @@ static const BuiltinShaderConfig builtinShaders[] = {
      FeatureCheck::NoCheck, true},
     {BuiltinShader::MeshCS, EmbeddedResource(glsl_mesh_comp), SPIRVShaderStage::Compute,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::OutlineFS, EmbeddedResource(glsl_outline_frag), SPIRVShaderStage::Fragment,
-     FeatureCheck::NoCheck, true},
     {BuiltinShader::QuadResolveFS, EmbeddedResource(glsl_quadresolve_frag),
      SPIRVShaderStage::Fragment, FeatureCheck::FragmentStores, true},
     {BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag), SPIRVShaderStage::Fragment,
@@ -131,7 +129,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   VkDriverInfo driverVersion = driver->GetDriverInfo();
   const VkPhysicalDeviceFeatures &features = driver->GetDeviceFeatures();
 
-  std::vector<std::string> sources;
+  std::string src;
   SPIRVCompilationSettings compileSettings;
   compileSettings.lang = SPIRVSourceLanguage::VulkanGLSL;
 
@@ -170,18 +168,11 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(driverVersion.TexelFetchBrokenDriver())
       defines += "#define NO_TEXEL_FETCH\n";
 
-    // add UBO definitions as needed, to workaround ARM bug
-    if(config.builtin == BuiltinShader::TextVS || config.builtin == BuiltinShader::TextFS)
-      defines += "#define FONT_UBOS\n";
-
-    if(config.builtin == BuiltinShader::TexDisplayFS)
-      defines += "#define HEATMAP_UBO\n";
-
-    GenerateGLSLShader(sources, eShaderVulkan, defines, GetDynamicEmbeddedResource(config.resource),
-                       430, config.uniforms);
+    src =
+        GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430, defines);
 
     compileSettings.stage = config.stage;
-    std::string err = GetSPIRVBlob(compileSettings, sources, m_BuiltinShaderBlobs[i]);
+    std::string err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);
 
     if(!err.empty() || m_BuiltinShaderBlobs[i] == VK_NULL_HANDLE)
     {
@@ -226,14 +217,11 @@ VulkanShaderCache::~VulkanShaderCache()
 }
 
 std::string VulkanShaderCache::GetSPIRVBlob(const SPIRVCompilationSettings &settings,
-                                            const std::vector<std::string> &sources,
-                                            SPIRVBlob &outBlob)
+                                            const std::string &src, SPIRVBlob &outBlob)
 {
-  RDCASSERT(sources.size() > 0);
+  RDCASSERT(!src.empty());
 
-  uint32_t hash = strhash(sources[0].c_str());
-  for(size_t i = 1; i < sources.size(); i++)
-    hash = strhash(sources[i].c_str(), hash);
+  uint32_t hash = strhash(src.c_str());
 
   char typestr[3] = {'a', 'a', 0};
   typestr[0] += (char)settings.stage;
@@ -247,7 +235,7 @@ std::string VulkanShaderCache::GetSPIRVBlob(const SPIRVCompilationSettings &sett
   }
 
   SPIRVBlob spirv = new std::vector<uint32_t>();
-  std::string errors = CompileSPIRV(settings, sources, *spirv);
+  std::string errors = CompileSPIRV(settings, {src}, *spirv);
 
   if(!errors.empty())
   {

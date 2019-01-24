@@ -26,6 +26,7 @@
 #include <float.h>
 #include "driver/ihv/amd/amd_rgp.h"
 #include "maths/camera.h"
+#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
@@ -35,7 +36,7 @@
 #include "vk_shader_cache.h"
 
 #define VULKAN 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
@@ -608,19 +609,25 @@ void VulkanReplay::RenderCheckerboard()
   };
   vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-  if(m_Checkerboard.Pipeline != VK_NULL_HANDLE)
+  if(m_Overlay.m_CheckerPipeline != VK_NULL_HANDLE)
   {
-    Vec4f *data = (Vec4f *)m_Checkerboard.UBO.Map(&uboOffs);
-    data[0] = RenderDoc::Inst().LightCheckerboardColor();
-    data[1] = RenderDoc::Inst().DarkCheckerboardColor();
-    m_Checkerboard.UBO.Unmap();
+    CheckerboardUBOData *data = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
+    data->BorderWidth = 0.0f;
+    data->RectPosition = Vec2f();
+    data->RectSize = Vec2f();
+    data->CheckerSquareDimension = 64.0f;
+    data->InnerColor = Vec4f();
+
+    data->PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
+    data->SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+    m_Overlay.m_CheckerUBO.Unmap();
 
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        outw.dsimg == VK_NULL_HANDLE ? Unwrap(m_Checkerboard.Pipeline)
-                                                     : Unwrap(m_Checkerboard.MSAAPipeline));
+                        outw.dsimg == VK_NULL_HANDLE ? Unwrap(m_Overlay.m_CheckerPipeline)
+                                                     : Unwrap(m_Overlay.m_CheckerMSAAPipeline));
     vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              Unwrap(m_Checkerboard.PipeLayout), 0, 1,
-                              UnwrapPtr(m_Checkerboard.DescSet), 1, &uboOffs);
+                              Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
+                              UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);
 
     VkViewport viewport = {0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f};
     vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
@@ -631,8 +638,8 @@ void VulkanReplay::RenderCheckerboard()
     {
       uboOffs = 0;
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                Unwrap(m_Checkerboard.PipeLayout), 0, 1,
-                                UnwrapPtr(m_Checkerboard.DescSet), 1, &uboOffs);
+                                Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
+                                UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);
     }
   }
   else

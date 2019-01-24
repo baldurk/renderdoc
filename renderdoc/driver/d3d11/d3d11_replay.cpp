@@ -30,6 +30,7 @@
 #include "driver/ihv/nv/nv_counters.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/camera.h"
+#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
@@ -40,7 +41,7 @@
 #include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
@@ -2470,39 +2471,22 @@ bool D3D11Replay::RenderTexture(TextureDisplay cfg)
 
 void D3D11Replay::RenderCheckerboard()
 {
-  DebugVertexCBuffer vertexData;
-
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
-  vertexData.Scale = 2.0f;
-  vertexData.Position.x = vertexData.Position.y = 0;
+  CheckerboardCBuffer pixelData = {};
 
-  vertexData.ScreenAspect.x = 1.0f;
-  vertexData.ScreenAspect.y = 1.0f;
+  pixelData.PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
+  pixelData.SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+  pixelData.CheckerSquareDimension = 64.0f;
 
-  vertexData.TextureResolution.x = 1.0f;
-  vertexData.TextureResolution.y = 1.0f;
-
-  vertexData.LineStrip = 0;
-
-  ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
-
-  DebugPixelCBufferData pixelData;
-
-  pixelData.AlwaysZero = 0.0f;
-
-  pixelData.Channels = RenderDoc::Inst().LightCheckerboardColor();
-  pixelData.WireframeColour = RenderDoc::Inst().DarkCheckerboardColor();
-
-  ID3D11Buffer *psBuf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+  ID3D11Buffer *psBuf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));
 
   // can't just clear state because we need to keep things like render targets.
   {
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     m_pImmediateContext->IASetInputLayout(NULL);
 
-    m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
-    m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsBuf);
+    m_pImmediateContext->VSSetShader(m_General.FullscreenVS, NULL, 0);
 
     m_pImmediateContext->HSSetShader(NULL, NULL, 0);
     m_pImmediateContext->DSSetShader(NULL, NULL, 0);
@@ -2525,64 +2509,86 @@ void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
 {
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
-  float overlayConsts[] = {1.0f, 1.0f, 1.0f, 1.0f};
-
-  ID3D11Buffer *vconst = NULL;
   ID3D11Buffer *pconst = NULL;
-
-  pconst = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
-
-  const float xpixdim = 2.0f / w;
-  const float ypixdim = 2.0f / h;
-
-  const float xdim = scale * xpixdim;
-  const float ydim = scale * ypixdim;
-
-  DebugVertexCBuffer vertCBuffer;
-  RDCEraseEl(vertCBuffer);
-  vertCBuffer.Scale = 1.0f;
-  vertCBuffer.ScreenAspect.x = vertCBuffer.ScreenAspect.y = 1.0f;
-
-  vertCBuffer.Position.x = 1.0f;
-  vertCBuffer.Position.y = -1.0f;
-  vertCBuffer.TextureResolution.x = xdim;
-  vertCBuffer.TextureResolution.y = ydim;
-
-  vertCBuffer.LineStrip = 1;
-
-  vconst = GetDebugManager()->MakeCBuffer(&vertCBuffer, sizeof(vertCBuffer));
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
   m_pImmediateContext->DSSetShader(NULL, NULL, 0);
   m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 
-  m_pImmediateContext->RSSetState(m_General.RasterState);
+  m_pImmediateContext->RSSetState(m_General.RasterScissorState);
 
-  m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+  m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
   m_pImmediateContext->IASetInputLayout(NULL);
 
-  m_pImmediateContext->VSSetShader(m_General.GenericVS, NULL, 0);
+  m_pImmediateContext->VSSetShader(m_General.FullscreenVS, NULL, 0);
   m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
   m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
 
-  m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
-  m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
+  float black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+  float white[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
-  m_pImmediateContext->Draw(5, 0);
+  // size of box
+  LONG sz = LONG(scale);
 
-  vertCBuffer.Position.x = 1.0f - xpixdim;
-  vertCBuffer.Position.y = -1.0f + ypixdim;
-  vertCBuffer.TextureResolution.x = xdim + xpixdim * 2;
-  vertCBuffer.TextureResolution.y = ydim + ypixdim * 2;
+  // top left, x and y
+  LONG tlx = LONG(w / 2.0f + 0.5f);
+  LONG tly = LONG(h / 2.0f + 0.5f);
 
-  overlayConsts[0] = overlayConsts[1] = overlayConsts[2] = 0.0f;
+  D3D11_RECT rect[4] = {
+      {tlx, tly, tlx + 1, tly + sz},
 
-  vconst = GetDebugManager()->MakeCBuffer(&vertCBuffer, sizeof(vertCBuffer));
-  pconst = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+      {tlx + sz, tly, tlx + sz + 1, tly + sz + 1},
 
-  m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
-  m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
-  m_pImmediateContext->Draw(5, 0);
+      {tlx, tly, tlx + sz, tly + 1},
+
+      {tlx, tly + sz, tlx + sz, tly + sz + 1},
+  };
+
+  // inner
+  pconst = GetDebugManager()->MakeCBuffer(white, sizeof(white));
+
+  // render the rects
+  for(size_t i = 0; i < ARRAY_COUNT(rect); i++)
+  {
+    m_pImmediateContext->RSSetScissorRects(1, &rect[i]);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
+    m_pImmediateContext->Draw(4, 0);
+  }
+
+  // shift both sides to just translate the rect without changing its size
+  rect[0].left--;
+  rect[0].right--;
+  rect[1].left++;
+  rect[1].right++;
+  rect[2].left--;
+  rect[2].right--;
+  rect[3].left--;
+  rect[3].right--;
+
+  rect[0].top--;
+  rect[0].bottom--;
+  rect[1].top--;
+  rect[1].bottom--;
+  rect[2].top--;
+  rect[2].bottom--;
+  rect[3].top++;
+  rect[3].bottom++;
+
+  // now increase the 'size' of the rects
+  rect[0].bottom += 2;
+  rect[1].bottom += 2;
+  rect[2].right += 2;
+  rect[3].right += 2;
+
+  // render the rects
+  pconst = GetDebugManager()->MakeCBuffer(black, sizeof(black));
+
+  for(size_t i = 0; i < ARRAY_COUNT(rect); i++)
+  {
+    m_pImmediateContext->RSSetScissorRects(1, &rect[i]);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
+    m_pImmediateContext->Draw(4, 0);
+  }
 }
 
 void D3D11Replay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
@@ -2612,24 +2618,7 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
-  struct MeshPickData
-  {
-    Vec3f RayPos;
-    uint32_t PickIdx;
-
-    Vec3f RayDir;
-    uint32_t PickNumVerts;
-
-    Vec2f PickCoords;
-    Vec2f PickViewport;
-
-    uint32_t MeshMode;
-    uint32_t PickUnproject;
-    Vec2f Padding;
-
-    Matrix4f PickMVP;
-
-  } cbuf;
+  MeshPickData cbuf = {};
 
   cbuf.PickCoords = Vec2f((float)x, (float)y);
   cbuf.PickViewport = Vec2f((float)width, (float)height);
@@ -2708,8 +2697,8 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
     }
   }
 
-  cbuf.RayPos = rayPos;
-  cbuf.RayDir = rayDir;
+  cbuf.PickRayPos = rayPos;
+  cbuf.PickRayDir = rayDir;
 
   cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
 
@@ -2718,27 +2707,27 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   {
     case Topology::TriangleList:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      cbuf.PickMeshMode = MESH_TRIANGLE_LIST;
       break;
     }
     case Topology::TriangleStrip:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      cbuf.PickMeshMode = MESH_TRIANGLE_STRIP;
       break;
     }
     case Topology::TriangleList_Adj:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      cbuf.PickMeshMode = MESH_TRIANGLE_LIST_ADJ;
       break;
     }
     case Topology::TriangleStrip_Adj:
     {
-      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      cbuf.PickMeshMode = MESH_TRIANGLE_STRIP_ADJ;
       break;
     }
     default:    // points, lines, patchlists, unknown
     {
-      cbuf.MeshMode = MESH_OTHER;
+      cbuf.PickMeshMode = MESH_OTHER;
       isTriangleMesh = false;
     }
   }

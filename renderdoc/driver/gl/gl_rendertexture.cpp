@@ -30,7 +30,7 @@
 #include "gl_resources.h"
 
 #define OPENGL 1
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl/glsl_ubos_cpp.h"
 
 bool GLReplay::RenderTexture(TextureDisplay cfg)
 {

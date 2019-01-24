@@ -201,9 +201,6 @@
     <ClInclude Include="maths\half_convert.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="data\hlsl\debugcbuffers.h">
-      <Filter>Resources\hlsl</Filter>
-    </ClInclude>
     <ClInclude Include="api\replay\basic_types.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
@@ -278,9 +275,6 @@
     </ClInclude>
     <ClInclude Include="data\glsl_shaders.h">
       <Filter>Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="data\glsl\debuguniforms.h">
-      <Filter>Resources\glsl</Filter>
     </ClInclude>
     <ClInclude Include="data\glsl\gl_texsample.h">
       <Filter>Resources\glsl</Filter>
@@ -470,6 +464,18 @@
     </ClInclude>
     <ClInclude Include="serialise\codecs\vk_cpp_codec_common.h">
       <Filter>Common\Serialise\Codecs\cpp_codec\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\glsl_ubos_cpp.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\glsl_ubos.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\hlsl\hlsl_cbuffers.h">
+      <Filter>Resources\hlsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\glsl_globals.h">
+      <Filter>Resources\glsl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -832,15 +838,6 @@
     <None Include="os\win32\comexport.def">
       <Filter>OS\Win32</Filter>
     </None>
-    <None Include="data\hlsl\debugcommon.hlsl">
-      <Filter>Resources\hlsl</Filter>
-    </None>
-    <None Include="data\hlsl\debugdisplay.hlsl">
-      <Filter>Resources\hlsl</Filter>
-    </None>
-    <None Include="data\hlsl\debugtext.hlsl">
-      <Filter>Resources\hlsl</Filter>
-    </None>
     <None Include="data\hlsl\histogram.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
@@ -886,9 +883,6 @@
     <None Include="data\glsl\ms2array.comp">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\glsl\outline.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
     <None Include="data\glsl\quadresolve.frag">
       <Filter>Resources\glsl</Filter>
     </None>
@@ -931,6 +925,18 @@
     <None Include="data\glsl\gltext.vert">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\hlsl\hlsl_texsample.h">
+      <Filter>Resources\hlsl</Filter>
+    </None>
+    <None Include="data\hlsl\text.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
+    <None Include="data\hlsl\misc.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
+    <None Include="data\hlsl\pixelhistory.hlsl" />
+    <None Include="data\hlsl\quadoverdraw.hlsl" />
+    <None Include="data\hlsl\texdisplay.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

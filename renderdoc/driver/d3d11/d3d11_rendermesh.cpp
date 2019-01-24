@@ -30,7 +30,7 @@
 #include "d3d11_device.h"
 #include "d3d11_resources.h"
 
-#include "data/hlsl/debugcbuffers.h"
+#include "data/hlsl/hlsl_cbuffers.h"
 
 void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
@@ -41,11 +41,10 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   D3D11MarkerRegion renderMesh(
       StringFormat::Fmt("RenderMesh with %zu secondary draws", secondaryDraws.size()));
 
-  DebugVertexCBuffer vertexData;
+  MeshVertexCBuffer vertexData;
+  MeshPixelCBuffer pixelData;
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
-
-  vertexData.LineStrip = 0;
 
   Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, m_OutputWidth / m_OutputHeight);
 
@@ -55,16 +54,11 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   vertexData.ModelViewProj = projMat.Mul(camMat);
   vertexData.SpriteSize = Vec2f();
 
-  DebugPixelCBufferData pixelData;
-
-  pixelData.AlwaysZero = 0.0f;
-
-  pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-  pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
-  ID3D11Buffer *psCBuf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
+  Vec4f col(0.0f, 0.0f, 0.0f, 1.0f);
+  ID3D11Buffer *psCBuf = GetDebugManager()->MakeCBuffer(&col, sizeof(col));
 
   m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
-  m_pImmediateContext->PSSetShader(m_MeshRender.WireframePS, NULL, 0);
+  m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
   m_pImmediateContext->DSSetShader(NULL, NULL, 0);
@@ -152,14 +146,10 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
     }
 
-    vsCBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(DebugVertexCBuffer));
+    vsCBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(vertexData));
 
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuf);
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
-
-    Vec4f meshColour;
-
-    ID3D11Buffer *meshColourBuf = GetDebugManager()->MakeCBuffer(&meshColour, sizeof(Vec4f));
 
     m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
     m_pImmediateContext->PSSetShader(m_MeshRender.MeshPS, NULL, 0);
@@ -170,8 +160,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     {
       m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
-      pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+      pixelData.MeshDisplayFormat = MESHDISPLAY_SOLID;
 
       for(size_t i = 0; i < secondaryDraws.size(); i++)
       {
@@ -179,9 +168,9 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
         if(fmt.vertexResourceId != ResourceId())
         {
-          meshColour = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, 1.0f);
-          GetDebugManager()->FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
-          m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
+          pixelData.MeshColour = Vec3f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z);
+          GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(pixelData));
+          m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
           m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topology));
 
@@ -267,24 +256,21 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
       m_pImmediateContext->IASetPrimitiveTopology(topo);
 
-      pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
+      pixelData.MeshDisplayFormat = (int)cfg.solidShadeMode;
       if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
-        pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+        pixelData.MeshDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
 
-      meshColour = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
-      GetDebugManager()->FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
-      m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
-
+      pixelData.MeshColour = Vec3f(0.8f, 0.8f, 0.0f);
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(pixelData));
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
       if(cfg.solidShadeMode == SolidShade::Lit)
       {
-        DebugGeometryCBuffer geomData;
+        MeshGeometryCBuffer geomData;
 
         geomData.InvProj = projMat.Inverse();
 
-        ID3D11Buffer *gsBuf = GetDebugManager()->MakeCBuffer(&geomData, sizeof(DebugGeometryCBuffer));
+        ID3D11Buffer *gsBuf = GetDebugManager()->MakeCBuffer(&geomData, sizeof(MeshGeometryCBuffer));
 
         m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsBuf);
 
@@ -308,14 +294,10 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
       m_pImmediateContext->OMSetDepthStencilState(m_MeshRender.LessEqualDepthState, 0);
 
-      pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
-
-      meshColour =
-          Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
-      GetDebugManager()->FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
-      m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
-
+      pixelData.MeshDisplayFormat = MESHDISPLAY_SOLID;
+      pixelData.MeshColour =
+          Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z);
+      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(pixelData));
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
 
       if(cfg.position.topology >= Topology::PatchList_1CPs)
@@ -335,7 +317,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
   // set up state for drawing helpers
   {
     vertexData.ModelViewProj = projMat.Mul(camMat);
-    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
+    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
     m_pImmediateContext->RSSetState(m_MeshRender.SolidRasterState);
 
@@ -344,7 +326,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &vsCBuf);
     m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuf);
-    m_pImmediateContext->PSSetShader(m_MeshRender.WireframePS, NULL, 0);
+    m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
   }
 
   // axis markers
@@ -359,16 +341,16 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
-    pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+    col = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+    GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
     m_pImmediateContext->Draw(2, 0);
 
-    pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+    col = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+    GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
     m_pImmediateContext->Draw(2, 2);
 
-    pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
-    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+    col = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+    GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
     m_pImmediateContext->Draw(2, 4);
   }
 
@@ -425,7 +407,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
       m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
-      GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
+      GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
       D3D11_MAPPED_SUBRESOURCE mapped;
       HRESULT hr = S_OK;
@@ -440,8 +422,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       m_pImmediateContext->IASetPrimitiveTopology(primTopo);
 
       // Draw active primitive (red)
-      pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+      col = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+      GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
 
       if(activePrim.size() >= primSize)
       {
@@ -461,8 +443,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       }
 
       // Draw adjacent primitives (green)
-      pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+      col = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+      GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
@@ -487,11 +469,11 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       float asp = m_OutputWidth / m_OutputHeight;
 
       vertexData.SpriteSize = Vec2f(scale / asp, scale);
-      GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
+      GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
       // Draw active vertex (blue)
-      pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+      col = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+      GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
 
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -514,8 +496,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
       m_pImmediateContext->Draw(4, 0);
 
       // Draw inactive vertices (green)
-      pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-      GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+      col = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+      GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
 
       for(size_t i = 0; i < inactiveVertices.size(); i++)
       {
@@ -550,7 +532,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
     vertexData.SpriteSize = Vec2f();
     vertexData.ModelViewProj = projMat.Mul(camMat);
-    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
+    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
     HRESULT hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0,
                                           D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -590,8 +572,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
-    pixelData.WireframeColour = Vec3f(0.2f, 0.2f, 1.0f);
-    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+    col = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
+    GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
 
     m_pImmediateContext->Draw(24, 0);
 
@@ -606,15 +588,15 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
 
     vertexData.SpriteSize = Vec2f();
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(DebugVertexCBuffer));
+    GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
     m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.FrustumHelper, (UINT *)&strides,
                                             (UINT *)&offsets);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
-    pixelData.WireframeColour = Vec3f(1.0f, 1.0f, 1.0f);
-    GetDebugManager()->FillCBuffer(psCBuf, &pixelData, sizeof(DebugPixelCBufferData));
+    col = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+    GetDebugManager()->FillCBuffer(psCBuf, &col, sizeof(col));
 
     m_pImmediateContext->Draw(24, 0);
   }

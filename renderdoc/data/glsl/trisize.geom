@@ -22,31 +22,22 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-//#extension_gles GL_EXT_geometry_shader : enable
-//#extension_gles GL_OES_geometry_shader : enable
+#include "glsl_globals.h"
+
+#if defined(OPENGL_ES)
+#extension GL_EXT_geometry_shader : enable
+#extension GL_OES_geometry_shader : enable
+#endif
+
+#extension GL_ARB_shading_language_420pack : require
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout(location = 0) in vec4 IN_secondary[3];
-layout(location = 1) in vec4 IN_norm[3];
+IO_LOCATION(0) in vec4 vsout_secondary[3];
+IO_LOCATION(1) in vec4 vsout_norm[3];
 
-layout(location = 0) out float OUT_pixarea;
-
-#ifndef OPENGL_ES
-in gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-}
-gl_in[];
-
-out gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-};
-#endif
+IO_LOCATION(0) out float pixarea;
 
 layout(binding = 2) uniform ViewportSizeUBO
 {
@@ -75,7 +66,7 @@ void main()
   for(int i = 0; i < 3; i++)
   {
     gl_Position = gl_in[i].gl_Position;
-    OUT_pixarea = area;
+    pixarea = area;
     EmitVertex();
   }
   EndPrimitive();
