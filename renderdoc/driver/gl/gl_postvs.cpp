@@ -182,11 +182,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
           vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
         }
-        else if(i == 2)
+        else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
           tesRefl = GetShader(progDetails.stageShaders[2], ShaderEntryPoint());
         }
-        else if(i == 3)
+        else if(i == 3 && progDetails.stageShaders[3] != ResourceId())
         {
           gsRefl = GetShader(progDetails.stageShaders[3], ShaderEntryPoint());
         }
