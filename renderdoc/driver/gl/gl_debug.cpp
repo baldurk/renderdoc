@@ -1163,20 +1163,35 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
-  int maxlevel = -1;
+  GLint baseLevel[4] = {-1};
+  GLint maxlevel[4] = {-1};
+  GLint forcedparam[4] = {};
 
-  int clampmaxlevel = details.mips - 1;
+  bool levelsTex = (target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
+                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
-  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
-
-  // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
-  if(clampmaxlevel != maxlevel)
+  if(levelsTex)
   {
-    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+    GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+    GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
   }
   else
   {
-    maxlevel = -1;
+    baseLevel[0] = maxlevel[0] = -1;
+  }
+
+  // ensure texture is mipmap complete and we can view all mips (if the range has been reduced) by
+  // forcing TEXTURE_MAX_LEVEL to cover all valid mips.
+  if(levelsTex && texid != DebugData.CustomShaderTexID)
+  {
+    forcedparam[0] = 0;
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, forcedparam);
+    forcedparam[0] = GLint(details.mips - 1);
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, forcedparam);
+  }
+  else
+  {
+    maxlevel[0] = -1;
   }
 
   GL.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.minmaxTileResult);
@@ -1198,8 +1213,11 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
   GL.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.minmaxResult);
   GL.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(minmax), minmax);
 
-  if(maxlevel >= 0)
-    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+  if(baseLevel[0] >= 0)
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+
+  if(maxlevel[0] >= 0)
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   minval[0] = minmax[0].x;
   minval[1] = minmax[0].y;
@@ -1421,20 +1439,35 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
     GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
-  int maxlevel = -1;
+  GLint baseLevel[4] = {-1};
+  GLint maxlevel[4] = {-1};
+  GLint forcedparam[4] = {};
 
-  int clampmaxlevel = details.mips - 1;
+  bool levelsTex = (target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
+                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
-  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
-
-  // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
-  if(clampmaxlevel != maxlevel)
+  if(levelsTex)
   {
-    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+    GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+    GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
   }
   else
   {
-    maxlevel = -1;
+    baseLevel[0] = maxlevel[0] = -1;
+  }
+
+  // ensure texture is mipmap complete and we can view all mips (if the range has been reduced) by
+  // forcing TEXTURE_MAX_LEVEL to cover all valid mips.
+  if(levelsTex && texid != DebugData.CustomShaderTexID)
+  {
+    forcedparam[0] = 0;
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, forcedparam);
+    forcedparam[0] = GLint(details.mips - 1);
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, forcedparam);
+  }
+  else
+  {
+    maxlevel[0] = -1;
   }
 
   GL.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.histogramBuf);
@@ -1454,8 +1487,11 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   GL.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.histogramBuf);
   GL.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t) * HGRAM_NUM_BUCKETS, &histogram[0]);
 
-  if(maxlevel >= 0)
-    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+  if(baseLevel[0] >= 0)
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+
+  if(maxlevel[0] >= 0)
+    GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
     GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);

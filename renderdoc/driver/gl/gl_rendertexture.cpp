@@ -252,12 +252,22 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   GLint maxlevel[4] = {-1};
   GLint forcedparam[4] = {};
 
-  drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
-  drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+  bool levelsTex = (target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
+                    target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+
+  if(levelsTex)
+  {
+    drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+    drv.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+  }
+  else
+  {
+    baseLevel[0] = maxlevel[0] = -1;
+  }
 
   // ensure texture is mipmap complete and we can view all mips (if the range has been reduced) by
   // forcing TEXTURE_MAX_LEVEL to cover all valid mips.
-  if(cfg.resourceId != DebugData.CustomShaderTexID)
+  if(levelsTex && cfg.resourceId != DebugData.CustomShaderTexID)
   {
     forcedparam[0] = 0;
     drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_BASE_LEVEL, forcedparam);
