@@ -492,11 +492,18 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
       if(status == 1)
         break;
 
+      drv.glDeleteProgram(sepProg);
+      sepProg = 0;
+
       RDCWARN("Couldn't patch separability into shader, attempt #%d", attempt + 1);
     }
   }
 
-  drv.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
+  if(sepProg)
+    drv.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
+  else
+    status = 0;
+
   if(status == 0)
   {
     char buffer[1025] = {0};
