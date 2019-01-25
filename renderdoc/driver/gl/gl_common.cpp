@@ -122,11 +122,6 @@ bool CheckReplayContext()
   // Possible to remove this with self-compiled SPIR-V for reflection - see above. Likewise
   // convenience for our own pipelines when replacing single shaders or such.
   REQUIRE_EXTENSION(ARB_separate_shader_objects);
-  // adds sampler objects so we can swap sampling behaviour when sampling from the capture's
-  // textures
-  // Possible to remove by manually pushing and popping all of the sampler state that we're
-  // interested in on each texture instead of binding sampler objects.
-  REQUIRE_EXTENSION(ARB_sampler_objects);
 
   if(!missingExts.empty())
   {

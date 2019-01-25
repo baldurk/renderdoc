@@ -117,7 +117,10 @@ void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, 
   drv.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
   drv.glActiveTexture(eGL_TEXTURE0);
   drv.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-  drv.glBindSampler(0, DebugData.pointNoMipSampler);
+  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
   drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
@@ -201,7 +204,10 @@ void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
     // depth aspect
     drv.glActiveTexture(eGL_TEXTURE0);
     drv.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-    drv.glBindSampler(0, DebugData.pointNoMipSampler);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
@@ -213,7 +219,10 @@ void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
     // stencil aspect
     drv.glActiveTexture(eGL_TEXTURE1);
     drv.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[2]);
-    drv.glBindSampler(1, DebugData.pointNoMipSampler);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
@@ -318,7 +327,10 @@ void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, G
   drv.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
   drv.glActiveTexture(eGL_TEXTURE0);
   drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, texs[1]);
-  drv.glBindSampler(0, DebugData.pointNoMipSampler);
+  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
   drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
@@ -417,7 +429,10 @@ void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
     // depth aspect
     drv.glActiveTexture(eGL_TEXTURE0);
     drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, texs[1]);
-    drv.glBindSampler(0, DebugData.pointNoMipSampler);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
@@ -428,7 +443,10 @@ void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
     // stencil aspect
     drv.glActiveTexture(eGL_TEXTURE1);
     drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, texs[2]);
-    drv.glBindSampler(1, DebugData.pointNoMipSampler);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);

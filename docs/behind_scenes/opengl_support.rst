@@ -23,7 +23,6 @@ RenderDoc assumes a certain minimum feature set on replay. On desktop this means
 
 * GL_ARB_program_interface_query
 * GL_ARB_separate_shader_objects
-* GL_ARB_sampler_objects
 
 These extensions should not require newer hardware than the base 3.2 context, but they might need an updated driver to be listed as available. Also note that this is the *minimum* required extension set to replay, some analysis features will be disabled unless you have more capable hardware features such as GL_ARB_shader_image_load_store, GL_ARB_compute_shader and GL_ARB_gpu_shader5.
 

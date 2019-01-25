@@ -292,6 +292,25 @@ private:
     int width = 1, height = 1;
   };
 
+  enum class TextureSamplerMode
+  {
+    Point,
+    PointNoMip,
+    Linear,
+  };
+
+  struct TextureSamplerState
+  {
+    GLenum minFilter = eGL_NEAREST;
+    GLenum magFilter = eGL_NEAREST;
+    GLenum wrapS = eGL_CLAMP_TO_EDGE;
+    GLenum wrapT = eGL_CLAMP_TO_EDGE;
+  };
+
+  // sets the desired parameters, and returns the previous ones ready to restore
+  TextureSamplerState SetSamplerParams(GLenum target, GLuint texname, TextureSamplerMode mode);
+  void RestoreSamplerParams(GLenum target, GLuint texname, TextureSamplerState state);
+
   // any objects that are shared between contexts, we just initialise
   // once
   struct DebugRenderData
@@ -326,10 +345,6 @@ private:
 
     GLuint MS2Array, Array2MS;
     GLuint DepthMS2Array, DepthArray2MS;
-
-    GLuint pointSampler;
-    GLuint pointNoMipSampler;
-    GLuint linearSampler;
 
     GLuint genericUBO;
 

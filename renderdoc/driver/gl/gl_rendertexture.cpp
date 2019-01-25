@@ -279,18 +279,22 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     maxlevel[0] = -1;
   }
 
+  TextureSamplerMode mode = TextureSamplerMode::Point;
+
   if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != RESTYPE_TEXBUFFER &&
      resType != RESTYPE_TEXRECT)
   {
-    drv.glBindSampler(resType, DebugData.linearSampler);
+    mode = TextureSamplerMode::Linear;
   }
   else
   {
     if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS || resType == RESTYPE_TEXBUFFER)
-      drv.glBindSampler(resType, DebugData.pointNoMipSampler);
+      mode = TextureSamplerMode::PointNoMip;
     else
-      drv.glBindSampler(resType, DebugData.pointSampler);
+      mode = TextureSamplerMode::Point;
   }
+
+  TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 
   GLint tex_x = texDetails.width, tex_y = texDetails.height, tex_z = texDetails.depth;
 
@@ -452,7 +456,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(maxlevel[0] >= 0)
     drv.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
-  drv.glBindSampler(0, 0);
+  RestoreSamplerParams(target, texname, prevSampState);
 
   if(customProgram)
   {

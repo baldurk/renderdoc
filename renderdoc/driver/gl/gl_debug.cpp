@@ -615,24 +615,6 @@ void GLReplay::InitDebugData()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
-  drv.glGenSamplers(1, &DebugData.linearSampler);
-  drv.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
-  drv.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
-  drv.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-
-  drv.glGenSamplers(1, &DebugData.pointSampler);
-  drv.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST_MIPMAP_NEAREST);
-  drv.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  drv.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-
-  drv.glGenSamplers(1, &DebugData.pointNoMipSampler);
-  drv.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  drv.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  drv.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-
   drv.glGenBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
   for(size_t i = 0; i < ARRAY_COUNT(DebugData.UBOs); i++)
   {
@@ -1095,9 +1077,6 @@ void GLReplay::DeleteDebugData()
   }
   drv.glDeleteProgram(DebugData.trisizeProg);
 
-  drv.glDeleteSamplers(1, &DebugData.linearSampler);
-  drv.glDeleteSamplers(1, &DebugData.pointSampler);
-  drv.glDeleteSamplers(1, &DebugData.pointNoMipSampler);
   drv.glDeleteBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
   drv.glDeleteFramebuffers(1, &DebugData.pickPixelFBO);
   drv.glDeleteTextures(1, &DebugData.pickPixelTex);
@@ -1150,6 +1129,64 @@ void GLReplay::DeleteDebugData()
 
   drv.glDeleteBuffers(1, &DebugData.axisFrustumBuffer);
   drv.glDeleteBuffers(1, &DebugData.triHighlightBuffer);
+}
+
+GLReplay::TextureSamplerState GLReplay::SetSamplerParams(GLenum target, GLuint texname,
+                                                         TextureSamplerMode mode)
+{
+  TextureSamplerState ret;
+
+  if(target == eGL_TEXTURE_BUFFER || target == eGL_TEXTURE_2D_MULTISAMPLE ||
+     target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+    return ret;
+
+  // fetch previous texture sampler settings
+  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&ret.minFilter);
+  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&ret.magFilter);
+  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&ret.wrapS);
+  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&ret.wrapT);
+
+  // always want to clamp
+  GLenum param = eGL_CLAMP_TO_EDGE;
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&param);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&param);
+
+  // depending on the mode, set min/mag filter
+  GLenum minFilter = eGL_NEAREST;
+  GLenum magFilter = eGL_NEAREST;
+
+  switch(mode)
+  {
+    case TextureSamplerMode::Point:
+      minFilter = eGL_NEAREST_MIPMAP_NEAREST;
+      magFilter = eGL_NEAREST;
+      break;
+    case TextureSamplerMode::PointNoMip:
+      minFilter = eGL_NEAREST;
+      magFilter = eGL_NEAREST;
+      break;
+    case TextureSamplerMode::Linear:
+      minFilter = eGL_LINEAR;
+      magFilter = eGL_LINEAR;
+      break;
+  }
+
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&minFilter);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&magFilter);
+
+  return ret;
+}
+
+void GLReplay::RestoreSamplerParams(GLenum target, GLuint texname, TextureSamplerState state)
+{
+  if(target == eGL_TEXTURE_BUFFER || target == eGL_TEXTURE_2D_MULTISAMPLE ||
+     target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+    return;
+
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&state.wrapS);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&state.wrapT);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&state.minFilter);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&state.magFilter);
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
@@ -1337,10 +1374,13 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
   GL.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
   GL.glBindTexture(target, texname);
+
+  TextureSamplerMode mode = TextureSamplerMode::Point;
+
   if(texSlot == RESTYPE_TEXRECT || texSlot == RESTYPE_TEXBUFFER)
-    GL.glBindSampler(texSlot, DebugData.pointNoMipSampler);
-  else
-    GL.glBindSampler(texSlot, DebugData.pointSampler);
+    mode = TextureSamplerMode::PointNoMip;
+
+  TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
@@ -1404,6 +1444,8 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
   if(maxlevel[0] >= 0)
     GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+
+  RestoreSamplerParams(target, texname, prevSampState);
 
   minval[0] = minmax[0].x;
   minval[1] = minmax[0].y;
@@ -1613,10 +1655,13 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
   GL.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
   GL.glBindTexture(target, texname);
+
+  TextureSamplerMode mode = TextureSamplerMode::Point;
+
   if(texSlot == RESTYPE_TEXRECT || texSlot == RESTYPE_TEXBUFFER)
-    GL.glBindSampler(texSlot, DebugData.pointNoMipSampler);
-  else
-    GL.glBindSampler(texSlot, DebugData.pointSampler);
+    mode = TextureSamplerMode::PointNoMip;
+
+  TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
@@ -1678,6 +1723,8 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
   if(maxlevel[0] >= 0)
     GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+
+  RestoreSamplerParams(target, texname, prevSampState);
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
     GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
