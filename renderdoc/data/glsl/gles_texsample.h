@@ -39,18 +39,18 @@
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // 1d = 1
-layout(binding = 2) uniform PRECISION usampler2D texUInt2D;
-layout(binding = 3) uniform PRECISION usampler3D texUInt3D;
+uniform PRECISION usampler2D texUInt2D;
+uniform PRECISION usampler3D texUInt3D;
 // cube = 4
 // 1d array = 5
-layout(binding = 6) uniform PRECISION usampler2DArray texUInt2DArray;
+uniform PRECISION usampler2DArray texUInt2DArray;
 // cube array = 7
 // 2d rect = 8
 #ifdef TEXSAMPLE_BUFFER
-layout(binding = 9) uniform PRECISION usamplerBuffer texUIntBuffer;
+uniform PRECISION usamplerBuffer texUIntBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
-layout(binding = 10) uniform PRECISION usampler2DMS texUInt2DMS;
+uniform PRECISION usampler2DMS texUInt2DMS;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -107,18 +107,18 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // 1d = 1
-layout(binding = 2) uniform PRECISION isampler2D texSInt2D;
-layout(binding = 3) uniform PRECISION isampler3D texSInt3D;
+uniform PRECISION isampler2D texSInt2D;
+uniform PRECISION isampler3D texSInt3D;
 // cube = 4
 // 1d array = 5
-layout(binding = 6) uniform PRECISION isampler2DArray texSInt2DArray;
+uniform PRECISION isampler2DArray texSInt2DArray;
 // cube array = 7
 // 2d rect = 8
 #ifdef TEXSAMPLE_BUFFER
-layout(binding = 9) uniform PRECISION isamplerBuffer texSIntBuffer;
+uniform PRECISION isamplerBuffer texSIntBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
-layout(binding = 10) uniform PRECISION isampler2DMS texSInt2DMS;
+uniform PRECISION isampler2DMS texSInt2DMS;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -175,20 +175,20 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
 // 1d = 1
-layout(binding = 2) uniform PRECISION sampler2D tex2D;
-layout(binding = 3) uniform PRECISION sampler3D tex3D;
-layout(binding = 4) uniform PRECISION samplerCube texCube;
+uniform PRECISION sampler2D tex2D;
+uniform PRECISION sampler3D tex3D;
+uniform PRECISION samplerCube texCube;
 // 1d array = 5
-layout(binding = 6) uniform PRECISION sampler2DArray tex2DArray;
+uniform PRECISION sampler2DArray tex2DArray;
 #ifdef TEXSAMPLE_CUBE_ARRAY
-layout(binding = 7) uniform PRECISION samplerCubeArray texCubeArray;
+uniform PRECISION samplerCubeArray texCubeArray;
 #endif
 // 2d rect = 8
 #ifdef TEXSAMPLE_BUFFER
-layout(binding = 9) uniform PRECISION samplerBuffer texBuffer;
+uniform PRECISION samplerBuffer texBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
-layout(binding = 10) uniform PRECISION sampler2DMS tex2DMS;
+uniform PRECISION sampler2DMS tex2DMS;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,

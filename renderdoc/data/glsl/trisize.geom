@@ -29,8 +29,6 @@
 #extension GL_OES_geometry_shader : enable
 #endif
 
-#extension GL_ARB_shading_language_420pack : require
-
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
@@ -39,7 +37,7 @@ IO_LOCATION(1) in vec4 vsout_norm[3];
 
 IO_LOCATION(0) out float pixarea;
 
-layout(binding = 2) uniform ViewportSizeUBO
+BINDING(2) uniform ViewportSizeUBO
 {
   vec4 size;
 }

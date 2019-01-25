@@ -385,6 +385,10 @@ private:
   ResourceId m_GetTexturePrevID;
   byte *m_GetTexturePrevData[16];
 
+  GLuint CreateMeshProgram(GLuint vs, GLuint fs, GLuint gs = 0);
+  void ConfigureTexDisplayProgramBindings(GLuint program);
+  void BindUBO(GLuint program, const char *name, GLuint binding);
+
   void InitDebugData();
   void DeleteDebugData();
 
@@ -394,8 +398,9 @@ private:
                   const vector<GPUCounter> &counters);
 
   GLuint CreateShader(GLenum shaderType, const std::string &src);
-  GLuint CreateShaderProgram(const std::string &vs, const std::string &fs, const std::string &gs);
-  GLuint CreateShaderProgram(const std::string &vs, const std::string &fs);
+  GLuint CreateShaderProgram(const std::string &vs, const std::string &fs,
+                             const std::string &gs = "");
+  GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs = 0);
   GLuint CreateCShaderProgram(const std::string &cs);
 
   void InitOutputWindow(OutputWindow &outwin);

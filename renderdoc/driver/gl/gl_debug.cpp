@@ -93,9 +93,27 @@ GLuint GLReplay::CreateCShaderProgram(const std::string &src)
   return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(const std::string &vs, const std::string &fs)
+GLuint GLReplay::CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs)
 {
-  return CreateShaderProgram(vs, fs, "");
+  GLuint ret = GL.glCreateProgram();
+
+  GL.glAttachShader(ret, vs);
+  GL.glAttachShader(ret, fs);
+  if(gs)
+    GL.glAttachShader(ret, gs);
+
+  GL.glLinkProgram(ret);
+
+  char buffer[1024] = {};
+  GLint status = 0;
+  GL.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
+  if(status == 0)
+  {
+    GL.glGetProgramInfoLog(ret, 1024, NULL, buffer);
+    RDCERR("Shader error: %s", buffer);
+  }
+
+  return ret;
 }
 
 GLuint GLReplay::CreateShaderProgram(const std::string &vsSrc, const std::string &fsSrc,
@@ -137,23 +155,7 @@ GLuint GLReplay::CreateShaderProgram(const std::string &vsSrc, const std::string
       return 0;
   }
 
-  GLuint ret = GL.glCreateProgram();
-
-  GL.glAttachShader(ret, vs);
-  GL.glAttachShader(ret, fs);
-  if(gs)
-    GL.glAttachShader(ret, gs);
-
-  GL.glLinkProgram(ret);
-
-  char buffer[1024] = {};
-  GLint status = 0;
-  GL.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
-  if(status == 0)
-  {
-    GL.glGetProgramInfoLog(ret, 1024, NULL, buffer);
-    RDCERR("Shader error: %s", buffer);
-  }
+  GLuint ret = CreateShaderProgram(vs, fs, gs);
 
   GL.glDetachShader(ret, vs);
   GL.glDetachShader(ret, fs);
@@ -195,6 +197,90 @@ void GLReplay::CheckGLSLVersion(const char *sl, int &glslVersion)
     if(ver > glslVersion)
       glslVersion = ver;
   }
+}
+
+GLuint GLReplay::CreateMeshProgram(GLuint vs, GLuint fs, GLuint gs)
+{
+  GLuint program = CreateShaderProgram(vs, fs, gs);
+
+  // set attrib locations
+  GL.glBindAttribLocation(program, 0, "position");
+  GL.glBindAttribLocation(program, 1, "IN_secondary");
+
+  // relink
+  GL.glLinkProgram(program);
+
+  // check that the relink succeeded
+  char buffer[1024] = {};
+  GLint status = 0;
+  GL.glGetProgramiv(program, eGL_LINK_STATUS, &status);
+  if(status == 0)
+  {
+    GL.glGetProgramInfoLog(program, 1024, NULL, buffer);
+    RDCERR("Link error: %s", buffer);
+  }
+
+  // detach the shaders
+  GL.glDetachShader(program, vs);
+  GL.glDetachShader(program, fs);
+  if(gs)
+    GL.glDetachShader(program, gs);
+
+  // bind the UBO
+  BindUBO(program, "MeshUBOData", 0);
+
+  return program;
+}
+
+void GLReplay::ConfigureTexDisplayProgramBindings(GLuint program)
+{
+  GLint location = -1;
+
+  GL.glUseProgram(program);
+
+// since we split the shader up by type, not all texture slots are always available. Also on GLES
+// some texture slots might be missing due to lack of extensions. So we need to check for a location
+// of -1
+#define SET_TEX_BINDING(name, bind)                  \
+  location = GL.glGetUniformLocation(program, name); \
+  if(location >= 0)                                  \
+    GL.glUniform1i(location, bind);
+
+  SET_TEX_BINDING("texUInt1D", 1);
+  SET_TEX_BINDING("texUInt2D", 2);
+  SET_TEX_BINDING("texUInt3D", 3);
+  SET_TEX_BINDING("texUInt1DArray", 5);
+  SET_TEX_BINDING("texUInt2DArray", 6);
+  SET_TEX_BINDING("texUInt2DRect", 8);
+  SET_TEX_BINDING("texUIntBuffer", 9);
+  SET_TEX_BINDING("texUInt2DMS", 10);
+
+  SET_TEX_BINDING("texSInt1D", 1);
+  SET_TEX_BINDING("texSInt2D", 2);
+  SET_TEX_BINDING("texSInt3D", 3);
+  SET_TEX_BINDING("texSInt1DArray", 5);
+  SET_TEX_BINDING("texSInt2DArray", 6);
+  SET_TEX_BINDING("texSInt2DRect", 8);
+  SET_TEX_BINDING("texSIntBuffer", 9);
+  SET_TEX_BINDING("texSInt2DMS", 10);
+
+  SET_TEX_BINDING("tex1D", 1);
+  SET_TEX_BINDING("tex2D", 2);
+  SET_TEX_BINDING("tex3D", 3);
+  SET_TEX_BINDING("texCube", 4);
+  SET_TEX_BINDING("tex1DArray", 5);
+  SET_TEX_BINDING("tex2DArray", 6);
+  SET_TEX_BINDING("texCubeArray", 7);
+  SET_TEX_BINDING("tex2DRect", 8);
+  SET_TEX_BINDING("texBuffer", 9);
+  SET_TEX_BINDING("tex2DMS", 10);
+
+#undef SET_TEX_BINDING
+}
+
+void GLReplay::BindUBO(GLuint program, const char *name, GLuint binding)
+{
+  GL.glUniformBlockBinding(program, GL.glGetUniformBlockIndex(program, name), binding);
 }
 
 void GLReplay::InitDebugData()
@@ -288,6 +374,10 @@ void GLReplay::InitDebugData()
                             defines + texSampleDefines);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(vs, fs);
+
+    BindUBO(DebugData.texDisplayProg[i], "TexDisplayUBOData", 0);
+    BindUBO(DebugData.texDisplayProg[i], "HeatmapData", 1);
+    ConfigureTexDisplayProgramBindings(DebugData.texDisplayProg[i]);
   }
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
@@ -336,6 +426,10 @@ void GLReplay::InitDebugData()
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_quadresolve_frag), shaderType, glslBaseVer);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
+
+    GL.glUseProgram(DebugData.quadoverdrawResolveProg);
+
+    GL.glUniform1i(GL.glGetUniformLocation(DebugData.quadoverdrawResolveProg, "overdrawImage"), 0);
   }
   else
   {
@@ -351,19 +445,46 @@ void GLReplay::InitDebugData()
   fs = GenerateGLSLShader(GetEmbeddedResource(glsl_checkerboard_frag), shaderType, glslBaseVer);
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
+  BindUBO(DebugData.checkerProg, "CheckerboardUBOData", 0);
+
   if(HasExt[ARB_geometry_shader4])
   {
     vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer);
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_trisize_frag), shaderType, glslBaseVer);
     gs = GenerateGLSLShader(GetEmbeddedResource(glsl_trisize_geom), shaderType, glslBaseVer);
 
-    DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
+    // create the shaders
+    GLuint vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+    GLuint trifsShad = CreateShader(eGL_FRAGMENT_SHADER, fs);
+    GLuint gsShad = CreateShader(eGL_GEOMETRY_SHADER, gs);
 
-    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer);
+    DebugData.trisizeProg = CreateMeshProgram(vsShad, trifsShad, gsShad);
+
+    // bind trisize-unique viewport size UBO
+    BindUBO(DebugData.trisizeProg, "ViewportSizeUBO", 2);
+
+    GL.glDeleteShader(trifsShad);
+    GL.glDeleteShader(gsShad);
+
+    // we have two fragment shaders, one that reads from the vs outputs and one that reads from the
+    // gs outputs
+    std::string vsfs =
+        GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
+                           "#define SECONDARY_NAME vsout_secondary\n"
+                           "#define NORM_NAME vsout_norm\n");
+    std::string gsfs =
+        GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
+                           "#define SECONDARY_NAME gsout_secondary\n"
+                           "#define NORM_NAME gsout_norm\n");
     gs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_geom), shaderType, glslBaseVer);
 
-    DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
-    DebugData.meshgsProg[0] = CreateShaderProgram(vs, fs, gs);
+    // recreate the shaders
+    GLuint vsfsShad = CreateShader(eGL_FRAGMENT_SHADER, vsfs);
+    GLuint gsfsShad = CreateShader(eGL_FRAGMENT_SHADER, gsfs);
+    gsShad = CreateShader(eGL_GEOMETRY_SHADER, gs);
+
+    DebugData.meshProg[0] = CreateMeshProgram(vsShad, vsfsShad);
+    DebugData.meshgsProg[0] = CreateMeshProgram(vsShad, gsfsShad, gsShad);
 
     if(HasExt[ARB_gpu_shader_fp64] && HasExt[ARB_vertex_attrib_64bit])
     {
@@ -375,15 +496,23 @@ void GLReplay::InitDebugData()
       vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
                               extensions + "#define POSITION_TYPE dvec4\n");
 
-      DebugData.meshProg[1] = CreateShaderProgram(vs, fs);
-      DebugData.meshgsProg[1] = CreateShaderProgram(vs, fs, gs);
+      // delete old shader and recreate with new source
+      GL.glDeleteShader(vsShad);
+      vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+
+      DebugData.meshProg[1] = CreateMeshProgram(vsShad, vsfsShad);
+      DebugData.meshgsProg[1] = CreateMeshProgram(vsShad, gsfsShad, gsShad);
 
       // secondary only dvec4
       vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
                               extensions + "#define SECONDARY_TYPE dvec4\n");
 
-      DebugData.meshProg[2] = CreateShaderProgram(vs, fs);
-      DebugData.meshgsProg[2] = CreateShaderProgram(vs, fs, gs);
+      // delete old shader and recreate with new source
+      GL.glDeleteShader(vsShad);
+      vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+
+      DebugData.meshProg[2] = CreateMeshProgram(vsShad, vsfsShad);
+      DebugData.meshgsProg[2] = CreateMeshProgram(vsShad, gsfsShad, gsShad);
 
       // both dvec4
       vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
@@ -391,8 +520,12 @@ void GLReplay::InitDebugData()
                                   "#define POSITION_TYPE dvec4\n"
                                   "#define SECONDARY_TYPE dvec4\n");
 
-      DebugData.meshProg[3] = CreateShaderProgram(vs, fs);
-      DebugData.meshgsProg[3] = CreateShaderProgram(vs, fs, gs);
+      // delete old shader and recreate with new source
+      GL.glDeleteShader(vsShad);
+      vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+
+      DebugData.meshProg[3] = CreateMeshProgram(vsShad, vsfsShad);
+      DebugData.meshgsProg[3] = CreateMeshProgram(vsShad, gsfsShad, gsShad);
     }
     else
     {
@@ -401,13 +534,26 @@ void GLReplay::InitDebugData()
       DebugData.meshProg[1] = DebugData.meshProg[2] = DebugData.meshProg[3] = 0;
       DebugData.meshgsProg[1] = DebugData.meshgsProg[2] = DebugData.meshgsProg[3] = 0;
     }
+
+    GL.glDeleteShader(vsShad);
+    GL.glDeleteShader(vsfsShad);
+    GL.glDeleteShader(gsfsShad);
+    GL.glDeleteShader(gsShad);
   }
   else
   {
     vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer);
-    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer);
 
-    DebugData.meshProg[0] = CreateShaderProgram(vs, fs);
+    // without a geometry shader, the fragment shader always reads from vs outputs
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
+                            "#define SECONDARY_NAME vsout_secondary\n"
+                            "#define NORM_NAME vsout_norm\n");
+
+    // create the shaders
+    GLuint vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+    GLuint fsShad = CreateShader(eGL_FRAGMENT_SHADER, fs);
+
+    DebugData.meshProg[0] = CreateMeshProgram(vsShad, fsShad);
     RDCEraseEl(DebugData.meshgsProg);
     DebugData.trisizeProg = 0;
 
@@ -428,13 +574,21 @@ void GLReplay::InitDebugData()
       vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
                               extensions + "#define POSITION_TYPE dvec4");
 
-      DebugData.meshProg[1] = CreateShaderProgram(vs, fs);
+      // delete old shader and recreate with new source
+      GL.glDeleteShader(vsShad);
+      vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+
+      DebugData.meshProg[1] = CreateMeshProgram(vsShad, fsShad);
 
       // secondary only dvec4
       vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
                               extensions + "#define SECONDARY_TYPE dvec4");
 
-      DebugData.meshProg[2] = CreateShaderProgram(vs, fs);
+      // delete old shader and recreate with new source
+      GL.glDeleteShader(vsShad);
+      vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+
+      DebugData.meshProg[2] = CreateMeshProgram(vsShad, fsShad);
 
       // both dvec4
       vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer,
@@ -442,7 +596,11 @@ void GLReplay::InitDebugData()
                                   "#define POSITION_TYPE dvec4\n"
                                   "#define SECONDARY_TYPE dvec4");
 
-      DebugData.meshProg[3] = CreateShaderProgram(vs, fs);
+      // delete old shader and recreate with new source
+      GL.glDeleteShader(vsShad);
+      vsShad = CreateShader(eGL_VERTEX_SHADER, vs);
+
+      DebugData.meshProg[3] = CreateMeshProgram(vsShad, fsShad);
     }
     else
     {
@@ -450,6 +608,9 @@ void GLReplay::InitDebugData()
       // it then it's highly unlikely that the capture uses it.
       DebugData.meshProg[1] = DebugData.meshProg[2] = DebugData.meshProg[3] = 0;
     }
+
+    GL.glDeleteShader(vsShad);
+    GL.glDeleteShader(fsShad);
   }
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
@@ -512,6 +673,13 @@ void GLReplay::InitDebugData()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
 
+  if(HasExt[ARB_compute_shader] && !HasExt[ARB_shading_language_420pack])
+  {
+    RDCERR(
+        "GL implementation has ARB_compute_shader but not ARB_shading_language_420pack! "
+        "Compute shaders won't compile successfully.");
+  }
+
   // histogram/minmax data
   {
     RDCEraseEl(DebugData.minmaxTileProgram);
@@ -546,6 +714,9 @@ void GLReplay::InitDebugData()
                                     glslCSVer, defines);
 
             DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
+
+            BindUBO(DebugData.minmaxTileProgram[idx], "HistogramUBOData", 2);
+            ConfigureTexDisplayProgramBindings(DebugData.minmaxTileProgram[idx]);
           }
 
           {
@@ -559,6 +730,9 @@ void GLReplay::InitDebugData()
                                     defines);
 
             DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
+
+            BindUBO(DebugData.histogramProgram[idx], "HistogramUBOData", 2);
+            ConfigureTexDisplayProgramBindings(DebugData.histogramProgram[idx]);
           }
 
           if(t == 1)
@@ -572,6 +746,9 @@ void GLReplay::InitDebugData()
                                     glslCSVer, defines);
 
             DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
+
+            BindUBO(DebugData.minmaxResultProgram[i], "HistogramUBOData", 2);
+            ConfigureTexDisplayProgramBindings(DebugData.minmaxResultProgram[i]);
           }
         }
       }
@@ -639,8 +816,18 @@ void GLReplay::InitDebugData()
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depthms2arr_frag), shaderType, glslBaseVer);
     DebugData.DepthMS2Array = CreateShaderProgram(vs, fs);
 
+    GL.glUseProgram(DebugData.DepthMS2Array);
+
+    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthMS2Array, "srcDepthMS"), 0);
+    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthMS2Array, "srcStencilMS"), 1);
+
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_deptharr2ms_frag), shaderType, glslBaseVer);
     DebugData.DepthArray2MS = CreateShaderProgram(vs, fs);
+
+    GL.glUseProgram(DebugData.DepthArray2MS);
+
+    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthArray2MS, "srcDepthArray"), 0);
+    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthArray2MS, "srcStencilArray"), 1);
   }
   else
   {
@@ -656,6 +843,8 @@ void GLReplay::InitDebugData()
   {
     cs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_comp), shaderType, glslCSVer);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
+
+    BindUBO(DebugData.meshPickProgram, "MeshPickUBOData", 0);
   }
   else
   {

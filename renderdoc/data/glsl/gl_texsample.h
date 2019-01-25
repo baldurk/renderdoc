@@ -33,17 +33,17 @@
 
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
-layout(binding = 1) uniform usampler1D texUInt1D;
-layout(binding = 2) uniform usampler2D texUInt2D;
-layout(binding = 3) uniform usampler3D texUInt3D;
+uniform usampler1D texUInt1D;
+uniform usampler2D texUInt2D;
+uniform usampler3D texUInt3D;
 // cube = 4
-layout(binding = 5) uniform usampler1DArray texUInt1DArray;
-layout(binding = 6) uniform usampler2DArray texUInt2DArray;
+uniform usampler1DArray texUInt1DArray;
+uniform usampler2DArray texUInt2DArray;
 // cube array = 7
-layout(binding = 8) uniform usampler2DRect texUInt2DRect;
-layout(binding = 9) uniform usamplerBuffer texUIntBuffer;
+uniform usampler2DRect texUInt2DRect;
+uniform usamplerBuffer texUIntBuffer;
 #ifdef TEXSAMPLE_MULTISAMPLE
-layout(binding = 10) uniform usampler2DMS texUInt2DMS;
+uniform usampler2DMS texUInt2DMS;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -107,17 +107,17 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
-layout(binding = 1) uniform isampler1D texSInt1D;
-layout(binding = 2) uniform isampler2D texSInt2D;
-layout(binding = 3) uniform isampler3D texSInt3D;
+uniform isampler1D texSInt1D;
+uniform isampler2D texSInt2D;
+uniform isampler3D texSInt3D;
 // cube = 4
-layout(binding = 5) uniform isampler1DArray texSInt1DArray;
-layout(binding = 6) uniform isampler2DArray texSInt2DArray;
+uniform isampler1DArray texSInt1DArray;
+uniform isampler2DArray texSInt2DArray;
 // cube array = 7
-layout(binding = 8) uniform isampler2DRect texSInt2DRect;
-layout(binding = 9) uniform isamplerBuffer texSIntBuffer;
+uniform isampler2DRect texSInt2DRect;
+uniform isamplerBuffer texSIntBuffer;
 #ifdef TEXSAMPLE_MULTISAMPLE
-layout(binding = 10) uniform isampler2DMS texSInt2DMS;
+uniform isampler2DMS texSInt2DMS;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -181,19 +181,19 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
 
-layout(binding = 1) uniform sampler1D tex1D;
-layout(binding = 2) uniform sampler2D tex2D;
-layout(binding = 3) uniform sampler3D tex3D;
-layout(binding = 4) uniform samplerCube texCube;
-layout(binding = 5) uniform sampler1DArray tex1DArray;
-layout(binding = 6) uniform sampler2DArray tex2DArray;
+uniform sampler1D tex1D;
+uniform sampler2D tex2D;
+uniform sampler3D tex3D;
+uniform samplerCube texCube;
+uniform sampler1DArray tex1DArray;
+uniform sampler2DArray tex2DArray;
 #ifdef TEXSAMPLE_CUBE_ARRAY
-layout(binding = 7) uniform samplerCubeArray texCubeArray;
+uniform samplerCubeArray texCubeArray;
 #endif
-layout(binding = 8) uniform sampler2DRect tex2DRect;
-layout(binding = 9) uniform samplerBuffer texBuffer;
+uniform sampler2DRect tex2DRect;
+uniform samplerBuffer texBuffer;
 #ifdef TEXSAMPLE_MULTISAMPLE
-layout(binding = 10) uniform sampler2DMS tex2DMS;
+uniform sampler2DMS tex2DMS;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,

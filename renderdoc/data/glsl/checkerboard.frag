@@ -22,10 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if !defined(OPENGL_ES)
-#extension GL_ARB_shading_language_420pack : require
-#endif
-
 #define CHECKER_UBO
 
 #include "glsl_ubos.h"

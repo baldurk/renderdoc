@@ -38,8 +38,10 @@
 
 #else    // ifdef VULKAN
 
-// drop I/O location specifiers on GL, we don't use separate programs so it can be matched by name.
-#define BINDING(b) layout(binding = b, std140)
+// drop I/O location specifiers and bindings on GL, we don't use separate programs so I/O variables
+// can be matched by name, and we don't want to require GL_ARB_shading_language_420pack so we can't
+// specify bindings in shaders.
+#define BINDING(b) layout(std140)
 #define IO_LOCATION(l)
 #define VERTEX_ID gl_VertexID
 #define INSTANCE_ID gl_InstanceID

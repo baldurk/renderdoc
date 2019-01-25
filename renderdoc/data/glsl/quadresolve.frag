@@ -24,7 +24,6 @@
 
 #if !defined(OPENGL_ES)
 #extension GL_ARB_shader_image_load_store : require
-#extension GL_ARB_shading_language_420pack : require
 #endif
 
 #include "glsl_globals.h"
@@ -36,7 +35,11 @@
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-layout(binding = 0, r32ui) uniform PRECISION coherent uimage2DArray overdrawImage;
+#if defined(VULKAN)
+layout(binding = 0)
+#endif
+
+    layout(r32ui) uniform PRECISION coherent uimage2DArray overdrawImage;
 
 IO_LOCATION(0) out vec4 color_out;
 

@@ -22,15 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#extension GL_ARB_shading_language_420pack : require
-
 #include "glsl_globals.h"
+
+#ifdef VULKAN
 
 layout(binding = 0) uniform PRECISION sampler2DMSArray srcDepthMS;
 layout(binding = 1) uniform PRECISION usampler2DMSArray srcStencilMS;
 // binding = 2 used as an image in the colour copy compute shaders
-
-#ifdef VULKAN
 
 layout(push_constant) uniform multisamplePush
 {
@@ -47,6 +45,10 @@ mscopy;
 #define currentStencil (mscopy.currentStencil)
 
 #else
+
+uniform PRECISION sampler2DMSArray srcDepthMS;
+uniform PRECISION usampler2DMSArray srcStencilMS;
+// binding = 2 used as an image in the colour copy compute shaders
 
 uniform ivec4 mscopy;
 

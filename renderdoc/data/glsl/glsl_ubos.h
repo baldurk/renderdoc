@@ -22,11 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if !defined(OPENGL_ES) && !defined(__cplusplus)
-// we require this extensions to be able to set explicit layout bindings on buffers/images
-#extension GL_ARB_shading_language_420pack : require
-#endif
-
 #include "glsl_globals.h"
 
 // the ARM driver is buggy and crashes if we declare UBOs that don't correspond to descriptors,

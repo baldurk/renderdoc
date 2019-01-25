@@ -123,17 +123,10 @@ bool CheckReplayContext()
   // for program introspection, needed for shader reflection.
   // Possible to remove by compiling shaders to SPIR-V and reflecting ourselves.
   REQUIRE_EXTENSION(ARB_program_interface_query);
-  // strangely, this is the extension needed for layout(binding = X) on uniforms, textures, etc.
-  // Possible to remove by #defining out the layout specifiers and manually setting the uniform
-  // values.
-  REQUIRE_EXTENSION(ARB_shading_language_420pack);
   // needed for program pipelines, glProgramUniform*, and reflecting shaders on their own
   // Possible to remove this with self-compiled SPIR-V for reflection - see above. Likewise
   // convenience for our own pipelines when replacing single shaders or such.
   REQUIRE_EXTENSION(ARB_separate_shader_objects);
-  // needed for layout(location = X) on fragment shader outputs
-  // similar to ARB_shading_language_420pack we could do without this by assigning locations in code
-  REQUIRE_EXTENSION(ARB_explicit_attrib_location);
   // adds sampler objects so we can swap sampling behaviour when sampling from the capture's
   // textures
   // Possible to remove by manually pushing and popping all of the sampler state that we're

@@ -26,10 +26,6 @@
 
 #include "glsl_ubos.h"
 
-#if !defined(OPENGL_ES)
-#extension GL_ARB_explicit_attrib_location : require
-#endif
-
 // this allows overrides from outside to change to e.g. dvec4
 
 #ifndef POSITION_TYPE
@@ -40,8 +36,8 @@
 #define SECONDARY_TYPE vec4
 #endif
 
-layout(location = 0) in POSITION_TYPE position;
-layout(location = 1) in SECONDARY_TYPE IN_secondary;
+IO_LOCATION(0) in POSITION_TYPE vsin_position;
+IO_LOCATION(1) in SECONDARY_TYPE vsin_secondary;
 
 IO_LOCATION(0) out vec4 vsout_secondary;
 IO_LOCATION(1) out vec4 vsout_norm;
@@ -51,7 +47,7 @@ void main(void)
   vec2 psprite[4] =
       vec2[](vec2(-1.0f, -1.0f), vec2(-1.0f, 1.0f), vec2(1.0f, -1.0f), vec2(1.0f, 1.0f));
 
-  vec4 pos = vec4(position);
+  vec4 pos = vec4(vsin_position);
   if(Mesh.homogenousInput == 0u)
   {
     pos = vec4(pos.xyz, 1);
@@ -65,7 +61,7 @@ void main(void)
 
   gl_Position = Mesh.mvp * pos;
   gl_Position.xy += Mesh.pointSpriteSize.xy * 0.01f * psprite[VERTEX_ID % 4] * gl_Position.w;
-  vsout_secondary = vec4(IN_secondary);
+  vsout_secondary = vec4(vsin_secondary);
   vsout_norm = vec4(0, 0, 1, 1);
 
 #ifdef VULKAN
