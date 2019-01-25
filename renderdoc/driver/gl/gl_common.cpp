@@ -115,11 +115,6 @@ bool CheckReplayContext()
   // we require the below extensions on top of a 3.2 context. Some of these we could in theory
   // do without, but support for them is so widespread it's not worthwhile
 
-  // used for reflecting out vertex bindings with most generality and remapping from old-style
-  // Pointer functions
-  // Should be possible to remove by falling back to reflecting vertex bindings the old way only and
-  // remapping to 'fake' new-style bindings for representing in the UI
-  REQUIRE_EXTENSION(ARB_vertex_attrib_binding);
   // for program introspection, needed for shader reflection.
   // Possible to remove by compiling shaders to SPIR-V and reflecting ourselves.
   REQUIRE_EXTENSION(ARB_program_interface_query);

@@ -21,7 +21,6 @@ Replay requirements
 
 RenderDoc assumes a certain minimum feature set on replay. On desktop this means you must be able to create a 3.2 context with the following extensions available:
 
-* GL_ARB_vertex_attrib_binding
 * GL_ARB_program_interface_query
 * GL_ARB_separate_shader_objects
 * GL_ARB_sampler_objects

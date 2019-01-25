@@ -35,6 +35,17 @@
 namespace glEmulate
 {
 PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ_real = NULL;
+
+PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer_real = NULL;
+PFNGLVERTEXATTRIBIPOINTERPROC glVertexAttribIPointer_real = NULL;
+PFNGLVERTEXATTRIBLPOINTERPROC glVertexAttribLPointer_real = NULL;
+PFNGLVERTEXATTRIBDIVISORPROC glVertexAttribDivisor_real = NULL;
+
+PFNGLGETVERTEXATTRIBIVPROC glGetVertexAttribiv_real = NULL;
+PFNGLGETINTEGERVPROC glGetIntegerv_real = NULL;
+PFNGLGETINTEGERI_VPROC glGetIntegeri_v_real = NULL;
+PFNGLGETINTEGER64I_VPROC glGetInteger64i_v_real = NULL;
+
 WrappedOpenGL *driver = NULL;
 
 typedef GLenum (*BindingLookupFunc)(GLenum target);
@@ -1279,6 +1290,441 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
 
 #pragma endregion
 
+#pragma region ARB_vertex_attrib_binding
+
+struct EmulatedVertexBuffer
+{
+  bool dirty = false;    // set by anything that changes this struct, used to determine which
+                         // bindings/attribs we need to flush
+
+  GLuint divisor = 0;     // set by _glVertexBindingDivisor
+  GLuint buffer = 0;      // set by _glBindVertexBuffer
+  GLintptr offset = 0;    // set by _glBindVertexBuffer
+  GLsizei stride = 0;     // set by _glBindVertexBuffer
+};
+
+struct EmulatedVertexAttrib
+{
+  // start off with a binding index
+  EmulatedVertexAttrib(GLuint b) : bindingindex(b) {}
+  bool dirty = false;    // set by anything that changes this struct, used to determine which
+                         // bindings/attribs we need to flush
+
+  GLboolean Long = GL_FALSE;       // enabled by _glVertexAttribLFormat
+  GLboolean Integer = GL_FALSE;    // enabled by _glVertexAttribIFormat
+
+  GLint size = 4;                     // set by _glVertexAttrib?Format
+  GLenum type = eGL_FLOAT;            // set by _glVertexAttrib?Format
+  GLboolean normalized = GL_FALSE;    // set by _glVertexAttrib?Format
+  GLuint relativeoffset = 0;          // set by _glVertexAttrib?Format
+
+  GLuint bindingindex;    // index into vertex buffers, set by _glVertexAttribBinding
+};
+
+static const uint32_t NumEmulatedBinds = 16;
+
+struct EmulatedVAO
+{
+  EmulatedVertexBuffer vbs[NumEmulatedBinds];
+
+  // each attrib starts off pointing at its corresponding binding
+  EmulatedVertexAttrib attribs[NumEmulatedBinds] = {
+      EmulatedVertexAttrib(0),  EmulatedVertexAttrib(1),  EmulatedVertexAttrib(2),
+      EmulatedVertexAttrib(3),  EmulatedVertexAttrib(4),  EmulatedVertexAttrib(5),
+      EmulatedVertexAttrib(6),  EmulatedVertexAttrib(7),  EmulatedVertexAttrib(8),
+      EmulatedVertexAttrib(9),  EmulatedVertexAttrib(10), EmulatedVertexAttrib(11),
+      EmulatedVertexAttrib(12), EmulatedVertexAttrib(13), EmulatedVertexAttrib(14),
+      EmulatedVertexAttrib(15),
+  };
+};
+
+static std::map<GLResource, EmulatedVAO> _emulatedBindings;
+
+static EmulatedVAO &_GetVAOData()
+{
+  GLuint o = 0;
+  glGetIntegerv_real(eGL_VERTEX_ARRAY_BINDING, (GLint *)&o);
+
+  return _emulatedBindings[VertexArrayRes(driver->GetCtx(), o)];
+}
+
+static void _ResetVertexAttribBinding()
+{
+  _emulatedBindings.clear();
+}
+
+static void _FlushVertexAttribBinding()
+{
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  // flush all dirty vertex attribs out using old-style binding.
+  for(uint32_t a = 0; a < NumEmulatedBinds; a++)
+  {
+    EmulatedVertexAttrib &attrib = attribs[a];
+    EmulatedVertexBuffer &bind = vbs[attrib.bindingindex];
+
+    // if the attrib and its bind isn't dirty, just continue
+    if(!attrib.dirty && !bind.dirty)
+      continue;
+
+    // otherwise, flush it out using VertexAttrib?Pointer
+
+    {
+      PushPopBuffer(eGL_ARRAY_BUFFER, bind.buffer);
+
+      if(attrib.Long)
+        glVertexAttribLPointer_real(a, attrib.size, attrib.type, bind.stride,
+                                    (const void *)(bind.offset + attrib.relativeoffset));
+      else if(attrib.Integer)
+        glVertexAttribIPointer_real(a, attrib.size, attrib.type, bind.stride,
+                                    (const void *)(bind.offset + attrib.relativeoffset));
+      else
+        glVertexAttribPointer_real(a, attrib.size, attrib.type, attrib.normalized, bind.stride,
+                                   (const void *)(bind.offset + attrib.relativeoffset));
+
+      if(glVertexAttribDivisor_real)
+        glVertexAttribDivisor_real(a, bind.divisor);
+    }
+
+    // attrib is no longer dirty
+    attrib.dirty = false;
+
+    // we can't un-dirty the VB because multiple attribs may point to them and we need to update
+    // them all
+  }
+
+  // unset VB dirty flags now
+  for(uint32_t vb = 0; vb < NumEmulatedBinds; vb++)
+    vbs[vb].dirty = false;
+}
+
+void APIENTRY _glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
+                                    GLboolean normalized, GLuint relativeoffset)
+{
+  if(attribindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribFormat", attribindex);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+
+  attribs[attribindex].Long = GL_FALSE;
+  attribs[attribindex].Integer = GL_FALSE;
+  attribs[attribindex].size = size;
+  attribs[attribindex].type = type;
+  attribs[attribindex].normalized = normalized;
+  attribs[attribindex].relativeoffset = relativeoffset;
+  attribs[attribindex].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void APIENTRY _glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type,
+                                     GLuint relativeoffset)
+{
+  if(attribindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribIFormat", attribindex);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+
+  attribs[attribindex].Long = GL_FALSE;
+  attribs[attribindex].Integer = GL_TRUE;
+  attribs[attribindex].size = size;
+  attribs[attribindex].type = type;
+  attribs[attribindex].relativeoffset = relativeoffset;
+  attribs[attribindex].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void APIENTRY _glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum type,
+                                     GLuint relativeoffset)
+{
+  if(attribindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribLFormat", attribindex);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+
+  attribs[attribindex].Long = GL_TRUE;
+  attribs[attribindex].Integer = GL_FALSE;
+  attribs[attribindex].size = size;
+  attribs[attribindex].type = type;
+  attribs[attribindex].relativeoffset = relativeoffset;
+  attribs[attribindex].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void APIENTRY _glVertexAttribBinding(GLuint attribindex, GLuint bindingindex)
+{
+  if(attribindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribBinding", attribindex);
+    return;
+  }
+
+  if(bindingindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled binding %u in glVertexAttribBinding", bindingindex);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+
+  attribs[attribindex].bindingindex = bindingindex;
+  attribs[attribindex].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void APIENTRY _glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
+{
+  if(bindingindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled binding %u in glVertexBindingDivisor", bindingindex);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  vbs[bindingindex].divisor = divisor;
+  vbs[bindingindex].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void APIENTRY _glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
+{
+  if(bindingindex >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled binding %u in glBindVertexBuffer", bindingindex);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  vbs[bindingindex].buffer = buffer;
+  vbs[bindingindex].offset = offset;
+  vbs[bindingindex].stride = stride;
+  vbs[bindingindex].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void APIENTRY _glGetIntegerv(GLenum pname, GLint *params)
+{
+  switch(pname)
+  {
+    case eGL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET: *params = ~0U; return;
+    case eGL_MAX_VERTEX_ATTRIB_BINDINGS: *params = NumEmulatedBinds; return;
+    default: break;
+  }
+
+  return glGetIntegerv_real(pname, params);
+}
+
+void APIENTRY _glGetIntegeri_v(GLenum pname, GLuint index, GLint *params)
+{
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  switch(pname)
+  {
+    case eGL_VERTEX_BINDING_OFFSET: *params = (GLint)vbs[index].offset; return;
+    case eGL_VERTEX_BINDING_STRIDE: *params = (GLint)vbs[index].stride; return;
+    case eGL_VERTEX_BINDING_DIVISOR: *params = (GLint)vbs[index].divisor; return;
+    case eGL_VERTEX_BINDING_BUFFER: *params = vbs[index].buffer; return;
+    default: break;
+  }
+
+  return glGetIntegeri_v_real(pname, index, params);
+}
+
+void APIENTRY _glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *params)
+{
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  switch(pname)
+  {
+    case eGL_VERTEX_BINDING_OFFSET: *params = (GLint64)vbs[index].offset; return;
+    case eGL_VERTEX_BINDING_STRIDE: *params = (GLint64)vbs[index].stride; return;
+    case eGL_VERTEX_BINDING_DIVISOR: *params = (GLint64)vbs[index].divisor; return;
+    case eGL_VERTEX_BINDING_BUFFER: *params = vbs[index].buffer; return;
+    default: break;
+  }
+
+  return glGetInteger64i_v_real(pname, index, params);
+}
+
+void APIENTRY _glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
+{
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  if(index >= NumEmulatedBinds)
+  {
+    RDCERR("Invalid index to glGetVertexAttribiv: %u", index);
+    return;
+  }
+
+  switch(pname)
+  {
+    case GL_VERTEX_ATTRIB_BINDING: *params = (GLint)attribs[index].bindingindex; return;
+    case GL_VERTEX_ATTRIB_RELATIVE_OFFSET: *params = attribs[index].relativeoffset; return;
+
+    case GL_VERTEX_ATTRIB_ARRAY_SIZE: *params = attribs[index].size; return;
+    case GL_VERTEX_ATTRIB_ARRAY_TYPE: *params = attribs[index].type; return;
+    case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED: *params = attribs[index].normalized; return;
+    case GL_VERTEX_ATTRIB_ARRAY_INTEGER: *params = attribs[index].Integer; return;
+    case GL_VERTEX_ATTRIB_ARRAY_LONG: *params = attribs[index].Long; return;
+
+    case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
+      *params = vbs[attribs[index].bindingindex].buffer;
+      return;
+    case GL_VERTEX_ATTRIB_ARRAY_STRIDE:
+      *params = (GLint)vbs[attribs[index].bindingindex].stride;
+      return;
+    case GL_VERTEX_ATTRIB_ARRAY_DIVISOR:
+      *params = (GLint)vbs[attribs[index].bindingindex].divisor;
+      return;
+    default: break;
+  }
+
+  return glGetVertexAttribiv_real(index, pname, params);
+}
+
+void _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized,
+                            GLsizei stride, const void *pointer)
+{
+  if(index >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribPointer", index);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  attribs[index].Long = GL_FALSE;
+  attribs[index].Integer = GL_FALSE;
+  attribs[index].size = size;
+  attribs[index].type = type;
+  attribs[index].normalized = normalized;
+  // spec says that the offset goes entirely into the binding offset, not relative offset
+  attribs[index].relativeoffset = 0;
+  // spec says that the old functions stomp the binding with the 1:1 index
+  attribs[index].bindingindex = index;
+  attribs[index].dirty = true;
+
+  // whatever is currently in ARRAY_BUFFER gets bound to the VB
+  glGetIntegerv_real(eGL_ARRAY_BUFFER_BINDING, (GLint *)&vbs[index].buffer);
+  vbs[index].stride = stride;
+  vbs[index].offset = (GLintptr)pointer;
+  vbs[index].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void _glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
+                             const void *pointer)
+{
+  if(index >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribPointer", index);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  attribs[index].Long = GL_FALSE;
+  attribs[index].Integer = GL_TRUE;
+  attribs[index].size = size;
+  attribs[index].type = type;
+  // spec says that the offset goes entirely into the binding offset, not relative offset
+  attribs[index].relativeoffset = 0;
+  // spec says that the old functions stomp the binding with the 1:1 index
+  attribs[index].bindingindex = index;
+  attribs[index].dirty = true;
+
+  // whatever is currently in ARRAY_BUFFER gets bound to the VB
+  glGetIntegerv_real(eGL_ARRAY_BUFFER_BINDING, (GLint *)&vbs[index].buffer);
+  vbs[index].stride = stride;
+  vbs[index].offset = (GLintptr)pointer;
+  vbs[index].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void _glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
+                             const void *pointer)
+{
+  if(index >= NumEmulatedBinds)
+  {
+    RDCERR("Unhandled attrib %u in glVertexAttribPointer", index);
+    return;
+  }
+
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  attribs[index].Long = GL_TRUE;
+  attribs[index].Integer = GL_FALSE;
+  attribs[index].size = size;
+  attribs[index].type = type;
+  // spec says that the offset goes entirely into the binding offset, not relative offset
+  attribs[index].relativeoffset = 0;
+  // spec says that the old functions stomp the binding with the 1:1 index
+  attribs[index].bindingindex = index;
+  attribs[index].dirty = true;
+
+  // whatever is currently in ARRAY_BUFFER gets bound to the VB
+  glGetIntegerv_real(eGL_ARRAY_BUFFER_BINDING, (GLint *)&vbs[index].buffer);
+  vbs[index].stride = stride;
+  vbs[index].offset = (GLintptr)pointer;
+  vbs[index].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+void _glVertexAttribDivisor(GLuint index, GLuint divisor)
+{
+  EmulatedVAO &vao = _GetVAOData();
+  EmulatedVertexAttrib *attribs = vao.attribs;
+  EmulatedVertexBuffer *vbs = vao.vbs;
+
+  // spec says that this function stomps the binding with the 1:1 index, the same as
+  // glVertexAttrib?Pointer
+  attribs[index].bindingindex = index;
+  attribs[index].dirty = true;
+  vbs[index].divisor = divisor;
+  vbs[index].dirty = true;
+
+  _FlushVertexAttribBinding();
+}
+
+#pragma endregion
+
 #pragma region ARB_clear_buffer_object
 
 void APIENTRY _glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset,
@@ -2049,6 +2495,10 @@ void GLDispatchTable::EmulateRequiredExtensions()
 {
 #define EMULATE_FUNC(func) this->func = &CONCAT(glEmulate::_, func);
 
+#define SAVE_REAL_FUNC(func)                                                       \
+  if(!glEmulate::CONCAT(func, _real) && this->func != &CONCAT(glEmulate::_, func)) \
+    glEmulate::CONCAT(func, _real) = this->func;
+
   // this one is more complex as we need to implement the copy ourselves by creating FBOs and doing
   // a blit. Obviously this is going to be slower, but if we're emulating the extension then
   // performance is not the top priority.
@@ -2079,9 +2529,7 @@ void GLDispatchTable::EmulateRequiredExtensions()
     RDCLOG("Emulating ARB_internalformat_query2");
     // GLES supports glGetInternalformativ from core 3.0 but it only accepts GL_NUM_SAMPLE_COUNTS
     // and GL_SAMPLES params
-    if(!glEmulate::glGetInternalformativ_real &&
-       this->glGetInternalformativ != glEmulate::_glGetInternalformativ)
-      glEmulate::glGetInternalformativ_real = this->glGetInternalformativ;
+    SAVE_REAL_FUNC(glGetInternalformativ);
     EMULATE_FUNC(glGetInternalformativ);
   }
 
@@ -2090,6 +2538,44 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glGetProgramInterfaceiv);
     EMULATE_FUNC(glGetProgramResourceiv);
     EMULATE_FUNC(glGetProgramResourceName);
+  }
+
+  // only emulate ARB_vertex_attrib_binding on replay
+  if(!HasExt[ARB_vertex_attrib_binding] && RenderDoc::Inst().IsReplayApp())
+  {
+    glEmulate::_ResetVertexAttribBinding();
+
+    EMULATE_FUNC(glBindVertexBuffer);
+    EMULATE_FUNC(glVertexAttribFormat);
+    EMULATE_FUNC(glVertexAttribIFormat);
+    EMULATE_FUNC(glVertexAttribLFormat);
+    EMULATE_FUNC(glVertexAttribBinding);
+    EMULATE_FUNC(glVertexBindingDivisor);
+
+    // we also intercept the old-style functions to ensure everything stays consistent.
+    SAVE_REAL_FUNC(glVertexAttribPointer);
+    SAVE_REAL_FUNC(glVertexAttribIPointer);
+    SAVE_REAL_FUNC(glVertexAttribLPointer);
+    SAVE_REAL_FUNC(glVertexAttribDivisor);
+    EMULATE_FUNC(glVertexAttribPointer);
+    EMULATE_FUNC(glVertexAttribIPointer);
+    EMULATE_FUNC(glVertexAttribLPointer);
+    EMULATE_FUNC(glVertexAttribDivisor);
+
+    // need to intercept get functions to implement the new queries. Anything unknown we just
+    // re-direct
+    SAVE_REAL_FUNC(glGetIntegerv);
+    SAVE_REAL_FUNC(glGetIntegeri_v);
+    SAVE_REAL_FUNC(glGetVertexAttribiv);
+    EMULATE_FUNC(glGetIntegerv);
+    EMULATE_FUNC(glGetIntegeri_v);
+    EMULATE_FUNC(glGetVertexAttribiv);
+
+    if(GL.glGetInteger64i_v)
+    {
+      SAVE_REAL_FUNC(glGetInteger64i_v);
+      EMULATE_FUNC(glGetInteger64i_v);
+    }
   }
 
   // APIs that are not available at all in GLES.
