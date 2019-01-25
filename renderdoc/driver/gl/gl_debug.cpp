@@ -971,7 +971,8 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 {
   auto &texDetails = m_pDriver->m_Textures[texid];
 
-  if(GetBaseFormat(texDetails.internalFormat) == eGL_DEPTH_STENCIL)
+  if(!IsCompressedFormat(texDetails.internalFormat) &&
+     GetBaseFormat(texDetails.internalFormat) == eGL_DEPTH_STENCIL)
   {
     // for depth/stencil we need to run the code twice - once to fetch depth and once to fetch
     // stencil - since we can't process float depth and int stencil at the same time
