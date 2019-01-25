@@ -350,7 +350,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     }
-    drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+    drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
                                DebugData.overlayTex, 0);
 
     drv.glBindTexture(texBindingEnum, curTex);
@@ -1016,7 +1016,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         // bind our FBO
         drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, overlayFBO);
-        drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+        drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
                                    DebugData.overlayTex, 0);
 
         // now apply the depth texture binding
@@ -1328,17 +1328,21 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         GLenum fmt = eGL_DEPTH32F_STENCIL8;
 
-        if(depthType == eGL_TEXTURE)
+        if(curDepth)
         {
-          drv.glGetNamedFramebufferAttachmentParameterivEXT(
-              rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
-          drv.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip,
-                                              eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
-        }
-        else
-        {
-          drv.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_INTERNAL_FORMAT,
-                                                   (GLint *)&fmt);
+          if(depthType == eGL_TEXTURE)
+          {
+            drv.glGetNamedFramebufferAttachmentParameterivEXT(
+                rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+                &mip);
+            drv.glGetTextureLevelParameterivEXT(curDepth, eGL_TEXTURE_2D, mip,
+                                                eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+          }
+          else
+          {
+            drv.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_INTERNAL_FORMAT,
+                                                     (GLint *)&fmt);
+          }
         }
 
         drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
@@ -1464,9 +1468,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
           // modify our fbo to attach the overlay texture instead
           drv.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
-          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
                                      DebugData.overlayTex, 0);
-          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+          drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, texBindingEnum,
                                      0, 0);
 
           drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
