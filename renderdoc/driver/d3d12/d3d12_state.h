@@ -92,17 +92,17 @@ struct D3D12RenderState
       else if(type == eRootCBV)
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
-        cmd->SetGraphicsRootConstantBufferView(slot, res->GetGPUVirtualAddress() + offset);
+        cmd->SetGraphicsRootConstantBufferView(slot, res ? res->GetGPUVirtualAddress() + offset : 0);
       }
       else if(type == eRootSRV)
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
-        cmd->SetGraphicsRootShaderResourceView(slot, res->GetGPUVirtualAddress() + offset);
+        cmd->SetGraphicsRootShaderResourceView(slot, res ? res->GetGPUVirtualAddress() + offset : 0);
       }
       else if(type == eRootUAV)
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
-        cmd->SetGraphicsRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
+        cmd->SetGraphicsRootUnorderedAccessView(slot, res ? res->GetGPUVirtualAddress() + offset : 0);
       }
     }
 
@@ -122,17 +122,17 @@ struct D3D12RenderState
       else if(type == eRootCBV)
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
-        cmd->SetComputeRootConstantBufferView(slot, res->GetGPUVirtualAddress() + offset);
+        cmd->SetComputeRootConstantBufferView(slot, res ? res->GetGPUVirtualAddress() + offset : 0);
       }
       else if(type == eRootSRV)
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
-        cmd->SetComputeRootShaderResourceView(slot, res->GetGPUVirtualAddress() + offset);
+        cmd->SetComputeRootShaderResourceView(slot, res ? res->GetGPUVirtualAddress() + offset : 0);
       }
       else if(type == eRootUAV)
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
-        cmd->SetComputeRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
+        cmd->SetComputeRootUnorderedAccessView(slot, res ? res->GetGPUVirtualAddress() + offset : 0);
       }
     }
 

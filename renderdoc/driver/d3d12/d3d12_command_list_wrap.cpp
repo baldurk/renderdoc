@@ -3658,7 +3658,6 @@ void WrappedID3D12GraphicsCommandList2::PatchExecuteIndirect(BakedCmdListInfo &i
             m_pDevice->GetResIDFromAddr(*addr, id, offs);
 
             ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
-            RDCASSERT(res);
             if(res)
               *addr = res->GetGPUVirtualAddress() + offs;
 
@@ -4023,7 +4022,7 @@ void WrappedID3D12GraphicsCommandList2::ReplayExecuteIndirect(ID3D12GraphicsComm
           ResourceId id;
           uint64_t offs = 0;
           WrappedID3D12Resource::GetResIDFromAddr(*srcAddr, id, offs);
-          RDCASSERT(id != ResourceId());
+          RDCASSERT(*srcAddr == 0 || id != ResourceId());
 
           const uint32_t rootIdx = arg.Constant.RootParameterIndex;
 
@@ -4035,22 +4034,37 @@ void WrappedID3D12GraphicsCommandList2::ReplayExecuteIndirect(ID3D12GraphicsComm
             {
               elemType = eRootCBV;
 
-              if(executing && id != ResourceId())
-                list->SetGraphicsRootConstantBufferView(rootIdx, *srcAddr);
+              if(executing)
+              {
+                if(id != ResourceId())
+                  list->SetGraphicsRootConstantBufferView(rootIdx, *srcAddr);
+                else
+                  list->SetGraphicsRootConstantBufferView(rootIdx, 0);
+              }
             }
             else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
             {
               elemType = eRootSRV;
 
-              if(executing && id != ResourceId())
-                list->SetGraphicsRootShaderResourceView(rootIdx, *srcAddr);
+              if(executing)
+              {
+                if(id != ResourceId())
+                  list->SetGraphicsRootShaderResourceView(rootIdx, *srcAddr);
+                else
+                  list->SetGraphicsRootShaderResourceView(rootIdx, 0);
+              }
             }
             else if(arg.Type == D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
             {
               elemType = eRootUAV;
 
-              if(executing && id != ResourceId())
-                list->SetGraphicsRootUnorderedAccessView(rootIdx, *srcAddr);
+              if(executing)
+              {
+                if(id != ResourceId())
+                  list->SetGraphicsRootUnorderedAccessView(rootIdx, *srcAddr);
+                else
+                  list->SetGraphicsRootUnorderedAccessView(rootIdx, 0);
+              }
             }
             else
             {

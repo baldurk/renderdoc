@@ -913,7 +913,10 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           cb.resourceId = rm->GetOriginalID(e.id);
           cb.byteOffset = e.offset;
-          cb.byteSize = uint32_t(res->GetDesc().Width - cb.byteOffset);
+          if(res)
+            cb.byteSize = uint32_t(res->GetDesc().Width - cb.byteOffset);
+          else
+            cb.byteSize = 0;
         }
       }
     }
@@ -938,7 +941,10 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           view.elementByteSize = sizeof(uint32_t);
           view.firstElement = e.offset / sizeof(uint32_t);
-          view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
+          if(res)
+            view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
+          else
+            view.numElements = 0;
         }
       }
     }
@@ -963,7 +969,10 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           view.elementByteSize = sizeof(uint32_t);
           view.firstElement = e.offset / sizeof(uint32_t);
-          view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
+          if(res)
+            view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
+          else
+            view.numElements = 0;
         }
       }
     }
