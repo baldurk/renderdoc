@@ -651,7 +651,7 @@ void PythonShell::on_saveScript_clicked()
     if(dirinfo.exists())
     {
       QFile f(filename);
-      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
       {
         f.write(scriptEditor->getText(scriptEditor->textLength() + 1));
       }

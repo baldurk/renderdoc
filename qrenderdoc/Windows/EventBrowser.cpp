@@ -673,7 +673,7 @@ void EventBrowser::on_exportDraws_clicked()
     if(dirinfo.exists())
     {
       QFile f(filename);
-      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
       {
         QTextStream stream(&f);
 

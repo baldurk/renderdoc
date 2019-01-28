@@ -211,7 +211,7 @@ void ConstantBufferPreviewer::on_saveCSV_clicked()
     if(dirinfo.exists())
     {
       QFile f(filename, this);
-      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
       {
         QTextStream ts(&f);
 

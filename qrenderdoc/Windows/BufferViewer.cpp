@@ -3235,7 +3235,12 @@ void BufferViewer::exportData(const BufferExport &params)
 
   QFile *f = new QFile(filename);
 
-  if(!f->open(QIODevice::WriteOnly | QFile::Truncate))
+  QIODevice::OpenMode flags = QIODevice::WriteOnly | QFile::Truncate;
+
+  if(params.format == BufferExport::CSV)
+    flags |= QIODevice::Text;
+
+  if(!f->open(flags))
   {
     delete f;
     RDDialog::critical(this, tr("Error exporting file"),
