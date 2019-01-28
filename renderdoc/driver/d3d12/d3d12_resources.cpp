@@ -307,7 +307,14 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
 
   // assuming only valid for buffers
   if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-    m_Addresses.RemoveFrom(m_pReal->GetGPUVirtualAddress());
+  {
+    GPUAddressRange range;
+    range.start = m_pReal->GetGPUVirtualAddress();
+    range.end = m_pReal->GetGPUVirtualAddress() + m_pReal->GetDesc().Width;
+    range.id = GetResourceID();
+
+    m_Addresses.RemoveFrom(range);
+  }
 
   Shutdown();
 

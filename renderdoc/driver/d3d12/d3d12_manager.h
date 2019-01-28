@@ -463,7 +463,7 @@ struct GPUAddressRangeTracker
   std::vector<GPUAddressRange> addresses;
   Threading::RWLock addressLock;
 
-  void AddTo(GPUAddressRange range)
+  void AddTo(const GPUAddressRange &range)
   {
     SCOPED_WRITELOCK(addressLock);
     auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
@@ -471,13 +471,27 @@ struct GPUAddressRangeTracker
     addresses.insert(it, range);
   }
 
-  void RemoveFrom(D3D12_GPU_VIRTUAL_ADDRESS baseAddr)
+  void RemoveFrom(const GPUAddressRange &range)
   {
-    SCOPED_WRITELOCK(addressLock);
-    auto it = std::lower_bound(addresses.begin(), addresses.end(), baseAddr);
-    RDCASSERT(it != addresses.end() && baseAddr >= it->start && baseAddr < it->end);
+    {
+      SCOPED_WRITELOCK(addressLock);
+      auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
 
-    addresses.erase(it);
+      // there might be multiple buffers with the same range start, find the exact range for this
+      // buffer
+      while(it != addresses.end() && it->start == range.start)
+      {
+        if(it->id == range.id)
+        {
+          addresses.erase(it);
+          return;
+        }
+
+        ++it;
+      }
+    }
+
+    RDCERR("Couldn't find matching range to remove for %s", ToStr(range.id).c_str());
   }
 
   void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
