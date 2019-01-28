@@ -1010,7 +1010,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
   for(int i = 0; shaderDetails && i < shaderDetails->readWriteResources.count(); i++)
   {
     const ShaderResource &res = shaderDetails->readWriteResources[i];
-    int bindPoint = stage.bindpointMapping.readWriteResources[i].bind;
+    int bindPoint = stage.bindpointMapping.readWriteResources[res.bindPoint].bind;
 
     GLReadWriteType readWriteType = GetGLReadWriteType(res);
 
