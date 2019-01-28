@@ -769,7 +769,8 @@ bool DXBCFile::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOperand
     }
 
     if(retOper.indices[idx].relative)
-      retOper.indices[idx].str = "[" + retOper.indices[idx].operand.toString(this, flags) + " + ";
+      retOper.indices[idx].str =
+          "[" + retOper.indices[idx].operand.toString(this, flags | ToString::ShowSwizzle) + " + ";
 
     if(retOper.indices[idx].absolute)
     {
@@ -1044,7 +1045,10 @@ string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
     {
       str = "cb";
 
-      str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
+      if(indices[1].relative)
+        str += StringFormat::Fmt("%s%s", indices[0].str.c_str(), indices[1].str.c_str());
+      else
+        str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
 
       if(dxbc && friendly && !dxbc->m_GuessedResources && indices[0].absolute)
       {
