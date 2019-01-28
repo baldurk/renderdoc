@@ -2797,7 +2797,7 @@ void GLReplay::FreeCustomShader(ResourceId id)
   if(id == ResourceId())
     return;
 
-  m_pDriver->glDeleteProgram(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
+  m_pDriver->glDeleteShader(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
 void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
