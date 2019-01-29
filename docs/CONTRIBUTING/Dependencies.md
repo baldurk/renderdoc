@@ -54,6 +54,27 @@ scl enable devtoolset-7 bash
 
 And build within the resulting bash shell, which has the tools first in PATH.
 
+Debian 9+ (stretch):
+```
+sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev
+```
+
+For qrenderdoc:
+```
+sudo apt-get install qt5-qmake libqt5svg5-dev libqt5x11extras5-dev 
+```
+
+### Linux build
+
+```
+git clone https://github.com/baldurk/renderdoc.git
+cd renderdoc
+export QT_SELECT=qt5
+cmake -B build -S . 
+cd build/
+make
+```
+
 On any distribution if you find qmake isn't available under its default name, or if `qmake -v` lists a Qt4 version, make sure you have qtchooser installed in your package manager and use it to select Qt5. This might be done by exporting `QT_SELECT=qt5`, but check with your distribution for details.
 
 For some distributions such as CentOS, the Qt5 qmake command is `qmake-qt5`. To select this explicitly, pass `-DQMAKE_QT5_COMMAND=qmake-qt5` when invoking `cmake`.
