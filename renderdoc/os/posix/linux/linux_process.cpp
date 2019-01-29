@@ -28,8 +28,10 @@
 
 extern char **environ;
 
+// we wait 1ns, then 2ns, then 4ns, etc so our total is 0xfff etc
+// 0xfffff == ~1s
 #define INITIAL_WAIT_TIME 1
-#define MAX_WAIT_TIME 128000
+#define MAX_WAIT_TIME 0xfffff
 
 char **GetCurrentEnvironment()
 {
