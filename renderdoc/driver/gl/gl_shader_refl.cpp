@@ -249,6 +249,9 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
 
       if(attempt == 1)
       {
+        drv.glDeleteProgram(sepProg);
+        sepProg = 0;
+
         RDCLOG("Attempting to pre-process shader with glslang to allow patching");
 
         glslang::TShader sh(EShLanguage(ShaderIdx(type)));
@@ -491,9 +494,6 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
       drv.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
       if(status == 1)
         break;
-
-      drv.glDeleteProgram(sepProg);
-      sepProg = 0;
 
       RDCWARN("Couldn't patch separability into shader, attempt #%d", attempt + 1);
     }
