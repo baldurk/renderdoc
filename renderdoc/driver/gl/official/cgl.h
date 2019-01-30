@@ -511,6 +511,52 @@ extern CGLContextObj OPENGL_NULLABLE CGLGetCurrentContext(void);
 
 OPENGL_ASSUME_NONNULL_END
 
+/************************************************************************/
+/* CoreGraphics.framework/Headers/CGGeometry.h                          */
+/************************************************************************/
+
+#if defined(__LP64__) && __LP64__
+#define CGFLOAT_TYPE double
+#else
+#define CGFLOAT_TYPE float
+#endif
+
+typedef CGFLOAT_TYPE CGFloat;
+
+struct
+CGPoint {
+    CGFloat x;
+    CGFloat y;
+};
+typedef struct CGPoint CGPoint;
+
+struct
+CGSize {
+    CGFloat width;
+    CGFloat height;
+};
+typedef struct CGSize CGSize;
+
+struct
+CGRect {
+    CGPoint origin;
+    CGSize size;
+};
+typedef struct CGRect CGRect;
+
+/************************************************************************/
+/* Undocumented/internal functions                                      */
+/************************************************************************/
+
+typedef int CGSConnectionID;
+typedef int CGSWindowID;
+typedef int CGSSurfaceID;
+
+extern CGLError CGLSetSurface(CGLContextObj OPENGL_NULLABLE gl, CGSConnectionID cid, CGSWindowID wid, CGSSurfaceID sid);
+extern CGLError CGLGetSurface(CGLContextObj OPENGL_NULLABLE ctx, CGSConnectionID * OPENGL_NULLABLE cid, CGSWindowID * OPENGL_NULLABLE wid, CGSSurfaceID * OPENGL_NULLABLE sid);
+extern CGLError CGSSetSurfaceBounds(CGSConnectionID cid, CGSWindowID wid, CGSSurfaceID sid, CGRect rect);
+extern CGLError CGSGetSurfaceBounds(CGSConnectionID cid, CGSWindowID wid, CGSSurfaceID sid, CGRect * OPENGL_NULLABLE rect);
+
 #ifdef __cplusplus
 }
 #endif

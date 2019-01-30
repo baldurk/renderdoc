@@ -33,13 +33,26 @@ typedef CGLError (*PFN_CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj sh
 typedef CGLError (*PFN_CGLSetCurrentContext)(CGLContextObj ctx);
 typedef CGLError (*PFN_CGLFlushDrawable)(CGLContextObj ctx);
 typedef CGLError (*PFN_CGLDestroyContext)(CGLContextObj ctx);
+typedef CGLError (*PFN_CGLDescribePixelFormat)(CGLPixelFormatObj pix, GLint pix_num,
+                                               CGLPixelFormatAttribute attrib, GLint *value);
+typedef CGLError (*PFN_CGLSetSurface)(CGLContextObj gl, CGSConnectionID cid, CGSWindowID wid,
+                                      CGSSurfaceID sid);
+typedef CGLError (*PFN_CGLGetSurface)(CGLContextObj gl, CGSConnectionID *cid, CGSWindowID *wid,
+                                      CGSSurfaceID *sid);
+typedef CGLError (*PFN_CGSGetSurfaceBounds)(CGSConnectionID cid, CGSWindowID wid, CGSSurfaceID sid,
+                                            CGRect *rect);
 
 #define CGL_HOOKED_SYMBOLS(FUNC) \
   FUNC(CGLCreateContext);        \
   FUNC(CGLSetCurrentContext);    \
   FUNC(CGLFlushDrawable);
 
-#define CGL_NONHOOKED_SYMBOLS(FUNC) FUNC(CGLDestroyContext);
+#define CGL_NONHOOKED_SYMBOLS(FUNC) \
+  FUNC(CGLDestroyContext);          \
+  FUNC(CGLDescribePixelFormat);     \
+  FUNC(CGLSetSurface);              \
+  FUNC(CGLGetSurface);              \
+  FUNC(CGSGetSurfaceBounds);
 
 struct CGLDispatchTable
 {

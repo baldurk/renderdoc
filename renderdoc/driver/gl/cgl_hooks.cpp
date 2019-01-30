@@ -55,30 +55,30 @@ CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj s
   if(ret != kCGLNoError)
     return ret;
 
-  GLInitParams init;
+  GLInitParams init = {};
 
   init.width = 0;
   init.height = 0;
 
-  int value = 0;
+  GLint value = 0;
 
-  // GLX.glXGetConfig(dpy, vis, GLX_BUFFER_SIZE, &value);
-  init.colorBits = 32;
-  // GLX.glXGetConfig(dpy, vis, GLX_DEPTH_SIZE, &value);
-  init.depthBits = 24;
-  // GLX.glXGetConfig(dpy, vis, GLX_STENCIL_SIZE, &value);
-  init.stencilBits = 8;
-  value = 1;    // default to srgb
-  // GLX.glXGetConfig(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value);
-  init.isSRGB = value;
-  value = 1;
-  // GLX.glXGetConfig(dpy, vis, GLX_SAMPLES_ARB, &value);
+  CGLError err = kCGLNoError;
+
+  CGL.CGLDescribePixelFormat(pix, 0, kCGLPFAColorSize, &value);
+  init.colorBits = (uint32_t)value;
+  CGL.CGLDescribePixelFormat(pix, 0, kCGLPFADepthSize, &value);
+  init.depthBits = (uint32_t)value;
+  CGL.CGLDescribePixelFormat(pix, 0, kCGLPFAStencilSize, &value);
+  init.stencilBits = (uint32_t)value;
+  // TODO: is macOS sRGB?
+  init.isSRGB = 1;
+  CGL.CGLDescribePixelFormat(pix, 0, kCGLPFASamples, &value);
   init.multiSamples = RDCMAX(1, value);
 
   GLWindowingData data;
   data.wnd = NULL;
   data.ctx = *ctx;
-  // data.cfg = pix;
+  data.cfg = pix;
 
   {
     SCOPED_LOCK(glLock);
@@ -118,18 +118,33 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
       GL.DriverForEmulation(&cglhook.driver);
     }
 
+    CGRect rect = {};
+
     GLWindowingData data;
-    data.wnd = (void *)0x4;    // drawable;
+    data.wnd = NULL;
     data.ctx = ctx;
-    // data.cfg = NULL;
+    data.cfg = NULL;
+
+    if(data.ctx)
+    {
+      CGSConnectionID conn = 0;
+      CGSWindowID window = 0;
+      CGSSurfaceID surface = 0;
+
+      CGL.CGLGetSurface(ctx, &conn, &window, &surface);
+
+      data.wnd = (void *)(uintptr_t)window;
+
+      CGL.CGSGetSurfaceBounds(conn, window, surface, &rect);
+    }
 
     cglhook.driver.ActivateContext(data);
 
     if(data.ctx)
     {
       GLInitParams &params = cglhook.driver.GetInitParams(data);
-      params.width = 400;
-      params.height = 200;
+      params.width = (uint32_t)rect.size.width;
+      params.height = (uint32_t)rect.size.height;
     }
   }
 
@@ -146,9 +161,17 @@ CGLError GL_EXPORT_NAME(CGLFlushDrawable)(CGLContextObj ctx)
     return CGL.CGLFlushDrawable(ctx);
   }
 
-  SCOPED_LOCK(glLock);
+  {
+    SCOPED_LOCK(glLock);
 
-  cglhook.driver.SwapBuffers((void *)0x4);
+    CGSConnectionID conn = 0;
+    CGSWindowID window = 0;
+    CGSSurfaceID surface = 0;
+
+    CGL.CGLGetSurface(ctx, &conn, &window, &surface);
+
+    cglhook.driver.SwapBuffers((void *)(uintptr_t)window);
+  }
 
   return CGL.CGLFlushDrawable(ctx);
 }
