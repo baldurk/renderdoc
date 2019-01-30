@@ -131,6 +131,9 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\attribute.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
@@ -268,6 +271,9 @@
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\attribute.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
   </ItemGroup>

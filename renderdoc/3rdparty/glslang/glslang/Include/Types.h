@@ -81,6 +81,7 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
     bool   combined : 1;  // true means texture is combined with a sampler, false means texture with no sampler
     bool    sampler : 1;  // true means a pure sampler, other fields should be clear()
     bool   external : 1;  // GL_OES_EGL_image_external
+    bool        yuv : 1;  // GL_EXT_YUV_target
     unsigned int vectorSize : 3;  // vector return type size.
 
     // Some languages support structures as sample results.  Storing the whole structure in the
@@ -116,6 +117,7 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         combined = false;
         sampler = false;
         external = false;
+        yuv = false;
         structReturnIndex = noReturnStruct;
 
         // by default, returns a single vec4;
@@ -186,6 +188,7 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
                 combined == right.combined &&
                  sampler == right.sampler &&
                 external == right.external &&
+                     yuv == right.yuv &&
               vectorSize == right.vectorSize &&
        structReturnIndex == right.structReturnIndex;            
     }
@@ -233,6 +236,9 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
             s.append("ExternalOES");
             return s;
         }
+        if (yuv) {
+            return "__" + s + "External2DY2YEXT";
+        }
         switch (dim) {
         case Esd1D:      s.append("1D");      break;
         case Esd2D:      s.append("2D");      break;
@@ -277,6 +283,7 @@ enum TLayoutPacking {
     ElpStd140,
     ElpStd430,
     ElpPacked,
+    ElpScalar,
     ElpCount        // If expanding, see bitfield width below
 };
 
@@ -457,11 +464,22 @@ public:
 #ifdef AMD_EXTENSIONS
         explicitInterp = false;
 #endif
+#ifdef NV_EXTENSIONS
+        pervertexNV = false;
+        perPrimitiveNV = false;
+        perViewNV = false;
+        perTaskNV = false;
+#endif
     }
 
     void clearMemory()
     {
         coherent     = false;
+        devicecoherent = false;
+        queuefamilycoherent = false;
+        workgroupcoherent = false;
+        subgroupcoherent  = false;
+        nonprivate = false;
         volatil      = false;
         restrict     = false;
         readonly     = false;
@@ -496,9 +514,20 @@ public:
 #ifdef AMD_EXTENSIONS
     bool explicitInterp : 1;
 #endif
+#ifdef NV_EXTENSIONS
+    bool pervertexNV  : 1;
+    bool perPrimitiveNV : 1;
+    bool perViewNV : 1;
+    bool perTaskNV : 1;
+#endif
     bool patch        : 1;
     bool sample       : 1;
     bool coherent     : 1;
+    bool devicecoherent : 1;
+    bool queuefamilycoherent : 1;
+    bool workgroupcoherent : 1;
+    bool subgroupcoherent  : 1;
+    bool nonprivate   : 1;
     bool volatil      : 1;
     bool restrict     : 1;
     bool readonly     : 1;
@@ -508,8 +537,18 @@ public:
 
     bool isMemory() const
     {
-        return coherent || volatil || restrict || readonly || writeonly;
+        return subgroupcoherent || workgroupcoherent || queuefamilycoherent || devicecoherent || coherent || volatil || restrict || readonly || writeonly || nonprivate;
     }
+    bool isMemoryQualifierImageAndSSBOOnly() const
+    {
+        return subgroupcoherent || workgroupcoherent || queuefamilycoherent || devicecoherent || coherent || volatil || restrict || readonly || writeonly;
+    }
+    bool bufferReferenceNeedsVulkanMemoryModel() const
+    {
+        // include qualifiers that map to load/store availability/visibility/nonprivate memory access operands
+        return subgroupcoherent || workgroupcoherent || queuefamilycoherent || devicecoherent || coherent || nonprivate;
+    }
+
     bool isInterpolation() const
     {
 #ifdef AMD_EXTENSIONS
@@ -518,15 +557,21 @@ public:
         return flat || smooth || nopersp;
 #endif
     }
+
 #ifdef AMD_EXTENSIONS
     bool isExplicitInterpolation() const
     {
         return explicitInterp;
     }
 #endif
+
     bool isAuxiliary() const
     {
+#ifdef NV_EXTENSIONS
+        return centroid || patch || sample || pervertexNV;
+#else
         return centroid || patch || sample;
+#endif
     }
 
     bool isPipeInput() const
@@ -593,6 +638,33 @@ public:
         }
     }
 
+    bool isPerPrimitive() const
+    {
+#ifdef NV_EXTENSIONS
+        return perPrimitiveNV;
+#else
+        return false;
+#endif
+    }
+
+    bool isPerView() const
+    {
+#ifdef NV_EXTENSIONS
+        return perViewNV;
+#else
+        return false;
+#endif
+    }
+
+    bool isTaskMemory() const
+    {
+#ifdef NV_EXTENSIONS
+        return perTaskNV;
+#else
+        return false;
+#endif
+    }
+
     bool isIo() const
     {
         switch (storage) {
@@ -642,6 +714,13 @@ public:
             return ! patch && (isPipeInput() || isPipeOutput());
         case EShLangTessEvaluation:
             return ! patch && isPipeInput();
+#ifdef NV_EXTENSIONS
+        case EShLangFragment:
+            return pervertexNV && isPipeInput();
+        case EShLangMeshNV:
+            return ! perTaskNV && isPipeOutput();
+#endif
+
         default:
             return false;
         }
@@ -653,12 +732,16 @@ public:
         clearUniformLayout();
 
         layoutPushConstant = false;
+        layoutBufferReference = false;
 #ifdef NV_EXTENSIONS
         layoutPassthrough = false;
         layoutViewportRelative = false;
         // -2048 as the default value indicating layoutSecondaryViewportRelative is not set
         layoutSecondaryViewportRelativeOffset = -2048;
+        layoutShaderRecordNV = false;
 #endif
+
+        layoutBufferReferenceAlign = layoutBufferReferenceAlignEnd;
 
         clearInterstageLayout();
 
@@ -691,7 +774,11 @@ public:
                hasAnyLocation() ||
                hasStream() ||
                hasFormat() ||
-               layoutPushConstant;
+#ifdef NV_EXTENSIONS
+               layoutShaderRecordNV ||
+#endif
+               layoutPushConstant ||
+               layoutBufferReference;
     }
     bool hasLayout() const
     {
@@ -703,47 +790,53 @@ public:
     int layoutOffset;
     int layoutAlign;
 
-                 unsigned int layoutLocation            :12;
-    static const unsigned int layoutLocationEnd    =  0xFFF;
+                 unsigned int layoutLocation             : 12;
+    static const unsigned int layoutLocationEnd      =  0xFFF;
 
-                 unsigned int layoutComponent           : 3;
-    static const unsigned int layoutComponentEnd    =     4;
+                 unsigned int layoutComponent            :  3;
+    static const unsigned int layoutComponentEnd      =     4;
 
-                 unsigned int layoutSet                 : 7;
-    static const unsigned int layoutSetEnd         =   0x3F;
+                 unsigned int layoutSet                  :  7;
+    static const unsigned int layoutSetEnd           =   0x3F;
 
-                 unsigned int layoutBinding            : 16;
-    static const unsigned int layoutBindingEnd    =  0xFFFF;
+                 unsigned int layoutBinding              : 16;
+    static const unsigned int layoutBindingEnd      =  0xFFFF;
 
-                 unsigned int layoutIndex              :  8;
-    static const unsigned int layoutIndexEnd    =      0xFF;
+                 unsigned int layoutIndex                :  8;
+    static const unsigned int layoutIndexEnd      =      0xFF;
 
-                 unsigned int layoutStream              : 8;
-    static const unsigned int layoutStreamEnd    =     0xFF;
+                 unsigned int layoutStream               :  8;
+    static const unsigned int layoutStreamEnd      =     0xFF;
 
-                 unsigned int layoutXfbBuffer           : 4;
-    static const unsigned int layoutXfbBufferEnd    =   0xF;
+                 unsigned int layoutXfbBuffer            :  4;
+    static const unsigned int layoutXfbBufferEnd      =   0xF;
 
-                 unsigned int layoutXfbStride          : 10;
-    static const unsigned int layoutXfbStrideEnd    = 0x3FF;
+                 unsigned int layoutXfbStride            : 14;
+    static const unsigned int layoutXfbStrideEnd     = 0x3FFF;
 
-                 unsigned int layoutXfbOffset          : 10;
-    static const unsigned int layoutXfbOffsetEnd    = 0x3FF;
+                 unsigned int layoutXfbOffset            : 13;
+    static const unsigned int layoutXfbOffsetEnd     = 0x1FFF;
 
-                 unsigned int layoutAttachment          : 8;  // for input_attachment_index
-    static const unsigned int layoutAttachmentEnd    = 0XFF;
+                 unsigned int layoutAttachment           :  8;  // for input_attachment_index
+    static const unsigned int layoutAttachmentEnd      = 0XFF;
 
                  unsigned int layoutSpecConstantId       : 11;
     static const unsigned int layoutSpecConstantIdEnd = 0x7FF;
 
-    TLayoutFormat layoutFormat                         :  8;
+    // stored as log2 of the actual alignment value
+                 unsigned int layoutBufferReferenceAlign :  6;
+    static const unsigned int layoutBufferReferenceAlignEnd = 0x3F;
+
+    TLayoutFormat layoutFormat                           :  8;
 
     bool layoutPushConstant;
+    bool layoutBufferReference;
 
 #ifdef NV_EXTENSIONS
     bool layoutPassthrough;
     bool layoutViewportRelative;
     int layoutSecondaryViewportRelativeOffset;
+    bool layoutShaderRecordNV;
 #endif
 
     bool hasUniformLayout() const
@@ -845,6 +938,10 @@ public:
         // is just whether or not it was declared with an ID.
         return layoutSpecConstantId != layoutSpecConstantIdEnd;
     }
+    bool hasBufferReferenceAlign() const
+    {
+        return layoutBufferReferenceAlign != layoutBufferReferenceAlignEnd;
+    }
     bool isSpecConstant() const
     {
         // True if type is a specialization constant, whether or not it
@@ -879,6 +976,7 @@ public:
         case ElpShared:   return "shared";
         case ElpStd140:   return "std140";
         case ElpStd430:   return "std430";
+        case ElpScalar:   return "scalar";
         default:          return "none";
         }
     }
@@ -1021,7 +1119,7 @@ struct TShaderQualifiers {
     bool pixelCenterInteger;  // fragment shader
     bool originUpperLeft;     // fragment shader
     int invocations;
-    int vertices;             // both for tessellation "vertices" and geometry "max_vertices"
+    int vertices;             // for tessellation "vertices", geometry & mesh "max_vertices"
     TVertexSpacing spacing;
     TVertexOrder order;
     bool pointMode;
@@ -1034,7 +1132,10 @@ struct TShaderQualifiers {
     int numViews;             // multiview extenstions
 
 #ifdef NV_EXTENSIONS
-    bool layoutOverrideCoverage;    // true if layout override_coverage set
+    bool layoutOverrideCoverage;        // true if layout override_coverage set
+    bool layoutDerivativeGroupQuads;    // true if layout derivative_group_quadsNV set
+    bool layoutDerivativeGroupLinear;   // true if layout derivative_group_linearNV set
+    int primitives;                     // mesh shader "max_primitives"DerivativeGroupLinear;   // true if layout derivative_group_linearNV set
 #endif
 
     void init()
@@ -1059,7 +1160,10 @@ struct TShaderQualifiers {
         blendEquation = false;
         numViews = TQualifier::layoutNotSet;
 #ifdef NV_EXTENSIONS
-        layoutOverrideCoverage = false;
+        layoutOverrideCoverage      = false;
+        layoutDerivativeGroupQuads  = false;
+        layoutDerivativeGroupLinear = false;
+        primitives                  = TQualifier::layoutNotSet;
 #endif
     }
 
@@ -1104,6 +1208,12 @@ struct TShaderQualifiers {
 #ifdef NV_EXTENSIONS
         if (src.layoutOverrideCoverage)
             layoutOverrideCoverage = src.layoutOverrideCoverage;
+        if (src.layoutDerivativeGroupQuads)
+            layoutDerivativeGroupQuads = src.layoutDerivativeGroupQuads;
+        if (src.layoutDerivativeGroupLinear)
+            layoutDerivativeGroupLinear = src.layoutDerivativeGroupLinear;
+        if (src.primitives != TQualifier::layoutNotSet)
+            primitives = src.primitives;
 #endif
     }
 };
@@ -1222,7 +1332,12 @@ public:
                                     sampler.clear();
                                 qualifier = p.qualifier;
                                 if (p.userDef) {
-                                    structure = p.userDef->getWritableStruct();  // public type is short-lived; there are no sharing issues
+                                    if (p.userDef->basicType == EbtReference) {
+                                        basicType = EbtReference;
+                                        referentType = p.userDef->referentType;
+                                    } else {
+                                        structure = p.userDef->getWritableStruct();  // public type is short-lived; there are no sharing issues
+                                    }
                                     typeName = NewPoolTString(p.userDef->getTypeName().c_str());
                                 }
                             }
@@ -1291,6 +1406,17 @@ public:
                                 sampler.clear();
                                 typeName = NewPoolTString(n.c_str());
                             }
+    // for block reference (first parameter must be EbtReference)
+    explicit TType(TBasicType t, const TType &p, const TString& n) :
+                            basicType(t), vectorSize(1), matrixCols(0), matrixRows(0), vector1(false),
+                            arraySizes(nullptr), structure(nullptr), fieldName(nullptr), typeName(nullptr)
+                            {
+                                assert(t == EbtReference);
+                                typeName = NewPoolTString(n.c_str());
+                                qualifier.clear();
+                                qualifier.storage = p.qualifier.storage;
+                                referentType = p.clone();
+                            }
     virtual ~TType() {}
 
     // Not for use across pool pops; it will cause multiple instances of TType to point to the same information.
@@ -1306,9 +1432,13 @@ public:
         matrixRows = copyOf.matrixRows;
         vector1 = copyOf.vector1;
         arraySizes = copyOf.arraySizes;  // copying the pointer only, not the contents
-        structure = copyOf.structure;
         fieldName = copyOf.fieldName;
         typeName = copyOf.typeName;
+        if (isStruct()) {
+            structure = copyOf.structure;
+        } else {
+            referentType = copyOf.referentType;
+        }
     }
 
     // Make complete copy of the whole type graph rooted at 'copyOf'.
@@ -1371,6 +1501,7 @@ public:
     virtual int getImplicitArraySize() const { return arraySizes->getImplicitSize(); }
     virtual const TArraySizes* getArraySizes() const { return arraySizes; }
     virtual       TArraySizes* getArraySizes()       { return arraySizes; }
+    virtual TType* getReferentType() const { return referentType; }
 
     virtual bool isScalar() const { return ! isVector() && ! isMatrix() && ! isStruct() && ! isArray(); }
     virtual bool isScalarOrVec1() const { return isScalar() || vector1; }
@@ -1382,7 +1513,7 @@ public:
     virtual bool isArrayVariablyIndexed() const { assert(isArray()); return arraySizes->isVariablyIndexed(); }
     virtual void setArrayVariablyIndexed() { assert(isArray()); arraySizes->setVariablyIndexed(); }
     virtual void updateImplicitArraySize(int size) { assert(isArray()); arraySizes->updateImplicitSize(size); }
-    virtual bool isStruct() const { return structure != nullptr; }
+    virtual bool isStruct() const { return basicType == EbtStruct || basicType == EbtBlock; }
     virtual bool isFloatingDomain() const { return basicType == EbtFloat || basicType == EbtDouble || basicType == EbtFloat16; }
     virtual bool isIntegerDomain() const
     {
@@ -1402,7 +1533,11 @@ public:
         }
         return false;
     }
-    virtual bool isOpaque() const { return basicType == EbtSampler || basicType == EbtAtomicUint; }
+    virtual bool isOpaque() const { return basicType == EbtSampler || basicType == EbtAtomicUint
+#ifdef NV_EXTENSIONS
+        || basicType == EbtAccStructNV
+#endif
+        ; }
     virtual bool isBuiltIn() const { return getQualifier().builtIn != EbvNone; }
 
     // "Image" is a superset of "Subpass"
@@ -1419,7 +1554,7 @@ public:
 
         const auto hasa = [predicate](const TTypeLoc& tl) { return tl.type->contains(predicate); };
 
-        return structure && std::any_of(structure->begin(), structure->end(), hasa);
+        return isStruct() && std::any_of(structure->begin(), structure->end(), hasa);
     }
 
     // Recursively checks if the type contains the given basic type
@@ -1556,6 +1691,11 @@ public:
     {
         if (isUnsizedArray() && !(skipNonvariablyIndexed || isArrayVariablyIndexed()))
             changeOuterArraySize(getImplicitArraySize());
+#ifdef NV_EXTENSIONS
+        // For multi-dim per-view arrays, set unsized inner dimension size to 1
+        if (qualifier.isPerView() && arraySizes && arraySizes->isInnerUnsized())
+            arraySizes->clearInnerUnsized();
+#endif
         if (isStruct() && structure->size() > 0) {
             int lastMember = (int)structure->size() - 1;
             for (int i = 0; i < lastMember; ++i)
@@ -1590,6 +1730,10 @@ public:
         case EbtSampler:           return "sampler/image";
         case EbtStruct:            return "structure";
         case EbtBlock:             return "block";
+#ifdef NV_EXTENSIONS
+        case EbtAccStructNV:       return "accelerationStructureNV";
+#endif
+        case EbtReference:         return "reference";
         default:                   return "unknown type";
         }
     }
@@ -1675,6 +1819,12 @@ public:
                 }
                 if (qualifier.layoutPushConstant)
                     appendStr(" push_constant");
+                if (qualifier.layoutBufferReference)
+                    appendStr(" buffer_reference");
+                if (qualifier.hasBufferReferenceAlign()) {
+                    appendStr(" buffer_reference_align=");
+                    appendUint(1u << qualifier.layoutBufferReferenceAlign);
+                }
 
 #ifdef NV_EXTENSIONS
                 if (qualifier.layoutPassthrough)
@@ -1685,6 +1835,8 @@ public:
                     appendStr(" layoutSecondaryViewportRelativeOffset=");
                     appendInt(qualifier.layoutSecondaryViewportRelativeOffset);
                 }
+                if (qualifier.layoutShaderRecordNV)
+                    appendStr(" shaderRecordNV");
 #endif
 
                 appendStr(")");
@@ -1707,12 +1859,32 @@ public:
         if (qualifier.explicitInterp)
             appendStr(" __explicitInterpAMD");
 #endif
+#ifdef NV_EXTENSIONS
+        if (qualifier.pervertexNV)
+            appendStr(" pervertexNV");
+        if (qualifier.perPrimitiveNV)
+            appendStr(" perprimitiveNV");
+        if (qualifier.perViewNV)
+            appendStr(" perviewNV");
+        if (qualifier.perTaskNV)
+            appendStr(" taskNV");
+#endif
         if (qualifier.patch)
             appendStr(" patch");
         if (qualifier.sample)
             appendStr(" sample");
         if (qualifier.coherent)
             appendStr(" coherent");
+        if (qualifier.devicecoherent)
+            appendStr(" devicecoherent");
+        if (qualifier.queuefamilycoherent)
+            appendStr(" queuefamilycoherent");
+        if (qualifier.workgroupcoherent)
+            appendStr(" workgroupcoherent");
+        if (qualifier.subgroupcoherent)
+            appendStr(" subgroupcoherent");
+        if (qualifier.nonprivate)
+            appendStr(" nonprivate");
         if (qualifier.volatil)
             appendStr(" volatile");
         if (qualifier.restrict)
@@ -1772,7 +1944,7 @@ public:
         }
 
         // Add struct/block members
-        if (structure) {
+        if (isStruct()) {
             appendStr("{");
             for (size_t i = 0; i < structure->size(); ++i) {
                 if (! (*structure)[i].type->hiddenMember()) {
@@ -1800,9 +1972,9 @@ public:
     const char* getStorageQualifierString() const { return GetStorageQualifierString(qualifier.storage); }
     const char* getBuiltInVariableString() const { return GetBuiltInVariableString(qualifier.builtIn); }
     const char* getPrecisionQualifierString() const { return GetPrecisionQualifierString(qualifier.precision); }
-    const TTypeList* getStruct() const { return structure; }
-    void setStruct(TTypeList* s) { structure = s; }
-    TTypeList* getWritableStruct() const { return structure; }  // This should only be used when known to not be sharing with other threads
+    const TTypeList* getStruct() const { assert(isStruct()); return structure; }
+    void setStruct(TTypeList* s) { assert(isStruct()); structure = s; }
+    TTypeList* getWritableStruct() const { assert(isStruct()); return structure; }  // This should only be used when known to not be sharing with other threads
 
     int computeNumComponents() const
     {
@@ -1841,11 +2013,12 @@ public:
     bool sameStructType(const TType& right) const
     {
         // Most commonly, they are both nullptr, or the same pointer to the same actual structure
-        if (structure == right.structure)
+        if ((!isStruct() && !right.isStruct()) ||
+            (isStruct() && right.isStruct() && structure == right.structure))
             return true;
 
         // Both being nullptr was caught above, now they both have to be structures of the same number of elements
-        if (structure == nullptr || right.structure == nullptr ||
+        if (!isStruct() || !right.isStruct() ||
             structure->size() != right.structure->size())
             return false;
 
@@ -1863,6 +2036,23 @@ public:
         }
 
         return true;
+    }
+
+    bool sameReferenceType(const TType& right) const
+    {
+        if ((basicType == EbtReference) != (right.basicType == EbtReference))
+            return false;
+
+        if ((basicType != EbtReference) && (right.basicType != EbtReference))
+            return true;
+
+        assert(referentType != nullptr);
+        assert(right.referentType != nullptr);
+
+        if (referentType == right.referentType)
+            return true;
+
+        return *referentType == *right.referentType;
     }
 
     // See if two types match, in all aspects except arrayness
@@ -1893,7 +2083,8 @@ public:
                matrixCols == right.matrixCols &&
                matrixRows == right.matrixRows &&
                   vector1 == right.vector1    &&
-               sameStructType(right);
+               sameStructType(right)          &&
+               sameReferenceType(right);
     }
 
     // See if two types match in all ways (just the actual type, not qualification)
@@ -1924,7 +2115,7 @@ protected:
             *arraySizes = *copyOf.arraySizes;
         }
 
-        if (copyOf.structure) {
+        if (copyOf.isStruct() && copyOf.structure) {
             auto prevCopy = copiedMap.find(copyOf.structure);
             if (prevCopy != copiedMap.end())
                 structure = prevCopy->second;
@@ -1962,7 +2153,12 @@ protected:
     TQualifier qualifier;
 
     TArraySizes* arraySizes;    // nullptr unless an array; can be shared across types
-    TTypeList* structure;       // nullptr unless this is a struct; can be shared across types
+    // A type can't be both a structure (EbtStruct/EbtBlock) and a reference (EbtReference), so
+    // conserve space by making these a union
+    union {
+        TTypeList* structure;       // invalid unless this is a struct; can be shared across types
+        TType *referentType;        // invalid unless this is an EbtReference
+    };
     TString *fieldName;         // for structure field names
     TString *typeName;          // for structure type name
     TSampler sampler;

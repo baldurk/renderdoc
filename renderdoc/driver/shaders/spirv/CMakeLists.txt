@@ -15,6 +15,8 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/Logger.h
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
     ${glslang_dir}/SPIRV/SpvBuilder.h
+    ${glslang_dir}/SPIRV/SpvTools.cpp
+    ${glslang_dir}/SPIRV/SpvTools.h
     ${glslang_dir}/SPIRV/SpvPostProcess.cpp
     ${glslang_dir}/SPIRV/spvIR.h
     ${glslang_dir}/glslang/GenericCodeGen/CodeGen.cpp

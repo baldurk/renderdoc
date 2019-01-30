@@ -135,6 +135,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvPostProcess.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.cpp" />
     <ClCompile Include="precompiled.cpp">
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -207,6 +208,7 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.hpp" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spvIR.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.h" />
     <ClInclude Include="precompiled.h" />
     <ClInclude Include="spirv_common.h" />
     <ClInclude Include="spirv_editor.h" />

@@ -4053,6 +4053,14 @@ ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
         case spv::ExecutionModelFragment: return ShaderStage::Fragment;
         case spv::ExecutionModelGLCompute: return ShaderStage::Compute;
         case spv::ExecutionModelKernel:
+        case spv::ExecutionModelTaskNV:
+        case spv::ExecutionModelMeshNV:
+        case spv::ExecutionModelRayGenerationNV:
+        case spv::ExecutionModelIntersectionNV:
+        case spv::ExecutionModelAnyHitNV:
+        case spv::ExecutionModelClosestHitNV:
+        case spv::ExecutionModelMissNV:
+        case spv::ExecutionModelCallableNV:
         case spv::ExecutionModelMax: return ShaderStage::Count;
       }
     }

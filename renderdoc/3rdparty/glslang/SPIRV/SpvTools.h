@@ -1,5 +1,6 @@
 //
-// Copyright (C) 2013 LunarG, Inc.
+// Copyright (C) 2014-2016 LunarG, Inc.
+// Copyright (C) 2018 Google, Inc.
 //
 // All rights reserved.
 //
@@ -31,63 +32,49 @@
 // LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 // ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
 
 //
-// This holds context specific to the GLSL scanner, which
-// sits between the preprocessor scanner and parser.
+// Call into SPIRV-Tools to disassemble, validate, and optimize.
 //
 
 #pragma once
+#ifndef GLSLANG_SPV_TOOLS_H
+#define GLSLANG_SPV_TOOLS_H
 
-#include "ParseHelper.h"
+#include <vector>
+#include <ostream>
+
+#include "../glslang/MachineIndependent/localintermediate.h"
+#include "Logger.h"
 
 namespace glslang {
 
-class TPpContext;
-class TPpToken;
-class TParserToken;
-
-class TScanContext {
-public:
-    explicit TScanContext(TParseContextBase& pc) :
-        parseContext(pc),
-        afterType(false), afterStruct(false),
-        field(false), afterBuffer(false) { }
-    virtual ~TScanContext() { }
-
-    static void fillInKeywordMap();
-    static void deleteKeywordMap();
-
-    int tokenize(TPpContext*, TParserToken&);
-
-protected:
-    TScanContext(TScanContext&);
-    TScanContext& operator=(TScanContext&);
-
-    int tokenizeIdentifier();
-    int identifierOrType();
-    int reservedWord();
-    int identifierOrReserved(bool reserved);
-    int es30ReservedFromGLSL(int version);
-    int nonreservedKeyword(int esVersion, int nonEsVersion);
-    int precisionKeyword();
-    int matNxM();
-    int dMat();
-    int firstGenerationImage(bool inEs310);
-    int secondGenerationImage();
-
-    TParseContextBase& parseContext;
-    bool afterType;           // true if we've recognized a type, so can only be looking for an identifier
-    bool afterStruct;         // true if we've recognized the STRUCT keyword, so can only be looking for an identifier
-    bool field;               // true if we're on a field, right after a '.'
-    bool afterBuffer;         // true if we've recognized the BUFFER keyword
-    TSourceLoc loc;
-    TParserToken* parserToken;
-    TPpToken* ppToken;
-
-    const char* tokenText;
-    int keyword;
+struct SpvOptions {
+    SpvOptions() : generateDebugInfo(false), disableOptimizer(true),
+        optimizeSize(false), disassemble(false), validate(false) { }
+    bool generateDebugInfo;
+    bool disableOptimizer;
+    bool optimizeSize;
+    bool disassemble;
+    bool validate;
 };
 
-} // end namespace glslang
+#if ENABLE_OPT
+
+// Use the SPIRV-Tools disassembler to print SPIR-V.
+void SpirvToolsDisassemble(std::ostream& out, const std::vector<unsigned int>& spirv);
+
+// Apply the SPIRV-Tools validator to generated SPIR-V.
+void SpirvToolsValidate(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv,
+                        spv::SpvBuildLogger*);
+
+// Apply the SPIRV-Tools optimizer to generated SPIR-V, for the purpose of
+// legalizing HLSL SPIR-V.
+void SpirvToolsLegalize(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv,
+                        spv::SpvBuildLogger*, const SpvOptions*);
+
+#endif
+
+}; // end namespace glslang
+
+#endif // GLSLANG_SPV_TOOLS_H

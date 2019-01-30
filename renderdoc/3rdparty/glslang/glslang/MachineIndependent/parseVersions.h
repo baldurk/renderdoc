@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2016 Google, Inc.
+// Copyright (C) 2015-2018 Google, Inc.
 // Copyright (C) 2017 ARM Limited.
 //
 // All rights reserved.
@@ -103,6 +103,7 @@ public:
     virtual void requireSpv(const TSourceLoc&, const char* op);
     virtual bool checkExtensionsRequested(const TSourceLoc&, int numExtensions, const char* const extensions[], const char* featureDesc);
     virtual void updateExtensionBehavior(const char* const extension, TExtensionBehavior);
+    virtual void checkExtensionStage(const TSourceLoc&, const char* const extension);
 
     virtual void C_DECL error(const TSourceLoc&, const char* szReason, const char* szToken,
         const char* szExtraInfoFormat, ...) = 0;
@@ -129,6 +130,7 @@ public:
     bool suppressWarnings() const { return (messages & EShMsgSuppressWarnings) != 0; }
     bool isReadingHLSL()    const { return (messages & EShMsgReadHlsl) == EShMsgReadHlsl; }
     bool hlslEnable16BitTypes() const { return (messages & EShMsgHlslEnable16BitTypes) != 0; }
+    bool hlslDX9Compatible() const { return (messages & EShMsgHlslDX9Compatible) != 0; }
 
     TInfoSink& infoSink;
 

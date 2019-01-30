@@ -945,7 +945,7 @@ void main() {
   std::vector<uint32_t> spirv;
   std::string errors = CompileSPIRV(settings, sources, spirv);
 
-  INFO("SPIR-V compilation" << errors);
+  INFO("SPIR-V compilation - " << errors);
 
   // ensure that compilation succeeded
   REQUIRE(spirv.size() > 0);
@@ -956,25 +956,25 @@ void main() {
   // below.
   size_t offsets[SPIRVSection::Count][2] = {
       // Capabilities
-      {0x14, 0x2c},
+      {0x14, 0x24},
       // Extensions
-      {0x2c, 0x6c},
+      {0x24, 0x40},
       // ExtInst
-      {0x6c, 0x84},
+      {0x40, 0x58},
       // MemoryModel
-      {0x84, 0x90},
+      {0x58, 0x64},
       // EntryPoints
-      {0x90, 0xac},
+      {0x64, 0x80},
       // ExecutionMode
-      {0xac, 0xb8},
+      {0x80, 0x8c},
       // Debug
-      {0xb8, 0x144},
+      {0x8c, 0x118},
       // Annotations
-      {0x144, 0x1a4},
+      {0x118, 0x178},
       // TypesVariables
-      {0x1a4, 0x2cc},
+      {0x178, 0x2a0},
       // Functions
-      {0x2cc, 0x39c},
+      {0x2a0, 0x370},
   };
 
   SECTION("Check that SPIR-V is correct with no changes")

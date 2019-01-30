@@ -1,6 +1,7 @@
 //
 // Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
 // Copyright (C) 2013 LunarG, Inc.
+// Copyright (C) 2015-2018 Google, Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -109,11 +110,12 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
 
     // save the macro name
     const int defAtom = atomStrings.getAddAtom(ppToken->name);
+    TSourceLoc defineLoc = ppToken->loc; // because ppToken might go to the next line before we report errors
 
     // gather parameters to the macro, between (...)
     token = scanToken(ppToken);
-    if (token == '(' && ! ppToken->space) {
-        mac.emptyArgs = 1;
+    if (token == '(' && !ppToken->space) {
+        mac.functionLike = 1;
         do {
             token = scanToken(ppToken);
             if (mac.args.size() == 0 && token == ')')
@@ -123,7 +125,6 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
 
                 return token;
             }
-            mac.emptyArgs = 0;
             const int argAtom = atomStrings.getAddAtom(ppToken->name);
 
             // check for duplication of parameter name
@@ -146,10 +147,13 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
         }
 
         token = scanToken(ppToken);
+    } else if (token != '\n' && token != EndOfInput && !ppToken->space) {
+        parseContext.ppWarn(ppToken->loc, "missing space after macro name", "#define", "");
+
+        return token;
     }
 
     // record the definition of the macro
-    TSourceLoc defineLoc = ppToken->loc; // because ppToken is going to go to the next line before we report errors
     while (token != '\n' && token != EndOfInput) {
         mac.body.putToken(token, ppToken);
         token = scanToken(ppToken);
@@ -164,7 +168,9 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
             // Already defined -- need to make sure they are identical:
             // "Two replacement lists are identical if and only if the preprocessing tokens in both have the same number,
             // ordering, spelling, and white-space separation, where all white-space separations are considered identical."
-            if (existing->args.size() != mac.args.size() || existing->emptyArgs != mac.emptyArgs)
+            if (existing->functionLike != mac.functionLike)
+                parseContext.ppError(defineLoc, "Macro redefined; function-like versus object-like:", "#define", atomStrings.getString(defAtom));
+            else if (existing->args.size() != mac.args.size())
                 parseContext.ppError(defineLoc, "Macro redefined; different number of arguments:", "#define", atomStrings.getString(defAtom));
             else {
                 if (existing->args != mac.args)
@@ -651,6 +657,7 @@ int TPpContext::CPPinclude(TPpToken* ppToken)
             epilogue << (res->headerData[res->headerLength - 1] == '\n'? "" : "\n") <<
                 "#line " << directiveLoc.line + forNextLine << " " << directiveLoc.getStringNameOrNum() << "\n";
             pushInput(new TokenizableIncludeFile(directiveLoc, prologue.str(), res, epilogue.str(), this));
+            parseContext.intermediate.addIncludeText(res->headerName.c_str(), res->headerData, res->headerLength);
             // There's no "current" location anymore.
             parseContext.setCurrentColumn(0);
         } else {
@@ -1120,7 +1127,8 @@ int TPpContext::tZeroInput::scan(TPpToken* ppToken)
     if (done)
         return EndOfInput;
 
-    strcpy(ppToken->name, "0");
+    ppToken->name[0] = '0';
+    ppToken->name[1] = 0;
     ppToken->ival = 0;
     ppToken->space = false;
     done = true;
@@ -1190,14 +1198,20 @@ MacroExpandResult TPpContext::MacroExpand(TPpToken* ppToken, bool expandUndef, b
 
     TSourceLoc loc = ppToken->loc;  // in case we go to the next line before discovering the error
     in->mac = macro;
-    if (macro->args.size() > 0 || macro->emptyArgs) {
-        int token = scanToken(ppToken);
+    if (macro->functionLike) {
+        // We don't know yet if this will be a successful call of a
+        // function-like macro; need to look for a '(', but without trashing
+        // the passed in ppToken, until we know we are no longer speculative.
+        TPpToken parenToken;
+        int token = scanToken(&parenToken);
         if (newLineOkay) {
             while (token == '\n')
-                token = scanToken(ppToken);
+                token = scanToken(&parenToken);
         }
         if (token != '(') {
-            UngetToken(token, ppToken);
+            // Function-like macro called with object-like syntax: okay, don't expand.
+            // (We ate exactly one token that might not be white space; put it back.
+            UngetToken(token, &parenToken);
             delete in;
             return MacroExpandNotStarted;
         }

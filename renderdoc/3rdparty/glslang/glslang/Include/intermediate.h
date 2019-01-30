@@ -269,6 +269,10 @@ enum TOperator {
     EOpConvDoubleToFloat16,
     EOpConvDoubleToFloat,
 
+    // uint64_t <-> pointer
+    EOpConvUint64ToPtr,
+    EOpConvPtrToUint64,
+
     //
     // binary operations
     //
@@ -592,6 +596,8 @@ enum TOperator {
     EOpAtomicXor,
     EOpAtomicExchange,
     EOpAtomicCompSwap,
+    EOpAtomicLoad,
+    EOpAtomicStore,
 
     EOpAtomicCounterIncrement, // results in pre-increment value
     EOpAtomicCounterDecrement, // results in post-decrement value
@@ -730,6 +736,7 @@ enum TOperator {
     EOpConstructStruct,
     EOpConstructTextureSampler,
     EOpConstructNonuniform,     // expected to be transformed away, not present in final AST
+    EOpConstructReference,
     EOpConstructGuardEnd,
 
     //
@@ -784,6 +791,8 @@ enum TOperator {
     EOpImageAtomicXor,
     EOpImageAtomicExchange,
     EOpImageAtomicCompSwap,
+    EOpImageAtomicLoad,
+    EOpImageAtomicStore,
 
     EOpSubpassLoad,
     EOpSubpassLoadMS,
@@ -861,6 +870,16 @@ enum TOperator {
 #endif
 
     EOpSparseTextureGuardEnd,
+
+#ifdef NV_EXTENSIONS
+    EOpImageFootprintGuardBegin,
+    EOpImageSampleFootprintNV,
+    EOpImageSampleFootprintClampNV,
+    EOpImageSampleFootprintLodNV,
+    EOpImageSampleFootprintGradNV,
+    EOpImageSampleFootprintGradClampNV,
+    EOpImageFootprintGuardEnd,
+#endif
     EOpSamplingGuardEnd,
     EOpTextureGuardEnd,
 
@@ -879,6 +898,14 @@ enum TOperator {
     EOpFindLSB,
     EOpFindMSB,
 
+#ifdef NV_EXTENSIONS
+    EOpTraceNV,
+    EOpReportIntersectionNV,
+    EOpIgnoreIntersectionNV,
+    EOpTerminateRayNV,
+    EOpExecuteCallableNV,
+    EOpWritePackedPrimitiveIndices4x8NV,
+#endif
     //
     // HLSL operations
     //
@@ -1244,6 +1271,9 @@ public:
     bool isSampling() const { return op > EOpSamplingGuardBegin && op < EOpSamplingGuardEnd; }
     bool isImage()    const { return op > EOpImageGuardBegin    && op < EOpImageGuardEnd; }
     bool isSparseTexture() const { return op > EOpSparseTextureGuardBegin && op < EOpSparseTextureGuardEnd; }
+#ifdef NV_EXTENSIONS
+    bool isImageFootprint() const { return op > EOpImageFootprintGuardBegin && op < EOpImageFootprintGuardEnd; }
+#endif
     bool isSparseImage()   const { return op == EOpSparseImageLoad; }
 
     void setOperationPrecision(TPrecisionQualifier p) { operationPrecision = p; }
@@ -1415,6 +1445,23 @@ public:
         case EOpFragmentFetch:
             cracked.subpass = sampler.dim == EsdSubpass;
             cracked.fragMask = true;
+            break;
+#endif
+#ifdef NV_EXTENSIONS
+        case EOpImageSampleFootprintNV:
+            break;
+        case EOpImageSampleFootprintClampNV:
+            cracked.lodClamp = true;
+            break;
+        case EOpImageSampleFootprintLodNV:
+            cracked.lod = true;
+            break;
+        case EOpImageSampleFootprintGradNV:
+            cracked.grad = true;
+            break;
+        case EOpImageSampleFootprintGradClampNV:
+            cracked.lodClamp = true;
+            cracked.grad = true;
             break;
 #endif
         case EOpSubpassLoad:

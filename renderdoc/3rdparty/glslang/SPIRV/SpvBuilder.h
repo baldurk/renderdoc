@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2014-2015 LunarG, Inc.
-// Copyright (C) 2015-2016 Google, Inc.
+// Copyright (C) 2015-2018 Google, Inc.
 // Copyright (C) 2017 ARM Limited.
 //
 // All rights reserved.
@@ -57,6 +57,7 @@
 #include <sstream>
 #include <stack>
 #include <unordered_map>
+#include <map>
 
 namespace spv {
 
@@ -74,18 +75,33 @@ public:
         source = lang;
         sourceVersion = version;
     }
+    spv::Id getStringId(const std::string& str)
+    {
+        auto sItr = stringIds.find(str);
+        if (sItr != stringIds.end())
+            return sItr->second;
+        spv::Id strId = getUniqueId();
+        Instruction* fileString = new Instruction(strId, NoType, OpString);
+        const char* file_c_str = str.c_str();
+        fileString->addStringOperand(file_c_str);
+        strings.push_back(std::unique_ptr<Instruction>(fileString));
+        stringIds[file_c_str] = strId;
+        return strId;
+    }
     void setSourceFile(const std::string& file)
     {
-        Instruction* fileString = new Instruction(getUniqueId(), NoType, OpString);
-        fileString->addStringOperand(file.c_str());
-        sourceFileStringId = fileString->getResultId();
-        strings.push_back(std::unique_ptr<Instruction>(fileString));
+        sourceFileStringId = getStringId(file);
     }
     void setSourceText(const std::string& text) { sourceText = text; }
     void addSourceExtension(const char* ext) { sourceExtensions.push_back(ext); }
     void addModuleProcessed(const std::string& p) { moduleProcesses.push_back(p.c_str()); }
     void setEmitOpLines() { emitOpLines = true; }
     void addExtension(const char* ext) { extensions.insert(ext); }
+    void addInclude(const std::string& name, const std::string& text)
+    {
+        spv::Id incId = getStringId(name);
+        includeFiles[incId] = &text;
+    }
     Id import(const char*);
     void setMemoryModel(spv::AddressingModel addr, spv::MemoryModel mem)
     {
@@ -106,16 +122,25 @@ public:
         return id;
     }
 
-    // Log the current line, and if different than the last one,
-    // issue a new OpLine, using the current file name.
+    // Generate OpLine for non-filename-based #line directives (ie no filename
+    // seen yet): Log the current line, and if different than the last one,
+    // issue a new OpLine using the new line and current source file name.
     void setLine(int line);
+
+    // If filename null, generate OpLine for non-filename-based line directives,
+    // else do filename-based: Log the current line and file, and if different
+    // than the last one, issue a new OpLine using the new line and file
+    // name.
+    void setLine(int line, const char* filename);
     // Low-level OpLine. See setLine() for a layered helper.
     void addLine(Id fileName, int line, int column);
 
     // For creating new types (will return old type if the requested one was already made).
     Id makeVoidType();
     Id makeBoolType();
-    Id makePointer(StorageClass, Id type);
+    Id makePointer(StorageClass, Id pointee);
+    Id makeForwardPointer(StorageClass);
+    Id makePointerFromForwardPointer(StorageClass, Id forwardPointerType, Id pointee);
     Id makeIntegerType(int width, bool hasSign);   // generic
     Id makeIntType(int width) { return makeIntegerType(width, true); }
     Id makeUintType(int width) { return makeIntegerType(width, false); }
@@ -130,6 +155,9 @@ public:
     Id makeImageType(Id sampledType, Dim, bool depth, bool arrayed, bool ms, unsigned sampled, ImageFormat format);
     Id makeSamplerType();
     Id makeSampledImageType(Id imageType);
+
+    // accelerationStructureNV type
+    Id makeAccelerationStructureNVType();
 
     // For querying about types.
     Id getTypeId(Id resultId) const { return module.getTypeId(resultId); }
@@ -167,6 +195,8 @@ public:
     bool isImageType(Id typeId)        const { return getTypeClass(typeId) == OpTypeImage; }
     bool isSamplerType(Id typeId)      const { return getTypeClass(typeId) == OpTypeSampler; }
     bool isSampledImageType(Id typeId) const { return getTypeClass(typeId) == OpTypeSampledImage; }
+    bool containsType(Id typeId, Op typeOp, unsigned int width) const;
+    bool containsPhysicalStorageBufferOrArray(Id typeId) const;
 
     bool isConstantOpCode(Op opcode) const;
     bool isSpecConstantOpCode(Op opcode) const;
@@ -273,10 +303,10 @@ public:
     Id createUndefined(Id type);
 
     // Store into an Id and return the l-value
-    void createStore(Id rValue, Id lValue);
+    void createStore(Id rValue, Id lValue, spv::MemoryAccessMask memoryAccess = spv::MemoryAccessMaskNone, spv::Scope scope = spv::ScopeMax, unsigned int alignment = 0);
 
     // Load from an Id and return it
-    Id createLoad(Id lValue);
+    Id createLoad(Id lValue, spv::MemoryAccessMask memoryAccess = spv::MemoryAccessMaskNone, spv::Scope scope = spv::ScopeMax, unsigned int alignment = 0);
 
     // Create an OpAccessChain instruction
     Id createAccessChain(StorageClass, Id base, const std::vector<Id>& offsets);
@@ -296,12 +326,14 @@ public:
     void createNoResultOp(Op);
     void createNoResultOp(Op, Id operand);
     void createNoResultOp(Op, const std::vector<Id>& operands);
+    void createNoResultOp(Op, const std::vector<IdImmediate>& operands);
     void createControlBarrier(Scope execution, Scope memory, MemorySemanticsMask);
     void createMemoryBarrier(unsigned executionScope, unsigned memorySemantics);
     Id createUnaryOp(Op, Id typeId, Id operand);
     Id createBinOp(Op, Id typeId, Id operand1, Id operand2);
     Id createTriOp(Op, Id typeId, Id operand1, Id operand2, Id operand3);
     Id createOp(Op, Id typeId, const std::vector<Id>& operands);
+    Id createOp(Op, Id typeId, const std::vector<IdImmediate>& operands);
     Id createFunctionCall(spv::Function*, const std::vector<spv::Id>&);
     Id createSpecConstantOp(Op, Id typeId, const std::vector<spv::Id>& operands, const std::vector<unsigned>& literals);
 
@@ -363,6 +395,10 @@ public:
         Id component;
         Id texelOut;
         Id lodClamp;
+        Id granularity;
+        Id coarse;
+        bool nonprivate;
+        bool volatil;
     };
 
     // Select the correct texture operation based on all inputs, and emit the correct instruction
@@ -502,6 +538,44 @@ public:
         Id component;                  // a dynamic component index, can coexist with a swizzle, done after the swizzle, NoResult if not present
         Id preSwizzleBaseType;         // dereferenced type, before swizzle or component is applied; NoType unless a swizzle or component is present
         bool isRValue;                 // true if 'base' is an r-value, otherwise, base is an l-value
+        unsigned int alignment;        // bitwise OR of alignment values passed in. Accumulates worst alignment. Only tracks base and (optional) component selection alignment.
+
+        // Accumulate whether anything in the chain of structures has coherent decorations.
+        struct CoherentFlags {
+            unsigned coherent : 1;
+            unsigned devicecoherent : 1;
+            unsigned queuefamilycoherent : 1;
+            unsigned workgroupcoherent : 1;
+            unsigned subgroupcoherent : 1;
+            unsigned nonprivate : 1;
+            unsigned volatil : 1;
+            unsigned isImage : 1;
+
+            void clear() {
+                coherent = 0;
+                devicecoherent = 0;
+                queuefamilycoherent = 0;
+                workgroupcoherent = 0;
+                subgroupcoherent = 0;
+                nonprivate = 0;
+                volatil = 0;
+                isImage = 0;
+            }
+
+            CoherentFlags() { clear(); }
+            CoherentFlags operator |=(const CoherentFlags &other) {
+                coherent |= other.coherent;
+                devicecoherent |= other.devicecoherent;
+                queuefamilycoherent |= other.queuefamilycoherent;
+                workgroupcoherent |= other.workgroupcoherent;
+                subgroupcoherent |= other.subgroupcoherent;
+                nonprivate |= other.nonprivate;
+                volatil |= other.volatil;
+                isImage |= other.isImage;
+                return *this;
+            }
+        };
+        CoherentFlags coherentFlags;
     };
 
     //
@@ -531,30 +605,34 @@ public:
     }
 
     // push offset onto the end of the chain
-    void accessChainPush(Id offset)
+    void accessChainPush(Id offset, AccessChain::CoherentFlags coherentFlags, unsigned int alignment)
     {
         accessChain.indexChain.push_back(offset);
+        accessChain.coherentFlags |= coherentFlags;
+        accessChain.alignment |= alignment;
     }
 
     // push new swizzle onto the end of any existing swizzle, merging into a single swizzle
-    void accessChainPushSwizzle(std::vector<unsigned>& swizzle, Id preSwizzleBaseType);
+    void accessChainPushSwizzle(std::vector<unsigned>& swizzle, Id preSwizzleBaseType, AccessChain::CoherentFlags coherentFlags, unsigned int alignment);
 
     // push a dynamic component selection onto the access chain, only applicable with a
     // non-trivial swizzle or no swizzle
-    void accessChainPushComponent(Id component, Id preSwizzleBaseType)
+    void accessChainPushComponent(Id component, Id preSwizzleBaseType, AccessChain::CoherentFlags coherentFlags, unsigned int alignment)
     {
         if (accessChain.swizzle.size() != 1) {
             accessChain.component = component;
             if (accessChain.preSwizzleBaseType == NoType)
                 accessChain.preSwizzleBaseType = preSwizzleBaseType;
         }
+        accessChain.coherentFlags |= coherentFlags;
+        accessChain.alignment |= alignment;
     }
 
     // use accessChain and swizzle to store value
-    void accessChainStore(Id rvalue);
+    void accessChainStore(Id rvalue, spv::MemoryAccessMask memoryAccess = spv::MemoryAccessMaskNone, spv::Scope scope = spv::ScopeMax, unsigned int alignment = 0);
 
     // use accessChain and swizzle to load an r-value
-    Id accessChainLoad(Decoration precision, Decoration nonUniform, Id ResultType);
+    Id accessChainLoad(Decoration precision, Decoration nonUniform, Id ResultType, spv::MemoryAccessMask memoryAccess = spv::MemoryAccessMaskNone, spv::Scope scope = spv::ScopeMax, unsigned int alignment = 0);
 
     // get the direct pointer for an l-value
     Id accessChainGetLValue();
@@ -568,9 +646,11 @@ public:
     void postProcess();
 
     // Hook to visit each instruction in a block in a function
-    void postProcess(Instruction& inst);
+    void postProcess(Instruction&);
     // Hook to visit each instruction in a reachable block in a function.
-    void postProcessReachable(Instruction& inst);
+    void postProcessReachable(const Instruction&);
+    // Hook to visit each non-32-bit sized float/int operation in a block.
+    void postProcessType(const Instruction&, spv::Id typeId);
 
     void dump(std::vector<unsigned int>&) const;
 
@@ -599,8 +679,10 @@ public:
     void createAndSetNoPredecessorBlock(const char*);
     void createSelectionMerge(Block* mergeBlock, unsigned int control);
     void dumpSourceInstructions(std::vector<unsigned int>&) const;
+    void dumpSourceInstructions(const spv::Id fileId, const std::string& text, std::vector<unsigned int>&) const;
     void dumpInstructions(std::vector<unsigned int>&, const std::vector<std::unique_ptr<Instruction> >&) const;
     void dumpModuleProcesses(std::vector<unsigned int>&) const;
+    spv::MemoryAccessMask sanitizeMemoryAccessForStorageClass(spv::MemoryAccessMask memoryAccess, StorageClass sc) const;
 
     unsigned int spvVersion;     // the version of SPIR-V to emit in the header
     SourceLanguage source;
@@ -608,6 +690,7 @@ public:
     spv::Id sourceFileStringId;
     std::string sourceText;
     int currentLine;
+    const char* currentFile;
     bool emitOpLines;
     std::set<std::string> extensions;
     std::vector<const char*> sourceExtensions;
@@ -644,6 +727,12 @@ public:
 
     // Our loop stack.
     std::stack<LoopBlocks> loops;
+
+    // map from strings to their string ids
+    std::unordered_map<std::string, spv::Id> stringIds;
+
+    // map from include file name ids to their contents
+    std::map<spv::Id, const std::string*> includeFiles;
 
     // The stream for outputting warnings and errors.
     SpvBuildLogger* logger;
