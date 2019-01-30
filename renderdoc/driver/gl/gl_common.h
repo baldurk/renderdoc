@@ -341,15 +341,15 @@ class IReplayDriver;
 typedef void *HANDLE;
 typedef long BOOL;
 
-typedef BOOL(APIENTRYP *PFNWGLDXSETRESOURCESHAREHANDLENVPROC)(void *dxObject, HANDLE shareHandle);
-typedef HANDLE(APIENTRYP *PFNWGLDXOPENDEVICENVPROC)(void *dxDevice);
-typedef BOOL(APIENTRYP *PFNWGLDXCLOSEDEVICENVPROC)(HANDLE hDevice);
-typedef HANDLE(APIENTRYP *PFNWGLDXREGISTEROBJECTNVPROC)(HANDLE hDevice, void *dxObject, GLuint name,
-                                                        GLenum type, GLenum access);
-typedef BOOL(APIENTRYP *PFNWGLDXUNREGISTEROBJECTNVPROC)(HANDLE hDevice, HANDLE hObject);
-typedef BOOL(APIENTRYP *PFNWGLDXOBJECTACCESSNVPROC)(HANDLE hObject, GLenum access);
-typedef BOOL(APIENTRYP *PFNWGLDXLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
-typedef BOOL(APIENTRYP *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
+typedef BOOL(APIENTRY *PFNWGLDXSETRESOURCESHAREHANDLENVPROC)(void *dxObject, HANDLE shareHandle);
+typedef HANDLE(APIENTRY *PFNWGLDXOPENDEVICENVPROC)(void *dxDevice);
+typedef BOOL(APIENTRY *PFNWGLDXCLOSEDEVICENVPROC)(HANDLE hDevice);
+typedef HANDLE(APIENTRY *PFNWGLDXREGISTEROBJECTNVPROC)(HANDLE hDevice, void *dxObject, GLuint name,
+                                                       GLenum type, GLenum access);
+typedef BOOL(APIENTRY *PFNWGLDXUNREGISTEROBJECTNVPROC)(HANDLE hDevice, HANDLE hObject);
+typedef BOOL(APIENTRY *PFNWGLDXOBJECTACCESSNVPROC)(HANDLE hObject, GLenum access);
+typedef BOOL(APIENTRY *PFNWGLDXLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
+typedef BOOL(APIENTRY *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
 #endif
 
 #include "api/replay/renderdoc_replay.h"

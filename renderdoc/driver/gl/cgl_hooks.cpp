@@ -37,6 +37,8 @@ public:
   void *handle = RTLD_NEXT;
   WrappedOpenGL driver;
   std::set<CGLContextObj> contexts;
+
+  volatile int32_t suppressed = 0;
 } cglhook;
 
 CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj share,
@@ -99,6 +101,9 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
   }
 
   CGLError ret = CGL.CGLSetCurrentContext(ctx);
+
+  if(Atomic::CmpExch32(&cglhook.suppressed, 0, 0) != 0)
+    return ret;
 
   if(ret == kCGLNoError)
   {
@@ -173,7 +178,16 @@ CGLError GL_EXPORT_NAME(CGLFlushDrawable)(CGLContextObj ctx)
     cglhook.driver.SwapBuffers((void *)(uintptr_t)window);
   }
 
-  return CGL.CGLFlushDrawable(ctx);
+  CGLError ret;
+  {
+    DisableGLHooks();
+    Atomic::Inc32(&cglhook.suppressed);
+    ret = CGL.CGLFlushDrawable(ctx);
+    Atomic::Dec32(&cglhook.suppressed);
+    EnableGLHooks();
+  }
+
+  return ret;
 }
 
 DECL_HOOK_EXPORT(CGLCreateContext);
@@ -187,6 +201,9 @@ static void CGLHooked(void *handle)
   // store the handle for any pass-through implementations that need to look up their onward
   // pointers
   cglhook.handle = handle;
+
+  // enable hooks immediately, we'll suppress them when calling into CGL
+  EnableGLHooks();
 
   // as a hook callback this is only called while capturing
   RDCASSERT(!RenderDoc::Inst().IsReplayApp());

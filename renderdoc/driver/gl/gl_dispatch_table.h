@@ -981,8 +981,11 @@ void SetDriverForHooks(WrappedOpenGL *driver);
 // we see context creation, to prevent crashes trying to handle function calls having seen no
 // intialisation. This can have false positives if the program creates a context late, but it's the
 // best we can do.
-#if ENABLED(RDOC_WIN32)
+// On apple we suppress hooks while entering any CGL function so we don't record internal work that
+// can mess up the replay
+#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE)
 void EnableGLHooks();
+void DisableGLHooks();
 #else
 #define EnableGLHooks() (void)0
 #endif

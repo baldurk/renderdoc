@@ -105,10 +105,15 @@ void SetDriverForHooks(WrappedOpenGL *driver)
   glhook.driver = driver;
 }
 
-#if ENABLED(RDOC_WIN32)
+#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE)
 void EnableGLHooks()
 {
   glhook.enabled = true;
+}
+
+void DisableGLHooks()
+{
+  glhook.enabled = false;
 }
 
 // if we were injected and aren't ready to capture, skip out and call the real function
