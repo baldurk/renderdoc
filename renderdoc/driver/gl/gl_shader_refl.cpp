@@ -339,6 +339,12 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
             if(!strncmp(&src[it], "es", 2))
               it += sizeof("es") - 1;
 
+            it++;
+
+            // next line after #version, insert the extension declaration
+            if(it < src.length())
+              src.insert(it, "#extension GL_ARB_separate_shader_objects : enable\n");
+
             // how deep are we in an #if. We want to place our definition
             // outside of any #ifs.
             int if_depth = 0;
