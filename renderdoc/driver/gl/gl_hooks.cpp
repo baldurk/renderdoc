@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "driver/gl/apple_gl_hook_defs.h"
 #include "driver/gl/gl_common.h"
 #include "driver/gl/gl_dispatch_table.h"
 #include "driver/gl/gl_dispatch_table_defs.h"
@@ -166,6 +167,10 @@ void *HookedGetProcAddress(const char *func, void *realFunc)
 
 void *GLHook::GetUnsupportedFunction(const char *name)
 {
+#if ENABLED(RDOC_APPLE)
+  RDCERR("GetUnsupportedFunction called on apple - this should be available at compile time");
+#endif
+
   void *ret = Process::GetFunctionAddress(handle, name);
   if(ret)
     return ret;
@@ -206,7 +211,7 @@ void GLHook::RegisterHooks()
 #elif ENABLED(RDOC_ANDROID)
   const char *libraryName = "libEGL.so";
 #elif ENABLED(RDOC_APPLE)
-  const char *libraryName = "/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL";
+  const char *libraryName = "/System/Library/Frameworks/OpenGL.framework/Libraries/libGL.dylib";
 #else
   const char *libraryName = "libGL.so.1";
 #endif
@@ -230,8 +235,25 @@ void GLHook::RegisterHooks()
     ForEachSupported(RegisterFunc);
   }
 #endif
+
+#if ENABLED(RDOC_APPLE)
+
+// dlsym is unreliable with interposing, we must fetch the functions directly here at compile-time.
+
+#undef APPLE_FUNC
+#define APPLE_FUNC(function) CONCAT(unsupported_real_, function) = &function;
+
+  ForEachAppleUnsupported();
+
+#endif
 }
 
 #if ENABLED(RDOC_APPLE)
-#include "apple_gl_hook_defs.h"
+
+// from dyld-interposing.h - DYLD_INTERPOSE
+#undef APPLE_FUNC
+#define APPLE_FUNC(function) DECL_HOOK_EXPORT(function)
+
+ForEachAppleSupported();
+
 #endif

@@ -32,1265 +32,1268 @@
 //
 // TL;DR: this is a *manually curated* list and must not be modified without understanding.
 
-DECL_GL_HOOK_EXPORT(glAccum);
-DECL_GL_HOOK_EXPORT(glActiveShaderProgram);
-DECL_GL_HOOK_EXPORT(glActiveStencilFaceEXT);
-DECL_GL_HOOK_EXPORT(glActiveTexture);
-DECL_GL_HOOK_EXPORT(glActiveTextureARB);
-DECL_GL_HOOK_EXPORT(glAlphaFunc);
-DECL_GL_HOOK_EXPORT(glAreTexturesResident);
-DECL_GL_HOOK_EXPORT(glArrayElement);
-DECL_GL_HOOK_EXPORT(glAttachObjectARB);
-DECL_GL_HOOK_EXPORT(glAttachShader);
-DECL_GL_HOOK_EXPORT(glBegin);
-DECL_GL_HOOK_EXPORT(glBeginConditionalRender);
-DECL_GL_HOOK_EXPORT(glBeginConditionalRenderNV);
-DECL_GL_HOOK_EXPORT(glBeginQuery);
-DECL_GL_HOOK_EXPORT(glBeginQueryARB);
-DECL_GL_HOOK_EXPORT(glBeginQueryIndexed);
-DECL_GL_HOOK_EXPORT(glBeginTransformFeedback);
-DECL_GL_HOOK_EXPORT(glBeginTransformFeedbackEXT);
-DECL_GL_HOOK_EXPORT(glBindAttribLocation);
-DECL_GL_HOOK_EXPORT(glBindAttribLocationARB);
-DECL_GL_HOOK_EXPORT(glBindBuffer);
-DECL_GL_HOOK_EXPORT(glBindBufferARB);
-DECL_GL_HOOK_EXPORT(glBindBufferBase);
-DECL_GL_HOOK_EXPORT(glBindBufferBaseEXT);
-DECL_GL_HOOK_EXPORT(glBindBufferOffsetEXT);
-DECL_GL_HOOK_EXPORT(glBindBufferRange);
-DECL_GL_HOOK_EXPORT(glBindBufferRangeEXT);
-DECL_GL_HOOK_EXPORT(glBindFragDataLocation);
-DECL_GL_HOOK_EXPORT(glBindFragDataLocationEXT);
-DECL_GL_HOOK_EXPORT(glBindFragDataLocationIndexed);
-DECL_GL_HOOK_EXPORT(glBindFramebuffer);
-DECL_GL_HOOK_EXPORT(glBindFramebufferEXT);
-DECL_GL_HOOK_EXPORT(glBindProgramARB);
-DECL_GL_HOOK_EXPORT(glBindProgramPipeline);
-DECL_GL_HOOK_EXPORT(glBindRenderbuffer);
-DECL_GL_HOOK_EXPORT(glBindRenderbufferEXT);
-DECL_GL_HOOK_EXPORT(glBindSampler);
-DECL_GL_HOOK_EXPORT(glBindTexture);
-DECL_GL_HOOK_EXPORT(glBindTransformFeedback);
-DECL_GL_HOOK_EXPORT(glBindVertexArray);
-DECL_GL_HOOK_EXPORT(glBindVertexArrayAPPLE);
-DECL_GL_HOOK_EXPORT(glBitmap);
-DECL_GL_HOOK_EXPORT(glBlendColor);
-DECL_GL_HOOK_EXPORT(glBlendColorEXT);
-DECL_GL_HOOK_EXPORT(glBlendEquation);
-DECL_GL_HOOK_EXPORT(glBlendEquationEXT);
-DECL_GL_HOOK_EXPORT(glBlendEquationi);
-DECL_GL_HOOK_EXPORT(glBlendEquationiARB);
-DECL_GL_HOOK_EXPORT(glBlendEquationSeparate);
-DECL_GL_HOOK_EXPORT(glBlendEquationSeparateEXT);
-DECL_GL_HOOK_EXPORT(glBlendEquationSeparatei);
-DECL_GL_HOOK_EXPORT(glBlendEquationSeparateiARB);
-DECL_GL_HOOK_EXPORT(glBlendFunc);
-DECL_GL_HOOK_EXPORT(glBlendFunci);
-DECL_GL_HOOK_EXPORT(glBlendFunciARB);
-DECL_GL_HOOK_EXPORT(glBlendFuncSeparate);
-DECL_GL_HOOK_EXPORT(glBlendFuncSeparateEXT);
-DECL_GL_HOOK_EXPORT(glBlendFuncSeparatei);
-DECL_GL_HOOK_EXPORT(glBlendFuncSeparateiARB);
-DECL_GL_HOOK_EXPORT(glBlitFramebuffer);
-DECL_GL_HOOK_EXPORT(glBlitFramebufferEXT);
-DECL_GL_HOOK_EXPORT(glBufferData);
-DECL_GL_HOOK_EXPORT(glBufferDataARB);
-DECL_GL_HOOK_EXPORT(glBufferParameteriAPPLE);
-DECL_GL_HOOK_EXPORT(glBufferSubData);
-DECL_GL_HOOK_EXPORT(glBufferSubDataARB);
-DECL_GL_HOOK_EXPORT(glCallList);
-DECL_GL_HOOK_EXPORT(glCallLists);
-DECL_GL_HOOK_EXPORT(glCheckFramebufferStatus);
-DECL_GL_HOOK_EXPORT(glCheckFramebufferStatusEXT);
-DECL_GL_HOOK_EXPORT(glClampColor);
-DECL_GL_HOOK_EXPORT(glClampColorARB);
-DECL_GL_HOOK_EXPORT(glClear);
-DECL_GL_HOOK_EXPORT(glClearAccum);
-DECL_GL_HOOK_EXPORT(glClearBufferfi);
-DECL_GL_HOOK_EXPORT(glClearBufferfv);
-DECL_GL_HOOK_EXPORT(glClearBufferiv);
-DECL_GL_HOOK_EXPORT(glClearBufferuiv);
-DECL_GL_HOOK_EXPORT(glClearColor);
-DECL_GL_HOOK_EXPORT(glClearColorIiEXT);
-DECL_GL_HOOK_EXPORT(glClearColorIuiEXT);
-DECL_GL_HOOK_EXPORT(glClearDepth);
-DECL_GL_HOOK_EXPORT(glClearDepthf);
-DECL_GL_HOOK_EXPORT(glClearIndex);
-DECL_GL_HOOK_EXPORT(glClearStencil);
-DECL_GL_HOOK_EXPORT(glClientActiveTexture);
-DECL_GL_HOOK_EXPORT(glClientActiveTextureARB);
-DECL_GL_HOOK_EXPORT(glClientWaitSync);
-DECL_GL_HOOK_EXPORT(glClipPlane);
-DECL_GL_HOOK_EXPORT(glColor3b);
-DECL_GL_HOOK_EXPORT(glColor3bv);
-DECL_GL_HOOK_EXPORT(glColor3d);
-DECL_GL_HOOK_EXPORT(glColor3dv);
-DECL_GL_HOOK_EXPORT(glColor3f);
-DECL_GL_HOOK_EXPORT(glColor3fv);
-DECL_GL_HOOK_EXPORT(glColor3i);
-DECL_GL_HOOK_EXPORT(glColor3iv);
-DECL_GL_HOOK_EXPORT(glColor3s);
-DECL_GL_HOOK_EXPORT(glColor3sv);
-DECL_GL_HOOK_EXPORT(glColor3ub);
-DECL_GL_HOOK_EXPORT(glColor3ubv);
-DECL_GL_HOOK_EXPORT(glColor3ui);
-DECL_GL_HOOK_EXPORT(glColor3uiv);
-DECL_GL_HOOK_EXPORT(glColor3us);
-DECL_GL_HOOK_EXPORT(glColor3usv);
-DECL_GL_HOOK_EXPORT(glColor4b);
-DECL_GL_HOOK_EXPORT(glColor4bv);
-DECL_GL_HOOK_EXPORT(glColor4d);
-DECL_GL_HOOK_EXPORT(glColor4dv);
-DECL_GL_HOOK_EXPORT(glColor4f);
-DECL_GL_HOOK_EXPORT(glColor4fv);
-DECL_GL_HOOK_EXPORT(glColor4i);
-DECL_GL_HOOK_EXPORT(glColor4iv);
-DECL_GL_HOOK_EXPORT(glColor4s);
-DECL_GL_HOOK_EXPORT(glColor4sv);
-DECL_GL_HOOK_EXPORT(glColor4ub);
-DECL_GL_HOOK_EXPORT(glColor4ubv);
-DECL_GL_HOOK_EXPORT(glColor4ui);
-DECL_GL_HOOK_EXPORT(glColor4uiv);
-DECL_GL_HOOK_EXPORT(glColor4us);
-DECL_GL_HOOK_EXPORT(glColor4usv);
-DECL_GL_HOOK_EXPORT(glColorMask);
-DECL_GL_HOOK_EXPORT(glColorMaski);
-DECL_GL_HOOK_EXPORT(glColorMaskIndexedEXT);
-DECL_GL_HOOK_EXPORT(glColorMaterial);
-DECL_GL_HOOK_EXPORT(glColorPointer);
-DECL_GL_HOOK_EXPORT(glColorSubTable);
-DECL_GL_HOOK_EXPORT(glColorSubTableEXT);
-DECL_GL_HOOK_EXPORT(glColorTable);
-DECL_GL_HOOK_EXPORT(glColorTableEXT);
-DECL_GL_HOOK_EXPORT(glColorTableParameterfv);
-DECL_GL_HOOK_EXPORT(glColorTableParameteriv);
-DECL_GL_HOOK_EXPORT(glCombinerInputNV);
-DECL_GL_HOOK_EXPORT(glCombinerOutputNV);
-DECL_GL_HOOK_EXPORT(glCombinerParameterfNV);
-DECL_GL_HOOK_EXPORT(glCombinerParameterfvNV);
-DECL_GL_HOOK_EXPORT(glCombinerParameteriNV);
-DECL_GL_HOOK_EXPORT(glCombinerParameterivNV);
-DECL_GL_HOOK_EXPORT(glCombinerStageParameterfvNV);
-DECL_GL_HOOK_EXPORT(glCompileShader);
-DECL_GL_HOOK_EXPORT(glCompileShaderARB);
-DECL_GL_HOOK_EXPORT(glCompileShaderIncludeARB);
-DECL_GL_HOOK_EXPORT(glCompressedTexImage1D);
-DECL_GL_HOOK_EXPORT(glCompressedTexImage1DARB);
-DECL_GL_HOOK_EXPORT(glCompressedTexImage2D);
-DECL_GL_HOOK_EXPORT(glCompressedTexImage2DARB);
-DECL_GL_HOOK_EXPORT(glCompressedTexImage3D);
-DECL_GL_HOOK_EXPORT(glCompressedTexImage3DARB);
-DECL_GL_HOOK_EXPORT(glCompressedTexSubImage1D);
-DECL_GL_HOOK_EXPORT(glCompressedTexSubImage1DARB);
-DECL_GL_HOOK_EXPORT(glCompressedTexSubImage2D);
-DECL_GL_HOOK_EXPORT(glCompressedTexSubImage2DARB);
-DECL_GL_HOOK_EXPORT(glCompressedTexSubImage3D);
-DECL_GL_HOOK_EXPORT(glCompressedTexSubImage3DARB);
-DECL_GL_HOOK_EXPORT(glConvolutionFilter1D);
-DECL_GL_HOOK_EXPORT(glConvolutionFilter2D);
-DECL_GL_HOOK_EXPORT(glConvolutionParameterf);
-DECL_GL_HOOK_EXPORT(glConvolutionParameterfv);
-DECL_GL_HOOK_EXPORT(glConvolutionParameteri);
-DECL_GL_HOOK_EXPORT(glConvolutionParameteriv);
-DECL_GL_HOOK_EXPORT(glCopyBufferSubData);
-DECL_GL_HOOK_EXPORT(glCopyColorSubTable);
-DECL_GL_HOOK_EXPORT(glCopyColorTable);
-DECL_GL_HOOK_EXPORT(glCopyConvolutionFilter1D);
-DECL_GL_HOOK_EXPORT(glCopyConvolutionFilter2D);
-DECL_GL_HOOK_EXPORT(glCopyPixels);
-DECL_GL_HOOK_EXPORT(glCopyTexImage1D);
-DECL_GL_HOOK_EXPORT(glCopyTexImage2D);
-DECL_GL_HOOK_EXPORT(glCopyTexSubImage1D);
-DECL_GL_HOOK_EXPORT(glCopyTexSubImage2D);
-DECL_GL_HOOK_EXPORT(glCopyTexSubImage3D);
-DECL_GL_HOOK_EXPORT(glCreateProgram);
-DECL_GL_HOOK_EXPORT(glCreateProgramObjectARB);
-DECL_GL_HOOK_EXPORT(glCreateShader);
-DECL_GL_HOOK_EXPORT(glCreateShaderObjectARB);
-DECL_GL_HOOK_EXPORT(glCreateShaderProgramv);
-DECL_GL_HOOK_EXPORT(glCullFace);
-DECL_GL_HOOK_EXPORT(glDeleteBuffers);
-DECL_GL_HOOK_EXPORT(glDeleteBuffersARB);
-DECL_GL_HOOK_EXPORT(glDeleteFencesAPPLE);
-DECL_GL_HOOK_EXPORT(glDeleteFramebuffers);
-DECL_GL_HOOK_EXPORT(glDeleteFramebuffersEXT);
-DECL_GL_HOOK_EXPORT(glDeleteLists);
-DECL_GL_HOOK_EXPORT(glDeleteNamedStringARB);
-DECL_GL_HOOK_EXPORT(glDeleteObjectARB);
-DECL_GL_HOOK_EXPORT(glDeleteProgram);
-DECL_GL_HOOK_EXPORT(glDeleteProgramPipelines);
-DECL_GL_HOOK_EXPORT(glDeleteProgramsARB);
-DECL_GL_HOOK_EXPORT(glDeleteQueries);
-DECL_GL_HOOK_EXPORT(glDeleteQueriesARB);
-DECL_GL_HOOK_EXPORT(glDeleteRenderbuffers);
-DECL_GL_HOOK_EXPORT(glDeleteRenderbuffersEXT);
-DECL_GL_HOOK_EXPORT(glDeleteSamplers);
-DECL_GL_HOOK_EXPORT(glDeleteShader);
-DECL_GL_HOOK_EXPORT(glDeleteSync);
-DECL_GL_HOOK_EXPORT(glDeleteTextures);
-DECL_GL_HOOK_EXPORT(glDeleteTransformFeedbacks);
-DECL_GL_HOOK_EXPORT(glDeleteVertexArrays);
-DECL_GL_HOOK_EXPORT(glDeleteVertexArraysAPPLE);
-DECL_GL_HOOK_EXPORT(glDepthBoundsEXT);
-DECL_GL_HOOK_EXPORT(glDepthFunc);
-DECL_GL_HOOK_EXPORT(glDepthMask);
-DECL_GL_HOOK_EXPORT(glDepthRange);
-DECL_GL_HOOK_EXPORT(glDepthRangeArrayv);
-DECL_GL_HOOK_EXPORT(glDepthRangef);
-DECL_GL_HOOK_EXPORT(glDepthRangeIndexed);
-DECL_GL_HOOK_EXPORT(glDetachObjectARB);
-DECL_GL_HOOK_EXPORT(glDetachShader);
-DECL_GL_HOOK_EXPORT(glDisable);
-DECL_GL_HOOK_EXPORT(glDisableClientState);
-DECL_GL_HOOK_EXPORT(glDisablei);
-DECL_GL_HOOK_EXPORT(glDisableIndexedEXT);
-DECL_GL_HOOK_EXPORT(glDisableVertexAttribAPPLE);
-DECL_GL_HOOK_EXPORT(glDisableVertexAttribArray);
-DECL_GL_HOOK_EXPORT(glDisableVertexAttribArrayARB);
-DECL_GL_HOOK_EXPORT(glDrawArrays);
-DECL_GL_HOOK_EXPORT(glDrawArraysIndirect);
-DECL_GL_HOOK_EXPORT(glDrawArraysInstanced);
-DECL_GL_HOOK_EXPORT(glDrawArraysInstancedARB);
-DECL_GL_HOOK_EXPORT(glDrawBuffer);
-DECL_GL_HOOK_EXPORT(glDrawBuffers);
-DECL_GL_HOOK_EXPORT(glDrawBuffersARB);
-DECL_GL_HOOK_EXPORT(glDrawElementArrayAPPLE);
-DECL_GL_HOOK_EXPORT(glDrawElements);
-DECL_GL_HOOK_EXPORT(glDrawElementsBaseVertex);
-DECL_GL_HOOK_EXPORT(glDrawElementsIndirect);
-DECL_GL_HOOK_EXPORT(glDrawElementsInstanced);
-DECL_GL_HOOK_EXPORT(glDrawElementsInstancedARB);
-DECL_GL_HOOK_EXPORT(glDrawElementsInstancedBaseVertex);
-DECL_GL_HOOK_EXPORT(glDrawPixels);
-DECL_GL_HOOK_EXPORT(glDrawRangeElementArrayAPPLE);
-DECL_GL_HOOK_EXPORT(glDrawRangeElements);
-DECL_GL_HOOK_EXPORT(glDrawRangeElementsBaseVertex);
-DECL_GL_HOOK_EXPORT(glDrawRangeElementsEXT);
-DECL_GL_HOOK_EXPORT(glDrawTransformFeedback);
-DECL_GL_HOOK_EXPORT(glDrawTransformFeedbackStream);
-DECL_GL_HOOK_EXPORT(glEdgeFlag);
-DECL_GL_HOOK_EXPORT(glEdgeFlagPointer);
-DECL_GL_HOOK_EXPORT(glEdgeFlagv);
-DECL_GL_HOOK_EXPORT(glElementPointerAPPLE);
-DECL_GL_HOOK_EXPORT(glEnable);
-DECL_GL_HOOK_EXPORT(glEnableClientState);
-DECL_GL_HOOK_EXPORT(glEnablei);
-DECL_GL_HOOK_EXPORT(glEnableIndexedEXT);
-DECL_GL_HOOK_EXPORT(glEnableVertexAttribAPPLE);
-DECL_GL_HOOK_EXPORT(glEnableVertexAttribArray);
-DECL_GL_HOOK_EXPORT(glEnableVertexAttribArrayARB);
-DECL_GL_HOOK_EXPORT(glEnd);
-DECL_GL_HOOK_EXPORT(glEndConditionalRender);
-DECL_GL_HOOK_EXPORT(glEndConditionalRenderNV);
-DECL_GL_HOOK_EXPORT(glEndList);
-DECL_GL_HOOK_EXPORT(glEndQuery);
-DECL_GL_HOOK_EXPORT(glEndQueryARB);
-DECL_GL_HOOK_EXPORT(glEndQueryIndexed);
-DECL_GL_HOOK_EXPORT(glEndTransformFeedback);
-DECL_GL_HOOK_EXPORT(glEndTransformFeedbackEXT);
-DECL_GL_HOOK_EXPORT(glEvalCoord1d);
-DECL_GL_HOOK_EXPORT(glEvalCoord1dv);
-DECL_GL_HOOK_EXPORT(glEvalCoord1f);
-DECL_GL_HOOK_EXPORT(glEvalCoord1fv);
-DECL_GL_HOOK_EXPORT(glEvalCoord2d);
-DECL_GL_HOOK_EXPORT(glEvalCoord2dv);
-DECL_GL_HOOK_EXPORT(glEvalCoord2f);
-DECL_GL_HOOK_EXPORT(glEvalCoord2fv);
-DECL_GL_HOOK_EXPORT(glEvalMesh1);
-DECL_GL_HOOK_EXPORT(glEvalMesh2);
-DECL_GL_HOOK_EXPORT(glEvalPoint1);
-DECL_GL_HOOK_EXPORT(glEvalPoint2);
-DECL_GL_HOOK_EXPORT(glFeedbackBuffer);
-DECL_GL_HOOK_EXPORT(glFenceSync);
-DECL_GL_HOOK_EXPORT(glFinalCombinerInputNV);
-DECL_GL_HOOK_EXPORT(glFinish);
-DECL_GL_HOOK_EXPORT(glFinishFenceAPPLE);
-DECL_GL_HOOK_EXPORT(glFinishObjectAPPLE);
-DECL_GL_HOOK_EXPORT(glFlush);
-DECL_GL_HOOK_EXPORT(glFlushMappedBufferRange);
-DECL_GL_HOOK_EXPORT(glFlushMappedBufferRangeAPPLE);
-DECL_GL_HOOK_EXPORT(glFlushVertexArrayRangeAPPLE);
-DECL_GL_HOOK_EXPORT(glFogCoordd);
-DECL_GL_HOOK_EXPORT(glFogCoorddEXT);
-DECL_GL_HOOK_EXPORT(glFogCoorddv);
-DECL_GL_HOOK_EXPORT(glFogCoorddvEXT);
-DECL_GL_HOOK_EXPORT(glFogCoordf);
-DECL_GL_HOOK_EXPORT(glFogCoordfEXT);
-DECL_GL_HOOK_EXPORT(glFogCoordfv);
-DECL_GL_HOOK_EXPORT(glFogCoordfvEXT);
-DECL_GL_HOOK_EXPORT(glFogCoordPointer);
-DECL_GL_HOOK_EXPORT(glFogCoordPointerEXT);
-DECL_GL_HOOK_EXPORT(glFogf);
-DECL_GL_HOOK_EXPORT(glFogfv);
-DECL_GL_HOOK_EXPORT(glFogi);
-DECL_GL_HOOK_EXPORT(glFogiv);
-DECL_GL_HOOK_EXPORT(glFramebufferRenderbuffer);
-DECL_GL_HOOK_EXPORT(glFramebufferRenderbufferEXT);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture1D);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture1DEXT);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture2D);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture2DEXT);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture3D);
-DECL_GL_HOOK_EXPORT(glFramebufferTexture3DEXT);
-DECL_GL_HOOK_EXPORT(glFramebufferTextureEXT);
-DECL_GL_HOOK_EXPORT(glFramebufferTextureFaceEXT);
-DECL_GL_HOOK_EXPORT(glFramebufferTextureLayer);
-DECL_GL_HOOK_EXPORT(glFramebufferTextureLayerEXT);
-DECL_GL_HOOK_EXPORT(glFrontFace);
-DECL_GL_HOOK_EXPORT(glFrustum);
-DECL_GL_HOOK_EXPORT(glGenBuffers);
-DECL_GL_HOOK_EXPORT(glGenBuffersARB);
-DECL_GL_HOOK_EXPORT(glGenerateMipmap);
-DECL_GL_HOOK_EXPORT(glGenerateMipmapEXT);
-DECL_GL_HOOK_EXPORT(glGenFencesAPPLE);
-DECL_GL_HOOK_EXPORT(glGenFramebuffers);
-DECL_GL_HOOK_EXPORT(glGenFramebuffersEXT);
-DECL_GL_HOOK_EXPORT(glGenLists);
-DECL_GL_HOOK_EXPORT(glGenProgramPipelines);
-DECL_GL_HOOK_EXPORT(glGenProgramsARB);
-DECL_GL_HOOK_EXPORT(glGenQueries);
-DECL_GL_HOOK_EXPORT(glGenQueriesARB);
-DECL_GL_HOOK_EXPORT(glGenRenderbuffers);
-DECL_GL_HOOK_EXPORT(glGenRenderbuffersEXT);
-DECL_GL_HOOK_EXPORT(glGenSamplers);
-DECL_GL_HOOK_EXPORT(glGenTextures);
-DECL_GL_HOOK_EXPORT(glGenTransformFeedbacks);
-DECL_GL_HOOK_EXPORT(glGenVertexArrays);
-DECL_GL_HOOK_EXPORT(glGenVertexArraysAPPLE);
-DECL_GL_HOOK_EXPORT(glGetActiveAttrib);
-DECL_GL_HOOK_EXPORT(glGetActiveAttribARB);
-DECL_GL_HOOK_EXPORT(glGetActiveSubroutineName);
-DECL_GL_HOOK_EXPORT(glGetActiveSubroutineUniformiv);
-DECL_GL_HOOK_EXPORT(glGetActiveSubroutineUniformName);
-DECL_GL_HOOK_EXPORT(glGetActiveUniform);
-DECL_GL_HOOK_EXPORT(glGetActiveUniformARB);
-DECL_GL_HOOK_EXPORT(glGetActiveUniformBlockiv);
-DECL_GL_HOOK_EXPORT(glGetActiveUniformBlockName);
-DECL_GL_HOOK_EXPORT(glGetActiveUniformName);
-DECL_GL_HOOK_EXPORT(glGetActiveUniformsiv);
-DECL_GL_HOOK_EXPORT(glGetAttachedObjectsARB);
-DECL_GL_HOOK_EXPORT(glGetAttachedShaders);
-DECL_GL_HOOK_EXPORT(glGetAttribLocation);
-DECL_GL_HOOK_EXPORT(glGetAttribLocationARB);
-DECL_GL_HOOK_EXPORT(glGetBooleani_v);
-DECL_GL_HOOK_EXPORT(glGetBooleanIndexedvEXT);
-DECL_GL_HOOK_EXPORT(glGetBooleanv);
-DECL_GL_HOOK_EXPORT(glGetBufferParameteri64v);
-DECL_GL_HOOK_EXPORT(glGetBufferParameteriv);
-DECL_GL_HOOK_EXPORT(glGetBufferParameterivARB);
-DECL_GL_HOOK_EXPORT(glGetBufferPointerv);
-DECL_GL_HOOK_EXPORT(glGetBufferPointervARB);
-DECL_GL_HOOK_EXPORT(glGetBufferSubData);
-DECL_GL_HOOK_EXPORT(glGetBufferSubDataARB);
-DECL_GL_HOOK_EXPORT(glGetClipPlane);
-DECL_GL_HOOK_EXPORT(glGetColorTable);
-DECL_GL_HOOK_EXPORT(glGetColorTableEXT);
-DECL_GL_HOOK_EXPORT(glGetColorTableParameterfv);
-DECL_GL_HOOK_EXPORT(glGetColorTableParameterfvEXT);
-DECL_GL_HOOK_EXPORT(glGetColorTableParameteriv);
-DECL_GL_HOOK_EXPORT(glGetColorTableParameterivEXT);
-DECL_GL_HOOK_EXPORT(glGetCombinerInputParameterfvNV);
-DECL_GL_HOOK_EXPORT(glGetCombinerInputParameterivNV);
-DECL_GL_HOOK_EXPORT(glGetCombinerOutputParameterfvNV);
-DECL_GL_HOOK_EXPORT(glGetCombinerOutputParameterivNV);
-DECL_GL_HOOK_EXPORT(glGetCombinerStageParameterfvNV);
-DECL_GL_HOOK_EXPORT(glGetCompressedTexImage);
-DECL_GL_HOOK_EXPORT(glGetCompressedTexImageARB);
-DECL_GL_HOOK_EXPORT(glGetConvolutionFilter);
-DECL_GL_HOOK_EXPORT(glGetConvolutionParameterfv);
-DECL_GL_HOOK_EXPORT(glGetConvolutionParameteriv);
-DECL_GL_HOOK_EXPORT(glGetDoublei_v);
-DECL_GL_HOOK_EXPORT(glGetDoublev);
-DECL_GL_HOOK_EXPORT(glGetError);
-DECL_GL_HOOK_EXPORT(glGetFinalCombinerInputParameterfvNV);
-DECL_GL_HOOK_EXPORT(glGetFinalCombinerInputParameterivNV);
-DECL_GL_HOOK_EXPORT(glGetFloati_v);
-DECL_GL_HOOK_EXPORT(glGetFloatv);
-DECL_GL_HOOK_EXPORT(glGetFragDataIndex);
-DECL_GL_HOOK_EXPORT(glGetFragDataLocation);
-DECL_GL_HOOK_EXPORT(glGetFragDataLocationEXT);
-DECL_GL_HOOK_EXPORT(glGetFramebufferAttachmentParameteriv);
-DECL_GL_HOOK_EXPORT(glGetFramebufferAttachmentParameterivEXT);
-DECL_GL_HOOK_EXPORT(glGetHandleARB);
-DECL_GL_HOOK_EXPORT(glGetHistogram);
-DECL_GL_HOOK_EXPORT(glGetHistogramParameterfv);
-DECL_GL_HOOK_EXPORT(glGetHistogramParameteriv);
-DECL_GL_HOOK_EXPORT(glGetInfoLogARB);
-DECL_GL_HOOK_EXPORT(glGetInteger64i_v);
-DECL_GL_HOOK_EXPORT(glGetInteger64v);
-DECL_GL_HOOK_EXPORT(glGetIntegeri_v);
-DECL_GL_HOOK_EXPORT(glGetIntegerIndexedvEXT);
-DECL_GL_HOOK_EXPORT(glGetIntegerv);
-DECL_GL_HOOK_EXPORT(glGetInternalformativ);
-DECL_GL_HOOK_EXPORT(glGetLightfv);
-DECL_GL_HOOK_EXPORT(glGetLightiv);
-DECL_GL_HOOK_EXPORT(glGetMapdv);
-DECL_GL_HOOK_EXPORT(glGetMapfv);
-DECL_GL_HOOK_EXPORT(glGetMapiv);
-DECL_GL_HOOK_EXPORT(glGetMaterialfv);
-DECL_GL_HOOK_EXPORT(glGetMaterialiv);
-DECL_GL_HOOK_EXPORT(glGetMinmax);
-DECL_GL_HOOK_EXPORT(glGetMinmaxParameterfv);
-DECL_GL_HOOK_EXPORT(glGetMinmaxParameteriv);
-DECL_GL_HOOK_EXPORT(glGetMultisamplefv);
-DECL_GL_HOOK_EXPORT(glGetNamedStringARB);
-DECL_GL_HOOK_EXPORT(glGetNamedStringivARB);
-DECL_GL_HOOK_EXPORT(glGetObjectLabelEXT);
-DECL_GL_HOOK_EXPORT(glGetObjectParameterfvARB);
-DECL_GL_HOOK_EXPORT(glGetObjectParameterivAPPLE);
-DECL_GL_HOOK_EXPORT(glGetObjectParameterivARB);
-DECL_GL_HOOK_EXPORT(glGetPixelMapfv);
-DECL_GL_HOOK_EXPORT(glGetPixelMapuiv);
-DECL_GL_HOOK_EXPORT(glGetPixelMapusv);
-DECL_GL_HOOK_EXPORT(glGetPointerv);
-DECL_GL_HOOK_EXPORT(glGetPolygonStipple);
-DECL_GL_HOOK_EXPORT(glGetProgramBinary);
-DECL_GL_HOOK_EXPORT(glGetProgramEnvParameterdvARB);
-DECL_GL_HOOK_EXPORT(glGetProgramEnvParameterfvARB);
-DECL_GL_HOOK_EXPORT(glGetProgramInfoLog);
-DECL_GL_HOOK_EXPORT(glGetProgramiv);
-DECL_GL_HOOK_EXPORT(glGetProgramivARB);
-DECL_GL_HOOK_EXPORT(glGetProgramLocalParameterdvARB);
-DECL_GL_HOOK_EXPORT(glGetProgramLocalParameterfvARB);
-DECL_GL_HOOK_EXPORT(glGetProgramPipelineInfoLog);
-DECL_GL_HOOK_EXPORT(glGetProgramPipelineiv);
-DECL_GL_HOOK_EXPORT(glGetProgramStageiv);
-DECL_GL_HOOK_EXPORT(glGetProgramStringARB);
-DECL_GL_HOOK_EXPORT(glGetQueryIndexediv);
-DECL_GL_HOOK_EXPORT(glGetQueryiv);
-DECL_GL_HOOK_EXPORT(glGetQueryivARB);
-DECL_GL_HOOK_EXPORT(glGetQueryObjecti64v);
-DECL_GL_HOOK_EXPORT(glGetQueryObjecti64vEXT);
-DECL_GL_HOOK_EXPORT(glGetQueryObjectiv);
-DECL_GL_HOOK_EXPORT(glGetQueryObjectivARB);
-DECL_GL_HOOK_EXPORT(glGetQueryObjectui64v);
-DECL_GL_HOOK_EXPORT(glGetQueryObjectui64vEXT);
-DECL_GL_HOOK_EXPORT(glGetQueryObjectuiv);
-DECL_GL_HOOK_EXPORT(glGetQueryObjectuivARB);
-DECL_GL_HOOK_EXPORT(glGetRenderbufferParameteriv);
-DECL_GL_HOOK_EXPORT(glGetRenderbufferParameterivEXT);
-DECL_GL_HOOK_EXPORT(glGetSamplerParameterfv);
-DECL_GL_HOOK_EXPORT(glGetSamplerParameterIiv);
-DECL_GL_HOOK_EXPORT(glGetSamplerParameterIuiv);
-DECL_GL_HOOK_EXPORT(glGetSamplerParameteriv);
-DECL_GL_HOOK_EXPORT(glGetSeparableFilter);
-DECL_GL_HOOK_EXPORT(glGetShaderInfoLog);
-DECL_GL_HOOK_EXPORT(glGetShaderiv);
-DECL_GL_HOOK_EXPORT(glGetShaderPrecisionFormat);
-DECL_GL_HOOK_EXPORT(glGetShaderSource);
-DECL_GL_HOOK_EXPORT(glGetShaderSourceARB);
-DECL_GL_HOOK_EXPORT(glGetString);
-DECL_GL_HOOK_EXPORT(glGetStringi);
-DECL_GL_HOOK_EXPORT(glGetSubroutineIndex);
-DECL_GL_HOOK_EXPORT(glGetSubroutineUniformLocation);
-DECL_GL_HOOK_EXPORT(glGetSynciv);
-DECL_GL_HOOK_EXPORT(glGetTexEnvfv);
-DECL_GL_HOOK_EXPORT(glGetTexEnviv);
-DECL_GL_HOOK_EXPORT(glGetTexGendv);
-DECL_GL_HOOK_EXPORT(glGetTexGenfv);
-DECL_GL_HOOK_EXPORT(glGetTexGeniv);
-DECL_GL_HOOK_EXPORT(glGetTexImage);
-DECL_GL_HOOK_EXPORT(glGetTexLevelParameterfv);
-DECL_GL_HOOK_EXPORT(glGetTexLevelParameteriv);
-DECL_GL_HOOK_EXPORT(glGetTexParameterfv);
-DECL_GL_HOOK_EXPORT(glGetTexParameterIiv);
-DECL_GL_HOOK_EXPORT(glGetTexParameterIivEXT);
-DECL_GL_HOOK_EXPORT(glGetTexParameterIuiv);
-DECL_GL_HOOK_EXPORT(glGetTexParameterIuivEXT);
-DECL_GL_HOOK_EXPORT(glGetTexParameteriv);
-DECL_GL_HOOK_EXPORT(glGetTexParameterPointervAPPLE);
-DECL_GL_HOOK_EXPORT(glGetTransformFeedbackVarying);
-DECL_GL_HOOK_EXPORT(glGetTransformFeedbackVaryingEXT);
-DECL_GL_HOOK_EXPORT(glGetUniformBlockIndex);
-DECL_GL_HOOK_EXPORT(glGetUniformBufferSizeEXT);
-DECL_GL_HOOK_EXPORT(glGetUniformdv);
-DECL_GL_HOOK_EXPORT(glGetUniformfv);
-DECL_GL_HOOK_EXPORT(glGetUniformfvARB);
-DECL_GL_HOOK_EXPORT(glGetUniformIndices);
-DECL_GL_HOOK_EXPORT(glGetUniformiv);
-DECL_GL_HOOK_EXPORT(glGetUniformivARB);
-DECL_GL_HOOK_EXPORT(glGetUniformLocation);
-DECL_GL_HOOK_EXPORT(glGetUniformLocationARB);
-DECL_GL_HOOK_EXPORT(glGetUniformOffsetEXT);
-DECL_GL_HOOK_EXPORT(glGetUniformSubroutineuiv);
-DECL_GL_HOOK_EXPORT(glGetUniformuiv);
-DECL_GL_HOOK_EXPORT(glGetUniformuivEXT);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribdv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribdvARB);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribfv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribfvARB);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribIiv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribIivEXT);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribIuiv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribIuivEXT);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribiv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribivARB);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribLdv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribPointerv);
-DECL_GL_HOOK_EXPORT(glGetVertexAttribPointervARB);
-DECL_GL_HOOK_EXPORT(glHint);
-DECL_GL_HOOK_EXPORT(glHistogram);
-DECL_GL_HOOK_EXPORT(glIndexd);
-DECL_GL_HOOK_EXPORT(glIndexdv);
-DECL_GL_HOOK_EXPORT(glIndexf);
-DECL_GL_HOOK_EXPORT(glIndexfv);
-DECL_GL_HOOK_EXPORT(glIndexi);
-DECL_GL_HOOK_EXPORT(glIndexiv);
-DECL_GL_HOOK_EXPORT(glIndexMask);
-DECL_GL_HOOK_EXPORT(glIndexPointer);
-DECL_GL_HOOK_EXPORT(glIndexs);
-DECL_GL_HOOK_EXPORT(glIndexsv);
-DECL_GL_HOOK_EXPORT(glIndexub);
-DECL_GL_HOOK_EXPORT(glIndexubv);
-DECL_GL_HOOK_EXPORT(glInitNames);
-DECL_GL_HOOK_EXPORT(glInsertEventMarkerEXT);
-DECL_GL_HOOK_EXPORT(glInterleavedArrays);
-DECL_GL_HOOK_EXPORT(glIsBuffer);
-DECL_GL_HOOK_EXPORT(glIsBufferARB);
-DECL_GL_HOOK_EXPORT(glIsEnabled);
-DECL_GL_HOOK_EXPORT(glIsEnabledi);
-DECL_GL_HOOK_EXPORT(glIsEnabledIndexedEXT);
-DECL_GL_HOOK_EXPORT(glIsFenceAPPLE);
-DECL_GL_HOOK_EXPORT(glIsFramebuffer);
-DECL_GL_HOOK_EXPORT(glIsFramebufferEXT);
-DECL_GL_HOOK_EXPORT(glIsList);
-DECL_GL_HOOK_EXPORT(glIsNamedStringARB);
-DECL_GL_HOOK_EXPORT(glIsProgram);
-DECL_GL_HOOK_EXPORT(glIsProgramARB);
-DECL_GL_HOOK_EXPORT(glIsProgramPipeline);
-DECL_GL_HOOK_EXPORT(glIsQuery);
-DECL_GL_HOOK_EXPORT(glIsQueryARB);
-DECL_GL_HOOK_EXPORT(glIsRenderbuffer);
-DECL_GL_HOOK_EXPORT(glIsRenderbufferEXT);
-DECL_GL_HOOK_EXPORT(glIsSampler);
-DECL_GL_HOOK_EXPORT(glIsShader);
-DECL_GL_HOOK_EXPORT(glIsSync);
-DECL_GL_HOOK_EXPORT(glIsTexture);
-DECL_GL_HOOK_EXPORT(glIsTransformFeedback);
-DECL_GL_HOOK_EXPORT(glIsVertexArray);
-DECL_GL_HOOK_EXPORT(glIsVertexArrayAPPLE);
-DECL_GL_HOOK_EXPORT(glIsVertexAttribEnabledAPPLE);
-DECL_GL_HOOK_EXPORT(glLabelObjectEXT);
-DECL_GL_HOOK_EXPORT(glLightf);
-DECL_GL_HOOK_EXPORT(glLightfv);
-DECL_GL_HOOK_EXPORT(glLighti);
-DECL_GL_HOOK_EXPORT(glLightiv);
-DECL_GL_HOOK_EXPORT(glLightModelf);
-DECL_GL_HOOK_EXPORT(glLightModelfv);
-DECL_GL_HOOK_EXPORT(glLightModeli);
-DECL_GL_HOOK_EXPORT(glLightModeliv);
-DECL_GL_HOOK_EXPORT(glLineStipple);
-DECL_GL_HOOK_EXPORT(glLineWidth);
-DECL_GL_HOOK_EXPORT(glLinkProgram);
-DECL_GL_HOOK_EXPORT(glLinkProgramARB);
-DECL_GL_HOOK_EXPORT(glListBase);
-DECL_GL_HOOK_EXPORT(glLoadIdentity);
-DECL_GL_HOOK_EXPORT(glLoadMatrixd);
-DECL_GL_HOOK_EXPORT(glLoadMatrixf);
-DECL_GL_HOOK_EXPORT(glLoadName);
-DECL_GL_HOOK_EXPORT(glLoadTransposeMatrixd);
-DECL_GL_HOOK_EXPORT(glLoadTransposeMatrixdARB);
-DECL_GL_HOOK_EXPORT(glLoadTransposeMatrixf);
-DECL_GL_HOOK_EXPORT(glLoadTransposeMatrixfARB);
-DECL_GL_HOOK_EXPORT(glLockArraysEXT);
-DECL_GL_HOOK_EXPORT(glLogicOp);
-DECL_GL_HOOK_EXPORT(glMap1d);
-DECL_GL_HOOK_EXPORT(glMap1f);
-DECL_GL_HOOK_EXPORT(glMap2d);
-DECL_GL_HOOK_EXPORT(glMap2f);
-DECL_GL_HOOK_EXPORT(glMapBuffer);
-DECL_GL_HOOK_EXPORT(glMapBufferARB);
-DECL_GL_HOOK_EXPORT(glMapBufferRange);
-DECL_GL_HOOK_EXPORT(glMapGrid1d);
-DECL_GL_HOOK_EXPORT(glMapGrid1f);
-DECL_GL_HOOK_EXPORT(glMapGrid2d);
-DECL_GL_HOOK_EXPORT(glMapGrid2f);
-DECL_GL_HOOK_EXPORT(glMapVertexAttrib1dAPPLE);
-DECL_GL_HOOK_EXPORT(glMapVertexAttrib1fAPPLE);
-DECL_GL_HOOK_EXPORT(glMapVertexAttrib2dAPPLE);
-DECL_GL_HOOK_EXPORT(glMapVertexAttrib2fAPPLE);
-DECL_GL_HOOK_EXPORT(glMaterialf);
-DECL_GL_HOOK_EXPORT(glMaterialfv);
-DECL_GL_HOOK_EXPORT(glMateriali);
-DECL_GL_HOOK_EXPORT(glMaterialiv);
-DECL_GL_HOOK_EXPORT(glMatrixMode);
-DECL_GL_HOOK_EXPORT(glMinmax);
-DECL_GL_HOOK_EXPORT(glMinSampleShading);
-DECL_GL_HOOK_EXPORT(glMinSampleShadingARB);
-DECL_GL_HOOK_EXPORT(glMultiDrawArrays);
-DECL_GL_HOOK_EXPORT(glMultiDrawArraysEXT);
-DECL_GL_HOOK_EXPORT(glMultiDrawElementArrayAPPLE);
-DECL_GL_HOOK_EXPORT(glMultiDrawElements);
-DECL_GL_HOOK_EXPORT(glMultiDrawElementsBaseVertex);
-DECL_GL_HOOK_EXPORT(glMultiDrawElementsEXT);
-DECL_GL_HOOK_EXPORT(glMultiDrawRangeElementArrayAPPLE);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1d);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1dARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1dv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1dvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1f);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1fARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1fv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1fvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1i);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1iARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1iv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1ivARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1s);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1sARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1sv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord1svARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2d);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2dARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2dv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2dvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2f);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2fARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2fv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2fvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2i);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2iARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2iv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2ivARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2s);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2sARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2sv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord2svARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3d);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3dARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3dv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3dvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3f);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3fARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3fv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3fvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3i);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3iARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3iv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3ivARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3s);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3sARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3sv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord3svARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4d);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4dARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4dv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4dvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4f);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4fARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4fv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4fvARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4i);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4iARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4iv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4ivARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4s);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4sARB);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4sv);
-DECL_GL_HOOK_EXPORT(glMultiTexCoord4svARB);
-DECL_GL_HOOK_EXPORT(glMultMatrixd);
-DECL_GL_HOOK_EXPORT(glMultMatrixf);
-DECL_GL_HOOK_EXPORT(glMultTransposeMatrixd);
-DECL_GL_HOOK_EXPORT(glMultTransposeMatrixdARB);
-DECL_GL_HOOK_EXPORT(glMultTransposeMatrixf);
-DECL_GL_HOOK_EXPORT(glMultTransposeMatrixfARB);
-DECL_GL_HOOK_EXPORT(glNamedStringARB);
-DECL_GL_HOOK_EXPORT(glNewList);
-DECL_GL_HOOK_EXPORT(glNormal3b);
-DECL_GL_HOOK_EXPORT(glNormal3bv);
-DECL_GL_HOOK_EXPORT(glNormal3d);
-DECL_GL_HOOK_EXPORT(glNormal3dv);
-DECL_GL_HOOK_EXPORT(glNormal3f);
-DECL_GL_HOOK_EXPORT(glNormal3fv);
-DECL_GL_HOOK_EXPORT(glNormal3i);
-DECL_GL_HOOK_EXPORT(glNormal3iv);
-DECL_GL_HOOK_EXPORT(glNormal3s);
-DECL_GL_HOOK_EXPORT(glNormal3sv);
-DECL_GL_HOOK_EXPORT(glNormalPointer);
-DECL_GL_HOOK_EXPORT(glObjectPurgeableAPPLE);
-DECL_GL_HOOK_EXPORT(glObjectUnpurgeableAPPLE);
-DECL_GL_HOOK_EXPORT(glOrtho);
-DECL_GL_HOOK_EXPORT(glPassThrough);
-DECL_GL_HOOK_EXPORT(glPatchParameterfv);
-DECL_GL_HOOK_EXPORT(glPatchParameteri);
-DECL_GL_HOOK_EXPORT(glPauseTransformFeedback);
-DECL_GL_HOOK_EXPORT(glPixelMapfv);
-DECL_GL_HOOK_EXPORT(glPixelMapuiv);
-DECL_GL_HOOK_EXPORT(glPixelMapusv);
-DECL_GL_HOOK_EXPORT(glPixelStoref);
-DECL_GL_HOOK_EXPORT(glPixelStorei);
-DECL_GL_HOOK_EXPORT(glPixelTransferf);
-DECL_GL_HOOK_EXPORT(glPixelTransferi);
-DECL_GL_HOOK_EXPORT(glPixelZoom);
-DECL_GL_HOOK_EXPORT(glPNTrianglesfATI);
-DECL_GL_HOOK_EXPORT(glPNTrianglesiATI);
-DECL_GL_HOOK_EXPORT(glPointParameterf);
-DECL_GL_HOOK_EXPORT(glPointParameterfARB);
-DECL_GL_HOOK_EXPORT(glPointParameterfv);
-DECL_GL_HOOK_EXPORT(glPointParameterfvARB);
-DECL_GL_HOOK_EXPORT(glPointParameteri);
-DECL_GL_HOOK_EXPORT(glPointParameteriNV);
-DECL_GL_HOOK_EXPORT(glPointParameteriv);
-DECL_GL_HOOK_EXPORT(glPointParameterivNV);
-DECL_GL_HOOK_EXPORT(glPointSize);
-DECL_GL_HOOK_EXPORT(glPolygonMode);
-DECL_GL_HOOK_EXPORT(glPolygonOffset);
-DECL_GL_HOOK_EXPORT(glPolygonStipple);
-DECL_GL_HOOK_EXPORT(glPopAttrib);
-DECL_GL_HOOK_EXPORT(glPopClientAttrib);
-DECL_GL_HOOK_EXPORT(glPopGroupMarkerEXT);
-DECL_GL_HOOK_EXPORT(glPopMatrix);
-DECL_GL_HOOK_EXPORT(glPopName);
-DECL_GL_HOOK_EXPORT(glPrimitiveRestartIndex);
-DECL_GL_HOOK_EXPORT(glPrioritizeTextures);
-DECL_GL_HOOK_EXPORT(glProgramBinary);
-DECL_GL_HOOK_EXPORT(glProgramEnvParameter4dARB);
-DECL_GL_HOOK_EXPORT(glProgramEnvParameter4dvARB);
-DECL_GL_HOOK_EXPORT(glProgramEnvParameter4fARB);
-DECL_GL_HOOK_EXPORT(glProgramEnvParameter4fvARB);
-DECL_GL_HOOK_EXPORT(glProgramEnvParameters4fvEXT);
-DECL_GL_HOOK_EXPORT(glProgramLocalParameter4dARB);
-DECL_GL_HOOK_EXPORT(glProgramLocalParameter4dvARB);
-DECL_GL_HOOK_EXPORT(glProgramLocalParameter4fARB);
-DECL_GL_HOOK_EXPORT(glProgramLocalParameter4fvARB);
-DECL_GL_HOOK_EXPORT(glProgramLocalParameters4fvEXT);
-DECL_GL_HOOK_EXPORT(glProgramParameteri);
-DECL_GL_HOOK_EXPORT(glProgramParameteriEXT);
-DECL_GL_HOOK_EXPORT(glProgramStringARB);
-DECL_GL_HOOK_EXPORT(glProgramUniform1d);
-DECL_GL_HOOK_EXPORT(glProgramUniform1dv);
-DECL_GL_HOOK_EXPORT(glProgramUniform1f);
-DECL_GL_HOOK_EXPORT(glProgramUniform1fv);
-DECL_GL_HOOK_EXPORT(glProgramUniform1i);
-DECL_GL_HOOK_EXPORT(glProgramUniform1iv);
-DECL_GL_HOOK_EXPORT(glProgramUniform1ui);
-DECL_GL_HOOK_EXPORT(glProgramUniform1uiv);
-DECL_GL_HOOK_EXPORT(glProgramUniform2d);
-DECL_GL_HOOK_EXPORT(glProgramUniform2dv);
-DECL_GL_HOOK_EXPORT(glProgramUniform2f);
-DECL_GL_HOOK_EXPORT(glProgramUniform2fv);
-DECL_GL_HOOK_EXPORT(glProgramUniform2i);
-DECL_GL_HOOK_EXPORT(glProgramUniform2iv);
-DECL_GL_HOOK_EXPORT(glProgramUniform2ui);
-DECL_GL_HOOK_EXPORT(glProgramUniform2uiv);
-DECL_GL_HOOK_EXPORT(glProgramUniform3d);
-DECL_GL_HOOK_EXPORT(glProgramUniform3dv);
-DECL_GL_HOOK_EXPORT(glProgramUniform3f);
-DECL_GL_HOOK_EXPORT(glProgramUniform3fv);
-DECL_GL_HOOK_EXPORT(glProgramUniform3i);
-DECL_GL_HOOK_EXPORT(glProgramUniform3iv);
-DECL_GL_HOOK_EXPORT(glProgramUniform3ui);
-DECL_GL_HOOK_EXPORT(glProgramUniform3uiv);
-DECL_GL_HOOK_EXPORT(glProgramUniform4d);
-DECL_GL_HOOK_EXPORT(glProgramUniform4dv);
-DECL_GL_HOOK_EXPORT(glProgramUniform4f);
-DECL_GL_HOOK_EXPORT(glProgramUniform4fv);
-DECL_GL_HOOK_EXPORT(glProgramUniform4i);
-DECL_GL_HOOK_EXPORT(glProgramUniform4iv);
-DECL_GL_HOOK_EXPORT(glProgramUniform4ui);
-DECL_GL_HOOK_EXPORT(glProgramUniform4uiv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix2dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix2fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix2x3dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix2x3fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix2x4dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix2x4fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix3dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix3fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix3x2dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix3x2fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix3x4dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix3x4fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix4dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix4fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix4x2dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix4x2fv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix4x3dv);
-DECL_GL_HOOK_EXPORT(glProgramUniformMatrix4x3fv);
-DECL_GL_HOOK_EXPORT(glProvokingVertex);
-DECL_GL_HOOK_EXPORT(glProvokingVertexEXT);
-DECL_GL_HOOK_EXPORT(glPushAttrib);
-DECL_GL_HOOK_EXPORT(glPushClientAttrib);
-DECL_GL_HOOK_EXPORT(glPushGroupMarkerEXT);
-DECL_GL_HOOK_EXPORT(glPushMatrix);
-DECL_GL_HOOK_EXPORT(glPushName);
-DECL_GL_HOOK_EXPORT(glQueryCounter);
-DECL_GL_HOOK_EXPORT(glRasterPos2d);
-DECL_GL_HOOK_EXPORT(glRasterPos2dv);
-DECL_GL_HOOK_EXPORT(glRasterPos2f);
-DECL_GL_HOOK_EXPORT(glRasterPos2fv);
-DECL_GL_HOOK_EXPORT(glRasterPos2i);
-DECL_GL_HOOK_EXPORT(glRasterPos2iv);
-DECL_GL_HOOK_EXPORT(glRasterPos2s);
-DECL_GL_HOOK_EXPORT(glRasterPos2sv);
-DECL_GL_HOOK_EXPORT(glRasterPos3d);
-DECL_GL_HOOK_EXPORT(glRasterPos3dv);
-DECL_GL_HOOK_EXPORT(glRasterPos3f);
-DECL_GL_HOOK_EXPORT(glRasterPos3fv);
-DECL_GL_HOOK_EXPORT(glRasterPos3i);
-DECL_GL_HOOK_EXPORT(glRasterPos3iv);
-DECL_GL_HOOK_EXPORT(glRasterPos3s);
-DECL_GL_HOOK_EXPORT(glRasterPos3sv);
-DECL_GL_HOOK_EXPORT(glRasterPos4d);
-DECL_GL_HOOK_EXPORT(glRasterPos4dv);
-DECL_GL_HOOK_EXPORT(glRasterPos4f);
-DECL_GL_HOOK_EXPORT(glRasterPos4fv);
-DECL_GL_HOOK_EXPORT(glRasterPos4i);
-DECL_GL_HOOK_EXPORT(glRasterPos4iv);
-DECL_GL_HOOK_EXPORT(glRasterPos4s);
-DECL_GL_HOOK_EXPORT(glRasterPos4sv);
-DECL_GL_HOOK_EXPORT(glReadBuffer);
-DECL_GL_HOOK_EXPORT(glReadPixels);
-DECL_GL_HOOK_EXPORT(glRectd);
-DECL_GL_HOOK_EXPORT(glRectdv);
-DECL_GL_HOOK_EXPORT(glRectf);
-DECL_GL_HOOK_EXPORT(glRectfv);
-DECL_GL_HOOK_EXPORT(glRecti);
-DECL_GL_HOOK_EXPORT(glRectiv);
-DECL_GL_HOOK_EXPORT(glRects);
-DECL_GL_HOOK_EXPORT(glRectsv);
-DECL_GL_HOOK_EXPORT(glReleaseShaderCompiler);
-DECL_GL_HOOK_EXPORT(glRenderbufferStorage);
-DECL_GL_HOOK_EXPORT(glRenderbufferStorageEXT);
-DECL_GL_HOOK_EXPORT(glRenderbufferStorageMultisample);
-DECL_GL_HOOK_EXPORT(glRenderbufferStorageMultisampleEXT);
-DECL_GL_HOOK_EXPORT(glRenderMode);
-DECL_GL_HOOK_EXPORT(glResetHistogram);
-DECL_GL_HOOK_EXPORT(glResetMinmax);
-DECL_GL_HOOK_EXPORT(glResumeTransformFeedback);
-DECL_GL_HOOK_EXPORT(glRotated);
-DECL_GL_HOOK_EXPORT(glRotatef);
-DECL_GL_HOOK_EXPORT(glSampleCoverage);
-DECL_GL_HOOK_EXPORT(glSampleCoverageARB);
-DECL_GL_HOOK_EXPORT(glSampleMaski);
-DECL_GL_HOOK_EXPORT(glSamplerParameterf);
-DECL_GL_HOOK_EXPORT(glSamplerParameterfv);
-DECL_GL_HOOK_EXPORT(glSamplerParameteri);
-DECL_GL_HOOK_EXPORT(glSamplerParameterIiv);
-DECL_GL_HOOK_EXPORT(glSamplerParameterIuiv);
-DECL_GL_HOOK_EXPORT(glSamplerParameteriv);
-DECL_GL_HOOK_EXPORT(glScaled);
-DECL_GL_HOOK_EXPORT(glScalef);
-DECL_GL_HOOK_EXPORT(glScissor);
-DECL_GL_HOOK_EXPORT(glScissorArrayv);
-DECL_GL_HOOK_EXPORT(glScissorIndexed);
-DECL_GL_HOOK_EXPORT(glScissorIndexedv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3b);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3bEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3bv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3bvEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3d);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3dEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3dv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3dvEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3f);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3fEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3fv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3fvEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3i);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3iEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3iv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3ivEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3s);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3sEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3sv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3svEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3ub);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3ubEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3ubv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3ubvEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3ui);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3uiEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3uiv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3uivEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3us);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3usEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3usv);
-DECL_GL_HOOK_EXPORT(glSecondaryColor3usvEXT);
-DECL_GL_HOOK_EXPORT(glSecondaryColorPointer);
-DECL_GL_HOOK_EXPORT(glSecondaryColorPointerEXT);
-DECL_GL_HOOK_EXPORT(glSelectBuffer);
-DECL_GL_HOOK_EXPORT(glSeparableFilter2D);
-DECL_GL_HOOK_EXPORT(glSetFenceAPPLE);
-DECL_GL_HOOK_EXPORT(glShadeModel);
-DECL_GL_HOOK_EXPORT(glShaderBinary);
-DECL_GL_HOOK_EXPORT(glShaderSource);
-DECL_GL_HOOK_EXPORT(glShaderSourceARB);
-DECL_GL_HOOK_EXPORT(glStencilFunc);
-DECL_GL_HOOK_EXPORT(glStencilFuncSeparate);
-DECL_GL_HOOK_EXPORT(glStencilFuncSeparateATI);
-DECL_GL_HOOK_EXPORT(glStencilMask);
-DECL_GL_HOOK_EXPORT(glStencilMaskSeparate);
-DECL_GL_HOOK_EXPORT(glStencilOp);
-DECL_GL_HOOK_EXPORT(glStencilOpSeparate);
-DECL_GL_HOOK_EXPORT(glStencilOpSeparateATI);
-DECL_GL_HOOK_EXPORT(glTestFenceAPPLE);
-DECL_GL_HOOK_EXPORT(glTestObjectAPPLE);
-DECL_GL_HOOK_EXPORT(glTexBuffer);
-DECL_GL_HOOK_EXPORT(glTexCoord1d);
-DECL_GL_HOOK_EXPORT(glTexCoord1dv);
-DECL_GL_HOOK_EXPORT(glTexCoord1f);
-DECL_GL_HOOK_EXPORT(glTexCoord1fv);
-DECL_GL_HOOK_EXPORT(glTexCoord1i);
-DECL_GL_HOOK_EXPORT(glTexCoord1iv);
-DECL_GL_HOOK_EXPORT(glTexCoord1s);
-DECL_GL_HOOK_EXPORT(glTexCoord1sv);
-DECL_GL_HOOK_EXPORT(glTexCoord2d);
-DECL_GL_HOOK_EXPORT(glTexCoord2dv);
-DECL_GL_HOOK_EXPORT(glTexCoord2f);
-DECL_GL_HOOK_EXPORT(glTexCoord2fv);
-DECL_GL_HOOK_EXPORT(glTexCoord2i);
-DECL_GL_HOOK_EXPORT(glTexCoord2iv);
-DECL_GL_HOOK_EXPORT(glTexCoord2s);
-DECL_GL_HOOK_EXPORT(glTexCoord2sv);
-DECL_GL_HOOK_EXPORT(glTexCoord3d);
-DECL_GL_HOOK_EXPORT(glTexCoord3dv);
-DECL_GL_HOOK_EXPORT(glTexCoord3f);
-DECL_GL_HOOK_EXPORT(glTexCoord3fv);
-DECL_GL_HOOK_EXPORT(glTexCoord3i);
-DECL_GL_HOOK_EXPORT(glTexCoord3iv);
-DECL_GL_HOOK_EXPORT(glTexCoord3s);
-DECL_GL_HOOK_EXPORT(glTexCoord3sv);
-DECL_GL_HOOK_EXPORT(glTexCoord4d);
-DECL_GL_HOOK_EXPORT(glTexCoord4dv);
-DECL_GL_HOOK_EXPORT(glTexCoord4f);
-DECL_GL_HOOK_EXPORT(glTexCoord4fv);
-DECL_GL_HOOK_EXPORT(glTexCoord4i);
-DECL_GL_HOOK_EXPORT(glTexCoord4iv);
-DECL_GL_HOOK_EXPORT(glTexCoord4s);
-DECL_GL_HOOK_EXPORT(glTexCoord4sv);
-DECL_GL_HOOK_EXPORT(glTexCoordPointer);
-DECL_GL_HOOK_EXPORT(glTexEnvf);
-DECL_GL_HOOK_EXPORT(glTexEnvfv);
-DECL_GL_HOOK_EXPORT(glTexEnvi);
-DECL_GL_HOOK_EXPORT(glTexEnviv);
-DECL_GL_HOOK_EXPORT(glTexGend);
-DECL_GL_HOOK_EXPORT(glTexGendv);
-DECL_GL_HOOK_EXPORT(glTexGenf);
-DECL_GL_HOOK_EXPORT(glTexGenfv);
-DECL_GL_HOOK_EXPORT(glTexGeni);
-DECL_GL_HOOK_EXPORT(glTexGeniv);
-DECL_GL_HOOK_EXPORT(glTexImage1D);
-DECL_GL_HOOK_EXPORT(glTexImage2D);
-DECL_GL_HOOK_EXPORT(glTexImage2DMultisample);
-DECL_GL_HOOK_EXPORT(glTexImage3D);
-DECL_GL_HOOK_EXPORT(glTexImage3DMultisample);
-DECL_GL_HOOK_EXPORT(glTexParameterf);
-DECL_GL_HOOK_EXPORT(glTexParameterfv);
-DECL_GL_HOOK_EXPORT(glTexParameteri);
-DECL_GL_HOOK_EXPORT(glTexParameterIiv);
-DECL_GL_HOOK_EXPORT(glTexParameterIivEXT);
-DECL_GL_HOOK_EXPORT(glTexParameterIuiv);
-DECL_GL_HOOK_EXPORT(glTexParameterIuivEXT);
-DECL_GL_HOOK_EXPORT(glTexParameteriv);
-DECL_GL_HOOK_EXPORT(glTexStorage1D);
-DECL_GL_HOOK_EXPORT(glTexStorage2D);
-DECL_GL_HOOK_EXPORT(glTexStorage3D);
-DECL_GL_HOOK_EXPORT(glTexSubImage1D);
-DECL_GL_HOOK_EXPORT(glTexSubImage2D);
-DECL_GL_HOOK_EXPORT(glTexSubImage3D);
-DECL_GL_HOOK_EXPORT(glTextureBarrierNV);
-DECL_GL_HOOK_EXPORT(glTextureRangeAPPLE);
-DECL_GL_HOOK_EXPORT(glTransformFeedbackVaryings);
-DECL_GL_HOOK_EXPORT(glTransformFeedbackVaryingsEXT);
-DECL_GL_HOOK_EXPORT(glTranslated);
-DECL_GL_HOOK_EXPORT(glTranslatef);
-DECL_GL_HOOK_EXPORT(glUniform1d);
-DECL_GL_HOOK_EXPORT(glUniform1dv);
-DECL_GL_HOOK_EXPORT(glUniform1f);
-DECL_GL_HOOK_EXPORT(glUniform1fARB);
-DECL_GL_HOOK_EXPORT(glUniform1fv);
-DECL_GL_HOOK_EXPORT(glUniform1fvARB);
-DECL_GL_HOOK_EXPORT(glUniform1i);
-DECL_GL_HOOK_EXPORT(glUniform1iARB);
-DECL_GL_HOOK_EXPORT(glUniform1iv);
-DECL_GL_HOOK_EXPORT(glUniform1ivARB);
-DECL_GL_HOOK_EXPORT(glUniform1ui);
-DECL_GL_HOOK_EXPORT(glUniform1uiEXT);
-DECL_GL_HOOK_EXPORT(glUniform1uiv);
-DECL_GL_HOOK_EXPORT(glUniform1uivEXT);
-DECL_GL_HOOK_EXPORT(glUniform2d);
-DECL_GL_HOOK_EXPORT(glUniform2dv);
-DECL_GL_HOOK_EXPORT(glUniform2f);
-DECL_GL_HOOK_EXPORT(glUniform2fARB);
-DECL_GL_HOOK_EXPORT(glUniform2fv);
-DECL_GL_HOOK_EXPORT(glUniform2fvARB);
-DECL_GL_HOOK_EXPORT(glUniform2i);
-DECL_GL_HOOK_EXPORT(glUniform2iARB);
-DECL_GL_HOOK_EXPORT(glUniform2iv);
-DECL_GL_HOOK_EXPORT(glUniform2ivARB);
-DECL_GL_HOOK_EXPORT(glUniform2ui);
-DECL_GL_HOOK_EXPORT(glUniform2uiEXT);
-DECL_GL_HOOK_EXPORT(glUniform2uiv);
-DECL_GL_HOOK_EXPORT(glUniform2uivEXT);
-DECL_GL_HOOK_EXPORT(glUniform3d);
-DECL_GL_HOOK_EXPORT(glUniform3dv);
-DECL_GL_HOOK_EXPORT(glUniform3f);
-DECL_GL_HOOK_EXPORT(glUniform3fARB);
-DECL_GL_HOOK_EXPORT(glUniform3fv);
-DECL_GL_HOOK_EXPORT(glUniform3fvARB);
-DECL_GL_HOOK_EXPORT(glUniform3i);
-DECL_GL_HOOK_EXPORT(glUniform3iARB);
-DECL_GL_HOOK_EXPORT(glUniform3iv);
-DECL_GL_HOOK_EXPORT(glUniform3ivARB);
-DECL_GL_HOOK_EXPORT(glUniform3ui);
-DECL_GL_HOOK_EXPORT(glUniform3uiEXT);
-DECL_GL_HOOK_EXPORT(glUniform3uiv);
-DECL_GL_HOOK_EXPORT(glUniform3uivEXT);
-DECL_GL_HOOK_EXPORT(glUniform4d);
-DECL_GL_HOOK_EXPORT(glUniform4dv);
-DECL_GL_HOOK_EXPORT(glUniform4f);
-DECL_GL_HOOK_EXPORT(glUniform4fARB);
-DECL_GL_HOOK_EXPORT(glUniform4fv);
-DECL_GL_HOOK_EXPORT(glUniform4fvARB);
-DECL_GL_HOOK_EXPORT(glUniform4i);
-DECL_GL_HOOK_EXPORT(glUniform4iARB);
-DECL_GL_HOOK_EXPORT(glUniform4iv);
-DECL_GL_HOOK_EXPORT(glUniform4ivARB);
-DECL_GL_HOOK_EXPORT(glUniform4ui);
-DECL_GL_HOOK_EXPORT(glUniform4uiEXT);
-DECL_GL_HOOK_EXPORT(glUniform4uiv);
-DECL_GL_HOOK_EXPORT(glUniform4uivEXT);
-DECL_GL_HOOK_EXPORT(glUniformBlockBinding);
-DECL_GL_HOOK_EXPORT(glUniformBufferEXT);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2fvARB);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2x3dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2x3fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2x4dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix2x4fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3fvARB);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3x2dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3x2fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3x4dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix3x4fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4fvARB);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4x2dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4x2fv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4x3dv);
-DECL_GL_HOOK_EXPORT(glUniformMatrix4x3fv);
-DECL_GL_HOOK_EXPORT(glUniformSubroutinesuiv);
-DECL_GL_HOOK_EXPORT(glUnlockArraysEXT);
-DECL_GL_HOOK_EXPORT(glUnmapBuffer);
-DECL_GL_HOOK_EXPORT(glUnmapBufferARB);
-DECL_GL_HOOK_EXPORT(glUseProgram);
-DECL_GL_HOOK_EXPORT(glUseProgramObjectARB);
-DECL_GL_HOOK_EXPORT(glUseProgramStages);
-DECL_GL_HOOK_EXPORT(glValidateProgram);
-DECL_GL_HOOK_EXPORT(glValidateProgramARB);
-DECL_GL_HOOK_EXPORT(glValidateProgramPipeline);
-DECL_GL_HOOK_EXPORT(glVertex2d);
-DECL_GL_HOOK_EXPORT(glVertex2dv);
-DECL_GL_HOOK_EXPORT(glVertex2f);
-DECL_GL_HOOK_EXPORT(glVertex2fv);
-DECL_GL_HOOK_EXPORT(glVertex2i);
-DECL_GL_HOOK_EXPORT(glVertex2iv);
-DECL_GL_HOOK_EXPORT(glVertex2s);
-DECL_GL_HOOK_EXPORT(glVertex2sv);
-DECL_GL_HOOK_EXPORT(glVertex3d);
-DECL_GL_HOOK_EXPORT(glVertex3dv);
-DECL_GL_HOOK_EXPORT(glVertex3f);
-DECL_GL_HOOK_EXPORT(glVertex3fv);
-DECL_GL_HOOK_EXPORT(glVertex3i);
-DECL_GL_HOOK_EXPORT(glVertex3iv);
-DECL_GL_HOOK_EXPORT(glVertex3s);
-DECL_GL_HOOK_EXPORT(glVertex3sv);
-DECL_GL_HOOK_EXPORT(glVertex4d);
-DECL_GL_HOOK_EXPORT(glVertex4dv);
-DECL_GL_HOOK_EXPORT(glVertex4f);
-DECL_GL_HOOK_EXPORT(glVertex4fv);
-DECL_GL_HOOK_EXPORT(glVertex4i);
-DECL_GL_HOOK_EXPORT(glVertex4iv);
-DECL_GL_HOOK_EXPORT(glVertex4s);
-DECL_GL_HOOK_EXPORT(glVertex4sv);
-DECL_GL_HOOK_EXPORT(glVertexArrayParameteriAPPLE);
-DECL_GL_HOOK_EXPORT(glVertexArrayRangeAPPLE);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1d);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1dARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1dv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1dvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1f);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1fARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1fv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1fvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1s);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1sARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1sv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib1svARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2d);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2dARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2dv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2dvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2f);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2fARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2fv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2fvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2s);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2sARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2sv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib2svARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3d);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3dARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3dv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3dvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3f);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3fARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3fv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3fvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3s);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3sARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3sv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib3svARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4bv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4bvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4d);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4dARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4dv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4dvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4f);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4fARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4fv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4fvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4iv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4ivARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Nbv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NbvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Niv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NivARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Nsv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NsvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Nub);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NubARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Nubv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NubvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Nuiv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NuivARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4Nusv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4NusvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4s);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4sARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4sv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4svARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4ubv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4ubvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4uivARB);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4usv);
-DECL_GL_HOOK_EXPORT(glVertexAttrib4usvARB);
-DECL_GL_HOOK_EXPORT(glVertexAttribDivisor);
-DECL_GL_HOOK_EXPORT(glVertexAttribDivisorARB);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1i);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1iEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1iv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1ivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1uiEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI1uivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2i);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2iEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2iv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2ivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2uiEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI2uivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3i);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3iEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3iv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3ivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3uiEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI3uivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4bv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4bvEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4i);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4iEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4iv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4ivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4sv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4svEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4ubv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4ubvEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4uiEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4uivEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4usv);
-DECL_GL_HOOK_EXPORT(glVertexAttribI4usvEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribIPointer);
-DECL_GL_HOOK_EXPORT(glVertexAttribIPointerEXT);
-DECL_GL_HOOK_EXPORT(glVertexAttribL1d);
-DECL_GL_HOOK_EXPORT(glVertexAttribL1dv);
-DECL_GL_HOOK_EXPORT(glVertexAttribL2d);
-DECL_GL_HOOK_EXPORT(glVertexAttribL2dv);
-DECL_GL_HOOK_EXPORT(glVertexAttribL3d);
-DECL_GL_HOOK_EXPORT(glVertexAttribL3dv);
-DECL_GL_HOOK_EXPORT(glVertexAttribL4d);
-DECL_GL_HOOK_EXPORT(glVertexAttribL4dv);
-DECL_GL_HOOK_EXPORT(glVertexAttribLPointer);
-DECL_GL_HOOK_EXPORT(glVertexAttribP1ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribP1uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribP2ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribP2uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribP3ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribP3uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribP4ui);
-DECL_GL_HOOK_EXPORT(glVertexAttribP4uiv);
-DECL_GL_HOOK_EXPORT(glVertexAttribPointer);
-DECL_GL_HOOK_EXPORT(glVertexAttribPointerARB);
-DECL_GL_HOOK_EXPORT(glVertexBlendARB);
-DECL_GL_HOOK_EXPORT(glVertexPointer);
-DECL_GL_HOOK_EXPORT(glViewport);
-DECL_GL_HOOK_EXPORT(glViewportArrayv);
-DECL_GL_HOOK_EXPORT(glViewportIndexedf);
-DECL_GL_HOOK_EXPORT(glViewportIndexedfv);
-DECL_GL_HOOK_EXPORT(glWaitSync);
-DECL_GL_HOOK_EXPORT(glWeightbvARB);
-DECL_GL_HOOK_EXPORT(glWeightdvARB);
-DECL_GL_HOOK_EXPORT(glWeightfvARB);
-DECL_GL_HOOK_EXPORT(glWeightivARB);
-DECL_GL_HOOK_EXPORT(glWeightPointerARB);
-DECL_GL_HOOK_EXPORT(glWeightsvARB);
-DECL_GL_HOOK_EXPORT(glWeightubvARB);
-DECL_GL_HOOK_EXPORT(glWeightuivARB);
-DECL_GL_HOOK_EXPORT(glWeightusvARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2d);
-DECL_GL_HOOK_EXPORT(glWindowPos2dARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2dv);
-DECL_GL_HOOK_EXPORT(glWindowPos2dvARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2f);
-DECL_GL_HOOK_EXPORT(glWindowPos2fARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2fv);
-DECL_GL_HOOK_EXPORT(glWindowPos2fvARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2i);
-DECL_GL_HOOK_EXPORT(glWindowPos2iARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2iv);
-DECL_GL_HOOK_EXPORT(glWindowPos2ivARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2s);
-DECL_GL_HOOK_EXPORT(glWindowPos2sARB);
-DECL_GL_HOOK_EXPORT(glWindowPos2sv);
-DECL_GL_HOOK_EXPORT(glWindowPos2svARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3d);
-DECL_GL_HOOK_EXPORT(glWindowPos3dARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3dv);
-DECL_GL_HOOK_EXPORT(glWindowPos3dvARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3f);
-DECL_GL_HOOK_EXPORT(glWindowPos3fARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3fv);
-DECL_GL_HOOK_EXPORT(glWindowPos3fvARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3i);
-DECL_GL_HOOK_EXPORT(glWindowPos3iARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3iv);
-DECL_GL_HOOK_EXPORT(glWindowPos3ivARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3s);
-DECL_GL_HOOK_EXPORT(glWindowPos3sARB);
-DECL_GL_HOOK_EXPORT(glWindowPos3sv);
-DECL_GL_HOOK_EXPORT(glWindowPos3svARB);
+#define ForEachAppleSupported()                         \
+  APPLE_FUNC(glActiveShaderProgram);                    \
+  APPLE_FUNC(glActiveTexture);                          \
+  APPLE_FUNC(glActiveTextureARB);                       \
+  APPLE_FUNC(glAttachShader);                           \
+  APPLE_FUNC(glBeginConditionalRender);                 \
+  APPLE_FUNC(glBeginQuery);                             \
+  APPLE_FUNC(glBeginQueryARB);                          \
+  APPLE_FUNC(glBeginQueryIndexed);                      \
+  APPLE_FUNC(glBeginTransformFeedback);                 \
+  APPLE_FUNC(glBeginTransformFeedbackEXT);              \
+  APPLE_FUNC(glBindAttribLocation);                     \
+  APPLE_FUNC(glBindAttribLocationARB);                  \
+  APPLE_FUNC(glBindBuffer);                             \
+  APPLE_FUNC(glBindBufferARB);                          \
+  APPLE_FUNC(glBindBufferBase);                         \
+  APPLE_FUNC(glBindBufferBaseEXT);                      \
+  APPLE_FUNC(glBindBufferRange);                        \
+  APPLE_FUNC(glBindBufferRangeEXT);                     \
+  APPLE_FUNC(glBindFragDataLocation);                   \
+  APPLE_FUNC(glBindFragDataLocationEXT);                \
+  APPLE_FUNC(glBindFragDataLocationIndexed);            \
+  APPLE_FUNC(glBindFramebuffer);                        \
+  APPLE_FUNC(glBindFramebufferEXT);                     \
+  APPLE_FUNC(glBindProgramARB);                         \
+  APPLE_FUNC(glBindProgramPipeline);                    \
+  APPLE_FUNC(glBindRenderbuffer);                       \
+  APPLE_FUNC(glBindRenderbufferEXT);                    \
+  APPLE_FUNC(glBindSampler);                            \
+  APPLE_FUNC(glBindTexture);                            \
+  APPLE_FUNC(glBindTransformFeedback);                  \
+  APPLE_FUNC(glBindVertexArray);                        \
+  APPLE_FUNC(glBlendColor);                             \
+  APPLE_FUNC(glBlendColorEXT);                          \
+  APPLE_FUNC(glBlendEquation);                          \
+  APPLE_FUNC(glBlendEquationEXT);                       \
+  APPLE_FUNC(glBlendEquationi);                         \
+  APPLE_FUNC(glBlendEquationiARB);                      \
+  APPLE_FUNC(glBlendEquationSeparate);                  \
+  APPLE_FUNC(glBlendEquationSeparateEXT);               \
+  APPLE_FUNC(glBlendEquationSeparatei);                 \
+  APPLE_FUNC(glBlendEquationSeparateiARB);              \
+  APPLE_FUNC(glBlendFunc);                              \
+  APPLE_FUNC(glBlendFunci);                             \
+  APPLE_FUNC(glBlendFunciARB);                          \
+  APPLE_FUNC(glBlendFuncSeparate);                      \
+  APPLE_FUNC(glBlendFuncSeparateEXT);                   \
+  APPLE_FUNC(glBlendFuncSeparatei);                     \
+  APPLE_FUNC(glBlendFuncSeparateiARB);                  \
+  APPLE_FUNC(glBlitFramebuffer);                        \
+  APPLE_FUNC(glBlitFramebufferEXT);                     \
+  APPLE_FUNC(glBufferData);                             \
+  APPLE_FUNC(glBufferDataARB);                          \
+  APPLE_FUNC(glBufferSubData);                          \
+  APPLE_FUNC(glBufferSubDataARB);                       \
+  APPLE_FUNC(glCheckFramebufferStatus);                 \
+  APPLE_FUNC(glCheckFramebufferStatusEXT);              \
+  APPLE_FUNC(glClampColor);                             \
+  APPLE_FUNC(glClampColorARB);                          \
+  APPLE_FUNC(glClear);                                  \
+  APPLE_FUNC(glClearBufferfi);                          \
+  APPLE_FUNC(glClearBufferfv);                          \
+  APPLE_FUNC(glClearBufferiv);                          \
+  APPLE_FUNC(glClearBufferuiv);                         \
+  APPLE_FUNC(glClearColor);                             \
+  APPLE_FUNC(glClearColorIiEXT);                        \
+  APPLE_FUNC(glClearColorIuiEXT);                       \
+  APPLE_FUNC(glClearDepth);                             \
+  APPLE_FUNC(glClearDepthf);                            \
+  APPLE_FUNC(glClearStencil);                           \
+  APPLE_FUNC(glClientWaitSync);                         \
+  APPLE_FUNC(glColorMask);                              \
+  APPLE_FUNC(glColorMaski);                             \
+  APPLE_FUNC(glColorMaskIndexedEXT);                    \
+  APPLE_FUNC(glCompileShader);                          \
+  APPLE_FUNC(glCompileShaderARB);                       \
+  APPLE_FUNC(glCompileShaderIncludeARB);                \
+  APPLE_FUNC(glCompressedTexImage1D);                   \
+  APPLE_FUNC(glCompressedTexImage1DARB);                \
+  APPLE_FUNC(glCompressedTexImage2D);                   \
+  APPLE_FUNC(glCompressedTexImage2DARB);                \
+  APPLE_FUNC(glCompressedTexImage3D);                   \
+  APPLE_FUNC(glCompressedTexImage3DARB);                \
+  APPLE_FUNC(glCompressedTexSubImage1D);                \
+  APPLE_FUNC(glCompressedTexSubImage1DARB);             \
+  APPLE_FUNC(glCompressedTexSubImage2D);                \
+  APPLE_FUNC(glCompressedTexSubImage2DARB);             \
+  APPLE_FUNC(glCompressedTexSubImage3D);                \
+  APPLE_FUNC(glCompressedTexSubImage3DARB);             \
+  APPLE_FUNC(glCopyBufferSubData);                      \
+  APPLE_FUNC(glCopyTexImage1D);                         \
+  APPLE_FUNC(glCopyTexImage2D);                         \
+  APPLE_FUNC(glCopyTexSubImage1D);                      \
+  APPLE_FUNC(glCopyTexSubImage2D);                      \
+  APPLE_FUNC(glCopyTexSubImage3D);                      \
+  APPLE_FUNC(glCreateProgram);                          \
+  APPLE_FUNC(glCreateProgramObjectARB);                 \
+  APPLE_FUNC(glCreateShader);                           \
+  APPLE_FUNC(glCreateShaderObjectARB);                  \
+  APPLE_FUNC(glCreateShaderProgramv);                   \
+  APPLE_FUNC(glCullFace);                               \
+  APPLE_FUNC(glDeleteBuffers);                          \
+  APPLE_FUNC(glDeleteBuffersARB);                       \
+  APPLE_FUNC(glDeleteFramebuffers);                     \
+  APPLE_FUNC(glDeleteFramebuffersEXT);                  \
+  APPLE_FUNC(glDeleteNamedStringARB);                   \
+  APPLE_FUNC(glDeleteProgram);                          \
+  APPLE_FUNC(glDeleteProgramPipelines);                 \
+  APPLE_FUNC(glDeleteProgramsARB);                      \
+  APPLE_FUNC(glDeleteQueries);                          \
+  APPLE_FUNC(glDeleteQueriesARB);                       \
+  APPLE_FUNC(glDeleteRenderbuffers);                    \
+  APPLE_FUNC(glDeleteRenderbuffersEXT);                 \
+  APPLE_FUNC(glDeleteSamplers);                         \
+  APPLE_FUNC(glDeleteShader);                           \
+  APPLE_FUNC(glDeleteTextures);                         \
+  APPLE_FUNC(glDeleteTransformFeedbacks);               \
+  APPLE_FUNC(glDeleteVertexArrays);                     \
+  APPLE_FUNC(glDepthFunc);                              \
+  APPLE_FUNC(glDepthMask);                              \
+  APPLE_FUNC(glDepthRange);                             \
+  APPLE_FUNC(glDepthRangeArrayv);                       \
+  APPLE_FUNC(glDepthRangef);                            \
+  APPLE_FUNC(glDeleteSync);                             \
+  APPLE_FUNC(glDepthBoundsEXT);                         \
+  APPLE_FUNC(glDepthRangeIndexed);                      \
+  APPLE_FUNC(glDetachObjectARB);                        \
+  APPLE_FUNC(glDetachShader);                           \
+  APPLE_FUNC(glDisable);                                \
+  APPLE_FUNC(glDisablei);                               \
+  APPLE_FUNC(glDisableIndexedEXT);                      \
+  APPLE_FUNC(glDisableVertexAttribArray);               \
+  APPLE_FUNC(glDisableVertexAttribArrayARB);            \
+  APPLE_FUNC(glDrawArrays);                             \
+  APPLE_FUNC(glDrawArraysIndirect);                     \
+  APPLE_FUNC(glDrawArraysInstanced);                    \
+  APPLE_FUNC(glDrawArraysInstancedARB);                 \
+  APPLE_FUNC(glDrawBuffer);                             \
+  APPLE_FUNC(glDrawBuffers);                            \
+  APPLE_FUNC(glDrawBuffersARB);                         \
+  APPLE_FUNC(glDrawElements);                           \
+  APPLE_FUNC(glDrawElementsBaseVertex);                 \
+  APPLE_FUNC(glDrawElementsIndirect);                   \
+  APPLE_FUNC(glDrawElementsInstanced);                  \
+  APPLE_FUNC(glDrawElementsInstancedARB);               \
+  APPLE_FUNC(glDrawElementsInstancedBaseVertex);        \
+  APPLE_FUNC(glDrawRangeElements);                      \
+  APPLE_FUNC(glDrawRangeElementsBaseVertex);            \
+  APPLE_FUNC(glDrawRangeElementsEXT);                   \
+  APPLE_FUNC(glDrawTransformFeedback);                  \
+  APPLE_FUNC(glDrawTransformFeedbackStream);            \
+  APPLE_FUNC(glEnable);                                 \
+  APPLE_FUNC(glEnablei);                                \
+  APPLE_FUNC(glEnableIndexedEXT);                       \
+  APPLE_FUNC(glEnableVertexAttribArray);                \
+  APPLE_FUNC(glEnableVertexAttribArrayARB);             \
+  APPLE_FUNC(glEndConditionalRender);                   \
+  APPLE_FUNC(glEndConditionalRenderNV);                 \
+  APPLE_FUNC(glEndQuery);                               \
+  APPLE_FUNC(glEndQueryARB);                            \
+  APPLE_FUNC(glEndQueryIndexed);                        \
+  APPLE_FUNC(glEndTransformFeedback);                   \
+  APPLE_FUNC(glEndTransformFeedbackEXT);                \
+  APPLE_FUNC(glFenceSync);                              \
+  APPLE_FUNC(glFinish);                                 \
+  APPLE_FUNC(glFlush);                                  \
+  APPLE_FUNC(glFlushMappedBufferRange);                 \
+  APPLE_FUNC(glFramebufferRenderbuffer);                \
+  APPLE_FUNC(glFramebufferRenderbufferEXT);             \
+  APPLE_FUNC(glFramebufferTexture);                     \
+  APPLE_FUNC(glFramebufferTexture1D);                   \
+  APPLE_FUNC(glFramebufferTexture1DEXT);                \
+  APPLE_FUNC(glFramebufferTexture2D);                   \
+  APPLE_FUNC(glFramebufferTexture2DEXT);                \
+  APPLE_FUNC(glFramebufferTexture3D);                   \
+  APPLE_FUNC(glFramebufferTexture3DEXT);                \
+  APPLE_FUNC(glFramebufferTextureEXT);                  \
+  APPLE_FUNC(glFramebufferTextureFaceEXT);              \
+  APPLE_FUNC(glFramebufferTextureLayer);                \
+  APPLE_FUNC(glFramebufferTextureLayerEXT);             \
+  APPLE_FUNC(glFrontFace);                              \
+  APPLE_FUNC(glGenBuffers);                             \
+  APPLE_FUNC(glGenBuffersARB);                          \
+  APPLE_FUNC(glGenerateMipmap);                         \
+  APPLE_FUNC(glGenerateMipmapEXT);                      \
+  APPLE_FUNC(glGenFramebuffers);                        \
+  APPLE_FUNC(glGenFramebuffersEXT);                     \
+  APPLE_FUNC(glGenProgramPipelines);                    \
+  APPLE_FUNC(glGenProgramsARB);                         \
+  APPLE_FUNC(glGenQueries);                             \
+  APPLE_FUNC(glGenQueriesARB);                          \
+  APPLE_FUNC(glGenRenderbuffers);                       \
+  APPLE_FUNC(glGenRenderbuffersEXT);                    \
+  APPLE_FUNC(glGenSamplers);                            \
+  APPLE_FUNC(glGenTextures);                            \
+  APPLE_FUNC(glGenTransformFeedbacks);                  \
+  APPLE_FUNC(glGenVertexArrays);                        \
+  APPLE_FUNC(glGetActiveAttrib);                        \
+  APPLE_FUNC(glGetActiveAttribARB);                     \
+  APPLE_FUNC(glGetActiveSubroutineName);                \
+  APPLE_FUNC(glGetActiveSubroutineUniformiv);           \
+  APPLE_FUNC(glGetActiveSubroutineUniformName);         \
+  APPLE_FUNC(glGetActiveUniform);                       \
+  APPLE_FUNC(glGetActiveUniformARB);                    \
+  APPLE_FUNC(glGetActiveUniformBlockiv);                \
+  APPLE_FUNC(glGetActiveUniformBlockName);              \
+  APPLE_FUNC(glGetActiveUniformName);                   \
+  APPLE_FUNC(glGetActiveUniformsiv);                    \
+  APPLE_FUNC(glGetAttachedObjectsARB);                  \
+  APPLE_FUNC(glGetAttachedShaders);                     \
+  APPLE_FUNC(glGetAttribLocation);                      \
+  APPLE_FUNC(glGetAttribLocationARB);                   \
+  APPLE_FUNC(glGetBooleani_v);                          \
+  APPLE_FUNC(glGetBooleanIndexedvEXT);                  \
+  APPLE_FUNC(glGetBooleanv);                            \
+  APPLE_FUNC(glGetBufferParameteri64v);                 \
+  APPLE_FUNC(glGetBufferParameteriv);                   \
+  APPLE_FUNC(glGetBufferParameterivARB);                \
+  APPLE_FUNC(glGetBufferPointerv);                      \
+  APPLE_FUNC(glGetBufferPointervARB);                   \
+  APPLE_FUNC(glGetBufferSubData);                       \
+  APPLE_FUNC(glGetBufferSubDataARB);                    \
+  APPLE_FUNC(glGetCompressedTexImage);                  \
+  APPLE_FUNC(glGetCompressedTexImageARB);               \
+  APPLE_FUNC(glGetDoublei_v);                           \
+  APPLE_FUNC(glGetDoublev);                             \
+  APPLE_FUNC(glGetError);                               \
+  APPLE_FUNC(glGetFloati_v);                            \
+  APPLE_FUNC(glGetFloatv);                              \
+  APPLE_FUNC(glGetFragDataIndex);                       \
+  APPLE_FUNC(glGetFragDataLocation);                    \
+  APPLE_FUNC(glGetFragDataLocationEXT);                 \
+  APPLE_FUNC(glGetFramebufferAttachmentParameteriv);    \
+  APPLE_FUNC(glGetFramebufferAttachmentParameterivEXT); \
+  APPLE_FUNC(glGetInteger64i_v);                        \
+  APPLE_FUNC(glGetInteger64v);                          \
+  APPLE_FUNC(glGetIntegeri_v);                          \
+  APPLE_FUNC(glGetIntegerIndexedvEXT);                  \
+  APPLE_FUNC(glGetIntegerv);                            \
+  APPLE_FUNC(glGetInternalformativ);                    \
+  APPLE_FUNC(glGetMultisamplefv);                       \
+  APPLE_FUNC(glGetNamedStringARB);                      \
+  APPLE_FUNC(glGetNamedStringivARB);                    \
+  APPLE_FUNC(glGetObjectLabelEXT);                      \
+  APPLE_FUNC(glGetPointerv);                            \
+  APPLE_FUNC(glGetProgramBinary);                       \
+  APPLE_FUNC(glGetProgramInfoLog);                      \
+  APPLE_FUNC(glGetProgramiv);                           \
+  APPLE_FUNC(glGetProgramivARB);                        \
+  APPLE_FUNC(glGetProgramPipelineInfoLog);              \
+  APPLE_FUNC(glGetProgramPipelineiv);                   \
+  APPLE_FUNC(glGetProgramStageiv);                      \
+  APPLE_FUNC(glGetProgramStringARB);                    \
+  APPLE_FUNC(glGetQueryIndexediv);                      \
+  APPLE_FUNC(glGetQueryiv);                             \
+  APPLE_FUNC(glGetQueryivARB);                          \
+  APPLE_FUNC(glGetQueryObjecti64v);                     \
+  APPLE_FUNC(glGetQueryObjecti64vEXT);                  \
+  APPLE_FUNC(glGetQueryObjectiv);                       \
+  APPLE_FUNC(glGetQueryObjectivARB);                    \
+  APPLE_FUNC(glGetQueryObjectui64v);                    \
+  APPLE_FUNC(glGetQueryObjectui64vEXT);                 \
+  APPLE_FUNC(glGetQueryObjectuiv);                      \
+  APPLE_FUNC(glGetQueryObjectuivARB);                   \
+  APPLE_FUNC(glGetRenderbufferParameteriv);             \
+  APPLE_FUNC(glGetRenderbufferParameterivEXT);          \
+  APPLE_FUNC(glGetSamplerParameterfv);                  \
+  APPLE_FUNC(glGetSamplerParameterIiv);                 \
+  APPLE_FUNC(glGetSamplerParameterIuiv);                \
+  APPLE_FUNC(glGetSamplerParameteriv);                  \
+  APPLE_FUNC(glGetShaderInfoLog);                       \
+  APPLE_FUNC(glGetShaderiv);                            \
+  APPLE_FUNC(glGetShaderPrecisionFormat);               \
+  APPLE_FUNC(glGetShaderSource);                        \
+  APPLE_FUNC(glGetShaderSourceARB);                     \
+  APPLE_FUNC(glGetString);                              \
+  APPLE_FUNC(glGetStringi);                             \
+  APPLE_FUNC(glGetSubroutineIndex);                     \
+  APPLE_FUNC(glGetSubroutineUniformLocation);           \
+  APPLE_FUNC(glGetSynciv);                              \
+  APPLE_FUNC(glGetTexImage);                            \
+  APPLE_FUNC(glGetTexLevelParameterfv);                 \
+  APPLE_FUNC(glGetTexLevelParameteriv);                 \
+  APPLE_FUNC(glGetTexParameterfv);                      \
+  APPLE_FUNC(glGetTexParameterIiv);                     \
+  APPLE_FUNC(glGetTexParameterIivEXT);                  \
+  APPLE_FUNC(glGetTexParameterIuiv);                    \
+  APPLE_FUNC(glGetTexParameterIuivEXT);                 \
+  APPLE_FUNC(glGetTexParameteriv);                      \
+  APPLE_FUNC(glGetTransformFeedbackVarying);            \
+  APPLE_FUNC(glGetTransformFeedbackVaryingEXT);         \
+  APPLE_FUNC(glGetUniformBlockIndex);                   \
+  APPLE_FUNC(glGetUniformBufferSizeEXT);                \
+  APPLE_FUNC(glGetUniformdv);                           \
+  APPLE_FUNC(glGetUniformfv);                           \
+  APPLE_FUNC(glGetUniformfvARB);                        \
+  APPLE_FUNC(glGetUniformIndices);                      \
+  APPLE_FUNC(glGetUniformiv);                           \
+  APPLE_FUNC(glGetUniformivARB);                        \
+  APPLE_FUNC(glGetUniformLocation);                     \
+  APPLE_FUNC(glGetUniformLocationARB);                  \
+  APPLE_FUNC(glGetUniformOffsetEXT);                    \
+  APPLE_FUNC(glGetUniformSubroutineuiv);                \
+  APPLE_FUNC(glGetUniformuiv);                          \
+  APPLE_FUNC(glGetUniformuivEXT);                       \
+  APPLE_FUNC(glGetVertexAttribdv);                      \
+  APPLE_FUNC(glGetVertexAttribdvARB);                   \
+  APPLE_FUNC(glGetVertexAttribfv);                      \
+  APPLE_FUNC(glGetVertexAttribfvARB);                   \
+  APPLE_FUNC(glGetVertexAttribIiv);                     \
+  APPLE_FUNC(glGetVertexAttribIivEXT);                  \
+  APPLE_FUNC(glGetVertexAttribIuiv);                    \
+  APPLE_FUNC(glGetVertexAttribIuivEXT);                 \
+  APPLE_FUNC(glGetVertexAttribiv);                      \
+  APPLE_FUNC(glGetVertexAttribivARB);                   \
+  APPLE_FUNC(glGetVertexAttribLdv);                     \
+  APPLE_FUNC(glGetVertexAttribPointerv);                \
+  APPLE_FUNC(glGetVertexAttribPointervARB);             \
+  APPLE_FUNC(glHint);                                   \
+  APPLE_FUNC(glInsertEventMarkerEXT);                   \
+  APPLE_FUNC(glIsBuffer);                               \
+  APPLE_FUNC(glIsBufferARB);                            \
+  APPLE_FUNC(glIsEnabled);                              \
+  APPLE_FUNC(glIsEnabledi);                             \
+  APPLE_FUNC(glIsEnabledIndexedEXT);                    \
+  APPLE_FUNC(glIsFramebuffer);                          \
+  APPLE_FUNC(glIsFramebufferEXT);                       \
+  APPLE_FUNC(glIsNamedStringARB);                       \
+  APPLE_FUNC(glIsProgram);                              \
+  APPLE_FUNC(glIsProgramARB);                           \
+  APPLE_FUNC(glIsProgramPipeline);                      \
+  APPLE_FUNC(glIsQuery);                                \
+  APPLE_FUNC(glIsQueryARB);                             \
+  APPLE_FUNC(glIsRenderbuffer);                         \
+  APPLE_FUNC(glIsRenderbufferEXT);                      \
+  APPLE_FUNC(glIsSampler);                              \
+  APPLE_FUNC(glIsShader);                               \
+  APPLE_FUNC(glIsSync);                                 \
+  APPLE_FUNC(glIsTexture);                              \
+  APPLE_FUNC(glIsTransformFeedback);                    \
+  APPLE_FUNC(glIsVertexArray);                          \
+  APPLE_FUNC(glLabelObjectEXT);                         \
+  APPLE_FUNC(glLineWidth);                              \
+  APPLE_FUNC(glLinkProgram);                            \
+  APPLE_FUNC(glLinkProgramARB);                         \
+  APPLE_FUNC(glLogicOp);                                \
+  APPLE_FUNC(glMapBuffer);                              \
+  APPLE_FUNC(glMapBufferARB);                           \
+  APPLE_FUNC(glMapBufferRange);                         \
+  APPLE_FUNC(glMinSampleShading);                       \
+  APPLE_FUNC(glMinSampleShadingARB);                    \
+  APPLE_FUNC(glMultiDrawArrays);                        \
+  APPLE_FUNC(glMultiDrawArraysEXT);                     \
+  APPLE_FUNC(glMultiDrawElements);                      \
+  APPLE_FUNC(glMultiDrawElementsBaseVertex);            \
+  APPLE_FUNC(glMultiDrawElementsEXT);                   \
+  APPLE_FUNC(glNamedStringARB);                         \
+  APPLE_FUNC(glPatchParameterfv);                       \
+  APPLE_FUNC(glPatchParameteri);                        \
+  APPLE_FUNC(glPauseTransformFeedback);                 \
+  APPLE_FUNC(glPixelStoref);                            \
+  APPLE_FUNC(glPixelStorei);                            \
+  APPLE_FUNC(glPointParameterf);                        \
+  APPLE_FUNC(glPointParameterfARB);                     \
+  APPLE_FUNC(glPointParameterfv);                       \
+  APPLE_FUNC(glPointParameterfvARB);                    \
+  APPLE_FUNC(glPointParameteri);                        \
+  APPLE_FUNC(glPointParameteriNV);                      \
+  APPLE_FUNC(glPointParameteriv);                       \
+  APPLE_FUNC(glPointParameterivNV);                     \
+  APPLE_FUNC(glPointSize);                              \
+  APPLE_FUNC(glPolygonMode);                            \
+  APPLE_FUNC(glPolygonOffset);                          \
+  APPLE_FUNC(glPopGroupMarkerEXT);                      \
+  APPLE_FUNC(glPrimitiveRestartIndex);                  \
+  APPLE_FUNC(glProgramBinary);                          \
+  APPLE_FUNC(glProgramParameteri);                      \
+  APPLE_FUNC(glProgramParameteriEXT);                   \
+  APPLE_FUNC(glProgramStringARB);                       \
+  APPLE_FUNC(glProgramUniform1d);                       \
+  APPLE_FUNC(glProgramUniform1dv);                      \
+  APPLE_FUNC(glProgramUniform1f);                       \
+  APPLE_FUNC(glProgramUniform1fv);                      \
+  APPLE_FUNC(glProgramUniform1i);                       \
+  APPLE_FUNC(glProgramUniform1iv);                      \
+  APPLE_FUNC(glProgramUniform1ui);                      \
+  APPLE_FUNC(glProgramUniform1uiv);                     \
+  APPLE_FUNC(glProgramUniform2d);                       \
+  APPLE_FUNC(glProgramUniform2dv);                      \
+  APPLE_FUNC(glProgramUniform2f);                       \
+  APPLE_FUNC(glProgramUniform2fv);                      \
+  APPLE_FUNC(glProgramUniform2i);                       \
+  APPLE_FUNC(glProgramUniform2iv);                      \
+  APPLE_FUNC(glProgramUniform2ui);                      \
+  APPLE_FUNC(glProgramUniform2uiv);                     \
+  APPLE_FUNC(glProgramUniform3d);                       \
+  APPLE_FUNC(glProgramUniform3dv);                      \
+  APPLE_FUNC(glProgramUniform3f);                       \
+  APPLE_FUNC(glProgramUniform3fv);                      \
+  APPLE_FUNC(glProgramUniform3i);                       \
+  APPLE_FUNC(glProgramUniform3iv);                      \
+  APPLE_FUNC(glProgramUniform3ui);                      \
+  APPLE_FUNC(glProgramUniform3uiv);                     \
+  APPLE_FUNC(glProgramUniform4d);                       \
+  APPLE_FUNC(glProgramUniform4dv);                      \
+  APPLE_FUNC(glProgramUniform4f);                       \
+  APPLE_FUNC(glProgramUniform4fv);                      \
+  APPLE_FUNC(glProgramUniform4i);                       \
+  APPLE_FUNC(glProgramUniform4iv);                      \
+  APPLE_FUNC(glProgramUniform4ui);                      \
+  APPLE_FUNC(glProgramUniform4uiv);                     \
+  APPLE_FUNC(glProgramUniformMatrix2dv);                \
+  APPLE_FUNC(glProgramUniformMatrix2fv);                \
+  APPLE_FUNC(glProgramUniformMatrix2x3dv);              \
+  APPLE_FUNC(glProgramUniformMatrix2x3fv);              \
+  APPLE_FUNC(glProgramUniformMatrix2x4dv);              \
+  APPLE_FUNC(glProgramUniformMatrix2x4fv);              \
+  APPLE_FUNC(glProgramUniformMatrix3dv);                \
+  APPLE_FUNC(glProgramUniformMatrix3fv);                \
+  APPLE_FUNC(glProgramUniformMatrix3x2dv);              \
+  APPLE_FUNC(glProgramUniformMatrix3x2fv);              \
+  APPLE_FUNC(glProgramUniformMatrix3x4dv);              \
+  APPLE_FUNC(glProgramUniformMatrix3x4fv);              \
+  APPLE_FUNC(glProgramUniformMatrix4dv);                \
+  APPLE_FUNC(glProgramUniformMatrix4fv);                \
+  APPLE_FUNC(glProgramUniformMatrix4x2dv);              \
+  APPLE_FUNC(glProgramUniformMatrix4x2fv);              \
+  APPLE_FUNC(glProgramUniformMatrix4x3dv);              \
+  APPLE_FUNC(glProgramUniformMatrix4x3fv);              \
+  APPLE_FUNC(glProvokingVertex);                        \
+  APPLE_FUNC(glProvokingVertexEXT);                     \
+  APPLE_FUNC(glPushGroupMarkerEXT);                     \
+  APPLE_FUNC(glQueryCounter);                           \
+  APPLE_FUNC(glReadBuffer);                             \
+  APPLE_FUNC(glReadPixels);                             \
+  APPLE_FUNC(glReleaseShaderCompiler);                  \
+  APPLE_FUNC(glRenderbufferStorage);                    \
+  APPLE_FUNC(glRenderbufferStorageEXT);                 \
+  APPLE_FUNC(glRenderbufferStorageMultisample);         \
+  APPLE_FUNC(glRenderbufferStorageMultisampleEXT);      \
+  APPLE_FUNC(glResumeTransformFeedback);                \
+  APPLE_FUNC(glSampleCoverage);                         \
+  APPLE_FUNC(glSampleCoverageARB);                      \
+  APPLE_FUNC(glSampleMaski);                            \
+  APPLE_FUNC(glSamplerParameterf);                      \
+  APPLE_FUNC(glSamplerParameterfv);                     \
+  APPLE_FUNC(glSamplerParameteri);                      \
+  APPLE_FUNC(glSamplerParameterIiv);                    \
+  APPLE_FUNC(glSamplerParameterIuiv);                   \
+  APPLE_FUNC(glSamplerParameteriv);                     \
+  APPLE_FUNC(glScissor);                                \
+  APPLE_FUNC(glScissorArrayv);                          \
+  APPLE_FUNC(glScissorIndexed);                         \
+  APPLE_FUNC(glScissorIndexedv);                        \
+  APPLE_FUNC(glShaderBinary);                           \
+  APPLE_FUNC(glShaderSource);                           \
+  APPLE_FUNC(glShaderSourceARB);                        \
+  APPLE_FUNC(glStencilFunc);                            \
+  APPLE_FUNC(glStencilFuncSeparate);                    \
+  APPLE_FUNC(glStencilFuncSeparateATI);                 \
+  APPLE_FUNC(glStencilMask);                            \
+  APPLE_FUNC(glStencilMaskSeparate);                    \
+  APPLE_FUNC(glStencilOp);                              \
+  APPLE_FUNC(glStencilOpSeparate);                      \
+  APPLE_FUNC(glStencilOpSeparateATI);                   \
+  APPLE_FUNC(glTexBuffer);                              \
+  APPLE_FUNC(glTexImage1D);                             \
+  APPLE_FUNC(glTexImage2D);                             \
+  APPLE_FUNC(glTexImage2DMultisample);                  \
+  APPLE_FUNC(glTexImage3D);                             \
+  APPLE_FUNC(glTexImage3DMultisample);                  \
+  APPLE_FUNC(glTexParameterf);                          \
+  APPLE_FUNC(glTexParameterfv);                         \
+  APPLE_FUNC(glTexParameteri);                          \
+  APPLE_FUNC(glTexParameterIiv);                        \
+  APPLE_FUNC(glTexParameterIivEXT);                     \
+  APPLE_FUNC(glTexParameterIuiv);                       \
+  APPLE_FUNC(glTexParameterIuivEXT);                    \
+  APPLE_FUNC(glTexParameteriv);                         \
+  APPLE_FUNC(glTexStorage1D);                           \
+  APPLE_FUNC(glTexStorage2D);                           \
+  APPLE_FUNC(glTexStorage3D);                           \
+  APPLE_FUNC(glTexSubImage1D);                          \
+  APPLE_FUNC(glTexSubImage2D);                          \
+  APPLE_FUNC(glTexSubImage3D);                          \
+  APPLE_FUNC(glTransformFeedbackVaryings);              \
+  APPLE_FUNC(glTransformFeedbackVaryingsEXT);           \
+  APPLE_FUNC(glUniform1d);                              \
+  APPLE_FUNC(glUniform1dv);                             \
+  APPLE_FUNC(glUniform1f);                              \
+  APPLE_FUNC(glUniform1fARB);                           \
+  APPLE_FUNC(glUniform1fv);                             \
+  APPLE_FUNC(glUniform1fvARB);                          \
+  APPLE_FUNC(glUniform1i);                              \
+  APPLE_FUNC(glUniform1iARB);                           \
+  APPLE_FUNC(glUniform1iv);                             \
+  APPLE_FUNC(glUniform1ivARB);                          \
+  APPLE_FUNC(glUniform1ui);                             \
+  APPLE_FUNC(glUniform1uiEXT);                          \
+  APPLE_FUNC(glUniform1uiv);                            \
+  APPLE_FUNC(glUniform1uivEXT);                         \
+  APPLE_FUNC(glUniform2d);                              \
+  APPLE_FUNC(glUniform2dv);                             \
+  APPLE_FUNC(glUniform2f);                              \
+  APPLE_FUNC(glUniform2fARB);                           \
+  APPLE_FUNC(glUniform2fv);                             \
+  APPLE_FUNC(glUniform2fvARB);                          \
+  APPLE_FUNC(glUniform2i);                              \
+  APPLE_FUNC(glUniform2iARB);                           \
+  APPLE_FUNC(glUniform2iv);                             \
+  APPLE_FUNC(glUniform2ivARB);                          \
+  APPLE_FUNC(glUniform2ui);                             \
+  APPLE_FUNC(glUniform2uiEXT);                          \
+  APPLE_FUNC(glUniform2uiv);                            \
+  APPLE_FUNC(glUniform2uivEXT);                         \
+  APPLE_FUNC(glUniform3d);                              \
+  APPLE_FUNC(glUniform3dv);                             \
+  APPLE_FUNC(glUniform3f);                              \
+  APPLE_FUNC(glUniform3fARB);                           \
+  APPLE_FUNC(glUniform3fv);                             \
+  APPLE_FUNC(glUniform3fvARB);                          \
+  APPLE_FUNC(glUniform3i);                              \
+  APPLE_FUNC(glUniform3iARB);                           \
+  APPLE_FUNC(glUniform3iv);                             \
+  APPLE_FUNC(glUniform3ivARB);                          \
+  APPLE_FUNC(glUniform3ui);                             \
+  APPLE_FUNC(glUniform3uiEXT);                          \
+  APPLE_FUNC(glUniform3uiv);                            \
+  APPLE_FUNC(glUniform3uivEXT);                         \
+  APPLE_FUNC(glUniform4d);                              \
+  APPLE_FUNC(glUniform4dv);                             \
+  APPLE_FUNC(glUniform4f);                              \
+  APPLE_FUNC(glUniform4fARB);                           \
+  APPLE_FUNC(glUniform4fv);                             \
+  APPLE_FUNC(glUniform4fvARB);                          \
+  APPLE_FUNC(glUniform4i);                              \
+  APPLE_FUNC(glUniform4iARB);                           \
+  APPLE_FUNC(glUniform4iv);                             \
+  APPLE_FUNC(glUniform4ivARB);                          \
+  APPLE_FUNC(glUniform4ui);                             \
+  APPLE_FUNC(glUniform4uiEXT);                          \
+  APPLE_FUNC(glUniform4uiv);                            \
+  APPLE_FUNC(glUniform4uivEXT);                         \
+  APPLE_FUNC(glUniformBlockBinding);                    \
+  APPLE_FUNC(glUniformBufferEXT);                       \
+  APPLE_FUNC(glUniformMatrix2dv);                       \
+  APPLE_FUNC(glUniformMatrix2fv);                       \
+  APPLE_FUNC(glUniformMatrix2fvARB);                    \
+  APPLE_FUNC(glUniformMatrix2x3dv);                     \
+  APPLE_FUNC(glUniformMatrix2x3fv);                     \
+  APPLE_FUNC(glUniformMatrix2x4dv);                     \
+  APPLE_FUNC(glUniformMatrix2x4fv);                     \
+  APPLE_FUNC(glUniformMatrix3dv);                       \
+  APPLE_FUNC(glUniformMatrix3fv);                       \
+  APPLE_FUNC(glUniformMatrix3fvARB);                    \
+  APPLE_FUNC(glUniformMatrix3x2dv);                     \
+  APPLE_FUNC(glUniformMatrix3x2fv);                     \
+  APPLE_FUNC(glUniformMatrix3x4dv);                     \
+  APPLE_FUNC(glUniformMatrix3x4fv);                     \
+  APPLE_FUNC(glUniformMatrix4dv);                       \
+  APPLE_FUNC(glUniformMatrix4fv);                       \
+  APPLE_FUNC(glUniformMatrix4fvARB);                    \
+  APPLE_FUNC(glUniformMatrix4x2dv);                     \
+  APPLE_FUNC(glUniformMatrix4x2fv);                     \
+  APPLE_FUNC(glUniformMatrix4x3dv);                     \
+  APPLE_FUNC(glUniformMatrix4x3fv);                     \
+  APPLE_FUNC(glUniformSubroutinesuiv);                  \
+  APPLE_FUNC(glUnmapBuffer);                            \
+  APPLE_FUNC(glUnmapBufferARB);                         \
+  APPLE_FUNC(glUseProgram);                             \
+  APPLE_FUNC(glUseProgramObjectARB);                    \
+  APPLE_FUNC(glUseProgramStages);                       \
+  APPLE_FUNC(glValidateProgram);                        \
+  APPLE_FUNC(glValidateProgramARB);                     \
+  APPLE_FUNC(glValidateProgramPipeline);                \
+  APPLE_FUNC(glVertexAttrib1d);                         \
+  APPLE_FUNC(glVertexAttrib1dARB);                      \
+  APPLE_FUNC(glVertexAttrib1dv);                        \
+  APPLE_FUNC(glVertexAttrib1dvARB);                     \
+  APPLE_FUNC(glVertexAttrib1f);                         \
+  APPLE_FUNC(glVertexAttrib1fARB);                      \
+  APPLE_FUNC(glVertexAttrib1fv);                        \
+  APPLE_FUNC(glVertexAttrib1fvARB);                     \
+  APPLE_FUNC(glVertexAttrib1s);                         \
+  APPLE_FUNC(glVertexAttrib1sARB);                      \
+  APPLE_FUNC(glVertexAttrib1sv);                        \
+  APPLE_FUNC(glVertexAttrib1svARB);                     \
+  APPLE_FUNC(glVertexAttrib2d);                         \
+  APPLE_FUNC(glVertexAttrib2dARB);                      \
+  APPLE_FUNC(glVertexAttrib2dv);                        \
+  APPLE_FUNC(glVertexAttrib2dvARB);                     \
+  APPLE_FUNC(glVertexAttrib2f);                         \
+  APPLE_FUNC(glVertexAttrib2fARB);                      \
+  APPLE_FUNC(glVertexAttrib2fv);                        \
+  APPLE_FUNC(glVertexAttrib2fvARB);                     \
+  APPLE_FUNC(glVertexAttrib2s);                         \
+  APPLE_FUNC(glVertexAttrib2sARB);                      \
+  APPLE_FUNC(glVertexAttrib2sv);                        \
+  APPLE_FUNC(glVertexAttrib2svARB);                     \
+  APPLE_FUNC(glVertexAttrib3d);                         \
+  APPLE_FUNC(glVertexAttrib3dARB);                      \
+  APPLE_FUNC(glVertexAttrib3dv);                        \
+  APPLE_FUNC(glVertexAttrib3dvARB);                     \
+  APPLE_FUNC(glVertexAttrib3f);                         \
+  APPLE_FUNC(glVertexAttrib3fARB);                      \
+  APPLE_FUNC(glVertexAttrib3fv);                        \
+  APPLE_FUNC(glVertexAttrib3fvARB);                     \
+  APPLE_FUNC(glVertexAttrib3s);                         \
+  APPLE_FUNC(glVertexAttrib3sARB);                      \
+  APPLE_FUNC(glVertexAttrib3sv);                        \
+  APPLE_FUNC(glVertexAttrib3svARB);                     \
+  APPLE_FUNC(glVertexAttrib4bv);                        \
+  APPLE_FUNC(glVertexAttrib4bvARB);                     \
+  APPLE_FUNC(glVertexAttrib4d);                         \
+  APPLE_FUNC(glVertexAttrib4dARB);                      \
+  APPLE_FUNC(glVertexAttrib4dv);                        \
+  APPLE_FUNC(glVertexAttrib4dvARB);                     \
+  APPLE_FUNC(glVertexAttrib4f);                         \
+  APPLE_FUNC(glVertexAttrib4fARB);                      \
+  APPLE_FUNC(glVertexAttrib4fv);                        \
+  APPLE_FUNC(glVertexAttrib4fvARB);                     \
+  APPLE_FUNC(glVertexAttrib4iv);                        \
+  APPLE_FUNC(glVertexAttrib4ivARB);                     \
+  APPLE_FUNC(glVertexAttrib4Nbv);                       \
+  APPLE_FUNC(glVertexAttrib4NbvARB);                    \
+  APPLE_FUNC(glVertexAttrib4Niv);                       \
+  APPLE_FUNC(glVertexAttrib4NivARB);                    \
+  APPLE_FUNC(glVertexAttrib4Nsv);                       \
+  APPLE_FUNC(glVertexAttrib4NsvARB);                    \
+  APPLE_FUNC(glVertexAttrib4Nub);                       \
+  APPLE_FUNC(glVertexAttrib4NubARB);                    \
+  APPLE_FUNC(glVertexAttrib4Nubv);                      \
+  APPLE_FUNC(glVertexAttrib4NubvARB);                   \
+  APPLE_FUNC(glVertexAttrib4Nuiv);                      \
+  APPLE_FUNC(glVertexAttrib4NuivARB);                   \
+  APPLE_FUNC(glVertexAttrib4Nusv);                      \
+  APPLE_FUNC(glVertexAttrib4NusvARB);                   \
+  APPLE_FUNC(glVertexAttrib4s);                         \
+  APPLE_FUNC(glVertexAttrib4sARB);                      \
+  APPLE_FUNC(glVertexAttrib4sv);                        \
+  APPLE_FUNC(glVertexAttrib4svARB);                     \
+  APPLE_FUNC(glVertexAttrib4ubv);                       \
+  APPLE_FUNC(glVertexAttrib4ubvARB);                    \
+  APPLE_FUNC(glVertexAttrib4uiv);                       \
+  APPLE_FUNC(glVertexAttrib4uivARB);                    \
+  APPLE_FUNC(glVertexAttrib4usv);                       \
+  APPLE_FUNC(glVertexAttrib4usvARB);                    \
+  APPLE_FUNC(glVertexAttribDivisor);                    \
+  APPLE_FUNC(glVertexAttribDivisorARB);                 \
+  APPLE_FUNC(glVertexAttribI1i);                        \
+  APPLE_FUNC(glVertexAttribI1iEXT);                     \
+  APPLE_FUNC(glVertexAttribI1iv);                       \
+  APPLE_FUNC(glVertexAttribI1ivEXT);                    \
+  APPLE_FUNC(glVertexAttribI1ui);                       \
+  APPLE_FUNC(glVertexAttribI1uiEXT);                    \
+  APPLE_FUNC(glVertexAttribI1uiv);                      \
+  APPLE_FUNC(glVertexAttribI1uivEXT);                   \
+  APPLE_FUNC(glVertexAttribI2i);                        \
+  APPLE_FUNC(glVertexAttribI2iEXT);                     \
+  APPLE_FUNC(glVertexAttribI2iv);                       \
+  APPLE_FUNC(glVertexAttribI2ivEXT);                    \
+  APPLE_FUNC(glVertexAttribI2ui);                       \
+  APPLE_FUNC(glVertexAttribI2uiEXT);                    \
+  APPLE_FUNC(glVertexAttribI2uiv);                      \
+  APPLE_FUNC(glVertexAttribI2uivEXT);                   \
+  APPLE_FUNC(glVertexAttribI3i);                        \
+  APPLE_FUNC(glVertexAttribI3iEXT);                     \
+  APPLE_FUNC(glVertexAttribI3iv);                       \
+  APPLE_FUNC(glVertexAttribI3ivEXT);                    \
+  APPLE_FUNC(glVertexAttribI3ui);                       \
+  APPLE_FUNC(glVertexAttribI3uiEXT);                    \
+  APPLE_FUNC(glVertexAttribI3uiv);                      \
+  APPLE_FUNC(glVertexAttribI3uivEXT);                   \
+  APPLE_FUNC(glVertexAttribI4bv);                       \
+  APPLE_FUNC(glVertexAttribI4bvEXT);                    \
+  APPLE_FUNC(glVertexAttribI4i);                        \
+  APPLE_FUNC(glVertexAttribI4iEXT);                     \
+  APPLE_FUNC(glVertexAttribI4iv);                       \
+  APPLE_FUNC(glVertexAttribI4ivEXT);                    \
+  APPLE_FUNC(glVertexAttribI4sv);                       \
+  APPLE_FUNC(glVertexAttribI4svEXT);                    \
+  APPLE_FUNC(glVertexAttribI4ubv);                      \
+  APPLE_FUNC(glVertexAttribI4ubvEXT);                   \
+  APPLE_FUNC(glVertexAttribI4ui);                       \
+  APPLE_FUNC(glVertexAttribI4uiEXT);                    \
+  APPLE_FUNC(glVertexAttribI4uiv);                      \
+  APPLE_FUNC(glVertexAttribI4uivEXT);                   \
+  APPLE_FUNC(glVertexAttribI4usv);                      \
+  APPLE_FUNC(glVertexAttribI4usvEXT);                   \
+  APPLE_FUNC(glVertexAttribIPointer);                   \
+  APPLE_FUNC(glVertexAttribIPointerEXT);                \
+  APPLE_FUNC(glVertexAttribL1d);                        \
+  APPLE_FUNC(glVertexAttribL1dv);                       \
+  APPLE_FUNC(glVertexAttribL2d);                        \
+  APPLE_FUNC(glVertexAttribL2dv);                       \
+  APPLE_FUNC(glVertexAttribL3d);                        \
+  APPLE_FUNC(glVertexAttribL3dv);                       \
+  APPLE_FUNC(glVertexAttribL4d);                        \
+  APPLE_FUNC(glVertexAttribL4dv);                       \
+  APPLE_FUNC(glVertexAttribLPointer);                   \
+  APPLE_FUNC(glVertexAttribP1ui);                       \
+  APPLE_FUNC(glVertexAttribP1uiv);                      \
+  APPLE_FUNC(glVertexAttribP2ui);                       \
+  APPLE_FUNC(glVertexAttribP2uiv);                      \
+  APPLE_FUNC(glVertexAttribP3ui);                       \
+  APPLE_FUNC(glVertexAttribP3uiv);                      \
+  APPLE_FUNC(glVertexAttribP4ui);                       \
+  APPLE_FUNC(glVertexAttribP4uiv);                      \
+  APPLE_FUNC(glVertexAttribPointer);                    \
+  APPLE_FUNC(glVertexAttribPointerARB);                 \
+  APPLE_FUNC(glViewport);                               \
+  APPLE_FUNC(glViewportArrayv);                         \
+  APPLE_FUNC(glViewportIndexedf);                       \
+  APPLE_FUNC(glViewportIndexedfv);                      \
+  APPLE_FUNC(glWaitSync);
+
+#define ForEachAppleUnsupported()                   \
+  APPLE_FUNC(glAccum);                              \
+  APPLE_FUNC(glActiveStencilFaceEXT);               \
+  APPLE_FUNC(glAlphaFunc);                          \
+  APPLE_FUNC(glAreTexturesResident);                \
+  APPLE_FUNC(glArrayElement);                       \
+  APPLE_FUNC(glAttachObjectARB);                    \
+  APPLE_FUNC(glBegin);                              \
+  APPLE_FUNC(glBeginConditionalRenderNV);           \
+  APPLE_FUNC(glBindBufferOffsetEXT);                \
+  APPLE_FUNC(glBindVertexArrayAPPLE);               \
+  APPLE_FUNC(glBitmap);                             \
+  APPLE_FUNC(glBufferParameteriAPPLE);              \
+  APPLE_FUNC(glCallList);                           \
+  APPLE_FUNC(glCallLists);                          \
+  APPLE_FUNC(glClearAccum);                         \
+  APPLE_FUNC(glClearIndex);                         \
+  APPLE_FUNC(glClientActiveTexture);                \
+  APPLE_FUNC(glClientActiveTextureARB);             \
+  APPLE_FUNC(glClipPlane);                          \
+  APPLE_FUNC(glColor3b);                            \
+  APPLE_FUNC(glColor3bv);                           \
+  APPLE_FUNC(glColor3d);                            \
+  APPLE_FUNC(glColor3dv);                           \
+  APPLE_FUNC(glColor3f);                            \
+  APPLE_FUNC(glColor3fv);                           \
+  APPLE_FUNC(glColor3i);                            \
+  APPLE_FUNC(glColor3iv);                           \
+  APPLE_FUNC(glColor3s);                            \
+  APPLE_FUNC(glColor3sv);                           \
+  APPLE_FUNC(glColor3ub);                           \
+  APPLE_FUNC(glColor3ubv);                          \
+  APPLE_FUNC(glColor3ui);                           \
+  APPLE_FUNC(glColor3uiv);                          \
+  APPLE_FUNC(glColor3us);                           \
+  APPLE_FUNC(glColor3usv);                          \
+  APPLE_FUNC(glColor4b);                            \
+  APPLE_FUNC(glColor4bv);                           \
+  APPLE_FUNC(glColor4d);                            \
+  APPLE_FUNC(glColor4dv);                           \
+  APPLE_FUNC(glColor4f);                            \
+  APPLE_FUNC(glColor4fv);                           \
+  APPLE_FUNC(glColor4i);                            \
+  APPLE_FUNC(glColor4iv);                           \
+  APPLE_FUNC(glColor4s);                            \
+  APPLE_FUNC(glColor4sv);                           \
+  APPLE_FUNC(glColor4ub);                           \
+  APPLE_FUNC(glColor4ubv);                          \
+  APPLE_FUNC(glColor4ui);                           \
+  APPLE_FUNC(glColor4uiv);                          \
+  APPLE_FUNC(glColor4us);                           \
+  APPLE_FUNC(glColor4usv);                          \
+  APPLE_FUNC(glColorMaterial);                      \
+  APPLE_FUNC(glColorPointer);                       \
+  APPLE_FUNC(glColorSubTable);                      \
+  APPLE_FUNC(glColorSubTableEXT);                   \
+  APPLE_FUNC(glColorTable);                         \
+  APPLE_FUNC(glColorTableEXT);                      \
+  APPLE_FUNC(glColorTableParameterfv);              \
+  APPLE_FUNC(glColorTableParameteriv);              \
+  APPLE_FUNC(glCombinerInputNV);                    \
+  APPLE_FUNC(glCombinerOutputNV);                   \
+  APPLE_FUNC(glCombinerParameterfNV);               \
+  APPLE_FUNC(glCombinerParameterfvNV);              \
+  APPLE_FUNC(glCombinerParameteriNV);               \
+  APPLE_FUNC(glCombinerParameterivNV);              \
+  APPLE_FUNC(glCombinerStageParameterfvNV);         \
+  APPLE_FUNC(glCopyPixels);                         \
+  APPLE_FUNC(glConvolutionFilter1D);                \
+  APPLE_FUNC(glConvolutionFilter2D);                \
+  APPLE_FUNC(glConvolutionParameterf);              \
+  APPLE_FUNC(glConvolutionParameterfv);             \
+  APPLE_FUNC(glConvolutionParameteri);              \
+  APPLE_FUNC(glConvolutionParameteriv);             \
+  APPLE_FUNC(glCopyColorSubTable);                  \
+  APPLE_FUNC(glCopyColorTable);                     \
+  APPLE_FUNC(glCopyConvolutionFilter1D);            \
+  APPLE_FUNC(glCopyConvolutionFilter2D);            \
+  APPLE_FUNC(glDeleteFencesAPPLE);                  \
+  APPLE_FUNC(glDeleteLists);                        \
+  APPLE_FUNC(glDeleteObjectARB);                    \
+  APPLE_FUNC(glDeleteVertexArraysAPPLE);            \
+  APPLE_FUNC(glDisableClientState);                 \
+  APPLE_FUNC(glDisableVertexAttribAPPLE);           \
+  APPLE_FUNC(glDrawElementArrayAPPLE);              \
+  APPLE_FUNC(glDrawPixels);                         \
+  APPLE_FUNC(glDrawRangeElementArrayAPPLE);         \
+  APPLE_FUNC(glEdgeFlag);                           \
+  APPLE_FUNC(glEdgeFlagPointer);                    \
+  APPLE_FUNC(glEdgeFlagv);                          \
+  APPLE_FUNC(glElementPointerAPPLE);                \
+  APPLE_FUNC(glEnableClientState);                  \
+  APPLE_FUNC(glEnableVertexAttribAPPLE);            \
+  APPLE_FUNC(glEnd);                                \
+  APPLE_FUNC(glEndList);                            \
+  APPLE_FUNC(glEvalCoord1d);                        \
+  APPLE_FUNC(glEvalCoord1dv);                       \
+  APPLE_FUNC(glEvalCoord1f);                        \
+  APPLE_FUNC(glEvalCoord1fv);                       \
+  APPLE_FUNC(glEvalCoord2d);                        \
+  APPLE_FUNC(glEvalCoord2dv);                       \
+  APPLE_FUNC(glEvalCoord2f);                        \
+  APPLE_FUNC(glEvalCoord2fv);                       \
+  APPLE_FUNC(glEvalMesh1);                          \
+  APPLE_FUNC(glEvalMesh2);                          \
+  APPLE_FUNC(glEvalPoint1);                         \
+  APPLE_FUNC(glEvalPoint2);                         \
+  APPLE_FUNC(glFeedbackBuffer);                     \
+  APPLE_FUNC(glFinalCombinerInputNV);               \
+  APPLE_FUNC(glFinishFenceAPPLE);                   \
+  APPLE_FUNC(glFinishObjectAPPLE);                  \
+  APPLE_FUNC(glFlushMappedBufferRangeAPPLE);        \
+  APPLE_FUNC(glFlushVertexArrayRangeAPPLE);         \
+  APPLE_FUNC(glFogCoordd);                          \
+  APPLE_FUNC(glFogCoorddEXT);                       \
+  APPLE_FUNC(glFogCoorddv);                         \
+  APPLE_FUNC(glFogCoorddvEXT);                      \
+  APPLE_FUNC(glFogCoordf);                          \
+  APPLE_FUNC(glFogCoordfEXT);                       \
+  APPLE_FUNC(glFogCoordfv);                         \
+  APPLE_FUNC(glFogCoordfvEXT);                      \
+  APPLE_FUNC(glFogCoordPointer);                    \
+  APPLE_FUNC(glFogCoordPointerEXT);                 \
+  APPLE_FUNC(glFogf);                               \
+  APPLE_FUNC(glFogfv);                              \
+  APPLE_FUNC(glFogi);                               \
+  APPLE_FUNC(glFogiv);                              \
+  APPLE_FUNC(glFrustum);                            \
+  APPLE_FUNC(glGenFencesAPPLE);                     \
+  APPLE_FUNC(glGenVertexArraysAPPLE);               \
+  APPLE_FUNC(glGenLists);                           \
+  APPLE_FUNC(glGetClipPlane);                       \
+  APPLE_FUNC(glGetColorTable);                      \
+  APPLE_FUNC(glGetColorTableEXT);                   \
+  APPLE_FUNC(glGetColorTableParameterfv);           \
+  APPLE_FUNC(glGetColorTableParameterfvEXT);        \
+  APPLE_FUNC(glGetColorTableParameteriv);           \
+  APPLE_FUNC(glGetColorTableParameterivEXT);        \
+  APPLE_FUNC(glGetCombinerInputParameterfvNV);      \
+  APPLE_FUNC(glGetCombinerInputParameterivNV);      \
+  APPLE_FUNC(glGetCombinerOutputParameterfvNV);     \
+  APPLE_FUNC(glGetCombinerOutputParameterivNV);     \
+  APPLE_FUNC(glGetCombinerStageParameterfvNV);      \
+  APPLE_FUNC(glGetConvolutionFilter);               \
+  APPLE_FUNC(glGetConvolutionParameterfv);          \
+  APPLE_FUNC(glGetConvolutionParameteriv);          \
+  APPLE_FUNC(glGetFinalCombinerInputParameterfvNV); \
+  APPLE_FUNC(glGetFinalCombinerInputParameterivNV); \
+  APPLE_FUNC(glGetHandleARB);                       \
+  APPLE_FUNC(glGetHistogram);                       \
+  APPLE_FUNC(glGetHistogramParameterfv);            \
+  APPLE_FUNC(glGetHistogramParameteriv);            \
+  APPLE_FUNC(glGetInfoLogARB);                      \
+  APPLE_FUNC(glGetLightfv);                         \
+  APPLE_FUNC(glGetLightiv);                         \
+  APPLE_FUNC(glGetMapdv);                           \
+  APPLE_FUNC(glGetMapfv);                           \
+  APPLE_FUNC(glGetMapiv);                           \
+  APPLE_FUNC(glGetMaterialfv);                      \
+  APPLE_FUNC(glGetMaterialiv);                      \
+  APPLE_FUNC(glGetMinmax);                          \
+  APPLE_FUNC(glGetMinmaxParameterfv);               \
+  APPLE_FUNC(glGetMinmaxParameteriv);               \
+  APPLE_FUNC(glGetObjectParameterfvARB);            \
+  APPLE_FUNC(glGetObjectParameterivAPPLE);          \
+  APPLE_FUNC(glGetObjectParameterivARB);            \
+  APPLE_FUNC(glGetPixelMapfv);                      \
+  APPLE_FUNC(glGetPixelMapuiv);                     \
+  APPLE_FUNC(glGetPixelMapusv);                     \
+  APPLE_FUNC(glGetPolygonStipple);                  \
+  APPLE_FUNC(glGetProgramEnvParameterdvARB);        \
+  APPLE_FUNC(glGetProgramEnvParameterfvARB);        \
+  APPLE_FUNC(glGetProgramLocalParameterdvARB);      \
+  APPLE_FUNC(glGetProgramLocalParameterfvARB);      \
+  APPLE_FUNC(glGetSeparableFilter);                 \
+  APPLE_FUNC(glGetTexEnvfv);                        \
+  APPLE_FUNC(glGetTexEnviv);                        \
+  APPLE_FUNC(glGetTexGendv);                        \
+  APPLE_FUNC(glGetTexGenfv);                        \
+  APPLE_FUNC(glGetTexGeniv);                        \
+  APPLE_FUNC(glGetTexParameterPointervAPPLE);       \
+  APPLE_FUNC(glHistogram);                          \
+  APPLE_FUNC(glIndexd);                             \
+  APPLE_FUNC(glIndexdv);                            \
+  APPLE_FUNC(glIndexf);                             \
+  APPLE_FUNC(glIndexfv);                            \
+  APPLE_FUNC(glIndexi);                             \
+  APPLE_FUNC(glIndexiv);                            \
+  APPLE_FUNC(glIndexMask);                          \
+  APPLE_FUNC(glIndexPointer);                       \
+  APPLE_FUNC(glIndexs);                             \
+  APPLE_FUNC(glIndexsv);                            \
+  APPLE_FUNC(glIndexub);                            \
+  APPLE_FUNC(glIndexubv);                           \
+  APPLE_FUNC(glInitNames);                          \
+  APPLE_FUNC(glInterleavedArrays);                  \
+  APPLE_FUNC(glIsFenceAPPLE);                       \
+  APPLE_FUNC(glIsVertexArrayAPPLE);                 \
+  APPLE_FUNC(glIsVertexAttribEnabledAPPLE);         \
+  APPLE_FUNC(glIsList);                             \
+  APPLE_FUNC(glLightf);                             \
+  APPLE_FUNC(glLightfv);                            \
+  APPLE_FUNC(glLighti);                             \
+  APPLE_FUNC(glLightiv);                            \
+  APPLE_FUNC(glLightModelf);                        \
+  APPLE_FUNC(glLightModelfv);                       \
+  APPLE_FUNC(glLightModeli);                        \
+  APPLE_FUNC(glLightModeliv);                       \
+  APPLE_FUNC(glLineStipple);                        \
+  APPLE_FUNC(glListBase);                           \
+  APPLE_FUNC(glLoadIdentity);                       \
+  APPLE_FUNC(glLoadMatrixd);                        \
+  APPLE_FUNC(glLoadMatrixf);                        \
+  APPLE_FUNC(glLoadName);                           \
+  APPLE_FUNC(glLoadTransposeMatrixd);               \
+  APPLE_FUNC(glLoadTransposeMatrixdARB);            \
+  APPLE_FUNC(glLoadTransposeMatrixf);               \
+  APPLE_FUNC(glLoadTransposeMatrixfARB);            \
+  APPLE_FUNC(glLockArraysEXT);                      \
+  APPLE_FUNC(glMap1d);                              \
+  APPLE_FUNC(glMap1f);                              \
+  APPLE_FUNC(glMap2d);                              \
+  APPLE_FUNC(glMap2f);                              \
+  APPLE_FUNC(glMapGrid1d);                          \
+  APPLE_FUNC(glMapGrid1f);                          \
+  APPLE_FUNC(glMapGrid2d);                          \
+  APPLE_FUNC(glMapGrid2f);                          \
+  APPLE_FUNC(glMapVertexAttrib1dAPPLE);             \
+  APPLE_FUNC(glMapVertexAttrib1fAPPLE);             \
+  APPLE_FUNC(glMapVertexAttrib2dAPPLE);             \
+  APPLE_FUNC(glMapVertexAttrib2fAPPLE);             \
+  APPLE_FUNC(glMaterialf);                          \
+  APPLE_FUNC(glMaterialfv);                         \
+  APPLE_FUNC(glMateriali);                          \
+  APPLE_FUNC(glMaterialiv);                         \
+  APPLE_FUNC(glMatrixMode);                         \
+  APPLE_FUNC(glMinmax);                             \
+  APPLE_FUNC(glMultiDrawElementArrayAPPLE);         \
+  APPLE_FUNC(glMultiDrawRangeElementArrayAPPLE);    \
+  APPLE_FUNC(glMultiTexCoord1d);                    \
+  APPLE_FUNC(glMultiTexCoord1dARB);                 \
+  APPLE_FUNC(glMultiTexCoord1dv);                   \
+  APPLE_FUNC(glMultiTexCoord1dvARB);                \
+  APPLE_FUNC(glMultiTexCoord1f);                    \
+  APPLE_FUNC(glMultiTexCoord1fARB);                 \
+  APPLE_FUNC(glMultiTexCoord1fv);                   \
+  APPLE_FUNC(glMultiTexCoord1fvARB);                \
+  APPLE_FUNC(glMultiTexCoord1i);                    \
+  APPLE_FUNC(glMultiTexCoord1iARB);                 \
+  APPLE_FUNC(glMultiTexCoord1iv);                   \
+  APPLE_FUNC(glMultiTexCoord1ivARB);                \
+  APPLE_FUNC(glMultiTexCoord1s);                    \
+  APPLE_FUNC(glMultiTexCoord1sARB);                 \
+  APPLE_FUNC(glMultiTexCoord1sv);                   \
+  APPLE_FUNC(glMultiTexCoord1svARB);                \
+  APPLE_FUNC(glMultiTexCoord2d);                    \
+  APPLE_FUNC(glMultiTexCoord2dARB);                 \
+  APPLE_FUNC(glMultiTexCoord2dv);                   \
+  APPLE_FUNC(glMultiTexCoord2dvARB);                \
+  APPLE_FUNC(glMultiTexCoord2f);                    \
+  APPLE_FUNC(glMultiTexCoord2fARB);                 \
+  APPLE_FUNC(glMultiTexCoord2fv);                   \
+  APPLE_FUNC(glMultiTexCoord2fvARB);                \
+  APPLE_FUNC(glMultiTexCoord2i);                    \
+  APPLE_FUNC(glMultiTexCoord2iARB);                 \
+  APPLE_FUNC(glMultiTexCoord2iv);                   \
+  APPLE_FUNC(glMultiTexCoord2ivARB);                \
+  APPLE_FUNC(glMultiTexCoord2s);                    \
+  APPLE_FUNC(glMultiTexCoord2sARB);                 \
+  APPLE_FUNC(glMultiTexCoord2sv);                   \
+  APPLE_FUNC(glMultiTexCoord2svARB);                \
+  APPLE_FUNC(glMultiTexCoord3d);                    \
+  APPLE_FUNC(glMultiTexCoord3dARB);                 \
+  APPLE_FUNC(glMultiTexCoord3dv);                   \
+  APPLE_FUNC(glMultiTexCoord3dvARB);                \
+  APPLE_FUNC(glMultiTexCoord3f);                    \
+  APPLE_FUNC(glMultiTexCoord3fARB);                 \
+  APPLE_FUNC(glMultiTexCoord3fv);                   \
+  APPLE_FUNC(glMultiTexCoord3fvARB);                \
+  APPLE_FUNC(glMultiTexCoord3i);                    \
+  APPLE_FUNC(glMultiTexCoord3iARB);                 \
+  APPLE_FUNC(glMultiTexCoord3iv);                   \
+  APPLE_FUNC(glMultiTexCoord3ivARB);                \
+  APPLE_FUNC(glMultiTexCoord3s);                    \
+  APPLE_FUNC(glMultiTexCoord3sARB);                 \
+  APPLE_FUNC(glMultiTexCoord3sv);                   \
+  APPLE_FUNC(glMultiTexCoord3svARB);                \
+  APPLE_FUNC(glMultiTexCoord4d);                    \
+  APPLE_FUNC(glMultiTexCoord4dARB);                 \
+  APPLE_FUNC(glMultiTexCoord4dv);                   \
+  APPLE_FUNC(glMultiTexCoord4dvARB);                \
+  APPLE_FUNC(glMultiTexCoord4f);                    \
+  APPLE_FUNC(glMultiTexCoord4fARB);                 \
+  APPLE_FUNC(glMultiTexCoord4fv);                   \
+  APPLE_FUNC(glMultiTexCoord4fvARB);                \
+  APPLE_FUNC(glMultiTexCoord4i);                    \
+  APPLE_FUNC(glMultiTexCoord4iARB);                 \
+  APPLE_FUNC(glMultiTexCoord4iv);                   \
+  APPLE_FUNC(glMultiTexCoord4ivARB);                \
+  APPLE_FUNC(glMultiTexCoord4s);                    \
+  APPLE_FUNC(glMultiTexCoord4sARB);                 \
+  APPLE_FUNC(glMultiTexCoord4sv);                   \
+  APPLE_FUNC(glMultiTexCoord4svARB);                \
+  APPLE_FUNC(glMultMatrixd);                        \
+  APPLE_FUNC(glMultMatrixf);                        \
+  APPLE_FUNC(glMultTransposeMatrixd);               \
+  APPLE_FUNC(glMultTransposeMatrixdARB);            \
+  APPLE_FUNC(glMultTransposeMatrixf);               \
+  APPLE_FUNC(glMultTransposeMatrixfARB);            \
+  APPLE_FUNC(glNewList);                            \
+  APPLE_FUNC(glNormal3b);                           \
+  APPLE_FUNC(glNormal3bv);                          \
+  APPLE_FUNC(glNormal3d);                           \
+  APPLE_FUNC(glNormal3dv);                          \
+  APPLE_FUNC(glNormal3f);                           \
+  APPLE_FUNC(glNormal3fv);                          \
+  APPLE_FUNC(glNormal3i);                           \
+  APPLE_FUNC(glNormal3iv);                          \
+  APPLE_FUNC(glNormal3s);                           \
+  APPLE_FUNC(glNormal3sv);                          \
+  APPLE_FUNC(glNormalPointer);                      \
+  APPLE_FUNC(glObjectPurgeableAPPLE);               \
+  APPLE_FUNC(glObjectUnpurgeableAPPLE);             \
+  APPLE_FUNC(glOrtho);                              \
+  APPLE_FUNC(glPassThrough);                        \
+  APPLE_FUNC(glPixelMapfv);                         \
+  APPLE_FUNC(glPixelMapuiv);                        \
+  APPLE_FUNC(glPixelMapusv);                        \
+  APPLE_FUNC(glPixelTransferf);                     \
+  APPLE_FUNC(glPixelTransferi);                     \
+  APPLE_FUNC(glPixelZoom);                          \
+  APPLE_FUNC(glPNTrianglesfATI);                    \
+  APPLE_FUNC(glPNTrianglesiATI);                    \
+  APPLE_FUNC(glPolygonStipple);                     \
+  APPLE_FUNC(glPopAttrib);                          \
+  APPLE_FUNC(glPopClientAttrib);                    \
+  APPLE_FUNC(glPopMatrix);                          \
+  APPLE_FUNC(glPopName);                            \
+  APPLE_FUNC(glPrioritizeTextures);                 \
+  APPLE_FUNC(glProgramEnvParameter4dARB);           \
+  APPLE_FUNC(glProgramEnvParameter4dvARB);          \
+  APPLE_FUNC(glProgramEnvParameter4fARB);           \
+  APPLE_FUNC(glProgramEnvParameter4fvARB);          \
+  APPLE_FUNC(glProgramEnvParameters4fvEXT);         \
+  APPLE_FUNC(glProgramLocalParameter4dARB);         \
+  APPLE_FUNC(glProgramLocalParameter4dvARB);        \
+  APPLE_FUNC(glProgramLocalParameter4fARB);         \
+  APPLE_FUNC(glProgramLocalParameter4fvARB);        \
+  APPLE_FUNC(glProgramLocalParameters4fvEXT);       \
+  APPLE_FUNC(glPushAttrib);                         \
+  APPLE_FUNC(glPushClientAttrib);                   \
+  APPLE_FUNC(glPushMatrix);                         \
+  APPLE_FUNC(glPushName);                           \
+  APPLE_FUNC(glRasterPos2d);                        \
+  APPLE_FUNC(glRasterPos2dv);                       \
+  APPLE_FUNC(glRasterPos2f);                        \
+  APPLE_FUNC(glRasterPos2fv);                       \
+  APPLE_FUNC(glRasterPos2i);                        \
+  APPLE_FUNC(glRasterPos2iv);                       \
+  APPLE_FUNC(glRasterPos2s);                        \
+  APPLE_FUNC(glRasterPos2sv);                       \
+  APPLE_FUNC(glRasterPos3d);                        \
+  APPLE_FUNC(glRasterPos3dv);                       \
+  APPLE_FUNC(glRasterPos3f);                        \
+  APPLE_FUNC(glRasterPos3fv);                       \
+  APPLE_FUNC(glRasterPos3i);                        \
+  APPLE_FUNC(glRasterPos3iv);                       \
+  APPLE_FUNC(glRasterPos3s);                        \
+  APPLE_FUNC(glRasterPos3sv);                       \
+  APPLE_FUNC(glRasterPos4d);                        \
+  APPLE_FUNC(glRasterPos4dv);                       \
+  APPLE_FUNC(glRasterPos4f);                        \
+  APPLE_FUNC(glRasterPos4fv);                       \
+  APPLE_FUNC(glRasterPos4i);                        \
+  APPLE_FUNC(glRasterPos4iv);                       \
+  APPLE_FUNC(glRasterPos4s);                        \
+  APPLE_FUNC(glRasterPos4sv);                       \
+  APPLE_FUNC(glRectd);                              \
+  APPLE_FUNC(glRectdv);                             \
+  APPLE_FUNC(glRectf);                              \
+  APPLE_FUNC(glRectfv);                             \
+  APPLE_FUNC(glRecti);                              \
+  APPLE_FUNC(glRectiv);                             \
+  APPLE_FUNC(glRects);                              \
+  APPLE_FUNC(glRectsv);                             \
+  APPLE_FUNC(glRenderMode);                         \
+  APPLE_FUNC(glResetHistogram);                     \
+  APPLE_FUNC(glResetMinmax);                        \
+  APPLE_FUNC(glRotated);                            \
+  APPLE_FUNC(glRotatef);                            \
+  APPLE_FUNC(glScaled);                             \
+  APPLE_FUNC(glScalef);                             \
+  APPLE_FUNC(glSecondaryColor3b);                   \
+  APPLE_FUNC(glSecondaryColor3bEXT);                \
+  APPLE_FUNC(glSecondaryColor3bv);                  \
+  APPLE_FUNC(glSecondaryColor3bvEXT);               \
+  APPLE_FUNC(glSecondaryColor3d);                   \
+  APPLE_FUNC(glSecondaryColor3dEXT);                \
+  APPLE_FUNC(glSecondaryColor3dv);                  \
+  APPLE_FUNC(glSecondaryColor3dvEXT);               \
+  APPLE_FUNC(glSecondaryColor3f);                   \
+  APPLE_FUNC(glSecondaryColor3fEXT);                \
+  APPLE_FUNC(glSecondaryColor3fv);                  \
+  APPLE_FUNC(glSecondaryColor3fvEXT);               \
+  APPLE_FUNC(glSecondaryColor3i);                   \
+  APPLE_FUNC(glSecondaryColor3iEXT);                \
+  APPLE_FUNC(glSecondaryColor3iv);                  \
+  APPLE_FUNC(glSecondaryColor3ivEXT);               \
+  APPLE_FUNC(glSecondaryColor3s);                   \
+  APPLE_FUNC(glSecondaryColor3sEXT);                \
+  APPLE_FUNC(glSecondaryColor3sv);                  \
+  APPLE_FUNC(glSecondaryColor3svEXT);               \
+  APPLE_FUNC(glSecondaryColor3ub);                  \
+  APPLE_FUNC(glSecondaryColor3ubEXT);               \
+  APPLE_FUNC(glSecondaryColor3ubv);                 \
+  APPLE_FUNC(glSecondaryColor3ubvEXT);              \
+  APPLE_FUNC(glSecondaryColor3ui);                  \
+  APPLE_FUNC(glSecondaryColor3uiEXT);               \
+  APPLE_FUNC(glSecondaryColor3uiv);                 \
+  APPLE_FUNC(glSecondaryColor3uivEXT);              \
+  APPLE_FUNC(glSecondaryColor3us);                  \
+  APPLE_FUNC(glSecondaryColor3usEXT);               \
+  APPLE_FUNC(glSecondaryColor3usv);                 \
+  APPLE_FUNC(glSecondaryColor3usvEXT);              \
+  APPLE_FUNC(glSecondaryColorPointer);              \
+  APPLE_FUNC(glSecondaryColorPointerEXT);           \
+  APPLE_FUNC(glSelectBuffer);                       \
+  APPLE_FUNC(glSeparableFilter2D);                  \
+  APPLE_FUNC(glSetFenceAPPLE);                      \
+  APPLE_FUNC(glShadeModel);                         \
+  APPLE_FUNC(glTestFenceAPPLE);                     \
+  APPLE_FUNC(glTestObjectAPPLE);                    \
+  APPLE_FUNC(glTexCoord1d);                         \
+  APPLE_FUNC(glTexCoord1dv);                        \
+  APPLE_FUNC(glTexCoord1f);                         \
+  APPLE_FUNC(glTexCoord1fv);                        \
+  APPLE_FUNC(glTexCoord1i);                         \
+  APPLE_FUNC(glTexCoord1iv);                        \
+  APPLE_FUNC(glTexCoord1s);                         \
+  APPLE_FUNC(glTexCoord1sv);                        \
+  APPLE_FUNC(glTexCoord2d);                         \
+  APPLE_FUNC(glTexCoord2dv);                        \
+  APPLE_FUNC(glTexCoord2f);                         \
+  APPLE_FUNC(glTexCoord2fv);                        \
+  APPLE_FUNC(glTexCoord2i);                         \
+  APPLE_FUNC(glTexCoord2iv);                        \
+  APPLE_FUNC(glTexCoord2s);                         \
+  APPLE_FUNC(glTexCoord2sv);                        \
+  APPLE_FUNC(glTexCoord3d);                         \
+  APPLE_FUNC(glTexCoord3dv);                        \
+  APPLE_FUNC(glTexCoord3f);                         \
+  APPLE_FUNC(glTexCoord3fv);                        \
+  APPLE_FUNC(glTexCoord3i);                         \
+  APPLE_FUNC(glTexCoord3iv);                        \
+  APPLE_FUNC(glTexCoord3s);                         \
+  APPLE_FUNC(glTexCoord3sv);                        \
+  APPLE_FUNC(glTexCoord4d);                         \
+  APPLE_FUNC(glTexCoord4dv);                        \
+  APPLE_FUNC(glTexCoord4f);                         \
+  APPLE_FUNC(glTexCoord4fv);                        \
+  APPLE_FUNC(glTexCoord4i);                         \
+  APPLE_FUNC(glTexCoord4iv);                        \
+  APPLE_FUNC(glTexCoord4s);                         \
+  APPLE_FUNC(glTexCoord4sv);                        \
+  APPLE_FUNC(glTexCoordPointer);                    \
+  APPLE_FUNC(glTexEnvf);                            \
+  APPLE_FUNC(glTexEnvfv);                           \
+  APPLE_FUNC(glTexEnvi);                            \
+  APPLE_FUNC(glTexEnviv);                           \
+  APPLE_FUNC(glTexGend);                            \
+  APPLE_FUNC(glTexGendv);                           \
+  APPLE_FUNC(glTexGenf);                            \
+  APPLE_FUNC(glTexGenfv);                           \
+  APPLE_FUNC(glTexGeni);                            \
+  APPLE_FUNC(glTexGeniv);                           \
+  APPLE_FUNC(glTextureBarrierNV);                   \
+  APPLE_FUNC(glTextureRangeAPPLE);                  \
+  APPLE_FUNC(glTranslated);                         \
+  APPLE_FUNC(glTranslatef);                         \
+  APPLE_FUNC(glUnlockArraysEXT);                    \
+  APPLE_FUNC(glVertex2d);                           \
+  APPLE_FUNC(glVertex2dv);                          \
+  APPLE_FUNC(glVertex2f);                           \
+  APPLE_FUNC(glVertex2fv);                          \
+  APPLE_FUNC(glVertex2i);                           \
+  APPLE_FUNC(glVertex2iv);                          \
+  APPLE_FUNC(glVertex2s);                           \
+  APPLE_FUNC(glVertex2sv);                          \
+  APPLE_FUNC(glVertex3d);                           \
+  APPLE_FUNC(glVertex3dv);                          \
+  APPLE_FUNC(glVertex3f);                           \
+  APPLE_FUNC(glVertex3fv);                          \
+  APPLE_FUNC(glVertex3i);                           \
+  APPLE_FUNC(glVertex3iv);                          \
+  APPLE_FUNC(glVertex3s);                           \
+  APPLE_FUNC(glVertex3sv);                          \
+  APPLE_FUNC(glVertex4d);                           \
+  APPLE_FUNC(glVertex4dv);                          \
+  APPLE_FUNC(glVertex4f);                           \
+  APPLE_FUNC(glVertex4fv);                          \
+  APPLE_FUNC(glVertex4i);                           \
+  APPLE_FUNC(glVertex4iv);                          \
+  APPLE_FUNC(glVertex4s);                           \
+  APPLE_FUNC(glVertex4sv);                          \
+  APPLE_FUNC(glVertexArrayParameteriAPPLE);         \
+  APPLE_FUNC(glVertexArrayRangeAPPLE);              \
+  APPLE_FUNC(glVertexBlendARB);                     \
+  APPLE_FUNC(glVertexPointer);                      \
+  APPLE_FUNC(glWeightbvARB);                        \
+  APPLE_FUNC(glWeightdvARB);                        \
+  APPLE_FUNC(glWeightfvARB);                        \
+  APPLE_FUNC(glWeightivARB);                        \
+  APPLE_FUNC(glWeightPointerARB);                   \
+  APPLE_FUNC(glWeightsvARB);                        \
+  APPLE_FUNC(glWeightubvARB);                       \
+  APPLE_FUNC(glWeightuivARB);                       \
+  APPLE_FUNC(glWeightusvARB);                       \
+  APPLE_FUNC(glWindowPos2d);                        \
+  APPLE_FUNC(glWindowPos2dARB);                     \
+  APPLE_FUNC(glWindowPos2dv);                       \
+  APPLE_FUNC(glWindowPos2dvARB);                    \
+  APPLE_FUNC(glWindowPos2f);                        \
+  APPLE_FUNC(glWindowPos2fARB);                     \
+  APPLE_FUNC(glWindowPos2fv);                       \
+  APPLE_FUNC(glWindowPos2fvARB);                    \
+  APPLE_FUNC(glWindowPos2i);                        \
+  APPLE_FUNC(glWindowPos2iARB);                     \
+  APPLE_FUNC(glWindowPos2iv);                       \
+  APPLE_FUNC(glWindowPos2ivARB);                    \
+  APPLE_FUNC(glWindowPos2s);                        \
+  APPLE_FUNC(glWindowPos2sARB);                     \
+  APPLE_FUNC(glWindowPos2sv);                       \
+  APPLE_FUNC(glWindowPos2svARB);                    \
+  APPLE_FUNC(glWindowPos3d);                        \
+  APPLE_FUNC(glWindowPos3dARB);                     \
+  APPLE_FUNC(glWindowPos3dv);                       \
+  APPLE_FUNC(glWindowPos3dvARB);                    \
+  APPLE_FUNC(glWindowPos3f);                        \
+  APPLE_FUNC(glWindowPos3fARB);                     \
+  APPLE_FUNC(glWindowPos3fv);                       \
+  APPLE_FUNC(glWindowPos3fvARB);                    \
+  APPLE_FUNC(glWindowPos3i);                        \
+  APPLE_FUNC(glWindowPos3iARB);                     \
+  APPLE_FUNC(glWindowPos3iv);                       \
+  APPLE_FUNC(glWindowPos3ivARB);                    \
+  APPLE_FUNC(glWindowPos3s);                        \
+  APPLE_FUNC(glWindowPos3sARB);                     \
+  APPLE_FUNC(glWindowPos3sv);                       \
+  APPLE_FUNC(glWindowPos3svARB);

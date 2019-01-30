@@ -196,17 +196,30 @@ struct GLWindowingData
 
 #elif ENABLED(RDOC_APPLE)
 
+#include "official/cgl.h"
+
 struct GLWindowingData
 {
   GLWindowingData()
   {
     ctx = NULL;
-    wnd = 0;
+    wnd = NULL;
+    cfg = NULL;
   }
 
-  void *ctx;
+  CGLContextObj ctx;
   void *wnd;
+  CGLPixelFormatObj cfg;
 };
+
+#define DECL_HOOK_EXPORT(function)                                                                    \
+  __attribute__((used)) static struct                                                                 \
+  {                                                                                                   \
+    const void *replacment;                                                                           \
+    const void *replacee;                                                                             \
+  } _interpose_def_##function __attribute__((section("__DATA,__interpose"))) = {                      \
+      (const void *)(unsigned long)&GL_EXPORT_NAME(function), (const void *)(unsigned long)&function, \
+  };
 
 #elif ENABLED(RDOC_ANDROID)
 
@@ -313,22 +326,10 @@ GLPlatform &GetEGLPlatform();
 // will be connected in the struct below
 #define GL_EXPORT_NAME(function) CONCAT(interposed_, function)
 
-// from dyld-interposing.h - DYLD_INTERPOSE
-#define DECL_GL_HOOK_EXPORT(function)                                                                 \
-  __attribute__((used)) static struct                                                                 \
-  {                                                                                                   \
-    const void *replacment;                                                                           \
-    const void *replacee;                                                                             \
-  } _interpose_def_##function __attribute__((section("__DATA,__interpose"))) = {                      \
-      (const void *)(unsigned long)&GL_EXPORT_NAME(function), (const void *)(unsigned long)&function, \
-  };
-
 #else
 
-// on all other platforms we just export functions with the bare name, and don't declare anything to
-// hook.
+// on all other platforms we just export functions with the bare name
 #define GL_EXPORT_NAME(function) function
-#define DECL_GL_HOOK_EXPORT(function)
 
 #endif
 

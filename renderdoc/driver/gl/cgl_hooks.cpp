@@ -176,9 +176,9 @@ CGLError GL_EXPORT_NAME(CGLFlushDrawable)(CGLContextObj ctx)
   return CGL.CGLFlushDrawable(ctx);
 }
 
-DECL_GL_HOOK_EXPORT(CGLCreateContext);
-DECL_GL_HOOK_EXPORT(CGLSetCurrentContext);
-DECL_GL_HOOK_EXPORT(CGLFlushDrawable);
+DECL_HOOK_EXPORT(CGLCreateContext);
+DECL_HOOK_EXPORT(CGLSetCurrentContext);
+DECL_HOOK_EXPORT(CGLFlushDrawable);
 
 static void CGLHooked(void *handle)
 {

@@ -21,7 +21,9 @@ typedef uint32_t GLbitfield;
 typedef uint8_t  GLboolean;
 typedef int8_t   GLbyte;
 typedef float    GLclampf;
+#ifndef GLenum
 typedef uint32_t GLenum;
+#endif
 typedef float    GLfloat;
 typedef int32_t  GLint;
 typedef int16_t  GLshort;
