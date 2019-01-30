@@ -288,6 +288,9 @@ void GLReplay::InitDebugData()
   if(m_pDriver == NULL)
     return;
 
+  // don't reflect any shaders or programs we make
+  m_pDriver->PushInternalShader();
+
   m_HighlightCache.driver = m_pDriver->GetReplay();
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
@@ -1048,6 +1051,8 @@ void GLReplay::InitDebugData()
         "Don't have shader image load/store or compute shaders, functionality will be degraded.");
     m_Degraded = true;
   }
+
+  m_pDriver->PopInternalShader();
 }
 
 void GLReplay::DeleteDebugData()

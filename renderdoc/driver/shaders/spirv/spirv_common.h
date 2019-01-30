@@ -187,6 +187,7 @@ enum class ReflectionInterface
   UniformBlock,
   ShaderStorageBlock,
   AtomicCounterBuffer,
+  BufferVariable,
 };
 
 enum class ReflectionProperty
@@ -208,10 +209,11 @@ enum class ReflectionProperty
   ReferencedByGeometryShader,
   ReferencedByFragmentShader,
   ReferencedByComputeShader,
+  Internal_Binding,
   AtomicCounterBufferIndex,
   Offset,
-  MatrixStride,
   ArrayStride,
+  MatrixStride,
   Location,
 };
 
@@ -221,6 +223,7 @@ void glslangGetProgramInterfaceiv(glslang::TProgram *program, ReflectionInterfac
 void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface programInterface,
                                  uint32_t index, const std::vector<ReflectionProperty> &props,
                                  int32_t bufSize, int32_t *length, int32_t *params);
+uint32_t glslangGetProgramResourceIndex(glslang::TProgram *program, const char *name);
 
 const char *glslangGetProgramResourceName(glslang::TProgram *program,
                                           ReflectionInterface programInterface, uint32_t index);

@@ -140,6 +140,8 @@ private:
 
   uintptr_t m_ShareGroupID;
 
+  uint32_t m_InternalShader = 0;
+
   std::vector<GLWindowingData> m_LastContexts;
 
   std::set<void *> m_AcceptedCtx;
@@ -497,6 +499,9 @@ public:
   ContextPair &GetCtx();
   GLResourceRecord *GetContextRecord();
 
+  void PushInternalShader() { m_InternalShader++; }
+  void PopInternalShader() { m_InternalShader--; }
+  bool IsInternalShader() { return m_InternalShader > 0; }
   void *ShareCtx(void *ctx) { return ctx ? m_ContextData[ctx].shareGroup : NULL; }
   void SetStructuredExport(uint64_t sectionVersion)
   {

@@ -28,6 +28,41 @@
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 #include "gl_driver.h"
 
+template <>
+std::string DoStringise(const FFVertexOutput &el)
+{
+  BEGIN_ENUM_STRINGISE(FFVertexOutput);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(PointSize, "gl_PointSize");
+    STRINGISE_ENUM_CLASS_NAMED(ClipDistance, "gl_ClipDistance");
+    STRINGISE_ENUM_CLASS_NAMED(ClipVertex, "gl_ClipVertex");
+    STRINGISE_ENUM_CLASS_NAMED(FrontColor, "gl_FrontColor");
+    STRINGISE_ENUM_CLASS_NAMED(BackColor, "gl_BackColor");
+    STRINGISE_ENUM_CLASS_NAMED(FrontSecondaryColor, "gl_FrontSecondaryColor");
+    STRINGISE_ENUM_CLASS_NAMED(BackSecondaryColor, "gl_BackSecondaryColor");
+    STRINGISE_ENUM_CLASS_NAMED(TexCoord, "gl_TexCoord");
+    STRINGISE_ENUM_CLASS_NAMED(FogFragCoord, "gl_FogFragCoord");
+    STRINGISE_ENUM_CLASS_NAMED(Count, "gl_Count");
+  }
+  END_ENUM_STRINGISE();
+}
+
+void namesort(rdcarray<ShaderConstant> &vars)
+{
+  if(vars.empty())
+    return;
+
+  struct name_sort
+  {
+    bool operator()(const ShaderConstant &a, const ShaderConstant &b) { return a.name < b.name; }
+  };
+
+  std::sort(vars.begin(), vars.end(), name_sort());
+
+  for(size_t i = 0; i < vars.size(); i++)
+    namesort(vars[i].type.members);
+}
+
 void sort(rdcarray<ShaderConstant> &vars)
 {
   if(vars.empty())
@@ -41,64 +76,42 @@ void sort(rdcarray<ShaderConstant> &vars)
     sort(vars[i].type.members);
 }
 
-void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, bool &clipDistanceUsed)
+void CheckVertexOutputUses(const std::vector<std::string> &sources,
+                           FixedFunctionVertexOutputs &outputUsage)
 {
-  pointSizeUsed = false;
-  clipDistanceUsed = false;
+  outputUsage = FixedFunctionVertexOutputs();
 
-  for(size_t i = 0; i < sources.size(); i++)
+  for(FFVertexOutput output : values<FFVertexOutput>())
   {
-    const string &s = sources[i];
+    // we consider an output used if we encounter a '=' before either a ';' or the end of the string
+    std::string name = ToStr(output);
 
-    size_t offs = 0;
-
-    for(;;)
+    for(size_t i = 0; i < sources.size(); i++)
     {
-      offs = s.find("gl_PointSize", offs);
+      const std::string &s = sources[i];
 
-      if(offs == string::npos)
-        break;
+      size_t offs = 0;
 
-      // consider gl_PointSize used if we encounter a '=' before a ';' or the end of the string
-
-      while(offs < s.length())
+      for(;;)
       {
-        if(s[offs] == '=')
+        offs = s.find(name, offs);
+
+        if(offs == string::npos)
+          break;
+
+        while(offs < s.length())
         {
-          pointSizeUsed = true;
-          break;
+          if(s[offs] == '=')
+          {
+            outputUsage.used[(int)output] = true;
+            break;
+          }
+
+          if(s[offs] == ';')
+            break;
+
+          offs++;
         }
-
-        if(s[offs] == ';')
-          break;
-
-        offs++;
-      }
-    }
-
-    offs = 0;
-
-    for(;;)
-    {
-      offs = s.find("gl_ClipDistance", offs);
-
-      if(offs == string::npos)
-        break;
-
-      // consider gl_ClipDistance used if we encounter a '=' before a ';' or the end of the string
-
-      while(offs < s.length())
-      {
-        if(s[offs] == '=')
-        {
-          clipDistanceUsed = true;
-          break;
-        }
-
-        if(s[offs] == ';')
-          break;
-
-        offs++;
       }
     }
   }
@@ -116,35 +129,35 @@ static GLuint CreateSepProgram(WrappedOpenGL &driver, GLenum type, GLsizei numSo
   GLuint program = 0;
 
   // definition of glCreateShaderProgramv from the spec
-  GLuint shader = GL.glCreateShader(type);
+  GLuint shader = driver.glCreateShader(type);
   if(shader)
   {
-    GL.glShaderSource(shader, numSources, sources, NULL);
+    driver.glShaderSource(shader, numSources, sources, NULL);
 
     if(paths == NULL)
-      GL.glCompileShader(shader);
+      driver.glCompileShader(shader);
     else
-      GL.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+      driver.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
 
-    program = GL.glCreateProgram();
+    program = driver.glCreateProgram();
     if(program)
     {
       GLint compiled = 0;
 
-      GL.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
-      GL.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+      driver.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
+      driver.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
 
       if(compiled)
       {
-        GL.glAttachShader(program, shader);
-        GL.glLinkProgram(program);
+        driver.glAttachShader(program, shader);
+        driver.glLinkProgram(program);
 
         // we deliberately leave the shaders attached so this program can be re-linked.
         // they will be cleaned up when the program is deleted
         // driver.glDetachShader(program, shader);
       }
     }
-    GL.glDeleteShader(shader);
+    driver.glDeleteShader(shader);
   }
 
   driver.SuppressDebugMessages(false);
@@ -1037,8 +1050,50 @@ int ParseVersionStatement(const char *version)
   return ret;
 }
 
+static void AddSigParameter(vector<SigParameter> &sigs, uint32_t &regIndex, const SigParameter &sig,
+                            const char *nm, int rows, int arrayIdx)
+{
+  if(rows == 1)
+  {
+    SigParameter s = sig;
+
+    if(s.regIndex == ~0U)
+      s.regIndex = regIndex++;
+
+    if(arrayIdx >= 0)
+    {
+      s.arrayIndex = arrayIdx;
+      s.varName = StringFormat::Fmt("%s[%d]", nm, arrayIdx);
+    }
+
+    sigs.push_back(s);
+  }
+  else
+  {
+    for(int r = 0; r < rows; r++)
+    {
+      SigParameter s = sig;
+
+      if(s.regIndex == ~0U)
+        s.regIndex = regIndex++;
+
+      if(arrayIdx >= 0)
+      {
+        s.arrayIndex = arrayIdx;
+        s.varName = StringFormat::Fmt("%s[%d]:row%d", nm, arrayIdx, r);
+      }
+      else
+      {
+        s.varName = StringFormat::Fmt("%s:row%d", nm, r);
+      }
+
+      sigs.push_back(s);
+    }
+  }
+}
+
 void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &refl,
-                          bool pointSizeUsed, bool clipDistanceUsed)
+                          const FixedFunctionVertexOutputs &outputUsage)
 {
   if(shadType == eGL_COMPUTE_SHADER)
   {
@@ -1616,7 +1671,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.resType = TextureType::Buffer;
       res.variableType.descriptor.rows = 0;
       res.variableType.descriptor.columns = 0;
-      res.variableType.descriptor.elements = len;
+      res.variableType.descriptor.elements = 0;
       res.variableType.descriptor.rowMajorStorage = false;
       res.variableType.descriptor.arrayByteStride = 0;
       res.variableType.descriptor.matrixByteStride = 0;
@@ -1625,13 +1680,15 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.bindPoint = (int32_t)rwresources.size();
       res.name = nm;
 
+      GLint numMembers = 0;
+
       propName = eGL_NUM_ACTIVE_VARIABLES;
       GL.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL,
-                                (GLint *)&res.variableType.descriptor.elements);
+                                (GLint *)&numMembers);
 
       rwresources.push_back(res);
       ssbos.push_back(res.bindPoint);
-      ssboMembers += res.variableType.descriptor.elements;
+      ssboMembers += numMembers;
 
       delete[] nm;
     }
@@ -1739,7 +1796,9 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     globals.bufferBacked = false;
     globals.bindPoint = (int32_t)refl.constantBlocks.size();
 
-    sort(globalUniforms);
+    // global uniforms have no defined order, location will be per implementation, so sort instead
+    // alphabetically
+    namesort(globalUniforms);
     std::swap(globals.variables, globalUniforms);
 
     refl.constantBlocks.push_back(globals);
@@ -1759,16 +1818,20 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     {
       vector<SigParameter> sigs;
       sigs.reserve(numInputs);
+
+      uint32_t regIndex = 0;
+
       for(GLint i = 0; i < numInputs; i++)
       {
-        GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION, eGL_LOCATION_COMPONENT};
-        GLint values[] = {0, 0, 0, 0};
+        GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION, eGL_ARRAY_SIZE,
+                          eGL_LOCATION_COMPONENT};
+        GLint values[] = {0, 0, 0, 0, 0};
 
         GLsizei numSigProps = (GLsizei)ARRAY_COUNT(props);
 
         // GL_LOCATION_COMPONENT not supported on core <4.4 (or without GL_ARB_enhanced_layouts)
-        // and on GLES, either
-        if(!HasExt[ARB_enhanced_layouts])
+        // on GLES, or when we don't have native program interface query
+        if(!HasExt[ARB_enhanced_layouts] || !HasExt[ARB_program_interface_query])
           numSigProps--;
         GL.glGetProgramResourceiv(sepProg, sigEnum, i, numSigProps, props, numSigProps, NULL, values);
 
@@ -1924,19 +1987,35 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
             break;
         }
 
-        sig.regChannelMask <<= values[3];
-
-        sig.channelUsedMask = sig.regChannelMask;
-
         sig.systemValue = ShaderBuiltin::Undefined;
 
-#define IS_BUILTIN(builtin) !strncmp(nm, builtin, sizeof(builtin) - 1)
+        const char *varname = nm;
 
-        // if these weren't used, they were probably added just to make a separable program
-        // (either by us or the program originally). Skip them from the output signature
-        if(IS_BUILTIN("gl_PointSize") && !pointSizeUsed)
-          continue;
-        if(IS_BUILTIN("gl_ClipDistance") && !clipDistanceUsed)
+        if(!strncmp(varname, "gl_PerVertex.", 13))
+          varname += 13;
+
+#define IS_BUILTIN(builtin) !strncmp(varname, builtin, sizeof(builtin) - 1)
+
+        // some vertex outputs can be reflected (especially by glslang) if they're just declared and
+        // not used, which is quite common with redeclaring outputs for separable programs - either
+        // by the program or by us. So instead use our manual quick-and-dirty usage check to skip
+        // potential false-positives.
+        bool unused = false;
+        for(FFVertexOutput ffoutput : ::values<FFVertexOutput>())
+        {
+          // we consider an output used if we encounter a '=' before either a ';' or the end of the
+          // string
+          std::string outName = ToStr(ffoutput);
+
+          // we do a substring search so that gl_ClipDistance matches gl_ClipDistance[0]
+          if(strstr(varname, outName.c_str()))
+          {
+            unused = !outputUsage.used[(int)ffoutput];
+            break;
+          }
+        }
+
+        if(unused)
           continue;
 
         // VS built-in inputs
@@ -2026,27 +2105,39 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           sig.systemValue = ShaderBuiltin::GroupFlatIndex;
 
 #undef IS_BUILTIN
+        if(sig.systemValue == ShaderBuiltin::Undefined)
+          sig.regIndex = values[2] >= 0 ? values[2] : ~0U;
+        else
+          sig.regIndex = 0;
+
         if(shadType == eGL_FRAGMENT_SHADER && sigEnum == eGL_PROGRAM_OUTPUT &&
            sig.systemValue == ShaderBuiltin::Undefined)
           sig.systemValue = ShaderBuiltin::ColorOutput;
 
+        // don't apply location component for built-ins
         if(sig.systemValue == ShaderBuiltin::Undefined)
-          sig.regIndex = values[2] >= 0 ? values[2] : i;
-        else
-          sig.regIndex = values[2] >= 0 ? values[2] : 0;
+          sig.regChannelMask <<= values[4];
 
-        if(rows == 1)
+        sig.channelUsedMask = sig.regChannelMask;
+
+        if(values[3] <= 1)
         {
-          sigs.push_back(sig);
+          AddSigParameter(sigs, regIndex, sig, nm, rows, -1);
         }
         else
         {
-          for(int r = 0; r < rows; r++)
+          std::string basename = nm;
+          if(basename[basename.size() - 3] == '[' && basename[basename.size() - 2] == '0' &&
+             basename[basename.size() - 1] == ']')
           {
-            SigParameter s = sig;
-            s.varName = StringFormat::Fmt("%s:row%d", nm, r);
-            s.regIndex += r;
-            sigs.push_back(s);
+            basename.erase(basename.size() - 3);
+            for(int a = 0; a < values[3]; a++)
+              AddSigParameter(sigs, regIndex, sig, basename.c_str(), rows, a);
+          }
+          else
+          {
+            RDCWARN("Got signature parameter %s with array size %d but no [0] suffix", nm, values[3]);
+            AddSigParameter(sigs, regIndex, sig, nm, rows, -1);
           }
         }
 

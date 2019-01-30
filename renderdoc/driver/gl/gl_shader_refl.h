@@ -27,10 +27,36 @@
 
 class WrappedOpenGL;
 
+enum class FFVertexOutput : uint32_t
+{
+  // Core members of gl_PerVertex
+  PointSize,
+  First = PointSize,
+  ClipDistance,
+
+  // Compatibility implicit varyings, generally only comes back from glslang's reflection
+  ClipVertex,
+  FrontColor,
+  BackColor,
+  FrontSecondaryColor,
+  BackSecondaryColor,
+  TexCoord,
+  FogFragCoord,
+  Count,
+};
+
+DECLARE_REFLECTION_ENUM(FFVertexOutput);
+ITERABLE_OPERATORS(FFVertexOutput);
+
+struct FixedFunctionVertexOutputs
+{
+  bool used[arraydim<FFVertexOutput>()] = {};
+};
+
 int ParseVersionStatement(const char *version);
 void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &refl,
-                          bool pointSizeUsed, bool clipDistanceUsed);
+                          const FixedFunctionVertexOutputs &outputUsage);
 GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, std::vector<std::string> sources,
                                   vector<string> *includepaths);
-void CheckVertexOutputUses(const std::vector<std::string> &sources, bool &pointSizeUsed,
-                           bool &clipDistanceUsed);
+void CheckVertexOutputUses(const std::vector<std::string> &sources,
+                           FixedFunctionVertexOutputs &outputUsage);

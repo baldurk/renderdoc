@@ -293,6 +293,32 @@ struct GLPlatform
   virtual void *GetReplayFunction(const char *funcname) = 0;
 };
 
+class GLDummyPlatform : public GLPlatform
+{
+  virtual GLWindowingData CloneTemporaryContext(GLWindowingData share) { return GLWindowingData(); }
+  virtual void DeleteClonedContext(GLWindowingData context) {}
+  virtual void DeleteReplayContext(GLWindowingData context) {}
+  virtual bool MakeContextCurrent(GLWindowingData data) { return true; }
+  virtual void SwapBuffers(GLWindowingData context) {}
+  virtual void WindowResized(GLWindowingData context) {}
+  virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) {}
+  virtual bool IsOutputWindowVisible(GLWindowingData context) { return false; }
+  virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,
+                                           GLWindowingData share_context)
+  {
+    return GLWindowingData();
+  }
+  virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
+  virtual void *GetReplayFunction(const char *funcname) { return NULL; }
+  // for initialisation at replay time
+  virtual bool CanCreateGLESContext() { return true; }
+  virtual bool PopulateForReplay() { return true; }
+  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  {
+    return ReplayStatus::Succeeded;
+  }
+};
+
 struct GLVersion
 {
   int major;

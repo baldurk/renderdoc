@@ -115,9 +115,6 @@ bool CheckReplayContext()
   // we require the below extensions on top of a 3.2 context. Some of these we could in theory
   // do without, but support for them is so widespread it's not worthwhile
 
-  // for program introspection, needed for shader reflection.
-  // Possible to remove by compiling shaders to SPIR-V and reflecting ourselves.
-  REQUIRE_EXTENSION(ARB_program_interface_query);
   // needed for program pipelines, glProgramUniform*, and reflecting shaders on their own
   // Possible to remove this with self-compiled SPIR-V for reflection - see above. Likewise
   // convenience for our own pipelines when replacing single shaders or such.
@@ -2594,6 +2591,8 @@ TEST_CASE("GL formats", "[format][gl]")
       CHECK(size == GetByteSize(123, 456, 1, GetBaseFormat(f), GetDataType(f)));
     }
   };
+
+  GL = GLDispatchTable();
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)

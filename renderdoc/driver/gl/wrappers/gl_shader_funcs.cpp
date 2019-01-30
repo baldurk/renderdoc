@@ -120,9 +120,9 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
 void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceId id,
                                                    GLuint realShader)
 {
-  bool pointSizeUsed = false, clipDistanceUsed = false;
+  FixedFunctionVertexOutputs outputUsage = {};
   if(type == eGL_VERTEX_SHADER)
-    CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
+    CheckVertexOutputUses(sources, outputUsage);
 
   entryPoint = "main";
 
@@ -224,9 +224,6 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   if(version == 0)
     version = 100;
 
-  reflection.encoding = ShaderEncoding::GLSL;
-  reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
-
   GLuint sepProg = prog;
 
   GLint status = 0;
@@ -235,12 +232,17 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   else
     drv.glGetShaderiv(realShader, eGL_COMPILE_STATUS, &status);
 
-  if(IsCaptureMode(drv.GetState()))
-  {
+  // if we don't have program_interface_query, need to compile the shader with glslang to be able
+  // to reflect with. This is needed on capture or replay
+  if(!HasExt[ARB_program_interface_query] && status == 1)
     glslangShader = CompileShaderForReflection(SPIRVShaderStage(ShaderIdx(type)), sources);
-  }
-  else
+
+  if(IsReplayMode(drv.GetState()) && !drv.IsInternalShader())
   {
+    // no shaders made under this point should be reflected themselves, they're only used for
+    // reflection
+    drv.PushInternalShader();
+
     if(sepProg == 0 && status == 1)
       sepProg = MakeSeparableShaderProgram(drv, type, sources, NULL);
 
@@ -257,7 +259,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
     else
     {
       prog = sepProg;
-      MakeShaderReflection(type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
+      MakeShaderReflection(type, sepProg, reflection, outputUsage);
 
       vector<uint32_t> spirvwords;
 
@@ -275,12 +277,17 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
       reflection.stage = MakeShaderStage(type);
 
+      reflection.encoding = ShaderEncoding::GLSL;
+      reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
+
       reflection.debugInfo.encoding = ShaderEncoding::GLSL;
 
       reflection.debugInfo.files.resize(1);
       reflection.debugInfo.files[0].filename = "main.glsl";
       reflection.debugInfo.files[0].contents = concatenated;
     }
+
+    drv.PopInternalShader();
   }
 }
 
@@ -395,7 +402,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     // so people who do that should be moderately ashamed.
     if(m_Shaders[liveId].prog)
     {
-      GL.glDeleteProgram(m_Shaders[liveId].prog);
+      glDeleteProgram(m_Shaders[liveId].prog);
       m_Shaders[liveId].prog = 0;
       m_Shaders[liveId].spirv = SPVModule();
       m_Shaders[liveId].reflection = ShaderReflection();
@@ -855,6 +862,28 @@ bool WrappedOpenGL::Serialise_glLinkProgram(SerialiserType &ser, GLuint programH
       }
     }
 
+    if(!HasExt[ARB_program_interface_query])
+    {
+      std::vector<glslang::TShader *> glslangShaders;
+
+      for(ResourceId id : progDetails.stageShaders)
+      {
+        if(id == ResourceId())
+          continue;
+
+        glslang::TShader *s = m_Shaders[id].glslangShader;
+        if(s == NULL)
+        {
+          RDCERR("Shader attached with no compiled glslang reflection shader!");
+          continue;
+        }
+
+        glslangShaders.push_back(m_Shaders[id].glslangShader);
+      }
+
+      progDetails.glslangProgram = LinkProgramForReflection(glslangShaders);
+    }
+
     GL.glLinkProgram(program.name);
 
     AddResourceInitChunk(program);
@@ -898,12 +927,15 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
       }
     }
 
-    if(IsCaptureMode(m_State) && !HasExt[ARB_program_interface_query])
+    if(!HasExt[ARB_program_interface_query])
     {
       std::vector<glslang::TShader *> glslangShaders;
 
-      for(ResourceId id : progDetails.shaders)
+      for(ResourceId id : progDetails.stageShaders)
       {
+        if(id == ResourceId())
+          continue;
+
         glslang::TShader *s = m_Shaders[id].glslangShader;
         if(s == NULL)
         {

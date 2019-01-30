@@ -1254,6 +1254,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
   }
   else if(Type == eResProgram)
   {
+    WrappedOpenGL &drv = *m_Driver;
+
     GLuint bindingsProgram = 0, uniformsProgram = 0;
     std::map<GLint, GLint> *translationTable = NULL;
 
@@ -1261,7 +1263,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
     {
       WrappedOpenGL::ProgramData &details = m_Driver->m_Programs[GetLiveID(Id)];
 
-      GLuint initProg = GL.glCreateProgram();
+      GLuint initProg = drv.glCreateProgram();
 
       uint32_t numShaders = 0;
 
@@ -1275,7 +1277,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
         const auto &shadDetails = m_Driver->m_Shaders[details.stageShaders[i]];
 
-        GLuint shad = GL.glCreateShader(shadDetails.type);
+        GLuint shad = drv.glCreateShader(shadDetails.type);
 
         if(shadDetails.type == eGL_VERTEX_SHADER)
         {
@@ -1301,24 +1303,24 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
           char **srcs = new char *[shadDetails.sources.size()];
           for(size_t s = 0; s < shadDetails.sources.size(); s++)
             srcs[s] = (char *)shadDetails.sources[s].c_str();
-          GL.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
+          drv.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
 
           SAFE_DELETE_ARRAY(srcs);
-          GL.glCompileShader(shad);
-          GL.glAttachShader(initProg, shad);
-          GL.glDeleteShader(shad);
+          drv.glCompileShader(shad);
+          drv.glAttachShader(initProg, shad);
+          drv.glDeleteShader(shad);
         }
         else if(!shadDetails.spirvWords.empty())
         {
-          GL.glShaderBinary(1, &shad, eGL_SHADER_BINARY_FORMAT_SPIR_V, shadDetails.spirvWords.data(),
-                            (GLsizei)shadDetails.spirvWords.size() * sizeof(uint32_t));
+          drv.glShaderBinary(1, &shad, eGL_SHADER_BINARY_FORMAT_SPIR_V, shadDetails.spirvWords.data(),
+                             (GLsizei)shadDetails.spirvWords.size() * sizeof(uint32_t));
 
-          GL.glSpecializeShader(shad, shadDetails.entryPoint.c_str(),
-                                (GLuint)shadDetails.specIDs.size(), shadDetails.specIDs.data(),
-                                shadDetails.specValues.data());
+          drv.glSpecializeShader(shad, shadDetails.entryPoint.c_str(),
+                                 (GLuint)shadDetails.specIDs.size(), shadDetails.specIDs.data(),
+                                 shadDetails.specValues.data());
 
-          GL.glAttachShader(initProg, shad);
-          GL.glDeleteShader(shad);
+          drv.glAttachShader(initProg, shad);
+          drv.glDeleteShader(shad);
         }
         else
         {
@@ -1335,21 +1337,21 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
       vertexOutputsPtr.resize(vertexOutputs.size());
       for(size_t i = 0; i < vertexOutputs.size(); i++)
         vertexOutputsPtr[i] = vertexOutputs[i].c_str();
-      GL.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
-                                     &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
-      GL.glLinkProgram(initProg);
+      drv.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
+                                      &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
+      drv.glLinkProgram(initProg);
 
       GLint status = 0;
-      GL.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+      drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
 
       // if it failed to link, first remove the varyings hack above as maybe the driver is barfing
       // on trying to make some output a varying
       if(status == 0)
       {
-        GL.glTransformFeedbackVaryings(initProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
-        GL.glLinkProgram(initProg);
+        drv.glTransformFeedbackVaryings(initProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+        drv.glLinkProgram(initProg);
 
-        GL.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+        drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
       }
 
       // if it failed to link, try again as a separable program.
@@ -1357,10 +1359,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
       // shaders need fixup to be separable-compatible.
       if(status == 0)
       {
-        GL.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
-        GL.glLinkProgram(initProg);
+        drv.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
+        drv.glLinkProgram(initProg);
 
-        GL.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+        drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
       }
 
       if(status == 0)
@@ -1372,7 +1374,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
         else
         {
           char buffer[1025] = {0};
-          GL.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
+          drv.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
           RDCERR("Link error: %s", buffer);
         }
       }

@@ -1831,7 +1831,7 @@ void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum fo
 
 #pragma endregion
 
-#pragma region GLES Compatibility
+#pragma region ARB_program_interface_query
 
 static ReflectionInterface ConvertInterface(GLenum programInterface)
 {
@@ -1839,14 +1839,16 @@ static ReflectionInterface ConvertInterface(GLenum programInterface)
 
   switch(programInterface)
   {
-    case eGL_PROGRAM_INPUT: ret = ReflectionInterface::Input; break;
-    case eGL_PROGRAM_OUTPUT: ret = ReflectionInterface::Output; break;
     case eGL_UNIFORM: ret = ReflectionInterface::Uniform; break;
     case eGL_UNIFORM_BLOCK: ret = ReflectionInterface::UniformBlock; break;
+    case eGL_PROGRAM_INPUT: ret = ReflectionInterface::Input; break;
+    case eGL_PROGRAM_OUTPUT: ret = ReflectionInterface::Output; break;
     case eGL_SHADER_STORAGE_BLOCK: ret = ReflectionInterface::ShaderStorageBlock; break;
     case eGL_ATOMIC_COUNTER_BUFFER: ret = ReflectionInterface::AtomicCounterBuffer; break;
+    case eGL_BUFFER_VARIABLE: ret = ReflectionInterface::BufferVariable; break;
     default:
-      RDCERR("Unexpected program interface being queried: %s", ToStr(programInterface).c_str());
+      RDCERR("Unexpected/unsupported program interface being queried: %s",
+             ToStr(programInterface).c_str());
       break;
   }
 
@@ -1859,6 +1861,10 @@ static ReflectionProperty ConvertProperty(GLenum prop)
 
   switch(prop)
   {
+    // internal query used for testing
+    case eGL_UNIFORM:
+    case eGL_UNIFORM_BLOCK_BINDING: ret = ReflectionProperty::Internal_Binding; break;
+
     case eGL_ACTIVE_RESOURCES: ret = ReflectionProperty::ActiveResources; break;
     case eGL_BUFFER_BINDING: ret = ReflectionProperty::BufferBinding; break;
     case eGL_TOP_LEVEL_ARRAY_STRIDE: ret = ReflectionProperty::TopLevelArrayStride; break;
@@ -1870,6 +1876,7 @@ static ReflectionProperty ConvertProperty(GLenum prop)
     case eGL_NAME_LENGTH: ret = ReflectionProperty::NameLength; break;
     case eGL_TYPE: ret = ReflectionProperty::Type; break;
     case eGL_LOCATION_COMPONENT: ret = ReflectionProperty::LocationComponent; break;
+    case eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER:
     case eGL_REFERENCED_BY_VERTEX_SHADER: ret = ReflectionProperty::ReferencedByVertexShader; break;
     case eGL_REFERENCED_BY_TESS_CONTROL_SHADER:
       ret = ReflectionProperty::ReferencedByTessControlShader;
@@ -1888,8 +1895,8 @@ static ReflectionProperty ConvertProperty(GLenum prop)
       break;
     case eGL_ATOMIC_COUNTER_BUFFER_INDEX: ret = ReflectionProperty::AtomicCounterBufferIndex; break;
     case eGL_OFFSET: ret = ReflectionProperty::Offset; break;
-    case eGL_MATRIX_STRIDE: ret = ReflectionProperty::MatrixStride; break;
     case eGL_ARRAY_STRIDE: ret = ReflectionProperty::ArrayStride; break;
+    case eGL_MATRIX_STRIDE: ret = ReflectionProperty::MatrixStride; break;
     case eGL_LOCATION: ret = ReflectionProperty::Location; break;
     default: RDCERR("Unexpected program property being queried: %s", ToStr(prop).c_str()); break;
   }
@@ -1897,27 +1904,36 @@ static ReflectionProperty ConvertProperty(GLenum prop)
   return ret;
 }
 
-void APIENTRY _glGetProgramInterfaceiv(GLuint program, GLenum programInterface, GLenum pname,
-                                       GLint *params)
+static glslang::TProgram *GetGlslangProgram(GLuint program)
 {
   if(driver == NULL)
   {
-    RDCERR("No driver available, can't emulate glGetProgramInterfaceiv");
-    *params = 0;
-    return;
+    RDCERR("No driver available, can't emulate ARB_program_interface_query");
+    return NULL;
   }
 
   ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
 
-  WrappedOpenGL::ProgramData &details = driver->m_Programs[id];
+  if(!driver->m_Programs[id].glslangProgram)
+  {
+    RDCERR("Don't have glslang program for reflecting program %u = %s", program, ToStr(id).c_str());
+  }
 
-  if(!details.glslangProgram)
+  return driver->m_Programs[id].glslangProgram;
+}
+
+void APIENTRY _glGetProgramInterfaceiv(GLuint program, GLenum programInterface, GLenum pname,
+                                       GLint *params)
+{
+  glslang::TProgram *glslangProgram = GetGlslangProgram(program);
+
+  if(!glslangProgram)
   {
     *params = 0;
     return;
   }
 
-  glslangGetProgramInterfaceiv(details.glslangProgram, ConvertInterface(programInterface),
+  glslangGetProgramInterfaceiv(glslangProgram, ConvertInterface(programInterface),
                                ConvertProperty(pname), params);
 }
 
@@ -1925,21 +1941,9 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
                                       GLsizei propCount, const GLenum *props, GLsizei bufSize,
                                       GLsizei *length, GLint *params)
 {
-  if(driver == NULL)
-  {
-    RDCERR("No driver available, can't emulate glGetProgramResourceiv");
-    if(length)
-      *length = 0;
-    if(params)
-      memset(params, 0, sizeof(GLint) * bufSize);
-    return;
-  }
+  glslang::TProgram *glslangProgram = GetGlslangProgram(program);
 
-  ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
-
-  WrappedOpenGL::ProgramData &details = driver->m_Programs[id];
-
-  if(!details.glslangProgram)
+  if(!glslangProgram)
   {
     if(length)
       *length = 0;
@@ -1953,48 +1957,77 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
   for(GLsizei i = 0; i < propCount; i++)
     properties[i] = ConvertProperty(props[i]);
 
-  glslangGetProgramResourceiv(details.glslangProgram, ConvertInterface(programInterface), index,
-                              properties, bufSize, length, params);
+  glslangGetProgramResourceiv(glslangProgram, ConvertInterface(programInterface), index, properties,
+                              bufSize, length, params);
 
   // fetch locations by hand from the driver
   for(GLsizei i = 0; i < propCount; i++)
   {
     if(props[i] == eGL_LOCATION)
     {
-      if(params[i] >= 0)
+      if(programInterface == eGL_UNIFORM && params[i] >= 0)
       {
-        const char *name = glslangGetProgramResourceName(details.glslangProgram,
-                                                         ConvertInterface(programInterface), index);
+        const char *name =
+            glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
 
-        if(programInterface == eGL_UNIFORM)
+        if(GL.glGetUniformLocation)
           params[i] = GL.glGetUniformLocation(program, name);
-        else if(programInterface == eGL_PROGRAM_INPUT)
+      }
+      else if(programInterface == eGL_PROGRAM_INPUT && params[i] < 0)
+      {
+        const char *name =
+            glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
+
+        if(GL.glGetAttribLocation)
           params[i] = GL.glGetAttribLocation(program, name);
-        else
-          params[i] = index;
+      }
+      else if(programInterface == eGL_PROGRAM_OUTPUT && params[i] < 0)
+      {
+        const char *name =
+            glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
+
+        if(GL.glGetFragDataLocation)
+          params[i] = GL.glGetFragDataLocation(program, name);
+      }
+    }
+    else if(props[i] == eGL_BUFFER_BINDING)
+    {
+      if(programInterface == eGL_UNIFORM_BLOCK)
+      {
+        const char *name =
+            glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
+
+        if(GL.glGetUniformBlockIndex)
+        {
+          GLuint blockIndex = GL.glGetUniformBlockIndex(program, name);
+          if(blockIndex != GL_INVALID_INDEX && GL.glGetActiveUniformBlockiv)
+          {
+            GL.glGetActiveUniformBlockiv(program, blockIndex, eGL_UNIFORM_BLOCK_BINDING, &params[i]);
+          }
+        }
       }
     }
   }
 }
 
+GLuint APIENTRY _glGetProgramResourceIndex(GLuint program, GLenum programInterface, const GLchar *name)
+{
+  glslang::TProgram *glslangProgram = GetGlslangProgram(program);
+
+  if(!glslangProgram)
+  {
+    return 0;
+  }
+
+  return glslangGetProgramResourceIndex(glslangProgram, name);
+}
+
 void APIENTRY _glGetProgramResourceName(GLuint program, GLenum programInterface, GLuint index,
                                         GLsizei bufSize, GLsizei *length, GLchar *name)
 {
-  if(driver == NULL)
-  {
-    RDCERR("No driver available, can't emulate glGetProgramResourceName");
-    if(length)
-      *length = 0;
-    if(name && bufSize)
-      memset(name, 0, bufSize);
-    return;
-  }
+  glslang::TProgram *glslangProgram = GetGlslangProgram(program);
 
-  ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
-
-  WrappedOpenGL::ProgramData &details = driver->m_Programs[id];
-
-  if(!details.glslangProgram)
+  if(!glslangProgram)
   {
     if(length)
       *length = 0;
@@ -2003,8 +2036,8 @@ void APIENTRY _glGetProgramResourceName(GLuint program, GLenum programInterface,
     return;
   }
 
-  const char *fetchedName = glslangGetProgramResourceName(
-      details.glslangProgram, ConvertInterface(programInterface), index);
+  const char *fetchedName =
+      glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
 
   if(fetchedName)
   {
@@ -2025,6 +2058,10 @@ void APIENTRY _glGetProgramResourceName(GLuint program, GLenum programInterface,
       memset(name, 0, bufSize);
   }
 }
+
+#pragma endregion
+
+#pragma region GLES Compatibility
 
 void APIENTRY _glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
 {
@@ -2536,8 +2573,9 @@ void GLDispatchTable::EmulateRequiredExtensions()
   if(!HasExt[ARB_program_interface_query])
   {
     EMULATE_FUNC(glGetProgramInterfaceiv);
-    EMULATE_FUNC(glGetProgramResourceiv);
+    EMULATE_FUNC(glGetProgramResourceIndex);
     EMULATE_FUNC(glGetProgramResourceName);
+    EMULATE_FUNC(glGetProgramResourceiv);
   }
 
   // only emulate ARB_vertex_attrib_binding on replay
@@ -2720,3 +2758,1184 @@ void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
 {
   glEmulate::driver = driver;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+
+#include "../gl_shader_refl.h"
+#include "3rdparty/catch/catch.hpp"
+#include "strings/string_utils.h"
+
+GLint APIENTRY _testStub_GetUniformLocation(GLuint program, const GLchar *name)
+{
+  // use existing ARB_program_interface_query to get value
+  GLuint index = GL.glGetProgramResourceIndex(program, eGL_UNIFORM, name);
+  RDCASSERT(index != GL_INVALID_INDEX);
+
+  return index;
+}
+
+void APIENTRY _testStub_GetUniformiv(GLuint program, GLint location, GLint *params)
+{
+  // abuse this query which returns the right value for uniform bindings also
+  GLenum prop = eGL_UNIFORM;
+  GL.glGetProgramResourceiv(program, eGL_UNIFORM, location, 1, &prop, 1, NULL, params);
+}
+
+void APIENTRY _testStub_GetIntegerv(GLenum pname, GLint *params)
+{
+  // fixed definition
+  if(pname == eGL_MAX_VERTEX_ATTRIBS)
+    *params = 16;
+  else
+    RDCERR("Unexpected pname in test stub: %s", ToStr(pname).c_str());
+}
+
+void APIENTRY _testStub_GetActiveAtomicCounterBufferiv(GLuint program, GLuint bufferIndex,
+                                                       GLenum pname, GLint *params)
+{
+  if(pname == eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER)
+  {
+    GLenum prop = eGL_REFERENCED_BY_VERTEX_SHADER;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else if(pname == eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER)
+  {
+    GLenum prop = eGL_REFERENCED_BY_TESS_CONTROL_SHADER;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else if(pname == eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER)
+  {
+    GLenum prop = eGL_REFERENCED_BY_TESS_EVALUATION_SHADER;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else if(pname == eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER)
+  {
+    GLenum prop = eGL_REFERENCED_BY_GEOMETRY_SHADER;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else if(pname == eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER)
+  {
+    GLenum prop = eGL_REFERENCED_BY_FRAGMENT_SHADER;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else if(pname == eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER)
+  {
+    GLenum prop = eGL_REFERENCED_BY_COMPUTE_SHADER;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else if(pname == eGL_ATOMIC_COUNTER_BUFFER_BINDING)
+  {
+    GLenum prop = eGL_ATOMIC_COUNTER_BUFFER_INDEX;
+    GL.glGetProgramResourceiv(program, eGL_ATOMIC_COUNTER_BUFFER, bufferIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else
+  {
+    RDCERR("Unexpected pname in test stub: %s", ToStr(pname).c_str());
+  }
+}
+
+GLuint APIENTRY _testStub_GetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName)
+{
+  return GL.glGetProgramResourceIndex(program, eGL_UNIFORM_BLOCK, uniformBlockName);
+}
+
+void APIENTRY _testStub_GetActiveUniformBlockiv(GLuint program, GLuint uniformBlockIndex,
+                                                GLenum pname, GLint *params)
+{
+  if(pname == eGL_UNIFORM_BLOCK_BINDING)
+  {
+    // use this internal query which returns the default binding for uniform block bindings
+    GLenum prop = eGL_UNIFORM_BLOCK_BINDING;
+    GL.glGetProgramResourceiv(program, eGL_UNIFORM_BLOCK, uniformBlockIndex, 1, &prop, 1, NULL,
+                              params);
+  }
+  else
+  {
+    RDCERR("Unexpected pname in test stub: %s", ToStr(pname).c_str());
+  }
+}
+
+GLint APIENTRY _testStub_AttribLocation(GLuint program, const GLchar *name)
+{
+  GLuint index = GL.glGetProgramResourceIndex(program, eGL_UNIFORM_BLOCK, name);
+  RDCASSERT(index != GL_INVALID_INDEX);
+  GLenum prop = eGL_LOCATION;
+  GLint value = -1;
+  RDCASSERT(GL.glGetAttribLocation == &_testStub_AttribLocation);
+  GL.glGetAttribLocation = NULL;
+  GL.glGetProgramResourceiv(program, eGL_PROGRAM_INPUT, index, 1, &prop, 1, NULL, &value);
+  GL.glGetAttribLocation = &_testStub_AttribLocation;
+  return value;
+}
+
+void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
+                                 ShaderReflection &refl, ShaderBindpointMapping &mapping)
+{
+  InitSPIRVCompiler();
+  RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+
+  // as a hack, create a local 'driver' and just populate m_Programs with what we want.
+  GLDummyPlatform dummy;
+  WrappedOpenGL driver(dummy);
+
+  GL.DriverForEmulation(&driver);
+
+  RDCEraseEl(HasExt);
+  // need to pretend to have SSBO extension so we reflect SSBOs
+  HasExt[ARB_shader_storage_buffer_object] = true;
+  GL = GLDispatchTable();
+  GL.EmulateRequiredExtensions();
+
+  glslang::TShader *sh = CompileShaderForReflection(SPIRVShaderStage(stage), {source});
+
+  REQUIRE(sh);
+
+  glslang::TProgram *prog = LinkProgramForReflection({sh});
+
+  REQUIRE(prog);
+
+  // the lookup won't get a valid Id, so set the program to the ResourceId()
+  driver.m_Programs[ResourceId()].glslangProgram = prog;
+
+  GLuint fakeProg = 0;
+
+  FixedFunctionVertexOutputs outputUsage;
+  CheckVertexOutputUses({source}, outputUsage);
+
+  MakeShaderReflection(ShaderEnum((size_t)stage), fakeProg, refl, outputUsage);
+
+  // implement some stubs for testing
+  GL.glGetUniformLocation = &_testStub_GetUniformLocation;
+  GL.glGetUniformiv = &_testStub_GetUniformiv;
+  GL.glGetActiveAtomicCounterBufferiv = &_testStub_GetActiveAtomicCounterBufferiv;
+  GL.glGetUniformBlockIndex = &_testStub_GetUniformBlockIndex;
+  GL.glGetActiveUniformBlockiv = &_testStub_GetActiveUniformBlockiv;
+  GL.glGetIntegerv = &_testStub_GetIntegerv;
+  GL.glGetAttribLocation = &_testStub_AttribLocation;
+
+  GetBindpointMapping(fakeProg, (int)stage, &refl, mapping);
+
+  RDCEraseEl(HasExt);
+  GL = GLDispatchTable();
+  GL.DriverForEmulation(NULL);
+}
+
+// helper function that uses the replay proxy system to compile and reflect the shader using the
+// current driver. Unused by default but you can change the unit test below to call this function
+// instead of MakeOfflineShaderReflection.
+//
+// Note that we can't fill out ShaderBindpointMapping easily on the actual driver
+void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
+                                ShaderReflection &refl, ShaderBindpointMapping &mapping)
+{
+  ReplayStatus status = ReplayStatus::UnknownError;
+  IReplayDriver *driver = NULL;
+
+  std::map<RDCDriver, std::string> replays = RenderDoc::Inst().GetReplayDrivers();
+
+  if(replays.find(RDCDriver::OpenGL) != replays.end())
+    status = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::OpenGL, &driver);
+
+  if(status != ReplayStatus::Succeeded)
+  {
+    RDCERR("No GL support locally, couldn't create proxy GL driver for reflection");
+    return;
+  }
+
+  ResourceId id;
+  std::string errors;
+  driver->BuildCustomShader(source, "main", ShaderCompileFlags(), stage, &id, &errors);
+
+  if(id == ResourceId())
+  {
+    RDCERR("Couldn't build shader for reflection:\n%s", errors.c_str());
+    return;
+  }
+
+  refl = *driver->GetShader(id, ShaderEntryPoint("main", ShaderStage::Fragment));
+
+  driver->FreeCustomShader(id);
+
+  driver->Shutdown();
+}
+
+TEST_CASE("Validate ARB_program_interface_query emulation", "[opengl][glslang]")
+{
+  SECTION("Single shader deep dive")
+  {
+    std::string source = R"(
+#version 450 core
+
+struct glstruct
+{
+  float a;
+  int b;
+  mat2x2 c;
+};
+
+layout(binding = 8, std140) uniform ubo_block {
+	float ubo_a;
+	layout(column_major) mat4x3 ubo_b;
+	layout(row_major) mat4x3 ubo_c;
+  ivec2 ubo_d;
+  vec2 ubo_e[3];
+  glstruct ubo_f;
+  layout(offset = 256) vec4 ubo_z;
+} ubo_root;
+
+layout(binding = 2, std430) buffer ssbo
+{
+  uint ssbo_a[10];
+  glstruct ssbo_b[3];
+  float ssbo_c;
+} ssbo_root;
+
+layout(binding = 0) uniform atomic_uint atom;
+
+layout(location = 3) in vec2 a_input;
+layout(location = 6) flat in uvec3 z_input;
+
+uniform vec3 global_var[5];
+uniform mat3x2 global_var2[3];
+
+layout(binding = 3) uniform sampler2D tex2D;
+layout(binding = 5) uniform isampler3D tex3D;
+
+layout(location = 0) out vec4 a_output;
+layout(location = 1) out vec3 z_output;
+layout(location = 2) out int b_output;
+
+void main() {
+  float a = ubo_root.ubo_a + global_var2[2][0][1];
+  a_output = vec4(sin(float(a) + gl_FragCoord.x), 0, 0, 1);
+  z_output = textureLod(tex2D, a_output.xy, a_output.z).xyz + a_input.xyx + global_var[4];
+  ssbo_root.ssbo_a[5] = 4 + atomicCounter(atom) + z_input.y;
+  b_output = ssbo_root.ssbo_b[2].b + texelFetch(tex3D, ivec3(z_input), 0).x;
+  gl_FragDepth = z_output.y; 
+}
+
+)";
+
+#define REQUIRE_ARRAY_SIZE(size, min) \
+  REQUIRE(size >= min);               \
+  CHECK(size == min);
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    MakeOfflineShaderReflection(ShaderStage::Fragment, source, refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 3);
+    {
+      CHECK(refl.inputSignature[0].varName == "a_input");
+      {
+        const SigParameter &sig = refl.inputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 3);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 2);
+        CHECK(sig.regChannelMask == 0x3);
+        CHECK(sig.channelUsedMask == 0x3);
+      }
+
+      CHECK(refl.inputSignature[1].varName == "z_input");
+      {
+        const SigParameter &sig = refl.inputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 6);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::UInt);
+        CHECK(sig.compCount == 3);
+        CHECK(sig.regChannelMask == 0x7);
+        CHECK(sig.channelUsedMask == 0x7);
+      }
+
+      CHECK(refl.inputSignature[2].varName == "gl_FragCoord");
+      {
+        const SigParameter &sig = refl.inputSignature[2];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 4);
+    {
+      CHECK(refl.outputSignature[0].varName == "a_output");
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::ColorOutput);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+
+      CHECK(refl.outputSignature[1].varName == "z_output");
+      {
+        const SigParameter &sig = refl.outputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 1);
+        CHECK(sig.systemValue == ShaderBuiltin::ColorOutput);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 3);
+        CHECK(sig.regChannelMask == 0x7);
+        CHECK(sig.channelUsedMask == 0x7);
+      }
+
+      CHECK(refl.outputSignature[2].varName == "b_output");
+      {
+        const SigParameter &sig = refl.outputSignature[2];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 2);
+        CHECK(sig.systemValue == ShaderBuiltin::ColorOutput);
+        CHECK(sig.compType == CompType::SInt);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[3].varName == "gl_FragDepth");
+      {
+        const SigParameter &sig = refl.outputSignature[3];
+        INFO("signature element: " << sig.varName.c_str());
+
+        // when not running with a driver we default to just using the index instead of looking up
+        // the location of outputs, so this will be wrong
+        // CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::DepthOutput);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 2);
+    {
+      CHECK(refl.readOnlyResources[0].name == "tex2D");
+      {
+        const ShaderResource &res = refl.readOnlyResources[0];
+        INFO("read-only resource: " << res.name.c_str());
+
+        CHECK(res.bindPoint == 0);
+        CHECK(res.resType == TextureType::Texture2D);
+        CHECK(res.variableType.members.empty());
+        CHECK(res.variableType.descriptor.type == VarType::Float);
+        CHECK(res.variableType.descriptor.rows == 1);
+        CHECK(res.variableType.descriptor.columns == 4);
+        CHECK(res.variableType.descriptor.name == "sampler2D");
+      }
+
+      CHECK(refl.readOnlyResources[1].name == "tex3D");
+      {
+        const ShaderResource &res = refl.readOnlyResources[1];
+        INFO("read-only resource: " << res.name.c_str());
+
+        CHECK(res.bindPoint == 1);
+        CHECK(res.resType == TextureType::Texture3D);
+        CHECK(res.variableType.members.empty());
+        CHECK(res.variableType.descriptor.type == VarType::SInt);
+        CHECK(res.variableType.descriptor.rows == 1);
+        CHECK(res.variableType.descriptor.columns == 4);
+        CHECK(res.variableType.descriptor.name == "isampler3D");
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 2);
+    {
+      CHECK(refl.readWriteResources[0].name == "atom");
+      {
+        const ShaderResource &res = refl.readWriteResources[0];
+        INFO("read-write resource: " << res.name.c_str());
+
+        CHECK(res.bindPoint == 0);
+        CHECK(res.resType == TextureType::Buffer);
+        CHECK(res.variableType.members.empty());
+        CHECK(res.variableType.descriptor.type == VarType::UInt);
+        CHECK(res.variableType.descriptor.rows == 1);
+        CHECK(res.variableType.descriptor.columns == 1);
+        CHECK(res.variableType.descriptor.name == "atomic_uint");
+      }
+
+      CHECK(refl.readWriteResources[1].name == "ssbo");
+      {
+        const ShaderResource &res = refl.readWriteResources[1];
+        INFO("read-write resource: " << res.name.c_str());
+
+        CHECK(res.bindPoint == 1);
+        CHECK(res.resType == TextureType::Buffer);
+        CHECK(res.variableType.descriptor.type == VarType::UInt);
+        CHECK(res.variableType.descriptor.rows == 0);
+        CHECK(res.variableType.descriptor.columns == 0);
+        CHECK(res.variableType.descriptor.name == "buffer");
+
+        REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
+        {
+          CHECK(res.variableType.members[0].name == "ssbo_a");
+          {
+            const ShaderConstant &member = res.variableType.members[0];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 0);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::UInt);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 1);
+            CHECK(member.type.descriptor.elements == 10);
+            CHECK(member.type.descriptor.arrayByteStride == 4);
+            CHECK(member.type.descriptor.name == "uint");
+          }
+
+          CHECK(res.variableType.members[1].name == "ssbo_b");
+          {
+            const ShaderConstant &member = res.variableType.members[1];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 40);
+            // this doesn't reflect in native introspection, so we skip it
+            // CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.descriptor.name == "struct");
+            CHECK(member.type.descriptor.arrayByteStride == 24);
+
+            REQUIRE_ARRAY_SIZE(member.type.members.size(), 3);
+            {
+              CHECK(member.type.members[0].name == "a");
+              {
+                const ShaderConstant &submember = member.type.members[0];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.byteOffset == 40);
+                CHECK(submember.type.members.empty());
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.rows == 1);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.name == "float");
+              }
+
+              CHECK(member.type.members[1].name == "b");
+              {
+                const ShaderConstant &submember = member.type.members[1];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.byteOffset == 44);
+                CHECK(submember.type.members.empty());
+                CHECK(submember.type.descriptor.type == VarType::SInt);
+                CHECK(submember.type.descriptor.rows == 1);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.name == "int");
+              }
+
+              CHECK(member.type.members[2].name == "c");
+              {
+                const ShaderConstant &submember = member.type.members[2];
+                INFO("SSBO submember: " << submember.name.c_str());
+
+                CHECK(submember.byteOffset == 48);
+                CHECK(submember.type.members.empty());
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.rows == 2);
+                CHECK(submember.type.descriptor.columns == 2);
+                CHECK(submember.type.descriptor.rowMajorStorage == false);
+                CHECK(submember.type.descriptor.name == "mat2");
+              }
+            }
+          }
+
+          CHECK(res.variableType.members[2].name == "ssbo_c");
+          {
+            const ShaderConstant &member = res.variableType.members[2];
+            INFO("SSBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 112);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 1);
+            CHECK(member.type.descriptor.name == "float");
+          }
+        }
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 2);
+    {
+      CHECK(refl.constantBlocks[0].name == "ubo_block");
+      {
+        const ConstantBlock &cblock = refl.constantBlocks[0];
+        INFO("UBO: " << cblock.name.c_str());
+
+        CHECK(cblock.bindPoint == 0);
+        CHECK(cblock.bufferBacked);
+        CHECK(cblock.byteSize == 272);
+
+        REQUIRE_ARRAY_SIZE(cblock.variables.size(), 1);
+
+        CHECK(cblock.variables[0].name == "ubo_block");
+        const ShaderConstant &ubo_root = cblock.variables[0];
+
+        CHECK(ubo_root.byteOffset == 0);
+        CHECK(ubo_root.type.descriptor.name == "struct");
+
+        REQUIRE_ARRAY_SIZE(ubo_root.type.members.size(), 7);
+        {
+          CHECK(ubo_root.type.members[0].name == "ubo_a");
+          {
+            const ShaderConstant &member = ubo_root.type.members[0];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 0);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 1);
+            CHECK(member.type.descriptor.name == "float");
+          }
+
+          CHECK(ubo_root.type.members[1].name == "ubo_b");
+          {
+            const ShaderConstant &member = ubo_root.type.members[1];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 16);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 3);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.rowMajorStorage == false);
+            CHECK(member.type.descriptor.name == "mat4x3");
+          }
+
+          CHECK(ubo_root.type.members[2].name == "ubo_c");
+          {
+            const ShaderConstant &member = ubo_root.type.members[2];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 80);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 3);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.rowMajorStorage == true);
+            CHECK(member.type.descriptor.name == "mat4x3");
+          }
+
+          CHECK(ubo_root.type.members[3].name == "ubo_d");
+          {
+            const ShaderConstant &member = ubo_root.type.members[3];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 128);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::SInt);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 2);
+            CHECK(member.type.descriptor.name == "ivec2");
+          }
+
+          CHECK(ubo_root.type.members[4].name == "ubo_e");
+          {
+            const ShaderConstant &member = ubo_root.type.members[4];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 144);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 2);
+            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.descriptor.arrayByteStride == 16);
+            CHECK(member.type.descriptor.name == "vec2");
+          }
+
+          CHECK(ubo_root.type.members[5].name == "ubo_f");
+          {
+            const ShaderConstant &member = ubo_root.type.members[5];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 192);
+            // this doesn't reflect in native introspection, so we skip it
+            // CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.descriptor.name == "struct");
+
+            REQUIRE_ARRAY_SIZE(member.type.members.size(), 3);
+            {
+              CHECK(member.type.members[0].name == "a");
+              {
+                const ShaderConstant &submember = member.type.members[0];
+                INFO("UBO submember: " << submember.name.c_str());
+
+                CHECK(submember.byteOffset == 192);
+                CHECK(submember.type.members.empty());
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.rows == 1);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.name == "float");
+              }
+
+              CHECK(member.type.members[1].name == "b");
+              {
+                const ShaderConstant &submember = member.type.members[1];
+                INFO("UBO submember: " << submember.name.c_str());
+
+                CHECK(submember.byteOffset == 196);
+                CHECK(submember.type.members.empty());
+                CHECK(submember.type.descriptor.type == VarType::SInt);
+                CHECK(submember.type.descriptor.rows == 1);
+                CHECK(submember.type.descriptor.columns == 1);
+                CHECK(submember.type.descriptor.name == "int");
+              }
+
+              CHECK(member.type.members[2].name == "c");
+              {
+                const ShaderConstant &submember = member.type.members[2];
+                INFO("UBO submember: " << submember.name.c_str());
+
+                CHECK(submember.byteOffset == 208);
+                CHECK(submember.type.members.empty());
+                CHECK(submember.type.descriptor.type == VarType::Float);
+                CHECK(submember.type.descriptor.rows == 2);
+                CHECK(submember.type.descriptor.columns == 2);
+                CHECK(submember.type.descriptor.rowMajorStorage == false);
+                CHECK(submember.type.descriptor.name == "mat2");
+              }
+            }
+          }
+
+          CHECK(ubo_root.type.members[6].name == "ubo_z");
+          {
+            const ShaderConstant &member = ubo_root.type.members[6];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.byteOffset == 256);
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 4);
+            CHECK(member.type.descriptor.name == "vec4");
+          }
+        }
+      }
+
+      CHECK(refl.constantBlocks[1].name == "$Globals");
+      {
+        const ConstantBlock &cblock = refl.constantBlocks[1];
+        INFO("UBO: " << cblock.name.c_str());
+
+        CHECK(cblock.bindPoint == 1);
+        CHECK(!cblock.bufferBacked);
+
+        REQUIRE_ARRAY_SIZE(cblock.variables.size(), 2);
+        {
+          CHECK(cblock.variables[0].name == "global_var");
+          {
+            const ShaderConstant &member = cblock.variables[0];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 1);
+            CHECK(member.type.descriptor.columns == 3);
+            CHECK(member.type.descriptor.elements == 5);
+            CHECK(member.type.descriptor.name == "vec3");
+          }
+
+          CHECK(cblock.variables[1].name == "global_var2");
+          {
+            const ShaderConstant &member = cblock.variables[1];
+            INFO("UBO member: " << member.name.c_str());
+
+            CHECK(member.type.members.empty());
+            CHECK(member.type.descriptor.type == VarType::Float);
+            CHECK(member.type.descriptor.rows == 2);
+            CHECK(member.type.descriptor.columns == 3);
+            CHECK(member.type.descriptor.elements == 3);
+            CHECK(member.type.descriptor.rowMajorStorage == false);
+            CHECK(member.type.descriptor.name == "mat3x2");
+          }
+        }
+      }
+    }
+
+    REQUIRE(refl.samplers.empty());
+    REQUIRE(refl.interfaces.empty());
+
+    REQUIRE_ARRAY_SIZE(mapping.inputAttributes.size(), 16);
+    for(size_t i = 0; i < mapping.inputAttributes.size(); i++)
+    {
+      CHECK(mapping.inputAttributes[i] == -1);
+    }
+
+    REQUIRE_ARRAY_SIZE(mapping.readOnlyResources.size(), 2);
+    {
+      // tex2d
+      CHECK(mapping.readOnlyResources[0].bindset == 0);
+      CHECK(mapping.readOnlyResources[0].bind == 3);
+      CHECK(mapping.readOnlyResources[0].arraySize == 1);
+      CHECK(mapping.readOnlyResources[0].used);
+
+      // tex3d
+      CHECK(mapping.readOnlyResources[1].bindset == 0);
+      CHECK(mapping.readOnlyResources[1].bind == 5);
+      CHECK(mapping.readOnlyResources[1].arraySize == 1);
+      CHECK(mapping.readOnlyResources[1].used);
+    }
+
+    REQUIRE_ARRAY_SIZE(mapping.readWriteResources.size(), 2);
+    {
+      // atom
+      CHECK(mapping.readWriteResources[0].bindset == 0);
+      CHECK(mapping.readWriteResources[0].bind == 0);
+      CHECK(mapping.readWriteResources[0].arraySize == 1);
+      CHECK(mapping.readWriteResources[0].used);
+
+      // ssbo
+      CHECK(mapping.readWriteResources[1].bindset == 0);
+      CHECK(mapping.readWriteResources[1].bind == 2);
+      CHECK(mapping.readWriteResources[1].arraySize == 1);
+      CHECK(mapping.readWriteResources[1].used);
+    }
+
+    REQUIRE_ARRAY_SIZE(mapping.constantBlocks.size(), 2);
+    {
+      // ubo
+      CHECK(mapping.constantBlocks[0].bindset == 0);
+      CHECK(mapping.constantBlocks[0].bind == 8);
+      CHECK(mapping.constantBlocks[0].arraySize == 1);
+      CHECK(mapping.constantBlocks[0].used);
+
+      // $Globals
+      CHECK(mapping.constantBlocks[1].bindset == -1);
+      CHECK(mapping.constantBlocks[1].bind == -1);
+      CHECK(mapping.constantBlocks[1].arraySize == 1);
+      CHECK(mapping.constantBlocks[1].used);
+    }
+
+    REQUIRE(mapping.samplers.empty());
+  };
+
+  SECTION("vertex shader fixed function outputs")
+  {
+    std::string source = R"(
+#version 150 core
+
+void main() {
+  gl_Position = vec4(0, 1, 0, 1);
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    MakeOfflineShaderReflection(ShaderStage::Vertex, source, refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 1);
+    {
+      CHECK(refl.outputSignature[0].varName == "gl_Position");
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+    }
+
+    std::string source2 = R"(
+#version 150 core
+
+void main() {
+  gl_Position = vec4(0, 1, 0, 1);
+  gl_PointSize = 1.5f;
+}
+
+)";
+
+    refl = ShaderReflection();
+    mapping = ShaderBindpointMapping();
+    MakeOfflineShaderReflection(ShaderStage::Vertex, source2, refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 2);
+    {
+      CHECK(refl.outputSignature[0].varName == "gl_Position");
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+
+      CHECK(refl.outputSignature[1].varName == "gl_PointSize");
+      {
+        const SigParameter &sig = refl.outputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::PointSize);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+    }
+  };
+
+  SECTION("shader input/output blocks")
+  {
+    std::string source = R"(
+#version 420 core
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+in gl_PerVertex
+{
+	vec4 gl_Position;
+} gl_in[];
+
+in block
+{
+	vec2 Texcoord;
+} In[];
+
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
+
+out block
+{
+	vec2 Texcoord;
+} Out;
+
+void main()
+{
+	for(int i = 0; i < gl_in.length(); ++i)
+	{
+		gl_Position = gl_in[i].gl_Position;
+		Out.Texcoord = In[i].Texcoord;
+		EmitVertex();
+	}
+	EndPrimitive();
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    MakeOfflineShaderReflection(ShaderStage::Geometry, source, refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 2);
+    {
+      CHECK(refl.inputSignature[0].varName == "block.Texcoord");
+      {
+        const SigParameter &sig = refl.inputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 2);
+        CHECK(sig.regChannelMask == 0x3);
+        CHECK(sig.channelUsedMask == 0x3);
+      }
+
+      CHECK(refl.inputSignature[1].varName == "gl_PerVertex.gl_Position");
+      {
+        const SigParameter &sig = refl.inputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 2);
+    {
+      CHECK(refl.outputSignature[0].varName == "block.Texcoord");
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 2);
+        CHECK(sig.regChannelMask == 0x3);
+        CHECK(sig.channelUsedMask == 0x3);
+      }
+
+      CHECK(refl.outputSignature[1].varName == "gl_Position");
+      {
+        const SigParameter &sig = refl.outputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+    }
+  };
+
+  SECTION("matrix and array outputs")
+  {
+    std::string source = R"(
+#version 150 core
+
+out vec3 outarr[3];
+out mat2 outmat;
+
+void main()
+{
+  gl_Position = vec4(0, 0, 0, 1);
+  outarr[0] = gl_Position.xyz;
+  outarr[1] = gl_Position.xyz;
+  outarr[2] = gl_Position.xyz;
+  outmat = mat2(0, 0, 0, 0);
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    MakeOfflineShaderReflection(ShaderStage::Vertex, source, refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 6);
+    {
+      CHECK(refl.outputSignature[0].varName == "outarr[0]");
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.arrayIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 3);
+        CHECK(sig.regChannelMask == 0x7);
+        CHECK(sig.channelUsedMask == 0x7);
+      }
+
+      CHECK(refl.outputSignature[1].varName == "outarr[1]");
+      {
+        const SigParameter &sig = refl.outputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 1);
+        CHECK(sig.arrayIndex == 1);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 3);
+        CHECK(sig.regChannelMask == 0x7);
+        CHECK(sig.channelUsedMask == 0x7);
+      }
+
+      CHECK(refl.outputSignature[2].varName == "outarr[2]");
+      {
+        const SigParameter &sig = refl.outputSignature[2];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 2);
+        CHECK(sig.arrayIndex == 2);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 3);
+        CHECK(sig.regChannelMask == 0x7);
+        CHECK(sig.channelUsedMask == 0x7);
+      }
+
+      CHECK(refl.outputSignature[3].varName == "outmat:row0");
+      {
+        const SigParameter &sig = refl.outputSignature[3];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 3);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 2);
+        CHECK(sig.regChannelMask == 0x3);
+        CHECK(sig.channelUsedMask == 0x3);
+      }
+
+      CHECK(refl.outputSignature[4].varName == "outmat:row1");
+      {
+        const SigParameter &sig = refl.outputSignature[4];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 4);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 2);
+        CHECK(sig.regChannelMask == 0x3);
+        CHECK(sig.channelUsedMask == 0x3);
+      }
+
+      CHECK(refl.outputSignature[5].varName == "gl_Position");
+      {
+        const SigParameter &sig = refl.outputSignature[5];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+    }
+  };
+
+  SECTION("shader stage references")
+  {
+    std::string vssource = R"(
+#version 450 core
+
+uniform float unused_uniform; // declared in both, used in neither
+uniform float vsonly_uniform; // declared and used only in VS
+uniform float shared_uniform; // declared and used in both
+uniform float vsshared_uniform; // declared in both, used only in VS
+uniform float fsshared_uniform; // declared in both, used only in FS
+
+out vec4 vsout;
+
+void main() {
+  vsout = vec4(vsonly_uniform, shared_uniform, vsshared_uniform, 1);
+}
+
+)";
+
+    std::string fssource = R"(
+#version 450 core
+
+uniform float unused_uniform; // declared in both, used in neither
+uniform float shared_uniform; // declared and used in both
+uniform float vsshared_uniform; // declared in both, used only in VS
+uniform float fsshared_uniform; // declared in both, used only in FS
+uniform float fsonly_uniform; // declared and used only in FS
+
+in vec4 vsout;
+
+out vec4 col;
+
+void main() {
+  vec4 tmp = vsout;
+  tmp.w = fsonly_uniform * shared_uniform + fsshared_uniform;
+  col = tmp;
+}
+
+)";
+
+    InitSPIRVCompiler();
+    RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+
+    // as a hack, create a local 'driver' and just populate m_Programs with what we want.
+    GLDummyPlatform dummy;
+    WrappedOpenGL driver(dummy);
+
+    GL.DriverForEmulation(&driver);
+
+    RDCEraseEl(HasExt);
+    GL = GLDispatchTable();
+    GL.EmulateRequiredExtensions();
+
+    glslang::TProgram *prog = LinkProgramForReflection(
+        {CompileShaderForReflection(SPIRVShaderStage::Vertex, {vssource}),
+         CompileShaderForReflection(SPIRVShaderStage::Fragment, {fssource})});
+
+    REQUIRE(prog);
+
+    // the lookup won't get a valid Id, so set the program to the ResourceId()
+    driver.m_Programs[ResourceId()].glslangProgram = prog;
+
+    GLint numUniforms = 0;
+    GL.glGetProgramInterfaceiv(0, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
+
+    for(GLint i = 0; i < numUniforms; i++)
+    {
+      GLenum props[2] = {eGL_REFERENCED_BY_VERTEX_SHADER, eGL_REFERENCED_BY_FRAGMENT_SHADER};
+      GLint values[2] = {};
+      GL.glGetProgramResourceiv(0, eGL_UNIFORM, i, 2, props, 2, NULL, values);
+
+      GLchar name[1024] = {};
+      GL.glGetProgramResourceName(0, eGL_UNIFORM, i, 1024, NULL, name);
+
+      if(!strcmp(name, "unused_uniform"))
+      {
+        FAIL_CHECK("Didn't expect to see unused_uniform");
+      }
+      else if(!strcmp(name, "vsonly_uniform"))
+      {
+        CHECK(values[0] == 1);
+        CHECK(values[1] == 0);
+      }
+      else if(!strcmp(name, "shared_uniform"))
+      {
+        CHECK(values[0] == 1);
+        CHECK(values[1] == 1);
+      }
+      else if(!strcmp(name, "vsshared_uniform"))
+      {
+        CHECK(values[0] == 1);
+        CHECK(values[1] == 0);
+      }
+      else if(!strcmp(name, "fsshared_uniform"))
+      {
+        CHECK(values[0] == 0);
+        CHECK(values[1] == 1);
+      }
+      else if(!strcmp(name, "fsonly_uniform"))
+      {
+        CHECK(values[0] == 0);
+        CHECK(values[1] == 1);
+      }
+      else
+      {
+        INFO("uniform name: " << name);
+        FAIL_CHECK("Unexpected uniform");
+      }
+    }
+
+    RDCEraseEl(HasExt);
+    GL = GLDispatchTable();
+    GL.DriverForEmulation(NULL);
+  };
+}
+
+#endif

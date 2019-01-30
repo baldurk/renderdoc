@@ -264,7 +264,9 @@ glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *
 
   if(program->link(EShMsgDefault))
   {
-    program->buildReflection();
+    program->buildReflection(EShReflectionStrictArraySuffix | EShReflectionBasicArraySuffix |
+                             EShReflectionIntermediateIO | EShReflectionSeparateBuffers |
+                             EShReflectionAllBlockVariables | EShReflectionUnwrapIOBlocks);
     allocatedPrograms.push_back(program);
     return program;
   }

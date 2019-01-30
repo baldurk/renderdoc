@@ -3491,32 +3491,6 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, GLPlatform &p
   return ReplayStatus::Succeeded;
 }
 
-class GLDummyPlatform : public GLPlatform
-{
-  virtual GLWindowingData CloneTemporaryContext(GLWindowingData share) { return GLWindowingData(); }
-  virtual void DeleteClonedContext(GLWindowingData context) {}
-  virtual void DeleteReplayContext(GLWindowingData context) {}
-  virtual bool MakeContextCurrent(GLWindowingData data) { return true; }
-  virtual void SwapBuffers(GLWindowingData context) {}
-  virtual void WindowResized(GLWindowingData context) {}
-  virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) {}
-  virtual bool IsOutputWindowVisible(GLWindowingData context) { return false; }
-  virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,
-                                           GLWindowingData share_context)
-  {
-    return GLWindowingData();
-  }
-  virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
-  virtual void *GetReplayFunction(const char *funcname) { return NULL; }
-  // for initialisation at replay time
-  virtual bool CanCreateGLESContext() { return true; }
-  virtual bool PopulateForReplay() { return true; }
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
-  {
-    return ReplayStatus::Succeeded;
-  }
-};
-
 void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
   GLDummyPlatform dummy;
