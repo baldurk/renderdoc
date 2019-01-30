@@ -29,8 +29,8 @@
 #include <dlfcn.h>
 
 // helpers defined in vk_apple.mm
-extern "C" int getCALayerWidth(void *handle);
-extern "C" int getCALayerHeight(void *handle);
+extern "C" int getMetalLayerWidth(void *handle);
+extern "C" int getMetalLayerHeight(void *handle);
 
 VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
                                                 const VkMacOSSurfaceCreateInfoMVK *pCreateInfo,
@@ -83,8 +83,8 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  w = getCALayerWidth(outw.wnd);
-  h = getCALayerHeight(outw.wnd);
+  w = getMetalLayerWidth(outw.wnd);
+  h = getMetalLayerHeight(outw.wnd);
 }
 
 static const char *VulkanLibraryName = "libvulkan.1.dylib";

@@ -204,12 +204,21 @@ struct GLWindowingData
   {
     ctx = NULL;
     wnd = NULL;
-    cfg = NULL;
+    pix = NULL;
+
+    layer = NULL;
   }
 
-  CGLContextObj ctx;
-  void *wnd;
-  CGLPixelFormatObj cfg;
+  union
+  {
+    CGLContextObj ctx;
+    void *nsctx;    // during replay only, this is the NSOpenGLContext
+  };
+
+  void *wnd;    // during capture, this is the CGL window ID. During replay, it's the NSView
+  CGLPixelFormatObj pix;
+
+  void *layer;    // during replay only, this is the CALayer
 };
 
 #define DECL_HOOK_EXPORT(function)                                                                    \
@@ -268,6 +277,7 @@ struct GLPlatform
   virtual void DeleteReplayContext(GLWindowingData context) = 0;
   virtual bool MakeContextCurrent(GLWindowingData data) = 0;
   virtual void SwapBuffers(GLWindowingData context) = 0;
+  virtual void WindowResized(GLWindowingData context) = 0;
   virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) = 0;
   virtual bool IsOutputWindowVisible(GLWindowingData context) = 0;
   virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,

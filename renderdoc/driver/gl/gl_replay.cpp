@@ -135,6 +135,26 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
   return passEvents;
 }
 
+vector<WindowingSystem> GLReplay::GetSupportedWindowSystems()
+{
+  vector<WindowingSystem> ret;
+
+#if ENABLED(RDOC_LINUX)
+  // only Xlib supported for GLX. We can't report XCB here since we need
+  // the Display, and that can't be obtained from XCB. The application is
+  // free to use XCB internally but it would have to create a hybrid and
+  // initialise XCB out of Xlib, to be able to provide the display and
+  // drawable to us.
+  ret.push_back(WindowingSystem::Xlib);
+#elif ENABLED(RDOC_ANDROID)
+  ret.push_back(WindowingSystem::Android);
+#elif ENABLED(RDOC_APPLE)
+  ret.push_back(WindowingSystem::MacOS);
+#endif
+
+  return ret;
+}
+
 FrameRecord GLReplay::GetFrameRecord()
 {
   return m_pDriver->GetFrameRecord();
@@ -3474,6 +3494,7 @@ class GLDummyPlatform : public GLPlatform
   virtual void DeleteReplayContext(GLWindowingData context) {}
   virtual bool MakeContextCurrent(GLWindowingData data) { return true; }
   virtual void SwapBuffers(GLWindowingData context) {}
+  virtual void WindowResized(GLWindowingData context) {}
   virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) {}
   virtual bool IsOutputWindowVisible(GLWindowingData context) { return false; }
   virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,

@@ -55,6 +55,21 @@ std::string DoStringise(const ReplayStatus &el)
 }
 
 template <>
+std::string DoStringise(const WindowingSystem &el)
+{
+  BEGIN_ENUM_STRINGISE(WindowingSystem)
+  {
+    STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(Win32);
+    STRINGISE_ENUM_CLASS(Xlib);
+    STRINGISE_ENUM_CLASS(XCB);
+    STRINGISE_ENUM_CLASS(Android);
+    STRINGISE_ENUM_CLASS(MacOS);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const ResourceFormatType &el)
 {
   BEGIN_ENUM_STRINGISE(ResourceFormatType)

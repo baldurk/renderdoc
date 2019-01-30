@@ -331,7 +331,8 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
 .. data:: MacOS
 
-  The windowing data refers to a MacOS / OS X CALayer. See :func:`CreateMacOSWindowingData`.
+  The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
+  See :func:`CreateMacOSWindowingData`.
 )");
 enum class WindowingSystem : uint32_t
 {
@@ -403,6 +404,7 @@ struct WindowingData
 
     struct
     {
+      void *view;
       void *layer;
     } macOS;
   };
@@ -494,18 +496,21 @@ inline const WindowingData CreateAndroidWindowingData(ANativeWindow *window)
   return ret;
 }
 
-DOCUMENT(R"(Create a :class:`WindowingData` for an macOS ``CALayer`` handle (as void pointer).
+DOCUMENT(R"(Create a :class:`WindowingData` for an metal/opengl-compatible macOS ``CALayer`` handle
+and ``NSView`` handle (as void pointers).
 
-:param CALayer window: The native ``CALayer`` handle for this window.
+:param NSView view: The native ``NSView`` handle for this window.
+:param CALayer layer: The native ``CALayer`` handle for this window.
 :return: A :class:`WindowingData` corresponding to the given window.
 :rtype: WindowingData
 )");
-inline const WindowingData CreateMacOSWindowingData(void *view)
+inline const WindowingData CreateMacOSWindowingData(void *view, void *layer)
 {
   WindowingData ret = {};
 
   ret.system = WindowingSystem::MacOS;
-  ret.macOS.layer = view;
+  ret.macOS.view = view;
+  ret.macOS.layer = layer;
 
   return ret;
 }

@@ -86,6 +86,7 @@ class WGLPlatform : public GLPlatform
       WGL.SwapBuffers(context.DC);
   }
 
+  void WindowResized(GLWindowingData context) {}
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
     RECT rect = {0};

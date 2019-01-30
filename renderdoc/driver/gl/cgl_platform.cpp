@@ -22,38 +22,180 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define GL_GLEXT_PROTOTYPES
+
 #include "cgl_dispatch_table.h"
 #include "gl_common.h"
 
+#include "apple_gl_hook_defs.h"
+
+// helpers defined in cgl_platform.mm
+extern "C" int NSGL_getLayerWidth(void *layer);
+extern "C" int NSGL_getLayerHeight(void *layer);
+extern "C" void *NSGL_createContext(void *view, void *shareNSCtx);
+extern "C" void NSGL_makeCurrentContext(void *nsctx);
+extern "C" void NSGL_update(void *nsctx);
+extern "C" void NSGL_flushBuffer(void *nsctx);
+extern "C" void NSGL_destroyContext(void *nsctx);
+
+template <>
+std::string DoStringise(const CGLError &el)
+{
+  BEGIN_ENUM_STRINGISE(CGLError);
+  {
+    STRINGISE_ENUM_NAMED(kCGLNoError, "no error");
+    STRINGISE_ENUM_NAMED(kCGLBadAttribute, "invalid pixel format attribute");
+    STRINGISE_ENUM_NAMED(kCGLBadProperty, "invalid renderer property");
+    STRINGISE_ENUM_NAMED(kCGLBadPixelFormat, "invalid pixel format");
+    STRINGISE_ENUM_NAMED(kCGLBadRendererInfo, "invalid renderer info");
+    STRINGISE_ENUM_NAMED(kCGLBadContext, "invalid context");
+    STRINGISE_ENUM_NAMED(kCGLBadDrawable, "invalid drawable");
+    STRINGISE_ENUM_NAMED(kCGLBadDisplay, "invalid graphics device");
+    STRINGISE_ENUM_NAMED(kCGLBadState, "invalid context state");
+    STRINGISE_ENUM_NAMED(kCGLBadValue, "invalid numerical value");
+    STRINGISE_ENUM_NAMED(kCGLBadMatch, "invalid share context");
+    STRINGISE_ENUM_NAMED(kCGLBadEnumeration, "invalid enumerant");
+    STRINGISE_ENUM_NAMED(kCGLBadOffScreen, "invalid offscreen drawable");
+    STRINGISE_ENUM_NAMED(kCGLBadFullScreen, "invalid fullscreen drawable");
+    STRINGISE_ENUM_NAMED(kCGLBadWindow, "invalid window");
+    STRINGISE_ENUM_NAMED(kCGLBadAddress, "invalid pointer");
+    STRINGISE_ENUM_NAMED(kCGLBadCodeModule, "invalid code module");
+    STRINGISE_ENUM_NAMED(kCGLBadAlloc, "invalid memory allocation");
+    STRINGISE_ENUM_NAMED(kCGLBadConnection, "invalid CoreGraphics connection");
+  }
+  END_ENUM_STRINGISE();
+}
+
 class CGLPlatform : public GLPlatform
 {
-  bool MakeContextCurrent(GLWindowingData data) { return false; }
+  bool MakeContextCurrent(GLWindowingData data)
+  {
+    if(RenderDoc::Inst().IsReplayApp())
+    {
+      NSGL_makeCurrentContext(data.nsctx);
+      return true;
+    }
+    else
+    {
+      if(CGL.CGLSetCurrentContext)
+      {
+        CGLError err = CGL.CGLSetCurrentContext(data.ctx);
+        if(err == kCGLNoError)
+          return true;
+        RDCERR("MakeContextCurrent: %s", ToStr(err).c_str());
+      }
+    }
+    return false;
+  }
   GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {
-    GLWindowingData ret;
+    GLWindowingData ret = share;
+
+    ret.ctx = NULL;
+
+    if(RenderDoc::Inst().IsReplayApp())
+    {
+      RDCASSERT(share.nsctx);
+      ret.nsctx = NSGL_createContext(NULL, share.nsctx);
+    }
+    else
+    {
+      if(share.ctx && CGL.CGLCreateContext)
+      {
+        CGLError err = CGL.CGLCreateContext(share.pix, share.ctx, &ret.ctx);
+        RDCASSERTMSG("Error creating temporary context", err != kCGLNoError, err);
+      }
+    }
+
     return ret;
   }
 
-  void DeleteClonedContext(GLWindowingData context) {}
-  void DeleteReplayContext(GLWindowingData context) {}
-  void SwapBuffers(GLWindowingData context) {}
-  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) { w = h = 0; }
-  bool IsOutputWindowVisible(GLWindowingData context) { return false; }
+  void DeleteClonedContext(GLWindowingData context)
+  {
+    if(RenderDoc::Inst().IsReplayApp())
+    {
+      NSGL_destroyContext(context.nsctx);
+    }
+    else
+    {
+      if(context.ctx && CGL.CGLDestroyContext)
+        CGL.CGLDestroyContext(context.ctx);
+    }
+  }
+  void DeleteReplayContext(GLWindowingData context)
+  {
+    RDCASSERT(context.nsctx);
+    NSGL_destroyContext(context.nsctx);
+  }
+  void SwapBuffers(GLWindowingData context) { NSGL_flushBuffer(context.nsctx); }
+  void WindowResized(GLWindowingData context) { NSGL_update(context.nsctx); }
+  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
+  {
+    if(context.layer)
+    {
+      w = NSGL_getLayerWidth(context.layer);
+      h = NSGL_getLayerHeight(context.layer);
+    }
+    else
+    {
+      w = h = 0;
+    }
+  }
+  bool IsOutputWindowVisible(GLWindowingData context) { return true; }
+  void *GetReplayFunction(const char *funcname)
+  {
+#undef APPLE_FUNC
+#define APPLE_FUNC(function)                 \
+  if(!strcmp(funcname, STRINGIZE(function))) \
+    return (void *)&::function;
+
+    ForEachAppleSupported();
+
+    return NULL;
+  }
+  bool CanCreateGLESContext() { return false; }
+  bool PopulateForReplay() { return CGL.PopulateForReplay(); }
   GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)
   {
     GLWindowingData ret = {};
+
+    if(window.system == WindowingSystem::MacOS)
+    {
+      RDCASSERT(window.macOS.layer && window.macOS.view);
+
+      ret.nsctx = NSGL_createContext(window.macOS.view, share_context.nsctx);
+      ret.wnd = window.macOS.view;
+      ret.layer = window.macOS.layer;
+
+      return ret;
+    }
+    else if(window.system == WindowingSystem::Unknown)
+    {
+      ret.nsctx = NSGL_createContext(NULL, share_context.nsctx);
+
+      return ret;
+    }
+    else
+    {
+      RDCERR("Unexpected window system %u", system);
+    }
+
     return ret;
   }
 
-  void *GetReplayFunction(const char *funcname) { return NULL; }
-  bool CanCreateGLESContext() { return false; }
-  bool PopulateForReplay() { return false; }
   ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
   {
-    return ReplayStatus::APIUnsupported;
+    RDCASSERT(api == RDCDriver::OpenGL);
+
+    replayContext.nsctx = NSGL_createContext(NULL, NULL);
+
+    return ReplayStatus::Succeeded;
   }
 
-  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
+  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
+  {
+    RDCERR("Legacy overlay not supported on macOS");
+  }
 } cglPlatform;
 
 CGLDispatchTable CGL = {};
@@ -65,5 +207,25 @@ GLPlatform &GetGLPlatform()
 
 bool CGLDispatchTable::PopulateForReplay()
 {
-  return false;
+  RDCASSERT(RenderDoc::Inst().IsReplayApp());
+
+  RDCDEBUG("Initialising GL function pointers");
+
+  bool symbols_ok = true;
+
+#define LOAD_FUNC(func)                              \
+  if(!this->func)                                    \
+    this->func = &::func;                            \
+                                                     \
+  if(!this->func)                                    \
+  {                                                  \
+    symbols_ok = false;                              \
+    RDCWARN("Unable to load '%s'", STRINGIZE(func)); \
+  }
+
+  CGL_HOOKED_SYMBOLS(LOAD_FUNC)
+  CGL_NONHOOKED_SYMBOLS(LOAD_FUNC)
+
+#undef LOAD_FUNC
+  return symbols_ok;
 }

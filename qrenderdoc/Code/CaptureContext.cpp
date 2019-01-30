@@ -1773,7 +1773,7 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
 
   void *layer = makeNSViewMetalCompatible(view);
 
-  return CreateMacOSWindowingData(layer);
+  return CreateMacOSWindowingData(view, layer);
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
 

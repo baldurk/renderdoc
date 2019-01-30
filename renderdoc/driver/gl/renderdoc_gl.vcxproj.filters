@@ -261,4 +261,9 @@
       <Filter>Platform Interfaces\Linux</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="cgl_platform.mm">
+      <Filter>Platform Interfaces\Apple</Filter>
+    </None>
+  </ItemGroup>
 </Project>

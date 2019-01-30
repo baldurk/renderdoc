@@ -84,6 +84,7 @@ class EGLPlatform : public GLPlatform
   }
 
   void SwapBuffers(GLWindowingData context) { EGL.SwapBuffers(context.egl_dpy, context.egl_wnd); }
+  void WindowResized(GLWindowingData context) {}
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
     // On some Linux systems the surface seems to be context dependant.

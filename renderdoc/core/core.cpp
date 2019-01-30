@@ -108,20 +108,6 @@ std::string DoStringise(const VendorExtensions &el)
 }
 
 template <>
-std::string DoStringise(const WindowingSystem &el)
-{
-  BEGIN_ENUM_STRINGISE(WindowingSystem);
-  {
-    STRINGISE_ENUM_CLASS(Unknown);
-    STRINGISE_ENUM_CLASS(Win32);
-    STRINGISE_ENUM_CLASS(Xlib);
-    STRINGISE_ENUM_CLASS(XCB);
-    STRINGISE_ENUM_CLASS(Android);
-  }
-  END_ENUM_STRINGISE();
-}
-
-template <>
 std::string DoStringise(const RENDERDOC_InputButton &el)
 {
   char alphanumericbuf[2] = {'A', 0};

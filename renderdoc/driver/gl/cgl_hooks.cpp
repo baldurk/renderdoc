@@ -80,7 +80,7 @@ CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj s
   GLWindowingData data;
   data.wnd = NULL;
   data.ctx = *ctx;
-  data.cfg = pix;
+  data.pix = pix;
 
   {
     SCOPED_LOCK(glLock);
@@ -128,7 +128,7 @@ CGLError GL_EXPORT_NAME(CGLSetCurrentContext)(CGLContextObj ctx)
     GLWindowingData data;
     data.wnd = NULL;
     data.ctx = ctx;
-    data.cfg = NULL;
+    data.pix = CGLGetPixelFormat(ctx);
 
     if(data.ctx)
     {

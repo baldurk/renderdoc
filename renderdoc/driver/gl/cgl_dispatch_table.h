@@ -41,6 +41,9 @@ typedef CGLError (*PFN_CGLGetSurface)(CGLContextObj gl, CGSConnectionID *cid, CG
                                       CGSSurfaceID *sid);
 typedef CGLError (*PFN_CGSGetSurfaceBounds)(CGSConnectionID cid, CGSWindowID wid, CGSSurfaceID sid,
                                             CGRect *rect);
+typedef CGLError (*PFN_CGLChoosePixelFormat)(const CGLPixelFormatAttribute *attribs,
+                                             CGLPixelFormatObj *pix, GLint *npix);
+typedef CGLError (*PFN_CGLDestroyPixelFormat)(CGLPixelFormatObj pix);
 
 #define CGL_HOOKED_SYMBOLS(FUNC) \
   FUNC(CGLCreateContext);        \
@@ -52,7 +55,9 @@ typedef CGLError (*PFN_CGSGetSurfaceBounds)(CGSConnectionID cid, CGSWindowID wid
   FUNC(CGLDescribePixelFormat);     \
   FUNC(CGLSetSurface);              \
   FUNC(CGLGetSurface);              \
-  FUNC(CGSGetSurfaceBounds);
+  FUNC(CGSGetSurfaceBounds);        \
+  FUNC(CGLChoosePixelFormat);       \
+  FUNC(CGLDestroyPixelFormat);
 
 struct CGLDispatchTable
 {

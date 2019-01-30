@@ -111,6 +111,10 @@ bool GLReplay::CheckResizeOutputWindow(uint64_t id)
     outw.width = w;
     outw.height = h;
 
+    MakeCurrentReplayContext(&outw);
+
+    m_pDriver->m_Platform.WindowResized(outw);
+
     MakeCurrentReplayContext(m_DebugCtx);
 
     WrappedOpenGL &drv = *m_pDriver;

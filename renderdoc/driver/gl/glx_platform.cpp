@@ -110,6 +110,7 @@ class GLXPlatform : public GLPlatform
   }
 
   void SwapBuffers(GLWindowingData context) { GLX.glXSwapBuffers(context.dpy, context.wnd); }
+  void WindowResized(GLWindowingData context) {}
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
     GLX.glXQueryDrawable(context.dpy, context.wnd, GLX_WIDTH, (unsigned int *)&w);
