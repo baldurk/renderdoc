@@ -3480,6 +3480,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glBlendFuncSeparatei:
       return Serialise_glBlendFuncSeparatei(ser, 0, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
     case GLChunk::glBlendEquationEXT:
+    case GLChunk::glBlendEquationARB:
     case GLChunk::glBlendEquation: return Serialise_glBlendEquation(ser, eGL_NONE);
     case GLChunk::glBlendEquationiARB:
     case GLChunk::glBlendEquationiEXT:

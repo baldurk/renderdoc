@@ -313,6 +313,7 @@
   FUNC(glBlendFuncSeparatei, glBlendFuncSeparateiOES); \
   FUNC(glBlendEquation, glBlendEquation); \
   FUNC(glBlendEquation, glBlendEquationEXT); \
+  FUNC(glBlendEquation, glBlendEquationARB); \
   FUNC(glBlendEquationi, glBlendEquationi); \
   FUNC(glBlendEquationi, glBlendEquationiARB); \
   FUNC(glBlendEquationi, glBlendEquationiEXT); \
@@ -1572,6 +1573,7 @@
   AliasWrapper5(void, glBlendFuncSeparateiOES, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
   FuncWrapper1(void, glBlendEquation, GLenum, mode); \
   AliasWrapper1(void, glBlendEquationEXT, glBlendEquation, GLenum, mode); \
+  AliasWrapper1(void, glBlendEquationARB, glBlendEquation, GLenum, mode); \
   FuncWrapper2(void, glBlendEquationi, GLuint, buf, GLenum, mode); \
   AliasWrapper2(void, glBlendEquationiARB, glBlendEquationi, GLuint, buf, GLenum, mode); \
   AliasWrapper2(void, glBlendEquationiEXT, glBlendEquationi, GLuint, buf, GLenum, mode); \

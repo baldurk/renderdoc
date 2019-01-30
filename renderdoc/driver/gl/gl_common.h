@@ -2099,6 +2099,8 @@ enum class GLChunk : uint32_t
   glGetPerfQueryIdByNameINTEL,
   glGetPerfQueryInfoINTEL,
 
+  glBlendEquationARB,
+
   Max,
 };
 

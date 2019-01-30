@@ -235,7 +235,7 @@ struct GLDispatchTable
   PFNGLBLENDFUNCIPROC glBlendFunci;                    // aliases glBlendFunciARB, glBlendFunciEXT, glBlendFunciOES
   PFNGLBLENDFUNCSEPARATEPROC glBlendFuncSeparate;      // aliases glBlendFuncSeparateARB
   PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;    // aliases glBlendFuncSeparateiARB, glBlendFuncSeparateiEXT, glBlendFuncSeparateiOES
-  PFNGLBLENDEQUATIONPROC glBlendEquation;              // aliases glBlendEquationEXT
+  PFNGLBLENDEQUATIONPROC glBlendEquation;              // aliases glBlendEquationEXT, glBlendEquationARB
   PFNGLBLENDEQUATIONIPROC glBlendEquationi;            // aliases glBlendEquationiARB, glBlendEquationiEXT, glBlendEquationiOES
   PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate;    // aliases glBlendEquationSeparateARB, glBlendEquationSeparateEXT
   PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB, glBlendEquationSeparateiEXT, glBlendEquationSeparateiOES
