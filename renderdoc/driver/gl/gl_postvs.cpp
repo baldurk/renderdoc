@@ -215,9 +215,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   list<string> matrixVaryings;    // matrices need some fixup
   vector<const char *> varyings;
 
-  // we don't want to do any work, so just discard before rasterizing
-  drv.glEnable(eGL_RASTERIZER_DISCARD);
-
   CopyProgramAttribBindings(stageSrcPrograms[0], vsProg, vsRefl);
 
   varyings.clear();
@@ -401,6 +398,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   // copy across any uniform values, bindings etc from the real program containing
   // the vertex stage
   CopyProgramUniforms(stageSrcPrograms[0], vsProg);
+
+  // we don't want to do any work, so just discard before rasterizing
+  drv.glEnable(eGL_RASTERIZER_DISCARD);
 
   // bind our program and do the feedback draw
   drv.glUseProgram(vsProg);
