@@ -543,7 +543,7 @@ void GLReplay::CacheTexture(ResourceId id)
   if(target == eGL_TEXTURE_BUFFER)
   {
     tex.dimension = 1;
-    tex.width = tex.height = tex.depth = 1;
+    tex.height = tex.depth = 1;
     tex.cubemap = false;
     tex.mips = 1;
     tex.arraysize = 1;
@@ -552,9 +552,12 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.msSamp = 1;
     tex.byteSize = 0;
 
-    drv.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
-                                        eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
-    tex.width = uint32_t(tex.byteSize / RDCMAX(1, tex.format.compByteWidth * tex.format.compCount));
+    if(HasExt[ARB_texture_buffer_range])
+    {
+      drv.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
+                                          eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
+      tex.width = uint32_t(tex.byteSize / RDCMAX(1, tex.format.compByteWidth * tex.format.compCount));
+    }
 
     m_CachedTextures[id] = tex;
     return;

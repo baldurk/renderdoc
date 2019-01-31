@@ -629,7 +629,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(30, 30, EXT_transform_feedback)                   \
   EXT_TO_CHECK(30, 32, EXT_draw_buffers2)                        \
   EXT_TO_CHECK(31, 99, EXT_framebuffer_sRGB)                     \
-  EXT_TO_CHECK(31, 99, ARB_texture_buffer_object)                \
+  EXT_TO_CHECK(31, 32, ARB_texture_buffer_object)                \
   /* This is a hack, the extension doesn't exist but is      */  \
   /* equivalent to GLES 3.1's addition of MSAA textures but  */  \
   /* NOT array MSAA textures. We'll treat the real ext as a  */  \
@@ -660,6 +660,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(42, 31, ARB_shading_language_420pack)             \
   EXT_TO_CHECK(42, 30, ARB_texture_storage)                      \
   EXT_TO_CHECK(43, 99, ARB_clear_buffer_object)                  \
+  EXT_TO_CHECK(43, 32, ARB_texture_buffer_range)                 \
   EXT_TO_CHECK(43, 31, ARB_compute_shader)                       \
   EXT_TO_CHECK(43, 32, ARB_copy_image)                           \
   EXT_TO_CHECK(43, 30, ARB_ES3_compatibility)                    \
@@ -736,6 +737,8 @@ extern bool IsGLES;
   EXT_COMP_CHECK(ARB_viewport_array, OES_viewport_array)                                    \
   EXT_COMP_CHECK(ARB_texture_buffer_object, EXT_texture_buffer)                             \
   EXT_COMP_CHECK(ARB_texture_buffer_object, OES_texture_buffer)                             \
+  EXT_COMP_CHECK(ARB_texture_buffer_range, EXT_texture_buffer)                              \
+  EXT_COMP_CHECK(ARB_texture_buffer_range, OES_texture_buffer)                              \
   EXT_COMP_CHECK(EXT_framebuffer_sRGB, EXT_sRGB_write_control)
 
 // extensions we know we want to check for are precached, indexd by this enum
