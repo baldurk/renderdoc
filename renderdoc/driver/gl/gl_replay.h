@@ -363,6 +363,9 @@ private:
     GLuint pickPixelTex;
     GLuint pickPixelFBO;
 
+    GLuint dummyTexBuffer;
+    GLuint dummyTexBufferStore;
+
     GLuint quadoverdrawFragShader;
     GLuint quadoverdrawResolveProg;
 

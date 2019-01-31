@@ -236,6 +236,13 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     }
   }
 
+  // bind a dummy texbuffer - some drivers (macOS) have trouble when a buffer isn't bound.
+  if(resType != RESTYPE_TEXBUFFER && DebugData.dummyTexBuffer)
+  {
+    drv.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + RESTYPE_TEXBUFFER));
+    drv.glBindTexture(eGL_TEXTURE_BUFFER, DebugData.dummyTexBuffer);
+  }
+
   drv.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
   drv.glBindTexture(target, texname);
 
