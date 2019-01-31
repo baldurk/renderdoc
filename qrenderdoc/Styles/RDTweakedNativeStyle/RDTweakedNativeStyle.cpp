@@ -394,7 +394,9 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
 // work around itemview rendering bug - the first line in a multi-line text that is elided stops
 // all subsequent text from rendering. Should be fixed in 5.11, but for all other versions we need
 // to manually step in. We manually elide the text before calling down to the style
-#if(QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+//
+// However in 5.11.1 at least on macOS it still seems to be broken
+#if 1    //(QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
   if(control == QStyle::CE_ItemViewItem)
   {
     const QStyleOptionViewItem *viewopt = qstyleoption_cast<const QStyleOptionViewItem *>(opt);
