@@ -2190,10 +2190,8 @@ void WrappedVulkan::vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32
     record->AddChunk(scope.Get());
     for(uint32_t i = 0; i < bindingCount; i++)
     {
-      record->MarkResourceFrameReferenced(GetResID(pBuffers[i]), eFrameRef_Read);
-      record->MarkResourceFrameReferenced(GetRecord(pBuffers[i])->baseResource, eFrameRef_Read);
-      if(GetRecord(pBuffers[i])->resInfo)
-        record->cmdInfo->sparse.insert(GetRecord(pBuffers[i])->resInfo);
+      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], VK_WHOLE_SIZE,
+                                        eFrameRef_Read);
     }
   }
 }
@@ -2267,10 +2265,7 @@ void WrappedVulkan::vkCmdBindIndexBuffer(VkCommandBuffer commandBuffer, VkBuffer
     Serialise_vkCmdBindIndexBuffer(ser, commandBuffer, buffer, offset, indexType);
 
     record->AddChunk(scope.Get());
-    record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
-    if(GetRecord(buffer)->resInfo)
-      record->cmdInfo->sparse.insert(GetRecord(buffer)->resInfo);
+    record->MarkBufferFrameReferenced(GetRecord(buffer), 0, VK_WHOLE_SIZE, eFrameRef_Read);
   }
 }
 
@@ -2335,15 +2330,7 @@ void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer de
 
     record->AddChunk(scope.Get());
 
-    VkResourceRecord *buf = GetRecord(destBuffer);
-
-    // mark buffer just as read, and memory behind as write & dirtied
-    record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
-    if(buf->baseResource != ResourceId())
-      record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->resInfo)
-      record->cmdInfo->sparse.insert(buf->resInfo);
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, dataSize, eFrameRef_Write);
   }
 }
 
@@ -2404,15 +2391,7 @@ void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dest
 
     record->AddChunk(scope.Get());
 
-    VkResourceRecord *buf = GetRecord(destBuffer);
-
-    // mark buffer just as read, and memory behind as write & dirtied
-    record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
-    if(buf->baseResource != ResourceId())
-      record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->resInfo)
-      record->cmdInfo->sparse.insert(buf->resInfo);
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize, eFrameRef_Write);
   }
 }
 
@@ -2775,17 +2754,15 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
                                         destBuffer, destOffset, destStride, flags);
 
     record->AddChunk(scope.Get());
+
     record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
 
-    VkResourceRecord *buf = GetRecord(destBuffer);
-
-    // mark buffer just as read, and memory behind as write & dirtied
-    record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
-    if(buf->baseResource != ResourceId())
-      record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->resInfo)
-      record->cmdInfo->sparse.insert(buf->resInfo);
+    VkDeviceSize size = (queryCount - 1) * destStride + 4;
+    if(flags & VK_QUERY_RESULT_64_BIT)
+    {
+      size += 4;
+    }
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, size, eFrameRef_Write);
   }
 }
 
@@ -3804,10 +3781,8 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
         if(write.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            write.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          record->MarkResourceFrameReferenced(GetResID(write.pTexelBufferView[d]), eFrameRef_Read);
-          if(GetRecord(write.pTexelBufferView[d])->baseResource != ResourceId())
-            record->MarkResourceFrameReferenced(GetRecord(write.pTexelBufferView[d])->baseResource,
-                                                ref);
+          VkResourceRecord *bufView = GetRecord(write.pTexelBufferView[d]);
+          record->MarkBufferViewFrameReferenced(bufView, ref);
         }
         else if(write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                 write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -3833,10 +3808,9 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
         }
         else
         {
-          record->MarkResourceFrameReferenced(GetResID(write.pBufferInfo[d].buffer), eFrameRef_Read);
-          if(GetRecord(write.pBufferInfo[d].buffer)->baseResource != ResourceId())
-            record->MarkResourceFrameReferenced(
-                GetRecord(write.pBufferInfo[d].buffer)->baseResource, ref);
+          record->MarkBufferFrameReferenced(GetRecord(write.pBufferInfo[d].buffer),
+                                            write.pBufferInfo[d].offset, write.pBufferInfo[d].range,
+                                            ref);
         }
       }
     }
@@ -3975,6 +3949,8 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
   // since it's relatively expensive to walk the memory, we gather frame references at the same time
   // as unwrapping
   std::vector<std::pair<ResourceId, FrameRefType> > frameRefs;
+  std::vector<std::pair<VkBufferView, FrameRefType> > bufViewFrameRefs;
+  std::vector<std::pair<VkDescriptorBufferInfo, FrameRefType> > bufFrameRefs;
 
   {
     DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;
@@ -3999,9 +3975,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkBufferView *bufView = (VkBufferView *)dst;
 
-          frameRefs.push_back(std::make_pair(GetResID(*bufView), eFrameRef_Read));
-          if(GetRecord(*bufView)->baseResource != ResourceId())
-            frameRefs.push_back(std::make_pair(GetRecord(*bufView)->baseResource, ref));
+          bufViewFrameRefs.push_back(std::make_pair(*bufView, ref));
 
           *bufView = Unwrap(*bufView);
         }
@@ -4047,9 +4021,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkDescriptorBufferInfo *info = (VkDescriptorBufferInfo *)dst;
 
-          frameRefs.push_back(std::make_pair(GetResID(info->buffer), eFrameRef_Read));
-          if(GetRecord(info->buffer)->baseResource != ResourceId())
-            frameRefs.push_back(std::make_pair(GetRecord(info->buffer)->baseResource, ref));
+          bufFrameRefs.push_back(std::make_pair(*info, ref));
 
           info->buffer = Unwrap(info->buffer);
         }
@@ -4076,6 +4048,13 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
     record->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate), eFrameRef_Read);
     for(size_t i = 0; i < frameRefs.size(); i++)
       record->MarkResourceFrameReferenced(frameRefs[i].first, frameRefs[i].second);
+    for(size_t i = 0; i < bufViewFrameRefs.size(); i++)
+      record->MarkBufferViewFrameReferenced(GetRecord(bufViewFrameRefs[i].first),
+                                            bufViewFrameRefs[i].second);
+    for(size_t i = 0; i < bufFrameRefs.size(); i++)
+      record->MarkBufferFrameReferenced(GetRecord(bufFrameRefs[i].first.buffer),
+                                        bufFrameRefs[i].first.offset, bufFrameRefs[i].first.range,
+                                        bufFrameRefs[i].second);
   }
 }
 
@@ -4142,15 +4121,7 @@ void WrappedVulkan::vkCmdWriteBufferMarkerAMD(VkCommandBuffer commandBuffer,
 
     record->AddChunk(scope.Get());
 
-    VkResourceRecord *buf = GetRecord(dstBuffer);
-
-    // mark buffer just as read, and memory behind as write & dirtied
-    record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
-    if(buf->baseResource != ResourceId())
-      record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(buf->resInfo)
-      record->cmdInfo->sparse.insert(buf->resInfo);
+    record->MarkBufferFrameReferenced(GetRecord(dstBuffer), dstOffset, 4, eFrameRef_Write);
   }
 }
 
@@ -4505,10 +4476,12 @@ void WrappedVulkan::vkCmdBindTransformFeedbackBuffersEXT(VkCommandBuffer command
     record->AddChunk(scope.Get());
     for(uint32_t i = 0; i < bindingCount; i++)
     {
-      record->MarkResourceFrameReferenced(GetResID(pBuffers[i]), eFrameRef_Read);
-      record->MarkResourceFrameReferenced(GetRecord(pBuffers[i])->baseResource, eFrameRef_Read);
-      if(GetRecord(pBuffers[i])->resInfo)
-        record->cmdInfo->sparse.insert(GetRecord(pBuffers[i])->resInfo);
+      VkDeviceSize size = VK_WHOLE_SIZE;
+      if(pSizes != NULL)
+      {
+        size = pSizes[i];
+      }
+      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], size, eFrameRef_Read);
     }
   }
 }

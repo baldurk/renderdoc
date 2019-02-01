@@ -410,6 +410,9 @@ public:
 
   void SetInternalResource(ResourceId id);
 
+  void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize start, VkDeviceSize end,
+                                 FrameRefType refType);
+
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
