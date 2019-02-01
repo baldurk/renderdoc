@@ -2277,6 +2277,10 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
   {
     for(int32_t i = 0; i < refl->inputSignature.count(); i++)
     {
+      // skip system inputs, as some drivers will return a location for them
+      if(refl->inputSignature[i].systemValue != ShaderBuiltin::Undefined)
+        continue;
+
       GLint loc = GL.glGetAttribLocation(curProg, refl->inputSignature[i].varName.c_str());
 
       if(loc >= 0 && loc < numVAttribBindings)
