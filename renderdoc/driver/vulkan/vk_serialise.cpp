@@ -1393,7 +1393,7 @@ template <>
 void Deserialise(const VkDeviceCreateInfo &el)
 {
   DeserialiseNext(el.pNext);
-  for(uint32_t i = 0; i < el.queueCreateInfoCount; i++)
+  for(uint32_t i = 0; el.pQueueCreateInfos && i < el.queueCreateInfoCount; i++)
     Deserialise(el.pQueueCreateInfos[i]);
   delete[] el.pQueueCreateInfos;
   delete[] el.ppEnabledExtensionNames;
@@ -1608,13 +1608,13 @@ void Deserialise(const VkBindSparseInfo &el)
 {
   DeserialiseNext(el.pNext);
   delete[] el.pWaitSemaphores;
-  for(uint32_t i = 0; i < el.bufferBindCount; i++)
+  for(uint32_t i = 0; el.pBufferBinds && i < el.bufferBindCount; i++)
     Deserialise(el.pBufferBinds[i]);
   delete[] el.pBufferBinds;
-  for(uint32_t i = 0; i < el.imageOpaqueBindCount; i++)
+  for(uint32_t i = 0; el.pImageOpaqueBinds && i < el.imageOpaqueBindCount; i++)
     Deserialise(el.pImageOpaqueBinds[i]);
   delete[] el.pImageOpaqueBinds;
-  for(uint32_t i = 0; i < el.imageBindCount; i++)
+  for(uint32_t i = 0; el.pImageBinds && i < el.imageBindCount; i++)
     Deserialise(el.pImageBinds[i]);
   delete[] el.pImageBinds;
   delete[] el.pSignalSemaphores;
@@ -1759,7 +1759,7 @@ void Deserialise(const VkRenderPassCreateInfo &el)
 {
   DeserialiseNext(el.pNext);
   delete[] el.pAttachments;
-  for(uint32_t i = 0; i < el.subpassCount; i++)
+  for(uint32_t i = 0; el.pSubpasses && i < el.subpassCount; i++)
     Deserialise(el.pSubpasses[i]);
   delete[] el.pSubpasses;
   delete[] el.pDependencies;
@@ -2523,7 +2523,7 @@ void Deserialise(const VkGraphicsPipelineCreateInfo &el)
     Deserialise(*el.pDynamicState);
     delete el.pDynamicState;
   }
-  for(uint32_t i = 0; i < el.stageCount; i++)
+  for(uint32_t i = 0; el.pStages && i < el.stageCount; i++)
   {
     Deserialise(el.pStages[i]);
   }
@@ -3180,12 +3180,15 @@ void Deserialise(const VkDebugUtilsMessengerCallbackDataEXT &el)
 {
   DeserialiseNext(el.pNext);
 
-  for(uint32_t i = 0; i < el.queueLabelCount; i++)
+  for(uint32_t i = 0; el.pQueueLabels && i < el.queueLabelCount; i++)
     Deserialise(el.pQueueLabels[i]);
-  for(uint32_t i = 0; i < el.cmdBufLabelCount; i++)
+  delete[] el.pQueueLabels;
+  for(uint32_t i = 0; el.pCmdBufLabels && i < el.cmdBufLabelCount; i++)
     Deserialise(el.pCmdBufLabels[i]);
-  for(uint32_t i = 0; i < el.objectCount; i++)
+  delete[] el.pCmdBufLabels;
+  for(uint32_t i = 0; el.pObjects && i < el.objectCount; i++)
     Deserialise(el.pObjects[i]);
+  delete[] el.pObjects;
 }
 
 template <typename SerialiserType>
@@ -4167,7 +4170,7 @@ void Deserialise(const VkSubpassDescription2KHR &el)
     Deserialise(*el.pDepthStencilAttachment);
   delete el.pDepthStencilAttachment;
 
-  for(uint32_t j = 0; j < el.colorAttachmentCount; j++)
+  for(uint32_t j = 0; el.pColorAttachments && j < el.colorAttachmentCount; j++)
   {
     Deserialise(el.pColorAttachments[j]);
     if(el.pResolveAttachments)
@@ -4176,7 +4179,7 @@ void Deserialise(const VkSubpassDescription2KHR &el)
   delete[] el.pColorAttachments;
   delete[] el.pResolveAttachments;
 
-  for(uint32_t j = 0; j < el.inputAttachmentCount; j++)
+  for(uint32_t j = 0; el.pInputAttachments && j < el.inputAttachmentCount; j++)
     Deserialise(el.pInputAttachments[j]);
 
   delete[] el.pInputAttachments;
@@ -4227,15 +4230,15 @@ void Deserialise(const VkRenderPassCreateInfo2KHR &el)
 {
   DeserialiseNext(el.pNext);
 
-  for(uint32_t i = 0; i < el.attachmentCount; i++)
+  for(uint32_t i = 0; el.pAttachments && i < el.attachmentCount; i++)
     Deserialise(el.pAttachments[i]);
   delete[] el.pAttachments;
 
-  for(uint32_t i = 0; i < el.subpassCount; i++)
+  for(uint32_t i = 0; el.pSubpasses && i < el.subpassCount; i++)
     Deserialise(el.pSubpasses[i]);
   delete[] el.pSubpasses;
 
-  for(uint32_t i = 0; i < el.dependencyCount; i++)
+  for(uint32_t i = 0; el.pDependencies && i < el.dependencyCount; i++)
     Deserialise(el.pDependencies[i]);
   delete[] el.pDependencies;
 
