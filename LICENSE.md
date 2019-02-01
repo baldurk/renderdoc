@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 
-Copyright (c) 2015-2018 Baldur Karlsson
+Copyright (c) 2015-2019 Baldur Karlsson
 
 Copyright (c) 2014 Crytek
 
