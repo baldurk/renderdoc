@@ -800,6 +800,7 @@ void ReplayOutput::DisplayTex()
     texDisplay.rangeMin = 0.0f;
     texDisplay.rangeMax = 1.0f;
     texDisplay.linearDisplayAsGamma = false;
+    texDisplay.typeHint = CompType::Typeless;
 
     m_pDevice->RenderTexture(texDisplay);
   }
