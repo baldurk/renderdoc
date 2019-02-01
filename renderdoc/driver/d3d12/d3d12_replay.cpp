@@ -849,7 +849,8 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
     if(fmt == DXGI_FORMAT_UNKNOWN)
       fmt = res.Format;
 
-    view.elementByteSize = fmt == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, fmt, 0);
+    if(view.elementByteSize == 0)
+      view.elementByteSize = fmt == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, fmt, 0);
 
     view.viewFormat = MakeResourceFormat(fmt);
   }
