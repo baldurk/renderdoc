@@ -365,14 +365,17 @@ void VulkanResourceManager::MarkSparseMapReferenced(ResourceInfo *sparse)
   }
 
   for(size_t i = 0; i < sparse->opaquemappings.size(); i++)
-    MarkResourceFrameReferenced(GetResID(sparse->opaquemappings[i].memory), eFrameRef_Read);
+    MarkMemoryFrameReferenced(GetResID(sparse->opaquemappings[i].memory),
+                              sparse->opaquemappings[i].memoryOffset,
+                              sparse->opaquemappings[i].size, eFrameRef_Read);
 
   for(int a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
   {
     VkDeviceSize totalSize =
         VkDeviceSize(sparse->imgdim.width) * sparse->imgdim.height * sparse->imgdim.depth;
     for(VkDeviceSize i = 0; sparse->pages[a] && i < totalSize; i++)
-      MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
+      MarkMemoryFrameReferenced(GetResID(sparse->pages[a][i].first), 0, VK_WHOLE_SIZE,
+                                eFrameRef_Read);
   }
 }
 
@@ -602,6 +605,12 @@ ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
   }
 
   return ResourceId();
+}
+
+void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
+                                                      VkDeviceSize size, FrameRefType refType)
+{
+  MarkResourceFrameReferenced(mem, refType);
 }
 
 bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res, bool prepare)

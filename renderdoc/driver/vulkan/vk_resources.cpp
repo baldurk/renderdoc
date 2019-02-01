@@ -3030,6 +3030,41 @@ VkResourceRecord::~VkResourceRecord()
     SAFE_DELETE(descTemplateInfo);
 }
 
+void VkResourceRecord::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
+                                                 VkDeviceSize size, FrameRefType refType)
+{
+  MarkResourceFrameReferenced(mem, refType);
+}
+
+void VkResourceRecord::MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset,
+                                                 VkDeviceSize size, FrameRefType refType)
+{
+  // mark buffer just as read
+  MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
+
+  if(size == VK_WHOLE_SIZE)
+  {
+    size = buf->memSize;
+  }
+  if(buf->resInfo)
+    cmdInfo->sparse.insert(buf->resInfo);
+  if(buf->baseResource != ResourceId())
+    MarkMemoryFrameReferenced(buf->baseResource, buf->memOffset + offset, size, refType);
+}
+
+void VkResourceRecord::MarkBufferViewFrameReferenced(VkResourceRecord *bufView, FrameRefType refType)
+{
+  // mark the VkBufferView and VkBuffer as read
+  MarkResourceFrameReferenced(bufView->GetResourceID(), eFrameRef_Read);
+  MarkResourceFrameReferenced(bufView->baseResource, eFrameRef_Read);
+
+  if(bufView->resInfo)
+    cmdInfo->sparse.insert(bufView->resInfo);
+  if(bufView->baseResource != ResourceId())
+    MarkMemoryFrameReferenced(bufView->baseResourceMem, bufView->memOffset, bufView->memSize,
+                              refType);
+}
+
 void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings)
 {
   // update image page table mappings

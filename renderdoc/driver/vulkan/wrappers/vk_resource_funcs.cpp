@@ -655,7 +655,8 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
           else
           {
             m_FrameCaptureRecord->AddChunk(scope.Get());
-            GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Write);
+            GetResourceManager()->MarkMemoryFrameReferenced(id, state.mapOffset, state.mapSize,
+                                                            eFrameRef_Write);
           }
         }
       }
@@ -800,8 +801,9 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
       if(capframe)
       {
-        GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].memory),
-                                                          eFrameRef_Write);
+        GetResourceManager()->MarkMemoryFrameReferenced(GetResID(pMemRanges[i].memory),
+                                                        pMemRanges[i].offset, pMemRanges[i].size,
+                                                        eFrameRef_Write);
       }
       else
       {
@@ -897,6 +899,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
 
     record->AddParent(GetRecord(memory));
     record->baseResource = GetResID(memory);
+    record->memOffset = memoryOffset;
   }
 
   return ret;
@@ -1089,6 +1092,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pBuffer);
       record->AddChunk(chunk);
+      record->memSize = pCreateInfo->size;
 
       bool isSparse = (pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT |
                                              VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
@@ -1270,8 +1274,13 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
       record->AddParent(bufferRecord);
 
       // store the base resource
-      record->baseResource = bufferRecord->baseResource;
+      record->baseResource = bufferRecord->GetResourceID();
+      record->baseResourceMem = bufferRecord->baseResource;
       record->resInfo = bufferRecord->resInfo;
+      record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
+      record->memSize = pCreateInfo->range;
+      if(record->memSize == VK_WHOLE_SIZE)
+        record->memSize = bufferRecord->memSize - pCreateInfo->offset;
     }
     else
     {
@@ -1917,6 +1926,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
 
       bufrecord->AddParent(memrecord);
       bufrecord->baseResource = memrecord->GetResourceID();
+      bufrecord->memOffset = pBindInfos[i].memoryOffset;
     }
   }
 

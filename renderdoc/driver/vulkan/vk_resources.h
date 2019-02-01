@@ -1097,6 +1097,14 @@ public:
   ResourceId baseResource;
   ResourceId baseResourceMem;    // for image views, we need to point to both the image and mem
 
+  VkDeviceSize memOffset;
+  VkDeviceSize memSize;
+
+  void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
+                                 FrameRefType refType);
+  void MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset, VkDeviceSize size,
+                                 FrameRefType refType);
+  void MarkBufferViewFrameReferenced(VkResourceRecord *buf, FrameRefType refType);
   // these are all disjoint, so only a record of the right type will have each
   // Note some of these need to be deleted in the constructor, so we check the
   // allocation type of the Resource
