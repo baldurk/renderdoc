@@ -114,6 +114,39 @@ FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second);
 
 bool IsDirtyFrameRef(FrameRefType refType);
 
+// Captures the possible initialization/reset requirements for resources.
+// These requirements are entirely determined by the resource's FrameRefType,
+// but this type improves the readability of the code that checks
+// init/reset requirements.
+enum InitReqType
+{
+  // Initial contents of the resource are not used, and need not be initialized.
+  // Corresponds to `None`, `Write` or `Clear` ref types.
+  eInitReq_None,
+
+  // Initial contents of the resource are read, but not overwritten;
+  // the resource needs to be initialized before the first replay, but need not
+  // be reset before subsequent replays.
+  // Corresponds to `Read` ref type.
+  eInitReq_InitOnce,
+
+  // Initial contents of the resource are read, and later overwritten;
+  // the resource needs to be reset before each replay.
+  // Corresponds to `ReadBeforeWrite` ref type.
+  eInitReq_Reset,
+};
+
+// Return the initialization/reset requirements for a FrameRefType
+inline InitReqType InitReq(FrameRefType refType)
+{
+  switch(refType)
+  {
+    case eFrameRef_Read: return eInitReq_InitOnce;
+    case eFrameRef_ReadBeforeWrite: return eInitReq_Reset;
+    default: return eInitReq_None;
+  }
+}
+
 // handle marking a resource referenced for read or write and storing RAW access etc.
 bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType);
 
