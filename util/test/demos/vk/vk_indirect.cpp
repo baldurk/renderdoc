@@ -261,122 +261,272 @@ void main()
                                             {vkh::DescriptorBufferInfo(ssbo.buffer)}),
                 });
 
+    using uvec4 = uint32_t[4];
+
     while(Running())
     {
-      VkCommandBuffer cmd = GetCommandBuffer();
+      VkCommandBuffer primary = GetCommandBuffer();
 
-      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+      vkBeginCommandBuffer(primary, vkh::CommandBufferBeginInfo());
 
       VkImage swapimg =
-          StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+          StartUsingBackbuffer(primary, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
+      vkCmdClearColorImage(primary, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkh::cmdPipelineBarrier(
-          cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                             VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
-
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, comppipe);
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, complayout, 0, {descset}, {});
-
-      uint32_t mode = 0;
-      vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
-
-      using uvec4 = uint32_t[4];
-
-      pushMarker(cmd, "Dispatches");
-
-      // dispatch 0,0,0
-      vkCmdDispatchIndirect(cmd, ssbo.buffer, 8 * sizeof(uvec4));
-
-      mode = 1;
-      vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
-
-      // dispatch to fill the actual parameters
-      vkCmdDispatch(cmd, 1, 1, 1);
-
-      mode = 2;
-      vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
-
-      vkh::cmdPipelineBarrier(
-          cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
-                                             VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
-
-      // indirect dispatch at offset data[1], see above shader
-      vkCmdDispatchIndirect(cmd, ssbo.buffer, sizeof(uvec4));
-
-      popMarker(cmd);
-
-      vkh::cmdPipelineBarrier(
-          cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
-                                             VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
-
-      vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
-          VK_SUBPASS_CONTENTS_INLINE);
-
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawpipe);
-      vkCmdSetViewport(cmd, 0, 1, &viewport);
-      vkCmdSetScissor(cmd, 0, 1, &scissor);
-      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-      vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-      pushMarker(cmd, "Empty draws");
-      vkCmdDrawIndirect(cmd, ssbo.buffer, 2 * sizeof(uvec4), 0, sizeof(uvec4));
-      vkCmdDrawIndexedIndirect(cmd, ssbo.buffer, 3 * sizeof(uvec4), 0, 2 * sizeof(uvec4));
-      popMarker(cmd);
-
-      pushMarker(cmd, "Indirect draws");
-
-      // indirect draw at offset data[2], see above shader
-      vkCmdDrawIndirect(cmd, ssbo.buffer, 2 * sizeof(uvec4), 1, sizeof(uvec4));
-
-      // indirect indexed draw at offset data[3], see above shader
-      vkCmdDrawIndexedIndirect(cmd, ssbo.buffer, 3 * sizeof(uvec4), 2, 2 * sizeof(uvec4));
-
-      popMarker(cmd);
-
-      // if we have KHR_draw_indirect_count, test it as well
-      if(KHR_draw_indirect_count)
       {
-        pushMarker(cmd, "KHR_draw_indirect_count");
+        VkCommandBuffer cmd = primary;
 
-        pushMarker(cmd, "Empty count draws");
-        // empty draws
-        vkCmdDrawIndirectCountKHR(cmd, ssbo.buffer, 11 * sizeof(uvec4), ssbo.buffer,
-                                  10 * sizeof(uvec4), 0, sizeof(uvec4));
-        vkCmdDrawIndexedIndirectCountKHR(cmd, ssbo.buffer, 12 * sizeof(uvec4), ssbo.buffer,
-                                         10 * sizeof(uvec4) + sizeof(uint32_t), 0, sizeof(uvec4) * 2);
+        pushMarker(cmd, "Primary: Dispatches");
+
+        vkh::cmdPipelineBarrier(
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, comppipe);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, complayout, 0, {descset}, {});
+
+        uint32_t mode = 0;
+        vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+
+        // dispatch 0,0,0
+        vkCmdDispatchIndirect(cmd, ssbo.buffer, 8 * sizeof(uvec4));
+
+        mode = 1;
+        vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+
+        // dispatch to fill the actual parameters
+        vkCmdDispatch(cmd, 1, 1, 1);
+
+        vkh::cmdPipelineBarrier(
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+
+        mode = 2;
+        vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+
+        // indirect dispatch at offset data[1], see above shader
+        vkCmdDispatchIndirect(cmd, ssbo.buffer, sizeof(uvec4));
+
         popMarker(cmd);
 
-        pushMarker(cmd, "Indirect count draws");
-        vkCmdDrawIndirectCountKHR(cmd, ssbo.buffer, 11 * sizeof(uvec4), ssbo.buffer,
-                                  10 * sizeof(uvec4), 10, sizeof(uvec4));
-        vkCmdDrawIndexedIndirectCountKHR(cmd, ssbo.buffer, 12 * sizeof(uvec4), ssbo.buffer,
-                                         10 * sizeof(uvec4) + sizeof(uint32_t), 10,
-                                         sizeof(uvec4) * 2);
-        popMarker(cmd);
-
-        popMarker(cmd);
+        vkh::cmdPipelineBarrier(
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
       }
 
-      vkCmdEndRenderPass(cmd);
+      vkCmdBeginRenderPass(
+          primary, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
+          VK_SUBPASS_CONTENTS_INLINE);
 
-      FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+      {
+        VkCommandBuffer cmd = primary;
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawpipe);
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+        vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        pushMarker(cmd, "Primary: Empty draws");
+        vkCmdDrawIndirect(cmd, ssbo.buffer, 2 * sizeof(uvec4), 0, sizeof(uvec4));
+        vkCmdDrawIndexedIndirect(cmd, ssbo.buffer, 3 * sizeof(uvec4), 0, 2 * sizeof(uvec4));
+        popMarker(cmd);
+
+        pushMarker(cmd, "Primary: Indirect draws");
+
+        // indirect draw at offset data[2], see above shader
+        vkCmdDrawIndirect(cmd, ssbo.buffer, 2 * sizeof(uvec4), 1, sizeof(uvec4));
+
+        // indirect indexed draw at offset data[3], see above shader
+        vkCmdDrawIndexedIndirect(cmd, ssbo.buffer, 3 * sizeof(uvec4), 2, 2 * sizeof(uvec4));
+
+        popMarker(cmd);
+
+        // if we have KHR_draw_indirect_count, test it as well
+        if(KHR_draw_indirect_count)
+        {
+          pushMarker(cmd, "Primary: KHR_draw_indirect_count");
+
+          pushMarker(cmd, "Primary: Empty count draws");
+          // empty draws
+          vkCmdDrawIndirectCountKHR(cmd, ssbo.buffer, 11 * sizeof(uvec4), ssbo.buffer,
+                                    10 * sizeof(uvec4), 0, sizeof(uvec4));
+          vkCmdDrawIndexedIndirectCountKHR(cmd, ssbo.buffer, 12 * sizeof(uvec4), ssbo.buffer,
+                                           10 * sizeof(uvec4) + sizeof(uint32_t), 0,
+                                           sizeof(uvec4) * 2);
+          popMarker(cmd);
+
+          pushMarker(cmd, "Primary: Indirect count draws");
+          vkCmdDrawIndirectCountKHR(cmd, ssbo.buffer, 11 * sizeof(uvec4), ssbo.buffer,
+                                    10 * sizeof(uvec4), 10, sizeof(uvec4));
+          vkCmdDrawIndexedIndirectCountKHR(cmd, ssbo.buffer, 12 * sizeof(uvec4), ssbo.buffer,
+                                           10 * sizeof(uvec4) + sizeof(uint32_t), 10,
+                                           sizeof(uvec4) * 2);
+          popMarker(cmd);
+
+          popMarker(cmd);
+        }
+      }
+
+      vkCmdEndRenderPass(primary);
 
       vkh::cmdPipelineBarrier(
-          cmd, {},
+          primary, {},
           {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
                                     VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
 
       // clear the buffer so that we can't read any of the data back from outside the command buffer
-      vkCmdFillBuffer(cmd, ssbo.buffer, 0, ssbo_size, 0);
+      vkCmdFillBuffer(primary, ssbo.buffer, 0, ssbo_size, 0);
 
-      vkEndCommandBuffer(cmd);
+      vkEndCommandBuffer(primary);
 
-      Submit(0, 1, {cmd});
+      Submit(0, 2, {primary});
+
+      vkDeviceWaitIdle(device);
+
+      // now do the same in secondary command buffers
+
+      primary = GetCommandBuffer();
+
+      vkBeginCommandBuffer(primary, vkh::CommandBufferBeginInfo());
+
+      vkCmdClearColorImage(primary, swapimg, VK_IMAGE_LAYOUT_GENERAL,
+                           vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                           vkh::ImageSubresourceRange());
+
+      VkCommandBuffer dispatch_secondary = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+
+      vkBeginCommandBuffer(
+          dispatch_secondary,
+          vkh::CommandBufferBeginInfo(0, vkh::CommandBufferInheritanceInfo(VK_NULL_HANDLE, 0)));
+
+      {
+        VkCommandBuffer cmd = dispatch_secondary;
+
+        pushMarker(cmd, "Secondary: Dispatches");
+
+        vkh::cmdPipelineBarrier(
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, comppipe);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, complayout, 0, {descset}, {});
+
+        uint32_t mode = 0;
+        vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+
+        // dispatch 0,0,0
+        vkCmdDispatchIndirect(cmd, ssbo.buffer, 8 * sizeof(uvec4));
+
+        mode = 1;
+        vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+
+        // dispatch to fill the actual parameters
+        vkCmdDispatch(cmd, 1, 1, 1);
+
+        vkh::cmdPipelineBarrier(
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+
+        mode = 2;
+        vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+
+        // indirect dispatch at offset data[1], see above shader
+        vkCmdDispatchIndirect(cmd, ssbo.buffer, sizeof(uvec4));
+
+        popMarker(cmd);
+
+        vkh::cmdPipelineBarrier(
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+      }
+
+      vkEndCommandBuffer(dispatch_secondary);
+
+      vkCmdExecuteCommands(primary, 1, &dispatch_secondary);
+
+      vkCmdBeginRenderPass(
+          primary, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
+          VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
+      VkCommandBuffer draw_secondary = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+
+      vkBeginCommandBuffer(draw_secondary, vkh::CommandBufferBeginInfo(
+                                               VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+                                               vkh::CommandBufferInheritanceInfo(swapRenderPass, 0)));
+
+      {
+        VkCommandBuffer cmd = draw_secondary;
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawpipe);
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+        vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        pushMarker(cmd, "Secondary: Empty draws");
+        vkCmdDrawIndirect(cmd, ssbo.buffer, 2 * sizeof(uvec4), 0, sizeof(uvec4));
+        vkCmdDrawIndexedIndirect(cmd, ssbo.buffer, 3 * sizeof(uvec4), 0, 2 * sizeof(uvec4));
+        popMarker(cmd);
+
+        pushMarker(cmd, "Secondary: Indirect draws");
+
+        // indirect draw at offset data[2], see above shader
+        vkCmdDrawIndirect(cmd, ssbo.buffer, 2 * sizeof(uvec4), 1, sizeof(uvec4));
+
+        // indirect indexed draw at offset data[3], see above shader
+        vkCmdDrawIndexedIndirect(cmd, ssbo.buffer, 3 * sizeof(uvec4), 2, 2 * sizeof(uvec4));
+
+        popMarker(cmd);
+
+        // if we have KHR_draw_indirect_count, test it as well
+        if(KHR_draw_indirect_count)
+        {
+          pushMarker(cmd, "Secondary: KHR_draw_indirect_count");
+
+          pushMarker(cmd, "Secondary: Empty count draws");
+          // empty draws
+          vkCmdDrawIndirectCountKHR(cmd, ssbo.buffer, 11 * sizeof(uvec4), ssbo.buffer,
+                                    10 * sizeof(uvec4), 0, sizeof(uvec4));
+          vkCmdDrawIndexedIndirectCountKHR(cmd, ssbo.buffer, 12 * sizeof(uvec4), ssbo.buffer,
+                                           10 * sizeof(uvec4) + sizeof(uint32_t), 0,
+                                           sizeof(uvec4) * 2);
+          popMarker(cmd);
+
+          pushMarker(cmd, "Secondary: Indirect count draws");
+          vkCmdDrawIndirectCountKHR(cmd, ssbo.buffer, 11 * sizeof(uvec4), ssbo.buffer,
+                                    10 * sizeof(uvec4), 10, sizeof(uvec4));
+          vkCmdDrawIndexedIndirectCountKHR(cmd, ssbo.buffer, 12 * sizeof(uvec4), ssbo.buffer,
+                                           10 * sizeof(uvec4) + sizeof(uint32_t), 10,
+                                           sizeof(uvec4) * 2);
+          popMarker(cmd);
+
+          popMarker(cmd);
+        }
+      }
+
+      vkEndCommandBuffer(draw_secondary);
+
+      vkCmdExecuteCommands(primary, 1, &draw_secondary);
+
+      vkCmdEndRenderPass(primary);
+
+      vkh::cmdPipelineBarrier(
+          primary, {},
+          {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                                    VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
+
+      // clear the buffer so that we can't read any of the data back from outside the command buffer
+      vkCmdFillBuffer(primary, ssbo.buffer, 0, ssbo_size, 0);
+
+      FinishUsingBackbuffer(primary, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+      vkEndCommandBuffer(primary);
+
+      Submit(1, 2, {primary}, {dispatch_secondary, draw_secondary});
 
       vkDeviceWaitIdle(device);
 

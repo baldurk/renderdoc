@@ -2974,6 +2974,23 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             m_BakedCmdBufferInfo[GetResID(pCommandBuffers[i])].imgbarriers);
       }
 
+      // append deferred indirect copies
+      {
+        std::vector<VkIndirectRecordData> &dstIndirect =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies;
+
+        for(uint32_t i = 0; i < commandBufferCount; i++)
+        {
+          // indirectCopies are stored in m_BakedCmdBufferInfo[m_LastCmdBufferID] which is an
+          // original ID
+          ResourceId origId = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
+          const std::vector<VkIndirectRecordData> &srcIndirect =
+              m_BakedCmdBufferInfo[origId].indirectCopies;
+
+          dstIndirect.insert(dstIndirect.end(), srcIndirect.begin(), srcIndirect.end());
+        }
+      }
+
       AddEvent();
 
       DrawcallDescription draw;
