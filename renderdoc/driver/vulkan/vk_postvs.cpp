@@ -2617,6 +2617,12 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
 
   const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
 
+  if(!creationInfo.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews.empty())
+  {
+    RDCWARN("Multipass is active for this draw, no GS/Tess mesh output is available");
+    return;
+  }
+
   // first try geometry stage
   int stageIndex = 3;
 
