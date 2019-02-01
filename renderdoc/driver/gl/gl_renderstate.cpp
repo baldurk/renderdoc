@@ -457,68 +457,66 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
   {
-    manager->MarkResourceFrameReferenced(Tex1D[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Tex2D[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Tex3D[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Tex1DArray[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Tex2DArray[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(TexCubeArray[i],
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(TexRect[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(TexBuffer[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(TexCube[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Tex2DMS[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Tex2DMSArray[i],
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(Samplers[i], initial ? eFrameRef_Unknown : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex1D[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex2D[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex3D[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex1DArray[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex2DArray[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(TexCubeArray[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(TexRect[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(TexBuffer[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(TexCube[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex2DMS[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Tex2DMSArray[i], initial ? eFrameRef_None : eFrameRef_Read);
+    manager->MarkResourceFrameReferenced(Samplers[i], initial ? eFrameRef_None : eFrameRef_Read);
   }
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Images); i++)
   {
     manager->MarkResourceFrameReferenced(Images[i].res,
-                                         initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+                                         initial ? eFrameRef_None : eFrameRef_ReadBeforeWrite);
     driver->AddMissingTrack(manager->GetID(Images[i].res));
   }
 
-  manager->MarkVAOReferenced(VAO, initial ? eFrameRef_Unknown : eFrameRef_Read, true);
+  manager->MarkVAOReferenced(VAO, initial ? eFrameRef_None : eFrameRef_Read, true);
 
-  manager->MarkResourceFrameReferenced(FeedbackObj, initial ? eFrameRef_Unknown : eFrameRef_Read);
+  manager->MarkResourceFrameReferenced(FeedbackObj, initial ? eFrameRef_None : eFrameRef_Read);
 
-  manager->MarkResourceFrameReferenced(Program, initial ? eFrameRef_Unknown : eFrameRef_Read);
-  manager->MarkResourceFrameReferenced(Pipeline, initial ? eFrameRef_Unknown : eFrameRef_Read);
+  manager->MarkResourceFrameReferenced(Program, initial ? eFrameRef_None : eFrameRef_Read);
+  manager->MarkResourceFrameReferenced(Pipeline, initial ? eFrameRef_None : eFrameRef_Read);
 
   // the pipeline correctly has program parents, but we must also mark the programs as frame
   // referenced so that their
   // initial contents will be serialised.
   GLResourceRecord *record = manager->GetResourceRecord(Pipeline);
   if(record)
-    record->MarkParentsReferenced(manager, initial ? eFrameRef_Unknown : eFrameRef_Read);
+    record->MarkParentsReferenced(manager, initial ? eFrameRef_None : eFrameRef_Read);
 
   for(size_t i = 0; i < ARRAY_COUNT(BufferBindings); i++)
     manager->MarkResourceFrameReferenced(BufferBindings[i],
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
+                                         initial ? eFrameRef_None : eFrameRef_Read);
 
   for(size_t i = 0; i < ARRAY_COUNT(AtomicCounter); i++)
     manager->MarkResourceFrameReferenced(AtomicCounter[i].res,
-                                         initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+                                         initial ? eFrameRef_None : eFrameRef_ReadBeforeWrite);
 
   for(size_t i = 0; i < ARRAY_COUNT(ShaderStorage); i++)
     manager->MarkResourceFrameReferenced(ShaderStorage[i].res,
-                                         initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+                                         initial ? eFrameRef_None : eFrameRef_ReadBeforeWrite);
 
   for(size_t i = 0; i < ARRAY_COUNT(TransformFeedback); i++)
     manager->MarkResourceFrameReferenced(TransformFeedback[i].res,
-                                         initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+                                         initial ? eFrameRef_None : eFrameRef_ReadBeforeWrite);
 
   for(size_t i = 0; i < ARRAY_COUNT(UniformBinding); i++)
     manager->MarkResourceFrameReferenced(UniformBinding[i].res,
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
+                                         initial ? eFrameRef_None : eFrameRef_Read);
 
-  manager->MarkFBOReferenced(DrawFBO, initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+  manager->MarkFBOReferenced(DrawFBO, initial ? eFrameRef_None : eFrameRef_ReadBeforeWrite);
 
   // if same FBO is bound to both targets, treat it as draw only
   if(ReadFBO != DrawFBO)
-    manager->MarkFBOReferenced(ReadFBO, initial ? eFrameRef_Unknown : eFrameRef_Read);
+    manager->MarkFBOReferenced(ReadFBO, initial ? eFrameRef_None : eFrameRef_Read);
 }
 
 void GLRenderState::MarkDirty(WrappedOpenGL *driver)

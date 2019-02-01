@@ -1039,17 +1039,16 @@ public:
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
-
-    if((descInfo->bindFrameRefs[id].first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
+    auto it = descInfo->bindFrameRefs.find(id);
+    if((it->second.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
-      descInfo->bindFrameRefs[id] =
-          std::make_pair(1 | (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0), ref);
+      it->second = std::make_pair(1 | (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0), ref);
     }
     else
     {
       // be conservative - mark refs as read before write if we see a write and a read ref on it
-      if(ref == eFrameRef_Write && descInfo->bindFrameRefs[id].second == eFrameRef_Read)
-        descInfo->bindFrameRefs[id].second = eFrameRef_ReadBeforeWrite;
+      descInfo->bindFrameRefs[id].second =
+          ComposeFrameRefsUnordered(descInfo->bindFrameRefs[id].second, ref);
       descInfo->bindFrameRefs[id].first++;
     }
   }

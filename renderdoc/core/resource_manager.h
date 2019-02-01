@@ -36,22 +36,83 @@
 using std::set;
 using std::map;
 
-// in what way (read, write, etc) was a resource referenced in a frame -
-// used to determine if initial contents are needed and to what degree
+// In what way (read, write, etc) was a resource referenced in a frame -
+// used to determine if initial contents are needed and to what degree.
+// These values are used both as states (representing the cumulative previous
+// accesses to the resource), and state transitions (access by a single
+// command, modifying the state). This state machine is illustrated below,
+// with states represented in caps, and transitions in lower case.
+//
+//        +------------ NONE -------------+
+//        |              |                |
+//       read          write            clear
+//        |              |                |
+//        V              V                V
+//      READ <--read-- WRITE --clear--> CLEAR
+//        |
+//   write/clear
+//        |
+//        V
+//  READBEFOREWRITE
+//
+// Note:
+//  * All resources begin implicitly in the None state.
+//  * The state transitions for ReadBeforeWrite are simply the composition of
+//    the transition for read, followed by the transition for write (e.g.
+//    ReadBeforeWrite moves from NONE state to READBEFOREWRITE state).
+//  * All other transitions (excluding ReadBeforeWrite) that are not explicitly
+//    shown leave the state unchanged (e.g. a read in the CLEAR state remains
+//    in the CLEAR state).
+//
+// The enum values are ordered so that larger values correspond to greater
+// requirements for (re)initialization of the resource during replay.
 enum FrameRefType
 {
-  eFrameRef_Unknown,    // for the initial start of frame pipeline state - can't be marked as
-                        // written/read yet until first action.
+  // Initial state, no reads or writes
+  eFrameRef_None = 0,
 
-  // Inputs
-  eFrameRef_Read,
-  eFrameRef_Write,
+  // Write to some unknown subset of resource.
+  // As a state, this represents that unlike clear, some part of the
+  // initial contents might still be visible to later reads.
+  eFrameRef_Write = 1,
 
-  // States
-  eFrameRef_ReadOnly,
-  eFrameRef_ReadAndWrite,
-  eFrameRef_ReadBeforeWrite,
+  // Clear the entire resource.
+  // As a state, this represents that no later reads will even be able to see
+  // the initial contents, and therefore, the initial contents need not be
+  // restored for replay.
+  eFrameRef_Clear = 2,
+
+  // Read from the resource;
+  // As a state, this represents a read that could have seen the resource's
+  // initial contents, but the value seen by the read has not been overwritten;
+  // therefore, the initial contents needs to be restored before the first time
+  // we replay, but doesn't need to be reset between subsequent replays.
+  eFrameRef_Read = 3,
+
+  // Read followed by a write;
+  // As a state, this represents a read that could have seen the resource
+  // initial contents, followed by a write that could have modified that
+  // initial contents; therefore, the initial contents will need to be reset
+  // before each time we replay the frame.
+  eFrameRef_ReadBeforeWrite = 4,
 };
+
+const FrameRefType eFrameRef_Minimum = eFrameRef_None;
+const FrameRefType eFrameRef_Maximum = eFrameRef_ReadBeforeWrite;
+
+// Compose frame refs that occur in a known order.
+// This can be thought of as a state (`first`) and a transition from that state
+// (`second`), returning the new state (see the state diagram for
+// `FrameRefType` above)
+FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second);
+
+// Compose frame refs when the order is unknown.
+// This is conservative, in that, if there is both a Read and a Write/Clear, it
+// assumes the Read occurs before the Write/Clear, forcing that resource to be
+// reset for replay.
+FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second);
+
+bool IsDirtyFrameRef(FrameRefType refType);
 
 // handle marking a resource referenced for read or write and storing RAW access etc.
 bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType);
@@ -685,8 +746,7 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
   for(auto it = m_FrameReferencedResources.begin(); it != m_FrameReferencedResources.end(); ++it)
   {
     RecordType *record = GetResourceRecord(it->first);
-
-    if(it->second != eFrameRef_ReadOnly && it->second != eFrameRef_Unknown)
+    if(IsDirtyFrameRef(it->second))
     {
       WrittenRecord wr = {it->first, record ? record->DataInSerialiser : true};
 
@@ -698,7 +758,7 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
   {
     ResourceId id = *it;
     auto ref = m_FrameReferencedResources.find(id);
-    if(ref == m_FrameReferencedResources.end() || ref->second == eFrameRef_ReadOnly)
+    if(ref == m_FrameReferencedResources.end() || !IsDirtyFrameRef(ref->second))
     {
       WrittenRecord wr = {id, true};
 
