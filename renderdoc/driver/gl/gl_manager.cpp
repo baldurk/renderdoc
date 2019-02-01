@@ -39,7 +39,7 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
   {
     ContextPair &ctx = m_Driver->GetCtx();
 
-    MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
+    MarkResourceFrameReferenced(res, ref == eFrameRef_None ? eFrameRef_None : eFrameRef_Read);
 
     GLint numVBufferBindings = GetNumVertexBuffers();
 
@@ -61,7 +61,7 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(res.name == 0)
     return;
 
-  MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
+  MarkResourceFrameReferenced(res, ref == eFrameRef_None ? eFrameRef_None : eFrameRef_Read);
 
   ContextPair &ctx = m_Driver->GetCtx();
 
