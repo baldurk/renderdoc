@@ -857,6 +857,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
             }
           }
+          GetResourceManager()->MergeReferencedMemory(setrecord->descInfo->bindMemRefs);
         }
 
         for(auto it = record->bakedCommands->cmdInfo->sparse.begin();
@@ -867,6 +868,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         record->bakedCommands->AddResourceReferences(GetResourceManager());
         record->bakedCommands->AddReferencedIDs(refdIDs);
 
+        GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
+
         // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
         GetResourceManager()->MarkResourceFrameReferenced(
             record->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
@@ -876,6 +879,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddResourceReferences(
               GetResourceManager());
           record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddReferencedIDs(refdIDs);
+          GetResourceManager()->MergeReferencedMemory(
+              record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->memFrameRefs);
           GetResourceManager()->MarkResourceFrameReferenced(
               record->bakedCommands->cmdInfo->subcmds[sub]->cmdInfo->allocRecord->GetResourceID(),
               eFrameRef_Read);
