@@ -29,6 +29,16 @@
 #define CATCH_CONFIG_FORCE_FALLBACK_STRINGIFIER
 #define CATCH_CONFIG_INLINE_DEBUG_BREAK
 
+#include "api/replay/basic_types.h"
 #include "api/replay/stringise.h"
 
 #include "official/catch.hpp"
+
+namespace Catch
+{
+template <>
+struct StringMaker<rdcstr>
+{
+  static std::string convert(rdcstr const &value) { return value; }
+};
+}
