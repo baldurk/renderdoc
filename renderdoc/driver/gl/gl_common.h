@@ -689,6 +689,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(44, 99, ARB_query_buffer_object)                  \
   EXT_TO_CHECK(45, 99, ARB_clip_control)                         \
   EXT_TO_CHECK(45, 99, ARB_direct_state_access)                  \
+  EXT_TO_CHECK(45, 99, ARB_derivative_control)                   \
   EXT_TO_CHECK(46, 99, ARB_polygon_offset_clamp)                 \
   EXT_TO_CHECK(46, 99, ARB_texture_filter_anisotropic)           \
   EXT_TO_CHECK(46, 99, ARB_pipeline_statistics_query)            \

@@ -258,7 +258,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   {
     std::string defines = "";
 
-    if(GLCoreVersion < 45)
+    if(!HasExt[ARB_derivative_control])
     {
       // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
       // so won't show quad overdraw properly
@@ -267,14 +267,16 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
       RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
     }
-    else
-    {
-      glslVer = 450;
-    }
 
-    std::string source =
-        GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), shaderType, glslVer, defines);
-    DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
+    DebugData.quadoverdrawFragShader = 0;
+
+    // needs these extensions
+    if(HasExt[ARB_gpu_shader5] && HasExt[ARB_shader_image_load_store])
+    {
+      std::string source =
+          GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), shaderType, glslVer, defines);
+      DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
+    }
   }
   else
   {
