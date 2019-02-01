@@ -940,6 +940,14 @@ WrappedIDXGIFactory::~WrappedIDXGIFactory()
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory::QueryInterface(REFIID riid, void **ppvObject)
 {
+  // {713f394e-92ca-47e7-ab81-1159c2791e54}
+  static const GUID IDXGIFactoryDWM_uuid = {
+      0x713f394e, 0x92ca, 0x47e7, {0xab, 0x81, 0x11, 0x59, 0xc2, 0x79, 0x1e, 0x54}};
+
+  // {1ddd77aa-9a4a-4cc8-9e55-98c196bafc8f}
+  static const GUID IDXGIFactoryDWM8_uuid = {
+      0x1ddd77aa, 0x9a4a, 0x4cc8, {0x9e, 0x55, 0x98, 0xc1, 0x96, 0xba, 0xfc, 0x8f}};
+
   if(riid == __uuidof(IDXGIFactory))
   {
     AddRef();
@@ -1036,6 +1044,16 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory::QueryInterface(REFIID riid, void 
     {
       return E_NOINTERFACE;
     }
+  }
+  else if(riid == IDXGIFactoryDWM_uuid)
+  {
+    RDCWARN("Blocking QueryInterface for IDXGIFactoryDWM");
+    return E_NOINTERFACE;
+  }
+  else if(riid == IDXGIFactoryDWM8_uuid)
+  {
+    RDCWARN("Blocking QueryInterface for IDXGIFactoryDWM8");
+    return E_NOINTERFACE;
   }
   else
   {
