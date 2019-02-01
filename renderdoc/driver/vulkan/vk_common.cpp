@@ -837,10 +837,12 @@ void DescriptorSetSlot::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
 {
   if(texelBufferView != VK_NULL_HANDLE)
   {
-    record->AddBindFrameRef(GetResID(texelBufferView), eFrameRef_Read,
-                            GetRecord(texelBufferView)->resInfo != NULL);
-    if(GetRecord(texelBufferView)->baseResource != ResourceId())
-      record->AddBindFrameRef(GetRecord(texelBufferView)->baseResource, ref);
+    VkResourceRecord *bufView = GetRecord(texelBufferView);
+    record->AddBindFrameRef(bufView->GetResourceID(), eFrameRef_Read, bufView->resInfo != NULL);
+    if(bufView->baseResource != ResourceId())
+      record->AddBindFrameRef(bufView->baseResource, eFrameRef_Read);
+    if(bufView->baseResourceMem != ResourceId())
+      record->AddMemFrameRef(bufView->baseResourceMem, bufView->memOffset, bufView->memSize, ref);
   }
   if(imageInfo.imageView != VK_NULL_HANDLE)
   {
@@ -856,9 +858,9 @@ void DescriptorSetSlot::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
   }
   if(bufferInfo.buffer != VK_NULL_HANDLE)
   {
-    record->AddBindFrameRef(GetResID(bufferInfo.buffer), eFrameRef_Read,
-                            GetRecord(bufferInfo.buffer)->resInfo != NULL);
-    if(GetRecord(bufferInfo.buffer)->baseResource != ResourceId())
-      record->AddBindFrameRef(GetRecord(bufferInfo.buffer)->baseResource, ref);
+    VkResourceRecord *buf = GetRecord(bufferInfo.buffer);
+    record->AddBindFrameRef(GetResID(bufferInfo.buffer), eFrameRef_Read, buf->resInfo != NULL);
+    if(buf->baseResource != ResourceId())
+      record->AddMemFrameRef(buf->baseResource, buf->memOffset, buf->memSize, ref);
   }
 }

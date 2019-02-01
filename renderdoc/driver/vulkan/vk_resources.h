@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/wrapped_pool.h"
+#include "core/intervals.h"
 #include "core/resource_manager.h"
 #include "vk_common.h"
 #include "vk_hookset_defs.h"
@@ -906,6 +907,8 @@ struct ResourceInfo
   void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings);
 };
 
+struct MemRefs;
+
 struct CmdBufferRecordingInfo
 {
   VkDevice device;
@@ -929,6 +932,8 @@ struct CmdBufferRecordingInfo
   set<VkDescriptorSet> boundDescSets;
 
   vector<VkResourceRecord *> subcmds;
+
+  std::map<ResourceId, MemRefs> memFrameRefs;
 
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
@@ -959,6 +964,7 @@ struct DescriptorSetData
   // mapping information
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
   map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
+  map<ResourceId, MemRefs> bindMemRefs;
 };
 
 struct PipelineLayoutData
@@ -997,6 +1003,77 @@ struct AttachmentInfo
   VkImageMemoryBarrier barrier;
 };
 
+struct MemRefs
+{
+  Intervals<FrameRefType> rangeRefs;
+  inline MemRefs() {}
+  inline MemRefs(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+  {
+    rangeRefs.update(offset, offset + size, refType, ComposeFrameRefs);
+  }
+  template <typename Compose>
+  FrameRefType Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType, Compose comp);
+  inline FrameRefType Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+  {
+    return Update(offset, size, refType, ComposeFrameRefs);
+  }
+  template <typename Compose>
+  FrameRefType Merge(MemRefs &other, Compose comp);
+  inline FrameRefType Merge(MemRefs &other) { return Merge(other, ComposeFrameRefs); }
+};
+
+template <typename Compose>
+FrameRefType MemRefs::Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
+                             Compose comp)
+{
+  FrameRefType maxRefType = eFrameRef_None;
+  rangeRefs.update(offset, offset + size, refType,
+                   [&maxRefType, comp](FrameRefType oldRef, FrameRefType newRef) -> FrameRefType {
+                     FrameRefType ref = comp(oldRef, newRef);
+                     maxRefType = std::max(maxRefType, ref);
+                     return ref;
+                   });
+  return maxRefType;
+}
+
+template <typename Compose>
+FrameRefType MemRefs::Merge(MemRefs &other, Compose comp)
+{
+  FrameRefType maxRefType = eFrameRef_None;
+  rangeRefs.merge(other.rangeRefs,
+                  [&maxRefType, comp](FrameRefType oldRef, FrameRefType newRef) -> FrameRefType {
+                    FrameRefType ref = comp(oldRef, newRef);
+                    maxRefType = std::max(maxRefType, ref);
+                    return ref;
+                  });
+  return maxRefType;
+}
+
+template <typename Compose>
+FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, ResourceId mem,
+                                  VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
+                                  Compose comp)
+{
+  if(refType == eFrameRef_None)
+    return refType;
+  auto refs = memRefs.find(mem);
+  if(refs == memRefs.end())
+  {
+    memRefs.insert(std::make_pair(mem, MemRefs(offset, size, refType)));
+    return refType;
+  }
+  else
+  {
+    return refs->second.Update(offset, size, refType, comp);
+  }
+}
+
+inline FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, ResourceId mem,
+                                         VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+{
+  return MarkMemoryReferenced(memRefs, mem, offset, size, refType, ComposeFrameRefs);
+}
+
 struct DescUpdateTemplate;
 
 struct VkResourceRecord : public ResourceRecord
@@ -1030,6 +1107,7 @@ public:
     cmdInfo->imgbarriers.swap(bakedCommands->cmdInfo->imgbarriers);
     cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
     cmdInfo->sparse.swap(bakedCommands->cmdInfo->sparse);
+    cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
   }
 
   void AddBindFrameRef(ResourceId id, FrameRefType ref, bool hasSparse = false)
@@ -1052,6 +1130,29 @@ public:
       p.first++;
       p.first |= (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0);
     }
+  }
+
+  void AddMemFrameRef(ResourceId mem, VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+  {
+    if(mem == ResourceId())
+    {
+      RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
+      return;
+    }
+    pair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[mem];
+    if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
+    {
+      descInfo->bindMemRefs.erase(mem);
+      p.first = 1;
+      p.second = eFrameRef_None;
+    }
+    else
+    {
+      p.first++;
+    }
+    FrameRefType maxRef = MarkMemoryReferenced(descInfo->bindMemRefs, mem, offset, size, refType,
+                                               ComposeFrameRefsUnordered);
+    p.second = std::max(p.second, maxRef);
   }
 
   void RemoveBindFrameRef(ResourceId id)

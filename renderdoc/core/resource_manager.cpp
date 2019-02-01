@@ -132,28 +132,6 @@ bool IsDirtyFrameRef(FrameRefType refType)
   return (refType != eFrameRef_None && refType != eFrameRef_Read);
 }
 
-bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType)
-{
-  auto refit = refs.find(id);
-  if(refit == refs.end())
-  {
-    refs[id] = refType;
-    return true;
-  }
-  else
-  {
-    refit->second = ComposeFrameRefs(refit->second, refType);
-  }
-  return false;
-}
-
-bool ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
-{
-  if(id == ResourceId())
-    return false;
-  return MarkReferenced(m_FrameRefs, id, refType);
-}
-
 void ResourceRecord::AddResourceReferences(ResourceRecordHandler *mgr)
 {
   for(auto it = m_FrameRefs.begin(); it != m_FrameRefs.end(); ++it)

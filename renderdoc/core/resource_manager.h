@@ -158,7 +158,28 @@ inline InitReqType InitReq(FrameRefType refType)
 }
 
 // handle marking a resource referenced for read or write and storing RAW access etc.
-bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType);
+template <typename Compose>
+bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType,
+                    Compose comp)
+{
+  auto refit = refs.find(id);
+  if(refit == refs.end())
+  {
+    refs[id] = refType;
+    return true;
+  }
+  else
+  {
+    refit->second = comp(refit->second, refType);
+  }
+  return false;
+}
+
+inline bool MarkReferenced(std::map<ResourceId, FrameRefType> &refs, ResourceId id,
+                           FrameRefType refType)
+{
+  return MarkReferenced(refs, id, refType, ComposeFrameRefs);
+}
 
 // verbose prints with IDs of each dirty resource and whether it was prepared,
 // and whether it was serialised.
@@ -353,7 +374,12 @@ struct ResourceRecord
   bool HasDataPtr() { return DataPtr != NULL; }
   void SetDataOffset(uint64_t offs) { DataOffset = offs; }
   void SetDataPtr(byte *ptr) { DataPtr = ptr; }
-  bool MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
+  template <typename Compose>
+  bool MarkResourceFrameReferenced(ResourceId id, FrameRefType refType, Compose comp);
+  inline bool MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
+  {
+    return MarkResourceFrameReferenced(id, refType, ComposeFrameRefs);
+  }
   void AddResourceReferences(ResourceRecordHandler *mgr);
   void AddReferencedIDs(std::set<ResourceId> &ids)
   {
@@ -399,6 +425,14 @@ protected:
 
   map<ResourceId, FrameRefType> m_FrameRefs;
 };
+
+template <typename Compose>
+bool ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType, Compose comp)
+{
+  if(id == ResourceId())
+    return false;
+  return MarkReferenced(m_FrameRefs, id, refType, comp);
+}
 
 // the resource manager is a utility class that's not required but is likely wanted by any API
 // implementation.
@@ -488,6 +522,9 @@ public:
 
   // mark resource referenced somewhere in the main frame-affecting calls.
   // That means this resource should be included in the final serialise out
+  template <typename Compose>
+  void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType, Compose comp);
+
   inline void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
 
   ///////////////////////////////////////////
@@ -626,14 +663,16 @@ ResourceManager<Configuration>::~ResourceManager()
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
+template <typename Compose>
+void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
+                                                                 FrameRefType refType, Compose comp)
 {
   SCOPED_LOCK(m_Lock);
 
   if(id == ResourceId())
     return;
 
-  bool newRef = MarkReferenced(m_FrameReferencedResources, id, refType);
+  bool newRef = MarkReferenced(m_FrameReferencedResources, id, refType, comp);
 
   if(newRef)
   {
@@ -642,6 +681,12 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id, 
     if(record)
       record->AddRef();
   }
+}
+
+template <typename Configuration>
+void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
+{
+  return MarkResourceFrameReferenced(id, refType, ComposeFrameRefs);
 }
 
 template <typename Configuration>

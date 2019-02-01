@@ -1301,6 +1301,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   m_CapturedFrames.push_back(frame);
 
   GetResourceManager()->ClearReferencedResources();
+  GetResourceManager()->ClearReferencedMemory();
 
   GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
   GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
@@ -1750,6 +1751,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   m_CmdBufferRecords.clear();
 
   GetResourceManager()->MarkUnwrittenResources();
+
+  GetResourceManager()->ClearReferencedMemory();
 
   GetResourceManager()->ClearReferencedResources();
 

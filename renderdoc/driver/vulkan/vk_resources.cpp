@@ -3033,7 +3033,11 @@ VkResourceRecord::~VkResourceRecord()
 void VkResourceRecord::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
                                                  VkDeviceSize size, FrameRefType refType)
 {
-  MarkResourceFrameReferenced(mem, refType);
+  if(refType != eFrameRef_Read && refType != eFrameRef_None)
+    cmdInfo->dirtied.insert(mem);
+  FrameRefType maxRef = MarkMemoryReferenced(cmdInfo->memFrameRefs, mem, offset, size, refType);
+  MarkResourceFrameReferenced(
+      mem, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
 }
 
 void VkResourceRecord::MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset,

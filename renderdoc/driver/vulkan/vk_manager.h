@@ -413,6 +413,9 @@ public:
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize start, VkDeviceSize end,
                                  FrameRefType refType);
 
+  void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
+  void ClearReferencedMemory();
+
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
@@ -428,4 +431,5 @@ private:
 
   CaptureState m_State;
   WrappedVulkan *m_Core;
+  std::map<ResourceId, MemRefs> m_MemFrameRefs;
 };
