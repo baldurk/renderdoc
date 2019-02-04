@@ -750,7 +750,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   modifications.push_back(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPFILE", capturefile));
   modifications.push_back(
-      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPTOPTS", optstr.c_str()));
   modifications.push_back(EnvironmentModification(EnvMod::Set, EnvSep::NoSep,
                                                   "RENDERDOC_DEBUG_LOG_FILE", RDCGETLOGFILE()));
 
