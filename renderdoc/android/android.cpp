@@ -205,7 +205,7 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   // create the data directory we will use for storing, in case the application doesn't
   adbExecCommand(deviceID, "shell mkdir -p /sdcard/Android/data/" + packageName);
   // set our property with the capture options encoded, to be picked up by the library on the device
-  adbExecCommand(deviceID, StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPTUREOPTS %s",
+  adbExecCommand(deviceID, StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPOPTS %s",
                                              opts.EncodeAsString().c_str()));
 
   std::string installedPath = GetPathForPackage(deviceID, packageName);

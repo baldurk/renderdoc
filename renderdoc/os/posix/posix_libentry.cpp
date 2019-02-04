@@ -46,7 +46,7 @@ void library_loaded()
     RenderDoc::Inst().Initialise();
 
     const char *capturefile = Process::GetEnvVariable("RENDERDOC_CAPFILE");
-    const char *opts = Process::GetEnvVariable("RENDERDOC_CAPTUREOPTS");
+    const char *opts = Process::GetEnvVariable("RENDERDOC_CAPOPTS");
 
     if(opts)
     {
