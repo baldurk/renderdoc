@@ -122,9 +122,9 @@ The other way is a closer integration, where your code will explicitly load Rend
 
     specifies a delay in seconds after launching a process to pause, to allow debuggers to attach. This will only apply to child processes since the delay happens at process startup. Default is 0.
 
-.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_VerifyMapWrites
+.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_VerifyBufferWrites
 
-    specifies whether any mapped memory updates should be bounds-checked for overruns. Only supported on D3D11 and OpenGL. Default is off.
+    specifies whether any mapped memory updates should be bounds-checked for overruns, and uninitialised buffers are initialised to 0xdddddddd to catch use of uninitialised data. Only supported on D3D11 and OpenGL. Default is off.
 
 .. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_HookIntoChildren
 
