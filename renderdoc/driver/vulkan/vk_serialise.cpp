@@ -324,573 +324,580 @@ SERIALISE_VK_HANDLES();
 #endif
 
 // pNext structure type dispatch
-#define HANDLE_PNEXT()                                                                                \
-  /* OS-specific extensions */                                                                        \
-  HANDLE_PNEXT_OS()                                                                                   \
-                                                                                                      \
-  /* Core 1.0 structs. Should never be serialised in a pNext chain */                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_APPLICATION_INFO, VkApplicationInfo)                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, VkInstanceCreateInfo)                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, VkDeviceQueueCreateInfo)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, VkDeviceCreateInfo)                              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBMIT_INFO, VkSubmitInfo)                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, VkMemoryAllocateInfo)                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, VkMappedMemoryRange)                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, VkBindSparseInfo)                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, VkFenceCreateInfo)                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, VkSemaphoreCreateInfo)                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, VkEventCreateInfo)                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, VkQueryPoolCreateInfo)                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, VkBufferCreateInfo)                              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, VkBufferViewCreateInfo)                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, VkImageCreateInfo)                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, VkImageViewCreateInfo)                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, VkShaderModuleCreateInfo)                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, VkPipelineCacheCreateInfo)               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, VkPipelineShaderStageCreateInfo)  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,                             \
-               VkPipelineVertexInputStateCreateInfo)                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,                           \
-               VkPipelineInputAssemblyStateCreateInfo)                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,                             \
-               VkPipelineTessellationStateCreateInfo)                                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,                                 \
-               VkPipelineViewportStateCreateInfo)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,                            \
-               VkPipelineRasterizationStateCreateInfo)                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,                              \
-               VkPipelineMultisampleStateCreateInfo)                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,                            \
-               VkPipelineDepthStencilStateCreateInfo)                                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,                              \
-               VkPipelineColorBlendStateCreateInfo)                                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,                                  \
-               VkPipelineDynamicStateCreateInfo)                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, VkGraphicsPipelineCreateInfo)         \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, VkComputePipelineCreateInfo)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, VkPipelineLayoutCreateInfo)             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, VkSamplerCreateInfo)                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, VkDescriptorSetLayoutCreateInfo)  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, VkDescriptorPoolCreateInfo)             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, VkDescriptorSetAllocateInfo)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, VkWriteDescriptorSet)                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, VkCopyDescriptorSet)                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, VkFramebufferCreateInfo)                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, VkRenderPassCreateInfo)                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, VkCommandPoolCreateInfo)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, VkCommandBufferAllocateInfo)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO, VkCommandBufferInheritanceInfo)     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VkCommandBufferBeginInfo)                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, VkRenderPassBeginInfo)                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, VkBufferMemoryBarrier)                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, VkImageMemoryBarrier)                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_BARRIER, VkMemoryBarrier)                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO, VkLayerInstanceCreateInfo)              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO, VkLayerDeviceCreateInfo)                  \
-                                                                                                      \
-  /* Vulkan 1.1 only, no extension - subgroups, protected memory */                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES,                                 \
-               VkPhysicalDeviceSubgroupProperties)                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PROTECTED_SUBMIT_INFO, VkProtectedSubmitInfo)                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2, VkDeviceQueueInfo2)                             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES,                           \
-               VkPhysicalDeviceProtectedMemoryFeatures)                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_PROPERTIES,                         \
-               VkPhysicalDeviceProtectedMemoryProperties)                                             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES,                      \
-               VkPhysicalDeviceShaderDrawParameterFeatures)                                           \
-                                                                                                      \
-  /* VK_AMD_shader_core_properties */                                                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD,                          \
-               VkPhysicalDeviceShaderCorePropertiesAMD)                                               \
-                                                                                                      \
-  /* VK_AMD_texture_gather_bias_lod */                                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                            \
-               VkTextureLODGatherFormatPropertiesAMD)                                                 \
-                                                                                                      \
-  /* VK_EXT_astc_decode_mode */                                                                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT, VkImageViewASTCDecodeModeEXT)       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                            \
-               VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                 \
-                                                                                                      \
-  /* VK_EXT_conditional_rendering */                                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,           \
-               VkCommandBufferInheritanceConditionalRenderingInfoEXT)                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT,                  \
-               VkPhysicalDeviceConditionalRenderingFeaturesEXT)                                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT,                                \
-               VkConditionalRenderingBeginInfoEXT)                                                    \
-                                                                                                      \
-  /* VK_EXT_conservative_rasterization */                                                             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT,           \
-               VkPhysicalDeviceConservativeRasterizationPropertiesEXT)                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,           \
-               VkPipelineRasterizationConservativeStateCreateInfoEXT)                                 \
-                                                                                                      \
-  /* VK_EXT_debug_marker */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT, VkDebugMarkerObjectNameInfoEXT)   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT, VkDebugMarkerObjectTagInfoEXT)     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT, VkDebugMarkerMarkerInfoEXT)            \
-                                                                                                      \
-  /* VK_EXT_debug_report */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,                               \
-               VkDebugReportCallbackCreateInfoEXT)                                                    \
-                                                                                                      \
-  /* VK_EXT_debug_utils */                                                                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT, VkDebugUtilsObjectNameInfoEXT)     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT, VkDebugUtilsObjectTagInfoEXT)       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, VkDebugUtilsLabelEXT)                         \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT,                             \
-               VkDebugUtilsMessengerCallbackDataEXT)                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,                               \
-               VkDebugUtilsMessengerCreateInfoEXT)                                                    \
-                                                                                                      \
-  /* VK_EXT_display_control */                                                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_POWER_INFO_EXT, VkDisplayPowerInfoEXT)                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_EVENT_INFO_EXT, VkDeviceEventInfoEXT)                         \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_EVENT_INFO_EXT, VkDisplayEventInfoEXT)                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT, VkSwapchainCounterCreateInfoEXT)  \
-                                                                                                      \
-  /* VK_EXT_display_surface_counter */                                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT)               \
-                                                                                                      \
-  /* VK_EXT_global_priority */                                                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,                        \
-               VkDeviceQueueGlobalPriorityCreateInfoEXT)                                              \
-                                                                                                      \
-  /* VK_EXT_pci_bus_info */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,                         \
-               VkPhysicalDevicePCIBusInfoPropertiesEXT)                                               \
-                                                                                                      \
-  /* VK_EXT_sampler_filter_minmax */                                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT,                \
-               VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT)                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,                              \
-               VkSamplerReductionModeCreateInfoEXT)                                                   \
-                                                                                                      \
-  /* VK_EXT_transform_feedback */                                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                     \
-               VkPhysicalDeviceTransformFeedbackFeaturesEXT)                                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT,                   \
-               VkPhysicalDeviceTransformFeedbackPropertiesEXT)                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,                 \
-               VkPipelineRasterizationStateStreamCreateInfoEXT)                                       \
-                                                                                                      \
-  /* VK_EXT_validation_cache */                                                                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT, VkValidationCacheCreateInfoEXT)    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT,                      \
-               VkShaderModuleValidationCacheCreateInfoEXT)                                            \
-                                                                                                      \
-  /* VK_EXT_validation_flags */                                                                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT, VkValidationFlagsEXT)                          \
-                                                                                                      \
-  /* VK_EXT_vertex_attribute_divisor */                                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT,             \
-               VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT)                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,                 \
-               VkPipelineVertexInputDivisorStateCreateInfoEXT)                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT,               \
-               VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT)                                     \
-                                                                                                      \
-  /* VK_KHR_8bit_storage */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,                           \
-               VkPhysicalDevice8BitStorageFeaturesKHR)                                                \
-                                                                                                      \
-  /* VK_KHR_16bit_storage */                                                                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,                              \
-               VkPhysicalDevice16BitStorageFeatures)                                                  \
-                                                                                                      \
-  /* VK_KHR_bind_memory2 */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO, VkBindBufferMemoryInfo)                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO, VkBindImageMemoryInfo)                       \
-                                                                                                      \
-  /* VK_KHR_create_renderpass2 */                                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR, VkAttachmentDescription2KHR)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR, VkAttachmentReference2KHR)               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR, VkSubpassDescription2KHR)                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR, VkSubpassDependency2KHR)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR, VkRenderPassCreateInfo2KHR)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO_KHR, VkSubpassBeginInfoKHR)                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_END_INFO_KHR, VkSubpassEndInfoKHR)                           \
-                                                                                                      \
-  /* VK_KHR_dedicated_allocation */                                                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, VkMemoryDedicatedRequirements)        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO, VkMemoryDedicatedAllocateInfo)       \
-                                                                                                      \
-  /* VK_KHR_depth_stencil_resolve */                                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR,                \
-               VkPhysicalDeviceDepthStencilResolvePropertiesKHR)                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR,                       \
-               VkSubpassDescriptionDepthStencilResolveKHR)                                            \
-                                                                                                      \
-  /* VK_KHR_descriptor_update_template */                                                             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO,                              \
-               VkDescriptorUpdateTemplateCreateInfo)                                                  \
-                                                                                                      \
-  /* VK_KHR_device_group_creation */                                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES, VkPhysicalDeviceGroupProperties)   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO, VkDeviceGroupDeviceCreateInfo)      \
-                                                                                                      \
-  /* VK_KHR_device_group */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SWAPCHAIN_CREATE_INFO_KHR, VkImageSwapchainCreateInfoKHR)      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO,                                 \
-               VkBindImageMemoryDeviceGroupInfo)                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO,                                \
-               VkBindBufferMemoryDeviceGroupInfo)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_BIND_SPARSE_INFO, VkDeviceGroupBindSparseInfo)          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO, VkDeviceGroupSubmitInfo)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_COMMAND_BUFFER_BEGIN_INFO,                              \
-               VkDeviceGroupCommandBufferBeginInfo)                                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_RENDER_PASS_BEGIN_INFO,                                 \
-               VkDeviceGroupRenderPassBeginInfo)                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO, VkMemoryAllocateFlagsInfo)               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_SWAPCHAIN_CREATE_INFO_KHR,                              \
-               VkDeviceGroupSwapchainCreateInfoKHR)                                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR,                                \
-               VkBindImageMemorySwapchainInfoKHR)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_CAPABILITIES_KHR,                               \
-               VkDeviceGroupPresentCapabilitiesKHR)                                                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR, VkDeviceGroupPresentInfoKHR)          \
-                                                                                                      \
-  /* VK_KHR_display_swapchain */                                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR, VkDisplayPresentInfoKHR)                   \
-                                                                                                      \
-  /* VK_KHR_driver_properties */                                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,                               \
-               VkPhysicalDeviceDriverPropertiesKHR)                                                   \
-                                                                                                      \
-  /* VK_KHR_external_fence_capabilities */                                                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,                                 \
-               VkPhysicalDeviceExternalFenceInfo)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, VkExternalFenceProperties)                \
-                                                                                                      \
-  /* VK_KHR_external_fence / ..._fd */                                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_FENCE_CREATE_INFO, VkExportFenceCreateInfo)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR, VkImportFenceFdInfoKHR)                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FENCE_GET_FD_INFO_KHR, VkFenceGetFdInfoKHR)                          \
-                                                                                                      \
-  /* VK_KHR_external_memory_capabilities */                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,                          \
-               VkPhysicalDeviceExternalImageFormatInfo)                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES, VkExternalImageFormatProperties)   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO,                                \
-               VkPhysicalDeviceExternalBufferInfo)                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_BUFFER_PROPERTIES, VkExternalBufferProperties)              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES, VkPhysicalDeviceIDProperties)         \
-                                                                                                      \
-  /* VK_KHR_external_memory / ..._fd */                                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO, VkExportMemoryAllocateInfo)             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO, VkExternalMemoryImageCreateInfo)  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO,                                  \
-               VkExternalMemoryBufferCreateInfo)                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR, VkImportMemoryFdInfoKHR)                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_FD_PROPERTIES_KHR, VkMemoryFdPropertiesKHR)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR, VkMemoryGetFdInfoKHR)                        \
-                                                                                                      \
-  /* VK_KHR_external_semaphore_capabilities */                                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,                             \
-               VkPhysicalDeviceExternalSemaphoreInfo)                                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES, VkExternalSemaphoreProperties)        \
-                                                                                                      \
-  /* VK_KHR_external_semaphore / ..._fd */                                                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO, VkExportSemaphoreCreateInfo)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR, VkImportSemaphoreFdInfoKHR)            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR, VkSemaphoreGetFdInfoKHR)                  \
-                                                                                                      \
-  /* VK_KHR_get_display_properties2 */                                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PROPERTIES_2_KHR, VkDisplayProperties2KHR)                   \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_PROPERTIES_2_KHR, VkDisplayPlaneProperties2KHR)        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR, VkDisplayModeProperties2KHR)          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_INFO_2_KHR, VkDisplayPlaneInfo2KHR)                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR, VkDisplayPlaneCapabilities2KHR)    \
-                                                                                                      \
-  /* VK_KHR_get_memory_requirements2 */                                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2, VkBufferMemoryRequirementsInfo2)  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2, VkImageMemoryRequirementsInfo2)    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SPARSE_MEMORY_REQUIREMENTS_INFO_2,                             \
-               VkImageSparseMemoryRequirementsInfo2)                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2, VkMemoryRequirements2)                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SPARSE_IMAGE_MEMORY_REQUIREMENTS_2,                                  \
-               VkSparseImageMemoryRequirements2)                                                      \
-                                                                                                      \
-  /* VK_KHR_get_physical_device_properties2 */                                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, VkPhysicalDeviceFeatures2)               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, VkPhysicalDeviceProperties2)           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2)                            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2, VkImageFormatProperties2)                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,                                 \
-               VkPhysicalDeviceImageFormatInfo2)                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2, VkQueueFamilyProperties2)                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,                                 \
-               VkPhysicalDeviceMemoryProperties2)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SPARSE_IMAGE_FORMAT_PROPERTIES_2, VkSparseImageFormatProperties2)    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2,                          \
-               VkPhysicalDeviceSparseImageFormatInfo2)                                                \
-                                                                                                      \
-  /* VK_KHR_get_surface_capabilities2 */                                                              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR, VkPhysicalDeviceSurfaceInfo2KHR) \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR)               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, VkSurfaceFormat2KHR)                           \
-                                                                                                      \
-  /* VK_KHR_image_format_list */                                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR, VkImageFormatListCreateInfoKHR)   \
-                                                                                                      \
-  /* VK_KHR_incremental_present */                                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR, VkPresentRegionsKHR)                            \
-                                                                                                      \
-  /* VK_KHR_maintenance2 */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES,                           \
-               VkPhysicalDevicePointClippingProperties)                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO,                     \
-               VkRenderPassInputAttachmentAspectCreateInfo)                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO, VkImageViewUsageCreateInfo)            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO,               \
-               VkPipelineTessellationDomainOriginStateCreateInfo)                                     \
-                                                                                                      \
-  /* VK_KHR_maintenance3 */                                                                           \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,                            \
-               VkPhysicalDeviceMaintenance3Properties)                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT, VkDescriptorSetLayoutSupport)         \
-                                                                                                      \
-  /* VK_KHR_multiview */                                                                              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO, VkRenderPassMultiviewCreateInfo)  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,                                  \
-               VkPhysicalDeviceMultiviewFeatures)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES,                                \
-               VkPhysicalDeviceMultiviewProperties)                                                   \
-                                                                                                      \
-  /* VK_KHR_push_descriptor */                                                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR,                      \
-               VkPhysicalDevicePushDescriptorPropertiesKHR)                                           \
-                                                                                                      \
-  /* VK_KHR_sampler_ycbcr_conversion */                                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO,                                \
-               VkSamplerYcbcrConversionCreateInfo)                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo)         \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO, VkBindImagePlaneMemoryInfo)            \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_PLANE_MEMORY_REQUIREMENTS_INFO,                                \
-               VkImagePlaneMemoryRequirementsInfo)                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES,                   \
-               VkPhysicalDeviceSamplerYcbcrConversionFeatures)                                        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES,                    \
-               VkSamplerYcbcrConversionImageFormatProperties)                                         \
-                                                                                                      \
-  /* VK_KHR_shader_atomic_int64 */                                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR,                    \
-               VkPhysicalDeviceShaderAtomicInt64FeaturesKHR)                                          \
-                                                                                                      \
-  /* VK_KHR_shader_float16_int8 */                                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR,                           \
-               VkPhysicalDeviceFloat16Int8FeaturesKHR)                                                \
-                                                                                                      \
-  /* VK_KHR_shader_float_controls */                                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR,                       \
-               VkPhysicalDeviceFloatControlsPropertiesKHR)                                            \
-                                                                                                      \
-  /* VK_KHR_shared_presentable_image */                                                               \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,                             \
-               VkSharedPresentSurfaceCapabilitiesKHR)                                                 \
-                                                                                                      \
-  /* VK_KHR_swapchain */                                                                              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, VkSwapchainCreateInfoKHR)                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, VkPresentInfoKHR)                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR, VkAcquireNextImageInfoKHR)              \
-                                                                                                      \
-  /* VK_KHR_variable_pointers */                                                                      \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES,                           \
-               VkPhysicalDeviceVariablePointerFeatures)                                               \
-                                                                                                      \
-  /* VK_KHR_vulkan_memory_model */                                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR,                    \
-               VkPhysicalDeviceVulkanMemoryModelFeaturesKHR)                                          \
-                                                                                                      \
-  /* VK_NV_dedicated_allocation */                                                                    \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,                        \
-               VkDedicatedAllocationMemoryAllocateInfoNV)                                             \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV,                           \
-               VkDedicatedAllocationImageCreateInfoNV)                                                \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV,                          \
-               VkDedicatedAllocationBufferCreateInfoNV)                                               \
-                                                                                                      \
-  /* VK_NV_external_memory */                                                                         \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV, VkExportMemoryAllocateInfoNV)        \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV,                                \
-               VkExternalMemoryImageCreateInfoNV)                                                     \
-                                                                                                      \
-  /* VK_NV_shader_image_footprint */                                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,                  \
-               VkPhysicalDeviceShaderImageFootprintFeaturesNV)                                        \
-                                                                                                      \
-  /* Surface creation structs. These would pull in dependencies on OS-specific includes. */           \
-  /* So treat them as unsupported. */                                                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DISPLAY_MODE_CREATE_INFO_KHR)                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR)                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK)                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK)                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN)                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR)                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR)                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR)                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR)                                   \
-                                                                                                      \
-  /* VK_AMD_memory_overallocation_behavior */                                                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD)                   \
-                                                                                                      \
-  /* VK_AMD_rasterization_order */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD)           \
-                                                                                                      \
-  /* VK_ANDROID_external_memory_android_hardware_buffer */                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID)                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)                                        \
-                                                                                                      \
-  /* VK_EXT_blend_operation_advanced */                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT)        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT)            \
-                                                                                                      \
-  /* VK_EXT_buffer_device_address */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT)                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT)                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT)                          \
-                                                                                                      \
-  /* VK_EXT_calibrated_timestamps */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT)                                  \
-                                                                                                      \
-  /* VK_EXT_descriptor_indexing */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT)            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT)     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT_EXT)    \
-                                                                                                      \
-  /* VK_EXT_discard_rectangles */                                                                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT)               \
-                                                                                                      \
-  /* VK_EXT_external_memory_host */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)            \
-                                                                                                      \
-  /* VK_EXT_fragment_density_map */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT)            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT)               \
-                                                                                                      \
-  /* VK_EXT_hdr_metadata */                                                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HDR_METADATA_EXT)                                               \
-                                                                                                      \
-  /* VK_EXT_image_drm_format_modifier */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                       \
-                                                                                                      \
-  /* VK_EXT_inline_uniform_block */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT)            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT)           \
-                                                                                                      \
-  /* VK_EXT_memory_budget */                                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT)                   \
-                                                                                                      \
-  /* VK_EXT_memory_priority */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT)                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT)                              \
-                                                                                                      \
-  /* VK_EXT_sample_locations */                                                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT)                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT)                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT)                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLE_LOCATIONS_PROPERTIES_EXT)                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT)                                     \
-                                                                                                      \
-  /* VK_EXT_scalar_block_layout */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT)               \
-                                                                                                      \
-  /* VK_EXT_separate_stencil_usage */                                                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT)                            \
-                                                                                                      \
-  /* VK_EXT_validation_features */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT)                                        \
-                                                                                                      \
-  /* VK_GOOGLE_display_timing */                                                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                      \
-                                                                                                      \
-  /* VK_NV_clip_space_w_scaling */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)               \
-                                                                                                      \
-  /* VK_NV_compute_shader_derivatives */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_NV)         \
-                                                                                                      \
-  /* VK_NV_corner_sampled_image */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CORNER_SAMPLED_IMAGE_FEATURES_NV)               \
-                                                                                                      \
-  /* VK_NV_device_diagnostic_checkpoints */                                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV)                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV)                          \
-                                                                                                      \
-  /* VK_NV_fragment_coverage_to_color */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV)                \
-                                                                                                      \
-  /* VK_NV_fragment_shader_barycentric */                                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV)        \
-                                                                                                      \
-  /* VK_NV_framebuffer_mixed_samples */                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV)              \
-                                                                                                      \
-  /* VK_NV_mesh_shader */                                                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV)                      \
-                                                                                                      \
-  /* VK_NV_ray_tracing */                                                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV)                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GEOMETRY_NV)                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV)                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV)                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV)                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV)                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV)                                 \
-                                                                                                      \
-  /* VK_NV_representative_fragment_test */                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV)       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_REPRESENTATIVE_FRAGMENT_TEST_STATE_CREATE_INFO_NV)     \
-                                                                                                      \
-  /* VK_NV_scissor_exclusive */                                                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_EXCLUSIVE_SCISSOR_STATE_CREATE_INFO_NV)       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXCLUSIVE_SCISSOR_FEATURES_NV)                  \
-                                                                                                      \
-  /* VK_NV_shading_rate_image */                                                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV)      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_COARSE_SAMPLE_ORDER_STATE_CREATE_INFO_NV)     \
-                                                                                                      \
-  /* VK_NV_viewport_swizzle */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SWIZZLE_STATE_CREATE_INFO_NV)                 \
-                                                                                                      \
-  /* VK_NVX_device_generated_commands */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_OBJECT_TABLE_CREATE_INFO_NVX)                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX)                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CMD_PROCESS_COMMANDS_INFO_NVX)                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CMD_RESERVE_SPACE_FOR_COMMANDS_INFO_NVX)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_GENERATED_COMMANDS_LIMITS_NVX)                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_GENERATED_COMMANDS_FEATURES_NVX)                         \
-                                                                                                      \
-  /* VK_NVX_multiview_per_view_attributes */                                                          \
+#define HANDLE_PNEXT()                                                                                 \
+  /* OS-specific extensions */                                                                         \
+  HANDLE_PNEXT_OS()                                                                                    \
+                                                                                                       \
+  /* Core 1.0 structs. Should never be serialised in a pNext chain */                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_APPLICATION_INFO, VkApplicationInfo)                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, VkInstanceCreateInfo)                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, VkDeviceQueueCreateInfo)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, VkDeviceCreateInfo)                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBMIT_INFO, VkSubmitInfo)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, VkMemoryAllocateInfo)                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, VkMappedMemoryRange)                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, VkBindSparseInfo)                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, VkFenceCreateInfo)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, VkSemaphoreCreateInfo)                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, VkEventCreateInfo)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, VkQueryPoolCreateInfo)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, VkBufferCreateInfo)                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, VkBufferViewCreateInfo)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, VkImageCreateInfo)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, VkImageViewCreateInfo)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, VkShaderModuleCreateInfo)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, VkPipelineCacheCreateInfo)                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, VkPipelineShaderStageCreateInfo)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,                              \
+               VkPipelineVertexInputStateCreateInfo)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,                            \
+               VkPipelineInputAssemblyStateCreateInfo)                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,                              \
+               VkPipelineTessellationStateCreateInfo)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,                                  \
+               VkPipelineViewportStateCreateInfo)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,                             \
+               VkPipelineRasterizationStateCreateInfo)                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,                               \
+               VkPipelineMultisampleStateCreateInfo)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,                             \
+               VkPipelineDepthStencilStateCreateInfo)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,                               \
+               VkPipelineColorBlendStateCreateInfo)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,                                   \
+               VkPipelineDynamicStateCreateInfo)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, VkGraphicsPipelineCreateInfo)          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, VkComputePipelineCreateInfo)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, VkPipelineLayoutCreateInfo)              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, VkSamplerCreateInfo)                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, VkDescriptorSetLayoutCreateInfo)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, VkDescriptorPoolCreateInfo)              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, VkDescriptorSetAllocateInfo)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, VkWriteDescriptorSet)                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, VkCopyDescriptorSet)                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, VkFramebufferCreateInfo)                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, VkRenderPassCreateInfo)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, VkCommandPoolCreateInfo)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, VkCommandBufferAllocateInfo)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO, VkCommandBufferInheritanceInfo)      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VkCommandBufferBeginInfo)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, VkRenderPassBeginInfo)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, VkBufferMemoryBarrier)                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, VkImageMemoryBarrier)                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_BARRIER, VkMemoryBarrier)                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO, VkLayerInstanceCreateInfo)               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO, VkLayerDeviceCreateInfo)                   \
+                                                                                                       \
+  /* Vulkan 1.1 only, no extension - subgroups, protected memory */                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES,                                  \
+               VkPhysicalDeviceSubgroupProperties)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PROTECTED_SUBMIT_INFO, VkProtectedSubmitInfo)                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2, VkDeviceQueueInfo2)                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES,                            \
+               VkPhysicalDeviceProtectedMemoryFeatures)                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_PROPERTIES,                          \
+               VkPhysicalDeviceProtectedMemoryProperties)                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES,                       \
+               VkPhysicalDeviceShaderDrawParameterFeatures)                                            \
+                                                                                                       \
+  /* VK_AMD_shader_core_properties */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD,                           \
+               VkPhysicalDeviceShaderCorePropertiesAMD)                                                \
+                                                                                                       \
+  /* VK_AMD_texture_gather_bias_lod */                                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                             \
+               VkTextureLODGatherFormatPropertiesAMD)                                                  \
+                                                                                                       \
+  /* VK_EXT_astc_decode_mode */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT, VkImageViewASTCDecodeModeEXT)        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                             \
+               VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                  \
+                                                                                                       \
+  /* VK_EXT_conditional_rendering */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,            \
+               VkCommandBufferInheritanceConditionalRenderingInfoEXT)                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT,                   \
+               VkPhysicalDeviceConditionalRenderingFeaturesEXT)                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT,                                 \
+               VkConditionalRenderingBeginInfoEXT)                                                     \
+                                                                                                       \
+  /* VK_EXT_conservative_rasterization */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT,            \
+               VkPhysicalDeviceConservativeRasterizationPropertiesEXT)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,            \
+               VkPipelineRasterizationConservativeStateCreateInfoEXT)                                  \
+                                                                                                       \
+  /* VK_EXT_debug_marker */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT, VkDebugMarkerObjectNameInfoEXT)    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT, VkDebugMarkerObjectTagInfoEXT)      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT, VkDebugMarkerMarkerInfoEXT)             \
+                                                                                                       \
+  /* VK_EXT_debug_report */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,                                \
+               VkDebugReportCallbackCreateInfoEXT)                                                     \
+                                                                                                       \
+  /* VK_EXT_debug_utils */                                                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT, VkDebugUtilsObjectNameInfoEXT)      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT, VkDebugUtilsObjectTagInfoEXT)        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, VkDebugUtilsLabelEXT)                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT,                              \
+               VkDebugUtilsMessengerCallbackDataEXT)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,                                \
+               VkDebugUtilsMessengerCreateInfoEXT)                                                     \
+                                                                                                       \
+  /* VK_EXT_display_control */                                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_POWER_INFO_EXT, VkDisplayPowerInfoEXT)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_EVENT_INFO_EXT, VkDeviceEventInfoEXT)                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_EVENT_INFO_EXT, VkDisplayEventInfoEXT)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT, VkSwapchainCounterCreateInfoEXT)   \
+                                                                                                       \
+  /* VK_EXT_display_surface_counter */                                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT)                \
+                                                                                                       \
+  /* VK_EXT_global_priority */                                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,                         \
+               VkDeviceQueueGlobalPriorityCreateInfoEXT)                                               \
+                                                                                                       \
+  /* VK_EXT_pci_bus_info */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,                          \
+               VkPhysicalDevicePCIBusInfoPropertiesEXT)                                                \
+                                                                                                       \
+  /* VK_EXT_sampler_filter_minmax */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT,                 \
+               VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT)                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,                               \
+               VkSamplerReductionModeCreateInfoEXT)                                                    \
+                                                                                                       \
+  /* VK_EXT_transform_feedback */                                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                      \
+               VkPhysicalDeviceTransformFeedbackFeaturesEXT)                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT,                    \
+               VkPhysicalDeviceTransformFeedbackPropertiesEXT)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,                  \
+               VkPipelineRasterizationStateStreamCreateInfoEXT)                                        \
+                                                                                                       \
+  /* VK_EXT_validation_cache */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT, VkValidationCacheCreateInfoEXT)     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT,                       \
+               VkShaderModuleValidationCacheCreateInfoEXT)                                             \
+                                                                                                       \
+  /* VK_EXT_validation_flags */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT, VkValidationFlagsEXT)                           \
+                                                                                                       \
+  /* VK_EXT_vertex_attribute_divisor */                                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT,              \
+               VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT)                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT,                  \
+               VkPipelineVertexInputDivisorStateCreateInfoEXT)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT,                \
+               VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT)                                      \
+                                                                                                       \
+  /* VK_KHR_8bit_storage */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,                            \
+               VkPhysicalDevice8BitStorageFeaturesKHR)                                                 \
+                                                                                                       \
+  /* VK_KHR_16bit_storage */                                                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,                               \
+               VkPhysicalDevice16BitStorageFeatures)                                                   \
+                                                                                                       \
+  /* VK_KHR_bind_memory2 */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO, VkBindBufferMemoryInfo)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO, VkBindImageMemoryInfo)                        \
+                                                                                                       \
+  /* VK_KHR_create_renderpass2 */                                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR, VkAttachmentDescription2KHR)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR, VkAttachmentReference2KHR)                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR, VkSubpassDescription2KHR)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR, VkSubpassDependency2KHR)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR, VkRenderPassCreateInfo2KHR)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO_KHR, VkSubpassBeginInfoKHR)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_END_INFO_KHR, VkSubpassEndInfoKHR)                            \
+                                                                                                       \
+  /* VK_KHR_dedicated_allocation */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, VkMemoryDedicatedRequirements)         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO, VkMemoryDedicatedAllocateInfo)        \
+                                                                                                       \
+  /* VK_KHR_depth_stencil_resolve */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR,                 \
+               VkPhysicalDeviceDepthStencilResolvePropertiesKHR)                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR,                        \
+               VkSubpassDescriptionDepthStencilResolveKHR)                                             \
+                                                                                                       \
+  /* VK_KHR_descriptor_update_template */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO,                               \
+               VkDescriptorUpdateTemplateCreateInfo)                                                   \
+                                                                                                       \
+  /* VK_KHR_device_group_creation */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES, VkPhysicalDeviceGroupProperties)    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO, VkDeviceGroupDeviceCreateInfo)       \
+                                                                                                       \
+  /* VK_KHR_device_group */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SWAPCHAIN_CREATE_INFO_KHR, VkImageSwapchainCreateInfoKHR)       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO,                                  \
+               VkBindImageMemoryDeviceGroupInfo)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO,                                 \
+               VkBindBufferMemoryDeviceGroupInfo)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_BIND_SPARSE_INFO, VkDeviceGroupBindSparseInfo)           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO, VkDeviceGroupSubmitInfo)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_COMMAND_BUFFER_BEGIN_INFO,                               \
+               VkDeviceGroupCommandBufferBeginInfo)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_RENDER_PASS_BEGIN_INFO,                                  \
+               VkDeviceGroupRenderPassBeginInfo)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO, VkMemoryAllocateFlagsInfo)                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_SWAPCHAIN_CREATE_INFO_KHR,                               \
+               VkDeviceGroupSwapchainCreateInfoKHR)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR,                                 \
+               VkBindImageMemorySwapchainInfoKHR)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_CAPABILITIES_KHR,                                \
+               VkDeviceGroupPresentCapabilitiesKHR)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR, VkDeviceGroupPresentInfoKHR)           \
+                                                                                                       \
+  /* VK_KHR_display_swapchain */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR, VkDisplayPresentInfoKHR)                    \
+                                                                                                       \
+  /* VK_KHR_driver_properties */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,                                \
+               VkPhysicalDeviceDriverPropertiesKHR)                                                    \
+                                                                                                       \
+  /* VK_KHR_external_fence_capabilities */                                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,                                  \
+               VkPhysicalDeviceExternalFenceInfo)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, VkExternalFenceProperties)                 \
+                                                                                                       \
+  /* VK_KHR_external_fence / ..._fd */                                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_FENCE_CREATE_INFO, VkExportFenceCreateInfo)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR, VkImportFenceFdInfoKHR)                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FENCE_GET_FD_INFO_KHR, VkFenceGetFdInfoKHR)                           \
+                                                                                                       \
+  /* VK_KHR_external_memory_capabilities */                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,                           \
+               VkPhysicalDeviceExternalImageFormatInfo)                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES, VkExternalImageFormatProperties)    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO,                                 \
+               VkPhysicalDeviceExternalBufferInfo)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_BUFFER_PROPERTIES, VkExternalBufferProperties)               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES, VkPhysicalDeviceIDProperties)          \
+                                                                                                       \
+  /* VK_KHR_external_memory / ..._fd */                                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO, VkExportMemoryAllocateInfo)              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO, VkExternalMemoryImageCreateInfo)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO,                                   \
+               VkExternalMemoryBufferCreateInfo)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR, VkImportMemoryFdInfoKHR)                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_FD_PROPERTIES_KHR, VkMemoryFdPropertiesKHR)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR, VkMemoryGetFdInfoKHR)                         \
+                                                                                                       \
+  /* VK_KHR_external_semaphore_capabilities */                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,                              \
+               VkPhysicalDeviceExternalSemaphoreInfo)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES, VkExternalSemaphoreProperties)         \
+                                                                                                       \
+  /* VK_KHR_external_semaphore / ..._fd */                                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO, VkExportSemaphoreCreateInfo)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR, VkImportSemaphoreFdInfoKHR)             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR, VkSemaphoreGetFdInfoKHR)                   \
+                                                                                                       \
+  /* VK_KHR_get_display_properties2 */                                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PROPERTIES_2_KHR, VkDisplayProperties2KHR)                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_PROPERTIES_2_KHR, VkDisplayPlaneProperties2KHR)         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR, VkDisplayModeProperties2KHR)           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_INFO_2_KHR, VkDisplayPlaneInfo2KHR)                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR, VkDisplayPlaneCapabilities2KHR)     \
+                                                                                                       \
+  /* VK_KHR_get_memory_requirements2 */                                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2, VkBufferMemoryRequirementsInfo2)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2, VkImageMemoryRequirementsInfo2)     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SPARSE_MEMORY_REQUIREMENTS_INFO_2,                              \
+               VkImageSparseMemoryRequirementsInfo2)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2, VkMemoryRequirements2)                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SPARSE_IMAGE_MEMORY_REQUIREMENTS_2,                                   \
+               VkSparseImageMemoryRequirements2)                                                       \
+                                                                                                       \
+  /* VK_KHR_get_physical_device_properties2 */                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, VkPhysicalDeviceFeatures2)                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, VkPhysicalDeviceProperties2)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2)                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2, VkImageFormatProperties2)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,                                  \
+               VkPhysicalDeviceImageFormatInfo2)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2, VkQueueFamilyProperties2)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,                                  \
+               VkPhysicalDeviceMemoryProperties2)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SPARSE_IMAGE_FORMAT_PROPERTIES_2, VkSparseImageFormatProperties2)     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2,                           \
+               VkPhysicalDeviceSparseImageFormatInfo2)                                                 \
+                                                                                                       \
+  /* VK_KHR_get_surface_capabilities2 */                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR, VkPhysicalDeviceSurfaceInfo2KHR)  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR)                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, VkSurfaceFormat2KHR)                            \
+                                                                                                       \
+  /* VK_KHR_image_format_list */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR, VkImageFormatListCreateInfoKHR)    \
+                                                                                                       \
+  /* VK_KHR_incremental_present */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR, VkPresentRegionsKHR)                             \
+                                                                                                       \
+  /* VK_KHR_maintenance2 */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES,                            \
+               VkPhysicalDevicePointClippingProperties)                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_INPUT_ATTACHMENT_ASPECT_CREATE_INFO,                      \
+               VkRenderPassInputAttachmentAspectCreateInfo)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO, VkImageViewUsageCreateInfo)             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO,                \
+               VkPipelineTessellationDomainOriginStateCreateInfo)                                      \
+                                                                                                       \
+  /* VK_KHR_maintenance3 */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,                             \
+               VkPhysicalDeviceMaintenance3Properties)                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT, VkDescriptorSetLayoutSupport)          \
+                                                                                                       \
+  /* VK_KHR_multiview */                                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO, VkRenderPassMultiviewCreateInfo)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,                                   \
+               VkPhysicalDeviceMultiviewFeatures)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES,                                 \
+               VkPhysicalDeviceMultiviewProperties)                                                    \
+                                                                                                       \
+  /* VK_KHR_push_descriptor */                                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR,                       \
+               VkPhysicalDevicePushDescriptorPropertiesKHR)                                            \
+                                                                                                       \
+  /* VK_KHR_sampler_ycbcr_conversion */                                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO,                                 \
+               VkSamplerYcbcrConversionCreateInfo)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo)          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO, VkBindImagePlaneMemoryInfo)             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_PLANE_MEMORY_REQUIREMENTS_INFO,                                 \
+               VkImagePlaneMemoryRequirementsInfo)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES,                    \
+               VkPhysicalDeviceSamplerYcbcrConversionFeatures)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES,                     \
+               VkSamplerYcbcrConversionImageFormatProperties)                                          \
+                                                                                                       \
+  /* VK_KHR_shader_atomic_int64 */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR,                     \
+               VkPhysicalDeviceShaderAtomicInt64FeaturesKHR)                                           \
+                                                                                                       \
+  /* VK_KHR_shader_float16_int8 */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR,                            \
+               VkPhysicalDeviceFloat16Int8FeaturesKHR)                                                 \
+                                                                                                       \
+  /* VK_KHR_shader_float_controls */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR,                        \
+               VkPhysicalDeviceFloatControlsPropertiesKHR)                                             \
+                                                                                                       \
+  /* VK_KHR_shared_presentable_image */                                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,                              \
+               VkSharedPresentSurfaceCapabilitiesKHR)                                                  \
+                                                                                                       \
+  /* VK_KHR_swapchain */                                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, VkSwapchainCreateInfoKHR)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, VkPresentInfoKHR)                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR, VkAcquireNextImageInfoKHR)               \
+                                                                                                       \
+  /* VK_KHR_variable_pointers */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES,                            \
+               VkPhysicalDeviceVariablePointerFeatures)                                                \
+                                                                                                       \
+  /* VK_KHR_vulkan_memory_model */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR,                     \
+               VkPhysicalDeviceVulkanMemoryModelFeaturesKHR)                                           \
+                                                                                                       \
+  /* VK_NV_dedicated_allocation */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,                         \
+               VkDedicatedAllocationMemoryAllocateInfoNV)                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV,                            \
+               VkDedicatedAllocationImageCreateInfoNV)                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV,                           \
+               VkDedicatedAllocationBufferCreateInfoNV)                                                \
+                                                                                                       \
+  /* VK_NV_external_memory */                                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV, VkExportMemoryAllocateInfoNV)         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV,                                 \
+               VkExternalMemoryImageCreateInfoNV)                                                      \
+                                                                                                       \
+  /* VK_NV_shader_image_footprint */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,                   \
+               VkPhysicalDeviceShaderImageFootprintFeaturesNV)                                         \
+                                                                                                       \
+  /* Surface creation structs. These would pull in dependencies on OS-specific includes. */            \
+  /* So treat them as unsupported. */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DISPLAY_MODE_CREATE_INFO_KHR)                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR)                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA)                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK)                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK)                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN)                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR)                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR)                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR)                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR)                                    \
+                                                                                                       \
+  /* VK_AMD_memory_overallocation_behavior */                                                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD)                    \
+                                                                                                       \
+  /* VK_AMD_rasterization_order */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD)            \
+                                                                                                       \
+  /* VK_ANDROID_external_memory_android_hardware_buffer */                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID)                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID)                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID)               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)                                         \
+                                                                                                       \
+  /* VK_EXT_blend_operation_advanced */                                                                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT)         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT)             \
+                                                                                                       \
+  /* VK_EXT_buffer_device_address */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT)                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT)                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT)                           \
+                                                                                                       \
+  /* VK_EXT_calibrated_timestamps */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT)                                   \
+                                                                                                       \
+  /* VK_EXT_descriptor_indexing */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT)             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT)      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT_EXT)     \
+                                                                                                       \
+  /* VK_EXT_discard_rectangles */                                                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT)                \
+                                                                                                       \
+  /* VK_EXT_external_memory_host */                                                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
+                                                                                                       \
+  /* VK_EXT_fragment_density_map */                                                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT)               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT)             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT)                \
+                                                                                                       \
+  /* VK_EXT_hdr_metadata */                                                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HDR_METADATA_EXT)                                                \
+                                                                                                       \
+  /* VK_EXT_image_drm_format_modifier */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                        \
+                                                                                                       \
+  /* VK_EXT_inline_uniform_block */                                                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT)               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT)             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT)                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT)            \
+                                                                                                       \
+  /* VK_EXT_filter_cubic */                                                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT)             \
+                                                                                                       \
+  /* VK_EXT_memory_budget */                                                                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT)                    \
+                                                                                                       \
+  /* VK_EXT_memory_priority */                                                                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT)                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT)                               \
+                                                                                                       \
+  /* VK_EXT_sample_locations */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT)                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT)                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT)                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLE_LOCATIONS_PROPERTIES_EXT)                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT)                                      \
+                                                                                                       \
+  /* VK_EXT_scalar_block_layout */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT)                \
+                                                                                                       \
+  /* VK_EXT_separate_stencil_usage */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT)                             \
+                                                                                                       \
+  /* VK_EXT_validation_features */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT)                                         \
+                                                                                                       \
+  /* VK_GOOGLE_display_timing */                                                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                       \
+                                                                                                       \
+  /* VK_NV_clip_space_w_scaling */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
+                                                                                                       \
+  /* VK_NV_compute_shader_derivatives */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_NV)          \
+                                                                                                       \
+  /* VK_NV_corner_sampled_image */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CORNER_SAMPLED_IMAGE_FEATURES_NV)                \
+                                                                                                       \
+  /* VK_NV_dedicated_allocation_image_aliasing */                                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEDICATED_ALLOCATION_IMAGE_ALIASING_FEATURES_NV) \
+                                                                                                       \
+  /* VK_NV_device_diagnostic_checkpoints */                                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV)                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV)                           \
+                                                                                                       \
+  /* VK_NV_fragment_coverage_to_color */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV)                 \
+                                                                                                       \
+  /* VK_NV_fragment_shader_barycentric */                                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV)         \
+                                                                                                       \
+  /* VK_NV_framebuffer_mixed_samples */                                                                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV)               \
+                                                                                                       \
+  /* VK_NV_mesh_shader */                                                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV)                       \
+                                                                                                       \
+  /* VK_NV_ray_tracing */                                                                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV)                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV)                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GEOMETRY_NV)                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV)                                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV)                                                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV)                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV)                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV)                                  \
+                                                                                                       \
+  /* VK_NV_representative_fragment_test */                                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV)        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_REPRESENTATIVE_FRAGMENT_TEST_STATE_CREATE_INFO_NV)      \
+                                                                                                       \
+  /* VK_NV_scissor_exclusive */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_EXCLUSIVE_SCISSOR_STATE_CREATE_INFO_NV)        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXCLUSIVE_SCISSOR_FEATURES_NV)                   \
+                                                                                                       \
+  /* VK_NV_shading_rate_image */                                                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV)       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_COARSE_SAMPLE_ORDER_STATE_CREATE_INFO_NV)      \
+                                                                                                       \
+  /* VK_NV_viewport_swizzle */                                                                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SWIZZLE_STATE_CREATE_INFO_NV)                  \
+                                                                                                       \
+  /* VK_NVX_device_generated_commands */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_OBJECT_TABLE_CREATE_INFO_NVX)                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX)                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CMD_PROCESS_COMMANDS_INFO_NVX)                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CMD_RESERVE_SPACE_FOR_COMMANDS_INFO_NVX)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_GENERATED_COMMANDS_LIMITS_NVX)                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_GENERATED_COMMANDS_FEATURES_NVX)                          \
+                                                                                                       \
+  /* VK_NVX_multiview_per_view_attributes */                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_ATTRIBUTES_PROPERTIES_NVX)
 
 template <typename SerialiserType>
@@ -3095,6 +3102,17 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceVulkanMemoryModelFeaturesK
 
   SERIALISE_MEMBER(vulkanMemoryModel);
   SERIALISE_MEMBER(vulkanMemoryModelDeviceScope);
+
+  // this field was added in Vulkan 1.1.99
+  if(ser.VersionAtLeast(0xF))
+  {
+    SERIALISE_MEMBER(vulkanMemoryModelAvailabilityVisibilityChains);
+  }
+  else if(ser.IsReading())
+  {
+    // default to FALSE conservatively
+    el.vulkanMemoryModelAvailabilityVisibilityChains = VK_FALSE;
+  }
 }
 
 template <>

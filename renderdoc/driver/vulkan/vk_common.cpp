@@ -267,6 +267,11 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0xE -> 0xF - serialisation of VkPhysicalDeviceVulkanMemoryModelFeaturesKHR changed in vulkan
+  // 1.1.99, adding a new field
+  if(ver == 0xE)
+    return true;
+
   // 0xD -> 0xE - fixed serialisation directly of size_t members in VkDescriptorUpdateTemplateEntry
   if(ver == 0xD)
     return true;
