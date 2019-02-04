@@ -41,6 +41,7 @@ class RDLabel;
 class LambdaThread;
 class QMimeData;
 class QProgressBar;
+class QShortcut;
 class QToolButton;
 class CaptureDialog;
 class LiveCapture;
@@ -194,6 +195,7 @@ private:
 
   QMap<QKeySequence, ShortcutCallback> m_GlobalShortcutCallbacks;
   QMap<QKeySequence, QMap<QWidget *, ShortcutCallback>> m_WidgetShortcutCallbacks;
+  QList<QShortcut *> m_QtShortcuts;
 
   RDLabel *statusIcon;
   RDLabel *statusText;

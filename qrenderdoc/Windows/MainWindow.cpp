@@ -33,6 +33,7 @@
 #include <QPixmapCache>
 #include <QProgressBar>
 #include <QProgressDialog>
+#include <QShortcut>
 #include <QToolButton>
 #include <QToolTip>
 #include "Code/QRDUtils.h"
@@ -2032,6 +2033,12 @@ void MainWindow::RegisterShortcut(const rdcstr &shortcut, QWidget *widget, Short
 
   if(widget)
   {
+    // we need to create a Qt shortcut for this widget. Even though we don't actually use the
+    // callback, unless a shortcut exists Qt might not properly send the ShortcutOverride event to
+    // our eventFilter - an example is on windows where Shift-F10 might go straight to a
+    // ContextEvent. So we create a shortcut on this widget & key-sequence to force Qt to process it
+    m_QtShortcuts.push_back(new QShortcut(ks, widget));
+
     m_WidgetShortcutCallbacks[ks][widget] = callback;
   }
   else
@@ -2050,6 +2057,20 @@ void MainWindow::UnregisterShortcut(const rdcstr &shortcut, QWidget *widget)
 {
   if(widget)
   {
+    // delete any Qt shortcuts we created for this widget
+    for(auto it = m_QtShortcuts.begin(); it != m_QtShortcuts.end();)
+    {
+      if((*it)->parent() == widget)
+      {
+        delete *it;
+        it = m_QtShortcuts.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
+
     if(shortcut.isEmpty())
     {
       // if no shortcut is specified, remove all shortcuts for this widget

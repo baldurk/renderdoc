@@ -584,20 +584,21 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       QObject::connect(edit, &ScintillaEdit::dwellEnd, this, &ShaderViewer::disasm_tooltipHide);
     }
 
-    // register the shortcuts globally for this shader viewer so it works regardless of the active
-    // scintilla
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10), this), &QShortcut::activated, this,
-                     &ShaderViewer::stepNext);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10 | Qt::ShiftModifier), this),
-                     &QShortcut::activated, this, &ShaderViewer::stepBack);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier), this),
-                     &QShortcut::activated, this, &ShaderViewer::runToCursor);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5), this), &QShortcut::activated, this,
-                     &ShaderViewer::run);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier), this),
-                     &QShortcut::activated, this, &ShaderViewer::runBack);
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_F9), this), &QShortcut::activated,
-                     [this]() { ToggleBreakpoint(); });
+    // register the shortcuts via MainWindow so that it works regardless of the active scintilla but
+    // still handles multiple shader viewers being present (the one with focus will get the input)
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F10).toString(), this,
+                                            [this](QWidget *) { stepNext(); });
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F10 | Qt::ShiftModifier).toString(),
+                                            this, [this](QWidget *) { stepBack(); });
+    m_Ctx.GetMainWindow()->RegisterShortcut(
+        QKeySequence(Qt::Key_F10 | Qt::ControlModifier).toString(), this,
+        [this](QWidget *) { runToCursor(); });
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5).toString(), this,
+                                            [this](QWidget *) { run(); });
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier).toString(),
+                                            this, [this](QWidget *) { runBack(); });
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F9).toString(), this,
+                                            [this](QWidget *) { ToggleBreakpoint(); });
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
