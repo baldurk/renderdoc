@@ -97,6 +97,7 @@ struct TexSettings
     displayType = 0;
     r = g = b = true;
     a = false;
+    flip_y = false;
     depth = true;
     stencil = false;
     mip = 0;
@@ -109,6 +110,7 @@ struct TexSettings
   int displayType;    // RGBA, RGBM, YUV Decode, Custom
   QString customShader;
   bool r, g, b, a;
+  bool flip_y;
   bool depth, stencil;
   int mip, slice;
   float minrange, maxrange;

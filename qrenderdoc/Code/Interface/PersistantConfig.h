@@ -284,6 +284,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexSettings, true)               \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexYFlip, false)                 \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, ShaderViewer_FriendlyNaming, true)                \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
@@ -479,6 +481,15 @@ For more information about some of these settings that are user-facing see
   basis instead of keeping it persistent across different textures.
 
   Defaults to ``True``.
+
+.. data:: TextureViewer_PerTexYFlip
+
+  ``True`` if the :class:`TextureViewer` should treat y-flipping as a per-texture state rather than
+  a global toggle.
+
+  Does nothing if per-texture settings are disabled in general.
+
+  Defaults to ``False``.
 
 .. data:: ShaderViewer_FriendlyNaming
 

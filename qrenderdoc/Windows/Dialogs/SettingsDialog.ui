@@ -631,14 +631,46 @@ After interop is enabled you will need to reload any capture.</string>
              </size>
             </property>
             <property name="toolTip">
-             <string>The visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.</string>
+             <string>Settings such as visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.</string>
             </property>
             <property name="text">
              <string/>
             </property>
            </widget>
           </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_13">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>Y-flipping state is remembered and restored per-texture, rather than treated as a global toggle.</string>
+            </property>
+            <property name="text">
+             <string>Y-flipping state saved per-texture</string>
+            </property>
+           </widget>
+          </item>
           <item row="2" column="1">
+           <widget class="QCheckBox" name="TextureViewer_PerTexYFlip">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string>Y-flipping state is remembered and restored per-texture, rather than treated as a global toggle.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
            <spacer name="verticalSpacer_3">
             <property name="orientation">
              <enum>Qt::Vertical</enum>

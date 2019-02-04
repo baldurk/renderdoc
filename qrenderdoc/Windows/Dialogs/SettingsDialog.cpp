@@ -108,9 +108,12 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   ui->TextureViewer_ResetRange->setChecked(m_Ctx.Config().TextureViewer_ResetRange);
   ui->TextureViewer_PerTexSettings->setChecked(m_Ctx.Config().TextureViewer_PerTexSettings);
+  ui->TextureViewer_PerTexYFlip->setChecked(m_Ctx.Config().TextureViewer_PerTexYFlip);
   ui->ShaderViewer_FriendlyNaming->setChecked(m_Ctx.Config().ShaderViewer_FriendlyNaming);
   ui->CheckUpdate_AllowChecks->setChecked(m_Ctx.Config().CheckUpdate_AllowChecks);
   ui->Font_PreferMonospaced->setChecked(m_Ctx.Config().Font_PreferMonospaced);
+
+  ui->TextureViewer_PerTexYFlip->setEnabled(ui->TextureViewer_PerTexSettings->isChecked());
 
   ui->AlwaysReplayLocally->setChecked(m_Ctx.Config().AlwaysReplayLocally);
 
@@ -421,6 +424,15 @@ void SettingsDialog::on_browseRGPPath_clicked()
 void SettingsDialog::on_TextureViewer_PerTexSettings_toggled(bool checked)
 {
   m_Ctx.Config().TextureViewer_PerTexSettings = ui->TextureViewer_PerTexSettings->isChecked();
+
+  ui->TextureViewer_PerTexYFlip->setEnabled(ui->TextureViewer_PerTexSettings->isChecked());
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_TextureViewer_PerTexYFlip_toggled(bool checked)
+{
+  m_Ctx.Config().TextureViewer_PerTexYFlip = ui->TextureViewer_PerTexYFlip->isChecked();
 
   m_Ctx.Config().Save();
 }

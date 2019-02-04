@@ -182,6 +182,12 @@ When changing texture from one to another, when this option is enabled the range
 
 Settings including which channels are displayed (red, green, blue, alpha or depth/stencil), the mip or slice/cubemap face to display, or the visible min/max range values are remembered with the texture you were looking at. In other words if you display a render target with only the alpha channel visible, then switching to view another texture will default back to RGB - and switching back to that render target will view alpha again.
 
+---------------
+
+  | :guilabel:`Y-flipping state saved per-texture` Default: ``Disabled``
+
+If the above setting is enabled, then also store the y-flip per texture. By default this is treated as a global toggle for all textures. With this setting enabled the flip will default to off for all textures, and then be saved per-texture.
+
 Shader Viewer options
 ---------------------
 

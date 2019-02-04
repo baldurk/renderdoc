@@ -1109,6 +1109,9 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_TextureSettings[m_TexDisplay.resourceId].b = ui->channelBlue->isChecked();
     m_TextureSettings[m_TexDisplay.resourceId].a = ui->channelAlpha->isChecked();
 
+    // save state regardless, we just don't apply it without the setting
+    m_TextureSettings[m_TexDisplay.resourceId].flip_y = ui->flip_y->isChecked();
+
     m_TextureSettings[m_TexDisplay.resourceId].displayType = qMax(0, ui->channels->currentIndex());
     m_TextureSettings[m_TexDisplay.resourceId].customShader = ui->customShader->currentText();
 
@@ -1317,6 +1320,9 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     if(useslicesettings)
       ui->sliceFace->setCurrentIndex(m_TextureSettings[tex.resourceId].slice);
+
+    if(m_Ctx.Config().TextureViewer_PerTexYFlip)
+      ui->flip_y->setChecked(m_TextureSettings[tex.resourceId].flip_y);
   }
 
   // handling for if we've switched to a new texture
@@ -1337,6 +1343,9 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       ui->depthDisplay->setChecked(m_TextureSettings[tex.resourceId].depth);
       ui->stencilDisplay->setChecked(m_TextureSettings[tex.resourceId].stencil);
 
+      if(m_Ctx.Config().TextureViewer_PerTexYFlip)
+        ui->flip_y->setChecked(m_TextureSettings[tex.resourceId].flip_y);
+
       m_NoRangePaint = true;
       ui->rangeHistogram->setRange(m_TextureSettings[m_TexDisplay.resourceId].minrange,
                                    m_TextureSettings[m_TexDisplay.resourceId].maxrange);
@@ -1356,6 +1365,9 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
       ui->depthDisplay->setChecked(true);
       ui->stencilDisplay->setChecked(false);
+
+      if(m_Ctx.Config().TextureViewer_PerTexYFlip)
+        ui->flip_y->setChecked(false);
 
       m_NoRangePaint = true;
       UI_SetHistogramRange(texptr, m_TexDisplay.typeHint);
