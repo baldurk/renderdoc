@@ -334,13 +334,17 @@ struct BufferData
   size_t stride;
 };
 
-uint32_t CalcIndex(BufferData *data, uint32_t vertID, int32_t baseVertex)
+uint32_t CalcIndex(BufferData *data, uint32_t vertID, int32_t baseVertex, uint32_t primRestart)
 {
   byte *idxData = data->data + vertID * sizeof(uint32_t);
   if(idxData + sizeof(uint32_t) > data->end)
     return ~0U;
 
   uint32_t idx = *(uint32_t *)idxData;
+
+  // check for primitive restart *before* adding base vertex
+  if(primRestart && idx == primRestart)
+    return idx;
 
   // apply base vertex but clamp to 0 if subtracting
   if(baseVertex < 0)
@@ -595,7 +599,7 @@ public:
 
           if(indices && indices->data)
           {
-            idx = CalcIndex(indices, row, baseVertex);
+            idx = CalcIndex(indices, row, baseVertex, primRestart);
 
             if(primRestart && idx == primRestart)
               return col == 1 ? lit("--") : lit(" Restart");
@@ -608,7 +612,7 @@ public:
           {
             // if we have separate displayIndices, fetch that for display instead
             if(displayIndices && displayIndices->data)
-              idx = CalcIndex(displayIndices, row, displayBaseVertex);
+              idx = CalcIndex(displayIndices, row, displayBaseVertex, primRestart);
 
             if(idx == ~0U)
               return outOfBounds();
@@ -1697,7 +1701,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     }
     else if(draw->indexByteWidth == 4)
     {
-      uint16_t primRestart = m_ModelVSIn->primRestart;
+      uint32_t primRestart = m_ModelVSIn->primRestart;
 
       memcpy(indices, idata.data(), qMin(idata.size(), draw->numIndices * sizeof(uint32_t)));
 
@@ -1753,7 +1757,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
         offset = draw->vertexOffset;
 
         if(draw->baseVertex > 0)
-          maxIdx += (uint32_t)draw->baseVertex;
+          maxIdx = qMax(maxIdx, maxIdx + (uint32_t)draw->baseVertex);
       }
 
       if(pi && pv)
@@ -1764,7 +1768,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     if(used)
     {
       bytebuf bufdata = r->GetBufferData(vb.resourceId, vb.byteOffset + offset * vb.byteStride,
-                                         (maxIdx + 1) * vb.byteStride + maxAttrOffset);
+                                         qMax(maxIdx, maxIdx + 1) * vb.byteStride + maxAttrOffset);
 
       buf->data = new byte[bufdata.size()];
       memcpy(buf->data, bufdata.data(), bufdata.size());
@@ -1896,6 +1900,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     bbox->input[i].buffers = models[i]->buffers;
     bbox->input[i].indices = models[i]->indices;
     bbox->input[i].baseVertex = models[i]->baseVertex;
+    bbox->input[i].primRestart = models[i]->primRestart;
 
     bbox->input[i].count = models[i]->numRows;
 
@@ -1953,9 +1958,9 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
 
       if(s.indices && s.indices->data)
       {
-        idx = CalcIndex(s.indices, row, s.baseVertex);
+        idx = CalcIndex(s.indices, row, s.baseVertex, s.primRestart);
 
-        if(idx == ~0U)
+        if(idx == ~0U || (s.primRestart && idx == s.primRestart))
           continue;
       }
 
@@ -3286,7 +3291,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
           if(model->indices && model->indices->data)
           {
-            idx = CalcIndex(model->indices, i, model->baseVertex);
+            idx = CalcIndex(model->indices, i, model->baseVertex, model->primRestart);
 
             // completely omit primitive restart indices
             if(model->primRestart && idx == model->primRestart)

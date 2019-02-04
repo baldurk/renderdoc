@@ -156,7 +156,7 @@ void main()
         {Vec3f(0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb1(allocator, vkh::BufferCreateInfo(sizeof(DefaultA2V) * 50,
+    AllocatedBuffer vb1(allocator, vkh::BufferCreateInfo(sizeof(DefaultA2V) * 66000,
                                                          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -164,6 +164,8 @@ void main()
     {
       DefaultA2V *src = (DefaultA2V *)vertData;
       DefaultA2V *dst = (DefaultA2V *)vb1.map();
+
+      memset(dst, 0x5c, sizeof(DefaultA2V) * 66000);
 
       // up-pointing triangle to offset 0
       memcpy(dst + 0, src + 1, sizeof(DefaultA2V));
@@ -250,7 +252,7 @@ void main()
                         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     {
-      uint32_t *dst = (uint32_t *)ib1.map();
+      uint16_t *dst = (uint16_t *)ib1.map();
 
       memset(dst, 0, sizeof(uint32_t) * 100);
 
@@ -279,13 +281,26 @@ void main()
       dst[44] = 32;
       dst[45] = 33;
       dst[46] = 34;
-      dst[47] = 0xffffffff;
+      dst[47] = 0xffff;
       dst[48] = 36;
       dst[49] = 37;
       dst[50] = 38;
       dst[51] = 39;
       dst[52] = 40;
       dst[53] = 41;
+
+      dst[54] = 130;
+      dst[55] = 131;
+      dst[56] = 132;
+      dst[57] = 133;
+      dst[58] = 134;
+      dst[59] = 0xffff;
+      dst[60] = 136;
+      dst[61] = 137;
+      dst[62] = 138;
+      dst[63] = 139;
+      dst[64] = 140;
+      dst[65] = 141;
 
       ib1.unmap();
     }
@@ -346,35 +361,35 @@ void main()
       // basic test
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {0});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 1, 0, 0, 0);
       vp.x += vp.width;
 
       // test with first index
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {0});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 1, 5, 0, 0);
       vp.x += vp.width;
 
       // test with first index and vertex offset
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {0});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 1, 13, -50, 0);
       vp.x += vp.width;
 
       // test with first index and vertex offset and vbuffer offset
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {10 * sizeof(DefaultA2V)});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 1, 23, -100, 0);
       vp.x += vp.width;
 
       // test with first index and vertex offset and vbuffer offset and ibuffer offset
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {19 * sizeof(DefaultA2V)});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 14 * sizeof(uint32_t), VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 14 * sizeof(uint16_t), VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 1, 23, -100, 0);
       vp.x += vp.width;
 
@@ -383,8 +398,15 @@ void main()
       // indexed strip with primitive restart
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {0});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 12, 1, 42, 0, 0);
+      vp.x += vp.width;
+
+      // indexed strip with primitive restart and vertex offset
+      vkCmdSetViewport(cmd, 0, 1, &vp);
+      vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer}, {0});
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
+      vkCmdDrawIndexed(cmd, 12, 1, 54, -100, 0);
       vp.x += vp.width;
 
       // adjust to next row
@@ -425,21 +447,21 @@ void main()
       // basic test
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer, vb2.buffer}, {0, 0});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 2, 5, 0, 0);
       vp.x += vp.width;
 
       // basic test with first instance
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer, vb2.buffer}, {0, 0});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 2, 13, -50, 5);
       vp.x += vp.width;
 
       // basic test with first instance and instance buffer offset
       vkCmdSetViewport(cmd, 0, 1, &vp);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb1.buffer, vb2.buffer}, {0, 8 * sizeof(Vec4f)});
-      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdBindIndexBuffer(cmd, ib1.buffer, 0, VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 3, 2, 23, -80, 5);
       vp.x += vp.width;
 

@@ -177,6 +177,7 @@ private:
       uint32_t count;
       BufferData *indices = NULL;
       int32_t baseVertex;
+      uint32_t primRestart;
       QList<BufferData *> buffers;
     } input[3];
 

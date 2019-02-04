@@ -287,6 +287,17 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, con
     }
 
     vert = indices[vert];
+
+    if(IsStrip(cfg.position.topology))
+    {
+      if((cfg.position.indexByteStride == 1 && vert == 0xff) ||
+         (cfg.position.indexByteStride == 2 && vert == 0xffff) ||
+         (cfg.position.indexByteStride == 4 && vert == 0xffffffff))
+      {
+        valid = false;
+        return ret;
+      }
+    }
   }
 
   return HighlightCache::InterpretVertex(data, vert, cfg.position.vertexByteStride,

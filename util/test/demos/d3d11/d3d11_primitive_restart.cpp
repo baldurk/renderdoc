@@ -78,6 +78,19 @@ struct Primitive_Restart : D3D11GraphicsTest
 
     ID3D11BufferPtr ib = MakeBuffer().Index().Data(idx);
 
+    uint16_t idx2[] = {
+        // strip 0
+        10, 11, 12, 13, 14, 15, 16, 17,
+
+        // restart
+        0xffff,
+
+        // strip 1
+        18, 19, 20, 21, 22, 23, 24, 25,
+    };
+
+    ID3D11BufferPtr ib2 = MakeBuffer().Index().Data(idx2);
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
@@ -95,6 +108,13 @@ struct Primitive_Restart : D3D11GraphicsTest
       ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
 
       ctx->DrawIndexed(17, 0, 0);
+
+      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+
+      ctx->IASetIndexBuffer(ib2, DXGI_FORMAT_R16_UINT, 0);
+
+      // should get identical results with the vertex offset
+      ctx->DrawIndexed(17, 0, -10);
 
       Present();
     }
