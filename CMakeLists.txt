@@ -2,8 +2,39 @@ cmake_minimum_required(VERSION 2.8.12)
 
 # Configure some stuff that needs to be set really early
 if(BUILD_ANDROID)
+    if(NOT DEFINED ENV{JAVA_HOME})
+        message(FATAL_ERROR "JAVA_HOME environment variable must be defined for Android build")
+    endif()
+    message(STATUS "Using JAVA_HOME = $ENV{JAVA_HOME}")
+
+    if(DEFINED ENV{ANDROID_HOME} AND EXISTS "$ENV{ANDROID_HOME}/platform-tools/source.properties")
+        set(ANDROID_SDK_ROOT_PATH "$ENV{ANDROID_HOME}")
+    elseif(DEFINED ENV{ANDROID_SDK_ROOT} AND EXISTS "$ENV{ANDROID_SDK_ROOT}/platform-tools/source.properties")
+        set(ANDROID_SDK_ROOT_PATH "$ENV{ANDROID_SDK_ROOT}")
+    elseif(DEFINED ENV{ANDROID_SDK} AND EXISTS "$ENV{ANDROID_SDK}/platform-tools/source.properties")
+        set(ANDROID_SDK_ROOT_PATH "$ENV{ANDROID_SDK}")
+    else()
+        message(FATAL_ERROR "Can't locate Android SDK, set ANDROID_HOME, ANDROID_SDK_ROOT or ANDROID_SDK")
+    endif()
+
+    message(STATUS "Using Android SDK found in ${ANDROID_SDK_ROOT_PATH}")
+
+    if(DEFINED ENV{ANDROID_NDK_HOME} AND EXISTS "$ENV{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake")
+        set(ANDROID_NDK_ROOT_PATH "$ENV{ANDROID_NDK_HOME}")
+    elseif(DEFINED ENV{ANDROID_NDK_ROOT} AND EXISTS "$ENV{ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake")
+        set(ANDROID_NDK_ROOT_PATH "$ENV{ANDROID_NDK_ROOT}")
+    elseif(DEFINED ENV{NDK_HOME} AND EXISTS "$ENV{NDK_HOME}/build/cmake/android.toolchain.cmake")
+        set(ANDROID_NDK_ROOT_PATH "$ENV{NDK_HOME}")
+    elseif(DEFINED ENV{ANDROID_NDK} AND EXISTS "$ENV{ANDROID_NDK}/build/cmake/android.toolchain.cmake")
+        set(ANDROID_NDK_ROOT_PATH "$ENV{ANDROID_NDK}")
+    else()
+        message(FATAL_ERROR "Can't locate Android NDK, set ANDROID_NDK_HOME, ANDROID_NDK_ROOT, NDK_HOME or ANDROID_NDK")
+    endif()
+
+    message(STATUS "Using Android NDK found in ${ANDROID_NDK_ROOT_PATH}")
+
     set(CMAKE_TOOLCHAIN_FILE
-        "$ENV{ANDROID_NDK}/build/cmake/android.toolchain.cmake"
+        "${ANDROID_NDK_ROOT_PATH}/build/cmake/android.toolchain.cmake"
         CACHE STRING
         "The Android toolchain file")
 

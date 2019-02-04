@@ -6,7 +6,7 @@ if(APPLE)
     list(APPEND sources renderdoccmd_apple.cpp)
 elseif(ANDROID)
     list(APPEND sources renderdoccmd_android.cpp)
-    include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
+    include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
     
@@ -50,21 +50,6 @@ target_link_libraries(renderdoccmd ${libraries})
 install (TARGETS renderdoccmd DESTINATION bin)
 
 if(ANDROID)
-    if(NOT DEFINED ENV{JAVA_HOME})
-        message(FATAL_ERROR "JAVA_HOME environment variable must be defined for Android build")
-    endif()
-    message(STATUS "Using JAVA_HOME = $ENV{JAVA_HOME}")
-
-    if(NOT DEFINED ENV{ANDROID_SDK})
-        message(FATAL_ERROR "ANDROID_SDK environment variable must be defined for Android build")
-    endif()
-    message(STATUS "Using ANDROID_SDK = $ENV{ANDROID_SDK}")
-
-    if(NOT DEFINED ENV{ANDROID_NDK})
-        message(FATAL_ERROR "ANDROID_NDK environment variable must be defined for Android build")
-    endif()
-    message(STATUS "Using ANDROID_NDK = $ENV{ANDROID_NDK}")
-
     #############################
     # We need to check that 'java' in PATH is new enough. Temporarily unset the JAVA_HOME env,
     # then invoke FindJava.cmake which will search just the PATH, then re-set it.
@@ -87,7 +72,7 @@ if(ANDROID)
     set(ANDROID_BUILD_TOOLS_VERSION "" CACHE STRING "Version of Android build-tools to use instead of the default")
     if(ANDROID_BUILD_TOOLS_VERSION STREQUAL "")
         # Enumerate the build tools versions available, and pick the most recent
-        file(GLOB __buildTools RELATIVE "$ENV{ANDROID_SDK}/build-tools" "$ENV{ANDROID_SDK}/build-tools/*")
+        file(GLOB __buildTools RELATIVE "${ANDROID_SDK_ROOT_PATH}/build-tools" "${ANDROID_SDK_ROOT_PATH}/build-tools/*")
         list(SORT __buildTools)
 
         list(GET __buildTools -1 ANDROID_BUILD_TOOLS_VERSION)
@@ -100,7 +85,7 @@ if(ANDROID)
     if(APK_TARGET_ID STREQUAL "")
         # This seems different from the platform we're targetting,
         # default to the latest available that's greater or equal to our target platform
-        file(GLOB __platforms RELATIVE "$ENV{ANDROID_SDK}/platforms" "$ENV{ANDROID_SDK}/platforms/*")
+        file(GLOB __platforms RELATIVE "${ANDROID_SDK_ROOT_PATH}/platforms" "${ANDROID_SDK_ROOT_PATH}/platforms/*")
         list(SORT __platforms)
 
         # In case we don't find one, target the latest platform
@@ -134,11 +119,11 @@ if(ANDROID)
         set(TOOL_SCRIPT_EXTENSION ".bat")
     endif()
 
-    set(BUILD_TOOLS "$ENV{ANDROID_SDK}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}")
+    set(BUILD_TOOLS "${ANDROID_SDK_ROOT_PATH}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}")
     set(RT_JAR "$ENV{JAVA_HOME}/jre/lib/rt.jar")
     set(JAVA_BIN "$ENV{JAVA_HOME}/bin")
 
-    set(ANDROID_JAR "$ENV{ANDROID_SDK}/platforms/${APK_TARGET_ID}/android.jar")
+    set(ANDROID_JAR "${ANDROID_SDK_ROOT_PATH}/platforms/${APK_TARGET_ID}/android.jar")
     if(CMAKE_HOST_WIN32)
         set(CLASS_PATH "${ANDROID_JAR}\;obj")
     else()
