@@ -438,3 +438,10 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
     Each capture will be taken independently and saved to a separate file, with no reference to the other frames.
 
     :param uint32_t numFrames: the number of frames to capture, as an unsigned integer.
+
+.. cpp:function:: void SetCaptureFileComments(const char *filePath, const char *comments)
+
+    This function adds an arbitrary comments field to an existing capture on disk, which will then be displayed in the UI to anyone opening the capture.
+
+    :param const char* filePath: specifies the path to the capture file to set comments in, as UTF-8 null-terminated string. If this path is ``NULL`` or an empty string, the most recent capture file that has been created will be used.
+    :param const char* comments: specifies the comments to set in the capture file, as UTF-8 null-terminated string.
