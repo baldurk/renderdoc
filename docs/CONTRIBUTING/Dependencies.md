@@ -92,7 +92,7 @@ brew install cmake qt5
 brew link qt5 --force
 ```
 
-You will also need `autotools`. That is usually available by default but might need to be explicitly installed with `brew install autotools`. 
+You will also need `autotools`. That is usually available by default but might need to be explicitly installed with `brew install autoconf automake`. 
 
 ## Android
 
