@@ -3367,6 +3367,10 @@ void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
 
   if(ctx && ctx != prev)
   {
+#if ENABLED(RDOC_APPLE)
+    GL.glFinish();
+#endif
+
     m_pDriver->m_Platform.MakeContextCurrent(*ctx);
     prev = ctx;
     m_pDriver->ActivateContext(*ctx);
