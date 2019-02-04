@@ -3103,8 +3103,17 @@ void ShaderViewer::updateVariableTooltip()
         QString cname = c.name;
 
         // this is a hack for now :(.
-        if(cname.startsWith(m_TooltipName) || cname.contains(bracketedName) ||
-           cname.contains(commaName))
+        if(cname == m_TooltipName)
+          constants.push_back(c);
+
+        int idx = cname.indexOf(bracketedName);
+        if(idx >= 0 && (cname.at(idx + bracketedName.length()) == QLatin1Char(',') ||
+                        cname.at(idx + bracketedName.length()) == QLatin1Char(')')))
+          constants.push_back(c);
+
+        idx = cname.indexOf(commaName);
+        if(idx >= 0 && (cname.at(idx + commaName.length()) == QLatin1Char(',') ||
+                        cname.at(idx + commaName.length()) == QLatin1Char(')')))
           constants.push_back(c);
       }
     }
