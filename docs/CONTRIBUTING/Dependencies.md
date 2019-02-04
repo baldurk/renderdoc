@@ -12,19 +12,37 @@ Requirements for the core library and renderdoccmd are `libx11`, `libxcb`, `libx
 
 For qrenderdoc you need Qt5 >= 5.6 along with the 'svg' and 'x11extras' packages. You also need `python3-dev` for the python integration, and `bison`, `autoconf`, `automake` and `libpcre3-dev` for building the custom SWIG tool for generating bindings.
 
-This is the apt-get line you'd need to install the requirements bar Qt on Ubuntu 14.04 or above:
+On any distribution if you find qmake isn't available under its default name, or if `qmake -v` lists a Qt4 version, make sure you have qtchooser installed in your package manager and use it to select Qt5. This might be done by exporting `QT_SELECT=qt5`, but check with your distribution for details.
+
+For some distributions such as CentOS, the Qt5 qmake command is `qmake-qt5`. To select this explicitly, pass `-DQMAKE_QT5_COMMAND=qmake-qt5` when invoking `cmake`.
+
+Below are specific per-distribution instructions. If you know the required packages for another distribution, please share (or pull request this file!)
+
+### Ubuntu
+
+For Ubuntu 14.04 or above you'll need:
 
 ```
 sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev
 ```
 
-Your version of Ubuntu might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments.
+For the base dependnecies. On Ubuntu 18.04 and above Qt is available in the default repositories:
+
+```
+sudo apt-get install qt5-qmake libqt5svg5-dev libqt5x11extras5-dev 
+```
+
+For older versions of Ubuntu they might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments.
+
+### Archlinux
 
 For Archlinux (as of 2017.04.18) you'll need:
 
 ```
 sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-svg qt5-x11extras cmake python3 bison autoconf automake pcre
 ```
+
+### Gentoo
 
 For Gentoo (as of 2017.04.18), you'll need:
 
@@ -33,6 +51,8 @@ sudo emerge --ask x11-libs/libX11 x11-libs/libxcb x11-libs/xcb-util-keysyms dev-
 ```
 
 Checking that at least Qt 5.6 installs.
+
+### CentOS
 
 On CentOS 7 (as of 2018.01.18), you'll need to install from several repos:
 
@@ -56,16 +76,12 @@ scl enable devtoolset-7 bash
 
 And build within the resulting bash shell, which has the tools first in PATH.
 
+### Debian
+
 Debian 9+ (stretch):
 ```
 sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev qt5-qmake libqt5svg5-dev libqt5x11extras5-dev 
 ```
-
-On any distribution if you find qmake isn't available under its default name, or if `qmake -v` lists a Qt4 version, make sure you have qtchooser installed in your package manager and use it to select Qt5. This might be done by exporting `QT_SELECT=qt5`, but check with your distribution for details.
-
-For some distributions such as CentOS, the Qt5 qmake command is `qmake-qt5`. To select this explicitly, pass `-DQMAKE_QT5_COMMAND=qmake-qt5` when invoking `cmake`.
-
-If you know the required packages for another distribution, please share (or pull request this file!)
 
 ## Mac
 
