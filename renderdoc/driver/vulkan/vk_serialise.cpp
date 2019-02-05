@@ -510,6 +510,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT,                       \
                VkShaderModuleValidationCacheCreateInfoEXT)                                             \
                                                                                                        \
+  /* VK_EXT_validation_features */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT, VkValidationFeaturesEXT)                     \
+                                                                                                       \
   /* VK_EXT_validation_flags */                                                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT, VkValidationFlagsEXT)                           \
                                                                                                        \
@@ -831,9 +834,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_scalar_block_layout */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT)                \
-                                                                                                       \
-  /* VK_EXT_validation_features */                                                                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT)                                         \
                                                                                                        \
   /* VK_GOOGLE_display_timing */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                       \
@@ -4124,6 +4124,26 @@ template <>
 void Deserialise(const VkShaderModuleValidationCacheCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkValidationFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(enabledValidationFeatureCount);
+  SERIALISE_MEMBER_ARRAY(pEnabledValidationFeatures, enabledValidationFeatureCount);
+  SERIALISE_MEMBER(disabledValidationFeatureCount);
+  SERIALISE_MEMBER_ARRAY(pDisabledValidationFeatures, disabledValidationFeatureCount);
+}
+
+template <>
+void Deserialise(const VkValidationFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pEnabledValidationFeatures;
+  delete[] el.pDisabledValidationFeatures;
 }
 
 template <typename SerialiserType>
