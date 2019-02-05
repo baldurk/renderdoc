@@ -421,8 +421,9 @@ eglGetProcAddress_renderdoc_hooked(const char *func)
     realFunc = EGL.GetProcAddress(func);
   }
 
-  // if the real context doesn't support this function, return NULL
-  if(realFunc == NULL)
+  // if the real context doesn't support this function, and we don't provide an implementation fully
+  // ourselves, return NULL
+  if(realFunc == NULL && !FullyImplementedFunction(func))
     return realFunc;
 
 // return our egl hooks

@@ -129,6 +129,14 @@ void EnableGLHooks()
 DefineSupportedHooks();
 DefineUnsupportedHooks();
 
+// these functions we provide ourselves, so we should return our hook even if there's no onward
+// implementation.
+bool FullyImplementedFunction(const char *funcname)
+{
+  return !strcmp(funcname, "glFrameTerminatorGREMEDY") ||
+         !strcmp(funcname, "glStringMarkerGREMEDY");
+}
+
 void *HookedGetProcAddress(const char *func, void *realFunc)
 {
 #define CheckFunction(function, name)                    \

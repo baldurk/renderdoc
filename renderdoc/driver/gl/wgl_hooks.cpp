@@ -520,8 +520,9 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
     realFunc = WGL.wglGetProcAddress(func);
   }
 
-  // if the real context doesn't support this function, return NULL
-  if(realFunc == NULL)
+  // if the real context doesn't support this function, and we don't provide an implementation fully
+  // ourselves, return NULL
+  if(realFunc == NULL && !FullyImplementedFunction(func))
     return realFunc;
 
   if(!strcmp(func, "wglCreateContext"))

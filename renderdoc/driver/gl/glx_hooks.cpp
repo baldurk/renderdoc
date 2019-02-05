@@ -507,8 +507,9 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress_renderdoc_hooked(const GLubyte *f)
     realFunc = GLX.glXGetProcAddress(f);
   }
 
-  // if the real context doesn't support this function, return NULL
-  if(realFunc == NULL)
+  // if the real context doesn't support this function, and we don't provide an implementation fully
+  // ourselves, return NULL
+  if(realFunc == NULL && !FullyImplementedFunction(func))
     return realFunc;
 
   // return our glX hooks

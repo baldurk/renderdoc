@@ -991,3 +991,5 @@ void EnableGLHooks();
 // the real function, if it exists, or the real function if not. It's used in the platform-specific
 // implementations of GetProcAddress to look up the shared list of hooks.
 void *HookedGetProcAddress(const char *funcname, void *realFunc);
+
+bool FullyImplementedFunction(const char *funcname);
