@@ -688,6 +688,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME, VK_EXT_QUEUE_FAMILY_FOREIGN_SPEC_VERSION,
     },
     {
+        VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME, VK_EXT_SAMPLE_LOCATIONS_SPEC_VERSION,
+    },
+    {
         VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME, VK_EXT_SAMPLER_FILTER_MINMAX_SPEC_VERSION,
     },
     {
@@ -2767,6 +2770,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdBeginConditionalRenderingEXT(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdEndConditionalRenderingEXT:
       return Serialise_vkCmdEndConditionalRenderingEXT(ser, VK_NULL_HANDLE);
+    case VulkanChunk::vkCmdSetSampleLocationsEXT:
+      return Serialise_vkCmdSetSampleLocationsEXT(ser, VK_NULL_HANDLE, NULL);
     default:
     {
       SystemChunk system = (SystemChunk)chunk;

@@ -601,6 +601,72 @@ void WrappedVulkan::vkCmdSetStencilReference(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkSampleLocationsInfoEXT *pSampleLocationsInfo)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(sampleInfo, *pSampleLocationsInfo).Named("pSampleLocationsInfo");
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
+        {
+          m_RenderState.sampleLocations.locations.clear();
+          m_RenderState.sampleLocations.locations.insert(
+              m_RenderState.sampleLocations.locations.begin(), sampleInfo.pSampleLocations,
+              sampleInfo.pSampleLocations + sampleInfo.sampleLocationsCount);
+          m_RenderState.sampleLocations.gridSize = sampleInfo.sampleLocationGridSize;
+          m_RenderState.sampleLocations.sampleCount = sampleInfo.sampleLocationsPerPixel;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetSampleLocationsEXT(Unwrap(commandBuffer), &sampleInfo);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetSampleLocationsEXT(VkCommandBuffer commandBuffer,
+                                               const VkSampleLocationsInfoEXT *pSampleLocationsInfo)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetSampleLocationsEXT(Unwrap(commandBuffer), pSampleLocationsInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetSampleLocationsEXT);
+    Serialise_vkCmdSetSampleLocationsEXT(ser, commandBuffer, pSampleLocationsInfo);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -630,3 +696,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilWriteMask, VkCommandBuffer 
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilReference, VkCommandBuffer commandBuffer,
                                 VkStencilFaceFlags faceMask, uint32_t reference);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetSampleLocationsEXT, VkCommandBuffer commandBuffer,
+                                const VkSampleLocationsInfoEXT *pSampleLocationsInfo);

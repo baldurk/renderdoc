@@ -108,7 +108,8 @@ private:
   const VKPipe::Shader *stageForSender(QWidget *widget);
 
   template <typename viewType>
-  void setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex);
+  void setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex,
+                      bool includeSampleLocations = false);
 
   template <typename viewType>
   void setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf);

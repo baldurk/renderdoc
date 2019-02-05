@@ -636,6 +636,25 @@ See :data:`conservativeRasterizationMode`
   float lineWidth = 0.0f;
 };
 
+DOCUMENT("Describes state of custom sample locations in the pipeline.");
+struct SampleLocations
+{
+  DOCUMENT("");
+  SampleLocations() = default;
+  SampleLocations(const SampleLocations &) = default;
+
+  DOCUMENT("The width in pixels of the region configured.");
+  uint32_t gridWidth = 1;
+  DOCUMENT("The height in pixels of the region configured.");
+  uint32_t gridHeight = 1;
+  DOCUMENT(R"(A list of :class:`FloatVector` giving the custom sample locations. Only x and y are
+valid, z and w are set to 0.0.
+
+If the list is empty then the standard sample pattern is in use.
+)");
+  rdcarray<FloatVector> customLocations;
+};
+
 DOCUMENT("Describes the multisampling state in the pipeline.");
 struct MultiSample
 {
@@ -651,6 +670,8 @@ struct MultiSample
   float minSampleShading = 0.0f;
   DOCUMENT("A mask that generated samples should be masked with using bitwise ``AND``.");
   uint32_t sampleMask = 0;
+  DOCUMENT("The :class:`VKSampleLocations` with any custom sample locations that are configured.");
+  SampleLocations sampleLocations;
 };
 
 DOCUMENT("Describes the pipeline blending state.");
@@ -1013,6 +1034,7 @@ DECLARE_REFLECTION_STRUCT(VKPipe::TransformFeedback);
 DECLARE_REFLECTION_STRUCT(VKPipe::ViewportScissor);
 DECLARE_REFLECTION_STRUCT(VKPipe::ViewState);
 DECLARE_REFLECTION_STRUCT(VKPipe::Rasterizer);
+DECLARE_REFLECTION_STRUCT(VKPipe::SampleLocations);
 DECLARE_REFLECTION_STRUCT(VKPipe::MultiSample);
 DECLARE_REFLECTION_STRUCT(VKPipe::ColorBlendState);
 DECLARE_REFLECTION_STRUCT(VKPipe::DepthStencil);

@@ -83,7 +83,10 @@ class VK_Indirect(rdtest.TestCase):
                 for y in range(0, 8):  # 3 groups of 2 threads each
                     for z in range(0, 5):  # 5 groups of 1 thread each
                         idx = 100 + z*8*6 + y*6 + x
-                        rdtest.value_compare(uints[idx], [x, y, z, 12345])
+                        if not rdtest.value_compare(uints[idx], [x, y, z, 12345]):
+                            raise rdtest.TestFailureException(
+                                'expected thread index data @ {},{},{}: {} is not as expected: {}'
+                                    .format(x, y, z, uints[idx], [x, y, z, 12345]))
 
             rdtest.log.success("Dispatched buffer contents are as expected for {}".format(level))
 

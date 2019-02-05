@@ -697,3 +697,11 @@ VkResult WrappedVulkan::vkGetValidationCacheDataEXT(VkDevice device,
   return ObjDisp(device)->GetValidationCacheDataEXT(Unwrap(device), validationCache, pDataSize,
                                                     pData);
 }
+void WrappedVulkan::vkGetPhysicalDeviceMultisamplePropertiesEXT(
+    VkPhysicalDevice physicalDevice, VkSampleCountFlagBits samples,
+    VkMultisamplePropertiesEXT *pMultisampleProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceMultisamplePropertiesEXT(Unwrap(physicalDevice), samples,
+                                                  pMultisampleProperties);
+}

@@ -30,6 +30,30 @@
 
 struct VulkanCreationInfo;
 
+// linearised version of VkDynamicState
+enum VulkanDynamicStateIndex
+{
+  VkDynamicViewport,
+  VkDynamicScissor,
+  VkDynamicLineWidth,
+  VkDynamicDepthBias,
+  VkDynamicBlendConstants,
+  VkDynamicDepthBounds,
+  VkDynamicStencilCompareMask,
+  VkDynamicStencilWriteMask,
+  VkDynamicStencilReference,
+  VkDynamicViewportWScalingNV,
+  VkDynamicDiscardRectangleEXT,
+  VkDynamicSampleLocationsEXT,
+  VkDynamicViewportShadingRatePaletteNV,
+  VkDynamicViewportCoarseSampleOrderNV,
+  VkDynamicExclusiveScissorNV,
+  VkDynamicCount,
+};
+
+VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx);
+VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state);
+
 struct DescSetLayout
 {
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
@@ -205,6 +229,14 @@ struct VulkanCreationInfo
     bool alphaToCoverageEnable;
     bool alphaToOneEnable;
 
+    // VkPipelineSampleLocationsStateCreateInfoEXT
+    struct
+    {
+      bool enabled;
+      VkExtent2D gridSize;
+      std::vector<VkSampleLocationEXT> locations;
+    } sampleLocations;
+
     // VkPipelineDepthStencilStateCreateInfo
     bool depthTestEnable;
     bool depthWriteEnable;
@@ -237,7 +269,7 @@ struct VulkanCreationInfo
     vector<Attachment> attachments;
 
     // VkPipelineDynamicStateCreateInfo
-    bool dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE];
+    bool dynamicStates[VkDynamicCount];
   };
   map<ResourceId, Pipeline> m_Pipeline;
 

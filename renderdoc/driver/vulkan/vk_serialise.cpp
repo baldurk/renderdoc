@@ -477,6 +477,16 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,                               \
                VkSamplerReductionModeCreateInfoEXT)                                                    \
                                                                                                        \
+  /* VK_EXT_sample_locations */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT, VkSampleLocationsInfoEXT)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT,                          \
+               VkRenderPassSampleLocationsBeginInfoEXT)                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT,                      \
+               VkPipelineSampleLocationsStateCreateInfoEXT)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLE_LOCATIONS_PROPERTIES_EXT,                      \
+               VkPhysicalDeviceSampleLocationsPropertiesEXT)                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT, VkMultisamplePropertiesEXT)               \
+                                                                                                       \
   /* VK_EXT_transform_feedback */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                      \
                VkPhysicalDeviceTransformFeedbackFeaturesEXT)                                           \
@@ -812,13 +822,6 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_filter_cubic */                                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT)                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT)             \
-                                                                                                       \
-  /* VK_EXT_sample_locations */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT)                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT)                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLE_LOCATIONS_PROPERTIES_EXT)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT)                                      \
                                                                                                        \
   /* VK_EXT_scalar_block_layout */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT)                \
@@ -3750,6 +3753,84 @@ void Deserialise(const VkRenderPassMultiviewCreateInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSampleLocationEXT &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSampleLocationsInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(sampleLocationsPerPixel);
+  SERIALISE_MEMBER(sampleLocationGridSize);
+  SERIALISE_MEMBER(sampleLocationsCount);
+  SERIALISE_MEMBER_ARRAY(pSampleLocations, sampleLocationsCount);
+}
+
+template <>
+void Deserialise(const VkSampleLocationsInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pSampleLocations;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassSampleLocationsEXT &el)
+{
+  SERIALISE_MEMBER(subpassIndex);
+  SERIALISE_MEMBER(sampleLocationsInfo);
+}
+
+template <>
+void Deserialise(const VkSubpassSampleLocationsEXT &el)
+{
+  Deserialise(el.sampleLocationsInfo);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAttachmentSampleLocationsEXT &el)
+{
+  SERIALISE_MEMBER(attachmentIndex);
+  SERIALISE_MEMBER(sampleLocationsInfo);
+}
+
+template <>
+void Deserialise(const VkAttachmentSampleLocationsEXT &el)
+{
+  Deserialise(el.sampleLocationsInfo);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRenderPassSampleLocationsBeginInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(attachmentInitialSampleLocationsCount);
+  SERIALISE_MEMBER_ARRAY(pAttachmentInitialSampleLocations, attachmentInitialSampleLocationsCount);
+  SERIALISE_MEMBER(postSubpassSampleLocationsCount);
+  SERIALISE_MEMBER_ARRAY(pPostSubpassSampleLocations, postSubpassSampleLocationsCount);
+}
+
+template <>
+void Deserialise(const VkRenderPassSampleLocationsBeginInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  for(uint32_t j = 0;
+      el.pAttachmentInitialSampleLocations && j < el.attachmentInitialSampleLocationsCount; j++)
+    Deserialise(el.pAttachmentInitialSampleLocations[j]);
+  delete[] el.pAttachmentInitialSampleLocations;
+  for(uint32_t j = 0; el.pPostSubpassSampleLocations && j < el.postSubpassSampleLocationsCount; j++)
+    Deserialise(el.pPostSubpassSampleLocations[j]);
+  delete[] el.pPostSubpassSampleLocations;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMultiviewFeatures &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES);
@@ -4060,6 +4141,41 @@ void Deserialise(const VkValidationFlagsEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSampleLocationsPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLE_LOCATIONS_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(sampleLocationSampleCounts);
+  SERIALISE_MEMBER(maxSampleLocationGridSize);
+  SERIALISE_MEMBER(sampleLocationCoordinateRange);
+  SERIALISE_MEMBER(sampleLocationSubPixelBits);
+  SERIALISE_MEMBER(variableSampleLocations);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceSampleLocationsPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMultisamplePropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxSampleLocationGridSize);
+}
+
+template <>
+void Deserialise(const VkMultisamplePropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTransformFeedbackFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -4097,6 +4213,23 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTransformFeedbackPropertie
 
 template <>
 void Deserialise(const VkPhysicalDeviceTransformFeedbackPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineSampleLocationsStateCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(sampleLocationsEnable);
+  SERIALISE_MEMBER(sampleLocationsInfo);
+}
+
+template <>
+void Deserialise(const VkPipelineSampleLocationsStateCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -6034,6 +6167,7 @@ INSTANTIATE_SERIALISE_TYPE(VkMemoryFdPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryGetFdInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryRequirements2);
+INSTANTIATE_SERIALISE_TYPE(VkMultisamplePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
@@ -6065,6 +6199,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParameterFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSampleLocationsPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSurfaceInfo2KHR);
@@ -6085,6 +6220,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineMultisampleStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationStateStreamCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineSampleLocationsStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineShaderStageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineTessellationStateCreateInfo);
@@ -6101,6 +6237,8 @@ INSTANTIATE_SERIALISE_TYPE(VkRenderPassCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassCreateInfo2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkRenderPassSampleLocationsBeginInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSampleLocationsInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerReductionModeCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfo);

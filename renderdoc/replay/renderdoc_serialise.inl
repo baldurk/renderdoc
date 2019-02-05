@@ -2001,14 +2001,25 @@ void DoSerialise(SerialiserType &ser, VKPipe::Rasterizer &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VKPipe::SampleLocations &el)
+{
+  SERIALISE_MEMBER(gridWidth);
+  SERIALISE_MEMBER(gridHeight);
+  SERIALISE_MEMBER(customLocations);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::MultiSample &el)
 {
   SERIALISE_MEMBER(rasterSamples);
   SERIALISE_MEMBER(sampleShadingEnable);
   SERIALISE_MEMBER(minSampleShading);
   SERIALISE_MEMBER(sampleMask);
+  SERIALISE_MEMBER(sampleLocations);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>
@@ -2170,7 +2181,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(1384);
+  SIZE_CHECK(1408);
 }
 
 #pragma endregion Vulkan pipeline state

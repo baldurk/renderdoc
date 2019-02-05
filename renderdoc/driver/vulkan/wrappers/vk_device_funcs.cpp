@@ -539,12 +539,42 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   if(renderdocAppInfo.apiVersion > VK_API_VERSION_1_0)
     record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
 
+  std::set<std::string> availablePhysDeviceFunctions;
+
+  {
+    uint32_t count = 0;
+    ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, NULL);
+
+    std::vector<VkPhysicalDevice> physDevs(count);
+    ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, physDevs.data());
+
+    std::vector<VkExtensionProperties> exts;
+    for(VkPhysicalDevice p : physDevs)
+    {
+      ObjDisp(m_Instance)->EnumerateDeviceExtensionProperties(p, NULL, &count, NULL);
+
+      exts.resize(count);
+      ObjDisp(m_Instance)->EnumerateDeviceExtensionProperties(p, NULL, &count, exts.data());
+
+      for(const VkExtensionProperties &e : exts)
+      {
+        availablePhysDeviceFunctions.insert(e.extensionName);
+      }
+    }
+    // we don't bother wrapping these, they're temporary handles
+  }
+
+// an extension is available if:
+// * it's enabled in the instance creation
+// * it's promoted in the selected vulkan version
+// * it's a device extension and available on at least one physical device
 #undef CheckExt
-#define CheckExt(name, ver)                                                 \
-  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
-     record->instDevInfo->vulkanVersion >= ver)                             \
-  {                                                                         \
-    record->instDevInfo->ext_##name = true;                                 \
+#define CheckExt(name, ver)                                                                \
+  if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], "VK_" #name) ||                \
+     record->instDevInfo->vulkanVersion >= ver ||                                          \
+     availablePhysDeviceFunctions.find("VK_" #name) != availablePhysDeviceFunctions.end()) \
+  {                                                                                        \
+    record->instDevInfo->ext_##name = true;                                                \
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
@@ -2195,6 +2225,16 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       // inherit extension enablement from instance, that way GetDeviceProcAddress can check
       // for enabled extensions for instance functions
       CheckInstanceExts();
+
+// we unset the extension because it may be a 'shared' extension that's available at both instance
+// and device. Only set it to enabled if it's really enabled for this device. This can happen with a
+// device extension that is reported by another physical device than the one selected - it becomes
+// available at instance level (e.g. for physical device queries) but is not available at *this*
+// device level.
+#undef CheckExt
+#define CheckExt(name, ver) record->instDevInfo->ext_##name = false;
+
+      CheckDeviceExts();
 
 #undef CheckExt
 #define CheckExt(name, ver)                                         \

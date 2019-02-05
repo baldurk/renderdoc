@@ -75,6 +75,13 @@ struct VulkanRenderState
     uint32_t compare, write, ref;
   } front, back;
 
+  struct
+  {
+    VkSampleCountFlagBits sampleCount;
+    VkExtent2D gridSize;
+    std::vector<VkSampleLocationEXT> locations;
+  } sampleLocations;
+
   // this should be big enough for any implementation
   byte pushconsts[1024];
   // the actual number of bytes that have been uploaded

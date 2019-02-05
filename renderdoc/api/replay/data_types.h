@@ -30,6 +30,7 @@
 DOCUMENT("A floating point four-component vector");
 struct FloatVector
 {
+  DOCUMENT("");
   FloatVector() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
   FloatVector(const FloatVector &) = default;
   FloatVector(float X, float Y, float Z, float W) : x(X), y(Y), z(Z), w(W) {}
@@ -38,6 +39,22 @@ struct FloatVector
   {
   }
 #endif
+  bool operator==(const FloatVector &o) const
+  {
+    return x == o.x && y == o.y && z == o.z && w == o.w;
+  }
+  bool operator<(const FloatVector &o) const
+  {
+    if(!(x == o.x))
+      return x < o.x;
+    if(!(y == o.y))
+      return y < o.y;
+    if(!(z == o.z))
+      return z < o.z;
+    if(!(w == o.w))
+      return w < o.w;
+    return false;
+  }
   DOCUMENT("The x component.");
   float x;
   DOCUMENT("The y component.");

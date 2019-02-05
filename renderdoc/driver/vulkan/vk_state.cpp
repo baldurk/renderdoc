@@ -222,7 +222,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
     const vector<VkPushConstantRange> &pushRanges =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
-    bool dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE] = {0};
+    bool dynamicStates[VkDynamicCount] = {0};
     memcpy(dynamicStates, m_CreationInfo->m_Pipeline[graphics.pipeline].dynamicStates,
            sizeof(dynamicStates));
 
@@ -230,39 +230,49 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                           sizeof(m_CreationInfo->m_Pipeline[graphics.pipeline].dynamicStates),
                       "Dynamic states array size is out of sync");
 
-    if(!views.empty() && dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+    if(!views.empty() && dynamicStates[VkDynamicViewport])
       ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
-    if(!scissors.empty() && dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+    if(!scissors.empty() && dynamicStates[VkDynamicScissor])
       ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
 
-    if(dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+    if(dynamicStates[VkDynamicLineWidth])
       ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
 
-    if(dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+    if(dynamicStates[VkDynamicDepthBias])
       ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), bias.depth, bias.biasclamp, bias.slope);
 
-    if(dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+    if(dynamicStates[VkDynamicBlendConstants])
       ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
 
-    if(dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+    if(dynamicStates[VkDynamicDepthBounds])
       ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
 
-    if(dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+    if(dynamicStates[VkDynamicStencilCompareMask])
     {
       ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.compare);
       ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.compare);
     }
 
-    if(dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+    if(dynamicStates[VkDynamicStencilWriteMask])
     {
       ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.write);
       ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.write);
     }
 
-    if(dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+    if(dynamicStates[VkDynamicStencilReference])
     {
       ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.ref);
       ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.ref);
+    }
+
+    if(dynamicStates[VkDynamicSampleLocationsEXT])
+    {
+      VkSampleLocationsInfoEXT info = {VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT};
+      info.pSampleLocations = sampleLocations.locations.data();
+      info.sampleLocationsCount = (uint32_t)sampleLocations.locations.size();
+      info.sampleLocationsPerPixel = sampleLocations.sampleCount;
+      info.sampleLocationGridSize = sampleLocations.gridSize;
+      ObjDisp(cmd)->CmdSetSampleLocationsEXT(Unwrap(cmd), &info);
     }
 
     // only set push constant ranges that the layout uses

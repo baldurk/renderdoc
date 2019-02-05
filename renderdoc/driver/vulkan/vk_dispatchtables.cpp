@@ -74,10 +74,13 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
 
   instance = Unwrap(instance);
 
-#undef CheckExt
-#define CheckExt(name, ver)     \
-  bool name = info->ext_##name; \
+#undef DeclExt
+#define DeclExt(name) \
+  bool name = false;  \
   (void)name;
+
+#undef CheckExt
+#define CheckExt(name, ver) name = info->ext_##name;
 
 #undef HookInitExtension
 #define HookInitExtension(cond, func) \
@@ -97,6 +100,8 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
     if(table->CONCAT(func, suffix) == NULL)           \
       table->CONCAT(func, suffix) = table->func;      \
   }
+
+  DeclExts();
 
   CheckInstanceExts();
 
@@ -136,6 +141,8 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
     if(table->CONCAT(func, suffix) == NULL)           \
       table->CONCAT(func, suffix) = table->func;      \
   }
+
+  DeclExts();
 
   CheckInstanceExts();
   CheckDeviceExts();

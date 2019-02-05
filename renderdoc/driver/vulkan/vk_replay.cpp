@@ -1112,6 +1112,22 @@ void VulkanReplay::SavePipelineState()
     m_VulkanPipelineState.multisample.minSampleShading = p.minSampleShading;
     m_VulkanPipelineState.multisample.sampleMask = p.sampleMask;
 
+    m_VulkanPipelineState.multisample.sampleLocations.customLocations.clear();
+    if(p.sampleLocations.enabled)
+    {
+      m_VulkanPipelineState.multisample.sampleLocations.gridWidth =
+          state.sampleLocations.gridSize.width;
+      m_VulkanPipelineState.multisample.sampleLocations.gridHeight =
+          state.sampleLocations.gridSize.height;
+      m_VulkanPipelineState.multisample.sampleLocations.customLocations.reserve(
+          state.sampleLocations.locations.size());
+      for(const VkSampleLocationEXT &loc : state.sampleLocations.locations)
+      {
+        m_VulkanPipelineState.multisample.sampleLocations.customLocations.push_back(
+            {loc.x, loc.y, 0.0f, 0.0f});
+      }
+    }
+
     // Color Blend
     m_VulkanPipelineState.colorBlend.alphaToCoverageEnable = p.alphaToCoverageEnable;
     m_VulkanPipelineState.colorBlend.alphaToOneEnable = p.alphaToOneEnable;

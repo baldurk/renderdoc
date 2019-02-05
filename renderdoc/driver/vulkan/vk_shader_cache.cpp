@@ -498,16 +498,16 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
   RDCASSERT(ARRAY_COUNT(atts) >= pipeInfo.attachments.size());
 
-  static VkDynamicState dynSt[VK_DYNAMIC_STATE_RANGE_SIZE];
+  static VkDynamicState dynSt[VkDynamicCount];
 
   static VkPipelineDynamicStateCreateInfo dyn = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
 
   dyn.dynamicStateCount = 0;
   dyn.pDynamicStates = dynSt;
 
-  for(uint32_t i = 0; i < VK_DYNAMIC_STATE_RANGE_SIZE; i++)
+  for(uint32_t i = 0; i < VkDynamicCount; i++)
     if(pipeInfo.dynamicStates[i])
-      dynSt[dyn.dynamicStateCount++] = (VkDynamicState)i;
+      dynSt[dyn.dynamicStateCount++] = ConvertDynamicState((VulkanDynamicStateIndex)i);
 
   // since we don't have to worry about threading, we point everything at the above static structs
 

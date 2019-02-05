@@ -266,6 +266,23 @@ struct DeviceCreateInfo : public VkDeviceCreateInfo
   operator const VkDeviceCreateInfo *() const { return this; }
 };
 
+struct PhysicalDeviceProperties2KHR : public VkPhysicalDeviceProperties2KHR
+{
+  PhysicalDeviceProperties2KHR()
+  {
+    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+    pNext = NULL;
+  }
+
+  PhysicalDeviceProperties2KHR &next(void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
+  operator VkPhysicalDeviceProperties2KHR *() { return this; }
+};
+
 struct SemaphoreCreateInfo : public VkSemaphoreCreateInfo
 {
   SemaphoreCreateInfo() : VkSemaphoreCreateInfo()
@@ -808,6 +825,12 @@ struct RenderPassBeginInfo : public VkRenderPassBeginInfo
     this->renderArea = renderArea;
     this->clearValueCount = (uint32_t)clearVals.size();
     this->pClearValues = clearVals.data();
+  }
+
+  RenderPassBeginInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
   }
 
   operator const VkRenderPassBeginInfo *() const { return this; }

@@ -1999,4 +1999,12 @@ public:
                                 VkCommandBuffer commandBuffer,
                                 const VkConditionalRenderingBeginInfoEXT *pConditionalRenderingBegin);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndConditionalRenderingEXT, VkCommandBuffer commandBuffer);
+
+  // VK_EXT_sample_locations
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetSampleLocationsEXT, VkCommandBuffer commandBuffer,
+                                const VkSampleLocationsInfoEXT *pSampleLocationsInfo);
+  void vkGetPhysicalDeviceMultisamplePropertiesEXT(VkPhysicalDevice physicalDevice,
+                                                   VkSampleCountFlagBits samples,
+                                                   VkMultisamplePropertiesEXT *pMultisampleProperties);
 };

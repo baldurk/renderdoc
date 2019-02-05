@@ -291,6 +291,71 @@
 // They're not really used or  relevant on win32/android but for platform simplicity
 // we just include it always, it does no harm to include.
 
+// this is the union of the lists below - necessary because some extensions are in both lists
+// (device extensions with physical device functions)
+#define DeclExts()                              \
+  DeclExt(KHR_xlib_surface);                    \
+  DeclExt(KHR_xcb_surface);                     \
+  DeclExt(KHR_win32_surface);                   \
+  DeclExt(KHR_android_surface);                 \
+  DeclExt(MVK_macos_surface);                   \
+  DeclExt(KHR_surface);                         \
+  DeclExt(EXT_debug_report);                    \
+  DeclExt(KHR_display);                         \
+  DeclExt(NV_external_memory_capabilities);     \
+  DeclExt(KHR_get_physical_device_properties2); \
+  DeclExt(EXT_display_surface_counter);         \
+  DeclExt(EXT_direct_mode_display);             \
+  DeclExt(EXT_acquire_xlib_display);            \
+  DeclExt(KHR_external_memory_capabilities);    \
+  DeclExt(KHR_external_semaphore_capabilities); \
+  DeclExt(KHR_external_fence_capabilities);     \
+  DeclExt(EXT_debug_utils);                     \
+  DeclExt(KHR_device_group_creation);           \
+  DeclExt(protected_memory);                    \
+  DeclExt(KHR_get_surface_capabilities2);       \
+  DeclExt(KHR_get_display_properties2);         \
+  /* device extensions */                       \
+  DeclExt(EXT_debug_marker);                    \
+  DeclExt(KHR_swapchain);                       \
+  DeclExt(KHR_display_swapchain);               \
+  DeclExt(NV_external_memory);                  \
+  DeclExt(NV_external_memory_win32);            \
+  DeclExt(NV_win32_keyed_mutex);                \
+  DeclExt(KHR_maintenance1);                    \
+  DeclExt(KHR_maintenance2);                    \
+  DeclExt(KHR_maintenance3);                    \
+  DeclExt(EXT_display_control);                 \
+  DeclExt(KHR_external_memory);                 \
+  DeclExt(KHR_external_memory_win32);           \
+  DeclExt(KHR_external_memory_fd);              \
+  DeclExt(KHR_external_semaphore);              \
+  DeclExt(KHR_external_semaphore_win32);        \
+  DeclExt(KHR_external_semaphore_fd);           \
+  DeclExt(KHR_external_fence);                  \
+  DeclExt(KHR_external_fence_win32);            \
+  DeclExt(KHR_external_fence_fd);               \
+  DeclExt(KHR_get_memory_requirements2);        \
+  DeclExt(AMD_shader_info);                     \
+  DeclExt(KHR_push_descriptor);                 \
+  DeclExt(KHR_descriptor_update_template);      \
+  DeclExt(KHR_bind_memory2);                    \
+  DeclExt(EXT_conservative_rasterization);      \
+  DeclExt(EXT_global_priority);                 \
+  DeclExt(AMD_buffer_marker);                   \
+  DeclExt(EXT_vertex_attribute_divisor);        \
+  DeclExt(EXT_sampler_filter_minmax);           \
+  DeclExt(KHR_sampler_ycbcr_conversion);        \
+  DeclExt(KHR_device_group);                    \
+  DeclExt(MVK_moltenvk);                        \
+  DeclExt(KHR_draw_indirect_count);             \
+  DeclExt(EXT_validation_cache);                \
+  DeclExt(KHR_shared_presentable_image);        \
+  DeclExt(KHR_create_renderpass2);              \
+  DeclExt(EXT_transform_feedback);              \
+  DeclExt(EXT_conditional_rendering);           \
+  DeclExt(EXT_sample_locations);
+
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
 #define CheckInstanceExts()                            \
@@ -314,7 +379,8 @@
   CheckExt(KHR_device_group_creation, VK11);           \
   CheckExt(protected_memory, VK11);                    \
   CheckExt(KHR_get_surface_capabilities2, VKXX);       \
-  CheckExt(KHR_get_display_properties2, VKXX);
+  CheckExt(KHR_get_display_properties2, VKXX);         \
+  CheckExt(EXT_sample_locations, VKXX);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -354,7 +420,8 @@
   CheckExt(KHR_shared_presentable_image, VKXX);   \
   CheckExt(KHR_create_renderpass2, VKXX);         \
   CheckExt(EXT_transform_feedback, VKXX);         \
-  CheckExt(EXT_conditional_rendering, VKXX);
+  CheckExt(EXT_conditional_rendering, VKXX);      \
+  CheckExt(EXT_sample_locations, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -408,6 +475,7 @@
   HookInitExtension(KHR_get_display_properties2, GetPhysicalDeviceDisplayPlaneProperties2KHR);       \
   HookInitExtension(KHR_get_display_properties2, GetDisplayModeProperties2KHR);                      \
   HookInitExtension(KHR_get_display_properties2, GetDisplayPlaneCapabilities2KHR);                   \
+  HookInitExtension(EXT_sample_locations, GetPhysicalDeviceMultisamplePropertiesEXT);                \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                                 \
@@ -483,6 +551,7 @@
   HookInitExtension(EXT_transform_feedback, CmdDrawIndirectByteCountEXT);                          \
   HookInitExtension(EXT_conditional_rendering, CmdBeginConditionalRenderingEXT);                   \
   HookInitExtension(EXT_conditional_rendering, CmdEndConditionalRenderingEXT);                     \
+  HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                               \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1039,6 +1108,10 @@
   HookDefine2(void, vkCmdBeginConditionalRenderingEXT, VkCommandBuffer, commandBuffer,               \
               const VkConditionalRenderingBeginInfoEXT *, pConditionalRenderingBegin);               \
   HookDefine1(void, vkCmdEndConditionalRenderingEXT, VkCommandBuffer, commandBuffer);                \
+  HookDefine2(void, vkCmdSetSampleLocationsEXT, VkCommandBuffer, commandBuffer,                      \
+              const VkSampleLocationsInfoEXT *, pSampleLocationsInfo);                               \
+  HookDefine3(void, vkGetPhysicalDeviceMultisamplePropertiesEXT, VkPhysicalDevice, physicalDevice,   \
+              VkSampleCountFlagBits, samples, VkMultisamplePropertiesEXT *, pMultisampleProperties); \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

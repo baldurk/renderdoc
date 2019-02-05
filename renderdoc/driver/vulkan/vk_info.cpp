@@ -25,6 +25,65 @@
 #include "vk_info.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 
+VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
+{
+  switch(idx)
+  {
+    case VkDynamicViewport: return VK_DYNAMIC_STATE_VIEWPORT;
+    case VkDynamicScissor: return VK_DYNAMIC_STATE_SCISSOR;
+    case VkDynamicLineWidth: return VK_DYNAMIC_STATE_LINE_WIDTH;
+    case VkDynamicDepthBias: return VK_DYNAMIC_STATE_DEPTH_BIAS;
+    case VkDynamicBlendConstants: return VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+    case VkDynamicDepthBounds: return VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+    case VkDynamicStencilCompareMask: return VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+    case VkDynamicStencilWriteMask: return VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+    case VkDynamicStencilReference: return VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+    case VkDynamicViewportWScalingNV: return VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV;
+    case VkDynamicDiscardRectangleEXT: return VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT;
+    case VkDynamicSampleLocationsEXT: return VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT;
+    case VkDynamicViewportShadingRatePaletteNV:
+      return VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV;
+    case VkDynamicViewportCoarseSampleOrderNV:
+      return VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV;
+    case VkDynamicExclusiveScissorNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
+    case VkDynamicCount: break;
+  }
+
+  RDCERR("Unexpected vulkan dynamic state index %u", idx);
+
+  return VK_DYNAMIC_STATE_MAX_ENUM;
+}
+
+VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
+{
+  switch(state)
+  {
+    case VK_DYNAMIC_STATE_VIEWPORT: return VkDynamicViewport;
+    case VK_DYNAMIC_STATE_SCISSOR: return VkDynamicScissor;
+    case VK_DYNAMIC_STATE_LINE_WIDTH: return VkDynamicLineWidth;
+    case VK_DYNAMIC_STATE_DEPTH_BIAS: return VkDynamicDepthBias;
+    case VK_DYNAMIC_STATE_BLEND_CONSTANTS: return VkDynamicBlendConstants;
+    case VK_DYNAMIC_STATE_DEPTH_BOUNDS: return VkDynamicDepthBounds;
+    case VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK: return VkDynamicStencilCompareMask;
+    case VK_DYNAMIC_STATE_STENCIL_WRITE_MASK: return VkDynamicStencilWriteMask;
+    case VK_DYNAMIC_STATE_STENCIL_REFERENCE: return VkDynamicStencilReference;
+    case VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV: return VkDynamicViewportWScalingNV;
+    case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT: return VkDynamicDiscardRectangleEXT;
+    case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT: return VkDynamicSampleLocationsEXT;
+    case VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV:
+      return VkDynamicViewportShadingRatePaletteNV;
+    case VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV:
+      return VkDynamicViewportCoarseSampleOrderNV;
+    case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
+    case VK_DYNAMIC_STATE_RANGE_SIZE:
+    case VK_DYNAMIC_STATE_MAX_ENUM: break;
+  }
+
+  RDCERR("Unexpected vulkan state %u", state);
+
+  return VkDynamicCount;
+}
+
 void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                          const VkDescriptorSetLayoutCreateInfo *pCreateInfo)
 {
@@ -152,7 +211,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   renderpass = GetResID(pCreateInfo->renderPass);
   subpass = pCreateInfo->subpass;
 
-  // need to figure out which states are valid to be NULL
+  RDCEraseEl(dynamicStates);
+  if(pCreateInfo->pDynamicState)
+  {
+    for(uint32_t i = 0; i < pCreateInfo->pDynamicState->dynamicStateCount; i++)
+      dynamicStates[ConvertDynamicState(pCreateInfo->pDynamicState->pDynamicStates[i])] = true;
+  }
 
   // VkPipelineShaderStageCreateInfo
   for(uint32_t i = 0; i < pCreateInfo->stageCount; i++)
@@ -317,6 +381,31 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
                      : ~0U;
     alphaToCoverageEnable = pCreateInfo->pMultisampleState->alphaToCoverageEnable ? true : false;
     alphaToOneEnable = pCreateInfo->pMultisampleState->alphaToOneEnable ? true : false;
+
+    // VkPipelineSampleLocationsStateCreateInfoEXT
+    sampleLocations.enabled = false;
+    sampleLocations.gridSize.width = 1;
+    sampleLocations.gridSize.height = 1;
+
+    const VkPipelineSampleLocationsStateCreateInfoEXT *sampleLoc =
+        (const VkPipelineSampleLocationsStateCreateInfoEXT *)FindNextStruct(
+            pCreateInfo->pMultisampleState,
+            VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
+    if(sampleLoc)
+    {
+      sampleLocations.enabled = sampleLoc->sampleLocationsEnable ? true : false;
+
+      if(!dynamicStates[VkDynamicSampleLocationsEXT])
+      {
+        sampleLocations.gridSize = sampleLoc->sampleLocationsInfo.sampleLocationGridSize;
+        sampleLocations.locations.insert(sampleLocations.locations.begin(),
+                                         sampleLoc->sampleLocationsInfo.pSampleLocations,
+                                         sampleLoc->sampleLocationsInfo.pSampleLocations +
+                                             sampleLoc->sampleLocationsInfo.sampleLocationsCount);
+
+        RDCASSERTEQUAL(sampleLoc->sampleLocationsInfo.sampleLocationsPerPixel, rasterizationSamples);
+      }
+    }
   }
   else
   {
@@ -398,13 +487,6 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     RDCEraseEl(blendConst);
 
     attachments.clear();
-  }
-
-  RDCEraseEl(dynamicStates);
-  if(pCreateInfo->pDynamicState)
-  {
-    for(uint32_t i = 0; i < pCreateInfo->pDynamicState->dynamicStateCount; i++)
-      dynamicStates[pCreateInfo->pDynamicState->pDynamicStates[i]] = true;
   }
 }
 

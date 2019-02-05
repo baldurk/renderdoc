@@ -1827,48 +1827,57 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
           {
             m_RenderState.graphics.pipeline = liveid;
 
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicViewport])
             {
               m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicScissor])
             {
               m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicLineWidth])
             {
               m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDepthBias])
             {
               m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
               m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
               m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicBlendConstants])
             {
               memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
                      sizeof(float) * 4);
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDepthBounds])
             {
               m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
               m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilCompareMask])
             {
               m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
               m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilWriteMask])
             {
               m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
               m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilReference])
             {
               m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
               m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicSampleLocationsEXT])
+            {
+              m_RenderState.sampleLocations.locations =
+                  m_CreationInfo.m_Pipeline[liveid].sampleLocations.locations;
+              m_RenderState.sampleLocations.gridSize =
+                  m_CreationInfo.m_Pipeline[liveid].sampleLocations.gridSize;
+              m_RenderState.sampleLocations.sampleCount =
+                  m_CreationInfo.m_Pipeline[liveid].rasterizationSamples;
             }
           }
         }
@@ -3256,7 +3265,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
                                                        const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(Marker, *pMarker);
+  SERIALISE_ELEMENT_LOCAL(Marker, *pMarker).Named("pMarker");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3408,7 +3417,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
                                                         const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(Marker, *pMarker);
+  SERIALISE_ELEMENT_LOCAL(Marker, *pMarker).Named("pMarker");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4791,7 +4800,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginConditionalRenderingEXT(
     const VkConditionalRenderingBeginInfoEXT *pConditionalRenderingBegin)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(BeginInfo, *pConditionalRenderingBegin);
+  SERIALISE_ELEMENT_LOCAL(BeginInfo, *pConditionalRenderingBegin)
+      .Named("pConditionalRenderingBegin");
 
   Serialise_DebugMessages(ser);
 

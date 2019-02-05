@@ -38,23 +38,14 @@ void InitReplayTables(void *vulkanModule);
 
 struct InstanceDeviceInfo
 {
-#undef CheckExt
-#define CheckExt(name, ver) ext_##name = false;
-  InstanceDeviceInfo()
-  {
-    CheckDeviceExts();
-    CheckInstanceExts();
-  }
-
-#undef CheckExt
-#define CheckExt(name, ver) bool ext_##name;
+#undef DeclExt
+#define DeclExt(name) bool ext_##name = false;
 
   bool brokenGetDeviceProcAddr = false;
 
   int vulkanVersion = VK_API_VERSION_1_0;
 
-  CheckDeviceExts();
-  CheckInstanceExts();
+  DeclExts();
 };
 
 void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info);

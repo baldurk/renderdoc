@@ -428,7 +428,7 @@ void VulkanPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 
 template <typename bindType>
 void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
-                                               TextureDescription *tex)
+                                               TextureDescription *tex, bool includeSampleLocations)
 {
   if(tex == NULL)
     return;
@@ -437,8 +437,10 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
   bool viewdetails = false;
 
+  const VKPipe::State &state = *m_Ctx.CurVulkanPipelineState();
+
   {
-    for(const VKPipe::ImageData &im : m_Ctx.CurVulkanPipelineState()->images)
+    for(const VKPipe::ImageData &im : state.images)
     {
       if(im.resourceId == tex->resourceId)
       {
@@ -484,6 +486,26 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
       viewdetails = true;
     }
+  }
+
+  if(includeSampleLocations && state.multisample.rasterSamples > 1 &&
+     !state.multisample.sampleLocations.customLocations.isEmpty())
+  {
+    text += tr("Rendering with custom sample locations over %1x%2 grid:\n")
+                .arg(state.multisample.sampleLocations.gridWidth)
+                .arg(state.multisample.sampleLocations.gridHeight);
+
+    const rdcarray<FloatVector> &locations = state.multisample.sampleLocations.customLocations;
+
+    for(int i = 0; i < locations.count(); i++)
+    {
+      text += QFormatStr("  [%1]: %2, %3\n")
+                  .arg(i)
+                  .arg(Formatter::Format(locations[i].x))
+                  .arg(Formatter::Format(locations[i].y));
+    }
+
+    viewdetails = true;
   }
 
   text = text.trimmed();
@@ -2186,7 +2208,7 @@ void VulkanPipelineStateViewer::setState()
           targets[i] = true;
         }
 
-        setViewDetails(node, p, tex);
+        setViewDetails(node, p, tex, resIdx < 0);
 
         ui->fbAttach->addTopLevelItem(node);
       }

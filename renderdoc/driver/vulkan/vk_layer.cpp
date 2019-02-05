@@ -257,10 +257,13 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
                                                           pProperties);
 }
 
-#undef CheckExt
-#define CheckExt(name, ver)                                   \
-  bool name = instDevInfo == NULL || instDevInfo->ext_##name; \
+#undef DeclExt
+#define DeclExt(name) \
+  bool name = false;  \
   (void)name;
+
+#undef CheckExt
+#define CheckExt(name, ver) name = instDevInfo == NULL || instDevInfo->ext_##name;
 
 #undef HookInit
 #define HookInit(function)                            \
@@ -303,6 +306,8 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
     return NULL;
 
   InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
+
+  DeclExts();
 
   CheckInstanceExts();
   CheckDeviceExts();
@@ -372,6 +377,8 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
         "GetInstanceProcAddr passed invalid instance for %s! Possibly broken loader. "
         "Working around by assuming all extensions are enabled - WILL CAUSE SPEC-BROKEN BEHAVIOUR",
         pName);
+
+  DeclExts();
 
   CheckInstanceExts();
   CheckDeviceExts();
