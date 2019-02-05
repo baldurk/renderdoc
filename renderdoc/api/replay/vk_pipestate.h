@@ -643,6 +643,7 @@ and a fragment in none of them is discarded.
 .. note:
   A ``True`` value and an empty list of :data:`discardRectangles` means the test is effectively
   disabled, since with no rectangles no fragment can be inside one.
+
 )");
   bool discardRectanglesExclusive = true;
 };
