@@ -493,6 +493,10 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceSampleLocationsPropertiesEXT)                                           \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT, VkMultisamplePropertiesEXT)               \
                                                                                                        \
+  /* VK_EXT_separate_stencil_usage */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT,                                  \
+               VkImageStencilUsageCreateInfoEXT)                                                       \
+                                                                                                       \
   /* VK_EXT_transform_feedback */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                      \
                VkPhysicalDeviceTransformFeedbackFeaturesEXT)                                           \
@@ -827,9 +831,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_scalar_block_layout */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT)                \
-                                                                                                       \
-  /* VK_EXT_separate_stencil_usage */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT)                             \
                                                                                                        \
   /* VK_EXT_validation_features */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT)                                         \
@@ -4178,6 +4179,21 @@ void Deserialise(const VkMultisamplePropertiesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageStencilUsageCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(stencilUsage);
+}
+
+template <>
+void Deserialise(const VkImageStencilUsageCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTransformFeedbackFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -6185,6 +6201,7 @@ INSTANTIATE_SERIALISE_TYPE(VkImageFormatProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryBarrier);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkImagePlaneMemoryRequirementsInfo);
+INSTANTIATE_SERIALISE_TYPE(VkImageStencilUsageCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkImageSparseMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkImageSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkImageViewASTCDecodeModeEXT);

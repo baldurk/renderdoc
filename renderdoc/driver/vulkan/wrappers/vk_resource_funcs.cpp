@@ -1357,6 +1357,23 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       APIProps.SparseResources = true;
     }
 
+    // we search for the separate stencil usage struct now that it's in patchable memory
+    VkImageStencilUsageCreateInfoEXT *separateStencilUsage =
+        (VkImageStencilUsageCreateInfoEXT *)FindNextStruct(
+            &CreateInfo, VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT);
+    if(separateStencilUsage)
+    {
+      separateStencilUsage->stencilUsage |= VK_IMAGE_USAGE_SAMPLED_BIT |
+                                            VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      separateStencilUsage->stencilUsage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+
+      if(CreateInfo.samples != VK_SAMPLE_COUNT_1_BIT)
+      {
+        separateStencilUsage->stencilUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      }
+    }
+
     VkImageCreateInfo patched = CreateInfo;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
@@ -1486,6 +1503,27 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo_adjusted.pNext));
 
   UnwrapNextChain(m_State, "VkImageCreateInfo", tempMem, (VkBaseInStructure *)&createInfo_adjusted);
+
+  // we search for the separate stencil usage struct now that it's in patchable memory
+  VkImageStencilUsageCreateInfoEXT *separateStencilUsage =
+      (VkImageStencilUsageCreateInfoEXT *)FindNextStruct(
+          &createInfo_adjusted, VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT);
+  if(separateStencilUsage)
+  {
+    separateStencilUsage->stencilUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    if(IsCaptureMode(m_State))
+    {
+      createInfo_adjusted.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      createInfo_adjusted.usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+    }
+
+    if(createInfo_adjusted.samples != VK_SAMPLE_COUNT_1_BIT)
+    {
+      separateStencilUsage->stencilUsage |=
+          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(
