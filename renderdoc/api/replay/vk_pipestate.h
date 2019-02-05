@@ -634,16 +634,15 @@ struct ViewState
   DOCUMENT("A list of :class:`VKRenderArea` defining discard rectangles.");
   rdcarray<RenderArea> discardRectangles;
 
-  DOCUMENT(R"( ``True`` if a fragment in any one of the discard rectangles fails the discard test,
+  DOCUMENT(R"(``True`` if a fragment in any one of the discard rectangles fails the discard test,
 and a fragment in none of them passes.
 
 ``False`` if a fragment in any one of the discard rectangles passes the discard test,
 and a fragment in none of them is discarded.
 
-.. note:
+.. note::
   A ``True`` value and an empty list of :data:`discardRectangles` means the test is effectively
   disabled, since with no rectangles no fragment can be inside one.
-
 )");
   bool discardRectanglesExclusive = true;
 };
