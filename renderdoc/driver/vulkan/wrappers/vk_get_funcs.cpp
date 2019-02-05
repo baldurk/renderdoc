@@ -705,3 +705,19 @@ void WrappedVulkan::vkGetPhysicalDeviceMultisamplePropertiesEXT(
       ->GetPhysicalDeviceMultisamplePropertiesEXT(Unwrap(physicalDevice), samples,
                                                   pMultisampleProperties);
 }
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(
+    VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount, VkTimeDomainEXT *pTimeDomains)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceCalibrateableTimeDomainsEXT(Unwrap(physicalDevice), pTimeDomainCount,
+                                                     pTimeDomains);
+}
+
+VkResult WrappedVulkan::vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
+                                                     const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+                                                     uint64_t *pTimestamps, uint64_t *pMaxDeviation)
+{
+  return ObjDisp(device)->GetCalibratedTimestampsEXT(Unwrap(device), timestampCount,
+                                                     pTimestampInfos, pTimestamps, pMaxDeviation);
+}

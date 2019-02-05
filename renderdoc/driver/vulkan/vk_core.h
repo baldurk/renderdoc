@@ -2013,4 +2013,13 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuffer commandBuffer,
                                 uint32_t firstDiscardRectangle, uint32_t discardRectangleCount,
                                 const VkRect2D *pDiscardRectangles);
+
+  // VK_EXT_calibrated_timestamps
+
+  VkResult vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(VkPhysicalDevice physicalDevice,
+                                                          uint32_t *pTimeDomainCount,
+                                                          VkTimeDomainEXT *pTimeDomains);
+  VkResult vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
+                                        const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+                                        uint64_t *pTimestamps, uint64_t *pMaxDeviation);
 };

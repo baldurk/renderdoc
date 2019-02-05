@@ -2063,6 +2063,19 @@ std::string DoStringise(const VkSamplerReductionModeEXT &el)
 }
 
 template <>
+std::string DoStringise(const VkTimeDomainEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkTimeDomainEXT);
+  {
+    STRINGISE_ENUM(VK_TIME_DOMAIN_DEVICE_EXT)
+    STRINGISE_ENUM(VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT)
+    STRINGISE_ENUM(VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_EXT)
+    STRINGISE_ENUM(VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkSamplerYcbcrModelConversion &el)
 {
   BEGIN_ENUM_STRINGISE(VkSamplerYcbcrModelConversion);

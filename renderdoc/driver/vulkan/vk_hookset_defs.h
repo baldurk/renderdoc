@@ -355,7 +355,8 @@
   DeclExt(EXT_transform_feedback);              \
   DeclExt(EXT_conditional_rendering);           \
   DeclExt(EXT_sample_locations);                \
-  DeclExt(EXT_discard_rectangles);
+  DeclExt(EXT_discard_rectangles);              \
+  DeclExt(EXT_calibrated_timestamps);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -381,7 +382,8 @@
   CheckExt(protected_memory, VK11);                    \
   CheckExt(KHR_get_surface_capabilities2, VKXX);       \
   CheckExt(KHR_get_display_properties2, VKXX);         \
-  CheckExt(EXT_sample_locations, VKXX);
+  CheckExt(EXT_sample_locations, VKXX);                \
+  CheckExt(EXT_calibrated_timestamps, VKXX);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -423,7 +425,8 @@
   CheckExt(EXT_transform_feedback, VKXX);         \
   CheckExt(EXT_conditional_rendering, VKXX);      \
   CheckExt(EXT_sample_locations, VKXX);           \
-  CheckExt(EXT_discard_rectangles, VKXX);
+  CheckExt(EXT_discard_rectangles, VKXX);         \
+  CheckExt(EXT_calibrated_timestamps, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -478,6 +481,7 @@
   HookInitExtension(KHR_get_display_properties2, GetDisplayModeProperties2KHR);                      \
   HookInitExtension(KHR_get_display_properties2, GetDisplayPlaneCapabilities2KHR);                   \
   HookInitExtension(EXT_sample_locations, GetPhysicalDeviceMultisamplePropertiesEXT);                \
+  HookInitExtension(EXT_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsEXT);        \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                                 \
@@ -555,6 +559,7 @@
   HookInitExtension(EXT_conditional_rendering, CmdEndConditionalRenderingEXT);                     \
   HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                               \
   HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                            \
+  HookInitExtension(EXT_calibrated_timestamps, GetCalibratedTimestampsEXT);                        \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1118,6 +1123,11 @@
   HookDefine4(void, vkCmdSetDiscardRectangleEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
               firstDiscardRectangle, uint32_t, discardRectangleCount, const VkRect2D *,              \
               pDiscardRectangles);                                                                   \
+  HookDefine3(VkResult, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VkPhysicalDevice,            \
+              physicalDevice, uint32_t *, pTimeDomainCount, VkTimeDomainEXT *, pTimeDomains);        \
+  HookDefine5(VkResult, vkGetCalibratedTimestampsEXT, VkDevice, device, uint32_t, timestampCount,    \
+              const VkCalibratedTimestampInfoEXT *, pTimestampInfos, uint64_t *, pTimestamps,        \
+              uint64_t *, pMaxDeviation);                                                            \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

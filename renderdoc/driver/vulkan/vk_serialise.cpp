@@ -413,6 +413,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                             \
                VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                  \
                                                                                                        \
+  /* VK_EXT_calibrated_timestamps */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT, VkCalibratedTimestampInfoEXT)          \
+                                                                                                       \
   /* VK_EXT_conditional_rendering */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,            \
                VkCommandBufferInheritanceConditionalRenderingInfoEXT)                                  \
@@ -790,9 +793,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT)                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT)                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT)                           \
-                                                                                                       \
-  /* VK_EXT_calibrated_timestamps */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT)                                   \
                                                                                                        \
   /* VK_EXT_descriptor_indexing */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT)             \
@@ -5072,6 +5072,21 @@ void Deserialise(const VkDisplayEventInfoEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCalibratedTimestampInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(timeDomain);
+}
+
+template <>
+void Deserialise(const VkCalibratedTimestampInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSwapchainCounterCreateInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT);
@@ -6153,6 +6168,7 @@ INSTANTIATE_SERIALISE_TYPE(VkBufferCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryBarrier);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkBufferViewCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkCalibratedTimestampInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferInheritanceInfo);
