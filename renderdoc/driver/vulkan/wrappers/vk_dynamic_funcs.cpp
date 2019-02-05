@@ -667,6 +667,81 @@ void WrappedVulkan::vkCmdSetSampleLocationsEXT(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetDiscardRectangleEXT(SerialiserType &ser,
+                                                          VkCommandBuffer commandBuffer,
+                                                          uint32_t firstDiscardRectangle,
+                                                          uint32_t discardRectangleCount,
+                                                          const VkRect2D *pDiscardRectangles)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(firstDiscardRectangle);
+  SERIALISE_ELEMENT(discardRectangleCount);
+  SERIALISE_ELEMENT_ARRAY(pDiscardRectangles, discardRectangleCount);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
+        {
+          if(m_RenderState.discardRectangles.size() < firstDiscardRectangle + discardRectangleCount)
+            m_RenderState.discardRectangles.resize(firstDiscardRectangle + discardRectangleCount);
+
+          for(uint32_t i = 0; i < discardRectangleCount; i++)
+            m_RenderState.discardRectangles[firstDiscardRectangle + i] = pDiscardRectangles[i];
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdSetDiscardRectangleEXT(Unwrap(commandBuffer), firstDiscardRectangle,
+                                      discardRectangleCount, pDiscardRectangles);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetDiscardRectangleEXT(VkCommandBuffer commandBuffer,
+                                                uint32_t firstDiscardRectangle,
+                                                uint32_t discardRectangleCount,
+                                                const VkRect2D *pDiscardRectangles)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdSetDiscardRectangleEXT(Unwrap(commandBuffer), firstDiscardRectangle,
+                                                      discardRectangleCount, pDiscardRectangles));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDiscardRectangleEXT);
+    Serialise_vkCmdSetDiscardRectangleEXT(ser, commandBuffer, firstDiscardRectangle,
+                                          discardRectangleCount, pDiscardRectangles);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -699,3 +774,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilReference, VkCommandBuffer 
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetSampleLocationsEXT, VkCommandBuffer commandBuffer,
                                 const VkSampleLocationsInfoEXT *pSampleLocationsInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstDiscardRectangle, uint32_t discardRectangleCount,
+                                const VkRect2D *pDiscardRectangles);

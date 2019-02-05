@@ -334,6 +334,25 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       scissors[i] = pCreateInfo->pViewportState->pScissors[i];
   }
 
+  // VkPipelineDiscardRectangleStateCreateInfoEXT
+  discardMode = VK_DISCARD_RECTANGLE_MODE_EXCLUSIVE_EXT;
+
+  const VkPipelineDiscardRectangleStateCreateInfoEXT *discardRects =
+      (const VkPipelineDiscardRectangleStateCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT);
+  if(discardRects)
+  {
+    discardRectangles.resize(discardRects->discardRectangleCount);
+
+    if(discardRects->pDiscardRectangles)
+    {
+      for(uint32_t i = 0; i < discardRects->discardRectangleCount; i++)
+        discardRectangles[i] = discardRects->pDiscardRectangles[i];
+    }
+
+    discardMode = discardRects->discardRectangleMode;
+  }
+
   // VkPipelineRasterStateCreateInfo
   depthClampEnable = pCreateInfo->pRasterizationState->depthClampEnable ? true : false;
   rasterizerDiscardEnable = pCreateInfo->pRasterizationState->rasterizerDiscardEnable ? true : false;

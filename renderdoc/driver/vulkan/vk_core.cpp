@@ -658,6 +658,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME, VK_EXT_DIRECT_MODE_DISPLAY_SPEC_VERSION,
     },
     {
+        VK_EXT_DISCARD_RECTANGLES_EXTENSION_NAME, VK_EXT_DISCARD_RECTANGLES_SPEC_VERSION,
+    },
+    {
         VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME, VK_EXT_DISPLAY_CONTROL_SPEC_VERSION,
     },
     {
@@ -2772,6 +2775,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdEndConditionalRenderingEXT(ser, VK_NULL_HANDLE);
     case VulkanChunk::vkCmdSetSampleLocationsEXT:
       return Serialise_vkCmdSetSampleLocationsEXT(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdSetDiscardRectangleEXT:
+      return Serialise_vkCmdSetDiscardRectangleEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
     default:
     {
       SystemChunk system = (SystemChunk)chunk;

@@ -1879,6 +1879,10 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
               m_RenderState.sampleLocations.sampleCount =
                   m_CreationInfo.m_Pipeline[liveid].rasterizationSamples;
             }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDiscardRectangleEXT])
+            {
+              m_RenderState.discardRectangles = m_CreationInfo.m_Pipeline[liveid].discardRectangles;
+            }
           }
         }
       }

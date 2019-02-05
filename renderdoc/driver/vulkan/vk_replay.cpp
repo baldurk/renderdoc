@@ -1049,6 +1049,24 @@ void VulkanReplay::SavePipelineState()
       }
     }
 
+    {
+      m_VulkanPipelineState.viewportScissor.discardRectangles.resize(p.discardRectangles.size());
+      for(size_t i = 0; i < p.discardRectangles.size() && i < state.discardRectangles.size(); i++)
+      {
+        m_VulkanPipelineState.viewportScissor.discardRectangles[i].x =
+            state.discardRectangles[i].offset.x;
+        m_VulkanPipelineState.viewportScissor.discardRectangles[i].y =
+            state.discardRectangles[i].offset.y;
+        m_VulkanPipelineState.viewportScissor.discardRectangles[i].width =
+            state.discardRectangles[i].extent.width;
+        m_VulkanPipelineState.viewportScissor.discardRectangles[i].height =
+            state.discardRectangles[i].extent.height;
+      }
+
+      m_VulkanPipelineState.viewportScissor.discardRectanglesExclusive =
+          (p.discardMode == VK_DISCARD_RECTANGLE_MODE_EXCLUSIVE_EXT);
+    }
+
     // Rasterizer
     m_VulkanPipelineState.rasterizer.depthClampEnable = p.depthClampEnable;
     m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
@@ -1211,6 +1229,9 @@ void VulkanReplay::SavePipelineState()
       *stages[i] = VKPipe::Shader();
 
     m_VulkanPipelineState.viewportScissor.viewportScissors.clear();
+    m_VulkanPipelineState.viewportScissor.discardRectangles.clear();
+    m_VulkanPipelineState.viewportScissor.discardRectanglesExclusive = true;
+
     m_VulkanPipelineState.colorBlend.blends.clear();
   }
 

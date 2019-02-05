@@ -354,7 +354,8 @@
   DeclExt(KHR_create_renderpass2);              \
   DeclExt(EXT_transform_feedback);              \
   DeclExt(EXT_conditional_rendering);           \
-  DeclExt(EXT_sample_locations);
+  DeclExt(EXT_sample_locations);                \
+  DeclExt(EXT_discard_rectangles);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -421,7 +422,8 @@
   CheckExt(KHR_create_renderpass2, VKXX);         \
   CheckExt(EXT_transform_feedback, VKXX);         \
   CheckExt(EXT_conditional_rendering, VKXX);      \
-  CheckExt(EXT_sample_locations, VKXX);
+  CheckExt(EXT_sample_locations, VKXX);           \
+  CheckExt(EXT_discard_rectangles, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -552,6 +554,7 @@
   HookInitExtension(EXT_conditional_rendering, CmdBeginConditionalRenderingEXT);                   \
   HookInitExtension(EXT_conditional_rendering, CmdEndConditionalRenderingEXT);                     \
   HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                               \
+  HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                            \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1112,6 +1115,9 @@
               const VkSampleLocationsInfoEXT *, pSampleLocationsInfo);                               \
   HookDefine3(void, vkGetPhysicalDeviceMultisamplePropertiesEXT, VkPhysicalDevice, physicalDevice,   \
               VkSampleCountFlagBits, samples, VkMultisamplePropertiesEXT *, pMultisampleProperties); \
+  HookDefine4(void, vkCmdSetDiscardRectangleEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
+              firstDiscardRectangle, uint32_t, discardRectangleCount, const VkRect2D *,              \
+              pDiscardRectangles);                                                                   \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

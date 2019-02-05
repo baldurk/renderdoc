@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1131, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1132, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -163,6 +163,7 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdBeginConditionalRenderingEXT)
     STRINGISE_ENUM_CLASS(vkCmdEndConditionalRenderingEXT)
     STRINGISE_ENUM_CLASS(vkCmdSetSampleLocationsEXT)
+    STRINGISE_ENUM_CLASS(vkCmdSetDiscardRectangleEXT)
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -2212,6 +2213,17 @@ std::string DoStringise(const VkDisplayEventTypeEXT &el)
   BEGIN_ENUM_STRINGISE(VkDisplayEventTypeEXT);
   {
     STRINGISE_ENUM(VK_DISPLAY_EVENT_TYPE_FIRST_PIXEL_OUT_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkDiscardRectangleModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkDiscardRectangleModeEXT);
+  {
+    STRINGISE_ENUM(VK_DISCARD_RECTANGLE_MODE_INCLUSIVE_EXT)
+    STRINGISE_ENUM(VK_DISCARD_RECTANGLE_MODE_EXCLUSIVE_EXT)
   }
   END_ENUM_STRINGISE();
 }

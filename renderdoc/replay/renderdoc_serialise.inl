@@ -1976,8 +1976,10 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::ViewState &el)
 {
   SERIALISE_MEMBER(viewportScissors);
+  SERIALISE_MEMBER(discardRectangles);
+  SERIALISE_MEMBER(discardRectanglesExclusive);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>
@@ -2181,7 +2183,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(1408);
+  SIZE_CHECK(1432);
 }
 
 #pragma endregion Vulkan pipeline state

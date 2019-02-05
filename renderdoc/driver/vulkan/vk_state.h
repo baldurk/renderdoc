@@ -82,6 +82,8 @@ struct VulkanRenderState
     std::vector<VkSampleLocationEXT> locations;
   } sampleLocations;
 
+  std::vector<VkRect2D> discardRectangles;
+
   // this should be big enough for any implementation
   byte pushconsts[1024];
   // the actual number of bytes that have been uploaded

@@ -270,6 +270,10 @@ struct VulkanCreationInfo
 
     // VkPipelineDynamicStateCreateInfo
     bool dynamicStates[VkDynamicCount];
+
+    // VkPipelineDiscardRectangleStateCreateInfoEXT
+    std::vector<VkRect2D> discardRectangles;
+    VkDiscardRectangleModeEXT discardMode;
   };
   map<ResourceId, Pipeline> m_Pipeline;
 

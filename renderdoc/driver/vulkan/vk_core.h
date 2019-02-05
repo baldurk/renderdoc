@@ -2007,4 +2007,10 @@ public:
   void vkGetPhysicalDeviceMultisamplePropertiesEXT(VkPhysicalDevice physicalDevice,
                                                    VkSampleCountFlagBits samples,
                                                    VkMultisamplePropertiesEXT *pMultisampleProperties);
+
+  // VK_EXT_discard_rectangles
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstDiscardRectangle, uint32_t discardRectangleCount,
+                                const VkRect2D *pDiscardRectangles);
 };

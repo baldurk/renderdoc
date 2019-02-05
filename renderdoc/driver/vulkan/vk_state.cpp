@@ -275,6 +275,10 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
       ObjDisp(cmd)->CmdSetSampleLocationsEXT(Unwrap(cmd), &info);
     }
 
+    if(!discardRectangles.empty() && dynamicStates[VkDynamicDiscardRectangleEXT])
+      ObjDisp(cmd)->CmdSetDiscardRectangleEXT(Unwrap(cmd), 0, (uint32_t)discardRectangles.size(),
+                                              &discardRectangles[0]);
+
     // only set push constant ranges that the layout uses
     for(size_t i = 0; i < pushRanges.size(); i++)
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,

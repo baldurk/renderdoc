@@ -566,6 +566,39 @@ struct TransformFeedback
   rdcarray<XFBBuffer> buffers;
 };
 
+DOCUMENT("Describes a render area in the current framebuffer.");
+struct RenderArea
+{
+  DOCUMENT("");
+  RenderArea() = default;
+  RenderArea(const RenderArea &) = default;
+  bool operator==(const RenderArea &o) const
+  {
+    return x == o.x && y == o.y && width == o.width && height == o.height;
+  }
+  bool operator<(const RenderArea &o) const
+  {
+    if(!(x == o.x))
+      return x < o.x;
+    if(!(y == o.y))
+      return y < o.y;
+    if(!(width == o.width))
+      return width < o.width;
+    if(!(height == o.height))
+      return height < o.height;
+    return false;
+  }
+
+  DOCUMENT("The X co-ordinate of the render area.");
+  int32_t x = 0;
+  DOCUMENT("The Y co-ordinate of the render area.");
+  int32_t y = 0;
+  DOCUMENT("The width of the render area.");
+  int32_t width = 0;
+  DOCUMENT("The height of the render area.");
+  int32_t height = 0;
+};
+
 DOCUMENT("Describes a combined viewport and scissor region.");
 struct ViewportScissor
 {
@@ -574,7 +607,14 @@ struct ViewportScissor
   ViewportScissor(const ViewportScissor &) = default;
 
   bool operator==(const ViewportScissor &o) const { return vp == o.vp && scissor == o.scissor; }
-  bool operator<(const ViewportScissor &o) const { return vp == o.vp && scissor == o.scissor; }
+  bool operator<(const ViewportScissor &o) const
+  {
+    if(!(vp == o.vp))
+      return vp < o.vp;
+    if(!(scissor == o.scissor))
+      return scissor < o.scissor;
+    return false;
+  }
   DOCUMENT("The :class:`Viewport`.");
   Viewport vp;
   DOCUMENT("The :class:`Scissor`.");
@@ -590,6 +630,21 @@ struct ViewState
 
   DOCUMENT("A list of :class:`VKViewportScissor`.");
   rdcarray<ViewportScissor> viewportScissors;
+
+  DOCUMENT("A list of :class:`VKRenderArea` defining discard rectangles.");
+  rdcarray<RenderArea> discardRectangles;
+
+  DOCUMENT(R"( ``True`` if a fragment in any one of the discard rectangles fails the discard test,
+and a fragment in none of them passes.
+
+``False`` if a fragment in any one of the discard rectangles passes the discard test,
+and a fragment in none of them is discarded.
+
+.. note:
+  A ``True`` value and an empty list of :data:`discardRectangles` means the test is effectively
+  disabled, since with no rectangles no fragment can be inside one.
+)");
+  bool discardRectanglesExclusive = true;
 };
 
 DOCUMENT("Describes the rasterizer state in the pipeline.");
@@ -837,23 +892,6 @@ struct Framebuffer
   uint32_t height = 0;
   DOCUMENT("The number of layers in this framebuffer.");
   uint32_t layers = 0;
-};
-
-DOCUMENT("Describes the render area for a render pass instance.");
-struct RenderArea
-{
-  DOCUMENT("");
-  RenderArea() = default;
-  RenderArea(const RenderArea &) = default;
-
-  DOCUMENT("The X co-ordinate of the render area.");
-  int32_t x = 0;
-  DOCUMENT("The Y co-ordinate of the render area.");
-  int32_t y = 0;
-  DOCUMENT("The width of the render area.");
-  int32_t width = 0;
-  DOCUMENT("The height of the render area.");
-  int32_t height = 0;
 };
 
 DOCUMENT("Describes the current pass instance at the current time.");

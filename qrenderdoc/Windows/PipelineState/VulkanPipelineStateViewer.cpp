@@ -284,6 +284,18 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->scissors->setInstantTooltips(true);
   }
 
+  {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->discards->setHeader(header);
+
+    ui->discards->setColumns({tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height")});
+    header->setColumnStretchHints({-1, -1, -1, -1, 1});
+    header->setMinimumSectionSize(40);
+
+    ui->discards->setClearSelectionOnFocusLoss(true);
+    ui->discards->setInstantTooltips(true);
+  }
+
   for(RDLabel *rp : {ui->renderpass, ui->framebuffer, ui->predicateBuffer, ui->csPredicateBuffer})
   {
     rp->setAutoFillBackground(true);
@@ -663,6 +675,9 @@ void VulkanPipelineStateViewer::clearState()
 
   ui->viewports->clear();
   ui->scissors->clear();
+  ui->discards->clear();
+  ui->discardMode->setText(tr("Inclusive"));
+  ui->discardGroup->setVisible(false);
 
   ui->renderpass->setText(QFormatStr("Render Pass: %1").arg(ToQStr(ResourceId())));
   ui->framebuffer->setText(QFormatStr("Framebuffer: %1").arg(ToQStr(ResourceId())));
@@ -1980,6 +1995,34 @@ void VulkanPipelineStateViewer::setState()
 
   ////////////////////////////////////////////////
   // Rasterizer
+
+  vs = ui->discards->verticalScrollBar()->value();
+  ui->discards->beginUpdate();
+  ui->discards->clear();
+
+  {
+    int i = 0;
+    for(const VKPipe::RenderArea &v : state.viewportScissor.discardRectangles)
+    {
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({i, v.x, v.y, v.width, v.height});
+      ui->discards->addTopLevelItem(node);
+
+      if(v.width == 0 || v.height == 0)
+        setEmptyRow(node);
+
+      i++;
+    }
+  }
+
+  ui->discards->verticalScrollBar()->setValue(vs);
+  ui->discards->clearSelection();
+  ui->discards->endUpdate();
+
+  ui->discardMode->setText(state.viewportScissor.discardRectanglesExclusive ? tr("Exclusive")
+                                                                            : tr("Inclusive"));
+
+  ui->discardGroup->setVisible(!state.viewportScissor.discardRectanglesExclusive ||
+                               !state.viewportScissor.discardRectangles.isEmpty());
 
   vs = ui->viewports->verticalScrollBar()->value();
   ui->viewports->beginUpdate();
