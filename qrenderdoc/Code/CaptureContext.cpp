@@ -1379,6 +1379,11 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   RefreshUIStatus(exclude, updateSelectedEvent, updateEvent);
 }
 
+void CaptureContext::SetRemoteHost(int hostIdx)
+{
+  m_MainWindow->setRemoteHost(hostIdx);
+}
+
 void CaptureContext::RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude,
                                      bool updateSelectedEvent, bool updateEvent)
 {
