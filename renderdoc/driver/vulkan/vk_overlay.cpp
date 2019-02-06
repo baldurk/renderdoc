@@ -1585,8 +1585,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       for(size_t i = 0; i < rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments.size();
           i++)
       {
-        blackclear.colorAttachment =
-            rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments[i];
+        blackclear.colorAttachment = (uint32_t)i;
         atts.push_back(blackclear);
       }
 
