@@ -111,7 +111,7 @@ public:
   void ExportCapture(const CaptureFileFormat &fmt, const rdcstr &exportfile) override;
   void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                   uint32_t eventId, bool force = false) override;
-
+  void SetRemoteHost(int hostIndex);
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
   void RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude, bool updateSelectedEvent,
                        bool updateEvent);

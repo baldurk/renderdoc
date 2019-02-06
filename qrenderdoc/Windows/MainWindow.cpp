@@ -1772,21 +1772,9 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
   }
 }
 
-void MainWindow::switchContext()
+void MainWindow::setRemoteHost(int hostIdx)
 {
-  QAction *item = qobject_cast<QAction *>(QObject::sender());
-
-  if(!item)
-    return;
-
-  bool ok = false;
-  int hostIdx = item->data().toInt(&ok);
-
-  if(!ok)
-    return;
-
   RemoteHost *host = NULL;
-
   if(hostIdx >= 0 && hostIdx < m_Ctx.Config().RemoteHosts.count())
   {
     host = m_Ctx.Config().RemoteHosts[hostIdx];
@@ -1931,6 +1919,20 @@ void MainWindow::switchContext()
     th->selfDelete(true);
     th->start();
   }
+}
+
+void MainWindow::switchContext()
+{
+  QAction *item = qobject_cast<QAction *>(QObject::sender());
+
+  if(!item)
+    return;
+
+  bool ok = false;
+  int hostIdx = item->data().toInt(&ok);
+
+  if(ok)
+    setRemoteHost(hostIdx);
 }
 
 void MainWindow::contextChooser_menuShowing()

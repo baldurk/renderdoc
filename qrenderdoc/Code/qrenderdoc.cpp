@@ -135,6 +135,10 @@ int main(int argc, char *argv[])
                                    lit("host:port"));
   parser.addOption(targetcontrol);
 
+  QCommandLineOption replayhost(lit("replayhost"), tr("The replay host to connect to on startup."),
+                                lit("host"));
+  parser.addOption(replayhost);
+
   QCommandLineOption python({lit("python"), lit("script"), lit("py")},
                             tr("Run a python script before opening the main UI."),
                             lit("filename.py"));
@@ -291,6 +295,27 @@ int main(int argc, char *argv[])
               .arg(configFilename));
     }
 
+    int replayHostIndex = -1;
+    if(parser.isSet(replayhost))
+    {
+      QString replayHost = parser.value(replayhost);
+      for(int i = 0; i < config.RemoteHosts.count(); i++)
+      {
+        if(QString(config.RemoteHosts[i]->hostname) == replayHost)
+        {
+          replayHostIndex = i;
+          break;
+        }
+      }
+      if(replayHostIndex < 0)
+      {
+        RDDialog::critical(
+            NULL, tr("Error loading remote host"),
+            tr("Remote host %1 doesn't exist. Please add it in Remote Host Manager first.")
+                .arg(parser.value(replayhost)));
+      }
+    }
+
     if(config.Analytics_TotalOptOut)
       Analytics::Disable();
     else
@@ -355,7 +380,10 @@ int main(int argc, char *argv[])
       }
 
       CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
-
+      if(replayHostIndex >= 0)
+      {
+        ctx.SetRemoteHost(replayHostIndex);
+      }
       Analytics::Prompt(ctx, config);
 
       ANALYTIC_SET(Metadata.RenderDocVersion, lit(FULL_VERSION_STRING));

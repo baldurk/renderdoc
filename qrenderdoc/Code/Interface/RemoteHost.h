@@ -29,7 +29,7 @@ class RemoteHost;
 // do not include any headers here, they must all be in QRDInterface.h
 #include "QRDInterface.h"
 
-DOCUMENT("A handle for interacting with a remote servers on a given host.");
+DOCUMENT("A handle for interacting with a remote server on a given host.");
 class RemoteHost
 {
 public:
