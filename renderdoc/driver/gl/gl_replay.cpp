@@ -2043,21 +2043,15 @@ void GLReplay::FillCBufferVariables(GLuint prog, bool bufferBacked, std::string 
       }
       else
       {
-        GLenum props[] = {eGL_OFFSET, eGL_MATRIX_STRIDE, eGL_ARRAY_STRIDE, eGL_LOCATION};
-        GLint values[] = {0, 0, 0, 0};
+        GLenum props[] = {bufferBacked ? eGL_OFFSET : eGL_LOCATION};
+        GLint values[] = {0};
 
         GL.glGetProgramResourceiv(prog, eGL_UNIFORM, idx, ARRAY_COUNT(props), props,
                                   ARRAY_COUNT(props), NULL, values);
 
-        if(!bufferBacked)
-        {
-          values[0] = values[3];
-          values[2] = 1;
-        }
-
         if(desc.elements == 0)
         {
-          FillCBufferValue(prog, bufferBacked, values[0], values[1], data, var);
+          FillCBufferValue(prog, bufferBacked, values[0], desc.matrixByteStride, data, var);
         }
         else
         {
@@ -2072,7 +2066,8 @@ void GLReplay::FillCBufferVariables(GLuint prog, bool bufferBacked, std::string 
             else
               el.name = StringFormat::Fmt("[%u]", a);
 
-            FillCBufferValue(prog, bufferBacked, values[0] + values[2] * a, values[1], data, el);
+            FillCBufferValue(prog, bufferBacked, values[0] + desc.arrayByteStride * a,
+                             desc.matrixByteStride, data, el);
 
             el.isStruct = false;
 

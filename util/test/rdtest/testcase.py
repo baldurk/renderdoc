@@ -235,6 +235,16 @@ class TestCase:
 
         return first_draw
 
+    def get_texture(self, id: rd.ResourceId):
+        texs = self.controller.GetTextures()
+
+        for t in texs:
+            t: rd.TextureDescription
+            if t.resourceId == id:
+                return t
+
+        return None
+
     def get_last_draw(self):
         last_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[-1]
 

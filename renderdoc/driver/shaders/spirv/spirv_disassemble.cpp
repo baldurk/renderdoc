@@ -3514,6 +3514,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
 
   outConst.type.descriptor.elements = 1;
   outConst.type.descriptor.arrayByteStride = 0;
+  outConst.type.descriptor.matrixByteStride = 0;
 
   if(type->type == SPVTypeData::eArray)
   {
@@ -3526,7 +3527,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
       outConst.type.descriptor.elements = type->arraySize;
     }
 
-    bool foundArrayStride = false;
+    bool foundArrayStride = false, foundMatrixStride = false;
 
     for(size_t d = 0; d < decorations.size(); d++)
     {
@@ -3534,8 +3535,15 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
       {
         outConst.type.descriptor.arrayByteStride = decorations[d].val;
         foundArrayStride = true;
-        break;
       }
+      if(decorations[d].decoration == spv::DecorationMatrixStride)
+      {
+        outConst.type.descriptor.matrixByteStride = (uint8_t)decorations[d].val;
+        foundMatrixStride = true;
+      }
+
+      if(foundMatrixStride && foundArrayStride)
+        break;
     }
 
     for(size_t d = 0; !foundArrayStride && type->decorations && d < type->decorations->size(); d++)
@@ -3543,6 +3551,15 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
       if((*type->decorations)[d].decoration == spv::DecorationArrayStride)
       {
         outConst.type.descriptor.arrayByteStride = (*type->decorations)[d].val;
+        break;
+      }
+    }
+
+    for(size_t d = 0; !foundMatrixStride && type->decorations && d < type->decorations->size(); d++)
+    {
+      if((*type->decorations)[d].decoration == spv::DecorationMatrixStride)
+      {
+        outConst.type.descriptor.matrixByteStride = (uint8_t)(*type->decorations)[d].val;
         break;
       }
     }
@@ -3566,10 +3583,9 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     for(size_t d = 0; d < decorations.size(); d++)
     {
       if(decorations[d].decoration == spv::DecorationRowMajor)
-      {
         outConst.type.descriptor.rowMajorStorage = true;
-        break;
-      }
+      if(decorations[d].decoration == spv::DecorationMatrixStride)
+        outConst.type.descriptor.matrixByteStride = (uint8_t)decorations[d].val;
     }
 
     if(type->type == SPVTypeData::eMatrix)

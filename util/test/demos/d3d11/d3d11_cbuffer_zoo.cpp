@@ -153,12 +153,85 @@ cbuffer consts : register(b0)
                                           //   .c[3] = { { 320, 321, 322 }, 323 }
                                           // }
 
-  float4 test;                            // {324, 325, 326, 327}
+  column_major float3x2 ac;               // covers 2 float4s with padding at end of each column (but not row)
+                                          // row0: {324, 328}
+                                          // row1: {325, 329}
+                                          // row2: {326, 330}
+                                          //       <327, 331>
+  row_major float3x2 ad;                  // covers 3 float4s with padding at end of each row (but not column)
+                                          // row0: {332, 333}, <334, 335>
+                                          // row1: {336, 337}, <338, 339>
+                                          // row2: {340, 341}, <342, 343>
+
+  column_major float3x2 ae[2];            // covers 2 float4s with padding at end of each column (but not row)
+                                          // [0] = {
+                                          //   row0: {344, 348}
+                                          //   row1: {345, 349}
+                                          //   row2: {346, 350}
+                                          //         <347, 351>
+                                          // }
+                                          // [1] = {
+                                          //   row0: {352, 356}
+                                          //   row1: {353, 357}
+                                          //   row2: {354, 358}
+                                          //         <355, 359>
+                                          // }
+  row_major float3x2 af[2];               // covers 3 float4s with padding at end of each row (but not column)
+                                          // [0] = {
+                                          //   row0: {360, 361}, <362, 363>
+                                          //   row1: {364, 365}, <366, 367>
+                                          //   row2: {368, 369}, <370, 371>
+                                          // }
+                                          // [1] = {
+                                          //   row0: {372, 373}, <374, 375>
+                                          //   row1: {376, 377}, <378, 379>
+                                          //   row2: {380, 381},
+                                          // }
+
+  float2 dummy9;                          // consumes leftovers from above array = {382, 383}
+
+  float2 dummy10;                          // should have padding at the end = {384, 385}, <386, 387>
+
+  row_major float2x2 ag;                  // each row is aligned to float4:
+                                          // row0: {388, 389}, <390, 391>
+                                          // row1: {392, 393},
+
+  float2 dummy11;                          // consumes leftovers from above matrix = {394, 395}
+  float2 dummy12;                          // should have padding at the end = {396, 397}, <398, 399>
+
+  column_major float2x2 ah;               // each column is aligned to float4:
+                                          // row0: {400, 404}
+                                          // row1: {401, 405}
+                                          //       <402, 406>
+                                          //       <403, 407>
+
+  row_major float2x2 ai[2];               // [0] = {
+                                          //   row0: {408, 409}, <410, 411>
+                                          //   row1: {412, 413}, <414, 415>
+                                          // }
+                                          // [1] = {
+                                          //   row0: {416, 417}, <418, 419>
+                                          //   row1: {420, 421}, <422, 423>
+                                          // }
+  column_major float2x2 aj[2];            // [0] = {
+                                          //   row0: {424, 428}
+                                          //   row1: {425, 429}
+                                          //         <426, 430>
+                                          //         <427, 431>
+                                          // }
+                                          // [1] = {
+                                          //   row0: {432, 436}
+                                          //   row1: {433, 437}
+                                          //         <434, 438>
+                                          //         <435, 439>
+                                          // }
+
+  float4 test;                            // {440, 441, 442, 443}
 };
 
 float4 main() : SV_Target0
 {
-	return test;
+	return test + float4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
 )EOSHADER";

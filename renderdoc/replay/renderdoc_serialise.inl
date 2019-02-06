@@ -176,6 +176,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariableDescriptor &el)
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
+  SERIALISE_MEMBER(matrixByteStride);
   SERIALISE_MEMBER(rowMajorStorage);
   SERIALISE_MEMBER(elements);
   SERIALISE_MEMBER(arrayByteStride);

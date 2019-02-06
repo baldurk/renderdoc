@@ -609,7 +609,8 @@ struct ShaderVariableDescriptor
   {
     return type == o.type && rows == o.rows && columns == o.columns &&
            rowMajorStorage == o.rowMajorStorage && elements == o.elements &&
-           arrayByteStride == o.arrayByteStride && name == o.name;
+           arrayByteStride == o.arrayByteStride && matrixByteStride == o.matrixByteStride &&
+           name == o.name;
   }
   bool operator<(const ShaderVariableDescriptor &o) const
   {
@@ -625,6 +626,8 @@ struct ShaderVariableDescriptor
       return elements < o.elements;
     if(!(arrayByteStride == o.arrayByteStride))
       return arrayByteStride < o.arrayByteStride;
+    if(!(matrixByteStride == o.matrixByteStride))
+      return matrixByteStride < o.matrixByteStride;
     if(!(name == o.name))
       return name < o.name;
     return false;
@@ -635,6 +638,8 @@ struct ShaderVariableDescriptor
   uint8_t rows;
   DOCUMENT("The number of columns in this matrix.");
   uint8_t columns;
+  DOCUMENT("The number of bytes between the start of one column/row in a matrix and the next.");
+  uint8_t matrixByteStride;
   DOCUMENT("``True`` if the matrix is stored as row major instead of column major.");
   bool rowMajorStorage;
   DOCUMENT("The number of elements in the array, or 1 if it's not an array.");

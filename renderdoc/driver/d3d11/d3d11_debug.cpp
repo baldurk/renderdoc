@@ -605,6 +605,7 @@ void D3D11DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
       ShaderVariable &var = outvars[outIdx];
 
       bool isArray = invars[v].type.descriptor.elements > 1;
+      bool isMatrix = rows > 1 && cols > 1;
 
       if(rows * elems == 1)
       {
@@ -667,7 +668,7 @@ void D3D11DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
 
         std::vector<ShaderVariable> varmembers;
         std::vector<ShaderVariable> *out = &outvars;
-        size_t rowCopy = 1;
+        uint32_t rowCopy = 1;
 
         uint32_t registers = rows;
         uint32_t regLen = cols;
@@ -683,8 +684,13 @@ void D3D11DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
           out = &varmembers;
           varmembers.resize(elems);
           rowCopy = rows;
-          rows = 1;
           registers = 1;
+
+          if(columnMajor)
+          {
+            regLen = rows;
+            rowCopy = cols;
+          }
         }
         else
         {
@@ -708,38 +714,22 @@ void D3D11DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
             StringFormat::snprintf(buf, 63, "[%d]", r);
 
           (*out)[outIdx + r].name = base + buf;
-          (*out)[outIdx + r].rows = (uint32_t)rowCopy;
+          (*out)[outIdx + r].rows = flattenVec4s ? rowCopy : rows;
           (*out)[outIdx + r].type = type;
           (*out)[outIdx + r].isStruct = false;
-          (*out)[outIdx + r].columns = regLen;
+          (*out)[outIdx + r].columns = flattenVec4s ? regLen : cols;
           (*out)[outIdx + r].rowMajor = !columnMajor;
 
-          size_t totalSize = 0;
-
-          if(flattenVec4s)
-          {
-            totalSize = elemByteSize * regLen;
-          }
-          else
-          {
-            // in a matrix, each major element before the last takes up a full
-            // vec4 at least
-            size_t vecSize = elemByteSize * 4;
-
-            if(columnMajor)
-              totalSize = vecSize * (cols - 1) + elemByteSize * rowCopy;
-            else
-              totalSize = vecSize * (rowCopy - 1) + elemByteSize * cols;
-          }
+          size_t regSize = elemByteSize * regLen;
 
           if((rowDataOffset % sizeof(Vec4f) != 0) &&
-             (rowDataOffset / sizeof(Vec4f) != (rowDataOffset + totalSize) / sizeof(Vec4f)))
+             (rowDataOffset / sizeof(Vec4f) != (rowDataOffset + regSize) / sizeof(Vec4f)))
           {
             rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
           }
 
-          // arrays are also aligned to the nearest Vec4f for each element
-          if(!flattenVec4s && isArray)
+          // arrays/matrices are also aligned to the nearest Vec4f for each element
+          if(!flattenVec4s && (isArray || isMatrix))
           {
             rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
           }
@@ -748,19 +738,23 @@ void D3D11DebugManager::FillCBufferVariables(const std::string &prefix, size_t &
           {
             const byte *d = &data[rowDataOffset];
 
-            memcpy(&((*out)[outIdx + r].value.uv[0]), d,
-                   RDCMIN(data.size() - rowDataOffset, totalSize));
+            for(uint32_t reg = 0; reg < rowCopy; reg++)
+            {
+              if(rowDataOffset + reg * sizeof(Vec4f) + regSize <= data.size())
+              {
+                memcpy(&((*out)[outIdx + r].value.uv[reg * regLen]), d + reg * sizeof(Vec4f),
+                       regSize);
+              }
+            }
 
             if(!flattenVec4s && columnMajor)
             {
               ShaderVariable tmp = (*out)[outIdx + r];
 
-              size_t transposeRows = rowCopy > 1 ? 4 : 1;
-
               // transpose
-              for(size_t ri = 0; ri < transposeRows; ri++)
+              for(size_t ri = 0; ri < rows; ri++)
                 for(size_t ci = 0; ci < cols; ci++)
-                  (*out)[outIdx + r].value.uv[ri * cols + ci] = tmp.value.uv[ci * transposeRows + ri];
+                  (*out)[outIdx + r].value.uv[ri * cols + ci] = tmp.value.uv[ci * rows + ri];
             }
           }
 

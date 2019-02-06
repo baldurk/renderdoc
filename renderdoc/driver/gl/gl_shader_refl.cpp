@@ -526,14 +526,14 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
                         rdcarray<ShaderConstant> *parentBlocks,
                         rdcarray<ShaderConstant> *defaultBlock)
 {
-  const size_t numProps = 8;
+  const size_t numProps = 9;
 
-  GLenum resProps[numProps] = {eGL_TYPE,       eGL_NAME_LENGTH, eGL_LOCATION,     eGL_BLOCK_INDEX,
-                               eGL_ARRAY_SIZE, eGL_OFFSET,      eGL_IS_ROW_MAJOR, eGL_ARRAY_STRIDE};
+  GLenum resProps[numProps] = {eGL_TYPE,         eGL_NAME_LENGTH,  eGL_LOCATION,
+                               eGL_BLOCK_INDEX,  eGL_ARRAY_SIZE,   eGL_OFFSET,
+                               eGL_IS_ROW_MAJOR, eGL_ARRAY_STRIDE, eGL_MATRIX_STRIDE};
 
   // GL_LOCATION not valid for buffer variables (it's only used if offset comes back -1, which will
-  // never
-  // happen for buffer variables)
+  // never happen for buffer variables)
   if(query == eGL_BUFFER_VARIABLE)
     resProps[2] = eGL_OFFSET;
 
@@ -723,6 +723,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
   var.type.descriptor.rowMajorStorage = (values[6] > 0);
   var.type.descriptor.arrayByteStride = values[7];
+  var.type.descriptor.matrixByteStride = (uint8_t)values[8];
 
   var.name.resize(values[1] - 1);
   GL.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
@@ -816,6 +817,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.elements =
         isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
     parentVar.type.descriptor.arrayByteStride = topLevelStride;
+    parentVar.type.descriptor.matrixByteStride = 0;
 
     bool found = false;
 
@@ -982,6 +984,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     res.variableType.descriptor.elements = 0;
     res.variableType.descriptor.rowMajorStorage = false;
     res.variableType.descriptor.arrayByteStride = 0;
+    res.variableType.descriptor.matrixByteStride = 0;
 
     // float samplers
     if(values[0] == eGL_SAMPLER_BUFFER)
@@ -1525,6 +1528,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.descriptor.elements = len;
       res.variableType.descriptor.rowMajorStorage = false;
       res.variableType.descriptor.arrayByteStride = 0;
+      res.variableType.descriptor.matrixByteStride = 0;
       res.variableType.descriptor.name = "buffer";
       res.variableType.descriptor.type = VarType::UInt;
       res.bindPoint = (int32_t)rwresources.size();
@@ -1598,6 +1602,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           paddingVar.type.descriptor.elements = 1;
           paddingVar.type.descriptor.rowMajorStorage = false;
           paddingVar.type.descriptor.arrayByteStride = 0;
+          paddingVar.type.descriptor.matrixByteStride = 0;
           paddingVar.type.descriptor.name = StringFormat::Fmt("uint%u", padding);
 
           members[ssbo][0].type.members.push_back(paddingVar);

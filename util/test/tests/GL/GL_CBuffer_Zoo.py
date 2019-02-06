@@ -13,6 +13,13 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
+        # Make an output so we can pick pixels
+        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(), rd.ReplayOutputType.Texture)
+
+        self.check(out is not None)
+
+        out.SetDimensions(100, 100)
+
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
@@ -225,65 +232,130 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
             }),
         })
 
+        # column_major mat2x3 ac;
+        var_check.check('ac').cols(2).rows(3).column_major().value([324.0, 328.0,
+                                                                    325.0, 329.0,
+                                                                    326.0, 330.0])
+
+        # row_major mat2x3 ad;
+        var_check.check('ad').cols(2).rows(3).row_major().value([332.0, 333.0,
+                                                                 336.0, 337.0,
+                                                                 340.0, 341.0])
+
+        # column_major mat2x3 ae[2];
+        var_check.check('ae').cols(0).rows(0).arraySize(2).members({
+            0: lambda x: x.cols(2).rows(3).column_major().value([344.0, 348.0,
+                                                                 345.0, 349.0,
+                                                                 346.0, 350.0]),
+            1: lambda x: x.cols(2).rows(3).column_major().value([352.0, 356.0,
+                                                                 353.0, 357.0,
+                                                                 354.0, 358.0]),
+        })
+
+        # row_major mat2x3 af[2];
+        var_check.check('af').cols(0).rows(0).arraySize(2).members({
+            0: lambda x: x.cols(2).rows(3).row_major().value([360.0, 361.0,
+                                                              364.0, 365.0,
+                                                              368.0, 369.0]),
+            1: lambda x: x.cols(2).rows(3).row_major().value([372.0, 373.0,
+                                                              376.0, 377.0,
+                                                              380.0, 381.0]),
+        })
+
+        # vec2 dummy10;
+        var_check.check('dummy10')
+
+        # row_major mat2x2 ag;
+        var_check.check('ag').cols(2).rows(2).row_major().value([388.0, 389.0,
+                                                                 392.0, 393.0])
+
+        # vec2 dummy12;
+        var_check.check('dummy11')
+
+        # column_major float2x2 ah;
+        var_check.check('ah').cols(2).rows(2).column_major().value([400.0, 404.0,
+                                                                    401.0, 405.0])
+
+        # row_major mat2x2 ai[2];
+        var_check.check('ai').rows(0).cols(0).arraySize(2).members({
+            0: lambda x: x.cols(2).rows(2).row_major().value([408.0, 409.0,
+                                                              412.0, 413.0]),
+            1: lambda x: x.cols(2).rows(2).row_major().value([416.0, 417.0,
+                                                              420.0, 421.0]),
+        })
+
+        # column_major mat2x2 aj[2];
+        var_check.check('aj').rows(0).cols(0).arraySize(2).members({
+            0: lambda x: x.cols(2).rows(2).column_major().value([424.0, 428.0,
+                                                                 425.0, 429.0]),
+            1: lambda x: x.cols(2).rows(2).column_major().value([432.0, 436.0,
+                                                                 433.0, 437.0]),
+        })
+
         # vec4 test;
-        var_check.check('test').cols(4).rows(1).value([324.0, 325.0, 326.0, 327.0])
+        var_check.check('test').rows(1).cols(4).value([440.0, 441.0, 442.0, 443.0])
+
+        # to save duplicating if this array changes, we calculate out from the start, as the array is tightly packed
+        base = 444.0
+
+        exp_vals = lambda wi,yi,xi: [base + wi * 24.0 + yi * 8.0 + xi * 4.0 + c * 1.0 for c in range(0,4)]
 
         # vec4 multiarray2[4][3][2];
         var_check.check('multiarray2').cols(0).rows(0).arraySize(4).members({
             0: lambda w: w.cols(0).rows(0).arraySize(3).members({
                 0: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([328.0, 329.0, 330.0, 331.0]),
-                    1: lambda y: y.cols(4).rows(1).value([332.0, 333.0, 334.0, 335.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(0, 0, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(0, 0, 1)),
                 }),
                 1: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([336.0, 337.0, 338.0, 339.0]),
-                    1: lambda y: y.cols(4).rows(1).value([340.0, 341.0, 342.0, 343.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(0, 1, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(0, 1, 1)),
                 }),
                 2: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([344.0, 345.0, 346.0, 347.0]),
-                    1: lambda y: y.cols(4).rows(1).value([348.0, 349.0, 350.0, 351.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(0, 2, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(0, 2, 1)),
                 }),
             }),
             1: lambda w: w.cols(0).rows(0).arraySize(3).members({
                 0: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([352.0, 353.0, 354.0, 355.0]),
-                    1: lambda y: y.cols(4).rows(1).value([356.0, 357.0, 358.0, 359.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(1, 0, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(1, 0, 1)),
                 }),
                 1: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([360.0, 361.0, 362.0, 363.0]),
-                    1: lambda y: y.cols(4).rows(1).value([364.0, 365.0, 366.0, 367.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(1, 1, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(1, 1, 1)),
                 }),
                 2: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([368.0, 369.0, 370.0, 371.0]),
-                    1: lambda y: y.cols(4).rows(1).value([372.0, 373.0, 374.0, 375.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(1, 2, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(1, 2, 1)),
                 }),
             }),
             2: lambda w: w.cols(0).rows(0).arraySize(3).members({
                 0: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([376.0, 377.0, 378.0, 379.0]),
-                    1: lambda y: y.cols(4).rows(1).value([380.0, 381.0, 382.0, 383.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(2, 0, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(2, 0, 1)),
                 }),
                 1: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([384.0, 385.0, 386.0, 387.0]),
-                    1: lambda y: y.cols(4).rows(1).value([388.0, 389.0, 390.0, 391.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(2, 1, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(2, 1, 1)),
                 }),
                 2: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([392.0, 393.0, 394.0, 395.0]),
-                    1: lambda y: y.cols(4).rows(1).value([396.0, 397.0, 398.0, 399.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(2, 2, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(2, 2, 1)),
                 }),
             }),
             3: lambda w: w.cols(0).rows(0).arraySize(3).members({
                 0: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([400.0, 401.0, 402.0, 403.0]),
-                    1: lambda y: y.cols(4).rows(1).value([404.0, 405.0, 406.0, 407.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(3, 0, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(3, 0, 1)),
                 }),
                 1: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([408.0, 409.0, 410.0, 411.0]),
-                    1: lambda y: y.cols(4).rows(1).value([412.0, 413.0, 414.0, 415.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(3, 1, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(3, 1, 1)),
                 }),
                 2: lambda x: x.cols(0).rows(0).arraySize(2).members({
-                    0: lambda y: y.cols(4).rows(1).value([416.0, 417.0, 418.0, 419.0]),
-                    1: lambda y: y.cols(4).rows(1).value([420.0, 421.0, 422.0, 423.0]),
+                    0: lambda y: y.cols(4).rows(1).value(exp_vals(3, 2, 0)),
+                    1: lambda y: y.cols(4).rows(1).value(exp_vals(3, 2, 1)),
                 }),
             }),
         })
@@ -291,3 +363,19 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         var_check.done()
 
         rdtest.log.success("CBuffer variables are as expected")
+
+        tex = rd.TextureDisplay()
+        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        out.SetTextureDisplay(tex)
+
+        texdetails = self.get_texture(tex.resourceId)
+
+        picked: rd.PixelValue = out.PickPixel(tex.resourceId, False,
+                                              int(texdetails.width / 2), int(texdetails.height / 2), 0, 0, 0)
+
+        if not rdtest.value_compare(picked.floatValue, [440.1, 441.0, 442.0, 443.0]):
+            raise rdtest.TestFailureException("Picked value {} doesn't match expectation".format(picked.floatValue))
+
+        rdtest.log.success("Picked value is as expected")
+
+        out.Shutdown()

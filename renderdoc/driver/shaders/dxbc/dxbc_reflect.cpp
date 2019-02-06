@@ -55,20 +55,14 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
   ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
 
   uint32_t baseElemSize = (ret.descriptor.type == VarType::Double) ? 8 : 4;
+
+  // in D3D matrices always take up a float4 per row/column
+  ret.descriptor.matrixByteStride = uint8_t(baseElemSize * 4);
+
   if(ret.descriptor.rowMajorStorage)
-  {
-    uint32_t primary = ret.descriptor.rows;
-    if(primary == 3)
-      primary = 4;
-    ret.descriptor.arrayByteStride = baseElemSize * primary * ret.descriptor.columns;
-  }
+    ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.rows;
   else
-  {
-    uint32_t primary = ret.descriptor.columns;
-    if(primary == 3)
-      primary = 4;
-    ret.descriptor.arrayByteStride = baseElemSize * primary * ret.descriptor.rows;
-  }
+    ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.columns;
 
   uint32_t o = offset;
 

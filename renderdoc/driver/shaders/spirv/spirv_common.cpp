@@ -145,6 +145,8 @@ void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
 
       ShaderVariable &var = outvars[outIdx];
 
+      const uint32_t matStride = invars[v].type.descriptor.matrixByteStride;
+
       if(!isArray)
       {
         outvars[outIdx].rows = rows;
@@ -161,7 +163,7 @@ void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
 
             for(uint32_t c = 0; c < cols; c++)
             {
-              size_t srcoffs = 4 * elemByteSize * c;
+              size_t srcoffs = matStride * c;
               size_t dstoffs = rows * elemByteSize * c;
               memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
                      RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * rows));
@@ -176,7 +178,7 @@ void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
           {
             for(uint32_t r = 0; r < rows; r++)
             {
-              size_t srcoffs = 4 * elemByteSize * r;
+              size_t srcoffs = matStride * r;
               size_t dstoffs = cols * elemByteSize * r;
               memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
                      RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * cols));
@@ -201,7 +203,7 @@ void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
         // so we copy secondaryDim number of primaryDim-sized elements
         uint32_t primaryDim = cols;
         uint32_t secondaryDim = rows;
-        if(isMatrix && rowMajor)
+        if(isMatrix && !rowMajor)
         {
           primaryDim = rows;
           secondaryDim = cols;
@@ -229,10 +231,7 @@ void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
             // when we transpose
             for(uint32_t s = 0; s < secondaryDim; s++)
             {
-              uint32_t matStride = primaryDim;
-              if(matStride == 3)
-                matStride = 4;
-              memcpy(&(varmembers[e].value.uv[primaryDim * s]), d + matStride * elemByteSize * s,
+              memcpy(&(varmembers[e].value.uv[primaryDim * s]), d + matStride * s,
                      RDCMIN(data.size() - rowDataOffset, elemByteSize * primaryDim));
             }
 
