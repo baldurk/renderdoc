@@ -180,6 +180,24 @@ float4 main(v2f IN) : SV_Target0
     return float4(firstbithigh(signedVal), firstbitlow(signedVal), 0.0f, 0.0f);
   }
 
+  // saturate NaN returns 0
+  if(IN.tri == 29)
+    return float4(0.1f+saturate(nan * 2.0f), 0.1f+saturate(nan * 3.0f), 0.1f+saturate(nan * 4.0f), 1.0f);
+
+  // min() and max() with NaN return the other component if it's non-NaN, or else nan if it is nan
+  if(IN.tri == 30)
+    return float4(min(nan, 0.3f), max(nan, 0.3f), max(nan, nan), 1.0f);
+
+  // the above applies componentwise
+  if(IN.tri == 31)
+    return max( float4(0.1f, 0.2f, 0.3f, 0.4f), nan.xxxx );
+  if(IN.tri == 32)
+    return min( float4(0.1f, 0.2f, 0.3f, 0.4f), nan.xxxx );
+
+  // negating nan and abs(nan) gives nan
+  if(IN.tri == 33)
+    return float4(-nan, abs(nan), 0.0f, 1.0f);
+
 	return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
 
