@@ -27,9 +27,9 @@
 #include "core/core.h"
 #include "dxbc_inspect.h"
 
-static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset);
+static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var);
 
-static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)
+static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type)
 {
   ShaderVariableType ret;
 
@@ -52,26 +52,30 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
   ret.descriptor.columns = (uint8_t)type.descriptor.cols;
   ret.descriptor.elements = type.descriptor.elements;
   ret.descriptor.name = type.descriptor.name;
-  ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
+  ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS ||
+                                    type.descriptor.varClass == DXBC::CLASS_VECTOR ||
+                                    type.descriptor.varClass == DXBC::CLASS_SCALAR);
 
   uint32_t baseElemSize = (ret.descriptor.type == VarType::Double) ? 8 : 4;
 
   // in D3D matrices always take up a float4 per row/column
   ret.descriptor.matrixByteStride = uint8_t(baseElemSize * 4);
 
-  if(ret.descriptor.rowMajorStorage)
-    ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.rows;
+  if(type.descriptor.varClass == DXBC::CLASS_STRUCT)
+  {
+    ret.descriptor.arrayByteStride = type.descriptor.bytesize / RDCMAX(1U, type.descriptor.elements);
+  }
   else
-    ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.columns;
-
-  uint32_t o = offset;
+  {
+    if(ret.descriptor.rowMajorStorage)
+      ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.rows;
+    else
+      ret.descriptor.arrayByteStride = ret.descriptor.matrixByteStride * ret.descriptor.columns;
+  }
 
   ret.members.reserve(type.members.size());
   for(size_t i = 0; i < type.members.size(); i++)
-  {
-    offset = o;
-    ret.members.push_back(MakeConstantBufferVariable(type.members[i], offset));
-  }
+    ret.members.push_back(MakeConstantBufferVariable(type.members[i]));
 
   if(!ret.members.empty())
   {
@@ -82,19 +86,14 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
   return ret;
 }
 
-static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset)
+static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var)
 {
   ShaderConstant ret;
 
   ret.name = var.name;
-  ret.byteOffset = offset + var.descriptor.offset;
+  ret.byteOffset = var.descriptor.offset;
   ret.defaultValue = 0;
-
-  offset = ret.byteOffset;
-
-  ret.type = MakeShaderVariableType(var.type, offset);
-
-  offset = ret.byteOffset + RDCMAX(1U, var.type.descriptor.bytesize);
+  ret.type = MakeShaderVariableType(var.type);
 
   return ret;
 }
@@ -170,8 +169,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
     {
       if(dxbc->m_ResourceBinds.find(r.name) != dxbc->m_ResourceBinds.end())
       {
-        uint32_t vecOffset = 0;
-        res.variableType = MakeShaderVariableType(dxbc->m_ResourceBinds[r.name], vecOffset);
+        res.variableType = MakeShaderVariableType(dxbc->m_ResourceBinds[r.name]);
       }
       else
       {
@@ -276,8 +274,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     cb.variables.reserve(dxbc->m_CBuffers[i].variables.size());
     for(size_t v = 0; v < dxbc->m_CBuffers[i].variables.size(); v++)
     {
-      uint32_t vecOffset = 0;
-      cb.variables.push_back(MakeConstantBufferVariable(dxbc->m_CBuffers[i].variables[v], vecOffset));
+      cb.variables.push_back(MakeConstantBufferVariable(dxbc->m_CBuffers[i].variables[v]));
     }
   }
 

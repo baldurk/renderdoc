@@ -119,8 +119,130 @@ static void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace 
   }
 }
 
+static void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
+                                  const ShaderVariable &v, rdcarray<ShaderVariable> &outvars)
+{
+  size_t outIdx = byteOffset / 16;
+  size_t outComp = (byteOffset % 16) / 4;
+
+  if(v.rowMajor)
+    outvars.resize(RDCMAX(outIdx + v.rows, outvars.size()));
+  else
+    outvars.resize(RDCMAX(outIdx + v.columns, outvars.size()));
+
+  if(!outvars[outIdx].name.empty())
+  {
+    // if we already have a variable in this slot, just append this variable to it. We should not
+    // overlap into the next register as that's not allowed.
+    outvars[outIdx].name = std::string(outvars[outIdx].name) + ", " + basename;
+    outvars[outIdx].rows = 1;
+    outvars[outIdx].isStruct = false;
+    outvars[outIdx].columns += v.columns;
+
+    RDCASSERT(outvars[outIdx].columns <= 4, outvars[outIdx].columns);
+
+    memcpy(&outvars[outIdx].value.uv[outComp], &v.value.uv[0], sizeof(uint32_t) * v.columns);
+  }
+  else
+  {
+    const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
+    const char *regName = v.rowMajor ? "row" : "col";
+    for(uint32_t reg = 0; reg < numRegisters; reg++)
+    {
+      if(numRegisters > 1)
+        outvars[outIdx + reg].name = StringFormat::Fmt("%s.%s%u", basename.c_str(), regName, reg);
+      else
+        outvars[outIdx + reg].name = basename;
+      outvars[outIdx + reg].rows = 1;
+      outvars[outIdx + reg].type = v.type;
+      outvars[outIdx + reg].isStruct = false;
+      outvars[outIdx + reg].columns = v.columns;
+      outvars[outIdx + reg].rowMajor = v.rowMajor;
+    }
+
+    if(v.rowMajor)
+    {
+      for(size_t ri = 0; ri < v.rows; ri++)
+        memcpy(&outvars[outIdx + ri].value.uv[0], &v.value.uv[ri * v.columns],
+               sizeof(uint32_t) * v.columns);
+    }
+    else
+    {
+      // if we have a matrix stored in column major order, we need to transpose it back so we can
+      // unroll it into vectors.
+      for(size_t ci = 0; ci < v.columns; ci++)
+        for(size_t ri = 0; ri < v.rows; ri++)
+          outvars[outIdx + ci].value.uv[ri] = v.value.uv[ri * v.columns + ci];
+    }
+  }
+}
+
+static void FlattenVariables(const rdcarray<ShaderConstant> &constants,
+                             const rdcarray<ShaderVariable> &invars,
+                             rdcarray<ShaderVariable> &outvars, const std::string &prefix,
+                             uint32_t baseOffset)
+{
+  RDCASSERTEQUAL(constants.size(), invars.size());
+
+  for(size_t i = 0; i < constants.size(); i++)
+  {
+    const ShaderConstant &c = constants[i];
+    const ShaderVariable &v = invars[i];
+
+    uint32_t byteOffset = baseOffset + c.byteOffset;
+
+    std::string basename = prefix + std::string(v.name);
+
+    if(!v.members.empty())
+    {
+      if(v.isStruct)
+      {
+        FlattenVariables(c.type.members, v.members, outvars, basename + ".", byteOffset);
+      }
+      else
+      {
+        if(c.type.members.empty())
+        {
+          // if there are no members in this type, it means it's a basic array - unroll directly
+
+          for(int m = 0; m < v.members.count(); m++)
+          {
+            FlattenSingleVariable(byteOffset + m * c.type.descriptor.arrayByteStride,
+                                  StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
+                                  outvars);
+          }
+        }
+        else
+        {
+          // otherwise we recurse into each member and flatten
+
+          for(int m = 0; m < v.members.count(); m++)
+          {
+            FlattenVariables(c.type.members, v.members[m].members, outvars,
+                             StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
+                             byteOffset + m * c.type.descriptor.arrayByteStride);
+          }
+        }
+      }
+
+      continue;
+    }
+
+    FlattenSingleVariable(byteOffset, basename, v, outvars);
+  }
+}
+
+static void FlattenVariables(const rdcarray<ShaderConstant> &constants,
+                             const rdcarray<ShaderVariable> &invars,
+                             rdcarray<ShaderVariable> &outvars)
+{
+  FlattenVariables(constants, invars, outvars, "", 0);
+}
+
 ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                                             DXBC::DXBCFile *dxbc, bytebuf *cbufData)
+                                                             DXBC::DXBCFile *dxbc,
+                                                             const ShaderReflection &refl,
+                                                             bytebuf *cbufData)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -262,16 +384,14 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
   trace.constantBlocks.resize(dxbc->m_CBuffers.size());
   for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
   {
-    if(dxbc->m_CBuffers[i].descriptor.type != CBuffer::Descriptor::TYPE_CBUFFER)
-      continue;
+    rdcarray<ShaderVariable> vars;
 
-    std::vector<ShaderVariable> vars;
+    // fetch the cbuffer data into vars, which will be 'natural' - structs with members, non merged
+    // vectors
+    StandardFillCBufferVariables(refl.constantBlocks[i].variables, vars,
+                                 cbufData[dxbc->m_CBuffers[i].reg]);
 
-    size_t dummy = 0;
-    FillCBufferVariables("", dummy, dxbc->m_CBuffers[i].variables, vars, true,
-                         cbufData[dxbc->m_CBuffers[i].reg]);
-
-    trace.constantBlocks[i].members = vars;
+    FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);
 
     for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
       trace.constantBlocks[i].members[c].name =
@@ -643,6 +763,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     return empty;
 
   DXBCFile *dxbc = vs->GetDXBC();
+  const ShaderReflection &refl = vs->GetDetails();
 
   if(!dxbc)
     return empty;
@@ -721,7 +842,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   GlobalState global;
   GetDebugManager()->CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
-  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, cbufData);
+  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, refl, cbufData);
 
   for(size_t i = 0; i < ret.inputs.size(); i++)
   {
@@ -1060,6 +1181,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
   DXBCFile *dxbc = ps->GetDXBC();
+  const ShaderReflection &refl = ps->GetDetails();
 
   if(!dxbc)
     return empty;
@@ -1917,7 +2039,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     DebugHit *hit = winner;
 
     State initialState =
-        GetDebugManager()->CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
+        GetDebugManager()->CreateShaderDebugState(traces[destIdx], destIdx, dxbc, refl, cbufData);
 
     rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
@@ -2318,6 +2440,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     return empty;
 
   DXBCFile *dxbc = cs->GetDXBC();
+  const ShaderReflection &refl = cs->GetDetails();
 
   if(!dxbc)
     return empty;
@@ -2337,7 +2460,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   GlobalState global;
   GetDebugManager()->CreateShaderGlobalState(global, dxbc, 0, rs->CSUAVs, rs->CS.SRVs);
-  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, cbufData);
+  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, refl, cbufData);
 
   for(int i = 0; i < 3; i++)
   {

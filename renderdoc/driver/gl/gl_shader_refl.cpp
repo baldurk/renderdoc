@@ -712,6 +712,32 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   var.type.descriptor.arrayByteStride = values[7];
   var.type.descriptor.matrixByteStride = (uint8_t)values[8];
 
+  // set vectors as row major for convenience, since that's how they're stored in the fv array.
+  switch(values[0])
+  {
+    case eGL_FLOAT_VEC4:
+    case eGL_FLOAT_VEC3:
+    case eGL_FLOAT_VEC2:
+    case eGL_FLOAT:
+    case eGL_DOUBLE_VEC4:
+    case eGL_DOUBLE_VEC3:
+    case eGL_DOUBLE_VEC2:
+    case eGL_DOUBLE:
+    case eGL_UNSIGNED_INT_VEC4:
+    case eGL_UNSIGNED_INT_VEC3:
+    case eGL_UNSIGNED_INT_VEC2:
+    case eGL_UNSIGNED_INT:
+    case eGL_BOOL_VEC4:
+    case eGL_BOOL_VEC3:
+    case eGL_BOOL_VEC2:
+    case eGL_BOOL:
+    case eGL_INT_VEC4:
+    case eGL_INT_VEC3:
+    case eGL_INT_VEC2:
+    case eGL_INT: var.type.descriptor.rowMajorStorage = true; break;
+    default: break;
+  }
+
   var.name.resize(values[1] - 1);
   GL.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
 

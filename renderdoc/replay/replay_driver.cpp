@@ -259,6 +259,194 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 #undef IDX_VALUE
 }
 
+void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
+                                 uint32_t matStride)
+{
+  const VarType type = outvar.type;
+  const uint32_t rows = outvar.rows;
+  const uint32_t cols = outvar.columns;
+
+  size_t elemByteSize = 4;
+  if(type == VarType::Double)
+    elemByteSize = 8;
+
+  // primary is the 'major' direction
+  // so a matrix is a secondaryDim number of primaryDim-sized vectors
+  uint32_t primaryDim = cols;
+  uint32_t secondaryDim = rows;
+  if(rows > 1 && !outvar.rowMajor)
+  {
+    primaryDim = rows;
+    secondaryDim = cols;
+  }
+
+  if(dataOffset < data.size())
+  {
+    const byte *srcData = data.data() + dataOffset;
+    const size_t avail = data.size() - dataOffset;
+
+    byte *dstData = elemByteSize == 8 ? (byte *)outvar.value.u64v : (byte *)outvar.value.uv;
+    const size_t dstStride = elemByteSize == 8 ? 8 : 4;
+
+    // each secondaryDim element (row or column) is stored in a primaryDim-vector.
+    // We copy each vector member individually to account for smaller than uint32 sized types.
+    for(uint32_t s = 0; s < secondaryDim; s++)
+    {
+      for(uint32_t p = 0; p < primaryDim; p++)
+      {
+        const size_t srcOffset = matStride * s + p * elemByteSize;
+        const size_t dstOffset = (primaryDim * s + p) * dstStride;
+
+        if(srcOffset + elemByteSize <= avail)
+          memcpy(dstData + dstOffset, srcData + srcOffset, elemByteSize);
+      }
+    }
+
+    // if it's a matrix and not row major, transpose
+    if(primaryDim > 1 && secondaryDim > 1 && !outvar.rowMajor)
+    {
+      ShaderVariable tmp = outvar;
+
+      if(type == VarType::Double)
+      {
+        for(size_t ri = 0; ri < rows; ri++)
+          for(size_t ci = 0; ci < cols; ci++)
+            outvar.value.u64v[ri * cols + ci] = tmp.value.u64v[ci * rows + ri];
+      }
+      else
+      {
+        for(size_t ri = 0; ri < rows; ri++)
+          for(size_t ci = 0; ci < cols; ci++)
+            outvar.value.uv[ri * cols + ci] = tmp.value.uv[ci * rows + ri];
+      }
+    }
+  }
+}
+
+static void StandardFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
+                                         rdcarray<ShaderVariable> &outvars, const bytebuf &data,
+                                         uint32_t baseOffset)
+{
+  for(size_t v = 0; v < invars.size(); v++)
+  {
+    std::string basename = invars[v].name;
+
+    uint32_t rows = invars[v].type.descriptor.rows;
+    uint32_t cols = invars[v].type.descriptor.columns;
+    uint32_t elems = RDCMAX(1U, invars[v].type.descriptor.elements);
+    const bool rowMajor = invars[v].type.descriptor.rowMajorStorage != 0;
+    const bool isArray = elems > 1;
+
+    const uint32_t matStride = invars[v].type.descriptor.matrixByteStride;
+
+    uint32_t dataOffset = baseOffset + invars[v].byteOffset;
+
+    if(!invars[v].type.members.empty() || (rows == 0 && cols == 0))
+    {
+      ShaderVariable var;
+      var.name = basename;
+      var.rows = var.columns = 0;
+      var.type = VarType::Float;
+      var.rowMajor = rowMajor;
+
+      vector<ShaderVariable> varmembers;
+
+      if(isArray)
+      {
+        var.members.resize(elems);
+        for(uint32_t i = 0; i < elems; i++)
+        {
+          ShaderVariable &vr = var.members[i];
+          vr.name = StringFormat::Fmt("%s[%u]", basename.c_str(), i);
+          vr.rows = vr.columns = 0;
+          vr.type = VarType::Float;
+          vr.rowMajor = rowMajor;
+
+          StandardFillCBufferVariables(invars[v].type.members, vr.members, data, dataOffset);
+
+          dataOffset += invars[v].type.descriptor.arrayByteStride;
+
+          vr.isStruct = true;
+        }
+
+        var.isStruct = false;
+      }
+      else
+      {
+        var.isStruct = true;
+
+        StandardFillCBufferVariables(invars[v].type.members, var.members, data, dataOffset);
+      }
+
+      outvars.push_back(var);
+
+      continue;
+    }
+
+    size_t outIdx = outvars.size();
+    outvars.resize(outvars.size() + 1);
+
+    {
+      const VarType type = invars[v].type.descriptor.type;
+
+      outvars[outIdx].name = basename;
+      outvars[outIdx].rows = 1;
+      outvars[outIdx].type = type;
+      outvars[outIdx].isStruct = false;
+      outvars[outIdx].columns = cols;
+      outvars[outIdx].rowMajor = rowMajor;
+
+      ShaderVariable &var = outvars[outIdx];
+
+      if(!isArray)
+      {
+        outvars[outIdx].rows = rows;
+
+        StandardFillCBufferVariable(dataOffset, data, outvars[outIdx], matStride);
+      }
+      else
+      {
+        var.name = outvars[outIdx].name;
+        var.rows = 0;
+        var.columns = 0;
+
+        vector<ShaderVariable> varmembers;
+        varmembers.resize(elems);
+
+        std::string base = outvars[outIdx].name;
+
+        for(uint32_t e = 0; e < elems; e++)
+        {
+          varmembers[e].name = StringFormat::Fmt("%s[%u]", base.c_str(), e);
+          varmembers[e].rows = rows;
+          varmembers[e].type = type;
+          varmembers[e].isStruct = false;
+          varmembers[e].columns = cols;
+          varmembers[e].rowMajor = rowMajor;
+
+          uint32_t rowDataOffset = dataOffset;
+
+          dataOffset += invars[v].type.descriptor.arrayByteStride;
+
+          StandardFillCBufferVariable(rowDataOffset, data, varmembers[e], matStride);
+        }
+
+        {
+          var.isStruct = false;
+          var.members = varmembers;
+        }
+      }
+    }
+  }
+}
+
+void StandardFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
+                                  rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+{
+  // start with offset 0
+  StandardFillCBufferVariables(invars, outvars, data, 0);
+}
+
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput)
 {
   // resize exponentially up to 256MB to avoid repeated resizes

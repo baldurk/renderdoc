@@ -3608,7 +3608,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     else
       RDCERR("Unexpected base type of constant variable %u", type->type);
 
-    outConst.type.descriptor.rowMajorStorage = false;
+    outConst.type.descriptor.rowMajorStorage = true;
     outConst.type.descriptor.rows = 1;
     outConst.type.descriptor.columns = 1;
 

@@ -2689,7 +2689,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
 }
 
 void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                       vector<ShaderVariable> &outvars, const bytebuf &data)
+                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   if(shader == ResourceId())
     return;
@@ -2704,81 +2704,67 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
 
   WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
 
-  DXBC::DXBCFile *dxbc = sh->GetDXBC();
-  const ShaderBindpointMapping &bindMap = sh->GetMapping();
+  const ShaderReflection &refl = sh->GetDetails();
+  const ShaderBindpointMapping &mapping = sh->GetMapping();
 
-  RDCASSERT(dxbc);
-
-  DXBC::CBuffer *cb = NULL;
-
-  uint32_t idx = 0;
-  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+  if(cbufSlot >= (uint32_t)mapping.constantBlocks.count())
   {
-    if(dxbc->m_CBuffers[i].descriptor.type != DXBC::CBuffer::Descriptor::TYPE_CBUFFER)
-      continue;
-
-    if(idx == cbufSlot)
-      cb = &dxbc->m_CBuffers[i];
-
-    idx++;
+    RDCERR("Invalid cbuffer slot");
+    return;
   }
 
-  if(cb && cbufSlot < (uint32_t)bindMap.constantBlocks.count())
+  const ConstantBlock &c = refl.constantBlocks[cbufSlot];
+  const Bindpoint &bind = mapping.constantBlocks[c.bindPoint];
+
+  // check if the data actually comes from root constants
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  WrappedID3D12RootSignature *sig = NULL;
+  const std::vector<D3D12RenderState::SignatureElement> *sigElems = NULL;
+
+  if(refl.stage == ShaderStage::Compute && rs.compute.rootsig != ResourceId())
   {
-    // check if the data actually comes from root constants
+    sig =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.compute.rootsig);
+    sigElems = &rs.compute.sigelems;
+  }
+  else if(refl.stage != ShaderStage::Compute && rs.graphics.rootsig != ResourceId())
+  {
+    sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
+        rs.graphics.rootsig);
+    sigElems = &rs.graphics.sigelems;
+  }
 
-    const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-    Bindpoint bind = bindMap.constantBlocks[cbufSlot];
+  bytebuf rootData;
 
-    WrappedID3D12RootSignature *sig = NULL;
-    const vector<D3D12RenderState::SignatureElement> *sigElems = NULL;
+  for(size_t i = 0; sig && i < sig->sig.params.size(); i++)
+  {
+    const D3D12RootSignatureParameter &p = sig->sig.params[i];
 
-    if(dxbc->m_Type == D3D11_ShaderType_Compute && rs.compute.rootsig != ResourceId())
+    if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
+       p.Constants.RegisterSpace == (UINT)bind.bindset &&
+       p.Constants.ShaderRegister == (UINT)bind.bind)
     {
-      sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-          rs.compute.rootsig);
-      sigElems = &rs.compute.sigelems;
-    }
-    else if(dxbc->m_Type != D3D11_ShaderType_Compute && rs.graphics.rootsig != ResourceId())
-    {
-      sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-          rs.graphics.rootsig);
-      sigElems = &rs.graphics.sigelems;
-    }
+      size_t dstSize = sig->sig.params[i].Constants.Num32BitValues * sizeof(uint32_t);
+      rootData.resize(dstSize);
 
-    bytebuf rootData;
-
-    for(size_t i = 0; sig && i < sig->sig.params.size(); i++)
-    {
-      const D3D12RootSignatureParameter &p = sig->sig.params[i];
-
-      if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
-         p.Constants.RegisterSpace == (UINT)bind.bindset &&
-         p.Constants.ShaderRegister == (UINT)bind.bind)
+      if(i < sigElems->size())
       {
-        size_t dstSize = sig->sig.params[i].Constants.Num32BitValues * sizeof(uint32_t);
-        rootData.resize(dstSize);
+        const D3D12RenderState::SignatureElement &el = (*sigElems)[i];
 
-        if(i < sigElems->size())
+        if(el.type == eRootConst)
         {
-          const D3D12RenderState::SignatureElement &el = (*sigElems)[i];
+          byte *dst = &rootData[0];
+          const UINT *src = &el.constants[0];
+          size_t srcSize = el.constants.size() * sizeof(uint32_t);
 
-          if(el.type == eRootConst)
-          {
-            byte *dst = &rootData[0];
-            const UINT *src = &el.constants[0];
-            size_t srcSize = el.constants.size() * sizeof(uint32_t);
-
-            memcpy(dst, src, RDCMIN(srcSize, dstSize));
-          }
+          memcpy(dst, src, RDCMIN(srcSize, dstSize));
         }
       }
     }
-
-    size_t zero = 0;
-    GetDebugManager()->FillCBufferVariables("", zero, false, cb->variables, outvars,
-                                            rootData.empty() ? data : rootData);
   }
+
+  StandardFillCBufferVariables(c.variables, outvars, rootData.empty() ? data : rootData);
 }
 
 vector<DebugMessage> D3D12Replay::GetDebugMessages()

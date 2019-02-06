@@ -144,10 +144,6 @@ public:
 
   D3D12_CPU_DESCRIPTOR_HANDLE GetUAVClearHandle(CBVUAVSRVSlot slot);
 
-  void FillCBufferVariables(const std::string &prefix, size_t &offset, bool flatten,
-                            const std::vector<DXBC::CBufferVariable> &invars,
-                            std::vector<ShaderVariable> &outvars, const bytebuf &data);
-
   void PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint, int &resType,
                               std::vector<D3D12_RESOURCE_BARRIER> &barriers);
 

@@ -2585,24 +2585,23 @@ void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
   m_pImmediateContext->Draw(5, 0);
 }
 
-void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                       vector<ShaderVariable> &outvars, const bytebuf &data)
+void D3D11Replay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
+                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);
 
   if(it == WrappedShader::m_ShaderList.end())
     return;
 
-  DXBC::DXBCFile *dxbc = it->second->GetDXBC();
+  const ShaderReflection &refl = it->second->GetDetails();
 
-  RDCASSERT(dxbc);
-
-  if(cbufSlot < dxbc->m_CBuffers.size())
+  if(cbufSlot >= (uint32_t)refl.constantBlocks.count())
   {
-    size_t dummy = 0;
-    GetDebugManager()->FillCBufferVariables("", dummy, dxbc->m_CBuffers[cbufSlot].variables,
-                                            outvars, false, data);
+    RDCERR("Invalid cbuffer slot");
+    return;
   }
+
+  StandardFillCBufferVariables(refl.constantBlocks[cbufSlot].variables, outvars, data);
 }
 
 uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height,

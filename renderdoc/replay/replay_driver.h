@@ -150,7 +150,7 @@ public:
   virtual vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID) = 0;
 
   virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                    vector<ShaderVariable> &outvars, const bytebuf &data) = 0;
+                                    rdcarray<ShaderVariable> &outvars, const bytebuf &data) = 0;
 
   virtual vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target,
                                                  uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
@@ -237,6 +237,11 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
                                uint32_t *idx32, std::vector<uint32_t> &patchedIndices);
 
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput);
+
+void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
+                                 uint32_t matStride);
+void StandardFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
+                                  rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
 // simple cache for when we need buffer data for highlighting
 // vertices, typical use will be lots of vertices in the same

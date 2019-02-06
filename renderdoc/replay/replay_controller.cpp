@@ -1722,7 +1722,7 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
       m_pDevice->GetBufferData(buffer, offs, 0, data);
   }
 
-  vector<ShaderVariable> v;
+  rdcarray<ShaderVariable> v;
 
   shader = m_pDevice->GetLiveID(shader);
 

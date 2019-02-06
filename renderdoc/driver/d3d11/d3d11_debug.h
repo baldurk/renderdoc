@@ -118,14 +118,11 @@ public:
   void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
   ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                            DXBC::DXBCFile *dxbc, bytebuf *cbufData);
+                                            DXBC::DXBCFile *dxbc, const ShaderReflection &refl,
+                                            bytebuf *cbufData);
   void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc,
                                uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs,
                                ID3D11ShaderResourceView **SRVs);
-
-  void FillCBufferVariables(const std::string &prefix, size_t &offset,
-                            const std::vector<DXBC::CBufferVariable> &invars,
-                            std::vector<ShaderVariable> &outvars, bool flatten, const bytebuf &data);
 
   struct CacheElem
   {

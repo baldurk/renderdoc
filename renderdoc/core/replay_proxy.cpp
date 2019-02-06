@@ -735,8 +735,7 @@ CounterDescription ReplayProxy::DescribeCounter(GPUCounter counterID)
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                                ResourceId shader, std::string entryPoint,
-                                               uint32_t cbufSlot,
-                                               std::vector<ShaderVariable> &outvars,
+                                               uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
                                                const bytebuf &data)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_FillCBufferVariables;
@@ -761,7 +760,7 @@ void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, Return
 }
 
 void ReplayProxy::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
-                                       std::vector<ShaderVariable> &outvars, const bytebuf &data)
+                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   PROXY_FUNCTION(FillCBufferVariables, shader, entryPoint, cbufSlot, outvars, data);
 }
@@ -2593,7 +2592,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_DescribeCounter: DescribeCounter(GPUCounter::EventGPUDuration); break;
     case eReplayProxy_FillCBufferVariables:
     {
-      std::vector<ShaderVariable> vars;
+      rdcarray<ShaderVariable> vars;
       bytebuf data;
       FillCBufferVariables(ResourceId(), "", 0, vars, data);
       break;

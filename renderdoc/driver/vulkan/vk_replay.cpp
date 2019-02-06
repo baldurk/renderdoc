@@ -1635,7 +1635,7 @@ void VulkanReplay::SavePipelineState()
 }
 
 void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                        vector<ShaderVariable> &outvars, const bytebuf &data)
+                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   // Correct SPIR-V will ultimately need to set explicit layout information for each type.
   // For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and
@@ -1662,7 +1662,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
 
   if(c.bufferBacked)
   {
-    SPIRVFillCBufferVariables(c.variables, outvars, data, 0);
+    StandardFillCBufferVariables(c.variables, outvars, data);
   }
   else
   {
@@ -1691,7 +1691,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
       bytebuf pushdata;
       pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
       memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
-      SPIRVFillCBufferVariables(c.variables, outvars, pushdata, 0);
+      StandardFillCBufferVariables(c.variables, outvars, pushdata);
     }
   }
 }

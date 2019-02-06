@@ -471,7 +471,7 @@ public:
                              const std::vector<GPUCounter> &counterID);
 
   IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId shader, std::string entryPoint,
-                             uint32_t cbufSlot, std::vector<ShaderVariable> &outvars,
+                             uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
                              const bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, GetBufferData, ResourceId buff, uint64_t offset, uint64_t len,

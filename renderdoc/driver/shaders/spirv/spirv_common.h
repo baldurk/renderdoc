@@ -155,10 +155,6 @@ string CompileSPIRV(const SPIRVCompilationSettings &settings, const vector<strin
                     vector<uint32_t> &spirv);
 void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
 
-void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
-                               vector<ShaderVariable> &outvars, const bytebuf &data,
-                               size_t baseOffset);
-
 static const uint32_t SpecializationConstantBindSet = 1234567;
 
 struct SpecConstant
@@ -168,7 +164,7 @@ struct SpecConstant
 };
 
 void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
-                               std::vector<ShaderVariable> &outvars,
+                               rdcarray<ShaderVariable> &outvars,
                                const std::vector<SpecConstant> &specInfo);
 
 namespace glslang

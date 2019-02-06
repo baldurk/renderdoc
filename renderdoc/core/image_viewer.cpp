@@ -202,7 +202,7 @@ public:
     return vector<CounterResult>();
   }
   void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                            vector<ShaderVariable> &outvars, const bytebuf &data)
+                            rdcarray<ShaderVariable> &outvars, const bytebuf &data)
   {
   }
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}
