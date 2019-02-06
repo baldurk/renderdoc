@@ -283,6 +283,23 @@ struct PhysicalDeviceProperties2KHR : public VkPhysicalDeviceProperties2KHR
   operator VkPhysicalDeviceProperties2KHR *() { return this; }
 };
 
+struct PhysicalDeviceFeatures2KHR : public VkPhysicalDeviceFeatures2KHR
+{
+  PhysicalDeviceFeatures2KHR()
+  {
+    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
+    pNext = NULL;
+  }
+
+  PhysicalDeviceFeatures2KHR &next(void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
+  operator VkPhysicalDeviceFeatures2KHR *() { return this; }
+};
+
 struct SemaphoreCreateInfo : public VkSemaphoreCreateInfo
 {
   SemaphoreCreateInfo() : VkSemaphoreCreateInfo()

@@ -716,9 +716,16 @@ std::string DoStringise(const VarType &el)
   BEGIN_ENUM_STRINGISE(VarType)
   {
     STRINGISE_ENUM_CLASS_NAMED(Float, "float");
-    STRINGISE_ENUM_CLASS_NAMED(Int, "int");
-    STRINGISE_ENUM_CLASS_NAMED(UInt, "uint");
     STRINGISE_ENUM_CLASS_NAMED(Double, "double");
+    STRINGISE_ENUM_CLASS_NAMED(Half, "half");
+    STRINGISE_ENUM_CLASS_NAMED(SInt, "int");
+    STRINGISE_ENUM_CLASS_NAMED(UInt, "uint");
+    STRINGISE_ENUM_CLASS_NAMED(SShort, "short");
+    STRINGISE_ENUM_CLASS_NAMED(UShort, "ushort");
+    STRINGISE_ENUM_CLASS_NAMED(SLong, "long");
+    STRINGISE_ENUM_CLASS_NAMED(ULong, "ulong");
+    STRINGISE_ENUM_CLASS_NAMED(SByte, "byte");
+    STRINGISE_ENUM_CLASS_NAMED(UByte, "ubyte");
     STRINGISE_ENUM_CLASS_NAMED(Unknown, "unknown");
   }
   END_ENUM_STRINGISE();

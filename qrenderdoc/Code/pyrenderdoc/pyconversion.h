@@ -190,6 +190,27 @@ struct TypeConversion<uint8_t, false>
 };
 
 template <>
+struct TypeConversion<int8_t, false>
+{
+  static int ConvertFromPy(PyObject *in, int8_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    uint32_t longval = PyLong_AsUnsignedLong(in);
+
+    if(PyErr_Occurred() || longval > 0xff)
+      return SWIG_OverflowError;
+
+    out = int8_t(longval & 0xff);
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(const int8_t &in) { return PyLong_FromLong(in); }
+};
+
+template <>
 struct TypeConversion<uint16_t, false>
 {
   static int ConvertFromPy(PyObject *in, uint16_t &out)
@@ -208,6 +229,27 @@ struct TypeConversion<uint16_t, false>
   }
 
   static PyObject *ConvertToPy(const uint16_t &in) { return PyLong_FromUnsignedLong(in); }
+};
+
+template <>
+struct TypeConversion<int16_t, false>
+{
+  static int ConvertFromPy(PyObject *in, int16_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    uint32_t longval = PyLong_AsLong(in);
+
+    if(PyErr_Occurred() || longval > 0xffff)
+      return SWIG_OverflowError;
+
+    out = int16_t(longval & 0xff);
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(const int16_t &in) { return PyLong_FromLong(in); }
 };
 
 template <>
@@ -265,6 +307,25 @@ struct TypeConversion<uint64_t, false>
   }
 
   static PyObject *ConvertToPy(const uint64_t &in) { return PyLong_FromUnsignedLongLong(in); }
+};
+
+template <>
+struct TypeConversion<int64_t, false>
+{
+  static int ConvertFromPy(PyObject *in, int64_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    out = PyLong_AsLongLong(in);
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(const int64_t &in) { return PyLong_FromLongLong(in); }
 };
 
 template <>

@@ -158,9 +158,9 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
           "|unormh|unormb"                        // UNORM 16-bit and 8-bit types
           "|snormh|snormb"                        // SNORM 16-bit and 8-bit types
           "|bool"                                 // bool is stored as 4-byte int
-          "|byte|short|int"                       // signed ints
-          "|ubyte|ushort|uint"                    // unsigned ints
-          "|xbyte|xshort|xint"                    // hex ints
+          "|byte|short|int|long"                  // signed ints
+          "|ubyte|ushort|uint|ulong"              // unsigned ints
+          "|xbyte|xshort|xint|xlong"              // hex ints
           "|half|float|double"                    // float types
           "|vec|uvec|ivec"                        // OpenGL vector types
           "|mat|umat|imat"                        // OpenGL matrix types
@@ -282,6 +282,16 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       {
         type = CompType::UInt;
         width = 2;
+      }
+      else if(basetype == lit("long"))
+      {
+        type = CompType::SInt;
+        width = 8;
+      }
+      else if(basetype == lit("ulong") || basetype == lit("xlong"))
+      {
+        type = CompType::UInt;
+        width = 8;
       }
       else if(basetype == lit("int") || basetype == lit("ivec") || basetype == lit("imat"))
       {
@@ -862,11 +872,50 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
   ret.name = name.toUtf8().data();
   ret.type = VarType::Float;
   if(format.compType == CompType::UInt)
-    ret.type = VarType::UInt;
-  if(format.compType == CompType::SInt)
-    ret.type = VarType::Int;
-  if(format.compType == CompType::Double)
+  {
+    if(format.compByteWidth == 8)
+      ret.type = VarType::ULong;
+    else if(format.compByteWidth == 4)
+      ret.type = VarType::UInt;
+    else if(format.compByteWidth == 2)
+      ret.type = VarType::UShort;
+    else if(format.compByteWidth == 1)
+      ret.type = VarType::UByte;
+    else
+      qCritical() << "Unexpeted component bytewidth for uint: " << format.compByteWidth;
+  }
+  else if(format.compType == CompType::SInt)
+  {
+    if(format.compByteWidth == 8)
+      ret.type = VarType::SLong;
+    else if(format.compByteWidth == 4)
+      ret.type = VarType::SInt;
+    else if(format.compByteWidth == 2)
+      ret.type = VarType::SShort;
+    else if(format.compByteWidth == 1)
+      ret.type = VarType::SByte;
+    else
+      qCritical() << "Unexpeted component bytewidth for sint: " << format.compByteWidth;
+  }
+  else if(format.compType == CompType::Double)
+  {
     ret.type = VarType::Double;
+
+    if(format.compByteWidth != 8)
+      qCritical() << "Unexpeted component bytewidth for double: " << format.compByteWidth;
+  }
+  else
+  {
+    // assume float/double
+    if(format.compByteWidth == 8)
+      ret.type = VarType::Double;
+    else if(format.compByteWidth == 4)
+      ret.type = VarType::Float;
+    else if(format.compByteWidth == 2)
+      ret.type = VarType::Half;
+    else
+      qCritical() << "Unexpeted component bytewidth for float: " << format.compByteWidth;
+  }
 
   ret.columns = qMin(format.compCount, uint8_t(4));
   ret.rows = qMin(matrixdim, 4U);
@@ -892,9 +941,15 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
 
       if(ret.type == VarType::Double)
         ret.value.dv[dst] = o.toDouble();
-      else if(ret.type == VarType::UInt)
+      if(ret.type == VarType::Float || ret.type == VarType::Half)
+        ret.value.dv[dst] = o.toFloat();
+      else if(ret.type == VarType::ULong)
+        ret.value.u64v[dst] = o.toULongLong();
+      else if(ret.type == VarType::SLong)
+        ret.value.s64v[dst] = o.toLongLong();
+      else if(ret.type == VarType::UInt || ret.type == VarType::UShort || ret.type == VarType::UByte)
         ret.value.uv[dst] = o.toUInt();
-      else if(ret.type == VarType::Int)
+      else if(ret.type == VarType::SInt || ret.type == VarType::SShort || ret.type == VarType::SByte)
         ret.value.iv[dst] = o.toInt();
       else
         ret.value.fv[dst] = o.toFloat();
@@ -930,8 +985,17 @@ QString TypeString(const ShaderVariable &v)
 
   QString typeStr = ToQStr(v.type);
 
-  if(v.displayAsHex && v.type == VarType::UInt)
-    typeStr = lit("xint");
+  if(v.displayAsHex)
+  {
+    if(v.type == VarType::ULong)
+      typeStr = lit("xlong");
+    else if(v.type == VarType::UInt)
+      typeStr = lit("xint");
+    else if(v.type == VarType::UShort)
+      typeStr = lit("xshort");
+    else if(v.type == VarType::UByte)
+      typeStr = lit("xbyte");
+  }
 
   if(v.rows == 1 && v.columns == 1)
     return typeStr;
@@ -975,11 +1039,19 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
     return RowValuesToString((int)v.columns, v.value.dv[row * v.columns + 0],
                              v.value.dv[row * v.columns + 1], v.value.dv[row * v.columns + 2],
                              v.value.dv[row * v.columns + 3]);
-  else if(type == VarType::Int)
+  else if(type == VarType::SLong)
+    return RowValuesToString((int)v.columns, v.value.s64v[row * v.columns + 0],
+                             v.value.s64v[row * v.columns + 1], v.value.s64v[row * v.columns + 2],
+                             v.value.s64v[row * v.columns + 3]);
+  else if(type == VarType::ULong)
+    return RowValuesToString((int)v.columns, v.value.u64v[row * v.columns + 0],
+                             v.value.u64v[row * v.columns + 1], v.value.u64v[row * v.columns + 2],
+                             v.value.u64v[row * v.columns + 3]);
+  else if(type == VarType::SInt || type == VarType::SShort || type == VarType::SByte)
     return RowValuesToString((int)v.columns, v.value.iv[row * v.columns + 0],
                              v.value.iv[row * v.columns + 1], v.value.iv[row * v.columns + 2],
                              v.value.iv[row * v.columns + 3]);
-  else if(type == VarType::UInt)
+  else if(type == VarType::UInt || type == VarType::UShort || type == VarType::UByte)
     return RowValuesToString((int)v.columns, v.value.uv[row * v.columns + 0],
                              v.value.uv[row * v.columns + 1], v.value.uv[row * v.columns + 2],
                              v.value.uv[row * v.columns + 3]);
@@ -1023,8 +1095,17 @@ QString RowTypeString(const ShaderVariable &v)
 
   QString typeStr = ToQStr(v.type);
 
-  if(v.displayAsHex && v.type == VarType::UInt)
-    typeStr = lit("xint");
+  if(v.displayAsHex)
+  {
+    if(v.type == VarType::ULong)
+      typeStr = lit("xlong");
+    else if(v.type == VarType::UInt)
+      typeStr = lit("xint");
+    else if(v.type == VarType::UShort)
+      typeStr = lit("xshort");
+    else if(v.type == VarType::UByte)
+      typeStr = lit("xbyte");
+  }
 
   if(v.columns == 1)
     return typeStr;

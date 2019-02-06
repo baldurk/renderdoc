@@ -120,8 +120,11 @@ union ShaderValue
   DOCUMENT("``double`` values.");
   double dv[16];
 
-  DOCUMENT("64-bit integer values.");
+  DOCUMENT("64-bit unsigned integer values.");
   uint64_t u64v[16];
+
+  DOCUMENT("64-bit signed integer values.");
+  int64_t s64v[16];
 };
 
 DOCUMENT(R"(Holds a single named shader variable. It contains either a primitive type (up to a 4x4
@@ -166,7 +169,7 @@ struct ShaderVariable
     displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
-    type = VarType::Int;
+    type = VarType::SInt;
     value.i.x = x;
     value.i.y = y;
     value.i.z = z;

@@ -154,14 +154,14 @@ VarType State::OperationType(const OpcodeType &op) const
     case OPCODE_BREAKC:
     case OPCODE_IF:
     case OPCODE_ITOF:
-    case OPCODE_DTOI: return VarType::Int;
+    case OPCODE_DTOI: return VarType::SInt;
 
     case OPCODE_ATOMIC_IADD:
     case OPCODE_ATOMIC_IMAX:
     case OPCODE_ATOMIC_IMIN:
     case OPCODE_IMM_ATOMIC_IADD:
     case OPCODE_IMM_ATOMIC_IMAX:
-    case OPCODE_IMM_ATOMIC_IMIN: return VarType::Int;
+    case OPCODE_IMM_ATOMIC_IMIN: return VarType::SInt;
     case OPCODE_ATOMIC_AND:
     case OPCODE_ATOMIC_OR:
     case OPCODE_ATOMIC_XOR:
@@ -243,7 +243,7 @@ ShaderVariable sat(const ShaderVariable &v, const VarType type)
 
   switch(type)
   {
-    case VarType::Int:
+    case VarType::SInt:
     {
       for(size_t i = 0; i < v.columns; i++)
         r.value.iv[i] = v.value.iv[i] < 0 ? 0 : (v.value.iv[i] > 1 ? 1 : v.value.iv[i]);
@@ -292,7 +292,7 @@ ShaderVariable abs(const ShaderVariable &v, const VarType type)
 
   switch(type)
   {
-    case VarType::Int:
+    case VarType::SInt:
     {
       for(size_t i = 0; i < v.columns; i++)
         r.value.iv[i] = v.value.iv[i] > 0 ? v.value.iv[i] : -v.value.iv[i];
@@ -337,7 +337,7 @@ ShaderVariable neg(const ShaderVariable &v, const VarType type)
 
   switch(type)
   {
-    case VarType::Int:
+    case VarType::SInt:
     {
       for(size_t i = 0; i < v.columns; i++)
         r.value.iv[i] = -v.value.iv[i];
@@ -382,7 +382,7 @@ ShaderVariable mul(const ShaderVariable &a, const ShaderVariable &b, const VarTy
 
   switch(type)
   {
-    case VarType::Int:
+    case VarType::SInt:
     {
       for(size_t i = 0; i < a.columns; i++)
         r.value.iv[i] = a.value.iv[i] * b.value.iv[i];
@@ -432,7 +432,7 @@ ShaderVariable div(const ShaderVariable &a, const ShaderVariable &b, const VarTy
 
   switch(type)
   {
-    case VarType::Int:
+    case VarType::SInt:
     {
       for(size_t i = 0; i < a.columns; i++)
         r.value.iv[i] = a.value.iv[i] / b.value.iv[i];
@@ -482,7 +482,7 @@ ShaderVariable add(const ShaderVariable &a, const ShaderVariable &b, const VarTy
 
   switch(type)
   {
-    case VarType::Int:
+    case VarType::SInt:
     {
       for(size_t i = 0; i < a.columns; i++)
         r.value.iv[i] = a.value.iv[i] + b.value.iv[i];

@@ -606,6 +606,62 @@ struct SPVTypeData
     return name;
   }
 
+  VarType GetVarType()
+  {
+    if(type == SPVTypeData::eFloat)
+    {
+      if(bitCount == 64)
+        return VarType::Double;
+      else if(bitCount == 32)
+        return VarType::Float;
+      else if(bitCount == 16)
+        return VarType::Half;
+
+      RDCERR("Unexpected float bitcount: %u", bitCount);
+
+      return VarType::Float;
+    }
+    else if(type == SPVTypeData::eBool)
+    {
+      // we treat bools as VkBool32 externally
+      return VarType::UInt;
+    }
+    else if(type == SPVTypeData::eUInt)
+    {
+      if(bitCount == 64)
+        return VarType::ULong;
+      else if(bitCount == 32)
+        return VarType::UInt;
+      else if(bitCount == 16)
+        return VarType::UShort;
+      else if(bitCount == 8)
+        return VarType::UByte;
+
+      RDCERR("Unexpected uint bitcount: %u", bitCount);
+
+      return VarType::UInt;
+    }
+    else if(type == SPVTypeData::eSInt)
+    {
+      if(bitCount == 64)
+        return VarType::SLong;
+      else if(bitCount == 32)
+        return VarType::SInt;
+      else if(bitCount == 16)
+        return VarType::SShort;
+      else if(bitCount == 8)
+        return VarType::SByte;
+
+      RDCERR("Unexpected sint bitcount: %u", bitCount);
+
+      return VarType::SInt;
+    }
+
+    RDCERR("Unexpected base type variable %u", type);
+
+    return VarType::Unknown;
+  }
+
   vector<SPVDecoration> *decorations;
 
   // struct/function
@@ -3565,14 +3621,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
 
   if(type->type == SPVTypeData::eVector || type->type == SPVTypeData::eMatrix)
   {
-    if(type->baseType->type == SPVTypeData::eFloat)
-      outConst.type.descriptor.type = VarType::Float;
-    else if(type->baseType->type == SPVTypeData::eUInt || type->baseType->type == SPVTypeData::eBool)
-      outConst.type.descriptor.type = VarType::UInt;
-    else if(type->baseType->type == SPVTypeData::eSInt)
-      outConst.type.descriptor.type = VarType::Int;
-    else
-      RDCERR("Unexpected base type of constant variable %u", type->baseType->type);
+    outConst.type.descriptor.type = type->baseType->GetVarType();
 
     outConst.type.descriptor.rowMajorStorage = (type->type == SPVTypeData::eVector);
 
@@ -3599,15 +3648,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   }
   else if(type->IsScalar())
   {
-    if(type->type == SPVTypeData::eFloat)
-      outConst.type.descriptor.type = VarType::Float;
-    else if(type->type == SPVTypeData::eUInt || type->type == SPVTypeData::eBool)
-      outConst.type.descriptor.type = VarType::UInt;
-    else if(type->type == SPVTypeData::eSInt)
-      outConst.type.descriptor.type = VarType::Int;
-    else
-      RDCERR("Unexpected base type of constant variable %u", type->type);
-
+    outConst.type.descriptor.type = type->GetVarType();
     outConst.type.descriptor.rowMajorStorage = true;
     outConst.type.descriptor.rows = 1;
     outConst.type.descriptor.columns = 1;
@@ -4416,14 +4457,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
         {
           res.resType = TextureType::Texture2D;
 
-          if(sampledType->type == SPVTypeData::eFloat)
-            res.variableType.descriptor.type = VarType::Float;
-          else if(sampledType->type == SPVTypeData::eUInt)
-            res.variableType.descriptor.type = VarType::UInt;
-          else if(sampledType->type == SPVTypeData::eSInt)
-            res.variableType.descriptor.type = VarType::Int;
-          else
-            RDCERR("Unexpected base type of resource %u", sampledType->type);
+          res.variableType.descriptor.type = sampledType->GetVarType();
         }
         else
         {
@@ -4441,14 +4475,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
 
           res.isReadOnly = !isrw;
 
-          if(sampledType->type == SPVTypeData::eFloat)
-            res.variableType.descriptor.type = VarType::Float;
-          else if(sampledType->type == SPVTypeData::eUInt)
-            res.variableType.descriptor.type = VarType::UInt;
-          else if(sampledType->type == SPVTypeData::eSInt)
-            res.variableType.descriptor.type = VarType::Int;
-          else
-            RDCERR("Unexpected base type of resource %u", sampledType->type);
+          res.variableType.descriptor.type = sampledType->GetVarType();
         }
 
         res.variableType.descriptor.rows = 1;

@@ -193,7 +193,7 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
     case eGL_INT:
     case eGL_INT_VEC2:
     case eGL_INT_VEC3:
-    case eGL_INT_VEC4: baseType = VarType::Int; break;
+    case eGL_INT_VEC4: baseType = VarType::SInt; break;
     case eGL_UNSIGNED_INT:
     case eGL_BOOL:
     case eGL_UNSIGNED_INT_VEC2:
@@ -251,7 +251,7 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
   {
     if(baseType == VarType::Float)
       ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
-    else if(baseType == VarType::Int)
+    else if(baseType == VarType::SInt)
       ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::UInt)
       ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
@@ -264,7 +264,7 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
       ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::Float)
       ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
-    else if(baseType == VarType::Int)
+    else if(baseType == VarType::SInt)
       ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::UInt)
       ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);

@@ -288,7 +288,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
       if(sig.compType == CompType::UInt)
         v.type = VarType::UInt;
       else if(sig.compType == CompType::SInt)
-        v.type = VarType::Int;
+        v.type = VarType::SInt;
 
       if(trace.inputs[sig.regIndex].columns == 0)
         trace.inputs[sig.regIndex] = v;

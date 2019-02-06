@@ -1483,8 +1483,8 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
 
 QString ShaderViewer::stringRep(const ShaderVariable &var, bool useType)
 {
-  if(ui->intView->isChecked() || (useType && var.type == VarType::Int))
-    return RowString(var, 0, VarType::Int);
+  if(ui->intView->isChecked() || (useType && var.type == VarType::SInt))
+    return RowString(var, 0, VarType::SInt);
 
   if(useType && var.type == VarType::UInt)
     return RowString(var, 0, VarType::UInt);
@@ -1974,7 +1974,7 @@ void ShaderViewer::updateDebugging()
 
       if(l.type == VarType::UInt)
         typeName = lit("uint");
-      else if(l.type == VarType::Int)
+      else if(l.type == VarType::SInt)
         typeName = lit("int");
       else if(l.type == VarType::Float)
         typeName = lit("float");
@@ -2047,7 +2047,7 @@ void ShaderViewer::updateDebugging()
 
             if(l.type == VarType::UInt)
               value += Formatter::Format(var->value.uv[r.component]);
-            else if(l.type == VarType::Int)
+            else if(l.type == VarType::SInt)
               value += Formatter::Format(var->value.iv[r.component]);
             else if(l.type == VarType::Float)
               value += Formatter::Format(var->value.fv[r.component]);
@@ -3163,7 +3163,7 @@ void ShaderViewer::updateVariableTooltip()
           {
             if(l.type == VarType::UInt)
               tooltip += Formatter::Format(var->value.uv[r.component]);
-            else if(l.type == VarType::Int)
+            else if(l.type == VarType::SInt)
               tooltip += Formatter::Format(var->value.iv[r.component]);
             else if(l.type == VarType::Float)
               tooltip += Formatter::Format(var->value.fv[r.component]);

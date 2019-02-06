@@ -575,7 +575,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     case eGL_INT_VEC4:
     case eGL_INT_VEC3:
     case eGL_INT_VEC2:
-    case eGL_INT: var.type.descriptor.type = VarType::Int; break;
+    case eGL_INT: var.type.descriptor.type = VarType::SInt; break;
     default:
       // not a variable (sampler etc)
       return;
@@ -1163,67 +1163,67 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     {
       res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "isamplerBuffer";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D)
     {
       res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "isampler1D";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D_ARRAY)
     {
       res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "isampler1DArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D)
     {
       res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "isampler2D";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_ARRAY)
     {
       res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "isampler2DArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_RECT)
     {
       res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "isampler2DRect";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_3D)
     {
       res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "isampler3D";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_CUBE)
     {
       res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "isamplerCube";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_CUBE_MAP_ARRAY)
     {
       res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "isamplerCubeArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE)
     {
       res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "isampler2DMS";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
       res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "isampler2DMSArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
     }
     // unsigned int samplers
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_BUFFER)
@@ -1375,77 +1375,77 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     {
       res.resType = TextureType::Buffer;
       res.variableType.descriptor.name = "iimageBuffer";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D)
     {
       res.resType = TextureType::Texture1D;
       res.variableType.descriptor.name = "iimage1D";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D_ARRAY)
     {
       res.resType = TextureType::Texture1DArray;
       res.variableType.descriptor.name = "iimage1DArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D)
     {
       res.resType = TextureType::Texture2D;
       res.variableType.descriptor.name = "iimage2D";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_ARRAY)
     {
       res.resType = TextureType::Texture2DArray;
       res.variableType.descriptor.name = "iimage2DArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_RECT)
     {
       res.resType = TextureType::TextureRect;
       res.variableType.descriptor.name = "iimage2DRect";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_3D)
     {
       res.resType = TextureType::Texture3D;
       res.variableType.descriptor.name = "iimage3D";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE)
     {
       res.resType = TextureType::TextureCube;
       res.variableType.descriptor.name = "iimageCube";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE_MAP_ARRAY)
     {
       res.resType = TextureType::TextureCubeArray;
       res.variableType.descriptor.name = "iimageCubeArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE)
     {
       res.resType = TextureType::Texture2DMS;
       res.variableType.descriptor.name = "iimage2DMS";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
       res.resType = TextureType::Texture2DMSArray;
       res.variableType.descriptor.name = "iimage2DMSArray";
-      res.variableType.descriptor.type = VarType::Int;
+      res.variableType.descriptor.type = VarType::SInt;
       res.isReadOnly = false;
     }
     // unsigned int images

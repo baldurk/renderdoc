@@ -35,9 +35,10 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type)
 
   switch(type.descriptor.type)
   {
+    // D3D treats all cbuffer variables as 32-bit regardless of declaration
     case DXBC::VARTYPE_MIN12INT:
     case DXBC::VARTYPE_MIN16INT:
-    case DXBC::VARTYPE_INT: ret.descriptor.type = VarType::Int; break;
+    case DXBC::VARTYPE_INT: ret.descriptor.type = VarType::SInt; break;
     case DXBC::VARTYPE_BOOL:
     case DXBC::VARTYPE_MIN16UINT:
     case DXBC::VARTYPE_UINT: ret.descriptor.type = VarType::UInt; break;

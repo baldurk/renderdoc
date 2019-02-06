@@ -33,7 +33,7 @@ class ShaderVariableCheck:
     def type(self, type_: rd.VarType):
         if self.var.type != type_:
             raise TestFailureException("Variable {} type mismatch, expected {} but got {}"
-                                       .format(self.var.name, type_, self.var.type))
+                                       .format(self.var.name, str(type_), str(self.var.type)))
 
         return self
 
@@ -44,9 +44,26 @@ class ShaderVariableCheck:
                 raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
                                            .format(self.var.name, value_, self.var.value.fv[0:count]))
         else:
-            if self.var.value.iv[0:count] != value_:
-                raise TestFailureException("Int variable {} value mismatch, expected {} but got {}"
-                                           .format(self.var.name, value_, self.var.value.iv[0:count]))
+            # hack - check signed and unsigned values
+            if self.var.value.iv[0:count] != value_ and self.var.value.uv[0:count] != value_:
+                raise TestFailureException("Int variable {} value mismatch, expected {} but got {} / {}"
+                                           .format(self.var.name, value_, self.var.value.iv[0:count],
+                                                   self.var.value.uv[0:count]))
+
+        return self
+
+    def longvalue(self, value_: list):
+        count = len(value_)
+        if isinstance(value_[0], float):
+            if self.var.value.dv[0:count] != value_:
+                raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
+                                           .format(self.var.name, value_, self.var.value.dv[0:count]))
+        else:
+            # hack - check signed and unsigned values
+            if self.var.value.s64v[0:count] != value_ and self.var.value.u64v[0:count] != value_:
+                raise TestFailureException("Int variable {} value mismatch, expected {} but got {} / {}"
+                                           .format(self.var.name, value_, self.var.value.s64v[0:count],
+                                                   self.var.value.u64v[0:count]))
 
         return self
 

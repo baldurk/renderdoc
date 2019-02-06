@@ -2025,10 +2025,20 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
             switch(var.type)
             {
               case VarType::Unknown:
+              case VarType::SLong:
+              case VarType::ULong:
+              case VarType::SShort:
+              case VarType::UShort:
+              case VarType::SByte:
+              case VarType::UByte:
+              case VarType::Half:
+                RDCERR("Unexpected base variable type %s, treating as float",
+                       ToStr(var.type).c_str());
+              // deliberate fall-through
               case VarType::Float:
                 GL.glGetUniformfv(prog, location, (float *)uniformData.data());
                 break;
-              case VarType::Int:
+              case VarType::SInt:
                 GL.glGetUniformiv(prog, location, (int32_t *)uniformData.data());
                 break;
               case VarType::UInt:
@@ -2060,10 +2070,20 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
               switch(var.type)
               {
                 case VarType::Unknown:
+                case VarType::SLong:
+                case VarType::ULong:
+                case VarType::SShort:
+                case VarType::UShort:
+                case VarType::SByte:
+                case VarType::UByte:
+                case VarType::Half:
+                  RDCERR("Unexpected base variable type %s, treating as float",
+                         ToStr(var.type).c_str());
+                // deliberate fall-through
                 case VarType::Float:
                   GL.glGetUniformfv(prog, location + a, (float *)uniformData.data());
                   break;
-                case VarType::Int:
+                case VarType::SInt:
                   GL.glGetUniformiv(prog, location + a, (int32_t *)uniformData.data());
                   break;
                 case VarType::UInt:

@@ -252,6 +252,9 @@
     <ClCompile Include="vk\vk_discard_rects.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_adv_cbuffer_zoo.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

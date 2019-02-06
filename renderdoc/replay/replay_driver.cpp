@@ -267,8 +267,12 @@ void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, Shade
   const uint32_t cols = outvar.columns;
 
   size_t elemByteSize = 4;
-  if(type == VarType::Double)
+  if(type == VarType::Double || type == VarType::ULong || type == VarType::SLong)
     elemByteSize = 8;
+  else if(type == VarType::Half || type == VarType::UShort || type == VarType::SShort)
+    elemByteSize = 2;
+  else if(type == VarType::UByte || type == VarType::SByte)
+    elemByteSize = 1;
 
   // primary is the 'major' direction
   // so a matrix is a secondaryDim number of primaryDim-sized vectors
@@ -307,7 +311,7 @@ void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, Shade
     {
       ShaderVariable tmp = outvar;
 
-      if(type == VarType::Double)
+      if(elemByteSize == 8)
       {
         for(size_t ri = 0; ri < rows; ri++)
           for(size_t ci = 0; ci < cols; ci++)
@@ -318,6 +322,35 @@ void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, Shade
         for(size_t ri = 0; ri < rows; ri++)
           for(size_t ci = 0; ci < cols; ci++)
             outvar.value.uv[ri * cols + ci] = tmp.value.uv[ci * rows + ri];
+      }
+    }
+
+    // special case - decode halfs in-place, sign extend signed < 4 byte integers
+    if(type == VarType::Half)
+    {
+      for(size_t ri = 0; ri < rows; ri++)
+      {
+        for(size_t ci = 0; ci < cols; ci++)
+        {
+          outvar.value.fv[ri * cols + ci] =
+              ConvertFromHalf((uint16_t)outvar.value.uv[ri * cols + ci]);
+        }
+      }
+    }
+    else if(type == VarType::SShort || type == VarType::SByte)
+    {
+      const uint32_t testMask = (type == VarType::SShort ? 0x8000 : 0x80);
+      const uint32_t extendMask = (type == VarType::SShort ? 0xffff0000 : 0xffffff00);
+
+      for(size_t ri = 0; ri < rows; ri++)
+      {
+        for(size_t ci = 0; ci < cols; ci++)
+        {
+          uint32_t &u = outvar.value.uv[ri * cols + ci];
+
+          if(u & testMask)
+            u |= extendMask;
+        }
       }
     }
   }

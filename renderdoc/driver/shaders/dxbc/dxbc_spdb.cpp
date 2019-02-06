@@ -196,12 +196,14 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
   std::map<uint32_t, TypeDesc> typeInfo;
 
   // prepopulate with basic types
-  typeInfo[T_INT4] = {"int32_t", VarType::Int, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_INT2] = {"int16_t", VarType::Int, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_INT1] = {"int8_t", VarType::Int, 1, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_LONG] = {"int32_t", VarType::Int, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_SHORT] = {"int16_t", VarType::Int, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_CHAR] = {"char", VarType::Int, 1, 1, 0, LF_NUMERIC, {}};
+  // for now we stick to full-precision 32-bit VarTypes. It's not clear if HLSL even emits the other
+  // types
+  typeInfo[T_INT4] = {"int32_t", VarType::SInt, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT2] = {"int16_t", VarType::SInt, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT1] = {"int8_t", VarType::SInt, 1, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_LONG] = {"int32_t", VarType::SInt, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_SHORT] = {"int16_t", VarType::SInt, 2, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_CHAR] = {"char", VarType::SInt, 1, 1, 0, LF_NUMERIC, {}};
   typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
   typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
   typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, LF_NUMERIC, {}};

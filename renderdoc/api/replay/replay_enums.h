@@ -142,17 +142,45 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 
   A single-precision (32-bit) floating point value.
 
-.. data:: Int
-
-  A signed integer value.
-
-.. data:: UInt
-
-  An unsigned integer value.
-
 .. data:: Double
 
   A double-precision (64-bit) floating point value.
+
+.. data:: Half
+
+  A half-precision (16-bit) floating point value.
+
+.. data:: SInt
+
+  A signed 32-bit integer value.
+
+.. data:: UInt
+
+  An unsigned 32-bit integer value.
+
+.. data:: SShort
+
+  A signed 16-bit integer value.
+
+.. data:: UShort
+
+  An unsigned 16-bit integer value.
+
+.. data:: SLong
+
+  A signed 64-bit integer value.
+
+.. data:: ULong
+
+  An unsigned 64-bit integer value.
+
+.. data:: SByte
+
+  A signed 8-bit integer value.
+
+.. data:: UByte
+
+  An unsigned 8-bit integer value.
 
 .. data:: Unknown
 
@@ -161,9 +189,16 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 enum class VarType : uint32_t
 {
   Float = 0,
-  Int,
-  UInt,
   Double,
+  Half,
+  SInt,
+  UInt,
+  SShort,
+  UShort,
+  SLong,
+  ULong,
+  SByte,
+  UByte,
   Unknown = ~0U,
 };
 
