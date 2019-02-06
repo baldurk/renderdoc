@@ -298,6 +298,19 @@ struct GeneratorID
     {7, "Khronos", "SPIR-V Tools Assembler", "Contact David Neto, dneto@google.com"},
     {8, "Khronos", "Glslang Reference Front End",
      "Contact John Kessenich, johnkessenich@google.com"},
+    {9, "Qualcomm", "Unknown", "Contact weifengz@qti.qualcomm.com"},
+    {10, "AMD", "Unknown", "Contact Daniel Rakos, daniel.rakos@amd.com"},
+    {11, "Intel", "Unknown", "Contact Alexey, alexey.bader@intel.com"},
+    {12, "Imagination", "Unknown", "Contact James Jones"},
+    {13, "Google", "Shaderc over Glslang", "Contact David Neto, dneto@google.com"},
+    {14, "Google", "spiregg", "Contact Lei Zhang, antiagainst@google.com"},
+    {15, "Google", "rspirv", "Contact Lei Zhang, antiagainst@gmail.com"},
+    {16, "X-LEGEND", "Mesa-IR/SPIR-V Translator",
+     "Contact Metora Wang, github:metora/MesaGLSLCompiler"},
+    {17, "Khronos", "SPIR-V Tools Linker", "Contact David Neto, dneto@google.com"},
+    {18, "Wine", "VKD3D Shader Compiler", "Contact wine-devel@winehq.org"},
+    {19, "Clay", "Clay Shader Compiler", "Contact info@clayengine.com"},
+    {20, "W3C WebGPU Group", "WHLSL Shader Translator", "https://github.com/gpuweb/WHLSL"},
 };
 
 template <typename EnumType>
@@ -4799,7 +4812,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
   {
     uint32_t toolid = (module.generator & 0xffff0000) >> 16;
 
-    if(toolid == 8)
+    if(toolid == 8 || toolid == 13)
       isglslang = true;
   }
 
