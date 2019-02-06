@@ -570,16 +570,24 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
 
     struct_contents += lit("\t%1 %2").arg(v.type.descriptor.name).arg(v.name);
 
+    if((v.byteOffset % 4) != 0)
+      qWarning() << "Variable " << QString(v.name) << " is not DWORD aligned";
+
+    uint32_t dwordOffset = v.byteOffset / 4;
+
+    uint32_t vectorIndex = dwordOffset / 4;
+    uint32_t vectorComponent = dwordOffset % 4;
+
     char comp = 'x';
-    if(v.reg.comp == 1)
+    if(vectorComponent == 1)
       comp = 'y';
-    if(v.reg.comp == 2)
+    if(vectorComponent == 2)
       comp = 'z';
-    if(v.reg.comp == 3)
+    if(vectorComponent == 3)
       comp = 'w';
 
     if(cbufferContents)
-      struct_contents += lit(" : packoffset(c%1.%2);").arg(v.reg.vec).arg(QLatin1Char(comp));
+      struct_contents += lit(" : packoffset(c%1.%2);").arg(vectorIndex).arg(QLatin1Char(comp));
     else
       struct_contents += lit(";");
 

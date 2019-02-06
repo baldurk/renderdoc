@@ -680,30 +680,6 @@ struct ShaderVariableType
 
 DECLARE_REFLECTION_STRUCT(ShaderVariableType);
 
-DOCUMENT("Describes the offset of a constant in memory in terms of 16 byte vectors.");
-struct ShaderRegister
-{
-  DOCUMENT("");
-  ShaderRegister() = default;
-  ShaderRegister(const ShaderRegister &) = default;
-
-  bool operator==(const ShaderRegister &o) const { return vec == o.vec && comp == o.comp; }
-  bool operator<(const ShaderRegister &o) const
-  {
-    if(!(vec == o.vec))
-      return vec < o.vec;
-    if(!(comp == o.comp))
-      return comp < o.comp;
-    return false;
-  }
-  DOCUMENT("The index of the 16 byte vector where this register begins");
-  uint32_t vec;
-  DOCUMENT("The 4 byte component within that vector where this register begins");
-  uint32_t comp;
-};
-
-DECLARE_REFLECTION_STRUCT(ShaderRegister);
-
 DOCUMENT("Contains the detail of a constant within a :class:`ConstantBlock` in memory.");
 struct ShaderConstant
 {
@@ -713,14 +689,15 @@ struct ShaderConstant
 
   bool operator==(const ShaderConstant &o) const
   {
-    return name == o.name && reg == o.reg && defaultValue == o.defaultValue && type == o.type;
+    return name == o.name && byteOffset == o.byteOffset && defaultValue == o.defaultValue &&
+           type == o.type;
   }
   bool operator<(const ShaderConstant &o) const
   {
     if(!(name == o.name))
       return name < o.name;
-    if(!(reg == o.reg))
-      return reg < o.reg;
+    if(!(byteOffset == o.byteOffset))
+      return byteOffset < o.byteOffset;
     if(!(defaultValue == o.defaultValue))
       return defaultValue < o.defaultValue;
     if(!(type == o.type))
@@ -729,10 +706,8 @@ struct ShaderConstant
   }
   DOCUMENT("The name of this constant");
   rdcstr name;
-  DOCUMENT(
-      "A :class:`ShaderRegister` describing where this constant is offset from the start of the "
-      "block");
-  ShaderRegister reg;
+  DOCUMENT("The byte offset of this constant relative to the start of the block");
+  uint32_t byteOffset;
   DOCUMENT("If this constant is no larger than a 64-bit constant, gives a default value for it.");
   uint64_t defaultValue;
   DOCUMENT(

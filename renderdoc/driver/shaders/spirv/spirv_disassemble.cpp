@@ -3503,11 +3503,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   {
     if(decorations[d].decoration == spv::DecorationOffset)
     {
-      uint32_t byteOffset = decorations[d].val;
-      RDCASSERT(byteOffset % 4 == 0);    // assume uint32_t aligned
-      byteOffset /= 4;
-      outConst.reg.vec = byteOffset / 4;
-      outConst.reg.comp = byteOffset % 4;
+      outConst.byteOffset = decorations[d].val;
       break;
     }
   }
@@ -3655,11 +3651,7 @@ void MakeConstantBlockVariables(SPVTypeData *structType, uint32_t arraySize,
       MakeConstantBlockVariable(cblock[i], structType, StringFormat::Fmt("[%u]", i),
                                 structType->decorations ? *structType->decorations : empty);
 
-      uint32_t byteOffset = relativeOffset;
-      RDCASSERT(byteOffset % 4 == 0);    // assume uint32_t aligned
-      byteOffset /= 4;
-      cblock[i].reg.vec = byteOffset / 4;
-      cblock[i].reg.comp = byteOffset % 4;
+      cblock[i].byteOffset = relativeOffset;
 
       relativeOffset += arrayByteStride;
     }
@@ -3687,7 +3679,7 @@ uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variables)
   const ShaderConstant &last = variables.back();
 
   // find its offset
-  uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
+  uint32_t byteOffset = last.byteOffset;
 
   // arrays are easy
   if(last.type.descriptor.arrayByteStride > 0)
@@ -4273,10 +4265,8 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
         for(size_t d = 0; d < inst->decorations.size(); d++)
         {
           if(inst->decorations[d].decoration == spv::DecorationLocation)
-            constant.reg.vec = (int32_t)inst->decorations[d].val;
+            constant.byteOffset = (int32_t)inst->decorations[d].val;
         }
-
-        constant.reg.comp = 0;
 
         globalsblock.variables.push_back(constant);
       }
@@ -4577,7 +4567,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
         RDCERR("Couldn't find specialisation index for spec constant");
 
       // put the specId in here since we don't have an actual offset for specialization constants.
-      cblock.variables[i].reg.vec = specId;
+      cblock.variables[i].byteOffset = specId;
       cblock.variables[i].defaultValue = specConstants[i]->constant->u64;
 
       RDCASSERTEQUAL(cblock.variables[i].type.members.size(),

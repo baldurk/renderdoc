@@ -87,15 +87,14 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
   ShaderConstant ret;
 
   ret.name = var.name;
-  ret.reg.vec = offset + var.descriptor.offset / 16;
-  ret.reg.comp = (var.descriptor.offset - (var.descriptor.offset & ~0xf)) / 4;
+  ret.byteOffset = offset + var.descriptor.offset;
   ret.defaultValue = 0;
 
-  offset = ret.reg.vec;
+  offset = ret.byteOffset;
 
   ret.type = MakeShaderVariableType(var.type, offset);
 
-  offset = ret.reg.vec + RDCMAX(1U, var.type.descriptor.bytesize / 16);
+  offset = ret.byteOffset + RDCMAX(1U, var.type.descriptor.bytesize);
 
   return ret;
 }

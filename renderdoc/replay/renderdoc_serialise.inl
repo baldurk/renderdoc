@@ -195,19 +195,10 @@ void DoSerialise(SerialiserType &ser, ShaderVariableType &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, ShaderRegister &el)
-{
-  SERIALISE_MEMBER(vec);
-  SERIALISE_MEMBER(comp);
-
-  SIZE_CHECK(8);
-}
-
-template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderConstant &el)
 {
   SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(reg);
+  SERIALISE_MEMBER(byteOffset);
   SERIALISE_MEMBER(defaultValue);
   SERIALISE_MEMBER(type);
 

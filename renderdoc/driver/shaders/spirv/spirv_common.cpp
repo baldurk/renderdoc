@@ -75,8 +75,7 @@ void SPIRVFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
     bool rowMajor = invars[v].type.descriptor.rowMajorStorage != 0;
     bool isArray = elems > 1;
 
-    size_t dataOffset =
-        baseOffset + invars[v].reg.vec * sizeof(float) * 4 + invars[v].reg.comp * sizeof(float);
+    size_t dataOffset = baseOffset + invars[v].byteOffset;
 
     if(!invars[v].type.members.empty() || (rows == 0 && cols == 0))
     {
@@ -278,7 +277,7 @@ void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
   {
     for(size_t v = 0; v < invars.size(); v++)
     {
-      if(specInfo[i].specID == invars[v].reg.vec)
+      if(specInfo[i].specID == invars[v].byteOffset)
       {
         memcpy(outvars[v].value.uv, specInfo[i].data.data(),
                RDCMIN(specInfo[i].data.size(), sizeof(outvars[v].value.uv)));

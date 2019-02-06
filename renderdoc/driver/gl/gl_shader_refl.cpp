@@ -33,18 +33,9 @@ void sort(rdcarray<ShaderConstant> &vars)
   if(vars.empty())
     return;
 
-  struct offset_sort
-  {
-    bool operator()(const ShaderConstant &a, const ShaderConstant &b)
-    {
-      if(a.reg.vec == b.reg.vec)
-        return a.reg.comp < b.reg.comp;
-      else
-        return a.reg.vec < b.reg.vec;
-    }
-  };
-
-  std::sort(vars.begin(), vars.end(), offset_sort());
+  std::sort(vars.begin(), vars.end(), [](const ShaderConstant &a, const ShaderConstant &b) {
+    return a.byteOffset < b.byteOffset;
+  });
 
   for(size_t i = 0; i < vars.size(); i++)
     sort(vars[i].type.members);
@@ -706,19 +697,15 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
   if(values[5] == -1 && values[2] >= 0)
   {
-    var.reg.vec = values[2];
-    var.reg.comp = 0;
+    var.byteOffset = values[2];
   }
   else if(values[5] >= 0)
   {
-    var.reg.vec = values[5] / 16;
-    var.reg.comp = (values[5] / 4) % 4;
-
-    RDCASSERT((values[5] % 4) == 0);
+    var.byteOffset = values[5];
   }
   else
   {
-    var.reg.vec = var.reg.comp = ~0U;
+    var.byteOffset = ~0U;
   }
 
   var.type.descriptor.rowMajorStorage = (values[6] > 0);
@@ -807,8 +794,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     // construct a parent variable
     ShaderConstant parentVar;
     parentVar.name = base;
-    parentVar.reg.vec = var.reg.vec;
-    parentVar.reg.comp = 0;
+    parentVar.byteOffset = var.byteOffset;
     parentVar.type.descriptor.name = "struct";
     parentVar.type.descriptor.rows = 0;
     parentVar.type.descriptor.columns = 0;
@@ -831,7 +817,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
         // just for sorting
         (*parentmembers)[i].type.descriptor.elements =
             RDCMAX((*parentmembers)[i].type.descriptor.elements, parentVar.type.descriptor.elements);
-        (*parentmembers)[i].reg.vec = RDCMIN((*parentmembers)[i].reg.vec, parentVar.reg.vec);
+        (*parentmembers)[i].byteOffset = RDCMIN((*parentmembers)[i].byteOffset, parentVar.byteOffset);
 
         parentmembers = &((*parentmembers)[i].type.members);
         found = true;
@@ -1572,7 +1558,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           last = &last->type.members.back();
 
         // start from the offset
-        uint32_t stride = last->reg.vec * 16 + last->reg.comp * 4;
+        uint32_t stride = last->byteOffset;
 
         // add its size
         uint32_t size = last->type.descriptor.rows * last->type.descriptor.columns * 4;
@@ -1594,8 +1580,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
 
           ShaderConstant paddingVar;
           paddingVar.name = "__padding";
-          paddingVar.reg.vec = last->reg.vec + (size / 16);
-          paddingVar.reg.comp = (last->reg.comp + size / 4) % 16;
+          paddingVar.byteOffset = last->byteOffset + size;
           paddingVar.type.descriptor.type = VarType::UInt;
           paddingVar.type.descriptor.rows = 1;
           paddingVar.type.descriptor.columns = (uint8_t)RDCMIN(padding, 255U);
