@@ -909,6 +909,19 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   // force flush this state
   on_CaptureCallstacks_toggled(ui->CaptureCallstacks->isChecked());
 
+  if(settings.numQueuedFrames > 0)
+  {
+    ui->queuedFrame->setValue(settings.queuedFrameCap);
+    ui->numFrames->setValue(settings.numQueuedFrames);
+    ui->queueFrameCap->setChecked(true);
+  }
+  else
+  {
+    ui->queuedFrame->setValue(0);
+    ui->numFrames->setValue(0);
+    ui->queueFrameCap->setChecked(false);
+  }
+
   if(settings.autoStart)
   {
     TriggerCapture();
@@ -939,6 +952,12 @@ CaptureSettings CaptureDialog::Settings()
   ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();
   ret.options.delayForDebugger = (uint32_t)ui->DelayForDebugger->value();
   ret.options.verifyBufferAccess = ui->VerifyBufferAccess->isChecked();
+
+  if(ui->queueFrameCap->isChecked())
+  {
+    ret.queuedFrameCap = (uint32_t)ui->queuedFrame->value();
+    ret.numQueuedFrames = (uint32_t)ui->numFrames->value();
+  }
 
   return ret;
 }

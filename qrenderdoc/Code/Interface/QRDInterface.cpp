@@ -73,6 +73,8 @@ CaptureSettings::CaptureSettings()
 {
   inject = false;
   autoStart = false;
+  queuedFrameCap = 0;
+  numQueuedFrames = 0;
   RENDERDOC_GetDefaultCaptureOptions(&options);
 }
 
@@ -105,6 +107,9 @@ CaptureSettings::operator QVariant() const
   opts[lit("captureAllCmdLists")] = options.captureAllCmdLists;
   opts[lit("debugOutputMute")] = options.debugOutputMute;
   ret[lit("options")] = opts;
+
+  ret[lit("queuedFrameCap")] = queuedFrameCap;
+  ret[lit("numQueuedFrames")] = numQueuedFrames;
 
   return ret;
 }
@@ -144,6 +149,15 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   options.refAllResources = opts[lit("refAllResources")].toBool();
   options.captureAllCmdLists = opts[lit("captureAllCmdLists")].toBool();
   options.debugOutputMute = opts[lit("debugOutputMute")].toBool();
+
+  if(data.contains(lit("queuedFrameCap")))
+    queuedFrameCap = data[lit("queuedFrameCap")].toUInt();
+  else
+    queuedFrameCap = 0;
+  if(data.contains(lit("numQueuedFrames")))
+    numQueuedFrames = data[lit("numQueuedFrames")].toUInt();
+  else
+    numQueuedFrames = 0;
 }
 
 rdcstr configFilePath(const rdcstr &filename)

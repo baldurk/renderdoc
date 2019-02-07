@@ -117,6 +117,10 @@ struct CaptureSettings
       "A ``list`` of :class:`~renderdoc.EnvironmentModification` with environment changes to "
       "apply.");
   rdcarray<EnvironmentModification> environment;
+  DOCUMENT("The number of queued frames to capture, or 0 if no frames are queued to be captured.");
+  uint32_t numQueuedFrames;
+  DOCUMENT("The first queued frame to capture. Ignored if :data:`numQueuedFrames` is 0.");
+  uint32_t queuedFrameCap;
 };
 
 DECLARE_REFLECTION_STRUCT(CaptureSettings);
