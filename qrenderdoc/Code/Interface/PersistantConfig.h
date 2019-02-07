@@ -564,13 +564,23 @@ For more information about some of these settings that are user-facing see
 
 .. data:: Formatter_MinFigures
 
-  The minimum number of significant figures to show in formatted floating point values.
+  The minimum number of decimal places to show in formatted floating point values.
+
+  .. note::
+
+    The naming of 'MinFigures' is a historical artifact - this controls the number of decimal places
+    only, not the number of significant figures.
 
   Defaults to ``2``.
 
 .. data:: Formatter_MaxFigures
 
-  The maximum number of significant figures to show in formatted floating point values.
+  The maximum number of decimal places to show in formatted floating point values.
+
+  .. note::
+
+    The naming of 'MaxFigures' is a historical artifact - this controls the number of decimal places
+    only, not the number of significant figures.
 
   Defaults to ``5``.
 

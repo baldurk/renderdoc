@@ -208,8 +208,8 @@ Since this is a global system hook it must be used carefully and only when neces
           <item row="3" column="1">
            <widget class="QSpinBox" name="Formatter_MaxFigures">
             <property name="toolTip">
-             <string>No more significant figures than this will be displayed on floats.
-e.g. a value of 5 means 0.123456789 will display as 0.12345</string>
+             <string>No more decimal places than this will be displayed on floats.
+e.g. a value of 5 means 0.123456789 will display as 0.12345 and 123.123456789 will display as 123.12345</string>
             </property>
             <property name="value">
              <number>5</number>
@@ -350,8 +350,8 @@ E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
           <item row="2" column="0">
            <widget class="QLabel" name="label">
             <property name="toolTip">
-             <string>Decimals will display at least this many digits.
-e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
+             <string>At least this many decimal places will be displayed on floats.
+e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50. A value of 5 would display them as 0.00000 and 0.50000 respectively.</string>
             </property>
             <property name="text">
              <string>Minimum decimal places on float values</string>
@@ -376,11 +376,11 @@ Since this is a global system hook it must be used carefully and only when neces
           <item row="3" column="0">
            <widget class="QLabel" name="label_2">
             <property name="toolTip">
-             <string>No more significant figures than this will be displayed on floats.
+             <string>No more decimal places than this will be displayed on floats.
 e.g. a value of 5 means 0.123456789 will display as 0.12345</string>
             </property>
             <property name="text">
-             <string>Maximum significant figures on decimals</string>
+             <string>Maximum decimal places on float values</string>
             </property>
            </widget>
           </item>
