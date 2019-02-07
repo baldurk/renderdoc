@@ -237,6 +237,54 @@ void DoubleGet(const ShaderVariable &var, double out[2])
   out[1] = var.value.d.y;
 }
 
+// "NaN has special handling. If one source operand is NaN, then the other source operand is
+// returned and the choice is made per-component. If both are NaN, any NaN representation is
+// returned."
+
+float dxbc_min(float a, float b)
+{
+  if(_isnan(a))
+    return b;
+
+  if(_isnan(b))
+    return a;
+
+  return a < b ? a : b;
+}
+
+double dxbc_min(double a, double b)
+{
+  if(_isnan(a))
+    return b;
+
+  if(_isnan(b))
+    return a;
+
+  return a < b ? a : b;
+}
+
+float dxbc_max(float a, float b)
+{
+  if(_isnan(a))
+    return b;
+
+  if(_isnan(b))
+    return a;
+
+  return a >= b ? a : b;
+}
+
+double dxbc_max(double a, double b)
+{
+  if(_isnan(a))
+    return b;
+
+  if(_isnan(b))
+    return a;
+
+  return a >= b ? a : b;
+}
+
 ShaderVariable sat(const ShaderVariable &v, const VarType type)
 {
   ShaderVariable r = v;
@@ -257,8 +305,19 @@ ShaderVariable sat(const ShaderVariable &v, const VarType type)
     }
     case VarType::Float:
     {
+      // "The saturate instruction result modifier performs the following operation on the result
+      // values(s) from a floating point arithmetic operation that has _sat applied to it:
+      //
+      // min(1.0f, max(0.0f, value))
+      //
+      // where min() and max() in the above expression behave in the way min, max, dmin, or dmax
+      // operate. "
+
       for(size_t i = 0; i < v.columns; i++)
-        r.value.fv[i] = v.value.fv[i] < 0 ? 0 : (v.value.fv[i] > 1 ? 1 : v.value.fv[i]);
+      {
+        r.value.fv[i] = dxbc_min(1.0f, dxbc_max(0.0f, v.value.fv[i]));
+      }
+
       break;
     }
     case VarType::Double:
@@ -267,8 +326,8 @@ ShaderVariable sat(const ShaderVariable &v, const VarType type)
       DoubleGet(v, src);
 
       double dst[2];
-      dst[0] = src[0] < 0 ? 0 : (src[0] > 1 ? 1 : src[0]);
-      dst[1] = src[1] < 0 ? 0 : (src[1] > 1 ? 1 : src[1]);
+      dst[0] = dxbc_min(1.0, dxbc_max(0.0, src[0]));
+      dst[1] = dxbc_min(1.0, dxbc_max(0.0, src[1]));
 
       DoubleSet(r, dst);
       break;
@@ -1543,8 +1602,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       DoubleGet(srcOpers[1], src1);
 
       double dst[2];
-      dst[0] = src0[0] < src1[0] ? src0[0] : src1[0];
-      dst[1] = src0[1] < src1[1] ? src0[1] : src1[1];
+      dst[0] = dxbc_min(src0[0], src1[0]);
+      dst[1] = dxbc_min(src0[1], src1[1]);
 
       ShaderVariable r("", 0U, 0U, 0U, 0U);
       DoubleSet(r, dst);
@@ -1553,16 +1612,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       break;
     }
     case OPCODE_MIN:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[0].value.f.x < srcOpers[1].value.f.x ? srcOpers[0].value.f.x
-                                                                           : srcOpers[1].value.f.x,
-                         srcOpers[0].value.f.y < srcOpers[1].value.f.y ? srcOpers[0].value.f.y
-                                                                       : srcOpers[1].value.f.y,
-                         srcOpers[0].value.f.z < srcOpers[1].value.f.z ? srcOpers[0].value.f.z
-                                                                       : srcOpers[1].value.f.z,
-                         srcOpers[0].value.f.w < srcOpers[1].value.f.w ? srcOpers[0].value.f.w
-                                                                       : srcOpers[1].value.f.w));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", dxbc_min(srcOpers[0].value.f.x, srcOpers[1].value.f.x),
+                              dxbc_min(srcOpers[0].value.f.y, srcOpers[1].value.f.y),
+                              dxbc_min(srcOpers[0].value.f.z, srcOpers[1].value.f.z),
+                              dxbc_min(srcOpers[0].value.f.w, srcOpers[1].value.f.w)));
       break;
     case OPCODE_UMAX:
       s.SetDst(
@@ -1595,8 +1649,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       DoubleGet(srcOpers[1], src1);
 
       double dst[2];
-      dst[0] = src0[0] >= src1[0] ? src0[0] : src1[0];
-      dst[1] = src0[1] >= src1[1] ? src0[1] : src1[1];
+      dst[0] = dxbc_max(src0[0], src1[0]);
+      dst[1] = dxbc_max(src0[1], src1[1]);
 
       ShaderVariable r("", 0U, 0U, 0U, 0U);
       DoubleSet(r, dst);
@@ -1605,16 +1659,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       break;
     }
     case OPCODE_MAX:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[0].value.f.x >= srcOpers[1].value.f.x ? srcOpers[0].value.f.x
-                                                                            : srcOpers[1].value.f.x,
-                         srcOpers[0].value.f.y >= srcOpers[1].value.f.y ? srcOpers[0].value.f.y
-                                                                        : srcOpers[1].value.f.y,
-                         srcOpers[0].value.f.z >= srcOpers[1].value.f.z ? srcOpers[0].value.f.z
-                                                                        : srcOpers[1].value.f.z,
-                         srcOpers[0].value.f.w >= srcOpers[1].value.f.w ? srcOpers[0].value.f.w
-                                                                        : srcOpers[1].value.f.w));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", dxbc_max(srcOpers[0].value.f.x, srcOpers[1].value.f.x),
+                              dxbc_max(srcOpers[0].value.f.y, srcOpers[1].value.f.y),
+                              dxbc_max(srcOpers[0].value.f.z, srcOpers[1].value.f.z),
+                              dxbc_max(srcOpers[0].value.f.w, srcOpers[1].value.f.w)));
       break;
     case OPCODE_SQRT:
       s.SetDst(op.operands[0], op,
@@ -4833,3 +4882,87 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 }
 
 };    // namespace ShaderDebug
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include <limits>
+#include "3rdparty/catch/catch.hpp"
+
+using namespace ShaderDebug;
+
+TEST_CASE("DXBC debugging helpers", "[dxbc]")
+{
+  const float posinf = std::numeric_limits<float>::infinity();
+  const float neginf = -std::numeric_limits<float>::infinity();
+  const float nan = std::numeric_limits<float>::quiet_NaN();
+  const float a = 1.0f;
+  const float b = 2.0f;
+
+  SECTION("dxbc_min")
+  {
+    CHECK(dxbc_min(neginf, neginf) == neginf);
+    CHECK(dxbc_min(neginf, a) == neginf);
+    CHECK(dxbc_min(neginf, posinf) == neginf);
+    CHECK(dxbc_min(neginf, nan) == neginf);
+    CHECK(dxbc_min(a, neginf) == neginf);
+    CHECK(dxbc_min(a, b) == a);
+    CHECK(dxbc_min(a, posinf) == a);
+    CHECK(dxbc_min(a, nan) == a);
+    CHECK(dxbc_min(posinf, neginf) == neginf);
+    CHECK(dxbc_min(posinf, a) == a);
+    CHECK(dxbc_min(posinf, posinf) == posinf);
+    CHECK(dxbc_min(posinf, nan) == posinf);
+    CHECK(dxbc_min(nan, neginf) == neginf);
+    CHECK(dxbc_min(nan, a) == a);
+    CHECK(dxbc_min(nan, posinf) == posinf);
+    CHECK(_isnan(dxbc_min(nan, nan)));
+  };
+
+  SECTION("dxbc_max")
+  {
+    CHECK(dxbc_max(neginf, neginf) == neginf);
+    CHECK(dxbc_max(neginf, a) == a);
+    CHECK(dxbc_max(neginf, posinf) == posinf);
+    CHECK(dxbc_max(neginf, nan) == neginf);
+    CHECK(dxbc_max(a, neginf) == a);
+    CHECK(dxbc_max(a, b) == b);
+    CHECK(dxbc_max(a, posinf) == posinf);
+    CHECK(dxbc_max(a, nan) == a);
+    CHECK(dxbc_max(posinf, neginf) == posinf);
+    CHECK(dxbc_max(posinf, a) == posinf);
+    CHECK(dxbc_max(posinf, posinf) == posinf);
+    CHECK(dxbc_max(posinf, nan) == posinf);
+    CHECK(dxbc_max(nan, neginf) == neginf);
+    CHECK(dxbc_max(nan, a) == a);
+    CHECK(dxbc_max(nan, posinf) == posinf);
+    CHECK(_isnan(dxbc_max(nan, nan)));
+  };
+
+  SECTION("sat/abs/neg on NaNs")
+  {
+    ShaderVariable v("a", b, nan, neginf, posinf);
+
+    ShaderVariable v2 = sat(v, VarType::Float);
+
+    CHECK(v2.value.f.x == 1.0f);
+    CHECK(v2.value.f.y == 0.0f);
+    CHECK(v2.value.f.z == 0.0f);
+    CHECK(v2.value.f.w == 1.0f);
+
+    v2 = neg(v, VarType::Float);
+
+    CHECK(v2.value.f.x == -b);
+    CHECK(_isnan(v2.value.f.y));
+    CHECK(v2.value.f.z == posinf);
+    CHECK(v2.value.f.w == neginf);
+
+    v2 = abs(v, VarType::Float);
+
+    CHECK(v2.value.f.x == b);
+    CHECK(_isnan(v2.value.f.y));
+    CHECK(v2.value.f.z == posinf);
+    CHECK(v2.value.f.w == posinf);
+  };
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
