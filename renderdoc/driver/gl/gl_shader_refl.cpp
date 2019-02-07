@@ -712,6 +712,23 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   var.type.descriptor.arrayByteStride = values[7];
   var.type.descriptor.matrixByteStride = (uint8_t)values[8];
 
+  bool bareUniform = false;
+
+  // for plain uniforms we won't get an array/matrix byte stride. Calculate tightly packed strides
+  if(values[3] == -1)
+  {
+    bareUniform = true;
+
+    // plain matrices are always column major, so this is the size of a column
+    var.type.descriptor.rowMajorStorage = false;
+
+    const uint32_t elemByteStride = (var.type.descriptor.type == VarType::Double) ? 8 : 4;
+    var.type.descriptor.matrixByteStride = uint8_t(var.type.descriptor.rows * elemByteStride);
+
+    // arrays are fetched as individual glGetUniform calls
+    var.type.descriptor.arrayByteStride = 0;
+  }
+
   // set vectors as row major for convenience, since that's how they're stored in the fv array.
   switch(values[0])
   {
@@ -741,6 +758,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   var.name.resize(values[1] - 1);
   GL.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
 
+  std::string fullname = var.name;
+
   int32_t c = values[1] - 1;
 
   // trim off trailing [0] if it's an array
@@ -758,7 +777,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
   rdcarray<ShaderConstant> *parentmembers = defaultBlock;
 
-  if(values[3] != -1 && values[3] < numParentBlocks)
+  if(!bareUniform && values[3] < numParentBlocks)
   {
     parentmembers = &parentBlocks[values[3]];
   }
@@ -917,7 +936,12 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     // the 0th element of each array fills out the actual members, when we
     // encounter an index above that we only use it to increase the type.descriptor.elements
     // member (which we've done by this point) and can stop recursing
-    if(arrayIdx > 0)
+    //
+    // The exception is when we're looking at bare uniforms - there the struct members all have
+    // individual locations and are generally aggressively stripped by the driver.
+    // So then it's possible to get foo[0].bar.a and foo[1].bar.b - so higher indices can reveal
+    // more of the structure.
+    if(arrayIdx > 0 && !bareUniform)
     {
       parentmembers = NULL;
       break;
@@ -926,9 +950,42 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
   if(parentmembers)
   {
+    // if this is a bare uniform we need to be careful - just above we continued iterating for
+    // higher indices, because you can have cases that return e.g. foo[0].bar.a and foo[1].bar.b and
+    // get 'more information' from later indices, the full structure is not revealed under foo[0].
+    // However as a result of that it means we could see foo[0].bar.a and foo[1].bar.a - we need to
+    // be careful not to add the final 'a' twice. Check for duplicates and be sure it's really a
+    // duplicate.
+    bool duplicate = false;
+
     // nm points into var.name's storage, so copy out to a temporary
-    string n = nm;
+    std::string n = nm;
     var.name = n;
+
+    if(bareUniform && !multiDimArray)
+    {
+      for(size_t i = 0; i < parentmembers->size(); i++)
+      {
+        if((*parentmembers)[i].name == var.name)
+        {
+          ShaderVariableDescriptor &oldtype = (*parentmembers)[i].type.descriptor;
+          ShaderVariableDescriptor &newtype = var.type.descriptor;
+
+          if(oldtype.rows != newtype.rows || oldtype.columns != newtype.columns ||
+             oldtype.type != newtype.type || oldtype.elements != newtype.elements)
+          {
+            RDCERR("When reconstructing %s, found duplicate but different final member %s",
+                   fullname.c_str(), (*parentmembers)[i].name.c_str());
+          }
+
+          duplicate = true;
+          break;
+        }
+      }
+    }
+
+    if(duplicate)
+      return;
 
     // for multidimensional arrays there will be no proper name, so name the variable by the index
     if(multiDimArray)

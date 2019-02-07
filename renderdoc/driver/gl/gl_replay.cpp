@@ -1967,7 +1967,42 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
 
       if(idx == GL_INVALID_INDEX)
       {
-        RDCERR("Can't find program resource index for %s", fullname.c_str());
+        // this might not be an error, this might be the corresponding member in an array-of-structs
+        // that doesn't exist because it's not in a UBO.
+        // e.g.:
+        // struct foo { float a; float b; }
+        // uniform foo bar[2];
+        //
+        // If the program only references bar[0].a and bar[1].b then we'd reflect the full structure
+        // but only bar[0].a and bar[1].b  would have indices - bar[0].b and bar[1].a would not.
+        RDCWARN("Can't find program resource index for %s", fullname.c_str());
+
+        if(bufferBacked)
+          RDCERR("Uniform is buffer backed - index expected");
+
+        // if this is an array, generate empty members
+        if(desc.elements > 0)
+        {
+          std::vector<ShaderVariable> elems;
+          for(uint32_t a = 0; a < desc.elements; a++)
+          {
+            ShaderVariable el = var;
+
+            // if this is the last part of a multidimensional array, don't include the variable name
+            if(var.name[0] != '[')
+              el.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
+            else
+              el.name = StringFormat::Fmt("[%u]", a);
+
+            el.isStruct = false;
+
+            elems.push_back(el);
+          }
+
+          var.members = elems;
+          var.isStruct = false;
+          var.rows = var.columns = 0;
+        }
       }
       else
       {
@@ -2042,7 +2077,8 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
 
             StandardFillCBufferVariable(offset, data, el, matStride);
 
-            offset += desc.arrayByteStride;
+            if(bufferBacked)
+              offset += desc.arrayByteStride;
 
             el.isStruct = false;
 
