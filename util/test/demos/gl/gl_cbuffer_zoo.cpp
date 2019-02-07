@@ -288,6 +288,14 @@ layout(binding = 0, std140) uniform constsbuf
                                           // [3][2][1] = {..., ..., ..., ...}
 };
 
+uniform vec4 A;
+uniform vec2 B;
+uniform vec3 C;
+uniform mat2x3 D;
+uniform float E[3];
+uniform vec4 F[3][2][2];
+uniform nested G[2];
+
 void main()
 {
   // we need to ref all of the variables we want to include to force GL to include them :(.
@@ -295,6 +303,8 @@ void main()
   blah += n[0] + o[0] + p.x;
   blah += q[0].x + r[0].x + s[0].x + t[0].x + u[0].x + v[0].x + w[0].x + x[0].x + y[0].x + z;
   blah += multiarray[0][0].x + ac[0][0] + ad[0][0] + ae[0][0][0] + af[0][0][0];
+  blah += A.z + B.x + C.y + D[0][1] + E[2] + F[1][0][1].y;
+  blah += G[0].a.b + G[1].a.b + G[1].b[3].w + G[1].c[3].a.y;
   blah *= vertIn.uv.z;
   Color = blah + test + vec4(0.1f, 0.0f, 0.0f, 0.0f);
 }
@@ -358,6 +368,187 @@ void main()
       glBindBufferBase(GL_UNIFORM_BUFFER, 0, cb);
 
       glUseProgram(program);
+
+      GLint location = -1;
+
+      location = glGetUniformLocation(program, "A");
+      if(location != -1)
+        glUniform4f(location, 10.0f, 20.0f, 30.0f, 40.0f);
+
+      location = glGetUniformLocation(program, "B");
+      if(location != -1)
+        glUniform2f(location, 50.0f, 60.0f);
+
+      location = glGetUniformLocation(program, "C");
+      if(location != -1)
+        glUniform3f(location, 70.0f, 80.0f, 90.0f);
+
+      // implicitly column major, so:
+      // {100.0, 130.0}
+      // {110.0, 140.0}
+      // {120.0, 150.0}
+      float D[2 * 3] = {
+          100.0f, 110.0f, 120.0f, 130.0f, 140.0f, 150.0f,
+      };
+      location = glGetUniformLocation(program, "D");
+      if(location != -1)
+        glUniformMatrix2x3fv(location, 1, false, D);
+
+      float E[3] = {160.0f, 170.0f, 180.0f};
+      location = glGetUniformLocation(program, "E");
+      if(location != -1)
+        glUniform1fv(location, 3, E);
+
+      float val = 190.0f;
+
+      float F[2 * 4] = {};
+
+#define NEXT_F()                 \
+  for(int x = 0; x < 2 * 4; x++) \
+  {                              \
+    F[x] = val;                  \
+    val += 10.0f;                \
+  }
+
+      NEXT_F();
+      location = glGetUniformLocation(program, "F[0][0]");
+      if(location != -1)
+        glUniform4fv(location, 2, F);
+
+      NEXT_F();
+      location = glGetUniformLocation(program, "F[0][1]");
+      if(location != -1)
+        glUniform4fv(location, 2, F);
+
+      NEXT_F();
+      location = glGetUniformLocation(program, "F[1][0]");
+      if(location != -1)
+        glUniform4fv(location, 2, F);
+
+      NEXT_F();
+      location = glGetUniformLocation(program, "F[1][1]");
+      if(location != -1)
+        glUniform4fv(location, 2, F);
+
+      NEXT_F();
+      location = glGetUniformLocation(program, "F[2][0]");
+      if(location != -1)
+        glUniform4fv(location, 2, F);
+
+      NEXT_F();
+      location = glGetUniformLocation(program, "F[2][1]");
+      if(location != -1)
+        glUniform4fv(location, 2, F);
+
+      location = glGetUniformLocation(program, "G[0].a.a");
+      if(location != -1)
+        glUniform3f(location, 680.0f, 690.0f, 700.0f);
+
+      location = glGetUniformLocation(program, "G[0].a.b");
+      if(location != -1)
+        glUniform1f(location, 710.0f);
+
+      float vals[] = {
+          // b[0]
+          720.0f, 730.0f, 740.0f, 750.0f,
+          // b[1]
+          760.0f, 770.0f, 780.0f, 790.0f,
+          // b[2]
+          800.0f, 810.0f, 820.0f, 830.0f,
+          // b[3]
+          840.0f, 850.0f, 860.0f, 870.0f,
+      };
+
+      location = glGetUniformLocation(program, "G[0].b");
+      if(location != -1)
+        glUniform4fv(location, 4, vals);
+
+      location = glGetUniformLocation(program, "G[0].c[0].a");
+      if(location != -1)
+        glUniform3f(location, 880.0f, 890.0f, 900.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[0].b");
+      if(location != -1)
+        glUniform1f(location, 910.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[1].a");
+      if(location != -1)
+        glUniform3f(location, 920.0f, 930.0f, 940.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[1].b");
+      if(location != -1)
+        glUniform1f(location, 950.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[2].a");
+      if(location != -1)
+        glUniform3f(location, 960.0f, 970.0f, 980.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[2].b");
+      if(location != -1)
+        glUniform1f(location, 990.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[3].a");
+      if(location != -1)
+        glUniform3f(location, 1000.0f, 1010.0f, 1020.0f);
+
+      location = glGetUniformLocation(program, "G[0].c[3].b");
+      if(location != -1)
+        glUniform1f(location, 1030.0f);
+
+      location = glGetUniformLocation(program, "G[1].a.a");
+      if(location != -1)
+        glUniform3f(location, 1040.0f, 1050.0f, 1060.0f);
+
+      location = glGetUniformLocation(program, "G[1].a.b");
+      if(location != -1)
+        glUniform1f(location, 1070.0f);
+
+      float vals2[] = {
+          // b[0]
+          1080.0f, 1090.0f, 1100.0f, 1110.0f,
+          // b[1]
+          1120.0f, 1130.0f, 1140.0f, 1150.0f,
+          // b[2]
+          1160.0f, 1170.0f, 1180.0f, 1190.0f,
+          // b[3]
+          1200.0f, 1210.0f, 1220.0f, 1230.0f,
+      };
+
+      location = glGetUniformLocation(program, "G[1].b");
+      if(location != -1)
+        glUniform4fv(location, 4, vals2);
+
+      location = glGetUniformLocation(program, "G[1].c[0].a");
+      if(location != -1)
+        glUniform3f(location, 1240.0f, 1250.0f, 1260.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[0].b");
+      if(location != -1)
+        glUniform1f(location, 1270.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[1].a");
+      if(location != -1)
+        glUniform3f(location, 1280.0f, 1290.0f, 1300.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[1].b");
+      if(location != -1)
+        glUniform1f(location, 1310.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[2].a");
+      if(location != -1)
+        glUniform3f(location, 1320.0f, 1330.0f, 1340.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[2].b");
+      if(location != -1)
+        glUniform1f(location, 1350.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[3].a");
+      if(location != -1)
+        glUniform3f(location, 1360.0f, 1370.0f, 1380.0f);
+
+      location = glGetUniformLocation(program, "G[1].c[3].b");
+      if(location != -1)
+        glUniform1f(location, 1390.0f);
 
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 

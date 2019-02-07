@@ -331,4 +331,33 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Picked value is as expected")
 
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+
+        var_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 1,
+                                                       cbuf.resourceId, cbuf.byteOffset))
+
+        # float4 zero;
+        var_check.check('root_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
+
+        # float4 a;
+        var_check.check('root_a').rows(1).cols(4).value([10.0, 20.0, 30.0, 40.0])
+
+        # float2 b;
+        var_check.check('root_b').rows(1).cols(2).value([50.0, 60.0])
+
+        # float2 c;
+        var_check.check('root_c').rows(1).cols(2).value([70.0, 80.0])
+
+        # float3_1 d;
+        var_check.check('root_d').rows(0).cols(0).structSize(2).members({
+            'a': lambda y: y.rows(1).cols(3).value([90.0, 100.0, 110.0]),
+            'b': lambda y: y.rows(1).cols(1).value([120.0]),
+        })
+
+        var_check.done()
+
+        rdtest.log.success("Root signature variables are as expected")
+
         out.Shutdown()

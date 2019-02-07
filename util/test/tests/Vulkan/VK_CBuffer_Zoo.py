@@ -320,6 +320,30 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("GLSL picked value is as expected")
 
+        # Check the specialization constants
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+
+        var_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 1,
+                                                       cbuf.resourceId, cbuf.byteOffset))
+
+        # int A;
+        # Default value 10, untouched
+        var_check.check('A').type(rd.VarType.SInt).rows(1).cols(1).value([10])
+
+        # float B;
+        # Value 20 from spec constants
+        var_check.check('B').type(rd.VarType.Float).rows(1).cols(1).value([20.0])
+
+        # bool C;
+        # Value True from spec constants
+        var_check.check('C').type(rd.VarType.UInt).rows(1).cols(1).value([1])
+
+        var_check.done()
+
+        rdtest.log.success("Specialization constants are as expected")
+
         # Move to the HLSL draw
         draw = draw.next
 

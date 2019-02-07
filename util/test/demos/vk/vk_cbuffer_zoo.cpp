@@ -259,6 +259,10 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
   vec4 test;                            // {440, 441, 442, 443}
 };
 
+layout (constant_id = 0) const int A = 10;
+layout (constant_id = 1) const float B = 0;
+layout (constant_id = 3) const bool C = false;
+
 void main()
 {
   Color = test + vec4(0.1f, 0.0f, 0.0f, 0.0f);
@@ -480,6 +484,9 @@ float4 main() : SV_Target0
 
   int main(int argc, char **argv)
   {
+    // needed for HLSL packing
+    devExts.push_back(VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME);
+
     // initialise, create window, create context, etc
     if(!Init(argc, argv))
       return 3;
@@ -526,6 +533,24 @@ float4 main() : SV_Target0
         CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
         CompileShaderModule(common + glslpixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
+
+    float data[2] = {20.0f, 0.0f};
+
+    // data[1] is a bool
+    VkBool32 btrue = true;
+    memcpy(&data[1], &btrue, sizeof(btrue));
+
+    VkSpecializationMapEntry specmap[2] = {
+        {1, 0, sizeof(float)}, {3, 4, sizeof(VkBool32)},
+    };
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = 2;
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(data);
+    spec.pData = data;
+
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
 
     VkPipeline glslpipe = createGraphicsPipeline(pipeCreateInfo);
 

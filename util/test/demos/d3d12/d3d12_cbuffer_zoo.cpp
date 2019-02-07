@@ -229,12 +229,35 @@ cbuffer consts : register(b0)
   float4 test;                            // {440, 441, 442, 443}
 };
 
+// this comes from root signature constants
+cbuffer rootconsts : register(b1)
+{
+  float4 root_zero;
+  float4 root_a;
+  float2 root_b, root_c;
+  float3_1 root_d;
+};
+
 float4 main() : SV_Target0
 {
-	return test + float4(0.1f, 0.0f, 0.0f, 0.0f);
+	return test + root_zero + float4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
 )EOSHADER";
+
+  struct float3_1
+  {
+    float a[3];
+    float b;
+  };
+
+  struct RootData
+  {
+    float root_zero[4];
+    float root_a[4];
+    float root_b[2], root_c[2];
+    float3_1 root_d;
+  };
 
   int main(int argc, char **argv)
   {
@@ -250,11 +273,32 @@ float4 main() : SV_Target0
     for(int i = 0; i < 512; i++)
       cbufferdata[i] = Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
+    RootData rootData = {};
+
+    rootData.root_a[0] = 10.0f;
+    rootData.root_a[1] = 20.0f;
+    rootData.root_a[2] = 30.0f;
+    rootData.root_a[3] = 40.0f;
+
+    rootData.root_b[0] = 50.0f;
+    rootData.root_b[1] = 60.0f;
+
+    rootData.root_c[0] = 70.0f;
+    rootData.root_c[1] = 80.0f;
+
+    rootData.root_d.a[0] = 90.0f;
+    rootData.root_d.a[1] = 100.0f;
+    rootData.root_d.a[2] = 110.0f;
+    rootData.root_d.b = 120.0f;
+
+    static_assert(sizeof(rootData) == 64, "Root data is mis-sized");
+
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
     ID3D12ResourcePtr cb = MakeBuffer().Data(cbufferdata);
 
     ID3D12RootSignaturePtr sig = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+        constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, sizeof(rootData) / sizeof(uint32_t)),
     });
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob).RTVs(
@@ -290,6 +334,7 @@ float4 main() : SV_Target0
       cmd->SetPipelineState(pso);
       cmd->SetGraphicsRootSignature(sig);
       cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
+      cmd->SetGraphicsRoot32BitConstants(1, sizeof(rootData) / sizeof(uint32_t), &rootData, 0);
 
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});

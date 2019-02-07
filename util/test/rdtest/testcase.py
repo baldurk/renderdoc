@@ -30,11 +30,23 @@ class ShaderVariableCheck:
 
         return self
 
+    def type(self, type_: rd.VarType):
+        if self.var.type != type_:
+            raise TestFailureException("Variable {} type mismatch, expected {} but got {}"
+                                       .format(self.var.name, type_, self.var.type))
+
+        return self
+
     def value(self, value_: list):
         count = len(value_)
-        if self.var.value.fv[0:count] != value_:
-            raise TestFailureException("Variable {} value mismatch, expected {} but got {}"
-                                       .format(self.var.name, value_, self.var.value.fv[0:count]))
+        if isinstance(value_[0], float):
+            if self.var.value.fv[0:count] != value_:
+                raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
+                                           .format(self.var.name, value_, self.var.value.fv[0:count]))
+        else:
+            if self.var.value.iv[0:count] != value_:
+                raise TestFailureException("Int variable {} value mismatch, expected {} but got {}"
+                                           .format(self.var.name, value_, self.var.value.iv[0:count]))
 
         return self
 

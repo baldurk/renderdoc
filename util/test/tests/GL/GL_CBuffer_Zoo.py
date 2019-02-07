@@ -378,4 +378,112 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Picked value is as expected")
 
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+
+        var_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 1,
+                                                       cbuf.resourceId, cbuf.byteOffset))
+
+        # For bare uniforms we have partial data - only values used in the shader need to get assigned locations and
+        # some drivers are aggressive about stripping any others. Only uniforms with locations get upload values.
+        # Hence some of these checks don't check for the value - that means they might not be present
+
+        # vec4 A;
+        var_check.check('A').cols(4).rows(1).value([10.0, 20.0, 30.0, 40.0])
+
+        # vec2 B;
+        var_check.check('B').cols(2).rows(1).value([50.0, 60.0])
+
+        # vec3 C;
+        var_check.check('C').cols(3).rows(1).value([70.0, 80.0, 90.0])
+
+        # mat2x3 D;
+        var_check.check('D').cols(2).rows(3).value([100.0, 130.0,
+                                                    110.0, 140.0,
+                                                    120.0, 150.0])
+
+        # float E[3];
+        var_check.check('E').cols(0).rows(0).arraySize(3).members({
+            0: lambda x: x.cols(1).rows(1).value([160.0]),
+            1: lambda x: x.cols(1).rows(1).value([170.0]),
+            2: lambda x: x.cols(1).rows(1).value([180.0]),
+        })
+
+        # vec4 F[3][2][2];
+        # Multidimensional arrays are represented as structs with N members
+        # Due to lacking reflection, we only access F[1][0][1] so that's the only one present
+        var_check.check('F').cols(0).rows(0).structSize(1).members({
+            '[1]': lambda x: x.cols(0).rows(0).structSize(1).members({
+                '[0]': lambda x: x.cols(0).rows(0).arraySize(2).members({
+                    0: lambda x: x.cols(4).rows(1).value([350.0, 360.0, 370.0, 380.0]),
+                    1: lambda x: x.cols(4).rows(1).value([390.0, 400.0, 410.0, 420.0]),
+                }),
+            }),
+        })
+
+        # struct vec3_1 { vec3 a; float b; };
+        # struct nested { vec3_1 a; vec4 b[4]; vec3_1 c[4]; };
+        # nested G[2];
+        # Due to lacking reflection, we don't know that G[x].a.a exists, as we only reference G[n].a.b
+        # Similarly we don't know that G[x].c[y].b exists
+        var_check.check('G').cols(0).rows(0).arraySize(2).members({
+            # G[0]
+            0: lambda s: s.cols(0).rows(0).structSize(3).members({
+                'a': lambda x: x.cols(0).rows(0).structSize(1).members({
+                    'b': lambda y: y.cols(1).rows(1).value([710.0]),
+                }),
+                'b': lambda x: x.cols(0).rows(0).arraySize(4).members({
+                    0: lambda y: y.cols(4).rows(1),
+                    1: lambda y: y.cols(4).rows(1),
+                    2: lambda y: y.cols(4).rows(1),
+                    3: lambda y: y.cols(4).rows(1),
+                }),
+                'c': lambda x: x.cols(0).rows(0).arraySize(4).members({
+                    0: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                    1: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                    2: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                    3: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                }),
+            }),
+            # G[1]
+            1: lambda s: s.cols(0).rows(0).structSize(3).members({
+                'a': lambda x: x.cols(0).rows(0).structSize(1).members({
+                    'b': lambda y: y.cols(1).rows(1).value([1070.0]),
+                }),
+                'b': lambda x: x.cols(0).rows(0).arraySize(4).members({
+                    0: lambda y: y.cols(4).rows(1).value([1080.0, 1090.0, 1100.0, 1110.0]),
+                    1: lambda y: y.cols(4).rows(1).value([1120.0, 1130.0, 1140.0, 1150.0]),
+                    2: lambda y: y.cols(4).rows(1).value([1160.0, 1170.0, 1180.0, 1190.0]),
+                    3: lambda y: y.cols(4).rows(1).value([1200.0, 1210.0, 1220.0, 1230.0]),
+                }),
+                'c': lambda x: x.cols(0).rows(0).arraySize(4).members({
+                    0: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                    1: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                    2: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1),
+                    }),
+                    3: lambda y: y.cols(0).rows(0).structSize(1).members({
+                        'a': lambda z: z.cols(3).rows(1).value([1360.0, 1370.0, 1380.0]),
+                    }),
+                }),
+            }),
+        })
+
+        var_check.done()
+
+        rdtest.log.success("Bare uniform variables are as expected")
+
         out.Shutdown()
