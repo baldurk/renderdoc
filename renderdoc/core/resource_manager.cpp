@@ -61,7 +61,7 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
   switch(first)
   {
     case eFrameRef_None:
-    case eFrameRef_Write:
+    case eFrameRef_PartialWrite:
       if(second == eFrameRef_None)
         // A `None` reference after any other reference type does not change
         // the first reference type
@@ -79,8 +79,8 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
           // Only referenced as `Read` (and possibly `None`)
           return eFrameRef_Read;
 
-        case eFrameRef_Write:
-        case eFrameRef_Clear:
+        case eFrameRef_PartialWrite:
+        case eFrameRef_CompleteWrite:
         case eFrameRef_ReadBeforeWrite:
           // First read, and then written
           return eFrameRef_ReadBeforeWrite;
@@ -88,7 +88,7 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
         default: RDCERR("Unknown FrameRefType: %d", second); return eFrameRef_Maximum;
       }
 
-    case eFrameRef_Clear:
+    case eFrameRef_CompleteWrite:
     case eFrameRef_ReadBeforeWrite:
       // These reference types are both locked in, and cannot be affected by
       // later references.
@@ -109,7 +109,8 @@ FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second)
   if(first < second)
     std::swap(first, second);
 
-  if(first == eFrameRef_Read && (second == eFrameRef_Write || second == eFrameRef_Clear))
+  if(first == eFrameRef_Read &&
+     (second == eFrameRef_PartialWrite || second == eFrameRef_CompleteWrite))
     // The resource is referenced both read and write/clear;
     // We don't know whether the read or write/clear occurs first;
     // if the write happens first, the final state would be Read or Clear;

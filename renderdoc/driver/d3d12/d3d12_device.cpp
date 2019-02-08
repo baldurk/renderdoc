@@ -1166,7 +1166,7 @@ void WrappedID3D12Device::MapDataWrite(ID3D12Resource *Resource, UINT Subresourc
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(Resource), eFrameRef_Write);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(Resource), eFrameRef_PartialWrite);
 }
 
 template <typename SerialiserType>
@@ -1298,7 +1298,7 @@ void WrappedID3D12Device::WriteToSubresource(ID3D12Resource *Resource, UINT Subr
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
 
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(Resource), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(Resource), eFrameRef_PartialWrite);
   }
 }
 

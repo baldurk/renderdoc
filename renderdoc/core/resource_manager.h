@@ -74,13 +74,13 @@ enum FrameRefType
   // Write to some unknown subset of resource.
   // As a state, this represents that unlike clear, some part of the
   // initial contents might still be visible to later reads.
-  eFrameRef_Write = 1,
+  eFrameRef_PartialWrite = 1,
 
-  // Clear the entire resource.
+  // Write to the entire resource.
   // As a state, this represents that no later reads will even be able to see
   // the initial contents, and therefore, the initial contents need not be
   // restored for replay.
-  eFrameRef_Clear = 2,
+  eFrameRef_CompleteWrite = 2,
 
   // Read from the resource;
   // As a state, this represents a read that could have seen the resource's

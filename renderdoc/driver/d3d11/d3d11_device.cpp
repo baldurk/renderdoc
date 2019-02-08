@@ -1490,7 +1490,7 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->ClearReferencedResources();
 
-  GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
+  GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_PartialWrite);
 
   m_pImmediateContext->FreeCaptureData();
 
@@ -1908,7 +1908,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
     }
     else
     {
-      GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
+      GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_PartialWrite);
       GetResourceManager()->PrepareInitialContents();
 
       m_pImmediateContext->AttemptCapture();

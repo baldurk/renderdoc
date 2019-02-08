@@ -1040,9 +1040,10 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
 
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_PartialWrite);
     if(pCounterResource)
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCounterResource), eFrameRef_Write);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCounterResource),
+                                                        eFrameRef_PartialWrite);
   }
 
   GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
@@ -1084,7 +1085,7 @@ void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
 
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_PartialWrite);
   }
 
   GetWrapped(DestDescriptor)->Init(pResource, pDesc);
@@ -1124,7 +1125,7 @@ void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
 
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_PartialWrite);
   }
 
   GetWrapped(DestDescriptor)->Init(pResource, pDesc);

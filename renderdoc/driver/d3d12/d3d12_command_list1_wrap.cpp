@@ -137,7 +137,7 @@ void WrappedID3D12GraphicsCommandList2::AtomicCopyBufferUINT(
                                    ppDependentResources, pDependentSubresourceRanges);
 
     m_ListRecord->AddChunk(scope.Get());
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcBuffer), eFrameRef_Read);
 
     for(UINT i = 0; i < Dependencies; i++)
@@ -255,7 +255,7 @@ void WrappedID3D12GraphicsCommandList2::AtomicCopyBufferUINT64(
                                      ppDependentResources, pDependentSubresourceRanges);
 
     m_ListRecord->AddChunk(scope.Get());
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcBuffer), eFrameRef_Read);
 
     for(UINT i = 0; i < Dependencies; i++)
@@ -512,7 +512,7 @@ void WrappedID3D12GraphicsCommandList2::ResolveSubresourceRegion(
                                        SrcSubresource, pSrcRect, Format, ResolveMode);
 
     m_ListRecord->AddChunk(scope.Get());
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
   }
 }
@@ -637,7 +637,7 @@ void WrappedID3D12GraphicsCommandList2::WriteBufferImmediate(
     m_ListRecord->AddChunk(scope.Get());
     for(UINT i = 0; i < Count; i++)
       m_ListRecord->MarkResourceFrameReferenced(
-          WrappedID3D12Resource::GetResIDFromAddr(pParams[i].Dest), eFrameRef_Write);
+          WrappedID3D12Resource::GetResIDFromAddr(pParams[i].Dest), eFrameRef_PartialWrite);
   }
 }
 

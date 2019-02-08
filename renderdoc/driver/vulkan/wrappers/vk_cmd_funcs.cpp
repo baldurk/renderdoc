@@ -1203,7 +1203,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
       if(att == NULL)
         break;
 
-      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_Write);
+      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_PartialWrite);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
       if(att->resInfo)
@@ -1548,7 +1548,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
       if(att == NULL)
         break;
 
-      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_Write);
+      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_PartialWrite);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
       if(att->resInfo)
@@ -2098,7 +2098,8 @@ void WrappedVulkan::vkCmdBindDescriptorSets(VkCommandBuffer commandBuffer,
 
       for(auto it = frameRefs.begin(); it != frameRefs.end(); ++it)
       {
-        if(it->second.second == eFrameRef_Write || it->second.second == eFrameRef_ReadBeforeWrite)
+        if(it->second.second == eFrameRef_PartialWrite ||
+           it->second.second == eFrameRef_ReadBeforeWrite)
           record->cmdInfo->dirtied.insert(it->first);
       }
     }
@@ -2330,7 +2331,8 @@ void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer de
 
     record->AddChunk(scope.Get());
 
-    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, dataSize, eFrameRef_Write);
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, dataSize,
+                                      eFrameRef_PartialWrite);
   }
 }
 
@@ -2391,7 +2393,8 @@ void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dest
 
     record->AddChunk(scope.Get());
 
-    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize, eFrameRef_Write);
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize,
+                                      eFrameRef_PartialWrite);
   }
 }
 
@@ -2762,7 +2765,8 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
     {
       size += 4;
     }
-    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, size, eFrameRef_Write);
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, size,
+                                      eFrameRef_PartialWrite);
   }
 }
 
@@ -4121,7 +4125,7 @@ void WrappedVulkan::vkCmdWriteBufferMarkerAMD(VkCommandBuffer commandBuffer,
 
     record->AddChunk(scope.Get());
 
-    record->MarkBufferFrameReferenced(GetRecord(dstBuffer), dstOffset, 4, eFrameRef_Write);
+    record->MarkBufferFrameReferenced(GetRecord(dstBuffer), dstOffset, 4, eFrameRef_PartialWrite);
   }
 }
 

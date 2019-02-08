@@ -1852,7 +1852,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->ClearReferencedResources();
 
-  GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+  GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_PartialWrite);
 
   GetResourceManager()->PrepareInitialContents();
 
@@ -2117,7 +2117,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     }
     else
     {
-      GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+      GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_PartialWrite);
       GetResourceManager()->PrepareInitialContents();
 
       AttemptCapture();
@@ -2462,7 +2462,8 @@ void WrappedOpenGL::BeginCaptureFrame()
 
     GL.glBindVertexArray(0);
 
-    GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), 0), eFrameRef_Write, true);
+    GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), 0), eFrameRef_PartialWrite,
+                                            true);
 
     GL.glBindVertexArray(prevVAO);
   }

@@ -936,7 +936,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
     for(uint32_t i = 0; i < writeCount; i++)
     {
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].dstSet),
-                                                        eFrameRef_Write);
+                                                        eFrameRef_PartialWrite);
     }
 
     for(uint32_t i = 0; i < copyCount; i++)
@@ -950,7 +950,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       // bound, but we only do this during frame capture so it's not too bad.
 
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].dstSet),
-                                                        eFrameRef_Write);
+                                                        eFrameRef_PartialWrite);
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet),
                                                         eFrameRef_Read);
 
@@ -1348,7 +1348,8 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
     m_FrameCaptureRecord->AddChunk(scope.Get());
 
     // mark the destination set and template as referenced
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorSet), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorSet),
+                                                      eFrameRef_PartialWrite);
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate),
                                                       eFrameRef_Read);
   }
