@@ -2275,7 +2275,7 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
       // Besides, it's unlikely an application will set an output then not draw to it
       if(IsActiveCapturing(m_State))
       {
-        MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_Write);
+        MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_PartialWrite);
 
         m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
       }
@@ -3237,14 +3237,14 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
       if(ppRenderTargetViews && ppRenderTargetViews[i])
       {
         MarkResourceReferenced(GetIDForResource(ppRenderTargetViews[i]), eFrameRef_Read);
-        MarkResourceReferenced(GetViewResourceResID(ppRenderTargetViews[i]), eFrameRef_Write);
+        MarkResourceReferenced(GetViewResourceResID(ppRenderTargetViews[i]), eFrameRef_PartialWrite);
       }
     }
 
     if(pDepthStencilView)
     {
       MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
-      MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_Write);
+      MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_PartialWrite);
     }
   }
 
@@ -5660,7 +5660,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion(ID3D11Resource *pDstResou
     m_MissingTracks.insert(GetIDForResource(pDstResource));
     // assume partial update
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Read);
-    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Write);
+    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
     MarkResourceReferenced(GetIDForResource(pSrcResource), eFrameRef_Read);
   }
   else if(IsBackgroundCapturing(m_State))
@@ -5802,7 +5802,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
     m_ContextRecord->AddChunk(scope.Get());
 
     m_MissingTracks.insert(GetIDForResource(pDstResource));
-    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Write);
+    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
     MarkResourceReferenced(GetIDForResource(pSrcResource), eFrameRef_Read);
   }
   else if(IsBackgroundCapturing(m_State))
@@ -5954,7 +5954,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
     Serialise_UpdateSubresource(GET_SERIALISER, pDstResource, DstSubresource, pDstBox, pSrcData,
                                 SrcRowPitch, SrcDepthPitch);
 
-    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Write);
+    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
 
     m_MissingTracks.insert(GetIDForResource(pDstResource));
 
@@ -6237,7 +6237,7 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
 
     m_MissingTracks.insert(GetIDForResource(pDstBuffer));
     MarkResourceReferenced(GetIDForResource(pDstBuffer), eFrameRef_Read);
-    MarkResourceReferenced(GetIDForResource(pDstBuffer), eFrameRef_Write);
+    MarkResourceReferenced(GetIDForResource(pDstBuffer), eFrameRef_PartialWrite);
 
     MarkResourceReferenced(GetIDForResource(pSrcView), eFrameRef_Read);
   }
@@ -6351,7 +6351,7 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
 
     m_MissingTracks.insert(GetIDForResource(pDstResource));
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Read);
-    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Write);
+    MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
     MarkResourceReferenced(GetIDForResource(pSrcResource), eFrameRef_Read);
   }
   else if(IsBackgroundCapturing(m_State))
@@ -6432,7 +6432,7 @@ void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderR
     m_MissingTracks.insert(id);
 
     MarkResourceReferenced(id, eFrameRef_Read);
-    MarkResourceReferenced(id, eFrameRef_Write);
+    MarkResourceReferenced(id, eFrameRef_PartialWrite);
     MarkResourceReferenced(GetIDForResource(pShaderResourceView), eFrameRef_Read);
   }
   else if(IsBackgroundCapturing(m_State))
@@ -6551,7 +6551,7 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
 
     if(pRenderTargetView)
     {
-      MarkResourceReferenced(GetViewResourceResID(pRenderTargetView), eFrameRef_Write);
+      MarkResourceReferenced(GetViewResourceResID(pRenderTargetView), eFrameRef_PartialWrite);
       MarkResourceReferenced(GetIDForResource(pRenderTargetView), eFrameRef_Read);
     }
 
@@ -6631,7 +6631,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
 
     if(pUnorderedAccessView)
     {
-      MarkResourceReferenced(GetViewResourceResID(pUnorderedAccessView), eFrameRef_Write);
+      MarkResourceReferenced(GetViewResourceResID(pUnorderedAccessView), eFrameRef_PartialWrite);
       MarkResourceReferenced(GetIDForResource(pUnorderedAccessView), eFrameRef_Read);
     }
 
@@ -6711,7 +6711,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
 
     if(pUnorderedAccessView)
     {
-      MarkResourceReferenced(GetViewResourceResID(pUnorderedAccessView), eFrameRef_Write);
+      MarkResourceReferenced(GetViewResourceResID(pUnorderedAccessView), eFrameRef_PartialWrite);
       MarkResourceReferenced(GetIDForResource(pUnorderedAccessView), eFrameRef_Read);
     }
 
@@ -6804,7 +6804,7 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
 
     if(pDepthStencilView)
     {
-      MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_Write);
+      MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_PartialWrite);
       MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
     }
 
@@ -7952,7 +7952,7 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
       else if(IsActiveCapturing(m_State))
       {
         MarkResourceReferenced(it->first.resource, eFrameRef_Read);
-        MarkResourceReferenced(it->first.resource, eFrameRef_Write);
+        MarkResourceReferenced(it->first.resource, eFrameRef_PartialWrite);
 
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::Unmap);

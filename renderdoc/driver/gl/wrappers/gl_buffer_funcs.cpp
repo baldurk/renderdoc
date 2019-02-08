@@ -673,7 +673,8 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
     {
       // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
       GetContextRecord()->AddChunk(chunk);
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_PartialWrite);
     }
     else
     {
@@ -816,7 +817,8 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
     {
       // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
       GetContextRecord()->AddChunk(chunk);
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_PartialWrite);
     }
     else
     {

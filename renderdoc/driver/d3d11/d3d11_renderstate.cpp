@@ -212,17 +212,17 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
       ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]),
                                   initial ? eFrameRef_None : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]),
-                                  initial ? eFrameRef_None : eFrameRef_Write);
+                                  initial ? eFrameRef_None : eFrameRef_PartialWrite);
       ctx->MarkResourceReferenced(GetViewResourceResID(CSUAVs[i]),
                                   initial ? eFrameRef_None : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetViewResourceResID(CSUAVs[i]),
-                                  initial ? eFrameRef_None : eFrameRef_Write);
+                                  initial ? eFrameRef_None : eFrameRef_PartialWrite);
     }
   }
 
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
     ctx->MarkResourceReferenced(GetIDForResource(SO.Buffers[i]),
-                                initial ? eFrameRef_None : eFrameRef_Write);
+                                initial ? eFrameRef_None : eFrameRef_PartialWrite);
 
   ctx->MarkResourceReferenced(GetIDForResource(RS.State), initial ? eFrameRef_None : eFrameRef_Read);
 
@@ -239,7 +239,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
       ctx->MarkResourceReferenced(GetIDForResource(OM.RenderTargets[i]),
                                   initial ? eFrameRef_None : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetViewResourceResID(OM.RenderTargets[i]),
-                                  initial ? eFrameRef_None : eFrameRef_Write);
+                                  initial ? eFrameRef_None : eFrameRef_PartialWrite);
     }
   }
 
@@ -251,11 +251,11 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
       ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
                                   initial ? eFrameRef_None : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
-                                  initial ? eFrameRef_None : eFrameRef_Write);
+                                  initial ? eFrameRef_None : eFrameRef_PartialWrite);
       ctx->MarkResourceReferenced(GetViewResourceResID(OM.UAVs[i]),
                                   initial ? eFrameRef_None : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetViewResourceResID(OM.UAVs[i]),
-                                  initial ? eFrameRef_None : eFrameRef_Write);
+                                  initial ? eFrameRef_None : eFrameRef_PartialWrite);
     }
   }
 
@@ -264,7 +264,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     ctx->MarkResourceReferenced(GetIDForResource(OM.DepthView),
                                 initial ? eFrameRef_None : eFrameRef_Read);
     ctx->MarkResourceReferenced(GetViewResourceResID(OM.DepthView),
-                                initial ? eFrameRef_None : eFrameRef_Write);
+                                initial ? eFrameRef_None : eFrameRef_PartialWrite);
   }
 
   if(Predicate)

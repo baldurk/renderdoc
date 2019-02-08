@@ -656,7 +656,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
           {
             m_FrameCaptureRecord->AddChunk(scope.Get());
             GetResourceManager()->MarkMemoryFrameReferenced(id, state.mapOffset, state.mapSize,
-                                                            eFrameRef_Write);
+                                                            eFrameRef_PartialWrite);
           }
         }
       }
@@ -803,7 +803,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
       {
         GetResourceManager()->MarkMemoryFrameReferenced(GetResID(pMemRanges[i].memory),
                                                         pMemRanges[i].offset, pMemRanges[i].size,
-                                                        eFrameRef_Write);
+                                                        eFrameRef_PartialWrite);
       }
       else
       {

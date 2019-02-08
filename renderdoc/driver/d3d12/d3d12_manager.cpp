@@ -458,7 +458,7 @@ void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &r
     // deliberate fall-through
     case D3D12DescriptorType::RTV:
     case D3D12DescriptorType::DSV:
-      ref = eFrameRef_Write;
+      ref = eFrameRef_PartialWrite;
       id = data.nonsamp.resource;
       break;
   }
