@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "android_utils.h"
+#include <algorithm>
 #include "core/core.h"
 #include "strings/string_utils.h"
 
