@@ -189,21 +189,106 @@ public:
   inline iterator begin() { return Wrap(StartPoints.begin()); }
   inline const_iterator begin() const { return Wrap(StartPoints.begin()); }
   inline const_iterator end() const { return Wrap(StartPoints.end()); }
-  // finds the interval containing `x`.
+  // Find the interval containing `x`.
   iterator find(uint64_t x)
   {
-    auto it = StartPoints.upper_bound(x);    // first starting after `x`
+    // Find the first interval starting after `x`; return the preceding interval.
+    auto it = StartPoints.upper_bound(x);
     RDCASSERT(it != StartPoints.begin());
-    it--;    // last *not* starting after `x`
+    it--;
     return Wrap(it);
   }
 
-  // finds the interval containing `x`.
+  // Find the interval containing `x`.
   const_iterator find(uint64_t x) const
   {
-    auto it = StartPoints.upper_bound(x);    // first starting after `x`
+    // Find the first interval starting after `x`; return the preceding interval.
+    auto it = StartPoints.upper_bound(x);
     RDCASSERT(it != StartPoints.begin());
-    it--;    // last *not* starting after `x`
+    it--;
     return Wrap(it);
+  }
+
+  // Update the values of overlapping intervals to `comp(oldValue, val)`
+  // (where `oldValue` is the value of the interval prior to calling `update`).
+  // If start/finish do not lie on the boundaries between intervals, the intervals
+  // will be split as necessary.
+  template <typename Compose>
+  void update(uint64_t start, uint64_t finish, T val, Compose comp)
+  {
+    auto i = find(start);
+
+    // Split the interval so that `i.start == start`
+    i->split(start);
+
+    // Loop over all the intervals in `a` that intersect the interval [start, finish)
+    for(; i->start() < finish; i++)
+    {
+      if(i->finish() > finish)
+      {
+        // In this case, interval `i` extends beyond `finish`;
+        // split `i` so that we only update the portion of `i` in [start, finish).
+        i->split(finish);
+
+        // `split` leaves `i` pointing at the interval starting at `finish`;
+        // move back to the interval finishing at `finish`.
+        i--;
+      }
+      i->setValue(comp(i->value(), val));
+      i->mergeLeft();
+    }
+
+    // `i` now points to the interval following the last interval whose value was
+    // modified; merge `i` with that last modified interval, if the values match.
+    i->mergeLeft();
+  }
+
+  // Update `this` by composing the value of each interval with the value of the
+  // corresponding interval in `other`.
+  // If the intervals in `this` and `other` do not line up, then the intervals in
+  // `this` will be split as necessary.
+  template <typename Compose>
+  void merge(const Intervals &other, Compose comp)
+  {
+    auto j = other.begin();
+    auto i = begin();
+
+    // Loop over the intervals in `this` (iterator `i`), while maintaining the
+    // interval `j` in `other` that contains `i`.
+    // The intervals in `this` are split as necessary, so that each `i` is
+    // contained in a single interval of `other`.
+    // Loop invariants:
+    //  * i.start() >= j.start()
+    //  * i.start() < j.end()
+    while(true)
+    {
+      RDCASSERT(i->start() >= j->start());
+      RDCASSERT(i->start() < j->finish());
+      if(i->finish() > j->finish())
+      {
+        i->split(j->finish());
+        i--;
+      }
+
+      // Now i is contained in j, so we can update the value of all of i
+      i->setValue(comp(i->value(), j->value()));
+
+      // The value of i and the interval left of i are now final;
+      // if these two intervals now have the same value, they can safely be
+      // merged into a single interval.
+      i->mergeLeft();
+
+      // Move to the next interval in `this`; also advance to the next interval
+      // in `other`, if necessary to maintain the invariant `i.start < j.end`.
+      i++;
+      if(i == end())
+      {
+        j++;
+        RDCASSERT(j == other.end());
+        return;
+      }
+      if(i->start() >= j->finish())
+        j++;
+    }
   }
 };

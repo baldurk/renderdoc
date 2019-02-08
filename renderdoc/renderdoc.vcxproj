@@ -410,6 +410,7 @@
     <ClCompile Include="common\threading_tests.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
+    <ClCompile Include="core\intervals_tests.cpp" />
     <ClCompile Include="core\plugins.cpp" />
     <ClCompile Include="core\precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
