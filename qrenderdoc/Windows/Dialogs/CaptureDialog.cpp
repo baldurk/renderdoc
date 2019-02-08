@@ -108,8 +108,12 @@ void CaptureDialog::PopulateMostRecent()
     if(!settings.executable.isEmpty())
     {
       ui->loadLastCapture->setEnabled(true);
-      ui->loadLastCapture->setText(
-          tr("Load Last Settings - %1").arg(QFileInfo(QString(settings.executable)).completeBaseName()));
+      if(settings.executable.indexOf('/') < 0 && settings.executable.indexOf('\\') < 0)
+        ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(QString(settings.executable)));
+      else
+        ui->loadLastCapture->setText(
+            tr("Load Last Settings - %1")
+                .arg(QFileInfo(QString(settings.executable)).completeBaseName()));
       return;
     }
   }
