@@ -25,28 +25,100 @@
 
 #include <algorithm>
 #include <map>
+#include "common/common.h"
 
 template <typename T>
 struct Intervals;
 
-template <typename T>
-struct IntervalsIter
+template <typename T, typename Map, typename Iter, typename Interval>
+class IntervalsIter;
+
+// An interval in an `Intervals<T>` instance.
+template <typename T, typename Map, typename Iter>
+class ConstIntervalRef
+{
+  friend class IntervalsIter<T, Map, Iter, ConstIntervalRef>;
+
+protected:
+  Iter iter;
+  Map *owner;
+
+  ConstIntervalRef(Map *owner, Iter iter) : iter(iter), owner(owner) {}
+public:
+  // Inclusive lower bound
+  inline uint64_t start() const { return iter->first; }
+  // Exclusive upper bound
+  inline uint64_t finish() const
+  {
+    Iter next = iter;
+    next++;
+    if(next == owner->end())
+    {
+      return UINT64_MAX;
+    }
+    return next->first;
+  }
+
+  // Value associated with this interval
+  inline const T &value() const { return iter->second; }
+};
+
+// A mutable interval in an `Intervals<T>` instance
+template <typename T, typename Map, typename Iter>
+class IntervalRef : public ConstIntervalRef<T, Map, Iter>
+{
+  friend class IntervalsIter<T, Map, Iter, IntervalRef>;
+
+protected:
+  IntervalRef(Map *owner, Iter iter) : ConstIntervalRef<T, Map, Iter>(owner, iter) {}
+public:
+  inline void setValue(const T &val) { this->iter->second = val; }
+  // Split this interval into two intervals:
+  //   [start, x), [x, finish)
+  // This iterator will point to [x, finish) after the split.
+  // `x` must be in the interval [start, finish).
+  // If `x == start`, then `split(x)` is a no-op.
+  inline void split(uint64_t x)
+  {
+    RDCASSERT(this->start() <= x && x < this->finish());
+    if(this->start() < x)
+      this->iter = this->owner->insert(std::pair<uint64_t, T>(x, this->value())).first;
+  }
+
+  // Merge this interval with the interval to the left, if both intervals have
+  // the same value.
+  // This iterator will point to the merged interval, if the merge is actually
+  // performed; otherwise this iterator is unmodified.
+  inline void mergeLeft()
+  {
+    if(this->iter != this->owner->begin())
+    {
+      auto prev_it = this->iter;
+      prev_it--;
+      if(this->iter->second == prev_it->second)
+      {
+        this->owner->erase(this->iter);
+        this->iter = prev_it;
+      }
+    }
+  }
+};
+
+// An iterator in an `Intervals<T>` instance.
+template <typename T, typename Map, typename Iter, typename Interval>
+class IntervalsIter
 {
   friend struct Intervals<T>;
 
-private:
-  typename std::map<uint64_t, T>::iterator iter;
-  std::map<uint64_t, T> *owner;
-  IntervalsIter(std::map<uint64_t, T> *owner, typename std::map<uint64_t, T>::iterator iter)
-      : iter(iter), owner(owner)
-  {
-  }
-  typename std::map<uint64_t, T>::iterator unwrap() { return iter; }
+protected:
+  Interval ref;
+  IntervalsIter(Map *owner, Iter iter) : ref(owner, iter) {}
+  Iter unwrap() { return ref.iter; }
 public:
-  IntervalsIter(const IntervalsIter &src) : owner(src.owner), iter(src.iter) {}
+  IntervalsIter(const IntervalsIter &src) : ref(src.ref) {}
   IntervalsIter &operator++()
   {
-    ++iter;
+    ++ref.iter;
     return *this;
   }
   IntervalsIter operator++(int)
@@ -57,7 +129,7 @@ public:
   }
   IntervalsIter &operator--()
   {
-    --iter;
+    --ref.iter;
     return *this;
   }
   IntervalsIter operator--(int)
@@ -66,106 +138,72 @@ public:
     operator--();
     return tmp;
   }
-  bool operator==(const IntervalsIter &rhs) const { return iter == rhs.iter && owner == rhs.owner; }
-  bool operator!=(const IntervalsIter &rhs) const { return iter != rhs.iter && owner == rhs.owner; }
+  bool operator==(const IntervalsIter &rhs) const
+  {
+    return ref.iter == rhs.ref.iter && ref.owner == rhs.ref.owner;
+  }
+  bool operator!=(const IntervalsIter &rhs) const
+  {
+    return ref.iter != rhs.ref.iter && ref.owner == rhs.ref.owner;
+  }
   IntervalsIter &operator=(const IntervalsIter &rhs)
   {
-    iter = rhs.iter;
-    owner = rhs.owner;
+    ref.iter = rhs.ref.iter;
+    ref.owner = rhs.ref.owner;
     return *this;
   }
-  inline uint64_t start() const { return iter->first; }
-  inline uint64_t end() const
-  {
-    typename std::map<uint64_t, T>::iterator next = iter;
-    next++;
-    if(next == owner->end())
-    {
-      return UINT64_MAX;
-    }
-    return next->first;
-  }
-  inline const T &value() const { return iter->second; }
-  inline void setValue(uint64_t aStart, uint64_t aEnd, const T &aValue)
-  {
-    T old_value = this->value();
-    if((aValue == old_value || aEnd <= start()) && end() <= aStart)
-    {
-      // The value is unchanged, or the specified interval is disjoint from this interval.
-      return;
-    }
 
-    // Add a new endpoint for aStart, if necessary, and update iter's value to aValue.
-    if(start() < aStart)
-    {
-      // The updated portion of this interval begins at aStart.
-      iter = owner->insert(std::pair<uint64_t, T>(aStart, aValue)).first;
-    }
-    else
-    {
-      // The updated portion of this interval begins at start()
-      iter->second = aValue;
-    }
-
-    // Add a new endpoint for aEnd, if necessary.
-    if(aEnd < end())
-    {
-      owner->insert(std::pair<uint64_t, T>(aEnd, old_value));
-    }
-
-    // Merge with preceding interval, if necessary
-    if(iter != owner->begin())
-    {
-      typename std::map<uint64_t, T>::iterator prev_it = iter;
-      prev_it--;
-      if(prev_it->second == iter->second)
-      {
-        owner->erase(iter);
-        iter = prev_it;
-      }
-    }
-
-    // Merge with succeding interval, if necessary
-    typename std::map<uint64_t, T>::iterator next_it = iter;
-    next_it++;
-    if(next_it != owner->end())
-    {
-      if(next_it->second == iter->second)
-      {
-        owner->erase(next_it);
-      }
-    }
-  }
+  inline Interval *operator->() { return &ref; }
 };
 
+// Data structure to efficiently store values for disjoint intervals.
 template <typename T>
 struct Intervals
 {
+public:
+  typedef IntervalRef<T, std::map<uint64_t, T>, typename std::map<uint64_t, T>::iterator> interval;
+  typedef IntervalsIter<T, std::map<uint64_t, T>, typename std::map<uint64_t, T>::iterator, interval> iterator;
+
+  typedef ConstIntervalRef<T, const std::map<uint64_t, T>, typename std::map<uint64_t, T>::const_iterator>
+      const_interval;
+  typedef IntervalsIter<T, const std::map<uint64_t, T>,
+                        typename std::map<uint64_t, T>::const_iterator, const_interval>
+      const_iterator;
+
 private:
   std::map<uint64_t, T> StartPoints;
 
-public:
-private:
-  IntervalsIter<T> Wrap(typename std::map<uint64_t, T>::iterator iter)
+  iterator Wrap(typename std::map<uint64_t, T>::iterator iter)
   {
-    return IntervalsIter<T>(&StartPoints, iter);
+    return iterator(&StartPoints, iter);
+  }
+
+  const_iterator Wrap(typename std::map<uint64_t, T>::const_iterator iter) const
+  {
+    return const_iterator(&StartPoints, iter);
   }
 
 public:
   Intervals() : StartPoints{{0, T()}} {}
-  IntervalsIter<T> begin() { return Wrap(StartPoints.begin()); }
-  IntervalsIter<T> end() { return Wrap(StartPoints.end()); }
+  inline iterator end() { return Wrap(StartPoints.end()); }
+  inline iterator begin() { return Wrap(StartPoints.begin()); }
+  inline const_iterator begin() const { return Wrap(StartPoints.begin()); }
+  inline const_iterator end() const { return Wrap(StartPoints.end()); }
   // finds the interval containing `x`.
-  IntervalsIter<T> find(uint64_t x)
+  iterator find(uint64_t x)
   {
-    // Find the first interval which starts AFTER `x`
-    typename std::map<uint64_t, T>::iterator it = StartPoints.upper_bound(x);
-    // Because the first interval always starts at 0, the found interval cannot be the first
-    // interval
+    auto it = StartPoints.upper_bound(x);    // first starting after `x`
     RDCASSERT(it != StartPoints.begin());
-    // Move back 1 interval, to find the last interval that starts no later than `range.start`.
-    // This is the interval that contains the point
-    it--;
+    it--;    // last *not* starting after `x`
+    return Wrap(it);
+  }
+
+  // finds the interval containing `x`.
+  const_iterator find(uint64_t x) const
+  {
+    auto it = StartPoints.upper_bound(x);    // first starting after `x`
+    RDCASSERT(it != StartPoints.begin());
+    it--;    // last *not* starting after `x`
     return Wrap(it);
   }
 };
