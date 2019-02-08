@@ -120,9 +120,18 @@ bool IsDirtyFrameRef(FrameRefType refType);
 // init/reset requirements.
 enum InitReqType
 {
-  // Initial contents of the resource are not used, and need not be initialized.
-  // Corresponds to `None`, `Write` or `Clear` ref types.
+  // Initial contents of the resource are not used, and also not modified.
+  // No initialization/reset is required for correct replay, but may be helpful
+  // to avoid user confusion when analyzing the resource.
+  // Corresponds to `None` ref type.
   eInitReq_None,
+
+  // Initial contents of the resource are not used, but the contents are
+  // potentially modified during the frame.
+  // No initialization/reset is required for correct replay, but may be helpful
+  // to avoid user confusion when analyzing the resource.
+  // Corresponds to `PartialWrite` and `CompleteWrite` ref types.
+  eInitReq_Clear,
 
   // Initial contents of the resource are read, but not overwritten;
   // the resource needs to be initialized before the first replay, but need not
@@ -141,9 +150,10 @@ inline InitReqType InitReq(FrameRefType refType)
 {
   switch(refType)
   {
+    case eFrameRef_None: return eInitReq_None;
     case eFrameRef_Read: return eInitReq_InitOnce;
     case eFrameRef_ReadBeforeWrite: return eInitReq_Reset;
-    default: return eInitReq_None;
+    default: return eInitReq_Clear;
   }
 }
 
