@@ -105,6 +105,8 @@ set(sources
     core/remote_server.cpp
     core/replay_proxy.cpp
     core/replay_proxy.h
+    core/intervals.h
+    core/intervals_tests.cpp
     android/android.cpp
     android/android_patch.cpp
     android/android_tools.cpp

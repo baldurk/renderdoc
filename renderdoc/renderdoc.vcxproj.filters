@@ -824,6 +824,9 @@
     <ClCompile Include="common\threading_tests.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="core\intervals_tests.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">
