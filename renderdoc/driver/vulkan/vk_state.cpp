@@ -89,8 +89,6 @@ VulkanRenderState &VulkanRenderState::operator=(const VulkanRenderState &o)
 
 void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding)
 {
-  DoRenderPassBeginTransitions(cmd);
-
   RDCASSERT(renderPass != ResourceId());
 
   // clear values don't matter as we're using the load renderpass here, that
@@ -173,7 +171,6 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
 void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
 {
   ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
-  DoRenderpassEndTransitions(cmd);
 }
 
 void VulkanRenderState::EndTransformFeedback(VkCommandBuffer cmd)
@@ -514,54 +511,6 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
       SAFE_DELETE_ARRAY(push.pBufferInfo);
       SAFE_DELETE_ARRAY(push.pTexelBufferView);
     }
-  }
-}
-
-void VulkanRenderState::DoRenderPassBeginTransitions(VkCommandBuffer cmd)
-{
-  // first apply implicit transitions to the right subpass
-  rpBarriers = m_pDriver->GetImplicitRenderPassBarriers();
-
-  if(!rpBarriers.empty())
-  {
-    // don't transition from undefined, or contents will be discarded, instead transition from
-    // the current state.
-    for(size_t i = 0; i < rpBarriers.size(); i++)
-    {
-      if(rpBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-      {
-        ResourceId imgid = GetResourceManager()->GetNonDispWrapper(rpBarriers[i].image)->id;
-
-        // TODO find overlapping range and transition that instead
-        rpBarriers[i].oldLayout = m_pDriver->m_ImageLayouts[imgid].subresourceStates[0].newLayout;
-      }
-    }
-
-    GetResourceManager()->RecordBarriers(m_pDriver->m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
-                                         m_pDriver->m_ImageLayouts, (uint32_t)rpBarriers.size(),
-                                         rpBarriers.data());
-
-    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
-                                     (uint32_t)rpBarriers.size(), rpBarriers.data());
-  }
-}
-
-void VulkanRenderState::DoRenderpassEndTransitions(VkCommandBuffer cmd)
-{
-  if(!rpBarriers.empty())
-  {
-    // reverse the rpBarriers that we applied at the start
-    for(size_t i = 0; i < rpBarriers.size(); i++)
-      std::swap(rpBarriers[i].oldLayout, rpBarriers[i].newLayout);
-
-    GetResourceManager()->RecordBarriers(m_pDriver->m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
-                                         m_pDriver->m_ImageLayouts, (uint32_t)rpBarriers.size(),
-                                         rpBarriers.data());
-
-    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
-                                     (uint32_t)rpBarriers.size(), rpBarriers.data());
   }
 }
 

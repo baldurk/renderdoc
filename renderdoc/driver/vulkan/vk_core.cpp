@@ -3014,8 +3014,6 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       // we need to reverse the virtual transitions we did above, as it won't happen otherwise
       if(m_Partial[Primary].renderPassActive)
         m_RenderState.EndRenderPass(cmd);
-      else if(rpWasActive)
-        m_RenderState.DoRenderpassEndTransitions(cmd);
 
       // we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
       // but we want to keep the partial replay data state intact, so restore

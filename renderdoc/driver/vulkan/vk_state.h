@@ -46,9 +46,6 @@ struct VulkanRenderState
   void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
   void EndRenderPass(VkCommandBuffer cmd);
 
-  void DoRenderPassBeginTransitions(VkCommandBuffer cmd);
-  void DoRenderpassEndTransitions(VkCommandBuffer cmd);
-
   void EndTransformFeedback(VkCommandBuffer cmd);
 
   void EndConditionalRendering(VkCommandBuffer cmd);

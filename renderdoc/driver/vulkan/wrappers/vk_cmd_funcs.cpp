@@ -939,28 +939,56 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
               (uint32_t)m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size();
 
           // for each subpass we skip, and for the finalLayout transition at the end of the
-          // renderpass, update our tracking. These are executed implicitly but because we're
-          // sneaking past them here our tracking will get out of date.
+          // renderpass, record these barriers. These are executed implicitly but because we want to
+          // pretend they never happened, we then reverse their effects so that our layout tracking
+          // is accurate and the images end up in the layout they were in during the last active
+          // subpass
           uint32_t &sub = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
+
+          std::vector<std::pair<ResourceId, ImageRegionState> > imgbarriers;
 
           for(sub = m_RenderState.subpass; sub < numSubpasses - 1; sub++)
           {
             ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), VK_SUBPASS_CONTENTS_INLINE);
 
-            std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+            std::vector<VkImageMemoryBarrier> subpassBarriers = GetImplicitRenderPassBarriers();
 
             GetResourceManager()->RecordBarriers(
-                m_BakedCmdBufferInfo[GetResID(commandBuffer)].imgbarriers, m_ImageLayouts,
-                (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+                imgbarriers, m_ImageLayouts, (uint32_t)subpassBarriers.size(), &subpassBarriers[0]);
           }
 
-          std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+          std::vector<VkImageMemoryBarrier> finalBarriers = GetImplicitRenderPassBarriers(~0U);
 
-          GetResourceManager()->RecordBarriers(
-              m_BakedCmdBufferInfo[GetResID(commandBuffer)].imgbarriers, m_ImageLayouts,
-              (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+          GetResourceManager()->RecordBarriers(imgbarriers, m_ImageLayouts,
+                                               (uint32_t)finalBarriers.size(), &finalBarriers[0]);
 
           ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
+
+          // undo any implicit transitions we just went through, so that we can pretend that the
+          // image stayed in the same layout as it was when we stopped partially replaying.
+          std::vector<VkImageMemoryBarrier> revertBarriers;
+
+          for(auto it = imgbarriers.begin(); it != imgbarriers.end(); ++it)
+          {
+            VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+            barrier.srcAccessMask = VK_ACCESS_ALL_READ_BITS | VK_ACCESS_ALL_WRITE_BITS;
+            barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS | VK_ACCESS_ALL_WRITE_BITS;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = Unwrap(GetResourceManager()->GetCurrentHandle<VkImage>(it->first));
+
+            // go from the layout we ended up in, to the layout we started in
+            barrier.oldLayout = it->second.newLayout;
+            barrier.newLayout = it->second.oldLayout;
+
+            barrier.subresourceRange = it->second.subresourceRange;
+
+            if(barrier.oldLayout != barrier.newLayout)
+              revertBarriers.push_back(barrier);
+          }
+
+          if(!revertBarriers.empty())
+            DoPipelineBarrier(commandBuffer, (uint32_t)revertBarriers.size(), revertBarriers.data());
         }
 
         // also finish any nested markers we truncated and didn't finish
