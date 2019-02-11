@@ -161,10 +161,9 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
     }
   }
 
-  // for local library loads, this library might depend on one we care about, so check again as we
+  // this library might depend on one we care about, so check again as we
   // did in EndHookRegistration to see if any library has been loaded.
-  if((flag & RTLD_GLOBAL) == 0)
-    CheckLoadedLibraries();
+  CheckLoadedLibraries();
 
   return ret;
 }
