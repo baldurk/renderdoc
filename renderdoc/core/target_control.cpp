@@ -30,7 +30,7 @@
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
 
-static const uint32_t TargetControlProtocolVersion = 4;
+static const uint32_t TargetControlProtocolVersion = 5;
 
 static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 {
@@ -40,6 +40,10 @@ static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 
   // 3 -> 4 added active window cycle and window count packets
   if(protocolVersion == 3)
+    return true;
+
+  // 4 -> 5 return frame number with new captures
+  if(protocolVersion == 4)
     return true;
 
   if(protocolVersion == TargetControlProtocolVersion)
@@ -218,6 +222,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         SERIALISE_ELEMENT(buf);
         if(version >= 3)
           SERIALISE_ELEMENT(captures.back().driver);
+        if(version >= 5)
+          SERIALISE_ELEMENT(captures.back().frameNumber);
       }
     }
     else if(childprocs.size() != children.size())
@@ -729,6 +735,14 @@ public:
         SERIALISE_ELEMENT(thumbnail);
         if(m_Version >= 3)
           SERIALISE_ELEMENT(driver);
+        if(m_Version >= 5)
+        {
+          SERIALISE_ELEMENT(msg.newCapture.frameNumber);
+        }
+        else
+        {
+          msg.newCapture.frameNumber = msg.newCapture.captureId + 1;
+        }
       }
 
       if(driver != RDCDriver::Unknown)
@@ -736,8 +750,9 @@ public:
 
       msg.newCapture.local = FileIO::exists(msg.newCapture.path.c_str());
 
-      RDCLOG("Got a new capture: %d (time %llu) %d byte thumbnail", msg.newCapture.captureId,
-             msg.newCapture.timestamp, thumbnail.count());
+      RDCLOG("Got a new capture: %d (frame %u) (time %llu) %d byte thumbnail",
+             msg.newCapture.captureId, msg.newCapture.frameNumber, msg.newCapture.timestamp,
+             thumbnail.count());
 
       int w = 0;
       int h = 0;

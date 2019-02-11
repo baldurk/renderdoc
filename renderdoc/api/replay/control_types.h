@@ -452,6 +452,8 @@ struct NewCaptureData
 
   DOCUMENT("An identifier to use to refer to this capture.");
   uint32_t captureId = 0;
+  DOCUMENT("The frame number that this capture came from.");
+  uint32_t frameNumber = 0;
   DOCUMENT("The time the capture was created, as a unix timestamp in UTC.");
   uint64_t timestamp = 0;
   DOCUMENT("The raw bytes that contain the capture thumbnail, as RGB8 data.");

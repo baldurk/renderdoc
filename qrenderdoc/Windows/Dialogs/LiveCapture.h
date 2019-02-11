@@ -102,6 +102,7 @@ private:
     QString name;
     QString api;
     QDateTime timestamp;
+    uint32_t frameNumber;
 
     QImage thumb;
 
@@ -137,9 +138,7 @@ private:
 
   void connectionThreadEntry();
   void captureCopied(uint32_t ID, const QString &localPath);
-  void captureAdded(uint32_t ID, const QString &executable, const QString &api,
-                    const bytebuf &thumbnail, int32_t thumbWidth, int32_t thumbHeight,
-                    QDateTime timestamp, const QString &path, bool local);
+  void captureAdded(const NewCaptureData &newCapture);
   void connectionClosed();
 
   void selfClose();
@@ -148,7 +147,7 @@ private:
 
   void setTitle(const QString &title);
   void openCapture(Capture *cap);
-  bool saveCapture(Capture *cap);
+  bool saveCapture(Capture *cap, QString path);
   bool checkAllowDelete();
   void deleteCaptureUnprompted(QListWidgetItem *item);
 

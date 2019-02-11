@@ -234,7 +234,8 @@ void LiveCapture::on_captures_mouseClicked(QMouseEvent *e)
     else
     {
       contextOpenMenu.setEnabled(false);
-      contextSaveAction.setEnabled(false);
+      contextSaveAction.setText(tr("&Save All"));
+      contextDeleteAction.setText(tr("&Delete All"));
     }
 
     QObject::connect(&thisAction, &QAction::triggered, this, &LiveCapture::openCapture_triggered);
@@ -342,7 +343,25 @@ void LiveCapture::openNewWindow_triggered()
 void LiveCapture::saveCapture_triggered()
 {
   if(ui->captures->selectedItems().size() == 1)
-    saveCapture(GetCapture(ui->captures->selectedItems()[0]));
+  {
+    saveCapture(GetCapture(ui->captures->selectedItems()[0]), QString());
+  }
+  else
+  {
+    QString path = m_Main->GetSavePath(tr("Save All Captures As"));
+
+    if(!path.isEmpty())
+    {
+      if(path.endsWith(lit(".rdc")))
+        path.chop(4);
+
+      for(QListWidgetItem *item : ui->captures->selectedItems())
+      {
+        Capture *cap = GetCapture(item);
+        saveCapture(cap, QFormatStr("%1-frame%2.rdc").arg(path).arg(cap->frameNumber));
+      }
+    }
+  }
 }
 
 void LiveCapture::deleteCapture_triggered()
@@ -628,7 +647,8 @@ QString LiveCapture::MakeText(Capture *cap)
     text += tr(" (Remote)");
 
   text += lit("\n") + cap->api;
-  text += lit("\n") + cap->timestamp.toString(lit("yyyy-MM-dd HH:mm:ss"));
+  text += tr("\nFrame #%1 ").arg(cap->frameNumber) +
+          cap->timestamp.toString(lit("yyyy-MM-dd HH:mm:ss"));
 
   return text;
 }
@@ -663,8 +683,9 @@ bool LiveCapture::checkAllowClose()
     if(!suppressRemoteWarning && !notoall)
     {
       res = RDDialog::question(this, tr("Unsaved capture"),
-                               tr("Save this capture '%1' at %2?")
+                               tr("Save this capture '%1 Frame #%2' at %3?")
                                    .arg(cap->name)
+                                   .arg(cap->frameNumber)
                                    .arg(cap->timestamp.toString(lit("HH:mm:ss"))),
                                msgFlags);
 
@@ -713,7 +734,7 @@ bool LiveCapture::checkAllowClose()
 
     if(res == QMessageBox::Yes)
     {
-      bool success = saveCapture(cap);
+      bool success = saveCapture(cap, QString());
 
       if(!success)
       {
@@ -746,9 +767,10 @@ void LiveCapture::openCapture(Capture *cap)
   m_Main->LoadCapture(cap->path, !cap->saved, cap->local);
 }
 
-bool LiveCapture::saveCapture(Capture *cap)
+bool LiveCapture::saveCapture(Capture *cap, QString path)
 {
-  QString path = m_Main->GetSavePath();
+  if(path.isEmpty())
+    path = m_Main->GetSavePath();
 
   if(QString(m_Ctx.GetCaptureFilename()) == path)
   {
@@ -933,8 +955,6 @@ void LiveCapture::on_captures_itemSelectionChanged()
 {
   int numSelected = ui->captures->selectedItems().size();
 
-  deleteAction->setEnabled(numSelected == 1);
-  saveAction->setEnabled(numSelected == 1);
   openButton->setEnabled(numSelected == 1);
 
   if(ui->captures->selectedItems().size() == 1)
@@ -978,27 +998,34 @@ void LiveCapture::captureCopied(uint32_t ID, const QString &localPath)
   }
 }
 
-void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QString &api,
-                               const bytebuf &thumbnail, int32_t thumbWidth, int32_t thumbHeight,
-                               QDateTime timestamp, const QString &path, bool local)
+void LiveCapture::captureAdded(const NewCaptureData &newCapture)
 {
   Capture *cap = new Capture();
-  cap->remoteID = ID;
-  cap->name = executable;
-  cap->api = api;
-  cap->timestamp = timestamp;
-  cap->thumb =
-      QImage(thumbnail.data(), thumbWidth, thumbHeight, thumbWidth * 3, QImage::Format_RGB888)
-          .copy(0, 0, thumbWidth, thumbHeight);
+
+  cap->name = QString::fromUtf8(m_Connection->GetTarget());
+
+  cap->api = newCapture.api;
+  if(cap->api.isEmpty())
+    cap->api = QString::fromUtf8(m_Connection->GetAPI());
+
+  cap->timestamp =
+      QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0)).addSecs(newCapture.timestamp).toLocalTime();
+
+  cap->thumb = QImage(newCapture.thumbnail.data(), newCapture.thumbWidth, newCapture.thumbHeight,
+                      newCapture.thumbWidth * 3, QImage::Format_RGB888)
+                   .copy(0, 0, newCapture.thumbWidth, newCapture.thumbHeight);
+
+  cap->remoteID = newCapture.captureId;
   cap->saved = false;
-  cap->path = path;
-  cap->local = local;
+  cap->path = newCapture.path;
+  cap->local = newCapture.local;
+  cap->frameNumber = newCapture.frameNumber;
 
   QListWidgetItem *item = new QListWidgetItem();
   item->setFlags(item->flags() | Qt::ItemIsEditable);
   item->setText(MakeText(cap));
   item->setIcon(QIcon(QPixmap::fromImage(MakeThumb(cap->thumb))));
-  if(!local)
+  if(!newCapture.local)
   {
     QFont f = item->font();
     f.setItalic(true);
@@ -1219,26 +1246,8 @@ void LiveCapture::connectionThreadEntry()
 
     if(msg.type == TargetControlMessageType::NewCapture)
     {
-      uint32_t capID = msg.newCapture.captureId;
-      QDateTime timestamp = QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0));
-      timestamp = timestamp.addSecs(msg.newCapture.timestamp).toLocalTime();
-      bytebuf thumb = msg.newCapture.thumbnail;
-      int32_t thumbWidth = msg.newCapture.thumbWidth;
-      int32_t thumbHeight = msg.newCapture.thumbHeight;
-      QString path = msg.newCapture.path;
-      QString captureAPI = msg.newCapture.api;
-      bool local = msg.newCapture.local;
-
-      GUIInvoke::call(
-          this, [this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, captureAPI, local]() {
-            QString target = QString::fromUtf8(m_Connection->GetTarget());
-
-            QString api = captureAPI;
-            if(api.isEmpty())
-              api = QString::fromUtf8(m_Connection->GetAPI());
-
-            captureAdded(capID, target, api, thumb, thumbWidth, thumbHeight, timestamp, path, local);
-          });
+      NewCaptureData cap = msg.newCapture;
+      GUIInvoke::call(this, [this, cap]() { captureAdded(cap); });
     }
 
     if(msg.type == TargetControlMessageType::CaptureCopied)
