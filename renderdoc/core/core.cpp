@@ -301,6 +301,8 @@ void RenderDoc::Initialise()
       "Android";
 #elif ENABLED(RDOC_APPLE)
       "macOS";
+#elif ENABLED(RDOC_GGP)
+      "GGP";
 #else
       "Unknown";
 #endif

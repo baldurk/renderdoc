@@ -31,6 +31,14 @@ elseif(APPLE)
         find_library(OPENGL_LIBRARY OpenGL)
         list(APPEND RDOC_LIBRARIES PRIVATE ${OPENGL_LIBRARY})
     endif()
+elseif(ENABLE_GGP)
+    find_package(PkgConfig REQUIRED)
+    find_package(Threads REQUIRED)
+
+    list(APPEND RDOC_LIBRARIES
+        PRIVATE -lm
+        PRIVATE -ldl
+        PRIVATE -lrt)
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)

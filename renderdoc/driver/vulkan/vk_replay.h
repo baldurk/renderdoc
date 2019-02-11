@@ -87,7 +87,7 @@
   RDCEraseEl(xlib);        \
   RDCEraseEl(xcb);
 
-#elif ENABLED(RDOC_APPLE)
+#elif ENABLED(RDOC_APPLE) || ENABLED(RDOC_GGP)
 
 #define WINDOW_HANDLE_DECL void *wnd;
 #define WINDOW_HANDLE_INIT wnd = NULL;

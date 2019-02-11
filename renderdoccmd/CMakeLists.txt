@@ -18,6 +18,11 @@ elseif(ANDROID)
     
     set_source_files_properties(renderdoccmd.cpp PROPERTIES COMPILE_FLAGS "-fexceptions -frtti")
     set_source_files_properties(renderdoccmd_android.cpp PROPERTIES COMPILE_FLAGS "-fexceptions")
+elseif(ENABLE_GGP)
+    list(APPEND sources renderdoccmd_ggp.cpp)
+    find_library(GGP_LIBRARY ggp)
+    list(APPEND libraries PRIVATE ${GGP_LIBRARY})
+    set(LINKER_FLAGS "-Wl,--no-as-needed")
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 

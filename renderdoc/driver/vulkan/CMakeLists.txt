@@ -85,6 +85,8 @@ elseif(APPLE)
     list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple.mm)
 
     add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
+elseif(ENABLE_GGP)
+    # TODO
 elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 

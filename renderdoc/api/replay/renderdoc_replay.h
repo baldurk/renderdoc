@@ -80,7 +80,7 @@
 #define RENDERDOC_CC __cdecl
 
 #elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
-    defined(RENDERDOC_PLATFORM_ANDROID)
+    defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_GGP)
 
 #define RENDERDOC_EXPORT_API __attribute__((visibility("default")))
 #define RENDERDOC_IMPORT_API
