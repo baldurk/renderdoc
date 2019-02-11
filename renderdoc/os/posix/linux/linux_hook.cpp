@@ -85,6 +85,15 @@ void plthook_lib(void *handle)
     return;
 
   plthook_replace(plthook, "dlopen", (void *)dlopen, NULL);
+
+  for(FunctionHook &hook : functionHooks)
+  {
+    void *orig = NULL;
+    plthook_replace(plthook, hook.function.c_str(), hook.hook, &orig);
+    if(hook.orig && *hook.orig == NULL && orig)
+      *hook.orig = orig;
+  }
+
   plthook_close(plthook);
 }
 
