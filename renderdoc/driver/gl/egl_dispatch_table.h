@@ -57,17 +57,21 @@ typedef EGLBoolean(EGLAPIENTRY *PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfi
                                                         EGLint attribute, EGLint *value);
 typedef const char *(EGLAPIENTRY *PFN_eglQueryString)(EGLDisplay dpy, EGLint name);
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
+typedef PFNEGLSWAPBUFFERSWITHDAMAGEEXTPROC PFN_eglSwapBuffersWithDamageEXT;
+typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
 
-#define EGL_HOOKED_SYMBOLS(FUNC)    \
-  FUNC(BindAPI, false);             \
-  FUNC(GetProcAddress, false);      \
-  FUNC(GetDisplay, false);          \
-  FUNC(CreateContext, false);       \
-  FUNC(DestroyContext, false);      \
-  FUNC(CreateWindowSurface, false); \
-  FUNC(MakeCurrent, false);         \
-  FUNC(SwapBuffers, false);         \
-  FUNC(PostSubBufferNV, true);
+#define EGL_HOOKED_SYMBOLS(FUNC)        \
+  FUNC(BindAPI, false);                 \
+  FUNC(GetProcAddress, false);          \
+  FUNC(GetDisplay, false);              \
+  FUNC(CreateContext, false);           \
+  FUNC(DestroyContext, false);          \
+  FUNC(CreateWindowSurface, false);     \
+  FUNC(MakeCurrent, false);             \
+  FUNC(SwapBuffers, false);             \
+  FUNC(PostSubBufferNV, true);          \
+  FUNC(SwapBuffersWithDamageEXT, true); \
+  FUNC(SwapBuffersWithDamageKHR, true);
 
 #define EGL_NONHOOKED_SYMBOLS(FUNC)  \
   FUNC(ChooseConfig, false);         \

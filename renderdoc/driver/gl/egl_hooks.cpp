@@ -56,6 +56,10 @@ public:
   std::map<EGLContext, EGLConfig> configs;
   std::map<EGLSurface, EGLNativeWindowType> windows;
 
+  // indicates we're in a swap function, so don't process the swap any further if we recurse - could
+  // happen due to driver implementation of one function calling another
+  bool swapping = false;
+
   bool IsYFlipped(EGLDisplay dpy, EGLSurface surface)
   {
     const char *extString = EGL.QueryString(dpy, EGL_EXTENSIONS);
@@ -367,7 +371,7 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
   SCOPED_LOCK(glLock);
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
-  if(!eglhook.driver.UsesVRFrameMarkers())
+  if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
   {
     GLWindowingData data;
     data.egl_dpy = dpy;
@@ -379,7 +383,12 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
     eglhook.driver.SwapBuffers(surface);
   }
 
-  return EGL.SwapBuffers(dpy, surface);
+  {
+    eglhook.swapping = true;
+    EGLBoolean ret = EGL.SwapBuffers(dpy, surface);
+    eglhook.swapping = false;
+    return ret;
+  }
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDisplay dpy,
@@ -398,10 +407,69 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDispla
   SCOPED_LOCK(glLock);
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
-  if(!eglhook.driver.UsesVRFrameMarkers())
+  if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
     eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
 
-  return EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
+  {
+    eglhook.swapping = true;
+    EGLBoolean ret = EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
+    eglhook.swapping = false;
+    return ret;
+  }
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageEXT_renderdoc_hooked(EGLDisplay dpy,
+                                                                                EGLSurface surface,
+                                                                                EGLint *rects,
+                                                                                EGLint n_rects)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.SwapBuffersWithDamageEXT)
+      EGL.PopulateForReplay();
+
+    return EGL.SwapBuffersWithDamageEXT(dpy, surface, rects, n_rects);
+  }
+
+  SCOPED_LOCK(glLock);
+
+  eglhook.driver.SetDriverType(eglhook.activeAPI);
+  if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
+    eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
+
+  {
+    eglhook.swapping = true;
+    EGLBoolean ret = EGL.SwapBuffersWithDamageEXT(dpy, surface, rects, n_rects);
+    eglhook.swapping = false;
+    return ret;
+  }
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageKHR_renderdoc_hooked(EGLDisplay dpy,
+                                                                                EGLSurface surface,
+                                                                                EGLint *rects,
+                                                                                EGLint n_rects)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.SwapBuffersWithDamageKHR)
+      EGL.PopulateForReplay();
+
+    return EGL.SwapBuffersWithDamageKHR(dpy, surface, rects, n_rects);
+  }
+
+  SCOPED_LOCK(glLock);
+
+  eglhook.driver.SetDriverType(eglhook.activeAPI);
+  if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
+    eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
+
+  {
+    eglhook.swapping = true;
+    EGLBoolean ret = EGL.SwapBuffersWithDamageKHR(dpy, surface, rects, n_rects);
+    eglhook.swapping = false;
+    return ret;
+  }
 }
 
 HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY
@@ -489,6 +557,18 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV(EGLDisplay dpy, EGLSurface
                                                       EGLint y, EGLint width, EGLint height)
 {
   return eglPostSubBufferNV_renderdoc_hooked(dpy, surface, x, y, width, height);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageEXT(EGLDisplay dpy, EGLSurface surface,
+                                                               EGLint *rects, EGLint n_rects)
+{
+  return eglSwapBuffersWithDamageEXT_renderdoc_hooked(dpy, surface, rects, n_rects);
+}
+
+HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageKHR(EGLDisplay dpy, EGLSurface surface,
+                                                               EGLint *rects, EGLint n_rects)
+{
+  return eglSwapBuffersWithDamageKHR_renderdoc_hooked(dpy, surface, rects, n_rects);
 }
 
 HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *func)
