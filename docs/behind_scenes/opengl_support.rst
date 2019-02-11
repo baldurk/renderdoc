@@ -19,14 +19,13 @@ On OpenGL ES, any context version 2.0 and above is supported.
 Replay requirements
 -------------------
 
-RenderDoc assumes a certain minimum feature set on replay. On desktop this means you must be able to create a 3.2 context with the following extensions available:
+RenderDoc assumes a certain minimum feature set on replay. On desktop this means you must be able to create a 3.2 context with the ``GL_ARB_separate_shader_objects`` extension available.
 
-* GL_ARB_program_interface_query
-* GL_ARB_separate_shader_objects
+Theis extension should not require newer hardware than the base 3.2 context, but it might need an updated driver to be listed as available.
 
-These extensions should not require newer hardware than the base 3.2 context, but they might need an updated driver to be listed as available. Also note that this is the *minimum* required extension set to replay, some analysis features will be disabled unless you have more capable hardware features such as GL_ARB_shader_image_load_store, GL_ARB_compute_shader and GL_ARB_gpu_shader5.
+Also note that this is the *minimum* required extension set to replay, some analysis features will be disabled unless you have more capable hardware features such as GL_ARB_shader_image_load_store, GL_ARB_compute_shader and GL_ARB_gpu_shader5.
 
-On OpenGL ES, you must be able to create a GLES 3 context to replay.
+On OpenGL ES, you must be able to create a GLES 3 context to replay, again with the above ``GL_ARB_separate_shader_objects`` extension.
 
 Multiple contexts & multithreading
 ----------------------------------
@@ -54,7 +53,7 @@ OpenGL ES capture and replay on Android is natively supported. For more informat
 OS X
 ----
 
-OS X is not yet supported for OpenGL capture, in part due to some of the required replay extensions above being missing, and also due to missing platform-specific hooking code.
+OS X is not yet officially supported for OpenGL capture, however work is in progress on development builds.
 
 See Also
 --------
