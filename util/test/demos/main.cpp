@@ -231,6 +231,31 @@ int main(int argc, char **argv)
 
   std::sort(tests.begin(), tests.end());
 
+  if(argc <= 1 || !strcmp(argv[1], "--help") || !strcmp(argv[1], "-h") || !strcmp(argv[1], "-?") ||
+     !strcmp(argv[1], "/help") || !strcmp(argv[1], "/h") || !strcmp(argv[1], "/?"))
+  {
+    printf(R"(RenderDoc testing demo program
+
+Usage: %s Test_Name [test_options]
+
+  --help                        Print this help message.
+  --list                        Lists the available tests.
+  --validate
+  --debug                       Run the demo with API validation enabled.
+  --frames <n>
+  --max-frames <n>
+  --frame-count <n>             Only run the demo for this number of frames
+  --data <path>                 Specfiy where extended data should come from.
+                                By default in the path in $RENDERDOC_DEMOS_DATA
+                                environment variable, or else in the data/demos
+                                folder next to the executable.
+)",
+           argc == 0 ? "demos" : argv[0]);
+
+    fflush(stdout);
+    return 1;
+  }
+
   if(argc >= 2 && !strcmp(argv[1], "--list"))
   {
     for(const TestMetadata &test : tests)
