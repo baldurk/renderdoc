@@ -241,14 +241,19 @@ void main()
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,
     };
 
+    VkPhysicalDeviceScalarBlockLayoutFeaturesEXT scalarFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT,
+    };
+
     _16bitFeatures.uniformAndStorageBuffer16BitAccess = VK_TRUE;
     _8bitFeatures.uniformAndStorageBuffer16BitAccess = VK_TRUE;
+    scalarFeatures.scalarBlockLayout = VK_TRUE;
 
     devInfoNext = &_8bitFeatures;
     _8bitFeatures.pNext = &_16bitFeatures;
+    _16bitFeatures.pNext = &scalarFeatures;
 
     features.shaderFloat64 = true;
-    features.shaderInt16 = true;
     features.shaderInt64 = true;
 
     // initialise, create window, create context, etc
