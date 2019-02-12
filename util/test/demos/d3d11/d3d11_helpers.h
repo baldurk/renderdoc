@@ -103,6 +103,7 @@ public:
   D3D11BufferCreator &ByteAddressed();
   D3D11BufferCreator &Mappable();
   D3D11BufferCreator &Staging();
+  D3D11BufferCreator &Shared();
 
   D3D11BufferCreator &Data(const void *data);
   D3D11BufferCreator &Size(UINT size);
@@ -145,6 +146,7 @@ public:
 
   D3D11TextureCreator &Mappable();
   D3D11TextureCreator &Staging();
+  D3D11TextureCreator &Shared();
 
   operator ID3D11Texture1DPtr() const;
   operator ID3D11Texture2DPtr() const;

@@ -220,6 +220,12 @@ D3D11BufferCreator &D3D11BufferCreator::Staging()
   return *this;
 }
 
+D3D11BufferCreator &D3D11BufferCreator::Shared()
+{
+  m_BufDesc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
+  return *this;
+}
+
 D3D11BufferCreator &D3D11BufferCreator::Data(const void *data)
 {
   m_Initdata.pSysMem = data;
@@ -311,6 +317,12 @@ D3D11TextureCreator &D3D11TextureCreator::Staging()
 {
   CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
   Usage = D3D11_USAGE_STAGING;
+  return *this;
+}
+
+D3D11TextureCreator &D3D11TextureCreator::Shared()
+{
+  MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
   return *this;
 }
 

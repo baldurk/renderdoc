@@ -141,11 +141,12 @@ void main()
     ID3D11VertexShaderPtr vs = d3d.CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = d3d.CreatePS(psblob);
 
-    ID3D11Texture2DPtr d3d_fromd3d = d3d.MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 1024, 1024).RTV();
+    ID3D11Texture2DPtr d3d_fromd3d =
+        d3d.MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 1024, 1024).RTV().Shared();
     ID3D11RenderTargetViewPtr rtv = d3d.MakeRTV(d3d_fromd3d);
 
     ID3D11Texture2DPtr d3d_tod3d =
-        d3d.MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 1024, 1024).RTV().SRV();
+        d3d.MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 1024, 1024).RTV().SRV().Shared();
     ID3D11ShaderResourceViewPtr srv = d3d.MakeSRV(d3d_tod3d);
     ID3D11RenderTargetViewPtr rtv2 = d3d.MakeRTV(d3d_tod3d);
 
@@ -163,7 +164,7 @@ void main()
         {Vec3f(0.8f, 0.8f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 1.0f)},
     };
 
-    ID3D11BufferPtr buf = d3d.MakeBuffer().Vertex().Data(quad);
+    ID3D11BufferPtr buf = d3d.MakeBuffer().Vertex().Data(quad).Shared();
 
     GLuint vao = MakeVAO();
     glBindVertexArray(vao);
@@ -255,6 +256,8 @@ void main()
       ctx->Draw(4, 0);
 
       ctx->ClearState();
+
+      ctx->Flush();
 
       res = wglDXLockObjectsNV(interop_dev, ARRAY_COUNT(lockHandles), lockHandles);
 
