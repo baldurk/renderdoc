@@ -142,6 +142,9 @@
     <ClCompile Include="vk_android.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="vk_ggp.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="vk_resources.cpp" />
     <ClCompile Include="wrappers\vk_cmd_funcs.cpp" />
     <ClCompile Include="wrappers\vk_dynamic_funcs.cpp" />
@@ -164,6 +167,7 @@
     <ClInclude Include="official\vulkan_android.h" />
     <ClInclude Include="official\vulkan_core.h" />
     <ClInclude Include="official\vulkan_fuchsia.h" />
+    <ClInclude Include="official\vulkan_ggp.h" />
     <ClInclude Include="official\vulkan_ios.h" />
     <ClInclude Include="official\vulkan_macos.h" />
     <ClInclude Include="official\vulkan_vi.h" />

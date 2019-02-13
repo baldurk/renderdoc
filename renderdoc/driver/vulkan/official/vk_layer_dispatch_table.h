@@ -119,6 +119,11 @@ typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR GetPhysicalDeviceWin32PresentationSupportKHR;
 #endif // VK_USE_PLATFORM_WIN32_KHR
 
+    // ---- VK_GGP_stream_descriptor_surface extension commands
+#ifdef VK_USE_PLATFORM_GGP
+    PFN_vkCreateStreamDescriptorSurfaceGGP CreateStreamDescriptorSurfaceGGP;
+#endif // VK_USE_PLATFORM_GGP
+
     // ---- VK_KHR_get_physical_device_properties2 extension commands
     PFN_vkGetPhysicalDeviceFeatures2KHR GetPhysicalDeviceFeatures2KHR;
     PFN_vkGetPhysicalDeviceProperties2KHR GetPhysicalDeviceProperties2KHR;

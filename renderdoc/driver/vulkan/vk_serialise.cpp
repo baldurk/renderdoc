@@ -839,6 +839,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT)                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT)             \
                                                                                                        \
+  /* VK_GGP_frame_token */                                                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP)                                         \
+                                                                                                       \
+  /* VK_GGP_stream_descriptor_surface */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP)                       \
+                                                                                                       \
   /* VK_GOOGLE_display_timing */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                       \
                                                                                                        \

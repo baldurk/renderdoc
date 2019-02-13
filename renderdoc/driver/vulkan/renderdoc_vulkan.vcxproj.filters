@@ -88,6 +88,9 @@
     <ClCompile Include="vk_linux.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
+    <ClCompile Include="vk_ggp.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
     <ClCompile Include="vk_layer_android.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
@@ -217,6 +220,9 @@
       <Filter>official</Filter>
     </ClInclude>
     <ClInclude Include="official\vulkan_fuchsia.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vulkan_ggp.h">
       <Filter>official</Filter>
     </ClInclude>
   </ItemGroup>

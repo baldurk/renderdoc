@@ -80,4 +80,10 @@ typedef unsigned int RROutput;
 #include "vulkan_xlib_xrandr.h"
 #endif
 
+
+#ifdef VK_USE_PLATFORM_GGP
+#include <ggp_c/vulkan_types.h>
+#include "vulkan_ggp.h"
+#endif
+
 #endif // VULKAN_H_

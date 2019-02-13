@@ -420,6 +420,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA:                        \
   case VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK:                                  \
   case VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK:                                \
+  case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:                                      \
+  case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                    \
   case VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN:                                    \
   case VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR:                              \
   case VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR:                                \

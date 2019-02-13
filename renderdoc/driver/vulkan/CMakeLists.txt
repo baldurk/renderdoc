@@ -86,7 +86,17 @@ elseif(APPLE)
 
     add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
 elseif(ENABLE_GGP)
-    # TODO
+    list(APPEND sources vk_posix.cpp vk_ggp.cpp)
+    add_definitions(-DVK_USE_PLATFORM_GGP)
+
+    set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
+    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
+    add_custom_command(OUTPUT ${json_out}
+        COMMAND sed '{s%\\[MAJOR\\]%${RENDERDOC_VERSION_MAJOR}%\; s%\\[MINOR\\]%${RENDERDOC_VERSION_MINOR}%\; s%...renderdoc.dll%${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so%}' < ${json_in} > ${json_out}
+        DEPENDS ${json_in})
+    add_custom_target(generate-json ALL DEPENDS ${json_out})
+
+    install (FILES ${json_out} DESTINATION ${VULKAN_LAYER_FOLDER})
 elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 

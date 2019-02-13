@@ -151,7 +151,7 @@ static void StripUnwantedExtensions(std::vector<std::string> &Extensions)
     if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
        *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
        *it == "VK_MVK_macos_surface" || *it == "VK_KHR_android_surface" ||
-       *it == "VK_KHR_win32_surface")
+       *it == "VK_KHR_win32_surface" || *it == "VK_GGP_stream_descriptor_surface")
     {
       it = Extensions.erase(it);
       continue;

@@ -342,6 +342,7 @@ enum class WindowingSystem : uint32_t
   XCB,
   Android,
   MacOS,
+  GGP,
 };
 
 DECLARE_REFLECTION_ENUM(WindowingSystem);
@@ -476,6 +477,20 @@ inline const WindowingData CreateXCBWindowingData(xcb_connection_t *connection, 
   ret.system = WindowingSystem::XCB;
   ret.xcb.connection = connection;
   ret.xcb.window = window;
+
+  return ret;
+}
+
+DOCUMENT(R"(Create a :class:`WindowingData` for a GGP application.
+
+:return: A :class:`WindowingData` corresponding to the given system.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateGgpWindowingData()
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::GGP;
 
   return ret;
 }

@@ -50,7 +50,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
 #define EXPECT_WSI 0
 
 #if(defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(VK_USE_PLATFORM_XCB_KHR) || \
-    defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_MACOS_MVK) ||  \
+    defined(VK_USE_PLATFORM_GGP))
 
 #undef EXPECT_WSI
 #define EXPECT_WSI 1
@@ -124,6 +125,21 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     }
 #endif
 
+#if defined(VK_USE_PLATFORM_GGP)
+    // must be supported
+    RDCASSERT(supportedExtensions.find(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME) !=
+              supportedExtensions.end());
+
+    m_SupportedWindowSystems.push_back(WindowingSystem::GGP);
+
+    // don't add duplicates, application will have added this but just be sure
+    if(std::find(extensionList.begin(), extensionList.end(),
+                 VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME) == extensionList.end())
+    {
+      extensionList.push_back(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME);
+    }
+#endif
+
 #if EXPECT_WSI
     // we must have VK_KHR_surface to support WSI at all
     if(supportedExtensions.find(VK_KHR_SURFACE_EXTENSION_NAME) == supportedExtensions.end())
@@ -160,6 +176,11 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
       RDCWARN("XLib Output requires the '%s' extension to be present",
               VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#endif
+
+#if defined(VK_USE_PLATFORM_GGP)
+      RDCWARN("GGP Output requires the '%s' extension to be present",
+              VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME);
 #endif
     }
 
