@@ -75,8 +75,8 @@ struct EmbeddedD3D12Includer : public ID3DInclude
   std::string texsample = GetEmbeddedResource(hlsl_texsample_h);
   std::string cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
 
-  virtual HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData,
-                       LPCVOID *ppData, UINT *pBytes) override
+  virtual HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
+                                         LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override
   {
     std::string *str;
 
@@ -94,7 +94,7 @@ struct EmbeddedD3D12Includer : public ID3DInclude
 
     return S_OK;
   }
-  virtual HRESULT Close(LPCVOID pData) override { return S_OK; }
+  virtual HRESULT STDMETHODCALLTYPE Close(LPCVOID pData) override { return S_OK; }
 };
 
 D3D12ShaderCache::D3D12ShaderCache()
