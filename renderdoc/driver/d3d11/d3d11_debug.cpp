@@ -681,12 +681,6 @@ void D3D11Replay::MeshRendering::Init(WrappedID3D11Device *device)
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(misc_hlsl);
-
-    WireframePS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
-  }
-
-  {
     Vec4f TLN = Vec4f(-1.0f, 1.0f, 0.0f, 1.0f);    // TopLeftNear, etc...
     Vec4f TRN = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
     Vec4f BLN = Vec4f(-1.0f, -1.0f, 0.0f, 1.0f);
@@ -767,8 +761,6 @@ void D3D11Replay::MeshRendering::Release()
   SAFE_RELEASE(GenericLayout);
   SAFE_RELEASE(NoDepthState);
   SAFE_RELEASE(LessEqualDepthState);
-
-  SAFE_RELEASE(WireframePS);
 
   SAFE_RELEASE(MeshVS);
   SAFE_RELEASE(MeshGS);

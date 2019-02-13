@@ -385,7 +385,6 @@ private:
     ID3D11DepthStencilState *NoDepthState = NULL;
     ID3D11VertexShader *MeshVS = NULL;
     ID3D11GeometryShader *MeshGS = NULL;
-    ID3D11PixelShader *WireframePS = NULL;
     ID3D11PixelShader *MeshPS = NULL;
     ID3D11Buffer *AxisHelper = NULL;
     ID3D11Buffer *FrustumHelper = NULL;
