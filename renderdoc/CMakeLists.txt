@@ -124,8 +124,6 @@ set(sources
     core/resource_manager.h
     data/glsl/glsl_ubos.h
     data/glsl/glsl_ubos_cpp.h
-    data/glsl_shaders.cpp
-    data/glsl_shaders.h
     hooks/hooks.cpp
     hooks/hooks.h
     maths/camera.cpp
@@ -394,6 +392,8 @@ if(ENABLE_VULKAN)
 endif()
 
 if(ENABLE_GL OR ENABLE_GLES OR ENABLE_VULKAN)
+    list(APPEND sources data/glsl_shaders.cpp data/glsl_shaders.h)
+
     add_subdirectory(driver/shaders/spirv)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_spirv>)
 endif()
