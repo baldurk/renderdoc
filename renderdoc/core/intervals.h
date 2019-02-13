@@ -222,7 +222,7 @@ public:
     i->split(start);
 
     // Loop over all the intervals in `a` that intersect the interval [start, finish)
-    for(; i->start() < finish; i++)
+    for(; i != end() && i->start() < finish; i++)
     {
       if(i->finish() > finish)
       {

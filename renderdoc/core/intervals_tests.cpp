@@ -244,6 +244,27 @@ TEST_CASE("Test Intervals type", "[intervals]")
       test.update(7, 20, 1, [](uint64_t, uint64_t) -> uint64_t { return 1; });
       check_intervals(test, {{0, 0, 5}, {5, 1, 30}, {30, 0, UINT64_MAX}});
     };
+
+    SECTION("update a interval starting at 0")
+    {
+      Intervals<uint64_t> test = make_intervals({{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
+      test.update(0, 10, 1, [](uint64_t x, uint64_t y) -> uint64_t { return x + y; });
+      check_intervals(test, {{0, 1, 5}, {5, 2, 10}, {10, 0, UINT64_MAX}});
+    };
+
+    SECTION("update a interval finishing at UINT64_MAX")
+    {
+      Intervals<uint64_t> test = make_intervals({{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
+      test.update(5, UINT64_MAX, 1, [](uint64_t x, uint64_t y) -> uint64_t { return x + y; });
+      check_intervals(test, {{0, 0, 5}, {5, 2, 10}, {10, 1, UINT64_MAX}});
+    };
+
+    SECTION("update entire range")
+    {
+      Intervals<uint64_t> test = make_intervals({{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
+      test.update(0, UINT64_MAX, 1, [](uint64_t x, uint64_t y) -> uint64_t { return x + y; });
+      check_intervals(test, {{0, 1, 5}, {5, 2, 10}, {10, 1, UINT64_MAX}});
+    };
   };
 
   SECTION("mergeIntervals tests")
