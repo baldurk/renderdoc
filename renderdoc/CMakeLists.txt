@@ -271,6 +271,23 @@ elseif(APPLE)
         os/posix/posix_stringio.cpp
         os/posix/posix_threading.cpp
         os/posix/posix_specific.h)
+elseif(ENABLE_GGP)
+    list(APPEND sources
+        data/embedded_files.h
+        os/posix/ggp/ggp_stringio.cpp
+        os/posix/ggp/ggp_callstack.cpp
+        os/posix/ggp/ggp_process.cpp
+        os/posix/ggp/ggp_threading.cpp
+        os/posix/ggp/ggp_hook.cpp
+        os/posix/ggp/ggp_network.cpp
+        3rdparty/plthook/plthook.h
+        3rdparty/plthook/plthook_elf.c
+        os/posix/posix_network.h
+        os/posix/posix_network.cpp
+        os/posix/posix_process.cpp
+        os/posix/posix_stringio.cpp
+        os/posix/posix_threading.cpp
+        os/posix/posix_specific.h)
 elseif(UNIX)
     list(APPEND sources
         data/embedded_files.h
