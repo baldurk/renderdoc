@@ -144,7 +144,10 @@ Socket *Socket::AcceptClient(uint32_t timeoutMilliseconds)
 
     Threading::Sleep(sleeptime);
 
-    timeoutMilliseconds = RDCMIN(0U, timeoutMilliseconds - sleeptime);
+    if(sleeptime < timeoutMilliseconds)
+      timeoutMilliseconds -= sleeptime;
+    else
+      timeoutMilliseconds = 0U;
   } while(timeoutMilliseconds);
 
   return NULL;
