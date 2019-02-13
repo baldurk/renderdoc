@@ -1610,8 +1610,8 @@ void APIENTRY _glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
   return glGetVertexAttribiv_real(index, pname, params);
 }
 
-void _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized,
-                            GLsizei stride, const void *pointer)
+void APIENTRY _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized,
+                                     GLsizei stride, const void *pointer)
 {
   if(index >= NumEmulatedBinds)
   {
@@ -1643,8 +1643,8 @@ void _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean nor
   _FlushVertexAttribBinding();
 }
 
-void _glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
-                             const void *pointer)
+void APIENTRY _glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
+                                      const void *pointer)
 {
   if(index >= NumEmulatedBinds)
   {
@@ -1675,8 +1675,8 @@ void _glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stri
   _FlushVertexAttribBinding();
 }
 
-void _glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
-                             const void *pointer)
+void APIENTRY _glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
+                                      const void *pointer)
 {
   if(index >= NumEmulatedBinds)
   {
@@ -1707,7 +1707,7 @@ void _glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stri
   _FlushVertexAttribBinding();
 }
 
-void _glVertexAttribDivisor(GLuint index, GLuint divisor)
+void APIENTRY _glVertexAttribDivisor(GLuint index, GLuint divisor)
 {
   EmulatedVAO &vao = _GetVAOData();
   EmulatedVertexAttrib *attribs = vao.attribs;
