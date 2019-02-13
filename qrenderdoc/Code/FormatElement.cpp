@@ -484,13 +484,49 @@ QString FormatElement::GenerateTextureBufferFormat(const TextureDescription &tex
     case ResourceFormatType::Regular:
     {
       if(tex.format.compByteWidth == 1)
-        baseType = lit("byte");
+      {
+        if(tex.format.compType == CompType::UNorm)
+          baseType = lit("unormb");
+        else if(tex.format.compType == CompType::SNorm)
+          baseType = lit("snormb");
+        else if(tex.format.compType == CompType::SInt)
+          baseType = lit("byte");
+        else
+          baseType = lit("ubyte");
+      }
       else if(tex.format.compByteWidth == 2)
-        baseType = lit("short");
+      {
+        if(tex.format.compType == CompType::UNorm)
+          baseType = lit("unormh");
+        else if(tex.format.compType == CompType::SNorm)
+          baseType = lit("snormh");
+        else if(tex.format.compType == CompType::Float)
+          baseType = lit("half");
+        else if(tex.format.compType == CompType::SInt)
+          baseType = lit("short");
+        else
+          baseType = lit("ushort");
+      }
+      else if(tex.format.compByteWidth == 4)
+      {
+        if(tex.format.compType == CompType::Float)
+          baseType = lit("float");
+        else if(tex.format.compType == CompType::SInt)
+          baseType = lit("int");
+        else
+          baseType = lit("uint");
+      }
       else
-        baseType = lit("int");
+      {
+        if(tex.format.compType == CompType::Float || tex.format.compType == CompType::Double)
+          baseType = lit("double");
+        else if(tex.format.compType == CompType::SInt)
+          baseType = lit("long");
+        else
+          baseType = lit("ulong");
+      }
 
-      baseType = QFormatStr("rgb x%1%2").arg(baseType).arg(tex.format.compCount);
+      baseType = QFormatStr("rgb %1%2").arg(baseType).arg(tex.format.compCount);
 
       break;
     }

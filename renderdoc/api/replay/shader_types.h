@@ -636,19 +636,19 @@ struct ShaderVariableDescriptor
     return false;
   }
   DOCUMENT("The :class:`VarType` that this basic constant stores.");
-  VarType type;
+  VarType type = VarType::Unknown;
   DOCUMENT("The number of rows in this matrix.");
-  uint8_t rows;
+  uint8_t rows = 1;
   DOCUMENT("The number of columns in this matrix.");
-  uint8_t columns;
+  uint8_t columns = 1;
   DOCUMENT("The number of bytes between the start of one column/row in a matrix and the next.");
-  uint8_t matrixByteStride;
+  uint8_t matrixByteStride = 0;
   DOCUMENT("``True`` if the matrix is stored as row major instead of column major.");
-  bool rowMajorStorage;
+  bool rowMajorStorage = false;
   DOCUMENT("The number of elements in the array, or 1 if it's not an array.");
-  uint32_t elements;
+  uint32_t elements = 1;
   DOCUMENT("The number of bytes between the start of one element in the array and the next.");
-  uint32_t arrayByteStride;
+  uint32_t arrayByteStride = 0;
   DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
   rdcstr name;
 };

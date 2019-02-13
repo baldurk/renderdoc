@@ -39,6 +39,71 @@
 #include "VulkanPipelineStateViewer.h"
 #include "ui_PipelineStateViewer.h"
 
+static uint32_t byteSize(const ResourceFormat &fmt)
+{
+  if(fmt.Special())
+  {
+    switch(fmt.type)
+    {
+      default:
+      case ResourceFormatType::R9G9B9E5:
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1:
+      case ResourceFormatType::R4G4B4A4:
+      case ResourceFormatType::R4G4:
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7:
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::D24S8:
+      case ResourceFormatType::D32S8:
+      case ResourceFormatType::S8:
+      case ResourceFormatType::YUV8:
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16:
+      case ResourceFormatType::PVRTC: return ~0U;
+      case ResourceFormatType::R10G10B10A2:
+      case ResourceFormatType::R11G11B10: return 4;
+    }
+  }
+
+  return fmt.compByteWidth * fmt.compCount;
+}
+
+static QString padding(uint32_t bytes)
+{
+  if(bytes == 0)
+    return QString();
+
+  QString ret;
+
+  if(bytes > 4)
+  {
+    ret += lit("xint pad[%1];").arg(bytes / 4);
+
+    bytes = bytes % 4;
+  }
+
+  if(bytes == 4)
+    ret += lit("xint pad;");
+  else if(bytes == 3)
+    ret += lit("xshort pad; xbyte pad;");
+  else if(bytes == 2)
+    ret += lit("xshort pad;");
+  else if(bytes == 1)
+    ret += lit("xbyte pad;");
+
+  return ret + lit("\n");
+}
+
 PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::PipelineStateViewer), m_Ctx(ctx)
 {
@@ -549,6 +614,241 @@ void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
   });
 }
 
+QString PipelineStateViewer::formatMembers(int indent, int requiredByteStride,
+                                           const QString &nameprefix,
+                                           const rdcarray<ShaderConstant> &vars)
+{
+  QString indentstr(indent * 4, QLatin1Char(' '));
+
+  QString ret;
+
+  int i = 0;
+
+  for(const ShaderConstant &v : vars)
+  {
+    if(!v.type.members.empty())
+    {
+      if(i > 0)
+        ret += lit("\n");
+
+      if(v.type.descriptor.name == "struct")
+        ret += indentstr + lit("// struct\n");
+      else
+        ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
+
+      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.type.descriptor.arrayByteStride,
+                                                    v.name + lit("_"), v.type.members) +
+             indentstr + lit("}\n");
+      if(i < vars.count() - 1)
+        ret += lit("\n");
+    }
+    else
+    {
+      QString arr;
+      if(v.type.descriptor.elements > 1)
+        arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
+      ret += QFormatStr("%1%2 %3%4%5;\n")
+                 .arg(indentstr)
+                 .arg(v.type.descriptor.name)
+                 .arg(nameprefix)
+                 .arg(v.name)
+                 .arg(arr);
+    }
+
+    i++;
+  }
+
+  if(requiredByteStride > 0)
+  {
+    uint32_t structStart = 0;
+
+    const ShaderConstant *lastChild = &vars.back();
+
+    structStart += lastChild->byteOffset;
+    while(!lastChild->type.members.isEmpty())
+    {
+      lastChild = &lastChild->type.members.back();
+      structStart += lastChild->byteOffset;
+    }
+
+    uint32_t size = lastChild->type.descriptor.rows * lastChild->type.descriptor.columns;
+    if(lastChild->type.descriptor.type == VarType::Double ||
+       lastChild->type.descriptor.type == VarType::ULong ||
+       lastChild->type.descriptor.type == VarType::SLong)
+      size *= 8;
+    else if(lastChild->type.descriptor.type == VarType::Float ||
+            lastChild->type.descriptor.type == VarType::UInt ||
+            lastChild->type.descriptor.type == VarType::SInt)
+      size *= 4;
+    else if(lastChild->type.descriptor.type == VarType::Half ||
+            lastChild->type.descriptor.type == VarType::UShort ||
+            lastChild->type.descriptor.type == VarType::SShort)
+      size *= 2;
+
+    if(lastChild->type.descriptor.elements > 1)
+      size *= lastChild->type.descriptor.elements;
+
+    uint32_t padBytes = requiredByteStride - (lastChild->byteOffset + size);
+
+    if(padBytes > 0)
+      ret += indentstr + padding(padBytes);
+  }
+
+  return ret;
+}
+
+QString PipelineStateViewer::GenerateBufferFormatter(const ShaderResource &res,
+                                                     const ResourceFormat &viewFormat,
+                                                     uint64_t &baseByteOffset)
+{
+  QString format;
+
+  if(!res.variableType.members.empty())
+  {
+    const rdcarray<ShaderConstant> *members = &res.variableType.members;
+
+    uint32_t requiredStride = 0;
+
+    if(m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan ||
+       m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+    {
+      // GL/Vulkan allow fixed-sized members before the array-of-structs. This can't be represented
+      // in a buffer format so we skip it
+      if(members->count() > 1)
+      {
+        format += lit("// %1 members skipped as they are fixed size:\n").arg(res.name);
+        for(int i = 0; i < members->count() - 1; i++)
+        {
+          QString arraySize;
+          if(members->at(i).type.descriptor.elements > 1)
+            arraySize = QFormatStr("[%1]").arg(members->at(i).type.descriptor.elements);
+          format += QFormatStr("// %1 %2%3;\n")
+                        .arg(members->at(i).type.descriptor.name)
+                        .arg(members->at(i).name)
+                        .arg(arraySize);
+        }
+
+        format += lit("// final array struct @ byte offset %1\n{\n").arg(members->back().byteOffset);
+
+        baseByteOffset += members->back().byteOffset;
+      }
+      else
+      {
+        format += lit("// struct %1\n{\n").arg(res.name);
+      }
+
+      // if the last member is a struct, remove one level of indirection before declaring the
+      // repeated structure
+      if(!members->back().type.members.isEmpty())
+      {
+        requiredStride = members->back().type.descriptor.arrayByteStride;
+
+        members = &members->back().type.members;
+      }
+    }
+    else
+    {
+      format = lit("// struct %1\n{\n").arg(res.variableType.descriptor.name);
+    }
+
+    format += formatMembers(1, requiredStride, QString(), *members);
+    format += lit("}");
+  }
+  else
+  {
+    const auto &desc = res.variableType.descriptor;
+
+    if(viewFormat.type == ResourceFormatType::Undefined)
+    {
+      if(desc.type == VarType::Unknown)
+      {
+        format = desc.name;
+      }
+      else
+      {
+        if(desc.rowMajorStorage)
+          format += lit("row_major ");
+
+        format += ToQStr(desc.type);
+        if(desc.rows > 1 && desc.columns > 1)
+          format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.columns);
+        else if(desc.columns > 1)
+          format += QString::number(desc.columns);
+
+        if(!desc.name.empty())
+          format += lit(" ") + desc.name;
+
+        if(desc.elements > 1)
+          format += QFormatStr("[%1]").arg(desc.elements);
+      }
+    }
+    else
+    {
+      if(viewFormat.type == ResourceFormatType::R10G10B10A2)
+      {
+        if(viewFormat.compType == CompType::UInt)
+          format = lit("uintten");
+        if(viewFormat.compType == CompType::UNorm)
+          format = lit("unormten");
+      }
+      else if(viewFormat.type == ResourceFormatType::R11G11B10)
+      {
+        format = lit("floateleven");
+      }
+      else
+      {
+        switch(viewFormat.compByteWidth)
+        {
+          case 1:
+          {
+            if(viewFormat.compType == CompType::UNorm)
+              format = lit("unormb");
+            if(viewFormat.compType == CompType::SNorm)
+              format = lit("snormb");
+            if(viewFormat.compType == CompType::UInt)
+              format = lit("ubyte");
+            if(viewFormat.compType == CompType::SInt)
+              format = lit("byte");
+            break;
+          }
+          case 2:
+          {
+            if(viewFormat.compType == CompType::UNorm)
+              format = lit("unormh");
+            if(viewFormat.compType == CompType::SNorm)
+              format = lit("snormh");
+            if(viewFormat.compType == CompType::UInt)
+              format = lit("ushort");
+            if(viewFormat.compType == CompType::SInt)
+              format = lit("short");
+            if(viewFormat.compType == CompType::Float)
+              format = lit("half");
+            break;
+          }
+          case 4:
+          {
+            if(viewFormat.compType == CompType::UNorm)
+              format = lit("unormf");
+            if(viewFormat.compType == CompType::SNorm)
+              format = lit("snormf");
+            if(viewFormat.compType == CompType::UInt)
+              format = lit("uint");
+            if(viewFormat.compType == CompType::SInt)
+              format = lit("int");
+            if(viewFormat.compType == CompType::Float)
+              format = lit("float");
+            break;
+          }
+        }
+
+        format += QString::number(viewFormat.compCount);
+      }
+    }
+  }
+
+  return format;
+}
+
 void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
                                                   const rdcarray<ShaderConstant> &vars,
                                                   QString &struct_contents, QString &struct_defs)
@@ -918,69 +1218,6 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
   }
 
   button->setMenu(menu);
-}
-
-static uint32_t byteSize(const ResourceFormat &fmt)
-{
-  if(fmt.Special())
-  {
-    switch(fmt.type)
-    {
-      default:
-      case ResourceFormatType::R9G9B9E5:
-      case ResourceFormatType::R5G6B5:
-      case ResourceFormatType::R5G5B5A1:
-      case ResourceFormatType::R4G4B4A4:
-      case ResourceFormatType::R4G4:
-      case ResourceFormatType::BC1:
-      case ResourceFormatType::BC2:
-      case ResourceFormatType::BC3:
-      case ResourceFormatType::BC4:
-      case ResourceFormatType::BC5:
-      case ResourceFormatType::BC6:
-      case ResourceFormatType::BC7:
-      case ResourceFormatType::ETC2:
-      case ResourceFormatType::EAC:
-      case ResourceFormatType::ASTC:
-      case ResourceFormatType::D16S8:
-      case ResourceFormatType::D24S8:
-      case ResourceFormatType::D32S8:
-      case ResourceFormatType::S8:
-      case ResourceFormatType::YUV8:
-      case ResourceFormatType::YUV10:
-      case ResourceFormatType::YUV12:
-      case ResourceFormatType::YUV16:
-      case ResourceFormatType::PVRTC: return ~0U;
-      case ResourceFormatType::R10G10B10A2:
-      case ResourceFormatType::R11G11B10: return 4;
-    }
-  }
-
-  return fmt.compByteWidth * fmt.compCount;
-}
-
-static QString padding(uint32_t bytes)
-{
-  if(bytes == 0)
-    return QString();
-
-  QString ret;
-
-  if(bytes > 4)
-  {
-    ret += lit("xint pad[%1];").arg(bytes / 4);
-
-    bytes = bytes % 4;
-  }
-
-  if(bytes == 3)
-    ret += lit("xshort pad; xbyte pad;");
-  else if(bytes == 2)
-    ret += lit("xshort pad;");
-  else if(bytes == 1)
-    ret += lit("xbyte pad;");
-
-  return ret + lit("\n");
 }
 
 QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)

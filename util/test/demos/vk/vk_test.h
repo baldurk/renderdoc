@@ -172,6 +172,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkFramebuffer createFramebuffer(const VkFramebufferCreateInfo *info);
   VkRenderPass createRenderPass(const VkRenderPassCreateInfo *info);
   VkImageView createImageView(const VkImageViewCreateInfo *info);
+  VkBufferView createBufferView(const VkBufferViewCreateInfo *info);
   VkPipelineLayout createPipelineLayout(const VkPipelineLayoutCreateInfo *info);
   VkDescriptorSetLayout createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo *info);
 
@@ -225,6 +226,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkFramebuffer> framebuffers;
   std::vector<VkRenderPass> renderpasses;
   std::vector<VkImageView> imageviews;
+  std::vector<VkBufferView> bufferviews;
   std::vector<VkPipelineLayout> pipelayouts;
   std::vector<VkDescriptorSetLayout> setlayouts;
 

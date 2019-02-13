@@ -445,6 +445,9 @@ VulkanGraphicsTest::~VulkanGraphicsTest()
     for(VkImageView view : imageviews)
       vkDestroyImageView(device, view, NULL);
 
+    for(VkBufferView view : bufferviews)
+      vkDestroyBufferView(device, view, NULL);
+
     for(VkPipelineLayout layout : pipelayouts)
       vkDestroyPipelineLayout(device, layout, NULL);
 
@@ -745,6 +748,14 @@ VkImageView VulkanGraphicsTest::createImageView(const VkImageViewCreateInfo *inf
   VkImageView ret;
   CHECK_VKR(vkCreateImageView(device, info, NULL, &ret));
   imageviews.push_back(ret);
+  return ret;
+}
+
+VkBufferView VulkanGraphicsTest::createBufferView(const VkBufferViewCreateInfo *info)
+{
+  VkBufferView ret;
+  CHECK_VKR(vkCreateBufferView(device, info, NULL, &ret));
+  bufferviews.push_back(ret);
   return ret;
 }
 

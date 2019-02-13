@@ -2117,46 +2117,6 @@ void GLPipelineStateViewer::setState()
   }
 }
 
-QString GLPipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                             const rdcarray<ShaderConstant> &vars)
-{
-  QString indentstr(indent * 4, QLatin1Char(' '));
-
-  QString ret;
-
-  int i = 0;
-
-  for(const ShaderConstant &v : vars)
-  {
-    if(!v.type.members.empty())
-    {
-      if(i > 0)
-        ret += lit("\n");
-      ret += indentstr + QFormatStr("// struct %1\n").arg(v.type.descriptor.name);
-      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
-             indentstr + lit("}\n");
-      if(i < vars.count() - 1)
-        ret += lit("\n");
-    }
-    else
-    {
-      QString arr;
-      if(v.type.descriptor.elements > 1)
-        arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
-      ret += QFormatStr("%1%2 %3%4%5;\n")
-                 .arg(indentstr)
-                 .arg(v.type.descriptor.name)
-                 .arg(nameprefix)
-                 .arg(v.name)
-                 .arg(arr);
-    }
-
-    i++;
-  }
-
-  return ret;
-}
-
 void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const GLPipe::Shader *stage = stageForSender(item->treeWidget());
@@ -2196,43 +2156,7 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
 
     const ShaderResource &shaderRes = stage->reflection->readWriteResources[buf.bindPoint];
 
-    QString format = lit("// struct %1\n").arg(shaderRes.variableType.descriptor.name);
-
-    if(shaderRes.variableType.members.count() > 1)
-    {
-      format += tr("// members skipped as they are fixed size:\n");
-      for(int i = 0; i < shaderRes.variableType.members.count() - 1; i++)
-        format += QFormatStr("// %1 %2;\n")
-                      .arg(shaderRes.variableType.members[i].type.descriptor.name)
-                      .arg(shaderRes.variableType.members[i].name);
-    }
-
-    if(!shaderRes.variableType.members.empty())
-    {
-      format += lit("{\n") +
-                formatMembers(1, QString(), shaderRes.variableType.members.back().type.members) +
-                lit("}");
-    }
-    else
-    {
-      const auto &desc = shaderRes.variableType.descriptor;
-
-      format = QString();
-      if(desc.rowMajorStorage)
-        format += lit("row_major ");
-
-      format += ToQStr(desc.type);
-      if(desc.rows > 1 && desc.columns > 1)
-        format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.columns);
-      else if(desc.columns > 1)
-        format += QString::number(desc.columns);
-
-      if(!desc.name.empty())
-        format += lit(" ") + desc.name;
-
-      if(desc.elements > 1)
-        format += QFormatStr("[%1]").arg(desc.elements);
-    }
+    QString format = m_Common.GenerateBufferFormatter(shaderRes, ResourceFormat(), buf.offset);
 
     if(buf.ID != ResourceId())
     {

@@ -141,6 +141,7 @@
     <ClCompile Include="d3d11\d3d11_streamout.cpp" />
     <ClCompile Include="d3d11\d3d11_stripped_shaders.cpp" />
     <ClCompile Include="d3d11\d3d11_structured_buffer_misaligned_dirty.cpp" />
+    <ClCompile Include="d3d11\d3d11_structured_buffer_nested.cpp" />
     <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
     <ClCompile Include="d3d11\d3d11_test.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
@@ -174,6 +175,7 @@
     <ClCompile Include="gl\gl_separable_geometry_shader.cpp" />
     <ClCompile Include="gl\gl_simple_triangle.cpp" />
     <ClCompile Include="gl\gl_spirv_shader.cpp" />
+    <ClCompile Include="gl\gl_structured_buffer_nested.cpp" />
     <ClCompile Include="gl\gl_test.cpp" />
     <ClCompile Include="gl\gl_test_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -196,6 +198,7 @@
     <ClCompile Include="vk\vk_draw_zoo.cpp" />
     <ClCompile Include="vk\vk_helpers.cpp" />
     <ClCompile Include="vk\vk_indirect.cpp" />
+    <ClCompile Include="vk\vk_structured_buffer_nested.cpp" />
     <ClCompile Include="vk\vk_overlay_test.cpp" />
     <ClCompile Include="vk\vk_sample_locations.cpp" />
     <ClCompile Include="vk\vk_adv_cbuffer_zoo.cpp" />

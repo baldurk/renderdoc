@@ -70,6 +70,9 @@ public:
   void SetupShaderEditButton(QToolButton *button, ResourceId pipelineId, ResourceId shaderId,
                              const ShaderReflection *shaderDetails);
 
+  QString GenerateBufferFormatter(const ShaderResource &res, const ResourceFormat &viewFormat,
+                                  uint64_t &baseByteOffset);
+
   QString GetVBufferFormatString(uint32_t slot);
 
   void setTopologyDiagram(QLabel *diagram, Topology topo);
@@ -89,6 +92,9 @@ private:
   ICaptureContext &m_Ctx;
 
   QMenu *editMenus[6] = {};
+
+  QString formatMembers(int indent, int requiredByteStride, const QString &nameprefix,
+                        const rdcarray<ShaderConstant> &vars);
 
   QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
   IShaderViewer *EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,

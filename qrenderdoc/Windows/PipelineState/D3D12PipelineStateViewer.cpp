@@ -1809,46 +1809,6 @@ void D3D12PipelineStateViewer::setState()
   }
 }
 
-QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                                const rdcarray<ShaderConstant> &vars)
-{
-  QString indentstr(indent * 4, QLatin1Char(' '));
-
-  QString ret;
-
-  int i = 0;
-
-  for(const ShaderConstant &v : vars)
-  {
-    if(!v.type.members.empty())
-    {
-      if(i > 0)
-        ret += lit("\n");
-      ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
-      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
-             indentstr + lit("}\n");
-      if(i < vars.count() - 1)
-        ret += lit("\n");
-    }
-    else
-    {
-      QString arr;
-      if(v.type.descriptor.elements > 1)
-        arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
-      ret += QFormatStr("%1%2 %3%4%5;\n")
-                 .arg(indentstr)
-                 .arg(v.type.descriptor.name)
-                 .arg(nameprefix)
-                 .arg(v.name)
-                 .arg(arr);
-    }
-
-    i++;
-  }
-
-  return ret;
-}
-
 void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const D3D12Pipe::Shader *stage = stageForSender(item->treeWidget());
@@ -1954,103 +1914,10 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(shaderRes)
     {
-      const ShaderResource &res = *shaderRes;
+      format = m_Common.GenerateBufferFormatter(*shaderRes, view.res.viewFormat, offs);
 
-      if(!res.variableType.members.empty())
-      {
-        format = QFormatStr("// struct %1\n{\n%2}")
-                     .arg(res.variableType.descriptor.name)
-                     .arg(formatMembers(1, QString(), res.variableType.members));
-      }
-      else
-      {
-        const auto &desc = res.variableType.descriptor;
-
-        if(view.res.viewFormat.type == ResourceFormatType::Undefined)
-        {
-          format = QString();
-          if(desc.rowMajorStorage)
-            format += lit("row_major ");
-
-          format += ToQStr(desc.type);
-          if(desc.rows > 1 && desc.columns > 1)
-            format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.columns);
-          else if(desc.columns > 1)
-            format += QString::number(desc.columns);
-
-          if(!desc.name.empty())
-            format += lit(" ") + desc.name;
-
-          if(desc.elements > 1)
-            format += QFormatStr("[%1]").arg(desc.elements);
-        }
-        else
-        {
-          const ResourceFormat &fmt = view.res.viewFormat;
-          if(fmt.type == ResourceFormatType::R10G10B10A2)
-          {
-            if(fmt.compType == CompType::UInt)
-              format = lit("uintten");
-            if(fmt.compType == CompType::UNorm)
-              format = lit("unormten");
-          }
-          else if(fmt.type == ResourceFormatType::R11G11B10)
-          {
-            format = lit("floateleven");
-          }
-          else
-          {
-            switch(fmt.compByteWidth)
-            {
-              case 1:
-              {
-                if(fmt.compType == CompType::UNorm)
-                  format = lit("unormb");
-                if(fmt.compType == CompType::SNorm)
-                  format = lit("snormb");
-                if(fmt.compType == CompType::UInt)
-                  format = lit("ubyte");
-                if(fmt.compType == CompType::SInt)
-                  format = lit("byte");
-                break;
-              }
-              case 2:
-              {
-                if(fmt.compType == CompType::UNorm)
-                  format = lit("unormh");
-                if(fmt.compType == CompType::SNorm)
-                  format = lit("snormh");
-                if(fmt.compType == CompType::UInt)
-                  format = lit("ushort");
-                if(fmt.compType == CompType::SInt)
-                  format = lit("short");
-                if(fmt.compType == CompType::Float)
-                  format = lit("half");
-                break;
-              }
-              case 4:
-              {
-                if(fmt.compType == CompType::UNorm)
-                  format = lit("unormf");
-                if(fmt.compType == CompType::SNorm)
-                  format = lit("snormf");
-                if(fmt.compType == CompType::UInt)
-                  format = lit("uint");
-                if(fmt.compType == CompType::SInt)
-                  format = lit("int");
-                if(fmt.compType == CompType::Float)
-                  format = lit("float");
-                break;
-              }
-            }
-
-            if(view.res.bufferFlags & D3DBufferViewFlags::Raw)
-              format = lit("xint");
-
-            format += QString::number(fmt.compCount);
-          }
-        }
-      }
+      if(view.res.bufferFlags & D3DBufferViewFlags::Raw)
+        format = lit("xint");
     }
 
     IBufferViewer *viewer = m_Ctx.ViewBuffer(offs, size, view.res.resourceId, format);

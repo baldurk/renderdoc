@@ -799,6 +799,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   bool multiDimArray = false;
   int arrayIdx = 0;
 
+  bool blockLevel = true;
+
   // reverse figure out structures and structure arrays
   while(strchr(nm, '.') || strchr(nm, '['))
   {
@@ -856,6 +858,9 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.arrayByteStride = topLevelStride;
     parentVar.type.descriptor.matrixByteStride = 0;
 
+    if(!blockLevel)
+      topLevelStride = 0;
+
     bool found = false;
 
     // if we can find the base variable already, we recurse into its members
@@ -872,6 +877,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
 
         parentmembers = &((*parentmembers)[i].type.members);
         found = true;
+
+        blockLevel = false;
 
         break;
       }
@@ -998,6 +1005,15 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
       var.name = StringFormat::Fmt("[%d]", arrayIdx);
 
     parentmembers->push_back(var);
+  }
+}
+
+void MakeChildByteOffsetsRelative(ShaderConstant &member)
+{
+  for(ShaderConstant &child : member.type.members)
+  {
+    MakeChildByteOffsetsRelative(child);
+    child.byteOffset -= member.byteOffset;
   }
 }
 
@@ -1633,57 +1649,29 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     {
       sort(members[ssbo]);
 
-      // account for padding for std430 layout, if we have a root array of
-      // structs, we need to pad the struct up to have the correct alignment
-      if(members[ssbo].size() == 1 && !members[ssbo][0].type.members.empty() &&
-         members[ssbo][0].type.descriptor.arrayByteStride != 0)
+      std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo][0].type.members);
+    }
+
+    // patch-up reflection data. For top-level arrays use the stride & rough size to calculate the
+    // number of elements, and make all child byteOffset values relative to their parent
+    for(size_t ssbo = 0; ssbo < ssbos.size(); ssbo++)
+    {
+      rdcarray<ShaderConstant> &ssboVars = rwresources[ssbo].variableType.members;
+      for(size_t rootMember = 0; rootMember + 1 < ssboVars.size(); rootMember++)
       {
-        // now that we're sorted, see what the tightly packed stride would be by looking at the last
-        // member
-        uint32_t desiredStride = members[ssbo][0].type.descriptor.arrayByteStride;
+        ShaderConstant &member = ssboVars[rootMember];
 
-        ShaderConstant *last = &members[ssbo][0].type.members.back();
-        while(!last->type.members.empty())
-          last = &last->type.members.back();
+        const uint32_t memberSizeBound = ssboVars[rootMember + 1].byteOffset - member.byteOffset;
+        const uint32_t stride = member.type.descriptor.arrayByteStride;
 
-        // start from the offset
-        uint32_t stride = last->byteOffset;
-
-        // add its size
-        uint32_t size = last->type.descriptor.rows * last->type.descriptor.columns * 4;
-        if(last->type.descriptor.type == VarType::Double)
-          size *= 2;
-
-        if(last->type.descriptor.elements > 1)
-          size *= last->type.descriptor.elements;
-
-        stride += size;
-
-        if(stride < desiredStride)
+        if(stride != 0 && member.type.descriptor.elements <= 1 && memberSizeBound > 2 * stride)
         {
-          uint32_t padding = desiredStride - stride;
-
-          RDCASSERT((padding % 4) == 0 && padding <= 16, padding);
-
-          padding /= 4;
-
-          ShaderConstant paddingVar;
-          paddingVar.name = "__padding";
-          paddingVar.byteOffset = last->byteOffset + size;
-          paddingVar.type.descriptor.type = VarType::UInt;
-          paddingVar.type.descriptor.rows = 1;
-          paddingVar.type.descriptor.columns = (uint8_t)RDCMIN(padding, 255U);
-          paddingVar.type.descriptor.elements = 1;
-          paddingVar.type.descriptor.rowMajorStorage = false;
-          paddingVar.type.descriptor.arrayByteStride = 0;
-          paddingVar.type.descriptor.matrixByteStride = 0;
-          paddingVar.type.descriptor.name = StringFormat::Fmt("uint%u", padding);
-
-          members[ssbo][0].type.members.push_back(paddingVar);
+          member.type.descriptor.elements = memberSizeBound / stride;
         }
       }
 
-      std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo]);
+      for(ShaderConstant &member : ssboVars)
+        MakeChildByteOffsetsRelative(member);
     }
 
     delete[] members;

@@ -487,6 +487,23 @@ struct ImageViewCreateInfo : public VkImageViewCreateInfo
   operator const VkImageViewCreateInfo *() const { return this; }
 };
 
+struct BufferViewCreateInfo : public VkBufferViewCreateInfo
+{
+  BufferViewCreateInfo(VkBuffer buffer, VkFormat format, VkDeviceSize offset = 0,
+                       VkDeviceSize range = VK_WHOLE_SIZE)
+  {
+    sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+    pNext = NULL;
+    this->flags = 0;
+    this->buffer = buffer;
+    this->format = format;
+    this->offset = offset;
+    this->range = range;
+  }
+
+  operator const VkBufferViewCreateInfo *() const { return this; }
+};
+
 struct BufferCreateInfo : public VkBufferCreateInfo
 {
   BufferCreateInfo(VkDeviceSize size, VkBufferUsageFlags usage, VkBufferCreateFlags flags = 0,

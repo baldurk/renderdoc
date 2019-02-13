@@ -75,16 +75,18 @@ struct VulkanBufferTag
     bindPoint = 0;
     offset = size = 0;
   }
-  VulkanBufferTag(bool rw, uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
+  VulkanBufferTag(bool rw, uint32_t b, ResourceFormat f, ResourceId id, uint64_t offs, uint64_t sz)
   {
     rwRes = rw;
     bindPoint = b;
     ID = id;
+    fmt = f;
     offset = offs;
     size = sz;
   }
   bool rwRes;
   uint32_t bindPoint;
+  ResourceFormat fmt;
   ResourceId ID;
   uint64_t offset;
   uint64_t size;
@@ -1056,8 +1058,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(descriptorLen == UINT64_MAX)
             descriptorLen = len - descriptorBind->byteOffset;
 
-          tag = QVariant::fromValue(VulkanBufferTag(isrw, bindPoint, buf->resourceId,
-                                                    descriptorBind->byteOffset, descriptorLen));
+          tag = QVariant::fromValue(VulkanBufferTag(isrw, bindPoint, descriptorBind->viewFormat,
+                                                    buf->resourceId, descriptorBind->byteOffset,
+                                                    descriptorLen));
 
           isbuf = true;
         }
@@ -1973,7 +1976,7 @@ void VulkanPipelineStateViewer::setState()
            length, s.counterBufferResourceId, (qulonglong)s.counterBufferOffset, QString()});
 
       node->setTag(QVariant::fromValue(
-          VulkanBufferTag(false, ~0U, s.bufferResourceId, s.byteOffset, length)));
+          VulkanBufferTag(false, ~0U, ResourceFormat(), s.bufferResourceId, s.byteOffset, length)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -2391,46 +2394,6 @@ void VulkanPipelineStateViewer::setState()
   }
 }
 
-QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                                 const rdcarray<ShaderConstant> &vars)
-{
-  QString indentstr(indent * 4, QLatin1Char(' '));
-
-  QString ret = QString();
-
-  int i = 0;
-
-  for(const ShaderConstant &v : vars)
-  {
-    if(!v.type.members.isEmpty())
-    {
-      if(i > 0)
-        ret += lit("\n");
-      ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
-      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
-             indentstr + lit("}\n");
-      if(i < vars.count() - 1)
-        ret += lit("\n");
-    }
-    else
-    {
-      QString arr = QString();
-      if(v.type.descriptor.elements > 1)
-        arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
-      ret += QFormatStr("%1%2 %3%4%5;\n")
-                 .arg(indentstr)
-                 .arg(v.type.descriptor.name)
-                 .arg(nameprefix)
-                 .arg(v.name)
-                 .arg(arr);
-    }
-
-    i++;
-  }
-
-  return ret;
-}
-
 void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const VKPipe::Shader *stage = stageForSender(item->treeWidget());
@@ -2478,41 +2441,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
                                             ? stage->reflection->readWriteResources[buf.bindPoint]
                                             : stage->reflection->readOnlyResources[buf.bindPoint];
 
-      format = lit("// struct %1\n").arg(shaderRes.variableType.descriptor.name);
-
-      if(shaderRes.variableType.members.count() > 1)
-      {
-        format += lit("// members skipped as they are fixed size:\n");
-        for(int i = 0; i < shaderRes.variableType.members.count() - 1; i++)
-          format += QFormatStr("// %1 %2;\n")
-                        .arg(shaderRes.variableType.members[i].type.descriptor.name)
-                        .arg(shaderRes.variableType.members[i].name);
-      }
-
-      if(!shaderRes.variableType.members.isEmpty())
-      {
-        format += lit("{\n") + formatMembers(1, QString(), shaderRes.variableType.members) + lit("}");
-      }
-      else
-      {
-        const auto &desc = shaderRes.variableType.descriptor;
-
-        format = QString();
-        if(desc.rowMajorStorage)
-          format += lit("row_major ");
-
-        format += ToQStr(desc.type);
-        if(desc.rows > 1 && desc.columns > 1)
-          format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.columns);
-        else if(desc.columns > 1)
-          format += QString::number(desc.columns);
-
-        if(!desc.name.isEmpty())
-          format += lit(" ") + desc.name;
-
-        if(desc.elements > 1)
-          format += QFormatStr("[%1]").arg(desc.elements);
-      }
+      format = m_Common.GenerateBufferFormatter(shaderRes, buf.fmt, buf.offset);
     }
 
     if(buf.ID != ResourceId())
