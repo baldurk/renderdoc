@@ -522,6 +522,7 @@ enum class VulkanChunk : uint32_t
   vkCmdEndConditionalRenderingEXT,
   vkCmdSetSampleLocationsEXT,
   vkCmdSetDiscardRectangleEXT,
+  DeviceMemoryRefs,
   Max,
 };
 

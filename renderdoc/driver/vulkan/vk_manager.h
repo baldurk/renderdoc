@@ -176,6 +176,15 @@ struct VulkanResourceManagerConfiguration
   typedef VkInitialContents InitialContentData;
 };
 
+struct MemRefInterval
+{
+  ResourceId memory;
+  uint64_t start;
+  FrameRefType refType;
+};
+
+DECLARE_REFLECTION_STRUCT(MemRefInterval);
+
 class VulkanResourceManager : public ResourceManager<VulkanResourceManagerConfiguration>
 {
 public:
@@ -261,6 +270,11 @@ public:
   template <typename SerialiserType>
   void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, ImageLayouts> &states,
                             std::vector<VkImageMemoryBarrier> &barriers);
+
+  template <typename SerialiserType>
+  bool Serialise_DeviceMemoryRefs(SerialiserType &ser, std::vector<MemRefInterval> &data);
+
+  void InsertDeviceMemoryRefs(WriteSerialiser &ser);
 
   ResourceId GetID(WrappedVkRes *res)
   {
