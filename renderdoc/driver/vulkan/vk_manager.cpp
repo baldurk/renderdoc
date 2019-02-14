@@ -356,6 +356,76 @@ template void VulkanResourceManager::SerialiseImageStates(WriteSerialiser &ser,
                                                           std::map<ResourceId, ImageLayouts> &states,
                                                           std::vector<VkImageMemoryBarrier> &barriers);
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, MemRefInterval &el)
+{
+  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(start);
+  SERIALISE_MEMBER(refType);
+}
+
+template <typename SerialiserType>
+bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
+                                                       std::vector<MemRefInterval> &data)
+{
+  SERIALISE_ELEMENT(data);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // unpack data into m_MemFrameRefs
+    auto it_data = data.begin();
+    while(it_data != data.end())
+    {
+      ResourceId mem = it_data->memory;
+
+      auto res = m_MemFrameRefs.insert(std::make_pair(mem, MemRefs()));
+      RDCASSERTMSG("MemRefIntervals for each memory resource must be contigous", res.second);
+      Intervals<FrameRefType> &rangeRefs = res.first->second.rangeRefs;
+
+      auto it_ints = rangeRefs.begin();
+      uint64_t last = 0;
+      while(it_data != data.end() && it_data->memory == mem)
+      {
+        RDCASSERT("MemRefInterval starts must be strictly increasing",
+                  it_data->start > last || last == 0);
+        last = it_data->start;
+        it_ints->split(it_data->start);
+        it_ints->setValue(it_data->refType);
+        it_data++;
+      }
+    }
+  }
+
+  return true;
+}
+
+template bool VulkanResourceManager::Serialise_DeviceMemoryRefs(ReadSerialiser &ser,
+                                                                std::vector<MemRefInterval> &data);
+template bool VulkanResourceManager::Serialise_DeviceMemoryRefs(WriteSerialiser &ser,
+                                                                std::vector<MemRefInterval> &data);
+
+void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
+{
+  std::vector<MemRefInterval> data;
+
+  for(auto it = m_MemFrameRefs.begin(); it != m_MemFrameRefs.end(); it++)
+  {
+    ResourceId mem = it->first;
+    Intervals<FrameRefType> &rangeRefs = it->second.rangeRefs;
+    for(auto jt = rangeRefs.begin(); jt != rangeRefs.end(); jt++)
+      data.push_back({mem, jt->start(), jt->value()});
+  }
+
+  uint32_t sizeEstimate = (uint32_t)data.size() * sizeof(MemRefInterval) + 32;
+
+  {
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::DeviceMemoryRefs, sizeEstimate);
+    Serialise_DeviceMemoryRefs(ser, data);
+  }
+}
+
 void VulkanResourceManager::MarkSparseMapReferenced(ResourceInfo *sparse)
 {
   if(sparse == NULL)

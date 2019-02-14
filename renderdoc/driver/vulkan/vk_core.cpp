@@ -1690,6 +1690,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     RDCDEBUG("Creating Capture Scope");
 
     GetResourceManager()->Serialise_InitialContentsNeeded(ser);
+    GetResourceManager()->InsertDeviceMemoryRefs(ser);
 
     {
       SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
@@ -2792,6 +2793,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdSetSampleLocationsEXT(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdSetDiscardRectangleEXT:
       return Serialise_vkCmdSetDiscardRectangleEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::DeviceMemoryRefs:
+    {
+      std::vector<MemRefInterval> data;
+      return GetResourceManager()->Serialise_DeviceMemoryRefs(ser, data);
+    }
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
