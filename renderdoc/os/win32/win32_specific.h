@@ -47,12 +47,6 @@
 #define GetEmbeddedResource(filename) GetDynamicEmbeddedResource(EmbeddedResource(filename))
 std::string GetDynamicEmbeddedResource(int resource);
 
-namespace StringFormat
-{
-// useful for converting to wide before passing to OS functions
-std::wstring UTF82Wide(const string &s);
-};
-
 namespace OSUtility
 {
 inline void ForceCrash()

@@ -804,3 +804,113 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const Re
 {
   name = ResourceFormatName(fmt);
 }
+
+static void TestPrintMsg(const std::string &msg)
+{
+  OSUtility::WriteOutput(OSUtility::Output_DebugMon, msg.c_str());
+  OSUtility::WriteOutput(OSUtility::Output_StdErr, msg.c_str());
+}
+
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pythonMinorVersion,
+                                                                       const rdcarray<rdcstr> &args)
+{
+#if ENABLED(RDOC_WIN32)
+  const char *moduledir = "/pymodules";
+  const char *modulename = "renderdoc.pyd";
+  std::string pythonlibs[] = {"python3?.dll"};
+#elif ENABLED(RDOC_LINUX)
+  const char *moduledir = "";
+  const char *modulename = "renderdoc.so";
+  // we don't care about pymalloc or not
+  std::string pythonlibs[] = {"libpython3.?m.so.1.0", "libpython3.?.so.1.0", "libpython3.?m.so",
+                              "libpython3.?.so"};
+#else
+  const char *moduledir = "";
+  const char *modulename = "";
+  std::string pythonlibs[] = {};
+  TestPrintMsg(
+      "Running functional tests not directly supported on this platform.\n"
+      "Try running util/test/run_tests.py manually.\n");
+  return 1;
+#endif
+
+  std::string libPath;
+  FileIO::GetLibraryFilename(libPath);
+
+  libPath = dirname(libPath);
+  std::string modulePath = libPath + moduledir;
+
+  std::string moduleFilename = modulePath + "/" + modulename;
+
+  if(!FileIO::exists(moduleFilename.c_str()))
+  {
+    TestPrintMsg(StringFormat::Fmt("Couldn't locate python module at %s\n", moduleFilename.c_str()));
+    return 1;
+  }
+
+  // if we've been built either on windows or on linux from within the project root, going up two
+  // directories from the library will put us at the project root. This is the most common scenario
+  // and we don't add handling for locating the script elsewhere as in that case the user can run it
+  // directly. This is just intended as a useful shortcut for common cases.
+  std::string scriptPath = libPath + "/../../util/test/run_tests.py";
+
+  if(!FileIO::exists(scriptPath.c_str()))
+  {
+    TestPrintMsg(StringFormat::Fmt("Couldn't locate run_tests.py script at %s\n", scriptPath.c_str()));
+    return 1;
+  }
+
+  void *handle = NULL;
+
+  for(std::string py : pythonlibs)
+  {
+    // patch up the python minor version
+    char *ver = strchr(&py[0], '?');
+    *ver = char('0' + pythonMinorVersion);
+
+    handle = Process::LoadModule(py.c_str());
+    RDCLOG("Loaded python from %s", py.c_str());
+  }
+
+  if(!handle)
+  {
+    TestPrintMsg("Couldn't locate python 3.6 library\n");
+    return 1;
+  }
+
+  typedef int(RENDERDOC_CC * PFN_Py_Main)(int, wchar_t **);
+
+  PFN_Py_Main mainFunc = (PFN_Py_Main)Process::GetFunctionAddress(handle, "Py_Main");
+
+  if(!mainFunc)
+  {
+    TestPrintMsg("Couldn't get Py_Main in python library\n");
+    return 1;
+  }
+
+  std::vector<std::wstring> wideArgs(args.size());
+
+  for(size_t i = 0; i < args.size(); i++)
+    wideArgs[i] = StringFormat::UTF82Wide(args[i]);
+
+  // insert fake arguments to point at the script and our modules
+  wideArgs.insert(wideArgs.begin(),
+                  {
+                      L"python",
+                      // specify script path
+                      StringFormat::UTF82Wide(scriptPath),
+                      // specify native library path
+                      L"--renderdoc", StringFormat::UTF82Wide(libPath),
+                      // specify python module path
+                      L"--pyrenderdoc", StringFormat::UTF82Wide(modulePath),
+                      // force in-process as we can't fork out to python to pass args
+                      L"--in-process",
+                  });
+
+  std::vector<wchar_t *> wideArgStrings(wideArgs.size());
+
+  for(size_t i = 0; i < wideArgs.size(); i++)
+    wideArgStrings[i] = &wideArgs[i][0];
+
+  return mainFunc((int)wideArgStrings.size(), wideArgStrings.data());
+}

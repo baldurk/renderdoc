@@ -2,6 +2,12 @@ set(sources renderdoccmd.cpp ${CMAKE_SOURCE_DIR}/renderdoc/api/replay/version.cp
 set(includes PRIVATE ${CMAKE_SOURCE_DIR}/renderdoc/api)
 set(libraries PRIVATE renderdoc)
 
+if(PythonLibs_FOUND)
+    add_definitions(-DPYTHON_VERSION_MINOR=${PYTHON_VERSION_MINOR})
+else()
+    add_definitions(-DPYTHON_VERSION_MINOR=0)
+endif()
+
 if(APPLE)
     list(APPEND sources renderdoccmd_apple.cpp)
 elseif(ANDROID)

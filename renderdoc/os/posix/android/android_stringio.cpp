@@ -102,10 +102,16 @@ void GetLibraryFilename(string &selfName)
 
 namespace StringFormat
 {
-string Wide2UTF8(const std::wstring &s)
+std::string Wide2UTF8(const std::wstring &s)
 {
   RDCFATAL("Converting wide strings to UTF-8 is not supported on Android!");
   return "";
+}
+
+std::wstring UTF82Wide(const std::string &s)
+{
+  RDCFATAL("Converting UTF-8 to wide strings is not supported on Android!");
+  return L"";
 }
 
 void Shutdown()

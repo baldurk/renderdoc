@@ -799,7 +799,13 @@ struct TestCommand : public Command
   TestCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
-    parser.set_footer("<unit> [... parameters to test framework ...]");
+    parser.set_footer(
+#if PYTHON_MINOR_VERSION > 0
+        "<unit|functional>"
+#else
+        "<unit>"
+#endif
+        " [... parameters to test framework ...]");
     parser.add("help", '\0', "print this message");
     parser.stop_at_rest(true);
   }
@@ -826,6 +832,10 @@ struct TestCommand : public Command
 
     if(mode == "unit")
       return RENDERDOC_RunUnitTests("renderdoccmd test unit", convertArgs(rest));
+#if PYTHON_MINOR_VERSION > 0
+    else if(mode == "functional")
+      return RENDERDOC_RunFunctionalTests(PYTHON_MINOR_VERSION, convertArgs(rest));
+#endif
 
     std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
     std::cerr << parser.usage() << std::endl;

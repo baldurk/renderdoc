@@ -60,15 +60,6 @@ else()
     add_custom_command(OUTPUT RenderDoc.icns COMMAND touch RenderDoc.icns)
 endif()
 
-# Make sure Python 3 is found
-set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
-find_package(PythonInterp 3 REQUIRED)
-find_package(PythonLibs 3 REQUIRED)
-# we also need python3-config for swig
-if(NOT EXISTS "${PYTHON_EXECUTABLE}-config" AND NOT EXISTS "${PYTHON_EXECUTABLE}.${PYTHON_VERSION_MINOR}-config")
-    message(FATAL_ERROR "We require ${PYTHON_EXECUTABLE}-config or ${PYTHON_EXECUTABLE}.${PYTHON_VERSION_MINOR}-config to build swig, please install the python dev package for your system.")
-endif()
-
 include(ExternalProject)
 
 # Need bison for swig

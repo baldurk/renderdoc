@@ -370,7 +370,8 @@ namespace StringFormat
 {
 void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format);
 
-string Wide2UTF8(const std::wstring &s);
+std::string Wide2UTF8(const std::wstring &s);
+std::wstring UTF82Wide(const std::string &s);
 
 void Shutdown();
 };

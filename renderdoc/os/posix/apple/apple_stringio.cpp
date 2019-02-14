@@ -134,35 +134,38 @@ namespace StringFormat
 {
 // cache iconv_t descriptor to save on iconv_open/iconv_close each time
 iconv_t iconvWide2UTF8 = (iconv_t)-1;
+iconv_t iconvUTF82Wide = (iconv_t)-1;
 
 // iconv is not thread safe when sharing an iconv_t descriptor
 // I don't expect much contention but if it happens we could TryLock
 // before creating a temporary iconv_t, or hold two iconv_ts, or something.
-Threading::CriticalSection lockWide2UTF8;
+Threading::CriticalSection iconvLock;
 
 void Shutdown()
 {
-  SCOPED_LOCK(lockWide2UTF8);
+  SCOPED_LOCK(iconvLock);
+
   if(iconvWide2UTF8 != (iconv_t)-1)
     iconv_close(iconvWide2UTF8);
   iconvWide2UTF8 = (iconv_t)-1;
+
+  if(iconvUTF82Wide != (iconv_t)-1)
+    iconv_close(iconvUTF82Wide);
+  iconvUTF82Wide = (iconv_t)-1;
 }
 
-string Wide2UTF8(const std::wstring &s)
+std::string Wide2UTF8(const std::wstring &s)
 {
   // include room for null terminator, assuming unicode input (not ucs)
   // utf-8 characters can be max 4 bytes.
   size_t len = (s.length() + 1) * 4;
 
-  vector<char> charBuffer;
-
-  if(charBuffer.size() < len)
-    charBuffer.resize(len);
+  std::vector<char> charBuffer(len);
 
   size_t ret;
 
   {
-    SCOPED_LOCK(lockWide2UTF8);
+    SCOPED_LOCK(iconvLock);
 
     if(iconvWide2UTF8 == (iconv_t)-1)
       iconvWide2UTF8 = iconv_open("UTF-8", "WCHAR_T");
@@ -192,7 +195,49 @@ string Wide2UTF8(const std::wstring &s)
   // convert to string from null-terminated string - utf-8 never contains
   // 0 bytes before the null terminator, and this way we don't care if
   // charBuffer is larger than the string
-  return string(&charBuffer[0]);
+  return std::string(&charBuffer[0]);
+}
+
+std::wstring UTF82Wide(const std::string &s)
+{
+  // include room for null terminator, for ascii input we need at least as many output chars as
+  // input.
+  size_t len = s.length() + 1;
+
+  std::vector<wchar_t> wcharBuffer(len);
+
+  size_t ret;
+
+  {
+    SCOPED_LOCK(iconvLock);
+
+    if(iconvUTF82Wide == (iconv_t)-1)
+      iconvUTF82Wide = iconv_open("WCHAR_T", "UTF-8");
+
+    if(iconvUTF82Wide == (iconv_t)-1)
+    {
+      RDCERR("Couldn't open iconv for UTF-8 to WCHAR_T: %d", errno);
+      return L"";
+    }
+
+    char *inbuf = (char *)s.c_str();
+    size_t insize = s.length() + 1;    // include null terminator
+    char *outbuf = (char *)&wcharBuffer[0];
+    size_t outsize = len * sizeof(wchar_t);
+
+    ret = iconv(iconvUTF82Wide, &inbuf, &insize, &outbuf, &outsize);
+  }
+
+  if(ret == (size_t)-1)
+  {
+#if ENABLED(RDOC_DEVEL)
+    RDCWARN("Failed to convert wstring");
+#endif
+    return L"";
+  }
+
+  // convert to string from null-terminated string
+  return std::wstring(&wcharBuffer[0]);
 }
 };
 

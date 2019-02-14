@@ -2291,3 +2291,7 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
 DOCUMENT("Internal function that runs unit tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
                                                                  const rdcarray<rdcstr> &args);
+
+DOCUMENT("Internal function that runs functional tests.");
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pythonMinorVersion,
+                                                                       const rdcarray<rdcstr> &args);
