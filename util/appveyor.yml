@@ -80,4 +80,4 @@ test_script:
 - ps: $env:testexe = "$env:PLATFORM\$env:CONFIGURATION\renderdoccmd.exe"
 - ps: if ( $env:PLATFORM -eq "x86" ) { $env:testexe = "Win32\$env:CONFIGURATION\renderdoccmd.exe" }
 - cmd: >-
-    "%testexe%" test -t unit
+    "%testexe%" test unit
