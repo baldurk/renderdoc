@@ -147,6 +147,7 @@ typedef uint64_t ThreadHandle;
 ThreadHandle CreateThread(std::function<void()> entryFunc);
 uint64_t GetCurrentID();
 void JoinThread(ThreadHandle handle);
+void DetachThread(ThreadHandle handle);
 void CloseThread(ThreadHandle handle);
 void Sleep(uint32_t milliseconds);
 

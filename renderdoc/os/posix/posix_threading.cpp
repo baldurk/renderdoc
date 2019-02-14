@@ -282,6 +282,10 @@ void JoinThread(ThreadHandle handle)
 {
   pthread_join((pthread_t)handle, NULL);
 }
+void DetachThread(ThreadHandle handle)
+{
+  pthread_detach((pthread_t)handle);
+}
 void CloseThread(ThreadHandle handle)
 {
 }

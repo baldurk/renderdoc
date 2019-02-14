@@ -273,6 +273,13 @@ void JoinThread(ThreadHandle handle)
   WaitForSingleObject((HANDLE)handle, INFINITE);
 }
 
+void DetachThread(ThreadHandle handle)
+{
+  if(handle == 0)
+    return;
+  CloseHandle((HANDLE)handle);
+}
+
 void CloseThread(ThreadHandle handle)
 {
   if(handle == 0)
