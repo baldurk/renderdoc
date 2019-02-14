@@ -53,6 +53,20 @@ void SetReplayResourceIDs()
 
 INSTANTIATE_SERIALISE_TYPE(ResourceManagerInternal::WrittenRecord);
 
+template <>
+std::string DoStringise(const FrameRefType &el)
+{
+  BEGIN_ENUM_STRINGISE(FrameRefType)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_None, "None");
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_PartialWrite, "Partial Write");
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_CompleteWrite, "Complete Write");
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_Read, "Read");
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_ReadBeforeWrite, "Read Before Write");
+  }
+  END_ENUM_STRINGISE()
+}
+
 FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
 {
   RDCASSERT(eFrameRef_Minimum <= first && first <= eFrameRef_Maximum);
