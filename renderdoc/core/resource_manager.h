@@ -100,6 +100,8 @@ enum FrameRefType
 const FrameRefType eFrameRef_Minimum = eFrameRef_None;
 const FrameRefType eFrameRef_Maximum = eFrameRef_ReadBeforeWrite;
 
+DECLARE_REFLECTION_ENUM(FrameRefType);
+
 // Compose frame refs that occur in a known order.
 // This can be thought of as a state (`first`) and a transition from that state
 // (`second`), returning the new state (see the state diagram for
