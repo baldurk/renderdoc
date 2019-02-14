@@ -799,21 +799,36 @@ struct TestCommand : public Command
   TestCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
-    parser.add<string>("type", 't', "The type of test to run.", true, "",
-                       cmdline::oneof<string>("unit"));
+    parser.set_footer("<unit> [... parameters to test framework ...]");
     parser.add("help", '\0', "print this message");
     parser.stop_at_rest(true);
   }
   virtual const char *Description() { return "Run internal tests such as unit tests."; }
+  virtual bool HandlesUsageManually() { return true; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
     std::vector<std::string> rest = parser.rest();
 
-    if(parser.get<string>("type") == "unit")
-      return RENDERDOC_RunUnitTests("renderdoccmd test --type unit", convertArgs(rest));
+    if(rest.empty())
+    {
+      std::cerr << "First argument must specify a test framework" << std::endl << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return 1;
+    }
 
+    std::string mode = rest[0];
+    rest.erase(rest.begin());
+
+    if(parser.exist("help"))
+      rest.push_back("--help");
+
+    if(mode == "unit")
+      return RENDERDOC_RunUnitTests("renderdoccmd test unit", convertArgs(rest));
+
+    std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
+    std::cerr << parser.usage() << std::endl;
     return 1;
   }
 };
@@ -1289,7 +1304,7 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
       opts.delayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
     }
 
-    if(cmd.exist("help"))
+    if(!it->second->HandlesUsageManually() && cmd.exist("help"))
     {
       std::cerr << cmd.usage() << std::endl;
       clean_up();

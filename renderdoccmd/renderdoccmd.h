@@ -35,6 +35,7 @@ struct Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts) = 0;
   virtual const char *Description() = 0;
 
+  virtual bool HandlesUsageManually() { return false; }
   virtual bool IsInternalOnly() = 0;
   virtual bool IsCaptureCommand() = 0;
 
