@@ -181,9 +181,12 @@ std::string GetFriendlyName(std::string deviceID)
 void TickDeviceLogcat()
 {
 #if ENABLED(RDOC_ANDROID)
-  OSUtility::WriteOutput(
-      OSUtility::Output_DebugMon,
-      StringFormat::Fmt("__rdoc_internal_android_logcat %llu", getTimeMS()).c_str());
+  static uint64_t freq = (uint64_t)Timing::GetTickFrequency();
+
+  const uint64_t timeMS = uint64_t(Timing::GetTick() / freq);
+
+  OSUtility::WriteOutput(OSUtility::Output_DebugMon,
+                         StringFormat::Fmt("__rdoc_internal_android_logcat %llu", timeMS).c_str());
 #endif
 }
 
