@@ -111,6 +111,12 @@ static QVariant interpret(const ResourceFormat &f, byte comp)
   return QVariant();
 }
 
+struct StructFormatData
+{
+  QList<FormatElement> elems;
+  uint32_t offset = 0;
+};
+
 FormatElement::FormatElement()
 {
   buffer = 0;
@@ -144,7 +150,11 @@ FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perIn
 QList<FormatElement> FormatElement::ParseFormatString(const QString &formatString, uint64_t maxLen,
                                                       bool tightPacking, QString &errors)
 {
-  QList<FormatElement> elems;
+  StructFormatData root;
+  StructFormatData *cur = &root;
+
+  QMap<QString, StructFormatData> structelems;
+  QString lastStruct;
 
   // regex doesn't account for trailing or preceeding whitespace, or comments
 
@@ -167,8 +177,8 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
           ")"                                     // end of the type group
           "([1-9])?"                              // might be a vector
           "(x[1-9])?"                             // or a matrix
-          "(\\s+[A-Za-z_][A-Za-z0-9_]*)?"         // get identifier name
-          "(\\[[0-9]+\\])?"                       // optional array dimension
+          "(\\s+[A-Za-z@_][A-Za-z0-9@_]*)?"       // get identifier name
+          "(\\s*\\[[0-9]+\\])?"                   // optional array dimension
           "(\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?"    // optional semantic
           "$"));
 
@@ -177,21 +187,103 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
   QString text = formatString;
 
-  text = text.replace(lit("{"), QString()).replace(lit("}"), QString());
-
   QRegularExpression c_comments(lit("/\\*[^*]*\\*+(?:[^*/][^*]*\\*+)*/"));
   QRegularExpression cpp_comments(lit("//.*"));
   text = text.replace(c_comments, QString()).replace(cpp_comments, QString());
 
-  uint32_t offset = 0;
+  QRegularExpression structDeclRegex(lit("^struct\\s+([A-Za-z_][A-Za-z0-9_]*)$"));
+  QRegularExpression structUseRegex(
+      lit("^"                                 // start of the line
+          "([A-Za-z_][A-Za-z0-9_]*)"          // struct type name
+          "\\s+([A-Za-z@_][A-Za-z0-9@_]*)"    // variable name
+          "(\\s*\\[[0-9]+\\])?"               // optional array dimension
+          "$"));
 
   // get each line and parse it to determine the format the user wanted
-  for(QString &l : text.split(QLatin1Char(';')))
+  for(QString &l : text.split(QRegularExpression(lit("[;\n\r]"))))
   {
     QString line = l.trimmed();
 
     if(line.isEmpty())
       continue;
+
+    if(cur == &root)
+    {
+      // if we're not in a struct, ignore the braces
+      if(line == lit("{") || line == lit("}"))
+        continue;
+    }
+    else
+    {
+      // if we're in a struct, ignore the opening brace and revert back to root elements when we hit
+      // the closing brace. No brace nesting is supported
+      if(line == lit("{"))
+        continue;
+
+      if(line == lit("}"))
+      {
+        cur = &root;
+        continue;
+      }
+    }
+
+    if(line.contains(lit("struct")))
+    {
+      QRegularExpressionMatch match = structDeclRegex.match(line);
+
+      if(match.hasMatch())
+      {
+        lastStruct = match.captured(1);
+
+        if(structelems.contains(lastStruct))
+        {
+          errors = tr("Duplicate struct definition: %1\n").arg(lastStruct);
+          success = false;
+          break;
+        }
+
+        cur = &structelems[lastStruct];
+        continue;
+      }
+    }
+
+    QRegularExpressionMatch structMatch = structUseRegex.match(line);
+
+    if(structMatch.hasMatch() && structelems.contains(structMatch.captured(1)))
+    {
+      StructFormatData &structDef = structelems[structMatch.captured(1)];
+
+      QString varName = structMatch.captured(2);
+
+      QString arrayDim = structMatch.captured(3).trimmed();
+      uint32_t arrayCount = 1;
+      if(!arrayDim.isEmpty())
+      {
+        arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
+        bool ok = false;
+        arrayCount = arrayDim.toUInt(&ok);
+        if(!ok)
+          arrayCount = 1;
+      }
+
+      // inline use of this struct in the current parent
+      for(uint32_t arrayIdx = 0; arrayIdx < arrayCount; arrayIdx++)
+      {
+        for(const FormatElement &templ : structDef.elems)
+        {
+          FormatElement el = templ;
+          el.name = arrayCount > 1 ? QFormatStr("%1[%2].%3").arg(varName).arg(arrayIdx).arg(el.name)
+                                   : QFormatStr("%1.%2").arg(varName).arg(el.name);
+          el.offset += cur->offset;
+
+          cur->elems.push_back(el);
+        }
+
+        cur->offset += structDef.offset;
+      }
+
+      continue;
+    }
 
     QRegularExpressionMatch match = regExpr.match(line);
 
@@ -217,6 +309,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     }
 
     ResourceFormat fmt;
+    fmt.type = ResourceFormatType::Regular;
     fmt.compType = CompType::Typeless;
 
     bool hex = false;
@@ -380,7 +473,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
     if(arrayCount == 1)
     {
-      FormatElement elem(name, 0, offset, false, 1, row_major, matrixCount, fmt, hex, rgb);
+      FormatElement elem(name, 0, cur->offset, false, 1, row_major, matrixCount, fmt, hex, rgb);
 
       uint32_t advance = elem.byteSize();
 
@@ -391,33 +484,33 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
         // cbuffer packing doesn't allow elements to cross float4 boundaries, nudge up if this was
         // the case
-        if(offset / 16 != (offset + elem.byteSize() - 1) / 16)
+        if(cur->offset / 16 != (cur->offset + elem.byteSize() - 1) / 16)
         {
-          elem.offset = offset = (offset + 0xFU) & (~0xFU);
+          elem.offset = cur->offset = (cur->offset + 0xFU) & (~0xFU);
         }
       }
 
-      elems.push_back(elem);
+      cur->elems.push_back(elem);
 
-      offset += advance;
+      cur->offset += advance;
     }
     else
     {
       // when cbuffer packing, arrays are always aligned at float4 boundary
       if(!tightPacking)
       {
-        if(offset % 16 != 0)
+        if(cur->offset % 16 != 0)
         {
-          offset = (offset + 0xFU) & (~0xFU);
+          cur->offset = (cur->offset + 0xFU) & (~0xFU);
         }
       }
 
       for(uint a = 0; a < arrayCount; a++)
       {
-        FormatElement elem(QFormatStr("%1[%2]").arg(name).arg(a), 0, offset, false, 1, row_major,
-                           matrixCount, fmt, hex, rgb);
+        FormatElement elem(QFormatStr("%1[%2]").arg(name).arg(a), 0, cur->offset, false, 1,
+                           row_major, matrixCount, fmt, hex, rgb);
 
-        elems.push_back(elem);
+        cur->elems.push_back(elem);
 
         uint32_t advance = elem.byteSize();
 
@@ -427,14 +520,19 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
           advance = (advance + 0xFU) & (~0xFU);
         }
 
-        offset += advance;
+        cur->offset += advance;
       }
     }
   }
 
-  if(!success || elems.isEmpty())
+  // if we succeeded parsing but didn't get any root elements, use the last defined struct as the
+  // definition
+  if(success && root.elems.isEmpty() && !lastStruct.isEmpty())
+    root = structelems[lastStruct];
+
+  if(!success || root.elems.isEmpty())
   {
-    elems.clear();
+    root.elems.clear();
 
     ResourceFormat fmt;
     fmt.compType = CompType::UInt;
@@ -446,10 +544,10 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     if(maxLen > 0 && maxLen < 4)
       fmt.compByteWidth = 1;
 
-    elems.push_back(FormatElement(lit("data"), 0, 0, false, 1, false, 1, fmt, true, false));
+    root.elems.push_back(FormatElement(lit("data"), 0, 0, false, 1, false, 1, fmt, true, false));
   }
 
-  return elems;
+  return root.elems;
 }
 
 QString FormatElement::GenerateTextureBufferFormat(const TextureDescription &tex)

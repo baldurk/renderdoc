@@ -614,55 +614,47 @@ void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
   });
 }
 
-QString PipelineStateViewer::formatMembers(int indent, int requiredByteStride,
-                                           const QString &nameprefix,
-                                           const rdcarray<ShaderConstant> &vars)
+QString PipelineStateViewer::declareStruct(QList<QString> &declaredStructs, const QString &name,
+                                           const rdcarray<ShaderConstant> &members,
+                                           uint32_t requiredByteStride)
 {
-  QString indentstr(indent * 4, QLatin1Char(' '));
-
   QString ret;
 
-  int i = 0;
+  ret = lit("struct %1\n{\n").arg(name);
 
-  for(const ShaderConstant &v : vars)
+  for(int i = 0; i < members.count(); i++)
   {
-    if(!v.type.members.empty())
-    {
-      if(i > 0)
-        ret += lit("\n");
+    QString arraySize;
+    if(members[i].type.descriptor.elements > 1)
+      arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
 
-      if(v.type.descriptor.name == "struct")
-        ret += indentstr + lit("// struct\n");
-      else
-        ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
+    QString varTypeName = members[i].type.descriptor.name;
 
-      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.type.descriptor.arrayByteStride,
-                                                    v.name + lit("_"), v.type.members) +
-             indentstr + lit("}\n");
-      if(i < vars.count() - 1)
-        ret += lit("\n");
-    }
-    else
+    if(!members[i].type.members.isEmpty())
     {
-      QString arr;
-      if(v.type.descriptor.elements > 1)
-        arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
-      ret += QFormatStr("%1%2 %3%4%5;\n")
-                 .arg(indentstr)
-                 .arg(v.type.descriptor.name)
-                 .arg(nameprefix)
-                 .arg(v.name)
-                 .arg(arr);
+      // GL structs don't give us typenames (boo!) so give them unique names. This will mean some
+      // structs get duplicated if they're used in multiple places, but not much we can do about
+      // that.
+      if(varTypeName.isEmpty() || varTypeName == lit("struct"))
+        varTypeName = lit("anon%1").arg(declaredStructs.size());
+
+      if(!declaredStructs.contains(varTypeName))
+      {
+        declaredStructs.push_back(varTypeName);
+        ret = declareStruct(declaredStructs, varTypeName, members[i].type.members,
+                            members[i].type.descriptor.arrayByteStride) +
+              lit("\n") + ret;
+      }
     }
 
-    i++;
+    ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(members[i].name).arg(arraySize);
   }
 
   if(requiredByteStride > 0)
   {
     uint32_t structStart = 0;
 
-    const ShaderConstant *lastChild = &vars.back();
+    const ShaderConstant *lastChild = &members.back();
 
     structStart += lastChild->byteOffset;
     while(!lastChild->type.members.isEmpty())
@@ -691,8 +683,10 @@ QString PipelineStateViewer::formatMembers(int indent, int requiredByteStride,
     uint32_t padBytes = requiredByteStride - (lastChild->byteOffset + size);
 
     if(padBytes > 0)
-      ret += indentstr + padding(padBytes);
+      ret += lit("    ") + padding(padBytes);
   }
+
+  ret += lit("}\n");
 
   return ret;
 }
@@ -705,54 +699,65 @@ QString PipelineStateViewer::GenerateBufferFormatter(const ShaderResource &res,
 
   if(!res.variableType.members.empty())
   {
-    const rdcarray<ShaderConstant> *members = &res.variableType.members;
-
-    uint32_t requiredStride = 0;
-
     if(m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan ||
        m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
     {
-      // GL/Vulkan allow fixed-sized members before the array-of-structs. This can't be represented
-      // in a buffer format so we skip it
-      if(members->count() > 1)
+      const rdcarray<ShaderConstant> &members = res.variableType.members;
+
+      format += QFormatStr("struct %1\n{\n").arg(res.name);
+
+      // GL/Vulkan allow fixed-sized members before the array-of-structs. This can't be
+      // represented in a buffer format so we skip it
+      if(members.count() > 1)
       {
-        format += lit("// %1 members skipped as they are fixed size:\n").arg(res.name);
-        for(int i = 0; i < members->count() - 1; i++)
+        format += tr("    // members skipped as they are fixed size:\n");
+        baseByteOffset += members.back().byteOffset;
+      }
+
+      QString varTypeName;
+      QString comment = lit("// ");
+      for(int i = 0; i < members.count(); i++)
+      {
+        QString arraySize;
+        if(members[i].type.descriptor.elements > 1)
+          arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
+
+        varTypeName = members[i].type.descriptor.name;
+
+        if(i + 1 == members.count())
         {
-          QString arraySize;
-          if(members->at(i).type.descriptor.elements > 1)
-            arraySize = QFormatStr("[%1]").arg(members->at(i).type.descriptor.elements);
-          format += QFormatStr("// %1 %2%3;\n")
-                        .arg(members->at(i).type.descriptor.name)
-                        .arg(members->at(i).name)
-                        .arg(arraySize);
+          comment = arraySize = QString();
+
+          if(members.count() > 1)
+            format +=
+                lit("    // final array struct @ byte offset %1\n").arg(members.back().byteOffset);
+
+          // give GL nameless structs a better name
+          if(varTypeName.isEmpty() || varTypeName == lit("struct"))
+            varTypeName = lit("root_struct");
         }
 
-        format += lit("// final array struct @ byte offset %1\n{\n").arg(members->back().byteOffset);
-
-        baseByteOffset += members->back().byteOffset;
-      }
-      else
-      {
-        format += lit("// struct %1\n{\n").arg(res.name);
+        format +=
+            QFormatStr("    %1%2 %3%4;\n").arg(comment).arg(varTypeName).arg(members[i].name).arg(arraySize);
       }
 
-      // if the last member is a struct, remove one level of indirection before declaring the
-      // repeated structure
-      if(!members->back().type.members.isEmpty())
-      {
-        requiredStride = members->back().type.descriptor.arrayByteStride;
+      format += lit("}");
 
-        members = &members->back().type.members;
+      // if the last member is a struct, declare it
+      if(!members.back().type.members.isEmpty())
+      {
+        QList<QString> declaredStructs;
+        format = declareStruct(declaredStructs, varTypeName, members.back().type.members,
+                               members.back().type.descriptor.arrayByteStride) +
+                 lit("\n") + format;
       }
     }
     else
     {
-      format = lit("// struct %1\n{\n").arg(res.variableType.descriptor.name);
+      QList<QString> declaredStructs;
+      format = declareStruct(declaredStructs, res.variableType.descriptor.name,
+                             res.variableType.members, 0);
     }
-
-    format += formatMembers(1, requiredStride, QString(), *members);
-    format += lit("}");
   }
   else
   {
