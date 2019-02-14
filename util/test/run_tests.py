@@ -61,6 +61,8 @@ if args.pyrenderdoc is not None:
 
 sys.path.insert(0, os.path.realpath(os.path.dirname(__file__)))
 
+os.chdir(sys.path[0])
+
 artifacts_dir = os.path.realpath(args.artifacts)
 
 try:
