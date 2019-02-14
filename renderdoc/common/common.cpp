@@ -440,6 +440,7 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
   // -3 is for the " - " after the type.
   const char *noPrefixOutput = (output - 3 - (sizeof(typestr[(uint32_t)type]) - 1));
+  const char *prefixEnd = output;
 
   int totalWritten = numWritten;
 
@@ -473,6 +474,8 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
     output += numWritten;
     available -= numWritten;
 
+    prefixEnd = output;
+
     noPrefixOutput = (output - 3 - (sizeof(typestr[(uint32_t)type]) - 1));
 
     numWritten = StringFormat::vsnprintf(output, available, fmt, args2);
@@ -495,6 +498,10 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
   {
     char backup[2];
 
+    std::string prefixText(base, size_t(prefixEnd - base));
+
+    bool first = true;
+
     // otherwise, print the string in sections to ensure newlines are in native format
     while(nl)
     {
@@ -504,6 +511,8 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
       write_newline(nl);
 
+      if(!first)
+        rdclogprint_int(type, prefixText.c_str(), prefixText.c_str());
       rdclogprint_int(type, base, noPrefixOutput);
 
       // restore the characters
@@ -513,12 +522,16 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
       base = nl + 1;
       noPrefixOutput = nl + 1;
 
+      first = false;
+
       nl = strchr(base, '\n');
     }
 
     // append final newline and write the last line
     write_newline(output);
 
+    if(!first)
+      rdclogprint_int(type, prefixText.c_str(), prefixText.c_str());
     rdclogprint_int(type, base, noPrefixOutput);
   }
 
