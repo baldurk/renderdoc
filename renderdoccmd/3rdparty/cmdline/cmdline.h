@@ -398,12 +398,10 @@ public:
     int argc=static_cast<int>(args.size());
     std::vector<const char*> argv(argc);
 
-    if (argc<1) return processed_arg0;
-
     for (int i=0; i<argc; i++)
       argv[i]=args[i].c_str();
 
-    return parse(argc, &argv[0], processed_arg0);
+    return parse(argc, argv.data(), processed_arg0);
   }
 
   bool parse(int argc, const char * const argv[], bool processed_arg0 = false){
