@@ -1350,7 +1350,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // create a duplicate set of descriptor sets, with all bindings shifted, and copy the bindings
   // into them
   {
-    std::vector<VkCopyDescriptorSet> descCopies;
     std::vector<VkWriteDescriptorSet> descWrites;
 
     // one for each descriptor type. 1 of each to start with plus enough for our internal resources,
@@ -1525,9 +1524,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
       WrappedVulkan::DescriptorSetInfo &setInfo =
           m_pDriver->m_DescriptorSetState[state.graphics.descSets[i].descSet];
 
-#if DISABLED(RDOC_ANDROID)
-      if(setInfo.push)
-#endif
       {
         // push descriptors don't have a source to copy from, we need to add writes
         VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
@@ -1593,33 +1589,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           write.pTexelBufferView = NULL;
         }
       }
-#if DISABLED(RDOC_ANDROID)
-      else
-      {
-        VkCopyDescriptorSet copy = {VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
-        copy.srcSet = GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(
-            state.graphics.descSets[i].descSet);
-        copy.dstSet = descSets[i];
-
-        for(size_t b = 0; b < origLayout.bindings.size(); b++)
-        {
-          const DescSetLayout::Binding &bind = origLayout.bindings[b];
-
-          // skip empty bindings
-          if(bind.descriptorCount == 0 || bind.stageFlags == 0)
-            continue;
-
-          copy.srcBinding = (uint32_t)b;
-          copy.dstBinding = (uint32_t)b + MeshOutputReservedBindings;
-          copy.descriptorCount = bind.descriptorCount;
-          descCopies.push_back(copy);
-        }
-      }
-#endif
     }
 
-    m_pDriver->vkUpdateDescriptorSets(dev, (uint32_t)descWrites.size(), descWrites.data(),
-                                      (uint32_t)descCopies.size(), descCopies.data());
+    m_pDriver->vkUpdateDescriptorSets(dev, (uint32_t)descWrites.size(), descWrites.data(), 0, NULL);
 
     // delete allocated arrays for descriptor writes
     for(const VkWriteDescriptorSet &write : descWrites)
