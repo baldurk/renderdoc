@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <crt_externs.h>
+#include <mach/mach.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -168,4 +169,17 @@ bool OSUtility::DebuggerPresent()
 const char *Process::GetEnvVariable(const char *name)
 {
   return getenv(name);
+}
+
+uint64_t Process::GetMemoryUsage()
+{
+  mach_task_basic_info taskInfo;
+  mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+
+  int ret = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&taskInfo, &infoCount);
+
+  if(ret != KERN_SUCCESS)
+    return 0;
+
+  return taskInfo.resident_size;
 }

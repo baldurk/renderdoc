@@ -2240,6 +2240,13 @@ DOCUMENT(R"(Retrieves the driver information (if available) for a given graphics
 )");
 extern "C" RENDERDOC_API DriverInformation RENDERDOC_CC RENDERDOC_GetDriverInformation(GraphicsAPI api);
 
+DOCUMENT(R"(Returns the current process's memory usage in bytes
+
+:return: The current memory usage in bytes.
+:rtype: ``int``
+)");
+extern "C" RENDERDOC_API uint64_t RENDERDOC_CC RENDERDOC_GetCurrentProcessMemoryUsage();
+
 DOCUMENT("Internal function for retrieving a config setting.");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
 

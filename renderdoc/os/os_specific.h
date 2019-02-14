@@ -55,6 +55,8 @@ void ApplyEnvironmentModification();
 
 const char *GetEnvVariable(const char *name);
 
+uint64_t GetMemoryUsage();
+
 bool CanGlobalHook();
 bool StartGlobalHook(const char *pathmatch, const char *capturefile, const CaptureOptions &opts);
 bool IsGlobalHookActive();

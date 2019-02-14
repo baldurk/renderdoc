@@ -1,6 +1,5 @@
 import rdtest
 import os
-import psutil
 import renderdoc as rd
 
 
@@ -20,7 +19,7 @@ class Repeat_Load(rdtest.TestCase):
                 return
 
             # Do nothing, just ensure it's loaded
-            memory_usage: int = psutil.Process(os.getpid()).memory_info().rss
+            memory_usage: int = rd.GetCurrentProcessMemoryUsage()
 
             # We measure the baseline memory usage during the second peak to avoid any persistent caches etc that might
             # not be full

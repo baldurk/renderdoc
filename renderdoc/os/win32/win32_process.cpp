@@ -26,6 +26,7 @@
 // must be separate so that it's included first and not sorted by clang-format
 #include <windows.h>
 
+#include <Psapi.h>
 #include <tchar.h>
 #include <tlhelp32.h>
 #include <string>
@@ -181,6 +182,32 @@ const char *Process::GetEnvVariable(const char *name)
   RDCEraseEl(buf);
   GetEnvironmentVariableA(name, buf, RDCMIN((DWORD)1023U, ret));
   return buf;
+}
+
+uint64_t Process::GetMemoryUsage()
+{
+  HANDLE proc = GetCurrentProcess();
+
+  if(proc == NULL)
+  {
+    RDCERR("Couldn't open process: %d", GetLastError());
+    return 0;
+  }
+
+  PROCESS_MEMORY_COUNTERS memInfo = {};
+
+  uint64_t ret = 0;
+
+  if(GetProcessMemoryInfo(proc, &memInfo, sizeof(memInfo)))
+  {
+    ret = memInfo.WorkingSetSize;
+  }
+  else
+  {
+    RDCERR("Couldn't get process memory info: %d", GetLastError());
+  }
+
+  return ret;
 }
 
 // helpers for various shims and dlls etc, not part of the public API

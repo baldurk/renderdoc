@@ -174,3 +174,25 @@ const char *Process::GetEnvVariable(const char *name)
 {
   return getenv(name);
 }
+
+uint64_t Process::GetMemoryUsage()
+{
+  FILE *f = FileIO::fopen("/proc/self/statm", "r");
+
+  if(f == NULL)
+  {
+    RDCWARN("Couldn't open /proc/self/statm");
+    return 0;
+  }
+
+  char line[512] = {};
+  fgets(line, 511, f);
+
+  uint32_t vmPages = 0;
+  int num = sscanf(line, "%u", &vmPages);
+
+  if(num == 1 && vmPages > 0)
+    return vmPages * (uint64_t)sysconf(_SC_PAGESIZE);
+
+  return 0;
+}

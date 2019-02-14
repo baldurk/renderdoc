@@ -5,8 +5,6 @@ import sys
 try:
 	import PIL
 	del PIL
-	import psutil
-	del psutil
 except ImportError as e:
 	print("Missing dependency: {}".format(e))
 	sys.exit(1)
