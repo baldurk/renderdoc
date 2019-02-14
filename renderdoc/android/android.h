@@ -41,7 +41,44 @@ void initAdb();
 void shutdownAdb();
 bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport);
 
-void ResetLogcat();
+struct LogcatThread
+{
+  void Finish();
+
+private:
+  void Tick();
+
+  void SelfDelete()
+  {
+    // only delete ourselves once the thread has closed and we've called Finish()
+    if(finishTime && thread == 0)
+      delete this;
+  }
+
+  // lock for accessing finishTime or immediateExit
+  Threading::CriticalSection lock;
+
+  // the time we were asked to finish - we'll hang around for a few seconds longer to catch any
+  // remaining output then exit
+  time_t finishTime = 0;
+
+  // immediately exit. This only happens when there's another thread wanting to start monitoring
+  // logcat, so we should stop hanging around.
+  bool immediateExit = false;
+
+  // the last log line we saw, so we start printing after that point. If we ever have a line here
+  // and we don't see it in the backlog.
+  std::string lastLogcatLine;
+
+  // the device ID we're monitoring
+  std::string deviceID;
+
+  // the thread handle
+  Threading::ThreadHandle thread = 0;
+
+  friend LogcatThread *ProcessLogcat(std::string deviceID);
+};
+
 void TickDeviceLogcat();
-void ProcessLogcat(std::string deviceID);
+LogcatThread *ProcessLogcat(std::string deviceID);
 };

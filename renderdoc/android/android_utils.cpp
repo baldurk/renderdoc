@@ -175,26 +175,6 @@ std::string GetFriendlyName(std::string deviceID)
   return combined;
 }
 
-static uint64_t getTimeMS()
-{
-  static uint64_t freq = (uint64_t)Timing::GetTickFrequency();
-
-  return uint64_t(Timing::GetTick() / freq);
-}
-
-// the last time on the host that we processed android logcat, to avoid polling too often
-uint64_t lastLogcatProcessTimeMS = 0;
-
-// the last log line we saw, so we start printing after that point. If we ever have a line here and
-// we don't see it in the backlog.
-std::string lastLogcatLine;
-
-void ResetLogcat()
-{
-  // reset last expected line so we restart from scratch next time
-  lastLogcatLine.clear();
-}
-
 // on android only when we hit this function we write a marker that isn't a standard log. The
 // purpose is to always try and have a unique message in the last N lines so that we can detect if
 // we ever lose messages.
@@ -453,16 +433,120 @@ struct LogLine
   }
 };
 
-void ProcessLogcat(std::string deviceID)
+// we need to keep track of logcat threads, so that if we start a new one up on a device before the
+// old one has finished, we don't start overlapping and double-printing messages.
+static Threading::CriticalSection logcatThreadLock;
+static std::map<std::string, LogcatThread *> logcatThreads;
+
+LogcatThread *ProcessLogcat(std::string deviceID)
 {
-  uint64_t curTimeMS = getTimeMS();
+  LogcatThread *ret = NULL;
 
-  // only check for logcat every 500ms, because adb can take ~250ms to run
-  if(lastLogcatProcessTimeMS + 400 > curTimeMS)
-    return;
+  Threading::ThreadHandle joinThread = 0;
 
-  lastLogcatProcessTimeMS = curTimeMS;
+  // ensure any previous thread running is really finished
+  {
+    SCOPED_LOCK(logcatThreadLock);
 
+    // if this thread is running, kill it immediately
+    if(logcatThreads[deviceID])
+    {
+      joinThread = logcatThreads[deviceID]->thread;
+
+      {
+        SCOPED_LOCK(logcatThreads[deviceID]->lock);
+        logcatThreads[deviceID]->immediateExit = true;
+      }
+    }
+  }
+
+  // if we had a thread to join, do so now. It will remove itself from the above map and
+  // self-delete, but not detach the thread
+  if(joinThread)
+  {
+    Threading::JoinThread(joinThread);
+    Threading::CloseThread(joinThread);
+  }
+
+  // start a new thread to monitor this device's logcat
+  ret = new LogcatThread;
+
+  {
+    SCOPED_LOCK(logcatThreadLock);
+    logcatThreads[deviceID] = ret;
+  }
+
+  ret->deviceID = deviceID;
+  ret->thread = Threading::CreateThread([ret]() {
+    bool done = false;
+
+    RDCDEBUG("Starting monitoring logcat on %s", ret->deviceID.c_str());
+
+    while(!done)
+    {
+      // tick the logcat
+      ret->Tick();
+
+      // sleep 400ms, but in small chunks to let us respond to immediateExit more quickly
+      for(int i = 0; i < 10; i++)
+      {
+        Threading::Sleep(40);
+
+        time_t now = Timing::GetUTCTime();
+        {
+          SCOPED_LOCK(ret->lock);
+          if(ret->immediateExit || (ret->finishTime && ret->finishTime + 5 < now))
+          {
+            done = true;
+            break;
+          }
+        }
+      }
+    }
+
+    RDCDEBUG("Stopping monitoring logcat on %s", ret->deviceID.c_str());
+
+    bool detach = true;
+
+    // we need to exit. Take the logcat thread lock first
+    {
+      SCOPED_LOCK(logcatThreadLock);
+
+      // if our immediateExit flag is set then we shouldn't detach, as the above code will join
+      // with this thread to be sure we're done
+      {
+        SCOPED_LOCK(ret->lock);
+        detach = !ret->immediateExit;
+      }
+
+      // remove ourselves from the map now, so that as soon as the lock is released the above code
+      // can safely check for no overlap (we won't tick again so even if the threads overlap the
+      // processing won't).
+      logcatThreads[ret->deviceID] = NULL;
+    }
+
+    // if we should detach because no-one is going to join us, do that now
+    if(detach)
+      Threading::DetachThread(ret->thread);
+
+    ret->thread = 0;
+
+    // finally see if we can delete the struct
+    ret->SelfDelete();
+  });
+
+  return ret;
+}
+
+void LogcatThread::Finish()
+{
+  SCOPED_LOCK(lock);
+  finishTime = Timing::GetUTCTime();
+  SelfDelete();
+}
+
+void LogcatThread::Tick()
+{
   // adb is extremely unreliable, so although it supposedly contains functionality to filter for
   // everything after a certain timestamp, this can actually drop messages. Instead we just always
   // grab the last 750 lines and hope that the device doesn't ever peak over 1 line per millisecond

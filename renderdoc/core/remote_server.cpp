@@ -1032,14 +1032,24 @@ public:
     m_Proxies.reserve(m.size());
     for(auto it = m.begin(); it != m.end(); ++it)
       m_Proxies.push_back(*it);
+
+    m_LogcatThread = NULL;
   }
+
   const std::string &hostname() const { return m_hostname; }
-  virtual ~RemoteServer() { SAFE_DELETE(m_Socket); }
+  virtual ~RemoteServer()
+  {
+    SAFE_DELETE(m_Socket);
+    if(m_LogcatThread)
+      m_LogcatThread->Finish();
+  }
+
   void ShutdownConnection()
   {
     ResetAndroidSettings();
     delete this;
   }
+
   void ShutdownServerAndConnection()
   {
     ResetAndroidSettings();
@@ -1058,11 +1068,14 @@ public:
 
     delete this;
   }
+
   bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
   bool Ping()
   {
     if(!Connected())
       return false;
+
+    LazilyStartLogcatThread();
 
     const char *host = hostname().c_str();
     if(Android::IsHostADB(host))
@@ -1070,8 +1083,6 @@ public:
       int index = 0;
       std::string deviceID;
       Android::ExtractDeviceIDAndIndex(m_hostname, index, deviceID);
-
-      Android::ProcessLogcat(deviceID);
     }
 
     {
@@ -1253,6 +1264,8 @@ public:
     std::string workingDir = w && w[0] ? w : "";
     std::string cmdline = c && c[0] ? c : "";
 
+    LazilyStartLogcatThread();
+
     const char *host = hostname().c_str();
     if(Android::IsHostADB(host))
     {
@@ -1393,6 +1406,8 @@ public:
     ret.second = NULL;
 
     ResetAndroidSettings();
+
+    LazilyStartLogcatThread();
 
     if(proxyid != ~0U && proxyid >= m_Proxies.size())
     {
@@ -1817,10 +1832,30 @@ public:
   }
 
 private:
+  void LazilyStartLogcatThread()
+  {
+    if(m_LogcatThread)
+      return;
+
+    if(Android::IsHostADB(m_hostname.c_str()))
+    {
+      int index = 0;
+      std::string deviceID;
+      Android::ExtractDeviceIDAndIndex(m_hostname, index, deviceID);
+
+      m_LogcatThread = Android::ProcessLogcat(deviceID);
+    }
+    else
+    {
+      m_LogcatThread = NULL;
+    }
+  }
+
   Network::Socket *m_Socket;
   WriteSerialiser writer;
   ReadSerialiser reader;
   std::string m_hostname;
+  Android::LogcatThread *m_LogcatThread;
 
   std::vector<std::pair<RDCDriver, std::string> > m_Proxies;
 };
@@ -1841,8 +1876,6 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteS
   if(host != NULL && Android::IsHostADB(host))
   {
     s = "127.0.0.1";
-
-    Android::ResetLogcat();
 
     int index = 0;
     std::string deviceID;
