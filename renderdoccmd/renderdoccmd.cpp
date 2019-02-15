@@ -800,7 +800,7 @@ struct TestCommand : public Command
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer(
-#if PYTHON_MINOR_VERSION > 0
+#if PYTHON_VERSION_MINOR > 0
         "<unit|functional>"
 #else
         "<unit>"
@@ -832,9 +832,9 @@ struct TestCommand : public Command
 
     if(mode == "unit")
       return RENDERDOC_RunUnitTests("renderdoccmd test unit", convertArgs(rest));
-#if PYTHON_MINOR_VERSION > 0
+#if PYTHON_VERSION_MINOR > 0
     else if(mode == "functional")
-      return RENDERDOC_RunFunctionalTests(PYTHON_MINOR_VERSION, convertArgs(rest));
+      return RENDERDOC_RunFunctionalTests(PYTHON_VERSION_MINOR, convertArgs(rest));
 #endif
 
     std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
