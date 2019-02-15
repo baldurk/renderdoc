@@ -2011,7 +2011,7 @@ void WrappedVulkan::vkCmdCopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcB
       record->MarkBufferFrameReferenced(GetRecord(srcBuffer), pRegions[i].srcOffset,
                                         pRegions[i].size, eFrameRef_Read);
       record->MarkBufferFrameReferenced(GetRecord(destBuffer), pRegions[i].dstOffset,
-                                        pRegions[i].size, eFrameRef_PartialWrite);
+                                        pRegions[i].size, eFrameRef_CompleteWrite);
     }
   }
 }
