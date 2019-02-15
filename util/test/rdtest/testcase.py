@@ -296,7 +296,7 @@ class TestCase:
 
         self.controller.SaveTexture(save_data, img_path)
 
-        if not util.image_compare(img_path, ref_path):
+        if not util.png_compare(img_path, ref_path):
             raise TestFailureException("Reference and output backbuffer image differ", ref_path, img_path)
 
         log.success("Backbuffer is identical to reference")

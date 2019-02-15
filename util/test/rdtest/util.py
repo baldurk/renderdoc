@@ -4,7 +4,8 @@ import re
 import time
 import hashlib
 import zipfile
-from PIL import Image, ImageChops, ImageStat
+from typing import Tuple, List
+from . import png
 
 
 def _timestr():
@@ -104,28 +105,50 @@ def sanitise_filename(name: str):
     return re.sub('^/', '', name)
 
 
-def image_compare(test_img: str, ref_img: str, tolerance: int = 2):
+def png_save(out_path: str, rows: List[bytes], dimensions: Tuple[int, int]):
     try:
-        out = Image.open(test_img)
+        f = open(out_path, 'wb')
     except Exception as ex:
-        raise FileNotFoundError("Can't open {}".format(sanitise_filename(test_img)))
+        raise FileNotFoundError("Can't open {} for write".format(sanitise_filename(out_path)))
 
-    try:
-        ref = Image.open(ref_img)
-    except Exception as ex:
-        raise FileNotFoundError("Can't open {}".format(sanitise_filename(ref_img)))
+    writer = png.Writer(dimensions[0], dimensions[1], alpha=True, greyscale=False, compression=7)
+    writer.write(f, rows)
+    f.close()
 
-    if out.mode != ref.mode or out.size != ref.size:
+
+def png_load_data(in_path: str):
+    reader = png.Reader(filename=in_path)
+    return list(reader.read()[2])
+
+
+def png_load_dimensions(in_path: str):
+    reader = png.Reader(filename=in_path)
+    info = reader.read()
+    return (info[0], info[1])
+
+
+def png_compare(test_img: str, ref_img: str, tolerance: int = 2):
+    test_reader = png.Reader(filename=test_img)
+    ref_reader = png.Reader(filename=ref_img)
+
+    test_w, test_h, test_data, _ = test_reader.read()
+    ref_w, ref_h, ref_data, _ = ref_reader.read()
+
+    if test_w != ref_w or test_h != test_h:
         return False
 
-    # Generate the difference
-    diff = ImageChops.difference(out, ref)
+    is_same = True
+    diff_data = []
 
-    # Subtract N from the difference, to allow for off-by-N errors that can be caused by rounding.
-    # For example clearing to 0.5, 0.5, 0.5 has two valid representations: 127,127,127 and 128,128,128
-    # which are equally far from true 0.5.
-    diff = ImageChops.subtract(diff, Image.new(diff.mode, (diff.width, diff.height),
-                                               (tolerance, tolerance, tolerance, tolerance)))
+    for test_row, ref_row in zip(test_data, ref_data):
+        diff = [min(255, abs(test_row[i] - ref_row[i])*4) for i in range(0, test_w*4)]
+
+        is_same = is_same and not any([d > tolerance*4 for d in diff])
+
+        diff_data.append([255 if i % 4 == 3 else d for i, d in enumerate(diff)])
+
+    if is_same:
+        return True
 
     # If the diff fails, dump the difference to a file
     diff_file = get_tmp_path('diff.png')
@@ -133,13 +156,9 @@ def image_compare(test_img: str, ref_img: str, tolerance: int = 2):
     if os.path.exists(diff_file):
         os.remove(diff_file)
 
-    if sum(ImageStat.Stat(diff).sum) > 0:
-        # this does (img1 + img2) / scale, so scale=0.5 means we multiply the image by 2/0.5 = 4
-        diff = ImageChops.add(diff, diff, scale=0.5)
-        diff.convert("RGB").save(diff_file)
-        return False
+    png_save(diff_file, diff_data, (test_w, test_h))
 
-    return True
+    return False
 
 
 def md5_compare(test_file: str, ref_file: str):

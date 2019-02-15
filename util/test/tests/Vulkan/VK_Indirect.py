@@ -22,7 +22,7 @@ class VK_Indirect(rdtest.TestCase):
 
         self.controller.SaveTexture(save_data, overlay_path)
 
-        if not rdtest.image_compare(overlay_path, ref_path):
+        if not rdtest.png_compare(overlay_path, ref_path):
             raise rdtest.TestFailureException("Reference and output image differ @ EID {}".format(str(eventId)),
                                               ref_path, overlay_path)
 

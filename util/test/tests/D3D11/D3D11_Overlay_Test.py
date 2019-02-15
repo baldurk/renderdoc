@@ -64,7 +64,7 @@ class D3D11_Overlay_Test(rdtest.TestCase):
 
             self.controller.SaveTexture(save_data, overlay_path)
 
-            if not rdtest.image_compare(overlay_path, ref_path, tolerance):
+            if not rdtest.png_compare(overlay_path, ref_path, tolerance):
                 raise rdtest.TestFailureException("Reference and output image differ for overlay {}".format(str(overlay)), overlay_path, ref_path)
 
             rdtest.log.success("Reference and output image are identical for {}".format(str(overlay)))
@@ -79,7 +79,7 @@ class D3D11_Overlay_Test(rdtest.TestCase):
 
         self.controller.SaveTexture(save_data, tmp_path)
 
-        if not rdtest.image_compare(tmp_path, ref_path):
+        if not rdtest.png_compare(tmp_path, ref_path):
             raise rdtest.TestFailureException("Reference and output image differ for depth {}", tmp_path, ref_path)
 
         rdtest.log.success("Reference and output image are identical for depth")
@@ -91,7 +91,7 @@ class D3D11_Overlay_Test(rdtest.TestCase):
 
         self.controller.SaveTexture(save_data, tmp_path)
 
-        if not rdtest.image_compare(tmp_path, ref_path):
+        if not rdtest.png_compare(tmp_path, ref_path):
             raise rdtest.TestFailureException("Reference and output image differ for stencil {}", tmp_path, ref_path)
 
         rdtest.log.success("Reference and output image are identical for stencil")

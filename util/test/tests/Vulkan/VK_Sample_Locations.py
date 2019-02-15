@@ -1,6 +1,5 @@
 import renderdoc as rd
 import rdtest
-from PIL import Image
 
 
 class VK_Sample_Locations(rdtest.TestCase):
@@ -72,13 +71,23 @@ class VK_Sample_Locations(rdtest.TestCase):
         save_data.sample.mapToArray = False
 
         dim = (0, 0)
+        fmt: rd.ResourceFormat = None
         texs = self.controller.GetTextures()
         for tex in texs:
+            tex: rd.TextureDescription
             if tex.resourceId == save_data.resourceId:
                 dim = (tex.width, tex.height)
+                fmt = tex.format
 
         if dim == (0,0):
             raise rdtest.TestFailureException("Couldn't get dimensions of texture")
+
+        halfdim = (dim[0] >> 1, dim[1])
+
+        if (fmt.type != rd.ResourceFormatType.Regular or fmt.compByteWidth != 1 or fmt.compCount != 4):
+            raise rdtest.TestFailureException("Texture is not RGBA8 as expected: {}".format(fmt.Name()))
+
+        stride = fmt.compByteWidth * fmt.compCount * dim[0]
 
         last_draw: rd.DrawcallDescription = self.get_last_draw()
 
@@ -104,24 +113,32 @@ class VK_Sample_Locations(rdtest.TestCase):
             save_data.sample.sampleIndex = sample
             self.controller.SaveTexture(save_data, tmp_path)
 
-            try:
-                img = Image.open(tmp_path)
-            except Exception as ex:
-                raise FileNotFoundError("Can't open {}".format(rdtest.sanitise_filename(tmp_path)))
+            combined_data = rdtest.png_load_data(tmp_path)
 
-            img.crop((0, 0, dim[0]/2, dim[1])).save(degenerate_path)
-            img.crop((dim[0]/2, 0, dim[0], dim[1])).save(rotated_path)
+            # crop left for degenerate, and crop right for rotated
+            degenerate = []
+            rotated = []
+            for row in range(0, dim[1]):
+                srcstart = row * stride
+
+                len = halfdim[0] * fmt.compCount
+
+                degenerate.append(combined_data[row][0:len])
+                rotated.append(combined_data[row][len:])
+
+            rdtest.png_save(degenerate_path, degenerate, halfdim)
+            rdtest.png_save(rotated_path, rotated, halfdim)
 
         # first two degenerate images should be identical, as should the last two, and they should be different.
-        if not rdtest.image_compare(degenerate_paths[0], degenerate_paths[1], 0):
+        if not rdtest.png_compare(degenerate_paths[0], degenerate_paths[1], 0):
             raise rdtest.TestFailureException("Degenerate grid sample 0 and 1 are different",
                                               degenerate_paths[0], degenerate_paths[1])
 
-        if not rdtest.image_compare(degenerate_paths[2], degenerate_paths[3], 0):
+        if not rdtest.png_compare(degenerate_paths[2], degenerate_paths[3], 0):
             raise rdtest.TestFailureException("Degenerate grid sample 2 and 3 are different",
                                               degenerate_paths[2], degenerate_paths[3])
 
-        if rdtest.image_compare(degenerate_paths[1], degenerate_paths[2], 0):
+        if rdtest.png_compare(degenerate_paths[1], degenerate_paths[2], 0):
             raise rdtest.TestFailureException("Degenerate grid sample 1 and 2 are identical",
                                               degenerate_paths[1], degenerate_paths[2])
 
@@ -130,7 +147,7 @@ class VK_Sample_Locations(rdtest.TestCase):
         # all rotated images should be different
         for A in range(0, 4):
             for B in range(A+1, 4):
-                if rdtest.image_compare(rotated_paths[A], rotated_paths[B], 0):
+                if rdtest.png_compare(rotated_paths[A], rotated_paths[B], 0):
                     raise rdtest.TestFailureException("Rotated grid sample {} and {} are identical".format(A, B),
                                                       rotated_paths[A], rotated_paths[B])
 

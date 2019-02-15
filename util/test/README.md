@@ -22,8 +22,6 @@ Running the tests requires the same python version as was used to build the vers
 
 **NOTE:** For windows users you also need to match the bitness, so a 64-bit python install will be needed to test a 64-bit build of RenderDoc, and similarly for 32-bit.
 
-You'll need to install `psutil` and `pillow` python modules via pip. The script will check for this and error if you don't have them available.
-
 Then running the tests means invoking `run_tests.py` with any options you need:
 
 * `--renderdoc` and `--pyrenderdoc` are common parameters, used to modify the OS library search path and the python module path respectively to locate the right libraries. E.g. on windows `--pyrenderdoc /path/to/renderdoc/x64/Development/pymodules --renderdoc /path/to/renderdoc/x64/Development`.
@@ -53,5 +51,7 @@ License
 RenderDoc is released under the MIT license, see [the main github repository](https://github.com/baldurk/renderdoc) for full details.
 
 The tests use [GLAD](https://github.com/Dav1dde/glad) for extension loading, which is MIT licensed. [LZ4](https://github.com/lz4/lz4) for compression, which is BSD licensed. [volk](https://github.com/zeux/volk) for vulkan loading, which is MIT licensed. [nuklear](https://github.com/vurtun/nuklear) for the launcher UI, which is MIT licensed. [shaderc](https://github.com/google/shaderc) for building SPIR-V shaders, which is Apache-2.0 licensed.
+
+The python tests use [pypng](https://github.com/drj11/pypng) as a pure dependency-less python png load/save library, which is MIT licensed.
 
 A short clip from [Caminandes](http://www.caminandes.com/), available under the [Creative Commons Attribution 3.0 license (CC) caminandes.com](http://www.caminandes.com/sharing/), is used as a demo video.
