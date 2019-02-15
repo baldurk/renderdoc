@@ -803,7 +803,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
       {
         GetResourceManager()->MarkMemoryFrameReferenced(GetResID(pMemRanges[i].memory),
                                                         pMemRanges[i].offset, pMemRanges[i].size,
-                                                        eFrameRef_PartialWrite);
+                                                        eFrameRef_CompleteWrite);
       }
       else
       {
