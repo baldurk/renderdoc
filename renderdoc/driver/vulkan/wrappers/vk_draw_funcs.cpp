@@ -1769,16 +1769,9 @@ void WrappedVulkan::vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuff
                                      regionCount, pRegions);
 
     record->AddChunk(scope.Get());
-
-    record->MarkResourceFrameReferenced(GetResID(srcBuffer), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(GetRecord(srcBuffer)->baseResource, eFrameRef_Read);
-    record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_PartialWrite);
-    record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
-    record->cmdInfo->dirtied.insert(GetResID(destImage));
-    if(GetRecord(srcBuffer)->resInfo)
-      record->cmdInfo->sparse.insert(GetRecord(srcBuffer)->resInfo);
-    if(GetRecord(destImage)->resInfo)
-      record->cmdInfo->sparse.insert(GetRecord(destImage)->resInfo);
+    record->MarkBufferImageCopyFrameReferenced(GetRecord(srcBuffer), GetRecord(destImage),
+                                               m_ImageLayouts[GetResID(destImage)], regionCount,
+                                               pRegions, eFrameRef_Read, eFrameRef_PartialWrite);
   }
 }
 
@@ -1884,20 +1877,9 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(VkCommandBuffer commandBuffer, VkImag
                                      regionCount, pRegions);
 
     record->AddChunk(scope.Get());
-    record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(GetRecord(srcImage)->baseResource, eFrameRef_Read);
-
-    VkResourceRecord *buf = GetRecord(destBuffer);
-
-    // mark buffer just as read, and memory behind as write & dirtied
-    record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
-    record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_PartialWrite);
-    if(buf->baseResource != ResourceId())
-      record->cmdInfo->dirtied.insert(buf->baseResource);
-    if(GetRecord(srcImage)->resInfo)
-      record->cmdInfo->sparse.insert(GetRecord(srcImage)->resInfo);
-    if(buf->resInfo)
-      record->cmdInfo->sparse.insert(buf->resInfo);
+    record->MarkBufferImageCopyFrameReferenced(GetRecord(destBuffer), GetRecord(srcImage),
+                                               m_ImageLayouts[GetResID(srcImage)], regionCount,
+                                               pRegions, eFrameRef_CompleteWrite, eFrameRef_Read);
   }
 }
 
