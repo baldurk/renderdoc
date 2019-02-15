@@ -170,7 +170,7 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
 
   QDirIterator it(extensionFolder, QDirIterator::Subdirectories);
 
-  extensionFolder = extensionFolder.toLower();
+  extensionFolder = extensionFolder;
 
   while(it.hasNext())
   {
