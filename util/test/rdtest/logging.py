@@ -114,6 +114,8 @@ class TestLogger:
                     ext = fname.rfind('.')
                     if ext > 0:
                         fname = fname[0:ext] + '_ref' + fname[ext:]
+                if not os.path.exists(f):
+                    continue
                 shutil.copyfile(f, util.get_artifact_path(fname))
                 file_list.append(fname)
 
