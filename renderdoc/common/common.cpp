@@ -511,9 +511,10 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
       write_newline(nl);
 
-      if(!first)
-        rdclogprint_int(type, prefixText.c_str(), prefixText.c_str());
-      rdclogprint_int(type, base, noPrefixOutput);
+      if(first)
+        rdclogprint_int(type, base, noPrefixOutput);
+      else
+        rdclogprint_int(type, (prefixText + base).c_str(), noPrefixOutput);
 
       // restore the characters
       nl[1] = backup[0];
@@ -530,9 +531,10 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
     // append final newline and write the last line
     write_newline(output);
 
-    if(!first)
-      rdclogprint_int(type, prefixText.c_str(), prefixText.c_str());
-    rdclogprint_int(type, base, noPrefixOutput);
+    if(first)
+      rdclogprint_int(type, base, noPrefixOutput);
+    else
+      rdclogprint_int(type, (prefixText + base).c_str(), noPrefixOutput);
   }
 
   SAFE_DELETE_ARRAY(oversizedBuffer);
