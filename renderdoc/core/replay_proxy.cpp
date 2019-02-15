@@ -814,7 +814,8 @@ void ReplayProxy::Proxied_GetBufferData(ParamSerialiser &paramser, ReturnSeriali
     RDCASSERT(offs <= dataSize, offs, dataSize);
     RDCASSERT(dataSize - offs < sizeof(empty), offs, dataSize);
 
-    ser.GetReader()->Read(empty, dataSize - offs);
+    if(offs < dataSize)
+      ser.GetReader()->Read(empty, dataSize - offs);
   }
   else
   {
@@ -828,7 +829,8 @@ void ReplayProxy::Proxied_GetBufferData(ParamSerialiser &paramser, ReturnSeriali
     RDCASSERT(offs <= dataSize, offs, dataSize);
     RDCASSERT(dataSize - offs < sizeof(empty), offs, dataSize);
 
-    ser.GetWriter()->Write(empty, dataSize - offs);
+    if(offs < dataSize)
+      ser.GetWriter()->Write(empty, dataSize - offs);
   }
 
   retser.EndChunk();
@@ -891,7 +893,8 @@ void ReplayProxy::Proxied_GetTextureData(ParamSerialiser &paramser, ReturnSerial
     RDCASSERT(offs <= dataSize, offs, dataSize);
     RDCASSERT(dataSize - offs < sizeof(empty), offs, dataSize);
 
-    ser.GetReader()->Read(empty, dataSize - offs);
+    if(offs < dataSize)
+      ser.GetReader()->Read(empty, dataSize - offs);
   }
   else
   {
@@ -905,7 +908,8 @@ void ReplayProxy::Proxied_GetTextureData(ParamSerialiser &paramser, ReturnSerial
     RDCASSERT(offs <= dataSize, offs, dataSize);
     RDCASSERT(dataSize - offs < sizeof(empty), offs, dataSize);
 
-    ser.GetWriter()->Write(empty, dataSize - offs);
+    if(offs < dataSize)
+      ser.GetWriter()->Write(empty, dataSize - offs);
   }
 
   retser.EndChunk();
@@ -1790,7 +1794,8 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
         RDCASSERT(offs <= uncompSize, offs, uncompSize);
         RDCASSERT(uncompSize - offs < sizeof(empty), offs, uncompSize);
 
-        ser.GetReader()->Read(empty, uncompSize - offs);
+        if(offs < uncompSize)
+          ser.GetReader()->Read(empty, uncompSize - offs);
       }
 
       if(deltas.empty())
@@ -1976,7 +1981,8 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
       RDCASSERT(offs <= uncompSize, offs, uncompSize);
       RDCASSERT(uncompSize - offs < sizeof(empty), offs, uncompSize);
 
-      ser.GetWriter()->Write(empty, uncompSize - offs);
+      if(offs < uncompSize)
+        ser.GetWriter()->Write(empty, uncompSize - offs);
     }
 
     // This is the proxy side, so we have the complete newest contents in data. Swap the new data
