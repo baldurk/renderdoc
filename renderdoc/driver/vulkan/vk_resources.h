@@ -1075,6 +1075,7 @@ inline FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs,
 }
 
 struct DescUpdateTemplate;
+struct ImageLayouts;
 
 struct VkResourceRecord : public ResourceRecord
 {
@@ -1206,6 +1207,10 @@ public:
                                  FrameRefType refType);
   void MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);
+  void MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf, VkResourceRecord *img,
+                                          const ImageLayouts &layout, uint32_t regionCount,
+                                          const VkBufferImageCopy *regions, FrameRefType bufRefType,
+                                          FrameRefType imgRefType);
   void MarkBufferViewFrameReferenced(VkResourceRecord *buf, FrameRefType refType);
   // these are all disjoint, so only a record of the right type will have each
   // Note some of these need to be deleted in the constructor, so we check the
