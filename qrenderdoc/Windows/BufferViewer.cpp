@@ -1445,6 +1445,10 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   int vsoutHoriz = ui->vsoutData->horizontalScrollBar()->value();
   int gsoutHoriz = ui->gsoutData->horizontalScrollBar()->value();
 
+  int vsinVert = ui->vsinData->indexAt(QPoint(0, 0)).row();
+  int vsoutVert = ui->vsoutData->indexAt(QPoint(0, 0)).row();
+  int gsoutVert = ui->gsoutData->indexAt(QPoint(0, 0)).row();
+
   QString highlightNames[6] = {
       m_ModelVSIn->posName(),        m_ModelVSIn->secondaryName(), m_ModelVSOut->posName(),
       m_ModelVSOut->secondaryName(), m_ModelGSOut->posName(),      m_ModelGSOut->secondaryName(),
@@ -1544,7 +1548,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   // needs to happen here so the mesh config is accurate when highlighting data is cached.
   updatePreviewColumns();
 
-  m_Ctx.Replay().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz, vsinVert, vsoutVert,
+                              gsoutVert](IReplayController *r) {
 
     BufferData *buf = NULL;
 
@@ -1574,7 +1579,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       buf->end = buf->data + data.size();
     }
 
-    GUIInvoke::call(this, [this, buf, vsinHoriz, vsoutHoriz, gsoutHoriz] {
+    GUIInvoke::call(this, [this, buf, vsinHoriz, vsoutHoriz, gsoutHoriz, vsinVert, vsoutVert,
+                           gsoutVert] {
 
       if(buf)
       {
@@ -1610,9 +1616,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       ui->rowOffset->setMaximum(qMax(0, numRows - 1));
 
-      ScrollToRow(m_ModelVSIn, ui->rowOffset->value());
-      ScrollToRow(m_ModelVSOut, ui->rowOffset->value());
-      ScrollToRow(m_ModelGSOut, ui->rowOffset->value());
+      ScrollToRow(m_ModelVSIn, qMin(numRows - 1, vsinVert));
+      ScrollToRow(m_ModelVSOut, qMin(numRows - 1, vsoutVert));
+      ScrollToRow(m_ModelGSOut, qMin(numRows - 1, gsoutVert));
 
       ui->vsinData->horizontalScrollBar()->setValue(vsinHoriz);
       ui->vsoutData->horizontalScrollBar()->setValue(vsoutHoriz);
