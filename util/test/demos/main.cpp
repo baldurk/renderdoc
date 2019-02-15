@@ -231,8 +231,8 @@ int main(int argc, char **argv)
 
   std::sort(tests.begin(), tests.end());
 
-  if(argc <= 1 || !strcmp(argv[1], "--help") || !strcmp(argv[1], "-h") || !strcmp(argv[1], "-?") ||
-     !strcmp(argv[1], "/help") || !strcmp(argv[1], "/h") || !strcmp(argv[1], "/?"))
+  if(argc >= 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h") || !strcmp(argv[1], "-?") ||
+                   !strcmp(argv[1], "/help") || !strcmp(argv[1], "/h") || !strcmp(argv[1], "/?")))
   {
     printf(R"(RenderDoc testing demo program
 
