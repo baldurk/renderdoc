@@ -133,7 +133,7 @@ static void StripUnwantedLayers(vector<string> &Layers)
   }
 }
 
-static void StripUnwantedFunctions(std::vector<std::string> &Extensions)
+static void StripUnwantedExtensions(std::vector<std::string> &Extensions)
 {
   // strip out any WSI/direct display extensions. We'll add the ones we want for creating windows
   // on the current platforms below, and we don't replay any of the WSI functionality
@@ -143,7 +143,7 @@ static void StripUnwantedFunctions(std::vector<std::string> &Extensions)
     // remove surface extensions
     if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
        *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
-       *it == "VK_MVK_macos_surface " || *it == "VK_KHR_android_surface" ||
+       *it == "VK_MVK_macos_surface" || *it == "VK_KHR_android_surface" ||
        *it == "VK_KHR_win32_surface")
     {
       it = Extensions.erase(it);
@@ -168,7 +168,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   m_SectionVersion = sectionVersion;
 
   StripUnwantedLayers(params.Layers);
-  StripUnwantedFunctions(params.Extensions);
+  StripUnwantedExtensions(params.Extensions);
 
 #if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
   params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
