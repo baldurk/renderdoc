@@ -519,6 +519,20 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     imInfo.samples = VK_SAMPLE_COUNT_2_BIT;
 
+    // MoltenVK seems to only support 4/8 samples and not 2...
+    if(imgprops.sampleCounts & VK_SAMPLE_COUNT_2_BIT)
+      imInfo.samples = VK_SAMPLE_COUNT_2_BIT;
+    else if(imgprops.sampleCounts & VK_SAMPLE_COUNT_4_BIT)
+      imInfo.samples = VK_SAMPLE_COUNT_4_BIT;
+    else if(imgprops.sampleCounts & VK_SAMPLE_COUNT_8_BIT)
+      imInfo.samples = VK_SAMPLE_COUNT_8_BIT;
+    else if(imgprops.sampleCounts & VK_SAMPLE_COUNT_16_BIT)
+      imInfo.samples = VK_SAMPLE_COUNT_16_BIT;
+    else if(imgprops.sampleCounts & VK_SAMPLE_COUNT_32_BIT)
+      imInfo.samples = VK_SAMPLE_COUNT_32_BIT;
+    else
+      RDCWARN("Can't find supported MSAA sample count");
+
     RDCASSERT(imgprops.sampleCounts & imInfo.samples, imgprops.sampleCounts, imInfo.samples);
 
     vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[1]);
