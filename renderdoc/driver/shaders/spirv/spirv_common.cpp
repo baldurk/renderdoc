@@ -34,8 +34,8 @@
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
 static bool inited = false;
-std::vector<glslang::TShader *> allocatedShaders;
-std::vector<glslang::TProgram *> allocatedPrograms;
+std::vector<glslang::TShader *> *allocatedShaders = NULL;
+std::vector<glslang::TProgram *> *allocatedPrograms = NULL;
 
 void InitSPIRVCompiler()
 {
@@ -43,6 +43,9 @@ void InitSPIRVCompiler()
   {
     glslang::InitializeProcess();
     inited = true;
+
+    allocatedPrograms = new std::vector<glslang::TProgram *>;
+    allocatedShaders = new std::vector<glslang::TShader *>;
   }
 }
 
@@ -51,14 +54,17 @@ void ShutdownSPIRVCompiler()
   if(inited)
   {
     // programs must be deleted before shaders
-    for(glslang::TProgram *program : allocatedPrograms)
+    for(glslang::TProgram *program : *allocatedPrograms)
       delete program;
 
-    for(glslang::TShader *shader : allocatedShaders)
+    for(glslang::TShader *shader : *allocatedShaders)
       delete shader;
 
-    allocatedPrograms.clear();
-    allocatedShaders.clear();
+    allocatedPrograms->clear();
+    allocatedShaders->clear();
+
+    SAFE_DELETE(allocatedPrograms);
+    SAFE_DELETE(allocatedShaders);
 
     glslang::FinalizeProcess();
   }

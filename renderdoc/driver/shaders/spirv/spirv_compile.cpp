@@ -222,8 +222,8 @@ string CompileSPIRV(const SPIRVCompilationSettings &settings,
   return errors;
 }
 
-extern std::vector<glslang::TShader *> allocatedShaders;
-extern std::vector<glslang::TProgram *> allocatedPrograms;
+extern std::vector<glslang::TShader *> *allocatedShaders;
+extern std::vector<glslang::TProgram *> *allocatedPrograms;
 
 glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
                                              const std::vector<std::string> &sources)
@@ -241,7 +241,7 @@ glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
 
   if(shader->parse(&DefaultResources, 100, false, EShMsgRelaxedErrors))
   {
-    allocatedShaders.push_back(shader);
+    allocatedShaders->push_back(shader);
     return shader;
   }
   else
@@ -267,7 +267,7 @@ glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *
     program->buildReflection(EShReflectionStrictArraySuffix | EShReflectionBasicArraySuffix |
                              EShReflectionIntermediateIO | EShReflectionSeparateBuffers |
                              EShReflectionAllBlockVariables | EShReflectionUnwrapIOBlocks);
-    allocatedPrograms.push_back(program);
+    allocatedPrograms->push_back(program);
     return program;
   }
   else
