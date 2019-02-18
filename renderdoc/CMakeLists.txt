@@ -358,8 +358,10 @@ if(UNIX)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
             COMMAND ${HOST_NATIVE_CPP_COMPILER} 3rdparty/include-bin/main.cpp -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
             DEPENDS 3rdparty/include-bin/main.cpp)
+        set(INCLUDE_BIN_EXE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin")
     else()
         add_executable(include-bin 3rdparty/include-bin/main.cpp)
+        set(INCLUDE_BIN_EXE $<TARGET_FILE:include-bin>)
     endif()
 
     foreach(res ${data})
@@ -371,8 +373,8 @@ if(UNIX)
         add_custom_command(OUTPUT ${out_src}
             WORKING_DIRECTORY ${working_dir}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${out_src_dir}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin ${in} ${out_src}
-            DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+            COMMAND ${INCLUDE_BIN_EXE} ${in} ${out_src}
+            DEPENDS ${INCLUDE_BIN_EXE}
             DEPENDS ${res})
 
         list(APPEND data_objects ${out_src})
