@@ -708,6 +708,10 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
   m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
 
+#if ENABLED(RDOC_APPLE)
+  metalBackend = true;
+#endif
+
   // nvidia uses its own version packing:
   //   10 |  8  |        8       |       6
   // major|minor|secondary_branch|tertiary_branch

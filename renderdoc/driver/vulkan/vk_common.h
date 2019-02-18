@@ -189,6 +189,8 @@ public:
   uint32_t Patch() { return m_Patch; }
   VkDriverInfo(const VkPhysicalDeviceProperties &physProps);
 
+  // checks for when we're running on metal and some non-queryable things aren't supported
+  bool RunningOnMetal() { return metalBackend; }
   // A workaround for a couple of bugs, removing texelFetch use from shaders.
   // It means broken functionality but at least no instant crashes
   bool TexelFetchBrokenDriver() { return texelFetchBrokenDriver; }
@@ -211,6 +213,7 @@ private:
 
   uint32_t m_Major, m_Minor, m_Patch;
 
+  bool metalBackend = false;
   bool texelFetchBrokenDriver = false;
   bool unreliableImgMemReqs = false;
   bool amdStorageMSAABrokenDriver = false;

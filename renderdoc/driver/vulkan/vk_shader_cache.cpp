@@ -33,8 +33,7 @@ enum class FeatureCheck
   NoCheck = 0x0,
   ShaderMSAAStorage = 0x1,
   FragmentStores = 0x2,
-  // only unsupported on MoltenVK
-  MSAAArrays = 0x4,
+  NonMetalBackend = 0x4,
 };
 
 BITMASK_OPERATORS(FeatureCheck);
@@ -78,13 +77,13 @@ static const BuiltinShaderConfig builtinShaders[] = {
     {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), SPIRVShaderStage::Fragment,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp), SPIRVShaderStage::Compute,
-     FeatureCheck::ShaderMSAAStorage, true},
+     FeatureCheck::ShaderMSAAStorage | FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp), SPIRVShaderStage::Compute,
-     FeatureCheck::ShaderMSAAStorage, true},
+     FeatureCheck::ShaderMSAAStorage | FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::MSAAArrays, true},
+     SPIRVShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::NoCheck, true},
+     SPIRVShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
@@ -154,10 +153,11 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
         continue;
     }
 
-    if(config.checks & FeatureCheck::MSAAArrays)
+    if(config.checks & FeatureCheck::NonMetalBackend)
     {
       // for now we don't allow it at all - in future we could check on whether it's been enabled
-      if(driver->GetExtensions(GetRecord(m_Device)).ext_MVK_moltenvk)
+      // via a more advanced query
+      if(driverVersion.RunningOnMetal())
         continue;
     }
 
