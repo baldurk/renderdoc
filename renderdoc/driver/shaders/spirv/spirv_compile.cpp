@@ -239,7 +239,11 @@ glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
 
   shader->setStrings(strs, (int)sources.size());
 
-  if(shader->parse(&DefaultResources, 100, false, EShMsgRelaxedErrors))
+  bool success = shader->parse(&DefaultResources, 100, false, EShMsgRelaxedErrors);
+
+  delete[] strs;
+
+  if(success)
   {
     allocatedShaders->push_back(shader);
     return shader;

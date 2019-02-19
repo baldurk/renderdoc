@@ -424,15 +424,18 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
 
-  addrinfo *result = NULL;
-  getaddrinfo(host, portstr, &hints, &result);
+  addrinfo *addrResult = NULL;
+  getaddrinfo(host, portstr, &hints, &addrResult);
 
-  for(addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next)
+  for(addrinfo *ptr = addrResult; ptr != NULL; ptr = ptr->ai_next)
   {
     int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if(s == -1)
+    {
+      freeaddrinfo(addrResult);
       return NULL;
+    }
 
     int flags = fcntl(s, F_GETFL, 0);
     fcntl(s, F_SETFL, flags | O_NONBLOCK);
@@ -475,8 +478,12 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
     int nodelay = 1;
     setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
 
+    freeaddrinfo(addrResult);
+
     return new Socket((ptrdiff_t)s);
   }
+
+  freeaddrinfo(addrResult);
 
   RDCDEBUG("Failed to connect to %s:%d", host, port);
   return NULL;

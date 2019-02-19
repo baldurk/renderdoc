@@ -1625,6 +1625,8 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
 
     string name = namebuf;
 
+    delete[] namebuf;
+
     res.name = name;
 
     rdcarray<ShaderResource> &reslist = (res.isReadOnly ? roresources : rwresources);
@@ -2016,7 +2018,10 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
         }
 
         if(unused)
+        {
+          delete[] nm;
           continue;
+        }
 
         // VS built-in inputs
         if(IS_BUILTIN("gl_VertexID"))

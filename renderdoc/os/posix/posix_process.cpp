@@ -974,6 +974,13 @@ TEST_CASE("Test PID Node list handling", "[osspecific]")
   CHECK(list1.head->next->next->next == d);
   CHECK(list1.head->next->next->next->next == e);
   CHECK(list1.head->next->next->next->next->next == f);
+
+  delete a;
+  delete b;
+  delete c;
+  delete d;
+  delete e;
+  delete f;
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)

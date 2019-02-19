@@ -394,7 +394,10 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
                          WSA_FLAG_NO_HANDLE_INHERIT | WSA_FLAG_OVERLAPPED);
 
     if(s == INVALID_SOCKET)
+    {
+      FreeAddrInfoW(addrResult);
       return NULL;
+    }
 
     u_long enable = 1;
     ioctlsocket(s, FIONBIO, &enable);
@@ -446,8 +449,12 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
     BOOL nodelay = TRUE;
     setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const char *)&nodelay, sizeof(nodelay));
 
+    FreeAddrInfoW(addrResult);
+
     return new Socket((ptrdiff_t)s);
   }
+
+  FreeAddrInfoW(addrResult);
 
   RDCDEBUG("Failed to connect to %s:%d", host, port);
   return NULL;

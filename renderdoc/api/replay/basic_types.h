@@ -327,7 +327,7 @@ public:
   {
     // if we're empty then normally reserving s==0 would do nothing, but if we need to append a null
     // terminator then we do actually need to allocate
-    if(s == 0 && capacity() == 0 && null_terminator<T>::allocCount(0) > 0)
+    if(s == 0 && capacity() == 0 && elems == NULL && null_terminator<T>::allocCount(0) > 0)
     {
       elems = allocate(null_terminator<T>::allocCount(0));
       return;
