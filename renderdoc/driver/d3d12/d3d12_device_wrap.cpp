@@ -1638,7 +1638,7 @@ bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 Init
     ID3D12Fence *ret = NULL;
     if(guid == __uuidof(ID3D12Fence))
       ret = (ID3D12Fence *)realptr;
-    else if(guid == __uuidof(ID3D12Fence))
+    else if(guid == __uuidof(ID3D12Fence1))
       ret = (ID3D12Fence1 *)realptr;
 
     if(FAILED(hr))
@@ -1676,7 +1676,7 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
 
   if(riid == __uuidof(ID3D12Fence))
     real = (ID3D12Fence *)realptr;
-  else if(riid == __uuidof(ID3D12Fence))
+  else if(riid == __uuidof(ID3D12Fence1))
     real = (ID3D12Fence1 *)realptr;
 
   if(SUCCEEDED(ret))
