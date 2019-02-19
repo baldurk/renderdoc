@@ -450,7 +450,7 @@ void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &r
       // nothing to do - no resource here
       break;
     case D3D12DescriptorType::CBV:
-      id = WrappedID3D12Resource::GetResIDFromAddr(data.nonsamp.cbv.BufferLocation);
+      id = WrappedID3D12Resource1::GetResIDFromAddr(data.nonsamp.cbv.BufferLocation);
       break;
     case D3D12DescriptorType::SRV: id = data.nonsamp.resource; break;
     case D3D12DescriptorType::UAV:

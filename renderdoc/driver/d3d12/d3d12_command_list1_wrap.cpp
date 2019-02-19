@@ -24,11 +24,8 @@
 
 #include "d3d12_command_list.h"
 
-//////////////////////////////
-// ID3D12GraphicsCommandList1
-
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_AtomicCopyBufferUINT(
+bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
     SerialiserType &ser, ID3D12Resource *pDstBuffer, UINT64 DstOffset, ID3D12Resource *pSrcBuffer,
     UINT64 SrcOffset, UINT Dependencies, ID3D12Resource *const *ppDependentResources,
     const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges)
@@ -119,7 +116,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_AtomicCopyBufferUINT(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList2::AtomicCopyBufferUINT(
+void WrappedID3D12GraphicsCommandList::AtomicCopyBufferUINT(
     ID3D12Resource *pDstBuffer, UINT64 DstOffset, ID3D12Resource *pSrcBuffer, UINT64 SrcOffset,
     UINT Dependencies, ID3D12Resource *const *ppDependentResources,
     const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges)
@@ -146,7 +143,7 @@ void WrappedID3D12GraphicsCommandList2::AtomicCopyBufferUINT(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_AtomicCopyBufferUINT64(
+bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
     SerialiserType &ser, ID3D12Resource *pDstBuffer, UINT64 DstOffset, ID3D12Resource *pSrcBuffer,
     UINT64 SrcOffset, UINT Dependencies, ID3D12Resource *const *ppDependentResources,
     const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges)
@@ -237,7 +234,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_AtomicCopyBufferUINT64(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList2::AtomicCopyBufferUINT64(
+void WrappedID3D12GraphicsCommandList::AtomicCopyBufferUINT64(
     ID3D12Resource *pDstBuffer, UINT64 DstOffset, ID3D12Resource *pSrcBuffer, UINT64 SrcOffset,
     UINT Dependencies, ID3D12Resource *const *ppDependentResources,
     const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges)
@@ -264,8 +261,8 @@ void WrappedID3D12GraphicsCommandList2::AtomicCopyBufferUINT64(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetDepthBounds(SerialiserType &ser, FLOAT Min,
-                                                                   FLOAT Max)
+bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType &ser, FLOAT Min,
+                                                                  FLOAT Max)
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -316,7 +313,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_OMSetDepthBounds(SerialiserTyp
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList2::OMSetDepthBounds(FLOAT Min, FLOAT Max)
+void WrappedID3D12GraphicsCommandList::OMSetDepthBounds(FLOAT Min, FLOAT Max)
 {
   SERIALISE_TIME_CALL(m_pList1->OMSetDepthBounds(Min, Max));
 
@@ -331,7 +328,7 @@ void WrappedID3D12GraphicsCommandList2::OMSetDepthBounds(FLOAT Min, FLOAT Max)
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_SetSamplePositions(
+bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
     SerialiserType &ser, UINT NumSamplesPerPixel, UINT NumPixels,
     D3D12_SAMPLE_POSITION *pSamplePositions)
 {
@@ -394,8 +391,8 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetSamplePositions(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList2::SetSamplePositions(UINT NumSamplesPerPixel, UINT NumPixels,
-                                                           D3D12_SAMPLE_POSITION *pSamplePositions)
+void WrappedID3D12GraphicsCommandList::SetSamplePositions(UINT NumSamplesPerPixel, UINT NumPixels,
+                                                          D3D12_SAMPLE_POSITION *pSamplePositions)
 {
   SERIALISE_TIME_CALL(m_pList1->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions));
 
@@ -410,7 +407,7 @@ void WrappedID3D12GraphicsCommandList2::SetSamplePositions(UINT NumSamplesPerPix
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_ResolveSubresourceRegion(
+bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
     SerialiserType &ser, ID3D12Resource *pDstResource, UINT DstSubresource, UINT DstX, UINT DstY,
     ID3D12Resource *pSrcResource, UINT SrcSubresource, D3D12_RECT *pSrcRect, DXGI_FORMAT Format,
     D3D12_RESOLVE_MODE ResolveMode)
@@ -494,7 +491,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_ResolveSubresourceRegion(
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList2::ResolveSubresourceRegion(
+void WrappedID3D12GraphicsCommandList::ResolveSubresourceRegion(
     ID3D12Resource *pDstResource, UINT DstSubresource, UINT DstX, UINT DstY,
     ID3D12Resource *pSrcResource, UINT SrcSubresource, D3D12_RECT *pSrcRect, DXGI_FORMAT Format,
     D3D12_RESOLVE_MODE ResolveMode)
@@ -518,7 +515,7 @@ void WrappedID3D12GraphicsCommandList2::ResolveSubresourceRegion(
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_SetViewInstanceMask(SerialiserType &ser, UINT Mask)
+bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserType &ser, UINT Mask)
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
@@ -564,7 +561,7 @@ bool WrappedID3D12GraphicsCommandList2::Serialise_SetViewInstanceMask(Serialiser
   return true;
 }
 
-void WrappedID3D12GraphicsCommandList2::SetViewInstanceMask(UINT Mask)
+void WrappedID3D12GraphicsCommandList::SetViewInstanceMask(UINT Mask)
 {
   SERIALISE_TIME_CALL(m_pList1->SetViewInstanceMask(Mask));
 
@@ -578,91 +575,25 @@ void WrappedID3D12GraphicsCommandList2::SetViewInstanceMask(UINT Mask)
   }
 }
 
-//////////////////////////////
-// ID3D12GraphicsCommandList2
-
-template <typename SerialiserType>
-bool WrappedID3D12GraphicsCommandList2::Serialise_WriteBufferImmediate(
-    SerialiserType &ser, UINT Count, const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER *pParams,
-    const D3D12_WRITEBUFFERIMMEDIATE_MODE *pModes)
-{
-  ID3D12GraphicsCommandList2 *pCommandList = this;
-  SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(Count);
-  SERIALISE_ELEMENT_ARRAY(pParams, Count);
-  SERIALISE_ELEMENT_ARRAY(pModes, Count);
-
-  SERIALISE_CHECK_READ_ERRORS();
-
-  if(IsReplayingAndReading())
-  {
-    if(GetWrapped(pCommandList)->GetReal2() == NULL)
-    {
-      RDCERR("Can't replay ID3D12GraphicsCommandList2 command");
-      return false;
-    }
-
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
-
-    if(IsActiveReplaying(m_State))
-    {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap2(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->WriteBufferImmediate(Count, pParams, pModes);
-      }
-    }
-    else
-    {
-      Unwrap2(pCommandList)->WriteBufferImmediate(Count, pParams, pModes);
-      GetCrackedList2()->WriteBufferImmediate(Count, pParams, pModes);
-    }
-  }
-
-  return true;
-}
-
-void WrappedID3D12GraphicsCommandList2::WriteBufferImmediate(
-    UINT Count, const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER *pParams,
-    const D3D12_WRITEBUFFERIMMEDIATE_MODE *pModes)
-{
-  SERIALISE_TIME_CALL(m_pList2->WriteBufferImmediate(Count, pParams, pModes));
-
-  if(IsCaptureMode(m_State))
-  {
-    CACHE_THREAD_SERIALISER();
-    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_WriteBufferImmediate);
-    Serialise_WriteBufferImmediate(ser, Count, pParams, pModes);
-
-    m_ListRecord->AddChunk(scope.Get());
-    for(UINT i = 0; i < Count; i++)
-      m_ListRecord->MarkResourceFrameReferenced(
-          WrappedID3D12Resource::GetResIDFromAddr(pParams[i].Dest), eFrameRef_PartialWrite);
-  }
-}
-
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, AtomicCopyBufferUINT,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, AtomicCopyBufferUINT,
                                 ID3D12Resource *pDstBuffer, UINT64 DstOffset,
                                 ID3D12Resource *pSrcBuffer, UINT64 SrcOffset, UINT Dependencies,
                                 ID3D12Resource *const *ppDependentResources,
                                 const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, AtomicCopyBufferUINT64,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, AtomicCopyBufferUINT64,
                                 ID3D12Resource *pDstBuffer, UINT64 DstOffset,
                                 ID3D12Resource *pSrcBuffer, UINT64 SrcOffset, UINT Dependencies,
                                 ID3D12Resource *const *ppDependentResources,
                                 const D3D12_SUBRESOURCE_RANGE_UINT64 *pDependentSubresourceRanges);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, OMSetDepthBounds,
-                                FLOAT Min, FLOAT Max);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetSamplePositions,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, OMSetDepthBounds, FLOAT Min,
+                                FLOAT Max);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetSamplePositions,
                                 UINT NumSamplesPerPixel, UINT NumPixels,
                                 D3D12_SAMPLE_POSITION *pSamplePositions);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, ResolveSubresourceRegion,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ResolveSubresourceRegion,
                                 ID3D12Resource *pDstResource, UINT DstSubresource, UINT DstX,
                                 UINT DstY, ID3D12Resource *pSrcResource, UINT SrcSubresource,
                                 D3D12_RECT *pSrcRect, DXGI_FORMAT Format,
                                 D3D12_RESOLVE_MODE ResolveMode);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, SetViewInstanceMask,
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetViewInstanceMask,
                                 UINT Mask);
-INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList2, WriteBufferImmediate,
-                                UINT Count, const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER *pParams,
-                                const D3D12_WRITEBUFFERIMMEDIATE_MODE *pModes);

@@ -341,7 +341,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_pDevice->InternalRef();
 
   // safe to upcast - this is a wrapped object
-  m_DebugList = (ID3D12GraphicsCommandList2 *)list;
+  m_DebugList = (ID3D12GraphicsCommandList4 *)list;
 
   if(FAILED(hr))
   {
@@ -471,7 +471,7 @@ D3D12_GPU_VIRTUAL_ADDRESS D3D12DebugManager::UploadConstants(const void *data, s
   return ret;
 }
 
-ID3D12GraphicsCommandList2 *D3D12DebugManager::ResetDebugList()
+ID3D12GraphicsCommandList4 *D3D12DebugManager::ResetDebugList()
 {
   m_DebugList->Reset(m_DebugAlloc, NULL);
 

@@ -59,7 +59,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   }
   else if(type == Resource_Resource)
   {
-    WrappedID3D12Resource *r = (WrappedID3D12Resource *)res;
+    WrappedID3D12Resource1 *r = (WrappedID3D12Resource1 *)res;
     ID3D12Pageable *pageable = r;
 
     bool nonresident = false;

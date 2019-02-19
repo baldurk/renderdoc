@@ -28,8 +28,8 @@
 template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1097, "Chunks changed without updating names");
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Device_OpenSharedHandle == 1096,
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1102, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::List_EndRenderPass == 1101,
                     "New chunks must be appended otherwise it breaks old captures");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
@@ -168,6 +168,10 @@ std::string DoStringise(const D3D12Chunk &el)
                                "ID3D12Device3::OpenExistingHeapFromAddress");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateHeapFromFileMapping,
                                "ID3D12Device3::OpenExistingHeapFromFileMapping");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandList1, "ID3D12Device4::CreateCommandList1");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommittedResource1,
+                               "ID3D12Device4::CreateCommittedResource1");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateHeap1, "ID3D12Device4::CreateHeap1");
     STRINGISE_ENUM_CLASS_NAMED(List_AtomicCopyBufferUINT,
                                "ID3D12GraphicsCommandList1::AtomicCopyBufferUINT");
     STRINGISE_ENUM_CLASS_NAMED(List_AtomicCopyBufferUINT64,
@@ -182,6 +186,8 @@ std::string DoStringise(const D3D12Chunk &el)
                                "ID3D12GraphicsCommandList1::SetViewInstanceMask");
     STRINGISE_ENUM_CLASS_NAMED(List_WriteBufferImmediate,
                                "ID3D12GraphicsCommandList2::WriteBufferImmediate");
+    STRINGISE_ENUM_CLASS_NAMED(List_BeginRenderPass, "ID3D12GraphicsCommandList4::BeginRenderPass");
+    STRINGISE_ENUM_CLASS_NAMED(List_EndRenderPass, "ID3D12GraphicsCommandList4::EndRenderPass");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -223,6 +229,8 @@ std::string DoStringise(const D3D12ResourceType &el)
     STRINGISE_ENUM_NAMED(Resource_Resource, "Resource");
     STRINGISE_ENUM_NAMED(Resource_GraphicsCommandList, "Graphics CommandList");
     STRINGISE_ENUM_NAMED(Resource_RootSignature, "Root Signature");
+    STRINGISE_ENUM_NAMED(Resource_PipelineLibrary, "Pipeline Library");
+    STRINGISE_ENUM_NAMED(Resource_ProtectedResourceSession, "Protected Resource Session");
   }
   END_ENUM_STRINGISE();
 }
@@ -776,6 +784,32 @@ std::string DoStringise(const D3D12_WRITEBUFFERIMMEDIATE_MODE &el)
 }
 
 template <>
+std::string DoStringise(const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE &el)
+{
+  BEGIN_ENUM_STRINGISE(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE);
+  {
+    STRINGISE_ENUM(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD)
+    STRINGISE_ENUM(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE)
+    STRINGISE_ENUM(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+    STRINGISE_ENUM(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE &el)
+{
+  BEGIN_ENUM_STRINGISE(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE);
+  {
+    STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD)
+    STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE)
+    STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const D3D12_CLEAR_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_CLEAR_FLAGS);
@@ -1013,6 +1047,30 @@ std::string DoStringise(const D3D12_VIEW_INSTANCING_FLAGS &el)
     STRINGISE_BITFIELD_VALUE(D3D12_VIEW_INSTANCING_FLAG_NONE);
 
     STRINGISE_BITFIELD_BIT(D3D12_VIEW_INSTANCING_FLAG_ENABLE_VIEW_INSTANCE_MASKING);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const D3D12_COMMAND_LIST_FLAGS &el)
+{
+  BEGIN_BITFIELD_STRINGISE(D3D12_COMMAND_LIST_FLAGS);
+  {
+    STRINGISE_BITFIELD_VALUE(D3D12_COMMAND_LIST_FLAG_NONE);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const D3D12_RENDER_PASS_FLAGS &el)
+{
+  BEGIN_BITFIELD_STRINGISE(D3D12_RENDER_PASS_FLAGS);
+  {
+    STRINGISE_BITFIELD_VALUE(D3D12_RENDER_PASS_FLAG_NONE);
+
+    STRINGISE_BITFIELD_BIT(D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES);
+    STRINGISE_BITFIELD_BIT(D3D12_RENDER_PASS_FLAG_SUSPENDING_PASS);
+    STRINGISE_BITFIELD_BIT(D3D12_RENDER_PASS_FLAG_RESUMING_PASS);
   }
   END_BITFIELD_STRINGISE();
 }

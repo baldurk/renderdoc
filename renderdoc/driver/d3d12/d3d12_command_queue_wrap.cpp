@@ -358,8 +358,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
     for(UINT i = 0; i < NumCommandLists; i++)
     {
-      WrappedID3D12GraphicsCommandList2 *wrapped =
-          (WrappedID3D12GraphicsCommandList2 *)ppCommandLists[i];
+      WrappedID3D12GraphicsCommandList *wrapped =
+          (WrappedID3D12GraphicsCommandList *)ppCommandLists[i];
       D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
 
       if(record->ContainsExecuteIndirect)
@@ -479,7 +479,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
       for(auto it = maps.begin(); it != maps.end(); ++it)
       {
-        WrappedID3D12Resource *res = GetWrapped(it->res);
+        WrappedID3D12Resource1 *res = GetWrapped(it->res);
         UINT subres = it->subres;
         size_t size = (size_t)it->totalSize;
 

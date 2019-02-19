@@ -73,7 +73,7 @@ ResourceId D3D12RenderState::GetDSVID() const
   return dsv.GetResResourceId();
 }
 
-void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandList2 *cmd) const
+void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandList4 *cmd) const
 {
   D3D12_COMMAND_LIST_TYPE type = cmd->GetType();
 
@@ -183,7 +183,7 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
   }
 }
 
-void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandList2 *cmd) const
+void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandList4 *cmd) const
 {
   for(size_t i = 0; i < compute.sigelems.size(); i++)
   {
@@ -202,7 +202,7 @@ void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandList2 *cmd)
   }
 }
 
-void D3D12RenderState::ApplyGraphicsRootElements(ID3D12GraphicsCommandList2 *cmd) const
+void D3D12RenderState::ApplyGraphicsRootElements(ID3D12GraphicsCommandList4 *cmd) const
 {
   for(size_t i = 0; i < graphics.sigelems.size(); i++)
   {

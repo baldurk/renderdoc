@@ -197,7 +197,7 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
   UINT64 offs = 0;
 
   if(ser.IsWriting())
-    WrappedID3D12Resource::GetResIDFromAddr(el.Location, buffer, offs);
+    WrappedID3D12Resource1::GetResIDFromAddr(el.Location, buffer, offs);
 
   ser.Serialise("Buffer", buffer);
   ser.Serialise("Offset", offs);
@@ -1260,6 +1260,99 @@ void DoSerialise(SerialiserType &ser, D3D12_WRITEBUFFERIMMEDIATE_PARAMETER &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS &el)
+{
+  SERIALISE_MEMBER(ClearValue);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RENDER_PASS_BEGINNING_ACCESS &el)
+{
+  SERIALISE_MEMBER(Type);
+
+  switch(el.Type)
+  {
+    case D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD: break;
+    case D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE: break;
+    case D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR: SERIALISE_MEMBER(Clear); break;
+    case D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS: break;
+    default: RDCERR("Unexpected beginning access type %d", el.Type); break;
+  }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser,
+                 D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &el)
+{
+  SERIALISE_MEMBER(SrcSubresource);
+  SERIALISE_MEMBER(DstSubresource);
+  SERIALISE_MEMBER(DstX);
+  SERIALISE_MEMBER(DstY);
+  SERIALISE_MEMBER(SrcRect);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &el)
+{
+  SERIALISE_MEMBER(pSrcResource);
+  SERIALISE_MEMBER(pDstResource);
+  SERIALISE_MEMBER(SubresourceCount);
+  SERIALISE_MEMBER_ARRAY(pSubresourceParameters, SubresourceCount);
+  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(ResolveMode);
+  SERIALISE_MEMBER(PreserveResolveSource);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RENDER_PASS_ENDING_ACCESS &el)
+{
+  SERIALISE_MEMBER(Type);
+
+  switch(el.Type)
+  {
+    case D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD: break;
+    case D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE: break;
+    case D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE: SERIALISE_MEMBER(Resolve); break;
+    case D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS: break;
+    default: RDCERR("Unexpected ending access type %d", el.Type); break;
+  }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RENDER_PASS_RENDER_TARGET_DESC &el)
+{
+  SERIALISE_MEMBER(cpuDescriptor);
+  SERIALISE_MEMBER(BeginningAccess);
+  SERIALISE_MEMBER(EndingAccess);
+}
+
+template <>
+void Deserialise(const D3D12_RENDER_PASS_RENDER_TARGET_DESC &el)
+{
+  if(el.EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    delete[] el.EndingAccess.Resolve.pSubresourceParameters;
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RENDER_PASS_DEPTH_STENCIL_DESC &el)
+{
+  SERIALISE_MEMBER(cpuDescriptor);
+  SERIALISE_MEMBER(DepthBeginningAccess);
+  SERIALISE_MEMBER(StencilBeginningAccess);
+  SERIALISE_MEMBER(DepthEndingAccess);
+  SERIALISE_MEMBER(StencilEndingAccess);
+}
+
+template <>
+void Deserialise(const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC &el)
+{
+  if(el.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    delete[] el.DepthEndingAccess.Resolve.pSubresourceParameters;
+  if(el.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+    delete[] el.StencilEndingAccess.Resolve.pSubresourceParameters;
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DRAW_ARGUMENTS &el)
 {
   SERIALISE_MEMBER(VertexCountPerInstance);
@@ -1332,6 +1425,8 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_VIEW_INSTANCING_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_SAMPLE_POSITION);
 INSTANTIATE_SERIALISE_TYPE(D3D12_SUBRESOURCE_RANGE_UINT64);
 INSTANTIATE_SERIALISE_TYPE(D3D12_WRITEBUFFERIMMEDIATE_PARAMETER);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RENDER_PASS_RENDER_TARGET_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RENDER_PASS_DEPTH_STENCIL_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DRAW_INDEXED_ARGUMENTS);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_ARGUMENTS);

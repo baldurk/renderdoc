@@ -46,9 +46,9 @@ struct D3D12RenderState
   D3D12RenderState() = default;
   D3D12RenderState &operator=(const D3D12RenderState &o);
 
-  void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandList2 *list) const;
-  void ApplyComputeRootElements(ID3D12GraphicsCommandList2 *cmd) const;
-  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList2 *cmd) const;
+  void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandList4 *list) const;
+  void ApplyComputeRootElements(ID3D12GraphicsCommandList4 *cmd) const;
+  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList4 *cmd) const;
 
   vector<D3D12_VIEWPORT> views;
   vector<D3D12_RECT> scissors;

@@ -202,11 +202,11 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
   }
 
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     m_pEventIds->push_back(eid);
 
-    WrappedID3D12GraphicsCommandList2 *pWrappedCmdList = (WrappedID3D12GraphicsCommandList2 *)cmd;
+    WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
 
     if(m_begunCommandLists.find(pWrappedCmdList->GetReal()) == m_begunCommandLists.end())
     {
@@ -220,17 +220,17 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
     ++*m_pSampleId;
   }
 
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
-    WrappedID3D12GraphicsCommandList2 *pWrappedCmdList = (WrappedID3D12GraphicsCommandList2 *)cmd;
+    WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
 
     m_pReplay->GetAMDCounters()->EndSample(pWrappedCmdList->GetReal());
     return false;
   }
 
-  void PreCloseCommandList(ID3D12GraphicsCommandList2 *cmd) override
+  void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) override
   {
-    WrappedID3D12GraphicsCommandList2 *pWrappedCmdList = (WrappedID3D12GraphicsCommandList2 *)cmd;
+    WrappedID3D12GraphicsCommandList *pWrappedCmdList = (WrappedID3D12GraphicsCommandList *)cmd;
 
     auto iter = m_begunCommandLists.find(pWrappedCmdList->GetReal());
 
@@ -241,14 +241,14 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
     }
   }
 
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override {}
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override {}
   // we don't need to distinguish, call the Draw functions
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override { PreDraw(eid, cmd); }
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override { PreDraw(eid, cmd); }
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     return PostDraw(eid, cmd);
   }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     PostRedraw(eid, cmd);
   }
@@ -378,7 +378,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
   ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
@@ -388,7 +388,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
     cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_NumTimestampQueries * 2 + 0);
   }
 
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_NumTimestampQueries * 2 + 1);
     m_NumTimestampQueries++;
@@ -405,18 +405,18 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
     return false;
   }
 
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override {}
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override {}
   // we don't need to distinguish, call the Draw functions
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override { PreDraw(eid, cmd); }
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override { PreDraw(eid, cmd); }
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     return PostDraw(eid, cmd);
   }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) override
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
   {
     PostRedraw(eid, cmd);
   }
-  void PreCloseCommandList(ID3D12GraphicsCommandList2 *cmd) override{};
+  void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) override{};
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
     m_AliasEvents.push_back(std::make_pair(primary, alias));

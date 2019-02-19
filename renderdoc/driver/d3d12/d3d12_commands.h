@@ -120,17 +120,17 @@ struct D3D12DrawcallCallback
   // and do the real draw by returning true. OR they can do nothing in PreDraw,
   // do the real draw, then in PostDraw return true to apply the modifications
   // which are then undone in PostRedraw.
-  virtual void PreDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) = 0;
-  virtual bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) = 0;
-  virtual void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) = 0;
+  virtual void PreDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) = 0;
+  virtual bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) = 0;
+  virtual void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) = 0;
 
   // same principle as above, but for dispatch calls
-  virtual void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) = 0;
-  virtual bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) = 0;
-  virtual void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) = 0;
+  virtual void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) = 0;
+  virtual bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) = 0;
+  virtual void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) = 0;
 
   // called immediately before a command list is closed
-  virtual void PreCloseCommandList(ID3D12GraphicsCommandList2 *cmd) = 0;
+  virtual void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) = 0;
   // if a command list is recorded once and submitted N > 1 times, then the same
   // drawcall will have several EIDs that refer to it. We'll only do the full
   // callbacks above for the first EID, then call this function for the others
@@ -140,31 +140,31 @@ struct D3D12DrawcallCallback
   // helper functions to downcast command list because we know it's wrapped
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    return PreDraw(eid, (ID3D12GraphicsCommandList2 *)cmd);
+    return PreDraw(eid, (ID3D12GraphicsCommandList4 *)cmd);
   }
   bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    return PostDraw(eid, (ID3D12GraphicsCommandList2 *)cmd);
+    return PostDraw(eid, (ID3D12GraphicsCommandList4 *)cmd);
   }
   void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    return PostRedraw(eid, (ID3D12GraphicsCommandList2 *)cmd);
+    return PostRedraw(eid, (ID3D12GraphicsCommandList4 *)cmd);
   }
   void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    return PreDispatch(eid, (ID3D12GraphicsCommandList2 *)cmd);
+    return PreDispatch(eid, (ID3D12GraphicsCommandList4 *)cmd);
   }
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    return PostDispatch(eid, (ID3D12GraphicsCommandList2 *)cmd);
+    return PostDispatch(eid, (ID3D12GraphicsCommandList4 *)cmd);
   }
   void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    return PostRedispatch(eid, (ID3D12GraphicsCommandList2 *)cmd);
+    return PostRedispatch(eid, (ID3D12GraphicsCommandList4 *)cmd);
   }
   void PreCloseCommandList(ID3D12GraphicsCommandList *cmd)
   {
-    return PreCloseCommandList((ID3D12GraphicsCommandList2 *)cmd);
+    return PreCloseCommandList((ID3D12GraphicsCommandList4 *)cmd);
   }
 };
 
@@ -189,7 +189,7 @@ struct BakedCmdListInfo
     UINT realCount = 0;
   };
 
-  vector<ID3D12GraphicsCommandList2 *> crackedLists;
+  vector<ID3D12GraphicsCommandList4 *> crackedLists;
   vector<ExecuteData> executeEvents;
 
   vector<APIEvent> curEvents;
@@ -206,6 +206,9 @@ struct BakedCmdListInfo
   vector<D3D12_RESOURCE_BARRIER> barriers;
 
   ResourceId parentList;
+
+  // if a render pass is active when we early-close a list, we need to end it
+  bool renderPassActive = false;
 
   // modified during recording to ensure we end any markers that should be ended but weren't due to
   // a partial replay
@@ -293,7 +296,7 @@ struct D3D12CommandData
   // list subsection of command events, we don't go through the
   // whole original command lists to set up the partial replay,
   // so we just set this command list
-  ID3D12GraphicsCommandList2 *m_OutsideCmdList = NULL;
+  ID3D12GraphicsCommandList4 *m_OutsideCmdList = NULL;
 
   void InsertDrawsAndRefreshIDs(ResourceId cmd, vector<D3D12DrawcallTreeNode> &cmdBufNodes);
 
@@ -323,8 +326,8 @@ struct D3D12CommandData
 
   vector<DebugMessage> m_EventMessages;
 
-  std::map<ResourceId, ID3D12GraphicsCommandList2 *> m_RerecordCmds;
-  std::vector<ID3D12GraphicsCommandList2 *> m_RerecordCmdList;
+  std::map<ResourceId, ID3D12GraphicsCommandList4 *> m_RerecordCmds;
+  std::vector<ID3D12GraphicsCommandList4 *> m_RerecordCmdList;
 
   bool m_AddedDrawcall;
 
@@ -357,13 +360,13 @@ struct D3D12CommandData
 
   // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
-  uint32_t HandlePreCallback(ID3D12GraphicsCommandList2 *list, bool dispatch = false,
+  uint32_t HandlePreCallback(ID3D12GraphicsCommandList4 *list, bool dispatch = false,
                              uint32_t multiDrawOffset = 0);
 
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdList(ResourceId cmdid);
   bool IsPartialCmdList(ResourceId cmdid);
-  ID3D12GraphicsCommandList2 *RerecordCmdList(ResourceId cmdid,
+  ID3D12GraphicsCommandList4 *RerecordCmdList(ResourceId cmdid,
                                               PartialReplayIndex partialType = ePartialNum);
 
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage = true);

@@ -31,13 +31,13 @@
 #include "d3d12_resources.h"
 
 struct IAmdExtD3DCommandListMarker;
-class WrappedID3D12GraphicsCommandList2;
+class WrappedID3D12GraphicsCommandList;
 
 // The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
 // parent classes
 struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID3D12DebugCommandList1
 {
-  WrappedID3D12GraphicsCommandList2 *m_pList;
+  WrappedID3D12GraphicsCommandList *m_pList;
   ID3D12DebugCommandList *m_pReal;
   ID3D12DebugCommandList1 *m_pReal1;
   ID3D12DebugCommandList2 *m_pReal2;
@@ -111,12 +111,14 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
   }
 };
 
-class WrappedID3D12GraphicsCommandList2 : public ID3D12GraphicsCommandList2
+class WrappedID3D12GraphicsCommandList : public ID3D12GraphicsCommandList4
 {
 private:
   ID3D12GraphicsCommandList *m_pList = NULL;
   ID3D12GraphicsCommandList1 *m_pList1 = NULL;
   ID3D12GraphicsCommandList2 *m_pList2 = NULL;
+  ID3D12GraphicsCommandList3 *m_pList3 = NULL;
+  ID3D12GraphicsCommandList4 *m_pList4 = NULL;
 
   RefCounter12<ID3D12GraphicsCommandList> m_RefCounter;
 
@@ -151,23 +153,27 @@ private:
 public:
   static const int AllocPoolCount = 8192;
   static const int AllocMaxByteSize = 2 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList2, AllocPoolCount, AllocMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList, AllocPoolCount, AllocMaxByteSize);
 
-  WrappedID3D12GraphicsCommandList2(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
-                                    CaptureState &state);
-  virtual ~WrappedID3D12GraphicsCommandList2();
+  WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
+                                   CaptureState &state);
+  virtual ~WrappedID3D12GraphicsCommandList();
 
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D12GraphicsCommandList *GetReal() { return m_pList; }
   ID3D12GraphicsCommandList1 *GetReal1() { return m_pList1; }
   ID3D12GraphicsCommandList2 *GetReal2() { return m_pList2; }
+  ID3D12GraphicsCommandList3 *GetReal3() { return m_pList3; }
+  ID3D12GraphicsCommandList4 *GetReal4() { return m_pList4; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
   ID3D12GraphicsCommandList *GetCrackedList();
   ID3D12GraphicsCommandList1 *GetCrackedList1();
   ID3D12GraphicsCommandList2 *GetCrackedList2();
-  ID3D12GraphicsCommandList2 *GetWrappedCrackedList();
+  ID3D12GraphicsCommandList3 *GetCrackedList3();
+  ID3D12GraphicsCommandList4 *GetCrackedList4();
+  ID3D12GraphicsCommandList4 *GetWrappedCrackedList();
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
@@ -458,6 +464,60 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, WriteBufferImmediate, UINT Count,
                                 const D3D12_WRITEBUFFERIMMEDIATE_PARAMETER *pParams,
                                 const D3D12_WRITEBUFFERIMMEDIATE_MODE *pModes);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList3
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, SetProtectedResourceSession,
+                                _In_opt_ ID3D12ProtectedResourceSession *pProtectedResourceSession);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList4
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, BeginRenderPass,
+                                _In_ UINT NumRenderTargets,
+                                _In_reads_opt_(NumRenderTargets)
+                                    const D3D12_RENDER_PASS_RENDER_TARGET_DESC *pRenderTargets,
+                                _In_opt_ const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *pDepthStencil,
+                                D3D12_RENDER_PASS_FLAGS Flags);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, EndRenderPass);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, InitializeMetaCommand,
+                                _In_ ID3D12MetaCommand *pMetaCommand,
+                                _In_reads_bytes_opt_(InitializationParametersDataSizeInBytes)
+                                    const void *pInitializationParametersData,
+                                _In_ SIZE_T InitializationParametersDataSizeInBytes);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ExecuteMetaCommand,
+                                _In_ ID3D12MetaCommand *pMetaCommand,
+                                _In_reads_bytes_opt_(ExecutionParametersDataSizeInBytes)
+                                    const void *pExecutionParametersData,
+                                _In_ SIZE_T ExecutionParametersDataSizeInBytes);
+
+  IMPLEMENT_FUNCTION_SERIALISED(
+      virtual void STDMETHODCALLTYPE, BuildRaytracingAccelerationStructure,
+      _In_ const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *pDesc,
+      _In_ UINT NumPostbuildInfoDescs,
+      _In_reads_opt_(NumPostbuildInfoDescs)
+          const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs);
+
+  IMPLEMENT_FUNCTION_SERIALISED(
+      virtual void STDMETHODCALLTYPE, EmitRaytracingAccelerationStructurePostbuildInfo,
+      _In_ const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pDesc,
+      _In_ UINT NumSourceAccelerationStructures,
+      _In_reads_(NumSourceAccelerationStructures)
+          const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, CopyRaytracingAccelerationStructure,
+                                _In_ D3D12_GPU_VIRTUAL_ADDRESS DestAccelerationStructureData,
+                                _In_ D3D12_GPU_VIRTUAL_ADDRESS SourceAccelerationStructureData,
+                                _In_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE Mode);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, SetPipelineState1,
+                                _In_ ID3D12StateObject *pStateObject);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, DispatchRays,
+                                _In_ const D3D12_DISPATCH_RAYS_DESC *pDesc);
 };
 
 template <>
@@ -479,12 +539,22 @@ template <>
 ResourceId GetResID(ID3D12GraphicsCommandList1 *obj);
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList2 *obj);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList3 *obj);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList4 *obj);
 
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList2 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList3 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList4 *obj);
 
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList2 *Unwrap2(ID3D12GraphicsCommandList2 *obj);
+ID3D12GraphicsCommandList3 *Unwrap3(ID3D12GraphicsCommandList3 *obj);
+ID3D12GraphicsCommandList4 *Unwrap4(ID3D12GraphicsCommandList4 *obj);
 
-WrappedID3D12GraphicsCommandList2 *GetWrapped(ID3D12GraphicsCommandList1 *obj);
-WrappedID3D12GraphicsCommandList2 *GetWrapped(ID3D12GraphicsCommandList2 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList1 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList2 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList3 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList4 *obj);

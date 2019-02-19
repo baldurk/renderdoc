@@ -28,8 +28,8 @@
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
-GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
-std::map<ResourceId, WrappedID3D12Resource *> *WrappedID3D12Resource::m_List = NULL;
+GPUAddressRangeTracker WrappedID3D12Resource1::m_Addresses;
+std::map<ResourceId, WrappedID3D12Resource1 *> *WrappedID3D12Resource1::m_List = NULL;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12Shader *> WrappedID3D12Shader::m_Shaders;
 bool WrappedID3D12Shader::m_InternalResources = false;
 
@@ -160,7 +160,7 @@ D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
 
   ALL_D3D12_TYPES;
 
-  if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
+  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
     return Resource_GraphicsCommandList;
   if(WrappedID3D12CommandQueue::IsAlloc(ptr))
     return Resource_CommandQueue;
@@ -201,8 +201,8 @@ ID3D12Object *Unwrap(ID3D12Object *ptr)
 
   ALL_D3D12_TYPES;
 
-  if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
-    return (ID3D12Object *)(((WrappedID3D12GraphicsCommandList2 *)ptr)->GetReal());
+  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+    return (ID3D12Object *)(((WrappedID3D12GraphicsCommandList *)ptr)->GetReal());
   if(WrappedID3D12CommandQueue::IsAlloc(ptr))
     return (ID3D12Object *)(((WrappedID3D12CommandQueue *)ptr)->GetReal());
 
@@ -221,8 +221,8 @@ ResourceId GetResID(ID3D12Object *ptr)
 
   if(res == NULL)
   {
-    if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
-      return ((WrappedID3D12GraphicsCommandList2 *)ptr)->GetResourceID();
+    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceID();
     if(WrappedID3D12CommandQueue::IsAlloc(ptr))
       return ((WrappedID3D12CommandQueue *)ptr)->GetResourceID();
 
@@ -244,8 +244,8 @@ D3D12ResourceRecord *GetRecord(ID3D12Object *ptr)
 
   if(res == NULL)
   {
-    if(WrappedID3D12GraphicsCommandList2::IsAlloc(ptr))
-      return ((WrappedID3D12GraphicsCommandList2 *)ptr)->GetResourceRecord();
+    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceRecord();
     if(WrappedID3D12CommandQueue::IsAlloc(ptr))
       return ((WrappedID3D12CommandQueue *)ptr)->GetResourceRecord();
 
@@ -280,8 +280,10 @@ ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr)
   return (ID3D12DeviceChild *)Unwrap((ID3D12Object *)ptr);
 }
 
-WrappedID3D12Resource::~WrappedID3D12Resource()
+WrappedID3D12Resource1::~WrappedID3D12Resource1()
 {
+  SAFE_RELEASE(m_pReal1);
+
   // perform an implicit unmap on release
   if(GetResourceRecord())
   {
@@ -321,7 +323,7 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
   m_ID = ResourceId();
 }
 
-byte *WrappedID3D12Resource::GetMap(UINT Subresource)
+byte *WrappedID3D12Resource1::GetMap(UINT Subresource)
 {
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
   size_t mapcount = GetResourceRecord()->m_MapsCount;
@@ -332,14 +334,14 @@ byte *WrappedID3D12Resource::GetMap(UINT Subresource)
   return NULL;
 }
 
-byte *WrappedID3D12Resource::GetShadow(UINT Subresource)
+byte *WrappedID3D12Resource1::GetShadow(UINT Subresource)
 {
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   return map[Subresource].shadowPtr;
 }
 
-void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
+void WrappedID3D12Resource1::AllocShadow(UINT Subresource, size_t size)
 {
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
@@ -347,7 +349,7 @@ void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
     map[Subresource].shadowPtr = AllocAlignedBuffer(size);
 }
 
-void WrappedID3D12Resource::FreeShadow()
+void WrappedID3D12Resource1::FreeShadow()
 {
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
   size_t mapcount = GetResourceRecord()->m_MapsCount;
@@ -359,13 +361,13 @@ void WrappedID3D12Resource::FreeShadow()
   }
 }
 
-WriteSerialiser &WrappedID3D12Resource::GetThreadSerialiser()
+WriteSerialiser &WrappedID3D12Resource1::GetThreadSerialiser()
 {
   return m_pDevice->GetThreadSerialiser();
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
-                                                     const D3D12_RANGE *pReadRange, void **ppData)
+HRESULT STDMETHODCALLTYPE WrappedID3D12Resource1::Map(UINT Subresource,
+                                                      const D3D12_RANGE *pReadRange, void **ppData)
 {
   // don't care about maps without returned pointers - we'll just intercept the WriteToSubresource
   // calls
@@ -395,7 +397,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
   return hr;
 }
 
-void STDMETHODCALLTYPE WrappedID3D12Resource::Unmap(UINT Subresource, const D3D12_RANGE *pWrittenRange)
+void STDMETHODCALLTYPE WrappedID3D12Resource1::Unmap(UINT Subresource,
+                                                     const D3D12_RANGE *pWrittenRange)
 {
   if(GetResourceRecord())
   {
@@ -421,11 +424,11 @@ void STDMETHODCALLTYPE WrappedID3D12Resource::Unmap(UINT Subresource, const D3D1
   return m_pReal->Unmap(Subresource, pWrittenRange);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubresource,
-                                                                    const D3D12_BOX *pDstBox,
-                                                                    const void *pSrcData,
-                                                                    UINT SrcRowPitch,
-                                                                    UINT SrcDepthPitch)
+HRESULT STDMETHODCALLTYPE WrappedID3D12Resource1::WriteToSubresource(UINT DstSubresource,
+                                                                     const D3D12_BOX *pDstBox,
+                                                                     const void *pSrcData,
+                                                                     UINT SrcRowPitch,
+                                                                     UINT SrcDepthPitch)
 {
   HRESULT ret;
 
@@ -450,7 +453,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
   return ret;
 }
 
-void WrappedID3D12Resource::RefBuffers(D3D12ResourceManager *rm)
+void WrappedID3D12Resource1::RefBuffers(D3D12ResourceManager *rm)
 {
   // only buffers go into m_Addresses
   SCOPED_READLOCK(m_Addresses.addressLock);

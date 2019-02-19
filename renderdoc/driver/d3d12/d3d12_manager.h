@@ -48,6 +48,7 @@ enum D3D12ResourceType
   Resource_GraphicsCommandList,
   Resource_RootSignature,
   Resource_PipelineLibrary,
+  Resource_ProtectedResourceSession,
 };
 
 DECLARE_REFLECTION_ENUM(D3D12ResourceType);
@@ -437,7 +438,7 @@ struct CmdListRecordingInfo
   vector<D3D12ResourceRecord *> bundles;
 };
 
-class WrappedID3D12Resource;
+class WrappedID3D12Resource1;
 
 struct GPUAddressRange
 {

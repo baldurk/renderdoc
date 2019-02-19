@@ -52,7 +52,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
   }
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd)
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
       return;
@@ -221,7 +221,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       rs.ApplyState(m_pDevice, cmd);
   }
 
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd)
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
       return false;
@@ -235,16 +235,16 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     return true;
   }
 
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList2 *cmd)
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd)
   {
     // nothing to do
   }
 
   // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) {}
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) { return false; }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList2 *cmd) {}
-  void PreCloseCommandList(ID3D12GraphicsCommandList2 *cmd) {}
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) {}
+  void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     // don't care
@@ -270,7 +270,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                                       uint32_t eventId, const vector<uint32_t> &passEvents)
 {
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
 
   if(resource == NULL)
     return ResourceId();
@@ -308,7 +308,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   if(m_Overlay.Texture)
     currentOverlayDesc = m_Overlay.Texture->GetDesc();
 
-  WrappedID3D12Resource *wrappedCustomRenderTex = (WrappedID3D12Resource *)m_Overlay.Texture;
+  WrappedID3D12Resource1 *wrappedCustomRenderTex = (WrappedID3D12Resource1 *)m_Overlay.Texture;
 
   // need to recreate backing custom render tex
   if(overlayTexDesc.Width != currentOverlayDesc.Width ||
@@ -329,7 +329,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
       RDCERR("Failed to create custom render tex HRESULT: %s", ToStr(hr).c_str());
       return ResourceId();
     }
-    wrappedCustomRenderTex = (WrappedID3D12Resource *)customRenderTex;
+    wrappedCustomRenderTex = (WrappedID3D12Resource1 *)customRenderTex;
 
     customRenderTex->SetName(L"customRenderTex");
 

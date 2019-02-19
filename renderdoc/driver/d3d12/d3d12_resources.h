@@ -448,25 +448,122 @@ public:
   }
 };
 
-class WrappedID3D12Heap : public WrappedDeviceChild12<ID3D12Heap>
+class WrappedID3D12ProtectedResourceSession
+    : public WrappedDeviceChild12<ID3D12ProtectedResourceSession>
 {
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Heap);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12ProtectedResourceSession);
+
+  enum
+  {
+    TypeEnum = Resource_ProtectedResourceSession,
+  };
+
+  WrappedID3D12ProtectedResourceSession(ID3D12ProtectedResourceSession *real,
+                                        WrappedID3D12Device *device)
+      : WrappedDeviceChild12(real, device)
+  {
+  }
+  virtual ~WrappedID3D12ProtectedResourceSession() { Shutdown(); }
+  //////////////////////////////
+  // implement ID3D12ProtectedSession
+  virtual HRESULT STDMETHODCALLTYPE GetStatusFence(REFIID riid, _COM_Outptr_opt_ void **ppFence)
+  {
+    if(riid != __uuidof(ID3D12Fence) && riid != __uuidof(ID3D12Fence1))
+    {
+      RDCERR("Unsupported fence interface %s", ToStr(riid).c_str());
+      return E_NOINTERFACE;
+    }
+
+    void *iface = NULL;
+    HRESULT ret = m_pReal->GetStatusFence(riid, &iface);
+
+    if(ret != S_OK)
+      return ret;
+
+    ID3D12Fence *fence = NULL;
+
+    if(riid == __uuidof(ID3D12Fence))
+      fence = (ID3D12Fence *)iface;
+    else if(riid == __uuidof(ID3D12Fence1))
+      fence = (ID3D12Fence *)(ID3D12Fence1 *)iface;
+
+    // if we already have this fence wrapped, return the existing wrapper
+    if(m_pDevice->GetResourceManager()->HasWrapper(fence))
+    {
+      *ppFence =
+          (ID3D12Fence *)m_pDevice->GetResourceManager()->GetWrapper((ID3D12DeviceChild *)fence);
+      return S_OK;
+    }
+
+    // if not, record its creation
+    *ppFence = m_pDevice->CreateProtectedSessionFence(fence);
+    return S_OK;
+  }
+
+  virtual D3D12_PROTECTED_SESSION_STATUS STDMETHODCALLTYPE GetSessionStatus(void)
+  {
+    return m_pReal->GetSessionStatus();
+  }
+
+  //////////////////////////////
+  // implement ID3D12ProtectedResourceSession
+  virtual D3D12_PROTECTED_RESOURCE_SESSION_DESC STDMETHODCALLTYPE GetDesc(void)
+  {
+    return m_pReal->GetDesc();
+  }
+};
+
+class WrappedID3D12Heap1 : public WrappedDeviceChild12<ID3D12Heap, ID3D12Heap1>
+{
+  ID3D12Heap1 *m_pReal1 = NULL;
+
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Heap1);
 
   enum
   {
     TypeEnum = Resource_Heap,
   };
 
-  WrappedID3D12Heap(ID3D12Heap *real, WrappedID3D12Device *device)
+  WrappedID3D12Heap1(ID3D12Heap *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    real->QueryInterface(__uuidof(ID3D12Heap1), (void **)&m_pReal1);
   }
-  virtual ~WrappedID3D12Heap() { Shutdown(); }
+  virtual ~WrappedID3D12Heap1()
+  {
+    SAFE_RELEASE(m_pReal1);
+    Shutdown();
+  }
+
   //////////////////////////////
   // implement ID3D12Heap
-
   virtual D3D12_HEAP_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
+  //////////////////////////////
+  // implement ID3D12Heap1
+  virtual HRESULT STDMETHODCALLTYPE
+  GetProtectedResourceSession(REFIID riid, _COM_Outptr_opt_ void **ppProtectedSession)
+  {
+    void *iface = NULL;
+    HRESULT ret = m_pReal1->GetProtectedResourceSession(riid, &iface);
+
+    if(ret != S_OK)
+      return ret;
+
+    if(riid == __uuidof(ID3D12ProtectedResourceSession))
+    {
+      *ppProtectedSession = new WrappedID3D12ProtectedResourceSession(
+          (ID3D12ProtectedResourceSession *)iface, m_pDevice);
+    }
+    else
+    {
+      RDCERR("Unsupported interface %s", ToStr(riid).c_str());
+      return E_NOINTERFACE;
+    }
+
+    return S_OK;
+  }
 };
 
 class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineState>
@@ -743,8 +840,10 @@ public:
   virtual ~WrappedID3D12QueryHeap() { Shutdown(); }
 };
 
-class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
+class WrappedID3D12Resource1 : public WrappedDeviceChild12<ID3D12Resource, ID3D12Resource1>
 {
+  ID3D12Resource1 *m_pReal1 = NULL;
+
   static GPUAddressRangeTracker m_Addresses;
 
   bool resident;
@@ -754,11 +853,11 @@ class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 public:
   static const int AllocPoolCount = 16384;
   static const int AllocMaxByteSize = 1536 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource, AllocPoolCount, AllocMaxByteSize, false);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource1, AllocPoolCount, AllocMaxByteSize, false);
 
-  static std::map<ResourceId, WrappedID3D12Resource *> *m_List;
+  static std::map<ResourceId, WrappedID3D12Resource1 *> *m_List;
 
-  static std::map<ResourceId, WrappedID3D12Resource *> &GetList() { return *m_List; }
+  static std::map<ResourceId, WrappedID3D12Resource1 *> &GetList() { return *m_List; }
   static void RefBuffers(D3D12ResourceManager *rm);
 
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
@@ -782,11 +881,13 @@ public:
     TypeEnum = Resource_Resource,
   };
 
-  WrappedID3D12Resource(ID3D12Resource *real, WrappedID3D12Device *device)
+  WrappedID3D12Resource1(ID3D12Resource *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
     if(m_List)
       (*m_List)[GetResourceID()] = this;
+
+    real->QueryInterface(__uuidof(ID3D12Resource1), (void **)&m_pReal1);
 
     SetResident(true);
 
@@ -803,7 +904,7 @@ public:
       m_Addresses.AddTo(range);
     }
   }
-  virtual ~WrappedID3D12Resource();
+  virtual ~WrappedID3D12Resource1();
 
   bool Resident() { return resident; }
   void SetResident(bool r) { resident = r; }
@@ -847,6 +948,31 @@ public:
     // don't have to do anything here
     return m_pReal->ReadFromSubresource(pDstData, DstRowPitch, DstDepthPitch, SrcSubresource,
                                         pSrcBox);
+  }
+
+  //////////////////////////////
+  // implement ID3D12Resource1
+  virtual HRESULT STDMETHODCALLTYPE
+  GetProtectedResourceSession(REFIID riid, _COM_Outptr_opt_ void **ppProtectedSession)
+  {
+    void *iface = NULL;
+    HRESULT ret = m_pReal1->GetProtectedResourceSession(riid, &iface);
+
+    if(ret != S_OK)
+      return ret;
+
+    if(riid == __uuidof(ID3D12ProtectedResourceSession))
+    {
+      *ppProtectedSession = new WrappedID3D12ProtectedResourceSession(
+          (ID3D12ProtectedResourceSession *)iface, m_pDevice);
+    }
+    else
+    {
+      RDCERR("Unsupported interface %s", ToStr(riid).c_str());
+      return E_NOINTERFACE;
+    }
+
+    return S_OK;
   }
 };
 
@@ -944,12 +1070,13 @@ public:
   D3D12_TYPE_MACRO(ID3D12CommandSignature); \
   D3D12_TYPE_MACRO(ID3D12DescriptorHeap);   \
   D3D12_TYPE_MACRO(ID3D12Fence1);           \
-  D3D12_TYPE_MACRO(ID3D12Heap);             \
+  D3D12_TYPE_MACRO(ID3D12Heap1);            \
   D3D12_TYPE_MACRO(ID3D12PipelineState);    \
   D3D12_TYPE_MACRO(ID3D12QueryHeap);        \
-  D3D12_TYPE_MACRO(ID3D12Resource);         \
+  D3D12_TYPE_MACRO(ID3D12Resource1);        \
   D3D12_TYPE_MACRO(ID3D12RootSignature);    \
-  D3D12_TYPE_MACRO(ID3D12PipelineLibrary1);
+  D3D12_TYPE_MACRO(ID3D12PipelineLibrary1); \
+  D3D12_TYPE_MACRO(ID3D12ProtectedResourceSession);
 
 // template magic voodoo to unwrap types
 template <typename inner>
@@ -991,6 +1118,8 @@ ALL_D3D12_TYPES;
 
 D3D12_UNWRAP_EXTENDED(ID3D12Fence, ID3D12Fence1);
 D3D12_UNWRAP_EXTENDED(ID3D12PipelineLibrary, ID3D12PipelineLibrary1);
+D3D12_UNWRAP_EXTENDED(ID3D12Heap, ID3D12Heap1);
+D3D12_UNWRAP_EXTENDED(ID3D12Resource, ID3D12Resource1);
 
 D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr);
 
@@ -1015,7 +1144,7 @@ typename UnwrapHelper<iface>::Outer *GetWrapped(iface *obj)
   return wrapped;
 }
 
-class WrappedID3D12GraphicsCommandList2;
+class WrappedID3D12GraphicsCommandList;
 
 template <typename ifaceptr>
 ifaceptr Unwrap(ifaceptr obj)

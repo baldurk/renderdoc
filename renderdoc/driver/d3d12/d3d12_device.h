@@ -54,7 +54,7 @@ struct D3D12InitParams
 DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 
 class WrappedID3D12Device;
-class WrappedID3D12Resource;
+class WrappedID3D12Resource1;
 
 class D3D12TextRenderer;
 class D3D12ShaderCache;
@@ -275,13 +275,15 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device3
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device5
 {
 private:
   ID3D12Device *m_pDevice;
   ID3D12Device1 *m_pDevice1;
   ID3D12Device2 *m_pDevice2;
   ID3D12Device3 *m_pDevice3;
+  ID3D12Device4 *m_pDevice4;
+  ID3D12Device5 *m_pDevice5;
 
   // list of all queues being captured
   std::vector<WrappedID3D12CommandQueue *> m_Queues;
@@ -520,11 +522,11 @@ public:
       submittedcmds.clear();
     }
 
-    vector<ID3D12GraphicsCommandList2 *> freecmds;
+    vector<ID3D12GraphicsCommandList4 *> freecmds;
     // -> GetNextCmd() ->
-    vector<ID3D12GraphicsCommandList2 *> pendingcmds;
+    vector<ID3D12GraphicsCommandList4 *> pendingcmds;
     // -> ExecuteLists() ->
-    vector<ID3D12GraphicsCommandList2 *> submittedcmds;
+    vector<ID3D12GraphicsCommandList4 *> submittedcmds;
     // -> FlushLists()--------back to freecmds--------^
   } m_InternalCmds;
 
@@ -532,17 +534,17 @@ public:
   // creating fewer temporary lists and making too bloated lists
   static const int initialStateMaxBatch = 100;
   int initStateCurBatch;
-  ID3D12GraphicsCommandList2 *initStateCurList;
+  ID3D12GraphicsCommandList4 *initStateCurList;
 
-  ID3D12GraphicsCommandList2 *GetNewList();
-  ID3D12GraphicsCommandList2 *GetInitialStateList();
+  ID3D12GraphicsCommandList4 *GetNewList();
+  ID3D12GraphicsCommandList4 *GetInitialStateList();
   void CloseInitialStateList();
   ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
   void ApplyInitialContents();
 
   void AddCaptureSubmission();
 
-  void ExecuteList(ID3D12GraphicsCommandList2 *list, WrappedID3D12CommandQueue *queue = NULL,
+  void ExecuteList(ID3D12GraphicsCommandList4 *list, WrappedID3D12CommandQueue *queue = NULL,
                    bool InFrameCaptureBoundary = false);
   void ExecuteLists(WrappedID3D12CommandQueue *queue = NULL, bool InFrameCaptureBoundary = false);
   void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
@@ -578,7 +580,8 @@ public:
   virtual bool IsDeviceUUID(REFIID iid)
   {
     if(iid == __uuidof(ID3D12Device) || iid == __uuidof(ID3D12Device1) ||
-       iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3))
+       iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
+       iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5))
       return true;
 
     return false;
@@ -593,6 +596,10 @@ public:
       return (ID3D12Device2 *)this;
     else if(iid == __uuidof(ID3D12Device3))
       return (ID3D12Device3 *)this;
+    else if(iid == __uuidof(ID3D12Device4))
+      return (ID3D12Device4 *)this;
+    else if(iid == __uuidof(ID3D12Device5))
+      return (ID3D12Device5 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -642,6 +649,18 @@ public:
       this->AddRef();
       return S_OK;
     }
+    else if(riid == __uuidof(ID3D12Device4))
+    {
+      *ppvDevice = (ID3D12Device4 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device5))
+    {
+      *ppvDevice = (ID3D12Device5 *)this;
+      this->AddRef();
+      return S_OK;
+    }
 
     return E_NOINTERFACE;
   }
@@ -683,6 +702,9 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, SetName, ID3D12DeviceChild *pResource, const char *Name);
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(HRESULT, SetShaderDebugPath, ID3D12DeviceChild *pResource,
                                        const char *Path);
+
+  // Protected session
+  ID3D12Fence *CreateProtectedSessionFence(ID3D12Fence *real);
 
   //////////////////////////////
   // implement IUnknown
@@ -844,7 +866,7 @@ public:
                                        UINT64 InitialValue, D3D12_FENCE_FLAGS Flags, REFIID riid,
                                        void **ppFence);
 
-  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, GetDeviceRemovedReason, );
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, GetDeviceRemovedReason);
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual void STDMETHODCALLTYPE, GetCopyableFootprints,
                                        const D3D12_RESOURCE_DESC *pResourceDesc,
@@ -874,6 +896,8 @@ public:
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual LUID STDMETHODCALLTYPE, GetAdapterLuid);
 
+  //////////////////////////////
+  // implement ID3D12Device1
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreatePipelineLibrary,
                                        _In_reads_(BlobLength) const void *pLibraryBlob,
                                        SIZE_T BlobLength, REFIID riid,
@@ -892,10 +916,14 @@ public:
                                        _In_reads_(NumObjects)
                                            const D3D12_RESIDENCY_PRIORITY *pPriorities);
 
+  //////////////////////////////
+  // implement ID3D12Device2
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreatePipelineState,
                                        const D3D12_PIPELINE_STATE_STREAM_DESC *pDesc, REFIID riid,
                                        _COM_Outptr_ void **ppPipelineState);
 
+  //////////////////////////////
+  // implement ID3D12Device3
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
                                        OpenExistingHeapFromAddress, _In_ const void *pAddress,
                                        REFIID riid, _COM_Outptr_ void **ppvHeap);
@@ -908,4 +936,78 @@ public:
                                        D3D12_RESIDENCY_FLAGS Flags, UINT NumObjects,
                                        _In_reads_(NumObjects) ID3D12Pageable *const *ppObjects,
                                        _In_ ID3D12Fence *pFenceToSignal, UINT64 FenceValueToSignal);
+
+  //////////////////////////////
+  // implement ID3D12Device4
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommandList1,
+                                       _In_ UINT nodeMask, _In_ D3D12_COMMAND_LIST_TYPE type,
+                                       _In_ D3D12_COMMAND_LIST_FLAGS flags, REFIID riid,
+                                       _COM_Outptr_ void **ppCommandList);
+
+  virtual HRESULT STDMETHODCALLTYPE
+  CreateProtectedResourceSession(_In_ const D3D12_PROTECTED_RESOURCE_SESSION_DESC *pDesc,
+                                 _In_ REFIID riid, _COM_Outptr_ void **ppSession);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommittedResource1,
+                                       _In_ const D3D12_HEAP_PROPERTIES *pHeapProperties,
+                                       D3D12_HEAP_FLAGS HeapFlags,
+                                       _In_ const D3D12_RESOURCE_DESC *pDesc,
+                                       D3D12_RESOURCE_STATES InitialResourceState,
+                                       _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                       _In_opt_ ID3D12ProtectedResourceSession *pProtectedSession,
+                                       REFIID riidResource, _COM_Outptr_opt_ void **ppvResource);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateHeap1,
+                                       _In_ const D3D12_HEAP_DESC *pDesc,
+                                       _In_opt_ ID3D12ProtectedResourceSession *pProtectedSession,
+                                       REFIID riid, _COM_Outptr_opt_ void **ppvHeap);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateReservedResource1,
+                                       _In_ const D3D12_RESOURCE_DESC *pDesc,
+                                       D3D12_RESOURCE_STATES InitialState,
+                                       _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                       _In_opt_ ID3D12ProtectedResourceSession *pProtectedSession,
+                                       REFIID riid, _COM_Outptr_opt_ void **ppvResource);
+
+  virtual D3D12_RESOURCE_ALLOCATION_INFO STDMETHODCALLTYPE GetResourceAllocationInfo1(
+      UINT visibleMask, UINT numResourceDescs,
+      _In_reads_(numResourceDescs) const D3D12_RESOURCE_DESC *pResourceDescs,
+      _Out_writes_opt_(numResourceDescs) D3D12_RESOURCE_ALLOCATION_INFO1 *pResourceAllocationInfo1);
+
+  //////////////////////////////
+  // implement ID3D12Device5
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateLifetimeTracker,
+                                       _In_ ID3D12LifetimeOwner *pOwner, REFIID riid,
+                                       _COM_Outptr_ void **ppvTracker);
+
+  virtual void STDMETHODCALLTYPE RemoveDevice();
+
+  virtual HRESULT STDMETHODCALLTYPE EnumerateMetaCommands(_Inout_ UINT *pNumMetaCommands,
+                                                          _Out_writes_opt_(*pNumMetaCommands)
+                                                              D3D12_META_COMMAND_DESC *pDescs);
+
+  virtual HRESULT STDMETHODCALLTYPE EnumerateMetaCommandParameters(
+      _In_ REFGUID CommandId, _In_ D3D12_META_COMMAND_PARAMETER_STAGE Stage,
+      _Out_opt_ UINT *pTotalStructureSizeInBytes, _Inout_ UINT *pParameterCount,
+      _Out_writes_opt_(*pParameterCount) D3D12_META_COMMAND_PARAMETER_DESC *pParameterDescs);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateMetaCommand,
+                                       _In_ REFGUID CommandId, _In_ UINT NodeMask,
+                                       _In_reads_bytes_opt_(CreationParametersDataSizeInBytes)
+                                           const void *pCreationParametersData,
+                                       _In_ SIZE_T CreationParametersDataSizeInBytes, REFIID riid,
+                                       _COM_Outptr_ void **ppMetaCommand);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateStateObject,
+                                       const D3D12_STATE_OBJECT_DESC *pDesc, REFIID riid,
+                                       _COM_Outptr_ void **ppStateObject);
+
+  virtual void STDMETHODCALLTYPE GetRaytracingAccelerationStructurePrebuildInfo(
+      _In_ const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS *pDesc,
+      _Out_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO *pInfo);
+
+  virtual D3D12_DRIVER_MATCHING_IDENTIFIER_STATUS STDMETHODCALLTYPE CheckDriverMatchingIdentifier(
+      _In_ D3D12_SERIALIZED_DATA_TYPE SerializedDataType,
+      _In_ const D3D12_SERIALIZED_DATA_DRIVER_MATCHING_IDENTIFIER *pIdentifierToCheck);
 };

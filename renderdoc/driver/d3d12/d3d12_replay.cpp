@@ -270,8 +270,8 @@ std::vector<ResourceId> D3D12Replay::GetBuffers()
 {
   std::vector<ResourceId> ret;
 
-  for(auto it = WrappedID3D12Resource::GetList().begin();
-      it != WrappedID3D12Resource::GetList().end(); it++)
+  for(auto it = WrappedID3D12Resource1::GetList().begin();
+      it != WrappedID3D12Resource1::GetList().end(); it++)
     if(it->second->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
       ret.push_back(it->first);
 
@@ -282,8 +282,8 @@ std::vector<ResourceId> D3D12Replay::GetTextures()
 {
   std::vector<ResourceId> ret;
 
-  for(auto it = WrappedID3D12Resource::GetList().begin();
-      it != WrappedID3D12Resource::GetList().end(); it++)
+  for(auto it = WrappedID3D12Resource1::GetList().begin();
+      it != WrappedID3D12Resource1::GetList().end(); it++)
   {
     if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER &&
        m_pDevice->GetResourceManager()->GetOriginalID(it->first) != it->first)
@@ -298,9 +298,9 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
   BufferDescription ret = {};
   ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
-  auto it = WrappedID3D12Resource::GetList().find(id);
+  auto it = WrappedID3D12Resource1::GetList().find(id);
 
-  if(it == WrappedID3D12Resource::GetList().end())
+  if(it == WrappedID3D12Resource1::GetList().end())
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -339,9 +339,9 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   TextureDescription ret = {};
   ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
-  auto it = WrappedID3D12Resource::GetList().find(id);
+  auto it = WrappedID3D12Resource1::GetList().find(id);
 
-  if(it == WrappedID3D12Resource::GetList().end())
+  if(it == WrappedID3D12Resource1::GetList().end())
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -1111,8 +1111,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
             if(desc)
             {
               const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
-              WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId,
-                                                      cb.byteOffset);
+              WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId,
+                                                       cb.byteOffset);
               cb.resourceId = rm->GetOriginalID(cb.resourceId);
               cb.byteSize = cbv.SizeInBytes;
 
@@ -2210,7 +2210,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                             CompType typeHint, float *minval, float *maxval)
 {
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
 
   if(resource == NULL)
     return false;
@@ -2390,7 +2390,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
   if(minval >= maxval)
     return false;
 
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
 
   if(resource == NULL)
     return false;
@@ -2636,15 +2636,15 @@ bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
 
 void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
 {
-  auto it = WrappedID3D12Resource::GetList().find(buff);
+  auto it = WrappedID3D12Resource1::GetList().find(buff);
 
-  if(it == WrappedID3D12Resource::GetList().end())
+  if(it == WrappedID3D12Resource1::GetList().end())
   {
     RDCERR("Getting buffer data for unknown buffer %llu!", buff);
     return;
   }
 
-  WrappedID3D12Resource *buffer = it->second;
+  WrappedID3D12Resource1 *buffer = it->second;
 
   RDCASSERT(buffer);
 
@@ -2913,7 +2913,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 {
   bool wasms = false;
 
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[tex];
+  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[tex];
 
   if(resource == NULL)
   {
@@ -3429,7 +3429,7 @@ void D3D12Replay::BuildCustomShader(std::string source, std::string entry,
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
 {
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
 
   if(resource == NULL)
     return ResourceId();
