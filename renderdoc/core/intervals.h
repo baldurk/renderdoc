@@ -80,7 +80,6 @@ public:
   // If `x == start`, then `split(x)` is a no-op.
   inline void split(uint64_t x)
   {
-    RDCASSERT(this->start() <= x && x < this->finish());
     if(this->start() < x)
       this->iter = this->owner->insert(std::pair<uint64_t, T>(x, this->value())).first;
   }
@@ -194,7 +193,6 @@ public:
   {
     // Find the first interval starting after `x`; return the preceding interval.
     auto it = StartPoints.upper_bound(x);
-    RDCASSERT(it != StartPoints.begin());
     it--;
     return Wrap(it);
   }
@@ -204,7 +202,6 @@ public:
   {
     // Find the first interval starting after `x`; return the preceding interval.
     auto it = StartPoints.upper_bound(x);
-    RDCASSERT(it != StartPoints.begin());
     it--;
     return Wrap(it);
   }
@@ -216,6 +213,9 @@ public:
   template <typename Compose>
   void update(uint64_t start, uint64_t finish, T val, Compose comp)
   {
+    if(finish <= start)
+      return;
+
     auto i = find(start);
 
     // Split the interval so that `i.start == start`
@@ -240,7 +240,8 @@ public:
 
     // `i` now points to the interval following the last interval whose value was
     // modified; merge `i` with that last modified interval, if the values match.
-    i->mergeLeft();
+    if(i != end())
+      i->mergeLeft();
   }
 
   // Update `this` by composing the value of each interval with the value of the
@@ -262,8 +263,6 @@ public:
     //  * i.start() < j.end()
     while(true)
     {
-      RDCASSERT(i->start() >= j->start());
-      RDCASSERT(i->start() < j->finish());
       if(i->finish() > j->finish())
       {
         i->split(j->finish());
@@ -282,11 +281,7 @@ public:
       // in `other`, if necessary to maintain the invariant `i.start < j.end`.
       i++;
       if(i == end())
-      {
-        j++;
-        RDCASSERT(j == other.end());
         return;
-      }
       if(i->start() >= j->finish())
         j++;
     }
