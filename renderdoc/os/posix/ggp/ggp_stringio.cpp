@@ -73,8 +73,17 @@ string GetTempRootPath()
 
 string GetAppFolderFilename(const string &filename)
 {
-  passwd *pw = getpwuid(getuid());
-  const char *homedir = pw->pw_dir;
+  const char *homedir = NULL;
+  if(getenv("HOME") != NULL)
+  {
+    homedir = getenv("HOME");
+    RDCLOG("$HOME value is %s", homedir);
+  }
+  else
+  {
+    RDCLOG("$HOME value is NULL");
+    homedir = getpwuid(getuid())->pw_dir;
+  }
 
   string ret = string(homedir) + "/.renderdoc/";
 
