@@ -1376,10 +1376,16 @@ struct CounterDescription
 
   DOCUMENT(R"(The :class:`GPUCounter` this counter represents.
 
-.. note:: The value may not correspond to any of the predefined values if it's a hardware-specific
-  counter value.
+.. note:: This is stored as an ``int`` not a :class:`GPUCounter` to allow for values that may not
+  correspond to any of the predefined values if it's a hardware-specific counter value.
 )");
+// for SWIG we pretend this is just an int, because Python can't handle enums with a value other
+// than one of the pre-defined values
+#if defined(SWIG) || defined(SWIGPYTHON)
+  uint32_t counter;
+#else
   GPUCounter counter;
+#endif
 
   DOCUMENT("A short human-readable name for the counter.");
   rdcstr name;
@@ -1425,6 +1431,26 @@ DECLARE_REFLECTION_STRUCT(CounterValue);
 DOCUMENT("The resulting value from a counter at an event.");
 struct CounterResult
 {
+#if defined(SWIG) || defined(SWIGPYTHON)
+  CounterResult() : eventId(0), counter(uint32_t(GPUCounter::EventGPUDuration)) { value.u64 = 0; }
+  CounterResult(const CounterResult &) = default;
+  CounterResult(uint32_t e, GPUCounter c, float data) : eventId(e), counter(uint32_t(c))
+  {
+    value.f = data;
+  }
+  CounterResult(uint32_t e, GPUCounter c, double data) : eventId(e), counter(uint32_t(c))
+  {
+    value.d = data;
+  }
+  CounterResult(uint32_t e, GPUCounter c, uint32_t data) : eventId(e), counter(uint32_t(c))
+  {
+    value.u32 = data;
+  }
+  CounterResult(uint32_t e, GPUCounter c, uint64_t data) : eventId(e), counter(uint32_t(c))
+  {
+    value.u64 = data;
+  }
+#else
   CounterResult() : eventId(0), counter(GPUCounter::EventGPUDuration) { value.u64 = 0; }
   CounterResult(const CounterResult &) = default;
   CounterResult(uint32_t e, GPUCounter c, float data) : eventId(e), counter(c) { value.f = data; }
@@ -1437,6 +1463,7 @@ struct CounterResult
   {
     value.u64 = data;
   }
+#endif
 
   DOCUMENT("Compares two ``CounterResult`` objects for less-than.");
   bool operator<(const CounterResult &o) const
@@ -1460,8 +1487,18 @@ struct CounterResult
   DOCUMENT("The :data:`eventId <APIEvent.eventId>` that produced this value.");
   uint32_t eventId;
 
-  DOCUMENT("The :data:`counter <GPUCounter>` that produced this value.");
+  DOCUMENT(R"(The :data:`counter <GPUCounter>` that produced this value, stored as an int.
+
+.. note:: This is stored as an ``int`` not a :class:`GPUCounter` to allow for values that may not
+  correspond to any of the predefined values if it's a hardware-specific counter value.
+)");
+// for SWIG we pretend this is just an int, because Python can't handle enums with a value other
+// than one of the pre-defined values
+#if defined(SWIG) || defined(SWIGPYTHON)
+  uint32_t counter;
+#else
   GPUCounter counter;
+#endif
 
   DOCUMENT("The value itself.");
   CounterValue value;
