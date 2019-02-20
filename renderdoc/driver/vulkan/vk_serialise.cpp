@@ -1073,30 +1073,39 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkApplicationInfo &el)
 {
   RDCERR("Serialising VkApplicationInfo - this should always be a NULL optional element");
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkInstanceCreateInfo &el)
 {
   RDCERR("Serialising VkInstanceCreateInfo - this should always be a NULL optional element");
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkLayerInstanceCreateInfo &el)
 {
   RDCERR("Serialising VkLayerInstanceCreateInfo - this should always be a NULL optional element");
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO;
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkLayerDeviceCreateInfo &el)
 {
   RDCERR("Serialising VkLayerDeviceCreateInfo - this should always be a NULL optional element");
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO;
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkAllocationCallbacks &el)
 {
   RDCERR("Serialising VkAllocationCallbacks - this should always be a NULL optional element");
+  RDCEraseEl(el);
 }
 
 template <typename SerialiserType>
@@ -1104,6 +1113,8 @@ void DoSerialise(SerialiserType &ser, VkDebugMarkerObjectNameInfoEXT &el)
 {
   RDCERR("Serialising VkDebugMarkerObjectNameInfoEXT - this should be handled specially");
   // can't handle it here without duplicating objectType logic
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
 }
 
 template <typename SerialiserType>
@@ -1111,6 +1122,8 @@ void DoSerialise(SerialiserType &ser, VkDebugMarkerObjectTagInfoEXT &el)
 {
   RDCERR("Serialising VkDebugMarkerObjectTagInfoEXT - this should be handled specially");
   // can't handle it here without duplicating objectType logic
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT;
 }
 
 template <typename SerialiserType>
@@ -1118,6 +1131,8 @@ void DoSerialise(SerialiserType &ser, VkDebugUtilsObjectNameInfoEXT &el)
 {
   RDCERR("Serialising VkDebugUtilsObjectNameInfoEXT - this should be handled specially");
   // can't handle it here without duplicating objectType logic
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 }
 
 template <>
@@ -1131,6 +1146,8 @@ void DoSerialise(SerialiserType &ser, VkDebugUtilsObjectTagInfoEXT &el)
 {
   RDCERR("Serialising VkDebugUtilsObjectTagInfoEXT - this should be handled specially");
   // can't handle it here without duplicating objectType logic
+  RDCEraseEl(el);
+  el.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT;
 }
 
 template <typename SerialiserType>
