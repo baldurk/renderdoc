@@ -332,7 +332,7 @@ void GLReplay::InitDebugData()
     if(GLCoreVersion >= 32)
       glslVersion = glslBaseVer = glslCSVer = 320;
 
-    if(HasExt[OES_texture_cube_map_array] || HasExt[EXT_texture_cube_map_array])
+    if(HasExt[OES_texture_cube_map_array] || HasExt[EXT_texture_cube_map_array] || GLCoreVersion >= 32)
       texSampleDefines += "#define TEXSAMPLE_CUBE_ARRAY 1\n";
 
     if(HasExt[OES_texture_cube_map_array])

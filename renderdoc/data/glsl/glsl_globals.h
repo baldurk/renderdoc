@@ -56,6 +56,8 @@
 #define PRECISION
 #else
 #define PRECISION highp
+precision highp float;
+precision highp int;
 #endif
 
 #ifndef FLT_EPSILON

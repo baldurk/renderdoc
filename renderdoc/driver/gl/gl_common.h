@@ -734,8 +734,8 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 32, EXT_primitive_bounding_box)               \
   EXT_TO_CHECK(99, 32, OES_primitive_bounding_box)               \
   EXT_TO_CHECK(99, 32, OES_texture_border_color)                 \
-  EXT_TO_CHECK(99, 32, EXT_texture_cube_map_array)               \
-  EXT_TO_CHECK(99, 32, OES_texture_cube_map_array)               \
+  EXT_TO_CHECK(99, 99, EXT_texture_cube_map_array)               \
+  EXT_TO_CHECK(99, 99, OES_texture_cube_map_array)               \
   EXT_TO_CHECK(99, 32, OES_texture_storage_multisample_2d_array) \
   EXT_TO_CHECK(99, 99, EXT_clip_cull_distance)                   \
   EXT_TO_CHECK(99, 99, EXT_multisample_compatibility)            \
