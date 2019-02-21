@@ -98,9 +98,7 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
   if(type == eShaderGLSLES)
     combined +=
         "#define OPENGL 1\n"
-        "#define OPENGL_ES 1\n"
-        "precision highp float;\n"
-        "precision highp int;\n";
+        "#define OPENGL_ES 1\n";
   else if(type == eShaderGLSL)
     combined +=
         "#define OPENGL 1\n"

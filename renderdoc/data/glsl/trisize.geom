@@ -22,12 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "glsl_globals.h"
-
 #if defined(OPENGL_ES)
 #extension GL_EXT_geometry_shader : enable
 #extension GL_OES_geometry_shader : enable
 #endif
+
+#include "glsl_globals.h"
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
