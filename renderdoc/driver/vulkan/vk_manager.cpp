@@ -702,6 +702,15 @@ void VulkanResourceManager::ClearReferencedMemory()
   m_MemFrameRefs.clear();
 }
 
+MemRefs *VulkanResourceManager::FindMemRefs(ResourceId mem)
+{
+  auto it = m_MemFrameRefs.find(mem);
+  if(it != m_MemFrameRefs.end())
+    return &it->second;
+  else
+    return NULL;
+}
+
 bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res, bool prepare)
 {
   return false;

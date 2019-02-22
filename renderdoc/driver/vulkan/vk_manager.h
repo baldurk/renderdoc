@@ -429,7 +429,9 @@ public:
 
   void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
   void ClearReferencedMemory();
+  MemRefs *FindMemRefs(ResourceId mem);
 
+  inline bool OptimizeInitialState() { return m_OptimizeInitialState; }
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
@@ -446,4 +448,5 @@ private:
   CaptureState m_State;
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
+  bool m_OptimizeInitialState = false;
 };
