@@ -922,7 +922,11 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         {
           shaderCBuf = &bind;
           map = &mapping.constantBlocks[bind.bindPoint];
-          break;
+
+          // if this one is used, break immediately. Otherwise keep going to see if we find one that
+          // is used
+          if(map->used)
+            break;
         }
 
         idx++;
