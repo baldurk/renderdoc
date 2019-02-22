@@ -446,16 +446,18 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
     // query as native format so that wrapping works as expected
     uuid = m_pDevice->GetBackbufferUUID();
   }
-  else if(uuid != __uuidof(ID3D11Texture2D) && uuid != __uuidof(ID3D11Resource) &&
-          uuid != __uuidof(ID3D12Resource))
+  else if(uuid != __uuidof(ID3D11Texture2D) && uuid != __uuidof(ID3D11Texture2D1) &&
+          uuid != __uuidof(ID3D11Resource) && uuid != __uuidof(ID3D12Resource) &&
+          uuid != __uuidof(ID3D12Resource1))
   {
     RDCERR("Unsupported or unrecognised UUID passed to IDXGISwapChain::GetBuffer - %s",
            ToStr(uuid).c_str());
     return E_NOINTERFACE;
   }
 
-  RDCASSERT(uuid == __uuidof(ID3D11Texture2D) || uuid == __uuidof(ID3D11Resource) ||
-            uuid == __uuidof(ID3D12Resource));
+  RDCASSERT(uuid == __uuidof(ID3D11Texture2D) || uuid == __uuidof(ID3D11Texture2D1) ||
+            uuid == __uuidof(ID3D11Resource) || uuid == __uuidof(ID3D12Resource) ||
+            uuid == __uuidof(ID3D12Resource1));
 
   HRESULT ret = m_pReal->GetBuffer(Buffer, uuid, ppSurface);
 
