@@ -1006,8 +1006,10 @@ struct AttachmentInfo
 struct MemRefs
 {
   Intervals<FrameRefType> rangeRefs;
-  inline MemRefs() {}
+  WrappedVkRes *initializedLiveRes;
+  inline MemRefs() : initializedLiveRes(NULL) {}
   inline MemRefs(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+      : initializedLiveRes(NULL)
   {
     rangeRefs.update(offset, offset + size, refType, ComposeFrameRefs);
   }

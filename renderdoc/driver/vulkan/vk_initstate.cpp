@@ -1975,28 +1975,81 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents ini
   }
   else if(type == eResDeviceMemory)
   {
+    Intervals<InitReqType> resetReq;
+    ResourceId orig = GetResourceManager()->GetOriginalID(id);
+    MemRefs *memRefs = NULL;
+    if(GetResourceManager()->OptimizeInitialState())
+      memRefs = GetResourceManager()->FindMemRefs(orig);
+    if(!memRefs)
+    {
+      // No information about the memory usage in the frame.
+      // Pessimistically assume the entire memory needs to be reset.
+      resetReq.update(0, initial.mem.size, eInitReq_Reset,
+                      [](InitReqType x, InitReqType y) -> InitReqType { return std::max(x, y); });
+    }
+    else
+    {
+      bool initialized = memRefs->initializedLiveRes == live;
+      memRefs->initializedLiveRes = live;
+      for(auto it = memRefs->rangeRefs.begin(); it != memRefs->rangeRefs.end(); it++)
+      {
+        InitReqType t = InitReq(it->value());
+        if(t == eInitReq_Reset || (t == eInitReq_InitOnce && !initialized))
+          resetReq.update(it->start(), it->finish(), eInitReq_Reset,
+                          [](InitReqType x, InitReqType y) -> InitReqType { return std::max(x, y); });
+        else if(t == eInitReq_Clear || (t == eInitReq_None && !initialized))
+          resetReq.update(it->start(), it->finish(), eInitReq_Clear,
+                          [](InitReqType x, InitReqType y) -> InitReqType { return std::max(x, y); });
+      }
+    }
+
     VkResult vkr = VK_SUCCESS;
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     VkBuffer srcBuf = initial.buf;
-    VkDeviceSize datasize = initial.mem.size;
-    VkDeviceSize dstMemOffs = 0;
+
+    VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
+    if(dstBuf == VK_NULL_HANDLE)
+    {
+      RDCERR("Whole memory buffer not present for %llu", id);
+      return;
+    }
+
+    if(resetReq.size() == 1 && resetReq.begin()->value() == eInitReq_None)
+    {
+      RDCDEBUG("Apply_InitialState (Mem %llu): skipped", orig);
+      return;    // no copy or clear required
+    }
 
     VkCommandBuffer cmd = GetNextCmd();
 
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
-
-    VkBufferCopy region = {0, dstMemOffs, datasize};
-
-    if(dstBuf != VK_NULL_HANDLE)
-      ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
-    else
-      RDCERR("Whole memory buffer not present for %llu", id);
+    std::vector<VkBufferCopy> regions;
+    uint32_t fillCount = 0;
+    for(auto it = resetReq.begin(); it != resetReq.end(); it++)
+    {
+      if(it->start() >= initial.mem.size)
+        continue;
+      VkDeviceSize finish = RDCMIN(it->finish(), initial.mem.size);
+      VkDeviceSize size = finish - it->start();
+      switch(it->value())
+      {
+        case eInitReq_Clear:
+          ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(dstBuf), it->start(), size, 0);
+          fillCount++;
+          break;
+        case eInitReq_Reset: regions.push_back({it->start(), it->start(), size}); break;
+        default: break;
+      }
+    }
+    RDCDEBUG("Apply_InitialState (Mem %llu): %d fills, %d copies", orig, fillCount, regions.size());
+    if(regions.size() > 0)
+      ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf),
+                                  (uint32_t)regions.size(), regions.data());
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);

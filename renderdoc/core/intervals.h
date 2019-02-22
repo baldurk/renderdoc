@@ -188,6 +188,8 @@ public:
   inline iterator begin() { return Wrap(StartPoints.begin()); }
   inline const_iterator begin() const { return Wrap(StartPoints.begin()); }
   inline const_iterator end() const { return Wrap(StartPoints.end()); }
+  typedef typename std::map<uint64_t, T>::size_type size_type;
+  inline size_type size() const { return StartPoints.size(); }
   // Find the interval containing `x`.
   iterator find(uint64_t x)
   {
