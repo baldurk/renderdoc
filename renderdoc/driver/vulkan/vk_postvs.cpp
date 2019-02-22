@@ -1855,7 +1855,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
         idx32[i] = uint32_t(indexRemap[i32]);
     }
 
-    bufInfo.size = (VkDeviceSize)idxdata.size();
+    bufInfo.size = RDCMAX(64ULL, (VkDeviceSize)idxdata.size());
     bufInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &rebasedIdxBuf);
