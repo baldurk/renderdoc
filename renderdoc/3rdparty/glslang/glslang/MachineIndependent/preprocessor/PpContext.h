@@ -243,24 +243,48 @@ public:
     // From PpTokens.cpp
     //
 
+    // Capture the needed parts of a token stream for macro recording/playback.
     class TokenStream {
     public:
-        TokenStream() : current(0) { }
+        // Manage a stream of these 'Token', which capture the relevant parts
+        // of a TPpToken, plus its atom.
+        class Token {
+        public:
+            Token(int atom, const TPpToken& ppToken) : 
+                atom(atom),
+                space(ppToken.space),
+                i64val(ppToken.i64val),
+                name(ppToken.name) { }
+            int get(TPpToken& ppToken)
+            {
+                ppToken.clear();
+                ppToken.space = space;
+                ppToken.i64val = i64val;
+                snprintf(ppToken.name, sizeof(ppToken.name), "%s", name.c_str());
+                return atom;
+            }
+            bool isAtom(int a) { return atom == a; }
+        protected:
+            Token() {}
+            int atom;
+            bool space;        // did a space precede the token?
+            long long i64val;
+            TString name;
+        };
+
+        TokenStream() : currentPos(0) { }
 
         void putToken(int token, TPpToken* ppToken);
+        bool peekToken(int atom) { return !atEnd() && stream[currentPos].isAtom(atom); }
         int getToken(TParseContextBase&, TPpToken*);
-        bool atEnd() { return current >= data.size(); }
+        bool atEnd() { return currentPos >= stream.size(); }
         bool peekTokenizedPasting(bool lastTokenPastes);
         bool peekUntokenizedPasting();
-        void reset() { current = 0; }
+        void reset() { currentPos = 0; }
 
     protected:
-        void putSubtoken(char);
-        int getSubtoken();
-        void ungetSubtoken();
-
-        TVector<unsigned char> data;
-        size_t current;
+        TVector<Token> stream;
+        size_t currentPos;
     };
 
     //

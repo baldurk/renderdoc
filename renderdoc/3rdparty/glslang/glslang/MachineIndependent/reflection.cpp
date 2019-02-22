@@ -317,8 +317,7 @@ public:
                         newBaseName.append(TString("[") + String(i) + "]");
                     TList<TIntermBinary*>::const_iterator nextDeref = deref;
                     ++nextDeref;
-                    TType derefType(*terminalType, 0);
-                    blowUpActiveAggregate(derefType, newBaseName, derefs, nextDeref, offset, blockIndex, arraySize,
+                    blowUpActiveAggregate(*terminalType, newBaseName, derefs, nextDeref, offset, blockIndex, arraySize,
                                           topLevelArrayStride, baseStorage, active);
 
                     if (offset >= 0)
@@ -705,7 +704,7 @@ public:
     // Are we at a level in a dereference chain at which individual active uniform queries are made?
     bool isReflectionGranularity(const TType& type)
     {
-        return type.getBasicType() != EbtBlock && type.getBasicType() != EbtStruct;
+        return type.getBasicType() != EbtBlock && type.getBasicType() != EbtStruct && !type.isArrayOfArrays();
     }
 
     // For a binary operation indexing into an aggregate, chase down the base of the aggregate.

@@ -1056,7 +1056,7 @@ int TPpContext::tokenize(TPpToken& ppToken)
         // Handle token-pasting logic
         token = tokenPaste(token, ppToken);
 
-        if (token == EndOfInput || token == tMarkerInput::marker) {
+        if (token == EndOfInput) {
             missingEndifCheck();
             return EndOfInput;
         }
@@ -1116,7 +1116,7 @@ int TPpContext::tokenize(TPpToken& ppToken)
             parseContext.ppError(ppToken.loc, "character literals not supported", "\'", "");
             continue;
         default:
-            strcpy(ppToken.name, atomStrings.getString(token));
+            snprintf(ppToken.name, sizeof(ppToken.name), "%s", atomStrings.getString(token));
             break;
         }
 
@@ -1185,8 +1185,8 @@ int TPpContext::tokenPaste(int token, TPpToken& ppToken)
         case PpAtomAnd:
         case PpAtomOr:
         case PpAtomXor:
-            strcpy(ppToken.name, atomStrings.getString(resultToken));
-            strcpy(pastedPpToken.name, atomStrings.getString(token));
+            snprintf(ppToken.name, sizeof(ppToken.name), "%s", atomStrings.getString(resultToken));
+            snprintf(pastedPpToken.name, sizeof(pastedPpToken.name), "%s", atomStrings.getString(token));
             break;
         default:
             parseContext.ppError(ppToken.loc, "not supported for these tokens", "##", "");
@@ -1198,7 +1198,8 @@ int TPpContext::tokenPaste(int token, TPpToken& ppToken)
             parseContext.ppError(ppToken.loc, "combined tokens are too long", "##", "");
             return resultToken;
         }
-        strncat(ppToken.name, pastedPpToken.name, MaxTokenLength - strlen(ppToken.name));
+        snprintf(&ppToken.name[0] + strlen(ppToken.name), sizeof(ppToken.name) - strlen(ppToken.name),
+            "%s", pastedPpToken.name);
 
         // correct the kind of token we are making, if needed (identifiers stay identifiers)
         if (resultToken != PpAtomIdentifier) {
