@@ -547,9 +547,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
 
     const D3D12_RENDER_TARGET_VIEW_DESC *rtvdesc = &desc.GetRTV();
     if(rtvdesc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
-    {
       rtvdesc = NULL;
 
+    if(rtvdesc == NULL || rtvdesc->Format == DXGI_FORMAT_UNKNOWN)
+    {
       const std::map<ResourceId, DXGI_FORMAT> &bbs = m_pDevice->GetBackbufferFormats();
 
       auto it = bbs.find(GetResID(res));
@@ -589,9 +590,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
 
     const D3D12_UNORDERED_ACCESS_VIEW_DESC *uavdesc = &unpacked;
     if(uavdesc->ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
-    {
       uavdesc = NULL;
 
+    if(uavdesc == NULL || uavdesc->Format == DXGI_FORMAT_UNKNOWN)
+    {
       const std::map<ResourceId, DXGI_FORMAT> &bbs = m_pDevice->GetBackbufferFormats();
 
       auto it = bbs.find(GetResID(res));

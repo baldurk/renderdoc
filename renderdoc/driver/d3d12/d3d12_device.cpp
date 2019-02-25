@@ -871,7 +871,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
   WrappedID3D12Resource1 *pRes = (WrappedID3D12Resource1 *)realSurface;
 
   SERIALISE_ELEMENT(Buffer);
-  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("IDXGISwapChain *");
+  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("ID3D12Resource *");
   SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
 
   SERIALISE_CHECK_READ_ERRORS();

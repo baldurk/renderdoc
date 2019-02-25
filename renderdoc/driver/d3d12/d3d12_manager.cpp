@@ -187,6 +187,21 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         // by referring to a resource that was deleted), use a default descriptor
         desc = defaultSRV();
       }
+      else if(desc->Format == DXGI_FORMAT_UNKNOWN)
+      {
+        const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
+
+        auto it = bbs.find(GetResID(res));
+
+        // fixup for backbuffers
+        if(it != bbs.end())
+        {
+          D3D12_SHADER_RESOURCE_VIEW_DESC bbDesc = *desc;
+          bbDesc.Format = it->second;
+          dev->CreateShaderResourceView(res, &bbDesc, handle);
+          return;
+        }
+      }
 
       D3D12_SHADER_RESOURCE_VIEW_DESC planeDesc;
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
@@ -261,6 +276,21 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         // if we don't have a resource (which is possible if the descriptor is unused or invalidated
         // by referring to a resource that was deleted), use a default descriptor
         desc = defaultRTV();
+      }
+      else if(desc->Format == DXGI_FORMAT_UNKNOWN)
+      {
+        const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
+
+        auto it = bbs.find(GetResID(res));
+
+        // fixup for backbuffers
+        if(it != bbs.end())
+        {
+          D3D12_RENDER_TARGET_VIEW_DESC bbDesc = *desc;
+          bbDesc.Format = it->second;
+          dev->CreateRenderTargetView(res, &bbDesc, handle);
+          return;
+        }
       }
 
       D3D12_RENDER_TARGET_VIEW_DESC planeDesc;
@@ -355,6 +385,21 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         // if we don't have a resource (which is possible if the descriptor is unused), use a
         // default descriptor
         desc = defaultUAV();
+      }
+      else if(desc->Format == DXGI_FORMAT_UNKNOWN)
+      {
+        const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
+
+        auto it = bbs.find(GetResID(res));
+
+        // fixup for backbuffers
+        if(it != bbs.end())
+        {
+          D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = *desc;
+          bbDesc.Format = it->second;
+          dev->CreateUnorderedAccessView(res, NULL, &bbDesc, handle);
+          return;
+        }
       }
 
       if(countRes == NULL && desc && desc->ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
