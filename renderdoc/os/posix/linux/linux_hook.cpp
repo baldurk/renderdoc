@@ -129,6 +129,9 @@ static void CheckLoadedLibraries()
     }
   }
 
+  // clear any dl errors in case twitchy applications get set off by false positive errors.
+  dlerror();
+
   // decrement the flag counter
   Atomic::Dec32(&tlsbusyflag);
 }
