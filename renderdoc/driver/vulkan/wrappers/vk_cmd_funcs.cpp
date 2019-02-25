@@ -121,6 +121,15 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
       atts.back().attachment = (uint32_t)rpinfo.subpasses[subpass].depthstencilAttachment;
       atts.back().layout = rpinfo.subpasses[subpass].depthstencilLayout;
     }
+
+    int32_t fd = rpinfo.subpasses[subpass].fragmentDensityAttachment;
+
+    if(fd != -1)
+    {
+      atts.push_back(VkAttachmentReference());
+      atts.back().attachment = (uint32_t)rpinfo.subpasses[subpass].fragmentDensityAttachment;
+      atts.back().layout = rpinfo.subpasses[subpass].fragmentDensityLayout;
+    }
   }
 
   for(size_t i = 0; i < atts.size(); i++)
@@ -188,6 +197,12 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
       if((uint32_t)rpinfo.subpasses[s - 1].depthstencilAttachment == idx)
       {
         barrier.oldLayout = rpinfo.subpasses[s - 1].depthstencilLayout;
+        break;
+      }
+
+      if((uint32_t)rpinfo.subpasses[s - 1].fragmentDensityAttachment == idx)
+      {
+        barrier.oldLayout = rpinfo.subpasses[s - 1].fragmentDensityLayout;
         break;
       }
     }

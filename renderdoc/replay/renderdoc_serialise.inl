@@ -2057,6 +2057,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::RenderPass &el)
   SERIALISE_MEMBER(colorAttachments);
   SERIALISE_MEMBER(resolveAttachments);
   SERIALISE_MEMBER(depthstencilAttachment);
+  SERIALISE_MEMBER(fragmentDensityAttachment);
   SERIALISE_MEMBER(multiviews);
 
   SIZE_CHECK(120);

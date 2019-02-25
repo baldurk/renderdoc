@@ -1673,6 +1673,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceFragmentDensityMapFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(fragmentDensityMap);
+        CHECK_PHYS_EXT_FEATURE(fragmentDensityMapDynamic);
+        CHECK_PHYS_EXT_FEATURE(fragmentDensityMapNonSubsampledImages);
+      }
+      END_PHYS_EXT_CHECK();
+
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceProtectedMemoryFeatures,
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES);
       {
@@ -2182,6 +2191,14 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     enabledFeatures2->features = enabledFeatures;
   else
     createInfo.pEnabledFeatures = &enabledFeatures;
+
+  VkPhysicalDeviceFragmentDensityMapFeaturesEXT *fragmentDensityMapFeatures =
+      (VkPhysicalDeviceFragmentDensityMapFeaturesEXT *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT);
+  if(fragmentDensityMapFeatures && !fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages)
+  {
+    fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages = true;
+  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice));

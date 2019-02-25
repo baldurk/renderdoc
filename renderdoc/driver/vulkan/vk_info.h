@@ -317,10 +317,12 @@ struct VulkanCreationInfo
       vector<uint32_t> colorAttachments;
       vector<uint32_t> resolveAttachments;
       int32_t depthstencilAttachment;
+      int32_t fragmentDensityAttachment;
 
       vector<VkImageLayout> inputLayouts;
       vector<VkImageLayout> colorLayouts;
       VkImageLayout depthstencilLayout;
+      VkImageLayout fragmentDensityLayout;
 
       std::vector<uint32_t> multiviews;
     };

@@ -463,6 +463,14 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_display_surface_counter */                                                                 \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT)                \
                                                                                                        \
+  /* VK_EXT_fragment_density_map */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT,                    \
+               VkPhysicalDeviceFragmentDensityMapFeaturesEXT)                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT,                  \
+               VkPhysicalDeviceFragmentDensityMapPropertiesEXT)                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT,                     \
+               VkRenderPassFragmentDensityMapCreateInfoEXT)                                            \
+                                                                                                       \
   /* VK_EXT_global_priority */                                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,                         \
                VkDeviceQueueGlobalPriorityCreateInfoEXT)                                               \
@@ -809,11 +817,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
-                                                                                                       \
-  /* VK_EXT_fragment_density_map */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT)                \
                                                                                                        \
   /* VK_EXT_hdr_metadata */                                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HDR_METADATA_EXT)                                                \
@@ -3774,6 +3777,22 @@ void Deserialise(const VkRenderPassMultiviewCreateInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRenderPassFragmentDensityMapCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityMapAttachment);
+}
+
+template <>
+void Deserialise(const VkRenderPassFragmentDensityMapCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSampleLocationEXT &el)
 {
   SERIALISE_MEMBER(x);
@@ -3849,6 +3868,42 @@ void Deserialise(const VkRenderPassSampleLocationsBeginInfoEXT &el)
   for(uint32_t j = 0; el.pPostSubpassSampleLocations && j < el.postSubpassSampleLocationsCount; j++)
     Deserialise(el.pPostSubpassSampleLocations[j]);
   delete[] el.pPostSubpassSampleLocations;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityMap);
+  SERIALISE_MEMBER(fragmentDensityMapDynamic);
+  SERIALISE_MEMBER(fragmentDensityMapNonSubsampledImages);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMapFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(minFragmentDensityTexelSize);
+  SERIALISE_MEMBER(maxFragmentDensityTexelSize);
+  SERIALISE_MEMBER(fragmentDensityInvocations);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMapPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -6306,6 +6361,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalSemaphoreInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFeatures2);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
@@ -6364,6 +6421,7 @@ INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassCreateInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkRenderPassFragmentDensityMapCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassSampleLocationsBeginInfoEXT);

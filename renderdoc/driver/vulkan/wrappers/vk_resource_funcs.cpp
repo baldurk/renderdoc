@@ -1450,6 +1450,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         prefix = "2D Color Attachment";
       else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
         prefix = "2D Depth Attachment";
+      else if(CreateInfo.usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT)
+        prefix = "2D Fragment Density Map Attachment";
     }
     else if(CreateInfo.imageType == VK_IMAGE_TYPE_3D)
     {
@@ -1508,6 +1510,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       }
     }
   }
+
+  // create non-subsampled image to be able to copy its content
+  createInfo_adjusted.flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo_adjusted.pNext));
 
