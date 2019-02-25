@@ -66,6 +66,30 @@ static std::string wsaerr_string(int err)
       return "WSAEHOSTDOWN: A socket operation failed because the destination host was down.";
     case WSAEHOSTUNREACH:
       return "WSAETIMEDOUT: A socket operation was attempted to an unreachable host.";
+    case WSATRY_AGAIN: return "WSATRY_AGAIN: A temporary failure in name resolution occurred.";
+    case WSAEINVAL:
+      return "WSAEINVAL: An invalid value was provided for the ai_flags member of the pHints "
+             "parameter.";
+    case WSANO_RECOVERY:
+      return "WSANO_RECOVERY: A nonrecoverable failure in name resolution occurred.";
+    case WSAEAFNOSUPPORT:
+      return "WSAEAFNOSUPPORT: The ai_family member of the pHints parameter is not supported.";
+    case WSA_NOT_ENOUGH_MEMORY:
+      return "WSA_NOT_ENOUGH_MEMORY: A memory allocation failure occurred.";
+    case WSAHOST_NOT_FOUND:
+      return "WSAHOST_NOT_FOUND: The name does not resolve for the supplied parameters or the "
+             "pNodeName and pServiceName parameters were not provided.";
+    case WSATYPE_NOT_FOUND:
+      return "WSATYPE_NOT_FOUND: The pServiceName parameter is not supported for the specified "
+             "ai_socktype member of the pHints parameter.";
+    case WSAESOCKTNOSUPPORT:
+      return "WSAESOCKTNOSUPPORT: The ai_socktype member of the pHints parameter is not supported.";
+    case WSANO_DATA:
+      return "WSANO_DATA: The requested name is valid, but no data of the requested type was "
+             "found.";
+    case WSANOTINITIALISED:
+      return "WSANOTINITIALISED: A successful WSAStartup call must occur before using this "
+             "function.";
     default: break;
   }
 
@@ -386,7 +410,12 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   std::wstring whost = StringFormat::UTF82Wide(string(host));
 
   addrinfoW *addrResult = NULL;
-  GetAddrInfoW(whost.c_str(), portwstr, &hints, &addrResult);
+  int res = GetAddrInfoW(whost.c_str(), portwstr, &hints, &addrResult);
+  if(res != 0)
+  {
+    RDCDEBUG("%s", wsaerr_string(res).c_str());
+    return NULL;
+  }
 
   for(addrinfoW *ptr = addrResult; ptr != NULL; ptr = ptr->ai_next)
   {

@@ -425,7 +425,11 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   hints.ai_protocol = IPPROTO_TCP;
 
   addrinfo *addrResult = NULL;
-  getaddrinfo(host, portstr, &hints, &addrResult);
+  int res = getaddrinfo(host, portstr, &hints, &addrResult);
+  if(res != 0)
+  {
+    RDCDEBUG("%s", gai_strerror(res));
+  }
 
   for(addrinfo *ptr = addrResult; ptr != NULL; ptr = ptr->ai_next)
   {

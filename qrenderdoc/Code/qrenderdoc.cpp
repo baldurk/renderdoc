@@ -219,34 +219,45 @@ int main(int argc, char *argv[])
 
   if(parser.isSet(targetcontrol))
   {
-    QRegularExpression regexp(lit("^([a-zA-Z0-9_-]+:)?([0-9]+)$"));
+    QRegularExpression regexp(lit("^([a-zA-Z\\.0-9_-]+)?(:([0-9]+))?$"));
 
     QRegularExpressionMatch match = regexp.match(parser.value(targetcontrol));
 
     if(!match.hasMatch())
     {
-      qCritical() << "--targetcontrol option must be followed by host:port";
+      qCritical() << "--targetcontrol option must be followed by host:port or host";
       return 1;
     }
 
     QString host = match.captured(1);
 
-    if(host.length() > 0 && host[host.length() - 1] == QLatin1Char(':'))
-      host.chop(1);
-
     bool ok = false;
-    uint32_t ident = match.captured(2).toUInt(&ok);
-
-    if(ok)
+    uint32_t ident = 0;
+    if(match.capturedLength(2) > 0)
     {
-      remoteHost = host;
-      remoteIdent = ident;
+      ident = match.captured(3).toUInt(&ok);
     }
     else
     {
-      qCritical() << "--targetcontrol parameter" << match.captured(1) << "malformed";
+      // no port specified, find the first open port.
+      ident = RENDERDOC_EnumerateRemoteTargets(host.toLocal8Bit().data(), ident);
+      ok = (ident != 0);
+    }
+
+    if(!ok)
+    {
+      if(match.capturedLength(2) > 0)
+      {
+        qCritical() << "--targetcontrol port " << match.captured(3) << "malformed";
+      }
+      else
+      {
+        qCritical() << "All ports are busy, cannot find an available port";
+      }
       return 1;
     }
+    remoteHost = host;
+    remoteIdent = ident;
   }
 
   QString crashReportPath;
