@@ -2174,7 +2174,8 @@ void VulkanPipelineStateViewer::setState()
 
       bool filledSlot = (p.imageResourceId != ResourceId());
       bool usedSlot =
-          (colIdx >= 0 || resIdx >= 0 || state.currentPass.renderpass.depthstencilAttachment == i);
+          (colIdx >= 0 || resIdx >= 0 || state.currentPass.renderpass.depthstencilAttachment == i ||
+           state.currentPass.renderpass.fragmentDensityAttachment == i);
 
       if(showNode(usedSlot, filledSlot))
       {
@@ -2216,6 +2217,8 @@ void VulkanPipelineStateViewer::setState()
           slotname = QFormatStr("Color %1").arg(i);
         else if(resIdx >= 0)
           slotname = QFormatStr("Resolve %1").arg(i);
+        else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
+          slotname = lit("Fragment Density Map");
         else
           slotname = lit("Depth");
 
@@ -3417,6 +3420,14 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeStartElement(lit("p"));
       xml.writeCharacters(
           tr("Depth-stencil Attachment: %1").arg(pass.renderpass.depthstencilAttachment));
+      xml.writeEndElement();
+    }
+
+    if(pass.renderpass.fragmentDensityAttachment >= 0)
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(
+          tr("Fragment Density Attachment: %1").arg(pass.renderpass.fragmentDensityAttachment));
       xml.writeEndElement();
     }
   }

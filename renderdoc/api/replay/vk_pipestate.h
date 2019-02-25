@@ -805,6 +805,12 @@ If there is no depth-stencil attachment, this index is ``-1``.
 )");
   int32_t depthstencilAttachment = -1;
 
+  DOCUMENT(R"(An index into the framebuffer attachments for the fragment density attachment.
+
+If there is no fragment density attachment, this index is ``-1``.
+)");
+  int32_t fragmentDensityAttachment = -1;
+
   DOCUMENT(R"(If multiview is enabled, contains a list of view indices to be broadcast to during
 rendering.
 

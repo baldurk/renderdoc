@@ -635,6 +635,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
       (const VkRenderPassMultiviewCreateInfo *)FindNextStruct(
           pCreateInfo, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
 
+  // VK_EXT_fragment_density_map
+  const VkRenderPassFragmentDensityMapCreateInfoEXT *fragmentDensity =
+      (const VkRenderPassFragmentDensityMapCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT);
+
   subpasses.resize(pCreateInfo->subpassCount);
   for(uint32_t subp = 0; subp < pCreateInfo->subpassCount; subp++)
   {
@@ -670,6 +675,18 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                                   ? src.pDepthStencilAttachment->layout
                                   : VK_IMAGE_LAYOUT_UNDEFINED);
 
+    dst.fragmentDensityAttachment =
+        (fragmentDensity &&
+                 fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
+             ? fragmentDensity->fragmentDensityMapAttachment.attachment
+             : -1);
+
+    dst.fragmentDensityLayout =
+        (fragmentDensity &&
+                 fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
+             ? fragmentDensity->fragmentDensityMapAttachment.layout
+             : VK_IMAGE_LAYOUT_UNDEFINED);
+
     if(multiview && multiview->subpassCount > 0)
     {
       uint32_t mask = multiview->pViewMasks[subp];
@@ -700,6 +717,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
     dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
   }
+
+  // VK_EXT_fragment_density_map
+  const VkRenderPassFragmentDensityMapCreateInfoEXT *fragmentDensity =
+      (const VkRenderPassFragmentDensityMapCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT);
 
   subpasses.resize(pCreateInfo->subpassCount);
   for(uint32_t subp = 0; subp < pCreateInfo->subpassCount; subp++)
@@ -735,6 +757,18 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                                       src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
                                   ? src.pDepthStencilAttachment->layout
                                   : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    dst.fragmentDensityAttachment =
+        (fragmentDensity &&
+                 fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
+             ? fragmentDensity->fragmentDensityMapAttachment.attachment
+             : -1);
+
+    dst.fragmentDensityLayout =
+        (fragmentDensity &&
+                 fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
+             ? fragmentDensity->fragmentDensityMapAttachment.layout
+             : VK_IMAGE_LAYOUT_UNDEFINED);
 
     for(uint32_t i = 0; i < 32; i++)
     {

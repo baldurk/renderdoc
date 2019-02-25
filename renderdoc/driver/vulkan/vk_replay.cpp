@@ -1257,6 +1257,8 @@ void VulkanReplay::SavePipelineState()
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
       m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+      m_VulkanPipelineState.currentPass.renderpass.fragmentDensityAttachment =
+          c.m_RenderPass[state.renderPass].subpasses[state.subpass].fragmentDensityAttachment;
 
       m_VulkanPipelineState.currentPass.renderpass.multiviews =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews;
@@ -1331,6 +1333,7 @@ void VulkanReplay::SavePipelineState()
     m_VulkanPipelineState.currentPass.renderpass.colorAttachments.clear();
     m_VulkanPipelineState.currentPass.renderpass.resolveAttachments.clear();
     m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment = -1;
+    m_VulkanPipelineState.currentPass.renderpass.fragmentDensityAttachment = -1;
 
     m_VulkanPipelineState.currentPass.framebuffer.resourceId = ResourceId();
     m_VulkanPipelineState.currentPass.framebuffer.attachments.clear();

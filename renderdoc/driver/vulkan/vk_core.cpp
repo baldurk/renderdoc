@@ -673,6 +673,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME, VK_EXT_EXTERNAL_MEMORY_DMA_BUF_SPEC_VERSION,
     },
     {
+        VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME, VK_EXT_FRAGMENT_DENSITY_MAP_SPEC_VERSION,
+    },
+    {
         VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME, VK_EXT_GLOBAL_PRIORITY_SPEC_VERSION,
     },
     {
@@ -1079,6 +1082,45 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
   if(pLayerName == NULL)
   {
+    InstanceDeviceInfo *instDevInfo = GetRecord(m_Instance)->instDevInfo;
+
+    // extensions with conditional support
+    for(auto it = filtered.begin(); it != filtered.end();)
+    {
+      if(!strcmp(it->extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME))
+      {
+        // require GPDP2
+        if(instDevInfo->ext_KHR_get_physical_device_properties2)
+        {
+          VkPhysicalDeviceFragmentDensityMapFeaturesEXT fragmentDensityFeatures = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
+          VkPhysicalDeviceFeatures2 base = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+          base.pNext = &fragmentDensityFeatures;
+          ObjDisp(physDev)->GetPhysicalDeviceFeatures2(Unwrap(physDev), &base);
+
+          if(fragmentDensityFeatures.fragmentDensityMapNonSubsampledImages)
+          {
+            // supported
+            ++it;
+            continue;
+          }
+          else
+          {
+            RDCWARN(
+                "VkPhysicalDeviceFragmentDensityMapFeaturesEXT."
+                "fragmentDensityMapNonSubsampledImages is "
+                "false, can't support capture of VK_EXT_fragment_density_map");
+          }
+        }
+
+        // if it wasn't supported, remove the extension
+        it = filtered.erase(it);
+        continue;
+      }
+
+      ++it;
+    }
+
     // now we can add extensions that we provide ourselves (note this isn't sorted, but we
     // don't have to sort the results, the sorting was just so we could filter optimally).
     filtered.insert(

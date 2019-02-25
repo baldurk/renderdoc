@@ -480,15 +480,19 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
 VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
                                         const VkAllocationCallbacks *pAllocator, VkSampler *pSampler)
 {
-  VkSamplerCreateInfo info = *pCreateInfo;
+  VkSamplerCreateInfo info_adjusted = *pCreateInfo;
 
-  byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
+  // like in VkCreateImage, create non-subsampled sampler since the image is now non-subsampled.
+  info_adjusted.flags &= ~VK_SAMPLER_CREATE_SUBSAMPLED_BIT_EXT;
+  info_adjusted.flags &= ~VK_SAMPLER_CREATE_SUBSAMPLED_COARSE_RECONSTRUCTION_BIT_EXT;
 
-  UnwrapNextChain(m_State, "VkSamplerCreateInfo", tempMem, (VkBaseInStructure *)&info);
+  byte *tempMem = GetTempMemory(GetNextPatchSize(info_adjusted.pNext));
+
+  UnwrapNextChain(m_State, "VkSamplerCreateInfo", tempMem, (VkBaseInStructure *)&info_adjusted);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info, pAllocator, pSampler));
+      ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info_adjusted, pAllocator, pSampler));
 
   if(ret == VK_SUCCESS)
   {
