@@ -794,6 +794,41 @@ FrameRefType GetRefType(VkDescriptorType descType)
   return eFrameRef_Read;
 }
 
+bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
+{
+  // this makes assumptions that only hold within the context of Serialise_InitialState below,
+  // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
+  // case they can be garbage and we must ignore them based on the descriptorType
+
+  if(write.pTexelBufferView)
+    return write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
+
+  if(write.pBufferInfo)
+    return write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
+
+  if(write.pImageInfo)
+  {
+    // only these two types need samplers
+    bool needSampler = (write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                        write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+    // but all types that aren't just a sampler need an image
+    bool needImage = (write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER);
+
+    if(needSampler && write.pImageInfo[arrayElement].sampler == VK_NULL_HANDLE)
+      return false;
+
+    if(needImage && write.pImageInfo[arrayElement].imageView == VK_NULL_HANDLE)
+      return false;
+
+    return true;
+  }
+
+  RDCERR("Encountered VkWriteDescriptorSet with no data!");
+
+  return false;
+}
+
 void DescriptorSetSlot::RemoveBindRefs(VkResourceRecord *record)
 {
   if(texelBufferView != VK_NULL_HANDLE)

@@ -379,6 +379,8 @@ struct DescriptorSetSlot
 
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);
 
+bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement);
+
 #define NUM_VK_IMAGE_ASPECTS 4
 #define VK_ACCESS_ALL_READ_BITS                                                        \
   (VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_INDEX_READ_BIT |                    \

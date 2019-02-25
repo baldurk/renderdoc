@@ -1351,6 +1351,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // into them
   {
     std::vector<VkWriteDescriptorSet> descWrites;
+    std::vector<VkDescriptorImageInfo *> allocImgWrites;
+    std::vector<VkDescriptorBufferInfo *> allocBufWrites;
+    std::vector<VkBufferView *> allocBufViewWrites;
 
     // one for each descriptor type. 1 of each to start with plus enough for our internal resources,
     // we then increment for each descriptor we need to allocate
@@ -1556,6 +1559,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
               for(uint32_t w = 0; w < write.descriptorCount; w++)
                 out[w] = slot[w].imageInfo;
               write.pImageInfo = out;
+              allocImgWrites.push_back(out);
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
@@ -1565,6 +1569,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
               for(uint32_t w = 0; w < write.descriptorCount; w++)
                 out[w] = slot[w].texelBufferView;
               write.pTexelBufferView = out;
+              allocBufViewWrites.push_back(out);
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -1576,12 +1581,47 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
               for(uint32_t w = 0; w < write.descriptorCount; w++)
                 out[w] = slot[w].bufferInfo;
               write.pBufferInfo = out;
+              allocBufWrites.push_back(out);
               break;
             }
             default: RDCERR("Unexpected descriptor type %d", write.descriptorType);
           }
 
-          descWrites.push_back(write);
+          // start with no descriptors
+          write.descriptorCount = 0;
+
+          for(uint32_t w = 0; w < bind.descriptorCount; w++)
+          {
+            // if this write is valid, we increment the descriptor count and continue
+            if(IsValid(write, w))
+            {
+              write.descriptorCount++;
+            }
+            else
+            {
+              // if this write isn't valid, then we first check to see if we had any previous
+              // pending writes in the array we were going to batch together, if so we add them.
+              if(write.descriptorCount > 0)
+                descWrites.push_back(write);
+
+              // skip past any previous descriptors we just wrote, as well as the current invalid
+              // one
+              if(write.pBufferInfo)
+                write.pBufferInfo += write.descriptorCount + 1;
+              if(write.pImageInfo)
+                write.pImageInfo += write.descriptorCount + 1;
+              if(write.pTexelBufferView)
+                write.pTexelBufferView += write.descriptorCount + 1;
+
+              // now start again from 0 descriptors, at the next array element
+              write.dstArrayElement += write.descriptorCount + 1;
+              write.descriptorCount = 0;
+            }
+          }
+
+          // if there are any left, add them here
+          if(write.descriptorCount > 0)
+            descWrites.push_back(write);
 
           // don't leak the arrays and cause double deletes, NULL them after each time
           write.pImageInfo = NULL;
@@ -1594,12 +1634,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     m_pDriver->vkUpdateDescriptorSets(dev, (uint32_t)descWrites.size(), descWrites.data(), 0, NULL);
 
     // delete allocated arrays for descriptor writes
-    for(const VkWriteDescriptorSet &write : descWrites)
-    {
-      delete[] write.pBufferInfo;
-      delete[] write.pImageInfo;
-      delete[] write.pTexelBufferView;
-    }
+    for(VkDescriptorBufferInfo *a : allocBufWrites)
+      delete[] a;
+    for(VkDescriptorImageInfo *a : allocImgWrites)
+      delete[] a;
+    for(VkBufferView *a : allocBufViewWrites)
+      delete[] a;
   }
 
   // create pipeline layout with new descriptor set layouts
