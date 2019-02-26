@@ -144,7 +144,7 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
     pipeDesc.PS.pShaderBytecode = m_DepthMS2Array->GetBufferPointer();
     pipeDesc.NumRenderTargets = 0;
     pipeDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
-    pipeDesc.DSVFormat = rtvDesc.Format;
+    pipeDesc.DSVFormat = dsvDesc.Format;
     pipeDesc.DepthStencilState.DepthEnable = TRUE;
     pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
