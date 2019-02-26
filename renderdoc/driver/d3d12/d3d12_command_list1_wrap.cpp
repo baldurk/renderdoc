@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "driver/dxgi/dxgi_common.h"
 
