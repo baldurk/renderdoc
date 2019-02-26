@@ -1411,7 +1411,7 @@ HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID rii
   if(ppvHeap == NULL)
     return m_pDevice->CreateHeap(pDesc, riid, ppvHeap);
 
-  if(riid != __uuidof(ID3D12Heap) || riid != __uuidof(ID3D12Heap1))
+  if(riid != __uuidof(ID3D12Heap) && riid != __uuidof(ID3D12Heap1))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
