@@ -2300,7 +2300,7 @@ string SPVModule::Disassemble(const string &entryPoint)
   {
     retDisasm += "SPIR-V Extensions:";
     for(size_t e = 0; e < extensions.size(); e++)
-      retDisasm += extensions[e];
+      retDisasm += " " + extensions[e];
     retDisasm += "\n";
   }
 
