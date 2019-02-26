@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_command_list.h"
+#include "driver/dxgi/dxgi_common.h"
 
 template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
