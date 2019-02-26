@@ -79,6 +79,10 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         SetInitialContents(GetResID(r), D3D12InitialContents(D3D12InitialContents::MapDirect));
         return true;
       }
+      else if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+      {
+        return true;
+      }
 
       heapProps.Type = D3D12_HEAP_TYPE_READBACK;
       heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -96,15 +100,42 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       if(nonresident)
         m_Device->MakeResident(1, &pageable);
 
+      const vector<D3D12_RESOURCE_STATES> &states = m_Device->GetSubresourceStates(GetResID(res));
+      RDCASSERT(states.size() == 1);
+
+      D3D12_RESOURCE_BARRIER barrier;
+      const bool needsTransition = (states[0] & D3D12_RESOURCE_STATE_COPY_SOURCE) == 0;
+
+      if(needsTransition)
+      {
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = r->GetReal();
+        barrier.Transition.Subresource = (UINT)0;
+        barrier.Transition.StateBefore = states[0];
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+      }
+
+      ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
+
+      // transition to copy source
+      if(needsTransition)
+        list->ResourceBarrier(1, &barrier);
+
       if(SUCCEEDED(hr))
       {
-        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
-
         list->CopyResource(copyDst, r->GetReal());
       }
       else
       {
         RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
+      }
+
+      // transition back to whatever it was before
+      if(needsTransition)
+      {
+        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+        list->ResourceBarrier(1, &barrier);
       }
 
       if(nonresident)
@@ -172,7 +203,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
         for(size_t i = 0; i < states.size(); i++)
         {
-          if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
+          if(states[i] & destState)
             continue;
 
           D3D12_RESOURCE_BARRIER barrier;
