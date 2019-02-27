@@ -423,7 +423,10 @@ private:
       }
       else
       {
-        RDCWARN("NvAPI disabled: Returning NULL for nvapi_QueryInterface(%x)", ID);
+        static int count = 0;
+        if(count < 10)
+          RDCWARN("NvAPI disabled: Returning NULL for nvapi_QueryInterface(%x)", ID);
+        count++;
         return NULL;
       }
     }
