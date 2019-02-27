@@ -662,8 +662,19 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
 
   if(IsReplayingAndReading())
   {
+    GLenum intformat = internalformat;
+
+    GLenum dummy = eGL_NONE;
+    bool emulated = EmulateLuminanceFormat(0, target, internalformat, dummy);
+
     GL.glTextureView(texture.name, target, origtexture.name, internalformat, minlevel, numlevels,
                      minlayer, numlayers);
+
+    if(emulated)
+    {
+      // call again, this time to apply the swizzle
+      EmulateLuminanceFormat(texture.name, target, intformat, dummy);
+    }
 
     ResourceId liveTexId = GetResourceManager()->GetID(texture);
     ResourceId liveOrigId = GetResourceManager()->GetID(origtexture);
@@ -675,6 +686,7 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
     m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
     m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
     m_Textures[liveTexId].mipsValid = (1 << numlevels) - 1;
+    m_Textures[liveTexId].emulated = emulated;
 
     AddResourceInitChunk(texture);
     DerivedResource(origtexture, GetResourceManager()->GetOriginalID(liveTexId));
