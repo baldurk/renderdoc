@@ -165,24 +165,24 @@ struct null_terminator<char>
 template <typename T, bool isStd = std::is_trivial<T>::value>
 struct ItemHelper
 {
-  static void initRange(T *first, int32_t count)
+  static void initRange(T *first, size_t count)
   {
-    for(int32_t i = 0; i < count; i++)
+    for(size_t i = 0; i < count; i++)
       new(first + i) T();
   }
 
-  static bool equalRange(T *a, T *b, int32_t count)
+  static bool equalRange(T *a, T *b, size_t count)
   {
-    for(int32_t i = 0; i < count; i++)
+    for(size_t i = 0; i < count; i++)
       if(!(a[i] == b[i]))
         return false;
 
     return true;
   }
 
-  static bool lessthanRange(T *a, T *b, int32_t count)
+  static bool lessthanRange(T *a, T *b, size_t count)
   {
-    for(int32_t i = 0; i < count; i++)
+    for(size_t i = 0; i < count; i++)
       if(a[i] < b[i])
         return true;
 
@@ -193,9 +193,9 @@ struct ItemHelper
 template <typename T>
 struct ItemHelper<T, true>
 {
-  static void initRange(T *first, int32_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
-  static bool equalRange(T *a, T *b, int32_t count) { return !memcmp(a, b, count * sizeof(T)); }
-  static bool lessthanRange(T *a, T *b, int32_t count)
+  static void initRange(T *first, size_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
+  static bool equalRange(T *a, T *b, size_t count) { return !memcmp(a, b, count * sizeof(T)); }
+  static bool lessthanRange(T *a, T *b, size_t count)
   {
     return memcmp(a, b, count * sizeof(T)) < 0;
   }
@@ -206,9 +206,9 @@ struct ItemHelper<T, true>
 template <typename T, bool isStd = std::is_trivially_copyable<T>::value>
 struct ItemCopyHelper
 {
-  static void copyRange(T *dest, const T *src, int32_t count)
+  static void copyRange(T *dest, const T *src, size_t count)
   {
-    for(int32_t i = 0; i < count; i++)
+    for(size_t i = 0; i < count; i++)
       new(dest + i) T(src[i]);
   }
 };
@@ -216,7 +216,7 @@ struct ItemCopyHelper
 template <typename T>
 struct ItemCopyHelper<T, true>
 {
-  static void copyRange(T *dest, const T *src, int32_t count)
+  static void copyRange(T *dest, const T *src, size_t count)
   {
     memcpy(dest, src, count * sizeof(T));
   }
@@ -227,9 +227,9 @@ struct ItemCopyHelper<T, true>
 template <typename T, bool isStd = std::is_trivially_destructible<T>::value>
 struct ItemDestroyHelper
 {
-  static void destroyRange(T *first, int32_t count)
+  static void destroyRange(T *first, size_t count)
   {
-    for(int32_t i = 0; i < count; i++)
+    for(size_t i = 0; i < count; i++)
       (first + i)->~T();
   }
 };
@@ -237,7 +237,7 @@ struct ItemDestroyHelper
 template <typename T>
 struct ItemDestroyHelper<T, true>
 {
-  static void destroyRange(T *first, int32_t itemCount) {}
+  static void destroyRange(T *first, size_t itemCount) {}
 };
 
 template <typename T>
@@ -245,8 +245,8 @@ struct rdcarray
 {
 protected:
   T *elems;
-  int32_t allocatedCount;
-  int32_t usedCount;
+  size_t allocatedCount;
+  size_t usedCount;
 
   /////////////////////////////////////////////////////////////////
   // memory management, in a dll safe way
@@ -267,7 +267,7 @@ protected:
 #endif
   }
 
-  inline void setUsedCount(int32_t newCount)
+  inline void setUsedCount(size_t newCount)
   {
     usedCount = newCount;
     null_terminator<T>::fixup(elems, usedCount);
@@ -313,10 +313,10 @@ public:
   const T &front() const { return *elems; }
   const T &back() const { return *(elems + usedCount - 1); }
   const T &at(size_t idx) const { return elems[idx]; }
-  size_t size() const { return (size_t)usedCount; }
-  size_t byteSize() const { return (size_t)usedCount * sizeof(T); }
+  size_t size() const { return usedCount; }
+  size_t byteSize() const { return usedCount * sizeof(T); }
   int32_t count() const { return (int32_t)usedCount; }
-  size_t capacity() const { return (size_t)allocatedCount; }
+  size_t capacity() const { return allocatedCount; }
   bool empty() const { return usedCount == 0; }
   bool isEmpty() const { return usedCount == 0; }
   void clear() { resize(0); }
@@ -362,7 +362,7 @@ public:
     elems = newElems;
 
     // update allocated size
-    allocatedCount = (int32_t)s;
+    allocatedCount = s;
   }
 
   void resize(size_t s)
@@ -371,7 +371,7 @@ public:
     if(s == size())
       return;
 
-    int32_t oldCount = usedCount;
+    size_t oldCount = usedCount;
 
     if(s > size())
     {
@@ -379,7 +379,7 @@ public:
       reserve(s);
 
       // update the currently allocated count
-      setUsedCount((int32_t)s);
+      setUsedCount(s);
 
       // default initialise the new elements
       ItemHelper<T>::initRange(elems + oldCount, usedCount - oldCount);
@@ -387,7 +387,7 @@ public:
     else
     {
       // resizing down, we just need to update the count and destruct removed elements
-      setUsedCount((int32_t)s);
+      setUsedCount(s);
 
       ItemDestroyHelper<T>::destroyRange(elems + usedCount, oldCount - usedCount);
     }
@@ -514,7 +514,7 @@ public:
     }
 
     // update new size
-    setUsedCount(usedCount + (int32_t)count);
+    setUsedCount(usedCount + count);
   }
 
   // a couple of helpers
@@ -562,7 +562,7 @@ public:
     }
 
     // update new size
-    setUsedCount(usedCount - (int32_t)count);
+    setUsedCount(usedCount - count);
   }
 
   /////////////////////////////////////////////////////////////////
@@ -646,7 +646,7 @@ public:
     clear();
 
     // update new size
-    setUsedCount((int32_t)in.size());
+    setUsedCount(in.size());
 
     // copy construct the new elems
     ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
@@ -664,7 +664,7 @@ public:
     clear();
 
     // update new size
-    setUsedCount((int32_t)in.size());
+    setUsedCount(in.size());
 
     // copy construct the new elems
     int32_t i = 0;
@@ -691,7 +691,7 @@ public:
     clear();
 
     // update new size
-    setUsedCount((int32_t)in.size());
+    setUsedCount(in.size());
 
     // copy construct the new elems
     ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
@@ -710,7 +710,7 @@ public:
     clear();
 
     // update new size
-    setUsedCount((int32_t)count);
+    setUsedCount(count);
 
     // copy construct the new elems
     ItemCopyHelper<T>::copyRange(elems, in, usedCount);
@@ -795,8 +795,8 @@ struct rdcstr : public rdcarray<char>
     QByteArray arr = in.toUtf8();
     assign(arr.data(), arr.size());
   }
-  operator QString() const { return QString::fromUtf8(elems, usedCount); }
-  operator QVariant() const { return QVariant(QString::fromUtf8(elems, usedCount)); }
+  operator QString() const { return QString::fromUtf8(elems, (int32_t)usedCount); }
+  operator QVariant() const { return QVariant(QString::fromUtf8(elems, (int32_t)usedCount)); }
 #endif
 
   // conventional data accessor
@@ -830,7 +830,10 @@ struct bytebuf : public rdcarray<byte>
     resize(in.size());
     memcpy(elems, in.data(), in.size());
   }
-  operator QByteArray() const { return QByteArray::fromRawData((const char *)elems, usedCount); }
+  operator QByteArray() const
+  {
+    return QByteArray::fromRawData((const char *)elems, (int32_t)usedCount);
+  }
 #endif
 };
 

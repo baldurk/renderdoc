@@ -636,7 +636,7 @@ public:
   {
   public:
     static const int AllocPoolCount = 16384;
-    static const int AllocMaxByteSize = 8 * 1024 * 1024;
+    static const int AllocMaxByteSize = 10 * 1024 * 1024;
     ALLOCATE_WITH_WRAPPED_POOL(ShaderEntry, AllocPoolCount, AllocMaxByteSize);
 
     static bool m_InternalResources;
