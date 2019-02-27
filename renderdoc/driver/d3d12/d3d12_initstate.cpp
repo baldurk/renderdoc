@@ -79,10 +79,6 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         SetInitialContents(GetResID(r), D3D12InitialContents(D3D12InitialContents::MapDirect));
         return true;
       }
-      else if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
-      {
-        return true;
-      }
 
       heapProps.Type = D3D12_HEAP_TYPE_READBACK;
       heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -104,7 +100,9 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       RDCASSERT(states.size() == 1);
 
       D3D12_RESOURCE_BARRIER barrier;
-      const bool needsTransition = (states[0] & D3D12_RESOURCE_STATE_COPY_SOURCE) == 0;
+      const bool isUploadHeap = (heapProps.Type == D3D12_HEAP_TYPE_UPLOAD);
+      const bool needsTransition =
+          !isUploadHeap && ((states[0] & D3D12_RESOURCE_STATE_COPY_SOURCE) == 0);
 
       if(needsTransition)
       {
