@@ -1960,6 +1960,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     for(uint32_t vb = 0; vb < vi->vertexBindingDescriptionCount; vb++)
     {
       uint32_t binding = vi->pVertexBindingDescriptions[vb].binding;
+      if(binding >= state.vbuffers.size())
+      {
+        origVBs.push_back(bytebuf());
+        continue;
+      }
+
       VkDeviceSize offs = state.vbuffers[binding].offs;
       uint64_t len = 0;
 
