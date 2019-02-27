@@ -42,6 +42,8 @@ class CameraWrapper;
 class ArcballWrapper;
 class FlycamWrapper;
 struct BufferData;
+struct PopulateBufferData;
+struct CalcBoundingBoxData;
 
 struct BufferExport
 {
@@ -54,6 +56,15 @@ struct BufferExport
   ExportFormat format;
 
   BufferExport(ExportFormat f) : format(f) {}
+};
+
+struct BBoxData
+{
+  struct
+  {
+    QList<FloatVector> Min;
+    QList<FloatVector> Max;
+  } bounds[3];
 };
 
 class BufferViewer : public QFrame, public IBufferViewer, public ICaptureViewer
@@ -70,12 +81,7 @@ public:
   QWidget *Widget() override { return this; }
   void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) override
   {
-    if(stage == MeshDataStage::VSOut)
-      ScrollToRow(m_ModelVSOut, row);
-    else if(stage == MeshDataStage::GSOut)
-      ScrollToRow(m_ModelGSOut, row);
-    else
-      ScrollToRow(m_ModelVSIn, row);
+    ScrollToRow(tableForStage(stage), row);
   }
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                   const rdcstr &format = "") override;
@@ -141,56 +147,28 @@ private:
 
   void configureDrawRange();
 
-  void RT_UpdateAndDisplay(IReplayController *);
-  void RT_FetchMeshData(IReplayController *r);
+  void RT_UpdateAndDisplay(IReplayController *r);
 
   MeshDisplay m_Config;
 
   MeshDataStage m_CurStage;
 
-  // data from mesh output
-  MeshFormat m_PostVS;
-  MeshFormat m_PostGS;
+  // cached data from PostVS data
+  MeshFormat m_PostVS, m_PostGS;
 
   // the configurations for 3D preview
   MeshFormat m_VSInPosition, m_VSInSecondary;
   MeshFormat m_PostVSPosition, m_PostVSSecondary;
   MeshFormat m_PostGSPosition, m_PostGSSecondary;
 
-  struct BBoxData
-  {
-    struct
-    {
-      QList<FloatVector> Min;
-      QList<FloatVector> Max;
-    } bounds[3];
-  };
-
-  struct CalcBoundingBoxData
-  {
-    uint32_t eventId;
-    uint32_t inst;
-
-    struct StageData
-    {
-      QList<FormatElement> elements;
-      uint32_t count;
-      BufferData *indices = NULL;
-      int32_t baseVertex;
-      uint32_t primRestart;
-      QList<BufferData *> buffers;
-    } input[3];
-
-    BBoxData output;
-  };
-
   QMutex m_BBoxLock;
   QMap<uint32_t, BBoxData> m_BBoxes;
 
+  void populateBBox(PopulateBufferData *data);
   void calcBoundingData(CalcBoundingBoxData &bbox);
-  void updateBoundingBox(const CalcBoundingBoxData &bbox);
+  void UI_UpdateBoundingBox(const CalcBoundingBoxData &bbox);
 
-  void resetArcball();
+  void UI_ResetArcball();
 
   // data from raw buffer view
   bool m_IsBuffer = true;
@@ -252,12 +230,9 @@ private:
 
   void ClearModels();
 
-  void guessPositionColumn(BufferItemModel *model);
-  void guessSecondaryColumn(BufferItemModel *model);
-  void updatePreviewColumns();
-  void configureMeshColumns();
+  void UI_CalculateMeshFormats();
 
-  void UpdateMeshConfig();
+  void UpdateCurrentMeshConfig();
   void EnableCameraGuessControls();
 
   void CalcColumnWidth(int maxNumRows = 1);
@@ -265,5 +240,5 @@ private:
 
   void SyncViews(RDTableView *primary, bool selection, bool scroll);
   void UpdateHighlightVerts();
-  void ScrollToRow(BufferItemModel *model, int row);
+  void ScrollToRow(RDTableView *view, int row);
 };
