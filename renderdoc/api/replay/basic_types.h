@@ -579,10 +579,10 @@ public:
   // find the first occurrence of an element
   int32_t indexOf(const T &el, size_t first = 0, size_t last = ~0U) const
   {
-    for(int32_t i = (int32_t)first; i < usedCount && (size_t)i < last; i++)
+    for(size_t i = first; i < usedCount && i < last; i++)
     {
       if(elems[i] == el)
-        return i;
+        return (int32_t)i;
     }
 
     return -1;
@@ -667,7 +667,7 @@ public:
     setUsedCount(in.size());
 
     // copy construct the new elems
-    int32_t i = 0;
+    size_t i = 0;
     for(const T &t : in)
     {
       new(elems + i) T(t);
@@ -735,7 +735,7 @@ public:
     setUsedCount(in.count());
 
     // copy construct the new elems
-    for(int32_t i = 0; i < usedCount; i++)
+    for(size_t i = 0; i < usedCount; i++)
       new(elems + i) T(in[i]);
 
     return *this;
@@ -759,7 +759,7 @@ public:
     setUsedCount(in.count());
 
     // copy construct the new elems
-    for(int32_t i = 0; i < usedCount; i++)
+    for(size_t i = 0; i < usedCount; i++)
       new(elems + i) T(in[i]);
 
     return *this;
