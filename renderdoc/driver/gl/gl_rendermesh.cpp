@@ -111,7 +111,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
     {
       const MeshFormat &fmt = secondaryDraws[i];
 
-      if(fmt.vertexResourceId != ResourceId())
+      if(fmt.vertexResourceId != ResourceId() &&
+         m_pDriver->GetResourceManager()->HasCurrentResource(fmt.vertexResourceId))
       {
         uboParams.color = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, fmt.meshColor.w);
 
@@ -148,10 +149,12 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
   }
 
   int progidx = 0;
+  bool validData[2] = {};
 
   for(uint32_t i = 0; i < 2; i++)
   {
-    if(meshData[i]->vertexResourceId == ResourceId())
+    if(meshData[i]->vertexResourceId == ResourceId() ||
+       !m_pDriver->GetResourceManager()->HasCurrentResource(meshData[i]->vertexResourceId))
       continue;
 
     if(meshData[i]->format.Special())
@@ -256,6 +259,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       drv.glVertexAttribDivisor(i, 1);
     else
       drv.glVertexAttribDivisor(i, 0);
+
+    validData[i] = true;
   }
 
   GLuint prog = DebugData.meshProg[progidx];
@@ -269,7 +274,10 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
   drv.glUseProgram(prog);
 
   // enable position attribute
-  drv.glEnableVertexAttribArray(0);
+  if(validData[0])
+    drv.glEnableVertexAttribArray(0);
+  else
+    drv.glDisableVertexAttribArray(0);
   drv.glDisableVertexAttribArray(1);
 
   drv.glEnable(eGL_DEPTH_TEST);
@@ -318,8 +326,10 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
 
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-    if(cfg.second.vertexResourceId != ResourceId())
+    if(validData[1])
       drv.glEnableVertexAttribArray(1);
+    else
+      drv.glDisableVertexAttribArray(1);
 
     if(!IsGLES)
       drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
@@ -378,7 +388,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryD
       else if(cfg.position.indexByteStride == 4)
         idxtype = eGL_UNSIGNED_INT;
 
-      if(cfg.position.indexResourceId != ResourceId())
+      if(cfg.position.indexResourceId != ResourceId() &&
+         m_pDriver->GetResourceManager()->HasCurrentResource(cfg.position.indexResourceId))
       {
         GLuint ib =
             m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
