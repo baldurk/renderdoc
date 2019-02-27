@@ -736,7 +736,7 @@ public:
 
     // copy construct the new elems
     for(size_t i = 0; i < usedCount; i++)
-      new(elems + i) T(in[i]);
+      new(elems + i) T(in[(int32_t)i]);
 
     return *this;
   }
@@ -760,7 +760,7 @@ public:
 
     // copy construct the new elems
     for(size_t i = 0; i < usedCount; i++)
-      new(elems + i) T(in[i]);
+      new(elems + i) T(in[(int32_t)i]);
 
     return *this;
   }
@@ -793,7 +793,7 @@ struct rdcstr : public rdcarray<char>
   rdcstr(const QString &in) : rdcarray<char>()
   {
     QByteArray arr = in.toUtf8();
-    assign(arr.data(), arr.size());
+    assign(arr.data(), (size_t)arr.size());
   }
   operator QString() const { return QString::fromUtf8(elems, (int32_t)usedCount); }
   operator QVariant() const { return QVariant(QString::fromUtf8(elems, (int32_t)usedCount)); }
@@ -828,7 +828,7 @@ struct bytebuf : public rdcarray<byte>
   bytebuf(const QByteArray &in)
   {
     resize(in.size());
-    memcpy(elems, in.data(), in.size());
+    memcpy(elems, in.data(), (size_t)in.size());
   }
   operator QByteArray() const
   {
