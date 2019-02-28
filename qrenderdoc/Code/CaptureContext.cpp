@@ -170,8 +170,6 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
 
   QDirIterator it(extensionFolder, QDirIterator::Subdirectories);
 
-  extensionFolder = extensionFolder;
-
   while(it.hasNext())
   {
     QFileInfo fileinfo(it.next());
