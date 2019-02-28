@@ -148,6 +148,20 @@ option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
 
+option(ENABLE_ASAN "Enable address sanitizer" OFF)
+option(ENABLE_TSAN "Enable thread sanitizer" OFF)
+option(ENABLE_MSAN "Enable memory sanitizer" OFF)
+
+if(ENABLE_ASAN)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    message(STATUS "Enabling address sanitizer - may cause issues if capturing, only recommended for use with replay only")
+endif()
+
+if(ENABLE_TSAN)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
+    message(STATUS "Enabling thread sanitizer - may cause issues if capturing, only recommended for use with replay only")
+endif()
+
 if(WIN32)
     message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
 endif()

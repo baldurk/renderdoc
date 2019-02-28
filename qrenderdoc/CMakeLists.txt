@@ -9,6 +9,16 @@ set(QMAKE_LDFLAGS "")
 set(QMAKE_CXXFLAGS "")
 set(SWIG_FLAGS "")
 
+if(ENABLE_ASAN)
+    set (QMAKE_CXXFLAGS "-fsanitize=address -fno-omit-frame-pointer")
+    set (QMAKE_LDFLAGS "-fsanitize=address")
+endif()
+
+if(ENABLE_TSAN)
+    set (QMAKE_CXXFLAGS "-fsanitize=thread -fno-omit-frame-pointer")
+    set (QMAKE_LDFLAGS "-fsanitize=thread")
+endif()
+
 if(STATIC_QRENDERDOC)
     set(QMAKE_CXXFLAGS "-DSTATIC_QRENDERDOC=1")
     set(QMAKE_CONFIG "debug static")
