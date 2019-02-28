@@ -1246,7 +1246,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
       if(att == NULL)
         break;
 
-      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_PartialWrite);
+      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_ReadBeforeWrite);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
       if(att->resInfo)
@@ -1591,7 +1591,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
       if(att == NULL)
         break;
 
-      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_PartialWrite);
+      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_ReadBeforeWrite);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
       if(att->resInfo)
