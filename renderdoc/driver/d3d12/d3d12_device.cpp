@@ -2136,10 +2136,17 @@ void WrappedID3D12Device::FlushPendingDescriptorWrites()
   }
 
   for(size_t i = 0; i < writes.size(); i++)
+  {
     writes[i].dest->CopyFrom(writes[i].desc);
+    writes[i].dest->GetHeap()->Release();
+  }
 
   for(size_t i = 0; i < copies.size(); i++)
+  {
     copies[i].dst->CopyFrom(*copies[i].src);
+    copies[i].src->GetHeap()->Release();
+    copies[i].dst->GetHeap()->Release();
+  }
 }
 
 template <typename SerialiserType>
