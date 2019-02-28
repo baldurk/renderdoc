@@ -787,7 +787,7 @@ FrameRefType GetRefType(VkDescriptorType descType)
     case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
     case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return eFrameRef_PartialWrite; break;
+    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return eFrameRef_ReadBeforeWrite; break;
     default: RDCERR("Unexpected descriptor type");
   }
 
