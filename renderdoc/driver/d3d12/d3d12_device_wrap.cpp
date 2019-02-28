@@ -944,6 +944,7 @@ void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_V
     {
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorWrites.push_back(write);
+      write.dest->GetHeap()->AddRef();
       m_DynamicDescriptorRefs.push_back(write.desc);
     }
 
@@ -986,6 +987,7 @@ void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
     {
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorWrites.push_back(write);
+      write.dest->GetHeap()->AddRef();
       if(pResource && pResource->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         m_DynamicDescriptorRefs.push_back(write.desc);
     }
@@ -1036,6 +1038,7 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
     {
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorWrites.push_back(write);
+      write.dest->GetHeap()->AddRef();
       if(pResource && pResource->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         m_DynamicDescriptorRefs.push_back(write.desc);
     }
@@ -1081,6 +1084,7 @@ void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
     {
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorWrites.push_back(write);
+      write.dest->GetHeap()->AddRef();
       if(pResource && pResource->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         m_DynamicDescriptorRefs.push_back(write.desc);
     }
@@ -1123,6 +1127,7 @@ void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
     {
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorWrites.push_back(write);
+      write.dest->GetHeap()->AddRef();
     }
 
     {
@@ -1161,6 +1166,7 @@ void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
     {
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorWrites.push_back(write);
+      write.dest->GetHeap()->AddRef();
     }
 
     {
@@ -2072,7 +2078,11 @@ void WrappedID3D12Device::CopyDescriptors(
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorCopies.insert(m_DynamicDescriptorCopies.end(), copies.begin(), copies.end());
       for(size_t i = 0; i < copies.size(); i++)
+      {
+        copies[i].src->GetHeap()->AddRef();
+        copies[i].dst->GetHeap()->AddRef();
         m_DynamicDescriptorRefs.push_back(*copies[i].src);
+      }
     }
 
     {
@@ -2142,7 +2152,11 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
       SCOPED_LOCK(m_DynDescLock);
       m_DynamicDescriptorCopies.insert(m_DynamicDescriptorCopies.end(), copies.begin(), copies.end());
       for(size_t i = 0; i < copies.size(); i++)
+      {
+        copies[i].src->GetHeap()->AddRef();
+        copies[i].dst->GetHeap()->AddRef();
         m_DynamicDescriptorRefs.push_back(*copies[i].src);
+      }
     }
 
     {
