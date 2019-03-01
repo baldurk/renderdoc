@@ -321,13 +321,13 @@ in-place, so it would be slice 0: sample 0, slice 0: sample 1, slice 1: sample 0
 This then follows the mapping for array slices as with any other array texture. :data:`sampleIndex`
 is ignored.
 )");
-  bool mapToArray;
+  bool mapToArray = false;
 
   DOCUMENT(R"(
 If :data:`mapToArray` is ``False`` this selects which sample should be extracted to treat as a
 normal 2D image. If set to :data:`ResolveSamples` then instead there's a default average resolve.
 )");
-  uint32_t sampleIndex;
+  uint32_t sampleIndex = ~0U;
 
   static const uint32_t ResolveSamples = ~0U;
 };

@@ -57,7 +57,7 @@ private:
   Ui::APIInspector *ui;
   ICaptureContext &m_Ctx;
 
-  uint32_t m_EventID;
+  uint32_t m_EventID = 0;
 
   void addCallstack(rdcarray<rdcstr> calls);
   void fillAPIView();

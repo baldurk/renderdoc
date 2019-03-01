@@ -294,9 +294,9 @@ private:
 
   QSizeF m_PrevSize;
 
-  PixelValue m_CurRealValue;
-  PixelValue m_CurPixelValue;
-  PixelValue m_CurHoverValue;
+  PixelValue m_CurRealValue = {};
+  PixelValue m_CurPixelValue = {};
+  PixelValue m_CurHoverValue = {};
 
   QColor backCol;
 
