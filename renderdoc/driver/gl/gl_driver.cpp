@@ -814,6 +814,9 @@ WrappedOpenGL::~WrappedOpenGL()
 
   SAFE_DELETE(m_ResourceManager);
 
+  for(size_t i = 0; i < m_CtxDataVector.size(); i++)
+    delete m_CtxDataVector[i];
+
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
