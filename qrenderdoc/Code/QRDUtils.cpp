@@ -940,6 +940,7 @@ void GUIInvoke::init()
 {
   GUIInvoke *invoke = new GUIInvoke(NULL, {});
   methodIndex = invoke->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("doInvoke()"));
+  invoke->deleteLater();
 }
 
 void GUIInvoke::call(QObject *obj, const std::function<void()> &f)
