@@ -82,6 +82,8 @@ class GLXPlatform : public GLPlatform
           GLX.glXChooseFBConfig(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
 
       cfg = GLX.glXGetVisualFromFBConfig(share.dpy, fbcfg[0]);
+
+      XFree(fbcfg);
     }
 
     ret.ctx = GLX.glXCreateContext(share.dpy, cfg, share.ctx, is_direct);
@@ -106,6 +108,13 @@ class GLXPlatform : public GLPlatform
     {
       GLX.glXMakeContextCurrent(context.dpy, 0L, 0L, NULL);
       GLX.glXDestroyContext(context.dpy, context.ctx);
+
+      auto it = pbuffers.find(context.wnd);
+      if(it != pbuffers.end())
+      {
+        GLX.glXDestroyPbuffer(context.dpy, context.wnd);
+        pbuffers.erase(it);
+      }
     }
   }
 
@@ -251,6 +260,7 @@ class GLXPlatform : public GLPlatform
       int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};
 
       wnd = GLX.glXCreatePbuffer(dpy, fbcfg[0], pbAttribs);
+      pbuffers.insert(wnd);
     }
     else
     {
@@ -428,6 +438,8 @@ class GLXPlatform : public GLPlatform
     replayContext.ctx = ctx;
     replayContext.wnd = pbuffer;
 
+    pbuffers.insert(pbuffer);
+
     return ReplayStatus::Succeeded;
   }
 
@@ -435,6 +447,8 @@ class GLXPlatform : public GLPlatform
   {
     ::DrawQuads(GLX, width, height, vertices);
   }
+
+  std::set<GLXDrawable> pbuffers;
 } glXPlatform;
 
 GLXDispatchTable GLX = {};
