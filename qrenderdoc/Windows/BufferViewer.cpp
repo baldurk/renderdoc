@@ -393,6 +393,10 @@ struct BufferConfiguration
       indices->deref();
     indices = NULL;
 
+    if(displayIndices)
+      displayIndices->deref();
+    displayIndices = NULL;
+
     for(BufferData *b : buffers)
       b->deref();
 
