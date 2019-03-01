@@ -331,17 +331,6 @@ private:
 
   struct PhysicalDeviceData
   {
-    PhysicalDeviceData()
-        : readbackMemIndex(0), uploadMemIndex(0), GPULocalMemIndex(0), props(), driverInfo(props)
-    {
-      fakeMemProps = NULL;
-      memIdxMap = NULL;
-      RDCEraseEl(features);
-      RDCEraseEl(memProps);
-      RDCEraseEl(fmtprops);
-      RDCEraseEl(queueProps);
-    }
-
     uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps,
                             uint32_t allocUndesiredProps);
 
@@ -349,21 +338,21 @@ private:
     //  - memory for copying into and reading back from the GPU
     //  - memory for copying into and uploading to the GPU
     //  - memory for sitting on the GPU and never being CPU accessed
-    uint32_t readbackMemIndex;
-    uint32_t uploadMemIndex;
-    uint32_t GPULocalMemIndex;
+    uint32_t readbackMemIndex = 0;
+    uint32_t uploadMemIndex = 0;
+    uint32_t GPULocalMemIndex = 0;
 
-    VkPhysicalDeviceMemoryProperties *fakeMemProps;
-    uint32_t *memIdxMap;
+    VkPhysicalDeviceMemoryProperties *fakeMemProps = NULL;
+    uint32_t *memIdxMap = NULL;
 
-    VkDriverInfo driverInfo;
-    VkPhysicalDeviceFeatures features;
-    VkPhysicalDeviceProperties props;
-    VkPhysicalDeviceMemoryProperties memProps;
-    VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE];
+    VkPhysicalDeviceFeatures features = {};
+    VkPhysicalDeviceProperties props = {};
+    VkPhysicalDeviceMemoryProperties memProps = {};
+    VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE] = {};
+    VkDriverInfo driverInfo = VkDriverInfo(props);
 
     uint32_t queueCount = 0;
-    VkQueueFamilyProperties queueProps[16];
+    VkQueueFamilyProperties queueProps[16] = {};
   };
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
