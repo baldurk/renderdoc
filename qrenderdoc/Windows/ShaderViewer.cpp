@@ -808,6 +808,9 @@ void ShaderViewer::gotoDisassemblyDebugging()
 
 ShaderViewer::~ShaderViewer()
 {
+  delete m_FindResults;
+  m_FindResults = NULL;
+
   // don't want to async invoke while using 'this', so save the trace separately
   ShaderDebugTrace *trace = m_Trace;
 
