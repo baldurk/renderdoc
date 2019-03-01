@@ -869,7 +869,11 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
     *ver = char('0' + pythonMinorVersion);
 
     handle = Process::LoadModule(py.c_str());
-    RDCLOG("Loaded python from %s", py.c_str());
+    if(handle)
+    {
+      RDCLOG("Loaded python from %s", py.c_str());
+      break;
+    }
   }
 
   if(!handle)
