@@ -336,8 +336,6 @@ private:
     GLuint MS2Array, Array2MS;
     GLuint DepthMS2Array, DepthArray2MS;
 
-    GLuint genericUBO;
-
     GLuint checkerProg;
 
     GLuint fixedcolFragShader;

@@ -1100,8 +1100,6 @@ void GLReplay::DeleteDebugData()
   drv.glDeleteTextures(1, &DebugData.dummyTexBuffer);
   drv.glDeleteBuffers(1, &DebugData.dummyTexBufferStore);
 
-  drv.glDeleteBuffers(1, &DebugData.genericUBO);
-
   drv.glDeleteFramebuffers(1, &DebugData.customFBO);
   drv.glDeleteTextures(1, &DebugData.customTex);
 
