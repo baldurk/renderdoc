@@ -39,23 +39,81 @@
 {
   IntelVulkanLeak
   Memcheck:Leak
-	match-leak-kinds: all
+  match-leak-kinds: all
   ...
   obj:*libvulkan_intel.so*
 }
 {
-  IntelVulkanLeak
+  VulkanLoaderLeak
   Memcheck:Leak
-	match-leak-kinds: all
+  match-leak-kinds: all
   ...
   obj:*libvulkan.so*
+}
+{
+  MesaCond
+  Memcheck:Cond
+  ...
+  obj:*libGLX_mesa.so*
+}
+{
+  MesaCond
+  Memcheck:Cond
+  ...
+  fun:__glXInitialize
+}
+{
+  XcbLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libxcb.so*
+}
+
+# Qt
+{
+  QtAccessibilityLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  fun:_ZN11QAccessible19updateAccessibilityEP16QAccessibleEvent
+}
+{
+  ExpatLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libexpat.so*
+}
+{
+  DBusLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libdbus-1.so*
+}
+{
+   QtPostEventLeak
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   fun:_ZN16QCoreApplication9postEventEP7QObjectP6QEventi
+   fun:_ZN13ReplayManager11CloseThreadEv
+}
+{
+   QtThreadFinishedLeak
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   fun:_ZN11QMetaObject8activateEP7QObjectiiPPv
+   fun:_ZN7QThread8finishedENS_14QPrivateSignalE
 }
 
 # Python
 {
   PythonLeak
   Memcheck:Leak
-	match-leak-kinds: all
+  match-leak-kinds: all
   ...
   obj:*libpython3.6m.so*
 }
@@ -80,191 +138,191 @@
 
 # Unknown cause but not important leak
 {
-	UnknownLeak1
- Memcheck:Leak
- match-leak-kinds: all
- fun:malloc
- ...
- fun:_dl_init
+  UnknownLeak1
+  Memcheck:Leak
+  match-leak-kinds: all
+  fun:malloc
+  ...
+  fun:_dl_init
 }
 
 # Try to suppress only access from mapped pointers, to avoid false negatives
 {
-	InitialStateMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	...
-	fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
+  InitialStateMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  ...
+  fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
 }
 {
-	InitialStateMemcpy
-	Memcheck:Addr4
-	fun:memcpy@@GLIBC_2.14
-	...
-	fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
+  InitialStateMemcpy
+  Memcheck:Addr4
+  fun:memcpy@@GLIBC_2.14
+  ...
+  fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
 }
 {
-	InitialStateMemcpy
-	Memcheck:Addr2
-	fun:memcpy@@GLIBC_2.14
-	...
-	fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
+  InitialStateMemcpy
+  Memcheck:Addr2
+  fun:memcpy@@GLIBC_2.14
+  ...
+  fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
 }
 {
-	InitialStateMemcpy
-	Memcheck:Addr1
-	fun:memcpy@@GLIBC_2.14
-	...
-	fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
+  InitialStateMemcpy
+  Memcheck:Addr1
+  fun:memcpy@@GLIBC_2.14
+  ...
+  fun:_ZN13WrappedVulkan22Serialise_InitialStateE10ResourceIdP12WrappedVkRes
 }
 {
-	DebugInitMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManagerC1EP13WrappedVulkanP10VkDevice_T
+  DebugInitMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManagerC1EP13WrappedVulkanP10VkDevice_T
 }
 {
-	UnmapMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
+  UnmapMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
 }
 {
-	UnmapMemcpy
-	Memcheck:Addr4
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
+  UnmapMemcpy
+  Memcheck:Addr4
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
 }
 {
-	UnmapMemcpy
-	Memcheck:Addr2
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
+  UnmapMemcpy
+  Memcheck:Addr2
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
 }
 {
-	UnmapMemcpy
-	Memcheck:Addr1
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
+  UnmapMemcpy
+  Memcheck:Addr1
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan23Serialise_vkUnmapMemoryEP10SerialiserP10VkDevice_TP16VkDeviceMemory_T
 }
 {
-	FlushMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
+  FlushMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
 }
 {
-	FlushMemcpy
-	Memcheck:Addr4
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
+  FlushMemcpy
+  Memcheck:Addr4
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
 }
 {
-	FlushMemcpy
-	Memcheck:Addr2
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
+  FlushMemcpy
+  Memcheck:Addr2
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
 }
 {
-	FlushMemcpy
-	Memcheck:Addr1
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
+  FlushMemcpy
+  Memcheck:Addr1
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN13WrappedVulkan35Serialise_vkFlushMappedMemoryRangesEP10SerialiserP10VkDevice_TjPK19VkMappedMemoryRange
 }
 {
-	GetTextureDataMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  GetTextureDataMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 {
-	GetTextureDataMemcpy
-	Memcheck:Addr4
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  GetTextureDataMemcpy
+  Memcheck:Addr4
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 {
-	GetTextureDataMemcpy
-	Memcheck:Addr2
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  GetTextureDataMemcpy
+  Memcheck:Addr2
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 {
-	GetTextureDataMemcpy
-	Memcheck:Addr1
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  GetTextureDataMemcpy
+  Memcheck:Addr1
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 {
-	GetBufferDataMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
+  GetBufferDataMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
 }
 {
-	GetBufferDataMemcpy
-	Memcheck:Addr4
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
+  GetBufferDataMemcpy
+  Memcheck:Addr4
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
 }
 {
-	GetBufferDataMemcpy
-	Memcheck:Addr2
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
+  GetBufferDataMemcpy
+  Memcheck:Addr2
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
 }
 {
-	GetBufferDataMemcpy
-	Memcheck:Addr1
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
+  GetBufferDataMemcpy
+  Memcheck:Addr1
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager13GetBufferDataE10ResourceIdmmRSt6vectorIhSaIhEE
 }
 {
-	InitPostVSDataMemcpy
-	Memcheck:Addr8
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
+  InitPostVSDataMemcpy
+  Memcheck:Addr8
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
 }
 {
-	InitPostVSDataMemcpy
-	Memcheck:Addr4
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
+  InitPostVSDataMemcpy
+  Memcheck:Addr4
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
 }
 {
-	InitPostVSDataMemcpy
-	Memcheck:Addr2
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
+  InitPostVSDataMemcpy
+  Memcheck:Addr2
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
 }
 {
-	InitPostVSDataMemcpy
-	Memcheck:Addr1
-	fun:memcpy@@GLIBC_2.14
-	fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
+  InitPostVSDataMemcpy
+  Memcheck:Addr1
+  fun:memcpy@@GLIBC_2.14
+  fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
 }
 # We read from mapped memory here rather than just memcpy'ing, have to suppress the whole thing
 # near/far calculations
 {
-	InitPostVSDataRead
-	Memcheck:Addr4
-	fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
+  InitPostVSDataRead
+  Memcheck:Addr4
+  fun:_ZN18VulkanDebugManager17InitPostVSBuffersEj
 }
 # manual depth/stencil packing
 {
-	InitPostVSDataRead
-	Memcheck:Addr4
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  InitPostVSDataRead
+  Memcheck:Addr4
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 {
-	InitPostVSDataRead
-	Memcheck:Addr2
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  InitPostVSDataRead
+  Memcheck:Addr2
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 {
-	InitPostVSDataRead
-	Memcheck:Addr1
-	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
+  InitPostVSDataRead
+  Memcheck:Addr1
+  fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 
 # This seems to just be an implementation detail that allocates error messages
@@ -287,8 +345,8 @@
 
 # Temporary leak - to be fixed, but has to happen upstream
 {
-	glslangLeaks
-	Memcheck:Leak
+  glslangLeaks
+  Memcheck:Leak
   match-leak-kinds: all
   ...
   fun:_Z17InitSPIRVCompilerv
@@ -296,25 +354,25 @@
 
 # These are deliberate leaks, only once per program run, or once per API load
 {
-	GlobalLogfileString
-	Memcheck:Leak
-	match-leak-kinds: reachable
-	fun:_Znwm
-	fun:_ZL7logfilev
+  GlobalLogfileString
+  Memcheck:Leak
+  match-leak-kinds: reachable
+  fun:_Znwm
+  fun:_ZL7logfilev
 }
 {
-	GlobalLogfileString2
-	Memcheck:Leak
-	match-leak-kinds: reachable
-	fun:_Znwm
-	...
-	fun:_Z15rdclog_filenamePKc
+  GlobalLogfileString2
+  Memcheck:Leak
+  match-leak-kinds: reachable
+  fun:_Znwm
+  ...
+  fun:_Z15rdclog_filenamePKc
 }
 {
-	LoadVulkanModule
-	Memcheck:Leak
-	match-leak-kinds: reachable
-	...
-	fun:_ZN7Process10LoadModuleEPKc
-	fun:_Z25Vulkan_CreateReplayDevicePKcPP13IReplayDriver
+  LoadVulkanModule
+  Memcheck:Leak
+  match-leak-kinds: reachable
+  ...
+  fun:_ZN7Process10LoadModuleEPKc
+  fun:_Z25Vulkan_CreateReplayDevicePKcPP13IReplayDriver
 }
