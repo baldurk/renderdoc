@@ -1,12 +1,13 @@
 #!/bin/sh
 
 mkdir build
-cd build
+pushd build
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 make -j2
+popd # build
 
 echo "--- Running unit tests ---"
 
 trap 'exit' ERR
-./bin/renderdoccmd test unit
-./bin/qrenderdoc.app/Contents/MacOS/qrenderdoc --unittest
+./build/bin/renderdoccmd test unit
+./build/bin/qrenderdoc.app/Contents/MacOS/qrenderdoc --unittest

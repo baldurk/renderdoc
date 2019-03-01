@@ -11,6 +11,7 @@ branches:
 env:
   global:
     - RENDERDOC_TRAVIS_BUILD=1 RENDERDOC_CI_BUILD=1
+    - secure: "nFkr8LnOvqAqgm/cMB2/4mxRaFBShUm5PBMkQf7cEa9p2yrATk5w2JQXAghr1szY2lnWxN/tLKc+93tKmTy7h9fg24VvfBkZIznI4b3m589lxSkrCWbEa3IplMdEHFl21iDSvyigheTUF4N4X2tEPNR5/mw0W+YQY8nXVekOgj9+1sC+ICdb6G6kLtrqNGFBr73KwJyZfl5j60JRvQauO5xLhbzGBDxYHzeo2QUk363czK0rxlZEmjWcqThx1AKmkYQGhHDIZ9ZcYv92nozdRjf2i5OBq5DBOp8FxCgQ225r8WRNFqH4ccGB2juQ+GtkLltUL7ZkyIY9z8zG7y9psG/ZrLvcnaDYsYnz6vaKBpy4RdaUZ1n9Le74yssGipEjOWOgUW3iuqp/1xkXIr7lEkY9MNLlWFtFgIQjDTeFS7QxsLovUcj/8OSHDNRs2fNegFhWUvv6nQUziq3nfDjm51W+VqNlSWKlq+NKr7ipvlpJcPEx7V5oe7SKoLQOGjj/ajTmKnnG653fQMOY4ACvkAfsu2+Vbs8C8VaUDvZRq9wg5cKmm3CrgmjO1r+lg07MA0EUCRtL3UwdxoaqbjpRKDAOdRA2r5dS/jAK1vt1RSuYaD4e6KtbdJgLVcHxT0/ABovs5yS40TSLQPA3Yvrd+76XFeGjkGdMtX2OTRasmTY="
 
 # variables for the matrix, which are implicitly unset if omitted
 #
@@ -53,3 +54,12 @@ install:
 
 script:
   - . ./util/travis/compile.sh
+
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: bash $TRAVIS_BUILD_DIR/util/travis/osx_deploy.sh
+  on:
+    repo: baldurk/renderdoc
+    branch: ci-test
+    condition: $TRAVIS_OS_NAME = osx
