@@ -385,6 +385,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     colBarrier[i].oldLayout = colBarrier[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   }
 
+  delete[] imgs;
+
   curidx = 0;
 
   // for our 'fake' backbuffer, create in RGBA8
