@@ -1902,14 +1902,20 @@ struct ScopedDeserialiseArray
 {
   typedef typename std::remove_pointer<ptrT>::type T;
 
-  ScopedDeserialiseArray(const SerialiserType &ser, T **el) : m_Ser(ser), m_El(el) {}
+  ScopedDeserialiseArray(const SerialiserType &ser, T **el) : m_Ser(ser), m_El(el), count(0) {}
   ~ScopedDeserialiseArray()
   {
     if(m_Ser.IsReading())
+    {
+      for(uint64_t i = 0; i < count; i++)
+        Deserialise((*m_El)[i]);
       delete[] * m_El;
+    }
   }
+  void setCount(uint64_t c) { count = c; }
   const SerialiserType &m_Ser;
   T **m_El;
+  uint64_t count;
 };
 
 template <class SerialiserType>
@@ -1921,6 +1927,7 @@ struct ScopedDeserialiseArray<SerialiserType, void *>
     if(m_Ser.IsReading())
       FreeAlignedBuffer((byte *)*m_El);
   }
+  void setCount(uint64_t c) {}
   const SerialiserType &m_Ser;
   void **m_El;
 };
@@ -1934,6 +1941,7 @@ struct ScopedDeserialiseArray<SerialiserType, const void *>
     if(m_Ser.IsReading())
       FreeAlignedBuffer((byte *)*m_El);
   }
+  void setCount(uint64_t c) {}
   const SerialiserType &m_Ser;
   const void **m_El;
 };
@@ -1947,6 +1955,7 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
     if(m_Ser.IsReading())
       FreeAlignedBuffer(*m_El);
   }
+  void setCount(uint64_t c) {}
   const SerialiserType &m_Ser;
   byte **m_El;
 };
@@ -1978,7 +1987,8 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
   (void)CONCAT(dummy_array_count, __LINE__);                                                      \
   ScopedDeserialiseArray<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
       GET_SERIALISER, &obj);                                                                      \
-  GET_SERIALISER.Serialise(#obj, obj, count, SerialiserFlags::AllocateMemory)
+  GET_SERIALISER.Serialise(#obj, obj, count, SerialiserFlags::AllocateMemory);                    \
+  CONCAT(deserialise_, __LINE__).setCount(count);
 
 #define SERIALISE_ELEMENT_OPT(obj)                                           \
   ScopedDeserialiseNullable<decltype(GET_SERIALISER), decltype(obj)> CONCAT( \
