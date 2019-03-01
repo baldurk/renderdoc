@@ -1743,9 +1743,6 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(IsReplayingAndReading())
     {
-      byte *blob = AllocAlignedBuffer(sizeof(FramebufferState));
-      memcpy(blob, &FramebufferState, sizeof(FramebufferState));
-
       SetInitialContents(Id, initContents);
     }
   }
@@ -1759,9 +1756,6 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(IsReplayingAndReading())
     {
-      byte *blob = AllocAlignedBuffer(sizeof(SamplerState));
-      memcpy(blob, &SamplerState, sizeof(SamplerState));
-
       SetInitialContents(Id, initContents);
     }
   }
@@ -1775,9 +1769,6 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(IsReplayingAndReading())
     {
-      byte *blob = AllocAlignedBuffer(sizeof(TransformFeedbackState));
-      memcpy(blob, &TransformFeedbackState, sizeof(TransformFeedbackState));
-
       SetInitialContents(Id, initContents);
     }
   }
@@ -1791,9 +1782,6 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(IsReplayingAndReading())
     {
-      byte *blob = AllocAlignedBuffer(sizeof(ProgramPipelineState));
-      memcpy(blob, &ProgramPipelineState, sizeof(ProgramPipelineState));
-
       SetInitialContents(Id, initContents);
     }
   }
@@ -1807,9 +1795,6 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(IsReplayingAndReading())
     {
-      byte *blob = AllocAlignedBuffer(sizeof(VAOState));
-      memcpy(blob, &VAOState, sizeof(VAOState));
-
       SetInitialContents(Id, initContents);
     }
   }
