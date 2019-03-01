@@ -240,6 +240,22 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
     sdk = env ? env : "";
   }
 
+#if ENABLED(RDOC_APPLE)
+  // on macOS it's common not to have the environment variable globally available, so try the home
+  // Library folder first, then the global folder
+  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  {
+    std::string librarySDK = FileIO::GetHomeFolderFilename() + "/Library/Android/sdk";
+    sdk = FileIO::exists(librarySDK.c_str()) ? librarySDK : "";
+  }
+
+  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  {
+    std::string librarySDK = "/Library/Android/sdk";
+    sdk = FileIO::exists(librarySDK.c_str()) ? librarySDK : "";
+  }
+#endif
+
   // maybe in future we can try to search in common install locations.
 
   toolpath = getToolInSDK(subdir, jdk, sdk, toolname);
