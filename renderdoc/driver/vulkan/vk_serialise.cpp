@@ -1687,6 +1687,7 @@ void Deserialise(const VkSubmitInfo &el)
 {
   DeserialiseNext(el.pNext);
   delete[] el.pWaitSemaphores;
+  delete[] el.pWaitDstStageMask;
   delete[] el.pCommandBuffers;
   delete[] el.pSignalSemaphores;
 }
