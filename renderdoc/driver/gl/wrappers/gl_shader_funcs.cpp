@@ -1399,6 +1399,11 @@ void WrappedOpenGL::glProgramBinary(GLuint program, GLenum binaryFormat, const v
   {
     GL.glProgramBinary(program, binaryFormat, binary, length);
   }
+  else
+  {
+    // intentionally generate a GL_INVALID_OPERATION error to have an effect on the app
+    GL.glProgramBinary(0, binaryFormat, 0, 0);
+  }
 }
 
 #pragma endregion
