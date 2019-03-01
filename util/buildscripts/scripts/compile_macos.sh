@@ -1,54 +1,15 @@
 #!/bin/bash
 
-echo "Building renderdoc-build docker image"
-
-# Ensure the docker image is prepared
-pushd "${BUILD_ROOT}"/scripts/docker
-docker build -t renderdoc-build .
-popd
-
-echo "Docker image built. Running build"
-
-# Run the docker compilation script inside the container above to build the main renderdoc project
-mkdir -p /tmp/rdoc_docker
-cp "${BUILD_ROOT}"/scripts/compile_docker.sh /tmp/rdoc_docker
-docker run --rm -v /tmp/rdoc_docker:/io -v $(readlink -f "${REPO_ROOT}"):/renderdoc:ro renderdoc-build bash /io/compile_docker.sh
-
-if [ -d /tmp/rdoc_docker/dist ]; then
-	echo "Build successful.";
-else
-	echo "Error encountered during docker build.";
-	exit 1;
-fi
-
-# pushd into the git checkout
+# create pushd into the build folder
 pushd "${REPO_ROOT}"
 
-# Copy the dist folder structure to the git checkout
-cp -R /tmp/rdoc_docker/dist .
+mkdir -p build
+pushd build
 
-# TODO - here we could copy off the build with symbols?
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j4
 
-# Strip the binaries
-strip --strip-unneeded dist/bin/*
-strip --strip-unneeded dist/lib/*
-
-# Copy python modules to where they'd be built natively, for documentation build
-mkdir build
-cp -R /tmp/rdoc_docker/pymodules build/bin
-
-# Step into the docs folder and build
-pushd docs
-make clean
-make html
-
-popd; # docs
-
-# if we didn't produce an html file, bail out even if sphinx didn't return an error code above
-if [ ! -f ./Documentation/html/index.html ]; then
-	echo "Didn't get successful build of html docs."
-	exit 1;
-fi
+popd # build
 
 # Build android libraries and apks
 export PATH=$PATH:$ANDROID_SDK/tools/
@@ -81,7 +42,7 @@ else
 	pushd build-android-arm32
 
 	cmake -DBUILD_ANDROID=1 -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 -DCMAKE_BUILD_TYPE=Release -DSTRIP_ANDROID_LIBRARY=On -DLLVM_DIR=$LLVM_ARM32/lib/cmake/llvm -DUSE_INTERCEPTOR_LIB=On -DCMAKE_MAKE_PROGRAM=make ..
-	make -j8
+	make -j4
 
 	if ! ls bin/*.apk; then
 		echo "Android build failed"
@@ -102,7 +63,7 @@ else
 	pushd build-android-arm64
 
 	cmake -DBUILD_ANDROID=1 -DANDROID_ABI=arm64-v8a -DANDROID_NATIVE_API_LEVEL=23 -DCMAKE_BUILD_TYPE=Release -DSTRIP_ANDROID_LIBRARY=On -DLLVM_DIR=$LLVM_ARM64/lib/cmake/llvm -DUSE_INTERCEPTOR_LIB=On -DCMAKE_MAKE_PROGRAM=make ..
-	make -j8
+	make -j4
 
 	if ! ls bin/*.apk; then
 		echo "Android build failed"
@@ -113,4 +74,4 @@ else
 
 fi
 
-popd # $REPO_ROOT
+popd # $REPO_ROOT/build

@@ -416,6 +416,7 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
 
   paths.push_back(libDir + "/plugins/android/");                                 // Windows install
   paths.push_back(libDir + "/../share/renderdoc/plugins/android/");              // Linux install
+  paths.push_back(libDir + "/../plugins/android/");                              // macOS install
   paths.push_back(libDir + "/../../build-android/bin/");                         // Local build
   paths.push_back(libDir + "/../../build-android" + suff + "/bin/");             // Local ABI build
   paths.push_back(libDir + "/../../../../../build-android/bin/");                // macOS build

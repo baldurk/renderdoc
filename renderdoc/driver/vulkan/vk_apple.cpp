@@ -104,7 +104,7 @@ void *LoadVulkanLibrary()
   // if not, we fall back to our embedded libvulkan and also force use of our embedded ICD.
   std::string libpath;
   FileIO::GetLibraryFilename(libpath);
-  libpath = dirname(libpath) + "/../MoltenVK/";
+  libpath = dirname(libpath) + "/../plugins/MoltenVK/";
 
   RDCLOG("Couldn't load global libvulkan.1.dylib, falling back to bundled MoltenVK in %s",
          libpath.c_str());
