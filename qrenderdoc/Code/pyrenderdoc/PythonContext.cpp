@@ -604,12 +604,20 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
         qCritical() << "Internal error passing pyrenderdoc to extension register()";
       }
 
-      Py_XDECREF(pyctx);
-
       if(retval == NULL)
         ext = NULL;
 
       Py_XDECREF(retval);
+
+      if(ext)
+      {
+        int ret = PyModule_AddObject(ext, "pyrenderdoc", pyctx);
+
+        if(ret != 0)
+          ext = NULL;
+      }
+
+      Py_XDECREF(pyctx);
     }
     else
     {
