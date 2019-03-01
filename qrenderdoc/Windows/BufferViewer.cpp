@@ -2242,7 +2242,7 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  if(draw)
+  if(draw && m_MeshView)
   {
     uint32_t eventId = draw->eventId;
     bool calcNeeded = false;
@@ -2353,7 +2353,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
 
           QVariantList list = el->GetVariants(bytes, d.end);
 
-          for(int comp = 0; comp < list.count(); comp++)
+          for(int comp = 0; comp < 4 && comp < list.count(); comp++)
           {
             const QVariant &v = list[comp];
 
