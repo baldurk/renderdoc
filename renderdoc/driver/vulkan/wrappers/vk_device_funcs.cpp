@@ -118,6 +118,13 @@ static void StripUnwantedLayers(vector<string> &Layers)
       continue;
     }
 
+    // remove the optimus layer just in case it was explicitly enabled.
+    if(*it == "VK_LAYER_NV_optimus")
+    {
+      it = Layers.erase(it);
+      continue;
+    }
+
     // filter out validation layers
     if(*it == "VK_LAYER_LUNARG_standard_validation" || *it == "VK_LAYER_LUNARG_core_validation" ||
        *it == "VK_LAYER_LUNARG_device_limits" || *it == "VK_LAYER_LUNARG_image" ||
