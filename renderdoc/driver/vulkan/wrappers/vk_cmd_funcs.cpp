@@ -2375,7 +2375,7 @@ void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer de
     record->AddChunk(scope.Get());
 
     record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, dataSize,
-                                      eFrameRef_PartialWrite);
+                                      eFrameRef_CompleteWrite);
   }
 }
 
@@ -2437,7 +2437,7 @@ void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dest
     record->AddChunk(scope.Get());
 
     record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize,
-                                      eFrameRef_PartialWrite);
+                                      eFrameRef_CompleteWrite);
   }
 }
 
