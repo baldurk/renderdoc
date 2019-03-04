@@ -332,6 +332,24 @@
       <Merge Id="VCRedist64" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC140_CRT_x86.msm"/>
     </DirectoryRef>
 
+    <Property Id="VCRT64INSTALLED" Value="0">
+      <RegistrySearch Id="VCRT64Key"
+        Root="HKLM"
+        Key="Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+        Name="Installed"
+        Win64="yes"
+        Type="raw" />
+    </Property>
+
+    <Property Id="VCRT32INSTALLED" Value="0">
+      <RegistrySearch Id="VCRT32Key"
+        Root="HKLM"
+        Key="Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"
+        Name="Installed"
+        Win64="no"
+        Type="raw" />
+    </Property>
+
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
       <Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
         <ComponentRef Id='QRenderDoc' />
@@ -361,11 +379,19 @@
 
       </Feature>
 
-      <Feature Id="VCRedist32" Title="Visual C++ 2010 Runtime SP1 (x86)" AllowAdvertise="no" Display="hidden" Level="1">
+      <Feature Id='VCRedist32' Title='Visual C++ 2015 Runtime Update 3 (x86)' AllowAdvertise="no" Display="hidden" Level="1">
+        <Condition Level='0'>
+          <![CDATA[Installed OR (VCRT32INSTALLED <> "0")]]>
+        </Condition>
+
         <MergeRef Id="VCRedist32"/>
       </Feature>
 
-      <Feature Id="VCRedist64" Title="Visual C++ 2010 Runtime SP1 (x64)" AllowAdvertise="no" Display="hidden" Level="1">
+      <Feature Id='VCRedist64' Title='Visual C++ 2015 Runtime Update 3 (x64)' AllowAdvertise="no" Display="hidden" Level="1">
+        <Condition Level='0'>
+          <![CDATA[Installed OR (VCRT64INSTALLED <> "0")]]>
+        </Condition>
+
         <MergeRef Id="VCRedist64"/>
       </Feature>
 
