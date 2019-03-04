@@ -61,5 +61,5 @@ deploy:
   script: bash $TRAVIS_BUILD_DIR/util/travis/osx_deploy.sh
   on:
     repo: baldurk/renderdoc
-    branch: ci-test
+    branch: v1.x
     condition: $TRAVIS_OS_NAME = osx
