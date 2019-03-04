@@ -170,28 +170,45 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   if(vulkanLoaderClass)
   {
     // See:
-    // https://android.googlesource.com/platform/frameworks/base/+/f9419f0f8524da4980726e06130a80e0fb226763/core/java/android/app/ApplicationLoaders.java
+    // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/app/ApplicationLoaders.java
     // for the public getClassLoader.
 
-    // look for both signatures in this order, note that the final "String classLoaderName" was
-    // added recently
+    // look for both signatures in this order, as it goes from most recent to least recent. In some
+    // cases (e.g. with List<ClassLoader> sharedLibraries) the older function is still around as an
+    // overload that forwards on - so may not be called. This would cause us to wait for a function
+    // to be hit that was never hit.
 
-    // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
-    //                            String librarySearchPath, String libraryPermittedPath,
-    //                            ClassLoader parent);
-    methodID vulkanLoaderMethod = conn.GetMethod(
-        vulkanLoaderClass, "getClassLoader",
+    const char *getClassLoaderSignatures[] = {
+        // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
+        //                            String librarySearchPath, String libraryPermittedPath,
+        //                            ClassLoader parent, String cacheKey,
+        //                            String classLoaderName, List<ClassLoader> sharedLibraries);
+        "(Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;"
+        "Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Ljava/lang/ClassLoader;",
+
+        // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
+        //                            String librarySearchPath, String libraryPermittedPath,
+        //                            ClassLoader parent, String classLoaderName);
+        "(Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;"
+        "Ljava/lang/String;)Ljava/lang/ClassLoader;",
+
+        // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
+        //                            String librarySearchPath, String libraryPermittedPath,
+        //                            ClassLoader parent);
         "(Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)"
-        "Ljava/lang/ClassLoader;");
+        "Ljava/lang/ClassLoader;",
+    };
 
-    // ClassLoader getClassLoader(String zip, int targetSdkVersion, boolean isBundled,
-    //                            String librarySearchPath, String libraryPermittedPath,
-    //                            ClassLoader parent, String classLoaderName);
-    if(vulkanLoaderMethod == 0)
-      vulkanLoaderMethod = conn.GetMethod(
-          vulkanLoaderClass, "getClassLoader",
-          "(Ljava/lang/String;IZLjava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;"
-          "Ljava/lang/String;)Ljava/lang/ClassLoader;");
+    methodID vulkanLoaderMethod = 0;
+    for(const char *sig : getClassLoaderSignatures)
+    {
+      vulkanLoaderMethod = conn.GetMethod(vulkanLoaderClass, "getClassLoader", sig);
+
+      if(vulkanLoaderMethod)
+      {
+        RDCLOG("Got android.app.ApplicationLoaders.getClassLoader signature %s", sig);
+      }
+    }
 
     if(vulkanLoaderMethod)
     {
