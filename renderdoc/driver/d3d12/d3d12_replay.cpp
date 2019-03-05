@@ -2754,12 +2754,12 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std
 
     switch(type)
     {
-      case ShaderStage::Vertex: profile = "vs_5_0"; break;
-      case ShaderStage::Hull: profile = "hs_5_0"; break;
-      case ShaderStage::Domain: profile = "ds_5_0"; break;
-      case ShaderStage::Geometry: profile = "gs_5_0"; break;
-      case ShaderStage::Pixel: profile = "ps_5_0"; break;
-      case ShaderStage::Compute: profile = "cs_5_0"; break;
+      case ShaderStage::Vertex: profile = "vs_5_1"; break;
+      case ShaderStage::Hull: profile = "hs_5_1"; break;
+      case ShaderStage::Domain: profile = "ds_5_1"; break;
+      case ShaderStage::Geometry: profile = "gs_5_1"; break;
+      case ShaderStage::Pixel: profile = "ps_5_1"; break;
+      case ShaderStage::Compute: profile = "cs_5_1"; break;
       default:
         RDCERR("Unexpected type in BuildShader!");
         *id = ResourceId();
