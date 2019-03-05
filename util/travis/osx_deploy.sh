@@ -1,5 +1,9 @@
 #!/bin/sh
 
+echo "Preparing macOS dependencies"
+
+./util/buildscripts/scripts/prepare_deps_macos.sh build/bin/qrenderdoc.app/Contents/MacOS/qrenderdoc
+
 set +v
 
 if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$APPLE_BUILD" == "1" ]]; then
