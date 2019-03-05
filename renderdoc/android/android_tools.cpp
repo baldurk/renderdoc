@@ -327,7 +327,11 @@ void initAdb()
 {
   // we don't use adbExecCommand because we need to be sure we don't wait for it to exit
   std::string adb = getToolPath(ToolDir::PlatformTools, "adb", false);
-  Process::LaunchProcess(adb.c_str(), ".", "start-server", true);
+  std::string workdir = ".";
+  if(adb.find('/') != std::string::npos || adb.find('\\') != std::string::npos)
+    workdir = dirname(adb);
+
+  Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true);
 }
 void shutdownAdb()
 {
