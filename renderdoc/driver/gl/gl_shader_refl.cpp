@@ -1708,7 +1708,11 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     {
       sort(members[ssbo]);
 
-      std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo][0].type.members);
+      if(rwresources[ssbos[ssbo]].name == members[ssbo][0].name &&
+         members[ssbo][0].type.descriptor.arrayByteStride == 0)
+        std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo][0].type.members);
+      else
+        std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo]);
     }
 
     // patch-up reflection data. For top-level arrays use the stride & rough size to calculate the
