@@ -61,7 +61,7 @@ win32 {
 	silent:swig.commands = @echo SWIG ${QMAKE_FILE_IN} && $$swig.commands
 	QMAKE_EXTRA_COMPILERS += swig
 
-	# windows only qrc file with qt.conf
+	# add qrc file with qt.conf
 	RESOURCES += Resources/qtconf.qrc
 
 	SWIGSOURCES += Code/pyrenderdoc/renderdoc.i
@@ -138,6 +138,9 @@ win32 {
 
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
 		ICON = $$OSX_ICONFILE
+
+		# add qrc file with qt.conf
+		RESOURCES += Resources/qtconf.qrc
 		
 		librd.files = $$files($$DESTDIR/../lib/librenderdoc.dylib)
 		librd.path = Contents/lib
