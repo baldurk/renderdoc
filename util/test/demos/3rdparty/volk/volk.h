@@ -1,7 +1,7 @@
 /**
  * volk
  *
- * Copyright (C) 2018, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
+ * Copyright (C) 2018-2019, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
  * Report bugs and download new versions at https://github.com/zeux/volk
  *
  * This library is distributed under the MIT License. See notice at the end of this file.
@@ -14,7 +14,7 @@
 #endif
 
 /* VOLK_GENERATE_VERSION */
-#define VOLK_HEADER_VERSION 92
+#define VOLK_HEADER_VERSION 101
 /* VOLK_GENERATE_VERSION */
 
 #ifndef VK_NO_PROTOTYPES
@@ -232,6 +232,9 @@ struct VolkDeviceTable
 	PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID;
 	PFN_vkGetMemoryAndroidHardwareBufferANDROID vkGetMemoryAndroidHardwareBufferANDROID;
 #endif /* defined(VK_ANDROID_external_memory_android_hardware_buffer) */
+#if defined(VK_EXT_buffer_device_address)
+	PFN_vkGetBufferDeviceAddressEXT vkGetBufferDeviceAddressEXT;
+#endif /* defined(VK_EXT_buffer_device_address) */
 #if defined(VK_EXT_calibrated_timestamps)
 	PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT;
 #endif /* defined(VK_EXT_calibrated_timestamps) */
@@ -384,21 +387,6 @@ struct VolkDeviceTable
 	PFN_vkRegisterObjectsNVX vkRegisterObjectsNVX;
 	PFN_vkUnregisterObjectsNVX vkUnregisterObjectsNVX;
 #endif /* defined(VK_NVX_device_generated_commands) */
-#if defined(VK_NVX_raytracing)
-	PFN_vkBindAccelerationStructureMemoryNVX vkBindAccelerationStructureMemoryNVX;
-	PFN_vkCmdBuildAccelerationStructureNVX vkCmdBuildAccelerationStructureNVX;
-	PFN_vkCmdCopyAccelerationStructureNVX vkCmdCopyAccelerationStructureNVX;
-	PFN_vkCmdTraceRaysNVX vkCmdTraceRaysNVX;
-	PFN_vkCmdWriteAccelerationStructurePropertiesNVX vkCmdWriteAccelerationStructurePropertiesNVX;
-	PFN_vkCompileDeferredNVX vkCompileDeferredNVX;
-	PFN_vkCreateAccelerationStructureNVX vkCreateAccelerationStructureNVX;
-	PFN_vkCreateRaytracingPipelinesNVX vkCreateRaytracingPipelinesNVX;
-	PFN_vkDestroyAccelerationStructureNVX vkDestroyAccelerationStructureNVX;
-	PFN_vkGetAccelerationStructureHandleNVX vkGetAccelerationStructureHandleNVX;
-	PFN_vkGetAccelerationStructureMemoryRequirementsNVX vkGetAccelerationStructureMemoryRequirementsNVX;
-	PFN_vkGetAccelerationStructureScratchMemoryRequirementsNVX vkGetAccelerationStructureScratchMemoryRequirementsNVX;
-	PFN_vkGetRaytracingShaderHandlesNVX vkGetRaytracingShaderHandlesNVX;
-#endif /* defined(VK_NVX_raytracing) */
 #if defined(VK_NV_clip_space_w_scaling)
 	PFN_vkCmdSetViewportWScalingNV vkCmdSetViewportWScalingNV;
 #endif /* defined(VK_NV_clip_space_w_scaling) */
@@ -637,6 +625,9 @@ extern PFN_vkGetMemoryAndroidHardwareBufferANDROID vkGetMemoryAndroidHardwareBuf
 extern PFN_vkAcquireXlibDisplayEXT vkAcquireXlibDisplayEXT;
 extern PFN_vkGetRandROutputDisplayEXT vkGetRandROutputDisplayEXT;
 #endif /* defined(VK_EXT_acquire_xlib_display) */
+#if defined(VK_EXT_buffer_device_address)
+extern PFN_vkGetBufferDeviceAddressEXT vkGetBufferDeviceAddressEXT;
+#endif /* defined(VK_EXT_buffer_device_address) */
 #if defined(VK_EXT_calibrated_timestamps)
 extern PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT;
 extern PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vkGetPhysicalDeviceCalibrateableTimeDomainsEXT;
@@ -884,24 +875,12 @@ extern PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX vkGetPhysicalDevice
 extern PFN_vkRegisterObjectsNVX vkRegisterObjectsNVX;
 extern PFN_vkUnregisterObjectsNVX vkUnregisterObjectsNVX;
 #endif /* defined(VK_NVX_device_generated_commands) */
-#if defined(VK_NVX_raytracing)
-extern PFN_vkBindAccelerationStructureMemoryNVX vkBindAccelerationStructureMemoryNVX;
-extern PFN_vkCmdBuildAccelerationStructureNVX vkCmdBuildAccelerationStructureNVX;
-extern PFN_vkCmdCopyAccelerationStructureNVX vkCmdCopyAccelerationStructureNVX;
-extern PFN_vkCmdTraceRaysNVX vkCmdTraceRaysNVX;
-extern PFN_vkCmdWriteAccelerationStructurePropertiesNVX vkCmdWriteAccelerationStructurePropertiesNVX;
-extern PFN_vkCompileDeferredNVX vkCompileDeferredNVX;
-extern PFN_vkCreateAccelerationStructureNVX vkCreateAccelerationStructureNVX;
-extern PFN_vkCreateRaytracingPipelinesNVX vkCreateRaytracingPipelinesNVX;
-extern PFN_vkDestroyAccelerationStructureNVX vkDestroyAccelerationStructureNVX;
-extern PFN_vkGetAccelerationStructureHandleNVX vkGetAccelerationStructureHandleNVX;
-extern PFN_vkGetAccelerationStructureMemoryRequirementsNVX vkGetAccelerationStructureMemoryRequirementsNVX;
-extern PFN_vkGetAccelerationStructureScratchMemoryRequirementsNVX vkGetAccelerationStructureScratchMemoryRequirementsNVX;
-extern PFN_vkGetRaytracingShaderHandlesNVX vkGetRaytracingShaderHandlesNVX;
-#endif /* defined(VK_NVX_raytracing) */
 #if defined(VK_NV_clip_space_w_scaling)
 extern PFN_vkCmdSetViewportWScalingNV vkCmdSetViewportWScalingNV;
 #endif /* defined(VK_NV_clip_space_w_scaling) */
+#if defined(VK_NV_cooperative_matrix)
+extern PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV vkGetPhysicalDeviceCooperativeMatrixPropertiesNV;
+#endif /* defined(VK_NV_cooperative_matrix) */
 #if defined(VK_NV_device_diagnostic_checkpoints)
 extern PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
 extern PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV;
@@ -959,7 +938,7 @@ extern PFN_vkAcquireNextImage2KHR vkAcquireNextImage2KHR;
 #endif
 
 /**
- * Copyright (c) 2018 Arseny Kapoulkine
+ * Copyright (c) 2018-2019 Arseny Kapoulkine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
