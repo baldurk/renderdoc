@@ -47,6 +47,10 @@ matrix:
       osx_image: xcode9.4
       env: APPLE_BUILD=1
       compiler: clang
+    - os: osx
+      osx_image: xcode9.4
+      env: APPLE_BUILD=1 RELEASE_BUILD=1
+      compiler: clang
 
 # install dependencies
 install:
@@ -62,4 +66,4 @@ deploy:
   on:
     repo: baldurk/renderdoc
     branch: v1.x
-    condition: $TRAVIS_OS_NAME = osx
+    condition: $TRAVIS_OS_NAME$RELEASE_BUILD = osx1
