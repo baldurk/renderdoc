@@ -409,7 +409,7 @@ void RichTextViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
         rect.setX(rect.x() + opt.icon.actualSize(opt.decorationSize, mode, state).width() + 4);
       }
 
-      RichResourceTextPaint(m_widget, painter, rect, option.font, option.palette,
+      RichResourceTextPaint(m_widget, painter, rect, opt.font, option.palette,
                             option.state & QStyle::State_MouseOver,
                             m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
 
