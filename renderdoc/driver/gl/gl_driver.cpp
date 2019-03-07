@@ -2411,6 +2411,20 @@ void WrappedOpenGL::AttemptCapture()
 
   m_DebugMessages.clear();
 
+  if(!HasExt[KHR_debug] && RenderDoc::Inst().GetCaptureOptions().apiValidation)
+  {
+    DebugMessage msg = {};
+
+    msg.category = MessageCategory::Portability;
+    msg.severity = MessageSeverity::High;
+    msg.source = MessageSource::RuntimeWarning;
+    msg.description =
+        "API Validation was enabled, but KHR_debug was not available in this driver so no "
+        "validation messages could be retrieved";
+
+    m_DebugMessages.push_back(msg);
+  }
+
   {
     RDCDEBUG("GL Context %llu Attempting capture", m_ContextResourceID);
 
