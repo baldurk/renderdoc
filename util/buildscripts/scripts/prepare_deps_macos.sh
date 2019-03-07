@@ -47,6 +47,11 @@ qt_install=`dirname "${first_dep_loC}" | sed 's#/lib##'`
 echo "Copying plugins from $qt_install"
 plugins="imageformats/libqsvg.dylib platforms/libqcocoa.dylib"
 
+# Remove any symlink that might exist here
+if [ -L Contents/qtplugins ]; then
+	rm Contents/qtplugins;
+fi
+
 for plugin in $plugins; do
   mkdir -p "Contents/qtplugins/"`dirname "${plugin}"`
 
