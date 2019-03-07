@@ -1052,6 +1052,12 @@ void GLReplay::InitDebugData()
     m_Degraded = true;
   }
 
+#if ENABLED(RDOC_APPLE)
+  // temporary hack - just never consider apple degraded, since there's never going to be an
+  // improvement so there's no point warning users.
+  m_Degraded = false;
+#endif
+
   m_pDriver->PopInternalShader();
 }
 
