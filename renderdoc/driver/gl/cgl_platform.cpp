@@ -103,7 +103,7 @@ class CGLPlatform : public GLPlatform
       if(share.ctx && CGL.CGLCreateContext)
       {
         CGLError err = CGL.CGLCreateContext(share.pix, share.ctx, &ret.ctx);
-        RDCASSERTMSG("Error creating temporary context", err != kCGLNoError, err);
+        RDCASSERTMSG("Error creating temporary context", err == kCGLNoError, err);
       }
     }
 
