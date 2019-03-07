@@ -843,7 +843,17 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
           break;
         case SDBasic::Null: param = lit("NULL"); break;
         case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;
-        case SDBasic::String: param = obj->data.str; break;
+        case SDBasic::String:
+        {
+          QStringList lines = QString(obj->data.str).split(QLatin1Char('\n'));
+          QString trimmedStr;
+          for(int i = 0; i < 3 && i < lines.count(); i++)
+            trimmedStr += lines[i] + QLatin1Char('\n');
+          if(lines.count() > 3)
+            trimmedStr += lit("...");
+          param = trimmedStr.trimmed();
+          break;
+        }
         case SDBasic::Resource:
         case SDBasic::Enum:
         case SDBasic::UnsignedInteger: param = Formatter::HumanFormat(obj->data.basic.u); break;
