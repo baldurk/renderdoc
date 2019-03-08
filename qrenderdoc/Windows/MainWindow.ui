@@ -272,7 +272,7 @@
   </action>
   <action name="action_Mesh_Output">
    <property name="text">
-    <string>&amp;Mesh Output</string>
+    <string>&amp;Mesh Viewer</string>
    </property>
   </action>
   <action name="action_Errors_and_Warnings">

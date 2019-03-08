@@ -89,15 +89,15 @@ void TipsDialog::initialize()
   // Tip 4
   m_tips.push_back(
       Tip(tr("Choosing mesh elements to visualise"),
-          tr("In the mesh output pane, you can right click on any of the element columns to select "
-             "that element as either position or secondary property to render. This way you can "
-             "view a mesh in UV space, or visualise normals.")));
+          tr("In the mesh viewer, you can right click on any of the element columns to select that "
+             "element as either position or secondary property to render. This way you can view a "
+             "mesh in UV space, or visualise normals.")));
 
   // Tip 5
   m_tips.push_back(Tip(tr("Visualising secondary mesh properties"),
-                       tr("In the mesh output pane, you can select an element as 'secondary', and "
-                          "in the solid shading dropdown choosing secondary will display the "
-                          "element as RGB colour on top of the mesh.")));
+                       tr("In the mesh viewer, you can select an element as 'secondary', and in "
+                          "the solid shading dropdown choosing secondary will display the element "
+                          "as RGB colour on top of the mesh.")));
 
   // Tip 6
   m_tips.push_back(
@@ -274,12 +274,12 @@ void TipsDialog::initialize()
   // Tip 28
   m_tips.push_back(
       Tip(tr("Mesh VS Output camera settings"),
-          tr("The VS Output pane in the mesh output window will attempt to guess your projection "
-             "matrix to unproject the vertices into camera space. It assumes a perspective "
-             "projection and guesses the near and far planes, and matches the aspect ratio to the "
-             "current output target.\n\nIf these parameters are incorrect - e.g. you are using an "
-             "orthographic projection or the near/far guesses are wrong, you can override them by "
-             "opening the view settings with the cog icon.\n")));
+          tr("The VS Output pane in the mesh viewer will attempt to guess your projection matrix "
+             "to unproject the vertices into camera space. It assumes a perspective projection and "
+             "guesses the near and far planes, and matches the aspect ratio to the current output "
+             "target.\n\nIf these parameters are incorrect - e.g. you are using an orthographic "
+             "projection or the near/far guesses are wrong, you can override them by opening the "
+             "view settings with the cog icon.\n")));
 
   // Tip 29
   m_tips.push_back(

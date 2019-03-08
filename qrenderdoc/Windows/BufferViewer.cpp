@@ -1800,7 +1800,7 @@ void BufferViewer::SetupRawView()
 
 void BufferViewer::SetupMeshView()
 {
-  setWindowTitle(tr("Mesh Output"));
+  setWindowTitle(tr("Mesh Viewer"));
 
   // hide buttons we don't want in the toolbar
   ui->byteRangeLine->setVisible(false);

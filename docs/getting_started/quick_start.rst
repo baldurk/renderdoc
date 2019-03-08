@@ -161,7 +161,7 @@ The Pipeline State window is perhaps the most detailed but also the simplest to 
 
 By default the pipeline will not contain empty or unused entries - i.e. if a shader only reads from resources 0 and 1, even if something is bound to slot 2 it will not be displayed. Likewise say slots 3-128 are empty - they will also not be displayed. This behaviour can be modified by the :guilabel:`Show Disabled Items` and :guilabel:`Show Empty Items` toggles on the toolbar. Show Disabled will show slot 2 even if the shader does not read from it. Show Empty will show slots 3-128. This behaviour varies significantly by API since the shader binding model is often quite different.
 
-One important thing to note is that most things in the sections for each pipeline stage can be expanded to view in more detail. Look for the Go Icon (|go_arrow|) to indicate that a more detailed view is available. Typically this will mean for shaders the shader source/disassembly will be opened, for texture-type resources the texture viewer will open a new tab for that resource, and for buffers it will open either the Mesh Output window, a raw view of that buffer, or a popup with the constant contents - depending on where the buffer is bound.
+One important thing to note is that most things in the sections for each pipeline stage can be expanded to view in more detail. Look for the Go Icon (|go_arrow|) to indicate that a more detailed view is available. Typically this will mean for shaders the shader source/disassembly will be opened, for texture-type resources the texture viewer will open a new tab for that resource, and for buffers it will open either the Mesh Viewer window, a raw view of that buffer, or a popup with the constant contents - depending on where the buffer is bound.
 
 .. |link| image:: ../imgs/icons/link.png
 
@@ -169,19 +169,19 @@ Another useful convention is that anywhere an API object is mentioned, its name 
 
 For more details, check out the how-to: :doc:`../how/how_object_details`.
 
-Mesh Output
+Mesh Viewer
 ```````````
 
 .. figure:: ../imgs/QuickStart/QuickStart8.png
 
-    Mesh Output Viewer
+    Mesh Viewer
 
 More details can be found on the :doc:`../window/buffer_viewer` page.
 
 .. |arrow_undo| image:: ../imgs/icons/arrow_undo.png
 .. |cog| image:: ../imgs/icons/cog.png
 
-Mesh Output allows you to inspect the geometry data as it passes through the pipeline. Both raw data in a grid view and 3D inspection is possible. The tabs in the preview window allow you to choose at which part of the pipeline you'd like to visualise the data.
+Mesh Viewer allows you to inspect the geometry data as it passes through the pipeline. Both raw data in a grid view and 3D inspection is possible. The tabs in the preview window allow you to choose at which part of the pipeline you'd like to visualise the data.
 
 By default the preview shows a wireframe rendering of the mesh, but you can choose solid shading options. This can either be simple shading or use a secondary attribute as color. Right clicking on any column allows you to choose the secondary attribute for rendering.
 

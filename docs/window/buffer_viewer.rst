@@ -1,5 +1,5 @@
-Buffer Viewer/Mesh Output
-=========================
+Buffer/Mesh Viewer
+==================
 
 The buffer viewer has two reasonably distinct modes - the first rather specialised to show meshes and the mesh data as it passes through the pipeline. The other shows a raw arbitrary buffer with a custom (and arbitrary) formatting.
 

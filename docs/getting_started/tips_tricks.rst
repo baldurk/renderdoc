@@ -11,7 +11,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 
    For more information check out the :doc:`../window/capture_attach` page.
 
-#. If you'd like to see the geometry data visualised in 3D and with each component separated out and formatted, either open "Mesh Output" under the window menu, or click the Go Arrow |go_arrow| on the vertex input attributes in the :doc:`../window/pipeline_state`.
+#. If you'd like to see the geometry data visualised in 3D and with each component separated out and formatted, either open "Mesh Viewer" under the window menu, or click the Go Arrow |go_arrow| on the vertex input attributes in the :doc:`../window/pipeline_state`.
 #. Right clicking on one of the channel buttons in the texture viewer (R, G, B, A) will either select only that channel, or if it's already the only one selected it will select all of the others. This is useful e.g. to toggle between viewing RGB and alpha, or for looking at individual channels in a packed texture or render target.
 #. Similarly, right-clicking on the 'auto-fit' button |wand| will auto-fit whenever the texture or event changes, so that the visible range is maintained as you move through the frame. This can be useful if jumping between places where the visible range is very different.
    Note though that by default the range will be remembered or each texture, so once you have fitted the range once for each texture you should be able to flip back and forth more easily.

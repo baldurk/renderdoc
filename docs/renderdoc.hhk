@@ -407,6 +407,10 @@
 				<param name="Local" value="window/buffer_viewer.html#mesh-viewer">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
+				<param name="Keyword" value="Mesh Viewer">
+				<param name="Local" value="window/buffer_viewer.html#mesh-viewer">
+		</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Performance Counter Viewer">
 				<param name="Local" value="window/performance_counter_viewer.html">
 		</OBJECT>

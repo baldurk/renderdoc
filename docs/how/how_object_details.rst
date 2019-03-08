@@ -43,7 +43,7 @@ Viewing Buffers
 
 More details on this section are available on the :doc:`../window/buffer_viewer` page.
 
-When opened either from the vertex input section the pipeline state view, or from the :guilabel:`Window` menu under :guilabel:`Mesh Output`, the buffer viewer opens up in the mesh viewer mode. This is a specialisation of the buffer viewer which will show a 3D display of the mesh represented, as well as viewing the mesh buffers at different points in the pipeline.
+When opened either from the vertex input section the pipeline state view, or from the :guilabel:`Window` menu under :guilabel:`Mesh Viewer`, the buffer viewer opens up in the mesh viewer mode. This is a specialisation of the buffer viewer which will show a 3D display of the mesh represented, as well as viewing the mesh buffers at different points in the pipeline.
 
 In the general case, buffers bound to the pipeline can be opened as a raw buffer viewer. This will open up a view of the buffer similar to the mesh viewer, but with a completely customisable buffer layout.
 
