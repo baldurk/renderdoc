@@ -1498,6 +1498,15 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     // always allow SRVs on replay so we can inspect resources
     Descriptor.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
+    D3D12_HEAP_DESC heapDesc = pHeap->GetDesc();
+
+    // if the heap was from OpenExistingHeap* then we will have removed the shared flags from it as
+    // it's CPU-visible and impossible to share.
+    // That means any resources placed to it would have had this flag that we then need to remove as
+    // well.
+    if((heapDesc.Flags & D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER) == 0)
+      Descriptor.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
+
     ID3D12Resource *ret = NULL;
     HRESULT hr = m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, &Descriptor, InitialState,
                                                  pOptimizedClearValue, guid, (void **)&ret);

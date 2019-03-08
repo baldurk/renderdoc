@@ -48,6 +48,9 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
 
       D3D12_HEAP_DESC heapDesc = wrapped->GetDesc();
 
+      // remove SHARED flags that are not allowed on real heaps
+      heapDesc.Flags &= ~(D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER);
+
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeapFromAddress);
       Serialise_CreateHeap(ser, &heapDesc, riid, (void **)&wrapped);
 
@@ -92,6 +95,9 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
       CACHE_THREAD_SERIALISER();
 
       D3D12_HEAP_DESC heapDesc = wrapped->GetDesc();
+
+      // remove SHARED flags that are not allowed on real heaps
+      heapDesc.Flags &= ~(D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER);
 
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeapFromFileMapping);
       Serialise_CreateHeap(ser, &heapDesc, riid, (void **)&wrapped);
