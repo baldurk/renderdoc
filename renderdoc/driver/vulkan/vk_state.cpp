@@ -446,7 +446,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
       VkWriteDescriptorSet push = {};
 
       // skip if this binding isn't used
-      if(descLayout.bindings[b].descriptorCount == 0)
+      if(descLayout.bindings[b].descriptorCount == 0 || descLayout.bindings[b].stageFlags == 0)
         continue;
 
       push.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

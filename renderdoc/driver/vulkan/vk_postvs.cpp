@@ -1431,7 +1431,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
           // skip empty bindings
-          if(bind.descriptorCount == 0)
+          if(bind.descriptorCount == 0 || bind.stageFlags == 0)
             continue;
 
           // make room in the pool
@@ -1537,7 +1537,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
           // skip empty bindings
-          if(bind.descriptorCount == 0)
+          if(bind.descriptorCount == 0 || bind.stageFlags == 0)
             continue;
 
           DescriptorSetSlot *slot = setInfo.currentBindings[b];
