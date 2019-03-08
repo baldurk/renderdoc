@@ -50,6 +50,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
 
+  if(m_pDriver->IsUnsafeDraw(eventId))
+    return;
+
   GLMarkerRegion postvs(StringFormat::Fmt("PostVS for %u", eventId));
 
   MakeCurrentReplayContext(&m_ReplayCtx);

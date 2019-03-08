@@ -2170,7 +2170,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   // TODO: fill in Interfaces with shader subroutines?
 }
 
-void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
+void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                          ShaderBindpointMapping &mapping)
 {
   if(!refl)
@@ -2463,7 +2463,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
 #endif
 }
 
-void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
+void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                                    ShaderBindpointMapping &mapping)
 {
   // this is similar in principle to GetBindpointMapping - we want to look up the actual uniform

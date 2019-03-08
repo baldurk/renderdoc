@@ -566,10 +566,10 @@ void ClearGLErrors();
 GLuint GetBoundVertexBuffer(GLuint idx);
 GLint GetNumVertexBuffers();
 
-void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
+void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                                    ShaderBindpointMapping &mapping);
 
-void GetBindpointMapping(GLuint curProg, int shadIdx, ShaderReflection *refl,
+void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                          ShaderBindpointMapping &mapping);
 
 void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping);

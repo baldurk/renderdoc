@@ -473,6 +473,12 @@ private:
   vector<string> m_GLExtensions;
   vector<string> m_GLESExtensions;
 
+  std::set<uint32_t> m_UnsafeDraws;
+
+  // final check function to ensure we don't try and render with no index or vertex buffer bound, as
+  // many drivers will still try to access memory via legacy behaviour even on core profile.
+  bool Check_SafeDraw(bool indexed);
+
   void StoreCompressedTexData(ResourceId texId, GLenum target, GLint level, GLint xoffset,
                               GLint yoffset, GLint zoffset, GLsizei width, GLsizei height,
                               GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels);
@@ -520,6 +526,7 @@ public:
 
   void RegisterDebugCallback();
 
+  bool IsUnsafeDraw(uint32_t eventId) { return m_UnsafeDraws.find(eventId) != m_UnsafeDraws.end(); }
   void AddMissingTrack(ResourceId id) { m_MissingTracks.insert(id); }
   // replay interface
   void Initialise(GLInitParams &params, uint64_t sectionVersion);
@@ -1693,10 +1700,6 @@ public:
                                 GLsizei count, GLboolean transpose, const GLdouble *value);
   IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x3dv, GLuint program, GLint location,
                                 GLsizei count, GLboolean transpose, const GLdouble *value);
-
-  // final check function to ensure we don't try and render with no index buffer bound
-  bool Check_preElements();
-
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays, GLenum mode, GLint first, GLsizei count);
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced, GLenum mode, GLint first,
                                 GLsizei count, GLsizei instancecount);
