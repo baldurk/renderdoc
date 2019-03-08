@@ -680,6 +680,8 @@ ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
 void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
                                                       VkDeviceSize size, FrameRefType refType)
 {
+  SCOPED_LOCK(m_Lock);
+
   FrameRefType maxRef = MarkMemoryReferenced(m_MemFrameRefs, mem, offset, size, refType);
   MarkResourceFrameReferenced(
       mem, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
@@ -687,6 +689,8 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
 
 void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs)
 {
+  SCOPED_LOCK(m_Lock);
+
   for(auto j = memRefs.begin(); j != memRefs.end(); j++)
   {
     auto i = m_MemFrameRefs.find(j->first);
@@ -699,6 +703,8 @@ void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> 
 
 void VulkanResourceManager::ClearReferencedMemory()
 {
+  SCOPED_LOCK(m_Lock);
+
   m_MemFrameRefs.clear();
 }
 
