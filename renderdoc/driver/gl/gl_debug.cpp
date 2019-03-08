@@ -1168,6 +1168,11 @@ GLReplay::TextureSamplerState GLReplay::SetSamplerParams(GLenum target, GLuint t
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&ret.magFilter);
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&ret.wrapS);
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&ret.wrapT);
+  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&ret.compareMode);
+
+  // disable depth comparison
+  GLenum compareMode = eGL_NONE;
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&compareMode);
 
   // always want to clamp
   GLenum param = eGL_CLAMP_TO_EDGE;
@@ -1210,6 +1215,7 @@ void GLReplay::RestoreSamplerParams(GLenum target, GLuint texname, TextureSample
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&state.wrapT);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&state.minFilter);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&state.magFilter);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state.compareMode);
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,

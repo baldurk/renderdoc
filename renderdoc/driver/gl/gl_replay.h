@@ -295,6 +295,7 @@ private:
     GLenum magFilter = eGL_NEAREST;
     GLenum wrapS = eGL_CLAMP_TO_EDGE;
     GLenum wrapT = eGL_CLAMP_TO_EDGE;
+    GLenum compareMode = eGL_NONE;
   };
 
   // sets the desired parameters, and returns the previous ones ready to restore
