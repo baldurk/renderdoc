@@ -3058,11 +3058,12 @@ void VkResourceRecord::MarkBufferViewFrameReferenced(VkResourceRecord *bufView, 
 {
   // mark the VkBufferView and VkBuffer as read
   MarkResourceFrameReferenced(bufView->GetResourceID(), eFrameRef_Read);
-  MarkResourceFrameReferenced(bufView->baseResource, eFrameRef_Read);
+  if(bufView->baseResource != ResourceId())
+    MarkResourceFrameReferenced(bufView->baseResource, eFrameRef_Read);
 
   if(bufView->resInfo)
     cmdInfo->sparse.insert(bufView->resInfo);
-  if(bufView->baseResource != ResourceId())
+  if(bufView->baseResourceMem != ResourceId())
     MarkMemoryFrameReferenced(bufView->baseResourceMem, bufView->memOffset, bufView->memSize,
                               refType);
 }
