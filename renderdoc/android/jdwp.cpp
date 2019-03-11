@@ -207,6 +207,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
       if(vulkanLoaderMethod)
       {
         RDCLOG("Got android.app.ApplicationLoaders.getClassLoader signature %s", sig);
+        break;
       }
     }
 
