@@ -878,11 +878,6 @@ void CaptureDialog::on_launch_clicked()
   TriggerCapture();
 }
 
-void CaptureDialog::on_close_clicked()
-{
-  ToolWindowManager::closeToolWindow(this);
-}
-
 void CaptureDialog::on_processList_activated(const QModelIndex &index)
 {
   TriggerCapture();

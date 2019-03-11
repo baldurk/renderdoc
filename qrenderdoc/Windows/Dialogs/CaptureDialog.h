@@ -95,7 +95,6 @@ private slots:
   void on_loadLastCapture_clicked();
 
   void on_launch_clicked();
-  void on_close_clicked();
 
   void on_toggleGlobal_clicked();
 
