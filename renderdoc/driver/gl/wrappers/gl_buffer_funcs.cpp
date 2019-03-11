@@ -827,6 +827,15 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
       record->Length = size;
       record->usage = usage;
       record->DataInSerialiser = true;
+
+      // if we're active capturing then we need to add a duplicate call in so that the data is
+      // uploaded mid-frame, even if this is *also* the creation-type call.
+      if(IsActiveCapturing(m_State))
+      {
+        GetContextRecord()->AddChunk(chunk->Duplicate());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_PartialWrite);
+      }
     }
   }
   else
