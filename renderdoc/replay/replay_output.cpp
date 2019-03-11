@@ -786,9 +786,8 @@ void ReplayOutput::DisplayTex()
   if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw &&
      m_pDevice->IsRenderOutput(m_RenderData.texDisplay.resourceId) &&
      m_RenderData.texDisplay.overlay != DebugOverlay::NaN &&
-     m_RenderData.texDisplay.overlay != DebugOverlay::Clipping)
+     m_RenderData.texDisplay.overlay != DebugOverlay::Clipping && m_OverlayResourceId != ResourceId())
   {
-    RDCASSERT(m_OverlayResourceId != ResourceId());
     texDisplay.resourceId = m_pDevice->GetLiveID(m_OverlayResourceId);
     texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
     texDisplay.rawOutput = false;
