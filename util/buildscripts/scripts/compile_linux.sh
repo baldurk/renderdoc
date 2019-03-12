@@ -35,7 +35,7 @@ strip --strip-unneeded dist/lib/*
 
 # Copy python modules to where they'd be built natively, for documentation build
 mkdir build
-cp -R /tmp/rdoc_docker/pymodules build/bin
+cp -R /tmp/rdoc_docker/pymodules build/lib
 
 # Step into the docs folder and build
 pushd docs
