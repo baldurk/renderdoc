@@ -141,7 +141,10 @@ struct FileHeader
     version = RDCFile::SERIALISE_VERSION;
     headerLength = 0;
     RDCEraseEl(progVersion);
-    char ver[] = MAJOR_MINOR_VERSION_STRING;
+    char ver[] = MAJOR_MINOR_VERSION_STRING " xxxxxx";
+    char *hash = strstr(ver, "xxxxxx");
+    memcpy(hash, GitVersionHash, 6);
+
     memcpy(progVersion, ver, RDCMIN(sizeof(progVersion), sizeof(ver)));
   }
 
