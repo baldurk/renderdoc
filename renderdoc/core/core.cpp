@@ -292,7 +292,20 @@ void RenderDoc::Initialise()
     RDCLOGFILE(m_LoggingFilename.c_str());
   }
 
-  RDCLOG("RenderDoc v%s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING,
+  const char *platform =
+#if ENABLED(RDOC_WIN32)
+      "Windows";
+#elif ENABLED(RDOC_LINUX)
+      "Linux";
+#elif ENABLED(RDOC_ANDROID)
+      "Android";
+#elif ENABLED(RDOC_APPLE)
+      "macOS";
+#else
+      "Unknown";
+#endif
+
+  RDCLOG("RenderDoc v%s %s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING, platform,
          sizeof(uintptr_t) == sizeof(uint64_t) ? "64-bit" : "32-bit",
          ENABLED(RDOC_RELEASE) ? "Release" : "Development", GitVersionHash,
          IsReplayApp() ? "loaded in replay application" : "capturing application");
