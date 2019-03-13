@@ -1843,13 +1843,22 @@ void MainWindow::setRemoteHost(int hostIdx)
 
       if(host->IsADB() && !RENDERDOC_IsAndroidSupported(host->hostname.c_str()))
       {
+        // check to see if we should warn the user about this unsupported android version.
         GUIInvoke::call(this, [this]() {
-          statusText->setText(tr("Device unsupported, Android 6.0 is required."));
-          contextChooser->setIcon(Icons::disconnect());
-          contextChooser->setText(tr("Replay Context: Local"));
-          contextChooser->setEnabled(true);
+          QDateTime today = QDateTime::currentDateTimeUtc();
+          QDateTime compare = today.addDays(-21);
+
+          if(compare > m_Ctx.Config().UnsupportedAndroid_LastUpdate)
+          {
+            RDDialog::critical(
+                this, tr("Unsupported Device Android Version"),
+                tr("This device is older than Android 6.0, the minimum required version for "
+                   "RenderDoc.\n\nThis may break or cause unknown problems - use at your own "
+                   "risk."));
+          }
+
+          m_Ctx.Config().UnsupportedAndroid_LastUpdate = today;
         });
-        return;
       }
 
       if(!host->serverRunning && !host->runCommand.isEmpty())

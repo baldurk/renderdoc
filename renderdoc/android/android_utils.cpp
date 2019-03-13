@@ -142,7 +142,11 @@ bool IsSupported(std::string deviceID)
   // SDK 23 == Android 6.0, our minimum spec. Only fail if we did parse an SDK string, in case some
   // Android devices don't support the query - we assume they are new enough.
   if(apiVersion >= 0 && apiVersion < 23)
+  {
+    RDCWARN("Device '%s' is on api version %d which is not supported",
+            GetFriendlyName(deviceID).c_str(), apiVersion);
     return false;
+  }
 
   return true;
 }
@@ -170,7 +174,7 @@ std::string GetFriendlyName(std::string deviceID)
     combined = manuf + " " + model;
 
   if(!IsSupported(deviceID))
-    combined += " - Unsupported";
+    combined += " - (Android 5.x)";
 
   return combined;
 }

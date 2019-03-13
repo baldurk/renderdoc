@@ -619,9 +619,6 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteS
 
   Android::ExtractDeviceIDAndIndex(device, index, deviceID);
 
-  if(!Android::IsSupported(deviceID))
-    return ReplayStatus::UnknownError;
-
   std::string packagesOutput = trim(
       Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
           .strStdout);

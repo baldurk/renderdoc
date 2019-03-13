@@ -322,6 +322,9 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
                                                                                            \
+  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, UnsupportedAndroid_LastUpdate,        \
+                     rdcdatetime(2015, 01, 01))                                            \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                    \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
@@ -624,6 +627,14 @@ For more information about some of these settings that are user-facing see
   The maximum timeout in seconds to wait when launching an Android package.
 
   Defaults to ``30``.
+
+.. data:: UnsupportedAndroid_LastUpdate
+
+  A date containing the last time that the user was warned about an Android device being older than
+  is generally supported. This prevents the user being spammed if they consistently use an old
+  Android device. If it has been more than 3 weeks since the last time an old device was seen, we
+  re-warn the user, but if it's less than 3 weeks we silently update this date so continuous use
+  doesn't nag.
 
 .. data:: CheckUpdate_AllowChecks
 
