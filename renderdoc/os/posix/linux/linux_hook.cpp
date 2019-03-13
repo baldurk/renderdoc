@@ -144,7 +144,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
   if(flag & RTLD_DEEPBIND)
     plthook_lib(ret);
 
-  std::string base = basename(filename);
+  std::string base = get_basename(filename);
 
   for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
   {

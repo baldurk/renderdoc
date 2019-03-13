@@ -60,18 +60,12 @@ HMODULE GetD3DCompiler()
   // we'll have to loadlibrary the version that ships with
   // RenderDoc.
 
-  HMODULE hModule = NULL;
-  GetModuleHandleEx(
-      GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-      (LPCTSTR)&dllLocator, &hModule);
-  wchar_t curFile[512] = {0};
-  GetModuleFileNameW(hModule, curFile, 511);
+  std::string dllFile;
+  FileIO::GetLibraryFilename(dllFile);
 
-  std::wstring path = std::wstring(curFile);
-  path = dirname(path);
-  std::wstring dll = path + L"/d3dcompiler_47.dll";
+  std::string dll = get_dirname(dllFile) + "/d3dcompiler_47.dll";
 
-  ret = LoadLibraryW(dll.c_str());
+  ret = LoadLibraryW(StringFormat::UTF82Wide(dll.c_str()).c_str());
 
   return ret;
 }

@@ -837,7 +837,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   std::string libPath;
   FileIO::GetLibraryFilename(libPath);
 
-  libPath = dirname(libPath);
+  libPath = get_dirname(libPath);
   std::string modulePath = libPath + moduledir;
 
   std::string moduleFilename = modulePath + "/" + modulename;

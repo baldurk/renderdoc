@@ -168,7 +168,7 @@ std::wstring GetJSONPath(bool wow6432)
 {
   std::string libPath;
   FileIO::GetLibraryFilename(libPath);
-  std::string jsonPath = dirname(FileIO::GetFullPathname(libPath));
+  std::string jsonPath = get_dirname(FileIO::GetFullPathname(libPath));
 
   std::wstring jsonWide = StringFormat::UTF82Wide(jsonPath);
 

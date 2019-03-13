@@ -267,7 +267,7 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   {
     std::string libpath;
     FileIO::GetLibraryFilename(libpath);
-    std::string libdir = dirname(FileIO::GetFullPathname(libpath));
+    std::string libdir = get_dirname(FileIO::GetFullPathname(libpath));
 
     toolpath = libdir + "/plugins/android/" + toolname;
     if(toolExists(toolpath))
@@ -329,7 +329,7 @@ void initAdb()
   std::string adb = getToolPath(ToolDir::PlatformTools, "adb", false);
   std::string workdir = ".";
   if(adb.find('/') != std::string::npos || adb.find('\\') != std::string::npos)
-    workdir = dirname(adb);
+    workdir = get_dirname(adb);
 
   Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true);
 }

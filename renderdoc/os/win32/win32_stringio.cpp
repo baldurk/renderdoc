@@ -237,11 +237,9 @@ string FindFileInPath(const string &file)
   return filePath;
 }
 
-void CreateParentDirectory(const string &filename)
+void CreateParentDirectory(const std::string &filename)
 {
-  wstring wfn = StringFormat::UTF82Wide(filename);
-
-  wfn = dirname(wfn);
+  wstring wfn = StringFormat::UTF82Wide(get_dirname(filename));
 
   // This function needs \\s not /s. So stupid!
   for(size_t i = 0; i < wfn.size(); i++)
@@ -290,7 +288,7 @@ string GetReplayAppFilename()
   GetModuleFileNameW(hModule, curFile, 511);
 
   string path = StringFormat::Wide2UTF8(wstring(curFile));
-  path = dirname(path);
+  path = get_dirname(path);
   string exe = path + "/qrenderdoc.exe";
 
   FILE *f = FileIO::fopen(exe.c_str(), "rb");

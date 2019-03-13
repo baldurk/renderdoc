@@ -262,7 +262,7 @@ bool DebugSignAPK(const string &apk, const string &workDir)
     // otherwise, find and invoke java on the .jar
     std::string java = getToolPath(ToolDir::Java, "java", false);
 
-    std::string signerdir = dirname(FileIO::GetFullPathname(apksigner));
+    std::string signerdir = get_dirname(FileIO::GetFullPathname(apksigner));
 
     std::string javaargs;
     javaargs += " \"-Djava.ext.dirs=" + signerdir + "\"";
@@ -533,7 +533,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
   // Reset the flags each time we check
   *flags = AndroidFlags::NoFlags;
 
-  if(Android::IsDebuggable(deviceID, basename(std::string(packageName))))
+  if(Android::IsDebuggable(deviceID, get_basename(std::string(packageName))))
   {
     *flags |= AndroidFlags::Debuggable;
   }
@@ -555,7 +555,7 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
     const char *hostname, const char *packageName, RENDERDOC_ProgressCallback progress)
 {
   Process::ProcessResult result = {};
-  std::string package(basename(std::string(packageName)));
+  std::string package(get_basename(std::string(packageName)));
 
   int index = 0;
   std::string deviceID;

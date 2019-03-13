@@ -36,11 +36,11 @@ static BOOL add_hooks()
   wchar_t curFile[512];
   GetModuleFileNameW(NULL, curFile, 512);
 
-  wstring f = basename(strlower(wstring(curFile)));
+  std::string f = get_basename(strlower(StringFormat::Wide2UTF8(curFile)));
 
   // bail immediately if we're in a system process. We don't want to hook, log, anything -
   // this instance is being used for a shell extension.
-  if(f == L"dllhost.exe" || f == L"explorer.exe")
+  if(f == "dllhost.exe" || f == "explorer.exe")
   {
 #ifndef _RELEASE
     OutputDebugStringA(

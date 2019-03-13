@@ -28,6 +28,7 @@
 #include <wctype.h>
 #include <algorithm>
 #include "common/globalconfig.h"
+#include "os/os_specific.h"
 
 uint32_t strhash(const char *str, uint32_t seed)
 {
@@ -59,31 +60,17 @@ char tocupper(char c)
   return (char)toupper(c);
 }
 
-string strlower(const string &str)
+std::string strlower(const std::string &str)
 {
-  string newstr(str);
-  transform(newstr.begin(), newstr.end(), newstr.begin(), toclower);
+  std::string newstr(str);
+  std::transform(newstr.begin(), newstr.end(), newstr.begin(), toclower);
   return newstr;
 }
 
-wstring strlower(const wstring &str)
+std::string strupper(const std::string &str)
 {
-  wstring newstr(str);
-  transform(newstr.begin(), newstr.end(), newstr.begin(), towlower);
-  return newstr;
-}
-
-string strupper(const string &str)
-{
-  string newstr(str);
-  transform(newstr.begin(), newstr.end(), newstr.begin(), tocupper);
-  return newstr;
-}
-
-wstring strupper(const wstring &str)
-{
-  wstring newstr(str);
-  transform(newstr.begin(), newstr.end(), newstr.begin(), towupper);
+  std::string newstr(str);
+  std::transform(newstr.begin(), newstr.end(), newstr.begin(), tocupper);
   return newstr;
 }
 
@@ -107,6 +94,88 @@ bool endswith(const std::string &value, const std::string &ending)
     return false;
 
   return (0 == value.compare(value.length() - ending.length(), ending.length(), ending));
+}
+
+std::string get_basename(const std::string &path)
+{
+  std::string base = path;
+
+  if(base.length() == 0)
+    return base;
+
+  if(base[base.length() - 1] == '/' || base[base.length() - 1] == '\\')
+    base.erase(base.size() - 1);
+
+  char pathSep[] = {'\\', '/', 0};
+
+  size_t offset = base.find_last_of(pathSep);
+
+  if(offset == std::string::npos)
+    return base;
+
+  return base.substr(offset + 1);
+}
+
+std::wstring get_basename(const std::wstring &path)
+{
+  return StringFormat::UTF82Wide(get_basename(StringFormat::Wide2UTF8(path)));
+}
+
+std::string get_dirname(const std::string &path)
+{
+  std::string base = path;
+
+  if(base.length() == 0)
+    return base;
+
+  if(base[base.length() - 1] == '/' || base[base.length() - 1] == '\\')
+    base.erase(base.size() - 1);
+
+  char pathSep[3] = {'\\', '/', 0};
+
+  size_t offset = base.find_last_of(pathSep);
+
+  if(offset == std::string::npos)
+  {
+    base.resize(1);
+    base[0] = '.';
+    return base;
+  }
+
+  return base.substr(0, offset);
+}
+
+std::wstring get_dirname(const std::wstring &path)
+{
+  return StringFormat::UTF82Wide(get_dirname(StringFormat::Wide2UTF8(path)));
+}
+
+void split(const std::string &in, std::vector<std::string> &out, const char sep)
+{
+  std::string work = in;
+  size_t offset = work.find(sep);
+
+  while(offset != std::string::npos)
+  {
+    out.push_back(work.substr(0, offset));
+    work = work.substr(offset + 1);
+
+    offset = work.find(sep);
+  }
+
+  if(work.size() && work[0] != 0)
+    out.push_back(work);
+}
+
+void merge(const std::vector<std::string> &in, std::string &out, const char sep)
+{
+  out = std::string();
+  for(size_t i = 0; i < in.size(); i++)
+  {
+    out += in[i];
+    if(i + 1 < in.size())
+      out += sep;
+  }
 }
 
 std::string removeFromEnd(const std::string &value, const std::string &ending)
@@ -171,6 +240,34 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(strlower("foobar") == "foobar");
     CHECK(strlower("Foobar") == "foobar");
     CHECK(strlower("FOOBAR") == "foobar");
+  };
+
+  SECTION("basename")
+  {
+    CHECK(get_basename("foo") == "foo");
+    CHECK(get_basename("/foo") == "foo");
+    CHECK(get_basename("/dir/foo") == "foo");
+    CHECK(get_basename("/long/path/dir/foo") == "foo");
+    CHECK(get_basename("relative/long/path/dir/foo") == "foo");
+    CHECK(get_basename("../foo") == "foo");
+    CHECK(get_basename("relative/../foo") == "foo");
+    CHECK(get_basename("C:/windows/foo") == "foo");
+    CHECK(get_basename("C:\\windows\\foo") == "foo");
+    CHECK(get_basename("C:\\windows\\path/mixed/slashes\\foo") == "foo");
+  };
+
+  SECTION("dirname")
+  {
+    CHECK(get_dirname("foo") == ".");
+    CHECK(get_dirname("/foo") == "");
+    CHECK(get_dirname("/dir/foo") == "/dir");
+    CHECK(get_dirname("/long/path/dir/foo") == "/long/path/dir");
+    CHECK(get_dirname("relative/long/path/dir/foo") == "relative/long/path/dir");
+    CHECK(get_dirname("../foo") == "..");
+    CHECK(get_dirname("relative/../foo") == "relative/..");
+    CHECK(get_dirname("C:/windows/foo") == "C:/windows");
+    CHECK(get_dirname("C:\\windows\\foo") == "C:\\windows");
+    CHECK(get_dirname("C:\\windows\\path/mixed/slashes\\foo") == "C:\\windows\\path/mixed/slashes");
   };
 
   SECTION("strupper")

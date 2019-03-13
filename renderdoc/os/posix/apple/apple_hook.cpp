@@ -43,7 +43,7 @@ void *interposed_dlopen(const char *filename, int flag)
 {
   void *handle = dlopen(filename, flag);
 
-  std::string baseFilename = filename ? basename(std::string(filename)) : "";
+  std::string baseFilename = filename ? get_basename(std::string(filename)) : "";
 
   {
     SCOPED_LOCK(libLock);
@@ -149,7 +149,7 @@ void LibraryHooks::RegisterLibraryHook(char const *name, FunctionLoadCallback cb
   SCOPED_LOCK(libLock);
 
   // we match by basename for library hooks
-  libraryHooks.insert(basename(std::string(name)));
+  libraryHooks.insert(get_basename(std::string(name)));
 
   if(cb)
     libraryCallbacks[name].push_back(cb);

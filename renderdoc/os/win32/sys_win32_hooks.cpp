@@ -268,21 +268,20 @@ private:
     // ourselves.
     if(lpApplicationName)
     {
-      wstring app = lpApplicationName;
-      app = strlower(app);
+      std::string app = strlower(StringFormat::Wide2UTF8(lpApplicationName));
 
-      if(app.find(L"renderdoccmd.exe") != wstring::npos || app.find(L"qrenderdoc.exe") != string::npos)
+      if(app.find("renderdoccmd.exe") != std::string::npos ||
+         app.find("qrenderdoc.exe") != std::string::npos)
       {
         inject = false;
       }
     }
     if(lpCommandLine)
     {
-      wstring cmd = lpCommandLine;
-      cmd = strlower(cmd);
+      std::string cmd = strlower(StringFormat::Wide2UTF8(lpCommandLine));
 
-      if(cmd.find(L"renderdoccmd.exe") != wstring::npos ||
-         cmd.find(L"qrenderdoc.exe") != wstring::npos)
+      if(cmd.find("renderdoccmd.exe") != std::string::npos ||
+         cmd.find("qrenderdoc.exe") != std::string::npos)
       {
         inject = false;
       }

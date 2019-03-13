@@ -187,7 +187,7 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   ret.status = ReplayStatus::UnknownError;
   ret.ident = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
 
-  string packageName = basename(string(package));    // Remove leading '/' if any
+  string packageName = get_basename(string(package));    // Remove leading '/' if any
 
   // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
   string activityName = GetDefaultActivityForPackage(deviceID, packageName);
@@ -394,7 +394,7 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   // Check known paths for RenderDoc server
   std::string libPath;
   FileIO::GetLibraryFilename(libPath);
-  std::string libDir = dirname(FileIO::GetFullPathname(libPath));
+  std::string libDir = get_dirname(FileIO::GetFullPathname(libPath));
 
   std::vector<std::string> paths;
 

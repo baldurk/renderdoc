@@ -313,7 +313,7 @@ string LayerRegistrationPath(LayerPath path)
 
 void MakeParentDirs(std::string file)
 {
-  std::string dir = dirname(file);
+  std::string dir = get_dirname(file);
 
   if(dir == "/" || dir.empty())
     return;

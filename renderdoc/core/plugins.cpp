@@ -32,7 +32,7 @@ std::string LocatePluginFile(const std::string &path, const std::string &fileNam
 
   std::string libpath;
   FileIO::GetLibraryFilename(libpath);
-  libpath = dirname(libpath);
+  libpath = get_dirname(libpath);
 
   std::vector<std::string> paths;
 

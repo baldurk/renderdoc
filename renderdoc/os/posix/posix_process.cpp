@@ -235,8 +235,8 @@ static const string GetAbsoluteAppPathFromName(const string &appName)
   if(appName.find("/") != string::npos)
   {
     char realpathBuffer[PATH_MAX];
-    string appDir = dirname(appName);
-    string appBasename = basename(appName);
+    string appDir = get_dirname(appName);
+    string appBasename = get_basename(appName);
     realpath(appDir.c_str(), realpathBuffer);
     appPath = realpathBuffer;
     appPath += "/" + appBasename;
@@ -419,13 +419,13 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     return (pid_t)0;
 
   string appName = app;
-  string workDir = (workingDir && workingDir[0]) ? workingDir : dirname(appName);
+  string workDir = (workingDir && workingDir[0]) ? workingDir : get_dirname(appName);
 
 // handle funky apple .app folders that aren't actually executables
 #if ENABLED(RDOC_APPLE)
   if(appName.size() > 5 && appName.rfind(".app") == appName.size() - 4)
   {
-    std::string realAppName = appName + "/Contents/MacOS/" + basename(appName);
+    std::string realAppName = appName + "/Contents/MacOS/" + get_basename(appName);
     realAppName.erase(realAppName.size() - 4);
 
     if(FileIO::exists(realAppName.c_str()))
@@ -714,7 +714,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   string binpath, libpath, ownlibpath;
   {
     FileIO::GetExecutableFilename(binpath);
-    binpath = dirname(binpath);
+    binpath = get_dirname(binpath);
     libpath = binpath + "/../lib";
 
 // point to the right customiseable path
@@ -728,7 +728,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   }
 
   FileIO::GetLibraryFilename(ownlibpath);
-  ownlibpath = dirname(ownlibpath);
+  ownlibpath = get_dirname(ownlibpath);
 
   std::string libfile = "librenderdoc" LIB_SUFFIX;
 

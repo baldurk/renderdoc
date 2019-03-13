@@ -34,20 +34,19 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
-using std::string;
-
-static wstring lowercase(wstring in)
+// add wstring strlower overload since we don't want to always be converting to/from wchars.
+static std::wstring strlower(std::wstring in)
 {
-  wstring ret;
+  std::wstring ret;
   ret.resize(in.size());
   for(size_t i = 0; i < ret.size(); i++)
     ret[i] = towlower(in[i]);
   return ret;
 }
 
-static vector<EnvironmentModification> &GetEnvModifications()
+static std::vector<EnvironmentModification> &GetEnvModifications()
 {
-  static vector<EnvironmentModification> envCallbacks;
+  static std::vector<EnvironmentModification> envCallbacks;
   return envCallbacks;
 }
 
@@ -55,11 +54,11 @@ struct InsensitiveComparison
 {
   bool operator()(const std::wstring &a, const std::wstring &b) const
   {
-    return lowercase(a) < lowercase(b);
+    return strlower(a) < strlower(b);
   }
 };
 
-typedef map<wstring, string, InsensitiveComparison> EnvMap;
+typedef std::map<std::wstring, std::string, InsensitiveComparison> EnvMap;
 
 static EnvMap EnvStringToEnvMap(const wchar_t *envstring)
 {
@@ -71,8 +70,8 @@ static EnvMap EnvStringToEnvMap(const wchar_t *envstring)
   {
     const wchar_t *equals = wcschr(e, L'=');
 
-    wstring name;
-    wstring value;
+    std::wstring name;
+    std::wstring value;
 
     name.assign(e, equals);
     value = equals + 1;
@@ -263,7 +262,7 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_ApplyEnvMods(void *ignore
   Process::ApplyEnvironmentModification();
 }
 
-void InjectDLL(HANDLE hProcess, wstring libName)
+void InjectDLL(HANDLE hProcess, std::wstring libName)
 {
   wchar_t dllPath[MAX_PATH + 1] = {0};
   wcscpy_s(dllPath, libName.c_str());
@@ -298,7 +297,7 @@ void InjectDLL(HANDLE hProcess, wstring libName)
   }
 }
 
-uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
+uintptr_t FindRemoteDLL(DWORD pid, std::wstring libName)
 {
   HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
 
@@ -451,25 +450,25 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   pSec.nLength = sizeof(pSec);
   tSec.nLength = sizeof(tSec);
 
-  wstring workdir = L"";
+  std::wstring workdir = L"";
 
   if(workingDir != NULL && workingDir[0] != 0)
-    workdir = StringFormat::UTF82Wide(string(workingDir));
+    workdir = StringFormat::UTF82Wide(std::string(workingDir));
   else
-    workdir = StringFormat::UTF82Wide(dirname(string(app)));
+    workdir = StringFormat::UTF82Wide(get_dirname(string(app)));
 
   wchar_t *paramsAlloc = NULL;
 
-  wstring wapp = StringFormat::UTF82Wide(string(app));
+  std::wstring wapp = StringFormat::UTF82Wide(std::string(app));
 
   // CreateProcessW can modify the params, need space.
   size_t len = wapp.length() + 10;
 
-  wstring wcmd = L"";
+  std::wstring wcmd = L"";
 
   if(cmdLine != NULL && cmdLine[0] != 0)
   {
-    wcmd = StringFormat::UTF82Wide(string(cmdLine));
+    wcmd = StringFormat::UTF82Wide(std::string(cmdLine));
     len += wcmd.length();
   }
 
@@ -570,7 +569,7 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
                                          const char *capturefile, const CaptureOptions &opts,
                                          bool waitForExit)
 {
-  wstring wcapturefile = capturefile == NULL ? L"" : StringFormat::UTF82Wide(capturefile);
+  std::wstring wcapturefile = capturefile == NULL ? L"" : StringFormat::UTF82Wide(capturefile);
 
   HANDLE hProcess =
       OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
@@ -822,7 +821,7 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
     wchar_t *paramsAlloc = new wchar_t[2048];
 
     std::string debugLogfile = RDCGETLOGFILE();
-    wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
+    std::wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
     _snwprintf_s(
         paramsAlloc, 2047, 2047,
@@ -835,7 +834,7 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
 
     wchar_t *commandLine = paramsAlloc;
 
-    wstring cmdWithEnv;
+    std::wstring cmdWithEnv;
 
     if(!env.empty())
     {
@@ -1123,7 +1122,7 @@ struct GlobalHookData
   {
     HANDLE pipe = NULL;
     DWORD appinitEnabled = 0;
-    wstring appinitDLLs;
+    std::wstring appinitDLLs;
   } dataNative, dataWow32;
 
   volatile int32_t finished = 0;
@@ -1150,8 +1149,8 @@ static bool HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const cha
   }
 
 // function to backup the previous settings for AppInit, then enable it and write our own paths.
-bool BackupAndChangeRegistry(GlobalHookData &hookdata, const wstring &shimpathWow32,
-                             const wstring &shimpathNative)
+bool BackupAndChangeRegistry(GlobalHookData &hookdata, const std::wstring &shimpathWow32,
+                             const std::wstring &shimpathNative)
 {
   HKEY keyNative = NULL;
   HKEY keyWow32 = NULL;
@@ -1195,7 +1194,7 @@ bool BackupAndChangeRegistry(GlobalHookData &hookdata, const wstring &shimpathWo
   ret = RegSetValueExA(keyNative, "LoadAppInit_DLLs", 0, REG_DWORD, (const BYTE *)&one, sizeof(one));
   REG_CHECK("Could not set LoadAppInit_DLLs");
 
-  wstring shortpath;
+  std::wstring shortpath;
   shortpath = shimpathNative;
   GetShortPathNameW(shimpathNative.c_str(), (wchar_t *)&shortpath[0], (DWORD)shortpath.size());
 
@@ -1232,7 +1231,7 @@ bool BackupAndChangeRegistry(GlobalHookData &hookdata, const wstring &shimpathWo
     REG_CHECK("Could not set AppInit_DLLs");
   }
 
-  wstring backup;
+  std::wstring backup;
 
   // write a .reg file that contains the previous settings, so that if all else fails the user can
   // manually insert it back into the registry to restore everything.
@@ -1389,12 +1388,12 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
     slash = renderdocPath + wcslen(renderdocPath);
 
   // the native renderdoccmd.exe is always next to the dll. Wow32 will be somewhere else
-  wstring cmdpathNative = renderdocPath;
+  std::wstring cmdpathNative = renderdocPath;
   cmdpathNative += L"\\renderdoccmd.exe";
-  wstring cmdpathWow32;
+  std::wstring cmdpathWow32;
 
-  wstring shimpathNative = renderdocPath;
-  wstring shimpathWow32;
+  std::wstring shimpathNative = renderdocPath;
+  std::wstring shimpathWow32;
 
 #if ENABLED(RDOC_X64)
 
@@ -1480,11 +1479,12 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
   // serialise to string with two chars per byte
   string optstr = opts.EncodeAsString();
 
-  wstring wcapturefile = capturefile == NULL ? L"" : StringFormat::UTF82Wide(string(capturefile));
-  wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));
+  std::wstring wcapturefile =
+      capturefile == NULL ? L"" : StringFormat::UTF82Wide(string(capturefile));
+  std::wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));
 
   std::string debugLogfile = RDCGETLOGFILE();
-  wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
+  std::wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
   _snwprintf_s(&paramsAlloc[0], 2047, 2047,
                L"\"%ls\" globalhook --match \"%ls\" --capfile \"%ls\" --debuglog \"%ls\" "

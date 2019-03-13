@@ -28,14 +28,9 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-using std::string;
-using std::wstring;
-using std::vector;
 
 std::string strlower(const std::string &str);
-std::wstring strlower(const std::wstring &str);
 std::string strupper(const std::string &str);
-std::wstring strupper(const std::wstring &str);
 
 std::string trim(const std::string &str);
 std::string removeFromEnd(const std::string &value, const std::string &ending);
@@ -44,80 +39,8 @@ uint32_t strhash(const char *str, uint32_t existingHash = 5381);
 
 bool endswith(const std::string &value, const std::string &ending);
 
-template <class strType>
-strType basename(const strType &path)
-{
-  strType base = path;
+std::string get_basename(const std::string &path);
+std::string get_dirname(const std::string &path);
 
-  if(base.length() == 0)
-    return base;
-
-  if(base[base.length() - 1] == '/' || base[base.length() - 1] == '\\')
-    base.erase(base.size() - 1);
-
-  typename strType::value_type pathSep[3] = {'\\', '/', 0};
-
-  size_t offset = base.find_last_of(pathSep);
-
-  if(offset == strType::npos)
-    return base;
-
-  return base.substr(offset + 1);
-}
-
-template <class strType>
-strType dirname(const strType &path)
-{
-  strType base = path;
-
-  if(base.length() == 0)
-    return base;
-
-  if(base[base.length() - 1] == '/' || base[base.length() - 1] == '\\')
-    base.erase(base.size() - 1);
-
-  typename strType::value_type pathSep[3] = {'\\', '/', 0};
-
-  size_t offset = base.find_last_of(pathSep);
-
-  if(offset == strType::npos)
-  {
-    base.resize(1);
-    base[0] = typename strType::value_type('.');
-    return base;
-  }
-
-  return base.substr(0, offset);
-}
-
-template <class CharType>
-void split(const std::basic_string<CharType> &in, vector<std::basic_string<CharType> > &out,
-           const CharType sep)
-{
-  std::basic_string<CharType> work = in;
-  typename std::basic_string<CharType>::size_type offset = work.find(sep);
-
-  while(offset != std::basic_string<CharType>::npos)
-  {
-    out.push_back(work.substr(0, offset));
-    work = work.substr(offset + 1);
-
-    offset = work.find(sep);
-  }
-
-  if(work.size() && work[0] != 0)
-    out.push_back(work);
-}
-
-template <class CharType>
-void merge(const vector<std::basic_string<CharType> > &in, std::basic_string<CharType> &out,
-           const CharType sep)
-{
-  out = std::basic_string<CharType>();
-  for(size_t i = 0; i < in.size(); i++)
-  {
-    out += in[i];
-    if(i + 1 < in.size())
-      out += sep;
-  }
-}
+void split(const std::string &in, std::vector<std::string> &out, const char sep);
+void merge(const std::vector<std::string> &in, std::string &out, const char sep);

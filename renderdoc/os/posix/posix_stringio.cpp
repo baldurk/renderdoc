@@ -66,7 +66,7 @@ string GetTempFolderFilename()
 
 void CreateParentDirectory(const string &filename)
 {
-  string fn = dirname(filename);
+  string fn = get_dirname(filename);
 
   // want trailing slash so that we create all directories
   fn.push_back('/');
@@ -142,7 +142,7 @@ string GetReplayAppFilename()
   Dl_info info;
   dladdr((void *)&soLocator, &info);
   string path = info.dli_fname ? info.dli_fname : "";
-  path = dirname(path);
+  path = get_dirname(path);
   string replay = path + "/qrenderdoc";
 
   FILE *f = FileIO::fopen(replay.c_str(), "r");
