@@ -77,10 +77,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   ShaderReflection *tesRefl = NULL;
   ShaderReflection *gsRefl = NULL;
 
-  // non-program used separable programs of each shader.
-  // vsProg we can use on its own as there are no other stages to combine with, but for later stages
-  // we need the shaders themselves to re-link into a single program.
-  GLuint vsProg = 0;
+  // the program we'll be binding, that we attach shaders to
+  GLuint feedbackProg = drv.glCreateProgram();
 
   // one shader per stage (vs = 0, etc)
   GLuint stageShaders[4] = {};
@@ -123,7 +121,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           if(i == 0)
           {
             vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
-            vsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]].prog;
           }
           else if(i == 2)
           {
@@ -183,7 +180,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         if(i == 0)
         {
           vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
-          vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
         }
         else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
@@ -215,10 +211,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     return;
   }
 
+  // attach the vertex shader
+  drv.glAttachShader(feedbackProg, stageShaders[0]);
+
   list<string> matrixVaryings;    // matrices need some fixup
   vector<const char *> varyings;
 
-  CopyProgramAttribBindings(stageSrcPrograms[0], vsProg, vsRefl);
+  CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);
 
   varyings.clear();
 
@@ -323,11 +322,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   for(;;)
   {
     // specify current varyings & relink
-    drv.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0],
+    drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
                                     eGL_INTERLEAVED_ATTRIBS);
-    drv.glLinkProgram(vsProg);
+    drv.glLinkProgram(feedbackProg);
 
-    drv.glGetProgramiv(vsProg, eGL_LINK_STATUS, &status);
+    drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
 
     // all good! Hopefully we'll mostly hit this
     if(status == 1)
@@ -339,7 +338,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       break;
 
     char buffer[1025] = {0};
-    drv.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
 
     // assume we're finished and can't retry any more after this.
     // if we find a potential 'fixup' we'll set this back to false
@@ -386,7 +385,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(status == 0)
   {
     char buffer[1025] = {0};
-    drv.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
+    drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
     RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
     m_PostVSData[eventId] = GLPostVSData();
 
@@ -395,18 +394,20 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(tmpShaders[i])
         drv.glDeleteShader(tmpShaders[i]);
 
+    drv.glDeleteProgram(feedbackProg);
+
     return;
   }
 
   // copy across any uniform values, bindings etc from the real program containing
   // the vertex stage
-  CopyProgramUniforms(stageSrcPrograms[0], vsProg);
+  CopyProgramUniforms(stageSrcPrograms[0], feedbackProg);
 
   // we don't want to do any work, so just discard before rasterizing
   drv.glEnable(eGL_RASTERIZER_DISCARD);
 
   // bind our program and do the feedback draw
-  drv.glUseProgram(vsProg);
+  drv.glUseProgram(feedbackProg);
   drv.glBindProgramPipeline(0);
 
   drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
@@ -702,6 +703,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(tmpShaders[i])
         drv.glDeleteShader(tmpShaders[i]);
 
+    drv.glDeleteProgram(feedbackProg);
+
     return;
   }
 
@@ -800,12 +803,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   m_PostVSData[eventId].vsout.topo = drawcall->topology;
 
-  // set vsProg back to no varyings, for future use
-  drv.glTransformFeedbackVaryings(vsProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
-  drv.glLinkProgram(vsProg);
-
-  GLuint lastFeedbackProg = 0;
-
   if(tesRefl || gsRefl)
   {
     ShaderReflection *lastRefl = gsRefl;
@@ -815,12 +812,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     RDCASSERT(lastRefl);
 
-    lastFeedbackProg = drv.glCreateProgram();
-
-    // attach the shaders
-    for(int i = 0; i < 4; i++)
+    // attach the other non-vertex shaders
+    for(int i = 1; i < 4; i++)
       if(stageShaders[i])
-        drv.glAttachShader(lastFeedbackProg, stageShaders[i]);
+        drv.glAttachShader(feedbackProg, stageShaders[i]);
 
     varyings.clear();
 
@@ -876,11 +871,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     for(;;)
     {
       // specify current varyings & relink
-      drv.glTransformFeedbackVaryings(lastFeedbackProg, (GLsizei)varyings.size(), &varyings[0],
+      drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
                                       eGL_INTERLEAVED_ATTRIBS);
-      drv.glLinkProgram(lastFeedbackProg);
+      drv.glLinkProgram(feedbackProg);
 
-      drv.glGetProgramiv(lastFeedbackProg, eGL_LINK_STATUS, &status);
+      drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
 
       // all good! Hopefully we'll mostly hit this
       if(status == 1)
@@ -892,7 +887,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         break;
 
       char buffer[1025] = {0};
-      drv.glGetProgramInfoLog(lastFeedbackProg, 1024, NULL, buffer);
+      drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
 
       // assume we're finished and can't retry any more after this.
       // if we find a potential 'fixup' we'll set this back to false
@@ -940,33 +935,33 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     // detach the shaders now that linking is complete
     for(int i = 0; i < 4; i++)
       if(stageShaders[i])
-        drv.glDetachShader(lastFeedbackProg, stageShaders[i]);
+        drv.glDetachShader(feedbackProg, stageShaders[i]);
 
     if(status == 0)
     {
       char buffer[1025] = {0};
-      drv.glGetProgramInfoLog(lastFeedbackProg, 1024, NULL, buffer);
+      drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
       RDCERR("Failed to fix-up. Link error making xfb last program: %s", buffer);
     }
     else
     {
       // copy across any uniform values, bindings etc from the real program containing
       // the vertex stage
-      CopyProgramUniforms(stageSrcPrograms[0], lastFeedbackProg);
+      CopyProgramUniforms(stageSrcPrograms[0], feedbackProg);
 
       // if tessellation is enabled, bind & copy uniforms. Note, control shader is optional
       // independent of eval shader (default values are used for the tessellation levels).
       if(stageSrcPrograms[1])
-        CopyProgramUniforms(stageSrcPrograms[1], lastFeedbackProg);
+        CopyProgramUniforms(stageSrcPrograms[1], feedbackProg);
       if(stageSrcPrograms[2])
-        CopyProgramUniforms(stageSrcPrograms[2], lastFeedbackProg);
+        CopyProgramUniforms(stageSrcPrograms[2], feedbackProg);
 
       // if we have a geometry shader, bind & copy uniforms
       if(stageSrcPrograms[3])
-        CopyProgramUniforms(stageSrcPrograms[3], lastFeedbackProg);
+        CopyProgramUniforms(stageSrcPrograms[3], feedbackProg);
 
       // bind our program and do the feedback draw
-      drv.glUseProgram(lastFeedbackProg);
+      drv.glUseProgram(feedbackProg);
       drv.glBindProgramPipeline(0);
 
       drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
@@ -1042,11 +1037,11 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       if(lastRefl == gsRefl)
       {
-        drv.glGetProgramiv(lastFeedbackProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&shaderOutMode);
+        drv.glGetProgramiv(feedbackProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&shaderOutMode);
 
         GLint maxVerts = 1;
 
-        drv.glGetProgramiv(lastFeedbackProg, eGL_GEOMETRY_VERTICES_OUT, (GLint *)&maxVerts);
+        drv.glGetProgramiv(feedbackProg, eGL_GEOMETRY_VERTICES_OUT, (GLint *)&maxVerts);
 
         if(shaderOutMode == eGL_TRIANGLE_STRIP)
         {
@@ -1068,7 +1063,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       }
       else if(lastRefl == tesRefl)
       {
-        drv.glGetProgramiv(lastFeedbackProg, eGL_TESS_GEN_MODE, (GLint *)&shaderOutMode);
+        drv.glGetProgramiv(feedbackProg, eGL_TESS_GEN_MODE, (GLint *)&shaderOutMode);
 
         uint32_t outputPrimitiveVerts = 1;
 
@@ -1289,8 +1284,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(error)
       {
         // delete temporary program we made
-        if(lastFeedbackProg)
-          drv.glDeleteProgram(lastFeedbackProg);
+        drv.glDeleteProgram(feedbackProg);
 
         // restore replay state we trashed
         drv.glUseProgram(rs.Program.name);
@@ -1429,9 +1423,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
   }
 
-  // delete temporary pipelines we made
-  if(lastFeedbackProg)
-    drv.glDeleteProgram(lastFeedbackProg);
+  // delete temporary program we made
+  drv.glDeleteProgram(feedbackProg);
 
   // restore replay state we trashed
   drv.glUseProgram(rs.Program.name);

@@ -569,14 +569,13 @@ public:
 
   struct ShaderData
   {
-    ShaderData() : type(eGL_NONE), prog(0), version(0) {}
+    ShaderData() : type(eGL_NONE), version(0) {}
     GLenum type;
     vector<string> sources;
     vector<string> includepaths;
     SPVModule spirv;
     std::string disassembly;
     ShaderReflection reflection;
-    GLuint prog;
     int version;
 
     // used only when we're capturing and don't have driver-side reflection so we need to emulate

@@ -703,22 +703,22 @@ rdcarray<ShaderEntryPoint> GLReplay::GetShaderEntryPoints(ResourceId shader)
 
   WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->m_Shaders[shader];
 
-  if(shaderDetails.prog == 0)
+  if(shaderDetails.reflection.resourceId == ResourceId())
   {
-    RDCERR("Can't get shader details without separable program");
+    RDCERR("Can't get shader details without successful reflect");
     return {};
   }
 
-  return {{"main", MakeShaderStage(shaderDetails.type)}};
+  return {{shaderDetails.reflection.entryPoint, shaderDetails.reflection.stage}};
 }
 
 ShaderReflection *GLReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
 {
   auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
-  if(shaderDetails.prog == 0)
+  if(shaderDetails.reflection.resourceId == ResourceId())
   {
-    RDCERR("Can't get shader details without separable program");
+    RDCERR("Can't get shader details without successful reflect");
     return NULL;
   }
 
@@ -996,7 +996,7 @@ void GLReplay::SavePipelineState()
 
           auto &shaderDetails = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
 
-          if(shaderDetails.prog == 0)
+          if(shaderDetails.reflection.resourceId == ResourceId())
             stages[i]->reflection = refls[i] = NULL;
           else
             stages[i]->reflection = refls[i] = &shaderDetails.reflection;
@@ -1038,7 +1038,7 @@ void GLReplay::SavePipelineState()
       {
         auto &shaderDetails = m_pDriver->m_Shaders[progDetails.stageShaders[i]];
 
-        if(shaderDetails.prog == 0)
+        if(shaderDetails.reflection.resourceId == ResourceId())
           stages[i]->reflection = refls[i] = NULL;
         else
           stages[i]->reflection = refls[i] = &shaderDetails.reflection;

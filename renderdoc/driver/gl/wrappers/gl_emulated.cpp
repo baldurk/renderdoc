@@ -2351,7 +2351,7 @@ static ReflectionProperty ConvertProperty(GLenum prop)
   return ret;
 }
 
-static glslang::TProgram *GetGlslangProgram(GLuint program)
+static glslang::TProgram *GetGlslangProgram(GLuint program, bool *hasRealProgram = NULL)
 {
   if(driver == NULL)
   {
@@ -2365,6 +2365,9 @@ static glslang::TProgram *GetGlslangProgram(GLuint program)
   {
     RDCERR("Don't have glslang program for reflecting program %u = %s", program, ToStr(id).c_str());
   }
+
+  if(hasRealProgram)
+    *hasRealProgram = !driver->m_Programs[id].shaders.empty();
 
   return driver->m_Programs[id].glslangProgram;
 }
@@ -2388,7 +2391,8 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
                                       GLsizei propCount, const GLenum *props, GLsizei bufSize,
                                       GLsizei *length, GLint *params)
 {
-  glslang::TProgram *glslangProgram = GetGlslangProgram(program);
+  bool hasRealProgram = true;
+  glslang::TProgram *glslangProgram = GetGlslangProgram(program, &hasRealProgram);
 
   if(!glslangProgram)
   {
@@ -2417,7 +2421,7 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
         const char *name =
             glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
 
-        if(GL.glGetUniformLocation)
+        if(GL.glGetUniformLocation && hasRealProgram)
           params[i] = GL.glGetUniformLocation(program, name);
       }
       else if(programInterface == eGL_PROGRAM_INPUT && params[i] < 0)
@@ -2425,7 +2429,7 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
         const char *name =
             glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
 
-        if(GL.glGetAttribLocation)
+        if(GL.glGetAttribLocation && hasRealProgram)
           params[i] = GL.glGetAttribLocation(program, name);
       }
       else if(programInterface == eGL_PROGRAM_OUTPUT && params[i] < 0)
@@ -2433,7 +2437,7 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
         const char *name =
             glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
 
-        if(GL.glGetFragDataLocation)
+        if(GL.glGetFragDataLocation && hasRealProgram)
           params[i] = GL.glGetFragDataLocation(program, name);
       }
     }
@@ -2444,7 +2448,7 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
         const char *name =
             glslangGetProgramResourceName(glslangProgram, ConvertInterface(programInterface), index);
 
-        if(GL.glGetUniformBlockIndex)
+        if(GL.glGetUniformBlockIndex && hasRealProgram)
         {
           GLuint blockIndex = GL.glGetUniformBlockIndex(program, name);
           if(blockIndex != GL_INVALID_INDEX && GL.glGetActiveUniformBlockiv)

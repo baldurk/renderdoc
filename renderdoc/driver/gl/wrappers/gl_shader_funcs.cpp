@@ -80,41 +80,6 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
     specIDs.assign(pConstantIndex, pConstantIndex + numSpecializationConstants);
     specValues.assign(pConstantValue, pConstantValue + numSpecializationConstants);
   }
-
-  GLuint sepshader = GL.glCreateShader(type);
-  if(sepshader)
-  {
-    GL.glShaderBinary(1, &sepshader, eGL_SHADER_BINARY_FORMAT_SPIR_V, reflection.rawBytes.data(),
-                      (GLsizei)reflection.rawBytes.size());
-
-    GL.glSpecializeShader(sepshader, pEntryPoint, numSpecializationConstants, pConstantIndex,
-                          pConstantValue);
-
-    GLint compiled = 0;
-
-    GL.glGetShaderiv(sepshader, eGL_COMPILE_STATUS, &compiled);
-
-    if(compiled)
-    {
-      prog = GL.glCreateProgram();
-
-      GL.glAttachShader(prog, sepshader);
-      GL.glProgramParameteri(prog, eGL_PROGRAM_SEPARABLE, GL_TRUE);
-      GL.glLinkProgram(prog);
-
-      drv.glGetProgramiv(prog, eGL_LINK_STATUS, &compiled);
-
-      if(!compiled)
-      {
-        RDCERR("Re-compiled but couldn't link SPIR-V program");
-      }
-    }
-    else
-    {
-      RDCERR("Couldn't re-compile SPIR-V shader");
-    }
-    GL.glDeleteShader(sepshader);
-  }
 }
 
 void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceId id,
@@ -224,8 +189,6 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   if(version == 0)
     version = 100;
 
-  GLuint sepProg = prog;
-
   GLint status = 0;
   if(realShader == 0)
     status = 1;
@@ -243,48 +206,87 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
     // reflection
     drv.PushInternalShader();
 
-    if(sepProg == 0 && status == 1)
-      sepProg = MakeSeparableShaderProgram(drv, type, sources, NULL);
-
     if(status == 0)
     {
       RDCDEBUG("Real shader failed to compile, so skipping separable program and reflection.");
     }
-    else if(sepProg == 0)
-    {
-      RDCERR(
-          "Couldn't make separable program for shader via patching - functionality will be "
-          "broken.");
-    }
     else
     {
-      prog = sepProg;
-      MakeShaderReflection(type, sepProg, reflection, outputUsage);
+      bool reflected = false;
 
-      vector<uint32_t> spirvwords;
+      // if we have separate shader object support, we can create a separable program and reflect it
+      // - this may or may not be emulated depending on if ARB_program_interface_query is supported.
+      if(HasExt[ARB_separate_shader_objects])
+      {
+        GLuint sepProg = MakeSeparableShaderProgram(drv, type, sources, NULL);
 
-      SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
-                                        SPIRVShaderStage(ShaderIdx(type)));
+        if(sepProg == 0)
+        {
+          RDCERR(
+              "Couldn't make separable program for shader via patching - functionality will be "
+              "broken.");
+        }
+        else
+        {
+          MakeShaderReflection(type, sepProg, reflection, outputUsage);
+          reflected = true;
 
-      string s = CompileSPIRV(settings, sources, spirvwords);
-      if(!spirvwords.empty())
-        ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+          drv.glDeleteProgram(sepProg);
+        }
+      }
       else
-        disassembly = s;
+      {
+        // if we don't have separate shader objects, we manually reflect directly with glslang to
+        // avoid having to litter MakeSeparableShaderProgram() and child functions with checks about
+        // whether separable programs are actually supported or if we're just faking it to reflect.
+        // In this case we forcibly emulate ARB_program_interface_query.
+        RDCASSERT(!HasExt[ARB_program_interface_query]);
 
-      reflection.resourceId = id;
-      reflection.entryPoint = "main";
+        // to do this, we need to create an empty program object and manually configure its glslang
+        // program.
+        GLuint fakeProgram = drv.glCreateProgram();
 
-      reflection.stage = MakeShaderStage(type);
+        ResourceId progid = drv.GetResourceManager()->GetID(ProgramRes(drv.GetCtx(), fakeProgram));
 
-      reflection.encoding = ShaderEncoding::GLSL;
-      reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
+        ProgramData &progDetails = drv.m_Programs[progid];
 
-      reflection.debugInfo.encoding = ShaderEncoding::GLSL;
+        progDetails.linked = true;
 
-      reflection.debugInfo.files.resize(1);
-      reflection.debugInfo.files[0].filename = "main.glsl";
-      reflection.debugInfo.files[0].contents = concatenated;
+        progDetails.glslangProgram = LinkProgramForReflection({glslangShader});
+
+        MakeShaderReflection(type, fakeProgram, reflection, outputUsage);
+        reflected = true;
+
+        drv.glDeleteProgram(fakeProgram);
+      }
+
+      if(reflected)
+      {
+        vector<uint32_t> spirvwords;
+
+        SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
+                                          SPIRVShaderStage(ShaderIdx(type)));
+
+        string s = CompileSPIRV(settings, sources, spirvwords);
+        if(!spirvwords.empty())
+          ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+        else
+          disassembly = s;
+
+        reflection.resourceId = id;
+        reflection.entryPoint = "main";
+
+        reflection.stage = MakeShaderStage(type);
+
+        reflection.encoding = ShaderEncoding::GLSL;
+        reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
+
+        reflection.debugInfo.encoding = ShaderEncoding::GLSL;
+
+        reflection.debugInfo.files.resize(1);
+        reflection.debugInfo.files[0].filename = "main.glsl";
+        reflection.debugInfo.files[0].contents = concatenated;
+      }
     }
 
     drv.PopInternalShader();
@@ -400,10 +402,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     // Doing this means we support the case of recompiling a shader different ways
     // and relinking a program before use, which is still moderately crazy and
     // so people who do that should be moderately ashamed.
-    if(m_Shaders[liveId].prog)
+    if(m_Shaders[liveId].reflection.resourceId != ResourceId())
     {
-      glDeleteProgram(m_Shaders[liveId].prog);
-      m_Shaders[liveId].prog = 0;
       m_Shaders[liveId].spirv = SPVModule();
       m_Shaders[liveId].reflection = ShaderReflection();
     }
@@ -682,9 +682,6 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
       src.push_back(strings[i]);
 
     GLuint real = GL.glCreateShaderProgramv(type, count, strings);
-    // we want a separate program that we can mess about with for making overlays
-    // and relink without having to worry about restoring the 'real' program state.
-    GLuint sepprog = MakeSeparableShaderProgram(*this, type, src, NULL);
 
     GLResource res = ProgramRes(GetCtx(), real);
 
@@ -701,7 +698,6 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
 
     shadDetails.type = type;
     shadDetails.sources.swap(src);
-    shadDetails.prog = sepprog;
 
     shadDetails.ProcessCompilation(*this, Program, 0);
 
@@ -747,27 +743,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
   }
   else
   {
-    GetResourceManager()->AddLiveResource(id, res);
-
-    vector<string> src;
-    for(GLsizei i = 0; i < count; i++)
-      src.push_back(strings[i]);
-
-    GLuint sepprog = MakeSeparableShaderProgram(*this, type, src, NULL);
-
-    auto &progDetails = m_Programs[id];
-
-    progDetails.linked = true;
-    progDetails.shaders.push_back(id);
-    progDetails.stageShaders[ShaderIdx(type)] = id;
-
-    auto &shadDetails = m_Shaders[id];
-
-    shadDetails.type = type;
-    shadDetails.sources.swap(src);
-    shadDetails.prog = sepprog;
-
-    shadDetails.ProcessCompilation(*this, id, 0);
+    RDCERR("Should not use glCreateShaderProgramv internally on replay");
   }
 
   return real;

@@ -106,27 +106,6 @@ bool CheckReplayContext()
   if(!extensionString.empty())
     RDCLOG("%s", extensionString.c_str());
 
-  string missingExts = "";
-
-#define REQUIRE_EXTENSION(extname) \
-  if(!exts[extname])               \
-    missingExts += STRINGIZE(extname) " ";
-
-  // we require the below extensions on top of a 3.2 context. Some of these we could in theory
-  // do without, but support for them is so widespread it's not worthwhile
-
-  // needed for program pipelines, glProgramUniform*, and reflecting shaders on their own
-  // Possible to remove this with self-compiled SPIR-V for reflection - see above. Likewise
-  // convenience for our own pipelines when replacing single shaders or such.
-  REQUIRE_EXTENSION(ARB_separate_shader_objects);
-
-  if(!missingExts.empty())
-  {
-    RDCERR("RenderDoc requires these missing extensions: %s. Try updating your drivers.",
-           missingExts.c_str());
-    return false;
-  }
-
   return true;
 }
 
@@ -458,6 +437,16 @@ void FetchEnabledExtensions()
 
     for(const std::string &e : extlist)
       CheckExtFromString(e.c_str());
+  }
+
+  if(!HasExt[ARB_separate_shader_objects])
+  {
+    if(HasExt[ARB_program_interface_query])
+      RDCWARN(
+          "Because ARB_separate_shader_objects is not supported, forcibly disabling "
+          "ARB_program_interface_query");
+
+    HasExt[ARB_program_interface_query] = false;
   }
 }
 
