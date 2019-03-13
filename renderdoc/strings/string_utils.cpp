@@ -152,19 +152,32 @@ std::wstring get_dirname(const std::wstring &path)
 
 void split(const std::string &in, std::vector<std::string> &out, const char sep)
 {
-  std::string work = in;
-  size_t offset = work.find(sep);
-
-  while(offset != std::string::npos)
   {
-    out.push_back(work.substr(0, offset));
-    work = work.substr(offset + 1);
+    size_t numSeps = 0;
 
-    offset = work.find(sep);
+    size_t offset = in.find(sep);
+    while(offset != std::string::npos)
+    {
+      numSeps++;
+      offset = in.find(sep, offset + 1);
+    }
+
+    out.reserve(numSeps + 1);
   }
 
-  if(work.size() && work[0] != 0)
-    out.push_back(work);
+  size_t begin = 0;
+  size_t end = in.find(sep);
+
+  while(end != std::string::npos)
+  {
+    out.push_back(in.substr(begin, end - begin));
+
+    begin = end + 1;
+    end = in.find(sep, begin);
+  }
+
+  if(begin < in.size() || (begin == in.size() && in.back() == sep))
+    out.push_back(in.substr(begin));
 }
 
 void merge(const std::vector<std::string> &in, std::string &out, const char sep)
@@ -299,7 +312,7 @@ TEST_CASE("String manipulation", "[string]")
 
   SECTION("split by comma")
   {
-    std::vector<string> vec;
+    std::vector<std::string> vec;
 
     split(std::string("foo,bar, blah,test"), vec, ',');
 
@@ -312,9 +325,9 @@ TEST_CASE("String manipulation", "[string]")
 
   SECTION("split by space")
   {
-    std::vector<string> vec;
+    std::vector<std::string> vec;
 
-    split(std::string("this is a test string for   splitting! "), vec, ' ');
+    split(std::string("this is a test string for   splitting!"), vec, ' ');
 
     REQUIRE(vec.size() == 9);
     CHECK(vec[0] == "this");
@@ -328,9 +341,38 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(vec[8] == "splitting!");
   };
 
+  SECTION("split with trailing separator")
+  {
+    std::vector<std::string> vec;
+
+    split(std::string("foo,,bar, blah,,,test,"), vec, ',');
+
+    REQUIRE(vec.size() == 8);
+    CHECK(vec[0] == "foo");
+    CHECK(vec[1] == "");
+    CHECK(vec[2] == "bar");
+    CHECK(vec[3] == " blah");
+    CHECK(vec[4] == "");
+    CHECK(vec[5] == "");
+    CHECK(vec[6] == "test");
+    CHECK(vec[7] == "");
+  };
+
+  SECTION("split with starting separator")
+  {
+    std::vector<std::string> vec;
+
+    split(std::string(",foo,bar"), vec, ',');
+
+    REQUIRE(vec.size() == 3);
+    CHECK(vec[0] == "");
+    CHECK(vec[1] == "foo");
+    CHECK(vec[2] == "bar");
+  };
+
   SECTION("merge")
   {
-    std::vector<string> vec;
+    std::vector<std::string> vec;
     std::string str;
 
     merge(vec, str, ' ');
