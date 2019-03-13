@@ -46,18 +46,28 @@ PFNGLGETINTEGERVPROC glGetIntegerv_real = NULL;
 PFNGLGETINTEGERI_VPROC glGetIntegeri_v_real = NULL;
 PFNGLGETINTEGER64I_VPROC glGetInteger64i_v_real = NULL;
 
+PFNGLGETPROGRAMIVPROC glGetProgramiv_real = NULL;
+
 WrappedOpenGL *driver = NULL;
 
 typedef GLenum (*BindingLookupFunc)(GLenum target);
 
 struct PushPop
 {
+  enum VAOMode
+  {
+    VAO
+  };
+  enum ProgramMode
+  {
+    Program
+  };
+
   // we can use PFNGLBINDTEXTUREPROC since most bind functions are identical - taking GLenum and
   // GLuint.
   PushPop(GLenum target, PFNGLBINDTEXTUREPROC bindFunc, BindingLookupFunc bindingLookup)
   {
     other = bindFunc;
-    vao = NULL;
     t = target;
     GL.glGetIntegerv(bindingLookup(target), (GLint *)&o);
   }
@@ -65,32 +75,38 @@ struct PushPop
   PushPop(GLenum target, PFNGLBINDTEXTUREPROC bindFunc, GLenum binding)
   {
     other = bindFunc;
-    vao = NULL;
     t = target;
     GL.glGetIntegerv(binding, (GLint *)&o);
   }
 
-  PushPop(PFNGLBINDVERTEXARRAYPROC bindFunc)
+  PushPop(VAOMode, PFNGLBINDVERTEXARRAYPROC bindFunc)
   {
     vao = bindFunc;
-    other = NULL;
-    t = eGL_NONE;
     GL.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&o);
+  }
+
+  PushPop(ProgramMode, PFNGLUSEPROGRAMPROC bindFunc)
+  {
+    prog = bindFunc;
+    GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&o);
   }
 
   ~PushPop()
   {
     if(vao)
       vao(o);
-    else
+    else if(prog)
+      prog(o);
+    else if(other)
       other(t, o);
   }
 
-  PFNGLBINDVERTEXARRAYPROC vao;
-  PFNGLBINDTEXTUREPROC other;
+  PFNGLUSEPROGRAMPROC prog = NULL;
+  PFNGLBINDVERTEXARRAYPROC vao = NULL;
+  PFNGLBINDTEXTUREPROC other = NULL;
 
-  GLenum t;
-  GLuint o;
+  GLenum t = eGL_NONE;
+  GLuint o = 0;
 };
 
 // if specifying the image or etc for a cubemap face, we must bind the cubemap itself.
@@ -132,9 +148,13 @@ GLenum TexBindTarget(GLenum target)
   PushPop CONCAT(prev, __LINE__)(eGL_RENDERBUFFER, GL.glBindRenderbuffer, eGL_RENDERBUFFER_BINDING); \
   GL.glBindRenderbuffer(eGL_RENDERBUFFER, obj);
 
-#define PushPopVertexArray(obj)                         \
-  PushPop CONCAT(prev, __LINE__)(GL.glBindVertexArray); \
+#define PushPopVertexArray(obj)                                       \
+  PushPop CONCAT(prev, __LINE__)(PushPop::VAO, GL.glBindVertexArray); \
   GL.glBindVertexArray(obj);
+
+#define PushPopProgram(obj)                                          \
+  PushPop CONCAT(prev, __LINE__)(PushPop::Program, GL.glUseProgram); \
+  GL.glUseProgram(obj);
 
 void APIENTRY _glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
 {
@@ -1831,6 +1851,433 @@ void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum fo
 
 #pragma endregion
 
+#pragma region ARB_separate_shader_objects
+
+void APIENTRY _glGetProgramiv(GLuint program, GLenum pname, GLint *params)
+{
+  // if we're emulating, programs were never separable
+  if(pname == eGL_PROGRAM_SEPARABLE)
+  {
+    *params = 0;
+    return;
+  }
+
+  glGetProgramiv_real(program, pname, params);
+}
+
+void APIENTRY _glProgramParameteri(GLuint program, GLenum pname, GLint value)
+{
+  // we only set this when reflecting, so just silently drop it
+  if(pname == eGL_PROGRAM_SEPARABLE)
+    return;
+
+  RDCERR("Cannot emulate glProgramParameteri(%s), capture cannot be opened", ToStr(pname).c_str());
+}
+
+void APIENTRY _glProgramUniform1i(GLuint program, GLint location, GLint x)
+{
+  PushPopProgram(program);
+  GL.glUniform1i(location, x);
+}
+
+void APIENTRY _glProgramUniform2i(GLuint program, GLint location, GLint x, GLint y)
+{
+  PushPopProgram(program);
+  GL.glUniform2i(location, x, y);
+}
+
+void APIENTRY _glProgramUniform3i(GLuint program, GLint location, GLint x, GLint y, GLint z)
+{
+  PushPopProgram(program);
+  GL.glUniform3i(location, x, y, z);
+}
+
+void APIENTRY _glProgramUniform4i(GLuint program, GLint location, GLint x, GLint y, GLint z, GLint w)
+{
+  PushPopProgram(program);
+  GL.glUniform4i(location, x, y, z, w);
+}
+
+void APIENTRY _glProgramUniform1ui(GLuint program, GLint location, GLuint x)
+{
+  PushPopProgram(program);
+  GL.glUniform1ui(location, x);
+}
+
+void APIENTRY _glProgramUniform2ui(GLuint program, GLint location, GLuint x, GLuint y)
+{
+  PushPopProgram(program);
+  GL.glUniform2ui(location, x, y);
+}
+
+void APIENTRY _glProgramUniform3ui(GLuint program, GLint location, GLuint x, GLuint y, GLuint z)
+{
+  PushPopProgram(program);
+  GL.glUniform3ui(location, x, y, z);
+}
+
+void APIENTRY _glProgramUniform4ui(GLuint program, GLint location, GLuint x, GLuint y, GLuint z,
+                                   GLuint w)
+{
+  PushPopProgram(program);
+  GL.glUniform4ui(location, x, y, z, w);
+}
+
+void APIENTRY _glProgramUniform1f(GLuint program, GLint location, GLfloat x)
+{
+  PushPopProgram(program);
+  GL.glUniform1f(location, x);
+}
+
+void APIENTRY _glProgramUniform2f(GLuint program, GLint location, GLfloat x, GLfloat y)
+{
+  PushPopProgram(program);
+  GL.glUniform2f(location, x, y);
+}
+
+void APIENTRY _glProgramUniform3f(GLuint program, GLint location, GLfloat x, GLfloat y, GLfloat z)
+{
+  PushPopProgram(program);
+  GL.glUniform3f(location, x, y, z);
+}
+
+void APIENTRY _glProgramUniform4f(GLuint program, GLint location, GLfloat x, GLfloat y, GLfloat z,
+                                  GLfloat w)
+{
+  PushPopProgram(program);
+  GL.glUniform4f(location, x, y, z, w);
+}
+
+void APIENTRY _glProgramUniform1d(GLuint program, GLint location, GLdouble x)
+{
+  PushPopProgram(program);
+  GL.glUniform1d(location, x);
+}
+
+void APIENTRY _glProgramUniform2d(GLuint program, GLint location, GLdouble x, GLdouble y)
+{
+  PushPopProgram(program);
+  GL.glUniform2d(location, x, y);
+}
+
+void APIENTRY _glProgramUniform3d(GLuint program, GLint location, GLdouble x, GLdouble y, GLdouble z)
+{
+  PushPopProgram(program);
+  GL.glUniform3d(location, x, y, z);
+}
+
+void APIENTRY _glProgramUniform4d(GLuint program, GLint location, GLdouble x, GLdouble y,
+                                  GLdouble z, GLdouble w)
+{
+  PushPopProgram(program);
+  GL.glUniform4d(location, x, y, z, w);
+}
+
+void APIENTRY _glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform1iv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform2iv(GLuint program, GLint location, GLsizei count, const GLint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform2iv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform3iv(GLuint program, GLint location, GLsizei count, const GLint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform3iv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform4iv(GLuint program, GLint location, GLsizei count, const GLint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform4iv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform1uiv(GLuint program, GLint location, GLsizei count, const GLuint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform1uiv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform2uiv(GLuint program, GLint location, GLsizei count, const GLuint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform2uiv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform3uiv(GLuint program, GLint location, GLsizei count, const GLuint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform3uiv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform4uiv(GLuint program, GLint location, GLsizei count, const GLuint *value)
+{
+  PushPopProgram(program);
+  GL.glUniform4uiv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform1fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniform1fv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform2fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniform2fv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform3fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniform3fv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform4fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniform4fv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform1dv(GLuint program, GLint location, GLsizei count,
+                                   const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniform1dv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform2dv(GLuint program, GLint location, GLsizei count,
+                                   const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniform2dv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform3dv(GLuint program, GLint location, GLsizei count,
+                                   const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniform3dv(location, count, value);
+}
+
+void APIENTRY _glProgramUniform4dv(GLuint program, GLint location, GLsizei count,
+                                   const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniform4dv(location, count, value);
+}
+
+void APIENTRY _glProgramUniformMatrix2fv(GLuint program, GLint location, GLsizei count,
+                                         GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix2fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix3fv(GLuint program, GLint location, GLsizei count,
+                                         GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix3fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count,
+                                         GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix2dv(GLuint program, GLint location, GLsizei count,
+                                         GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix2dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix3dv(GLuint program, GLint location, GLsizei count,
+                                         GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix3dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix4dv(GLuint program, GLint location, GLsizei count,
+                                         GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix2x3fv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix2x3fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix3x2fv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4x2fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix2x4fv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix2x4fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix4x2fv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4x2fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix3x4fv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix3x4fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix4x3fv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLfloat *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4x3fv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix2x3dv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix2x3dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix3x2dv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4x2dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix2x4dv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix2x4dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix4x2dv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4x2dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix3x4dv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix3x4dv(location, count, transpose, value);
+}
+
+void APIENTRY _glProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count,
+                                           GLboolean transpose, const GLdouble *value)
+{
+  PushPopProgram(program);
+  GL.glUniformMatrix4x3dv(location, count, transpose, value);
+}
+
+void APIENTRY _glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+void APIENTRY _glActiveShaderProgram(GLuint pipeline, GLuint program)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+GLuint APIENTRY _glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const *strings)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+  return 0;
+}
+
+void APIENTRY _glBindProgramPipeline(GLuint pipeline)
+{
+  // we can ignore binds of 0
+  if(pipeline == 0)
+    return;
+
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+void APIENTRY _glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+void APIENTRY _glGenProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+GLboolean APIENTRY _glIsProgramPipeline(GLuint pipeline)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+  return GL_FALSE;
+}
+
+void APIENTRY _glGetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+void APIENTRY _glValidateProgramPipeline(GLuint pipeline)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+void APIENTRY _glGetProgramPipelineInfoLog(GLuint pipeline, GLsizei bufSize, GLsizei *length,
+                                           GLchar *infoLog)
+{
+  RDCERR(
+      "Emulation of ARB_separate_shader_objects can't actually create pipelines. "
+      "Capture cannot be opened.");
+}
+
+#pragma endregion
+
 #pragma region ARB_program_interface_query
 
 static ReflectionInterface ConvertInterface(GLenum programInterface)
@@ -2568,6 +3015,77 @@ void GLDispatchTable::EmulateRequiredExtensions()
     // and GL_SAMPLES params
     SAVE_REAL_FUNC(glGetInternalformativ);
     EMULATE_FUNC(glGetInternalformativ);
+  }
+
+  if(!HasExt[ARB_separate_shader_objects])
+  {
+    RDCLOG("Emulating ARB_separate_shader_objects");
+
+    // need to be able to forward any queries other than GL_PROGRAM_SEPARABLE
+    SAVE_REAL_FUNC(glGetProgramiv);
+
+    EMULATE_FUNC(glUseProgramStages);
+    EMULATE_FUNC(glActiveShaderProgram);
+    EMULATE_FUNC(glCreateShaderProgramv);
+    EMULATE_FUNC(glBindProgramPipeline);
+    EMULATE_FUNC(glDeleteProgramPipelines);
+    EMULATE_FUNC(glGenProgramPipelines);
+    EMULATE_FUNC(glIsProgramPipeline);
+    EMULATE_FUNC(glProgramParameteri);
+    EMULATE_FUNC(glGetProgramiv);
+    EMULATE_FUNC(glGetProgramPipelineiv);
+    EMULATE_FUNC(glProgramUniform1i);
+    EMULATE_FUNC(glProgramUniform2i);
+    EMULATE_FUNC(glProgramUniform3i);
+    EMULATE_FUNC(glProgramUniform4i);
+    EMULATE_FUNC(glProgramUniform1ui);
+    EMULATE_FUNC(glProgramUniform2ui);
+    EMULATE_FUNC(glProgramUniform3ui);
+    EMULATE_FUNC(glProgramUniform4ui);
+    EMULATE_FUNC(glProgramUniform1f);
+    EMULATE_FUNC(glProgramUniform2f);
+    EMULATE_FUNC(glProgramUniform3f);
+    EMULATE_FUNC(glProgramUniform4f);
+    EMULATE_FUNC(glProgramUniform1d);
+    EMULATE_FUNC(glProgramUniform2d);
+    EMULATE_FUNC(glProgramUniform3d);
+    EMULATE_FUNC(glProgramUniform4d);
+    EMULATE_FUNC(glProgramUniform1iv);
+    EMULATE_FUNC(glProgramUniform2iv);
+    EMULATE_FUNC(glProgramUniform3iv);
+    EMULATE_FUNC(glProgramUniform4iv);
+    EMULATE_FUNC(glProgramUniform1uiv);
+    EMULATE_FUNC(glProgramUniform2uiv);
+    EMULATE_FUNC(glProgramUniform3uiv);
+    EMULATE_FUNC(glProgramUniform4uiv);
+    EMULATE_FUNC(glProgramUniform1fv);
+    EMULATE_FUNC(glProgramUniform2fv);
+    EMULATE_FUNC(glProgramUniform3fv);
+    EMULATE_FUNC(glProgramUniform4fv);
+    EMULATE_FUNC(glProgramUniform1dv);
+    EMULATE_FUNC(glProgramUniform2dv);
+    EMULATE_FUNC(glProgramUniform3dv);
+    EMULATE_FUNC(glProgramUniform4dv);
+    EMULATE_FUNC(glProgramUniformMatrix2fv);
+    EMULATE_FUNC(glProgramUniformMatrix3fv);
+    EMULATE_FUNC(glProgramUniformMatrix4fv);
+    EMULATE_FUNC(glProgramUniformMatrix2dv);
+    EMULATE_FUNC(glProgramUniformMatrix3dv);
+    EMULATE_FUNC(glProgramUniformMatrix4dv);
+    EMULATE_FUNC(glProgramUniformMatrix2x3fv);
+    EMULATE_FUNC(glProgramUniformMatrix3x2fv);
+    EMULATE_FUNC(glProgramUniformMatrix2x4fv);
+    EMULATE_FUNC(glProgramUniformMatrix4x2fv);
+    EMULATE_FUNC(glProgramUniformMatrix3x4fv);
+    EMULATE_FUNC(glProgramUniformMatrix4x3fv);
+    EMULATE_FUNC(glProgramUniformMatrix2x3dv);
+    EMULATE_FUNC(glProgramUniformMatrix3x2dv);
+    EMULATE_FUNC(glProgramUniformMatrix2x4dv);
+    EMULATE_FUNC(glProgramUniformMatrix4x2dv);
+    EMULATE_FUNC(glProgramUniformMatrix3x4dv);
+    EMULATE_FUNC(glProgramUniformMatrix4x3dv);
+    EMULATE_FUNC(glValidateProgramPipeline);
+    EMULATE_FUNC(glGetProgramPipelineInfoLog);
   }
 
   if(!HasExt[ARB_program_interface_query])
