@@ -58,6 +58,8 @@ If you have Android Studio open, it will interfere with RenderDoc's debugging by
 
 RenderDoc does its best to locate or provide necessary android tools. On windows, these tools are shipped with the distributions and all that's required is java - either in your ``PATH`` or via the ``JAVA_HOME`` environment variable. If these tools aren't present then RenderDoc searches through ``PATH`` and other variables like ``ANDROID_HOME`` or ``ANDROID_SDK_ROOT`` to find the SDK. If you don't have those variables set, you can browse to the SDK and JDK folders in the :doc:`settings window <../window/settings_window>` under the :guilabel:`Android` section.
 
+In some cases, if you can't start an application to capture, it may help to delete the app cache in the device's Settings menu. (You can usually access it here: Settings → Apps → [app] → Storage → Clear cache.)
+
 If something goes wrong with these steps, please `open an issue on GitHub <https://github.com/baldurk/renderdoc/issues/new>`__! The process should be as smooth as possible given Android's platform limitations, so if you encounter problems then it may well be fixable.
 
 Often when an operation fails, more information is available via :guilabel:`Help` → :guilabel:`View Diagnostic Log`.
