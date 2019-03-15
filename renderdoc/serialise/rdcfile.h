@@ -94,6 +94,7 @@ public:
   const SectionProperties &GetSectionProperties(int index) const { return m_Sections[index]; }
   StreamReader *ReadSection(int index) const;
   StreamWriter *WriteSection(const SectionProperties &props);
+  void WriteExtendedThumbnailSection();
 
   // Only valid if GetDriver returns RDCDriver::Image, passes over the underlying FILE * for use
   // loading the image directly, since the RDC container isn't there to read from a section.

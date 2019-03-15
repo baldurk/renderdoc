@@ -1299,29 +1299,7 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       delete w;
     }
 
-    const RDCThumb &thumb = rdc->GetThumbnail();
-    if(thumb.format != FileType::JPG && thumb.width > 0 && thumb.height > 0)
-    {
-      SectionProperties props = {};
-      props.type = SectionType::ExtendedThumbnail;
-      props.version = 1;
-      StreamWriter *w = rdc->WriteSection(props);
-
-      // if this file format ever changes, be sure to update the XML export which has a special
-      // handling for this case.
-
-      ExtThumbnailHeader header;
-      header.width = thumb.width;
-      header.height = thumb.height;
-      header.len = thumb.len;
-      header.format = thumb.format;
-      w->Write(header);
-      w->Write(thumb.pixels, thumb.len);
-
-      w->Finish();
-
-      delete w;
-    }
+    rdc->WriteExtendedThumbnailSection();
 
     RDCLOG("Written to disk: %s", m_CurrentLogFile.c_str());
 

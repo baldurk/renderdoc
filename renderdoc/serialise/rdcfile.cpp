@@ -1220,3 +1220,30 @@ FILE *RDCFile::StealImageFileHandle(std::string &filename)
   m_File = NULL;
   return ret;
 }
+
+void RDCFile::WriteExtendedThumbnailSection()
+{
+  const RDCThumb &thumb = GetThumbnail();
+  if(thumb.format != FileType::JPG && thumb.width > 0 && thumb.height > 0)
+  {
+    SectionProperties props = {};
+    props.type = SectionType::ExtendedThumbnail;
+    props.version = 1;
+    StreamWriter *w = WriteSection(props);
+
+    // if this file format ever changes, be sure to update the XML export which has a special
+    // handling for this case.
+
+    ExtThumbnailHeader header;
+    header.width = thumb.width;
+    header.height = thumb.height;
+    header.len = thumb.len;
+    header.format = thumb.format;
+    w->Write(header);
+    w->Write(thumb.pixels, thumb.len);
+
+    w->Finish();
+
+    delete w;
+  }
+}

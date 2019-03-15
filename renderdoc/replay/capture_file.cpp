@@ -536,6 +536,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, co
       return ReplayStatus::FileIOFailed;
   }
 
+  output.WriteExtendedThumbnailSection();
   return ReplayStatus::Succeeded;
 }
 
