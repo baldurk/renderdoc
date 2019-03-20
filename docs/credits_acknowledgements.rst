@@ -158,6 +158,10 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Marton Tamas
 * Nat Duca
 * Ben Clayton
+* Aliya Pazylbekova
+* Benson Joeris
+* Haiyu Zhen
+* Alex Kharlamov
 
 Contributors
 ------------

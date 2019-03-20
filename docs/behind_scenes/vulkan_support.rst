@@ -39,6 +39,11 @@ RenderDoc has support for Vulkan version 1.1, as well as a number of extensions,
 * Pixel history is not implemented.
 * Shader debugging is not currently supported.
 
+Stadia
+------
+
+Vulkan capture and replay on Stadia is natively supported. For more information on how to capture with Stadia see the Stadia documentation.
+
 Android
 -------
 
