@@ -2388,7 +2388,7 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
     m_PickedPoint -= QPoint(increment, 0);
     nudged = true;
   }
-  else if(e->key() == Qt::Key_Right && m_PickedPoint.x() < (int)texptr->height - 1)
+  else if(e->key() == Qt::Key_Right && m_PickedPoint.x() < (int)texptr->width - 1)
   {
     m_PickedPoint += QPoint(increment, 0);
     nudged = true;
