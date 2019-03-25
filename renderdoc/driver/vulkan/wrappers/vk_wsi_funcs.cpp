@@ -548,6 +548,8 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         // fill out image info so we track resource state barriers
         {
           SCOPED_LOCK(m_ImageLayoutsLock);
+          m_ImageLayouts[imid].format = pCreateInfo->imageFormat;
+
           m_ImageLayouts[imid].subresourceStates.clear();
           m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(
               VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
