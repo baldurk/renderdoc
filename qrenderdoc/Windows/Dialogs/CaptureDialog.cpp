@@ -633,12 +633,14 @@ bool CaptureDialog::checkAllowClose()
 void CaptureDialog::on_exePathBrowse_clicked()
 {
   QString initDir;
+  QString initExe;
 
   QFileInfo f(ui->exePath->text());
   QDir dir = f.dir();
   if(f.isAbsolute() && dir.exists())
   {
     initDir = dir.absolutePath();
+    initExe = f.fileName();
   }
   else if(m_Ctx.Replay().CurrentRemote())
   {
@@ -647,6 +649,8 @@ void CaptureDialog::on_exePathBrowse_clicked()
   else if(!m_Ctx.Config().LastCapturePath.isEmpty())
   {
     initDir = m_Ctx.Config().LastCapturePath;
+    if(!m_Ctx.Config().LastCaptureExe.isEmpty())
+      initExe = m_Ctx.Config().LastCaptureExe;
   }
 
   QString filename;
@@ -659,7 +663,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
   }
   else
   {
-    filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir);
+    filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir, initExe);
   }
 
   if(!filename.isEmpty())
@@ -1038,6 +1042,7 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
   else
   {
     m_Ctx.Config().LastCapturePath = QFileInfo(fn).absolutePath();
+    m_Ctx.Config().LastCaptureExe = QFileInfo(fn).fileName();
   }
 
   m_Ctx.Config().Save();

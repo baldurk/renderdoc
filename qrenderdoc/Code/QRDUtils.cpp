@@ -1153,7 +1153,7 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
 }
 
 QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption, const QString &dir,
-                                        QFileDialog::Options options)
+                                        const QString &defaultExe, QFileDialog::Options options)
 {
   QString d = dir;
   if(d.isEmpty())
@@ -1175,6 +1175,8 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
     fileProxy->setRequirePermissions(QDir::Executable);
     fd.setProxyModel(fileProxy);
   }
+  if(!defaultExe.isEmpty())
+    fd.selectFile(defaultExe);
   show(&fd);
 
   if(fd.result() == QFileDialog::Accepted)

@@ -564,6 +564,7 @@ struct RDDialog
 
   static QString getExecutableFileName(QWidget *parent = NULL, const QString &caption = QString(),
                                        const QString &dir = QString(),
+                                       const QString &defaultExe = QString(),
                                        QFileDialog::Options options = QFileDialog::Options());
 
   static QString getSaveFileName(QWidget *parent = NULL, const QString &caption = QString(),
