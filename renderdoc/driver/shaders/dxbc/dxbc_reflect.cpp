@@ -303,7 +303,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
   mapping->readWriteResources.resize(dxbc->m_UAVs.size());
   refl->readWriteResources.resize(dxbc->m_UAVs.size());
-  MakeResourceList(true, dxbc, dxbc->m_UAVs, mapping->readWriteResources, refl->readWriteResources);
+  MakeResourceList(false, dxbc, dxbc->m_UAVs, mapping->readWriteResources, refl->readWriteResources);
 
   uint32_t numInterfaces = 0;
   for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
