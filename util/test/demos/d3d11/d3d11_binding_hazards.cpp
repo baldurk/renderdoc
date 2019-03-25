@@ -83,6 +83,7 @@ void main()
 
       ctx->CSSetShaderResources(1, 1, &tempSRV.GetInterfacePtr());
 
+      tempSRV->AddRef();
       ULONG refcount = tempSRV->Release();
 
       ID3D11ShaderResourceView *srvs[2] = {NULL, tempSRV.GetInterfacePtr()};
