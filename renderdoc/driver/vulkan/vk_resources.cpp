@@ -1543,7 +1543,7 @@ BlockShape GetBlockShape(VkFormat Format, uint32_t plane)
     default: RDCERR("Unrecognised Vulkan Format: %d", Format);
   }
 
-  return BlockShape();
+  return {1, 1, 1};
 }
 
 VkExtent2D GetPlaneShape(uint32_t Width, uint32_t Height, VkFormat Format, uint32_t plane)
