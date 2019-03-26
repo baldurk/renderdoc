@@ -116,12 +116,26 @@ void DisableGLHooks()
   glhook.enabled = false;
 }
 
+template <typename ret_type>
+ret_type default_ret()
+{
+  return (ret_type)0;
+}
+
+template <>
+void default_ret()
+{
+}
+
 // if we were injected and aren't ready to capture, skip out and call the real function
 #define UNINIT_CALL(function, ...)                                                      \
   if(!glhook.enabled)                                                                   \
   {                                                                                     \
     if(GL.function == NULL)                                                             \
+    {                                                                                   \
       RDCERR("No function pointer for '%s' while uninitialised!", STRINGIZE(function)); \
+      return default_ret<decltype(GL.function(__VA_ARGS__))>();                         \
+    }                                                                                   \
     return GL.function(__VA_ARGS__);                                                    \
   }
 
