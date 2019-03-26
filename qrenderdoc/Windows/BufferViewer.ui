@@ -568,7 +568,7 @@
    </widget>
    <widget class="QWidget" name="gsoutTab">
     <attribute name="title">
-     <string>GS Out</string>
+     <string>GS/DS Out</string>
     </attribute>
     <layout class="QGridLayout" name="gridLayout_4">
      <property name="leftMargin">

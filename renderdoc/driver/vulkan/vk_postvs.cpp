@@ -2758,7 +2758,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   if(!ObjDisp(m_Device)->CmdBeginTransformFeedbackEXT)
   {
     RDCLOG(
-        "VK_EXT_transform_feedback_extension not available, can't fetch tessellation/geometry "
+        "VK_EXT_transform_feedback extension not available, can't fetch tessellation/geometry "
         "output");
     return;
   }
