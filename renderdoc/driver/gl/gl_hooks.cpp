@@ -145,12 +145,12 @@ bool FullyImplementedFunction(const char *funcname)
 
 void *HookedGetProcAddress(const char *func, void *realFunc)
 {
-#define CheckFunction(function, name)                    \
-  if(!strcmp(func, STRINGIZE(name)))                     \
-  {                                                      \
-    if(GL.function == NULL)                              \
-      GL.function = (decltype(GL.function))realFunc;     \
-    return (void *)&CONCAT(function, _renderdoc_hooked); \
+#define CheckFunction(function, aliasName)                \
+  if(!strcmp(func, STRINGIZE(aliasName)))                 \
+  {                                                       \
+    if(GL.function == NULL)                               \
+      GL.function = (decltype(GL.function))realFunc;      \
+    return (void *)&CONCAT(aliasName, _renderdoc_hooked); \
   }
 
 #define CheckUnsupported(function)                                               \
