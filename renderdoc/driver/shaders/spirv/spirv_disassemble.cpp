@@ -4659,6 +4659,10 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
         {
           patchData.outTopo = Topology::TriangleStrip;
         }
+        else if(mode.mode == spv::ExecutionModeQuads)
+        {
+          patchData.outTopo = Topology::TriangleList;
+        }
         else if(mode.mode == spv::ExecutionModeDepthGreater)
         {
           for(SigParameter &sig : outputs)
