@@ -197,12 +197,20 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
   // verify type
   if((mrq.memoryTypeBits & bit) == 0)
   {
+    std::string bitsString;
+
+    for(uint32_t i = 0; i < 32; i++)
+    {
+      if(mrq.memoryTypeBits & (1U << i))
+        bitsString += StringFormat::Fmt("%s%u", bitsString.empty() ? "" : ", ", i);
+    }
+
     RDCERR(
         "Trying to bind %s to memory %llu which is type %u, "
-        "but only these types are allowed: %08x.\n"
+        "but only these types are allowed: %s\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
-        resourceName, memOrigId, memInfo.memoryTypeIndex, mrq.memoryTypeBits);
+        resourceName, memOrigId, memInfo.memoryTypeIndex, bitsString.c_str());
     m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
