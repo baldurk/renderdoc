@@ -1289,6 +1289,12 @@ void VulkanReplay::ClearPostVSCache()
     }
     m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf, NULL);
     m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem, NULL);
+
+    if(it->second.gsout.buf != VK_NULL_HANDLE)
+    {
+      m_pDriver->vkDestroyBuffer(dev, it->second.gsout.buf, NULL);
+      m_pDriver->vkFreeMemory(dev, it->second.gsout.bufmem, NULL);
+    }
   }
 
   m_PostVS.Data.clear();
@@ -1308,11 +1314,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
   ShaderReflection *refl = pipeInfo.shaders[0].refl;
 
-  // no outputs from this shader? unexpected but theoretically possible (dummy VS before
-  // tessellation maybe). Just fill out an empty data set
-  if(refl->outputSignature.empty())
+  // set defaults so that we don't try to fetch this output again if something goes wrong and the
+  // same event is selected again
   {
-    // empty vertex output signature
     m_PostVS.Data[eventId].vsin.topo = pipeInfo.topology;
     m_PostVS.Data[eventId].vsout.buf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.bufmem = VK_NULL_HANDLE;
@@ -1327,9 +1331,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
 
     m_PostVS.Data[eventId].vsout.topo = pipeInfo.topology;
-
-    return;
   }
+
+  // no outputs from this shader? unexpected but theoretically possible (dummy VS before
+  // tessellation maybe). Just fill out an empty data set
+  if(refl->outputSignature.empty())
+    return;
 
   // we go through the driver for all these creations since they need to be properly
   // registered in order to be put in the partial replay state
@@ -1838,6 +1845,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     };
 
     vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &uniqIdxBufMem);
+
+    if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+    {
+      RDCWARN("Failed to allocate %llu bytes for unique index buffer", mrq.size);
+      return;
+    }
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, uniqIdxBuf, uniqIdxBufMem, 0);
@@ -1907,6 +1921,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     allocInfo.memoryTypeIndex = m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits);
 
     vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &rebasedIdxBufMem);
+
+    if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+    {
+      RDCWARN("Failed to allocate %llu bytes for rebased index buffer", mrq.size);
+      return;
+    }
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, rebasedIdxBuf, rebasedIdxBufMem, 0);
@@ -2093,6 +2114,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
         };
 
         vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &vbuffers[attr].mem);
+
+        if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+        {
+          RDCWARN("Failed to allocate %llu bytes for patched vertex buffer", mrq.size);
+          return;
+        }
+
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         vkr = m_pDriver->vkBindBufferMemory(dev, vbuffers[attr].buf, vbuffers[attr].mem, 0);
@@ -2379,6 +2407,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     };
 
     vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &meshMem);
+
+    if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+    {
+      RDCWARN("Failed to allocate %llu bytes for output vertex SSBO", mrq.size);
+      return;
+    }
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
@@ -2389,6 +2424,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     allocInfo.memoryTypeIndex = m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
 
     vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &readbackMem);
+
+    if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+    {
+      RDCWARN("Failed to allocate %llu bytes for readback memory", mrq.size);
+      return;
+    }
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, readbackBuffer, readbackMem, 0);
@@ -2635,6 +2677,22 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
 
   const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
 
+  // set defaults so that we don't try to fetch this output again if something goes wrong and the
+  // same event is selected again
+  {
+    m_PostVS.Data[eventId].gsout.buf = VK_NULL_HANDLE;
+    m_PostVS.Data[eventId].gsout.bufmem = VK_NULL_HANDLE;
+    m_PostVS.Data[eventId].gsout.instStride = 0;
+    m_PostVS.Data[eventId].gsout.vertStride = 0;
+    m_PostVS.Data[eventId].gsout.numViews = 1;
+    m_PostVS.Data[eventId].gsout.nearPlane = 0.0f;
+    m_PostVS.Data[eventId].gsout.farPlane = 0.0f;
+    m_PostVS.Data[eventId].gsout.useIndices = false;
+    m_PostVS.Data[eventId].gsout.hasPosOut = false;
+    m_PostVS.Data[eventId].gsout.idxbuf = VK_NULL_HANDLE;
+    m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
+  }
+
   if(!creationInfo.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews.empty())
   {
     RDCWARN("Multipass is active for this draw, no GS/Tess mesh output is available");
@@ -2853,6 +2911,26 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
     };
 
     vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &meshMem);
+
+    if(vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY || vkr == VK_ERROR_OUT_OF_HOST_MEMORY)
+    {
+      RDCWARN("Output allocation for %llu bytes failed fetching tessellation/geometry output.",
+              mrq.size);
+
+      m_pDriver->vkDestroyBuffer(dev, meshBuffer, NULL);
+
+      // delete framebuffer and renderpass
+      m_pDriver->vkDestroyFramebuffer(dev, fb, NULL);
+      m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
+
+      // delete pipeline
+      m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
+
+      // delete shader/shader module
+      m_pDriver->vkDestroyShaderModule(dev, module, NULL);
+      return;
+    }
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
