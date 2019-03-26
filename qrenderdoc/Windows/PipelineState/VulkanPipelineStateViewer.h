@@ -104,6 +104,7 @@ private:
   void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
+  QString formatByteRange(const BufferDescription *buf, const VKPipe::BindingElement *descriptorBind);
   QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);
   const VKPipe::Shader *stageForSender(QWidget *widget);
 
