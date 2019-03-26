@@ -189,8 +189,15 @@ void TickDeviceLogcat()
 
   const uint64_t timeMS = uint64_t(Timing::GetTick() / freq);
 
-  OSUtility::WriteOutput(OSUtility::Output_DebugMon,
-                         StringFormat::Fmt("__rdoc_internal_android_logcat %llu", timeMS).c_str());
+  static uint64_t prevTimeMS = 0;
+
+  // don't spam more than once every 100ms to avoid saturating our log
+  if(timeMS > prevTimeMS + 100)
+  {
+    prevTimeMS = timeMS;
+    OSUtility::WriteOutput(OSUtility::Output_DebugMon,
+                           StringFormat::Fmt("__rdoc_internal_android_logcat %llu", timeMS).c_str());
+  }
 #endif
 }
 
