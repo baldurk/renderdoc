@@ -549,7 +549,21 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderExte
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ const D3D11_VIDEO_DECODER_EXTENSION *pExtensionData)
 {
-  return m_pReal->DecoderExtension(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder), pExtensionData);
+  if(pExtensionData == NULL)
+    return m_pReal->DecoderExtension(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder),
+                                     pExtensionData);
+
+  D3D11_VIDEO_DECODER_EXTENSION unwrappedExt = *pExtensionData;
+
+  std::vector<ID3D11Resource *> unwrappedRes;
+
+  unwrappedRes.resize(unwrappedExt.ResourceCount);
+  for(UINT i = 0; i < unwrappedExt.ResourceCount; i++)
+    unwrappedRes[i] = UnwrapD3D11Resource(unwrappedExt.ppResourceList[i]);
+
+  unwrappedExt.ppResourceList = unwrappedRes.data();
+
+  return m_pReal->DecoderExtension(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder), &unwrappedExt);
 }
 
 void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputTargetRect(
