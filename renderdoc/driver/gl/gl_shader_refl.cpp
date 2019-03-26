@@ -2447,11 +2447,21 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
       if(refl->inputSignature[i].systemValue != ShaderBuiltin::Undefined)
         continue;
 
-      GLint loc = GL.glGetAttribLocation(curProg, refl->inputSignature[i].varName.c_str());
+      int32_t matrixRow = 0;
+      std::string varName = refl->inputSignature[i].varName;
+
+      size_t offs = varName.find(":row");
+      if(offs != std::string::npos)
+      {
+        matrixRow = varName[offs + 4] - '0';
+        varName.erase(offs);
+      }
+
+      GLint loc = GL.glGetAttribLocation(curProg, varName.c_str());
 
       if(loc >= 0 && loc < numVAttribBindings)
       {
-        mapping.inputAttributes[loc] = i;
+        mapping.inputAttributes[loc + matrixRow] = i;
       }
     }
   }
