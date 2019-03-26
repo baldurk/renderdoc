@@ -2967,6 +2967,9 @@ void VkResourceRecord::MarkBufferImageCopyFrameReferenced(
   MarkResourceFrameReferenced(img->GetResourceID(), imgRefType);
   MarkResourceFrameReferenced(img->baseResource, imgRefType);
 
+  if(IsDirtyFrameRef(imgRefType))
+    cmdInfo->dirtied.insert(img->GetResourceID());
+
   // mark buffer just as read
   MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
 
