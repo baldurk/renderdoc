@@ -653,6 +653,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     // allowed (and ignored) pNext structs
     if(next->sType != VK_STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR &&
        next->sType != VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR &&
+       next->sType != VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP &&
        next->sType != VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR)
     {
       RDCWARN("Unsupported pNext structure in pPresentInfo: %s", ToStr(next->sType).c_str());
@@ -660,7 +661,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
     next = next->pNext;
   }
-  RDCASSERT(pPresentInfo->pNext == NULL);
 
   // TODO support multiple swapchains here
   VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
