@@ -464,10 +464,6 @@ void RDTreeWidgetItem::setWidget(RDTreeWidget *widget)
   if(widget == m_widget)
     return;
 
-  QWidget *parent = widget;
-  while(parent)
-    parent = parent->parentWidget();
-
   // if the widget is different, we need to recurse to children
   m_widget = widget;
   for(RDTreeWidgetItem *item : m_children)
