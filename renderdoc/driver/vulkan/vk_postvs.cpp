@@ -1600,7 +1600,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
           for(uint32_t w = 0; w < bind.descriptorCount; w++)
           {
             // if this write is valid, we increment the descriptor count and continue
-            if(IsValid(write, w))
+            if(IsValid(write, w - write.dstArrayElement))
             {
               write.descriptorCount++;
             }
