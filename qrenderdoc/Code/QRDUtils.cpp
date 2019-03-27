@@ -69,6 +69,8 @@ std::string DoStringise(const ResourceId &el)
   return lit("ResourceId::%1").arg(num).toStdString();
 }
 
+// this is an opaque struct that contains the data to render, hit-test, etc for some text that
+// contains links to resources. It will update and cache the names of the resources.
 struct RichResourceText
 {
   QVector<QVariant> fragments;
@@ -165,12 +167,17 @@ struct RichResourceText
     for(i = 0; i < doc.blockCount(); i++)
       doc.findBlockByNumber(i).setUserState(fragmentIndexFromBlockIndex[i]);
 
-    qreal old = doc.textWidth();
     doc.setTextWidth(-1);
     idealWidth = doc.idealWidth();
-    doc.setTextWidth(old);
+    doc.setTextWidth(10000);
   }
 };
+
+// we use QSharedPointer to refer to the text since the lifetime management of these objects would
+// get quite complicated. There's not necessarily an obvious QObject parent to assign to if the text
+// is being initialised before being assigned to a widget and we want the most seamless interface we
+// can get.
+typedef QSharedPointer<RichResourceText> RichResourceTextPtr;
 
 Q_DECLARE_METATYPE(RichResourceTextPtr);
 
@@ -179,28 +186,54 @@ QString ResIdTextToString(RichResourceTextPtr ptr)
   return ptr->text;
 }
 
+QString ResIdToString(ResourceId ptr)
+{
+  return ToQStr(ptr);
+}
+
 void RegisterMetatypeConversions()
 {
   QMetaType::registerConverter<RichResourceTextPtr, QString>(&ResIdTextToString);
+  QMetaType::registerConverter<ResourceId, QString>(&ResIdToString);
 }
 
 void RichResourceTextInitialise(QVariant &var)
 {
+  // we only upconvert from strings, any other type with a string representation is not expected to
+  // contain ResourceIds. In particular if the variant is already a ResourceId we can return.
+  if(GetVariantMetatype(var) != QMetaType::QString)
+    return;
+
+  // we trim the string because that will happen naturally when rendering as HTML, and it makes it
+  // easier to detect strings where the only contents are ResourceId text.
+  QString text = var.toString().trimmed();
+
+  // do a simple string search first before using regular expressions
+  if(!text.contains(lit("ResourceId::")))
+    return;
+
+  // use regexp to split up into fragments of text and resourceid. The resourceid is then
+  // formatted on the fly in RichResourceText::cacheDocument
   static QRegularExpression re(lit("(ResourceId::)([0-9]*)"));
 
-  if(var.userType() == qMetaTypeId<ResourceId>() || re.match(var.toString()).hasMatch())
+  QRegularExpressionMatch match = re.match(text);
+
+  if(match.hasMatch())
   {
-    QString text;
-    if(var.userType() == qMetaTypeId<ResourceId>())
-      text = ToQStr(var.value<ResourceId>());
-    else
-      text = var.toString();
+    // if the match is the whole string, this is just a plain ResourceId on its own, so make that
+    // the variant without being rich resource text, so we can process it faster.
+    if(match.capturedStart(0) == 0 && match.capturedLength(0) == text.length())
+    {
+      qulonglong idnum = match.captured(2).toULongLong();
+      ResourceId id;
+      memcpy(&id, &idnum, sizeof(id));
+
+      var = id;
+      return;
+    }
 
     RichResourceTextPtr linkedText(new RichResourceText);
 
-    // use regexp to split up into fragments of text and resourceid. The resourceid is then
-    // formatted on the fly in RichResourceText::cacheDocument
-    QRegularExpressionMatch match = re.match(text);
     while(match.hasMatch())
     {
       qulonglong idnum = match.captured(2).toULongLong();
@@ -229,20 +262,78 @@ void RichResourceTextInitialise(QVariant &var)
 
 bool RichResourceTextCheck(const QVariant &var)
 {
-  return var.userType() == qMetaTypeId<RichResourceTextPtr>();
+  return var.userType() == qMetaTypeId<RichResourceTextPtr>() ||
+         var.userType() == qMetaTypeId<ResourceId>();
 }
+
+// I'm not sure if this should come from the style or not - the QTextDocument handles this in
+// the rich text case.
+static const int RichResourceTextMargin = 2;
 
 void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
                            QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var)
 {
+  // special case handling for ResourceId
+  if(var.userType() == qMetaTypeId<ResourceId>())
+  {
+    QFont origfont = painter->font();
+    QFont f = origfont;
+    f.setBold(true);
+    painter->setFont(f);
+
+    static const int margin = RichResourceTextMargin;
+
+    rect.adjust(margin, 0, -margin * 2, 0);
+
+    QString name;
+
+    ICaptureContext *ctxptr = getCaptureContext(owner);
+
+    ResourceId id = var.value<ResourceId>();
+
+    if(ctxptr)
+      name = ctxptr->GetResourceName(id);
+    else
+      name = ToQStr(id);
+
+    painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, name);
+
+    QRect textRect =
+        painter->fontMetrics().boundingRect(rect, Qt::AlignLeft | Qt::AlignVCenter, name);
+
+    const QPixmap &px = Pixmaps::link(owner->devicePixelRatio());
+
+    rect.setTop(textRect.top());
+    rect.setWidth(textRect.width() + margin + px.width());
+    rect.setHeight(qMax(textRect.height(), px.height()));
+
+    QPoint pos;
+    pos.setX(rect.right() - px.width() + 1);
+    pos.setY(rect.center().y() - px.height() / 2);
+
+    painter->drawPixmap(pos, px, px.rect());
+
+    if(mouseOver && rect.contains(mousePos) && id != ResourceId())
+    {
+      int underline_y = textRect.bottom() + margin;
+
+      painter->setPen(QPen(palette.brush(QPalette::WindowText), 1.0));
+      painter->drawLine(QPoint(rect.left(), underline_y), QPoint(rect.right(), underline_y));
+    }
+
+    painter->setFont(origfont);
+
+    return;
+  }
+
   RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
 
   linkedText->cacheDocument(owner);
 
   painter->translate(rect.left(), rect.top());
 
-  linkedText->doc.setTextWidth(10000);
-  linkedText->doc.setDefaultFont(font);
+  if(font != linkedText->doc.defaultFont())
+    linkedText->doc.setDefaultFont(font);
 
   // vertical align to the centre, if there's spare room.
   int diff = rect.height() - linkedText->doc.size().height();
@@ -298,8 +389,33 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
   }
 }
 
-int RichResourceTextWidthHint(const QWidget *owner, const QVariant &var)
+int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVariant &var)
 {
+  // special case handling for ResourceId
+  if(var.userType() == qMetaTypeId<ResourceId>())
+  {
+    QFont f = font;
+    f.setBold(true);
+
+    static const int margin = RichResourceTextMargin;
+
+    QFontMetrics metrics(f);
+
+    QString name;
+
+    ICaptureContext *ctxptr = getCaptureContext(owner);
+
+    if(ctxptr)
+      name = ctxptr->GetResourceName(var.value<ResourceId>());
+    else
+      name = ToQStr(var.value<ResourceId>());
+
+    const QPixmap &px = Pixmaps::link(owner->devicePixelRatio());
+
+    int ret = margin + metrics.boundingRect(name).width() + margin + px.width() + margin;
+    return ret;
+  }
+
   RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
 
   linkedText->cacheDocument(owner);
@@ -308,11 +424,64 @@ int RichResourceTextWidthHint(const QWidget *owner, const QVariant &var)
 }
 
 bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
-                                QMouseEvent *event)
+                                const QFont &font, QMouseEvent *event)
 {
   // only process clicks or moves
   if(event->type() != QEvent::MouseButtonRelease && event->type() != QEvent::MouseMove)
     return false;
+
+  // special case handling for ResourceId
+  if(var.userType() == qMetaTypeId<ResourceId>())
+  {
+    ResourceId id = var.value<ResourceId>();
+
+    // empty resource ids are not clickable or hover-highlighted.
+    if(id == ResourceId())
+      return false;
+
+    QFont f = font;
+    f.setBold(true);
+
+    static const int margin = RichResourceTextMargin;
+
+    rect.adjust(margin, 0, -margin * 2, 0);
+
+    QString name;
+
+    ICaptureContext *ctxptr = getCaptureContext(owner);
+
+    if(ctxptr)
+      name = ctxptr->GetResourceName(id);
+    else
+      name = ToQStr(id);
+
+    QRect textRect = QFontMetrics(f).boundingRect(rect, Qt::AlignLeft | Qt::AlignVCenter, name);
+
+    const QPixmap &px = Pixmaps::link(owner->devicePixelRatio());
+
+    rect.setTop(textRect.top());
+    rect.setWidth(textRect.width() + margin + px.width());
+    rect.setHeight(qMax(textRect.height(), px.height()));
+
+    if(rect.contains(event->pos()) && id != ResourceId())
+    {
+      if(event->type() == QEvent::MouseButtonRelease && ctxptr)
+      {
+        ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
+
+        if(!ctx.HasResourceInspector())
+          ctx.ShowResourceInspector();
+
+        ctx.GetResourceInspector()->Inspect(id);
+
+        ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
+      }
+
+      return true;
+    }
+
+    return false;
+  }
 
   RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
 
@@ -320,11 +489,10 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
   QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
 
-  QPoint p = event->pos() - rect.topLeft();
-
   // vertical align to the centre, if there's spare room.
   int diff = rect.height() - linkedText->doc.size().height();
 
+  QPoint p = event->pos() - rect.topLeft();
   if(diff > 0)
     p -= QPoint(0, diff / 2);
 
@@ -352,7 +520,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
           if(!ctx.HasResourceInspector())
             ctx.ShowResourceInspector();
 
-          ctx.GetResourceInspector()->Inspect(v.value<ResourceId>());
+          ctx.GetResourceInspector()->Inspect(res);
 
           ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
         }
@@ -428,7 +596,7 @@ QSize RichTextViewDelegate::sizeHint(const QStyleOptionViewItem &option, const Q
     QVariant v = index.data();
 
     if(RichResourceTextCheck(v))
-      return QSize(RichResourceTextWidthHint(m_widget, v), option.fontMetrics.height());
+      return QSize(RichResourceTextWidthHint(m_widget, option.font, v), option.fontMetrics.height());
   }
 
   return ForwardingDelegate::sizeHint(option, index);
@@ -454,7 +622,7 @@ bool RichTextViewDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
       }
 
       // ignore the return value, we always consume clicks on this cell
-      RichResourceTextMouseEvent(m_widget, v, rect, (QMouseEvent *)event);
+      RichResourceTextMouseEvent(m_widget, v, rect, option.font, (QMouseEvent *)event);
       return true;
     }
   }
@@ -462,7 +630,7 @@ bool RichTextViewDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
   return ForwardingDelegate::editorEvent(event, model, option, index);
 }
 
-bool RichTextViewDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)
+bool RichTextViewDelegate::linkHover(QMouseEvent *e, const QFont &font, const QModelIndex &index)
 {
   if(index.isValid())
   {
@@ -482,7 +650,7 @@ bool RichTextViewDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)
             4);
       }
 
-      return RichResourceTextMouseEvent(m_widget, v, rect, e);
+      return RichResourceTextMouseEvent(m_widget, v, rect, font, e);
     }
   }
 

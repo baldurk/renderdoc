@@ -120,45 +120,43 @@ class RDTreeWidgetItem;
 void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
                           bool parentIsArray);
 
-// this is an opaque struct that contains the data to render, hit-test, etc for some text that
-// contains links to resources. It will update and cache the names of the resources.
-struct RichResourceText;
-
-// we use QSharedPointer to refer to the text since the lifetime management of these objects would
-// get quite complicated. There's not necessarily an obvious QObject parent to assign to if the text
-// is being initialised before being assigned to a widget and we want the most seamless interface we
-// can get.
-typedef QSharedPointer<RichResourceText> RichResourceTextPtr;
-
 // this will check the variant, and if it contains a ResourceId directly or text with ResourceId
-// identifiers then it will be converted into a RichResourceTextPtr in-place. The new QVariant will
-// still convert to QString so it doesn't have to be special-cased. However it must be processed
-// through one of the functions below (generally painting) to cache the rendered text.
-// If the variant doesn't match the above conditions, it's unchanged. So it's safe to apply this
+// identifiers then it will be converted into a RichResourceTextPtr or ResourceId in-place. The new
+// QVariant will still convert to QString so it doesn't have to be special-cased. However it must be
+// processed through one of the functions below (generally painting) to cache the rendered text. If
+// the variant doesn't match the above conditions, it's unchanged. So it's safe to apply this
 // reasonably liberally.
+//
+// In this case the variant may not actually be a complex RichResourceText object, that's only used
+// when there is text with ResourceId(s) inside it. If the text is just a ResourceId on its own
+// (which is quite common) it will be stored as just a ResourceId but will still be painted & mouse
+// handled the same way, and all of the below functions can be used on the variant either way.
+//
 // NOTE: It is not possible to move a RichResourceText instance from one ICaptureContext to another
 // as the pointer is cached internally. Instead you should delete the old and re-initialise from
 // scratch.
 void RichResourceTextInitialise(QVariant &var);
 
-// checks if a variant is rich resource text
+// Checks if a variant is rich resource text and should be treated specially
+// Particularly meaning we need mouse tracking on the widget to handle the on-hover highlighting
+// and mouse clicks
 bool RichResourceTextCheck(const QVariant &var);
 
-// paint the given variant containing rich text with the given parameters.
+// Paint the given variant containing rich text with the given parameters.
 void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
                            QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var);
 
-// gives the width for a size hint for the rich text (since it might be larger than the original
+// Gives the width for a size hint for the rich text (since it might be larger than the original
 // text)
-int RichResourceTextWidthHint(const QWidget *owner, const QVariant &var);
+int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVariant &var);
 
-// handle a mouse event on some rich resource text.
-// returns true if the event is processed - for mouse move events, this means that the mouse is over
+// Handle a mouse event on some rich resource text.
+// Returns true if the event is processed - for mouse move events, this means that the mouse is over
 // a resource link (which can be used to change the cursor to a pointing hand, for example).
 bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
-                                QMouseEvent *event);
+                                const QFont &font, QMouseEvent *event);
 
-// register runtime conversions for custom Qt metatypes
+// Register runtime conversions for custom Qt metatypes
 void RegisterMetatypeConversions();
 
 struct Formatter
@@ -484,7 +482,7 @@ public:
   bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option,
                    const QModelIndex &index) override;
 
-  bool linkHover(QMouseEvent *e, const QModelIndex &index);
+  bool linkHover(QMouseEvent *e, const QFont &font, const QModelIndex &index);
 
 private:
   QAbstractItemView *m_widget;

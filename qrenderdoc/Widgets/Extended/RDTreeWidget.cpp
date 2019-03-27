@@ -767,7 +767,7 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
   {
     setCursor(QCursor(Qt::PointingHandCursor));
   }
-  else if(m_delegate->linkHover(e, m_currentHoverIndex))
+  else if(m_delegate->linkHover(e, font(), m_currentHoverIndex))
   {
     m_model->itemChanged(m_model->itemForIndex(m_currentHoverIndex), {Qt::DecorationRole});
     setCursor(QCursor(Qt::PointingHandCursor));

@@ -41,7 +41,7 @@ void RDLabel::modifySizeHint(QSize &sz) const
     sz.setWidth(sz.width() - contentsMargins().left() - contentsMargins().right());
 
   if(m_variant.isValid())
-    sz.setWidth(qMax(RichResourceTextWidthHint(this, m_variant) + contentsMargins().left() +
+    sz.setWidth(qMax(RichResourceTextWidthHint(this, font(), m_variant) + contentsMargins().left() +
                          contentsMargins().right() + margin() * 2,
                      sz.width()));
 }
@@ -106,7 +106,7 @@ void RDLabel::mouseReleaseEvent(QMouseEvent *event)
 {
   if(m_variant.isValid())
   {
-    RichResourceTextMouseEvent(this, m_variant, rect(), event);
+    RichResourceTextMouseEvent(this, m_variant, rect(), font(), event);
     return;
   }
 
@@ -119,7 +119,7 @@ void RDLabel::mouseMoveEvent(QMouseEvent *event)
 
   if(m_variant.isValid())
   {
-    bool hover = RichResourceTextMouseEvent(this, m_variant, rect(), event);
+    bool hover = RichResourceTextMouseEvent(this, m_variant, rect(), font(), event);
     if(hover)
       setCursor(QCursor(Qt::PointingHandCursor));
     else

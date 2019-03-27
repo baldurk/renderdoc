@@ -342,7 +342,7 @@ void RDTableView::mouseMoveEvent(QMouseEvent *e)
 
   update(newHover);
 
-  if(m_delegate && m_delegate->linkHover(e, newHover))
+  if(m_delegate && m_delegate->linkHover(e, font(), newHover))
   {
     setCursor(QCursor(Qt::PointingHandCursor));
   }
