@@ -1145,23 +1145,23 @@ QString TypeString(const ShaderVariable &v)
 }
 
 template <typename el>
-static QString RowValuesToString(int cols, el x, el y, el z, el w)
+static QString RowValuesToString(int cols, bool hex, el x, el y, el z, el w)
 {
   if(cols == 1)
-    return Formatter::Format(x);
+    return Formatter::Format(x, hex);
   else if(cols == 2)
-    return QFormatStr("%1, %2").arg(Formatter::Format(x)).arg(Formatter::Format(y));
+    return QFormatStr("%1, %2").arg(Formatter::Format(x, hex)).arg(Formatter::Format(y, hex));
   else if(cols == 3)
     return QFormatStr("%1, %2, %3")
-        .arg(Formatter::Format(x))
-        .arg(Formatter::Format(y))
-        .arg(Formatter::Format(z));
+        .arg(Formatter::Format(x, hex))
+        .arg(Formatter::Format(y, hex))
+        .arg(Formatter::Format(z, hex));
   else
     return QFormatStr("%1, %2, %3, %4")
-        .arg(Formatter::Format(x))
-        .arg(Formatter::Format(y))
-        .arg(Formatter::Format(z))
-        .arg(Formatter::Format(w));
+        .arg(Formatter::Format(x, hex))
+        .arg(Formatter::Format(y, hex))
+        .arg(Formatter::Format(z, hex))
+        .arg(Formatter::Format(w, hex));
 }
 
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
@@ -1170,27 +1170,27 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
     type = v.type;
 
   if(type == VarType::Double)
-    return RowValuesToString((int)v.columns, v.value.dv[row * v.columns + 0],
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.dv[row * v.columns + 0],
                              v.value.dv[row * v.columns + 1], v.value.dv[row * v.columns + 2],
                              v.value.dv[row * v.columns + 3]);
   else if(type == VarType::SLong)
-    return RowValuesToString((int)v.columns, v.value.s64v[row * v.columns + 0],
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s64v[row * v.columns + 0],
                              v.value.s64v[row * v.columns + 1], v.value.s64v[row * v.columns + 2],
                              v.value.s64v[row * v.columns + 3]);
   else if(type == VarType::ULong)
-    return RowValuesToString((int)v.columns, v.value.u64v[row * v.columns + 0],
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u64v[row * v.columns + 0],
                              v.value.u64v[row * v.columns + 1], v.value.u64v[row * v.columns + 2],
                              v.value.u64v[row * v.columns + 3]);
   else if(type == VarType::SInt || type == VarType::SShort || type == VarType::SByte)
-    return RowValuesToString((int)v.columns, v.value.iv[row * v.columns + 0],
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.iv[row * v.columns + 0],
                              v.value.iv[row * v.columns + 1], v.value.iv[row * v.columns + 2],
                              v.value.iv[row * v.columns + 3]);
   else if(type == VarType::UInt || type == VarType::UShort || type == VarType::UByte)
-    return RowValuesToString((int)v.columns, v.value.uv[row * v.columns + 0],
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.uv[row * v.columns + 0],
                              v.value.uv[row * v.columns + 1], v.value.uv[row * v.columns + 2],
                              v.value.uv[row * v.columns + 3]);
   else
-    return RowValuesToString((int)v.columns, v.value.fv[row * v.columns + 0],
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.fv[row * v.columns + 0],
                              v.value.fv[row * v.columns + 1], v.value.fv[row * v.columns + 2],
                              v.value.fv[row * v.columns + 3]);
 }
