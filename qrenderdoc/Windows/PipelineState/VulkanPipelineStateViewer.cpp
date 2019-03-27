@@ -2195,10 +2195,15 @@ void VulkanPipelineStateViewer::setState()
       {
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
-        QString format = p.viewFormat.Name();
-        QString typeName = tr("Unknown");
+        QString format;
+        QString typeName;
 
-        if(p.imageResourceId == ResourceId())
+        if(p.imageResourceId != ResourceId())
+        {
+          format = p.viewFormat.Name();
+          typeName = tr("Unknown");
+        }
+        else
         {
           format = lit("-");
           typeName = lit("-");
