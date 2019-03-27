@@ -512,11 +512,13 @@ void RDTreeWidgetItem::clear()
   if(m_widget && !m_widget->m_clearing)
     m_widget->m_model->beginRemoveChildren(this, 0, childCount() - 1);
 
-  while(childCount() > 0)
+  QVector<RDTreeWidgetItem *> children;
+  m_children.swap(children);
+
+  for(RDTreeWidgetItem *c : children)
   {
-    RDTreeWidgetItem *child = takeChild(0);
-    child->clear();
-    delete child;
+    c->m_parent = NULL;
+    delete c;
   }
 
   if(m_widget && !m_widget->m_clearing)
