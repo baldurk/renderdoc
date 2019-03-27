@@ -43,7 +43,7 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager, b
 #if defined(Q_OS_WIN32)
   flags = Qt::Dialog;
   flags |= Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint |
-           Qt::WindowStaysOnTopHint | Qt::WindowMaximizeButtonHint;
+           Qt::WindowMaximizeButtonHint;
 #else
   flags |= Qt::FramelessWindowHint;
 #endif
