@@ -3555,8 +3555,13 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
         std::make_pair(state.ibuffer, EventUsage(e, ResourceUsage::IndexBuffer)));
 
   for(size_t i = 0; i < state.vbuffers.size(); i++)
-    drawNode.resourceUsage.push_back(
-        std::make_pair(state.vbuffers[i], EventUsage(e, ResourceUsage::VertexBuffer)));
+  {
+    if(state.vbuffers[i] != ResourceId())
+    {
+      drawNode.resourceUsage.push_back(
+          std::make_pair(state.vbuffers[i], EventUsage(e, ResourceUsage::VertexBuffer)));
+    }
+  }
 
   for(uint32_t i = state.xfbfirst;
       i < state.xfbfirst + state.xfbcount && i < state.xfbbuffers.size(); i++)
@@ -3700,7 +3705,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
             default: RDCERR("Unexpected type %d", layout.bindings[bind].descriptorType); break;
           }
 
-          drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(e, usage)));
+          if(id != ResourceId())
+            drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(e, usage)));
         }
       }
     }
