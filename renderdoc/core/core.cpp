@@ -49,7 +49,45 @@ std::string DoStringise(const ResourceId &el)
 {
   RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint64_t), "ResourceId is no longer 1:1 with uint64_t");
 
-  return StringFormat::Fmt("ResourceId::%llu", el);
+  // below is equivalent to:
+  // return StringFormat::Fmt("ResourceId::%llu", el);
+
+  uint64_t num = 0;
+  memcpy(&num, &el, sizeof(uint64_t));
+
+#define PREFIX "ResourceId::"
+
+  // hardcode empty/null ResourceId to both avoid special case below and fast-path a common case as
+  // a string literal.
+  if(num == 0)
+    return PREFIX "0";
+
+  // enough for prefix and a 64-bit value in decimal
+  char str[48] = {};
+
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(str) > sizeof(PREFIX) + 20, "Scratch buffer is not large enough");
+
+  // ARRAY_COUNT(str) - 1 would point us at the last element, we go one further back to leave a
+  // trailing NUL character
+  char *c = str + ARRAY_COUNT(str) - 2;
+
+  // build up digits in reverse order from the end of the buffer
+  while(num)
+  {
+    *(c--) = char((num % 10) + '0');
+    num /= 10;
+  }
+
+  // the length is sizeof(PREFIX) - 1, the index of the last actual character is - 2. Saves us a -1
+  // in the loop below.
+  const size_t prefixlast = sizeof(PREFIX) - 2;
+
+  // add the prefix (in reverse order)
+  for(size_t i = 0; i <= prefixlast; i++)
+    *(c--) = PREFIX[prefixlast - i];
+
+  // the loop will have stepped us to the first NULL before our string, so return c+1
+  return c + 1;
 }
 
 BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::Resource, 8);
@@ -1429,3 +1467,53 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
     RDCERR("Removing FrameCapturer for unknown window!");
   }
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Check ResourceId tostr", "[tostr]")
+{
+  union
+  {
+    ResourceId *id;
+    uint64_t *num;
+  } u;
+
+  uint64_t data = 0;
+  u.num = &data;
+
+  *u.num = 0;
+  CHECK(ToStr(*u.id) == "ResourceId::0");
+
+  *u.num = 1;
+  CHECK(ToStr(*u.id) == "ResourceId::1");
+
+  *u.num = 7;
+  CHECK(ToStr(*u.id) == "ResourceId::7");
+
+  *u.num = 17;
+  CHECK(ToStr(*u.id) == "ResourceId::17");
+
+  *u.num = 32;
+  CHECK(ToStr(*u.id) == "ResourceId::32");
+
+  *u.num = 913;
+  CHECK(ToStr(*u.id) == "ResourceId::913");
+
+  *u.num = 454;
+  CHECK(ToStr(*u.id) == "ResourceId::454");
+
+  *u.num = 123456;
+  CHECK(ToStr(*u.id) == "ResourceId::123456");
+
+  *u.num = 1234567;
+  CHECK(ToStr(*u.id) == "ResourceId::1234567");
+
+  *u.num = 0x1234567812345678ULL;
+  CHECK(ToStr(*u.id) == "ResourceId::1311768465173141112");
+}
+
+#endif
