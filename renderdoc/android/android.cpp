@@ -584,6 +584,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
       // Forward the ports so we can see if a remoteserver/captured app is already running.
       Android::adbForwardPorts(idx, tokens[0], 0, 0, true);
 
+      // run adb root now, so we hit any disconnection that we're going to before trying to connect.
+      // If we can't be root, this is cheap, if we're already root, this is cheap, if we can be root
+      // and this changes us it will block only the first time - and we expect this function to be
+      // slow-ish.
+      Android::adbExecCommand(tokens[0], "root");
+
       idx++;
     }
   }
