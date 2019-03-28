@@ -4,34 +4,40 @@ set(PROJECT demos)
 
 set(VULKAN_SRC
         3rdparty/volk/volk.c
+        vk/vk_helpers.cpp
+        vk/vk_test.cpp
+        vk/vk_adv_cbuffer_zoo.cpp
         vk/vk_awkward_triangle.cpp
         vk/vk_cbuffer_zoo.cpp
+        vk/vk_discard_rects.cpp
         vk/vk_draw_zoo.cpp
-        vk/vk_helpers.cpp
         vk/vk_indirect.cpp
         vk/vk_overlay_test.cpp
+        vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_simple_triangle.cpp
+        vk/vk_structured_buffer_nested.cpp
         vk/vk_video_textures.cpp
-        vk/vk_test.cpp
         vk/vk_vs_max_desc_set.cpp)
 
 set(OPENGL_SRC
         3rdparty/glad/glad.c
         3rdparty/glad/glad_glx.c
+        gl/gl_test.cpp
+        gl/gl_test_linux.cpp
         gl/gl_buffer_updates.cpp
         gl/gl_cbuffer_zoo.cpp
         gl/gl_depthstencil_fbo.cpp
         gl/gl_large_bcn_arrays.cpp
         gl/gl_map_overrun.cpp
         gl/gl_midframe_context_create.cpp
+        gl/gl_mip_gen_rt.cpp
         gl/gl_multi_window.cpp
         gl/gl_overlay_test.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
+        gl/gl_separable_geometry_shader.cpp
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
-        gl/gl_test.cpp
-        gl/gl_test_linux.cpp
         gl/gl_unsized_ms_fbo_attachment.cpp
         gl/gl_vao_0.cpp)
 
