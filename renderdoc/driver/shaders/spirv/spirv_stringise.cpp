@@ -332,6 +332,53 @@ std::string DoStringise(const spv::Op &el)
     STRINGISE_ENUM_NAMED(spv::OpAtomicFlagTestAndSet, "AtomicFlagTestAndSet");
     STRINGISE_ENUM_NAMED(spv::OpAtomicFlagClear, "AtomicFlagClear");
     STRINGISE_ENUM_NAMED(spv::OpImageSparseRead, "ImageSparseRead");
+    STRINGISE_ENUM_NAMED(spv::OpSizeOf, "SizeOf");
+    STRINGISE_ENUM_NAMED(spv::OpTypePipeStorage, "TypePipeStorage");
+    STRINGISE_ENUM_NAMED(spv::OpConstantPipeStorage, "ConstantPipeStorage");
+    STRINGISE_ENUM_NAMED(spv::OpCreatePipeFromPipeStorage, "CreatePipeFromPipeStorage");
+    STRINGISE_ENUM_NAMED(spv::OpGetKernelLocalSizeForSubgroupCount,
+                         "GetKernelLocalSizeForSubgroupCount");
+    STRINGISE_ENUM_NAMED(spv::OpGetKernelMaxNumSubgroups, "GetKernelMaxNumSubgroups");
+    STRINGISE_ENUM_NAMED(spv::OpTypeNamedBarrier, "TypeNamedBarrier");
+    STRINGISE_ENUM_NAMED(spv::OpNamedBarrierInitialize, "NamedBarrierInitialize");
+    STRINGISE_ENUM_NAMED(spv::OpMemoryNamedBarrier, "MemoryNamedBarrier");
+    STRINGISE_ENUM_NAMED(spv::OpModuleProcessed, "ModuleProcessed");
+    STRINGISE_ENUM_NAMED(spv::OpExecutionModeId, "ExecutionModeId");
+    STRINGISE_ENUM_NAMED(spv::OpDecorateId, "DecorateId");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformElect, "GroupNonUniformElect");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformAll, "GroupNonUniformAll");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformAny, "GroupNonUniformAny");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformAllEqual, "GroupNonUniformAllEqual");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBroadcast, "GroupNonUniformBroadcast");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBroadcastFirst, "GroupNonUniformBroadcastFirst");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBallot, "GroupNonUniformBallot");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformInverseBallot, "GroupNonUniformInverseBallot");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBallotBitExtract, "GroupNonUniformBallotBitExtract");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBallotBitCount, "GroupNonUniformBallotBitCount");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBallotFindLSB, "GroupNonUniformBallotFindLSB");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBallotFindMSB, "GroupNonUniformBallotFindMSB");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformShuffle, "GroupNonUniformShuffle");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformShuffleXor, "GroupNonUniformShuffleXor");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformShuffleUp, "GroupNonUniformShuffleUp");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformShuffleDown, "GroupNonUniformShuffleDown");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformIAdd, "GroupNonUniformIAdd");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformFAdd, "GroupNonUniformFAdd");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformIMul, "GroupNonUniformIMul");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformFMul, "GroupNonUniformFMul");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformSMin, "GroupNonUniformSMin");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformUMin, "GroupNonUniformUMin");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformFMin, "GroupNonUniformFMin");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformSMax, "GroupNonUniformSMax");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformUMax, "GroupNonUniformUMax");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformFMax, "GroupNonUniformFMax");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBitwiseAnd, "GroupNonUniformBitwiseAnd");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBitwiseOr, "GroupNonUniformBitwiseOr");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformBitwiseXor, "GroupNonUniformBitwiseXor");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformLogicalAnd, "GroupNonUniformLogicalAnd");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformLogicalOr, "GroupNonUniformLogicalOr");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformLogicalXor, "GroupNonUniformLogicalXor");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformQuadBroadcast, "GroupNonUniformQuadBroadcast");
+    STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformQuadSwap, "GroupNonUniformQuadSwap");
     STRINGISE_ENUM_NAMED(spv::OpSubgroupBallotKHR, "SubgroupBallotKHR");
     STRINGISE_ENUM_NAMED(spv::OpSubgroupFirstInvocationKHR, "SubgroupFirstInvocationKHR");
     STRINGISE_ENUM_NAMED(spv::OpSubgroupAllKHR, "SubgroupAllKHR");
@@ -348,7 +395,16 @@ std::string DoStringise(const spv::Op &el)
     STRINGISE_ENUM_NAMED(spv::OpGroupSMaxNonUniformAMD, "GroupSMaxNonUniformAMD");
     STRINGISE_ENUM_NAMED(spv::OpFragmentMaskFetchAMD, "FragmentMaskFetchAMD");
     STRINGISE_ENUM_NAMED(spv::OpFragmentFetchAMD, "FragmentFetchAMD");
+    STRINGISE_ENUM_NAMED(spv::OpImageSampleFootprintNV, "ImageSampleFootprintNV");
     STRINGISE_ENUM_NAMED(spv::OpGroupNonUniformPartitionNV, "GroupNonUniformPartitionNV");
+    STRINGISE_ENUM_NAMED(spv::OpWritePackedPrimitiveIndices4x8NV,
+                         "WritePackedPrimitiveIndices4x8NV");
+    STRINGISE_ENUM_NAMED(spv::OpReportIntersectionNV, "ReportIntersectionNV");
+    STRINGISE_ENUM_NAMED(spv::OpIgnoreIntersectionNV, "IgnoreIntersectionNV");
+    STRINGISE_ENUM_NAMED(spv::OpTerminateRayNV, "TerminateRayNV");
+    STRINGISE_ENUM_NAMED(spv::OpTraceNV, "TraceNV");
+    STRINGISE_ENUM_NAMED(spv::OpTypeAccelerationStructureNV, "TypeAccelerationStructureNV");
+    STRINGISE_ENUM_NAMED(spv::OpExecuteCallableNV, "ExecuteCallableNV");
     STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleINTEL, "SubgroupShuffleINTEL");
     STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleDownINTEL, "SubgroupShuffleDownINTEL");
     STRINGISE_ENUM_NAMED(spv::OpSubgroupShuffleUpINTEL, "SubgroupShuffleUpINTEL");
@@ -447,10 +503,22 @@ std::string DoStringise(const spv::Capability &el)
     STRINGISE_ENUM_NAMED(spv::CapabilityStorageImageWriteWithoutFormat,
                          "StorageImageWriteWithoutFormat");
     STRINGISE_ENUM_NAMED(spv::CapabilityMultiViewport, "MultiViewport");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupDispatch, "SubgroupDispatch");
+    STRINGISE_ENUM_NAMED(spv::CapabilityNamedBarrier, "NamedBarrier");
+    STRINGISE_ENUM_NAMED(spv::CapabilityPipeStorage, "PipeStorage");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniform, "GroupNonUniform");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformVote, "GroupNonUniformVote");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformArithmetic, "GroupNonUniformArithmetic");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformBallot, "GroupNonUniformBallot");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformShuffle, "GroupNonUniformShuffle");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformShuffleRelative,
+                         "GroupNonUniformShuffleRelative");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformClustered, "GroupNonUniformClustered");
+    STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformQuad, "GroupNonUniformQuad");
     STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupBallotKHR, "SubgroupBallotKHR");
     STRINGISE_ENUM_NAMED(spv::CapabilityDrawParameters, "DrawParameters");
     STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupVoteKHR, "SubgroupVoteKHR");
-    STRINGISE_ENUM_NAMED(spv::CapabilityStorageUniformBufferBlock16, "StorageUniformBufferBlock16");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageBuffer16BitAccess, "StorageBuffer16BitAccess");
     STRINGISE_ENUM_NAMED(spv::CapabilityStorageUniform16, "StorageUniform16");
     STRINGISE_ENUM_NAMED(spv::CapabilityStoragePushConstant16, "StoragePushConstant16");
     STRINGISE_ENUM_NAMED(spv::CapabilityStorageInputOutput16, "StorageInputOutput16");
@@ -461,16 +529,34 @@ std::string DoStringise(const spv::Capability &el)
     STRINGISE_ENUM_NAMED(spv::CapabilityVariablePointers, "VariablePointers");
     STRINGISE_ENUM_NAMED(spv::CapabilityAtomicStorageOps, "AtomicStorageOps");
     STRINGISE_ENUM_NAMED(spv::CapabilitySampleMaskPostDepthCoverage, "SampleMaskPostDepthCoverage");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStorageBuffer8BitAccess, "StorageBuffer8BitAccess");
+    STRINGISE_ENUM_NAMED(spv::CapabilityUniformAndStorageBuffer8BitAccess,
+                         "UniformAndStorageBuffer8BitAccess");
+    STRINGISE_ENUM_NAMED(spv::CapabilityStoragePushConstant8, "StoragePushConstant8");
+    STRINGISE_ENUM_NAMED(spv::CapabilityDenormPreserve, "DenormPreserve");
+    STRINGISE_ENUM_NAMED(spv::CapabilityDenormFlushToZero, "DenormFlushToZero");
+    STRINGISE_ENUM_NAMED(spv::CapabilitySignedZeroInfNanPreserve, "SignedZeroInfNanPreserve");
+    STRINGISE_ENUM_NAMED(spv::CapabilityRoundingModeRTE, "RoundingModeRTE");
+    STRINGISE_ENUM_NAMED(spv::CapabilityRoundingModeRTZ, "RoundingModeRTZ");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFloat16ImageAMD, "Float16ImageAMD");
     STRINGISE_ENUM_NAMED(spv::CapabilityImageGatherBiasLodAMD, "ImageGatherBiasLodAMD");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFragmentMaskAMD, "FragmentMaskAMD");
     STRINGISE_ENUM_NAMED(spv::CapabilityStencilExportEXT, "StencilExportEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageReadWriteLodAMD, "ImageReadWriteLodAMD");
     STRINGISE_ENUM_NAMED(spv::CapabilitySampleMaskOverrideCoverageNV,
                          "SampleMaskOverrideCoverageNV");
     STRINGISE_ENUM_NAMED(spv::CapabilityGeometryShaderPassthroughNV, "GeometryShaderPassthroughNV");
-    STRINGISE_ENUM_NAMED(spv::CapabilityShaderViewportIndexLayerNV, "ShaderViewportIndexLayerNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityShaderViewportIndexLayerEXT, "ShaderViewportIndexLayerEXT");
     STRINGISE_ENUM_NAMED(spv::CapabilityShaderViewportMaskNV, "ShaderViewportMaskNV");
     STRINGISE_ENUM_NAMED(spv::CapabilityShaderStereoViewNV, "ShaderStereoViewNV");
     STRINGISE_ENUM_NAMED(spv::CapabilityPerViewAttributesNV, "PerViewAttributesNV");
     STRINGISE_ENUM_NAMED(spv::CapabilityFragmentFullyCoveredEXT, "FragmentFullyCoveredEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityMeshShadingNV, "MeshShadingNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityImageFootprintNV, "ImageFootprintNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFragmentBarycentricNV, "FragmentBarycentricNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityComputeDerivativeGroupQuadsNV,
+                         "ComputeDerivativeGroupQuadsNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityFragmentDensityEXT, "FragmentDensityEXT");
     STRINGISE_ENUM_NAMED(spv::CapabilityGroupNonUniformPartitionedNV,
                          "GroupNonUniformPartitionedNV");
     STRINGISE_ENUM_NAMED(spv::CapabilityShaderNonUniformEXT, "ShaderNonUniformEXT");
@@ -495,6 +581,14 @@ std::string DoStringise(const spv::Capability &el)
                          "UniformTexelBufferArrayNonUniformIndexingEXT");
     STRINGISE_ENUM_NAMED(spv::CapabilityStorageTexelBufferArrayNonUniformIndexingEXT,
                          "StorageTexelBufferArrayNonUniformIndexingEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityRayTracingNV, "RayTracingNV");
+    STRINGISE_ENUM_NAMED(spv::CapabilityVulkanMemoryModelKHR, "VulkanMemoryModelKHR");
+    STRINGISE_ENUM_NAMED(spv::CapabilityVulkanMemoryModelDeviceScopeKHR,
+                         "VulkanMemoryModelDeviceScopeKHR");
+    STRINGISE_ENUM_NAMED(spv::CapabilityPhysicalStorageBufferAddressesEXT,
+                         "PhysicalStorageBufferAddressesEXT");
+    STRINGISE_ENUM_NAMED(spv::CapabilityComputeDerivativeGroupLinearNV,
+                         "ComputeDerivativeGroupLinearNV");
     STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupShuffleINTEL, "SubgroupShuffleINTEL");
     STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupBufferBlockIOINTEL, "SubgroupBufferBlockIOINTEL");
     STRINGISE_ENUM_NAMED(spv::CapabilitySubgroupImageBlockIOINTEL, "SubgroupImageBlockIOINTEL");
@@ -539,8 +633,25 @@ std::string DoStringise(const spv::ExecutionMode &el)
     STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputTriangleStrip, "OutputTriangleStrip");
     STRINGISE_ENUM_NAMED(spv::ExecutionModeVecTypeHint, "VecTypeHint");
     STRINGISE_ENUM_NAMED(spv::ExecutionModeContractionOff, "ContractionOff");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeInitializer, "Initializer");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeFinalizer, "Finalizer");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSubgroupSize, "SubgroupSize");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSubgroupsPerWorkgroup, "SubgroupsPerWorkgroup");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSubgroupsPerWorkgroupId, "SubgroupsPerWorkgroupId");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeLocalSizeId, "LocalSizeId");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeLocalSizeHintId, "LocalSizeHintId");
     STRINGISE_ENUM_NAMED(spv::ExecutionModePostDepthCoverage, "PostDepthCoverage");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDenormPreserve, "DenormPreserve");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDenormFlushToZero, "DenormFlushToZero");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeSignedZeroInfNanPreserve, "SignedZeroInfNanPreserve");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeRoundingModeRTE, "RoundingModeRTE");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeRoundingModeRTZ, "RoundingModeRTZ");
     STRINGISE_ENUM_NAMED(spv::ExecutionModeStencilRefReplacingEXT, "StencilRefReplacingEXT");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputLinesNV, "OutputLinesNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputPrimitivesNV, "OutputPrimitivesNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDerivativeGroupQuadsNV, "DerivativeGroupQuadsNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeDerivativeGroupLinearNV, "DerivativeGroupLinearNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModeOutputTrianglesNV, "OutputTrianglesNV");
     STRINGISE_ENUM_NAMED(spv::ExecutionModeMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -554,6 +665,8 @@ std::string DoStringise(const spv::AddressingModel &el)
     STRINGISE_ENUM_NAMED(spv::AddressingModelLogical, "Logical");
     STRINGISE_ENUM_NAMED(spv::AddressingModelPhysical32, "Physical32");
     STRINGISE_ENUM_NAMED(spv::AddressingModelPhysical64, "Physical64");
+    STRINGISE_ENUM_NAMED(spv::AddressingModelPhysicalStorageBuffer64EXT,
+                         "PhysicalStorageBuffer64EXT");
     STRINGISE_ENUM_NAMED(spv::AddressingModelMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -567,6 +680,7 @@ std::string DoStringise(const spv::MemoryModel &el)
     STRINGISE_ENUM_NAMED(spv::MemoryModelSimple, "Simple");
     STRINGISE_ENUM_NAMED(spv::MemoryModelGLSL450, "GLSL450");
     STRINGISE_ENUM_NAMED(spv::MemoryModelOpenCL, "OpenCL");
+    STRINGISE_ENUM_NAMED(spv::MemoryModelVulkanKHR, "VulkanKHR");
     STRINGISE_ENUM_NAMED(spv::MemoryModelMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -584,6 +698,14 @@ std::string DoStringise(const spv::ExecutionModel &el)
     STRINGISE_ENUM_NAMED(spv::ExecutionModelFragment, "Fragment");
     STRINGISE_ENUM_NAMED(spv::ExecutionModelGLCompute, "GLCompute");
     STRINGISE_ENUM_NAMED(spv::ExecutionModelKernel, "Kernel");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelTaskNV, "TaskNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelMeshNV, "MeshNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelRayGenerationNV, "RayGenerationNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelIntersectionNV, "IntersectionNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelAnyHitNV, "AnyHitNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelClosestHitNV, "ClosestHitNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelMissNV, "MissNV");
+    STRINGISE_ENUM_NAMED(spv::ExecutionModelCallableNV, "CallableNV");
     STRINGISE_ENUM_NAMED(spv::ExecutionModelMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -637,12 +759,23 @@ std::string DoStringise(const spv::Decoration &el)
     STRINGISE_ENUM_NAMED(spv::DecorationNoContraction, "NoContraction");
     STRINGISE_ENUM_NAMED(spv::DecorationInputAttachmentIndex, "InputAttachmentIndex");
     STRINGISE_ENUM_NAMED(spv::DecorationAlignment, "Alignment");
+    STRINGISE_ENUM_NAMED(spv::DecorationMaxByteOffset, "MaxByteOffset");
+    STRINGISE_ENUM_NAMED(spv::DecorationAlignmentId, "AlignmentId");
+    STRINGISE_ENUM_NAMED(spv::DecorationMaxByteOffsetId, "MaxByteOffsetId");
+    STRINGISE_ENUM_NAMED(spv::DecorationNoSignedWrap, "NoSignedWrap");
+    STRINGISE_ENUM_NAMED(spv::DecorationNoUnsignedWrap, "NoUnsignedWrap");
     STRINGISE_ENUM_NAMED(spv::DecorationExplicitInterpAMD, "ExplicitInterpAMD");
     STRINGISE_ENUM_NAMED(spv::DecorationOverrideCoverageNV, "OverrideCoverageNV");
     STRINGISE_ENUM_NAMED(spv::DecorationPassthroughNV, "PassthroughNV");
     STRINGISE_ENUM_NAMED(spv::DecorationViewportRelativeNV, "ViewportRelativeNV");
     STRINGISE_ENUM_NAMED(spv::DecorationSecondaryViewportRelativeNV, "SecondaryViewportRelativeNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationPerPrimitiveNV, "PerPrimitiveNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationPerViewNV, "PerViewNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationPerTaskNV, "PerTaskNV");
+    STRINGISE_ENUM_NAMED(spv::DecorationPerVertexNV, "PerVertexNV");
     STRINGISE_ENUM_NAMED(spv::DecorationNonUniformEXT, "NonUniformEXT");
+    STRINGISE_ENUM_NAMED(spv::DecorationRestrictPointerEXT, "RestrictPointerEXT");
+    STRINGISE_ENUM_NAMED(spv::DecorationAliasedPointerEXT, "AliasedPointerEXT");
     STRINGISE_ENUM_NAMED(spv::DecorationHlslCounterBufferGOOGLE, "HlslCounterBufferGOOGLE");
     STRINGISE_ENUM_NAMED(spv::DecorationHlslSemanticGOOGLE, "HlslSemanticGOOGLE");
     STRINGISE_ENUM_NAMED(spv::DecorationMax, "Max");
@@ -685,6 +818,13 @@ std::string DoStringise(const spv::StorageClass &el)
     STRINGISE_ENUM_NAMED(spv::StorageClassAtomicCounter, "AtomicCounter");
     STRINGISE_ENUM_NAMED(spv::StorageClassImage, "Image");
     STRINGISE_ENUM_NAMED(spv::StorageClassStorageBuffer, "StorageBuffer");
+    STRINGISE_ENUM_NAMED(spv::StorageClassCallableDataNV, "CallableDataNV");
+    STRINGISE_ENUM_NAMED(spv::StorageClassIncomingCallableDataNV, "IncomingCallableDataNV");
+    STRINGISE_ENUM_NAMED(spv::StorageClassRayPayloadNV, "RayPayloadNV");
+    STRINGISE_ENUM_NAMED(spv::StorageClassHitAttributeNV, "HitAttributeNV");
+    STRINGISE_ENUM_NAMED(spv::StorageClassIncomingRayPayloadNV, "IncomingRayPayloadNV");
+    STRINGISE_ENUM_NAMED(spv::StorageClassShaderRecordBufferNV, "ShaderRecordBufferNV");
+    STRINGISE_ENUM_NAMED(spv::StorageClassPhysicalStorageBufferEXT, "PhysicalStorageBufferEXT");
     STRINGISE_ENUM_NAMED(spv::StorageClassMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -786,11 +926,11 @@ std::string DoStringise(const spv::BuiltIn &el)
     STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLocalInvocationId, "SubgroupLocalInvocationId");
     STRINGISE_ENUM_NAMED(spv::BuiltInVertexIndex, "VertexIndex");
     STRINGISE_ENUM_NAMED(spv::BuiltInInstanceIndex, "InstanceIndex");
-    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupEqMaskKHR, "SubgroupEqMaskKHR");
-    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupGeMaskKHR, "SubgroupGeMaskKHR");
-    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupGtMaskKHR, "SubgroupGtMaskKHR");
-    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLeMaskKHR, "SubgroupLeMaskKHR");
-    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLtMaskKHR, "SubgroupLtMaskKHR");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupEqMask, "SubgroupEqMask");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupGeMask, "SubgroupGeMask");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupGtMask, "SubgroupGtMask");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLeMask, "SubgroupLeMask");
+    STRINGISE_ENUM_NAMED(spv::BuiltInSubgroupLtMask, "SubgroupLtMask");
     STRINGISE_ENUM_NAMED(spv::BuiltInBaseVertex, "BaseVertex");
     STRINGISE_ENUM_NAMED(spv::BuiltInBaseInstance, "BaseInstance");
     STRINGISE_ENUM_NAMED(spv::BuiltInDrawIndex, "DrawIndex");
@@ -810,6 +950,32 @@ std::string DoStringise(const spv::BuiltIn &el)
     STRINGISE_ENUM_NAMED(spv::BuiltInPositionPerViewNV, "PositionPerViewNV");
     STRINGISE_ENUM_NAMED(spv::BuiltInViewportMaskPerViewNV, "ViewportMaskPerViewNV");
     STRINGISE_ENUM_NAMED(spv::BuiltInFullyCoveredEXT, "FullyCoveredEXT");
+    STRINGISE_ENUM_NAMED(spv::BuiltInTaskCountNV, "TaskCountNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPrimitiveCountNV, "PrimitiveCountNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInPrimitiveIndicesNV, "PrimitiveIndicesNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInClipDistancePerViewNV, "ClipDistancePerViewNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInCullDistancePerViewNV, "CullDistancePerViewNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInLayerPerViewNV, "LayerPerViewNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInMeshViewCountNV, "MeshViewCountNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInMeshViewIndicesNV, "MeshViewIndicesNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordNV, "BaryCoordNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInBaryCoordNoPerspNV, "BaryCoordNoPerspNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFragSizeEXT, "FragSizeEXT");
+    STRINGISE_ENUM_NAMED(spv::BuiltInFragInvocationCountEXT, "FragInvocationCountEXT");
+    STRINGISE_ENUM_NAMED(spv::BuiltInLaunchIdNV, "LaunchIdNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInLaunchSizeNV, "LaunchSizeNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInWorldRayOriginNV, "WorldRayOriginNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInWorldRayDirectionNV, "WorldRayDirectionNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInObjectRayOriginNV, "ObjectRayOriginNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInObjectRayDirectionNV, "ObjectRayDirectionNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInRayTminNV, "RayTminNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInRayTmaxNV, "RayTmaxNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInInstanceCustomIndexNV, "InstanceCustomIndexNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInObjectToWorldNV, "ObjectToWorldNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInWorldToObjectNV, "WorldToObjectNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInHitTNV, "HitTNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInHitKindNV, "HitKindNV");
+    STRINGISE_ENUM_NAMED(spv::BuiltInIncomingRayFlagsNV, "IncomingRayFlagsNV");
     STRINGISE_ENUM_NAMED(spv::BuiltInMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -825,6 +991,7 @@ std::string DoStringise(const spv::Scope &el)
     STRINGISE_ENUM_NAMED(spv::ScopeWorkgroup, "Workgroup");
     STRINGISE_ENUM_NAMED(spv::ScopeSubgroup, "Subgroup");
     STRINGISE_ENUM_NAMED(spv::ScopeInvocation, "Invocation");
+    STRINGISE_ENUM_NAMED(spv::ScopeQueueFamilyKHR, "QueueFamilyKHR");
     STRINGISE_ENUM_NAMED(spv::ScopeMax, "Max");
   }
   END_ENUM_STRINGISE()
@@ -894,6 +1061,10 @@ std::string DoStringise(const spv::MemoryAccessMask &el)
     STRINGISE_BITFIELD_BIT_NAMED(spv::MemoryAccessVolatileMask, "Volatile");
     STRINGISE_BITFIELD_BIT_NAMED(spv::MemoryAccessAlignedMask, "Aligned");
     STRINGISE_BITFIELD_BIT_NAMED(spv::MemoryAccessNontemporalMask, "Nontemporal");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::MemoryAccessMakePointerAvailableKHRMask,
+                                 "MakePointerAvailable");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::MemoryAccessMakePointerVisibleKHRMask, "MakePointerVisible");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::MemoryAccessNonPrivatePointerKHRMask, "NonPrivatePointer");
   }
   END_BITFIELD_STRINGISE();
 }
@@ -918,6 +1089,9 @@ std::string DoStringise(const spv::MemorySemanticsMask &el)
     STRINGISE_BITFIELD_BIT_NAMED(spv::MemorySemanticsAtomicCounterMemoryMask,
                                  "Atomic Counter Memory");
     STRINGISE_BITFIELD_BIT_NAMED(spv::MemorySemanticsImageMemoryMask, "Image Memory");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::MemorySemanticsOutputMemoryKHRMask, "Output Memory");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::MemorySemanticsMakeAvailableKHRMask, "Make Available");
+    STRINGISE_BITFIELD_BIT_NAMED(spv::MemorySemanticsMakeVisibleKHRMask, "Make Visible");
   }
   END_BITFIELD_STRINGISE();
 }
