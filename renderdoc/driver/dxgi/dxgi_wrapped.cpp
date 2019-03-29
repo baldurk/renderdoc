@@ -556,7 +556,7 @@ HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetRestrictToOutput(IDXGIOutput **ppRestrictToOutput)
 {
-  HRESULT ret = m_pReal2->GetRestrictToOutput(ppRestrictToOutput);
+  HRESULT ret = m_pReal1->GetRestrictToOutput(ppRestrictToOutput);
 
   if(SUCCEEDED(ret) && ppRestrictToOutput && *ppRestrictToOutput)
     *ppRestrictToOutput = (IDXGIOutput *)(new WrappedIDXGIOutput6(this, *ppRestrictToOutput));

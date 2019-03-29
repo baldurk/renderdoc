@@ -672,21 +672,21 @@ public:
       /* [annotation][out] */
       _Out_ DXGI_SWAP_CHAIN_DESC1 *pDesc)
   {
-    return m_pReal2->GetDesc1(pDesc);
+    return m_pReal1->GetDesc1(pDesc);
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetFullscreenDesc(
       /* [annotation][out] */
       _Out_ DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pDesc)
   {
-    return m_pReal2->GetFullscreenDesc(pDesc);
+    return m_pReal1->GetFullscreenDesc(pDesc);
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetHwnd(
       /* [annotation][out] */
       _Out_ HWND *pHwnd)
   {
-    return m_pReal2->GetHwnd(pHwnd);
+    return m_pReal1->GetHwnd(pHwnd);
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetCoreWindow(
@@ -695,7 +695,7 @@ public:
       /* [annotation][out] */
       _Out_ void **ppUnk)
   {
-    return m_pReal2->GetCoreWindow(refiid, ppUnk);
+    return m_pReal1->GetCoreWindow(refiid, ppUnk);
   }
 
   virtual HRESULT STDMETHODCALLTYPE Present1(
@@ -706,7 +706,7 @@ public:
 
   virtual BOOL STDMETHODCALLTYPE IsTemporaryMonoSupported(void)
   {
-    return m_pReal2->IsTemporaryMonoSupported();
+    return m_pReal1->IsTemporaryMonoSupported();
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetRestrictToOutput(
@@ -717,28 +717,28 @@ public:
       /* [annotation][in] */
       _In_ const DXGI_RGBA *pColor)
   {
-    return m_pReal2->SetBackgroundColor(pColor);
+    return m_pReal1->SetBackgroundColor(pColor);
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetBackgroundColor(
       /* [annotation][out] */
       _Out_ DXGI_RGBA *pColor)
   {
-    return m_pReal2->GetBackgroundColor(pColor);
+    return m_pReal1->GetBackgroundColor(pColor);
   }
 
   virtual HRESULT STDMETHODCALLTYPE SetRotation(
       /* [annotation][in] */
       _In_ DXGI_MODE_ROTATION Rotation)
   {
-    return m_pReal2->SetRotation(Rotation);
+    return m_pReal1->SetRotation(Rotation);
   }
 
   virtual HRESULT STDMETHODCALLTYPE GetRotation(
       /* [annotation][out] */
       _Out_ DXGI_MODE_ROTATION *pRotation)
   {
-    return m_pReal2->GetRotation(pRotation);
+    return m_pReal1->GetRotation(pRotation);
   }
 
   //////////////////////////////
