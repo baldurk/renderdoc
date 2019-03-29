@@ -136,6 +136,7 @@ void D3D11DebugManager::InitCommonResources()
   D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
   std::string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
+  std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
   if(m_pDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
   {
@@ -163,6 +164,9 @@ void D3D11DebugManager::InitCommonResources()
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
     if(DepthCopyArrayToMSPS)
       m_pDevice->InternalRef();
+    MSArrayCopyVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+    if(MSArrayCopyVS)
+      m_pDevice->InternalRef();
   }
   else
   {
@@ -182,12 +186,6 @@ void D3D11DebugManager::InitCommonResources()
   rm->SetInternalResource(FloatCopyArrayToMSPS);
   rm->SetInternalResource(DepthCopyMSToArrayPS);
   rm->SetInternalResource(DepthCopyArrayToMSPS);
-
-  std::string hlsl = GetEmbeddedResource(misc_hlsl);
-
-  MSArrayCopyVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
-  m_pDevice->InternalRef();
-
   rm->SetInternalResource(MSArrayCopyVS);
 
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
