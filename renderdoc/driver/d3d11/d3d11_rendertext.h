@@ -68,6 +68,10 @@ private:
   ID3D11VertexShader *VS = NULL;
   ID3D11PixelShader *PS = NULL;
 
+  // only used on FEATURE_LEVEL_9_x rendering
+  ID3D11InputLayout *Layout = NULL;
+  ID3D11Buffer *FL9Buffer = NULL;
+
   float CharAspect = 1.0f;
   float CharSize = 1.0f;
 };
