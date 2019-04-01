@@ -312,7 +312,7 @@ struct GLDispatchTable
   PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;      // aliases glDeleteFramebuffersEXT
   PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;          // aliases glGenRenderbuffersEXT
   PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;    // aliases glRenderbufferStorageEXT
-  PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC glRenderbufferStorageMultisample;    // aliases glRenderbufferStorageMultisampleEXT
+  PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC glRenderbufferStorageMultisample;
   PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;    // aliases glDeleteRenderbuffersEXT
   PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;          // aliases glBindRenderbufferEXT
   PFNGLFENCESYNCPROC glFenceSync;
@@ -616,6 +616,9 @@ struct GLDispatchTable
 
   // GLES: EXT_multisampled_render_to_texture
   PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC glFramebufferTexture2DMultisampleEXT;
+  // this function should be an alias of glRenderBufferStorage2DMultisample, except there are driver
+  // issues that prevent the functions from being treated interchangeably.
+  PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC glRenderbufferStorageMultisampleEXT;
 
   // GLES: EXT_discard_framebuffer
   PFNGLDISCARDFRAMEBUFFEREXTPROC glDiscardFramebufferEXT;

@@ -2289,6 +2289,14 @@ public:
   void glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment, GLenum textarget,
                                             GLuint texture, GLint level, GLsizei samples);
 
+  // needs to be separate from glRenderbufferStorageMultisample due to driver issues
+  template <typename SerialiserType>
+  bool Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType &ser, GLuint renderbufferHandle,
+                                                     GLsizei samples, GLenum internalformat,
+                                                     GLsizei width, GLsizei height);
+  void glRenderbufferStorageMultisampleEXT(GLenum target, GLsizei samples, GLenum internalformat,
+                                           GLsizei width, GLsizei height);
+
   IMPLEMENT_FUNCTION_SERIALISED(void, glSpecializeShader, GLuint shader, const GLchar *pEntryPoint,
                                 GLuint numSpecializationConstants, const GLuint *pConstantIndex,
                                 const GLuint *pConstantValue);

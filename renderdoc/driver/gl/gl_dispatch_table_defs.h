@@ -463,7 +463,6 @@
   FUNC(glRenderbufferStorage, glRenderbufferStorage); \
   FUNC(glRenderbufferStorage, glRenderbufferStorageEXT); \
   FUNC(glRenderbufferStorageMultisample, glRenderbufferStorageMultisample); \
-  FUNC(glRenderbufferStorageMultisample, glRenderbufferStorageMultisampleEXT); \
   FUNC(glDeleteRenderbuffers, glDeleteRenderbuffers); \
   FUNC(glDeleteRenderbuffers, glDeleteRenderbuffersEXT); \
   FUNC(glBindRenderbuffer, glBindRenderbuffer); \
@@ -981,6 +980,7 @@
   FUNC(glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
   FUNC(glBlendBarrier, glBlendBarrier); \
   FUNC(glFramebufferTexture2DMultisampleEXT, glFramebufferTexture2DMultisampleEXT); \
+  FUNC(glRenderbufferStorageMultisampleEXT, glRenderbufferStorageMultisampleEXT); \
   FUNC(glDiscardFramebufferEXT, glDiscardFramebufferEXT); \
   FUNC(glDepthRangeArrayfvOES, glDepthRangeArrayfvOES); \
   FUNC(glDepthRangeArrayfvOES, glDepthRangeArrayfvNV); \
@@ -1723,7 +1723,6 @@
   FuncWrapper4(void, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
   AliasWrapper4(void, glRenderbufferStorageEXT, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
   FuncWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-  AliasWrapper5(void, glRenderbufferStorageMultisampleEXT, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
   FuncWrapper2(void, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
   AliasWrapper2(void, glDeleteRenderbuffersEXT, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
   FuncWrapper2(void, glBindRenderbuffer, GLenum, target, GLuint, renderbuffer); \
@@ -2241,6 +2240,7 @@
   AliasWrapper8(void, glPrimitiveBoundingBoxOES, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
   FuncWrapper0(void, glBlendBarrier); \
   FuncWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
+  FuncWrapper5(void, glRenderbufferStorageMultisampleEXT, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
   FuncWrapper3(void, glDiscardFramebufferEXT, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
   FuncWrapper3(void, glDepthRangeArrayfvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \
   AliasWrapper3(void, glDepthRangeArrayfvNV, glDepthRangeArrayfvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \

@@ -3394,10 +3394,13 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glNamedRenderbufferStorageEXT:
       return Serialise_glNamedRenderbufferStorageEXT(ser, 0, eGL_NONE, 0, 0);
     case GLChunk::glRenderbufferStorageMultisample:
-    case GLChunk::glRenderbufferStorageMultisampleEXT:
     case GLChunk::glNamedRenderbufferStorageMultisample:
     case GLChunk::glNamedRenderbufferStorageMultisampleEXT:
       return Serialise_glNamedRenderbufferStorageMultisampleEXT(ser, 0, 0, eGL_NONE, 0, 0);
+
+    // needs to be separate from glRenderbufferStorageMultisample due to driver issues
+    case GLChunk::glRenderbufferStorageMultisampleEXT:
+      return Serialise_glRenderbufferStorageMultisampleEXT(ser, 0, 0, eGL_NONE, 0, 0);
 
     case GLChunk::wglDXRegisterObjectNV:
       return Serialise_wglDXRegisterObjectNV(ser, GLResource(MakeNullResource), eGL_NONE, 0);
