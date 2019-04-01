@@ -213,6 +213,27 @@ struct DebugReportCallbackCreateInfoEXT : public VkDebugReportCallbackCreateInfo
   operator const VkDebugReportCallbackCreateInfoEXT *() const { return this; }
 };
 
+struct DebugUtilsMessengerCreateInfoEXT : public VkDebugUtilsMessengerCreateInfoEXT
+{
+  DebugUtilsMessengerCreateInfoEXT(
+      PFN_vkDebugUtilsMessengerCallbackEXT callback, void *userData = NULL,
+      VkDebugUtilsMessageSeverityFlagsEXT severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT,
+      VkDebugUtilsMessageTypeFlagsEXT type = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+      VkDebugUtilsMessengerCreateFlagsEXT flags = 0)
+  {
+    sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    pNext = NULL;
+    this->flags = flags;
+    this->messageSeverity = severity;
+    this->messageType = type;
+    this->pfnUserCallback = callback;
+    this->pUserData = userData;
+  }
+
+  operator const VkDebugUtilsMessengerCreateInfoEXT *() const { return this; }
+};
+
 struct DeviceQueueCreateInfo : public VkDeviceQueueCreateInfo
 {
   DeviceQueueCreateInfo(uint32_t queueFamilyIndex, uint32_t queueCount,

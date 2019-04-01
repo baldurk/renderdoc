@@ -3340,8 +3340,8 @@ VkBool32 VKAPI_PTR WrappedVulkan::DebugUtilsCallbackStatic(
 
     while(c > pMessageId && *c >= '0' && *c <= '9')
     {
-      mult *= 10;
       messageCode += mult * int(*c - '0');
+      mult *= 10;
       c--;
     }
   }

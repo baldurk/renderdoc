@@ -216,7 +216,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkFramebuffer> swapFramebuffers;
 
   // utilities
-  VkDebugReportCallbackEXT debugReportCallback;
+  VkDebugUtilsMessengerEXT debugUtilsMessenger;
   VkCommandPool cmdPool;
 
   // tracking object lifetimes

@@ -44,13 +44,12 @@
 #include "../linux/linux_window.h"
 #endif
 
-static VkBool32 VKAPI_PTR vulkanCallback(VkDebugReportFlagsEXT flags,
-                                         VkDebugReportObjectTypeEXT objectType, uint64_t object,
-                                         size_t location, int32_t messageCode,
-                                         const char *pLayerPrefix, const char *pMessage,
+static VkBool32 VKAPI_PTR vulkanCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+                                         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                          void *pUserData)
 {
-  TEST_WARN("Vulkan message: [%s] %s", pLayerPrefix, pMessage);
+  TEST_WARN("Vulkan message: [%s] %s", pCallbackData->pMessageIdName, pCallbackData->pMessage);
 
   return false;
 }
@@ -88,9 +87,9 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
 #endif
 
   if(debugDevice)
-    instExts.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-
-  optInstExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    instExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  else
+    optInstExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   std::vector<const char *> layers;
 
@@ -157,11 +156,11 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
 
   if(debugDevice)
   {
-    CHECK_VKR(vkCreateDebugReportCallbackEXT(
-        instance,
-        vkh::DebugReportCallbackCreateInfoEXT(
-            VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, &vulkanCallback),
-        NULL, &debugReportCallback));
+    CHECK_VKR(vkCreateDebugUtilsMessengerEXT(
+        instance, vkh::DebugUtilsMessengerCreateInfoEXT(
+                      &vulkanCallback, NULL, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
+        NULL, &debugUtilsMessenger));
   }
 
   std::vector<VkPhysicalDevice> physDevices;
@@ -463,8 +462,8 @@ VulkanGraphicsTest::~VulkanGraphicsTest()
     vkDestroyDevice(device, NULL);
   }
 
-  if(debugReportCallback)
-    vkDestroyDebugReportCallbackEXT(instance, debugReportCallback, NULL);
+  if(debugUtilsMessenger)
+    vkDestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, NULL);
   if(surface)
     vkDestroySurfaceKHR(instance, surface, NULL);
 
