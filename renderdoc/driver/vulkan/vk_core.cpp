@@ -3107,7 +3107,7 @@ void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
       DebugMessages.swap(sink->msgs);
 
     // if we have the unique objects layer we can assume all objects have a unique ID, and replace
-    // any text that looks like an object reference (0xHEX).
+    // any text that looks like an object reference (0xHEX[NAME]).
     if(m_LayersEnabled[VkCheckLayer_unique_objects])
     {
       for(DebugMessage &msg : DebugMessages)
@@ -3153,18 +3153,37 @@ void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
                 }
               }
 
-              // unique objects layer implies this is a unique search so we don't have to worry
-              // about type aliases
-              ResourceId id = GetResourceManager()->GetFirstIDForHandle(val);
-
-              if(id != ResourceId())
+              // we now expect a [NAME]. Look for matched set of []s
+              if(desc[end] == '[')
               {
-                std::string idstr = StringFormat::Fmt(" (%s)", ToStr(id).c_str());
+                int depth = 1;
+                end++;
 
-                desc.insert(end, idstr.c_str());
+                while(end < desc.length() && depth)
+                {
+                  if(desc[end] == '[')
+                    depth++;
+                  else if(desc[end] == ']')
+                    depth--;
 
-                offs = desc.find("0x", end + idstr.length());
-                continue;
+                  end++;
+                }
+
+                // unique objects layer implies this is a unique search so we don't have to worry
+                // about type aliases
+                ResourceId id = GetResourceManager()->GetFirstIDForHandle(val);
+
+                if(id != ResourceId())
+                {
+                  std::string idstr = ToStr(id);
+
+                  desc.erase(offs, end - offs);
+
+                  desc.insert(offs, idstr.c_str());
+
+                  offs = desc.find("0x", offs + idstr.length());
+                  continue;
+                }
               }
             }
 
