@@ -626,6 +626,18 @@ void VulkanGraphicsTest::setName(VkPipeline obj, const std::string &name)
   setName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)(uintptr_t)obj, name);
 }
 
+template <>
+void VulkanGraphicsTest::setName(VkFramebuffer obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)(uintptr_t)obj, name);
+}
+
+template <>
+void VulkanGraphicsTest::setName(VkImage obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_IMAGE, (uint64_t)(uintptr_t)obj, name);
+}
+
 void VulkanGraphicsTest::setName(VkObjectType objType, uint64_t obj, const std::string &name)
 {
   if(vkSetDebugUtilsObjectNameEXT)
