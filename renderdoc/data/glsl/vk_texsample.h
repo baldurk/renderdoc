@@ -28,7 +28,7 @@
 layout(binding = 6) uniform sampler1DArray tex1DArray;
 layout(binding = 7) uniform sampler2DArray tex2DArray;
 layout(binding = 8) uniform sampler3D tex3D;
-layout(binding = 9) uniform sampler2DMS tex2DMS;
+layout(binding = 9) uniform sampler2DMSArray tex2DMSArray;
 layout(binding = 10) uniform sampler2DArray texYUV[2];
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -61,13 +61,13 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 
       // worst resolve you've seen in your life
       for(int i = 0; i < sampleCount; i++)
-        col += texelFetch(tex2DMS, ivec2(pos * texRes.xy), i);
+        col += texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), i);
 
       col /= float(sampleCount);
     }
     else
     {
-      col = texelFetch(tex2DMS, ivec2(pos * texRes.xy), sampleIdx);
+      col = texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), sampleIdx);
     }
 #endif
   }
@@ -142,7 +142,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 layout(binding = 11) uniform usampler1DArray texUInt1DArray;
 layout(binding = 12) uniform usampler2DArray texUInt2DArray;
 layout(binding = 13) uniform usampler3D texUInt3D;
-layout(binding = 14) uniform usampler2DMS texUInt2DMS;
+layout(binding = 14) uniform usampler2DMSArray texUInt2DMSArray;
 
 uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -166,7 +166,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
     if(sampleIdx < 0)
       sampleIdx = 0;
 
-    col = texelFetch(texUInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
+    col = texelFetch(texUInt2DMSArray, ivec3(pos * texRes.xy, slice), sampleIdx);
   }
 #endif
 
@@ -179,7 +179,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 layout(binding = 16) uniform isampler1DArray texSInt1DArray;
 layout(binding = 17) uniform isampler2DArray texSInt2DArray;
 layout(binding = 18) uniform isampler3D texSInt3D;
-layout(binding = 19) uniform isampler2DMS texSInt2DMS;
+layout(binding = 19) uniform isampler2DMSArray texSInt2DMSArray;
 
 ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -203,7 +203,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
     if(sampleIdx < 0)
       sampleIdx = 0;
 
-    col = texelFetch(texSInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
+    col = texelFetch(texSInt2DMSArray, ivec3(pos * texRes.xy, slice), sampleIdx);
   }
 #endif
 

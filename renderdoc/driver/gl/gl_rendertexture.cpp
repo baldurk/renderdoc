@@ -70,6 +70,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     // fall through
     case eGL_TEXTURE_2D: resType = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: resType = RESTYPE_TEX2DMS; break;
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: resType = RESTYPE_TEX2DMSARRAY; break;
     case eGL_TEXTURE_RECTANGLE: resType = RESTYPE_TEXRECT; break;
     case eGL_TEXTURE_BUFFER: resType = RESTYPE_TEXBUFFER; break;
     case eGL_TEXTURE_3D: resType = RESTYPE_TEX3D; break;
@@ -295,7 +296,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   }
   else
   {
-    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS || resType == RESTYPE_TEXBUFFER)
+    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
+       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
       mode = TextureSamplerMode::PointNoMip;
     else
       mode = TextureSamplerMode::Point;

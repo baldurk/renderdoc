@@ -254,6 +254,7 @@ void GLReplay::ConfigureTexDisplayProgramBindings(GLuint program)
   SET_TEX_BINDING("texUInt2DRect", 8);
   SET_TEX_BINDING("texUIntBuffer", 9);
   SET_TEX_BINDING("texUInt2DMS", 10);
+  SET_TEX_BINDING("texUInt2DMSArray", 11);
 
   SET_TEX_BINDING("texSInt1D", 1);
   SET_TEX_BINDING("texSInt2D", 2);
@@ -263,6 +264,7 @@ void GLReplay::ConfigureTexDisplayProgramBindings(GLuint program)
   SET_TEX_BINDING("texSInt2DRect", 8);
   SET_TEX_BINDING("texSIntBuffer", 9);
   SET_TEX_BINDING("texSInt2DMS", 10);
+  SET_TEX_BINDING("texSInt2DMSArray", 11);
 
   SET_TEX_BINDING("tex1D", 1);
   SET_TEX_BINDING("tex2D", 2);
@@ -274,6 +276,7 @@ void GLReplay::ConfigureTexDisplayProgramBindings(GLuint program)
   SET_TEX_BINDING("tex2DRect", 8);
   SET_TEX_BINDING("texBuffer", 9);
   SET_TEX_BINDING("tex2DMS", 10);
+  SET_TEX_BINDING("tex2DMSArray", 11);
 
 #undef SET_TEX_BINDING
 }
@@ -1303,6 +1306,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     // fall through
     case eGL_TEXTURE_2D: texSlot = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: texSlot = RESTYPE_TEX2DMS; break;
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: texSlot = RESTYPE_TEX2DMSARRAY; break;
     case eGL_TEXTURE_RECTANGLE: texSlot = RESTYPE_TEXRECT; break;
     case eGL_TEXTURE_BUFFER: texSlot = RESTYPE_TEXBUFFER; break;
     case eGL_TEXTURE_3D: texSlot = RESTYPE_TEX3D; break;
@@ -1526,6 +1530,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
     // fall through
     case eGL_TEXTURE_2D: texSlot = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: texSlot = RESTYPE_TEX2DMS; break;
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: texSlot = RESTYPE_TEX2DMSARRAY; break;
     case eGL_TEXTURE_RECTANGLE: texSlot = RESTYPE_TEXRECT; break;
     case eGL_TEXTURE_BUFFER: texSlot = RESTYPE_TEXBUFFER; break;
     case eGL_TEXTURE_3D: texSlot = RESTYPE_TEX3D; break;

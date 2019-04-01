@@ -1804,7 +1804,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     VkFormat formats[] = {VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_SINT};
     VkImageType types[] = {VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D};
     VkImageViewType viewtypes[] = {VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-                                   VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_2D};
+                                   VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_2D_ARRAY};
     VkSampleCountFlagBits sampleCounts[] = {VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT,
                                             VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_4_BIT};
 

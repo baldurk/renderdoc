@@ -51,6 +51,7 @@ uniform PRECISION usamplerBuffer texUIntBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
 uniform PRECISION usampler2DMS texUInt2DMS;
+uniform PRECISION usampler2DMSArray texUInt2DMSArray;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -81,6 +82,17 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
       sampleIdx = 0;
 
     col = texelFetch(texUInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
+#else
+    col = uvec4(0u, 0u, 0u, 0u);
+#endif
+  }
+  else if(type == RESTYPE_TEX2DMSARRAY)
+  {
+#ifdef TEXSAMPLE_MULTISAMPLE
+    if(sampleIdx < 0)
+      sampleIdx = 0;
+
+    col = texelFetch(texUInt2DMSArray, ivec3(pos * texRes.xy, slice), sampleIdx);
 #else
     col = uvec4(0u, 0u, 0u, 0u);
 #endif
@@ -119,6 +131,7 @@ uniform PRECISION isamplerBuffer texSIntBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
 uniform PRECISION isampler2DMS texSInt2DMS;
+uniform PRECISION isampler2DMSArray texSInt2DMSArray;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -158,6 +171,17 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
     col = ivec4(0, 0, 0, 0);
 #endif
   }
+  else if(type == RESTYPE_TEX2DMSARRAY)
+  {
+#ifdef TEXSAMPLE_MULTISAMPLE
+    if(sampleIdx < 0)
+      sampleIdx = 0;
+
+    col = texelFetch(texSInt2DMSArray, ivec3(pos * texRes.xy, slice), sampleIdx);
+#else
+    col = ivec4(0, 0, 0, 0);
+#endif
+  }
   else if(type == RESTYPE_TEX2DARRAY)
   {
     col = texelFetch(texSInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
@@ -189,6 +213,7 @@ uniform PRECISION samplerBuffer texBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
 uniform PRECISION sampler2DMS tex2DMS;
+uniform PRECISION sampler2DMSArray tex2DMSArray;
 #endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes,
@@ -269,6 +294,67 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
     else
     {
       col = texelFetch(tex2DMS, ivec2(pos * texRes.xy), sampleIdx);
+    }
+#else
+    col = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
+  }
+  else if(type == RESTYPE_TEX2DMSARRAY)
+  {
+#ifdef TEXSAMPLE_MULTISAMPLE
+    if(sampleIdx < 0)
+    {
+      int sampleCount = -sampleIdx;
+
+      // worst resolve you've seen in your life
+      // it's manually unrolled because doing it as a dynamic loop on
+      // sampleCount seems to produce crazy artifacts on nvidia - probably a compiler bug
+      if(sampleCount == 2)
+      {
+        col += 0.5f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 0);
+        col += 0.5f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 1);
+      }
+      else if(sampleCount == 4)
+      {
+        col += 0.25f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 0);
+        col += 0.25f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 1);
+        col += 0.25f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 2);
+        col += 0.25f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 3);
+      }
+      else if(sampleCount == 8)
+      {
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 0);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 1);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 2);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 3);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 4);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 5);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 6);
+        col += 0.125f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 7);
+      }
+      else if(sampleCount == 16)
+      {
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 0);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 1);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 2);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 3);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 4);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 5);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 6);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 7);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 8);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 9);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 10);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 11);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 12);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 13);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 14);
+        col += 0.0625f * texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), 15);
+      }
+    }
+    else
+    {
+      col = texelFetch(tex2DMSArray, ivec3(pos * texRes.xy, slice), sampleIdx);
     }
 #else
     col = vec4(0.0f, 0.0f, 0.0f, 0.0f);
