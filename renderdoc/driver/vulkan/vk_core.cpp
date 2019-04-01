@@ -146,7 +146,7 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
   m_Device = VK_NULL_HANDLE;
   m_Queue = VK_NULL_HANDLE;
   m_QueueFamilyIdx = 0;
-  m_DbgMsgCallback = VK_NULL_HANDLE;
+  m_DbgReportCallback = VK_NULL_HANDLE;
 
   m_HeaderChunk = NULL;
 
@@ -3232,31 +3232,9 @@ void WrappedVulkan::AddDebugMessage(DebugMessage msg)
     m_DebugMessages.push_back(msg);
 }
 
-VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
-                                      VkDebugReportObjectTypeEXT objectType, uint64_t object,
-                                      size_t location, int32_t messageCode,
-                                      const char *pLayerPrefix, const char *pMessage)
+VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory category,
+                                      int messageCode, const char *pMessageId, const char *pMessage)
 {
-  bool isDS = false, isMEM = false, isSC = false, isOBJ = false, isSWAP = false, isDL = false,
-       isIMG = false, isPARAM = false;
-
-  if(!strcmp(pLayerPrefix, "DS"))
-    isDS = true;
-  else if(!strcmp(pLayerPrefix, "MEM"))
-    isMEM = true;
-  else if(!strcmp(pLayerPrefix, "SC"))
-    isSC = true;
-  else if(!strcmp(pLayerPrefix, "OBJTRACK"))
-    isOBJ = true;
-  else if(!strcmp(pLayerPrefix, "SWAP_CHAIN") || !strcmp(pLayerPrefix, "Swapchain"))
-    isSWAP = true;
-  else if(!strcmp(pLayerPrefix, "DL"))
-    isDL = true;
-  else if(!strcmp(pLayerPrefix, "Image"))
-    isIMG = true;
-  else if(!strcmp(pLayerPrefix, "PARAMCHECK") || !strcmp(pLayerPrefix, "ParameterValidation"))
-    isPARAM = true;
-
   {
     ScopedDebugMessageSink *sink = GetDebugMessageSink();
 
@@ -3265,9 +3243,9 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
       DebugMessage msg;
 
       msg.eventId = 0;
-      msg.category = MessageCategory::Miscellaneous;
+      msg.category = category;
       msg.description = pMessage;
-      msg.severity = MessageSeverity::Low;
+      msg.severity = severity;
       msg.messageID = messageCode;
       msg.source = MessageSource::API;
 
@@ -3282,73 +3260,100 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
           msg.eventId = it->eventId;
       }
 
-      if(flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-        msg.severity = MessageSeverity::Info;
-      else if(flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-        msg.severity = MessageSeverity::Low;
-      else if(flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
-        msg.severity = MessageSeverity::Medium;
-      else if(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
-        msg.severity = MessageSeverity::High;
-
-      if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-        msg.category = MessageCategory::Performance;
-      else if(isDS)
-        msg.category = MessageCategory::Execution;
-      else if(isMEM)
-        msg.category = MessageCategory::Resource_Manipulation;
-      else if(isSC)
-        msg.category = MessageCategory::Shaders;
-      else if(isOBJ)
-        msg.category = MessageCategory::State_Setting;
-      else if(isSWAP)
-        msg.category = MessageCategory::Miscellaneous;
-      else if(isDL)
-        msg.category = MessageCategory::Portability;
-      else if(isIMG)
-        msg.category = MessageCategory::State_Creation;
-      else if(isPARAM)
-        msg.category = MessageCategory::Miscellaneous;
-
-      if(isIMG || isPARAM)
-        msg.source = MessageSource::IncorrectAPIUse;
-
       sink->msgs.push_back(msg);
     }
   }
 
   {
-    // All access mask/barrier messages.
-    // These are just too spammy/false positive/unreliable to keep
-    if(isDS && messageCode == 10)
-      return false;
-
     // ignore perf warnings
-    if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-      return false;
-
-    // Memory is aliased between image and buffer
-    // ignore memory aliasing warning - we make use of the memory in disjoint ways
-    // and copy image data over separately, so our use is safe
-    // no location set for this one, so ignore by code (maybe too coarse)
-    if(isMEM && messageCode == 3)
-      return false;
-
-    // Cannot read invalid region of memory
-    // The validation layers can't track simultaneous use of the same memory in multiple buffers, so
-    // misreports any buffer which was filled by initial states (whole-memory buffer copies).
-    if(isMEM && messageCode == 15)
+    if(category == MessageCategory::Performance)
       return false;
 
     // Non-linear image is aliased with linear buffer
     // Not an error, the validation layers complain at our whole-mem bufs
-    if(strstr(pMessage, "InvalidAliasing"))
+    if(strstr(pMessageId, "InvalidAliasing") || strstr(pMessage, "InvalidAliasing"))
       return false;
 
-    RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
+    RDCWARN("[%s] %s", pMessageId, pMessage);
   }
 
   return false;
+}
+
+VkBool32 VKAPI_PTR WrappedVulkan::DebugReportCallbackStatic(VkDebugReportFlagsEXT flags,
+                                                            VkDebugReportObjectTypeEXT objectType,
+                                                            uint64_t object, size_t location,
+                                                            int32_t messageCode,
+                                                            const char *pLayerPrefix,
+                                                            const char *pMessage, void *pUserData)
+{
+  MessageSeverity severity = MessageSeverity::Low;
+
+  if(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+    severity = MessageSeverity::High;
+  else if(flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+    severity = MessageSeverity::Medium;
+  else if(flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+    severity = MessageSeverity::Low;
+  else if(flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+    severity = MessageSeverity::Info;
+
+  MessageCategory category = MessageCategory::Miscellaneous;
+
+  if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+    category = MessageCategory::Performance;
+
+  return ((WrappedVulkan *)pUserData)
+      ->DebugCallback(severity, category, messageCode, pLayerPrefix, pMessage);
+}
+
+VkBool32 VKAPI_PTR WrappedVulkan::DebugUtilsCallbackStatic(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
+{
+  MessageSeverity severity = MessageSeverity::Low;
+
+  if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    severity = MessageSeverity::High;
+  else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    severity = MessageSeverity::Medium;
+  else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+    severity = MessageSeverity::Low;
+  else if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+    severity = MessageSeverity::Info;
+
+  MessageCategory category = MessageCategory::Miscellaneous;
+
+  if(messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+    category = MessageCategory::Performance;
+
+  std::string msgid;
+
+  const char *pMessageId = pCallbackData->pMessageIdName;
+  int messageCode = pCallbackData->messageIdNumber;
+
+  if(messageCode == 0 && pMessageId && !strncmp(pMessageId, "VUID", 4))
+  {
+    const char *c = pMessageId + strlen(pMessageId) - 1;
+    int mult = 1;
+
+    while(c > pMessageId && *c >= '0' && *c <= '9')
+    {
+      mult *= 10;
+      messageCode += mult * int(*c - '0');
+      c--;
+    }
+  }
+
+  if(!pMessageId)
+  {
+    msgid = StringFormat::Fmt("%d", pCallbackData->messageIdNumber);
+    pMessageId = msgid.c_str();
+  }
+
+  return ((WrappedVulkan *)pUserData)
+      ->DebugCallback(severity, category, messageCode, pMessageId, pCallbackData->pMessage);
 }
 
 bool WrappedVulkan::HasNonMarkerEvents(ResourceId cmdBuffer)

@@ -267,10 +267,17 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     }
   }
 
-  // we always want this extension if it's available, and not already enabled
-  if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end() &&
+  // we always want debug extensions if it available, and not already enabled
+  if(supportedExtensions.find(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedExtensions.end() &&
      std::find(params.Extensions.begin(), params.Extensions.end(),
-               VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == params.Extensions.end())
+               VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == params.Extensions.end())
+  {
+    RDCLOG("Enabling VK_EXT_debug_utils");
+    params.Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  }
+  else if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end() &&
+          std::find(params.Extensions.begin(), params.Extensions.end(),
+                    VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == params.Extensions.end())
   {
     RDCLOG("Enabling VK_EXT_debug_report");
     params.Extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -299,6 +306,36 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     renderdocAppInfo.apiVersion = params.APIVersion;
 
   m_Instance = VK_NULL_HANDLE;
+
+  VkValidationFeaturesEXT featuresEXT = {VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+  VkValidationFeatureDisableEXT disableFeatures[] = {VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT};
+  featuresEXT.disabledValidationFeatureCount = ARRAY_COUNT(disableFeatures);
+  featuresEXT.pDisabledValidationFeatures = disableFeatures;
+
+  VkValidationFlagsEXT flagsEXT = {VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT};
+  VkValidationCheckEXT disableChecks[] = {VK_VALIDATION_CHECK_SHADERS_EXT};
+  flagsEXT.disabledValidationCheckCount = ARRAY_COUNT(disableChecks);
+  flagsEXT.pDisabledValidationChecks = disableChecks;
+
+  if(supportedExtensions.find(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) != supportedExtensions.end() &&
+     std::find(params.Extensions.begin(), params.Extensions.end(),
+               VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == params.Extensions.end())
+  {
+    RDCLOG("Enabling VK_EXT_validation_features");
+    params.Extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+
+    instinfo.pNext = &featuresEXT;
+  }
+  else if(supportedExtensions.find(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) !=
+              supportedExtensions.end() &&
+          std::find(params.Extensions.begin(), params.Extensions.end(),
+                    VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) == params.Extensions.end())
+  {
+    RDCLOG("Enabling VK_EXT_validation_flags");
+    params.Extensions.push_back(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME);
+
+    instinfo.pNext = &flagsEXT;
+  }
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
@@ -336,25 +373,40 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
   InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
 
-  m_DbgMsgCallback = VK_NULL_HANDLE;
+  m_DbgReportCallback = VK_NULL_HANDLE;
+  m_DbgUtilsCallback = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
   m_Device = VK_NULL_HANDLE;
   m_QueueFamilyIdx = ~0U;
   m_PrevQueue = m_Queue = VK_NULL_HANDLE;
   m_InternalCmds.Reset();
 
-  if(ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
+  if(ObjDisp(m_Instance)->CreateDebugUtilsMessengerEXT)
+  {
+    VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
+    debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugInfo.pfnUserCallback = &DebugUtilsCallbackStatic;
+    debugInfo.pUserData = this;
+    debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+
+    ObjDisp(m_Instance)
+        ->CreateDebugUtilsMessengerEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgUtilsCallback);
+  }
+  else if(ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
   {
     VkDebugReportCallbackCreateInfoEXT debugInfo = {};
     debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-    debugInfo.pNext = NULL;
-    debugInfo.pfnCallback = &DebugCallbackStatic;
+    debugInfo.pfnCallback = &DebugReportCallbackStatic;
     debugInfo.pUserData = this;
     debugInfo.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT |
                       VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
 
     ObjDisp(m_Instance)
-        ->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
+        ->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgReportCallback);
   }
 
   uint32_t count = 0;
@@ -439,19 +491,42 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
         report = (VkDebugReportCallbackCreateInfoEXT *)report->pNext;
       }
 
+      // or debug utils callbacks
+      VkDebugUtilsMessengerCreateInfoEXT *messenger =
+          (VkDebugUtilsMessengerCreateInfoEXT *)pCreateInfo->pNext;
+
+      VkDebugUtilsMessengerCallbackDataEXT messengerData = {};
+
+      messengerData.messageIdNumber = 1;
+      messengerData.pMessageIdName = NULL;
+      messengerData.pMessage = "RenderDoc does not support a requested instance extension.";
+      messengerData.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT;
+
+      while(messenger)
+      {
+        if(messenger && messenger->sType == VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
+          messenger->pfnUserCallback(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+                                     VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT, &messengerData,
+                                     messenger->pUserData);
+
+        messenger = (VkDebugUtilsMessengerCreateInfoEXT *)messenger->pNext;
+      }
+
       return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
   }
 
   const char **addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 1];
 
-  bool hasDebugReport = false;
+  bool hasDebugReport = false, hasDebugUtils = false;
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
   {
     addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
     if(!strcmp(addedExts[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
       hasDebugReport = true;
+    if(!strcmp(addedExts[i], VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+      hasDebugUtils = true;
   }
 
   std::vector<VkExtensionProperties> supportedExts;
@@ -479,8 +554,19 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
         "Couldn't load vkEnumerateInstanceExtensionProperties in vkCreateInstance to enumerate "
         "instance extensions");
 
-  // always enable debug report, if it's available
-  if(!hasDebugReport)
+  // always enable debug report/utils, if it's available
+  if(!hasDebugUtils)
+  {
+    for(const VkExtensionProperties &ext : supportedExts)
+    {
+      if(!strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+      {
+        addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+        break;
+      }
+    }
+  }
+  else if(!hasDebugReport)
   {
     for(const VkExtensionProperties &ext : supportedExts)
     {
@@ -595,25 +681,41 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
 
-  m_DbgMsgCallback = VK_NULL_HANDLE;
+  m_DbgReportCallback = VK_NULL_HANDLE;
+  m_DbgUtilsCallback = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
   m_Device = VK_NULL_HANDLE;
   m_QueueFamilyIdx = ~0U;
   m_PrevQueue = m_Queue = VK_NULL_HANDLE;
   m_InternalCmds.Reset();
 
-  if(ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
+  if(ObjDisp(m_Instance)->CreateDebugUtilsMessengerEXT)
+  {
+    VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
+    debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugInfo.pfnUserCallback = &DebugUtilsCallbackStatic;
+    debugInfo.pUserData = this;
+    debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+
+    ObjDisp(m_Instance)
+        ->CreateDebugUtilsMessengerEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgUtilsCallback);
+  }
+  else if(ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
   {
     VkDebugReportCallbackCreateInfoEXT debugInfo = {};
     debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
     debugInfo.pNext = NULL;
-    debugInfo.pfnCallback = &DebugCallbackStatic;
+    debugInfo.pfnCallback = &DebugReportCallbackStatic;
     debugInfo.pUserData = this;
     debugInfo.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT |
                       VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
 
     ObjDisp(m_Instance)
-        ->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
+        ->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgReportCallback);
   }
 
   if(ret == VK_SUCCESS)
@@ -689,8 +791,12 @@ void WrappedVulkan::Shutdown()
   SAFE_DELETE(m_ShaderCache);
 
   if(m_Instance && ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT &&
-     m_DbgMsgCallback != VK_NULL_HANDLE)
-    ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgMsgCallback, NULL);
+     m_DbgReportCallback != VK_NULL_HANDLE)
+    ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgReportCallback, NULL);
+
+  if(m_Instance && ObjDisp(m_Instance)->DestroyDebugUtilsMessengerEXT &&
+     m_DbgUtilsCallback != VK_NULL_HANDLE)
+    ObjDisp(m_Instance)->DestroyDebugUtilsMessengerEXT(Unwrap(m_Instance), m_DbgUtilsCallback, NULL);
 
   // need to store the unwrapped device and instance to destroy the
   // API object after resource manager shutdown
@@ -729,8 +835,11 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
 {
   RDCASSERT(m_Instance == instance);
 
-  if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgMsgCallback != VK_NULL_HANDLE)
-    ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgMsgCallback, NULL);
+  if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgReportCallback != VK_NULL_HANDLE)
+    ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgReportCallback, NULL);
+
+  if(ObjDisp(m_Instance)->DestroyDebugUtilsMessengerEXT && m_DbgUtilsCallback != VK_NULL_HANDLE)
+    ObjDisp(m_Instance)->DestroyDebugUtilsMessengerEXT(Unwrap(m_Instance), m_DbgUtilsCallback, NULL);
 
   // the device should already have been destroyed, assuming that the
   // application is well behaved. If not, we just leak.

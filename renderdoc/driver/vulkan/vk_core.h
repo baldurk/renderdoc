@@ -367,7 +367,8 @@ private:
   // the instance corresponding to this WrappedVulkan
   VkInstance m_Instance;
   // the instance's dbg msg callback handle
-  VkDebugReportCallbackEXT m_DbgMsgCallback;
+  VkDebugReportCallbackEXT m_DbgReportCallback;
+  VkDebugUtilsMessengerEXT m_DbgUtilsCallback;
   // the physical device we created m_Device with
   VkPhysicalDevice m_PhysicalDevice;
   // the device used for our own command buffer work
@@ -844,19 +845,19 @@ private:
   WrappedVulkan(const WrappedVulkan &);
   WrappedVulkan &operator=(const WrappedVulkan &);
 
-  VkBool32 DebugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
-                         uint64_t object, size_t location, int32_t messageCode,
-                         const char *pLayerPrefix, const char *pMessage);
+  VkBool32 DebugCallback(MessageSeverity severity, MessageCategory category, int messageCode,
+                         const char *pMessageId, const char *pMessage);
 
-  static VkBool32 VKAPI_PTR DebugCallbackStatic(VkDebugReportFlagsEXT flags,
-                                                VkDebugReportObjectTypeEXT objectType,
-                                                uint64_t object, size_t location,
-                                                int32_t messageCode, const char *pLayerPrefix,
-                                                const char *pMessage, void *pUserData)
-  {
-    return ((WrappedVulkan *)pUserData)
-        ->DebugCallback(flags, objectType, object, location, messageCode, pLayerPrefix, pMessage);
-  }
+  static VkBool32 VKAPI_PTR DebugUtilsCallbackStatic(
+      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+      VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData);
+
+  static VkBool32 VKAPI_PTR DebugReportCallbackStatic(VkDebugReportFlagsEXT flags,
+                                                      VkDebugReportObjectTypeEXT objectType,
+                                                      uint64_t object, size_t location,
+                                                      int32_t messageCode, const char *pLayerPrefix,
+                                                      const char *pMessage, void *pUserData);
   void AddFrameTerminator(uint64_t queueMarkerTag);
 
 public:
