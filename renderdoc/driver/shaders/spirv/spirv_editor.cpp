@@ -255,6 +255,11 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
         sections[t].startOffset++;
         sections[t].endOffset++;
       }
+
+      // look through every id, and update its offset
+      for(size_t &o : idOffsets)
+        if(o >= sections[s].startOffset)
+          o++;
     }
   }
 
@@ -914,6 +919,24 @@ static void RemoveSection(std::vector<uint32_t> &spirv, size_t offsets[SPIRVSect
   }
 }
 
+static void CheckSPIRV(SPIRVEditor &ed, size_t offsets[SPIRVSection::Count][2])
+{
+  for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
+  {
+    INFO("Section " << s);
+    CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
+    CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
+  }
+
+  // should only be one entry point
+  REQUIRE(ed.GetEntries().size() == 1);
+
+  SPIRVId entryId = ed.GetEntries()[0].id;
+
+  // check that the iterator places us precisely at the start of the functions section
+  CHECK(ed.GetID(entryId).offs() == ed.Begin(SPIRVSection::Functions).offs());
+}
+
 TEST_CASE("Test SPIR-V editor section handling", "[spirv]")
 {
   InitSPIRVCompiler();
@@ -952,8 +975,8 @@ void main() {
 
   // these offsets may change if the compiler changes above. Verify manually with spirv-dis that
   // they should be updated.
-  // For convenience the offsets are in bytes (which spirv-dis uses) and are converted in the loops
-  // below.
+  // For convenience the offsets are in bytes (which spirv-dis uses) and are converted in the loop
+  // in CheckSPIRV.
   size_t offsets[SPIRVSection::Count][2] = {
       // Capabilities
       {0x14, 0x24},
@@ -981,12 +1004,7 @@ void main() {
   {
     SPIRVEditor ed(spirv);
 
-    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
-    {
-      INFO("Section " << s);
-      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
-      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
-    }
+    CheckSPIRV(ed, offsets);
   }
 
   // we remove all sections we consider optional in arbitrary order. We don't care about keeping the
@@ -997,12 +1015,7 @@ void main() {
   {
     SPIRVEditor ed(spirv);
 
-    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
-    {
-      INFO("Section " << s);
-      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
-      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
-    }
+    CheckSPIRV(ed, offsets);
   }
 
   RemoveSection(spirv, offsets, SPIRVSection::Debug);
@@ -1011,12 +1024,7 @@ void main() {
   {
     SPIRVEditor ed(spirv);
 
-    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
-    {
-      INFO("Section " << s);
-      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
-      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
-    }
+    CheckSPIRV(ed, offsets);
   }
 
   RemoveSection(spirv, offsets, SPIRVSection::ExtInst);
@@ -1025,12 +1033,7 @@ void main() {
   {
     SPIRVEditor ed(spirv);
 
-    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
-    {
-      INFO("Section " << s);
-      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
-      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
-    }
+    CheckSPIRV(ed, offsets);
   }
 
   RemoveSection(spirv, offsets, SPIRVSection::ExecutionMode);
@@ -1039,12 +1042,7 @@ void main() {
   {
     SPIRVEditor ed(spirv);
 
-    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
-    {
-      INFO("Section " << s);
-      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
-      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
-    }
+    CheckSPIRV(ed, offsets);
   }
 
   RemoveSection(spirv, offsets, SPIRVSection::Annotations);
@@ -1053,12 +1051,7 @@ void main() {
   {
     SPIRVEditor ed(spirv);
 
-    for(uint32_t s = SPIRVSection::First; s < SPIRVSection::Count; s++)
-    {
-      INFO("Section " << s);
-      CHECK(ed.Begin((SPIRVSection::Type)s).offs() == offsets[s][0] / sizeof(uint32_t));
-      CHECK(ed.End((SPIRVSection::Type)s).offs() == offsets[s][1] / sizeof(uint32_t));
-    }
+    CheckSPIRV(ed, offsets);
   }
 }
 
