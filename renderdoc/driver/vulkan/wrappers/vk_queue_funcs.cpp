@@ -827,6 +827,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           {
             VkResourceRecord *setrecord = GetRecord(*it);
 
+            SCOPED_LOCK(setrecord->descInfo->refLock);
+
             const std::map<ResourceId, pair<uint32_t, FrameRefType>> &frameRefs =
                 setrecord->descInfo->bindFrameRefs;
 
@@ -864,6 +866,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
 
           VkResourceRecord *setrecord = GetRecord(*it);
+
+          SCOPED_LOCK(setrecord->descInfo->refLock);
 
           for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
               refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)

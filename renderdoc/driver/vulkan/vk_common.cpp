@@ -831,6 +831,8 @@ bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
 
 void DescriptorSetSlot::RemoveBindRefs(VkResourceRecord *record)
 {
+  SCOPED_LOCK(record->descInfo->refLock);
+
   if(texelBufferView != VK_NULL_HANDLE)
   {
     record->RemoveBindFrameRef(GetResID(texelBufferView));
@@ -874,6 +876,8 @@ void DescriptorSetSlot::RemoveBindRefs(VkResourceRecord *record)
 
 void DescriptorSetSlot::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
 {
+  SCOPED_LOCK(record->descInfo->refLock);
+
   if(texelBufferView != VK_NULL_HANDLE)
   {
     VkResourceRecord *bufView = GetRecord(texelBufferView);
