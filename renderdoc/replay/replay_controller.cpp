@@ -226,7 +226,7 @@ void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 
     m_pDevice->ReplayLog(eventId, eReplay_OnlyDraw);
 
-    FetchPipelineState();
+    FetchPipelineState(eventId);
   }
 }
 
@@ -2060,8 +2060,6 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   if(status != ReplayStatus::Succeeded)
     return status;
 
-  FetchPipelineState();
-
   m_APIProps = m_pDevice->GetAPIProperties();
 
   // fetch GCN ISA targets
@@ -2095,6 +2093,8 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   m_Drawcalls.clear();
   SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList);
 
+  FetchPipelineState(m_Drawcalls.back()->eventId);
+
   return ReplayStatus::Succeeded;
 }
 
@@ -2112,11 +2112,11 @@ APIProperties ReplayController::GetAPIProperties()
   return m_pDevice->GetAPIProperties();
 }
 
-void ReplayController::FetchPipelineState()
+void ReplayController::FetchPipelineState(uint32_t eventId)
 {
   CHECK_REPLAY_THREAD();
 
-  m_pDevice->SavePipelineState();
+  m_pDevice->SavePipelineState(eventId);
 
   m_D3D11PipelineState = m_pDevice->GetD3D11PipelineState();
   m_D3D12PipelineState = m_pDevice->GetD3D12PipelineState();

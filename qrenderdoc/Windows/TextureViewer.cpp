@@ -2095,20 +2095,24 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
     const Bindpoint &key = mapping[idx];
 
     const rdcarray<BoundResource> *resArray = NULL;
+    uint32_t dynamicallyUsedResCount = 1;
 
     int residx = ResList.indexOf(key);
     if(residx >= 0)
-      resArray = &ResList[residx].resources;
-
-    int arrayLen = resArray != NULL ? resArray->count() : 1;
-
-    // it's too expensive in bindless-type cases to create a thumbnail for every array element, so
-    // for now we create one just for the first element and add an array size indicator to the slot
-    // name
-    // for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
-    int arrayIdx = 0;
-
     {
+      resArray = &ResList[residx].resources;
+      dynamicallyUsedResCount = ResList[residx].dynamicallyUsedCount;
+    }
+
+    const bool collapseArray = dynamicallyUsedResCount > 20;
+
+    const int arrayLen = resArray != NULL ? resArray->count() : 1;
+
+    for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
+    {
+      if(resArray && !resArray->at(arrayIdx).dynamicallyUsed)
+        continue;
+
       ResourceId id = resArray != NULL ? resArray->at(arrayIdx).resourceId : ResourceId();
       CompType typeHint = resArray != NULL ? resArray->at(arrayIdx).typeHint : CompType::Typeless;
 
@@ -2137,8 +2141,10 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
                              .arg(rw ? lit("RW ") : lit(""))
                              .arg(idx);
 
-      if(arrayLen > 1)
+      if(collapseArray)
         slotName += QFormatStr(" Arr[%1]").arg(arrayLen);
+      else
+        slotName += QFormatStr("[%1]").arg(arrayIdx);
 
       if(copy)
         slotName = tr("SRC");
@@ -2177,6 +2183,9 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       prevIndex++;
 
       InitResourcePreview(prev, show ? id : ResourceId(), typeHint, show, follow, bindName, slotName);
+
+      if(collapseArray)
+        break;
     }
   }
 }

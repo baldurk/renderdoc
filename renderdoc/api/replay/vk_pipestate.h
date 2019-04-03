@@ -37,21 +37,23 @@ struct BindingElement
 
   bool operator==(const BindingElement &o) const
   {
-    return viewResourceId == o.viewResourceId && resourceResourceId == o.resourceResourceId &&
-           samplerResourceId == o.samplerResourceId && immutableSampler == o.immutableSampler &&
-           viewFormat == o.viewFormat && swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] &&
-           swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] && firstMip == o.firstMip &&
-           firstSlice == o.firstSlice && numMips == o.numMips && numSlices == o.numSlices &&
-           byteOffset == o.byteOffset && byteSize == o.byteSize && filter == o.filter &&
-           addressU == o.addressU && addressV == o.addressV && addressW == o.addressW &&
-           mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
-           compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
-           borderColor[0] == o.borderColor[0] && borderColor[1] == o.borderColor[1] &&
-           borderColor[2] == o.borderColor[2] && borderColor[3] == o.borderColor[3] &&
-           unnormalized == o.unnormalized;
+    return dynamicallyUsed == o.dynamicallyUsed && viewResourceId == o.viewResourceId &&
+           resourceResourceId == o.resourceResourceId && samplerResourceId == o.samplerResourceId &&
+           immutableSampler == o.immutableSampler && viewFormat == o.viewFormat &&
+           swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] &&
+           swizzle[3] == o.swizzle[3] && firstMip == o.firstMip && firstSlice == o.firstSlice &&
+           numMips == o.numMips && numSlices == o.numSlices && byteOffset == o.byteOffset &&
+           byteSize == o.byteSize && filter == o.filter && addressU == o.addressU &&
+           addressV == o.addressV && addressW == o.addressW && mipBias == o.mipBias &&
+           maxAnisotropy == o.maxAnisotropy && compareFunction == o.compareFunction &&
+           minLOD == o.minLOD && maxLOD == o.maxLOD && borderColor[0] == o.borderColor[0] &&
+           borderColor[1] == o.borderColor[1] && borderColor[2] == o.borderColor[2] &&
+           borderColor[3] == o.borderColor[3] && unnormalized == o.unnormalized;
   }
   bool operator<(const BindingElement &o) const
   {
+    if(!(dynamicallyUsed == o.dynamicallyUsed))
+      return dynamicallyUsed < o.dynamicallyUsed;
     if(!(viewResourceId == o.viewResourceId))
       return viewResourceId < o.viewResourceId;
     if(!(resourceResourceId == o.resourceResourceId))
@@ -121,6 +123,15 @@ struct BindingElement
   ResourceId samplerResourceId;
   DOCUMENT("``True`` if this is an immutable sampler binding.");
   bool immutableSampler = false;
+  DOCUMENT(R"(``True`` if this binding element is dynamically used.
+
+If set to ``False`` this means that the binding was available to the shader but during execution it
+was not referenced. The data gathered for setting this variable is conservative, meaning that only
+accesses through arrays will have this calculated to reduce the required feedback bandwidth - single
+non-arrayed descriptors may have this value set to ``True`` even if the shader did not use them,
+since single descriptors may only be dynamically skipped by control flow.
+)");
+  bool dynamicallyUsed = true;
 
   DOCUMENT("The :class:`ResourceFormat` that the view uses.");
   ResourceFormat viewFormat;
@@ -209,13 +220,15 @@ struct DescriptorBinding
 
   bool operator==(const DescriptorBinding &o) const
   {
-    return descriptorCount == o.descriptorCount && type == o.type && stageFlags == o.stageFlags &&
-           binds == o.binds;
+    return descriptorCount == o.descriptorCount && dynamicallyUsedCount == o.dynamicallyUsedCount &&
+           type == o.type && stageFlags == o.stageFlags && binds == o.binds;
   }
   bool operator<(const DescriptorBinding &o) const
   {
     if(!(descriptorCount == o.descriptorCount))
       return descriptorCount < o.descriptorCount;
+    if(!(dynamicallyUsedCount == o.dynamicallyUsedCount))
+      return dynamicallyUsedCount < o.dynamicallyUsedCount;
     if(!(type == o.type))
       return type < o.type;
     if(!(stageFlags == o.stageFlags))
@@ -228,6 +241,12 @@ struct DescriptorBinding
 If this binding is empty/non-existant this value will be ``0``.
 )");
   uint32_t descriptorCount = 0;
+  DOCUMENT(R"(Lists how many bindings in :data:`binds` are dynamically used. Useful to avoid
+redundant iteration to determine whether any bindings are present.
+
+For more information see :data:`VKBindingElement.dynamicallyUsed`.
+)");
+  uint32_t dynamicallyUsedCount = 0;
   DOCUMENT("The :class:`BindType` of this binding.");
   BindType type = BindType::Unknown;
   DOCUMENT("The :class:`ShaderStageMask` where this binding is visible.");

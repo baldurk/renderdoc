@@ -864,12 +864,18 @@ void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props)
   memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());
 }
 
-void VulkanReplay::SavePipelineState()
+void VulkanReplay::SavePipelineState(uint32_t eventId)
 {
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  VkMarkerRegion::Begin(StringFormat::Fmt("FetchShaderFeedback for %u", eventId));
+
+  FetchShaderFeedback(eventId);
+
+  VkMarkerRegion::End();
 
   m_VulkanPipelineState = VKPipe::State();
 
@@ -1355,10 +1361,29 @@ void VulkanReplay::SavePipelineState()
 
     for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
     {
+      bool hasUsedBinds = false;
+      const BindIdx *usedBindsData = NULL;
+      size_t usedBindsSize = 0;
+
+      {
+        const DynamicUsedBinds &usage = m_BindlessFeedback.Usage[eventId];
+        bool curCompute = (p == 1);
+        if(usage.valid && usage.compute == curCompute)
+        {
+          hasUsedBinds = true;
+          usedBindsData = usage.used.data();
+          usedBindsSize = usage.used.size();
+        }
+      }
+
+      BindIdx curBind;
+
       for(size_t i = 0; i < srcs[p]->size(); i++)
       {
         ResourceId src = (*srcs[p])[i].descSet;
         VKPipe::DescriptorSet &dst = (*dsts[p])[i];
+
+        curBind.set = (uint32_t)i;
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
 
@@ -1380,6 +1405,8 @@ void VulkanReplay::SavePipelineState()
         {
           DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
           const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
+
+          curBind.bind = (uint32_t)b;
 
           bool dynamicOffset = false;
 
@@ -1426,6 +1453,49 @@ void VulkanReplay::SavePipelineState()
           dst.bindings[b].binds.resize(layoutBind.descriptorCount);
           for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
           {
+            VKPipe::BindingElement &dstel = dst.bindings[b].binds[a];
+
+            curBind.arrayidx = a;
+
+            // if we have a list of used binds, and this is an array descriptor (so would be
+            // expected to be in the list), check it for dynamic usage.
+            if(layoutBind.descriptorCount > 1 && hasUsedBinds)
+            {
+              // if we exhausted the list, all other elements are unused
+              if(usedBindsSize == 0)
+              {
+                dstel.dynamicallyUsed = false;
+              }
+              else
+              {
+                // we never saw the current value of usedBindsData (which is odd, we should have
+                // when iterating over all descriptors. This could only happen if there's some
+                // layout mismatch or a feedback bug that lead to an invalid entry in the list).
+                // Keep advancing until we get to one that is >= our current bind
+                while(curBind > *usedBindsData && usedBindsSize)
+                {
+                  usedBindsData++;
+                  usedBindsSize--;
+                }
+
+                // the next used bind is equal to this one. Mark it as dynamically used, and consume
+                if(curBind == *usedBindsData)
+                {
+                  dstel.dynamicallyUsed = true;
+                  usedBindsData++;
+                  usedBindsSize--;
+                }
+                // the next used bind is after the current one, this is not used.
+                else if(curBind < *usedBindsData)
+                {
+                  dstel.dynamicallyUsed = false;
+                }
+              }
+            }
+
+            if(dstel.dynamicallyUsed)
+              dst.bindings[b].dynamicallyUsedCount++;
+
             if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             {

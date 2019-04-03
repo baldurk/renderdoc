@@ -757,7 +757,7 @@ string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
   return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
-void GLReplay::SavePipelineState()
+void GLReplay::SavePipelineState(uint32_t eventId)
 {
   GLPipe::State &pipe = m_CurPipelineState;
   WrappedOpenGL &drv = *m_pDriver;

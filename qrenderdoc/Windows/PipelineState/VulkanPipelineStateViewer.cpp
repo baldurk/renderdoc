@@ -744,7 +744,8 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
   // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
   for(int a = 0; a < 3; a++)
   {
-    QString prefix = QString(QLatin1Char("UVW"[a]));
+    const char *uvw = "UVW";
+    QString prefix = QString(QLatin1Char(uvw[a]));
 
     if(a == 0 || addr[a] == addr[a - 1])
     {
@@ -937,10 +938,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   BindType bindType = BindType::Unknown;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
   bool pushDescriptor = false;
+  uint32_t dynamicallyUsedCount = 1;
 
   if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
   {
     pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
+    dynamicallyUsedCount = pipe.descriptorSets[bindset].bindings[bind].dynamicallyUsedCount;
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
     bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
@@ -955,7 +958,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       bindType = isrw ? BindType::ReadWriteImage : BindType::ReadOnlyImage;
   }
 
-  bool usedSlot = bindMap != NULL && bindMap->used;
+  bool usedSlot = bindMap != NULL && bindMap->used && dynamicallyUsedCount > 0;
   bool stageBitsIncluded = bool(stageBits & MaskForStage(stage.stage));
 
   // skip descriptors that aren't for this shader stage
@@ -1025,7 +1028,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     {
       const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
+      {
         descriptorBind = &(*slotBinds)[idx];
+
+        if(!showNode(usedSlot && descriptorBind->dynamicallyUsed, filledSlot))
+          continue;
+      }
 
       if(arrayLength > 1)
       {
@@ -1315,18 +1323,20 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
+  uint32_t dynamicallyUsedCount = 1;
 
   bool pushDescriptor = false;
 
   if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
   {
     pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
+    dynamicallyUsedCount = pipe.descriptorSets[bindset].bindings[bind].dynamicallyUsedCount;
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
     bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
   }
 
-  bool usedSlot = bindMap != NULL && bindMap->used;
+  bool usedSlot = bindMap != NULL && bindMap->used && dynamicallyUsedCount > 0;
   bool stageBitsIncluded = bool(stageBits & MaskForStage(stage.stage));
 
   // skip descriptors that aren't for this shader stage
@@ -1385,7 +1395,12 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     {
       const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
+      {
         descriptorBind = &(*slotBinds)[idx];
+
+        if(!showNode(usedSlot && descriptorBind->dynamicallyUsed, filledSlot))
+          continue;
+      }
 
       if(arrayLength > 1)
       {

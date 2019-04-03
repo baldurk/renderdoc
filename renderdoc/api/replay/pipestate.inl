@@ -1115,9 +1115,12 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
             rdcarray<BoundResource> &val = ret.back().resources;
             val.resize(bind.descriptorCount);
 
+            ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
+
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
               val[i].resourceId = bind.binds[i].resourceResourceId;
+              val[i].dynamicallyUsed = bind.binds[i].dynamicallyUsed;
               val[i].firstMip = (int)bind.binds[i].firstMip;
               val[i].firstSlice = (int)bind.binds[i].firstSlice;
               val[i].typeHint = bind.binds[i].viewFormat.compType;
@@ -1266,9 +1269,12 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
             rdcarray<BoundResource> &val = ret.back().resources;
             val.resize(bind.descriptorCount);
 
+            ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
+
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
               val[i].resourceId = bind.binds[i].resourceResourceId;
+              val[i].dynamicallyUsed = bind.binds[i].dynamicallyUsed;
               val[i].firstMip = (int)bind.binds[i].firstMip;
               val[i].firstSlice = (int)bind.binds[i].firstSlice;
               val[i].typeHint = bind.binds[i].viewFormat.compType;

@@ -1220,7 +1220,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   }
 }
 
-void D3D12Replay::SavePipelineState()
+void D3D12Replay::SavePipelineState(uint32_t eventId)
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 

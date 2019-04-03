@@ -453,7 +453,7 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<DebugMessage>, GetDebugMessages);
 
-  IMPLEMENT_FUNCTION_PROXIED(void, SavePipelineState);
+  IMPLEMENT_FUNCTION_PROXIED(void, SavePipelineState, uint32_t eventId);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplayLog, uint32_t endEventID, ReplayLogType replayType);
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<uint32_t>, GetPassEvents, uint32_t eventId);

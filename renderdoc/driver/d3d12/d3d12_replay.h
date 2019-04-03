@@ -87,7 +87,7 @@ public:
 
   FrameRecord GetFrameRecord();
 
-  void SavePipelineState();
+  void SavePipelineState(uint32_t eventId);
   const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
   const D3D12Pipe::State *GetD3D12PipelineState() { return &m_PipelineState; }
   const GLPipe::State *GetGLPipelineState() { return NULL; }

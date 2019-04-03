@@ -232,6 +232,7 @@ struct BoundResource
   BoundResource()
   {
     resourceId = ResourceId();
+    dynamicallyUsed = true;
     firstMip = -1;
     firstSlice = -1;
     typeHint = CompType::Typeless;
@@ -239,6 +240,7 @@ struct BoundResource
   BoundResource(ResourceId id)
   {
     resourceId = id;
+    dynamicallyUsed = true;
     firstMip = -1;
     firstSlice = -1;
     typeHint = CompType::Typeless;
@@ -264,6 +266,12 @@ struct BoundResource
   }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the bound resource.");
   ResourceId resourceId;
+  DOCUMENT(R"(``True`` if this binding element is dynamically used.
+
+Some APIs provide fine-grained usage based on dynamic shader feedback, to support 'bindless'
+scenarios where only a small sparse subset of bound resources are actually used.
+)");
+  bool dynamicallyUsed = true;
   DOCUMENT("For textures, the highest mip level available on this binding, or -1 for all mips");
   int firstMip;
   DOCUMENT("For textures, the first array slice available on this binding. or -1 for all slices.");
@@ -285,7 +293,10 @@ struct BoundResourceArray
   BoundResourceArray() = default;
   BoundResourceArray(const BoundResourceArray &) = default;
   BoundResourceArray(Bindpoint b) : bindPoint(b) {}
-  BoundResourceArray(Bindpoint b, const rdcarray<BoundResource> &r) : bindPoint(b), resources(r) {}
+  BoundResourceArray(Bindpoint b, const rdcarray<BoundResource> &r) : bindPoint(b), resources(r)
+  {
+    dynamicallyUsedCount = (uint32_t)r.size();
+  }
   // for convenience for searching the array, we compare only using the BindPoint
   bool operator==(const BoundResourceArray &o) const { return bindPoint == o.bindPoint; }
   bool operator!=(const BoundResourceArray &o) const { return !(bindPoint == o.bindPoint); }
@@ -295,6 +306,13 @@ struct BoundResourceArray
 
   DOCUMENT("The resources at this bind point");
   rdcarray<BoundResource> resources;
+
+  DOCUMENT(R"(Lists how many bindings in :data:`resources` are dynamically used.
+
+Some APIs provide fine-grained usage based on dynamic shader feedback, to support 'bindless'
+scenarios where only a small sparse subset of bound resources are actually used.
+)");
+  uint32_t dynamicallyUsedCount = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(BoundResourceArray);

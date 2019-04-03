@@ -139,8 +139,6 @@ public:
 
   void SetFrameEvent(uint32_t eventId, bool force);
 
-  void FetchPipelineState();
-
   const D3D11Pipe::State *GetD3D11PipelineState();
   const D3D12Pipe::State *GetD3D12PipelineState();
   const GLPipe::State *GetGLPipelineState();
@@ -214,6 +212,8 @@ public:
 
 private:
   ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
+
+  void FetchPipelineState(uint32_t eventId);
 
   DrawcallDescription *GetDrawcallByEID(uint32_t eventId);
   bool ContainsMarker(const rdcarray<DrawcallDescription> &draws);

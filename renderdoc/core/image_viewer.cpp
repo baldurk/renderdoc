@@ -176,7 +176,7 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void SavePipelineState() {}
+  void SavePipelineState(uint32_t eventId) {}
   DriverInformation GetDriverInfo()
   {
     DriverInformation ret = {};

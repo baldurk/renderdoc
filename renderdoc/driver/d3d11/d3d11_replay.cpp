@@ -638,7 +638,7 @@ std::vector<ResourceId> D3D11Replay::GetTextures()
   return ret;
 }
 
-void D3D11Replay::SavePipelineState()
+void D3D11Replay::SavePipelineState(uint32_t eventId)
 {
   D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 

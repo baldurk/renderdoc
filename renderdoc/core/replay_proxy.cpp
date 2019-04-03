@@ -1524,13 +1524,15 @@ ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventId, const uint32_t group
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSerialiser &retser)
+void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSerialiser &retser,
+                                            uint32_t eventId)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_SavePipelineState;
   ReplayProxyPacket packet = eReplayProxy_SavePipelineState;
 
   {
     BEGIN_PARAMS();
+    SERIALISE_ELEMENT(eventId);
     END_PARAMS();
   }
 
@@ -1538,7 +1540,7 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
     {
-      m_Remote->SavePipelineState();
+      m_Remote->SavePipelineState(eventId);
 
       if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
         m_D3D11PipelineState = *m_Remote->GetD3D11PipelineState();
@@ -1636,9 +1638,9 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
   CheckError(packet, expectedPacket);
 }
 
-void ReplayProxy::SavePipelineState()
+void ReplayProxy::SavePipelineState(uint32_t eventId)
 {
-  PROXY_FUNCTION(SavePipelineState);
+  PROXY_FUNCTION(SavePipelineState, eventId);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2581,7 +2583,7 @@ bool ReplayProxy::Tick(int type)
       GetTextureData(ResourceId(), 0, 0, GetTextureDataParams(), dummy);
       break;
     }
-    case eReplayProxy_SavePipelineState: SavePipelineState(); break;
+    case eReplayProxy_SavePipelineState: SavePipelineState(0); break;
     case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;
