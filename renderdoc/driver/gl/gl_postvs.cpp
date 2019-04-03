@@ -102,6 +102,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     return;
   }
 
+  uint32_t glslVer = 0;
+
   if(rs.Program.name == 0)
   {
     if(rs.Pipeline.name == 0)
@@ -121,6 +123,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           if(i == 0)
           {
             vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
+            glslVer = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].version;
           }
           else if(i == 2)
           {
@@ -180,6 +183,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         if(i == 0)
         {
           vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
+          glslVer = m_pDriver->m_Shaders[progDetails.stageShaders[0]].version;
         }
         else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
@@ -211,8 +215,54 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     return;
   }
 
+  // GLES requires a fragment shader even with rasterizer discard, so we'll attach this
+  GLuint dummyFrag = 0;
+
+  if(IsGLES)
+  {
+    dummyFrag = drv.glCreateShader(eGL_FRAGMENT_SHADER);
+
+    if(glslVer == 0)
+      glslVer = 100;
+
+    std::string src =
+        StringFormat::Fmt("#version %d %s\nvoid main() {}\n", glslVer, glslVer == 100 ? "" : "es");
+
+    const char *csrc = src.c_str();
+
+    drv.glShaderSource(dummyFrag, 1, &csrc, NULL);
+    drv.glCompileShader(dummyFrag);
+
+    GLint status = 0;
+    drv.glGetShaderiv(dummyFrag, eGL_COMPILE_STATUS, &status);
+
+    if(status == 0)
+    {
+      drv.glDeleteShader(dummyFrag);
+      dummyFrag = 0;
+
+      if(HasExt[ARB_separate_shader_objects])
+      {
+        RDCERR(
+            "Couldn't create dummy fragment shader for GLES, trying to set program to be "
+            "separable");
+        drv.glProgramParameteri(feedbackProg, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+      }
+      else
+      {
+        RDCERR(
+            "Couldn't create dummy fragment shader for GLES, separable programs not available. "
+            "Vertex output data will likely be broken");
+      }
+    }
+  }
+
   // attach the vertex shader
   drv.glAttachShader(feedbackProg, stageShaders[0]);
+
+  // attach the dummy fragment shader, if it exists
+  if(dummyFrag)
+    drv.glAttachShader(feedbackProg, dummyFrag);
 
   list<string> matrixVaryings;    // matrices need some fixup
   vector<const char *> varyings;
@@ -393,6 +443,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     for(size_t i = 0; i < 4; i++)
       if(tmpShaders[i])
         drv.glDeleteShader(tmpShaders[i]);
+
+    drv.glDeleteShader(dummyFrag);
 
     drv.glDeleteProgram(feedbackProg);
 
@@ -702,6 +754,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     for(size_t i = 0; i < 4; i++)
       if(tmpShaders[i])
         drv.glDeleteShader(tmpShaders[i]);
+
+    drv.glDeleteShader(dummyFrag);
 
     drv.glDeleteProgram(feedbackProg);
 
@@ -1305,6 +1359,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           if(tmpShaders[i])
             drv.glDeleteShader(tmpShaders[i]);
 
+        drv.glDeleteShader(dummyFrag);
+
         return;
       }
 
@@ -1444,6 +1500,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   for(size_t i = 0; i < 4; i++)
     if(tmpShaders[i])
       drv.glDeleteShader(tmpShaders[i]);
+
+  drv.glDeleteShader(dummyFrag);
 }
 
 void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
