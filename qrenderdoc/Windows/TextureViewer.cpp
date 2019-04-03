@@ -3435,8 +3435,17 @@ void TextureViewer::on_viewTexBuffer_clicked()
 
   if(texptr)
   {
+    uint32_t slice = m_TexDisplay.sliceFace;
+
+    if(texptr->msSamp > 1)
+    {
+      slice *= texptr->msSamp;
+      if(m_TexDisplay.sampleIdx < texptr->msSamp)
+        slice += m_TexDisplay.sampleIdx;
+    }
+
     IBufferViewer *viewer =
-        m_Ctx.ViewTextureAsBuffer(m_TexDisplay.sliceFace, m_TexDisplay.mip, texptr->resourceId,
+        m_Ctx.ViewTextureAsBuffer(slice, m_TexDisplay.mip, texptr->resourceId,
                                   FormatElement::GenerateTextureBufferFormat(*texptr));
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
