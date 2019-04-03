@@ -77,11 +77,9 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
   if(iminfo.type == VK_IMAGE_TYPE_1D)
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
   else if(iminfo.type == VK_IMAGE_TYPE_3D)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
-  else if(iminfo.samples > VK_SAMPLE_COUNT_1_BIT)
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
   VkResult vkr = VK_SUCCESS;
 
