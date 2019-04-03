@@ -2326,9 +2326,11 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
         texDisplay.mip = mip;
-        texDisplay.sampleIdx = ~0U;
+        texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
         texDisplay.customShaderId = ResourceId();
         texDisplay.sliceFace = arrayIdx;
+        if(samples > 1)
+          texDisplay.sliceFace /= samples;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.scale = 1.0f;
@@ -2374,9 +2376,11 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
         texDisplay.mip = mip;
-        texDisplay.sampleIdx = ~0U;
+        texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
         texDisplay.customShaderId = ResourceId();
         texDisplay.sliceFace = arrayIdx;
+        if(samples > 1)
+          texDisplay.sliceFace /= samples;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.scale = 1.0f;

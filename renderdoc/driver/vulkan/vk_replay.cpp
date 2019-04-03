@@ -2384,7 +2384,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     return;
   }
 
-  VulkanCreationInfo::Image &imInfo = m_pDriver->m_CreationInfo.m_Image[tex];
+  const VulkanCreationInfo::Image &imInfo = m_pDriver->m_CreationInfo.m_Image[tex];
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[tex];
 
@@ -2593,6 +2593,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       texDisplay.sampleIdx = imInfo.type == VK_IMAGE_TYPE_3D ? 0 : (params.resolve ? ~0U : arrayIdx);
       texDisplay.customShaderId = ResourceId();
       texDisplay.sliceFace = imInfo.type == VK_IMAGE_TYPE_3D ? i : arrayIdx;
+      if(imInfo.samples > 1)
+        texDisplay.sliceFace /= imInfo.samples;
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.scale = 1.0f;

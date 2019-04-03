@@ -1937,6 +1937,8 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     bool wasms = false;
 
+    UINT sampleCount = desc.SampleDesc.Count;
+
     if(desc.SampleDesc.Count > 1)
     {
       desc.ArraySize *= desc.SampleDesc.Count;
@@ -2045,6 +2047,8 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
         texDisplay.customShaderId = ResourceId();
         texDisplay.sliceFace = arrayIdx;
+        if(sampleCount > 1)
+          texDisplay.sliceFace /= sampleCount;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.scale = 1.0f;

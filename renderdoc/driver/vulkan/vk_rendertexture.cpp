@@ -274,9 +274,14 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   data->MipLevel = (int)cfg.mip;
   data->Slice = 0;
   if(iminfo.type != VK_IMAGE_TYPE_3D)
+  {
     data->Slice = (float)cfg.sliceFace + 0.001f;
+  }
   else
-    data->Slice = (float)(cfg.sliceFace >> cfg.mip);
+  {
+    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, uint32_t(iminfo.samples - 1));
+    data->Slice = (float)(sliceFace >> cfg.mip);
+  }
 
   data->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.mip));
   data->TextureResolutionPS.y = float(RDCMAX(1, tex_y >> cfg.mip));

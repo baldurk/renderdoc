@@ -2940,6 +2940,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   bool isDepth = IsDepthFormat(resDesc.Format);
   bool isStencil = IsDepthAndStencilFormat(resDesc.Format);
 
+  UINT sampleCount = copyDesc.SampleDesc.Count;
+
   if(copyDesc.SampleDesc.Count > 1)
   {
     // make image n-array instead of n-samples
@@ -3013,6 +3015,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
       texDisplay.customShaderId = ResourceId();
       texDisplay.sliceFace = arrayIdx;
+      if(sampleCount > 1)
+        texDisplay.sliceFace /= sampleCount;
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.scale = 1.0f;
