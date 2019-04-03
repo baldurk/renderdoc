@@ -820,6 +820,27 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               GetResourceManager()->MarkPendingDirty(*it);
           }
 
+          // with EXT_descriptor_indexing a binding might have been updated after
+          // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
+          for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
+              it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
+          {
+            VkResourceRecord *setrecord = GetRecord(*it);
+
+            const std::map<ResourceId, pair<uint32_t, FrameRefType>> &frameRefs =
+                setrecord->descInfo->bindFrameRefs;
+
+            for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
+            {
+              if(refit->second.second == eFrameRef_PartialWrite ||
+                 refit->second.second == eFrameRef_ReadBeforeWrite)
+              {
+                if(GetResourceManager()->HasCurrentResource(refit->first))
+                  GetResourceManager()->MarkPendingDirty(refit->first);
+              }
+            }
+          }
+
           capframe = true;
         }
         else
