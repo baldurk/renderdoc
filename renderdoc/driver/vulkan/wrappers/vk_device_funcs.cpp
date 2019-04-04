@@ -2191,6 +2191,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   m_QueueFamilies.resize(createInfo.queueCreateInfoCount);
   m_QueueFamilyCounts.resize(createInfo.queueCreateInfoCount);
+  m_QueueFamilyIndices.clear();
   for(size_t i = 0; i < createInfo.queueCreateInfoCount; i++)
   {
     uint32_t family = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
@@ -2202,6 +2203,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     m_QueueFamilyCounts[family] = count;
     for(uint32_t q = 0; q < count; q++)
       m_QueueFamilies[family][q] = VK_NULL_HANDLE;
+
+    if(std::find(m_QueueFamilyIndices.begin(), m_QueueFamilyIndices.end(), family) ==
+       m_QueueFamilyIndices.end())
+      m_QueueFamilyIndices.push_back(family);
   }
 
   VkLayerDeviceCreateInfo *layerCreateInfo = (VkLayerDeviceCreateInfo *)pCreateInfo->pNext;

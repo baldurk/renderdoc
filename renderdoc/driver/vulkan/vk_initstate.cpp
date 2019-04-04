@@ -550,11 +550,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // we make the buffer concurrently accessible by all queue families to not invalidate the
     // contents of the memory we're reading back from.
     bufInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
-    bufInfo.queueFamilyIndexCount = m_PhysicalDeviceData.queueCount;
-    std::vector<uint32_t> queues;
-    for(uint32_t i = 0; i < bufInfo.queueFamilyIndexCount; i++)
-      queues.push_back(i);
-    bufInfo.pQueueFamilyIndices = queues.data();
+    bufInfo.queueFamilyIndexCount = (uint32_t)m_QueueFamilyIndices.size();
+    bufInfo.pQueueFamilyIndices = m_QueueFamilyIndices.data();
 
     // spec requires that CONCURRENT must specify more than one queue family. If there is only one
     // queue family, we can safely use exclusive.

@@ -396,8 +396,9 @@ private:
   vector<bool> m_ReplayPhysicalDevicesUsed;
 
   // the queue families (an array of count for each) for the created device
-  vector<VkQueue *> m_QueueFamilies;
-  vector<uint32_t> m_QueueFamilyCounts;
+  std::vector<VkQueue *> m_QueueFamilies;
+  std::vector<uint32_t> m_QueueFamilyCounts;
+  std::vector<uint32_t> m_QueueFamilyIndices;
 
   // a small amount of helper code during capture for handling resources on different queues in init
   // states
