@@ -217,6 +217,9 @@ struct VulkanCreationInfo
     // VkPipelineRasterizationStateStreamCreateInfoEXT
     uint32_t rasterizationStream;
 
+    // VkPipelineRasterizationStateStreamCreateInfoEXT
+    bool depthClipEnable;
+
     // VkPipelineRasterizationConservativeStateCreateInfoEXT
     VkConservativeRasterizationModeEXT conservativeRasterizationMode;
     float extraPrimitiveOverestimationSize;

@@ -1794,6 +1794,86 @@
             <property name="spacing">
              <number>0</number>
             </property>
+            <item row="0" column="7">
+             <widget class="QLabel" name="conservativeRaster">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Disabled</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="margin">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="6">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>Overestimate Size:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="7">
+             <widget class="QLabel" name="overestimationSize">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="margin">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="6">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Multiview:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="7">
+             <widget class="QLabel" name="multiview">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="margin">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
             <item row="0" column="6">
              <widget class="QLabel" name="label">
               <property name="text">
@@ -1801,6 +1881,9 @@
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -1999,19 +2082,6 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="2">
-             <widget class="QLabel" name="rasterizerDiscardLabel">
-              <property name="text">
-               <string>Rasterizer Discard:</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
             <item row="2" column="0">
              <widget class="QLabel" name="depthClampLabel">
               <property name="text">
@@ -2022,22 +2092,6 @@
               </property>
               <property name="wordWrap">
                <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="3">
-             <widget class="QLabel" name="rasterizerDiscard">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignCenter</set>
-              </property>
-              <property name="margin">
-               <number>4</number>
               </property>
              </widget>
             </item>
@@ -2077,7 +2131,7 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="8">
+            <item row="1" column="10">
              <spacer name="rastHSpacer">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -2109,15 +2163,13 @@
               </property>
              </spacer>
             </item>
-            <item row="0" column="7">
-             <widget class="QLabel" name="conservativeRaster">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
+            <item row="0" column="9">
+             <widget class="QLabel" name="rasterizerDiscard">
               <property name="text">
-               <string>Disabled</string>
+               <string/>
+              </property>
+              <property name="pixmap">
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2127,53 +2179,36 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="6">
-             <widget class="QLabel" name="label_2">
+            <item row="0" column="8">
+             <widget class="QLabel" name="rasterizerDiscardLabel">
               <property name="text">
-               <string>Overestimate Size:</string>
+               <string>Rasterizer Discard:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
-             </widget>
-            </item>
-            <item row="1" column="7">
-             <widget class="QLabel" name="overestimationSize">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>0.00</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignCenter</set>
-              </property>
-              <property name="margin">
-               <number>4</number>
+              <property name="wordWrap">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
-            <item row="2" column="6">
-             <widget class="QLabel" name="label_3">
+            <item row="2" column="2">
+             <widget class="QLabel" name="label_4">
               <property name="text">
-               <string>Multiview:</string>
+               <string>Depth Clip:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
-            <item row="2" column="7">
-             <widget class="QLabel" name="multiview">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>TextLabel</string>
+            <item row="2" column="3">
+             <widget class="QLabel" name="depthClip">
+              <property name="pixmap">
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>

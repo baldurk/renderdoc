@@ -152,6 +152,7 @@ DECL_VKFLAG_EXT(VkSurfaceCounter, EXT);
 DECL_VKFLAG_EXT(VkSurfaceTransform, KHR);
 DECL_VKFLAG_EXT(VkSwapchainCreate, KHR);
 DECL_VKFLAG_EMPTY_EXT(VkValidationCacheCreate, EXT);
+DECL_VKFLAG_EMPTY_EXT(VkPipelineRasterizationDepthClipStateCreate, EXT);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -447,6 +448,12 @@ SERIALISE_VK_HANDLES();
                VkDebugUtilsMessengerCallbackDataEXT)                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,                                \
                VkDebugUtilsMessengerCreateInfoEXT)                                                     \
+                                                                                                       \
+  /* VK_EXT_depth_clip_enable */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,                       \
+               VkPhysicalDeviceDepthClipEnableFeaturesEXT)                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT,              \
+               VkPipelineRasterizationDepthClipStateCreateInfoEXT)                                     \
                                                                                                        \
   /* VK_EXT_discard_rectangles */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT,                     \
@@ -820,10 +827,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT)                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT)                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT)                           \
-                                                                                                       \
-  /* VK_EXT_depth_clip_enable */                                                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT)         \
                                                                                                        \
   /* VK_EXT_descriptor_indexing */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT)             \
@@ -5155,6 +5158,40 @@ void Deserialise(const VkPipelineDiscardRectangleStateCreateInfoEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceDepthClipEnableFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(depthClipEnable);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceDepthClipEnableFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineRasterizationDepthClipStateCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineRasterizationDepthClipStateCreateFlagsEXT, flags);
+
+  SERIALISE_MEMBER(depthClipEnable);
+}
+
+template <>
+void Deserialise(const VkPipelineRasterizationDepthClipStateCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPipelineCreationFeedbackEXT &el)
 {
   SERIALISE_MEMBER(flags);
@@ -6436,6 +6473,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthStencilResolvePropertiesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthClipEnableFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDriverPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
@@ -6488,6 +6526,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineInputAssemblyStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineLayoutCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineMultisampleStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationDepthClipStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineRasterizationStateStreamCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineSampleLocationsStateCreateInfoEXT);

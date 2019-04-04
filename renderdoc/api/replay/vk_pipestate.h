@@ -655,9 +655,16 @@ struct Rasterizer
   Rasterizer(const Rasterizer &) = default;
 
   DOCUMENT(R"(``True`` if pixels outside of the near and far depth planes should be clamped and
-to ``0.0`` to ``1.0`` and not clipped.
+to ``0.0`` to ``1.0``.
 )");
   bool depthClampEnable = false;
+  DOCUMENT(R"(``True`` if pixels outside of the near and far depth planes should be clipped.
+
+.. note::
+  In Vulkan 1.0 this value was implicitly set to the opposite of :data:`depthClampEnable`, but with
+  later extensions & versions it can be set independently.
+)");
+  bool depthClipEnable = true;
   DOCUMENT("``True`` if primitives should be discarded during rasterization.");
   bool rasterizerDiscardEnable = false;
   DOCUMENT(R"(``True`` if counter-clockwise polygons are front-facing.

@@ -375,6 +375,18 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   if(rastStream)
     rasterizationStream = rastStream->rasterizationStream;
 
+  // VkPipelineRasterizationStateStreamCreateInfoEXT
+
+  // default to the opposite of depthClampEnable
+  depthClipEnable = !depthClampEnable;
+
+  const VkPipelineRasterizationDepthClipStateCreateInfoEXT *depthClipState =
+      (const VkPipelineRasterizationDepthClipStateCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pRasterizationState,
+          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT);
+  if(depthClipState)
+    depthClipEnable = depthClipState->depthClipEnable != VK_FALSE;
+
   // VkPipelineRasterizationConservativeStateCreateInfoEXT
   conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
   extraPrimitiveOverestimationSize = 0.0f;

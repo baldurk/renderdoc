@@ -676,6 +676,7 @@ void VulkanPipelineStateViewer::clearState()
     b->setEnabled(false);
 
   const QPixmap &tick = Pixmaps::tick(this);
+  const QPixmap &cross = Pixmaps::cross(this);
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -686,6 +687,7 @@ void VulkanPipelineStateViewer::clearState()
   ui->slopeScaledBias->setText(lit("0.0"));
 
   ui->depthClamp->setPixmap(tick);
+  ui->depthClip->setPixmap(cross);
   ui->rasterizerDiscard->setPixmap(tick);
   ui->lineWidth->setText(lit("1.0"));
 
@@ -2094,6 +2096,7 @@ void VulkanPipelineStateViewer::setState()
   ui->slopeScaledBias->setText(Formatter::Format(state.rasterizer.slopeScaledDepthBias));
 
   ui->depthClamp->setPixmap(state.rasterizer.depthClampEnable ? tick : cross);
+  ui->depthClip->setPixmap(state.rasterizer.depthClipEnable ? tick : cross);
   ui->rasterizerDiscard->setPixmap(state.rasterizer.rasterizerDiscardEnable ? tick : cross);
   ui->lineWidth->setText(Formatter::Format(state.rasterizer.lineWidth));
 
@@ -3164,9 +3167,15 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     xml.writeStartElement(lit("p"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(xml, {tr("Depth Clip Enable"), tr("Rasterizer Discard Enable")},
-                             {rs.depthClampEnable ? tr("Yes") : tr("No"),
-                              rs.rasterizerDiscardEnable ? tr("Yes") : tr("No")});
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Depth Clamp Enable"), tr("Depth Clip Enable"), tr("Rasterizer Discard Enable"),
+        },
+        {
+            rs.depthClampEnable ? tr("Yes") : tr("No"), rs.depthClipEnable ? tr("Yes") : tr("No"),
+            rs.rasterizerDiscardEnable ? tr("Yes") : tr("No"),
+        });
 
     xml.writeStartElement(lit("p"));
     xml.writeEndElement();

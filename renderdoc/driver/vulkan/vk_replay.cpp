@@ -1076,6 +1076,7 @@ void VulkanReplay::SavePipelineState()
 
     // Rasterizer
     m_VulkanPipelineState.rasterizer.depthClampEnable = p.depthClampEnable;
+    m_VulkanPipelineState.rasterizer.depthClipEnable = p.depthClipEnable;
     m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
     m_VulkanPipelineState.rasterizer.frontCCW = p.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
