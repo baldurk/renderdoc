@@ -284,8 +284,14 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
         state.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
         t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
         t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        ReplacePresentableImageLayout(state.newLayout);
         t.newLayout = state.newLayout;
+
+        // sanitise the new layout
+        ReplacePresentableImageLayout(state.newLayout);
+        if(t.newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          t.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        if(state.newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          state.newLayout = VK_IMAGE_LAYOUT_GENERAL;
         t.subresourceRange = state.subresourceRange;
         barriers.push_back(t);
         vec.push_back(std::make_pair(liveid, state));
