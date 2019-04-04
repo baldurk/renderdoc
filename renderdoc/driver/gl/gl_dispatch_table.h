@@ -993,6 +993,12 @@ void DisableGLHooks();
 #define EnableGLHooks() (void)0
 #endif
 
+#if ENABLED(RDOC_WIN32)
+void DisableWGLHooksForEGL();
+#else
+#define DisableWGLHooksForEGL() (void)0
+#endif
+
 // this function looks up our list of hook entry points and returns our hook entry point instead of
 // the real function, if it exists, or the real function if not. It's used in the platform-specific
 // implementations of GetProcAddress to look up the shared list of hooks.
