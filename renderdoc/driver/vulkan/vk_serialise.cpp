@@ -2511,7 +2511,7 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   else
     SERIALISE_MEMBER_EMPTY(basePipelineHandle);
 
-  SERIALISE_MEMBER_EMPTY(basePipelineIndex);
+  SERIALISE_MEMBER(basePipelineIndex);
 }
 
 template <>
