@@ -6352,6 +6352,8 @@ bool WrappedOpenGL::Serialise_glTextureFoveationParametersQCOM(SerialiserType &s
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glTextureFoveationParametersQCOM);
+
     GL.glTextureFoveationParametersQCOM(texture.name, layer, focalPoint, focalX, focalY, gainX,
                                         gainY, foveaArea);
 

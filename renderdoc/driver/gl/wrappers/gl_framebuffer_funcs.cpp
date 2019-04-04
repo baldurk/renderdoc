@@ -599,6 +599,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glFramebufferTexture2DMultisampleEXT);
+
     if(framebuffer.name == 0)
       framebuffer.name = m_CurrentDefaultFBO;
 
@@ -1137,6 +1139,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(SerialiserType &s
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glFramebufferTextureMultiviewOVR);
+
     GL.glFramebufferTextureMultiviewOVR(target, attachment, texture.name, level, baseViewIndex,
                                         numViews);
 
@@ -1253,6 +1257,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultisampleMultiviewOVR(
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glFramebufferTextureMultisampleMultiviewOVR);
+
     GL.glFramebufferTextureMultisampleMultiviewOVR(target, attachment, texture.name, level, samples,
                                                    baseViewIndex, numViews);
 
@@ -2403,6 +2409,10 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
 
   if(IsReplayingAndReading())
   {
+    // the DSA function is emulated if not present, but we need to check the underlying function is
+    // present
+    CheckReplayFunctionPresent(GL.glRenderbufferStorageMultisample);
+
     ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
@@ -2596,6 +2606,8 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glRenderbufferStorageMultisampleEXT);
+
     ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 

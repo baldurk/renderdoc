@@ -923,6 +923,8 @@ bool WrappedOpenGL::Serialise_glDepthBoundsEXT(SerialiserType &ser, GLclampd nea
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glDepthBoundsEXT);
+
     GL.glDepthBoundsEXT(nearVal, farVal);
   }
 
@@ -1418,6 +1420,8 @@ bool WrappedOpenGL::Serialise_glRasterSamplesEXT(SerialiserType &ser, GLuint sam
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glRasterSamplesEXT);
+
     GL.glRasterSamplesEXT(samples, fixedsamplelocations ? GL_TRUE : GL_FALSE);
   }
 
@@ -1915,6 +1919,8 @@ bool WrappedOpenGL::Serialise_glPolygonOffsetClamp(SerialiserType &ser, GLfloat 
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glPolygonOffsetClamp);
+
     GL.glPolygonOffsetClamp(factor, units, clamp);
   }
 
@@ -1953,6 +1959,8 @@ bool WrappedOpenGL::Serialise_glPrimitiveBoundingBox(SerialiserType &ser, GLfloa
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glPrimitiveBoundingBox);
+
     GL.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
   }
 

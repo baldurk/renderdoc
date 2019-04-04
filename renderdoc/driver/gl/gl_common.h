@@ -428,6 +428,16 @@ T CheckConstParam(T t);
 // Writing is unambiguously during capture mode, so we don't have to check both in that case.
 #define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
+// on GL we don't have an easy way of checking which functions/extensions were used or which
+// functions/extensions on replay could suffice. So we check at the last minute on replay and bail
+// out if it's not present
+#define CheckReplayFunctionPresent(func)                         \
+  if(func == NULL)                                               \
+  {                                                              \
+    m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported; \
+    return false;                                                \
+  }
+
 // no longer in glcorearb.h or glext.h
 const GLenum eGL_LIGHTING = (GLenum)0x0B50;
 const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;

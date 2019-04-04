@@ -308,6 +308,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glDispatchComputeGroupSizeARB);
+
     GL.glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z, group_size_x,
                                      group_size_y, group_size_z);
 
@@ -408,6 +410,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLi
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glDispatchComputeIndirect);
+
     GL.glDispatchComputeIndirect((GLintptr)offset);
 
     if(IsLoading(m_State))
@@ -1094,6 +1098,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glDrawArraysIndirect);
+
     if(Check_SafeDraw(false))
       GL.glDrawArraysIndirect(mode, (const void *)offset);
 
@@ -1397,6 +1403,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
 
   if(IsReplayingAndReading())
   {
+    CheckReplayFunctionPresent(GL.glDrawElementsIndirect);
+
     if(Check_SafeDraw(true))
       GL.glDrawElementsIndirect(mode, type, (const void *)offset);
 
@@ -2529,6 +2537,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
   {
     if(IsLoading(m_State))
     {
+      CheckReplayFunctionPresent(GL.glMultiDrawArraysIndirect);
+
       if(Check_SafeDraw(false))
         GL.glMultiDrawArraysIndirect(mode, (const void *)offset, drawcount, stride);
 
@@ -2743,6 +2753,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
   {
     if(IsLoading(m_State))
     {
+      CheckReplayFunctionPresent(GL.glMultiDrawElementsIndirect);
+
       GLRenderState state;
       state.FetchState(this);
 
@@ -2970,6 +2982,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
     if(IsLoading(m_State))
     {
+      CheckReplayFunctionPresent(GL.glMultiDrawArraysIndirectCount);
+
       if(Check_SafeDraw(false))
         GL.glMultiDrawArraysIndirectCount(mode, (const void *)offset, (GLintptr)drawcount,
                                           maxdrawcount, stride);
@@ -3196,6 +3210,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
     if(IsLoading(m_State))
     {
+      CheckReplayFunctionPresent(GL.glMultiDrawElementsIndirectCount);
+
       if(Check_SafeDraw(true))
         GL.glMultiDrawElementsIndirectCount(mode, type, (const void *)offset, (GLintptr)drawcount,
                                             maxdrawcount, stride);
