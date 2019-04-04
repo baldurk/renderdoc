@@ -139,9 +139,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   static const TestAPI API = TestAPI::Vulkan;
 
   VulkanGraphicsTest();
-  ~VulkanGraphicsTest();
 
   bool Init(int argc, char **argv);
+  void Shutdown();
   bool IsSupported();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
   VkResult CreateSurface(GraphicsWindow *win, VkSurfaceKHR *outSurf);

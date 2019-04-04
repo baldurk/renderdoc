@@ -451,6 +451,7 @@ Usage: %s Test_Name [test_options]
     {
       TEST_LOG("\n\n======\nRunning %s\n\n", test.Name);
       int ret = test.test->main(argc, argv);
+      test.test->Shutdown();
       return ret;
     }
   }

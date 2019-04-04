@@ -339,7 +339,7 @@ void D3D11GraphicsTest::PostDeviceCreate()
     dev1->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &opts1, sizeof(opts1));
 }
 
-D3D11GraphicsTest::~D3D11GraphicsTest()
+void D3D11GraphicsTest::Shutdown()
 {
   delete mainWindow;
 

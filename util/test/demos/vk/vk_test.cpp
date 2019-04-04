@@ -414,11 +414,8 @@ GraphicsWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char
 #endif
 }
 
-VulkanGraphicsTest::~VulkanGraphicsTest()
+void VulkanGraphicsTest::Shutdown()
 {
-  if(volkGetInstanceVersion() == 0)
-    return;
-
   vmaDestroyAllocator(allocator);
 
   if(device)

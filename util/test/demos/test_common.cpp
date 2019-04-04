@@ -406,6 +406,10 @@ bool GraphicsTest::Init(int argc, char **argv)
   return true;
 }
 
+void GraphicsTest::Shutdown()
+{
+}
+
 std::string GraphicsTest::GetDataPath(const std::string &filename)
 {
   return dataRoot + filename;

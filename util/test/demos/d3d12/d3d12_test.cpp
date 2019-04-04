@@ -407,11 +407,8 @@ bool D3D12GraphicsTest::IsSupported()
   return result;
 }
 
-D3D12GraphicsTest::~D3D12GraphicsTest()
+void D3D12GraphicsTest::Shutdown()
 {
-  if(dev == NULL)
-    return;
-
   GPUSync();
 
   infoqueue = NULL;

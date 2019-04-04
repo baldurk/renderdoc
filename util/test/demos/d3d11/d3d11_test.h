@@ -45,9 +45,8 @@ struct D3D11GraphicsTest : public GraphicsTest
 {
   static const TestAPI API = TestAPI::D3D11;
 
-  ~D3D11GraphicsTest();
-
   bool Init(int argc, char **argv);
+  void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
   bool IsSupported();
 

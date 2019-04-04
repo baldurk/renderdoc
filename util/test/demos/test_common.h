@@ -155,6 +155,7 @@ struct GraphicsTest
   virtual int main(int argc, char **argv) { return 9; }
   virtual bool IsSupported() { return false; }
   virtual bool Init(int argc, char **argv);
+  virtual void Shutdown();
 
   std::string GetDataPath(const std::string &filename);
 
