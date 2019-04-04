@@ -170,6 +170,7 @@
     <ClInclude Include="official\vulkan_ggp.h" />
     <ClInclude Include="official\vulkan_ios.h" />
     <ClInclude Include="official\vulkan_macos.h" />
+    <ClInclude Include="official\vulkan_metal.h" />
     <ClInclude Include="official\vulkan_vi.h" />
     <ClInclude Include="official\vulkan_wayland.h" />
     <ClInclude Include="official\vulkan_win32.h" />

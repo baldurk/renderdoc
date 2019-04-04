@@ -373,6 +373,7 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkGetDeviceGroupPeerMemoryFeaturesKHR GetDeviceGroupPeerMemoryFeaturesKHR;
     PFN_vkCmdSetDeviceMaskKHR CmdSetDeviceMaskKHR;
     PFN_vkCmdDispatchBaseKHR CmdDispatchBaseKHR;
+    PFN_vkGetDeviceGroupSurfacePresentModes2EXT GetDeviceGroupSurfacePresentModes2EXT;
 
     // ---- VK_KHR_maintenance1 extension commands
     PFN_vkTrimCommandPoolKHR TrimCommandPoolKHR;
@@ -465,6 +466,9 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdBeginQueryIndexedEXT CmdBeginQueryIndexedEXT;
     PFN_vkCmdEndQueryIndexedEXT CmdEndQueryIndexedEXT;
     PFN_vkCmdDrawIndirectByteCountEXT CmdDrawIndirectByteCountEXT;
+
+    // ---- VK_NVX_image_view_handle extension commands
+    PFN_vkGetImageViewHandleNVX GetImageViewHandleNVX;
 
     // ---- VK_AMD_draw_indirect_count extension commands
     PFN_vkCmdDrawIndirectCountAMD CmdDrawIndirectCountAMD;
@@ -581,8 +585,17 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdSetCheckpointNV CmdSetCheckpointNV;
     PFN_vkGetQueueCheckpointDataNV GetQueueCheckpointDataNV;
 
+    // ---- VK_AMD_display_native_hdr extension commands
+    PFN_vkSetLocalDimmingAMD SetLocalDimmingAMD;
+
     // ---- VK_EXT_buffer_device_address extension commands
     PFN_vkGetBufferDeviceAddressEXT GetBufferDeviceAddressEXT;
+
+    // ---- VK_NV_cooperative_matrix extension commands
+    PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV GetPhysicalDeviceCooperativeMatrixPropertiesNV;
+
+    // ---- VK_EXT_host_query_reset extension commands
+    PFN_vkResetQueryPoolEXT ResetQueryPoolEXT;
 } VkLayerDispatchTable;
 
 

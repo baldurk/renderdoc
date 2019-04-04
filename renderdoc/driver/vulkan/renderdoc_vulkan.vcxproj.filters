@@ -225,6 +225,9 @@
     <ClInclude Include="official\vulkan_ggp.h">
       <Filter>official</Filter>
     </ClInclude>
+    <ClInclude Include="official\vulkan_metal.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="OS">
