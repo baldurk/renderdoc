@@ -492,6 +492,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,                          \
                VkPhysicalDevicePCIBusInfoPropertiesEXT)                                                \
                                                                                                        \
+  /* VK_EXT_pipeline_creation_feedback */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO_EXT,                           \
+               VkPipelineCreationFeedbackCreateInfoEXT)                                                \
+                                                                                                       \
   /* VK_EXT_sampler_filter_minmax */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT,                 \
                VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT)                                       \
@@ -858,9 +862,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT)                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT)                    \
-                                                                                                       \
-  /* VK_EXT_pipeline_creation_feedback */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO_EXT)                      \
                                                                                                        \
   /* VK_EXT_ycbcr_image_arrays */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_IMAGE_ARRAYS_FEATURES_EXT)                 \
@@ -5154,6 +5155,33 @@ void Deserialise(const VkPipelineDiscardRectangleStateCreateInfoEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineCreationFeedbackEXT &el)
+{
+  SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(duration);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineCreationFeedbackCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_OPT(pPipelineCreationFeedback);
+  SERIALISE_MEMBER(pipelineStageCreationFeedbackCount);
+  SERIALISE_MEMBER_ARRAY(pPipelineStageCreationFeedbacks, pipelineStageCreationFeedbackCount);
+}
+
+template <>
+void Deserialise(const VkPipelineCreationFeedbackCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete el.pPipelineCreationFeedback;
+  delete[] el.pPipelineStageCreationFeedbacks;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDisplayPowerInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DISPLAY_POWER_INFO_EXT);
@@ -6451,6 +6479,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkanMemoryModelFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineCacheCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineCreationFeedbackCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineColorBlendStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineDepthStencilStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineDiscardRectangleStateCreateInfoEXT);
@@ -6558,6 +6587,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceLimits);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseProperties);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineCreationFeedbackEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineColorBlendAttachmentState);
 INSTANTIATE_SERIALISE_TYPE(VkPresentRegionKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPushConstantRange);

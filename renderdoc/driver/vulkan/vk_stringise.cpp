@@ -2437,6 +2437,18 @@ std::string DoStringise(const VkSubgroupFeatureFlagBits &el)
 }
 
 template <>
+std::string DoStringise(const VkPipelineCreationFeedbackFlagBitsEXT &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkPipelineCreationFeedbackFlagBitsEXT);
+  {
+    STRINGISE_BITFIELD_BIT(VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT)
+    STRINGISE_BITFIELD_BIT(VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT_EXT)
+    STRINGISE_BITFIELD_BIT(VK_PIPELINE_CREATION_FEEDBACK_BASE_PIPELINE_ACCELERATION_BIT_EXT)
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);
