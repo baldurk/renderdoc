@@ -391,14 +391,16 @@ bool VulkanGraphicsTest::IsSupported()
     return true;
 
   static bool glslcChecked = false;
+  static bool glslcSupported = false;
 
   if(!glslcChecked)
   {
-    static bool glslcSupported = SpvCompilationSupported();
-
-    if(!glslcSupported)
-      return false;
+    glslcChecked = true;
+    glslcSupported = SpvCompilationSupported();
   }
+
+  if(!glslcSupported)
+    return false;
 
   return volkInitialize() == VK_SUCCESS;
 }
