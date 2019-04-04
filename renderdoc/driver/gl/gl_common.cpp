@@ -1731,6 +1731,11 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_RG11_EAC:
       case eGL_COMPRESSED_SIGNED_RG11_EAC: ret.compCount = 2; break;
 
+      case eGL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT:
+      case eGL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT: ret.compCount = 3; break;
+      case eGL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT:
+      case eGL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT: ret.compCount = 4; break;
+
       case eGL_ETC1_RGB8_OES:
       case eGL_COMPRESSED_RGB8_ETC2:
       case eGL_COMPRESSED_SRGB8_ETC2: ret.compCount = 3; break;
@@ -1852,7 +1857,14 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR: ret.type = ResourceFormatType::ASTC; break;
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+        ret.type = ResourceFormatType::ASTC;
+        break;
+      // PVRTC
+      case eGL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT:
+      case eGL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT:
+      case eGL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT:
+      case eGL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT: ret.type = ResourceFormatType::PVRTC; break;
       default: RDCERR("Unexpected compressed format %#x", fmt); break;
     }
 
@@ -2086,6 +2098,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
       case ResourceFormatType::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
       case ResourceFormatType::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
       case ResourceFormatType::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
+      case ResourceFormatType::PVRTC: RDCERR("PVRTC can't be decoded unambiguously"); break;
       case ResourceFormatType::S8: ret = eGL_STENCIL_INDEX8; break;
       case ResourceFormatType::Undefined: return eGL_NONE;
       default: RDCERR("Unsupported resource format type %u", fmt.type); break;
@@ -2512,6 +2525,10 @@ TEST_CASE("GL formats", "[format][gl]")
       eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR,
       eGL_COMPRESSED_RGBA_ASTC_12x12_KHR,
       eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR,
+      eGL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT,
+      eGL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT,
+      eGL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT,
+      eGL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT,
   };
 
   // we use our emulated queries for the format, as we don't want to init a context here, and anyway
@@ -2542,8 +2559,8 @@ TEST_CASE("GL formats", "[format][gl]")
 
       ResourceFormat fmt = MakeResourceFormat(eGL_TEXTURE_2D, f);
 
-      // we don't support ASTC formats currently
-      if(fmt.type == ResourceFormatType::ASTC)
+      // we don't support ASTC/PVRTC formats currently
+      if(fmt.type == ResourceFormatType::ASTC || fmt.type == ResourceFormatType::PVRTC)
         continue;
 
       GLenum glf = MakeGLFormat(fmt);
