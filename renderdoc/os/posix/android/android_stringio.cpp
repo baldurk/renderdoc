@@ -138,7 +138,7 @@ uint64_t GetMachineIdent()
 {
   uint64_t ret = MachineIdent_Android;
 
-#if defined(_M_ARM) || defined(__arm__)
+#if defined(_M_ARM) || defined(__arm__) || defined(__aarch64__)
   ret |= MachineIdent_Arch_ARM;
 #else
   ret |= MachineIdent_Arch_x86;
