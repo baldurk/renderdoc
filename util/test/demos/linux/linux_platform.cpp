@@ -43,5 +43,9 @@ std::string GetCWD()
 
 std::string GetEnvVar(const char *var)
 {
-  return getenv(var);
+  const char *data = getenv(var);
+  if(data)
+    return data;
+
+  return "";
 }
