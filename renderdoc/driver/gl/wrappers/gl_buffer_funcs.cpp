@@ -2410,7 +2410,8 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 
   // note that we only want to flush the range with GL if we've actually
   // mapped it. Otherwise the map is 'virtual' and just pointing to our backing store data
-  if(record && record->Map.status == GLResourceRecord::Mapped_Direct)
+  if(record && record->Map.status == GLResourceRecord::Mapped_Direct &&
+     gl_CurChunk != GLChunk::CoherentMapWrite)
   {
     GL.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
   }
