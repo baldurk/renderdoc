@@ -370,7 +370,8 @@
   DeclExt(EXT_conditional_rendering);           \
   DeclExt(EXT_sample_locations);                \
   DeclExt(EXT_discard_rectangles);              \
-  DeclExt(EXT_calibrated_timestamps);
+  DeclExt(EXT_calibrated_timestamps);           \
+  DeclExt(EXT_host_query_reset);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -442,7 +443,8 @@
   CheckExt(EXT_conditional_rendering, VKXX);      \
   CheckExt(EXT_sample_locations, VKXX);           \
   CheckExt(EXT_discard_rectangles, VKXX);         \
-  CheckExt(EXT_calibrated_timestamps, VKXX);
+  CheckExt(EXT_calibrated_timestamps, VKXX);      \
+  CheckExt(EXT_host_query_reset, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -576,6 +578,7 @@
   HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                               \
   HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                            \
   HookInitExtension(EXT_calibrated_timestamps, GetCalibratedTimestampsEXT);                        \
+  HookInitExtension(EXT_host_query_reset, ResetQueryPoolEXT);                                      \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1144,6 +1147,8 @@
   HookDefine5(VkResult, vkGetCalibratedTimestampsEXT, VkDevice, device, uint32_t, timestampCount,    \
               const VkCalibratedTimestampInfoEXT *, pTimestampInfos, uint64_t *, pTimestamps,        \
               uint64_t *, pMaxDeviation);                                                            \
+  HookDefine4(void, vkResetQueryPoolEXT, VkDevice, device, VkQueryPool, queryPool, uint32_t,         \
+              firstQuery, uint32_t, queryCount);                                                     \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

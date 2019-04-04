@@ -528,6 +528,7 @@ enum class VulkanChunk : uint32_t
   vkCmdSetSampleLocationsEXT,
   vkCmdSetDiscardRectangleEXT,
   DeviceMemoryRefs,
+  vkResetQueryPoolEXT,
   Max,
 };
 
@@ -702,6 +703,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFloatControlsPropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceGroupProperties);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceHostQueryResetFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceIDProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance3Properties);
@@ -919,6 +921,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFeatures2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance3Properties);

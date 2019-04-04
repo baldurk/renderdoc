@@ -1287,6 +1287,48 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
 }
 
 template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkResetQueryPoolEXT(SerialiserType &ser, VkDevice device,
+                                                  VkQueryPool queryPool, uint32_t firstQuery,
+                                                  uint32_t queryCount)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(queryPool);
+  SERIALISE_ELEMENT(firstQuery);
+  SERIALISE_ELEMENT(queryCount);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ObjDisp(device)->ResetQueryPoolEXT(Unwrap(device), Unwrap(queryPool), firstQuery, queryCount);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkResetQueryPoolEXT(VkDevice device, VkQueryPool queryPool, uint32_t firstQuery,
+                                        uint32_t queryCount)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(device)->ResetQueryPoolEXT(Unwrap(device), Unwrap(queryPool),
+                                                         firstQuery, queryCount));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkResetQueryPoolEXT);
+    Serialise_vkResetQueryPoolEXT(ser, device, queryPool, firstQuery, queryCount);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
+  }
+}
+
+template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversion(
     SerialiserType &ser, VkDevice device, const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversion *pYcbcrConversion)
@@ -1985,3 +2027,6 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevi
                                 const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator,
                                 VkSamplerYcbcrConversion *pYcbcrConversion);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkResetQueryPoolEXT, VkDevice device,
+                                VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount);

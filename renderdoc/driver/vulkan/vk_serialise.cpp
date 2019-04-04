@@ -475,6 +475,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,                         \
                VkDeviceQueueGlobalPriorityCreateInfoEXT)                                               \
                                                                                                        \
+  /* VK_EXT_host_query_reset */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT,                        \
+               VkPhysicalDeviceHostQueryResetFeaturesEXT)                                              \
+                                                                                                       \
   /* VK_EXT_memory_budget */                                                                           \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,                         \
                VkPhysicalDeviceMemoryBudgetPropertiesEXT)                                              \
@@ -831,9 +835,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_hdr_metadata */                                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HDR_METADATA_EXT)                                                \
-                                                                                                       \
-  /* VK_EXT_host_query_reset */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT)                   \
                                                                                                        \
   /* VK_EXT_image_drm_format_modifier */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT)                         \
@@ -3926,6 +3927,22 @@ void Deserialise(const VkPhysicalDeviceFragmentDensityMapFeaturesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceHostQueryResetFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(hostQueryReset);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceHostQueryResetFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapPropertiesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -6401,6 +6418,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFeatures2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMaintenance3Properties);

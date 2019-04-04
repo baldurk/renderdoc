@@ -2020,4 +2020,9 @@ public:
   VkResult vkGetCalibratedTimestampsEXT(VkDevice device, uint32_t timestampCount,
                                         const VkCalibratedTimestampInfoEXT *pTimestampInfos,
                                         uint64_t *pTimestamps, uint64_t *pMaxDeviation);
+
+  // VK_EXT_host_query_reset
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkResetQueryPoolEXT, VkDevice device, VkQueryPool queryPool,
+                                uint32_t firstQuery, uint32_t queryCount);
 };

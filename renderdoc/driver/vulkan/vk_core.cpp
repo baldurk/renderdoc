@@ -679,6 +679,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME, VK_EXT_GLOBAL_PRIORITY_SPEC_VERSION,
     },
     {
+        VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME, VK_EXT_HOST_QUERY_RESET_SPEC_VERSION,
+    },
+    {
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_BUDGET_SPEC_VERSION,
     },
     {
@@ -2850,6 +2853,9 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       std::vector<MemRefInterval> data;
       return GetResourceManager()->Serialise_DeviceMemoryRefs(ser, data);
     }
+    case VulkanChunk::vkResetQueryPoolEXT:
+      return Serialise_vkResetQueryPoolEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+      break;
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
