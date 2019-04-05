@@ -521,6 +521,9 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       0,                 // base pipeline index
   };
 
+  // never create derivatives
+  ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+
   pipeCreateInfo = ret;
 }
 
@@ -590,6 +593,9 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };
+
+  // never create derivatives
+  ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 
   pipeCreateInfo = ret;
 }
