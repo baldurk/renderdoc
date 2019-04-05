@@ -1239,6 +1239,16 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     AddRequiredExtensions(false, Extensions, supportedExtensions);
 
+    for(size_t i = 0; i < Extensions.size(); i++)
+    {
+      if(supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
+      {
+        m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+        RDCERR("Capture requires extension '%s' which is not supported", Extensions[i].c_str());
+        return false;
+      }
+    }
+
     // enable VK_EXT_debug_marker if it's available, to replay markers to the driver/any other
     // layers that might be listening
     if(supportedExtensions.find(VK_EXT_DEBUG_MARKER_EXTENSION_NAME) != supportedExtensions.end())
@@ -1278,10 +1288,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_MVK_moltenvk");
     }
 
+    bool xfb = false;
+
     // enable VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME if it's available, to fetch mesh output in
     // tessellation/geometry stages
     if(supportedExtensions.find(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME) != supportedExtensions.end())
     {
+      xfb = true;
       Extensions.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
       RDCLOG("Enabling VK_EXT_transform_feedback extension");
     }
@@ -1303,42 +1316,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCWARN(
           "VK_EXT_buffer_device_address not available, feedback from "
           "bindless shader access will use less reliable fallback");
-    }
-
-    createInfo.enabledLayerCount = (uint32_t)Layers.size();
-
-    const char **layerArray = NULL;
-    if(!Layers.empty())
-    {
-      layerArray = new const char *[createInfo.enabledLayerCount];
-
-      for(uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
-        layerArray[i] = Layers[i].c_str();
-
-      createInfo.ppEnabledLayerNames = layerArray;
-    }
-
-    createInfo.enabledExtensionCount = (uint32_t)Extensions.size();
-
-    const char **extArray = NULL;
-    if(!Extensions.empty())
-    {
-      extArray = new const char *[createInfo.enabledExtensionCount];
-
-      for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
-      {
-        if(supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
-        {
-          m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
-          RDCERR("Capture requires extension '%s' which is not supported", Extensions[i].c_str());
-          SAFE_DELETE_ARRAY(extArray);
-          return false;
-        }
-
-        extArray[i] = Extensions[i].c_str();
-      }
-
-      createInfo.ppEnabledExtensionNames = extArray;
     }
 
     VkDevice device;
@@ -2073,8 +2050,65 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     SAFE_DELETE_ARRAY(exts);
 
-    // PORTABILITY check that extensions and layers supported in capture (from createInfo) are
-    // supported in replay
+    VkPhysicalDeviceTransformFeedbackFeaturesEXT xfbFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,
+    };
+
+    // if we're enabling XFB, make sure we can enable the physical device feature
+    if(xfb)
+    {
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      availBase.pNext = &xfbFeatures;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
+
+      if(xfbFeatures.transformFeedback)
+      {
+        // see if there's an existing struct
+        VkPhysicalDeviceTransformFeedbackFeaturesEXT *existing =
+            (VkPhysicalDeviceTransformFeedbackFeaturesEXT *)FindNextStruct(
+                &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT);
+
+        if(existing)
+        {
+          // if so, make sure the feature is enabled
+          existing->transformFeedback = VK_TRUE;
+        }
+        else
+        {
+          // otherwise, add our own, and push it onto the pNext array
+          xfbFeatures.transformFeedback = VK_TRUE;
+          xfbFeatures.geometryStreams = VK_FALSE;
+
+          xfbFeatures.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &xfbFeatures;
+        }
+      }
+      else
+      {
+        RDCWARN(
+            "VK_EXT_transform_feedback is available, but the physical device feature is not. "
+            "Disabling");
+
+        auto it = std::find(Extensions.begin(), Extensions.end(),
+                            VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
+        RDCASSERT(it != Extensions.end());
+        Extensions.erase(it);
+      }
+    }
+
+    std::vector<const char *> layerArray(Layers.size());
+    for(size_t i = 0; i < Layers.size(); i++)
+      layerArray[i] = Layers[i].c_str();
+
+    createInfo.enabledLayerCount = (uint32_t)layerArray.size();
+    createInfo.ppEnabledLayerNames = layerArray.data();
+
+    std::vector<const char *> extArray(Extensions.size());
+    for(size_t i = 0; i < Extensions.size(); i++)
+      extArray[i] = Extensions[i].c_str();
+
+    createInfo.enabledExtensionCount = (uint32_t)extArray.size();
+    createInfo.ppEnabledExtensionNames = extArray.data();
 
     vkr = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL,
                                                      &device);
@@ -2213,9 +2247,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     m_DebugManager = new VulkanDebugManager(this);
 
     m_Replay.CreateResources();
-
-    SAFE_DELETE_ARRAY(layerArray);
-    SAFE_DELETE_ARRAY(extArray);
   }
 
   return true;
