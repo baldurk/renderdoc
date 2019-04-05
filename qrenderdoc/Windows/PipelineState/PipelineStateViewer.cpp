@@ -1362,8 +1362,17 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
       format += QString::number(fmt.compCount);
     }
 
-    format +=
-        QFormatStr(" %1;\n").arg(QString(attrs[i].name).replace(QLatin1Char('.'), QLatin1Char('_')));
+    QString real_name = QString(attrs[i].name);
+    QString sanitised_name = real_name;
+
+    sanitised_name.replace(QLatin1Char('.'), QLatin1Char('_'))
+        .replace(QLatin1Char('['), QLatin1Char('_'))
+        .replace(QLatin1Char(']'), QLatin1Char('_'));
+
+    if(real_name == sanitised_name)
+      format += QFormatStr(" %1;\n").arg(sanitised_name);
+    else
+      format += QFormatStr(" %1; // %2\n").arg(sanitised_name).arg(real_name);
   }
 
   if(stride > 0)
