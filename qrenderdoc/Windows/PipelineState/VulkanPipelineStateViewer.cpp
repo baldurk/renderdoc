@@ -1500,6 +1500,16 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   resources->hideColumn(0);
   ubos->hideColumn(0);
 
+  // generate expansion key from columns 1 (set) and 2 (binding)
+  auto bindsetKeygen = [](QModelIndex idx, uint seed) {
+    int row = idx.row();
+    QString combined = idx.sibling(row, 1).data().toString() + idx.sibling(row, 2).data().toString();
+    return qHash(combined, seed);
+  };
+
+  RDTreeViewExpansionState expansion;
+  resources->saveExpansion(expansion, bindsetKeygen);
+
   vs = resources->verticalScrollBar()->value();
   resources->beginUpdate();
   resources->clear();
@@ -1583,6 +1593,10 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   resources->endUpdate();
   resources->verticalScrollBar()->setValue(vs);
 
+  resources->applyExpansion(expansion, bindsetKeygen);
+
+  ubos->saveExpansion(expansion, bindsetKeygen);
+
   vs = ubos->verticalScrollBar()->value();
   ubos->beginUpdate();
   ubos->clear();
@@ -1656,6 +1670,8 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   ubos->clearSelection();
   ubos->endUpdate();
   ubos->verticalScrollBar()->setValue(vs);
+
+  ubos->applyExpansion(expansion, bindsetKeygen);
 }
 
 void VulkanPipelineStateViewer::setState()
