@@ -67,6 +67,8 @@ protected:
   void sendListenerEvent(QMouseEvent *e);
 };
 
+typedef std::function<uint(QModelIndex, uint)> ExpansionKeyGen;
+
 class RDTreeView : public QTreeView
 {
   Q_OBJECT
@@ -88,39 +90,34 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
-  void saveInternalExpansion(uint key, int keyColumn, int role = Qt::DisplayRole);
-  bool hasInternalExpansion(uint key);
-  void applyInternalExpansion(uint key, int keyColumn, int role = Qt::DisplayRole);
-  void clearInternalExpansions();
+  // state is the storage to save the expansion state into
+  // keygen is a function that will take the index of a row and a previous hash, and return the hash
+  //   for that row.
+  void saveExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen);
+  void applyExpansion(const RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen);
 
-  void saveExpansionExternal(RDTreeViewExpansionState &state, uint key, int keyColumn,
-                             int role = Qt::DisplayRole);
-  void applyExternalExpansion(const RDTreeViewExpansionState &state, uint key, int keyColumn,
-                              int role = Qt::DisplayRole);
-
-  // convenience overloads taking a string as a key that just hashes the string
-  void saveInternalExpansion(QString keystring, int keyColumn, int role = Qt::DisplayRole)
+  // convenience overloads for the simple case of using a single column's data as hash
+  void saveExpansion(RDTreeViewExpansionState &state, int keyColumn, int keyRole = Qt::DisplayRole)
   {
-    saveInternalExpansion(qHash(keystring), keyColumn, role);
+    saveExpansion(state, [keyColumn, keyRole](QModelIndex idx, uint seed) {
+      return qHash(idx.sibling(idx.row(), keyColumn).data(keyRole).toString(), seed);
+    });
+  }
+  void applyExpansion(const RDTreeViewExpansionState &state, int keyColumn,
+                      int keyRole = Qt::DisplayRole)
+  {
+    applyExpansion(state, [keyColumn, keyRole](QModelIndex idx, uint seed) {
+      return qHash(idx.sibling(idx.row(), keyColumn).data(keyRole).toString(), seed);
+    });
   }
 
-  bool hasInternalExpansion(QString keystring) { return hasInternalExpansion(qHash(keystring)); }
-  void applyInternalExpansion(QString keystring, int keyColumn, int role = Qt::DisplayRole)
+  // Internally tracked expansions
+  RDTreeViewExpansionState &getInternalExpansion(uint expansionID)
   {
-    applyInternalExpansion(qHash(keystring), keyColumn, role);
+    return m_Expansions[expansionID];
   }
-
-  void saveExpansionExternal(RDTreeViewExpansionState &state, QString keystring, int keyColumn,
-                             int role = Qt::DisplayRole)
-  {
-    saveExpansionExternal(state, qHash(keystring), keyColumn, role);
-  }
-  void applyExternalExpansion(const RDTreeViewExpansionState &state, QString keystring,
-                              int keyColumn, int role = Qt::DisplayRole)
-  {
-    applyExternalExpansion(state, qHash(keystring), keyColumn, role);
-  }
-
+  bool hasInternalExpansion(uint expansionID) { return m_Expansions.contains(expansionID); }
+  void clearInternalExpansions() { m_Expansions.clear(); }
 signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
@@ -148,10 +145,10 @@ private:
 
   QMap<uint, RDTreeViewExpansionState> m_Expansions;
 
-  void saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx, uint seed, int keyColumn,
-                     int role);
-  void applyExpansion(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                      int keyColumn, int role);
+  void saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                            const ExpansionKeyGen &keygen);
+  void applyExpansionToRow(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                           const ExpansionKeyGen &keygen);
 
   QAbstractItemDelegate *m_userDelegate = NULL;
   RDTreeViewDelegate *m_delegate;

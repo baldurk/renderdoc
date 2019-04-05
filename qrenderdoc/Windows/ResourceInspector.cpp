@@ -202,7 +202,7 @@ void ResourceInspector::Inspect(ResourceId id)
     return;
 
   if(m_Resource != ResourceId())
-    ui->initChunks->saveInternalExpansion(ToQStr(m_Resource), 0);
+    ui->initChunks->saveExpansion(ui->initChunks->getInternalExpansion(qHash(ToQStr(m_Resource))), 0);
 
   m_Resource = id;
 
@@ -330,7 +330,8 @@ void ResourceInspector::Inspect(ResourceId id)
   ui->initChunks->setUpdatesEnabled(true);
 
   if(m_Resource != ResourceId())
-    ui->initChunks->applyInternalExpansion(ToQStr(m_Resource), 0);
+    ui->initChunks->applyExpansion(ui->initChunks->getInternalExpansion(qHash(ToQStr(m_Resource))),
+                                   0);
 }
 
 void ResourceInspector::OnCaptureLoaded()

@@ -112,15 +112,16 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
 
   updateLabels();
 
-  if(m_formatOverride.empty())
-  {
-    // stage, slot, and array index are all invariant across a given ConstantBufferPreviewer
-    // instance. We only need to use the actual bound shader as a key.
-    ui->variables->saveInternalExpansion(ToQStr(prevShader), 0);
-  }
-
   if(reflection == NULL || m_slot >= reflection->constantBlocks.size())
   {
+    // save expansion before clearing
+    if(m_formatOverride.empty())
+    {
+      RDTreeViewExpansionState &prevShaderExpansionState =
+          ui->variables->getInternalExpansion(qHash(ToQStr(prevShader)));
+      ui->variables->saveExpansion(prevShaderExpansionState, 0);
+    }
+
     setVariables({});
     return;
   }
@@ -132,30 +133,30 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
       rdcarray<ShaderVariable> vars = applyFormatOverride(data);
       GUIInvoke::call(this, [this, vars, wasEmpty] {
         RDTreeViewExpansionState state;
-        ui->variables->saveExpansionExternal(state, 0, 0);
+        ui->variables->saveExpansion(state, 0);
         setVariables(vars);
         if(wasEmpty)
         {
           for(int i = 0; i < 3; i++)
             ui->variables->resizeColumnToContents(i);
         }
-        ui->variables->applyExternalExpansion(state, 0, 0);
+        ui->variables->applyExpansion(state, 0);
       });
     });
   }
   else
   {
-    m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs, wasEmpty](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, prevShader, entryPoint, offs, wasEmpty](IReplayController *r) {
       rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
           m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
-      GUIInvoke::call(this, [this, vars, wasEmpty] {
+      GUIInvoke::call(this, [this, prevShader, vars, wasEmpty] {
 
-        // save this state to reapply if we don't already have an internal expansion for the new
-        // shader, since this means two shaders with the same or similar constants will preserve
-        // expansion across selections.
-        RDTreeViewExpansionState state;
-        if(!ui->variables->hasInternalExpansion(ToQStr(m_shader)))
-          ui->variables->saveExpansionExternal(state, 0, 0);
+        RDTreeViewExpansionState &prevShaderExpansionState =
+            ui->variables->getInternalExpansion(qHash(ToQStr(prevShader)));
+
+        // stage, slot, and array index are all invariant across a given ConstantBufferPreviewer
+        // instance. We only need to use the actual bound shader as a key.
+        ui->variables->saveExpansion(prevShaderExpansionState, 0);
 
         setVariables(vars);
         if(wasEmpty)
@@ -164,10 +165,14 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
             ui->variables->resizeColumnToContents(i);
         }
 
-        if(ui->variables->hasInternalExpansion(ToQStr(m_shader)))
-          ui->variables->applyInternalExpansion(ToQStr(m_shader), 0);
+        // if we have saved expansion state for the new shader, apply it, otherwise apply the
+        // previous one to get any overlap (e.g. two different shaders with very similar or
+        // identical constants)
+        if(ui->variables->hasInternalExpansion(qHash(ToQStr(m_shader))))
+          ui->variables->applyExpansion(
+              ui->variables->getInternalExpansion(qHash(ToQStr(m_shader))), 0);
         else
-          ui->variables->applyExternalExpansion(state, 0, 0);
+          ui->variables->applyExpansion(prevShaderExpansionState, 0);
       });
     });
   }

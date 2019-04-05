@@ -223,58 +223,32 @@ QAbstractItemDelegate *RDTreeView::itemDelegate() const
   return m_userDelegate;
 }
 
-void RDTreeView::saveInternalExpansion(uint key, int keyColumn, int role)
-{
-  RDTreeViewExpansionState &state = m_Expansions[key];
-
-  saveExpansionExternal(state, key, keyColumn, role);
-}
-
-bool RDTreeView::hasInternalExpansion(uint key)
-{
-  return m_Expansions.contains(key);
-}
-
-void RDTreeView::applyInternalExpansion(uint key, int keyColumn, int role)
-{
-  RDTreeViewExpansionState &state = m_Expansions[key];
-
-  applyExternalExpansion(state, key, keyColumn, role);
-}
-
 void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
 {
   m_currentHoverIndex = QModelIndex();
 }
 
-void RDTreeView::clearInternalExpansions()
-{
-  m_Expansions.clear();
-}
-
-void RDTreeView::saveExpansionExternal(RDTreeViewExpansionState &state, uint key, int keyColumn,
-                                       int role)
+void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
 {
   state.clear();
 
   for(int i = 0; i < model()->rowCount(); i++)
-    saveExpansion(state, model()->index(i, keyColumn), key, keyColumn, role);
+    saveExpansionFromRow(state, model()->index(i, 0), 0, keygen);
 }
 
-void RDTreeView::applyExternalExpansion(const RDTreeViewExpansionState &state, uint key,
-                                        int keyColumn, int role)
+void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
 {
   for(int i = 0; i < model()->rowCount(); i++)
-    applyExpansion(state, model()->index(i, keyColumn), key, keyColumn, role);
+    applyExpansionToRow(state, model()->index(i, 0), 0, keygen);
 }
 
-void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                               int keyColumn, int role)
+void RDTreeView::saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                                      const ExpansionKeyGen &keygen)
 {
   if(!idx.isValid())
     return;
 
-  uint key = qHash(model()->data(idx, role).toString(), seed);
+  uint key = keygen(idx, seed);
   if(isExpanded(idx))
   {
     state.insert(key);
@@ -283,24 +257,24 @@ void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, QModelIndex idx,
     // branches. Technically we're losing information here but it allows us to skip a full expensive
     // search
     for(int i = 0; i < model()->rowCount(idx); i++)
-      saveExpansion(state, model()->index(i, keyColumn, idx), key, keyColumn, role);
+      saveExpansionFromRow(state, model()->index(i, 0, idx), seed, keygen);
   }
 }
 
-void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                                int keyColumn, int role)
+void RDTreeView::applyExpansionToRow(const RDTreeViewExpansionState &state, QModelIndex idx,
+                                     uint seed, const ExpansionKeyGen &keygen)
 {
   if(!idx.isValid())
     return;
 
-  uint key = qHash(model()->data(idx, role).toString(), seed);
+  uint key = keygen(idx, seed);
   if(state.contains(key))
   {
     expand(idx);
 
     // same as above - only recurse when we have a parent that's expanded.
     for(int i = 0; i < model()->rowCount(idx); i++)
-      applyExpansion(state, model()->index(i, keyColumn, idx), key, keyColumn, role);
+      applyExpansionToRow(state, model()->index(i, 0, idx), seed, keygen);
   }
 }
 
