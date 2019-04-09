@@ -338,6 +338,7 @@ static bool erase_item(std::vector<T> &vec, const T &elem)
 }
 
 struct SPVInstruction;
+struct SPVConstant;
 
 struct SPVDecoration
 {
@@ -476,60 +477,7 @@ struct SPVTypeData
 
   bool IsBasicInt() const { return type == eUInt || type == eSInt; }
   bool IsScalar() const { return type < eBasicCount && type != eVoid; }
-  string DeclareVariable(const vector<SPVDecoration> &vardecorations, const string &varName)
-  {
-    string ret = "";
-
-    const SPVDecoration *builtin = NULL;
-
-    for(size_t d = 0; d < vardecorations.size(); d++)
-    {
-      if(vardecorations[d].decoration == spv::DecorationBuiltIn)
-      {
-        builtin = &vardecorations[d];
-        continue;
-      }
-      string decorationStr = vardecorations[d].Str();
-      if(!decorationStr.empty())
-        ret += decorationStr + " ";
-    }
-
-    if(type == ePointer && baseType->type == eArray)
-    {
-      if(baseType->arraySize != ~0U)
-        ret += StringFormat::Fmt("%s* %s[%u]", baseType->baseType->GetName().c_str(),
-                                 varName.c_str(), baseType->arraySize);
-      else
-        ret += StringFormat::Fmt("%s* %s[]", baseType->baseType->GetName().c_str(), varName.c_str());
-    }
-    else if(type == eArray)
-    {
-      std::string arraySuffix;
-
-      SPVTypeData *eltype = baseType;
-      while(eltype->type == eArray)
-      {
-        arraySuffix += StringFormat::Fmt("[%u]", eltype->arraySize);
-        eltype = eltype->baseType;
-      }
-
-      if(arraySize != ~0U)
-        ret += StringFormat::Fmt("%s %s[%u]%s", eltype->GetName().c_str(), varName.c_str(),
-                                 arraySize, arraySuffix.c_str());
-      else
-        ret += StringFormat::Fmt("%s %s[]%s", eltype->GetName().c_str(), varName.c_str(),
-                                 arraySuffix.c_str());
-    }
-    else
-    {
-      ret += StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
-    }
-
-    if(builtin)
-      ret += " = " + ToStr((spv::BuiltIn)builtin->val);
-
-    return ret;
-  }
+  string DeclareVariable(const vector<SPVDecoration> &vardecorations, const string &varName);
 
   const string &GetName()
   {
@@ -668,6 +616,9 @@ struct SPVTypeData
   vector<pair<SPVTypeData *, string> > children;
   vector<vector<SPVDecoration> > childDecorations;    // matches children
 
+  // array
+  SPVConstant *arraySizeConst = NULL;
+
   // pointer
   spv::StorageClass storage;
 
@@ -782,6 +733,38 @@ struct SPVConstant
 
   vector<SPVConstant *> children;
 
+  uint32_t EvaluateIntValue()
+  {
+    if(specOp != spv::OpNop)
+    {
+      switch(specOp)
+      {
+        case spv::OpIAdd:
+          if(children.size() == 2)
+            return children[0]->EvaluateIntValue() + children[1]->EvaluateIntValue();
+          break;
+        case spv::OpISub:
+          if(children.size() == 2)
+            return children[0]->EvaluateIntValue() - children[1]->EvaluateIntValue();
+          break;
+        case spv::OpIMul:
+          if(children.size() == 2)
+            return children[0]->EvaluateIntValue() * children[1]->EvaluateIntValue();
+          break;
+        case spv::OpUDiv:
+        case spv::OpSDiv:
+          if(children.size() == 2)
+            return children[0]->EvaluateIntValue() / children[1]->EvaluateIntValue();
+          break;
+        default: break;
+      }
+
+      RDCERR("Unhandled spec constant op %s", ToStr(specOp).c_str());
+    }
+
+    return u32;
+  }
+
   string GetValString()
   {
     RDCASSERT(children.empty());
@@ -827,6 +810,43 @@ struct SPVConstant
 
   string GetIDName()
   {
+    if((specOp == spv::OpIAdd || specOp == spv::OpFAdd) && children.size() == 2)
+    {
+      return StringFormat::Fmt("(%s + %s)", children[0]->GetIDName().c_str(),
+                               children[1]->GetIDName().c_str());
+    }
+    else if((specOp == spv::OpISub || specOp == spv::OpFSub) && children.size() == 2)
+    {
+      return StringFormat::Fmt("(%s - %s)", children[0]->GetIDName().c_str(),
+                               children[1]->GetIDName().c_str());
+    }
+    else if((specOp == spv::OpIMul || specOp == spv::OpFMul) && children.size() == 2)
+    {
+      return StringFormat::Fmt("(%s * %s)", children[0]->GetIDName().c_str(),
+                               children[1]->GetIDName().c_str());
+    }
+    else if((specOp == spv::OpUDiv || specOp == spv::OpSDiv || specOp == spv::OpFDiv) &&
+            children.size() == 2)
+    {
+      return StringFormat::Fmt("(%s / %s)", children[0]->GetIDName().c_str(),
+                               children[1]->GetIDName().c_str());
+    }
+    else if(specOp != spv::OpNop)
+    {
+      string ret = StringFormat::Fmt("SpecOp%s(", ToStr(specOp).c_str());
+
+      for(size_t i = 0; i < children.size(); i++)
+      {
+        if(i != 0)
+          ret += ", ";
+
+        ret += children[i]->GetIDName();
+      }
+
+      ret += ")";
+      return ret;
+    }
+
     if(type->IsScalar())
     {
       return GetValString();
@@ -1018,22 +1038,8 @@ struct SPVInstruction
       case spv::OpSpecConstant:
       case spv::OpSpecConstantTrue:
       case spv::OpSpecConstantFalse:
-      case spv::OpSpecConstantComposite: return GetIDName();
-      case spv::OpSpecConstantOp:
-      {
-        string ret = StringFormat::Fmt("SpecOp%s(", ToStr(constant->specOp).c_str());
-
-        for(size_t i = 0; i < constant->children.size(); i++)
-        {
-          if(i != 0)
-            ret += ", ";
-
-          ret += constant->children[i]->GetIDName();
-        }
-
-        ret += ")";
-        return ret;
-      }
+      case spv::OpSpecConstantComposite:
+      case spv::OpSpecConstantOp: return GetIDName();
       case spv::OpLabel:
       {
         RDCASSERT(!inlineOp);
@@ -2097,6 +2103,81 @@ struct SPVInstruction
   SPVConstant *constant;    // this ID is a constant value
   SPVVariable *var;         // this ID is a variable
 };
+
+string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorations, const string &varName)
+{
+  string ret = "";
+
+  const SPVDecoration *builtin = NULL;
+
+  for(size_t d = 0; d < vardecorations.size(); d++)
+  {
+    if(vardecorations[d].decoration == spv::DecorationBuiltIn)
+    {
+      builtin = &vardecorations[d];
+      continue;
+    }
+    string decorationStr = vardecorations[d].Str();
+    if(!decorationStr.empty())
+      ret += decorationStr + " ";
+  }
+
+  std::string arraySizeStr;
+
+  if(type == ePointer && baseType->type == eArray)
+  {
+    if(baseType->arraySize == ~0U)
+      arraySizeStr.clear();
+    else if(baseType->arraySizeConst)
+      arraySizeStr = baseType->arraySizeConst->GetIDName();
+    else
+      arraySizeStr = StringFormat::Fmt("%u", baseType->arraySize);
+
+    ret += StringFormat::Fmt("%s* %s[%s]", baseType->baseType->GetName().c_str(), varName.c_str(),
+                             arraySizeStr.c_str());
+  }
+  else if(type == eArray)
+  {
+    std::string arraySuffix;
+
+    SPVTypeData *eltype = baseType;
+    while(eltype->type == eArray)
+    {
+      arraySizeStr.clear();
+
+      if(eltype->arraySize == ~0U)
+        arraySizeStr.clear();
+      else if(eltype->arraySizeConst)
+        arraySizeStr = eltype->arraySizeConst->GetIDName();
+      else
+        arraySizeStr = StringFormat::Fmt("%u", eltype->arraySize);
+
+      arraySuffix += StringFormat::Fmt("[%s]", arraySizeStr.c_str());
+      eltype = eltype->baseType;
+    }
+
+    arraySizeStr.clear();
+
+    if(arraySize == ~0U)
+      arraySizeStr.clear();
+    else if(arraySizeConst)
+      arraySizeStr = arraySizeConst->GetIDName();
+    else
+      arraySizeStr = StringFormat::Fmt("%u", arraySize);
+
+    ret += StringFormat::Fmt("%s %s[%s]%s", eltype->GetName().c_str(), varName.c_str(),
+                             arraySizeStr.c_str(), arraySuffix.c_str());
+  }
+  else
+  {
+    ret += StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
+  }
+
+  if(builtin)
+    ret += " = " + ToStr((spv::BuiltIn)builtin->val);
+
+  return ret;
+}
 
 void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg,
                           bool bracketArgumentsIfNeeded)
@@ -5148,7 +5229,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         SPVInstruction *sizeInst = module.GetByID(spirv[it + 3]);
         RDCASSERT(sizeInst && sizeInst->constant && sizeInst->constant->type->IsBasicInt());
 
-        op.type->arraySize = sizeInst->constant->u32;
+        op.type->arraySizeConst = sizeInst->constant;
+        op.type->arraySize = sizeInst->constant->EvaluateIntValue();
 
         op.id = spirv[it + 1];
         module.ids[spirv[it + 1]] = &op;
