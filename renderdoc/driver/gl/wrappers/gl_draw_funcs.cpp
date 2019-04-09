@@ -487,7 +487,7 @@ bool WrappedOpenGL::Serialise_glMemoryBarrier(SerialiserType &ser, GLbitfield ba
 
 void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
 {
-  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+  if(IsActiveCapturing(m_State) && (barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT))
   {
     // perform a forced flush of all persistent mapped buffers,
     // coherent or not.
