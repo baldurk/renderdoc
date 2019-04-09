@@ -8,7 +8,7 @@
       InstallerVersion='301' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <UI> 
-      <Error Id="25000">Please use the 64-bit installer</Error>
+      <Error Id="25000">Please use the 64-bit installer - the 64-bit version of RenderDoc fully supports capturing 32-bit programs.</Error>
     </UI> 
 
     <Property Id="MajorMinorVersion">$(env.RENDERDOC_VERSION)</Property>
