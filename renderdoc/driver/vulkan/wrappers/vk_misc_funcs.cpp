@@ -1888,10 +1888,10 @@ void WrappedVulkan::vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
                                                     VkDebugUtilsMessengerEXT messenger,
                                                     const VkAllocationCallbacks *pAllocator)
 {
-  UserDebugReportCallbackData *user =
-      (UserDebugReportCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(messenger);
+  UserDebugUtilsCallbackData *user =
+      (UserDebugUtilsCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(messenger);
 
-  ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
+  ObjDisp(instance)->DestroyDebugUtilsMessengerEXT(Unwrap(instance), user->realObject, pAllocator);
 
   delete user;
 }
