@@ -3628,6 +3628,7 @@ void BufferViewer::on_controlType_currentIndexChanged(int index)
       m_Flycam->Reset(FloatVector(0.0f, 0.0f, 0.0f, 0.0f));
     else
       m_Flycam->Reset(FloatVector(0.0f, 0.0f, -10.0f, 0.0f));
+    on_autofitCamera_clicked();
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
