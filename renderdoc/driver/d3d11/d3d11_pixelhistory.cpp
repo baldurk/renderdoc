@@ -34,6 +34,102 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 
+/*
+ * The general algorithm for pixel history is this:
+ *
+ * we get passed a list of all events that could have touched the target texture
+ * Iterate over all events replaying:
+ *   Check the current state and determine which tests are enabled that could reject a pixel:
+ *     - backface culling
+ *     - depth clipping
+ *     - scissor test
+ *     - depth testing
+ *     - stencil testing
+ *   We also check for any tests that we can already tell will fail, e.g. our target pixel falls
+ *   outside of the scissor or the sample we are interested in isn't included in the sample mask
+ *
+ *   Copy off the colour and depth values before the drawcall. These become the 'pre-modification'
+ *   values.
+ *
+ *   Change the state:
+ *     - Disable all tests that would reject pixels apart from scissor
+ *     - Change the pixel shader to one that outputs a fixed colour (so it cannot fragment discard)
+ *     - Render to off-screen dummy targets
+ *     - Scissor to just around our target pixel.
+ *
+ *   Run the drawcall as normal with an occlusion query around it. This query will become the
+ *   conservative test - i.e. if this passes we know at least something rasterized to this pixel at
+ *   this draw so we can do finer tests later.
+ *
+ *   Run a second pass, with an off-screen depth-stencil buffer bound. First run the draw as above
+ *   but using stencil op increment and saturate to count the number of fragments that wrote to the
+ *   pixel. Then run with the real pixel shader rebound and count again, so we can see how many
+ *   fragments discarded. Both stencil values are copied off for later.
+ *
+ *   If the target texture is bound as a UAV not as a render target, the above steps can be skipped
+ *   as counting fragments is meaningless and we assume writes happen for UAVs (since we can't
+ * detect
+ *   if they do or not).
+ *
+ *   Copy off the colour and depth values after the drawcall. These become the 'post-modification'
+ *   values.
+ *
+ * Iterate again over all events, this time checking the occlusion query fetched in the loop above.
+ *   Check if the occlusion query hit anything (i.e. some fragment rasterized over the pixel, even
+ *   if it was later rejected). Copies and UAV writing draws are assumed to pass just like if the
+ *   query returned >0.
+ *   At this point we also check that the view bound at the draw intersects with the particular
+ *   slice & mip that we care about in the target texture (this could be done earlier).
+ *
+ *   For a texture that 'passes' relative to the above checks:
+ *     Initialise one PixelModification for this event and push it into our list.
+ *     Note any tests we know must have failed or must have passed
+ *     If this event is a real draw (not a copy or UAV write):
+ *       Run a series of checks, where we turn off all tests and turn them on one by one and run a
+ *       single occlusion query for each.
+ *       Read back the result of each occlusion query to see if any test failed. Note this in the
+ *       PixelModification.
+ *       These checks must be done in order, since the tests have a defined pipeline order and we
+ *       don't want to claim a triangle that was backface culled actually got rejected due to depth
+ *       testing.
+ *
+ *
+ * We now have a list of PixelModifications where the pixel could have been written to but maybe
+ * failed due to a test, which should be a reasonably small subset of the possible list of events we
+ * started with
+ *
+ * Iterate over this list of modifications:
+ *   Read back and decode from whatever format the pixels read above - pre- and post-modification.
+ *   Also read the stencil values we recorded for how many fragments were written with a fixed
+ *   shader (upper bound) and with the original shader (actual).
+ *
+ *   If the actual number is lower than the upper bound, some fragments were discarded so we need to
+ *   go down a slow path. Otherwise we can take a fast path.
+ *
+ *   For each fragment written, duplicate the PixelModification we already have for this event -
+ *   pre- and post-mod and all the test failures above will be identical, all that will vary is the
+ *   primitive ID, fragment index, potentially shader discard status, etc.
+ *
+ * Finally iterate over the list of modifications:
+ *   Again replay through each drawcall as needed (some modifications might duplicated on the same
+ *   draw, from the above loop)
+ *
+ *   Set a stencil state that increment & saturates the stencil value, and tests equal. Set the
+ *   stencil reference to the current fragment index. This ensures only the fragment we care about
+ *   passes the stencil test.
+ *
+ *   If the current fragment is *not the last* on this event, replay the draw and fetch the current
+ *   colour output value.
+ *
+ *   Run the draw again but this time with blending disabled and writing to a full float32 RGBA
+ *   texture, to get the shader output value.
+ *
+ *   Replace the pixel shader with one that outputs the current primitive ID, and record that.
+ *
+ * Finally go through the shader colour values written above and slot them into the
+ *   PixelModifications
+ */
+
 struct CopyPixelParams
 {
   bool multisampled;
@@ -58,6 +154,10 @@ struct CopyPixelParams
   ID3D11Buffer *storexyCBuf;
 };
 
+// Helper function to copy a single pixel out of a source texture, which will handle any texture
+// type and binding type, doing any copying as needed. Writes the result to a given 2D texture UAV.
+// In future this could be refactored to just be a plain buffer, there's no particular reason it has
+// to be a texture.
 void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, uint32_t y)
 {
   // perform a subresource copy if the real source tex couldn't be directly bound as SRV
@@ -192,6 +292,7 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
   if(events.empty())
     return history;
 
+  // cache the texture details of the destination texture that we're doing the pixel history on
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(target, typeHint, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
@@ -201,6 +302,7 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
       StringFormat::Fmt("Doing PixelHistory on %llu, (%u,%u) %u, %u, %u over %u events", target, x,
                         y, slice, mip, sampleIdx, (uint32_t)events.size()));
 
+  // Use the given type hint for typeless textures
   details.texFmt = GetNonSRGBFormat(details.texFmt);
   details.texFmt = GetTypedFormat(details.texFmt, typeHint);
 
