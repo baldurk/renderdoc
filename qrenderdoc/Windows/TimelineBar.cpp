@@ -393,8 +393,15 @@ void TimelineBar::mouseMoveEvent(QMouseEvent *e)
             !m_highlightingRect.contains(e->localPos()))
     {
       uint32_t eid = eventAt(x);
-      if(m_Draws.contains(eid) && eid != m_Ctx.CurEvent())
-        m_Ctx.SetEventID({}, eid, eid);
+      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [eid](uint32_t d) {
+        if(d >= eid)
+          return true;
+
+        return false;
+      });
+
+      if(it != m_Draws.end())
+        m_Ctx.SetEventID({}, *it, *it);
     }
   }
   else
