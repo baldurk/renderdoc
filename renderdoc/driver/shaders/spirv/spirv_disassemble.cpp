@@ -4338,8 +4338,9 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
               {
                 ShaderBuiltin attr = BuiltInToSystemAttribute(stage, checkBuiltin);
 
-                // find this builtin in the array, and remove
-                for(size_t s = 0; s < sigarray->size(); s++)
+                // find this builtin in the array, and remove. There might be multiple entries for
+                // arrays like gl_ClipDistance
+                for(size_t s = 0; s < sigarray->size();)
                 {
                   if((*sigarray)[s].systemValue == attr)
                   {
@@ -4348,7 +4349,10 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
                       patchData.inputs.erase(patchData.inputs.begin() + s);
                     else
                       patchData.outputs.erase(patchData.outputs.begin() + s);
-                    break;
+                  }
+                  else
+                  {
+                    s++;
                   }
                 }
               }
