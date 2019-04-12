@@ -982,10 +982,10 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
          m.name.find("symsrv.") != std::wstring::npos)
         continue;
 
-      wchar_t text[1024];
-      wsprintf(text, L"Do you want to permanently ignore this file?\nPath: %s", m.name.c_str());
+      std::string text = StringFormat::Fmt("Do you want to permanently ignore this file?\nPath: %s",
+                                           m.name.c_str());
 
-      int ret = MessageBoxW(NULL, text, L"Ignore this pdb?", MB_YESNO);
+      int ret = MessageBoxA(NULL, text.c_str(), "Ignore this pdb?", MB_YESNO);
 
       if(ret == IDYES)
         pdbIgnores.push_back(m.name);
