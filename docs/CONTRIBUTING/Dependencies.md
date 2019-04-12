@@ -36,10 +36,10 @@ For older versions of Ubuntu they might not include a recent enough Qt version, 
 
 ### Archlinux
 
-For Archlinux (as of 2017.04.18) you'll need:
+For Archlinux (as of 2019.04.12) you'll need:
 
 ```
-sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-svg qt5-x11extras cmake python3 bison autoconf automake pcre
+sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-svg qt5-x11extras cmake python3 bison autoconf automake pcre make pkg-config
 ```
 
 ### Gentoo
