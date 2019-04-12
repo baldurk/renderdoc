@@ -1265,7 +1265,8 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     uint numComps = sig.format.compCount;
     uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
-    if(ctx.CurPipelineState().HasAlignedPostVSData(MeshDataStage::VSOut))
+    if(ctx.CurPipelineState().HasAlignedPostVSData(
+           shader->stage == ShaderStage::Vertex ? MeshDataStage::VSOut : MeshDataStage::GSOut))
     {
       if(numComps == 2)
         offset = AlignUp(offset, 2U * elemSize);
