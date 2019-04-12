@@ -28,12 +28,12 @@ def loadCapture(filename):
 	if status != rd.ReplayStatus.Succeeded:
 		raise RuntimeError("Couldn't initialise replay: " + str(status))
 
-	return controller
+	return cap,controller
 
 if 'pyrenderdoc' in globals():
 	raise RuntimeError("This sample should not be run within the RenderDoc UI")
 else:
-	controller = loadCapture('test.rdc')
+	cap,controller = loadCapture('test.rdc')
 
 # Use tkinter to create windows
 import tkinter
