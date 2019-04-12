@@ -1490,11 +1490,18 @@ BlockShape GetBlockShape(VkFormat Format, uint32_t plane)
     case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
     case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
       if(plane == 0)
+      {
         return {1, 1, 1};
+      }
       else if(plane == 1)
+      {
         return {1, 1, 2};
+      }
       else
+      {
         RDCERR("Invalid plane %d in 2-plane format", plane);
+        return {1, 1, 1};
+      }
     case VK_FORMAT_R10X6_UNORM_PACK16:
     case VK_FORMAT_R12X4_UNORM_PACK16:
       // basically just 16-bit format with only top 10-bits used
@@ -1535,11 +1542,18 @@ BlockShape GetBlockShape(VkFormat Format, uint32_t plane)
     case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
     case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
       if(plane == 0)
+      {
         return {1, 1, 2};
+      }
       else if(plane == 1)
+      {
         return {1, 1, 4};
+      }
       else
+      {
         RDCERR("Invalid plane %d in 2-plane format", plane);
+        return {1, 1, 2};
+      }
     default: RDCERR("Unrecognised Vulkan Format: %d", Format);
   }
 

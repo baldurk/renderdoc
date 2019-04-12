@@ -352,17 +352,15 @@ void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface
         break;
       }
       case ReflectionProperty::Internal_Binding:
+      case ReflectionProperty::AtomicCounterBufferIndex:
       {
-        if(programInterface == ReflectionInterface::UniformBlock)
+        if(props[i] == ReflectionProperty::Internal_Binding &&
+           programInterface == ReflectionInterface::UniformBlock)
         {
           params[i] = program->getUniformBlock(index).getType()->getQualifier().layoutBinding;
           break;
         }
 
-        // deliberate fall-through
-      }
-      case ReflectionProperty::AtomicCounterBufferIndex:
-      {
         if(programInterface == ReflectionInterface::Uniform)
           params[i] = program->getUniform(index).getType()->getQualifier().layoutBinding;
         else if(programInterface == ReflectionInterface::AtomicCounterBuffer)

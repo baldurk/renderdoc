@@ -103,7 +103,9 @@ set_source_files_properties(${glslang_sources}
     PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing")
 
 if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
-    set_source_files_properties(${glslang_dir}/glslang/MachineIndependent/reflection.cpp
+    set_source_files_properties(
+        ${glslang_dir}/glslang/MachineIndependent/reflection.cpp
+        ${glslang_dir}/glslang/MachineIndependent/Intermediate.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough -Wno-ignored-qualifiers")
 endif()
 
