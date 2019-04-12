@@ -1247,7 +1247,7 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
           spv::OpMemberDecorate,
           {outpatch[i].structID, outpatch[i].accessChain.back(), spv::DecorationOffset, xfbStride}));
     }
-    else
+    else if(outpatch[i].ID)
     {
       editor.AddDecoration(SPIRVOperation(
           spv::OpDecorate, {outpatch[i].ID, (uint32_t)spv::DecorationOffset, xfbStride}));
@@ -1265,7 +1265,7 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
 
   for(size_t i = 0; i < outpatch.size(); i++)
   {
-    if(vars.find(outpatch[i].ID) == vars.end())
+    if(outpatch[i].ID && vars.find(outpatch[i].ID) == vars.end())
     {
       editor.AddDecoration(
           SPIRVOperation(spv::OpDecorate, {outpatch[i].ID, (uint32_t)spv::DecorationXfbBuffer, 0}));

@@ -4104,7 +4104,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
     sig.regIndex += RDCMAX(1U, type->matrixSize);
     if(isArray)
-      patch.accessChain.back()++;
+      patch.ID = patch.structID = 0;
   }
 }
 
