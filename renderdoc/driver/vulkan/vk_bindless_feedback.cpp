@@ -850,11 +850,15 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   result.valid = true;
 
-  // delete descriptors. Technically we don't have to free the descriptor sets, but our tracking on
-  // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
-  m_pDriver->vkFreeDescriptorSets(dev, descpool, (uint32_t)descSets.size(), descSets.data());
+  if(descpool != VK_NULL_HANDLE)
+  {
+    // delete descriptors. Technically we don't have to free the descriptor sets, but our tracking
+    // on
+    // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
+    m_pDriver->vkFreeDescriptorSets(dev, descpool, (uint32_t)descSets.size(), descSets.data());
 
-  m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
+    m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
+  }
 
   for(VkDescriptorSetLayout layout : setLayouts)
     m_pDriver->vkDestroyDescriptorSetLayout(dev, layout, NULL);
