@@ -503,6 +503,7 @@ if(UNIX AND NOT ANDROID AND NOT APPLE)
     endif()
 
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "${RDOC_LINK_FLAGS}")
+    set_target_properties(renderdoc PROPERTIES SKIP_BUILD_RPATH TRUE)
 endif()
 
 # On macOS set the rpath so that linked libraries are relative to the executable, not absolute
