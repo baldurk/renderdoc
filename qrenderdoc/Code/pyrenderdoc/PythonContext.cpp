@@ -1119,11 +1119,18 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
       while(message.back() == '\n' || message.back() == '\r')
         message.erase(message.size() - 1);
 
-      QString filename = ToQStr(frame->f_code->co_filename);
+      QString filename = lit("unknown");
+      int line = 0;
+
+      if(frame)
+      {
+        filename = ToQStr(frame->f_code->co_filename);
+        line = PyFrame_GetLineNumber(frame);
+      }
 
       if(!message.empty())
         RENDERDOC_LogMessage(redirector->isStdError ? LogType::Error : LogType::Comment, "EXTN",
-                             filename.toUtf8().data(), PyFrame_GetLineNumber(frame), message.c_str());
+                             filename.toUtf8().data(), line, message.c_str());
     }
   }
 
