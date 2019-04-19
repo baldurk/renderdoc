@@ -167,7 +167,7 @@
           <item>
            <widget class="QToolButton" name="resourceDetails">
             <property name="toolTip">
-             <string>Open the currently buffer's resource details in the resource inspector</string>
+             <string>Open the currently visible buffer's resource details in the resource inspector</string>
             </property>
             <property name="icon">
              <iconset resource="../Resources/resources.qrc">
