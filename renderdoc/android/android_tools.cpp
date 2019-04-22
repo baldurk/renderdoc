@@ -331,6 +331,16 @@ void initAdb()
   if(adb.find('/') != std::string::npos || adb.find('\\') != std::string::npos)
     workdir = get_dirname(adb);
 
+  RDCLOG("Initialising adb using '%s'", adb.c_str());
+
+  if(adb.empty() || !FileIO::exists(adb.c_str()) || !FileIO::exists((adb + ".exe").c_str()))
+  {
+    if(FileIO::FindFileInPath(adb.c_str()) == "")
+      RDCWARN(
+          "Couldn't locate adb. Ensure adb is in PATH, ANDROID_SDK or ANDROID_HOME is set, or you "
+          "configure your SDK location");
+  }
+
   Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true);
 }
 void shutdownAdb()
