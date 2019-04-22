@@ -1770,6 +1770,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(resourceResourceId);
   SERIALISE_MEMBER(samplerResourceId);
   SERIALISE_MEMBER(immutableSampler);
+  SERIALISE_MEMBER(dynamicallyUsed);
   SERIALISE_MEMBER(viewFormat);
   SERIALISE_MEMBER(swizzle);
   SERIALISE_MEMBER(firstMip);
@@ -1809,6 +1810,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::DescriptorBinding &el)
 {
   SERIALISE_MEMBER(descriptorCount);
+  SERIALISE_MEMBER(dynamicallyUsedCount);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(stageFlags);
 
@@ -1978,6 +1980,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::Rasterizer &el)
 {
   SERIALISE_MEMBER(depthClampEnable);
+  SERIALISE_MEMBER(depthClipEnable);
   SERIALISE_MEMBER(rasterizerDiscardEnable);
   SERIALISE_MEMBER(frontCCW);
   SERIALISE_MEMBER(fillMode);
