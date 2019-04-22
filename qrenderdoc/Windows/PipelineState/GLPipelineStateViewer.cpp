@@ -641,8 +641,8 @@ void GLPipelineStateViewer::clearState()
   ui->depthFunc->setText(lit("GREATER_EQUAL"));
   ui->depthWrite->setPixmap(tick);
 
-  ui->depthBounds->setText(lit("0.0-1.0"));
   ui->depthBounds->setPixmap(QPixmap());
+  ui->depthBounds->setText(lit("0.0-1.0"));
 
   ui->stencils->clear();
 }
@@ -1737,8 +1737,8 @@ void GLPipelineStateViewer::setState()
   }
   else
   {
-    ui->offsetClamp->setText(Formatter::Format(state.rasterizer.state.offsetClamp));
     ui->offsetClamp->setPixmap(QPixmap());
+    ui->offsetClamp->setText(Formatter::Format(state.rasterizer.state.offsetClamp));
   }
 
   ui->multisample->setPixmap(state.rasterizer.state.multisampleEnable ? tick : cross);
@@ -1751,8 +1751,8 @@ void GLPipelineStateViewer::setState()
     QString sampleCoverage = Formatter::Format(state.rasterizer.state.sampleCoverageValue);
     if(state.rasterizer.state.sampleCoverageInvert)
       sampleCoverage += tr(" inverted");
-    ui->sampleCoverage->setText(sampleCoverage);
     ui->sampleCoverage->setPixmap(QPixmap());
+    ui->sampleCoverage->setText(sampleCoverage);
   }
   else
   {
@@ -1762,8 +1762,8 @@ void GLPipelineStateViewer::setState()
 
   if(state.rasterizer.state.sampleMask)
   {
-    ui->sampleMask->setText(Formatter::Format(state.rasterizer.state.sampleMaskValue, true));
     ui->sampleMask->setPixmap(QPixmap());
+    ui->sampleMask->setText(Formatter::Format(state.rasterizer.state.sampleMaskValue, true));
   }
   else
   {
@@ -2041,9 +2041,9 @@ void GLPipelineStateViewer::setState()
 
   if(state.depthState.depthBounds)
   {
+    ui->depthBounds->setPixmap(QPixmap());
     ui->depthBounds->setText(Formatter::Format(state.depthState.nearBound) + lit("-") +
                              Formatter::Format(state.depthState.farBound));
-    ui->depthBounds->setPixmap(QPixmap());
   }
   else
   {
