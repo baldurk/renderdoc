@@ -1131,7 +1131,7 @@ Only happens if the capture is not in the recent files list.</string>
           <item row="0" column="0">
            <widget class="QLabel" name="label_24">
             <property name="toolTip">
-             <string>The location of adb.exe, used to control Android devices.</string>
+             <string>The location of the Android SDK, used to locate tools for controlling Android devices.</string>
             </property>
             <property name="text">
              <string>Android SDK root path</string>
