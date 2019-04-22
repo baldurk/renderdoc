@@ -986,6 +986,11 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
           return ret;
         }
 
+        if(bind.bindset >= pipe.descriptorSets.count() ||
+           bind.bind >= pipe.descriptorSets[bind.bindset].bindings.count() ||
+           ArrayIdx > pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds.size())
+          return BoundCBuffer();
+
         const VKPipe::BindingElement &descriptorBind =
             pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
 
