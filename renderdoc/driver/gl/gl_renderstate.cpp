@@ -1162,7 +1162,7 @@ void GLRenderState::FetchState(WrappedOpenGL *driver)
 
   if(HasExt[EXT_depth_bounds_test])
   {
-    GL.glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
+    GL.glGetDoublev(eGL_DEPTH_BOUNDS_EXT, &DepthBounds.nearZ);
   }
   else
   {
