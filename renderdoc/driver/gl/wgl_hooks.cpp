@@ -423,7 +423,7 @@ static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
 
     wglhook.RefreshWindowParameters(data);
 
-    if(wglhook.haveContextCreation && data.ctx && data.wnd)
+    if(wglhook.haveContextCreation)
       wglhook.driver.ActivateContext(data);
   }
 
