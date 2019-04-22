@@ -1078,11 +1078,23 @@ void TextureViewer::UI_UpdateTextureDetails()
                     current.format.type == ResourceFormatType::YUV12 ||
                     current.format.type == ResourceFormatType::YUV16);
 
+  CompType viewCast = CompType::Typeless;
+
   if(current.format.compType != m_TexDisplay.typeHint &&
      m_TexDisplay.typeHint != CompType::Typeless && !yuv)
   {
-    status += tr(" Viewed as %1").arg(ToQStr(m_TexDisplay.typeHint));
+    viewCast = m_TexDisplay.typeHint;
   }
+  else if(current.format.compType == CompType::Typeless &&
+          m_TexDisplay.typeHint == CompType::Typeless && !yuv)
+  {
+    // if it's a typeless texture and we don't have a hint, ensure the user knows it's being viewed
+    // as unorm as a fallback
+    viewCast = CompType::UNorm;
+  }
+
+  if(viewCast != CompType::Typeless)
+    status += tr(" Viewed as %1").arg(ToQStr(viewCast));
 
   ui->texStatusDim->setText(status);
 }
