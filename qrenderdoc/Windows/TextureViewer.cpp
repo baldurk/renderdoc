@@ -1657,6 +1657,9 @@ void TextureViewer::SetupTextureTabs()
 {
   ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
 
+  if(!textureTabs)
+    return;
+
   QIcon tabIcon;
   tabIcon.addFile(QStringLiteral(":/logo.svg"), QSize(), QIcon::Normal, QIcon::Off);
 
