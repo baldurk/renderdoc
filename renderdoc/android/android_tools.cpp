@@ -341,7 +341,13 @@ void initAdb()
           "configure your SDK location");
   }
 
-  Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true);
+  Process::ProcessResult res = {};
+  Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true, &res);
+
+  if(res.strStdout.find("daemon"))
+  {
+    RDCLOG("Started adb server");
+  }
 }
 void shutdownAdb()
 {
