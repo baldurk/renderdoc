@@ -2863,6 +2863,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   state.graphics.pipeline = GetResID(pipe);
   state.framebuffer = GetResID(fb);
   state.renderPass = GetResID(rp);
+  state.subpass = 0;
   state.renderArea.offset.x = 0;
   state.renderArea.offset.y = 0;
   state.renderArea.extent.width = 16;
