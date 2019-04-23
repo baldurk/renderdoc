@@ -167,11 +167,6 @@ void ResourceRecord::Delete(ResourceRecordHandler *mgr)
     Length = 0;
     DataPtr = NULL;
 
-    for(auto it = m_FrameRefs.begin(); it != m_FrameRefs.end(); ++it)
-      if(IsDirtyFrameRef(it->second))
-        // lost a write to this resource, must mark it as gpu dirty.
-        mgr->MarkPendingDirty(it->first);
-
     DeleteChunks();
 
     if(ResID != ResourceId())
