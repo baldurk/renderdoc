@@ -333,7 +333,7 @@ void initAdb()
 
   RDCLOG("Initialising adb using '%s'", adb.c_str());
 
-  if(adb.empty() || !FileIO::exists(adb.c_str()) || !FileIO::exists((adb + ".exe").c_str()))
+  if(adb.empty() || (!FileIO::exists(adb.c_str()) && !FileIO::exists((adb + ".exe").c_str())))
   {
     if(FileIO::FindFileInPath(adb.c_str()) == "")
       RDCWARN(
@@ -344,7 +344,7 @@ void initAdb()
   Process::ProcessResult res = {};
   Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true, &res);
 
-  if(res.strStdout.find("daemon"))
+  if(res.strStdout.find("daemon") != std::string::npos)
   {
     RDCLOG("Started adb server");
   }
