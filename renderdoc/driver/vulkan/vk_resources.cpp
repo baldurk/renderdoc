@@ -752,7 +752,7 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_R16G16B16A16_SINT:
     case VK_FORMAT_R16G16B16A16_SFLOAT:
     {
-      if(typeHint == CompType::UNorm)
+      if(typeHint == CompType::UNorm || typeHint == CompType::UNormSRGB)
         return VK_FORMAT_R16G16B16A16_UNORM;
       else if(typeHint == CompType::SNorm)
         return VK_FORMAT_R16G16B16A16_SNORM;
@@ -775,7 +775,7 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_R16G16B16_SINT:
     case VK_FORMAT_R16G16B16_SFLOAT:
     {
-      if(typeHint == CompType::UNorm)
+      if(typeHint == CompType::UNorm || typeHint == CompType::UNormSRGB)
         return VK_FORMAT_R16G16B16_UNORM;
       else if(typeHint == CompType::SNorm)
         return VK_FORMAT_R16G16B16_SNORM;
@@ -798,7 +798,7 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_R16G16_SINT:
     case VK_FORMAT_R16G16_SFLOAT:
     {
-      if(typeHint == CompType::UNorm)
+      if(typeHint == CompType::UNorm || typeHint == CompType::UNormSRGB)
         return VK_FORMAT_R16G16_UNORM;
       else if(typeHint == CompType::SNorm)
         return VK_FORMAT_R16G16_SNORM;
@@ -822,7 +822,7 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_R16_SFLOAT:
     case VK_FORMAT_D16_UNORM:
     {
-      if(typeHint == CompType::UNorm)
+      if(typeHint == CompType::UNorm || typeHint == CompType::UNormSRGB)
         return VK_FORMAT_R16_UNORM;
       else if(typeHint == CompType::SNorm)
         return VK_FORMAT_R16_SNORM;
@@ -1024,7 +1024,7 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_A2B10G10R10_UINT_PACK32:
     case VK_FORMAT_A2B10G10R10_SINT_PACK32:
     {
-      if(typeHint == CompType::UNorm)
+      if(typeHint == CompType::UNorm || typeHint == CompType::UNormSRGB)
         return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
       else if(typeHint == CompType::SNorm)
         return VK_FORMAT_A2B10G10R10_SNORM_PACK32;
@@ -1046,7 +1046,7 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_A2R10G10B10_UINT_PACK32:
     case VK_FORMAT_A2R10G10B10_SINT_PACK32:
     {
-      if(typeHint == CompType::UNorm)
+      if(typeHint == CompType::UNorm || typeHint == CompType::UNormSRGB)
         return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
       else if(typeHint == CompType::SNorm)
         return VK_FORMAT_A2R10G10B10_SNORM_PACK32;

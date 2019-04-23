@@ -3835,7 +3835,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.iv[c] = in[c];
                 }
-                else if(fmt.fmt == CompType::UNorm)
+                else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
                 {
                   uint16_t *u = (uint16_t *)d;
 
@@ -3876,7 +3876,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.iv[c] = in[c];
                 }
-                else if(fmt.fmt == CompType::UNorm)
+                else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
                 {
                   uint8_t *u = (uint8_t *)d;
 

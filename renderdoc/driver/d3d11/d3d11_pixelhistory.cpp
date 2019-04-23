@@ -2572,7 +2572,7 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
           mod.postMod.col.floatValue[c] = ConvertFromHalf(uint16_t(mod.postMod.col.uintValue[c]));
         }
       }
-      else if(fmt.compType == CompType::UNorm && fmt.compByteWidth == 1 && fmt.SRGBCorrected())
+      else if(fmt.compType == CompType::UNormSRGB && fmt.compByteWidth == 1 && fmt.SRGBCorrected())
       {
         RDCASSERT(fmt.compByteWidth == 1);
 

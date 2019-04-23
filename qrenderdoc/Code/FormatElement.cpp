@@ -48,7 +48,7 @@ static QVariant interpret(const ResourceFormat &f, uint16_t comp)
   {
     return (float)comp;
   }
-  else if(f.compType == CompType::UNorm)
+  else if(f.compType == CompType::UNorm || f.compType == CompType::UNormSRGB)
   {
     return (float)comp / (float)0xffff;
   }
@@ -90,7 +90,7 @@ static QVariant interpret(const ResourceFormat &f, byte comp)
   {
     return (float)comp;
   }
-  else if(f.compType == CompType::UNorm)
+  else if(f.compType == CompType::UNorm || f.compType == CompType::UNormSRGB)
   {
     return ((float)comp) / 255.0f;
   }
@@ -583,7 +583,7 @@ QString FormatElement::GenerateTextureBufferFormat(const TextureDescription &tex
     {
       if(tex.format.compByteWidth == 1)
       {
-        if(tex.format.compType == CompType::UNorm)
+        if(tex.format.compType == CompType::UNorm || tex.format.compType == CompType::UNormSRGB)
           baseType = lit("unormb");
         else if(tex.format.compType == CompType::SNorm)
           baseType = lit("snormb");
@@ -594,7 +594,7 @@ QString FormatElement::GenerateTextureBufferFormat(const TextureDescription &tex
       }
       else if(tex.format.compByteWidth == 2)
       {
-        if(tex.format.compType == CompType::UNorm)
+        if(tex.format.compType == CompType::UNorm || tex.format.compType == CompType::UNormSRGB)
           baseType = lit("unormh");
         else if(tex.format.compType == CompType::SNorm)
           baseType = lit("snormh");

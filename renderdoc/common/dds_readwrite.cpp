@@ -521,6 +521,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
         case CompType::SNorm: return DXGI_FORMAT_R8G8B8A8_SNORM;
         default:
         case CompType::UNorm:
+        case CompType::UNormSRGB:
           if(format.SRGBCorrected())
           {
             if(format.BGRAOrder())
@@ -758,7 +759,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
   // special case a couple of formats to write out non-DX10 style, for
   // backwards compatibility
   if(data.format.compByteWidth == 1 && data.format.compCount == 4 &&
-     data.format.compType == CompType::UNorm)
+     (data.format.compType == CompType::UNorm || data.format.compType == CompType::UNormSRGB))
   {
     header.ddspf.dwFlags = DDPF_RGBA;
     header.ddspf.dwRGBBitCount = 32;

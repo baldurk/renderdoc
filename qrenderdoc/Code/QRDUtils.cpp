@@ -817,7 +817,7 @@ QString TypeString(const SigParameter &sig)
     ret += lit("uint");
   else if(sig.compType == CompType::SInt || sig.compType == CompType::SScaled)
     ret += lit("int");
-  else if(sig.compType == CompType::UNorm)
+  else if(sig.compType == CompType::UNorm || sig.compType == CompType::UNormSRGB)
     ret += lit("unorm float");
   else if(sig.compType == CompType::SNorm)
     ret += lit("snorm float");

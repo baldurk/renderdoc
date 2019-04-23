@@ -806,7 +806,7 @@ QString PipelineStateViewer::GenerateBufferFormatter(const ShaderResource &res,
         {
           case 1:
           {
-            if(viewFormat.compType == CompType::UNorm)
+            if(viewFormat.compType == CompType::UNorm || viewFormat.compType == CompType::UNormSRGB)
               format = lit("unormb");
             if(viewFormat.compType == CompType::SNorm)
               format = lit("snormb");
@@ -818,7 +818,7 @@ QString PipelineStateViewer::GenerateBufferFormatter(const ShaderResource &res,
           }
           case 2:
           {
-            if(viewFormat.compType == CompType::UNorm)
+            if(viewFormat.compType == CompType::UNorm || viewFormat.compType == CompType::UNormSRGB)
               format = lit("unormh");
             if(viewFormat.compType == CompType::SNorm)
               format = lit("snormh");
@@ -832,7 +832,7 @@ QString PipelineStateViewer::GenerateBufferFormatter(const ShaderResource &res,
           }
           case 4:
           {
-            if(viewFormat.compType == CompType::UNorm)
+            if(viewFormat.compType == CompType::UNorm || viewFormat.compType == CompType::UNormSRGB)
               format = lit("unormf");
             if(viewFormat.compType == CompType::SNorm)
               format = lit("snormf");
@@ -1322,7 +1322,7 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
           QLatin1Char('?'), QLatin1Char('b'), QLatin1Char('h'), QLatin1Char('?'), QLatin1Char('f'),
       };
 
-      if(fmt.compType == CompType::UNorm)
+      if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
       {
         format += lit("unorm%1").arg(widthchar[fmt.compByteWidth]);
       }

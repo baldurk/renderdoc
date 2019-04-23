@@ -996,7 +996,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
               ret.inputs[i].value.uv[c] = *src;
             else if(fmt.compType == CompType::SInt)
               ret.inputs[i].value.iv[c] = *((int8_t *)src);
-            else if(fmt.compType == CompType::UNorm)
+            else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
               ret.inputs[i].value.fv[c] = float(*src) / 255.0f;
             else if(fmt.compType == CompType::SNorm)
             {
@@ -1021,7 +1021,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
               ret.inputs[i].value.uv[c] = *src;
             else if(fmt.compType == CompType::SInt)
               ret.inputs[i].value.iv[c] = *((int16_t *)src);
-            else if(fmt.compType == CompType::UNorm)
+            else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
               ret.inputs[i].value.fv[c] = float(*src) / float(UINT16_MAX);
             else if(fmt.compType == CompType::SNorm)
             {

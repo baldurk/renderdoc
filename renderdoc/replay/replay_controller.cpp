@@ -138,12 +138,13 @@ float ConvertComponent(const ResourceFormat &fmt, const byte *data)
     {
       return float(*i8);
     }
+    else if(fmt.compType == CompType::UNormSRGB)
+    {
+      return SRGB8_lookuptable[*u8];
+    }
     else if(fmt.compType == CompType::UNorm)
     {
-      if(fmt.SRGBCorrected())
-        return SRGB8_lookuptable[*u8];
-      else
-        return float(*u8) / 255.0f;
+      return float(*u8) / 255.0f;
     }
     else if(fmt.compType == CompType::SNorm)
     {
