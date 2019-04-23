@@ -3399,6 +3399,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         xml, {tr("Width"), tr("Height"), tr("Layers")},
         {pass.framebuffer.width, pass.framebuffer.height, pass.framebuffer.layers});
 
+    xml.writeStartElement(lit("p"));
+    xml.writeEndElement();
+
     QList<QVariantList> rows;
 
     int i = 0;
