@@ -26,6 +26,7 @@
 
 #include <QDialog>
 #include <QItemSelection>
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {
@@ -41,7 +42,8 @@ class VirtualFileDialog : public QDialog
   Q_OBJECT
 
 public:
-  explicit VirtualFileDialog(ICaptureContext &ctx, QString initialDirectory, QWidget *parent = 0);
+  explicit VirtualFileDialog(ICaptureContext &ctx, QString initialDirectory, QWidget *parent = 0,
+                             const rdcarray<rdcstr> &activityVector = rdcarray<rdcstr>());
   ~VirtualFileDialog();
 
   QString chosenPath() { return m_ChosenPath; }

@@ -467,6 +467,22 @@ void RemoveAPK(const string &deviceID, const string &path)
   adbExecCommand(deviceID, "shell rm -f " + path);
 }
 
+bool TryToPullApk(const string &deviceID, const string &pkgPath, const string &apk,
+                  const string &package)
+{
+  // Try the following steps, bailing if anything fails
+  if(!Android::PullAPK(deviceID, pkgPath, apk))
+  {
+    // Copy the APK to public storage, then try to pull again
+    std::string copyPath = "/sdcard/" + package + ".copy.apk";
+    Android::CopyAPK(deviceID, pkgPath, copyPath);
+    bool success = Android::PullAPK(deviceID, copyPath, apk);
+    Android::RemoveAPK(deviceID, copyPath);
+    return success;
+  }
+  return true;
+}
+
 bool HasRootAccess(const std::string &deviceID)
 {
   RDCLOG("Checking for root access on %s", deviceID.c_str());
@@ -519,6 +535,107 @@ bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
   }
 
   return pkgFlags.find("DEBUGGABLE") != std::string::npos;
+}
+
+rdcarray<rdcstr> GetActivitiesForPackage(const std::string &deviceID, const std::string &package)
+{
+  std::string defaultActivity = Android::GetDefaultActivityForPackage(deviceID, package);
+  rdcarray<rdcstr> activities;
+  activities.push_back(defaultActivity);
+
+  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  std::string pkgPath = Android::GetPathForPackage(deviceID, package) + "base.apk";
+  std::string tmpDir = FileIO::GetTempFolderFilename();
+  std::string origAPK(tmpDir + package + ".orig.apk");
+
+  if(!Android::TryToPullApk(deviceID, pkgPath, origAPK, package))
+  {
+    return activities;
+  }
+
+  Process::ProcessResult activityResult =
+      execCommand(aapt, StringFormat::Fmt("dump xmltree %s AndroidManifest.xml", origAPK.c_str()));
+
+  // example:
+  // ...
+  // E: application (line=41)
+  //   A: android:theme(0x01010000)=@0x7f1100d5
+  //   A: android:label(0x01010001)=@0x7f1001b7
+  //   A: android:icon(0x01010002)=@0x7f0d0000
+  //   A: android:name(0x01010003)="com.example.MainApplication" (Raw:
+  //   "com.example.MainApplication")
+  //   E: activity (line=46)
+  //     A: android:label(0x01010001)=@0x7f1001b7
+  //     A: android:name(0x01010003)="com.example.MainActivity" (Raw: "com.example.MainActivity")
+  //     A: android:screenOrientation(0x0101001e)=(type 0x10)0x1
+  //     A: android:configChanges(0x0101001f)=(type 0x11)0x4a0
+  //     E: intent-filter (line=51)
+  //       E: action (line=52)
+  //         A: android:name(0x01010003)="android.intent.action.MAIN" (Raw:
+  //         "android.intent.action.MAIN")
+  //       E: category (line=54)
+  //         A: android:name(0x01010003)="android.intent.category.LAUNCHER" (Raw:
+  //         "android.intent.category.LAUNCHER")
+  //   E: activity (line=56)
+  //     A: android:name(0x01010003)="com.example.LauncherActivity" (Raw:
+  //     "com.example.LauncherActivity")
+  //     A: android:exported(0x01010010)=(type 0x12)0xffffffff
+  //     A: android:screenOrientation(0x0101001e)=(type 0x10)0x0
+  //     A: android:configChanges(0x0101001f)=(type 0x11)0x4a0
+  // ...
+
+  std::istringstream stream(activityResult.strStdout);
+  std::string line;
+  bool activityElement = false;
+  std::string activityName;
+  bool exported;
+  std::size_t elementOffset = 0;
+  std::size_t attributeOffset = 0;
+
+  while(std::getline(stream, line))
+  {
+    if(line.find("E: application ") != std::string::npos)
+    {
+      std::size_t applicationOffset = line.find("E: application ");
+      elementOffset = applicationOffset + 2;
+      attributeOffset = elementOffset + 2;
+      break;
+    }
+  }
+
+  while(std::getline(stream, line))
+  {
+    if(line.find("E:") == elementOffset)
+    {
+      activityElement = line.find("E: activity ") != std::string::npos;
+      activityName = "";
+      exported = false;
+    }
+    else if(activityElement && line.find("A:") == attributeOffset)
+    {
+      if(line.find("A: android:name") != std::string::npos)
+      {
+        std::size_t pos1 = line.find_first_of('"', 0) + 1;
+        std::size_t pos2 = line.find_first_of('"', pos1);
+        activityName = line.substr(pos1, pos2 - pos1);
+      }
+      else if(line.find("A: android:exported") != std::string::npos &&
+              line.find("0xffffffff") != std::string::npos)
+      {
+        // "android:exported" sets whether the activity can be launched by other applications
+        exported = true;
+      }
+    }
+
+    if(exported && !activityName.empty() && activityName.compare(defaultActivity) != 0)
+    {
+      activities.push_back(activityName);
+      activityName = "";
+      exported = false;
+    }
+  }
+
+  return activities;
 }
 };
 
@@ -582,18 +699,9 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
   std::string alignedAPK(origAPK + ".aligned.apk");
   std::vector<byte> manifest;
 
-  // Try the following steps, bailing if anything fails
-  if(!Android::PullAPK(deviceID, pkgPath, origAPK))
+  if(!Android::TryToPullApk(deviceID, pkgPath, origAPK, package))
   {
-    // Copy the APK to public storage, then try to pull again
-    std::string copyPath = "/sdcard/" + package + ".copy.apk";
-    Android::CopyAPK(deviceID, pkgPath, copyPath);
-    bool success = Android::PullAPK(deviceID, copyPath, origAPK);
-    Android::RemoveAPK(deviceID, copyPath);
-    if(!success)
-    {
-      return AndroidFlags::ManifestPatchFailure;
-    }
+    return AndroidFlags::ManifestPatchFailure;
   }
 
   progress(0.4f);
@@ -645,4 +753,24 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
 
   // All clean!
   return AndroidFlags::Debuggable;
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultActivity(const char *hostName,
+                                                                        const char *package,
+                                                                        rdcstr &activity)
+{
+  int index = 0;
+  std::string deviceID;
+  Android::ExtractDeviceIDAndIndex(hostName, index, deviceID);
+  activity = Android::GetDefaultActivityForPackage(deviceID, string(package));
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetActivities(const char *hostName,
+                                                                   const char *package,
+                                                                   rdcarray<rdcstr> &activities)
+{
+  int index = 0;
+  std::string deviceID;
+  Android::ExtractDeviceIDAndIndex(hostName, index, deviceID);
+  activities = Android::GetActivitiesForPackage(deviceID, package);
 }

@@ -176,7 +176,7 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   return 0;
 }
 
-ExecuteResult StartAndroidPackageForCapture(const char *host, const char *package,
+ExecuteResult StartAndroidPackageForCapture(const char *host, const char *intentTarget,
                                             const char *intentArgs, const CaptureOptions &opts)
 {
   int index = 0;
@@ -187,10 +187,18 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   ret.status = ReplayStatus::UnknownError;
   ret.ident = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
 
-  string packageName = get_basename(string(package));    // Remove leading '/' if any
-
-  // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
-  string activityName = GetDefaultActivityForPackage(deviceID, packageName);
+  string activityName(intentTarget);
+  string packageName;
+  if(activityName.find("/") == std::string::npos)
+  {
+    packageName = activityName;
+    // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
+    activityName = packageName + "/" + GetDefaultActivityForPackage(deviceID, packageName);
+  }
+  else
+  {
+    packageName = activityName.substr(0, activityName.find_first_of("/"));
+  }
 
   uint16_t jdwpPort = GetJdwpPort();
 
@@ -247,9 +255,8 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
     RDCLOG("Setting up to launch the application as a debugger to inject.");
 
     // start the activity in this package with debugging enabled and force-stop after starting
-    adbExecCommand(deviceID,
-                   StringFormat::Fmt("shell am start -S -D -n %s/%s %s", packageName.c_str(),
-                                     activityName.c_str(), intentArgs));
+    adbExecCommand(deviceID, StringFormat::Fmt("shell am start -S -D -n %s %s",
+                                               activityName.c_str(), intentArgs));
 
     // adb shell ps | grep $PACKAGE | awk '{print $2}')
     pid = GetCurrentPID(deviceID, packageName);
@@ -263,8 +270,8 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
     RDCLOG("Not doing any injection - assuming APK is pre-loaded with RenderDoc capture library.");
 
     // start the activity in this package with debugging enabled and force-stop after starting
-    adbExecCommand(deviceID, StringFormat::Fmt("shell am start -n %s/%s %s", packageName.c_str(),
-                                               activityName.c_str(), intentArgs));
+    adbExecCommand(deviceID,
+                   StringFormat::Fmt("shell am start -n %s %s", activityName.c_str(), intentArgs));
 
     // don't connect JDWP
     jdwpPort = 0;

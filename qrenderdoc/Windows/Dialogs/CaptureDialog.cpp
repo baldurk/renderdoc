@@ -673,6 +673,10 @@ void CaptureDialog::on_exePathBrowse_clicked()
     if(m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->IsADB())
     {
       CheckAndroidSetup(filename);
+      rdcstr activity;
+      RENDERDOC_GetDefaultActivity(m_Ctx.Replay().CurrentRemote()->hostname.c_str(),
+                                   filename.toUtf8().data(), activity);
+      ui->activity->setText(activity);
     }
   }
 }
@@ -885,6 +889,40 @@ void CaptureDialog::on_launch_clicked()
 void CaptureDialog::on_processList_activated(const QModelIndex &index)
 {
   TriggerCapture();
+}
+
+void CaptureDialog::on_activityBrowse_clicked()
+{
+  std::string package = ui->exePath->text().toUtf8().data();
+
+  if(!package.empty())
+  {
+    rdcarray<rdcstr> activities = m_AndroidActivities[package];
+    if(activities.empty())
+    {
+      LambdaThread *th = new LambdaThread([this, &package, &activities]() {
+        RENDERDOC_GetActivities(m_Ctx.Replay().CurrentRemote()->hostname.c_str(), package.c_str(),
+                                activities);
+        m_AndroidActivities[package] = activities;
+      });
+      th->start();
+      // wait a few ms before popping up a progress bar
+      th->wait(500);
+      if(th->isRunning())
+      {
+        ShowProgressDialog(m_Main,
+                           tr("Loading %1, please wait...").arg(QString::fromStdString(package)),
+                           [th]() { return !th->isRunning(); });
+      }
+      th->deleteLater();
+    }
+    QString initDir;
+    VirtualFileDialog vfd(m_Ctx, initDir, this, activities);
+    RDDialog::show(&vfd);
+    QString activityName = vfd.chosenPath();
+    if(!activityName.isEmpty())
+      ui->activity->setText(activityName);
+  }
 }
 
 void CaptureDialog::SetSettings(CaptureSettings settings)
@@ -1117,9 +1155,24 @@ void CaptureDialog::UpdateRemoteHost()
   const RemoteHost *host = m_Ctx.Replay().CurrentRemote();
 
   if(host && host->IsADB())
+  {
     ui->cmdLineLabel->setText(tr("Intent Arguments"));
+    ui->activityLabel->show();
+    ui->activity->show();
+    ui->activityBrowse->show();
+  }
   else
+  {
     ui->cmdLineLabel->setText(tr("Command-line Arguments"));
+    ui->activityLabel->hide();
+    ui->activity->hide();
+    ui->activityBrowse->hide();
+  }
+}
+
+void CaptureDialog::OnRemoteHostSwitched()
+{
+  m_AndroidActivities.clear();
 }
 
 void CaptureDialog::SetEnvironmentModifications(const rdcarray<EnvironmentModification> &modifications)
@@ -1177,6 +1230,16 @@ void CaptureDialog::TriggerCapture()
                          tr("No program selected to launch, click browse next to 'Executable Path' "
                             "above to select the program to launch."));
       return;
+    }
+
+    if(m_Ctx.Replay().CurrentRemote()->IsADB())
+    {
+      QString activity = ui->activity->text().trimmed();
+      if(!activity.isEmpty())
+      {
+        exe.append(QString::fromStdString(std::string("/")));
+        exe.append(activity);
+      }
     }
 
     // for non-remote captures, check the executable locally

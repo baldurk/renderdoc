@@ -418,6 +418,9 @@ struct ICaptureDialog
   DOCUMENT("Update the current state based on the current remote host, when that changes.");
   virtual void UpdateRemoteHost() = 0;
 
+  DOCUMENT("Called when a remote host is selected.");
+  virtual void OnRemoteHostSwitched() = 0;
+
 protected:
   ICaptureDialog() = default;
   ~ICaptureDialog() = default;

@@ -74,6 +74,7 @@ public:
   void SaveSettings(const rdcstr &filename) override;
   void UpdateGlobalHook() override;
   void UpdateRemoteHost() override;
+  void OnRemoteHostSwitched() override;
 
 public slots:
   bool checkAllowClose();
@@ -104,6 +105,8 @@ private slots:
   void vulkanLayerWarn_mouseClick();
   void androidWarn_mouseClick();
 
+  void on_activityBrowse_clicked();
+
 private:
   Ui::CaptureDialog *ui;
   ICaptureContext &m_Ctx;
@@ -126,4 +129,6 @@ private:
 
   void CheckAndroidSetup(QString &filename);
   AndroidFlags m_AndroidFlags;
+
+  std::map<std::string, rdcarray<rdcstr>> m_AndroidActivities;
 };

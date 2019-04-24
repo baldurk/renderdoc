@@ -40,6 +40,7 @@ Process::ProcessResult adbExecCommand(const std::string &deviceID, const std::st
 void initAdb();
 void shutdownAdb();
 bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport);
+std::string GetDefaultActivityForPackage(const std::string &deviceID, const std::string &packageName);
 
 struct LogcatThread
 {

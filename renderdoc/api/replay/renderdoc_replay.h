@@ -2310,3 +2310,12 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &c
 DOCUMENT("Internal function that runs functional tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pythonMinorVersion,
                                                                        const rdcarray<rdcstr> &args);
+DOCUMENT("Internal function for retrieving the launcher Activity for the Android application.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultActivity(const char *hostName,
+                                                                        const char *packageName,
+                                                                        rdcstr &activity);
+DOCUMENT(R"(Internal function for retrieving those Activities of a given Android application
+which can be launched by other applications.)");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetActivities(const char *hostName,
+                                                                   const char *packageName,
+                                                                   rdcarray<rdcstr> &activities);

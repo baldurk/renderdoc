@@ -1942,6 +1942,9 @@ void MainWindow::switchContext()
 
   if(ok)
     setRemoteHost(hostIdx);
+
+  if(m_Ctx.HasCaptureDialog())
+    m_Ctx.GetCaptureDialog()->OnRemoteHostSwitched();
 }
 
 void MainWindow::contextChooser_menuShowing()

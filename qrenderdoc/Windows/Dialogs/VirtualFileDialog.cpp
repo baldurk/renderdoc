@@ -96,6 +96,40 @@ public:
       populate(node);
   }
 
+  RemoteFileModel(IReplayManager &r, QWidget *parent, const rdcarray<rdcstr> &activities)
+      : Renderer(r), QAbstractItemModel(parent)
+  {
+    makeIconStates(fileIcon, Pixmaps::page_white_database(parent));
+    makeIconStates(exeIcon, Pixmaps::page_white_code(parent));
+    makeIconStates(dirIcon, Pixmaps::folder(parent));
+
+    NTPaths = false;
+
+    FSNode *node = new FSNode();
+    node->parent = NULL;
+    node->parentIndex = 0;
+    node->file.filename = "";
+    node->file.flags = PathProperty::Directory;
+
+    for(uint i = 0; i < activities.size(); i++)
+    {
+      PathEntry package;
+      package.filename = activities[i];
+      package.size = 0;
+      package.lastmod = 0;
+      package.flags = PathProperty::Executable;
+      FSNode *child = new FSNode();
+      child->parent = node;
+      child->parentIndex = i;
+      child->file = package;
+      node->children.push_back(child);
+    }
+
+    node->populated = true;
+    roots.push_back(node);
+    home = indexForPath(QString());
+  }
+
   ~RemoteFileModel()
   {
     for(FSNode *n : roots)
@@ -550,14 +584,22 @@ protected:
   }
 };
 
-VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirectory, QWidget *parent)
+VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirectory,
+                                     QWidget *parent, const rdcarray<rdcstr> &activities)
     : QDialog(parent), ui(new Ui::VirtualFileDialog)
 {
   ui->setupUi(this);
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  m_Model = new RemoteFileModel(ctx.Replay(), this);
+  if(activities.empty())
+  {
+    m_Model = new RemoteFileModel(ctx.Replay(), this);
+  }
+  else
+  {
+    m_Model = new RemoteFileModel(ctx.Replay(), this, activities);
+  }
 
   m_DirProxy = new RemoteFileProxy(this);
   m_DirProxy->setSourceModel(m_Model);
