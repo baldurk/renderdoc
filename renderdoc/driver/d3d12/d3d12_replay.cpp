@@ -3169,7 +3169,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     m_pDevice->FlushLists();
 
     // expand multisamples out to array
-    GetDebugManager()->CopyTex2DMSToArray(arrayTexture, srcTexture);
+    GetDebugManager()->CopyTex2DMSToArray(Unwrap(arrayTexture), Unwrap(srcTexture));
 
     tmpTexture = srcTexture = arrayTexture;
 
