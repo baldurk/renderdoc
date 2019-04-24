@@ -193,9 +193,10 @@ class Iter_Test(rdtest.TestCase):
             choice_max += actions[action]['chance']
 
         draw = self.get_first_draw()
+        last_draw = self.get_last_draw()
 
         while draw:
-            rdtest.log.print("{} - {}".format(draw.eventId, draw.name))
+            rdtest.log.print("{}/{} - {}".format(draw.eventId, last_draw.eventId, draw.name))
 
             self.controller.SetFrameEvent(draw.eventId, False)
 
