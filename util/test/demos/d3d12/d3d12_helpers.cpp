@@ -946,6 +946,12 @@ D3D12PSOCreator &D3D12PSOCreator::DSV(DXGI_FORMAT fmt)
   return *this;
 }
 
+D3D12PSOCreator &D3D12PSOCreator::SampleCount(UINT Samples)
+{
+  GraphicsDesc.SampleDesc.Count = Samples;
+  return *this;
+}
+
 D3D12PSOCreator::operator ID3D12PipelineStatePtr() const
 {
   ID3D12PipelineStatePtr pso;

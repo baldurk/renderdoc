@@ -84,6 +84,8 @@ public:
   D3D12PSOCreator &RTVs(const std::vector<DXGI_FORMAT> &fmts);
   D3D12PSOCreator &DSV(DXGI_FORMAT fmt);
 
+  D3D12PSOCreator &SampleCount(UINT Samples);
+
   operator ID3D12PipelineStatePtr() const;
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsDesc = {};
