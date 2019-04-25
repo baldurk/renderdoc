@@ -157,6 +157,15 @@ std::string GetFriendlyName(std::string deviceID)
   if(it != friendlyNameCache.end())
     return it->second;
 
+  // run adb root now, so we hit any disconnection that we're going to before trying to connect.
+  // If we can't be root, this is cheap, if we're already root, this is cheap, if we can be root
+  // and this changes us it will block only the first time - and we expect this function to be
+  // slow-ish.
+  //
+  // We do this here so that we sneakily take advantage of the above caching - otherwise we spam adb
+  // root commands into the log
+  Android::adbExecCommand(deviceID, "root");
+
   std::string manuf =
       trim(Android::adbExecCommand(deviceID, "shell getprop ro.product.manufacturer").strStdout);
   std::string model =
