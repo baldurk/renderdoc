@@ -2912,6 +2912,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
                                  const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
+  bool resolve = params.resolve;
 
   ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[tex];
 
@@ -2952,6 +2953,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     wasms = true;
   }
+
+  if(wasms && (isDepth || isStencil))
+    resolve = false;
 
   ID3D12Resource *srcTexture = resource;
   ID3D12Resource *tmpTexture = NULL;
@@ -3012,7 +3016,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.flipY = false;
       texDisplay.mip = mip;
-      texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
+      texDisplay.sampleIdx = resolve ? ~0U : arrayIdx;
       texDisplay.customShaderId = ResourceId();
       texDisplay.sliceFace = arrayIdx;
       if(sampleCount > 1)
@@ -3049,7 +3053,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     isDepth = false;
     isStencil = false;
   }
-  else if(wasms && params.resolve)
+  else if(wasms && resolve)
   {
     // force to 1 array slice, 1 mip
     copyDesc.DepthOrArraySize = 1;

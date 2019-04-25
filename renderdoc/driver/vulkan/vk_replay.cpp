@@ -2448,6 +2448,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
                                   const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
+  bool resolve = params.resolve;
 
   if(m_pDriver->m_CreationInfo.m_Image.find(tex) == m_pDriver->m_CreationInfo.m_Image.end())
   {
@@ -2512,6 +2513,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     wasms = true;
   }
+
+  if(wasms && (isDepth || isStencil))
+    resolve = false;
 
   VkCommandBuffer extQCmd = VK_NULL_HANDLE;
 
@@ -2661,7 +2665,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.flipY = false;
       texDisplay.mip = mip;
-      texDisplay.sampleIdx = imInfo.type == VK_IMAGE_TYPE_3D ? 0 : (params.resolve ? ~0U : arrayIdx);
+      texDisplay.sampleIdx = imInfo.type == VK_IMAGE_TYPE_3D ? 0 : (resolve ? ~0U : arrayIdx);
       texDisplay.customShaderId = ResourceId();
       texDisplay.sliceFace = imInfo.type == VK_IMAGE_TYPE_3D ? i : arrayIdx;
       if(imInfo.samples > 1)
@@ -2759,7 +2763,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     isDepth = false;
     isStencil = false;
   }
-  else if(wasms && params.resolve)
+  else if(wasms && resolve)
   {
     // force to 1 array slice, 1 mip
     imCreateInfo.arrayLayers = 1;
