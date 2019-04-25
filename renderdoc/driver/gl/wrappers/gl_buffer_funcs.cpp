@@ -410,6 +410,8 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(SerialiserType &ser, GLuin
     // can't have coherent without persistent, so remove as well
     flags &= ~GL_MAP_COHERENT_BIT;
 
+    flags |= GL_MAP_READ_BIT;
+
     GL.glNamedBufferStorageEXT(buffer.name, (GLsizeiptr)bytesize, data, flags);
 
     m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
