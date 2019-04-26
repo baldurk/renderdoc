@@ -10,6 +10,11 @@ if [ ! -f "${BUILD_ROOT}"/support/key.pass ] || [ ! -f "${BUILD_ROOT}"/support/k
 	exit;
 fi
 
+# Kill any running processes
+for EXE in "${REPO_ROOT}"/Win32/Release/*.exe; do
+	taskkill.exe /F /IM $(basename "${EXE}");
+done
+
 # sign all of our files
 for PDB in "${REPO_ROOT}"/Win32/Release/*.pdb "${REPO_ROOT}"/x64/Release/*.pdb; do
 	EXE=${PDB%.pdb}.exe
