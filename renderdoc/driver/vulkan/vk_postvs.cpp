@@ -1241,7 +1241,11 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
 
   for(size_t i = 0; i < outsig.size(); i++)
   {
-    if(outpatch[i].structID && !outpatch[i].accessChain.empty())
+    if(outpatch[i].isArraySubsequentElement)
+    {
+      // do not patch anything as we only patch the base array, but reserve space in the stride
+    }
+    else if(outpatch[i].structID && !outpatch[i].accessChain.empty())
     {
       editor.AddDecoration(SPIRVOperation(
           spv::OpMemberDecorate,
@@ -1265,7 +1269,8 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
 
   for(size_t i = 0; i < outpatch.size(); i++)
   {
-    if(outpatch[i].ID && vars.find(outpatch[i].ID) == vars.end())
+    if(outpatch[i].ID && !outpatch[i].isArraySubsequentElement &&
+       vars.find(outpatch[i].ID) == vars.end())
     {
       editor.AddDecoration(
           SPIRVOperation(spv::OpDecorate, {outpatch[i].ID, (uint32_t)spv::DecorationXfbBuffer, 0}));

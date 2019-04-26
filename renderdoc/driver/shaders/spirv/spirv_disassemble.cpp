@@ -4104,7 +4104,10 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
     sig.regIndex += RDCMAX(1U, type->matrixSize);
     if(isArray)
-      patch.ID = patch.structID = 0;
+    {
+      patch.accessChain.back()++;
+      patch.isArraySubsequentElement = true;
+    }
   }
 }
 

@@ -94,6 +94,11 @@ struct SPIRVPatchData
 
     // is this input/output part of a matrix
     bool isMatrix = false;
+
+    // this is an element of an array that's been exploded after [0].
+    // i.e. this is false for non-arrays, and false for element [0] in an array, then true for
+    // elements [1], [2], [3], etc..
+    bool isArraySubsequentElement = false;
   };
 
   // matches the input/output signature array, with details of where to fetch the output from in the
