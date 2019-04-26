@@ -62,7 +62,7 @@ public:
     wchar_t tempPath[MAX_PATH] = {0};
     GetTempPathW(MAX_PATH - 1, tempPath);
 
-    wstring dumpFolder = tempPath;
+    std::wstring dumpFolder = tempPath;
     dumpFolder += L"RenderDoc/dumps";
 
     CreateDirectoryW(dumpFolder.c_str(), NULL);
@@ -77,11 +77,11 @@ public:
                                          RenderDoc::Inst().IsReplayApp() ? L"1" : L"0"),
     };
 
-    wstring wideStr = StringFormat::UTF82Wide(string(FULL_VERSION_STRING));
+    std::wstring wideStr = StringFormat::UTF82Wide(std::string(FULL_VERSION_STRING));
     breakpadCustomInfo[0].set_value(wideStr.c_str());
-    wideStr = StringFormat::UTF82Wide(string(RDCGETLOGFILE()));
+    wideStr = StringFormat::UTF82Wide(std::string(RDCGETLOGFILE()));
     breakpadCustomInfo[1].set_value(wideStr.c_str());
-    wideStr = StringFormat::UTF82Wide(string(GitVersionHash));
+    wideStr = StringFormat::UTF82Wide(std::string(GitVersionHash));
     breakpadCustomInfo[2].set_value(wideStr.c_str());
 
     google_breakpad::CustomClientInfo custom = {&breakpadCustomInfo[0],
@@ -153,7 +153,7 @@ public:
       }
     }
 
-    wstring cmdline = L"\"";
+    std::wstring cmdline = L"\"";
     cmdline += radpath;
     cmdline += L"/renderdoccmd.exe\" crashhandle --pipe ";
     cmdline += m_PipeName;
