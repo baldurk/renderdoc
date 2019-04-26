@@ -38,19 +38,19 @@ Examples:
 
 ---------------
 
-  | :guilabel:`Maximum significant figures on decimals` Default: ``5``
+  | :guilabel:`Maximum decimal places on float values` Default: ``5``
 
-Defines the smallest number of decimal places to display on a float, padding with 0s.
+Defines the largest number of decimal places to display on a float.
 
 Examples:
 
 * With a value of 5, ``0.123456789`` will be displayed as *0.12346*
 
-* With a value of 5, ``1.0`` will be displayed as *1.00*
+* With a value of 5, ``1.0`` will be displayed as *1.00* depending on the above minimum
 
 * With a value of 10, ``0.123456789`` will be displayed as *0.123456789*
 
-* With a value of 10, ``1.0`` will be displayed as *1.00*
+* With a value of 10, ``1.0`` will be displayed as *1.00* depending on the above minimum
 
 ---------------
 
