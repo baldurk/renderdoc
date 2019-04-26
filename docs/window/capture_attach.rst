@@ -7,7 +7,7 @@ After launching a capture a connection dialog will open to allow you to manage a
 
 .. note::
 
-  NOTE: The Load Settings and Save Settings buttons on this dialog refer to loading and saving the set of settings and options configured on this dialog. They do *not* refer to loading and saving the logs produced from capturing - that is done from the :guilabel:`File` menu.
+  NOTE: The Load Settings and Save Settings buttons on this dialog refer to loading and saving the set of settings and options configured on this dialog. They do *not* refer to loading and saving the capture files produced from capturing - that is done from the :guilabel:`File` menu.
 
 Capturing
 ---------
@@ -38,6 +38,8 @@ In the environment variable editor you can choose the name of the variable to ch
 When you are ready to capture simply click the :guilabel:`Capture` button in the bottom right.
 
 If you wish to save these particular settings you can click :guilabel:`Save Settings` to save them to a ``.cap`` file. This ``.cap`` file can either be loaded in manually, accessed through the :guilabel:`File` → :guilabel:`Recent Captures` menu. The ``.cap`` file can be associated with RenderDoc, and if so launching RenderDoc from this file will automatically load the capture settings. If :guilabel:`Auto start` is checked then double clicking on the ``.cap`` file will immediately trigger a capture with the given settings.
+
+The last settings used to launch an executable will be automatically saved, and the next time you set up there will be a :guilabel:`Load Last Settings - Executable` button next to :guilabel:`Save Settings` and :guilabel:`Load Settings`. This can be useful if you didn't save your configuration but want to quickly re-launch it.
 
 .. note::
   The process will be launched with the same permissions and by the same user as RenderDoc was launched. If your process requires specific permissions (such as administrator permissions) you will need to launch RenderDoc with these permissions.
