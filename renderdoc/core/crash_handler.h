@@ -168,7 +168,10 @@ public:
     if(!ret)
       RDCERR("Failed to create crashhandle server: %d", GetLastError());
 
-    WaitForSingleObject(waitEvent, 200);
+    {
+      SCOPED_TIMER("Waiting for crash handling server");
+      WaitForSingleObject(waitEvent, 400);
+    }
 
     CloseHandle(waitEvent);
 
