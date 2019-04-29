@@ -81,10 +81,16 @@ HINSTANCE hInstance = NULL;
 using google_breakpad::ClientInfo;
 using google_breakpad::CrashGenerationServer;
 
+bool clientConnected = false;
 bool exitServer = false;
 
 wstring wdump = L"";
 std::vector<google_breakpad::CustomInfoEntry> customInfo;
+
+static void _cdecl OnClientConnected(void *context, const ClientInfo *client_info)
+{
+  clientConnected = true;
+}
 
 static void _cdecl OnClientCrashed(void *context, const ClientInfo *client_info,
                                    const wstring *dump_path)
@@ -452,15 +458,14 @@ struct CrashHandlerCommand : public Command
     wchar_t tempPath[MAX_PATH] = {0};
     GetTempPathW(MAX_PATH - 1, tempPath);
 
-    Sleep(100);
-
     wstring dumpFolder = tempPath;
     dumpFolder += L"RenderDoc/dumps";
 
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 
-    crashServer = new CrashGenerationServer(pipe.c_str(), NULL, NULL, NULL, OnClientCrashed, NULL,
-                                            OnClientExited, NULL, NULL, NULL, true, &dumpFolder);
+    crashServer =
+        new CrashGenerationServer(pipe.c_str(), NULL, OnClientConnected, NULL, OnClientCrashed,
+                                  NULL, OnClientExited, NULL, NULL, NULL, true, &dumpFolder);
 
     if(!crashServer->Start())
     {
@@ -478,6 +483,9 @@ struct CrashHandlerCommand : public Command
       CloseHandle(readyEvent);
     }
 
+    const int loopSleep = 100;
+    int elapsedTime = 0;
+
     MSG msg;
     ZeroMemory(&msg, sizeof(msg));
     while(!exitServer)
@@ -494,7 +502,12 @@ struct CrashHandlerCommand : public Command
       if(msg.message == WM_QUIT)
         break;
 
-      Sleep(100);
+      Sleep(loopSleep);
+      elapsedTime += loopSleep;
+
+      // break out of the loop if
+      if(elapsedTime > 5000 && !clientConnected)
+        break;
     }
 
     delete crashServer;
