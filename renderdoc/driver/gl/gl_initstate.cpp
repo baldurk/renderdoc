@@ -182,7 +182,67 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 {
   GLInitialContents initContents;
 
-  if(res.Namespace == eResFramebuffer)
+  ResourceId id = GetID(res);
+
+  if(res.Namespace == eResBuffer)
+  {
+    // get the length of the buffer
+    uint32_t length = 4;
+    GL.glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, (GLint *)&length);
+
+    // save old bindings
+    GLuint oldbuf1 = 0, oldbuf2 = 0;
+    GL.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf1);
+    GL.glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING, (GLint *)&oldbuf2);
+
+    // create a new buffer big enough to hold the contents
+    GLuint buf = 0;
+    GL.glGenBuffers(1, &buf);
+    GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
+    GL.glNamedBufferDataEXT(buf, (GLsizeiptr)RDCMAX(length, 4U), NULL, eGL_STATIC_READ);
+
+    // bind the live buffer for copying
+    GL.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
+
+    // do the actual copy
+    if(length > 0)
+      GL.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0, (GLsizeiptr)length);
+
+    // workaround for some drivers - mapping/unmapping here seems to help avoid problems mapping
+    // later.
+    GL.glMapNamedBufferEXT(buf, eGL_READ_ONLY);
+    GL.glUnmapNamedBufferEXT(buf);
+
+    // restore old bindings
+    GL.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
+    GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, oldbuf2);
+
+    initContents.resource = GLResource(res.ContextShareGroup, eResBuffer, buf);
+    initContents.bufferLength = length;
+  }
+  else if(res.Namespace == eResProgram)
+  {
+    WriteSerialiser ser(new StreamWriter(4 * 1024), Ownership::Stream);
+
+    ser.SetChunkMetadataRecording(m_Driver->GetSerialiser().GetChunkMetadataRecording());
+
+    SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents);
+
+    SERIALISE_ELEMENT(id).TypedAs("GLResource");
+    SERIALISE_ELEMENT(res.Namespace);
+
+    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, res.name);
+    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, res.name, NULL);
+
+    SetInitialChunk(id, scope.Get());
+    return;
+  }
+  else if(res.Namespace == eResTexture)
+  {
+    PrepareTextureInitialContents(id, id, res);
+    return;
+  }
+  else if(res.Namespace == eResFramebuffer)
   {
     FramebufferInitialData &data = initContents.fbo;
 
@@ -452,153 +512,6 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 
     GL.glBindVertexArray(prevVAO);
   }
-
-  SetInitialContents(GetID(res), initContents);
-}
-
-bool GLResourceManager::Prepare_InitialState(GLResource res)
-{
-  // this function needs to be refactored to better deal with multiple
-  // contexts and resources that are specific to a particular context
-
-  ResourceId Id = GetID(res);
-
-  if(res.Namespace == eResBuffer)
-  {
-    // get the length of the buffer
-    uint32_t length = 4;
-    GL.glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, (GLint *)&length);
-
-    // save old bindings
-    GLuint oldbuf1 = 0, oldbuf2 = 0;
-    GL.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf1);
-    GL.glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING, (GLint *)&oldbuf2);
-
-    // create a new buffer big enough to hold the contents
-    GLuint buf = 0;
-    GL.glGenBuffers(1, &buf);
-    GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
-    GL.glNamedBufferDataEXT(buf, (GLsizeiptr)RDCMAX(length, 4U), NULL, eGL_STATIC_READ);
-
-    // bind the live buffer for copying
-    GL.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
-
-    // do the actual copy
-    if(length > 0)
-      GL.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0, (GLsizeiptr)length);
-
-    // restore old bindings
-    GL.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
-    GL.glBindBuffer(eGL_COPY_WRITE_BUFFER, oldbuf2);
-
-    SetInitialContents(
-        Id, GLInitialContents(GLResource(res.ContextShareGroup, eResBuffer, buf), length));
-  }
-  else if(res.Namespace == eResProgram)
-  {
-    WriteSerialiser ser(new StreamWriter(4 * 1024), Ownership::Stream);
-
-    ser.SetChunkMetadataRecording(m_Driver->GetSerialiser().GetChunkMetadataRecording());
-
-    SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents);
-
-    SERIALISE_ELEMENT(Id).TypedAs("GLResource");
-    SERIALISE_ELEMENT(res.Namespace);
-
-    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, res.name);
-    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, res.name, NULL);
-
-    SetInitialChunk(Id, scope.Get());
-  }
-  else if(res.Namespace == eResTexture)
-  {
-    PrepareTextureInitialContents(Id, Id, res);
-  }
-  else if(res.Namespace == eResFramebuffer)
-  {
-    // We need to fetch the data for this FBO on the right context.
-    // It's not safe for us to go changing contexts ourselves (the context could be active on
-    // another thread), so instead we'll queue this up to fetch when we are on a correct context.
-    // The correct context depends on whether the object is shared or not - if it's shared, any
-    // context in the same share group will do, otherwise it must be precisely the right context
-    //
-    // Because we've already allocated and set the blob above, it can be filled in any time
-    // before serialising (end of the frame, and if the context is never used before the end of
-    // the frame the resource can't be used, so not fetching the initial state doesn't matter).
-    //
-    // Note we also need to detect the case where the context is already current on another thread
-    // and we just start getting commands there, but that case already isn't supported as we don't
-    // detect it and insert state-change chunks, we assume all commands will come from a single
-    // thread.
-    ContextPair &ctx = m_Driver->GetCtx();
-    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
-    {
-      m_Driver->QueuePrepareInitialState(res);
-    }
-    else
-    {
-      // call immediately, we are on the right context or for one reason or another the context
-      // doesn't matter for fetching this resource (res.Context is NULL or vendorcheck means they're
-      // shared).
-      ContextPrepare_InitialState(res);
-    }
-  }
-  else if(res.Namespace == eResProgramPipe)
-  {
-    // queue initial state fetching if we're not on the right context, see above in FBOs for more
-    // explanation of this.
-    ContextPair &ctx = m_Driver->GetCtx();
-    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
-    {
-      m_Driver->QueuePrepareInitialState(res);
-    }
-    else
-    {
-      ContextPrepare_InitialState(res);
-    }
-  }
-  else if(res.Namespace == eResSampler)
-  {
-    // queue initial state fetching if we're not on the right context, see above in FBOs for more
-    // explanation of this.
-    ContextPair &ctx = m_Driver->GetCtx();
-    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
-    {
-      m_Driver->QueuePrepareInitialState(res);
-    }
-    else
-    {
-      ContextPrepare_InitialState(res);
-    }
-  }
-  else if(res.Namespace == eResFeedback)
-  {
-    // queue initial state fetching if we're not on the right context, see above in FBOs for more
-    // explanation of this.
-    ContextPair &ctx = m_Driver->GetCtx();
-    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
-    {
-      m_Driver->QueuePrepareInitialState(res);
-    }
-    else
-    {
-      ContextPrepare_InitialState(res);
-    }
-  }
-  else if(res.Namespace == eResVertexArray)
-  {
-    // queue initial state fetching if we're not on the right context, see above in FBOs for more
-    // explanation of this.
-    ContextPair &ctx = m_Driver->GetCtx();
-    if(res.ContextShareGroup != ctx.ctx && res.ContextShareGroup != ctx.shareGroup)
-    {
-      m_Driver->QueuePrepareInitialState(res);
-    }
-    else
-    {
-      ContextPrepare_InitialState(res);
-    }
-  }
   else if(res.Namespace == eResRenderbuffer)
   {
     //
@@ -606,6 +519,36 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   else
   {
     RDCERR("Unexpected type of resource requiring initial state");
+  }
+
+  SetInitialContents(id, initContents);
+}
+
+bool GLResourceManager::Prepare_InitialState(GLResource res)
+{
+  // We need to fetch the data for this resource on the right context.
+  // It's not safe for us to go changing contexts ourselves (the context could be active on
+  // another thread), so instead we'll queue this up to fetch when we are on a correct context.
+  // The correct context depends on whether the object is shared or not - if it's shared, any
+  // context in the same share group will do, otherwise it must be precisely the right context
+  //
+  // Because we've already allocated and set the blob above, it can be filled in any time
+  // before serialising (end of the frame, and if the context is never used before the end of
+  // the frame the resource can't be used, so not fetching the initial state doesn't matter).
+  //
+  // Note we also need to detect the case where the context is already current on another thread
+  // and we just start getting commands there, but that case already isn't supported as we don't
+  // detect it and insert state-change chunks, we assume all commands will come from a single
+  // thread.
+  ContextPair &ctx = m_Driver->GetCtx();
+  if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
+  {
+    // call immediately, we are on the right context or share group
+    ContextPrepare_InitialState(res);
+  }
+  else
+  {
+    m_Driver->QueuePrepareInitialState(res);
   }
 
   return true;
