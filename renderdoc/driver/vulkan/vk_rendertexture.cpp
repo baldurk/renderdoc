@@ -275,11 +275,15 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   data->Slice = 0;
   if(iminfo.type != VK_IMAGE_TYPE_3D)
   {
-    data->Slice = (float)cfg.sliceFace + 0.001f;
+    uint32_t numSlices =
+        RDCMAX((uint32_t)iminfo.arrayLayers, 1U) * RDCMAX((uint32_t)iminfo.samples, 1U);
+
+    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, numSlices - 1);
+    data->Slice = (float)sliceFace + 0.001f;
   }
   else
   {
-    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, uint32_t(iminfo.samples - 1));
+    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, iminfo.extent.depth - 1);
     data->Slice = (float)(sliceFace >> cfg.mip);
   }
 
