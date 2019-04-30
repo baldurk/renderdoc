@@ -29,7 +29,8 @@ static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum
                                    GLsizei length, const GLchar *message, const void *userParam)
 {
   // too much spam on these types
-  if(type != GL_DEBUG_TYPE_PERFORMANCE && type != GL_DEBUG_TYPE_OTHER)
+  if(type != GL_DEBUG_TYPE_PERFORMANCE && type != GL_DEBUG_TYPE_OTHER &&
+     source != GL_DEBUG_SOURCE_APPLICATION)
   {
     TEST_ERROR("Debug message: %s", message);
   }
@@ -37,7 +38,9 @@ static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum
 
 void OpenGLGraphicsTest::PostInit()
 {
-  if(GLAD_GL_ARB_debug_output)
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
+  if(GLAD_GL_KHR_debug)
   {
     glDebugMessageCallback(&debugCallback, NULL);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);

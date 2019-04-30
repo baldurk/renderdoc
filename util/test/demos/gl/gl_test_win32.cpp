@@ -105,7 +105,7 @@ bool OpenGLGraphicsTest::Init(int argc, char **argv)
     return false;
   }
 
-  glEnable(GL_FRAMEBUFFER_SRGB);
+  PostInit();
 
   return true;
 }
