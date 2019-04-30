@@ -57,6 +57,11 @@ static LRESULT CALLBACK NuklearWndProc(HWND wnd, UINT msg, WPARAM wparam, LPARAM
     PostQuitMessage(0);
     return 0;
   }
+  if(msg == WM_KEYDOWN && wparam == VK_ESCAPE)
+  {
+    PostQuitMessage(0);
+    return 0;
+  }
 
   if(nk_gdi_handle_event(wnd, msg, wparam, lparam))
     return 0;
