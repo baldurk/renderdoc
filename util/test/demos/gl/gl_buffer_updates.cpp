@@ -96,6 +96,8 @@ void main()
   BUFFER_TEST(CleanBufferMapFlushExplicit)      \
   BUFFER_TEST(DirtyBufferMapFlushExplicit)      \
   BUFFER_TEST(CoherentMapWrite)                 \
+  BUFFER_TEST(CoherentMapWriteInvalidateRange)  \
+  BUFFER_TEST(CoherentMapWriteInvalidateBuffer) \
   BUFFER_TEST(NonCoherentMapFlush)              \
   BUFFER_TEST(OffsetMapWrite)                   \
   BUFFER_TEST(OffsetMapFlush)
@@ -195,7 +197,8 @@ void main()
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
 
     glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapFlushExplicit]);
-    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
     for(int i = 0; i < 100; i++)
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
 
@@ -206,6 +209,22 @@ void main()
     ptrs[CoherentMapWrite] =
         (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
                                   GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[CoherentMapWriteInvalidateRange]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+    ptrs[CoherentMapWriteInvalidateRange] = (Vec4f *)glMapBufferRange(
+        GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT |
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[CoherentMapWriteInvalidateBuffer]);
+    glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+                    GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+    ptrs[CoherentMapWriteInvalidateBuffer] = (Vec4f *)glMapBufferRange(
+        GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), GL_MAP_COHERENT_BIT | GL_MAP_PERSISTENT_BIT |
+                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
     glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
     glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
@@ -324,6 +343,8 @@ void main()
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       memcpy(ptrs[CoherentMapWrite], &red, sizeof(Vec4f));
+      memcpy(ptrs[CoherentMapWriteInvalidateRange], &red, sizeof(Vec4f));
+      memcpy(ptrs[CoherentMapWriteInvalidateBuffer], &red, sizeof(Vec4f));
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
       memcpy(ptrs[NonCoherentMapFlush], &red, sizeof(Vec4f));
@@ -359,8 +380,9 @@ void main()
           glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 0,
                                GL_DEBUG_SEVERITY_HIGH, -1, TestNames[buf]);
 
-          if(buf == CoherentMapWrite)
-            memcpy(ptrs[CoherentMapWrite], &green, sizeof(Vec4f));
+          if(buf == CoherentMapWrite || buf == CoherentMapWriteInvalidateRange ||
+             buf == CoherentMapWriteInvalidateBuffer)
+            memcpy(ptrs[buf], &green, sizeof(Vec4f));
 
           if(buf == NonCoherentMapFlush)
           {

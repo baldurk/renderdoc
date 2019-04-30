@@ -1928,6 +1928,13 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     {
       // reading must be available
       access |= GL_MAP_READ_BIT;
+
+      // can't invalidate if we are reading. This flag is safe to remove because it only has a perf
+      // impact - invalid data could by coincidence be the precise previous contents. We've also
+      // already set invalidateMap above so if we're verifying buffer contents we know to check for
+      // it.
+      access &= ~(GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+
       directMap = true;
       persistent = true;
     }
