@@ -43,7 +43,7 @@ struct MeshDisplayPipelines
     ePipe_Count,
   };
 
-  VkPipeline pipes[ePipe_Count];
+  VkPipeline pipes[ePipe_Count] = {};
 };
 
 struct SPIRVCompilationSettings;

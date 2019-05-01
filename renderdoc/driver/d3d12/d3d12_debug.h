@@ -111,8 +111,8 @@ struct MeshDisplayPipelines
     ePipe_Count,
   };
 
-  ID3D12PipelineState *pipes[ePipe_Count];
-  ID3D12RootSignature *rootsig;
+  ID3D12PipelineState *pipes[ePipe_Count] = {};
+  ID3D12RootSignature *rootsig = NULL;
 };
 
 class D3D12DebugManager
