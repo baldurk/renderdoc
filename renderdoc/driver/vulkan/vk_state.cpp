@@ -439,22 +439,28 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
     // current state.
     std::vector<VkWriteDescriptorSet> writes;
 
+    // any allocated arrays
+    std::vector<VkDescriptorImageInfo *> allocImgWrites;
+    std::vector<VkDescriptorBufferInfo *> allocBufWrites;
+    std::vector<VkBufferView *> allocBufViewWrites;
+
     WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[descSet];
+
+    VkWriteDescriptorSet push = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 
     for(size_t b = 0; b < descLayout.bindings.size(); b++)
     {
-      VkWriteDescriptorSet push = {};
+      const DescSetLayout::Binding &bind = descLayout.bindings[b];
 
       // skip if this binding isn't used
-      if(descLayout.bindings[b].descriptorCount == 0 || descLayout.bindings[b].stageFlags == 0)
+      if(bind.descriptorCount == 0 || bind.stageFlags == 0)
         continue;
 
-      push.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       // push.dstSet; // unused for push descriptors
       push.dstBinding = (uint32_t)b;
       push.dstArrayElement = 0;
-      push.descriptorType = descLayout.bindings[b].descriptorType;
-      push.descriptorCount = descLayout.bindings[b].descriptorCount;
+      push.descriptorType = bind.descriptorType;
+      push.descriptorCount = bind.descriptorCount;
 
       DescriptorSetSlot *slots = setInfo.currentBindings[b];
 
@@ -467,6 +473,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
           dst[a] = Unwrap(slots[a].texelBufferView);
 
         push.pTexelBufferView = dst;
+        allocBufViewWrites.push_back(dst);
       }
       else if(push.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
               push.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -484,6 +491,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
         }
 
         push.pImageInfo = dst;
+        allocImgWrites.push_back(dst);
       }
       else
       {
@@ -496,21 +504,61 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
         }
 
         push.pBufferInfo = dst;
+        allocBufWrites.push_back(dst);
       }
 
-      writes.push_back(push);
+      // start with no descriptors
+      push.descriptorCount = 0;
+
+      for(uint32_t w = 0; w < bind.descriptorCount; w++)
+      {
+        // if this push is valid, we increment the descriptor count and continue
+        if(IsValid(push, w - push.dstArrayElement))
+        {
+          push.descriptorCount++;
+        }
+        else
+        {
+          // if this push isn't valid, then we first check to see if we had any previous
+          // pending pushs in the array we were going to batch together, if so we add them.
+          if(push.descriptorCount > 0)
+            writes.push_back(push);
+
+          // skip past any previous descriptors we just wrote, as well as the current invalid
+          // one
+          if(push.pBufferInfo)
+            push.pBufferInfo += push.descriptorCount + 1;
+          if(push.pImageInfo)
+            push.pImageInfo += push.descriptorCount + 1;
+          if(push.pTexelBufferView)
+            push.pTexelBufferView += push.descriptorCount + 1;
+
+          // now start again from 0 descriptors, at the next array element
+          push.dstArrayElement += push.descriptorCount + 1;
+          push.descriptorCount = 0;
+        }
+      }
+
+      // if there are any left, add them here
+      if(push.descriptorCount > 0)
+        writes.push_back(push);
+
+      // don't leak the arrays and cause double deletes, NULL them after each time
+      push.pImageInfo = NULL;
+      push.pBufferInfo = NULL;
+      push.pTexelBufferView = NULL;
     }
 
     ObjDisp(cmd)->CmdPushDescriptorSetKHR(Unwrap(cmd), bindPoint, Unwrap(layout), setIndex,
                                           (uint32_t)writes.size(), writes.data());
 
-    // delete dynamically allocated arrays
-    for(VkWriteDescriptorSet &push : writes)
-    {
-      SAFE_DELETE_ARRAY(push.pImageInfo);
-      SAFE_DELETE_ARRAY(push.pBufferInfo);
-      SAFE_DELETE_ARRAY(push.pTexelBufferView);
-    }
+    // delete allocated arrays for descriptor writes
+    for(VkDescriptorBufferInfo *a : allocBufWrites)
+      delete[] a;
+    for(VkDescriptorImageInfo *a : allocImgWrites)
+      delete[] a;
+    for(VkBufferView *a : allocBufViewWrites)
+      delete[] a;
   }
 }
 
