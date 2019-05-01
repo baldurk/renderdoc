@@ -186,7 +186,16 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
           else
             value &= ~EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
 
+          // remove NO_ERROR bit
+          value &= ~GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
+
           flagsFound = true;
+        }
+
+        if(name == EGL_CONTEXT_OPENGL_NO_ERROR_KHR)
+        {
+          // remove this attribute so that we can be more stable
+          continue;
         }
 
         attribs.push_back(name);
