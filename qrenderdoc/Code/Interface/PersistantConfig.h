@@ -331,6 +331,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
                                                                                            \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_CurrentVersion, "")              \
+                                                                                           \
   CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_UpdateResponse, "")              \
                                                                                            \
   CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, CheckUpdate_LastUpdate,               \
@@ -654,6 +656,11 @@ For more information about some of these settings that are user-facing see
   ``True`` if an update to a newer version is currently available.
 
   Defaults to ``False``.
+
+.. data:: CheckUpdate_CurrentVersion
+
+  The current version at the time of update checks. Used to determine if a cached pending update is
+  no longer valid because we got updated through some other method.
 
 .. data:: CheckUpdate_UpdateResponse
 

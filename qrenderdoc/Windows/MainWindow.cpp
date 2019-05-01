@@ -1214,6 +1214,15 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
   }
 
 #if RENDERDOC_OFFICIAL_BUILD
+
+  // if the current version isn't the one we expected, clear any cached update state
+  if(m_Ctx.Config().CheckUpdate_CurrentVersion != MAJOR_MINOR_VERSION_STRING)
+  {
+    m_Ctx.Config().CheckUpdate_UpdateAvailable = false;
+    m_Ctx.Config().CheckUpdate_UpdateResponse = "";
+    m_Ctx.Config().CheckUpdate_CurrentVersion = MAJOR_MINOR_VERSION_STRING;
+  }
+
   QDateTime today = QDateTime::currentDateTime();
 
   // check by default every 2 days
@@ -1290,6 +1299,7 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
     {
       m_Ctx.Config().CheckUpdate_UpdateAvailable = false;
       m_Ctx.Config().CheckUpdate_UpdateResponse = "";
+      m_Ctx.Config().CheckUpdate_CurrentVersion = lit(MAJOR_MINOR_VERSION_STRING);
       m_Ctx.Config().Save();
       SetNoUpdate();
 
@@ -1301,6 +1311,7 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
 
     m_Ctx.Config().CheckUpdate_UpdateAvailable = true;
     m_Ctx.Config().CheckUpdate_UpdateResponse = response;
+    m_Ctx.Config().CheckUpdate_CurrentVersion = lit(MAJOR_MINOR_VERSION_STRING);
     m_Ctx.Config().Save();
     SetUpdateAvailable();
     UpdatePopup();
