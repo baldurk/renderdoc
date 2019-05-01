@@ -1279,7 +1279,8 @@ size_t GLTypeSize(GLenum type)
     case eGL_HALF_FLOAT: return 2;
     case eGL_UNSIGNED_INT:
     case eGL_INT:
-    case eGL_FLOAT: return 4;
+    case eGL_FLOAT:
+    case eGL_UNSIGNED_INT_8_8_8_8_REV: return 4;
     case eGL_DOUBLE: return 8;
     default: RDCWARN("Unhandled element type %s", ToStr(type).c_str());
   }
@@ -1707,10 +1708,18 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
   }
 
   // special handling for formats that don't query neatly
-  if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT)
+  if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT ||
+     fmt == eGL_LUMINANCE || fmt == eGL_ALPHA)
   {
     ret.compByteWidth = 1;
     ret.compCount = 1;
+    ret.compType = CompType::UNorm;
+    return ret;
+  }
+  else if(fmt == eGL_LUMINANCE8_ALPHA8_EXT || fmt == eGL_LUMINANCE_ALPHA)
+  {
+    ret.compByteWidth = 1;
+    ret.compCount = 2;
     ret.compType = CompType::UNorm;
     return ret;
   }

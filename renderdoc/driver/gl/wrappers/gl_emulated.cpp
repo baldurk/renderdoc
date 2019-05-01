@@ -950,7 +950,10 @@ static const format_data formats[] = {
 
     // unsized formats
     {eGL_RED, eGL_UNSIGNED_BYTE, 1, 8, 0, 0},
+    {eGL_ALPHA, eGL_UNSIGNED_BYTE, 1, 8, 0, 0},
+    {eGL_LUMINANCE, eGL_UNSIGNED_BYTE, 1, 8, 0, 0},
     {eGL_RG, eGL_UNSIGNED_BYTE, 2, 8, 0, 0},
+    {eGL_LUMINANCE_ALPHA, eGL_UNSIGNED_BYTE, 2, 8, 0, 0},
     {eGL_RGB, eGL_UNSIGNED_BYTE, 3, 8, 0, 0},
     {eGL_RGBA, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
     {eGL_BGRA_EXT, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
