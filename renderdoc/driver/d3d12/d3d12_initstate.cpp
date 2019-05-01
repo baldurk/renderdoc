@@ -880,7 +880,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
             }
 
             if(dst)
-              copyDst->Unmap(0, NULL);
+              copyDst->Unmap(i, NULL);
           }
 
           delete[] layouts;
