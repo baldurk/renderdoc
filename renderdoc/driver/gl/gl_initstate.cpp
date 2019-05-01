@@ -829,6 +829,17 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&maxlevel);
 
+      // set min/mag filters to NEAREST since we are doing an identity copy. Avoids issues where the
+      // spec says that e.g. integer or stencil textures cannot have a LINEAR filter
+      if(!ms)
+      {
+        GLenum nearest = eGL_NEAREST;
+        GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MIN_FILTER,
+                                   (GLint *)&nearest);
+        GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAG_FILTER,
+                                   (GLint *)&nearest);
+      }
+
       bool iscomp = IsCompressedFormat(details.internalFormat);
 
       bool avoidCopySubImage = false;
@@ -958,6 +969,14 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
       GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&state.maxLevel);
+
+      if(!ms)
+      {
+        GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MIN_FILTER,
+                                   (GLint *)&state.minFilter);
+        GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAG_FILTER,
+                                   (GLint *)&state.magFilter);
+      }
     }
 
     initContents.resource = GLResource(res.ContextShareGroup, eResTexture, tex);
@@ -1821,6 +1840,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
     {
       GLuint tex = initial.resource.name;
 
+      bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
+                 details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+
       if(initial.resource != GLResource(MakeNullResource) && tex != 0)
       {
         int mips = GetNumMips(details.curType, tex, details.width, details.height, details.depth);
@@ -1836,6 +1858,17 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
         int maxlevel = mips - 1;
         GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
                                    (GLint *)&maxlevel);
+
+        // set min/mag filters to NEAREST since we are doing an identity copy. Avoids issues where
+        // the spec says that e.g. integer or stencil textures cannot have a LINEAR filter
+        if(!ms)
+        {
+          GLenum nearest = eGL_NEAREST;
+          GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MIN_FILTER,
+                                     (GLint *)&nearest);
+          GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAG_FILTER,
+                                     (GLint *)&nearest);
+        }
 
         bool iscomp = IsCompressedFormat(details.internalFormat);
 
@@ -1952,9 +1985,6 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
           unpack.Apply(false);
         }
       }
-
-      bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
-                 details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
       if((state.depthMode == eGL_DEPTH_COMPONENT || state.depthMode == eGL_STENCIL_INDEX) &&
          HasExt[ARB_stencil_texturing])
