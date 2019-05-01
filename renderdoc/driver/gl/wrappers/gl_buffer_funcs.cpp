@@ -2307,7 +2307,10 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
           // We need to copy the data across to GL
           void *ptr = GL.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset,
                                                   GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
-          memcpy(ptr, record->Map.ptr, record->Map.length);
+          if(ptr)
+            memcpy(ptr, record->Map.ptr, record->Map.length);
+          else
+            RDCERR("Failed to map buffer for update");
           GL.glUnmapNamedBufferEXT(buffer);
         }
 
