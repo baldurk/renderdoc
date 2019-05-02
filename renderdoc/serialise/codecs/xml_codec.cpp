@@ -609,36 +609,37 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
     rdc->SetData(driver, driverName.c_str(), machineIdent, rdcthumb);
   }
 
-  // push in other sections
-  pugi::xml_node xSection = xHeader.next_sibling();
-
-  if(!strcmp(xSection.name(), "extended_thumbnail"))
-  {
-    SectionProperties props = {};
-    props.type = SectionType::ExtendedThumbnail;
-    props.version = 1;
-    StreamWriter *w = rdc->WriteSection(props);
-
-    ExtThumbnailHeader header;
-    header.width = (uint16_t)xSection.attribute("width").as_uint();
-    header.height = (uint16_t)xSection.attribute("height").as_uint();
-    header.len = (uint32_t)extThumb.data.size();
-    header.format = extThumb.format;
-    w->Write(header);
-    w->Write(extThumb.data.data(), extThumb.data.size());
-
-    w->Finish();
-
-    delete w;
-
-    xSection = xSection.next_sibling();
-  }
-
   if(progress)
     progress(StructuredProgress(0.1f));
 
-  while(!strcmp(xSection.name(), "section"))
+  // push in other sections
+  pugi::xml_node xSection = xHeader.next_sibling();
+
+  while(!strcmp(xSection.name(), "section") || !strcmp(xSection.name(), "extended_thumbnail"))
   {
+    if(!strcmp(xSection.name(), "extended_thumbnail"))
+    {
+      SectionProperties props = {};
+      props.type = SectionType::ExtendedThumbnail;
+      props.version = 1;
+      StreamWriter *w = rdc->WriteSection(props);
+
+      ExtThumbnailHeader header;
+      header.width = (uint16_t)xSection.attribute("width").as_uint();
+      header.height = (uint16_t)xSection.attribute("height").as_uint();
+      header.len = (uint32_t)extThumb.data.size();
+      header.format = extThumb.format;
+      w->Write(header);
+      w->Write(extThumb.data.data(), extThumb.data.size());
+
+      w->Finish();
+
+      delete w;
+
+      xSection = xSection.next_sibling();
+      continue;
+    }
+
     SectionProperties props;
 
     if(xSection.attribute("ascii"))
