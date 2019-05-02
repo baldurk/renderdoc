@@ -37,18 +37,18 @@ GLenum WrappedOpenGL::glGetGraphicsResetStatus()
   return GL.glGetGraphicsResetStatus();
 }
 
-GLuint WrappedOpenGL::glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum *sources,
-                                           GLenum *types, GLuint *ids, GLenum *severities,
-                                           GLsizei *lengths, GLchar *messageLog)
-{
-  return GL.glGetDebugMessageLog(count, bufSize, sources, types, ids, severities, lengths,
-                                 messageLog);
-}
-
 GLboolean WrappedOpenGL::glIsEnabled(GLenum cap)
 {
   if(cap == eGL_DEBUG_TOOL_EXT)
     return true;
+
+  if(!HasExt[KHR_debug])
+  {
+    if(cap == eGL_DEBUG_OUTPUT)
+      return false;
+    if(cap == eGL_DEBUG_OUTPUT_SYNCHRONOUS)
+      return false;
+  }
 
   return GL.glIsEnabled(cap);
 }
@@ -138,20 +138,68 @@ GLboolean WrappedOpenGL::glIsSemaphoreEXT(GLuint semaphore)
 
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
 {
+  if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(params)
+          *params = GLfloat(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(params)
+          *params = GLfloat(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(params)
+          *params = GLfloat(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetFloatv(pname, params);
 }
 
 void WrappedOpenGL::glGetDoublev(GLenum pname, GLdouble *params)
 {
+  if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(params)
+          *params = GLdouble(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(params)
+          *params = GLdouble(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(params)
+          *params = GLdouble(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetDoublev(pname, params);
 }
 
 void WrappedOpenGL::glGetPointerv(GLenum pname, void **params)
 {
   if(pname == eGL_DEBUG_CALLBACK_FUNCTION)
-    *params = (void *)m_RealDebugFunc;
+    *params = (void *)GetCtxData().m_RealDebugFunc;
   else if(pname == eGL_DEBUG_CALLBACK_USER_PARAM)
-    *params = (void *)m_RealDebugFuncParam;
+    *params = (void *)GetCtxData().m_RealDebugFuncParam;
   else
     GL.glGetPointerv(pname, params);
 }
@@ -176,12 +224,59 @@ void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
       *params = GLint(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
     return;
   }
+  else if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(params)
+          *params = GLint(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(params)
+          *params = GLint(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(params)
+          *params = GLint(1);
+        return;
+      default: break;
+    }
+  }
 
   GL.glGetIntegerv(pname, params);
 }
 
 void WrappedOpenGL::glGetBooleanv(GLenum pname, GLboolean *data)
 {
+  if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLboolean(1);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLboolean(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLboolean(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetBooleanv(pname, data);
 }
 
@@ -199,11 +294,59 @@ void WrappedOpenGL::glGetInteger64v(GLenum pname, GLint64 *data)
       *data = GLint64(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
     return;
   }
+  else if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLint64(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLint64(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLint64(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetInteger64v(pname, data);
 }
 
 void WrappedOpenGL::glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data)
 {
+  if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLboolean(1);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLboolean(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLboolean(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetBooleani_v(pname, index, data);
 }
 
@@ -221,16 +364,88 @@ void WrappedOpenGL::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
       *data = GLint(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
     return;
   }
+  else if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLint(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLint(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLint(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetIntegeri_v(pname, index, data);
 }
 
 void WrappedOpenGL::glGetFloati_v(GLenum pname, GLuint index, GLfloat *data)
 {
+  if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLfloat(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLfloat(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLfloat(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetFloati_v(pname, index, data);
 }
 
 void WrappedOpenGL::glGetDoublei_v(GLenum pname, GLuint index, GLdouble *data)
 {
+  if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLdouble(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLdouble(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLdouble(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetDoublei_v(pname, index, data);
 }
 
@@ -248,6 +463,30 @@ void WrappedOpenGL::glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *data)
       *data = GLint64(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
     return;
   }
+  else if(!HasExt[KHR_debug])
+  {
+    switch(pname)
+    {
+      case eGL_MAX_LABEL_LENGTH:
+      case eGL_MAX_DEBUG_MESSAGE_LENGTH:
+      case eGL_MAX_DEBUG_LOGGED_MESSAGES:
+      case eGL_MAX_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLint64(1024);
+        return;
+      case eGL_DEBUG_LOGGED_MESSAGES:
+      case eGL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+        if(data)
+          *data = GLint64(0);
+        return;
+      case eGL_DEBUG_GROUP_STACK_DEPTH:
+        if(data)
+          *data = GLint64(1);
+        return;
+      default: break;
+    }
+  }
+
   GL.glGetInteger64i_v(pname, index, data);
 }
 
@@ -589,24 +828,6 @@ GLint WrappedOpenGL::glGetFragDataLocation(GLuint program, const GLchar *name)
 void WrappedOpenGL::glGetMultisamplefv(GLenum pname, GLuint index, GLfloat *val)
 {
   GL.glGetMultisamplefv(pname, index, val);
-}
-
-void WrappedOpenGL::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize,
-                                     GLsizei *length, GLchar *label)
-{
-  GL.glGetObjectLabel(identifier, name, bufSize, length, label);
-}
-
-void WrappedOpenGL::glGetObjectLabelEXT(GLenum identifier, GLuint name, GLsizei bufSize,
-                                        GLsizei *length, GLchar *label)
-{
-  GL.glGetObjectLabelEXT(identifier, name, bufSize, length, label);
-}
-
-void WrappedOpenGL::glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
-                                        GLchar *label)
-{
-  GL.glGetObjectPtrLabel(ptr, bufSize, length, label);
 }
 
 void WrappedOpenGL::glGetShaderiv(GLuint shader, GLenum pname, GLint *params)
@@ -1056,9 +1277,9 @@ void WrappedOpenGL::glGetTextureLevelParameterfvEXT(GLuint texture, GLenum targe
 void WrappedOpenGL::glGetPointeri_vEXT(GLenum pname, GLuint index, void **params)
 {
   if(pname == eGL_DEBUG_CALLBACK_FUNCTION)
-    *params = (void *)m_RealDebugFunc;
+    *params = (void *)GetCtxData().m_RealDebugFunc;
   else if(pname == eGL_DEBUG_CALLBACK_USER_PARAM)
-    *params = (void *)m_RealDebugFuncParam;
+    *params = (void *)GetCtxData().m_RealDebugFuncParam;
   else
     GL.glGetPointeri_vEXT(pname, index, params);
 }

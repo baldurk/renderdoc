@@ -153,8 +153,30 @@ DefineUnsupportedHooks();
 // implementation.
 bool FullyImplementedFunction(const char *funcname)
 {
-  return !strcmp(funcname, "glFrameTerminatorGREMEDY") ||
-         !strcmp(funcname, "glStringMarkerGREMEDY");
+  return
+      // GL_GREMEDY_frame_terminator
+      !strcmp(funcname, "glFrameTerminatorGREMEDY") ||
+      // GL_GREMEDY_string_marker
+      !strcmp(funcname, "glStringMarkerGREMEDY") ||
+      // GL_EXT_debug_label
+      !strcmp(funcname, "glLabelObjectEXT") || !strcmp(funcname, "glGetObjectLabelEXT") ||
+      // GL_EXT_debug_marker
+      !strcmp(funcname, "glInsertEventMarkerEXT") || !strcmp(funcname, "glPushGroupMarkerEXT") ||
+      !strcmp(funcname, "glPopGroupMarkerEXT") ||
+      // GL_KHR_debug (Core variants)
+      !strcmp(funcname, "DebugMessageControl") || !strcmp(funcname, "DebugMessageInsert") ||
+      !strcmp(funcname, "DebugMessageCallback") || !strcmp(funcname, "GetDebugMessageLog") ||
+      !strcmp(funcname, "GetPointerv") || !strcmp(funcname, "PushDebugGroup") ||
+      !strcmp(funcname, "PopDebugGroup") || !strcmp(funcname, "ObjectLabel") ||
+      !strcmp(funcname, "GetObjectLabel") || !strcmp(funcname, "ObjectPtrLabel") ||
+      !strcmp(funcname, "GetObjectPtrLabel") ||
+      // GL_KHR_debug (KHR variants)
+      !strcmp(funcname, "DebugMessageControlKHR") || !strcmp(funcname, "DebugMessageInsertKHR") ||
+      !strcmp(funcname, "DebugMessageCallbackKHR") || !strcmp(funcname, "GetDebugMessageLogKHR") ||
+      !strcmp(funcname, "GetPointervKHR") || !strcmp(funcname, "PushDebugGroupKHR") ||
+      !strcmp(funcname, "PopDebugGroupKHR") || !strcmp(funcname, "ObjectLabelKHR") ||
+      !strcmp(funcname, "GetObjectLabelKHR") || !strcmp(funcname, "ObjectPtrLabelKHR") ||
+      !strcmp(funcname, "GetObjectPtrLabelKHR");
 }
 
 void *HookedGetProcAddress(const char *func, void *realFunc)

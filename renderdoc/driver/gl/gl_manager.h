@@ -163,6 +163,8 @@ public:
     auto it = m_CurrentResourceIds.find(res);
     if(it != m_CurrentResourceIds.end())
     {
+      m_Names.erase(it->second);
+
       ReleaseCurrentResource(it->second);
       m_CurrentResourceIds.erase(res);
     }
@@ -228,9 +230,11 @@ public:
 
   GLsync GetSync(GLuint name) { return m_CurrentSyncs[name]; }
   ResourceId GetSyncID(GLsync sync) { return m_SyncIDs[sync]; }
-  // KHR_debug storage on replay
+  // KHR_debug storage
   const std::string &GetName(ResourceId id) { return m_Names[id]; }
   void SetName(ResourceId id, const std::string &name) { m_Names[id] = name; }
+  void SetName(GLResource res, const std::string &name) { SetName(GetID(res), name); }
+  std::string GetName(GLResource res) { return GetName(GetID(res)); }
   // we need to find all the children bound to VAOs/FBOs and mark them referenced. The reason for
   // this is that say a VAO became high traffic and we stopped serialising buffer binds, but then it
   // is never modified in a frame and none of the buffers are ever referenced. They would be

@@ -86,8 +86,6 @@ private:
   void Serialise_DebugMessages(SerialiserType &ser);
   vector<DebugMessage> GetDebugMessages();
 
-  GLDEBUGPROC m_RealDebugFunc;
-  const void *m_RealDebugFuncParam;
   string m_DebugMsgContext;
 
   bool m_SuppressDebugMessages;
@@ -318,6 +316,9 @@ private:
       ctx = NULL;
       shareGroup = NULL;
 
+      m_RealDebugFunc = NULL;
+      m_RealDebugFuncParam = NULL;
+
       built = ready = false;
       attribsCreate = false;
       version = 0;
@@ -340,6 +341,9 @@ private:
     void *ctx;
 
     void *shareGroup;
+
+    GLDEBUGPROC m_RealDebugFunc;
+    const void *m_RealDebugFuncParam;
 
     bool built;
     bool ready;

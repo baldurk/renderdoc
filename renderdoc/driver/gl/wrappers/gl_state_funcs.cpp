@@ -1050,6 +1050,10 @@ bool WrappedOpenGL::Serialise_glDisable(SerialiserType &ser, GLenum cap)
 
 void WrappedOpenGL::glDisable(GLenum cap)
 {
+  // if we're emulating KHR_debug, skip its caps here
+  if(!HasExt[KHR_debug] && (cap == eGL_DEBUG_OUTPUT || cap == eGL_DEBUG_OUTPUT_SYNCHRONOUS))
+    return;
+
   SERIALISE_TIME_CALL(GL.glDisable(cap));
 
   if(IsActiveCapturing(m_State))
@@ -1090,6 +1094,10 @@ bool WrappedOpenGL::Serialise_glEnable(SerialiserType &ser, GLenum cap)
 
 void WrappedOpenGL::glEnable(GLenum cap)
 {
+  // if we're emulating KHR_debug, skip its caps here
+  if(!HasExt[KHR_debug] && (cap == eGL_DEBUG_OUTPUT || cap == eGL_DEBUG_OUTPUT_SYNCHRONOUS))
+    return;
+
   SERIALISE_TIME_CALL(GL.glEnable(cap));
 
   if(IsActiveCapturing(m_State))

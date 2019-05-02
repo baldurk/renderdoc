@@ -530,8 +530,6 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_UsesVRMarkers = false;
 
-  m_RealDebugFunc = NULL;
-  m_RealDebugFuncParam = NULL;
   m_SuppressDebugMessages = false;
 
   m_DrawcallStack.push_back(&m_ParentDrawcall);
@@ -1247,8 +1245,18 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       // this extension is something RenderDoc will support even if the impl
       // doesn't. https://renderdoc.org/debug_tool.txt
       ctxdata.glExts.push_back("GL_EXT_debug_tool");
-      ctxdata.glExts.push_back("GL_GREMEDY_frame_terminator");
-      ctxdata.glExts.push_back("GL_GREMEDY_string_marker");
+
+      // similarly we report all the debug extensions so that applications can use them freely - we
+      // don't call into the driver so we don't need to care if the driver supports them
+      ctxdata.glExts.push_back("GL_KHR_debug");
+      ctxdata.glExts.push_back("GL_EXT_debug_label");
+      ctxdata.glExts.push_back("GL_EXT_debug_marker");
+
+      if(!IsGLES)
+      {
+        ctxdata.glExts.push_back("GL_GREMEDY_frame_terminator");
+        ctxdata.glExts.push_back("GL_GREMEDY_string_marker");
+      }
 
       merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
 
@@ -2641,8 +2649,9 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     }
   }
 
-  if(m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
-    m_RealDebugFunc(source, type, id, severity, length, message, m_RealDebugFuncParam);
+  if(GetCtxData().m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
+    GetCtxData().m_RealDebugFunc(source, type, id, severity, length, message,
+                                 GetCtxData().m_RealDebugFuncParam);
 }
 
 void WrappedOpenGL::AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix)
