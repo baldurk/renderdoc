@@ -1076,7 +1076,10 @@ namespace Callstack
 {
 void Init()
 {
-  ::InitDbgHelp();
+  // if we're capturing, need to initialise immediately to claim ownership and be ready to collect
+  // callstacks. On replay we can do this later when needed.
+  if(!RenderDoc::Inst().IsReplayApp())
+    ::InitDbgHelp();
 }
 
 Stackwalk *Collect()
@@ -1096,6 +1099,9 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCal
     RDCWARN("Can't load callstack resolve for this log. Possibly from another platform?");
     return NULL;
   }
+
+  // initialise dbghelp if we haven't already
+  ::InitDbgHelp();
 
   return new Win32CallstackResolver(moduleDB, DBSize, progress);
 }
