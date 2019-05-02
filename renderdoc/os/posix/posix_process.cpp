@@ -579,9 +579,13 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
         dup2(stdoutPipe[1], STDOUT_FILENO);
         dup2(stderrPipe[1], STDERR_FILENO);
 
-        // Close read ends, as the child will write.
+        // now close all pipe handles - we don't need the read ends, and the write ends have been
+        // duplicated into stdout/stderr above - we don't want these handles to be inherited into
+        // child processes.
         close(stdoutPipe[0]);
         close(stderrPipe[0]);
+        close(stdoutPipe[1]);
+        close(stderrPipe[1]);
       }
 
       chdir(workDir.c_str());
