@@ -408,7 +408,7 @@ private:
       d3d11hooks.nvapi_CreateDeviceAndSwapChain_real = (PFNNVCreateDeviceAndSwapChain)real;
       return &nvapi_CreateDeviceAndSwapChain;
     }
-    else if(ID == 0xAD298D3F || ID == 0x0150E828 || ID == 0x33C7358C || ID == 0x593E8644)
+    else if(ID == 0xAD298D3F || ID == 0x0150E828 || ID == 0x33C7358C || ID == 0x593E8644 || ID == 0xd451e834)
     {
       // these seem to be fetched inside NvAPI_Initialize so we allow them through to avoid
       // causing problems
