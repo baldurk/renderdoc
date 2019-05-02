@@ -1197,7 +1197,13 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       vector<string> implExts;
 
-      if(GL.glGetIntegerv && GL.glGetStringi)
+      int ctxVersion = 0;
+      bool ctxGLES = false;
+      GetContextVersion(ctxGLES, ctxVersion);
+
+      // only use glGetStringi on 3.0 contexts and above (ES and GL), even if we have the function
+      // pointer
+      if(GL.glGetIntegerv && GL.glGetStringi && ctxVersion >= 30)
       {
         GLuint numExts = 0;
         GL.glGetIntegerv(eGL_NUM_EXTENSIONS, (GLint *)&numExts);

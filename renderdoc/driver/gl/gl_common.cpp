@@ -378,14 +378,8 @@ static void CheckExtFromString(const char *ext)
   }
 }
 
-void FetchEnabledExtensions()
+void GetContextVersion(bool &ctxGLES, int &ctxVersion)
 {
-  GLint numExts = 0;
-  if(GL.glGetIntegerv)
-    GL.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
-
-  RDCEraseEl(HasExt);
-
   if(GL.glGetString)
   {
     const char *version = (const char *)GL.glGetString(eGL_VERSION);
@@ -395,15 +389,19 @@ void FetchEnabledExtensions()
     //   "OpenGL ES N.M vendor-specific information"
     if(strncmp(version, "OpenGL ES", 9) == 0)
     {
-      IsGLES = true;
+      ctxGLES = true;
 
       int mj = int(version[10] - '0');
       int mn = int(version[12] - '0');
-      GLCoreVersion = RDCMAX(GLCoreVersion, mj * 10 + mn);
+      ctxVersion = mj * 10 + mn;
     }
     else
     {
-      IsGLES = false;
+      ctxGLES = false;
+
+      int mj = int(version[0] - '0');
+      int mn = int(version[1] - '0');
+      ctxVersion = mj * 10 + mn;
     }
   }
 
@@ -413,14 +411,33 @@ void FetchEnabledExtensions()
     GL.glGetIntegerv(eGL_MAJOR_VERSION, &mj);
     GL.glGetIntegerv(eGL_MINOR_VERSION, &mn);
 
-    GLCoreVersion = RDCMAX(GLCoreVersion, mj * 10 + mn);
+    if(mj > 0)
+      ctxVersion = mj * 10 + mn;
   }
+}
+
+void FetchEnabledExtensions()
+{
+  RDCEraseEl(HasExt);
+
+  int ctxVersion = 0;
+  bool ctxGLES = false;
+  GetContextVersion(ctxGLES, ctxVersion);
+
+  GLCoreVersion = RDCMAX(GLCoreVersion, ctxVersion);
+  IsGLES = ctxGLES;
 
   RDCLOG("Checking enabled extensions, running as %s %d.%d", IsGLES ? "OpenGL ES" : "OpenGL",
-         (GLCoreVersion / 10), (GLCoreVersion % 10));
+         (ctxVersion / 10), (ctxVersion % 10));
 
-  if(GL.glGetStringi)
+  // only use glGetStringi on 3.0 contexts and above (ES and GL), even if we have the function
+  // pointer
+  if(GL.glGetStringi && ctxVersion >= 30)
   {
+    GLint numExts = 0;
+    if(GL.glGetIntegerv)
+      GL.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
+
     for(int i = 0; i < numExts; i++)
     {
       const char *ext = (const char *)GL.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
@@ -428,7 +445,7 @@ void FetchEnabledExtensions()
       CheckExtFromString(ext);
     }
   }
-  else if(GL.glGetString && IsGLES && GLCoreVersion < 30)
+  else if(GL.glGetString)
   {
     std::string extstr = (const char *)GL.glGetString(eGL_EXTENSIONS);
 

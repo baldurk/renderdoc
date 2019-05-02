@@ -827,6 +827,7 @@ extern bool VendorCheck[VendorCheck_Count];
 
 // fills out the extension supported array and the version-specific checks above
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context);
+void GetContextVersion(bool &ctxGLES, int &ctxVersion);
 void FetchEnabledExtensions();
 
 // verify that we got a replay context that we can work with
