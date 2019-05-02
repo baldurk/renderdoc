@@ -38,6 +38,35 @@ extern "C" void NSGL_update(void *nsctx);
 extern "C" void NSGL_flushBuffer(void *nsctx);
 extern "C" void NSGL_destroyContext(void *nsctx);
 
+// gl functions (used for quad rendering on legacy contexts)
+extern "C" void glPushMatrix();
+extern "C" void glLoadIdentity();
+extern "C" void glMatrixMode(GLenum);
+extern "C" void glOrtho(GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
+extern "C" void glPopMatrix();
+extern "C" void glBegin(GLenum);
+extern "C" void glVertex2f(float, float);
+extern "C" void glTexCoord2f(float, float);
+extern "C" void glEnd();
+
+#define QUAD_GL_FUNCS(FUNC) \
+  FUNC(glGetIntegerv);      \
+  FUNC(glPushMatrix);       \
+  FUNC(glLoadIdentity);     \
+  FUNC(glMatrixMode);       \
+  FUNC(glOrtho);            \
+  FUNC(glPopMatrix);        \
+  FUNC(glBegin);            \
+  FUNC(glVertex2f);         \
+  FUNC(glTexCoord2f);       \
+  FUNC(glEnd);
+
+#define DECL_PTR(a) decltype(&a) a;
+struct QuadGL
+{
+  QUAD_GL_FUNCS(DECL_PTR);
+};
+
 template <>
 std::string DoStringise(const CGLError &el)
 {
@@ -194,7 +223,14 @@ class CGLPlatform : public GLPlatform
 
   void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
   {
-    RDCERR("Legacy overlay not supported on macOS");
+    static QuadGL quadGL = {};
+
+    if(!quadGL.glBegin)
+    {
+#define FETCH_PTR(a) quadGL.a = &::a;
+      QUAD_GL_FUNCS(FETCH_PTR)
+    }
+    ::DrawQuads(quadGL, width, height, vertices);
   }
 } cglPlatform;
 
