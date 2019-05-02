@@ -32,25 +32,34 @@ typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
 
 struct D3D12BlobShaderCallbacks
 {
-  D3D12BlobShaderCallbacks()
+  pD3DCreateBlob GetCreateBlob() const
   {
-    HMODULE d3dcompiler = GetD3DCompiler();
+    static pD3DCreateBlob blobCreate = NULL;
 
-    if(d3dcompiler == NULL)
-      RDCFATAL("Can't get handle to d3dcompiler_??.dll");
+    if(!blobCreate)
+    {
+      HMODULE d3dcompiler = GetD3DCompiler();
 
-    m_BlobCreate = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
+      if(d3dcompiler == NULL)
+        RDCFATAL("Can't get handle to d3dcompiler_??.dll");
 
-    if(m_BlobCreate == NULL)
-      RDCFATAL("d3dcompiler.dll doesn't contain D3DCreateBlob");
+      blobCreate = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
+
+      if(blobCreate == NULL)
+        RDCFATAL("d3dcompiler.dll doesn't contain D3DCreateBlob");
+    }
+
+    return blobCreate;
   }
 
   bool Create(uint32_t size, byte *data, ID3DBlob **ret) const
   {
     RDCASSERT(ret);
 
+    pD3DCreateBlob blobCreate = GetCreateBlob();
+
     *ret = NULL;
-    HRESULT hr = m_BlobCreate((SIZE_T)size, ret);
+    HRESULT hr = blobCreate((SIZE_T)size, ret);
 
     if(FAILED(hr))
     {
@@ -67,7 +76,6 @@ struct D3D12BlobShaderCallbacks
   void Destroy(ID3DBlob *blob) const { blob->Release(); }
   uint32_t GetSize(ID3DBlob *blob) const { return (uint32_t)blob->GetBufferSize(); }
   const byte *GetData(ID3DBlob *blob) const { return (const byte *)blob->GetBufferPointer(); }
-  pD3DCreateBlob m_BlobCreate;
 } D3D12ShaderCacheCallbacks;
 
 struct EmbeddedD3D12Includer : public ID3DInclude
