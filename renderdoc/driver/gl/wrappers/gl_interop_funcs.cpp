@@ -1480,7 +1480,7 @@ void WrappedOpenGL::glTexStorageMem1DEXT(GLenum target, GLsizei levels, GLenum i
 
   if(IsCaptureMode(m_State))
   {
-    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
     if(!record)
     {
@@ -1594,7 +1594,7 @@ void WrappedOpenGL::glTexStorageMem2DEXT(GLenum target, GLsizei levels, GLenum i
 
   if(IsCaptureMode(m_State))
   {
-    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
     if(!record)
     {
@@ -1717,7 +1717,7 @@ void WrappedOpenGL::glTexStorageMem2DMultisampleEXT(GLenum target, GLsizei sampl
 
   if(IsCaptureMode(m_State))
   {
-    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
     if(!record)
     {
@@ -1832,7 +1832,7 @@ void WrappedOpenGL::glTexStorageMem3DEXT(GLenum target, GLsizei levels, GLenum i
 
   if(IsCaptureMode(m_State))
   {
-    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
     if(!record)
     {
@@ -1953,7 +1953,7 @@ void WrappedOpenGL::glTexStorageMem3DMultisampleEXT(GLenum target, GLsizei sampl
 
   if(IsCaptureMode(m_State))
   {
-    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
     if(!record)
     {

@@ -384,7 +384,6 @@ private:
     string glExtsString;
 
     // state
-    GLResourceRecord *m_TextureRecord[256];    // TODO this needs on per texture type :(
     GLResourceRecord *m_BufferRecord[16];
     GLResourceRecord *m_VertexArrayRecord;
     GLResourceRecord *m_FeedbackRecord;
@@ -395,7 +394,33 @@ private:
     GLuint m_ProgramPipeline;
     GLuint m_Program;
 
-    GLResourceRecord *GetActiveTexRecord() { return m_TextureRecord[m_TextureUnit]; }
+    GLResourceRecord *GetActiveTexRecord(GLenum target)
+    {
+      return m_TextureRecord[TextureIdx(target)][m_TextureUnit];
+    }
+    void SetActiveTexRecord(GLenum target, GLResourceRecord *record)
+    {
+      m_TextureRecord[TextureIdx(target)][m_TextureUnit] = record;
+    }
+    GLResourceRecord *GetTexUnitRecord(GLenum target, GLenum texunit)
+    {
+      return m_TextureRecord[TextureIdx(target)][texunit - eGL_TEXTURE0];
+    }
+    void SetTexUnitRecord(GLenum target, GLenum texunit, GLResourceRecord *record)
+    {
+      SetTexUnitRecordIndexed(target, texunit - eGL_TEXTURE0, record);
+    }
+    void ClearAllTexUnitRecordsIndexed(uint32_t unitidx)
+    {
+      for(size_t i = 0; i < ARRAY_COUNT(m_TextureRecord); i++)
+        m_TextureRecord[i][unitidx] = NULL;
+    }
+    // modern DSA bindings set by index, not enum
+    void SetTexUnitRecordIndexed(GLenum target, uint32_t unitidx, GLResourceRecord *record)
+    {
+      m_TextureRecord[TextureIdx(target)][unitidx] = record;
+    }
+
     // GLES allows drawing from client memory, in which case we will copy to
     // temporary VBOs so that input mesh data is recorded. See struct ClientMemoryData
     GLuint m_ClientMemoryVBOs[16];
@@ -405,6 +430,10 @@ private:
     GLResourceRecord *m_ContextDataRecord;
 
     ResourceId m_ContextFBOID;
+
+  private:
+    // kept private to force everyone through accessors above
+    GLResourceRecord *m_TextureRecord[11][256];
   };
 
   struct ClientMemoryData

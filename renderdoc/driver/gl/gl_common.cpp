@@ -1207,6 +1207,55 @@ GLenum BufferEnum(size_t idx)
   return eGL_NONE;
 }
 
+size_t TextureIdx(GLenum buf)
+{
+  switch(buf)
+  {
+    case eGL_TEXTURE_1D: return 0;
+    case eGL_TEXTURE_1D_ARRAY: return 1;
+    case eGL_TEXTURE_2D: return 2;
+    case eGL_TEXTURE_2D_ARRAY: return 3;
+    case eGL_TEXTURE_2D_MULTISAMPLE: return 4;
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: return 5;
+    case eGL_TEXTURE_RECTANGLE: return 6;
+    case eGL_TEXTURE_3D: return 7;
+    case eGL_TEXTURE_CUBE_MAP:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z: return 8;
+    case eGL_TEXTURE_CUBE_MAP_ARRAY: return 9;
+    case eGL_TEXTURE_BUFFER: return 10;
+    default: RDCERR("Unexpected enum as texture target: %s", ToStr(buf).c_str());
+  }
+
+  return 0;
+}
+
+GLenum TextureEnum(size_t idx)
+{
+  GLenum enums[] = {
+      eGL_TEXTURE_1D,
+      eGL_TEXTURE_1D_ARRAY,
+      eGL_TEXTURE_2D,
+      eGL_TEXTURE_2D_ARRAY,
+      eGL_TEXTURE_2D_MULTISAMPLE,
+      eGL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+      eGL_TEXTURE_RECTANGLE,
+      eGL_TEXTURE_3D,
+      eGL_TEXTURE_CUBE_MAP,
+      eGL_TEXTURE_CUBE_MAP_ARRAY,
+      eGL_TEXTURE_BUFFER,
+  };
+
+  if(idx < ARRAY_COUNT(enums))
+    return enums[idx];
+
+  return eGL_NONE;
+}
+
 size_t QueryIdx(GLenum query)
 {
   size_t idx = 0;

@@ -548,6 +548,9 @@ size_t GLTypeSize(GLenum type);
 size_t BufferIdx(GLenum buf);
 GLenum BufferEnum(size_t idx);
 
+size_t TextureIdx(GLenum buf);
+GLenum TextureEnum(size_t idx);
+
 size_t QueryIdx(GLenum query);
 GLenum QueryEnum(size_t idx);
 
