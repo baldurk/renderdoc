@@ -77,6 +77,9 @@ CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj s
   CGL.CGLDescribePixelFormat(pix, 0, kCGLPFASamples, &value);
   init.multiSamples = RDCMAX(1, value);
 
+  CGL.CGLDescribePixelFormat(pix, 0, kCGLPFAOpenGLProfile, &value);
+  bool isCore = (value >= kCGLOGLPVersion_3_2_Core);
+
   GLWindowingData data;
   data.wnd = NULL;
   data.ctx = *ctx;
@@ -84,7 +87,7 @@ CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj s
 
   {
     SCOPED_LOCK(glLock);
-    cglhook.driver.CreateContext(data, share, init, true, true);
+    cglhook.driver.CreateContext(data, share, init, isCore, isCore);
   }
 
   return ret;
