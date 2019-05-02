@@ -22,12 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "common/globalconfig.h"
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
 #define CATCH_CONFIG_RUNNER
 #define CATCH_CONFIG_NOSTDOUT
-#include "catch.hpp"
-#include "api/replay/renderdoc_replay.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
+#include "catch.hpp"
 
 // since we force use of ToStr for everything and don't allow using catch's stringstream (so that
 // enums get forwarded to ToStr) we need to implement ToStr for one of Catch's structs.
@@ -311,3 +314,15 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &c
   // of 256 tests has failed
   return (numFailed < 0xff ? numFailed : 0xff);
 }
+
+#else
+
+#include "api/replay/renderdoc_replay.h"
+
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
+                                                                 const rdcarray<rdcstr> &args)
+{
+  return 0;
+}
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
