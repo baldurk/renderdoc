@@ -297,15 +297,19 @@ void main()
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
                                       GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-      memcpy(ptr, &green, sizeof(Vec4f));
+      if(ptr)
+        memcpy(ptr, &green, sizeof(Vec4f));
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[CleanBufferMapWriteNonInvalidate]);
       glBufferData(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, GL_DYNAMIC_DRAW);
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), GL_MAP_WRITE_BIT);
-      ptr->x = 0.0f;
-      ptr->y = 1.0f;
+      if(ptr)
+      {
+        ptr->x = 0.0f;
+        ptr->y = 1.0f;
+      }
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteInvalidate]);
@@ -313,15 +317,19 @@ void main()
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
                                       GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-      memcpy(ptr, &green, sizeof(Vec4f));
+      if(ptr)
+        memcpy(ptr, &green, sizeof(Vec4f));
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapWriteNonInvalidate]);
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &red);
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), GL_MAP_WRITE_BIT);
-      ptr->x = 0.0f;
-      ptr->y = 1.0f;
+      if(ptr)
+      {
+        ptr->x = 0.0f;
+        ptr->y = 1.0f;
+      }
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[CleanBufferMapFlushExplicit]);
@@ -329,25 +337,35 @@ void main()
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-      ptr->x = 0.0f;
-      ptr->y = 1.0f;
+      if(ptr)
+      {
+        ptr->x = 0.0f;
+        ptr->y = 1.0f;
+      }
       glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 2);
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[DirtyBufferMapFlushExplicit]);
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f),
                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-      ptr->x = 0.0f;
-      ptr->y = 1.0f;
+      if(ptr)
+      {
+        ptr->x = 0.0f;
+        ptr->y = 1.0f;
+      }
       glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 2);
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-      memcpy(ptrs[CoherentMapWrite], &red, sizeof(Vec4f));
-      memcpy(ptrs[CoherentMapWriteInvalidateRange], &red, sizeof(Vec4f));
-      memcpy(ptrs[CoherentMapWriteInvalidateBuffer], &red, sizeof(Vec4f));
+      if(ptrs[CoherentMapWrite])
+        memcpy(ptrs[CoherentMapWrite], &red, sizeof(Vec4f));
+      if(ptrs[CoherentMapWriteInvalidateRange])
+        memcpy(ptrs[CoherentMapWriteInvalidateRange], &red, sizeof(Vec4f));
+      if(ptrs[CoherentMapWriteInvalidateBuffer])
+        memcpy(ptrs[CoherentMapWriteInvalidateBuffer], &red, sizeof(Vec4f));
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
-      memcpy(ptrs[NonCoherentMapFlush], &red, sizeof(Vec4f));
+      if(ptrs[NonCoherentMapFlush])
+        memcpy(ptrs[NonCoherentMapFlush], &red, sizeof(Vec4f));
       glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 4);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapWrite]);
@@ -355,7 +373,8 @@ void main()
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, sizeof(float) * 2, sizeof(float),
                                       GL_MAP_WRITE_BIT);
-      ptr->x = 0.0f;
+      if(ptr)
+        ptr->x = 0.0f;
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       glBindBuffer(GL_UNIFORM_BUFFER, buffers[OffsetMapFlush]);
@@ -363,7 +382,8 @@ void main()
 
       ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, sizeof(float) * 2, sizeof(float),
                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-      ptr->x = 0.0f;
+      if(ptr)
+        ptr->x = 0.0f;
       glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float));
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
@@ -382,12 +402,16 @@ void main()
 
           if(buf == CoherentMapWrite || buf == CoherentMapWriteInvalidateRange ||
              buf == CoherentMapWriteInvalidateBuffer)
-            memcpy(ptrs[buf], &green, sizeof(Vec4f));
+          {
+            if(ptrs[buf])
+              memcpy(ptrs[buf], &green, sizeof(Vec4f));
+          }
 
           if(buf == NonCoherentMapFlush)
           {
             glBindBuffer(GL_UNIFORM_BUFFER, buffers[NonCoherentMapFlush]);
-            memcpy(ptrs[NonCoherentMapFlush], &green, sizeof(Vec4f));
+            if(ptrs[NonCoherentMapFlush])
+              memcpy(ptrs[NonCoherentMapFlush], &green, sizeof(Vec4f));
             glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float) * 4);
           }
 
