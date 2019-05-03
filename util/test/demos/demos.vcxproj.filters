@@ -270,6 +270,9 @@
     <ClCompile Include="gl\gl_structured_buffer_nested.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_entry_points.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

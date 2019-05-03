@@ -165,6 +165,7 @@
     <ClCompile Include="gl\gl_cbuffer_zoo.cpp" />
     <ClCompile Include="gl\gl_depthstencil_fbo.cpp" />
     <ClCompile Include="gl\gl_dx_interop.cpp" />
+    <ClCompile Include="gl\gl_entry_points.cpp" />
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
     <ClCompile Include="gl\gl_midframe_context_create.cpp" />
