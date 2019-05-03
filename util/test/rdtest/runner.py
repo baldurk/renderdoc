@@ -141,7 +141,7 @@ def _run_test(testclass, failedcases: list):
                            .format(test_run.returncode))
 
 
-def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests: bool):
+def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests: bool, debugger: bool):
     start_time = time.time()
 
     rd.InitGlobalEnv(rd.GlobalEnvironment(), [])
@@ -278,15 +278,21 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         util.set_current_test(name)
 
-        try:
+        def do():
             if in_process:
                 instance = testclass()
                 instance.invoketest()
             else:
                 _run_test(testclass, failedcases)
-        except Exception as ex:
-            log.failure(ex)
-            failedcases.append(testclass)
+
+        if debugger:
+            do()
+        else:
+            try:
+                do()
+            except Exception as ex:
+                log.failure(ex)
+                failedcases.append(testclass)
 
         log.end_test(name)
 

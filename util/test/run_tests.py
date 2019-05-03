@@ -26,6 +26,8 @@ parser.add_argument('--artifacts', default="artifacts",
                     help="The folder to put output artifacts in. Will be completely cleared.", type=str)
 parser.add_argument('--temp', default="tmp",
                     help="The folder to put temporary run data in. Will be completely cleared.", type=str)
+parser.add_argument('--debugger',
+                    help="Enable debugger mode, exceptions are not caught by the framework.", action="store_true")
 # Internal command, when we fork out to run a test in a separate process
 parser.add_argument('--internal_run_test', help=argparse.SUPPRESS, type=str, required=False)
 # Internal command, when we re-run as admin to register vulkan layer
@@ -90,9 +92,13 @@ rdtest.set_data_dir(os.path.realpath(args.data))
 rdtest.set_data_extra_dir(os.path.realpath(args.data_extra))
 rdtest.set_temp_dir(os.path.realpath(args.temp))
 
+# debugger option implies in-process test running
+if args.debugger:
+    args.in_process = True
+
 if args.internal_vulkan_register:
     rdtest.vulkan_register()
 elif args.internal_run_test is not None:
     rdtest.internal_run_test(args.internal_run_test)
 else:
-    rdtest.run_tests(args.test_include, args.test_exclude, args.in_process, args.slow_tests)
+    rdtest.run_tests(args.test_include, args.test_exclude, args.in_process, args.slow_tests, args.debugger)
