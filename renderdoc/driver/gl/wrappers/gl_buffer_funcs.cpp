@@ -2375,7 +2375,8 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
   {
     record = GetResourceManager()->GetResourceRecord(buffer);
 
-    FlushedData = record->Map.ptr + offset;
+    if(record->Map.ptr)
+      FlushedData = record->Map.ptr + offset;
     MapOffset = record->Map.offset;
   }
 
@@ -2564,27 +2565,31 @@ void WrappedOpenGL::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &ma
 
     RDCASSERT(record && record->Map.ptr);
 
-    size_t diffStart = 0, diffEnd = record->Map.length;
-    bool found = true;
-
-    if(record->GetShadowPtr(0))
-      found = FindDiffRange(record->GetShadowPtr(0), record->Map.ptr, (size_t)record->Map.length,
-                            diffStart, diffEnd);
-
-    if(found && diffEnd > diffStart)
+    if(record->Map.ptr)
     {
-      // update the modified region in the 'comparison' shadow buffer for next check
-      if(record->GetShadowPtr(0) == NULL)
-        record->AllocShadowStorage(record->Map.length);
-      else
-        memcpy(record->GetShadowPtr(0) + diffStart, record->Map.ptr + diffStart, diffEnd - diffStart);
+      size_t diffStart = 0, diffEnd = record->Map.length;
+      bool found = true;
 
-      // we use our own flush function so it will serialise chunks when necessary, and it
-      // also handles copying into the persistent mapped pointer and flushing the real GL
-      // buffer
-      gl_CurChunk = GLChunk::CoherentMapWrite;
-      glFlushMappedNamedBufferRangeEXT(record->Resource.name, GLintptr(diffStart),
-                                       GLsizeiptr(diffEnd - diffStart));
+      if(record->GetShadowPtr(0))
+        found = FindDiffRange(record->GetShadowPtr(0), record->Map.ptr, (size_t)record->Map.length,
+                              diffStart, diffEnd);
+
+      if(found && diffEnd > diffStart)
+      {
+        // update the modified region in the 'comparison' shadow buffer for next check
+        if(record->GetShadowPtr(0) == NULL)
+          record->AllocShadowStorage(record->Map.length);
+        else
+          memcpy(record->GetShadowPtr(0) + diffStart, record->Map.ptr + diffStart,
+                 diffEnd - diffStart);
+
+        // we use our own flush function so it will serialise chunks when necessary, and it
+        // also handles copying into the persistent mapped pointer and flushing the real GL
+        // buffer
+        gl_CurChunk = GLChunk::CoherentMapWrite;
+        glFlushMappedNamedBufferRangeEXT(record->Resource.name, GLintptr(diffStart),
+                                         GLsizeiptr(diffEnd - diffStart));
+      }
     }
   }
 }
