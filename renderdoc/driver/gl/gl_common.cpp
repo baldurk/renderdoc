@@ -387,7 +387,16 @@ void GetContextVersion(bool &ctxGLES, int &ctxVersion)
     // check whether we are using OpenGL ES
     // GL_VERSION for OpenGL ES:
     //   "OpenGL ES N.M vendor-specific information"
-    if(strncmp(version, "OpenGL ES", 9) == 0)
+    // for 1.x:
+    //   "OpenGL ES-XX N.M vendor-specific information"
+    if(!strncmp(version, "OpenGL ES-", 10))
+    {
+      ctxGLES = true;
+
+      // assume 1.0, doesn't matter if it's 1.1
+      ctxVersion = 10;
+    }
+    else if(!strncmp(version, "OpenGL ES", 9))
     {
       ctxGLES = true;
 
