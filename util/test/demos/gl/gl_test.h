@@ -52,6 +52,10 @@ struct OpenGLGraphicsTest : public GraphicsTest
   GLuint MakeVAO();
   GLuint MakeFBO();
 
+  void pushMarker(const std::string &name);
+  void setMarker(const std::string &name);
+  void popMarker();
+
   bool Running();
   void Present(GraphicsWindow *window);
   void Present() { Present(mainWindow); }

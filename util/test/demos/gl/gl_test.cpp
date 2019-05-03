@@ -212,6 +212,25 @@ GLuint OpenGLGraphicsTest::MakeFBO()
   return fbos[fbos.size() - 1];
 }
 
+void OpenGLGraphicsTest::pushMarker(const std::string &name)
+{
+  if(glPushDebugGroup)
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name.c_str());
+}
+
+void OpenGLGraphicsTest::setMarker(const std::string &name)
+{
+  if(glDebugMessageInsert)
+    glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 0,
+                         GL_DEBUG_SEVERITY_LOW, -1, name.c_str());
+}
+
+void OpenGLGraphicsTest::popMarker()
+{
+  if(glPopDebugGroup)
+    glPopDebugGroup();
+}
+
 bool OpenGLGraphicsTest::Running()
 {
   if(!FrameLimit())
