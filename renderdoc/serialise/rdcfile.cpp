@@ -319,7 +319,7 @@ void RDCFile::Init(StreamReader &reader)
 
   m_SerVer = header.version;
 
-  if(m_SerVer != SERIALISE_VERSION)
+  if(m_SerVer != SERIALISE_VERSION && m_SerVer != V1_0_VERSION)
   {
     if(header.version < V1_0_VERSION)
     {

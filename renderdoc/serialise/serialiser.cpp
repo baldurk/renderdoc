@@ -60,7 +60,7 @@ Serialiser<SerialiserMode::Reading>::~Serialiser()
 }
 
 template <>
-uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint32_t)
+uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
 {
   uint32_t chunkID = 0;
 
@@ -100,7 +100,16 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint32_t)
     if(c & ChunkTimestamp)
       m_Read->Read(m_ChunkMetadata.timestampMicro);
 
-    m_Read->Read(m_ChunkMetadata.length);
+    if(c & Chunk64BitSize)
+    {
+      m_Read->Read(m_ChunkMetadata.length);
+    }
+    else
+    {
+      uint32_t chunkSize = 0;
+      m_Read->Read(chunkSize);
+      m_ChunkMetadata.length = chunkSize;
+    }
 
     m_LastChunkOffset = m_Read->GetOffset();
   }
@@ -260,7 +269,7 @@ void Serialiser<SerialiserMode::Writing>::SetChunkMetadataRecording(uint32_t fla
 }
 
 template <>
-uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint32_t byteLength)
+uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint64_t byteLength)
 {
   {
     // chunk index needs to be valid
@@ -271,6 +280,8 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint3
       RDCASSERT(chunkID <= ChunkIndexMask);
 
       c |= m_ChunkFlags;
+      if(byteLength > 0xffffffff)
+        c |= Chunk64BitSize;
 
       m_ChunkMetadata.chunkID = chunkID;
 
@@ -334,13 +345,23 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint3
       {
         // write length, assuming it is an upper bound
         m_ChunkFixup = 0;
-        m_Write->Write(byteLength);
+        RDCASSERT(byteLength < 0x100000000 || (c & Chunk64BitSize) != 0);
+        if(c & Chunk64BitSize)
+        {
+          m_Write->Write(byteLength);
+        }
+        else
+        {
+          m_Write->Write(uint32_t(byteLength & 0xffffffff));
+        }
         m_LastChunkOffset = m_Write->GetOffset();
         m_ChunkMetadata.length = byteLength;
       }
       else
       {
         // length will be fixed up in EndChunk
+        // assume that this case will not produce chunks with size larger than can fit in 32 bit
+        // value
         uint32_t chunkSize = 0xbeebfeed;
         m_ChunkFixup = m_Write->GetOffset();
         m_Write->Write(chunkSize);
@@ -371,12 +392,13 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
     RDCASSERT(curOffset > chunkOffset);
 
     uint64_t chunkLength = (curOffset - chunkOffset) - sizeof(uint32_t);
+    if(chunkLength > 0xffffffff)
+    {
+      RDCERR("!!! CHUNK LENGTH %llu EXCEEDED 32 BIT VALUE. CAPTURE WILL BE CORRUPTED. !!!",
+             chunkLength);
+    }
 
-    RDCASSERT(chunkLength < 0xffffffff);
-
-    uint32_t chunklen = (uint32_t)chunkLength;
-
-    m_Write->WriteAt(chunkOffset, chunklen);
+    m_Write->WriteAt(chunkOffset, uint32_t(chunkLength & 0xffffffff));
   }
   else
   {
@@ -393,21 +415,21 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
         m_Write->Write(padByte);
       }
 
-      RDCDEBUG("Chunk estimated at %u bytes, actual length %llu. Added %llu bytes padding.",
+      RDCDEBUG("Chunk estimated at %llu bytes, actual length %llu. Added %llu bytes padding.",
                m_ChunkMetadata.length, writtenLength, numPadBytes);
     }
     else if(writtenLength > m_ChunkMetadata.length)
     {
       RDCERR(
           "!!! "
-          "ESTIMATED UPPER BOUND CHUNK LENGTH %u EXCEEDED: %llu. "
+          "ESTIMATED UPPER BOUND CHUNK LENGTH %llu EXCEEDED: %llu. "
           "CAPTURE WILL BE CORRUPTED. "
           "!!!",
           m_ChunkMetadata.length, writtenLength);
     }
     else
     {
-      RDCDEBUG("Chunk was exactly the estimate of %u bytes.", m_ChunkMetadata.length);
+      RDCDEBUG("Chunk was exactly the estimate of %llu bytes.", m_ChunkMetadata.length);
     }
   }
 

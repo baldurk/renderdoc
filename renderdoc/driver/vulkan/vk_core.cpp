@@ -32,7 +32,7 @@
 
 #include "stb/stb_image_write.h"
 
-uint32_t VkInitParams::GetSerialiseSize()
+uint64_t VkInitParams::GetSerialiseSize()
 {
   // misc bytes and fixed integer members
   size_t ret = 128;
@@ -45,7 +45,7 @@ uint32_t VkInitParams::GetSerialiseSize()
   for(const std::string &s : Extensions)
     ret += 8 + s.size();
 
-  return (uint32_t)ret;
+  return (uint64_t)ret;
 }
 
 void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)

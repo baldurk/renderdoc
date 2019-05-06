@@ -1037,13 +1037,12 @@ bool GLResourceManager::Force_InitialState(GLResource res, bool prepare)
   return false;
 }
 
-uint32_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource res)
+uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource res)
 {
   if(res.Namespace == eResBuffer)
   {
     // buffers just have their contents, no metadata needed
-    return GetInitialContents(resid).bufferLength + (uint32_t)WriteSerialiser::GetChunkAlignment() +
-           16;
+    return GetInitialContents(resid).bufferLength + WriteSerialiser::GetChunkAlignment() + 16;
   }
   else if(res.Namespace == eResProgram)
   {
@@ -1061,11 +1060,11 @@ uint32_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource re
     SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, res.name);
     SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, res.name, NULL);
 
-    return (uint32_t)ser.GetWriter()->GetOffset() + 256;
+    return ser.GetWriter()->GetOffset() + 256;
   }
   else if(res.Namespace == eResTexture)
   {
-    uint32_t ret = 0;
+    uint64_t ret = 0;
 
     ret += sizeof(TextureStateInitialData) + 64;
 
@@ -1112,7 +1111,7 @@ uint32_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource re
         targetcount = 6;
 
       for(int t = 0; t < targetcount; t++)
-        ret += (uint32_t)WriteSerialiser::GetChunkAlignment() + size;
+        ret += WriteSerialiser::GetChunkAlignment() + size;
     }
 
     return ret;

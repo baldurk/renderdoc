@@ -52,7 +52,7 @@ struct VkInitParams
   ResourceId InstanceID;
 
   // remember to update this function if you add more members
-  uint32_t GetSerialiseSize();
+  uint64_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
   static const uint64_t CurrentVersion = 0xF;
@@ -916,8 +916,8 @@ public:
   VulkanReplay *GetReplay() { return &m_Replay; }
   // replay interface
   bool Prepare_InitialState(WrappedVkRes *res);
-  uint32_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
-  uint32_t GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res);
+  uint64_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
+  uint64_t GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res);
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);

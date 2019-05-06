@@ -439,7 +439,7 @@ private:
   bool AllowDeletedResource_InitialState() { return true; }
   bool Need_InitialStateChunk(WrappedVkRes *res);
   bool Prepare_InitialState(WrappedVkRes *res);
-  uint32_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
+  uint64_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);

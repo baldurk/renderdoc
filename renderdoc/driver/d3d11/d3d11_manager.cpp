@@ -87,7 +87,7 @@ bool D3D11ResourceManager::Prepare_InitialState(ID3D11DeviceChild *res)
   return m_Device->Prepare_InitialState(res);
 }
 
-uint32_t D3D11ResourceManager::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
+uint64_t D3D11ResourceManager::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
 {
   return m_Device->GetSize_InitialState(id, res);
 }

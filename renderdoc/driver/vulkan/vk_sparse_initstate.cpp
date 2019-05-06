@@ -359,7 +359,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
   return true;
 }
 
-uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res)
+uint64_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res)
 {
   VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
   VkResourceType type = IdentifyTypeByPtr(record->Resource);
@@ -370,7 +370,7 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
     SparseBufferInitState &info = contents.sparseBuffer;
 
     // some bytes just to cover overheads etc.
-    uint32_t ret = 128;
+    uint64_t ret = 128;
 
     // the list of memory objects bound
     ret += 8 + sizeof(VkSparseMemoryBind) * info.numBinds;
@@ -379,7 +379,7 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
     ret += 8 + sizeof(MemIDOffset) * info.numUniqueMems;
 
     // the actual data
-    ret += uint32_t(info.totalSize + WriteSerialiser::GetChunkAlignment());
+    ret += uint64_t(info.totalSize + WriteSerialiser::GetChunkAlignment());
 
     return ret;
   }
@@ -388,7 +388,7 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
     SparseImageInitState &info = contents.sparseImage;
 
     // some bytes just to cover overheads etc.
-    uint32_t ret = 128;
+    uint64_t ret = 128;
 
     // the meta-data structure
     ret += sizeof(SparseImageInitState);
@@ -404,7 +404,7 @@ uint32_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
     ret += sizeof(MemIDOffset) * info.numUniqueMems;
 
     // the actual data
-    ret += uint32_t(info.totalSize + WriteSerialiser::GetChunkAlignment());
+    ret += uint64_t(info.totalSize + WriteSerialiser::GetChunkAlignment());
 
     return ret;
   }

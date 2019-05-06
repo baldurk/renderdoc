@@ -61,7 +61,7 @@ bool D3D8ResourceManager::Prepare_InitialState(IUnknown *res)
   return false;
 }
 
-uint32_t D3D8ResourceManager::GetSize_InitialState(ResourceId id, IUnknown *res)
+uint64_t D3D8ResourceManager::GetSize_InitialState(ResourceId id, IUnknown *res)
 {
   // TODO
   return 128;

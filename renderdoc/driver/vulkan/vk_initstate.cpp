@@ -623,7 +623,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
   return false;
 }
 
-uint32_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
+uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
 {
   VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
   VkResourceType type = IdentifyTypeByPtr(record->Resource);
@@ -652,7 +652,7 @@ uint32_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
       return GetSize_SparseInitialState(id, res);
 
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
-    return uint32_t(128 + initContents.mem.size + WriteSerialiser::GetChunkAlignment());
+    return uint64_t(128 + initContents.mem.size + WriteSerialiser::GetChunkAlignment());
   }
 
   RDCERR("Unhandled resource type %s", ToStr(type).c_str());

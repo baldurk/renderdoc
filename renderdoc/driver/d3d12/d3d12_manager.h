@@ -716,7 +716,7 @@ private:
   bool Force_InitialState(ID3D12DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D12DeviceChild *res);
   bool Prepare_InitialState(ID3D12DeviceChild *res);
-  uint32_t GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res);
+  uint64_t GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res);
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, ID3D12DeviceChild *res)
   {
     return Serialise_InitialState<WriteSerialiser>(ser, resid, res);

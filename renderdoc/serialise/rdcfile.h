@@ -61,11 +61,12 @@ public:
   // version number of overall file format or chunk organisation. If the contents/meaning/order of
   // chunks have changed this does not need to be bumped, there are version numbers within each
   // API that interprets the stream that can be bumped.
-  static const uint32_t SERIALISE_VERSION = 0x00000100;
+  static const uint32_t SERIALISE_VERSION = 0x00000101;
 
   // this must never be changed - files before this were in the v0.x series and didn't have embedded
   // version numbers
   static const uint32_t V1_0_VERSION = 0x00000100;
+  static const uint32_t V1_1_VERSION = 0x00000101;
 
   ~RDCFile();
 
