@@ -105,13 +105,13 @@ def sanitise_filename(name: str):
     return re.sub('^/', '', name)
 
 
-def png_save(out_path: str, rows: List[bytes], dimensions: Tuple[int, int]):
+def png_save(out_path: str, rows: List[bytes], dimensions: Tuple[int, int], has_alpha: bool):
     try:
         f = open(out_path, 'wb')
     except Exception as ex:
         raise FileNotFoundError("Can't open {} for write".format(sanitise_filename(out_path)))
 
-    writer = png.Writer(dimensions[0], dimensions[1], alpha=True, greyscale=False, compression=7)
+    writer = png.Writer(dimensions[0], dimensions[1], alpha=has_alpha, greyscale=False, compression=7)
     writer.write(f, rows)
     f.close()
 
@@ -165,7 +165,7 @@ def png_compare(test_img: str, ref_img: str, tolerance: int = 2):
     if os.path.exists(diff_file):
         os.remove(diff_file)
 
-    png_save(diff_file, diff_data, (test_w, test_h))
+    png_save(diff_file, diff_data, (test_w, test_h), True)
 
     return False
 
