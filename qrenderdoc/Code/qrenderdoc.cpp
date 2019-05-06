@@ -87,6 +87,9 @@ int main(int argc, char *argv[])
 
   qInfo() << "QRenderDoc initialising.";
 
+  if(IsRunningAsAdmin())
+    qInfo() << "Running as administrator";
+
   QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
