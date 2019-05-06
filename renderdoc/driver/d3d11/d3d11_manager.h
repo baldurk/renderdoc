@@ -58,6 +58,7 @@ enum D3D11ResourceType
   Resource_DeviceContext,
   Resource_CommandList,
   Resource_DeviceState,
+  Resource_Fence,
 };
 
 DECLARE_REFLECTION_ENUM(D3D11ResourceType);

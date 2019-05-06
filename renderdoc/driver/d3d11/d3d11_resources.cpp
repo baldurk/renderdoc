@@ -433,6 +433,9 @@ D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr)
   if(WrappedID3DDeviceContextState::IsAlloc(ptr))
     return Resource_DeviceState;
 
+  if(WrappedID3D11Fence::IsAlloc(ptr))
+    return Resource_Fence;
+
   RDCERR("Unknown type for ptr 0x%p", ptr);
 
   return Resource_Unknown;
