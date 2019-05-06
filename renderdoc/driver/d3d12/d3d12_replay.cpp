@@ -1639,7 +1639,8 @@ void D3D12Replay::RenderCheckerboard()
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    list->SetPipelineState(outw.depth ? m_General.CheckerboardMSAAPipe : m_General.CheckerboardPipe);
+    list->SetPipelineState(outw.multisampled ? m_General.CheckerboardMSAAPipe
+                                             : m_General.CheckerboardPipe);
 
     list->SetGraphicsRootSignature(m_General.CheckerboardRootSig);
 

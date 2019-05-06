@@ -129,7 +129,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
   // if the swapchain failed to create, do nothing. We will try to recreate it
   // again in CheckResizeOutputWindow (once per render 'frame')
-  if(outw.swap == VK_NULL_HANDLE)
+  if(outw.m_WindowSystem != WindowingSystem::Headless && outw.swap == VK_NULL_HANDLE)
     return false;
 
   VkRenderPassBeginInfo rpbegin = {

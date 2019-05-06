@@ -85,14 +85,6 @@ VulkanReplay::OutputWindow::OutputWindow()
       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 }
 
-void VulkanReplay::OutputWindow::SetCol(VkDeviceMemory mem, VkImage img)
-{
-}
-
-void VulkanReplay::OutputWindow::SetDS(VkDeviceMemory mem, VkImage img)
-{
-}
-
 void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 {
   const VkLayerDispatchTable *vt = ObjDisp(device);
@@ -197,7 +189,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
   fresh = true;
 
-  if(surface == VK_NULL_HANDLE)
+  if(surface == VK_NULL_HANDLE && m_WindowSystem != WindowingSystem::Headless)
   {
     CreateSurface(inst);
 
@@ -211,181 +203,184 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
   VkResult vkr = VK_SUCCESS;
 
-  VkSurfaceCapabilitiesKHR capabilities;
-
-  ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), Unwrap(surface),
-                                                         &capabilities);
-
-  RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-  // AMD didn't report this capability for a while. If the assert fires for you, update
-  // your drivers!
-  RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  RDCASSERT(capabilities.minImageCount <= 2 &&
-            (2 <= capabilities.maxImageCount || capabilities.maxImageCount == 0));
-
-  // check format and present mode from driver
+  if(m_WindowSystem != WindowingSystem::Headless)
   {
-    uint32_t numFormats = 0;
+    VkSurfaceCapabilitiesKHR capabilities;
 
-    vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface),
-                                                            &numFormats, NULL);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), Unwrap(surface),
+                                                           &capabilities);
 
-    if(numFormats > 0)
+    RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    // AMD didn't report this capability for a while. If the assert fires for you, update
+    // your drivers!
+    RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+    RDCASSERT(capabilities.minImageCount <= 2 &&
+              (2 <= capabilities.maxImageCount || capabilities.maxImageCount == 0));
+
+    // check format and present mode from driver
     {
-      VkSurfaceFormatKHR *formats = new VkSurfaceFormatKHR[numFormats];
+      uint32_t numFormats = 0;
 
       vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface),
-                                                              &numFormats, formats);
+                                                              &numFormats, NULL);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
+      if(numFormats > 0)
       {
-        // 1 entry with undefined means no preference, just use our default
-        imformat = VK_FORMAT_B8G8R8A8_SRGB;
-        imcolspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-      }
-      else
-      {
-        // try and find a format with SRGB correction
-        imformat = VK_FORMAT_UNDEFINED;
-        imcolspace = formats[0].colorSpace;
+        VkSurfaceFormatKHR *formats = new VkSurfaceFormatKHR[numFormats];
 
-        for(uint32_t i = 0; i < numFormats; i++)
+        vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface),
+                                                                &numFormats, formats);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
         {
-          if(IsSRGBFormat(formats[i].format))
+          // 1 entry with undefined means no preference, just use our default
+          imformat = VK_FORMAT_B8G8R8A8_SRGB;
+          imcolspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+        }
+        else
+        {
+          // try and find a format with SRGB correction
+          imformat = VK_FORMAT_UNDEFINED;
+          imcolspace = formats[0].colorSpace;
+
+          for(uint32_t i = 0; i < numFormats; i++)
           {
-            imformat = formats[i].format;
-            imcolspace = formats[i].colorSpace;
-            RDCASSERT(imcolspace == VK_COLORSPACE_SRGB_NONLINEAR_KHR);
-            break;
+            if(IsSRGBFormat(formats[i].format))
+            {
+              imformat = formats[i].format;
+              imcolspace = formats[i].colorSpace;
+              RDCASSERT(imcolspace == VK_COLORSPACE_SRGB_NONLINEAR_KHR);
+              break;
+            }
+          }
+
+          if(imformat == VK_FORMAT_UNDEFINED)
+          {
+            RDCWARN("Couldn't find SRGB correcting output swapchain format");
+            imformat = formats[0].format;
           }
         }
 
-        if(imformat == VK_FORMAT_UNDEFINED)
-        {
-          RDCWARN("Couldn't find SRGB correcting output swapchain format");
-          imformat = formats[0].format;
-        }
+        SAFE_DELETE_ARRAY(formats);
       }
 
-      SAFE_DELETE_ARRAY(formats);
-    }
-
-    uint32_t numModes = 0;
-
-    vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface),
-                                                                 &numModes, NULL);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    if(numModes > 0)
-    {
-      VkPresentModeKHR *modes = new VkPresentModeKHR[numModes];
+      uint32_t numModes = 0;
 
       vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface),
-                                                                   &numModes, modes);
+                                                                   &numModes, NULL);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      // If mailbox mode is available, use it, as is the lowest-latency non-
-      // tearing mode.  If not, try IMMEDIATE which will usually be available,
-      // and is fastest (though it tears).  If not, fall back to FIFO which is
-      // always available.
-      for(size_t i = 0; i < numModes; i++)
+      if(numModes > 0)
       {
-        if(modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+        VkPresentModeKHR *modes = new VkPresentModeKHR[numModes];
+
+        vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface),
+                                                                     &numModes, modes);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        // If mailbox mode is available, use it, as is the lowest-latency non-
+        // tearing mode.  If not, try IMMEDIATE which will usually be available,
+        // and is fastest (though it tears).  If not, fall back to FIFO which is
+        // always available.
+        for(size_t i = 0; i < numModes; i++)
         {
-          presentmode = VK_PRESENT_MODE_MAILBOX_KHR;
-          break;
+          if(modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+          {
+            presentmode = VK_PRESENT_MODE_MAILBOX_KHR;
+            break;
+          }
+
+          if(modes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
+            presentmode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         }
 
-        if(modes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
-          presentmode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        SAFE_DELETE_ARRAY(modes);
       }
-
-      SAFE_DELETE_ARRAY(modes);
     }
+
+    VkBool32 supported = false;
+    ObjDisp(inst)->GetPhysicalDeviceSurfaceSupportKHR(Unwrap(phys), driver->GetQFamilyIdx(),
+                                                      Unwrap(surface), &supported);
+
+    // can't really recover from this anyway
+    RDCASSERT(supported);
+
+    VkSwapchainCreateInfoKHR swapInfo = {
+        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        NULL,
+        0,
+        Unwrap(surface),
+        2,
+        imformat,
+        imcolspace,
+        {width, height},
+        1,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        0,
+        NULL,
+        VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        presentmode,
+        true,
+        Unwrap(old),
+    };
+
+    vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, NULL, &swap);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    if(old != VK_NULL_HANDLE)
+    {
+      vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old), NULL);
+      GetResourceManager()->ReleaseWrappedResource(old);
+    }
+
+    if(swap == VK_NULL_HANDLE)
+    {
+      RDCERR("Failed to create swapchain. %d consecutive failures!", failures);
+      failures++;
+
+      // do some sort of backoff.
+
+      // the first time, try to recreate again next frame
+      if(failures == 1)
+        recreatePause = 0;
+      // the next few times, wait 200 'frames' between attempts
+      else if(failures < 10)
+        recreatePause = 100;
+      // otherwise, only reattempt very infrequently. A resize will
+      // always retrigger a recreate, so ew probably don't want to
+      // try again
+      else
+        recreatePause = 1000;
+
+      return;
+    }
+
+    failures = 0;
+
+    GetResourceManager()->WrapResource(Unwrap(device), swap);
+
+    vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    VkImage *imgs = new VkImage[numImgs];
+    vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, imgs);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    for(size_t i = 0; i < numImgs; i++)
+    {
+      colimg[i] = imgs[i];
+      GetResourceManager()->WrapResource(Unwrap(device), colimg[i]);
+      colBarrier[i].image = Unwrap(colimg[i]);
+      colBarrier[i].oldLayout = colBarrier[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    }
+
+    delete[] imgs;
   }
-
-  VkBool32 supported = false;
-  ObjDisp(inst)->GetPhysicalDeviceSurfaceSupportKHR(Unwrap(phys), driver->GetQFamilyIdx(),
-                                                    Unwrap(surface), &supported);
-
-  // can't really recover from this anyway
-  RDCASSERT(supported);
-
-  VkSwapchainCreateInfoKHR swapInfo = {
-      VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      NULL,
-      0,
-      Unwrap(surface),
-      2,
-      imformat,
-      imcolspace,
-      {width, height},
-      1,
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_SHARING_MODE_EXCLUSIVE,
-      0,
-      NULL,
-      VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-      VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      presentmode,
-      true,
-      Unwrap(old),
-  };
-
-  vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, NULL, &swap);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  if(old != VK_NULL_HANDLE)
-  {
-    vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old), NULL);
-    GetResourceManager()->ReleaseWrappedResource(old);
-  }
-
-  if(swap == VK_NULL_HANDLE)
-  {
-    RDCERR("Failed to create swapchain. %d consecutive failures!", failures);
-    failures++;
-
-    // do some sort of backoff.
-
-    // the first time, try to recreate again next frame
-    if(failures == 1)
-      recreatePause = 0;
-    // the next few times, wait 200 'frames' between attempts
-    else if(failures < 10)
-      recreatePause = 100;
-    // otherwise, only reattempt very infrequently. A resize will
-    // always retrigger a recreate, so ew probably don't want to
-    // try again
-    else
-      recreatePause = 1000;
-
-    return;
-  }
-
-  failures = 0;
-
-  GetResourceManager()->WrapResource(Unwrap(device), swap);
-
-  vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  VkImage *imgs = new VkImage[numImgs];
-  vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, imgs);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  for(size_t i = 0; i < numImgs; i++)
-  {
-    colimg[i] = imgs[i];
-    GetResourceManager()->WrapResource(Unwrap(device), colimg[i]);
-    colBarrier[i].image = Unwrap(colimg[i]);
-    colBarrier[i].oldLayout = colBarrier[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  }
-
-  delete[] imgs;
 
   curidx = 0;
 
@@ -639,6 +634,143 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
   }
 }
 
+void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  VkDevice device = m_pDriver->GetDev();
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  const VkLayerDispatchTable *vt = ObjDisp(device);
+
+  vt->DeviceWaitIdle(Unwrap(device));
+
+  VkBuffer readbackBuf = VK_NULL_HANDLE;
+
+  VkResult vkr = VK_SUCCESS;
+
+  // create readback buffer
+  VkBufferCreateInfo bufInfo = {
+      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      NULL,
+      0,
+      GetByteSize(outw.width, outw.height, 1, VK_FORMAT_R8G8B8A8_UNORM, 0),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+  };
+  vt->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackBuf);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkMemoryRequirements mrq = {0};
+
+  vt->GetBufferMemoryRequirements(Unwrap(device), readbackBuf, &mrq);
+
+  VkMemoryAllocateInfo allocInfo = {
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, bufInfo.size,
+      m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
+  };
+
+  VkDeviceMemory readbackMem = VK_NULL_HANDLE;
+  vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &readbackMem);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  vkr = vt->BindBufferMemory(Unwrap(device), readbackBuf, readbackMem, 0);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  // do image copy
+  vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkBufferImageCopy cpy = {
+      0,
+      0,
+      0,
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+      {
+          0, 0, 0,
+      },
+      {outw.width, outw.height, 1},
+  };
+
+  outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  outw.bbBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+  DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
+
+  vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           readbackBuf, 1, &cpy);
+
+  outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
+  outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
+
+  vkr = vt->EndCommandBuffer(Unwrap(cmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();    // need to wait so we can readback
+
+  // map memory and readback
+  byte *pData = NULL;
+  vkr = vt->MapMemory(Unwrap(device), readbackMem, 0, bufInfo.size, 0, (void **)&pData);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  RDCASSERT(pData != NULL);
+
+  VkMappedMemoryRange range = {
+      VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, bufInfo.size,
+  };
+
+  vkr = vt->InvalidateMappedMemoryRanges(Unwrap(device), 1, &range);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  {
+    retData.resize(outw.width * outw.height * 3);
+
+    byte *src = (byte *)pData;
+    byte *dst = retData.data();
+
+    for(uint32_t row = 0; row < outw.height; row++)
+    {
+      for(uint32_t x = 0; x < outw.width; x++)
+      {
+        dst[x * 3 + 0] = src[x * 4 + 0];
+        dst[x * 3 + 1] = src[x * 4 + 1];
+        dst[x * 3 + 2] = src[x * 4 + 2];
+      }
+
+      src += outw.width * 4;
+      dst += outw.width * 3;
+    }
+  }
+
+  vt->UnmapMemory(Unwrap(device), readbackMem);
+
+  // delete all
+  vt->DestroyBuffer(Unwrap(device), readbackBuf, NULL);
+  vt->FreeMemory(Unwrap(device), readbackMem, NULL);
+}
+
+void VulkanReplay::SetOutputWindowDimensions(uint64_t id, int32_t w, int32_t h)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  // can't resize an output with an actual window backing
+  if(outw.m_WindowSystem != WindowingSystem::Headless)
+    return;
+
+  outw.width = w;
+  outw.height = h;
+
+  outw.Create(m_pDriver, m_pDriver->GetDev(), outw.hasDepth);
+}
+
 bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
@@ -646,7 +778,8 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(outw.m_WindowSystem == WindowingSystem::Unknown)
+  if(outw.m_WindowSystem == WindowingSystem::Unknown ||
+     outw.m_WindowSystem == WindowingSystem::Headless)
     return false;
 
   int32_t w, h;
@@ -687,7 +820,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   // if the swapchain failed to create, do nothing. We will try to recreate it
   // again in CheckResizeOutputWindow (once per render 'frame')
-  if(outw.swap == VK_NULL_HANDLE)
+  if(outw.m_WindowSystem != WindowingSystem::Headless && outw.swap == VK_NULL_HANDLE)
     return;
 
   m_DebugWidth = (int32_t)outw.width;
@@ -696,52 +829,57 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
+  VkResult vkr = VK_SUCCESS;
 
-  // semaphore is short lived, so not wrapped, if it's cached (ideally)
-  // then it should be wrapped
-  VkSemaphore sem;
-  VkPipelineStageFlags stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-  VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, 0};
-
-  VkResult vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
-                                &outw.curidx);
-
-  if(vkr == VK_ERROR_OUT_OF_DATE_KHR)
+  // if we have a swapchain, acquire the next image.
+  if(outw.swap != VK_NULL_HANDLE)
   {
-    // force a swapchain recreate.
-    outw.width = 0;
-    outw.height = 0;
+    // semaphore is short lived, so not wrapped, if it's cached (ideally)
+    // then it should be wrapped
+    VkSemaphore sem;
+    VkPipelineStageFlags stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, 0};
 
-    CheckResizeOutputWindow(id);
+    vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    // then try again to acquire.
     vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
                                   &outw.curidx);
+
+    if(vkr == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+      // force a swapchain recreate.
+      outw.width = 0;
+      outw.height = 0;
+
+      CheckResizeOutputWindow(id);
+
+      // then try again to acquire.
+      vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
+                                    &outw.curidx);
+    }
+
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    VkSubmitInfo submitInfo = {
+        VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        NULL,
+        1,
+        &sem,
+        &stage,
+        0,
+        NULL,    // cmd buffers
+        0,
+        NULL,    // signal semaphores
+    };
+
+    vkr = vt->QueueSubmit(Unwrap(m_pDriver->GetQ()), 1, &submitInfo, VK_NULL_HANDLE);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    vt->QueueWaitIdle(Unwrap(m_pDriver->GetQ()));
+
+    vt->DestroySemaphore(Unwrap(dev), sem, NULL);
   }
-
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  VkSubmitInfo submitInfo = {
-      VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      NULL,
-      1,
-      &sem,
-      &stage,
-      0,
-      NULL,    // cmd buffers
-      0,
-      NULL,    // signal semaphores
-  };
-
-  vkr = vt->QueueSubmit(Unwrap(m_pDriver->GetQ()), 1, &submitInfo, VK_NULL_HANDLE);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  vt->QueueWaitIdle(Unwrap(m_pDriver->GetQ()));
-
-  vt->DestroySemaphore(Unwrap(dev), sem, NULL);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -775,7 +913,8 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
   outw.colBarrier[outw.curidx].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
   DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
-  DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
+  if(outw.colimg[0] != VK_NULL_HANDLE)
+    DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
   if(outw.dsimg != VK_NULL_HANDLE)
     DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
@@ -802,7 +941,7 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 
   // if the swapchain failed to create, do nothing. We will try to recreate it
   // again in CheckResizeOutputWindow (once per render 'frame')
-  if(outw.swap == VK_NULL_HANDLE)
+  if(outw.m_WindowSystem != WindowingSystem::Headless && outw.swap == VK_NULL_HANDLE)
     return;
 
   VkDevice dev = m_pDriver->GetDev();
@@ -852,7 +991,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 
   // if the swapchain failed to create, do nothing. We will try to recreate it
   // again in CheckResizeOutputWindow (once per render 'frame')
-  if(outw.swap == VK_NULL_HANDLE)
+  if(outw.m_WindowSystem != WindowingSystem::Headless && outw.swap == VK_NULL_HANDLE)
     return;
 
   VkDevice dev = m_pDriver->GetDev();
@@ -1059,13 +1198,24 @@ uint64_t VulkanReplay::MakeOutputWindow(WindowingData window, bool depth)
   m_OutputWinID++;
 
   m_OutputWindows[id].m_WindowSystem = window.system;
-  m_OutputWindows[id].SetWindowHandle(window);
   m_OutputWindows[id].m_ResourceManager = GetResourceManager();
+
+  if(window.system != WindowingSystem::Unknown && window.system != WindowingSystem::Headless)
+    m_OutputWindows[id].SetWindowHandle(window);
 
   if(window.system != WindowingSystem::Unknown)
   {
     int32_t w, h;
-    GetOutputWindowDimensions(id, w, h);
+
+    if(window.system == WindowingSystem::Headless)
+    {
+      w = window.headless.width;
+      h = window.headless.height;
+    }
+    else
+    {
+      GetOutputWindowDimensions(id, w, h);
+    }
 
     m_OutputWindows[id].width = w;
     m_OutputWindows[id].height = h;

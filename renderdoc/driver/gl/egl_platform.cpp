@@ -125,7 +125,8 @@ class EGLPlatform : public GLPlatform
       case WindowingSystem::Xlib: win = window.xlib.window; break;
 #endif
       case WindowingSystem::Unknown:
-        // allow WindowingSystem::Unknown so that internally we can create a window-less context
+      case WindowingSystem::Headless:
+        // allow Unknown and Headless so that internally we can create a window-less context
         break;
       default: RDCERR("Unexpected window system %u", window.system); break;
     }

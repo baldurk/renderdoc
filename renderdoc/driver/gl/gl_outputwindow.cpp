@@ -100,7 +100,7 @@ bool GLReplay::CheckResizeOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(outw.ctx == 0)
+  if(outw.ctx == NULL || outw.system == WindowingSystem::Headless)
     return false;
 
   int32_t w, h;
@@ -184,6 +184,9 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
+  if(outw.system == WindowingSystem::Headless)
+    return;
+
   MakeCurrentReplayContext(&outw);
 
   WrappedOpenGL &drv = *m_pDriver;
@@ -213,7 +216,17 @@ uint64_t GLReplay::MakeOutputWindow(WindowingData window, bool depth)
   if(!win.ctx)
     return 0;
 
-  m_pDriver->m_Platform.GetOutputWindowDimensions(win, win.width, win.height);
+  win.system = window.system;
+
+  if(window.system == WindowingSystem::Headless)
+  {
+    win.width = window.headless.width;
+    win.height = window.headless.height;
+  }
+  else
+  {
+    m_pDriver->m_Platform.GetOutputWindowDimensions(win, win.width, win.height);
+  }
 
   MakeCurrentReplayContext(&win);
 
@@ -253,13 +266,106 @@ void GLReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 
   OutputWindow &outw = m_OutputWindows[id];
 
+  if(outw.system == WindowingSystem::Headless)
+  {
+    w = outw.width;
+    h = outw.height;
+    return;
+  }
+
   m_pDriver->m_Platform.GetOutputWindowDimensions(outw, w, h);
+}
+
+void GLReplay::SetOutputWindowDimensions(uint64_t id, int32_t w, int32_t h)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  // can't resize an output with an actual window backing
+  if(outw.system != WindowingSystem::Headless)
+    return;
+
+  outw.width = w;
+  outw.height = h;
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  WrappedOpenGL &drv = *m_pDriver;
+
+  bool haddepth = false;
+
+  drv.glDeleteTextures(1, &outw.BlitData.backbuffer);
+  if(outw.BlitData.depthstencil)
+  {
+    haddepth = true;
+    drv.glDeleteTextures(1, &outw.BlitData.depthstencil);
+  }
+  drv.glDeleteFramebuffers(1, &outw.BlitData.windowFBO);
+
+  CreateOutputWindowBackbuffer(outw, haddepth);
+}
+
+void GLReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  m_pDriver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, outw.BlitData.windowFBO);
+  m_pDriver->glReadBuffer(eGL_BACK);
+  m_pDriver->glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+  m_pDriver->glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
+  m_pDriver->glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
+  m_pDriver->glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
+  m_pDriver->glPixelStorei(eGL_PACK_ALIGNMENT, 1);
+
+  // read as RGBA for maximum compatibility.
+  retData.resize(outw.width * outw.height * 4);
+  GL.glReadPixels(0, 0, outw.width, outw.height, eGL_RGBA, eGL_UNSIGNED_BYTE, retData.data());
+
+  // y-flip
+  for(int32_t row = 0; row < outw.height / 2; row++)
+  {
+    const uint32_t stride = outw.width * 4;
+    const int32_t fliprow = outw.height - 1 - row;
+
+    for(int32_t x = 0; x < outw.width; x++)
+    {
+      std::swap(retData[row * stride + x * 4 + 0], retData[fliprow * stride + x * 4 + 0]);
+      std::swap(retData[row * stride + x * 4 + 1], retData[fliprow * stride + x * 4 + 1]);
+      std::swap(retData[row * stride + x * 4 + 2], retData[fliprow * stride + x * 4 + 2]);
+      std::swap(retData[row * stride + x * 4 + 3], retData[fliprow * stride + x * 4 + 3]);
+    }
+  }
+
+  // compact from RGBA to RGB.
+  byte *src = retData.data();
+  byte *dst = retData.data();
+  for(int32_t row = 0; row < outw.height; row++)
+  {
+    for(int32_t x = 0; x < outw.width; x++)
+    {
+      memcpy(dst, src, 3);
+      dst += 3;
+      src += 4;
+    }
+  }
+
+  retData.resize(outw.width * outw.height * 3);
 }
 
 bool GLReplay::IsOutputWindowVisible(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
+
+  if(m_OutputWindows[id].system == WindowingSystem::Headless)
+    return true;
 
   return m_pDriver->m_Platform.IsOutputWindowVisible(m_OutputWindows[id]);
 }

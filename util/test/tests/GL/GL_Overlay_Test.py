@@ -9,11 +9,9 @@ class GL_Overlay_Test(rdtest.TestCase):
     def check_capture(self):
         self.check_final_backbuffer()
 
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(), rd.ReplayOutputType.Texture)
+        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         self.check(out is not None)
-
-        out.SetDimensions(100, 100)
 
         test_marker: rd.DrawcallDescription = self.find_draw("Test")
 

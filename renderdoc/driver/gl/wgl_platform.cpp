@@ -107,12 +107,15 @@ class WGLPlatform : public GLPlatform
     if(!WGL.wglGetPixelFormatAttribivARB || !WGL.wglCreateContextAttribsARB)
       return ret;
 
-    RDCASSERT(window.system == WindowingSystem::Win32 || window.system == WindowingSystem::Unknown,
+    RDCASSERT(window.system == WindowingSystem::Win32 || window.system == WindowingSystem::Unknown ||
+                  window.system == WindowingSystem::Headless,
               window.system);
 
-    HWND w = window.win32.window;
+    HWND w = NULL;
 
-    if(w == NULL)
+    if(window.system == WindowingSystem::Win32)
+      w = window.win32.window;
+    else
       w = CreateWindowEx(WS_EX_CLIENTEDGE, WINDOW_CLASS_NAME, L"", WS_OVERLAPPEDWINDOW,
                          CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL,
                          GetModuleHandle(NULL), NULL);

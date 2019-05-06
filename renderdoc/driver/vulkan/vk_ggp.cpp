@@ -76,6 +76,13 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
+  if(outw.m_WindowSystem == WindowingSystem::Headless)
+  {
+    w = outw.width;
+    h = outw.height;
+    return;
+  }
+
   RDCLOG("Window system is GGP (%d), size is %d, %d", outw.m_WindowSystem, outw.width, outw.height);
   // No window, specify default resolution.
   w = outw.width != 0 ? outw.width : 1920;

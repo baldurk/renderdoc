@@ -83,6 +83,13 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
+  if(outw.m_WindowSystem == WindowingSystem::Headless)
+  {
+    w = outw.width;
+    h = outw.height;
+    return;
+  }
+
   w = getMetalLayerWidth(outw.wnd);
   h = getMetalLayerHeight(outw.wnd);
 }

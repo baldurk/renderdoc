@@ -36,6 +36,9 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
 
+  if(m_OutputWindows[id].m_WindowSystem == WindowingSystem::Headless)
+    return true;
+
   VULKANNOTIMP("Optimisation missing - output window always returning true");
 
   return true;

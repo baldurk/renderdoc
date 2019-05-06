@@ -116,17 +116,6 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
-void ReplayOutput::SetDimensions(int32_t width, int32_t height)
-{
-  CHECK_REPLAY_THREAD();
-
-  if(m_MainOutput.outputID == 0)
-  {
-    m_Width = width;
-    m_Height = height;
-  }
-}
-
 ReplayOutput::~ReplayOutput()
 {
   CHECK_REPLAY_THREAD();
@@ -144,6 +133,31 @@ void ReplayOutput::Shutdown()
   CHECK_REPLAY_THREAD();
 
   m_pRenderer->ShutdownOutput(this);
+}
+
+void ReplayOutput::SetDimensions(int32_t width, int32_t height)
+{
+  CHECK_REPLAY_THREAD();
+
+  m_pDevice->SetOutputWindowDimensions(m_MainOutput.outputID, width > 0 ? width : 1,
+                                       height > 0 ? height : 1);
+  m_pDevice->GetOutputWindowDimensions(m_MainOutput.outputID, m_Width, m_Height);
+}
+
+bytebuf ReplayOutput::ReadbackOutputTexture()
+{
+  CHECK_REPLAY_THREAD();
+
+  bytebuf data;
+  m_pDevice->GetOutputWindowData(m_MainOutput.outputID, data);
+  return data;
+}
+
+rdcpair<int32_t, int32_t> ReplayOutput::GetDimensions()
+{
+  CHECK_REPLAY_THREAD();
+
+  return make_rdcpair(m_Width, m_Height);
 }
 
 void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
@@ -300,7 +314,7 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
 
   OutputPair p;
 
-  RDCASSERT(window.system != WindowingSystem::Unknown);
+  RDCASSERT(window.system != WindowingSystem::Unknown && window.system != WindowingSystem::Headless);
 
   bool depthMode = false;
 

@@ -81,9 +81,17 @@ public:
   }
   void DestroyOutputWindow(uint64_t id) { m_Proxy->DestroyOutputWindow(id); }
   bool CheckResizeOutputWindow(uint64_t id) { return m_Proxy->CheckResizeOutputWindow(id); }
+  void SetOutputWindowDimensions(uint64_t id, int32_t w, int32_t h)
+  {
+    m_Proxy->SetOutputWindowDimensions(id, w, h);
+  }
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
   {
     m_Proxy->GetOutputWindowDimensions(id, w, h);
+  }
+  void GetOutputWindowData(uint64_t id, bytebuf &retData)
+  {
+    m_Proxy->GetOutputWindowData(id, retData);
   }
   void ClearOutputWindowColor(uint64_t id, FloatVector col)
   {

@@ -310,7 +310,12 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
 .. data:: Unknown
 
-  No windowing data is passed and no native window is described.
+  Unknown window type, no windowing data is passed and no native window is described.
+
+.. data:: Headless
+
+  The windowing data doesn't describe a real window but a virtual area, allowing all normal output
+  rendering to happen off-screen.
   See :func:`CreateHeadlessWindowingData`.
 
 .. data:: Win32
@@ -337,6 +342,7 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 enum class WindowingSystem : uint32_t
 {
   Unknown,
+  Headless,
   Win32,
   Xlib,
   XCB,
@@ -383,6 +389,11 @@ struct WindowingData
   {
     struct
     {
+      int32_t width, height;
+    } headless;
+
+    struct
+    {
       HWND window;
     } win32;
 
@@ -417,14 +428,20 @@ DECLARE_REFLECTION_ENUM(WindowingData);
 
 DOCUMENT(R"(Create a :class:`WindowingData` for no backing window, it will be headless.
 
+:param int width: The initial width for this virtual window.
+:param int height: The initial height for this virtual window.
+
 :return: A :class:`WindowingData` corresponding to an 'empty' backing window.
 :rtype: WindowingData
 )");
-inline const WindowingData CreateHeadlessWindowingData()
+inline const WindowingData CreateHeadlessWindowingData(int32_t width, int32_t height)
 {
   WindowingData ret = {};
 
-  ret.system = WindowingSystem::Unknown;
+  ret.system = WindowingSystem::Headless;
+
+  ret.headless.width = width > 0 ? width : 1;
+  ret.headless.height = height > 0 ? height : 1;
 
   return ret;
 }
@@ -648,6 +665,21 @@ which is useful for operations like picking vertices that depends on the output 
 :param int height: The height to use.
 )");
   virtual void SetDimensions(int32_t width, int32_t height) = 0;
+
+  DOCUMENT(R"(Read the output texture back as byte data. Primarily useful for headless outputs where
+the output data is not displayed anywhere natively.
+
+:return: The output texture data as tightly packed RGB 3-byte data.
+:rtype: ``bytes``
+)");
+  virtual bytebuf ReadbackOutputTexture() = 0;
+
+  DOCUMENT(R"(Retrieve the current dimensions of the output.
+
+:return: The current width and height of the output.
+:rtype: ``pair`` of two ``int``
+)");
+  virtual rdcpair<int32_t, int32_t> GetDimensions() = 0;
 
   DOCUMENT(
       "Clear and release all thumbnails associated with this output. See :meth:`AddThumbnail`.");

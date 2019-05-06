@@ -29,13 +29,37 @@
 void D3D11Replay::OutputWindow::MakeRTV()
 {
   ID3D11Texture2D *texture = NULL;
-  HRESULT hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
 
-  if(FAILED(hr))
+  HRESULT hr = S_OK;
+
+  if(swap)
   {
-    RDCERR("Failed to get swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
-    SAFE_RELEASE(texture);
-    return;
+    hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to get swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
+      SAFE_RELEASE(texture);
+      return;
+    }
+  }
+  else
+  {
+    D3D11_TEXTURE2D_DESC texDesc;
+
+    texDesc.ArraySize = 1;
+    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+    texDesc.CPUAccessFlags = 0;
+    texDesc.MipLevels = 1;
+    texDesc.MiscFlags = 0;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.SampleDesc.Quality = 0;
+    texDesc.Usage = D3D11_USAGE_DEFAULT;
+    texDesc.Width = width;
+    texDesc.Height = height;
+    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
+    hr = dev->CreateTexture2D(&texDesc, NULL, &texture);
   }
 
   hr = dev->CreateRenderTargetView(texture, NULL, &rtv);
@@ -52,13 +76,19 @@ void D3D11Replay::OutputWindow::MakeRTV()
 
 void D3D11Replay::OutputWindow::MakeDSV()
 {
-  ID3D11Texture2D *texture = NULL;
-  HRESULT hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
+  if(!rtv)
+    return;
 
-  if(FAILED(hr))
+  ID3D11Texture2D *texture = NULL;
   {
-    RDCERR("Failed to get swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
-    SAFE_RELEASE(texture);
+    ID3D11Resource *res = NULL;
+    rtv->GetResource(&res);
+    texture = (ID3D11Texture2D *)res;
+  }
+
+  if(!texture)
+  {
+    RDCERR("Failed to get swap chain buffer from RTV");
     return;
   }
 
@@ -70,7 +100,7 @@ void D3D11Replay::OutputWindow::MakeDSV()
   texDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
   texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-  hr = dev->CreateTexture2D(&texDesc, NULL, &texture);
+  HRESULT hr = dev->CreateTexture2D(&texDesc, NULL, &texture);
 
   if(FAILED(hr))
   {
@@ -95,38 +125,49 @@ void D3D11Replay::OutputWindow::MakeDSV()
 
 uint64_t D3D11Replay::MakeOutputWindow(WindowingData window, bool depth)
 {
-  RDCASSERT(window.system == WindowingSystem::Win32, window.system);
+  RDCASSERT(window.system == WindowingSystem::Win32 || window.system == WindowingSystem::Headless,
+            window.system);
 
-  OutputWindow outw;
-  outw.wnd = window.win32.window;
+  DXGI_SWAP_CHAIN_DESC swapDesc = {};
+  OutputWindow outw = {};
   outw.dev = m_pDevice;
 
-  DXGI_SWAP_CHAIN_DESC swapDesc;
-  RDCEraseEl(swapDesc);
-
-  RECT rect;
-  GetClientRect(outw.wnd, &rect);
-
-  swapDesc.BufferCount = 2;
-  swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-  outw.width = swapDesc.BufferDesc.Width = rect.right - rect.left;
-  outw.height = swapDesc.BufferDesc.Height = rect.bottom - rect.top;
-  swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  swapDesc.SampleDesc.Count = depth ? 4 : 1;
-  swapDesc.SampleDesc.Quality = 0;
-  swapDesc.OutputWindow = outw.wnd;
-  swapDesc.Windowed = TRUE;
-  swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-  swapDesc.Flags = 0;
-
-  HRESULT hr = S_OK;
-
-  hr = m_pFactory->CreateSwapChain(m_pDevice, &swapDesc, &outw.swap);
-
-  if(FAILED(hr))
+  if(window.system == WindowingSystem::Win32)
   {
-    RDCERR("Failed to create swap chain for HWND, HRESULT: %s", ToStr(hr).c_str());
-    return 0;
+    outw.wnd = window.win32.window;
+
+    RECT rect = {};
+    GetClientRect(outw.wnd, &rect);
+
+    swapDesc.BufferCount = 2;
+    swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    outw.width = swapDesc.BufferDesc.Width = rect.right - rect.left;
+    outw.height = swapDesc.BufferDesc.Height = rect.bottom - rect.top;
+    swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapDesc.SampleDesc.Count = depth ? 4 : 1;
+    swapDesc.SampleDesc.Quality = 0;
+    swapDesc.OutputWindow = outw.wnd;
+    swapDesc.Windowed = TRUE;
+    swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    swapDesc.Flags = 0;
+
+    HRESULT hr = S_OK;
+
+    hr = m_pFactory->CreateSwapChain(m_pDevice, &swapDesc, &outw.swap);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create swap chain for HWND, HRESULT: %s", ToStr(hr).c_str());
+      return 0;
+    }
+  }
+  else
+  {
+    outw.width = window.headless.width;
+    outw.height = window.headless.height;
+
+    outw.wnd = NULL;
+    outw.swap = NULL;
   }
 
   outw.MakeRTV();
@@ -215,6 +256,100 @@ void D3D11Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
   h = m_OutputWindows[id].height;
 }
 
+void D3D11Replay::SetOutputWindowDimensions(uint64_t id, int32_t w, int32_t h)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  // can't resize an output with an actual window backing
+  if(outw.wnd)
+    return;
+
+  SAFE_RELEASE(outw.rtv);
+  SAFE_RELEASE(outw.dsv);
+
+  outw.width = w;
+  outw.height = h;
+
+  outw.MakeRTV();
+  outw.MakeDSV();
+}
+
+void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  if(!outw.rtv)
+    return;
+
+  ID3D11Texture2D *texture = NULL;
+  {
+    ID3D11Resource *res = NULL;
+    outw.rtv->GetResource(&res);
+    texture = (ID3D11Texture2D *)res;
+  }
+
+  if(!texture)
+  {
+    RDCERR("Couldn't get backbuffer texture");
+    return;
+  }
+
+  ID3D11Texture2D *readback = NULL;
+
+  D3D11_TEXTURE2D_DESC texDesc;
+  texture->GetDesc(&texDesc);
+
+  texDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  texDesc.BindFlags = 0;
+  texDesc.Usage = D3D11_USAGE_STAGING;
+
+  HRESULT hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &readback);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create staging texture for readback, HRESULT: %s", ToStr(hr).c_str());
+    SAFE_RELEASE(texture);
+    return;
+  }
+
+  ID3D11DeviceContext *ctx = m_pDevice->GetImmediateContext();
+
+  ctx->CopyResource(readback, texture);
+
+  SAFE_RELEASE(texture);
+
+  D3D11_MAPPED_SUBRESOURCE mapped = {};
+  ctx->Map(readback, 0, D3D11_MAP_READ, 0, &mapped);
+
+  retData.resize(outw.width * outw.height * 3);
+
+  byte *src = (byte *)mapped.pData;
+  byte *dst = retData.data();
+
+  for(int32_t row = 0; row < outw.height; row++)
+  {
+    for(int32_t x = 0; x < outw.width; x++)
+    {
+      dst[x * 3 + 0] = src[x * 4 + 0];
+      dst[x * 3 + 1] = src[x * 4 + 1];
+      dst[x * 3 + 2] = src[x * 4 + 2];
+    }
+
+    src += mapped.RowPitch;
+    dst += outw.width * 3;
+  }
+
+  ctx->Unmap(readback, 0);
+
+  SAFE_RELEASE(readback);
+}
+
 void D3D11Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
@@ -258,6 +393,9 @@ bool D3D11Replay::IsOutputWindowVisible(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
+
+  if(!m_OutputWindows[id].wnd)
+    return true;
 
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }

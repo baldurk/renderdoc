@@ -151,7 +151,7 @@ class GLXPlatform : public GLPlatform
           "support compiled in");
 #endif
     }
-    else if(window.system == WindowingSystem::Unknown)
+    else if(window.system == WindowingSystem::Unknown || window.system == WindowingSystem::Headless)
     {
       // allow WindowingSystem::Unknown so that internally we can create a window-less context
       dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;

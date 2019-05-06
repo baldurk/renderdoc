@@ -60,6 +60,13 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
+  if(outw.m_WindowSystem == WindowingSystem::Headless)
+  {
+    w = outw.width;
+    h = outw.height;
+    return;
+  }
+
   RECT rect = {0};
   GetClientRect(outw.wnd, &rect);
   w = rect.right - rect.left;
@@ -70,6 +77,9 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return false;
+
+  if(m_OutputWindows[id].m_WindowSystem == WindowingSystem::Headless)
+    return true;
 
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }

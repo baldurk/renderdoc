@@ -113,6 +113,8 @@ public:
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);
+  void SetOutputWindowDimensions(uint64_t id, int32_t w, int32_t h);
+  void GetOutputWindowData(uint64_t id, bytebuf &retData);
   void ClearOutputWindowColor(uint64_t id, FloatVector col);
   void ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil);
   void BindOutputWindow(uint64_t id, bool depth);
@@ -299,6 +301,7 @@ private:
     void MakeDSV();
 
     int width, height;
+    bool multisampled;
   };
 
   float m_OutputWidth = 1.0f;

@@ -43,6 +43,8 @@ public:
   void SetTextureDisplay(const TextureDisplay &o);
   void SetMeshDisplay(const MeshDisplay &o);
   void SetDimensions(int32_t width, int32_t height);
+  bytebuf ReadbackOutputTexture();
+  rdcpair<int32_t, int32_t> GetDimensions();
 
   void ClearThumbnails();
   bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint);
