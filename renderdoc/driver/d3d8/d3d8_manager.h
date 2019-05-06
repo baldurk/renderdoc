@@ -77,7 +77,7 @@ private:
   bool Force_InitialState(IUnknown *res, bool prepare);
   bool Need_InitialStateChunk(IUnknown *res);
   bool Prepare_InitialState(IUnknown *res);
-  uint32_t GetSize_InitialState(ResourceId id, IUnknown *res);
+  uint64_t GetSize_InitialState(ResourceId id, IUnknown *res);
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, IUnknown *res);
   void Create_InitialState(ResourceId id, IUnknown *live, bool hasData);
   void Apply_InitialState(IUnknown *live, D3D8InitialContents data);

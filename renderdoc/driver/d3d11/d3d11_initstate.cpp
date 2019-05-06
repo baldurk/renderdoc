@@ -257,13 +257,13 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   return true;
 }
 
-uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
+uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
 {
   // This function provides an upper bound on how much data Serialise_InitialState will write, so
   // that the chunk can be pre-allocated and not require seeking to fix-up the length.
   // It can be an over-estimate as long as it's not *too* far over.
 
-  uint32_t ret = 128;    // type, Id, plus breathing room
+  uint64_t ret = 128;    // type, Id, plus breathing room
 
   ResourcePitch pitch = {};
 
@@ -283,7 +283,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
 
     // buffer width plus alignment
     ret += desc.ByteWidth;
-    ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+    ret += WriteSerialiser::GetChunkAlignment();
   }
   else if(type == Resource_Texture1D)
   {
@@ -304,7 +304,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
       const UINT RowPitch = GetRowPitch(desc.Width, desc.Format, mip);
 
       ret += RowPitch;
-      ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+      ret += WriteSerialiser::GetChunkAlignment();
     }
   }
   else if(type == Resource_Texture2D)
@@ -344,7 +344,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
           ret += pitch.m_RowPitch * numRows;
         }
 
-        ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+        ret += WriteSerialiser::GetChunkAlignment();
       }
     }
   }
@@ -373,7 +373,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
         ret += pitch.m_DepthPitch * RDCMAX(1U, desc.Depth >> mip);
       }
 
-      ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+      ret += WriteSerialiser::GetChunkAlignment();
     }
   }
   else

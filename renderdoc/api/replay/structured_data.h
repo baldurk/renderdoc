@@ -238,7 +238,7 @@ struct SDChunkMetaData
   DOCUMENT(R"(The length in bytes of this chunk - may be longer than the actual sum of the data if a
 conservative size estimate was used on creation to avoid seeking to fix-up the stored length.
 )");
-  uint32_t length = 0;
+  uint64_t length = 0;
 
   DOCUMENT("The ID of the thread where this chunk was recorded.");
   uint64_t threadID = 0;

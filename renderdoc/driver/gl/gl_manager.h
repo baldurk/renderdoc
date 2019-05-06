@@ -259,7 +259,7 @@ private:
   bool Force_InitialState(GLResource res, bool prepare);
   bool Need_InitialStateChunk(GLResource res);
   bool Prepare_InitialState(GLResource res);
-  uint32_t GetSize_InitialState(ResourceId resid, GLResource res);
+  uint64_t GetSize_InitialState(ResourceId resid, GLResource res);
 
   void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
                           GLenum textype, GLint dim, GLint width, GLint height, GLint depth,

@@ -573,7 +573,7 @@ protected:
   virtual bool AllowDeletedResource_InitialState() { return false; }
   virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
-  virtual uint32_t GetSize_InitialState(ResourceId id, WrappedResourceType res) = 0;
+  virtual uint64_t GetSize_InitialState(ResourceId id, WrappedResourceType res) = 0;
   virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
                                       WrappedResourceType res) = 0;
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
@@ -856,7 +856,7 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
     }
   }
 
-  uint32_t chunkSize = uint32_t(WrittenRecords.size() * sizeof(WrittenRecord) + 16);
+  uint64_t chunkSize = uint64_t(WrittenRecords.size() * sizeof(WrittenRecord) + 16);
 
   SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContentsList, chunkSize);
   SERIALISE_ELEMENT(WrittenRecords);
@@ -1146,7 +1146,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     }
     else
     {
-      uint32_t size = GetSize_InitialState(id, res);
+      uint64_t size = GetSize_InitialState(id, res);
 
       SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
 
@@ -1175,7 +1175,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
       }
       else
       {
-        uint32_t size = GetSize_InitialState(it->first, it->second);
+        uint64_t size = GetSize_InitialState(it->first, it->second);
 
         SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
 

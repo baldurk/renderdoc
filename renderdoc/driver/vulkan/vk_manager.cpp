@@ -738,7 +738,7 @@ bool VulkanResourceManager::Prepare_InitialState(WrappedVkRes *res)
   return m_Core->Prepare_InitialState(res);
 }
 
-uint32_t VulkanResourceManager::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
+uint64_t VulkanResourceManager::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
 {
   return m_Core->GetSize_InitialState(id, res);
 }

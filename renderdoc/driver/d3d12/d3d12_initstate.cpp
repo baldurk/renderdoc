@@ -347,7 +347,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   return false;
 }
 
-uint32_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res)
+uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res)
 {
   D3D12ResourceRecord *record = GetResourceRecord(id);
   D3D12InitialContents initContents = GetInitialContents(id);
@@ -355,7 +355,7 @@ uint32_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceC
   if(record->type == Resource_DescriptorHeap)
   {
     // the initial contents are just the descriptors. Estimate the serialise size here
-    const uint32_t descriptorSerSize = 40 + sizeof(D3D12_SAMPLER_DESC);
+    const uint64_t descriptorSerSize = 40 + sizeof(D3D12_SAMPLER_DESC);
 
     // add a little extra room for fixed overhead
     return 64 + initContents.numDescriptors * descriptorSerSize;
@@ -369,8 +369,7 @@ uint32_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceC
       buf = (ID3D12Resource *)res;
     }
 
-    return (uint32_t)WriteSerialiser::GetChunkAlignment() + 16 +
-           uint32_t(buf ? buf->GetDesc().Width : 0);
+    return WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(buf ? buf->GetDesc().Width : 0);
   }
   else
   {

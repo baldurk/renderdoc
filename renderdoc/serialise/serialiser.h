@@ -100,6 +100,7 @@ public:
     ChunkThreadID = 0x00020000,
     ChunkDuration = 0x00040000,
     ChunkTimestamp = 0x00080000,
+    Chunk64BitSize = 0x00100000,
   };
 
   //////////////////////////////////////////
@@ -156,7 +157,7 @@ public:
     m_ExportStructured = (lookup != NULL);
   }
 
-  uint32_t BeginChunk(uint32_t chunkID, uint32_t byteLength);
+  uint32_t BeginChunk(uint32_t chunkID, uint64_t byteLength);
   void EndChunk();
 
   std::string GetCurChunkName()
@@ -1632,7 +1633,7 @@ class WriteSerialiser : public Serialiser<SerialiserMode::Writing>
 {
 public:
   WriteSerialiser(StreamWriter *writer, Ownership own) : Serialiser(writer, own) {}
-  void WriteChunk(uint32_t chunkID, uint32_t byteLength = 0) { BeginChunk(chunkID, byteLength); }
+  void WriteChunk(uint32_t chunkID, uint64_t byteLength = 0) { BeginChunk(chunkID, byteLength); }
 };
 
 class ReadSerialiser : public Serialiser<SerialiserMode::Reading>
@@ -1833,7 +1834,7 @@ class ScopedChunk
 {
 public:
   template <typename ChunkType>
-  ScopedChunk(WriteSerialiser &s, ChunkType i, uint32_t byteLength = 0)
+  ScopedChunk(WriteSerialiser &s, ChunkType i, uint64_t byteLength = 0)
       : m_Idx(uint32_t(i)), m_Ser(s), m_Ended(false)
   {
     m_Ser.WriteChunk(m_Idx, byteLength);
