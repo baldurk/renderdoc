@@ -1813,8 +1813,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderDrawParameterFeatures,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderDrawParametersFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(shaderDrawParameters);
       }
@@ -1836,7 +1836,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       END_PHYS_EXT_CHECK();
 
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVariablePointerFeatures,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES);
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(variablePointersStorageBuffer);
         CHECK_PHYS_EXT_FEATURE(variablePointers);
@@ -1888,8 +1888,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceBufferAddressFeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
       {
         CHECK_PHYS_EXT_FEATURE(bufferDeviceAddress);
         CHECK_PHYS_EXT_FEATURE(bufferDeviceAddressCaptureReplay);
@@ -2475,9 +2475,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages = true;
   }
 
-  VkPhysicalDeviceBufferAddressFeaturesEXT *bufferAddressFeatures =
-      (VkPhysicalDeviceBufferAddressFeaturesEXT *)FindNextStruct(
-          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT);
+  VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *bufferAddressFeatures =
+      (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
 
   if(bufferAddressFeatures)
   {

@@ -402,8 +402,8 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceProtectedMemoryFeatures)                                                \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_PROPERTIES,                          \
                VkPhysicalDeviceProtectedMemoryProperties)                                              \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES,                       \
-               VkPhysicalDeviceShaderDrawParameterFeatures)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,                      \
+               VkPhysicalDeviceShaderDrawParametersFeatures)                                           \
                                                                                                        \
   /* VK_AMD_shader_core_properties */                                                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD,                           \
@@ -422,8 +422,8 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT, VkBufferDeviceAddressInfoEXT)         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,                                \
                VkBufferDeviceAddressCreateInfoEXT)                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,                          \
-               VkPhysicalDeviceBufferAddressFeaturesEXT)                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,                   \
+               VkPhysicalDeviceBufferDeviceAddressFeaturesEXT)                                         \
                                                                                                        \
   /* VK_EXT_calibrated_timestamps */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT, VkCalibratedTimestampInfoEXT)          \
@@ -786,7 +786,7 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR, VkAcquireNextImageInfoKHR)               \
                                                                                                        \
   /* VK_KHR_variable_pointers */                                                                       \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES,                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES,                           \
                VkPhysicalDeviceVariablePointerFeatures)                                                \
                                                                                                        \
   /* VK_KHR_vulkan_memory_model */                                                                     \
@@ -3163,7 +3163,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceVariablePointerFeatures &el)
 {
   RDCASSERT(ser.IsReading() ||
-            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES);
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(variablePointersStorageBuffer);
@@ -4271,10 +4271,10 @@ void Deserialise(const VkBufferDeviceAddressCreateInfoEXT &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkPhysicalDeviceBufferAddressFeaturesEXT &el)
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceBufferDeviceAddressFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
-            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT);
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(bufferDeviceAddress);
@@ -4283,7 +4283,7 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceBufferAddressFeaturesEXT &
 }
 
 template <>
-void Deserialise(const VkPhysicalDeviceBufferAddressFeaturesEXT &el)
+void Deserialise(const VkPhysicalDeviceBufferDeviceAddressFeaturesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -4748,17 +4748,17 @@ void Deserialise(const VkPhysicalDeviceProtectedMemoryProperties &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderDrawParameterFeatures &el)
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderDrawParametersFeatures &el)
 {
   RDCASSERT(ser.IsReading() ||
-            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES);
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(shaderDrawParameters);
 }
 
 template <>
-void Deserialise(const VkPhysicalDeviceShaderDrawParameterFeatures &el)
+void Deserialise(const VkPhysicalDeviceShaderDrawParametersFeatures &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -6677,7 +6677,7 @@ INSTANTIATE_SERIALISE_TYPE(VkMultisamplePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferAddressFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthStencilResolvePropertiesKHR);
@@ -6714,7 +6714,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceScalarBlockLayoutFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParameterFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParametersFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSampleLocationsPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
