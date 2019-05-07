@@ -1149,8 +1149,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
         {
-          VkPhysicalDeviceBufferAddressFeaturesEXT bufaddr = {
-              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT};
+          VkPhysicalDeviceBufferDeviceAddressFeaturesEXT bufaddr = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT};
           VkPhysicalDeviceFeatures2 base = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
           base.pNext = &bufaddr;
           ObjDisp(physDev)->GetPhysicalDeviceFeatures2(Unwrap(physDev), &base);
@@ -1164,8 +1164,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
           else
           {
             RDCWARN(
-                "VkPhysicalDeviceBufferAddressFeaturesEXT.bufferDeviceAddressCaptureReplay is "
-                "false, can't support capture of VK_EXT_buffer_device_address");
+                "VkPhysicalDeviceBufferDeviceAddressFeaturesEXT.bufferDeviceAddressCaptureReplay "
+                "is false, can't support capture of VK_EXT_buffer_device_address");
           }
         }
 
