@@ -279,21 +279,33 @@ void InjectDLL(HANDLE hProcess, std::wstring libName)
       VirtualAllocEx(hProcess, NULL, sizeof(dllPath), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   if(remoteMem)
   {
-    WriteProcessMemory(hProcess, remoteMem, (void *)dllPath, sizeof(dllPath), NULL);
-
-    HANDLE hThread = CreateRemoteThread(
-        hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"),
-        remoteMem, 0, NULL);
-    if(hThread)
+    BOOL success = WriteProcessMemory(hProcess, remoteMem, (void *)dllPath, sizeof(dllPath), NULL);
+    if(success)
     {
-      WaitForSingleObject(hThread, INFINITE);
-      CloseHandle(hThread);
+      HANDLE hThread = CreateRemoteThread(
+          hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"),
+          remoteMem, 0, NULL);
+      if(hThread)
+      {
+        WaitForSingleObject(hThread, INFINITE);
+        CloseHandle(hThread);
+      }
+      else
+      {
+        RDCERR("Couldn't create remote thread for LoadLibraryW: %u", GetLastError());
+      }
     }
+    else
+    {
+      RDCERR("Couldn't write remote memory %p with dllPath '%ls': %u", remoteMem, dllPath,
+             GetLastError());
+    }
+
     VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE);
   }
   else
   {
-    RDCERR("Couldn't allocate remote memory for DLL '%ls'", libName.c_str());
+    RDCERR("Couldn't allocate remote memory for DLL '%ls': %u", libName.c_str(), GetLastError());
   }
 }
 
