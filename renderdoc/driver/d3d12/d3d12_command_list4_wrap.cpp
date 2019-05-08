@@ -52,7 +52,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
 
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
-    SERIALISE_ELEMENT(RTVs).Named("RenderTargetDescriptors");
+    SERIALISE_ELEMENT(RTVs).Named("RenderTargetDescriptors"_lit);
   }
 
   {
@@ -63,7 +63,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
     if(ser.IsWriting())
       pDSV = pDepthStencil ? GetWrapped(pDepthStencil->cpuDescriptor) : NULL;
 
-    SERIALISE_ELEMENT_OPT(pDSV).Named("DepthStencilDescriptor");
+    SERIALISE_ELEMENT_OPT(pDSV).Named("DepthStencilDescriptor"_lit);
 
     if(pDSV)
       DSV = *pDSV;

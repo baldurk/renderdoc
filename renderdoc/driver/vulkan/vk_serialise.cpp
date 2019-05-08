@@ -158,11 +158,13 @@ DECL_VKFLAG_EXT(VkDescriptorBinding, EXT);
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
 // flags type so the structured data is as accurate as possible.
-#define SERIALISE_MEMBER_VKFLAGS(flagstype, name) \
-  SERIALISE_MEMBER_TYPED(CONCAT(flagstype, Bits), name).TypedAs(STRINGIZE(flagstype))
+#define SERIALISE_MEMBER_VKFLAGS(flagstype, name)       \
+  SERIALISE_MEMBER_TYPED(CONCAT(flagstype, Bits), name) \
+      .TypedAs(STRING_LITERAL(STRINGIZE(flagstype)))
 
-#define SERIALISE_MEMBER_ARRAY_VKFLAGS(flagstype, name, count) \
-  SERIALISE_MEMBER_ARRAY_TYPED(CONCAT(flagstype, Bits), name, count).TypedAs(STRINGIZE(flagstype))
+#define SERIALISE_MEMBER_ARRAY_VKFLAGS(flagstype, name, count)       \
+  SERIALISE_MEMBER_ARRAY_TYPED(CONCAT(flagstype, Bits), name, count) \
+      .TypedAs(STRING_LITERAL(STRINGIZE(flagstype)))
 
 // simple way to express "resources referenced from this struct don't have to be present."
 // since this is used during read when the processing is single-threaded, we make it a static
@@ -979,7 +981,7 @@ template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
 {
   // this is the parent sType, serialised here for convenience
-  ser.Serialise("sType", sType);
+  ser.Serialise("sType"_lit, sType);
 
   if(ser.IsReading())
   {
@@ -990,19 +992,19 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
     // hidden as it doesn't correspond to the actual pNext, it's just metadata to help us launch the
     // serialisation.
     VkStructureType *nextType = NULL;
-    ser.SerialiseNullable("pNext", nextType);
+    ser.SerialiseNullable("pNext"_lit, nextType);
 
     // most common case - no pNext serialised. Bail immediately
     if(nextType == NULL)
     {
       // fixup the structured data, set the type to void*
-      ser.TypedAs("void *");
+      ser.TypedAs("void *"_lit);
       return;
     }
 
     // hide and rename the pNextType if we got something - we'll want the pNext below to be the only
     // thing user-facing.
-    ser.Named("pNextType").Hidden();
+    ser.Named("pNextType"_lit).Hidden();
 
 #define PNEXT_UNSUPPORTED(StructType)                                    \
   case StructType:                                                       \
@@ -1013,14 +1015,14 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
   }
 
 // if we come across a struct we should process, then serialise a pointer to it.
-#define PNEXT_STRUCT(StructType, StructName)    \
-  case StructType:                              \
-  {                                             \
-    StructName *nextStruct = NULL;              \
-    ser.SerialiseNullable("pNext", nextStruct); \
-    pNext = nextStruct;                         \
-    handled = true;                             \
-    break;                                      \
+#define PNEXT_STRUCT(StructType, StructName)        \
+  case StructType:                                  \
+  {                                                 \
+    StructName *nextStruct = NULL;                  \
+    ser.SerialiseNullable("pNext"_lit, nextStruct); \
+    pNext = nextStruct;                             \
+    handled = true;                                 \
+    break;                                          \
   }
 
     // we don't want a default case to ensure we get a compile error if we forget to implement a
@@ -1061,15 +1063,15 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
 // We don't have to go any further, the act of serialising this struct will walk the chain further,
 // so we can return immediately.
 #undef PNEXT_STRUCT
-#define PNEXT_STRUCT(StructType, StructName)      \
-  case StructType:                                \
-  {                                               \
-    VkStructureType *nextType = &next->sType;     \
-    ser.SerialiseNullable("pNextType", nextType); \
-    StructName *actual = (StructName *)next;      \
-    ser.SerialiseNullable("pNext", actual);       \
-    handled = true;                               \
-    return;                                       \
+#define PNEXT_STRUCT(StructType, StructName)          \
+  case StructType:                                    \
+  {                                                   \
+    VkStructureType *nextType = &next->sType;         \
+    ser.SerialiseNullable("pNextType"_lit, nextType); \
+    StructName *actual = (StructName *)next;          \
+    ser.SerialiseNullable("pNext"_lit, actual);       \
+    handled = true;                                   \
+    return;                                           \
   }
 
     // we don't want a default case to ensure we get a compile error if we forget to implement a
@@ -1098,7 +1100,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
     // if we got here, either pNext was NULL (common) or we skipped the whole chain. Serialise a
     // NULL structure type to indicate that.
     VkStructureType *dummy = NULL;
-    ser.SerialiseNullable("pNext", dummy);
+    ser.SerialiseNullable("pNext"_lit, dummy);
   }
 }
 
@@ -1393,7 +1395,7 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceLimits &el)
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t minMemoryMapAlignment = (uint64_t)el.minMemoryMapAlignment;
-    ser.Serialise("minMemoryMapAlignment", minMemoryMapAlignment);
+    ser.Serialise("minMemoryMapAlignment"_lit, minMemoryMapAlignment);
     if(ser.IsReading())
       el.minMemoryMapAlignment = (size_t)minMemoryMapAlignment;
   }
@@ -1736,8 +1738,9 @@ void DoSerialise(SerialiserType &ser, VkSubmitInfo &el)
   } u;
   u.orig = &el.pWaitDstStageMask;
 
-  ser.Serialise("pWaitDstStageMask", *u.typed, el.waitSemaphoreCount, SerialiserFlags::AllocateMemory)
-      .TypedAs("VkPipelineStageFlags");
+  ser.Serialise("pWaitDstStageMask"_lit, *u.typed, el.waitSemaphoreCount,
+                SerialiserFlags::AllocateMemory)
+      .TypedAs("VkPipelineStageFlags"_lit);
 
   SERIALISE_MEMBER(commandBufferCount);
   SERIALISE_MEMBER_ARRAY(pCommandBuffers, commandBufferCount);
@@ -2316,7 +2319,7 @@ void DoSerialise(SerialiserType &ser, VkSpecializationMapEntry &el)
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t size = el.size;
-    ser.Serialise("size", size);
+    ser.Serialise("size"_lit, size);
     if(ser.IsReading())
       el.size = (size_t)size;
   }
@@ -2331,7 +2334,7 @@ void DoSerialise(SerialiserType &ser, VkSpecializationInfo &el)
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t dataSize = el.dataSize;
-    ser.Serialise("dataSize", dataSize);
+    ser.Serialise("dataSize"_lit, dataSize);
     if(ser.IsReading())
       el.dataSize = (size_t)dataSize;
   }
@@ -2357,7 +2360,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineCacheCreateInfo &el)
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t initialDataSize = el.initialDataSize;
-    ser.Serialise("initialDataSize", initialDataSize);
+    ser.Serialise("initialDataSize"_lit, initialDataSize);
     if(ser.IsReading())
       el.initialDataSize = (size_t)initialDataSize;
   }
@@ -2404,7 +2407,7 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleCreateInfo &el)
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t codeSize = el.codeSize;
-    ser.Serialise("codeSize", codeSize);
+    ser.Serialise("codeSize"_lit, codeSize);
     if(ser.IsReading())
       el.codeSize = (size_t)codeSize;
   }
@@ -2412,7 +2415,7 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleCreateInfo &el)
   // serialise as void* so it goes through as a buffer, not an actual array of integers.
   {
     const void *pCode = el.pCode;
-    ser.Serialise("pCode", pCode, el.codeSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pCode"_lit, pCode, el.codeSize, SerialiserFlags::AllocateMemory);
     if(ser.IsReading())
       el.pCode = (uint32_t *)pCode;
   }
@@ -3274,8 +3277,8 @@ void DoSerialise(SerialiserType &ser, VkDebugReportCallbackCreateInfoEXT &el)
   // display them
   uint64_t pfnCallback = (uint64_t)el.pfnCallback;
   uint64_t pUserData = (uint64_t)el.pUserData;
-  ser.Serialise("pfnCallback", pfnCallback);
-  ser.Serialise("pUserData", pUserData);
+  ser.Serialise("pfnCallback"_lit, pfnCallback);
+  ser.Serialise("pUserData"_lit, pUserData);
 }
 
 template <>
@@ -3348,8 +3351,8 @@ void DoSerialise(SerialiserType &ser, VkDebugUtilsMessengerCreateInfoEXT &el)
   // display them
   uint64_t pfnUserCallback = (uint64_t)el.pfnUserCallback;
   uint64_t pUserData = (uint64_t)el.pUserData;
-  ser.Serialise("pfnUserCallback", pfnUserCallback);
-  ser.Serialise("pUserData", pUserData);
+  ser.Serialise("pfnUserCallback"_lit, pfnUserCallback);
+  ser.Serialise("pUserData"_lit, pUserData);
 }
 
 template <>
@@ -3363,15 +3366,15 @@ void Deserialise(const VkDebugUtilsMessengerCreateInfoEXT &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, DescriptorSetSlotImageInfo &el)
 {
-  SERIALISE_MEMBER(sampler).TypedAs("VkSampler");
-  SERIALISE_MEMBER(imageView).TypedAs("VkImageView");
+  SERIALISE_MEMBER(sampler).TypedAs("VkSampler"_lit);
+  SERIALISE_MEMBER(imageView).TypedAs("VkImageView"_lit);
   SERIALISE_MEMBER(imageLayout);
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, DescriptorSetSlotBufferInfo &el)
 {
-  SERIALISE_MEMBER(buffer).TypedAs("VkBuffer");
+  SERIALISE_MEMBER(buffer).TypedAs("VkBuffer"_lit);
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(range);
 }
@@ -3388,9 +3391,9 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
   ser.SetStructArg(
       uint64_t(VkDescriptorImageInfoValidity::Sampler | VkDescriptorImageInfoValidity::ImageView));
 
-  SERIALISE_MEMBER(bufferInfo).TypedAs("VkDescriptorBufferInfo");
-  SERIALISE_MEMBER(imageInfo).TypedAs("VkDescriptorImageInfo");
-  SERIALISE_MEMBER(texelBufferView).TypedAs("VkBufferView");
+  SERIALISE_MEMBER(bufferInfo).TypedAs("VkDescriptorBufferInfo"_lit);
+  SERIALISE_MEMBER(imageInfo).TypedAs("VkDescriptorImageInfo"_lit);
+  SERIALISE_MEMBER(texelBufferView).TypedAs("VkBufferView"_lit);
 }
 
 template <typename SerialiserType>
@@ -3444,8 +3447,8 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntry &el)
   {
     uint64_t offset = el.offset;
     uint64_t stride = el.stride;
-    ser.Serialise("offset", offset);
-    ser.Serialise("stride", stride);
+    ser.Serialise("offset"_lit, offset);
+    ser.Serialise("stride"_lit, stride);
     el.offset = (size_t)offset;
     el.stride = (size_t)stride;
   }
@@ -4357,7 +4360,7 @@ void DoSerialise(SerialiserType &ser, VkValidationCacheCreateInfoEXT &el)
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
     uint64_t initialDataSize = (uint64_t)el.initialDataSize;
-    ser.Serialise("initialDataSize", initialDataSize);
+    ser.Serialise("initialDataSize"_lit, initialDataSize);
     if(ser.IsReading())
       el.initialDataSize = (size_t)initialDataSize;
   }
@@ -5982,7 +5985,8 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceGroupProperties &el)
   // manual call to Serialise to ensure we only serialise the number of devices, but also don't
   // allocate memory
   VkPhysicalDevice *devs = el.physicalDevices;
-  ser.Serialise("physicalDevices", devs, (uint64_t)el.physicalDeviceCount, SerialiserFlags::NoFlags);
+  ser.Serialise("physicalDevices"_lit, devs, (uint64_t)el.physicalDeviceCount,
+                SerialiserFlags::NoFlags);
   SERIALISE_MEMBER(subsetAllocation);
 }
 
@@ -6973,7 +6977,7 @@ void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoNV &el)
 
   {
     uint64_t handle = (uint64_t)el.handle;
-    ser.Serialise("handle", handle);
+    ser.Serialise("handle"_lit, handle);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -6996,7 +7000,7 @@ void DoSerialise(SerialiserType &ser, VkExportMemoryWin32HandleInfoNV &el)
   {
     // serialise pointer as plain integer, rather than recursing and serialising struct
     uint64_t pAttributes = (uint64_t)el.pAttributes;
-    ser.Serialise("pAttributes", pAttributes).TypedAs("SECURITY_ATTRIBUTES*");
+    ser.Serialise("pAttributes"_lit, pAttributes).TypedAs("SECURITY_ATTRIBUTES*"_lit);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7022,7 +7026,7 @@ void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoKHR &el)
 
   {
     uint64_t handle = (uint64_t)el.handle;
-    ser.Serialise("handle", handle);
+    ser.Serialise("handle"_lit, handle);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7035,7 +7039,7 @@ void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoKHR &el)
     if(ser.IsWriting())
       name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
-    ser.Serialise("name", name);
+    ser.Serialise("name"_lit, name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
@@ -7058,7 +7062,7 @@ void DoSerialise(SerialiserType &ser, VkExportMemoryWin32HandleInfoKHR &el)
   {
     // serialise pointer as plain integer, rather than recursing and serialising struct
     uint64_t pAttributes = (uint64_t)el.pAttributes;
-    ser.Serialise("pAttributes", pAttributes).TypedAs("SECURITY_ATTRIBUTES*");
+    ser.Serialise("pAttributes"_lit, pAttributes).TypedAs("SECURITY_ATTRIBUTES*"_lit);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7073,7 +7077,7 @@ void DoSerialise(SerialiserType &ser, VkExportMemoryWin32HandleInfoKHR &el)
     if(ser.IsWriting())
       name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
-    ser.Serialise("name", name);
+    ser.Serialise("name"_lit, name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
@@ -7127,7 +7131,7 @@ void DoSerialise(SerialiserType &ser, VkExportFenceWin32HandleInfoKHR &el)
   {
     // serialise pointer as plain integer, rather than recursing and serialising struct
     uint64_t pAttributes = (uint64_t)el.pAttributes;
-    ser.Serialise("pAttributes", pAttributes).TypedAs("SECURITY_ATTRIBUTES*");
+    ser.Serialise("pAttributes"_lit, pAttributes).TypedAs("SECURITY_ATTRIBUTES*"_lit);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7142,7 +7146,7 @@ void DoSerialise(SerialiserType &ser, VkExportFenceWin32HandleInfoKHR &el)
     if(ser.IsWriting())
       name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
-    ser.Serialise("name", name);
+    ser.Serialise("name"_lit, name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
@@ -7168,7 +7172,7 @@ void DoSerialise(SerialiserType &ser, VkImportFenceWin32HandleInfoKHR &el)
 
   {
     uint64_t handle = (uint64_t)el.handle;
-    ser.Serialise("handle", handle);
+    ser.Serialise("handle"_lit, handle);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7181,7 +7185,7 @@ void DoSerialise(SerialiserType &ser, VkImportFenceWin32HandleInfoKHR &el)
     if(ser.IsWriting())
       name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
-    ser.Serialise("name", name);
+    ser.Serialise("name"_lit, name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
@@ -7220,7 +7224,7 @@ void DoSerialise(SerialiserType &ser, VkExportSemaphoreWin32HandleInfoKHR &el)
   {
     // serialise pointer as plain integer, rather than recursing and serialising struct
     uint64_t pAttributes = (uint64_t)el.pAttributes;
-    ser.Serialise("pAttributes", pAttributes).TypedAs("SECURITY_ATTRIBUTES*");
+    ser.Serialise("pAttributes"_lit, pAttributes).TypedAs("SECURITY_ATTRIBUTES*"_lit);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7235,7 +7239,7 @@ void DoSerialise(SerialiserType &ser, VkExportSemaphoreWin32HandleInfoKHR &el)
     if(ser.IsWriting())
       name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
-    ser.Serialise("name", name);
+    ser.Serialise("name"_lit, name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
@@ -7261,7 +7265,7 @@ void DoSerialise(SerialiserType &ser, VkImportSemaphoreWin32HandleInfoKHR &el)
 
   {
     uint64_t handle = (uint64_t)el.handle;
-    ser.Serialise("handle", handle);
+    ser.Serialise("handle"_lit, handle);
 
     // won't be valid on read, though we won't try to replay this anyway
     if(ser.IsReading())
@@ -7274,7 +7278,7 @@ void DoSerialise(SerialiserType &ser, VkImportSemaphoreWin32HandleInfoKHR &el)
     if(ser.IsWriting())
       name = el.name ? StringFormat::Wide2UTF8(std::wstring(el.name)) : "";
 
-    ser.Serialise("name", name);
+    ser.Serialise("name"_lit, name);
 
     // we don't expose UTF82Wide on all platforms, but as above this struct won't be valid anyway
     if(ser.IsReading())
@@ -7419,7 +7423,7 @@ void DoSerialise(SerialiserType &ser, VkSurfaceFullScreenExclusiveWin32InfoEXT &
   SerialiseNext(ser, el.sType, el.pNext);
 
   uint64_t hmonitor = (uint64_t)el.hmonitor;
-  ser.Serialise("hmonitor", hmonitor);
+  ser.Serialise("hmonitor"_lit, hmonitor);
 }
 
 template <>

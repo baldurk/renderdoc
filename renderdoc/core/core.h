@@ -614,7 +614,7 @@ private:
   Threading::CriticalSection m_DriverLock;
   std::map<RDCDriver, uint64_t> m_ActiveDrivers;
 
-  std::map<std::string, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
+  std::map<rdcstr, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
 
   Threading::CriticalSection m_CaptureLock;
   vector<CaptureData> m_Captures;

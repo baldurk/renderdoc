@@ -2923,7 +2923,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     {
       ResourceId vao, fbo;
       SERIALISE_ELEMENT(vao).Hidden();
-      SERIALISE_ELEMENT(fbo).Named("FBO 0 ID");
+      SERIALISE_ELEMENT(fbo).Named("FBO 0 ID"_lit);
 
       SERIALISE_CHECK_READ_ERRORS();
 

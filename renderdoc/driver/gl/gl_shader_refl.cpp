@@ -29,7 +29,7 @@
 #include "gl_driver.h"
 
 template <>
-std::string DoStringise(const FFVertexOutput &el)
+rdcstr DoStringise(const FFVertexOutput &el)
 {
   BEGIN_ENUM_STRINGISE(FFVertexOutput);
   {

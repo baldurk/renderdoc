@@ -34,7 +34,7 @@ enum GLsyncbitfield
 DECLARE_REFLECTION_ENUM(GLsyncbitfield);
 
 template <>
-std::string DoStringise(const GLsyncbitfield &el)
+rdcstr DoStringise(const GLsyncbitfield &el)
 {
   RDCCOMPILE_ASSERT(
       sizeof(GLsyncbitfield) == sizeof(GLbitfield) && sizeof(GLsyncbitfield) == sizeof(uint32_t),
@@ -51,7 +51,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLenum condition,
                                           GLbitfield flags)
 {
-  SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(real)).TypedAs("GLsync");
+  SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(real)).TypedAs("GLsync"_lit);
   SERIALISE_ELEMENT(condition);
   SERIALISE_ELEMENT_TYPED(GLsyncbitfield, flags);
 
@@ -124,7 +124,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClientWaitSync(SerialiserType &ser, GLsync sync_, GLbitfield flags,
                                                GLuint64 timeout)
 {
-  SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(sync_)).TypedAs("GLsync");
+  SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(sync_)).TypedAs("GLsync"_lit);
   SERIALISE_ELEMENT_TYPED(GLsyncbitfield, flags);
   SERIALISE_ELEMENT(timeout);
 
@@ -160,7 +160,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glWaitSync(SerialiserType &ser, GLsync sync_, GLbitfield flags,
                                          GLuint64 timeout)
 {
-  SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(sync_)).TypedAs("GLsync");
+  SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(sync_)).TypedAs("GLsync"_lit);
   SERIALISE_ELEMENT_TYPED(GLsyncbitfield, flags);
   SERIALISE_ELEMENT(timeout);
 
@@ -204,7 +204,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -264,7 +264,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 

@@ -693,7 +693,7 @@ void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
 
   for(uint32_t i = 0; i < NumMems; i++)
   {
-    SERIALISE_ELEMENT_LOCAL(Resource, srcit->first).TypedAs("ID3D12Resource *");
+    SERIALISE_ELEMENT_LOCAL(Resource, srcit->first).TypedAs("ID3D12Resource *"_lit);
     SERIALISE_ELEMENT_LOCAL(States, srcit->second);
 
     ResourceId liveid;

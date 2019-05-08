@@ -481,7 +481,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
   // directly into upload memory
-  ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
+  ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags);
 
   // unmap the resource we mapped before - we need to do this on read and on write.
   if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)
@@ -584,7 +584,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
   // directly into upload memory
-  ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
+  ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags);
 
   // unmap the resource we mapped before - we need to do this on read and on write.
   if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)

@@ -47,7 +47,7 @@ enum GLbarrierbitfield
 DECLARE_REFLECTION_ENUM(GLbarrierbitfield);
 
 template <>
-std::string DoStringise(const GLbarrierbitfield &el)
+rdcstr DoStringise(const GLbarrierbitfield &el)
 {
   RDCCOMPILE_ASSERT(sizeof(GLbarrierbitfield) == sizeof(GLbitfield) &&
                         sizeof(GLbarrierbitfield) == sizeof(uint32_t),
@@ -75,7 +75,7 @@ std::string DoStringise(const GLbarrierbitfield &el)
 }
 
 template <>
-std::string DoStringise(const GLframebufferbitfield &el)
+rdcstr DoStringise(const GLframebufferbitfield &el)
 {
   RDCCOMPILE_ASSERT(sizeof(GLframebufferbitfield) == sizeof(GLbitfield) &&
                         sizeof(GLframebufferbitfield) == sizeof(uint32_t),
@@ -2602,9 +2602,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", i);
-          structuriser.Serialise<uint64_t>("offset", offs);
-          structuriser.Serialise("command", params);
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, i);
+          structuriser.Serialise<uint64_t>("offset"_lit, offs);
+          structuriser.Serialise("command"_lit, params);
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -2825,9 +2825,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", i);
-          structuriser.Serialise<uint64_t>("offset", offs);
-          structuriser.Serialise("command", params);
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, i);
+          structuriser.Serialise<uint64_t>("offset"_lit, offs);
+          structuriser.Serialise("command"_lit, params);
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -3048,9 +3048,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", i);
-          structuriser.Serialise<uint64_t>("offset", offs);
-          structuriser.Serialise("command", params);
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, i);
+          structuriser.Serialise<uint64_t>("offset"_lit, offs);
+          structuriser.Serialise("command"_lit, params);
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -3280,9 +3280,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", i);
-          structuriser.Serialise<uint64_t>("offset", offs);
-          structuriser.Serialise("command", params);
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, i);
+          structuriser.Serialise<uint64_t>("offset"_lit, offs);
+          structuriser.Serialise("command"_lit, params);
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);

@@ -33,7 +33,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(queueFamilyIndex);
   SERIALISE_ELEMENT(queueIndex);
-  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue");
+  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1495,7 +1495,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(QueueInfo, *pQueueInfo);
-  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue");
+  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 

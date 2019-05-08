@@ -45,7 +45,7 @@
 
 // this one is done by hand as we format it
 template <>
-std::string DoStringise(const ResourceId &el)
+rdcstr DoStringise(const ResourceId &el)
 {
   RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint64_t), "ResourceId is no longer 1:1 with uint64_t");
 
@@ -102,7 +102,7 @@ INSTANTIATE_SERIALISE_TYPE(ResourceId);
 ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
 template <>
-std::string DoStringise(const RDCDriver &el)
+rdcstr DoStringise(const RDCDriver &el)
 {
   BEGIN_ENUM_STRINGISE(RDCDriver);
   {
@@ -122,7 +122,7 @@ std::string DoStringise(const RDCDriver &el)
 }
 
 template <>
-std::string DoStringise(const ReplayLogType &el)
+rdcstr DoStringise(const ReplayLogType &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayLogType);
   {
@@ -134,7 +134,7 @@ std::string DoStringise(const ReplayLogType &el)
 }
 
 template <>
-std::string DoStringise(const VendorExtensions &el)
+rdcstr DoStringise(const VendorExtensions &el)
 {
   BEGIN_ENUM_STRINGISE(VendorExtensions);
   {
@@ -146,7 +146,7 @@ std::string DoStringise(const VendorExtensions &el)
 }
 
 template <>
-std::string DoStringise(const RENDERDOC_InputButton &el)
+rdcstr DoStringise(const RENDERDOC_InputButton &el)
 {
   char alphanumericbuf[2] = {'A', 0};
 
@@ -194,7 +194,7 @@ std::string DoStringise(const RENDERDOC_InputButton &el)
 }
 
 template <>
-std::string DoStringise(const SystemChunk &el)
+rdcstr DoStringise(const SystemChunk &el)
 {
   BEGIN_ENUM_STRINGISE(SystemChunk);
   {

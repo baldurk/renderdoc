@@ -538,7 +538,7 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
+  SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
 
   m_ContextRecord->AddChunk(scope.Get());
 }
@@ -547,7 +547,7 @@ void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
 {
   WriteSerialiser &ser = m_ScratchSerialiser;
   SCOPED_SERIALISE_CHUNK(D3D11Chunk::SwapchainPresent);
-  SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
+  SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
   SERIALISE_ELEMENT(SyncInterval);
   SERIALISE_ELEMENT(Flags);
 
@@ -643,7 +643,7 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk)
 {
-  SERIALISE_ELEMENT(m_CurContextId).Named("Context").TypedAs("ID3D11DeviceContext *");
+  SERIALISE_ELEMENT(m_CurContextId).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 

@@ -27,7 +27,7 @@
 #include "d3d11_resources.h"
 
 template <>
-std::string DoStringise(const D3D11ResourceType &el)
+rdcstr DoStringise(const D3D11ResourceType &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11ResourceType);
   {
@@ -57,7 +57,7 @@ std::string DoStringise(const D3D11ResourceType &el)
 }
 
 template <>
-std::string DoStringise(const D3D11Chunk &el)
+rdcstr DoStringise(const D3D11Chunk &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1127, "Chunks changed without updating names");
 
@@ -215,7 +215,7 @@ std::string DoStringise(const D3D11Chunk &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_BIND_FLAG &el)
+rdcstr DoStringise(const D3D11_BIND_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_BIND_FLAG);
   {
@@ -236,7 +236,7 @@ std::string DoStringise(const D3D11_BIND_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_CPU_ACCESS_FLAG &el)
+rdcstr DoStringise(const D3D11_CPU_ACCESS_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_CPU_ACCESS_FLAG);
   {
@@ -249,7 +249,7 @@ std::string DoStringise(const D3D11_CPU_ACCESS_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_RESOURCE_MISC_FLAG &el)
+rdcstr DoStringise(const D3D11_RESOURCE_MISC_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_RESOURCE_MISC_FLAG);
   {
@@ -277,7 +277,7 @@ std::string DoStringise(const D3D11_RESOURCE_MISC_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_COLOR_WRITE_ENABLE &el)
+rdcstr DoStringise(const D3D11_COLOR_WRITE_ENABLE &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_COLOR_WRITE_ENABLE);
   {
@@ -293,7 +293,7 @@ std::string DoStringise(const D3D11_COLOR_WRITE_ENABLE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_BUFFER_UAV_FLAG &el)
+rdcstr DoStringise(const D3D11_BUFFER_UAV_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_BUFFER_UAV_FLAG);
   {
@@ -307,7 +307,7 @@ std::string DoStringise(const D3D11_BUFFER_UAV_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_DSV_FLAG &el)
+rdcstr DoStringise(const D3D11_DSV_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_DSV_FLAG);
   {
@@ -320,7 +320,7 @@ std::string DoStringise(const D3D11_DSV_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_COPY_FLAGS &el)
+rdcstr DoStringise(const D3D11_COPY_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_COPY_FLAGS);
   {
@@ -333,7 +333,7 @@ std::string DoStringise(const D3D11_COPY_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_MAP_FLAG &el)
+rdcstr DoStringise(const D3D11_MAP_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_MAP_FLAG);
   {
@@ -345,7 +345,7 @@ std::string DoStringise(const D3D11_MAP_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_CLEAR_FLAG &el)
+rdcstr DoStringise(const D3D11_CLEAR_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_CLEAR_FLAG);
   {
@@ -358,7 +358,7 @@ std::string DoStringise(const D3D11_CLEAR_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_BUFFEREX_SRV_FLAG &el)
+rdcstr DoStringise(const D3D11_BUFFEREX_SRV_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_BUFFEREX_SRV_FLAG);
   {
@@ -370,7 +370,7 @@ std::string DoStringise(const D3D11_BUFFEREX_SRV_FLAG &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_TEXTURE_LAYOUT &el)
+rdcstr DoStringise(const D3D11_TEXTURE_LAYOUT &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_TEXTURE_LAYOUT);
   {
@@ -382,7 +382,7 @@ std::string DoStringise(const D3D11_TEXTURE_LAYOUT &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_DEPTH_WRITE_MASK &el)
+rdcstr DoStringise(const D3D11_DEPTH_WRITE_MASK &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_DEPTH_WRITE_MASK);
   {
@@ -393,7 +393,7 @@ std::string DoStringise(const D3D11_DEPTH_WRITE_MASK &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_COMPARISON_FUNC &el)
+rdcstr DoStringise(const D3D11_COMPARISON_FUNC &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_COMPARISON_FUNC);
   {
@@ -410,7 +410,7 @@ std::string DoStringise(const D3D11_COMPARISON_FUNC &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_STENCIL_OP &el)
+rdcstr DoStringise(const D3D11_STENCIL_OP &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_STENCIL_OP);
   {
@@ -427,7 +427,7 @@ std::string DoStringise(const D3D11_STENCIL_OP &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_BLEND &el)
+rdcstr DoStringise(const D3D11_BLEND &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_BLEND);
   {
@@ -453,7 +453,7 @@ std::string DoStringise(const D3D11_BLEND &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_BLEND_OP &el)
+rdcstr DoStringise(const D3D11_BLEND_OP &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_BLEND_OP);
   {
@@ -467,7 +467,7 @@ std::string DoStringise(const D3D11_BLEND_OP &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_CULL_MODE &el)
+rdcstr DoStringise(const D3D11_CULL_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_CULL_MODE);
   {
@@ -479,7 +479,7 @@ std::string DoStringise(const D3D11_CULL_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_FILL_MODE &el)
+rdcstr DoStringise(const D3D11_FILL_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_FILL_MODE);
   {
@@ -490,7 +490,7 @@ std::string DoStringise(const D3D11_FILL_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_CONSERVATIVE_RASTERIZATION_MODE &el)
+rdcstr DoStringise(const D3D11_CONSERVATIVE_RASTERIZATION_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_CONSERVATIVE_RASTERIZATION_MODE);
   {
@@ -501,7 +501,7 @@ std::string DoStringise(const D3D11_CONSERVATIVE_RASTERIZATION_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_TEXTURE_ADDRESS_MODE &el)
+rdcstr DoStringise(const D3D11_TEXTURE_ADDRESS_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_TEXTURE_ADDRESS_MODE);
   {
@@ -515,7 +515,7 @@ std::string DoStringise(const D3D11_TEXTURE_ADDRESS_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_FILTER &el)
+rdcstr DoStringise(const D3D11_FILTER &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_FILTER);
   {
@@ -542,7 +542,7 @@ std::string DoStringise(const D3D11_FILTER &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_SRV_DIMENSION &el)
+rdcstr DoStringise(const D3D11_SRV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_SRV_DIMENSION);
   {
@@ -562,7 +562,7 @@ std::string DoStringise(const D3D11_SRV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_RTV_DIMENSION &el)
+rdcstr DoStringise(const D3D11_RTV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_RTV_DIMENSION);
   {
@@ -579,7 +579,7 @@ std::string DoStringise(const D3D11_RTV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_UAV_DIMENSION &el)
+rdcstr DoStringise(const D3D11_UAV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_UAV_DIMENSION);
   {
@@ -594,7 +594,7 @@ std::string DoStringise(const D3D11_UAV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_DSV_DIMENSION &el)
+rdcstr DoStringise(const D3D11_DSV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_DSV_DIMENSION);
   {
@@ -609,7 +609,7 @@ std::string DoStringise(const D3D11_DSV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_CONTEXT_TYPE &el)
+rdcstr DoStringise(const D3D11_CONTEXT_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_CONTEXT_TYPE);
   {
@@ -623,7 +623,7 @@ std::string DoStringise(const D3D11_CONTEXT_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_QUERY &el)
+rdcstr DoStringise(const D3D11_QUERY &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_QUERY);
   {
@@ -648,7 +648,7 @@ std::string DoStringise(const D3D11_QUERY &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_COUNTER &el)
+rdcstr DoStringise(const D3D11_COUNTER &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_COUNTER);
   {
@@ -658,7 +658,7 @@ std::string DoStringise(const D3D11_COUNTER &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_MAP &el)
+rdcstr DoStringise(const D3D11_MAP &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_MAP);
   {
@@ -672,7 +672,7 @@ std::string DoStringise(const D3D11_MAP &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_PRIMITIVE_TOPOLOGY &el)
+rdcstr DoStringise(const D3D11_PRIMITIVE_TOPOLOGY &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_PRIMITIVE_TOPOLOGY);
   {
@@ -723,7 +723,7 @@ std::string DoStringise(const D3D11_PRIMITIVE_TOPOLOGY &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_USAGE &el)
+rdcstr DoStringise(const D3D11_USAGE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_USAGE);
   {
@@ -736,7 +736,7 @@ std::string DoStringise(const D3D11_USAGE &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_INPUT_CLASSIFICATION &el)
+rdcstr DoStringise(const D3D11_INPUT_CLASSIFICATION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_INPUT_CLASSIFICATION);
   {
@@ -747,7 +747,7 @@ std::string DoStringise(const D3D11_INPUT_CLASSIFICATION &el)
 }
 
 template <>
-std::string DoStringise(const D3D11_LOGIC_OP &el)
+rdcstr DoStringise(const D3D11_LOGIC_OP &el)
 {
   BEGIN_ENUM_STRINGISE(D3D11_LOGIC_OP);
   {

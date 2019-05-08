@@ -77,7 +77,7 @@ inline SDObject *MakeFromArgsTuple<SDObject>(PyObject *args)
     SWIG_exception_fail(SWIG_ArgError(res),
                         "invalid type name used to create SDObject, expected string");
 
-  result = new SDObject(name.c_str(), typeName.c_str());
+  result = new SDObject(name.c_str(), typeName);
 
   return result;
 fail:

@@ -257,7 +257,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
   for(uint32_t i = 0; i < NumImages; i++)
   {
-    SERIALISE_ELEMENT_LOCAL(Image, (ResourceId)(srcit->first)).TypedAs("VkImage");
+    SERIALISE_ELEMENT_LOCAL(Image, (ResourceId)(srcit->first)).TypedAs("VkImage"_lit);
     SERIALISE_ELEMENT_LOCAL(ImageState, (ImageLayouts)(srcit->second));
 
     ResourceId liveid;

@@ -32,7 +32,7 @@
 // so we implement it here using ostringstream. It's not great, but this is a very uncommon path -
 // either for invalid values or for when a new enum is added and the code isn't updated
 template <>
-std::string DoStringise(const uint32_t &el)
+rdcstr DoStringise(const uint32_t &el)
 {
   std::ostringstream oss;
   oss << el;

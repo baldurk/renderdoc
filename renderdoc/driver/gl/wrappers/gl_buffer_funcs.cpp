@@ -35,7 +35,7 @@ enum GLbufferbitfield
 DECLARE_REFLECTION_ENUM(GLbufferbitfield);
 
 template <>
-std::string DoStringise(const GLbufferbitfield &el)
+rdcstr DoStringise(const GLbufferbitfield &el)
 {
   RDCCOMPILE_ASSERT(sizeof(GLbufferbitfield) == sizeof(GLbitfield) &&
                         sizeof(GLbufferbitfield) == sizeof(uint32_t),
@@ -64,7 +64,7 @@ bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuin
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -129,7 +129,7 @@ bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GL
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2701,7 +2701,7 @@ bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsiz
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2761,7 +2761,7 @@ bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GL
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4120,7 +4120,7 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, 
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4180,7 +4180,7 @@ bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei 
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4816,16 +4816,16 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(SerialiserType &ser, GLuint index, 
   // Serialise the array with the right type. We don't want to allocate new storage
   switch(attr)
   {
-    case Attrib_GLdouble: ser.Serialise("values", v.d, SerialiserFlags::NoFlags); break;
-    case Attrib_GLfloat: ser.Serialise("values", v.f, SerialiserFlags::NoFlags); break;
-    case Attrib_GLint: ser.Serialise("values", v.i32, SerialiserFlags::NoFlags); break;
+    case Attrib_GLdouble: ser.Serialise("values"_lit, v.d, SerialiserFlags::NoFlags); break;
+    case Attrib_GLfloat: ser.Serialise("values"_lit, v.f, SerialiserFlags::NoFlags); break;
+    case Attrib_GLint: ser.Serialise("values"_lit, v.i32, SerialiserFlags::NoFlags); break;
     case Attrib_packed:
-    case Attrib_GLuint: ser.Serialise("values", v.u32, SerialiserFlags::NoFlags); break;
-    case Attrib_GLshort: ser.Serialise("values", v.i16, SerialiserFlags::NoFlags); break;
-    case Attrib_GLushort: ser.Serialise("values", v.u16, SerialiserFlags::NoFlags); break;
-    case Attrib_GLbyte: ser.Serialise("values", v.i8, SerialiserFlags::NoFlags); break;
+    case Attrib_GLuint: ser.Serialise("values"_lit, v.u32, SerialiserFlags::NoFlags); break;
+    case Attrib_GLshort: ser.Serialise("values"_lit, v.i16, SerialiserFlags::NoFlags); break;
+    case Attrib_GLushort: ser.Serialise("values"_lit, v.u16, SerialiserFlags::NoFlags); break;
+    case Attrib_GLbyte: ser.Serialise("values"_lit, v.i8, SerialiserFlags::NoFlags); break;
     default:
-    case Attrib_GLubyte: ser.Serialise("values", v.u8, SerialiserFlags::NoFlags); break;
+    case Attrib_GLubyte: ser.Serialise("values"_lit, v.u8, SerialiserFlags::NoFlags); break;
   }
 
   SERIALISE_CHECK_READ_ERRORS();

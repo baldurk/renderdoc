@@ -31,7 +31,7 @@
 #include "QRDInterface.h"
 
 template <>
-std::string DoStringise(const TimeUnit &el)
+rdcstr DoStringise(const TimeUnit &el)
 {
   BEGIN_ENUM_STRINGISE(TimeUnit)
   {

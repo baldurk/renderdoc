@@ -27,7 +27,7 @@
 #include "gl_driver.h"
 
 template <>
-std::string DoStringise(const GLChunk &el)
+rdcstr DoStringise(const GLChunk &el)
 {
   BEGIN_ENUM_STRINGISE(GLChunk)
   {
@@ -55,7 +55,7 @@ std::string DoStringise(const GLChunk &el)
 }
 
 template <>
-std::string DoStringise(const AttribType &el)
+rdcstr DoStringise(const AttribType &el)
 {
   std::string suffix;
 
@@ -84,7 +84,7 @@ std::string DoStringise(const AttribType &el)
 }
 
 template <>
-std::string DoStringise(const UniformType &el)
+rdcstr DoStringise(const UniformType &el)
 {
   switch(el)
   {
@@ -142,7 +142,7 @@ std::string DoStringise(const UniformType &el)
 }
 
 template <>
-std::string DoStringise(const RDCGLenum &el)
+rdcstr DoStringise(const RDCGLenum &el)
 {
 #undef GLenum
 

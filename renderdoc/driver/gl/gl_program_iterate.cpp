@@ -250,24 +250,24 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
   if(ser.VersionAtLeast(0x1C))
   {
     if(baseType == VarType::Float)
-      ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, fv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::SInt)
-      ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, iv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::UInt)
-      ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, uv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::Double)
-      ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, dv, elemCount, SerialiserFlags::NoFlags);
   }
   else
   {
     if(baseType == VarType::Double)
-      ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, fv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::Float)
-      ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, dv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::SInt)
-      ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, iv, elemCount, SerialiserFlags::NoFlags);
     else if(baseType == VarType::UInt)
-      ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
+      ser.Serialise("data"_lit, uv, elemCount, SerialiserFlags::NoFlags);
   }
 }
 
@@ -563,7 +563,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
   // now serialise all the bindings if we are serialising
   if(CheckConstParam(SerialiseUniforms) && ser)
   {
-    ser->Serialise("ProgramUniforms", serialisedUniforms);
+    ser->Serialise("ProgramUniforms"_lit, serialisedUniforms);
   }
 
   // if we are writing to a destination program and replaying, then apply the stored data from

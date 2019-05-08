@@ -27,7 +27,7 @@
 #include "common/common.h"
 
 template <>
-std::string DoStringise(const spv::Op &el)
+rdcstr DoStringise(const spv::Op &el)
 {
   BEGIN_ENUM_STRINGISE(spv::Op)
   {
@@ -421,7 +421,7 @@ std::string DoStringise(const spv::Op &el)
 }
 
 template <>
-std::string DoStringise(const spv::SourceLanguage &el)
+rdcstr DoStringise(const spv::SourceLanguage &el)
 {
   BEGIN_ENUM_STRINGISE(spv::SourceLanguage)
   {
@@ -437,7 +437,7 @@ std::string DoStringise(const spv::SourceLanguage &el)
 }
 
 template <>
-std::string DoStringise(const spv::Capability &el)
+rdcstr DoStringise(const spv::Capability &el)
 {
   BEGIN_ENUM_STRINGISE(spv::Capability)
   {
@@ -598,7 +598,7 @@ std::string DoStringise(const spv::Capability &el)
 }
 
 template <>
-std::string DoStringise(const spv::ExecutionMode &el)
+rdcstr DoStringise(const spv::ExecutionMode &el)
 {
   BEGIN_ENUM_STRINGISE(spv::ExecutionMode)
   {
@@ -658,7 +658,7 @@ std::string DoStringise(const spv::ExecutionMode &el)
 }
 
 template <>
-std::string DoStringise(const spv::AddressingModel &el)
+rdcstr DoStringise(const spv::AddressingModel &el)
 {
   BEGIN_ENUM_STRINGISE(spv::AddressingModel)
   {
@@ -673,7 +673,7 @@ std::string DoStringise(const spv::AddressingModel &el)
 }
 
 template <>
-std::string DoStringise(const spv::MemoryModel &el)
+rdcstr DoStringise(const spv::MemoryModel &el)
 {
   BEGIN_ENUM_STRINGISE(spv::MemoryModel)
   {
@@ -687,7 +687,7 @@ std::string DoStringise(const spv::MemoryModel &el)
 }
 
 template <>
-std::string DoStringise(const spv::ExecutionModel &el)
+rdcstr DoStringise(const spv::ExecutionModel &el)
 {
   BEGIN_ENUM_STRINGISE(spv::ExecutionModel)
   {
@@ -712,7 +712,7 @@ std::string DoStringise(const spv::ExecutionModel &el)
 }
 
 template <>
-std::string DoStringise(const spv::Decoration &el)
+rdcstr DoStringise(const spv::Decoration &el)
 {
   BEGIN_ENUM_STRINGISE(spv::Decoration)
   {
@@ -784,7 +784,7 @@ std::string DoStringise(const spv::Decoration &el)
 }
 
 template <>
-std::string DoStringise(const spv::Dim &el)
+rdcstr DoStringise(const spv::Dim &el)
 {
   BEGIN_ENUM_STRINGISE(spv::Dim)
   {
@@ -801,7 +801,7 @@ std::string DoStringise(const spv::Dim &el)
 }
 
 template <>
-std::string DoStringise(const spv::StorageClass &el)
+rdcstr DoStringise(const spv::StorageClass &el)
 {
   BEGIN_ENUM_STRINGISE(spv::StorageClass)
   {
@@ -831,7 +831,7 @@ std::string DoStringise(const spv::StorageClass &el)
 }
 
 template <>
-std::string DoStringise(const spv::ImageFormat &el)
+rdcstr DoStringise(const spv::ImageFormat &el)
 {
   BEGIN_ENUM_STRINGISE(spv::ImageFormat)
   {
@@ -881,7 +881,7 @@ std::string DoStringise(const spv::ImageFormat &el)
 }
 
 template <>
-std::string DoStringise(const spv::BuiltIn &el)
+rdcstr DoStringise(const spv::BuiltIn &el)
 {
   BEGIN_ENUM_STRINGISE(spv::BuiltIn)
   {
@@ -982,7 +982,7 @@ std::string DoStringise(const spv::BuiltIn &el)
 }
 
 template <>
-std::string DoStringise(const spv::Scope &el)
+rdcstr DoStringise(const spv::Scope &el)
 {
   BEGIN_ENUM_STRINGISE(spv::Scope)
   {
@@ -998,7 +998,7 @@ std::string DoStringise(const spv::Scope &el)
 }
 
 template <>
-std::string DoStringise(const spv::GroupOperation &el)
+rdcstr DoStringise(const spv::GroupOperation &el)
 {
   BEGIN_ENUM_STRINGISE(spv::GroupOperation)
   {
@@ -1017,7 +1017,7 @@ std::string DoStringise(const spv::GroupOperation &el)
 }
 
 template <>
-std::string DoStringise(const spv::FunctionControlMask &el)
+rdcstr DoStringise(const spv::FunctionControlMask &el)
 {
   BEGIN_BITFIELD_STRINGISE(spv::FunctionControlMask);
   {
@@ -1030,7 +1030,7 @@ std::string DoStringise(const spv::FunctionControlMask &el)
 }
 
 template <>
-std::string DoStringise(const spv::SelectionControlMask &el)
+rdcstr DoStringise(const spv::SelectionControlMask &el)
 {
   BEGIN_BITFIELD_STRINGISE(spv::SelectionControlMask);
   {
@@ -1041,7 +1041,7 @@ std::string DoStringise(const spv::SelectionControlMask &el)
 }
 
 template <>
-std::string DoStringise(const spv::LoopControlMask &el)
+rdcstr DoStringise(const spv::LoopControlMask &el)
 {
   BEGIN_BITFIELD_STRINGISE(spv::LoopControlMask);
   {
@@ -1054,7 +1054,7 @@ std::string DoStringise(const spv::LoopControlMask &el)
 }
 
 template <>
-std::string DoStringise(const spv::MemoryAccessMask &el)
+rdcstr DoStringise(const spv::MemoryAccessMask &el)
 {
   BEGIN_BITFIELD_STRINGISE(spv::MemoryAccessMask);
   {
@@ -1070,7 +1070,7 @@ std::string DoStringise(const spv::MemoryAccessMask &el)
 }
 
 template <>
-std::string DoStringise(const spv::MemorySemanticsMask &el)
+rdcstr DoStringise(const spv::MemorySemanticsMask &el)
 {
   BEGIN_BITFIELD_STRINGISE(spv::MemorySemanticsMask);
   {

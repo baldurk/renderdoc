@@ -28,7 +28,7 @@
 #include "serialise/lz4io.h"
 
 template <>
-std::string DoStringise(const ReplayProxyPacket &el)
+rdcstr DoStringise(const ReplayProxyPacket &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayProxyPacket);
   {
@@ -114,24 +114,24 @@ std::string DoStringise(const ReplayProxyPacket &el)
     ser.BeginChunk(packet, 0);
 
 // end the set of parameters, and that chunk.
-#define END_PARAMS()                            \
-  {                                             \
-    GET_SERIALISER.Serialise("packet", packet); \
-    ser.EndChunk();                             \
-    CheckError(packet, expectedPacket);         \
+#define END_PARAMS()                                \
+  {                                                 \
+    GET_SERIALISER.Serialise("packet"_lit, packet); \
+    ser.EndChunk();                                 \
+    CheckError(packet, expectedPacket);             \
   }
 
 // begin serialising a return value. We begin a chunk here in either the writing or reading case
 // since this chunk is used purely to send/receive the return value and is fully handled within the
 // function.
-#define SERIALISE_RETURN(retval)                \
-  {                                             \
-    ReturnSerialiser &ser = retser;             \
-    PACKET_HEADER(packet);                      \
-    SERIALISE_ELEMENT(retval);                  \
-    GET_SERIALISER.Serialise("packet", packet); \
-    ser.EndChunk();                             \
-    CheckError(packet, expectedPacket);         \
+#define SERIALISE_RETURN(retval)                    \
+  {                                                 \
+    ReturnSerialiser &ser = retser;                 \
+    PACKET_HEADER(packet);                          \
+    SERIALISE_ELEMENT(retval);                      \
+    GET_SERIALISER.Serialise("packet"_lit, packet); \
+    ser.EndChunk();                                 \
+    CheckError(packet, expectedPacket);             \
   }
 
 // similar to the above, but for void functions that don't return anything. We still want to check
@@ -1713,7 +1713,7 @@ void ReplayProxy::Proxied_FetchStructuredFile(ParamSerialiser &paramser, ReturnS
       if(retser.IsReading())
         file->chunks[c] = new SDChunk("");
 
-      ser.Serialise("chunk", *file->chunks[c]);
+      ser.Serialise("chunk"_lit, *file->chunks[c]);
     }
 
     uint64_t bufferCount = file->buffers.size();
@@ -1729,7 +1729,7 @@ void ReplayProxy::Proxied_FetchStructuredFile(ParamSerialiser &paramser, ReturnS
 
       bytebuf *buf = file->buffers[b];
 
-      ser.Serialise("buffer", *buf);
+      ser.Serialise("buffer"_lit, *buf);
     }
 
     SERIALISE_ELEMENT(packet);
@@ -1773,7 +1773,7 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
   if(xferser.IsReading())
   {
     uint64_t uncompSize = 0;
-    xferser.Serialise("uncompSize", uncompSize);
+    xferser.Serialise("uncompSize"_lit, uncompSize);
 
     if(uncompSize == 0)
     {
@@ -1968,7 +1968,7 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
       uncompSize = ser.GetWriter()->GetOffset() + ser.GetChunkAlignment();
     }
 
-    xferser.Serialise("uncompSize", uncompSize);
+    xferser.Serialise("uncompSize"_lit, uncompSize);
 
     if(uncompSize > 0)
     {

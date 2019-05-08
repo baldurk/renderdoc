@@ -29,7 +29,7 @@
 #include "renderdoc_replay.h"
 
 template <>
-std::string DoStringise(const uint32_t &el)
+rdcstr DoStringise(const uint32_t &el)
 {
   static char tmp[16];
   memset(tmp, 0, sizeof(tmp));

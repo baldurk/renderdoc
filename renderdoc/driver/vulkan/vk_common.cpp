@@ -694,7 +694,7 @@ void DoSerialise(SerialiserType &ser, VkInitParams &el)
   SERIALISE_MEMBER(APIVersion);
   SERIALISE_MEMBER(Layers);
   SERIALISE_MEMBER(Extensions);
-  SERIALISE_MEMBER(InstanceID).TypedAs("VkInstance");
+  SERIALISE_MEMBER(InstanceID).TypedAs("VkInstance"_lit);
 }
 
 INSTANTIATE_SERIALISE_TYPE(VkInitParams);

@@ -626,9 +626,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", 0U);
-          structuriser.Serialise("offset", offset);
-          structuriser.Serialise("command", VkDrawIndirectCommand());
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
         }
 
         m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
@@ -692,9 +692,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", 0U);
-          structuriser.Serialise("offset", offset);
-          structuriser.Serialise("command", VkDrawIndirectCommand());
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -1004,9 +1004,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", 0U);
-          structuriser.Serialise("offset", offset);
-          structuriser.Serialise("command", VkDrawIndexedIndirectCommand());
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
         }
 
         m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
@@ -1073,9 +1073,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", 0U);
-          structuriser.Serialise("offset", offset);
-          structuriser.Serialise("command", VkDrawIndexedIndirectCommand());
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -2712,9 +2712,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCountKHR(
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", 0U);
-          structuriser.Serialise("offset", offset);
-          structuriser.Serialise("command", VkDrawIndirectCommand());
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -3027,9 +3027,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
         {
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
-          structuriser.Serialise<uint32_t>("drawIndex", 0U);
-          structuriser.Serialise("offset", offset);
-          structuriser.Serialise("command", VkDrawIndexedIndirectCommand());
+          structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);

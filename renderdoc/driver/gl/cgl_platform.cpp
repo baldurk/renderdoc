@@ -68,7 +68,7 @@ struct QuadGL
 };
 
 template <>
-std::string DoStringise(const CGLError &el)
+rdcstr DoStringise(const CGLError &el)
 {
   BEGIN_ENUM_STRINGISE(CGLError);
   {

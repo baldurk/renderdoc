@@ -634,7 +634,7 @@ void LogcatThread::Tick()
 };
 
 template <>
-std::string DoStringise(const Android::ABI &el)
+rdcstr DoStringise(const Android::ABI &el)
 {
   BEGIN_ENUM_STRINGISE(Android::ABI);
   {

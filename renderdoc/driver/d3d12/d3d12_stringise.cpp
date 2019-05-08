@@ -26,7 +26,7 @@
 #include "d3d12_resources.h"
 
 template <>
-std::string DoStringise(const D3D12Chunk &el)
+rdcstr DoStringise(const D3D12Chunk &el)
 {
   RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1102, "Chunks changed without updating names");
   RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::List_EndRenderPass == 1101,
@@ -194,7 +194,7 @@ std::string DoStringise(const D3D12Chunk &el)
 }
 
 template <>
-std::string DoStringise(const D3D12DescriptorType &el)
+rdcstr DoStringise(const D3D12DescriptorType &el)
 {
   if((uint32_t)el < (uint32_t)D3D12DescriptorType::CBV)
     return "Sampler";
@@ -212,7 +212,7 @@ std::string DoStringise(const D3D12DescriptorType &el)
 }
 
 template <>
-std::string DoStringise(const D3D12ResourceType &el)
+rdcstr DoStringise(const D3D12ResourceType &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12ResourceType);
   {
@@ -236,7 +236,7 @@ std::string DoStringise(const D3D12ResourceType &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_HEAP_TYPE &el)
+rdcstr DoStringise(const D3D12_HEAP_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_HEAP_TYPE);
   {
@@ -249,7 +249,7 @@ std::string DoStringise(const D3D12_HEAP_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_CPU_PAGE_PROPERTY &el)
+rdcstr DoStringise(const D3D12_CPU_PAGE_PROPERTY &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_CPU_PAGE_PROPERTY);
   {
@@ -262,7 +262,7 @@ std::string DoStringise(const D3D12_CPU_PAGE_PROPERTY &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_MEMORY_POOL &el)
+rdcstr DoStringise(const D3D12_MEMORY_POOL &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_MEMORY_POOL);
   {
@@ -274,7 +274,7 @@ std::string DoStringise(const D3D12_MEMORY_POOL &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_QUERY_HEAP_TYPE &el)
+rdcstr DoStringise(const D3D12_QUERY_HEAP_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_QUERY_HEAP_TYPE);
   {
@@ -287,7 +287,7 @@ std::string DoStringise(const D3D12_QUERY_HEAP_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_QUERY_TYPE &el)
+rdcstr DoStringise(const D3D12_QUERY_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_QUERY_TYPE);
   {
@@ -304,7 +304,7 @@ std::string DoStringise(const D3D12_QUERY_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_PREDICATION_OP &el)
+rdcstr DoStringise(const D3D12_PREDICATION_OP &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_PREDICATION_OP);
   {
@@ -315,7 +315,7 @@ std::string DoStringise(const D3D12_PREDICATION_OP &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_DESCRIPTOR_HEAP_TYPE &el)
+rdcstr DoStringise(const D3D12_DESCRIPTOR_HEAP_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_DESCRIPTOR_HEAP_TYPE);
   {
@@ -328,7 +328,7 @@ std::string DoStringise(const D3D12_DESCRIPTOR_HEAP_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RESOURCE_BARRIER_TYPE &el)
+rdcstr DoStringise(const D3D12_RESOURCE_BARRIER_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RESOURCE_BARRIER_TYPE);
   {
@@ -340,7 +340,7 @@ std::string DoStringise(const D3D12_RESOURCE_BARRIER_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_SRV_DIMENSION &el)
+rdcstr DoStringise(const D3D12_SRV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_SRV_DIMENSION);
   {
@@ -360,7 +360,7 @@ std::string DoStringise(const D3D12_SRV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RTV_DIMENSION &el)
+rdcstr DoStringise(const D3D12_RTV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RTV_DIMENSION);
   {
@@ -378,7 +378,7 @@ std::string DoStringise(const D3D12_RTV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_UAV_DIMENSION &el)
+rdcstr DoStringise(const D3D12_UAV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_UAV_DIMENSION);
   {
@@ -393,7 +393,7 @@ std::string DoStringise(const D3D12_UAV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_DSV_DIMENSION &el)
+rdcstr DoStringise(const D3D12_DSV_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_DSV_DIMENSION);
   {
@@ -409,7 +409,7 @@ std::string DoStringise(const D3D12_DSV_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_FILTER &el)
+rdcstr DoStringise(const D3D12_FILTER &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_FILTER);
   {
@@ -454,7 +454,7 @@ std::string DoStringise(const D3D12_FILTER &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TEXTURE_ADDRESS_MODE &el)
+rdcstr DoStringise(const D3D12_TEXTURE_ADDRESS_MODE &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -472,7 +472,7 @@ std::string DoStringise(const D3D12_TEXTURE_ADDRESS_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_BLEND &el)
+rdcstr DoStringise(const D3D12_BLEND &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -502,7 +502,7 @@ std::string DoStringise(const D3D12_BLEND &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_BLEND_OP &el)
+rdcstr DoStringise(const D3D12_BLEND_OP &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -520,7 +520,7 @@ std::string DoStringise(const D3D12_BLEND_OP &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_LOGIC_OP &el)
+rdcstr DoStringise(const D3D12_LOGIC_OP &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_LOGIC_OP);
   {
@@ -545,7 +545,7 @@ std::string DoStringise(const D3D12_LOGIC_OP &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_FILL_MODE &el)
+rdcstr DoStringise(const D3D12_FILL_MODE &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -560,7 +560,7 @@ std::string DoStringise(const D3D12_FILL_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_CULL_MODE &el)
+rdcstr DoStringise(const D3D12_CULL_MODE &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -576,7 +576,7 @@ std::string DoStringise(const D3D12_CULL_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_CONSERVATIVE_RASTERIZATION_MODE &el)
+rdcstr DoStringise(const D3D12_CONSERVATIVE_RASTERIZATION_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_CONSERVATIVE_RASTERIZATION_MODE);
   {
@@ -587,7 +587,7 @@ std::string DoStringise(const D3D12_CONSERVATIVE_RASTERIZATION_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_COMPARISON_FUNC &el)
+rdcstr DoStringise(const D3D12_COMPARISON_FUNC &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -608,7 +608,7 @@ std::string DoStringise(const D3D12_COMPARISON_FUNC &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_DEPTH_WRITE_MASK &el)
+rdcstr DoStringise(const D3D12_DEPTH_WRITE_MASK &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_DEPTH_WRITE_MASK);
   {
@@ -619,7 +619,7 @@ std::string DoStringise(const D3D12_DEPTH_WRITE_MASK &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_STENCIL_OP &el)
+rdcstr DoStringise(const D3D12_STENCIL_OP &el)
 {
   // possible for unused fields via 0-initialisation
   if((int)el == 0)
@@ -640,7 +640,7 @@ std::string DoStringise(const D3D12_STENCIL_OP &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_INPUT_CLASSIFICATION &el)
+rdcstr DoStringise(const D3D12_INPUT_CLASSIFICATION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_INPUT_CLASSIFICATION);
   {
@@ -651,7 +651,7 @@ std::string DoStringise(const D3D12_INPUT_CLASSIFICATION &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_INDEX_BUFFER_STRIP_CUT_VALUE &el)
+rdcstr DoStringise(const D3D12_INDEX_BUFFER_STRIP_CUT_VALUE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE);
   {
@@ -663,7 +663,7 @@ std::string DoStringise(const D3D12_INDEX_BUFFER_STRIP_CUT_VALUE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_PRIMITIVE_TOPOLOGY_TYPE &el)
+rdcstr DoStringise(const D3D12_PRIMITIVE_TOPOLOGY_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_PRIMITIVE_TOPOLOGY_TYPE);
   {
@@ -677,7 +677,7 @@ std::string DoStringise(const D3D12_PRIMITIVE_TOPOLOGY_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
+rdcstr DoStringise(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_INDIRECT_ARGUMENT_TYPE);
   {
@@ -695,7 +695,7 @@ std::string DoStringise(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_COMMAND_LIST_TYPE &el)
+rdcstr DoStringise(const D3D12_COMMAND_LIST_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_COMMAND_LIST_TYPE);
   {
@@ -708,7 +708,7 @@ std::string DoStringise(const D3D12_COMMAND_LIST_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TEXTURE_COPY_TYPE &el)
+rdcstr DoStringise(const D3D12_TEXTURE_COPY_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_TEXTURE_COPY_TYPE);
   {
@@ -719,7 +719,7 @@ std::string DoStringise(const D3D12_TEXTURE_COPY_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RESOURCE_DIMENSION &el)
+rdcstr DoStringise(const D3D12_RESOURCE_DIMENSION &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RESOURCE_DIMENSION);
   {
@@ -733,7 +733,7 @@ std::string DoStringise(const D3D12_RESOURCE_DIMENSION &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TEXTURE_LAYOUT &el)
+rdcstr DoStringise(const D3D12_TEXTURE_LAYOUT &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_TEXTURE_LAYOUT);
   {
@@ -746,7 +746,7 @@ std::string DoStringise(const D3D12_TEXTURE_LAYOUT &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TILED_RESOURCES_TIER &el)
+rdcstr DoStringise(const D3D12_TILED_RESOURCES_TIER &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_TILED_RESOURCES_TIER);
   {
@@ -759,7 +759,7 @@ std::string DoStringise(const D3D12_TILED_RESOURCES_TIER &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RESOLVE_MODE &el)
+rdcstr DoStringise(const D3D12_RESOLVE_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RESOLVE_MODE);
   {
@@ -772,7 +772,7 @@ std::string DoStringise(const D3D12_RESOLVE_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_WRITEBUFFERIMMEDIATE_MODE &el)
+rdcstr DoStringise(const D3D12_WRITEBUFFERIMMEDIATE_MODE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_WRITEBUFFERIMMEDIATE_MODE);
   {
@@ -784,7 +784,7 @@ std::string DoStringise(const D3D12_WRITEBUFFERIMMEDIATE_MODE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE &el)
+rdcstr DoStringise(const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE);
   {
@@ -797,7 +797,7 @@ std::string DoStringise(const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE &el)
+rdcstr DoStringise(const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE);
   {
@@ -810,7 +810,7 @@ std::string DoStringise(const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_CLEAR_FLAGS &el)
+rdcstr DoStringise(const D3D12_CLEAR_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_CLEAR_FLAGS);
   {
@@ -821,7 +821,7 @@ std::string DoStringise(const D3D12_CLEAR_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_BUFFER_SRV_FLAGS &el)
+rdcstr DoStringise(const D3D12_BUFFER_SRV_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_BUFFER_SRV_FLAGS);
   {
@@ -833,7 +833,7 @@ std::string DoStringise(const D3D12_BUFFER_SRV_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_DSV_FLAGS &el)
+rdcstr DoStringise(const D3D12_DSV_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_DSV_FLAGS);
   {
@@ -846,7 +846,7 @@ std::string DoStringise(const D3D12_DSV_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_BUFFER_UAV_FLAGS &el)
+rdcstr DoStringise(const D3D12_BUFFER_UAV_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_BUFFER_UAV_FLAGS);
   {
@@ -858,7 +858,7 @@ std::string DoStringise(const D3D12_BUFFER_UAV_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_HEAP_FLAGS &el)
+rdcstr DoStringise(const D3D12_HEAP_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_HEAP_FLAGS);
   {
@@ -879,7 +879,7 @@ std::string DoStringise(const D3D12_HEAP_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_FENCE_FLAGS &el)
+rdcstr DoStringise(const D3D12_FENCE_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_FENCE_FLAGS);
   {
@@ -892,7 +892,7 @@ std::string DoStringise(const D3D12_FENCE_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_DESCRIPTOR_HEAP_FLAGS &el)
+rdcstr DoStringise(const D3D12_DESCRIPTOR_HEAP_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_DESCRIPTOR_HEAP_FLAGS);
   {
@@ -904,7 +904,7 @@ std::string DoStringise(const D3D12_DESCRIPTOR_HEAP_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RESOURCE_BARRIER_FLAGS &el)
+rdcstr DoStringise(const D3D12_RESOURCE_BARRIER_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_RESOURCE_BARRIER_FLAGS);
   {
@@ -917,7 +917,7 @@ std::string DoStringise(const D3D12_RESOURCE_BARRIER_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RESOURCE_STATES &el)
+rdcstr DoStringise(const D3D12_RESOURCE_STATES &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_RESOURCE_STATES);
   {
@@ -944,7 +944,7 @@ std::string DoStringise(const D3D12_RESOURCE_STATES &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_PIPELINE_STATE_FLAGS &el)
+rdcstr DoStringise(const D3D12_PIPELINE_STATE_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_PIPELINE_STATE_FLAGS);
   {
@@ -956,7 +956,7 @@ std::string DoStringise(const D3D12_PIPELINE_STATE_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RESOURCE_FLAGS &el)
+rdcstr DoStringise(const D3D12_RESOURCE_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_RESOURCE_FLAGS);
   {
@@ -973,7 +973,7 @@ std::string DoStringise(const D3D12_RESOURCE_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_COMMAND_QUEUE_FLAGS &el)
+rdcstr DoStringise(const D3D12_COMMAND_QUEUE_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_COMMAND_QUEUE_FLAGS);
   {
@@ -985,7 +985,7 @@ std::string DoStringise(const D3D12_COMMAND_QUEUE_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TILE_COPY_FLAGS &el)
+rdcstr DoStringise(const D3D12_TILE_COPY_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_TILE_COPY_FLAGS);
   {
@@ -999,7 +999,7 @@ std::string DoStringise(const D3D12_TILE_COPY_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TILE_MAPPING_FLAGS &el)
+rdcstr DoStringise(const D3D12_TILE_MAPPING_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_TILE_MAPPING_FLAGS);
   {
@@ -1011,7 +1011,7 @@ std::string DoStringise(const D3D12_TILE_MAPPING_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_TILE_RANGE_FLAGS &el)
+rdcstr DoStringise(const D3D12_TILE_RANGE_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_TILE_RANGE_FLAGS);
   {
@@ -1025,7 +1025,7 @@ std::string DoStringise(const D3D12_TILE_RANGE_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_COLOR_WRITE_ENABLE &el)
+rdcstr DoStringise(const D3D12_COLOR_WRITE_ENABLE &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_COLOR_WRITE_ENABLE);
   {
@@ -1040,7 +1040,7 @@ std::string DoStringise(const D3D12_COLOR_WRITE_ENABLE &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_VIEW_INSTANCING_FLAGS &el)
+rdcstr DoStringise(const D3D12_VIEW_INSTANCING_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_VIEW_INSTANCING_FLAGS);
   {
@@ -1052,7 +1052,7 @@ std::string DoStringise(const D3D12_VIEW_INSTANCING_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_COMMAND_LIST_FLAGS &el)
+rdcstr DoStringise(const D3D12_COMMAND_LIST_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_COMMAND_LIST_FLAGS);
   {
@@ -1062,7 +1062,7 @@ std::string DoStringise(const D3D12_COMMAND_LIST_FLAGS &el)
 }
 
 template <>
-std::string DoStringise(const D3D12_RENDER_PASS_FLAGS &el)
+rdcstr DoStringise(const D3D12_RENDER_PASS_FLAGS &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D12_RENDER_PASS_FLAGS);
   {

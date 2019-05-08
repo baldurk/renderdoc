@@ -499,7 +499,7 @@ TEST_CASE("Read/write chunk metadata", "[serialiser]")
     ser.WriteChunk(1);
 
     uint32_t dummy = 99;
-    ser.Serialise("dummy", dummy);
+    ser.Serialise("dummy"_lit, dummy);
 
     ser.EndChunk();
 
@@ -539,7 +539,7 @@ TEST_CASE("Read/write chunk metadata", "[serialiser]")
     ser.ReadChunk<uint32_t>();
 
     uint32_t dummy;
-    ser.Serialise("dummy", dummy);
+    ser.Serialise("dummy"_lit, dummy);
 
     ser.EndChunk();
 
@@ -993,7 +993,7 @@ enum MySpecialEnum
 DECLARE_REFLECTION_ENUM(MySpecialEnum);
 
 template <>
-std::string DoStringise(const MySpecialEnum &el)
+rdcstr DoStringise(const MySpecialEnum &el)
 {
   BEGIN_ENUM_STRINGISE(MySpecialEnum);
   {
@@ -1327,7 +1327,7 @@ enum class TestEnumClass
 DECLARE_REFLECTION_ENUM(TestEnumClass);
 
 template <>
-std::string DoStringise(const TestEnumClass &el)
+rdcstr DoStringise(const TestEnumClass &el)
 {
   BEGIN_ENUM_STRINGISE(TestEnumClass)
   {
@@ -1349,7 +1349,7 @@ enum TestEnum
 DECLARE_REFLECTION_ENUM(TestEnum);
 
 template <>
-std::string DoStringise(const TestEnum &el)
+rdcstr DoStringise(const TestEnum &el)
 {
   BEGIN_ENUM_STRINGISE(TestEnum)
   {
@@ -1376,7 +1376,7 @@ DECLARE_REFLECTION_ENUM(TestBitfieldClass);
 BITMASK_OPERATORS(TestBitfieldClass);
 
 template <>
-std::string DoStringise(const TestBitfieldClass &el)
+rdcstr DoStringise(const TestBitfieldClass &el)
 {
   BEGIN_BITFIELD_STRINGISE(TestBitfieldClass)
   {
@@ -1404,7 +1404,7 @@ enum TestBitfield
 DECLARE_REFLECTION_ENUM(TestBitfield);
 
 template <>
-std::string DoStringise(const TestBitfield &el)
+rdcstr DoStringise(const TestBitfield &el)
 {
   BEGIN_BITFIELD_STRINGISE(TestBitfield)
   {

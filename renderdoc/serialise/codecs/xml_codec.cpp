@@ -763,7 +763,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
       chunk->metadata.flags |= SDChunkFlags::OpaqueChunk;
 
-      chunk->data.children.push_back(new SDObject("Opaque chunk", "Byte Buffer"));
+      chunk->data.children.push_back(new SDObject("Opaque chunk"_lit, "Byte Buffer"_lit));
       chunk->data.children[0]->type.basetype = SDBasic::Buffer;
       chunk->data.children[0]->type.byteSize = opaque.attribute("byteLength").as_ullong();
       chunk->data.children[0]->data.basic.u = opaque.text().as_ullong();

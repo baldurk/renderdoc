@@ -871,7 +871,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
   WrappedID3D12Resource1 *pRes = (WrappedID3D12Resource1 *)realSurface;
 
   SERIALISE_ELEMENT(Buffer);
-  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("ID3D12Resource *");
+  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("ID3D12Resource *"_lit);
   SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1101,7 +1101,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     flags = SerialiserFlags::NoFlags;
   }
 
-  ser.Serialise("MappedData", MappedData, range.End - range.Begin, flags);
+  ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags);
 
   SERIALISE_ELEMENT(range);
 
@@ -1476,7 +1476,8 @@ void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage)).TypedAs("ID3D12Resource *");
+  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage))
+      .TypedAs("ID3D12Resource *"_lit);
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }

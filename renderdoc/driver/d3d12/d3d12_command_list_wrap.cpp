@@ -71,8 +71,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
       BakedCommandList = record->bakedCommands->GetResourceID();
   }
 
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *");
-  SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *");
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *"_lit);
+  SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -194,8 +194,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       BakedCommandList = record->bakedCommands->GetResourceID();
   }
 
-  SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *");
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *");
+  SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *"_lit);
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *"_lit);
   SERIALISE_ELEMENT(pAllocator);
   SERIALISE_ELEMENT(pInitialState);
 
@@ -1294,7 +1294,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
 
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
-    SERIALISE_ELEMENT(RTVs).Named("pRenderTargetDescriptors");
+    SERIALISE_ELEMENT(RTVs).Named("pRenderTargetDescriptors"_lit);
   }
   else
   {
@@ -1341,7 +1341,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
     if(ser.IsWriting())
       pDSV = pDepthStencilDescriptor ? GetWrapped(*pDepthStencilDescriptor) : NULL;
 
-    SERIALISE_ELEMENT_OPT(pDSV).Named("pDepthStencilDescriptor");
+    SERIALISE_ELEMENT_OPT(pDSV).Named("pDepthStencilDescriptor"_lit);
 
     if(pDSV)
       DSV = *pDSV;
@@ -3473,9 +3473,9 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
         StructuredSerialiser structuriser(fakeChunk, &GetChunkName);
         structuriser.SetUserData(GetResourceManager());
 
-        structuriser.Serialise("CommandIndex", i);
-        structuriser.Serialise("ArgumentIndex", a);
-        structuriser.Serialise("ArgumentSignature", arg);
+        structuriser.Serialise("CommandIndex"_lit, i);
+        structuriser.Serialise("ArgumentIndex"_lit, a);
+        structuriser.Serialise("ArgumentSignature"_lit, arg);
 
         switch(arg.Type)
         {
@@ -3495,7 +3495,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = curDraw.name;
 
-            structuriser.Serialise("ArgumentData", *args);
+            structuriser.Serialise("ArgumentData"_lit, *args);
 
             // if this is the first draw of the indirect, we could have picked up previous
             // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
@@ -3528,7 +3528,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = curDraw.name;
 
-            structuriser.Serialise("ArgumentData", *args);
+            structuriser.Serialise("ArgumentData"_lit, *args);
 
             // if this is the first draw of the indirect, we could have picked up previous
             // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
@@ -3558,7 +3558,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = curDraw.name;
 
-            structuriser.Serialise("ArgumentData", *args);
+            structuriser.Serialise("ArgumentData"_lit, *args);
 
             // if this is the first draw of the indirect, we could have picked up previous
             // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
@@ -3581,7 +3581,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants()", i, a);
 
-            structuriser.Serialise("Values", data32, arg.Constant.Num32BitValuesToSet);
+            structuriser.Serialise("Values"_lit, data32, arg.Constant.Num32BitValuesToSet);
 
             if(arg.Constant.RootParameterIndex < state.graphics.sigelems.size())
               state.graphics.sigelems[arg.Constant.RootParameterIndex].constants.assign(
@@ -3620,7 +3620,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
 
-            structuriser.Serialise("ArgumentData", *vb);
+            structuriser.Serialise("ArgumentData"_lit, *vb);
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -3648,7 +3648,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
 
-            structuriser.Serialise("ArgumentData", *ib);
+            structuriser.Serialise("ArgumentData"_lit, *ib);
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -3698,7 +3698,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             D3D12BufferLocation buf = *addr;
 
-            structuriser.Serialise("ArgumentData", buf);
+            structuriser.Serialise("ArgumentData"_lit, buf);
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -4302,7 +4302,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
-    SERIALISE_ELEMENT_LOCAL(DSV, *GetWrapped(DepthStencilView)).Named("DepthStencilView");
+    SERIALISE_ELEMENT_LOCAL(DSV, *GetWrapped(DepthStencilView)).Named("DepthStencilView"_lit);
 
     if(IsReplayingAndReading())
       DepthStencilView = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV);
@@ -4399,7 +4399,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
-    SERIALISE_ELEMENT_LOCAL(RTV, *GetWrapped(RenderTargetView)).Named("RenderTargetView");
+    SERIALISE_ELEMENT_LOCAL(RTV, *GetWrapped(RenderTargetView)).Named("RenderTargetView"_lit);
 
     if(IsReplayingAndReading())
       RenderTargetView = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(RTV);
@@ -4492,7 +4492,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately. This is only true for the CPU-side handle
-    SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle");
+    SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle"_lit);
 
     if(IsReplayingAndReading())
       ViewCPUHandle = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(UAV);
@@ -4597,7 +4597,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
   {
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately. This is only true for the CPU-side handle
-    SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle");
+    SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle"_lit);
 
     if(IsReplayingAndReading())
       ViewCPUHandle = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(UAV);

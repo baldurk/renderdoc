@@ -27,7 +27,7 @@
 #include "dxgi_common.h"
 
 template <>
-std::string DoStringise(const DXGI_FORMAT &el)
+rdcstr DoStringise(const DXGI_FORMAT &el)
 {
   BEGIN_ENUM_STRINGISE(DXGI_FORMAT);
   {
@@ -158,7 +158,7 @@ std::string DoStringise(const DXGI_FORMAT &el)
 
 // not technically DXGI, but makes more sense to have it here common between D3D versions
 template <>
-std::string DoStringise(const IID &el)
+rdcstr DoStringise(const IID &el)
 {
   return StringFormat::Fmt("GUID {%08x-%04hx-%04hx-%02x%02x-%02x%02x%02x%02x%02x%02x}", el.Data1,
                            el.Data2, el.Data3, el.Data4[0], el.Data4[1], el.Data4[2], el.Data4[3],
@@ -166,7 +166,7 @@ std::string DoStringise(const IID &el)
 }
 
 template <>
-std::string DoStringise(const D3D_FEATURE_LEVEL &el)
+rdcstr DoStringise(const D3D_FEATURE_LEVEL &el)
 {
   BEGIN_ENUM_STRINGISE(D3D_FEATURE_LEVEL);
   {
@@ -184,7 +184,7 @@ std::string DoStringise(const D3D_FEATURE_LEVEL &el)
 }
 
 template <>
-std::string DoStringise(const D3D_DRIVER_TYPE &el)
+rdcstr DoStringise(const D3D_DRIVER_TYPE &el)
 {
   BEGIN_ENUM_STRINGISE(D3D_DRIVER_TYPE);
   {
@@ -199,7 +199,7 @@ std::string DoStringise(const D3D_DRIVER_TYPE &el)
 
 // for HRESULT
 template <>
-std::string DoStringise(const long &el)
+rdcstr DoStringise(const long &el)
 {
   HRESULT hr = (HRESULT)el;
 

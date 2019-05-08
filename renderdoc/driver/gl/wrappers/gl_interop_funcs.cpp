@@ -493,7 +493,7 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
         }
 
         // serialise without allocating memory as we already have our scratch buf sized.
-        ser.Serialise("SubresourceContents", scratchBuf, size, SerialiserFlags::NoFlags);
+        ser.Serialise("SubresourceContents"_lit, scratchBuf, size, SerialiserFlags::NoFlags);
 
         if(IsReplayingAndReading() && !ser.IsErrored())
         {
@@ -535,7 +535,7 @@ bool WrappedOpenGL::Serialise_glCreateMemoryObjectsEXT(SerialiserType &ser, GLsi
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(memory, GetResourceManager()->GetID(ExtMemRes(GetCtx(), *memoryObjects)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -810,7 +810,7 @@ bool WrappedOpenGL::Serialise_glGenSemaphoresEXT(SerialiserType &ser, GLsizei n,
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(semaphore, GetResourceManager()->GetID(ExtSemRes(GetCtx(), *semaphores)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 

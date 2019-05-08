@@ -190,7 +190,8 @@ public:
 
   // serialise an object (either loose, or a structure member).
   template <class T>
-  Serialiser &Serialise(const char *name, T &el, SerialiserFlags flags = SerialiserFlags::NoFlags)
+  Serialiser &Serialise(const rdcliteral &name, T &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     if(ExportStructure())
     {
@@ -221,7 +222,7 @@ public:
   }
 
   // special function for serialising buffers
-  Serialiser &Serialise(const char *name, byte *&el, uint64_t byteSize,
+  Serialiser &Serialise(const rdcliteral &name, byte *&el, uint64_t byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     // silently handle NULL buffers
@@ -250,7 +251,7 @@ public:
       SDObject &current = *m_StructureStack.back();
 
       current.data.basic.numChildren++;
-      current.data.children.push_back(new SDObject(name, "Byte Buffer"));
+      current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 
       SDObject &obj = *m_StructureStack.back();
@@ -334,7 +335,7 @@ public:
     return *this;
   }
 
-  Serialiser &Serialise(const char *name, bytebuf &el,
+  Serialiser &Serialise(const rdcliteral &name, bytebuf &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     uint64_t count = (uint64_t)el.size();
@@ -361,7 +362,7 @@ public:
       SDObject &current = *m_StructureStack.back();
 
       current.data.basic.numChildren++;
-      current.data.children.push_back(new SDObject(name, "Byte Buffer"));
+      current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 
       SDObject &obj = *m_StructureStack.back();
@@ -407,7 +408,7 @@ public:
     return *this;
   }
 
-  Serialiser &Serialise(const char *name, std::vector<byte> &el,
+  Serialiser &Serialise(const rdcliteral &name, std::vector<byte> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     uint64_t count = (uint64_t)el.size();
@@ -434,7 +435,7 @@ public:
       SDObject &current = *m_StructureStack.back();
 
       current.data.basic.numChildren++;
-      current.data.children.push_back(new SDObject(name, "Byte Buffer"));
+      current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 
       SDObject &obj = *m_StructureStack.back();
@@ -481,26 +482,26 @@ public:
     return *this;
   }
 
-  Serialiser &Serialise(const char *name, void *&el, uint64_t byteSize,
+  Serialiser &Serialise(const rdcliteral &name, void *&el, uint64_t byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return Serialise(name, (byte *&)el, byteSize, flags);
   }
 
-  Serialiser &Serialise(const char *name, const void *&el, uint64_t byteSize,
+  Serialiser &Serialise(const rdcliteral &name, const void *&el, uint64_t byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return Serialise(name, (byte *&)el, byteSize, flags);
   }
 
 #if ENABLED(RDOC_SIZET_SEP_TYPE)
-  Serialiser &Serialise(const char *name, void *&el, size_t &byteSize,
+  Serialiser &Serialise(const rdcliteral &name, void *&el, size_t &byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return Serialise(name, (byte *&)el, byteSize, flags);
   }
 
-  Serialiser &Serialise(const char *name, const void *&el, size_t &byteSize,
+  Serialiser &Serialise(const rdcliteral &name, const void *&el, size_t &byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return Serialise(name, (byte *&)el, byteSize, flags);
@@ -510,7 +511,7 @@ public:
 #if ENABLED(RDOC_WIN32)
   // annoyingly, windows SIZE_T is unsigned long on win32 which is a different type to
   // uint32_t/uint64_t. So we add a special overload here for its sake.
-  Serialiser &Serialise(const char *name, const void *&el, unsigned long &byteSize,
+  Serialiser &Serialise(const rdcliteral &name, const void *&el, unsigned long &byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     uint64_t bs = byteSize;
@@ -523,7 +524,8 @@ public:
   // serialise a fixed array like foo[4];
   // never needs to allocate, just needs to be iterated
   template <class T, size_t N>
-  Serialiser &Serialise(const char *name, T (&el)[N], SerialiserFlags flags = SerialiserFlags::NoFlags)
+  Serialiser &Serialise(const rdcliteral &name, T (&el)[N],
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     // for consistency with other arrays, even though this is redundant, we serialise out and in the
     // size
@@ -560,7 +562,7 @@ public:
 
       for(size_t i = 0; i < N; i++)
       {
-        arr.data.children[i] = new SDObject("$el", TypeName<T>());
+        arr.data.children[i] = new SDObject("$el"_lit, TypeName<T>());
         m_StructureStack.push_back(arr.data.children[i]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -616,7 +618,7 @@ public:
 
   // specialisation for fixed character arrays, serialising as strings
   template <size_t N>
-  Serialiser &Serialise(const char *name, char (&el)[N],
+  Serialiser &Serialise(const rdcliteral &name, char (&el)[N],
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     std::string str;
@@ -640,7 +642,7 @@ public:
 
   // special function for serialising dynamically sized arrays
   template <class T>
-  Serialiser &Serialise(const char *name, T *&el, uint64_t arrayCount,
+  Serialiser &Serialise(const rdcliteral &name, T *&el, uint64_t arrayCount,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     // silently handle NULL arrays
@@ -693,7 +695,7 @@ public:
 
       for(uint64_t i = 0; el && i < arrayCount; i++)
       {
-        arr.data.children[(size_t)i] = new SDObject("$el", TypeName<T>());
+        arr.data.children[(size_t)i] = new SDObject("$el"_lit, TypeName<T>());
         m_StructureStack.push_back(arr.data.children[(size_t)i]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -735,7 +737,7 @@ public:
 
   // specialisations for container types
   template <class U>
-  Serialiser &Serialise(const char *name, std::vector<U> &el,
+  Serialiser &Serialise(const rdcliteral &name, std::vector<U> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     uint64_t size = (uint64_t)el.size();
@@ -776,7 +778,7 @@ public:
 
       for(size_t i = 0; i < (size_t)size; i++)
       {
-        arr.data.children[i] = new SDObject("$el", TypeName<U>());
+        arr.data.children[i] = new SDObject("$el"_lit, TypeName<U>());
         m_StructureStack.push_back(arr.data.children[i]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -805,7 +807,7 @@ public:
   }
 
   template <class U>
-  Serialiser &Serialise(const char *name, std::list<U> &el,
+  Serialiser &Serialise(const rdcliteral &name, std::list<U> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     uint64_t size = (uint64_t)el.size();
@@ -848,7 +850,7 @@ public:
 
       for(size_t i = 0; i < (size_t)size; i++)
       {
-        arr.data.children[i] = new SDObject("$el", TypeName<U>());
+        arr.data.children[i] = new SDObject("$el"_lit, TypeName<U>());
         m_StructureStack.push_back(arr.data.children[i]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -878,7 +880,7 @@ public:
   }
 
   template <class U, class V>
-  Serialiser &Serialise(const char *name, std::pair<U, V> &el,
+  Serialiser &Serialise(const rdcliteral &name, std::pair<U, V> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     if(ExportStructure())
@@ -891,7 +893,7 @@ public:
 
       SDObject &parent = *m_StructureStack.back();
       parent.data.basic.numChildren++;
-      parent.data.children.push_back(new SDObject(name, "pair"));
+      parent.data.children.push_back(new SDObject(name, "pair"_lit));
       m_StructureStack.push_back(parent.data.children.back());
 
       SDObject &arr = *m_StructureStack.back();
@@ -902,7 +904,7 @@ public:
       arr.data.children.resize(2);
 
       {
-        arr.data.children[0] = new SDObject("first", TypeName<U>());
+        arr.data.children[0] = new SDObject("first"_lit, TypeName<U>());
         m_StructureStack.push_back(arr.data.children[0]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -917,7 +919,7 @@ public:
       }
 
       {
-        arr.data.children[1] = new SDObject("second", TypeName<V>());
+        arr.data.children[1] = new SDObject("second"_lit, TypeName<V>());
         m_StructureStack.push_back(arr.data.children[1]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -943,7 +945,7 @@ public:
   }
 
   template <class U>
-  Serialiser &Serialise(const char *name, rdcarray<U> &el,
+  Serialiser &Serialise(const rdcliteral &name, rdcarray<U> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     uint64_t size = (uint64_t)el.size();
@@ -984,7 +986,7 @@ public:
 
       for(size_t i = 0; i < (size_t)size; i++)
       {
-        arr.data.children[i] = new SDObject("$el", TypeName<U>());
+        arr.data.children[i] = new SDObject("$el"_lit, TypeName<U>());
         m_StructureStack.push_back(arr.data.children[i]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -1013,7 +1015,7 @@ public:
   }
 
   template <class U, class V>
-  Serialiser &Serialise(const char *name, rdcpair<U, V> &el,
+  Serialiser &Serialise(const rdcliteral &name, rdcpair<U, V> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     if(ExportStructure())
@@ -1026,7 +1028,7 @@ public:
 
       SDObject &parent = *m_StructureStack.back();
       parent.data.basic.numChildren++;
-      parent.data.children.push_back(new SDObject(name, "pair"));
+      parent.data.children.push_back(new SDObject(name, "pair"_lit));
       m_StructureStack.push_back(parent.data.children.back());
 
       SDObject &arr = *m_StructureStack.back();
@@ -1037,7 +1039,7 @@ public:
       arr.data.children.resize(2);
 
       {
-        arr.data.children[0] = new SDObject("first", TypeName<U>());
+        arr.data.children[0] = new SDObject("first"_lit, TypeName<U>());
         m_StructureStack.push_back(arr.data.children[0]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -1052,7 +1054,7 @@ public:
       }
 
       {
-        arr.data.children[1] = new SDObject("second", TypeName<V>());
+        arr.data.children[1] = new SDObject("second"_lit, TypeName<V>());
         m_StructureStack.push_back(arr.data.children[1]);
 
         SDObject &obj = *m_StructureStack.back();
@@ -1081,7 +1083,7 @@ public:
   // caller is responsible for ensuring that on write, it's safe to write into
   // this pointer on the other end
   template <class T>
-  Serialiser &Serialise(const char *name, const T &el,
+  Serialiser &Serialise(const rdcliteral &name, const T &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return Serialise(name, (T &)el, flags);
@@ -1089,14 +1091,14 @@ public:
 
   // dynamic array variant
   template <class T>
-  Serialiser &Serialise(const char *name, const T *&el, uint64_t arrayCount,
+  Serialiser &Serialise(const rdcliteral &name, const T *&el, uint64_t arrayCount,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return Serialise(name, (T *&)el, arrayCount, flags);
   }
 
   template <class T>
-  Serialiser &SerialiseNullable(const char *name, T *&el,
+  Serialiser &SerialiseNullable(const rdcliteral &name, T *&el,
                                 SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     bool present = (el != NULL);
@@ -1177,7 +1179,7 @@ public:
   }
 
   template <class T>
-  Serialiser &SerialiseNullable(const char *name, const T *&el,
+  Serialiser &SerialiseNullable(const rdcliteral &name, const T *&el,
                                 SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
     return SerialiseNullable(name, (T *&)el, flags);
@@ -1232,7 +1234,7 @@ public:
       SDObject &current = *m_StructureStack.back();
 
       current.data.basic.numChildren++;
-      current.data.children.push_back(new SDObject(name.c_str(), "Byte Buffer"));
+      current.data.children.push_back(new SDObject(name.c_str(), "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 
       SDObject &obj = *m_StructureStack.back();
@@ -1317,7 +1319,7 @@ public:
     return *this;
   }
 
-  Serialiser &TypedAs(const char *name)
+  Serialiser &TypedAs(const rdcstr &name)
   {
     if(ExportStructure() && !m_StructureStack.empty())
     {
@@ -1339,7 +1341,7 @@ public:
     return *this;
   }
 
-  Serialiser &Named(const char *name)
+  Serialiser &Named(const rdcstr &name)
   {
     if(ExportStructure() && !m_StructureStack.empty())
     {
@@ -1696,9 +1698,9 @@ BASIC_TYPE_SERIALISE(bool, el, SDBasic::Boolean, 1);
 BASIC_TYPE_SERIALISE(char, el, SDBasic::Character, 1);
 
 template <>
-inline const char *TypeName<char *>()
+inline rdcliteral TypeName<char *>()
 {
-  return "string";
+  return "string"_lit;
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, char *&el)
@@ -1707,9 +1709,9 @@ void DoSerialise(SerialiserType &ser, char *&el)
 }
 
 template <>
-inline const char *TypeName<const char *>()
+inline rdcliteral TypeName<const char *>()
 {
-  return "string";
+  return "string"_lit;
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, const char *&el)
@@ -1718,9 +1720,9 @@ void DoSerialise(SerialiserType &ser, const char *&el)
 }
 
 template <>
-inline const char *TypeName<std::string>()
+inline rdcliteral TypeName<std::string>()
 {
-  return "string";
+  return "string"_lit;
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, std::string &el)
@@ -1728,9 +1730,9 @@ void DoSerialise(SerialiserType &ser, std::string &el)
   ser.SerialiseValue(SDBasic::String, 0, el);
 }
 template <>
-inline const char *TypeName<rdcstr>()
+inline rdcliteral TypeName<rdcstr>()
 {
-  return "string";
+  return "string"_lit;
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, rdcstr &el)
@@ -1973,7 +1975,7 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
 #define SERIALISE_ELEMENT(obj)                                                               \
   ScopedDeserialise<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
       GET_SERIALISER, obj);                                                                  \
-  GET_SERIALISER.Serialise(#obj, obj)
+  GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj)
 
 #define SERIALISE_ELEMENT_TYPED(type, obj) \
   if(ser.IsReading())                      \
@@ -1984,20 +1986,20 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
     decltype(obj) *o;                      \
   } CONCAT(union, __LINE__);               \
   CONCAT(union, __LINE__).o = &obj;        \
-  GET_SERIALISER.template Serialise<type>(#obj, *CONCAT(union, __LINE__).t)
+  GET_SERIALISER.template Serialise<type>(STRING_LITERAL(#obj), *CONCAT(union, __LINE__).t)
 
 #define SERIALISE_ELEMENT_ARRAY(obj, count)                                                       \
   uint64_t CONCAT(dummy_array_count, __LINE__) = 0;                                               \
   (void)CONCAT(dummy_array_count, __LINE__);                                                      \
   ScopedDeserialiseArray<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
       GET_SERIALISER, &obj);                                                                      \
-  GET_SERIALISER.Serialise(#obj, obj, count, SerialiserFlags::AllocateMemory);                    \
+  GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj, count, SerialiserFlags::AllocateMemory);    \
   CONCAT(deserialise_, __LINE__).setCount(count);
 
 #define SERIALISE_ELEMENT_OPT(obj)                                           \
   ScopedDeserialiseNullable<decltype(GET_SERIALISER), decltype(obj)> CONCAT( \
       deserialise_, __LINE__)(GET_SERIALISER, &obj);                         \
-  GET_SERIALISER.SerialiseNullable(#obj, obj)
+  GET_SERIALISER.SerialiseNullable(STRING_LITERAL(#obj), obj)
 
 #define SERIALISE_ELEMENT_LOCAL(obj, inValue)                                                 \
   typename std::remove_cv<typename std::remove_reference<decltype(inValue)>::type>::type obj; \
@@ -2005,10 +2007,10 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
       GET_SERIALISER, obj);                                                                   \
   if(GET_SERIALISER.IsWriting())                                                              \
     obj = (inValue);                                                                          \
-  GET_SERIALISER.Serialise(#obj, obj)
+  GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj)
 
 // these macros are for use when implementing a DoSerialise function
-#define SERIALISE_MEMBER(obj) ser.Serialise(#obj, el.obj)
+#define SERIALISE_MEMBER(obj) ser.Serialise(STRING_LITERAL(#obj), el.obj)
 
 #define SERIALISE_MEMBER_TYPED(type, obj) \
   if(ser.IsReading())                     \
@@ -2019,54 +2021,54 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
     decltype(el.obj) *o;                  \
   } CONCAT(union, __LINE__);              \
   CONCAT(union, __LINE__).o = &el.obj;    \
-  ser.template Serialise<type>(#obj, *CONCAT(union, __LINE__).t)
+  ser.template Serialise<type>(STRING_LITERAL(#obj), *CONCAT(union, __LINE__).t)
 
 #define SERIALISE_MEMBER_ARRAY(arrayObj, countObj) \
-  ser.Serialise(#arrayObj, el.arrayObj, el.countObj, SerialiserFlags::AllocateMemory)
+  ser.Serialise(STRING_LITERAL(#arrayObj), el.arrayObj, el.countObj, SerialiserFlags::AllocateMemory)
 
-#define SERIALISE_MEMBER_ARRAY_TYPED(type, arrayObj, countObj)                     \
-  if(ser.IsReading())                                                              \
-    el.arrayObj = NULL;                                                            \
-  union                                                                            \
-  {                                                                                \
-    type **t;                                                                      \
-    decltype(el.arrayObj) *o;                                                      \
-  } CONCAT(union, __LINE__);                                                       \
-  CONCAT(union, __LINE__).o = &el.arrayObj;                                        \
-  ser.template Serialise<type>(#arrayObj, *CONCAT(union, __LINE__).t, el.countObj, \
+#define SERIALISE_MEMBER_ARRAY_TYPED(type, arrayObj, countObj)                                     \
+  if(ser.IsReading())                                                                              \
+    el.arrayObj = NULL;                                                                            \
+  union                                                                                            \
+  {                                                                                                \
+    type **t;                                                                                      \
+    decltype(el.arrayObj) *o;                                                                      \
+  } CONCAT(union, __LINE__);                                                                       \
+  CONCAT(union, __LINE__).o = &el.arrayObj;                                                        \
+  ser.template Serialise<type>(STRING_LITERAL(#arrayObj), *CONCAT(union, __LINE__).t, el.countObj, \
                                SerialiserFlags::AllocateMemory)
 
 // a member that is a pointer and could be NULL, so needs a hidden 'present'
 // flag serialised out
-#define SERIALISE_MEMBER_OPT(obj) ser.SerialiseNullable(#obj, el.obj)
+#define SERIALISE_MEMBER_OPT(obj) ser.SerialiseNullable(STRING_LITERAL(#obj), el.obj)
 
 // this is used when we want to serialise a member that should not be read from, if we know from
 // context that it should always be serialised as NULL. It avoids the need to declare local dummy
 // variables. It serialises elements as empty/NULL/etc from a local while writing, and sets to
 // default on reading
-#define SERIALISE_MEMBER_EMPTY(obj) \
-  {                                 \
-    decltype(el.obj) dummy = {};    \
-    ser.Serialise(#obj, dummy);     \
-    if(ser.IsReading())             \
-      el.obj = decltype(el.obj)();  \
+#define SERIALISE_MEMBER_EMPTY(obj)             \
+  {                                             \
+    decltype(el.obj) dummy = {};                \
+    ser.Serialise(STRING_LITERAL(#obj), dummy); \
+    if(ser.IsReading())                         \
+      el.obj = decltype(el.obj)();              \
   }
-#define SERIALISE_MEMBER_OPT_EMPTY(obj) \
-  {                                     \
-    decltype(el.obj) dummy = NULL;      \
-    ser.SerialiseNullable(#obj, dummy); \
-    if(ser.IsReading())                 \
-      el.obj = NULL;                    \
+#define SERIALISE_MEMBER_OPT_EMPTY(obj)                 \
+  {                                                     \
+    decltype(el.obj) dummy = NULL;                      \
+    ser.SerialiseNullable(STRING_LITERAL(#obj), dummy); \
+    if(ser.IsReading())                                 \
+      el.obj = NULL;                                    \
   }
-#define SERIALISE_MEMBER_ARRAY_EMPTY(arrayObj)                                    \
-  {                                                                               \
-    decltype(el.arrayObj) dummy = NULL;                                           \
-    uint64_t dummycount = 0;                                                      \
-    ser.Serialise(#arrayObj, dummy, dummycount, SerialiserFlags::AllocateMemory); \
-    if(ser.IsReading())                                                           \
-    {                                                                             \
-      el.arrayObj = NULL;                                                         \
-    }                                                                             \
+#define SERIALISE_MEMBER_ARRAY_EMPTY(arrayObj)                                                    \
+  {                                                                                               \
+    decltype(el.arrayObj) dummy = NULL;                                                           \
+    uint64_t dummycount = 0;                                                                      \
+    ser.Serialise(STRING_LITERAL(#arrayObj), dummy, dummycount, SerialiserFlags::AllocateMemory); \
+    if(ser.IsReading())                                                                           \
+    {                                                                                             \
+      el.arrayObj = NULL;                                                                         \
+    }                                                                                             \
   }
 
 // simple utility function for inside serialise functions, to check if the serialiser has hit an

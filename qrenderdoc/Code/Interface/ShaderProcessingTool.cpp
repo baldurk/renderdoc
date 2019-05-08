@@ -37,7 +37,7 @@ static const QString hlsl_stage2[ENUM_ARRAY_SIZE(ShaderStage)] = {
 };
 
 template <>
-std::string DoStringise(const KnownShaderTool &el)
+rdcstr DoStringise(const KnownShaderTool &el)
 {
   BEGIN_ENUM_STRINGISE(KnownShaderTool);
   {

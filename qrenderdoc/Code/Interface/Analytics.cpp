@@ -38,40 +38,40 @@
 #if RENDERDOC_ANALYTICS_ENABLE
 
 template <>
-inline const char *TypeName<int32_t>()
+inline rdcliteral TypeName<int32_t>()
 {
-  return "int";
+  return "int"_lit;
 }
 
 template <>
-inline const char *TypeName<QString>()
+inline rdcliteral TypeName<QString>()
 {
-  return "string";
+  return "string"_lit;
 }
 
 template <>
-inline const char *TypeName<QStringList>()
+inline rdcliteral TypeName<QStringList>()
 {
-  return "string array";
+  return "string array"_lit;
 }
 
 template <>
-inline const char *TypeName<bool>()
+inline rdcliteral TypeName<bool>()
 {
-  return "bool";
+  return "bool"_lit;
 }
 
 template <>
-inline const char *TypeName<AnalyticsAverage>()
+inline rdcliteral TypeName<AnalyticsAverage>()
 {
-  return "Average";
+  return "Average"_lit;
 }
 
 template <>
-inline const char *TypeName<bool[32]>()
+inline rdcliteral TypeName<bool[32]>()
 {
   // DaysUsed
-  return "int";
+  return "int"_lit;
 }
 
 namespace
@@ -184,25 +184,25 @@ void saveTo(QVariantMap &parent, const QString &name, const T &el, bool reportin
 }
 
 // add a macro to either document, load, or save, depending on our state.
-#define ANALYTIC_SERIALISE(varname)                                         \
-  if(type == AnalyticsSerialiseType::Documenting)                           \
-  {                                                                         \
-    QString var = lit(#varname);                                            \
-    int idx = var.indexOf(QLatin1Char('.'));                                \
-    if(idx >= 0)                                                            \
-      var = var.mid(idx + 1);                                               \
-    doc += lit("<b>%1 (%2)</b>: %3<br>")                                    \
-               .arg(var)                                                    \
-               .arg(QString::fromUtf8(TypeName<decltype(serdb.varname)>())) \
-               .arg(docs.varname);                                          \
-  }                                                                         \
-  else if(type == AnalyticsSerialiseType::Loading)                          \
-  {                                                                         \
-    loadFrom(values, lit(#varname), serdb.varname);                         \
-  }                                                                         \
-  else                                                                      \
-  {                                                                         \
-    saveTo(values, lit(#varname), serdb.varname, reporting);                \
+#define ANALYTIC_SERIALISE(varname)                                       \
+  if(type == AnalyticsSerialiseType::Documenting)                         \
+  {                                                                       \
+    QString var = lit(#varname);                                          \
+    int idx = var.indexOf(QLatin1Char('.'));                              \
+    if(idx >= 0)                                                          \
+      var = var.mid(idx + 1);                                             \
+    doc += lit("<b>%1 (%2)</b>: %3<br>")                                  \
+               .arg(var)                                                  \
+               .arg(QString(rdcstr(TypeName<decltype(serdb.varname)>()))) \
+               .arg(docs.varname);                                        \
+  }                                                                       \
+  else if(type == AnalyticsSerialiseType::Loading)                        \
+  {                                                                       \
+    loadFrom(values, lit(#varname), serdb.varname);                       \
+  }                                                                       \
+  else                                                                    \
+  {                                                                       \
+    saveTo(values, lit(#varname), serdb.varname, reporting);              \
   }
 
 // only used during documenting

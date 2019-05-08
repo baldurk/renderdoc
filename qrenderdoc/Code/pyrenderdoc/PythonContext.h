@@ -68,9 +68,7 @@ public:
   template <typename T>
   void setGlobal(const char *varName, T *object)
   {
-    QByteArray baseTypeName = TypeName<T>();
-    baseTypeName += " *";
-    setGlobal(varName, baseTypeName.data(), (void *)object);
+    setGlobal(varName, (rdcstr(TypeName<T>()) + " *").c_str(), (void *)object);
   }
 
   template <typename QtObjectType>

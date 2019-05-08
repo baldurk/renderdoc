@@ -395,7 +395,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
   bool ret = true;
 
-  SERIALISE_ELEMENT(id).TypedAs("ID3D12DeviceChild *");
+  SERIALISE_ELEMENT(id).TypedAs("ID3D12DeviceChild *"_lit);
   SERIALISE_ELEMENT_LOCAL(type, record->type);
 
   if(IsReplayingAndReading())
@@ -584,7 +584,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("ResourceContents", ResourceContents, ContentsLength, SerialiserFlags::NoFlags);
+    ser.Serialise("ResourceContents"_lit, ResourceContents, ContentsLength, SerialiserFlags::NoFlags);
 
     if(mappedBuffer)
       mappedBuffer->Unmap(0, NULL);

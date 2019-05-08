@@ -24,26 +24,26 @@
 
 #pragma once
 
-#include <string>
 #include <type_traits>
+#include "rdcstr.h"
 
 template <typename T>
-std::string DoStringise(const T &el);
+rdcstr DoStringise(const T &el);
 
 template <typename T, bool is_pointer = std::is_pointer<T>::value>
 struct StringConverter
 {
-  static std::string Do(const T &el) { return DoStringise<T>(el); }
+  static rdcstr Do(const T &el) { return DoStringise<T>(el); }
 };
 
 template <typename T>
 struct StringConverter<T, true>
 {
-  static std::string Do(const T &el) { return DoStringise<void *>(el); }
+  static rdcstr Do(const T &el) { return DoStringise<void *>(el); }
 };
 
 template <typename T>
-std::string ToStr(const T &el)
+rdcstr ToStr(const T &el)
 {
   return StringConverter<T>::Do(el);
 }
@@ -61,19 +61,19 @@ std::string ToStr(const T &el)
 
 // stringise the parameter
 #define STRINGISE_ENUM_CLASS(a) \
-  case enumType::a: return #a;
+  case enumType::a: return STRING_LITERAL(#a);
 
 // stringise the parameter with a custom string
 #define STRINGISE_ENUM_CLASS_NAMED(value, str) \
-  case enumType::value: return str;
+  case enumType::value: return STRING_LITERAL(str);
 
 // stringise the parameter
 #define STRINGISE_ENUM(a) \
-  case a: return #a;
+  case a: return STRING_LITERAL(#a);
 
 // stringise the parameter with a custom string
 #define STRINGISE_ENUM_NAMED(value, str) \
-  case value: return str;
+  case value: return STRING_LITERAL(str);
 
 // end enum switches
 #define END_ENUM_STRINGISE() \
@@ -89,23 +89,23 @@ std::string ToStr(const T &el)
                 "Type in macro doesn't match el");               \
   uint32_t local = (uint32_t)el;                                 \
   (void)(enumType) el;                                           \
-  std::string ret;
+  rdcstr ret;
 
 #define STRINGISE_BITFIELD_VALUE(b) \
   if(el == b)                       \
-    return #b;
+    return STRING_LITERAL(#b);
 
 #define STRINGISE_BITFIELD_CLASS_VALUE(b) \
   if(el == enumType::b)                   \
-    return #b;
+    return STRING_LITERAL(#b);
 
 #define STRINGISE_BITFIELD_VALUE_NAMED(b, str) \
   if(el == b)                                  \
-    return str;
+    return STRING_LITERAL(str);
 
 #define STRINGISE_BITFIELD_CLASS_VALUE_NAMED(b, str) \
   if(el == enumType::b)                              \
-    return str;
+    return STRING_LITERAL(str);
 
 #define STRINGISE_BITFIELD_BIT(b) \
   if(el & b)                      \
@@ -150,13 +150,13 @@ std::string ToStr(const T &el)
   return ret;
 
 template <typename T>
-inline const char *TypeName();
+inline rdcliteral TypeName();
 
-#define DECLARE_STRINGISE_TYPE(type)  \
-  template <>                         \
-  inline const char *TypeName<type>() \
-  {                                   \
-    return #type;                     \
+#define DECLARE_STRINGISE_TYPE(type) \
+  template <>                        \
+  inline rdcliteral TypeName<type>() \
+  {                                  \
+    return STRING_LITERAL(#type);    \
   }
 
 // This is a little bit ugly, but not *too* much. We declare the macro for serialised types to

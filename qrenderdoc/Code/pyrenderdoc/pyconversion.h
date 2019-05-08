@@ -39,7 +39,7 @@ struct TypeConversion
     if(cached_type_info)
       return cached_type_info;
 
-    std::string baseTypeName = TypeName<T>();
+    rdcstr baseTypeName = TypeName<T>();
     baseTypeName += " *";
     cached_type_info = SWIG_TypeQuery(baseTypeName.c_str());
 
@@ -103,7 +103,7 @@ struct TypeConversion<Opaque *, false>
     if(cached_type_info)
       return cached_type_info;
 
-    std::string baseTypeName = TypeName<Opaque>();
+    rdcstr baseTypeName = TypeName<Opaque>();
     baseTypeName += " *";
     cached_type_info = SWIG_TypeQuery(baseTypeName.c_str());
 
@@ -526,7 +526,7 @@ struct TypeConversion<rdcarray<U>, false>
   static swig_type_info *GetTypeInfo()
   {
     static swig_type_info *cached_type_info = NULL;
-    static std::string typeName = std::string("rdcarray < ") + TypeName<U>() + " > *";
+    static rdcstr typeName = "rdcarray < " + TypeName<U>() + " > *";
 
     if(cached_type_info)
       return cached_type_info;

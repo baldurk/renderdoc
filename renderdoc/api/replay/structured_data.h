@@ -161,7 +161,7 @@ struct SDChunk;
 DOCUMENT("Details the name and properties of a structured type");
 struct SDType
 {
-  SDType(const char *n)
+  SDType(const rdcstr &n)
       : name(n), basetype(SDBasic::Struct), flags(SDTypeFlags::NoFlags), byteSize(0)
   {
   }
@@ -339,7 +339,7 @@ DECLARE_REFLECTION_STRUCT(SDObjectData);
 DOCUMENT("Defines a single structured object.");
 struct SDObject
 {
-  SDObject(const char *n, const char *t) : type(t)
+  SDObject(const rdcstr &n, const rdcstr &t) : type(t)
   {
     name = n;
     data.basic.u = 0;
@@ -553,7 +553,7 @@ DECLARE_REFLECTION_STRUCT(SDObject);
 #if defined(RENDERDOC_QT_COMPAT)
 inline SDObject *makeSDObject(const char *name, QVariant val)
 {
-  SDObject *ret = new SDObject(name, "QVariant");
+  SDObject *ret = new SDObject(name, "QVariant"_lit);
   ret->type.basetype = SDBasic::Null;
 
   // coverity[mixed_enums]
@@ -562,57 +562,57 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
   switch(type)
   {
     case QMetaType::Bool:
-      ret->type.name = "bool";
+      ret->type.name = "bool"_lit;
       ret->type.basetype = SDBasic::Boolean;
       ret->type.byteSize = 1;
       ret->data.basic.b = val.toBool();
       break;
     case QMetaType::Short:
-      ret->type.name = "int16_t";
+      ret->type.name = "int16_t"_lit;
       ret->type.basetype = SDBasic::SignedInteger;
       ret->type.byteSize = 2;
       ret->data.basic.i = val.toInt();
       break;
     case QMetaType::UShort:
-      ret->type.name = "uint16_t";
+      ret->type.name = "uint16_t"_lit;
       ret->type.basetype = SDBasic::UnsignedInteger;
       ret->type.byteSize = 2;
       ret->data.basic.u = val.toUInt();
       break;
     case QMetaType::Long:
     case QMetaType::Int:
-      ret->type.name = "int32_t";
+      ret->type.name = "int32_t"_lit;
       ret->type.basetype = SDBasic::SignedInteger;
       ret->type.byteSize = 4;
       ret->data.basic.i = val.toInt();
       break;
     case QMetaType::ULong:
     case QMetaType::UInt:
-      ret->type.name = "uint32_t";
+      ret->type.name = "uint32_t"_lit;
       ret->type.basetype = SDBasic::UnsignedInteger;
       ret->type.byteSize = 4;
       ret->data.basic.u = val.toUInt();
       break;
     case QMetaType::LongLong:
-      ret->type.name = "int64_t";
+      ret->type.name = "int64_t"_lit;
       ret->type.basetype = SDBasic::SignedInteger;
       ret->type.byteSize = 8;
       ret->data.basic.i = val.toLongLong();
       break;
     case QMetaType::ULongLong:
-      ret->type.name = "uint64_t";
+      ret->type.name = "uint64_t"_lit;
       ret->type.basetype = SDBasic::UnsignedInteger;
       ret->type.byteSize = 8;
       ret->data.basic.u = val.toULongLong();
       break;
     case QMetaType::Float:
-      ret->type.name = "float";
+      ret->type.name = "float"_lit;
       ret->type.basetype = SDBasic::Float;
       ret->type.byteSize = 4;
       ret->data.basic.d = val.toFloat();
       break;
     case QMetaType::Double:
-      ret->type.name = "double";
+      ret->type.name = "double"_lit;
       ret->type.basetype = SDBasic::Float;
       ret->type.byteSize = 8;
       ret->data.basic.d = val.toDouble();
@@ -620,13 +620,13 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
     case QMetaType::UChar:
     case QMetaType::Char:
     case QMetaType::QChar:
-      ret->type.name = "char";
+      ret->type.name = "char"_lit;
       ret->type.basetype = SDBasic::Character;
       ret->type.byteSize = 1;
       ret->data.basic.c = val.toChar().toLatin1();
       break;
     case QMetaType::QString:
-      ret->type.name = "string";
+      ret->type.name = "string"_lit;
       ret->type.basetype = SDBasic::String;
       ret->data.str = val.toString().toUtf8().data();
       ret->type.byteSize = ret->data.str.size();
@@ -641,7 +641,7 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
 DOCUMENT("Make a structured object out of a signed integer");
 inline SDObject *makeSDInt64(const char *name, int64_t val)
 {
-  SDObject *ret = new SDObject(name, "int64_t");
+  SDObject *ret = new SDObject(name, "int64_t"_lit);
   ret->type.basetype = SDBasic::SignedInteger;
   ret->type.byteSize = 8;
   ret->data.basic.i = val;
@@ -651,7 +651,7 @@ inline SDObject *makeSDInt64(const char *name, int64_t val)
 DOCUMENT("Make a structured object out of an unsigned integer");
 inline SDObject *makeSDUInt64(const char *name, uint64_t val)
 {
-  SDObject *ret = new SDObject(name, "uint64_t");
+  SDObject *ret = new SDObject(name, "uint64_t"_lit);
   ret->type.basetype = SDBasic::UnsignedInteger;
   ret->type.byteSize = 8;
   ret->data.basic.u = val;
@@ -661,7 +661,7 @@ inline SDObject *makeSDUInt64(const char *name, uint64_t val)
 DOCUMENT("Make a structured object out of a integer, stored as signed 32-bits");
 inline SDObject *makeSDInt32(const char *name, int32_t val)
 {
-  SDObject *ret = new SDObject(name, "int32_t");
+  SDObject *ret = new SDObject(name, "int32_t"_lit);
   ret->type.basetype = SDBasic::SignedInteger;
   ret->type.byteSize = 4;
   ret->data.basic.u = val;
@@ -671,7 +671,7 @@ inline SDObject *makeSDInt32(const char *name, int32_t val)
 DOCUMENT("Make a structured object out of a integer, stored as unsigned 32-bits");
 inline SDObject *makeSDUInt32(const char *name, uint32_t val)
 {
-  SDObject *ret = new SDObject(name, "uint32_t");
+  SDObject *ret = new SDObject(name, "uint32_t"_lit);
   ret->type.basetype = SDBasic::UnsignedInteger;
   ret->type.byteSize = 4;
   ret->data.basic.u = val;
@@ -681,7 +681,7 @@ inline SDObject *makeSDUInt32(const char *name, uint32_t val)
 DOCUMENT("Make a structured object out of a floating point value");
 inline SDObject *makeSDFloat(const char *name, float val)
 {
-  SDObject *ret = new SDObject(name, "float");
+  SDObject *ret = new SDObject(name, "float"_lit);
   ret->type.basetype = SDBasic::Float;
   ret->type.byteSize = 4;
   ret->data.basic.d = val;
@@ -691,7 +691,7 @@ inline SDObject *makeSDFloat(const char *name, float val)
 DOCUMENT("Make a structured object out of a boolean value");
 inline SDObject *makeSDBool(const char *name, bool val)
 {
-  SDObject *ret = new SDObject(name, "bool");
+  SDObject *ret = new SDObject(name, "bool"_lit);
   ret->type.basetype = SDBasic::Boolean;
   ret->type.byteSize = 1;
   ret->data.basic.b = val;
@@ -701,7 +701,7 @@ inline SDObject *makeSDBool(const char *name, bool val)
 DOCUMENT("Make a structured object out of a string");
 inline SDObject *makeSDString(const char *name, const char *val)
 {
-  SDObject *ret = new SDObject(name, "string");
+  SDObject *ret = new SDObject(name, "string"_lit);
   ret->type.basetype = SDBasic::String;
   ret->type.byteSize = strlen(val);
   ret->data.str = val;
@@ -711,7 +711,7 @@ inline SDObject *makeSDString(const char *name, const char *val)
 DOCUMENT("Make a structured object out of a ResourceId");
 inline SDObject *makeSDResourceId(const char *name, ResourceId val)
 {
-  SDObject *ret = new SDObject(name, "ResourceId");
+  SDObject *ret = new SDObject(name, "ResourceId"_lit);
   ret->type.basetype = SDBasic::Resource;
   ret->type.byteSize = 8;
   ret->data.basic.id = val;
@@ -721,7 +721,7 @@ inline SDObject *makeSDResourceId(const char *name, ResourceId val)
 DOCUMENT("Make a structured object out of an enumeration value");
 inline SDObject *makeSDEnum(const char *name, uint32_t val)
 {
-  SDObject *ret = new SDObject(name, "enum");
+  SDObject *ret = new SDObject(name, "enum"_lit);
   ret->type.basetype = SDBasic::Enum;
   ret->type.byteSize = 4;
   ret->data.basic.u = val;
@@ -731,7 +731,7 @@ inline SDObject *makeSDEnum(const char *name, uint32_t val)
 DOCUMENT("Make an array-type structured object");
 inline SDObject *makeSDArray(const char *name)
 {
-  SDObject *ret = new SDObject(name, "array");
+  SDObject *ret = new SDObject(name, "array"_lit);
   ret->type.basetype = SDBasic::Array;
   return ret;
 }
@@ -776,7 +776,7 @@ SDOBJECT_MAKER(ResourceId, makeSDResourceId);
 DOCUMENT("Defines a single structured chunk, which is a :class:`SDObject`.");
 struct SDChunk : public SDObject
 {
-  SDChunk(const char *name) : SDObject(name, "Chunk") { type.basetype = SDBasic::Chunk; }
+  SDChunk(const char *name) : SDObject(name, "Chunk"_lit) { type.basetype = SDBasic::Chunk; }
   DOCUMENT("The :class:`SDChunkMetaData` with the metadata for this chunk.");
   SDChunkMetaData metadata;
 

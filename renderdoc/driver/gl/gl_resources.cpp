@@ -28,7 +28,7 @@
 #include "gl_manager.h"
 
 template <>
-std::string DoStringise(const GLNamespace &el)
+rdcstr DoStringise(const GLNamespace &el)
 {
   BEGIN_ENUM_STRINGISE(GLNamespace)
   {

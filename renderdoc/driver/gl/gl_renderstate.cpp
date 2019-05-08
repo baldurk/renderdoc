@@ -29,44 +29,44 @@
 struct EnableDisableCap
 {
   GLenum cap;
-  const char *name;
+  rdcliteral name;
 };
 
 static const EnableDisableCap enable_disable_cap[] = {
-    {eGL_CLIP_DISTANCE0, "GL_CLIP_DISTANCE0"},
-    {eGL_CLIP_DISTANCE1, "GL_CLIP_DISTANCE1"},
-    {eGL_CLIP_DISTANCE2, "GL_CLIP_DISTANCE2"},
-    {eGL_CLIP_DISTANCE3, "GL_CLIP_DISTANCE3"},
-    {eGL_CLIP_DISTANCE4, "GL_CLIP_DISTANCE4"},
-    {eGL_CLIP_DISTANCE5, "GL_CLIP_DISTANCE5"},
-    {eGL_CLIP_DISTANCE6, "GL_CLIP_DISTANCE6"},
-    {eGL_CLIP_DISTANCE7, "GL_CLIP_DISTANCE7"},
-    {eGL_COLOR_LOGIC_OP, "GL_COLOR_LOGIC_OP"},
-    {eGL_CULL_FACE, "GL_CULL_FACE"},
-    {eGL_DEPTH_CLAMP, "GL_DEPTH_CLAMP"},
-    {eGL_DEPTH_TEST, "GL_DEPTH_TEST"},
-    {eGL_DEPTH_BOUNDS_TEST_EXT, "GL_DEPTH_BOUNDS_TEST_EXT"},
-    {eGL_DITHER, "GL_DITHER"},
-    {eGL_FRAMEBUFFER_SRGB, "GL_FRAMEBUFFER_SRGB"},
-    {eGL_LINE_SMOOTH, "GL_LINE_SMOOTH"},
-    {eGL_MULTISAMPLE, "GL_MULTISAMPLE"},
-    {eGL_POLYGON_SMOOTH, "GL_POLYGON_SMOOTH"},
-    {eGL_POLYGON_OFFSET_FILL, "GL_POLYGON_OFFSET_FILL"},
-    {eGL_POLYGON_OFFSET_LINE, "GL_POLYGON_OFFSET_LINE"},
-    {eGL_POLYGON_OFFSET_POINT, "GL_POLYGON_OFFSET_POINT"},
-    {eGL_PROGRAM_POINT_SIZE, "GL_PROGRAM_POINT_SIZE"},
-    {eGL_PRIMITIVE_RESTART, "GL_PRIMITIVE_RESTART"},
-    {eGL_PRIMITIVE_RESTART_FIXED_INDEX, "GL_PRIMITIVE_RESTART_FIXED_INDEX"},
-    {eGL_SAMPLE_ALPHA_TO_COVERAGE, "GL_SAMPLE_ALPHA_TO_COVERAGE"},
-    {eGL_SAMPLE_ALPHA_TO_ONE, "GL_SAMPLE_ALPHA_TO_ONE"},
-    {eGL_SAMPLE_COVERAGE, "GL_SAMPLE_COVERAGE"},
-    {eGL_SAMPLE_MASK, "GL_SAMPLE_MASK"},
-    {eGL_SAMPLE_SHADING, "GL_SAMPLE_SHADING"},
-    {eGL_RASTER_MULTISAMPLE_EXT, "GL_RASTER_MULTISAMPLE_EXT"},
-    {eGL_STENCIL_TEST, "GL_STENCIL_TEST"},
-    {eGL_TEXTURE_CUBE_MAP_SEAMLESS, "GL_TEXTURE_CUBE_MAP_SEAMLESS"},
-    {eGL_BLEND_ADVANCED_COHERENT_KHR, "GL_BLEND_ADVANCED_COHERENT_KHR"},
-    {eGL_RASTERIZER_DISCARD, "GL_RASTERIZER_DISCARD"},
+    {eGL_CLIP_DISTANCE0, "GL_CLIP_DISTANCE0"_lit},
+    {eGL_CLIP_DISTANCE1, "GL_CLIP_DISTANCE1"_lit},
+    {eGL_CLIP_DISTANCE2, "GL_CLIP_DISTANCE2"_lit},
+    {eGL_CLIP_DISTANCE3, "GL_CLIP_DISTANCE3"_lit},
+    {eGL_CLIP_DISTANCE4, "GL_CLIP_DISTANCE4"_lit},
+    {eGL_CLIP_DISTANCE5, "GL_CLIP_DISTANCE5"_lit},
+    {eGL_CLIP_DISTANCE6, "GL_CLIP_DISTANCE6"_lit},
+    {eGL_CLIP_DISTANCE7, "GL_CLIP_DISTANCE7"_lit},
+    {eGL_COLOR_LOGIC_OP, "GL_COLOR_LOGIC_OP"_lit},
+    {eGL_CULL_FACE, "GL_CULL_FACE"_lit},
+    {eGL_DEPTH_CLAMP, "GL_DEPTH_CLAMP"_lit},
+    {eGL_DEPTH_TEST, "GL_DEPTH_TEST"_lit},
+    {eGL_DEPTH_BOUNDS_TEST_EXT, "GL_DEPTH_BOUNDS_TEST_EXT"_lit},
+    {eGL_DITHER, "GL_DITHER"_lit},
+    {eGL_FRAMEBUFFER_SRGB, "GL_FRAMEBUFFER_SRGB"_lit},
+    {eGL_LINE_SMOOTH, "GL_LINE_SMOOTH"_lit},
+    {eGL_MULTISAMPLE, "GL_MULTISAMPLE"_lit},
+    {eGL_POLYGON_SMOOTH, "GL_POLYGON_SMOOTH"_lit},
+    {eGL_POLYGON_OFFSET_FILL, "GL_POLYGON_OFFSET_FILL"_lit},
+    {eGL_POLYGON_OFFSET_LINE, "GL_POLYGON_OFFSET_LINE"_lit},
+    {eGL_POLYGON_OFFSET_POINT, "GL_POLYGON_OFFSET_POINT"_lit},
+    {eGL_PROGRAM_POINT_SIZE, "GL_PROGRAM_POINT_SIZE"_lit},
+    {eGL_PRIMITIVE_RESTART, "GL_PRIMITIVE_RESTART"_lit},
+    {eGL_PRIMITIVE_RESTART_FIXED_INDEX, "GL_PRIMITIVE_RESTART_FIXED_INDEX"_lit},
+    {eGL_SAMPLE_ALPHA_TO_COVERAGE, "GL_SAMPLE_ALPHA_TO_COVERAGE"_lit},
+    {eGL_SAMPLE_ALPHA_TO_ONE, "GL_SAMPLE_ALPHA_TO_ONE"_lit},
+    {eGL_SAMPLE_COVERAGE, "GL_SAMPLE_COVERAGE"_lit},
+    {eGL_SAMPLE_MASK, "GL_SAMPLE_MASK"_lit},
+    {eGL_SAMPLE_SHADING, "GL_SAMPLE_SHADING"_lit},
+    {eGL_RASTER_MULTISAMPLE_EXT, "GL_RASTER_MULTISAMPLE_EXT"_lit},
+    {eGL_STENCIL_TEST, "GL_STENCIL_TEST"_lit},
+    {eGL_TEXTURE_CUBE_MAP_SEAMLESS, "GL_TEXTURE_CUBE_MAP_SEAMLESS"_lit},
+    {eGL_BLEND_ADVANCED_COHERENT_KHR, "GL_BLEND_ADVANCED_COHERENT_KHR"_lit},
+    {eGL_RASTERIZER_DISCARD, "GL_RASTERIZER_DISCARD"_lit},
 };
 
 void ResetPixelPackState(bool compressed, GLint alignment)
@@ -1919,167 +1919,170 @@ void DoSerialise(SerialiserType &ser, GLRenderState &el)
   for(int i = 0; i < GLRenderState::eEnabled_Count; i++)
     ser.Serialise(enable_disable_cap[i].name, el.Enabled[i]);
 
-  ser.Serialise("GL_TEXTURE_BINDING_1D", el.Tex1D);
-  ser.Serialise("GL_TEXTURE_BINDING_2D", el.Tex2D);
-  ser.Serialise("GL_TEXTURE_BINDING_3D", el.Tex3D);
-  ser.Serialise("GL_TEXTURE_BINDING_1D_ARRAY", el.Tex1DArray);
-  ser.Serialise("GL_TEXTURE_BINDING_2D_ARRAY", el.Tex2DArray);
-  ser.Serialise("GL_TEXTURE_BINDING_CUBE_MAP_ARRAY", el.TexCubeArray);
-  ser.Serialise("GL_TEXTURE_BINDING_RECTANGLE", el.TexRect);
-  ser.Serialise("GL_TEXTURE_BINDING_BUFFER", el.TexBuffer);
-  ser.Serialise("GL_TEXTURE_BINDING_CUBE_MAP", el.TexCube);
-  ser.Serialise("GL_TEXTURE_BINDING_2D_MULTISAMPLE", el.Tex2DMS);
-  ser.Serialise("GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY", el.Tex2DMSArray);
+  ser.Serialise("GL_TEXTURE_BINDING_1D"_lit, el.Tex1D);
+  ser.Serialise("GL_TEXTURE_BINDING_2D"_lit, el.Tex2D);
+  ser.Serialise("GL_TEXTURE_BINDING_3D"_lit, el.Tex3D);
+  ser.Serialise("GL_TEXTURE_BINDING_1D_ARRAY"_lit, el.Tex1DArray);
+  ser.Serialise("GL_TEXTURE_BINDING_2D_ARRAY"_lit, el.Tex2DArray);
+  ser.Serialise("GL_TEXTURE_BINDING_CUBE_MAP_ARRAY"_lit, el.TexCubeArray);
+  ser.Serialise("GL_TEXTURE_BINDING_RECTANGLE"_lit, el.TexRect);
+  ser.Serialise("GL_TEXTURE_BINDING_BUFFER"_lit, el.TexBuffer);
+  ser.Serialise("GL_TEXTURE_BINDING_CUBE_MAP"_lit, el.TexCube);
+  ser.Serialise("GL_TEXTURE_BINDING_2D_MULTISAMPLE"_lit, el.Tex2DMS);
+  ser.Serialise("GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY"_lit, el.Tex2DMSArray);
 
-  ser.Serialise("GL_SAMPLER_BINDING", el.Samplers);
+  ser.Serialise("GL_SAMPLER_BINDING"_lit, el.Samplers);
 
-  ser.Serialise("GL_ACTIVE_TEXTURE", el.ActiveTexture);
+  ser.Serialise("GL_ACTIVE_TEXTURE"_lit, el.ActiveTexture);
 
-  ser.Serialise("GL_IMAGE_BINDING", el.Images);
+  ser.Serialise("GL_IMAGE_BINDING"_lit, el.Images);
 
-  ser.Serialise("GL_CURRENT_PROGRAM", el.Program);
-  ser.Serialise("GL_PROGRAM_PIPELINE_BINDING", el.Pipeline);
+  ser.Serialise("GL_CURRENT_PROGRAM"_lit, el.Program);
+  ser.Serialise("GL_PROGRAM_PIPELINE_BINDING"_lit, el.Pipeline);
 
-  ser.Serialise("GL_SUBROUTINES", el.Subroutines);
+  ser.Serialise("GL_SUBROUTINES"_lit, el.Subroutines);
 
-  ser.Serialise("GL_VERTEX_ARRAY_BINDING", el.VAO);
+  ser.Serialise("GL_VERTEX_ARRAY_BINDING"_lit, el.VAO);
 
-  ser.Serialise("GL_TRANSFORM_FEEDBACK_BINDING", el.FeedbackObj);
+  ser.Serialise("GL_TRANSFORM_FEEDBACK_BINDING"_lit, el.FeedbackObj);
 
-  ser.Serialise("GL_CURRENT_VERTEX_ATTRIB", el.GenericVertexAttribs);
+  ser.Serialise("GL_CURRENT_VERTEX_ATTRIB"_lit, el.GenericVertexAttribs);
 
-  ser.Serialise("GL_POINT_FADE_THRESHOLD_SIZE", el.PointFadeThresholdSize);
-  ser.Serialise("GL_POINT_SPRITE_COORD_ORIGIN", el.PointSpriteOrigin);
-  ser.Serialise("GL_LINE_WIDTH", el.LineWidth);
-  ser.Serialise("GL_POINT_SIZE", el.PointSize);
+  ser.Serialise("GL_POINT_FADE_THRESHOLD_SIZE"_lit, el.PointFadeThresholdSize);
+  ser.Serialise("GL_POINT_SPRITE_COORD_ORIGIN"_lit, el.PointSpriteOrigin);
+  ser.Serialise("GL_LINE_WIDTH"_lit, el.LineWidth);
+  ser.Serialise("GL_POINT_SIZE"_lit, el.PointSize);
 
-  ser.Serialise("GL_PRIMITIVE_RESTART_INDEX", el.PrimitiveRestartIndex);
+  ser.Serialise("GL_PRIMITIVE_RESTART_INDEX"_lit, el.PrimitiveRestartIndex);
 
   {
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINX", el.PrimitiveBoundingBox.minX);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINY", el.PrimitiveBoundingBox.minY);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINZ", el.PrimitiveBoundingBox.minZ);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINW", el.PrimitiveBoundingBox.minW);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXX", el.PrimitiveBoundingBox.maxX);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXY", el.PrimitiveBoundingBox.maxY);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXZ", el.PrimitiveBoundingBox.maxZ);
-    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXW", el.PrimitiveBoundingBox.maxW);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINX"_lit, el.PrimitiveBoundingBox.minX);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINY"_lit, el.PrimitiveBoundingBox.minY);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINZ"_lit, el.PrimitiveBoundingBox.minZ);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINW"_lit, el.PrimitiveBoundingBox.minW);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXX"_lit, el.PrimitiveBoundingBox.maxX);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXY"_lit, el.PrimitiveBoundingBox.maxY);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXZ"_lit, el.PrimitiveBoundingBox.maxZ);
+    ser.Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXW"_lit, el.PrimitiveBoundingBox.maxW);
   }
 
-  ser.Serialise("GL_CLIP_ORIGIN", el.ClipOrigin);
-  ser.Serialise("GL_CLIP_DEPTH_MODE", el.ClipDepth);
-  ser.Serialise("GL_PROVOKING_VERTEX", el.ProvokingVertex);
+  ser.Serialise("GL_CLIP_ORIGIN"_lit, el.ClipOrigin);
+  ser.Serialise("GL_CLIP_DEPTH_MODE"_lit, el.ClipDepth);
+  ser.Serialise("GL_PROVOKING_VERTEX"_lit, el.ProvokingVertex);
 
-  ser.Serialise("GL_ARRAY_BUFFER_BINDING", el.BufferBindings[GLRenderState::eBufIdx_Array]);
-  ser.Serialise("GL_COPY_READ_BUFFER_BINDING", el.BufferBindings[GLRenderState::eBufIdx_Copy_Read]);
-  ser.Serialise("GL_COPY_WRITE_BUFFER_BINDING", el.BufferBindings[GLRenderState::eBufIdx_Copy_Write]);
-  ser.Serialise("GL_PIXEL_PACK_BUFFER_BINDING", el.BufferBindings[GLRenderState::eBufIdx_Pixel_Pack]);
-  ser.Serialise("GL_PIXEL_UNPACK_BUFFER_BINDING",
+  ser.Serialise("GL_ARRAY_BUFFER_BINDING"_lit, el.BufferBindings[GLRenderState::eBufIdx_Array]);
+  ser.Serialise("GL_COPY_READ_BUFFER_BINDING"_lit,
+                el.BufferBindings[GLRenderState::eBufIdx_Copy_Read]);
+  ser.Serialise("GL_COPY_WRITE_BUFFER_BINDING"_lit,
+                el.BufferBindings[GLRenderState::eBufIdx_Copy_Write]);
+  ser.Serialise("GL_PIXEL_PACK_BUFFER_BINDING"_lit,
+                el.BufferBindings[GLRenderState::eBufIdx_Pixel_Pack]);
+  ser.Serialise("GL_PIXEL_UNPACK_BUFFER_BINDING"_lit,
                 el.BufferBindings[GLRenderState::eBufIdx_Pixel_Unpack]);
-  ser.Serialise("GL_TEXTURE_BUFFER_BINDING", el.BufferBindings[GLRenderState::eBufIdx_Texture]);
-  ser.Serialise("GL_DRAW_INDIRECT_BUFFER_BINDING",
+  ser.Serialise("GL_TEXTURE_BUFFER_BINDING"_lit, el.BufferBindings[GLRenderState::eBufIdx_Texture]);
+  ser.Serialise("GL_DRAW_INDIRECT_BUFFER_BINDING"_lit,
                 el.BufferBindings[GLRenderState::eBufIdx_Draw_Indirect]);
-  ser.Serialise("GL_DISPATCH_INDIRECT_BUFFER_BINDING",
+  ser.Serialise("GL_DISPATCH_INDIRECT_BUFFER_BINDING"_lit,
                 el.BufferBindings[GLRenderState::eBufIdx_Dispatch_Indirect]);
-  ser.Serialise("GL_QUERY_BUFFER_BINDING", el.BufferBindings[GLRenderState::eBufIdx_Query]);
-  ser.Serialise("GL_PARAMETER_BUFFER_ARB_BINDING",
+  ser.Serialise("GL_QUERY_BUFFER_BINDING"_lit, el.BufferBindings[GLRenderState::eBufIdx_Query]);
+  ser.Serialise("GL_PARAMETER_BUFFER_ARB_BINDING"_lit,
                 el.BufferBindings[GLRenderState::eBufIdx_Parameter]);
 
-  ser.Serialise("GL_ATOMIC_COUNTER_BUFFER_BINDING", el.AtomicCounter);
-  ser.Serialise("GL_SHADER_STORAGE_BUFFER_BINDING", el.ShaderStorage);
-  ser.Serialise("GL_TRANSFORM_FEEDBACK_BUFFER_BINDING", el.TransformFeedback);
-  ser.Serialise("GL_UNIFORM_BUFFER_BINDING", el.UniformBinding);
+  ser.Serialise("GL_ATOMIC_COUNTER_BUFFER_BINDING"_lit, el.AtomicCounter);
+  ser.Serialise("GL_SHADER_STORAGE_BUFFER_BINDING"_lit, el.ShaderStorage);
+  ser.Serialise("GL_TRANSFORM_FEEDBACK_BUFFER_BINDING"_lit, el.TransformFeedback);
+  ser.Serialise("GL_UNIFORM_BUFFER_BINDING"_lit, el.UniformBinding);
 
-  ser.Serialise("GL_BLENDS", el.Blends);
-  ser.Serialise("GL_BLEND_COLOR", el.BlendColor);
+  ser.Serialise("GL_BLENDS"_lit, el.Blends);
+  ser.Serialise("GL_BLEND_COLOR"_lit, el.BlendColor);
 
-  ser.Serialise("GL_VIEWPORT", el.Viewports);
-  ser.Serialise("GL_SCISSOR", el.Scissors);
+  ser.Serialise("GL_VIEWPORT"_lit, el.Viewports);
+  ser.Serialise("GL_SCISSOR"_lit, el.Scissors);
 
-  ser.Serialise("GL_DEPTH_RANGE", el.DepthRanges);
+  ser.Serialise("GL_DEPTH_RANGE"_lit, el.DepthRanges);
 
-  ser.Serialise("GL_READ_FRAMEBUFFER_BINDING", el.ReadFBO);
-  ser.Serialise("GL_DRAW_FRAMEBUFFER_BINDING", el.DrawFBO);
+  ser.Serialise("GL_READ_FRAMEBUFFER_BINDING"_lit, el.ReadFBO);
+  ser.Serialise("GL_DRAW_FRAMEBUFFER_BINDING"_lit, el.DrawFBO);
 
-  ser.Serialise("GL_READ_BUFFER", el.ReadBuffer);
-  ser.Serialise("GL_DRAW_BUFFERS", el.DrawBuffers);
-
-  {
-    ser.Serialise("GL_PATCH_VERTICES", el.PatchParams.numVerts);
-    ser.Serialise("GL_PATCH_DEFAULT_INNER_LEVEL", el.PatchParams.defaultInnerLevel);
-    ser.Serialise("GL_PATCH_DEFAULT_OUTER_LEVEL", el.PatchParams.defaultOuterLevel);
-  }
-
-  ser.Serialise("GL_POLYGON_MODE", el.PolygonMode);
-  ser.Serialise("GL_POLYGON_OFFSET_FACTOR", el.PolygonOffset[0]);
-  ser.Serialise("GL_POLYGON_OFFSET_UNITS", el.PolygonOffset[1]);
-  ser.Serialise("GL_POLYGON_OFFSET_CLAMP_EXT", el.PolygonOffset[2]);
-
-  ser.Serialise("GL_DEPTH_WRITEMASK", el.DepthWriteMask);
-  ser.Serialise("GL_DEPTH_CLEAR_VALUE", el.DepthClearValue);
-  ser.Serialise("GL_DEPTH_FUNC", el.DepthFunc);
-
-  ser.Serialise("GL_DEPTH_BOUNDS_EXT", el.DepthBounds);
+  ser.Serialise("GL_READ_BUFFER"_lit, el.ReadBuffer);
+  ser.Serialise("GL_DRAW_BUFFERS"_lit, el.DrawBuffers);
 
   {
-    ser.Serialise("GL_STENCIL_FUNC", el.StencilFront.func);
-    ser.Serialise("GL_STENCIL_BACK_FUNC", el.StencilBack.func);
-
-    ser.Serialise("GL_STENCIL_REF", el.StencilFront.ref);
-    ser.Serialise("GL_STENCIL_BACK_REF", el.StencilBack.ref);
-
-    ser.Serialise("GL_STENCIL_VALUE_MASK", el.StencilFront.valuemask);
-    ser.Serialise("GL_STENCIL_BACK_VALUE_MASK", el.StencilBack.valuemask);
-
-    ser.Serialise("GL_STENCIL_WRITEMASK", el.StencilFront.writemask);
-    ser.Serialise("GL_STENCIL_BACK_WRITEMASK", el.StencilBack.writemask);
-
-    ser.Serialise("GL_STENCIL_FAIL", el.StencilFront.stencilFail);
-    ser.Serialise("GL_STENCIL_BACK_FAIL", el.StencilBack.stencilFail);
-
-    ser.Serialise("GL_STENCIL_PASS_DEPTH_FAIL", el.StencilFront.depthFail);
-    ser.Serialise("GL_STENCIL_BACK_PASS_DEPTH_FAIL", el.StencilBack.depthFail);
-
-    ser.Serialise("GL_STENCIL_PASS_DEPTH_PASS", el.StencilFront.pass);
-    ser.Serialise("GL_STENCIL_BACK_PASS_DEPTH_PASS", el.StencilBack.pass);
+    ser.Serialise("GL_PATCH_VERTICES"_lit, el.PatchParams.numVerts);
+    ser.Serialise("GL_PATCH_DEFAULT_INNER_LEVEL"_lit, el.PatchParams.defaultInnerLevel);
+    ser.Serialise("GL_PATCH_DEFAULT_OUTER_LEVEL"_lit, el.PatchParams.defaultOuterLevel);
   }
 
-  ser.Serialise("GL_STENCIL_CLEAR_VALUE", el.StencilClearValue);
+  ser.Serialise("GL_POLYGON_MODE"_lit, el.PolygonMode);
+  ser.Serialise("GL_POLYGON_OFFSET_FACTOR"_lit, el.PolygonOffset[0]);
+  ser.Serialise("GL_POLYGON_OFFSET_UNITS"_lit, el.PolygonOffset[1]);
+  ser.Serialise("GL_POLYGON_OFFSET_CLAMP_EXT"_lit, el.PolygonOffset[2]);
 
-  ser.Serialise("GL_COLOR_WRITEMASK", el.ColorMasks);
+  ser.Serialise("GL_DEPTH_WRITEMASK"_lit, el.DepthWriteMask);
+  ser.Serialise("GL_DEPTH_CLEAR_VALUE"_lit, el.DepthClearValue);
+  ser.Serialise("GL_DEPTH_FUNC"_lit, el.DepthFunc);
 
-  ser.Serialise("GL_RASTER_SAMPLES_EXT", el.RasterSamples);
-  ser.Serialise("GL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT", el.RasterFixed);
+  ser.Serialise("GL_DEPTH_BOUNDS_EXT"_lit, el.DepthBounds);
 
-  ser.Serialise("GL_SAMPLE_MASK_VALUE", el.SampleMask);
-  ser.Serialise("GL_SAMPLE_COVERAGE_VALUE", el.SampleCoverage);
-  ser.Serialise("GL_SAMPLE_COVERAGE_INVERT", el.SampleCoverageInvert);
-  ser.Serialise("GL_MIN_SAMPLE_SHADING", el.MinSampleShading);
+  {
+    ser.Serialise("GL_STENCIL_FUNC"_lit, el.StencilFront.func);
+    ser.Serialise("GL_STENCIL_BACK_FUNC"_lit, el.StencilBack.func);
 
-  ser.Serialise("GL_LOGIC_OP_MODE", el.LogicOp);
+    ser.Serialise("GL_STENCIL_REF"_lit, el.StencilFront.ref);
+    ser.Serialise("GL_STENCIL_BACK_REF"_lit, el.StencilBack.ref);
 
-  ser.Serialise("GL_COLOR_CLEAR_VALUE", el.ColorClearValue);
+    ser.Serialise("GL_STENCIL_VALUE_MASK"_lit, el.StencilFront.valuemask);
+    ser.Serialise("GL_STENCIL_BACK_VALUE_MASK"_lit, el.StencilBack.valuemask);
 
-  ser.Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", el.Hints.Derivatives);
-  ser.Serialise("GL_LINE_SMOOTH_HINT", el.Hints.LineSmooth);
-  ser.Serialise("GL_POLYGON_SMOOTH_HINT", el.Hints.PolySmooth);
-  ser.Serialise("GL_TEXTURE_COMPRESSION_HINT", el.Hints.TexCompression);
+    ser.Serialise("GL_STENCIL_WRITEMASK"_lit, el.StencilFront.writemask);
+    ser.Serialise("GL_STENCIL_BACK_WRITEMASK"_lit, el.StencilBack.writemask);
 
-  ser.Serialise("GL_FRONT_FACE", el.FrontFace);
-  ser.Serialise("GL_CULL_FACE_MODE", el.CullFace);
+    ser.Serialise("GL_STENCIL_FAIL"_lit, el.StencilFront.stencilFail);
+    ser.Serialise("GL_STENCIL_BACK_FAIL"_lit, el.StencilBack.stencilFail);
 
-  ser.Serialise("GL_UNPACK_SWAP_BYTES", el.Unpack.swapBytes);
+    ser.Serialise("GL_STENCIL_PASS_DEPTH_FAIL"_lit, el.StencilFront.depthFail);
+    ser.Serialise("GL_STENCIL_BACK_PASS_DEPTH_FAIL"_lit, el.StencilBack.depthFail);
+
+    ser.Serialise("GL_STENCIL_PASS_DEPTH_PASS"_lit, el.StencilFront.pass);
+    ser.Serialise("GL_STENCIL_BACK_PASS_DEPTH_PASS"_lit, el.StencilBack.pass);
+  }
+
+  ser.Serialise("GL_STENCIL_CLEAR_VALUE"_lit, el.StencilClearValue);
+
+  ser.Serialise("GL_COLOR_WRITEMASK"_lit, el.ColorMasks);
+
+  ser.Serialise("GL_RASTER_SAMPLES_EXT"_lit, el.RasterSamples);
+  ser.Serialise("GL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT"_lit, el.RasterFixed);
+
+  ser.Serialise("GL_SAMPLE_MASK_VALUE"_lit, el.SampleMask);
+  ser.Serialise("GL_SAMPLE_COVERAGE_VALUE"_lit, el.SampleCoverage);
+  ser.Serialise("GL_SAMPLE_COVERAGE_INVERT"_lit, el.SampleCoverageInvert);
+  ser.Serialise("GL_MIN_SAMPLE_SHADING"_lit, el.MinSampleShading);
+
+  ser.Serialise("GL_LOGIC_OP_MODE"_lit, el.LogicOp);
+
+  ser.Serialise("GL_COLOR_CLEAR_VALUE"_lit, el.ColorClearValue);
+
+  ser.Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT"_lit, el.Hints.Derivatives);
+  ser.Serialise("GL_LINE_SMOOTH_HINT"_lit, el.Hints.LineSmooth);
+  ser.Serialise("GL_POLYGON_SMOOTH_HINT"_lit, el.Hints.PolySmooth);
+  ser.Serialise("GL_TEXTURE_COMPRESSION_HINT"_lit, el.Hints.TexCompression);
+
+  ser.Serialise("GL_FRONT_FACE"_lit, el.FrontFace);
+  ser.Serialise("GL_CULL_FACE_MODE"_lit, el.CullFace);
+
+  ser.Serialise("GL_UNPACK_SWAP_BYTES"_lit, el.Unpack.swapBytes);
   // TODO serialise GL_UNPACK_LSB_FIRST?
-  ser.Serialise("GL_UNPACK_ROW_LENGTH", el.Unpack.rowlength);
-  ser.Serialise("GL_UNPACK_IMAGE_HEIGHT", el.Unpack.imageheight);
-  ser.Serialise("GL_UNPACK_SKIP_PIXELS", el.Unpack.skipPixels);
-  ser.Serialise("GL_UNPACK_SKIP_ROWS", el.Unpack.skipRows);
-  ser.Serialise("GL_UNPACK_SKIP_IMAGES", el.Unpack.skipImages);
-  ser.Serialise("GL_UNPACK_ALIGNMENT", el.Unpack.alignment);
-  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_WIDTH", el.Unpack.compressedBlockWidth);
-  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_HEIGHT", el.Unpack.compressedBlockHeight);
-  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_DEPTH", el.Unpack.compressedBlockDepth);
-  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_SIZE", el.Unpack.compressedBlockSize);
+  ser.Serialise("GL_UNPACK_ROW_LENGTH"_lit, el.Unpack.rowlength);
+  ser.Serialise("GL_UNPACK_IMAGE_HEIGHT"_lit, el.Unpack.imageheight);
+  ser.Serialise("GL_UNPACK_SKIP_PIXELS"_lit, el.Unpack.skipPixels);
+  ser.Serialise("GL_UNPACK_SKIP_ROWS"_lit, el.Unpack.skipRows);
+  ser.Serialise("GL_UNPACK_SKIP_IMAGES"_lit, el.Unpack.skipImages);
+  ser.Serialise("GL_UNPACK_ALIGNMENT"_lit, el.Unpack.alignment);
+  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_WIDTH"_lit, el.Unpack.compressedBlockWidth);
+  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_HEIGHT"_lit, el.Unpack.compressedBlockHeight);
+  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_DEPTH"_lit, el.Unpack.compressedBlockDepth);
+  ser.Serialise("GL_UNPACK_COMPRESSED_BLOCK_SIZE"_lit, el.Unpack.compressedBlockSize);
 }
 
 INSTANTIATE_SERIALISE_TYPE(GLRenderState);

@@ -419,7 +419,7 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
 static const uint32_t FirstRealWord = 5;
 
 template <>
-std::string DoStringise(const SPIRVId &el)
+rdcstr DoStringise(const SPIRVId &el)
 {
   return StringFormat::Fmt("%u", el.id);
 }

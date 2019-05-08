@@ -253,7 +253,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Memory, GetResID(*pMemory)).TypedAs("VkDeviceMemory");
+  SERIALISE_ELEMENT_LOCAL(Memory, GetResID(*pMemory)).TypedAs("VkDeviceMemory"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -605,7 +605,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
   // directly into upload memory
-  ser.Serialise("MapData", MapData, MapSize, SerialiserFlags::NoFlags);
+  ser.Serialise("MapData"_lit, MapData, MapSize, SerialiserFlags::NoFlags);
 
   if(IsReplayingAndReading() && MapData && memory != VK_NULL_HANDLE)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(memory));
@@ -731,7 +731,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
   // directly into upload memory
-  ser.Serialise("MappedData", MappedData, memRangeSize, SerialiserFlags::NoFlags);
+  ser.Serialise("MappedData"_lit, MappedData, memRangeSize, SerialiserFlags::NoFlags);
 
   if(IsReplayingAndReading() && MappedData && MemRange.memory != VK_NULL_HANDLE)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(MemRange.memory));
@@ -1016,7 +1016,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer)).TypedAs("VkBuffer");
+  SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer)).TypedAs("VkBuffer"_lit);
   // unused at the moment, just for user information
   SERIALISE_ELEMENT(memoryRequirements);
 
@@ -1236,7 +1236,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView)).TypedAs("VkBufferView");
+  SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView)).TypedAs("VkBufferView"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1353,7 +1353,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage)).TypedAs("VkImage");
+  SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage)).TypedAs("VkImage"_lit);
   // unused at the moment, just for user information
   SERIALISE_ELEMENT(memoryRequirements);
 
@@ -1787,7 +1787,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView)).TypedAs("VkImageView");
+  SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView)).TypedAs("VkImageView"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 

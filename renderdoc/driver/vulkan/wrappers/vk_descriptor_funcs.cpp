@@ -176,7 +176,8 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(DescriptorPool, GetResID(*pDescriptorPool)).TypedAs("VkDescriptorPool");
+  SERIALISE_ELEMENT_LOCAL(DescriptorPool, GetResID(*pDescriptorPool))
+      .TypedAs("VkDescriptorPool"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -252,7 +253,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
-  SERIALISE_ELEMENT_LOCAL(SetLayout, GetResID(*pSetLayout)).TypedAs("VkDescriptorSetLayout");
+  SERIALISE_ELEMENT_LOCAL(SetLayout, GetResID(*pSetLayout)).TypedAs("VkDescriptorSetLayout"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -378,7 +379,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
-  SERIALISE_ELEMENT_LOCAL(DescriptorSet, GetResID(*pDescriptorSets)).TypedAs("VkDescriptorSet");
+  SERIALISE_ELEMENT_LOCAL(DescriptorSet, GetResID(*pDescriptorSets)).TypedAs("VkDescriptorSet"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1125,7 +1126,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(DescriptorUpdateTemplate, GetResID(*pDescriptorUpdateTemplate))
-      .TypedAs("VkDescriptorUpdateTemplate");
+      .TypedAs("VkDescriptorUpdateTemplate"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1224,7 +1225,7 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplate(
     GetRecord(descriptorUpdateTemplate)->descTemplateInfo->Apply(pData, apply);
   }
 
-  SERIALISE_ELEMENT(apply.writes).Named("Decoded Writes");
+  SERIALISE_ELEMENT(apply.writes).Named("Decoded Writes"_lit);
 
   Serialise_DebugMessages(ser);
 

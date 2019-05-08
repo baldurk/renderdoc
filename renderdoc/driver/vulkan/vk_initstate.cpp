@@ -657,17 +657,17 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
   return 128;
 }
 
-static const char *NameOfType(VkResourceType type)
+static rdcliteral NameOfType(VkResourceType type)
 {
   switch(type)
   {
-    case eResDescriptorSet: return "VkDescriptorSet";
-    case eResDeviceMemory: return "VkDeviceMemory";
-    case eResBuffer: return "VkBuffer";
-    case eResImage: return "VkImage";
+    case eResDescriptorSet: return "VkDescriptorSet"_lit;
+    case eResDeviceMemory: return "VkDeviceMemory"_lit;
+    case eResBuffer: return "VkBuffer"_lit;
+    case eResImage: return "VkImage"_lit;
     default: break;
   }
-  return "VkResource";
+  return "VkResource"_lit;
 }
 
 template <typename SerialiserType>
@@ -1015,7 +1015,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
+    ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags);
 
     // unmap the resource we mapped before - we need to do this on read and on write.
     if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)

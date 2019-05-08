@@ -27,7 +27,7 @@
 #include "serialise/serialiser.h"
 
 template <>
-std::string DoStringise(const RemapTexture &el)
+rdcstr DoStringise(const RemapTexture &el)
 {
   BEGIN_ENUM_STRINGISE(RemapTexture);
   {

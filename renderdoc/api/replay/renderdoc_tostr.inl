@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 template <>
-std::string DoStringise(const ReplayStatus &el)
+rdcstr DoStringise(const ReplayStatus &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayStatus)
   {
@@ -55,7 +55,7 @@ std::string DoStringise(const ReplayStatus &el)
 }
 
 template <>
-std::string DoStringise(const WindowingSystem &el)
+rdcstr DoStringise(const WindowingSystem &el)
 {
   BEGIN_ENUM_STRINGISE(WindowingSystem)
   {
@@ -70,7 +70,7 @@ std::string DoStringise(const WindowingSystem &el)
 }
 
 template <>
-std::string DoStringise(const ResourceFormatType &el)
+rdcstr DoStringise(const ResourceFormatType &el)
 {
   BEGIN_ENUM_STRINGISE(ResourceFormatType)
   {
@@ -106,7 +106,7 @@ std::string DoStringise(const ResourceFormatType &el)
 }
 
 template <>
-std::string DoStringise(const CompType &el)
+rdcstr DoStringise(const CompType &el)
 {
   BEGIN_ENUM_STRINGISE(CompType)
   {
@@ -126,7 +126,7 @@ std::string DoStringise(const CompType &el)
 }
 
 template <>
-std::string DoStringise(const FileType &el)
+rdcstr DoStringise(const FileType &el)
 {
   BEGIN_ENUM_STRINGISE(FileType)
   {
@@ -143,7 +143,7 @@ std::string DoStringise(const FileType &el)
 }
 
 template <>
-std::string DoStringise(const AlphaMapping &el)
+rdcstr DoStringise(const AlphaMapping &el)
 {
   BEGIN_ENUM_STRINGISE(AlphaMapping)
   {
@@ -156,7 +156,7 @@ std::string DoStringise(const AlphaMapping &el)
 }
 
 template <>
-std::string DoStringise(const EnvMod &el)
+rdcstr DoStringise(const EnvMod &el)
 {
   BEGIN_ENUM_STRINGISE(EnvMod)
   {
@@ -168,7 +168,7 @@ std::string DoStringise(const EnvMod &el)
 }
 
 template <>
-std::string DoStringise(const EnvSep &el)
+rdcstr DoStringise(const EnvSep &el)
 {
   BEGIN_ENUM_STRINGISE(EnvSep)
   {
@@ -181,7 +181,7 @@ std::string DoStringise(const EnvSep &el)
 }
 
 template <>
-std::string DoStringise(const Topology &el)
+rdcstr DoStringise(const Topology &el)
 {
   BEGIN_ENUM_STRINGISE(Topology)
   {
@@ -233,7 +233,7 @@ std::string DoStringise(const Topology &el)
 }
 
 template <>
-std::string DoStringise(const FillMode &el)
+rdcstr DoStringise(const FillMode &el)
 {
   BEGIN_ENUM_STRINGISE(FillMode)
   {
@@ -245,7 +245,7 @@ std::string DoStringise(const FillMode &el)
 }
 
 template <>
-std::string DoStringise(const CullMode &el)
+rdcstr DoStringise(const CullMode &el)
 {
   BEGIN_ENUM_STRINGISE(CullMode)
   {
@@ -258,7 +258,7 @@ std::string DoStringise(const CullMode &el)
 }
 
 template <>
-std::string DoStringise(const ConservativeRaster &el)
+rdcstr DoStringise(const ConservativeRaster &el)
 {
   BEGIN_ENUM_STRINGISE(ConservativeRaster)
   {
@@ -270,7 +270,7 @@ std::string DoStringise(const ConservativeRaster &el)
 }
 
 template <>
-std::string DoStringise(const FilterMode &el)
+rdcstr DoStringise(const FilterMode &el)
 {
   BEGIN_ENUM_STRINGISE(FilterMode)
   {
@@ -284,7 +284,7 @@ std::string DoStringise(const FilterMode &el)
 }
 
 template <>
-std::string DoStringise(const FilterFunction &el)
+rdcstr DoStringise(const FilterFunction &el)
 {
   BEGIN_ENUM_STRINGISE(FilterFunction)
   {
@@ -297,7 +297,7 @@ std::string DoStringise(const FilterFunction &el)
 }
 
 template <>
-std::string DoStringise(const CompareFunction &el)
+rdcstr DoStringise(const CompareFunction &el)
 {
   BEGIN_ENUM_STRINGISE(CompareFunction)
   {
@@ -314,7 +314,7 @@ std::string DoStringise(const CompareFunction &el)
 }
 
 template <>
-std::string DoStringise(const BlendMultiplier &el)
+rdcstr DoStringise(const BlendMultiplier &el)
 {
   BEGIN_ENUM_STRINGISE(BlendMultiplier)
   {
@@ -342,7 +342,7 @@ std::string DoStringise(const BlendMultiplier &el)
 }
 
 template <>
-std::string DoStringise(const BlendOperation &el)
+rdcstr DoStringise(const BlendOperation &el)
 {
   BEGIN_ENUM_STRINGISE(BlendOperation)
   {
@@ -356,7 +356,7 @@ std::string DoStringise(const BlendOperation &el)
 }
 
 template <>
-std::string DoStringise(const StencilOperation &el)
+rdcstr DoStringise(const StencilOperation &el)
 {
   BEGIN_ENUM_STRINGISE(StencilOperation)
   {
@@ -373,7 +373,7 @@ std::string DoStringise(const StencilOperation &el)
 }
 
 template <>
-std::string DoStringise(const LogicOperation &el)
+rdcstr DoStringise(const LogicOperation &el)
 {
   BEGIN_ENUM_STRINGISE(LogicOperation)
   {
@@ -398,7 +398,7 @@ std::string DoStringise(const LogicOperation &el)
 }
 
 template <>
-std::string DoStringise(const QualityHint &el)
+rdcstr DoStringise(const QualityHint &el)
 {
   BEGIN_ENUM_STRINGISE(QualityHint)
   {
@@ -410,7 +410,7 @@ std::string DoStringise(const QualityHint &el)
 }
 
 template <>
-std::string DoStringise(const TextureFilter &el)
+rdcstr DoStringise(const TextureFilter &el)
 {
   std::string filter = "";
   std::string filtPrefix = "";
@@ -442,7 +442,7 @@ std::string DoStringise(const TextureFilter &el)
 }
 
 template <>
-std::string DoStringise(const AddressMode &el)
+rdcstr DoStringise(const AddressMode &el)
 {
   BEGIN_ENUM_STRINGISE(AddressMode);
   {
@@ -456,7 +456,7 @@ std::string DoStringise(const AddressMode &el)
 }
 
 template <>
-std::string DoStringise(const YcbcrConversion &el)
+rdcstr DoStringise(const YcbcrConversion &el)
 {
   BEGIN_ENUM_STRINGISE(YcbcrConversion);
   {
@@ -470,7 +470,7 @@ std::string DoStringise(const YcbcrConversion &el)
 }
 
 template <>
-std::string DoStringise(const YcbcrRange &el)
+rdcstr DoStringise(const YcbcrRange &el)
 {
   BEGIN_ENUM_STRINGISE(YcbcrRange);
   {
@@ -481,7 +481,7 @@ std::string DoStringise(const YcbcrRange &el)
 }
 
 template <>
-std::string DoStringise(const ChromaSampleLocation &el)
+rdcstr DoStringise(const ChromaSampleLocation &el)
 {
   BEGIN_ENUM_STRINGISE(ChromaSampleLocation);
   {
@@ -492,7 +492,7 @@ std::string DoStringise(const ChromaSampleLocation &el)
 }
 
 template <>
-std::string DoStringise(const ResourceType &el)
+rdcstr DoStringise(const ResourceType &el)
 {
   BEGIN_ENUM_STRINGISE(ResourceType)
   {
@@ -519,7 +519,7 @@ std::string DoStringise(const ResourceType &el)
 }
 
 template <>
-std::string DoStringise(const TextureType &el)
+rdcstr DoStringise(const TextureType &el)
 {
   BEGIN_ENUM_STRINGISE(TextureType)
   {
@@ -540,7 +540,7 @@ std::string DoStringise(const TextureType &el)
 }
 
 template <>
-std::string DoStringise(const ShaderBuiltin &el)
+rdcstr DoStringise(const ShaderBuiltin &el)
 {
   BEGIN_ENUM_STRINGISE(ShaderBuiltin)
   {
@@ -579,7 +579,7 @@ std::string DoStringise(const ShaderBuiltin &el)
 }
 
 template <>
-std::string DoStringise(const BindType &el)
+rdcstr DoStringise(const BindType &el)
 {
   BEGIN_ENUM_STRINGISE(BindType)
   {
@@ -598,7 +598,7 @@ std::string DoStringise(const BindType &el)
 }
 
 template <>
-std::string DoStringise(const MessageSource &el)
+rdcstr DoStringise(const MessageSource &el)
 {
   BEGIN_ENUM_STRINGISE(MessageSource)
   {
@@ -614,7 +614,7 @@ std::string DoStringise(const MessageSource &el)
 }
 
 template <>
-std::string DoStringise(const MessageSeverity &el)
+rdcstr DoStringise(const MessageSeverity &el)
 {
   BEGIN_ENUM_STRINGISE(MessageSeverity)
   {
@@ -627,7 +627,7 @@ std::string DoStringise(const MessageSeverity &el)
 }
 
 template <>
-std::string DoStringise(const MessageCategory &el)
+rdcstr DoStringise(const MessageCategory &el)
 {
   BEGIN_ENUM_STRINGISE(MessageCategory)
   {
@@ -651,7 +651,7 @@ std::string DoStringise(const MessageCategory &el)
 }
 
 template <>
-std::string DoStringise(const TextureSwizzle &el)
+rdcstr DoStringise(const TextureSwizzle &el)
 {
   BEGIN_ENUM_STRINGISE(TextureSwizzle)
   {
@@ -666,7 +666,7 @@ std::string DoStringise(const TextureSwizzle &el)
 }
 
 template <>
-std::string DoStringise(const ResourceUsage &el)
+rdcstr DoStringise(const ResourceUsage &el)
 {
   BEGIN_ENUM_STRINGISE(ResourceUsage)
   {
@@ -726,7 +726,7 @@ std::string DoStringise(const ResourceUsage &el)
 }
 
 template <>
-std::string DoStringise(const VarType &el)
+rdcstr DoStringise(const VarType &el)
 {
   BEGIN_ENUM_STRINGISE(VarType)
   {
@@ -747,7 +747,7 @@ std::string DoStringise(const VarType &el)
 }
 
 template <>
-std::string DoStringise(const RegisterType &el)
+rdcstr DoStringise(const RegisterType &el)
 {
   BEGIN_ENUM_STRINGISE(RegisterType)
   {
@@ -759,7 +759,7 @@ std::string DoStringise(const RegisterType &el)
 }
 
 template <>
-std::string DoStringise(const GPUCounter &el)
+rdcstr DoStringise(const GPUCounter &el)
 {
   if(IsAMDCounter(el))
     return "AMD Counter " + ToStr((uint32_t)el);
@@ -790,7 +790,7 @@ std::string DoStringise(const GPUCounter &el)
 }
 
 template <>
-std::string DoStringise(const CounterUnit &el)
+rdcstr DoStringise(const CounterUnit &el)
 {
   BEGIN_ENUM_STRINGISE(CounterUnit)
   {
@@ -805,7 +805,7 @@ std::string DoStringise(const CounterUnit &el)
 }
 
 template <>
-std::string DoStringise(const ShaderStage &el)
+rdcstr DoStringise(const ShaderStage &el)
 {
   BEGIN_ENUM_STRINGISE(ShaderStage)
   {
@@ -820,7 +820,7 @@ std::string DoStringise(const ShaderStage &el)
 }
 
 template <>
-std::string DoStringise(const MeshDataStage &el)
+rdcstr DoStringise(const MeshDataStage &el)
 {
   BEGIN_ENUM_STRINGISE(MeshDataStage)
   {
@@ -833,7 +833,7 @@ std::string DoStringise(const MeshDataStage &el)
 }
 
 template <>
-std::string DoStringise(const DebugOverlay &el)
+rdcstr DoStringise(const DebugOverlay &el)
 {
   BEGIN_ENUM_STRINGISE(DebugOverlay)
   {
@@ -857,7 +857,7 @@ std::string DoStringise(const DebugOverlay &el)
 }
 
 template <>
-std::string DoStringise(const GPUVendor &el)
+rdcstr DoStringise(const GPUVendor &el)
 {
   BEGIN_ENUM_STRINGISE(GPUVendor)
   {
@@ -876,7 +876,7 @@ std::string DoStringise(const GPUVendor &el)
 }
 
 template <>
-std::string DoStringise(const GraphicsAPI &el)
+rdcstr DoStringise(const GraphicsAPI &el)
 {
   BEGIN_ENUM_STRINGISE(GraphicsAPI)
   {
@@ -889,7 +889,7 @@ std::string DoStringise(const GraphicsAPI &el)
 }
 
 template <>
-std::string DoStringise(const ShaderEncoding &el)
+rdcstr DoStringise(const ShaderEncoding &el)
 {
   BEGIN_ENUM_STRINGISE(ShaderEncoding)
   {
@@ -904,7 +904,7 @@ std::string DoStringise(const ShaderEncoding &el)
 }
 
 template <>
-std::string DoStringise(const SectionType &el)
+rdcstr DoStringise(const SectionType &el)
 {
   BEGIN_ENUM_STRINGISE(SectionType);
   {
@@ -920,7 +920,7 @@ std::string DoStringise(const SectionType &el)
 }
 
 template <>
-std::string DoStringise(const D3DBufferViewFlags &el)
+rdcstr DoStringise(const D3DBufferViewFlags &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3DBufferViewFlags);
   {
@@ -934,7 +934,7 @@ std::string DoStringise(const D3DBufferViewFlags &el)
 }
 
 template <>
-std::string DoStringise(const PathProperty &el)
+rdcstr DoStringise(const PathProperty &el)
 {
   BEGIN_BITFIELD_STRINGISE(PathProperty);
   {
@@ -951,7 +951,7 @@ std::string DoStringise(const PathProperty &el)
 }
 
 template <>
-std::string DoStringise(const SectionFlags &el)
+rdcstr DoStringise(const SectionFlags &el)
 {
   BEGIN_BITFIELD_STRINGISE(SectionFlags);
   {
@@ -965,7 +965,7 @@ std::string DoStringise(const SectionFlags &el)
 }
 
 template <>
-std::string DoStringise(const ShaderEvents &el)
+rdcstr DoStringise(const ShaderEvents &el)
 {
   BEGIN_BITFIELD_STRINGISE(ShaderEvents);
   {
@@ -978,7 +978,7 @@ std::string DoStringise(const ShaderEvents &el)
 }
 
 template <>
-std::string DoStringise(const TextureCategory &el)
+rdcstr DoStringise(const TextureCategory &el)
 {
   BEGIN_BITFIELD_STRINGISE(TextureCategory);
   {
@@ -994,7 +994,7 @@ std::string DoStringise(const TextureCategory &el)
 }
 
 template <>
-std::string DoStringise(const BufferCategory &el)
+rdcstr DoStringise(const BufferCategory &el)
 {
   BEGIN_BITFIELD_STRINGISE(BufferCategory);
   {
@@ -1010,7 +1010,7 @@ std::string DoStringise(const BufferCategory &el)
 }
 
 template <>
-std::string DoStringise(const DrawFlags &el)
+rdcstr DoStringise(const DrawFlags &el)
 {
   BEGIN_BITFIELD_STRINGISE(DrawFlags);
   {
@@ -1044,7 +1044,7 @@ std::string DoStringise(const DrawFlags &el)
 }
 
 template <>
-std::string DoStringise(const ShaderStageMask &el)
+rdcstr DoStringise(const ShaderStageMask &el)
 {
   BEGIN_BITFIELD_STRINGISE(ShaderStageMask);
   {

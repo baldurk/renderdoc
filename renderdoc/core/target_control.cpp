@@ -72,7 +72,7 @@ enum PacketType : uint32_t
 DECLARE_REFLECTION_ENUM(PacketType);
 
 template <>
-std::string DoStringise(const PacketType &el)
+rdcstr DoStringise(const PacketType &el)
 {
   BEGIN_ENUM_STRINGISE(PacketType);
   {
@@ -688,7 +688,7 @@ public:
     else if(type == ePacket_Busy)
     {
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.busy.clientName).Named("Client Name");
+      SERIALISE_ELEMENT(msg.busy.clientName).Named("Client Name"_lit);
 
       SAFE_DELETE(m_Socket);
 
@@ -701,8 +701,8 @@ public:
       msg.type = TargetControlMessageType::NewChild;
 
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.newChild.processId).Named("PID");
-      SERIALISE_ELEMENT(msg.newChild.ident).Named("Child ident");
+      SERIALISE_ELEMENT(msg.newChild.processId).Named("PID"_lit);
+      SERIALISE_ELEMENT(msg.newChild.ident).Named("Child ident"_lit);
 
       RDCLOG("Got a new child process: %u %u", msg.newChild.processId, msg.newChild.ident);
 
@@ -714,7 +714,7 @@ public:
       msg.type = TargetControlMessageType::CaptureProgress;
 
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.capProgress).Named("Capture Progress");
+      SERIALISE_ELEMENT(msg.capProgress).Named("Capture Progress"_lit);
 
       reader.EndChunk();
       return msg;
@@ -729,9 +729,9 @@ public:
 
       {
         READ_DATA_SCOPE();
-        SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID");
-        SERIALISE_ELEMENT(msg.newCapture.timestamp).Named("timestamp");
-        SERIALISE_ELEMENT(msg.newCapture.path).Named("path");
+        SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID"_lit);
+        SERIALISE_ELEMENT(msg.newCapture.timestamp).Named("timestamp"_lit);
+        SERIALISE_ELEMENT(msg.newCapture.path).Named("path"_lit);
         SERIALISE_ELEMENT(thumbnail);
         if(m_Version >= 3)
           SERIALISE_ELEMENT(driver);
@@ -809,7 +809,7 @@ public:
       msg.type = TargetControlMessageType::CaptureCopied;
 
       READ_DATA_SCOPE();
-      SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID");
+      SERIALISE_ELEMENT(msg.newCapture.captureId).Named("Capture ID"_lit);
 
       msg.newCapture.path = m_CaptureCopies[msg.newCapture.captureId];
 

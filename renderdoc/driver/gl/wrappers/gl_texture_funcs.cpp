@@ -90,7 +90,7 @@ bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLui
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -155,7 +155,7 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)))
-      .TypedAs("GLResource");
+      .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4702,7 +4702,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels", pixels, subimageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory);
   }
   else
   {
@@ -4914,7 +4914,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels", pixels, subimageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory);
   }
   else
   {
@@ -5134,7 +5134,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels", pixels, subimageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory);
   }
   else
   {
@@ -5353,7 +5353,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels", pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
   }
   else
   {
@@ -5554,7 +5554,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels", pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
   }
   else
   {
@@ -5773,7 +5773,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels", pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
   }
   else
   {

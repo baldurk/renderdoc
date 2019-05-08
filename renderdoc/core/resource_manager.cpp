@@ -54,7 +54,7 @@ void SetReplayResourceIDs()
 INSTANTIATE_SERIALISE_TYPE(ResourceManagerInternal::WrittenRecord);
 
 template <>
-std::string DoStringise(const FrameRefType &el)
+rdcstr DoStringise(const FrameRefType &el)
 {
   BEGIN_ENUM_STRINGISE(FrameRefType)
   {

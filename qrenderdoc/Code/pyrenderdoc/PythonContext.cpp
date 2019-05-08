@@ -590,9 +590,8 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
 
     if(register_func)
     {
-      QByteArray baseTypeName = TypeName<ICaptureContext>();
-      baseTypeName += " *";
-      PyObject *pyctx = PassObjectToPython(baseTypeName.data(), &ctx);
+      PyObject *pyctx =
+          PassObjectToPython((rdcstr(TypeName<ICaptureContext>()) + " *").c_str(), &ctx);
 
       PyObject *retval = NULL;
       if(pyctx)

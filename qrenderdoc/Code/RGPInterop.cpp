@@ -110,7 +110,7 @@ bool RGPInterop::RGPSupportsInterop(const QString &RGPPath)
 }
 
 template <>
-std::string DoStringise(const RGPCommand &el)
+rdcstr DoStringise(const RGPCommand &el)
 {
   BEGIN_ENUM_STRINGISE(RGPCommand);
   {

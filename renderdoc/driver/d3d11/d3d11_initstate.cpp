@@ -388,7 +388,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   if(type != Resource_Buffer)
   {
     SERIALISE_ELEMENT(type);
-    SERIALISE_ELEMENT(id).TypedAs("ID3D11DeviceChild *");
+    SERIALISE_ELEMENT(id).TypedAs("ID3D11DeviceChild *"_lit);
   }
 
   if(IsReplayingAndReading())
