@@ -2805,7 +2805,7 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
     QString bindName = (copy || clear) ? tr("Destination") : QString();
     QString slotName = (copy || clear)
                            ? tr("DST")
-                           : (m_Ctx.CurPipelineState().OutputAbbrev() + QString::number(rt));
+                           : QString(m_Ctx.CurPipelineState().OutputAbbrev() + QString::number(rt));
 
     InitResourcePreview(prev, RTs[rt].resourceId, RTs[rt].typeHint, false, follow, bindName,
                         slotName);

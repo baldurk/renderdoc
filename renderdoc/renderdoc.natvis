@@ -1,15 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="rdcstr">
-    <DisplayString Condition="elems == 0">""</DisplayString>
-    <DisplayString>{elems,s}</DisplayString>
-    <StringView>elems,s</StringView>
+    <DisplayString Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">{d.fixed.str,s}</DisplayString>
+    <DisplayString Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">{d.alloc.str,s}</DisplayString>
+    <DisplayString>{d.arr.str,s}</DisplayString>
+    <StringView Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">d.fixed.str,s</StringView>
+    <StringView Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">d.alloc.str,s</StringView>
+    <StringView>d.arr.str,s</StringView>
     <Expand>
-     <Item Name="[size]" ExcludeView="simple">usedCount</Item>
-     <Item Name="[capacity]" ExcludeView="simple">allocatedCount</Item>
-      <ArrayItems>
-        <Size>usedCount</Size>
-        <ValuePointer>elems</ValuePointer>
+      <Synthetic Name="[mode]" Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">
+        <DisplayString>Compile-Time Literal</DisplayString>
+      </Synthetic>
+      <Item Name="[size]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">d.fixed.size</Item>
+      <Item Name="[capacity]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">"N/A"</Item>
+      <ArrayItems Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">
+        <Size>d.fixed.size</Size>
+        <ValuePointer>d.fixed.str</ValuePointer>
+      </ArrayItems>
+
+      <Synthetic Name="[mode]" Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">
+        <DisplayString>Heap-allocated String</DisplayString>
+      </Synthetic>
+      <Item Name="[size]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">d.alloc.size</Item>
+      <Item Name="[capacity]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">d.alloc._capacity</Item>
+      <ArrayItems Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">
+        <Size>d.alloc.size</Size>
+        <ValuePointer>d.alloc.str</ValuePointer>
+      </ArrayItems>
+
+      <Synthetic Name="[mode]" Condition="(d.fixed.flags &amp; (rdcstr::ALLOC_STATE|rdcstr::FIXED_STATE)) == 0">
+        <DisplayString>Internal Array Small String</DisplayString>
+      </Synthetic>
+      <Item Name="[size]" ExcludeView="simple" Condition="(d.fixed.flags &amp; (rdcstr::ALLOC_STATE|rdcstr::FIXED_STATE)) == 0">d.arr._size</Item>
+      <Item Name="[capacity]" ExcludeView="simple" Condition="(d.fixed.flags &amp; (rdcstr::ALLOC_STATE|rdcstr::FIXED_STATE)) == 0">d.arr.capacity</Item>
+      <ArrayItems Condition="(d.fixed.flags &amp; (rdcstr::ALLOC_STATE|rdcstr::FIXED_STATE)) == 0">
+        <Size>d.arr._size</Size>
+        <ValuePointer>d.arr.str</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>

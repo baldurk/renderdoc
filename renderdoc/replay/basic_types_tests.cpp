@@ -24,6 +24,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "common/globalconfig.h"
+#include "common/timing.h"
 #include "os/os_specific.h"
 
 #if ENABLED(ENABLE_UNIT_TESTS)
@@ -569,78 +570,469 @@ TEST_CASE("Test array type", "[basictypes]")
 };
 
 #define CHECK_NULL_TERM(str) CHECK(str.c_str()[str.size()] == '\0');
+#define SMALL_STRING "Small str!"
+#define LARGE_STRING \
+  "String literal that cannot be stored directly in a small-string optimisation array!"
+#define VERY_LARGE_STRING \
+  R"(So: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce viverra dui dolor. Donec fermentum metus eu lorem rutrum, nec sodales urna vehicula. Praesent finibus tincidunt volutpat. Aliquam ullamcorper metus semper suscipit dignissim. Phasellus at odio nec arcu venenatis euismod id eget mi. Vestibulum consequat nisi sed massa venenatis, vel pellentesque nunc semper. Maecenas porttitor nulla non purus pellentesque pharetra. Ut ornare rhoncus massa at eleifend. Sed ultricies tincidunt bibendum. Pellentesque neque dolor, elementum eget scelerisque et, euismod at tortor. Duis vel porta sapien. Integer facilisis nisl condimentum tempor faucibus. Sed convallis tempus dolor quis fringilla. Nam dictum accumsan quam, eget pretium turpis mattis id. Praesent vitae enim ut est porttitor consectetur et at ante. Proin porttitor quam eu enim gravida, eget congue diam dapibus.!)"
 
 TEST_CASE("Test string type", "[basictypes][string]")
 {
-  rdcstr test;
+  RDCCOMPILE_ASSERT(sizeof(rdcstr) == sizeof(void *) * 3, "rdcstr is mis-sized");
 
-  // should not have any data in it
-  CHECK(test.size() == 0);
-  CHECK(test.capacity() == 0);
-  CHECK(test.empty());
-  CHECK(test.isEmpty());
-  CHECK(test.begin() == test.end());
-
-  CHECK(test.c_str() != NULL);
-  CHECK_NULL_TERM(test);
-
-  test = "Test string type";
-
-  CHECK(test.size() == 16);
-  CHECK(test.capacity() >= 16);
-  CHECK_FALSE(test.empty());
-  CHECK_FALSE(test.isEmpty());
-  CHECK(test.begin() + 16 == test.end());
-
-  CHECK(strlen(test.c_str()) == 16);
-  CHECK(test.c_str() != NULL);
-  CHECK(test == "Test string type");
-  CHECK(test == std::string("Test string type"));
-  CHECK(test == rdcstr("Test string type"));
-  CHECK_NULL_TERM(test);
-
-  test[4] = '!';
-
-  CHECK(test.size() == 16);
-  CHECK(test.capacity() >= 16);
-  CHECK_FALSE(test.empty());
-  CHECK_FALSE(test.isEmpty());
-  CHECK(test.begin() + 16 == test.end());
-
-  CHECK(strlen(test.c_str()) == 16);
-  CHECK(test.c_str() != NULL);
-  CHECK(test == "Test!string type");
-  CHECK(test == std::string("Test!string type"));
-  CHECK(test == rdcstr("Test!string type"));
-  CHECK_NULL_TERM(test);
-
-  test.clear();
-
-  CHECK(test.size() == 0);
-  CHECK(test.capacity() >= 16);
-  CHECK(test.empty());
-  CHECK(test.isEmpty());
-  CHECK(test.begin() == test.end());
-  CHECK_NULL_TERM(test);
-
-  rdcstr test2;
-
-  test2 = test;
-
-  CHECK(test.size() == test2.size());
-  CHECK(test.empty() == test2.empty());
-
-  for(size_t i = 0; i < test.size(); i++)
+  SECTION("Empty strings")
   {
-    CHECK(test[i] == test2[i]);
-  }
+    const rdcstr test;
 
-  rdcstr empty;
+    // should not have any data in it
+    CHECK(test.size() == 0);
+    CHECK(test.empty());
+    CHECK(test.isEmpty());
+    CHECK(test.begin() == test.end());
 
-  test2 = empty;
+    CHECK(test.c_str() != NULL);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "");
+    CHECK(test == ((const char *)NULL));
+    CHECK(test == rdcstr());
+    CHECK(test == std::string());
+  };
 
-  CHECK(test.size() == empty.size());
-  CHECK(test.empty() == empty.empty());
+  SECTION("Empty string after containing data")
+  {
+    rdcstr test;
+
+    auto lambda = [](rdcstr test, const char *str) {
+      test.clear();
+
+      CHECK(test.size() == 0);
+      CHECK(test.empty());
+      CHECK(test.isEmpty());
+      CHECK(test.begin() == test.end());
+
+      CHECK(test.c_str() != NULL);
+      CHECK_NULL_TERM(test);
+    };
+
+    lambda(SMALL_STRING, SMALL_STRING);
+    lambda(LARGE_STRING, LARGE_STRING);
+    lambda(VERY_LARGE_STRING, VERY_LARGE_STRING);
+    lambda(STRING_LITERAL(LARGE_STRING), LARGE_STRING);
+  };
+
+  SECTION("Small string read-only accessors")
+  {
+    auto lambda = [](const rdcstr &test, const char *str) {
+      const size_t len = strlen(str);
+
+      CHECK(test.size() == len);
+      CHECK(test.capacity() >= len);
+      CHECK_FALSE(test.empty());
+      CHECK_FALSE(test.isEmpty());
+      CHECK(test.begin() + len == test.end());
+
+      CHECK(strlen(test.c_str()) == len);
+      CHECK(test.c_str() != NULL);
+      CHECK(strcmp(test.c_str(), str) == 0);
+      CHECK(test != ((const char *)NULL));
+      CHECK(test == str);
+      CHECK(test == std::string(str));
+      CHECK(test == rdcstr(str));
+      CHECK_NULL_TERM(test);
+
+      CHECK(test.front() == 'S');
+      CHECK(test.back() == '!');
+    };
+
+    lambda(SMALL_STRING, SMALL_STRING);
+    lambda(LARGE_STRING, LARGE_STRING);
+    lambda(VERY_LARGE_STRING, VERY_LARGE_STRING);
+    lambda(STRING_LITERAL(LARGE_STRING), LARGE_STRING);
+  };
+
+  SECTION("String read-only accessors after modification")
+  {
+    auto lambda = [](rdcstr test, const char *str) {
+      const size_t len = strlen(str);
+
+      test[4] = '!';
+
+      CHECK(test.size() == len);
+      CHECK(test.capacity() >= len);
+      CHECK_FALSE(test.empty());
+      CHECK_FALSE(test.isEmpty());
+      CHECK(test.begin() + len == test.end());
+
+      CHECK(strlen(test.c_str()) == len);
+      CHECK(test.c_str() != NULL);
+      CHECK(strcmp(test.c_str(), str) == -1);
+      CHECK(test != str);
+      CHECK(test != std::string(str));
+      CHECK(test != rdcstr(str));
+      CHECK_NULL_TERM(test);
+
+      CHECK(test.front() == 'S');
+      CHECK(test.back() == '!');
+    };
+
+    lambda(SMALL_STRING, SMALL_STRING);
+    lambda(LARGE_STRING, LARGE_STRING);
+    lambda(VERY_LARGE_STRING, VERY_LARGE_STRING);
+    lambda(STRING_LITERAL(LARGE_STRING), LARGE_STRING);
+  };
+
+  SECTION("String copies")
+  {
+    auto lambda = [](const rdcstr &test, const char *str) {
+      rdcstr test2;
+
+      test2 = test;
+
+      CHECK(test.size() == test2.size());
+      CHECK(test.empty() == test2.empty());
+
+      for(size_t i = 0; i < test.size(); i++)
+      {
+        CHECK(test[i] == test2[i]);
+      }
+
+      CHECK(test.c_str() != test2.c_str());
+
+      rdcstr empty;
+
+      test2 = empty;
+
+      CHECK(test2.size() == empty.size());
+      CHECK(test2.empty() == empty.empty());
+    };
+
+    lambda(SMALL_STRING, SMALL_STRING);
+    lambda(LARGE_STRING, LARGE_STRING);
+    lambda(VERY_LARGE_STRING, VERY_LARGE_STRING);
+    lambda(STRING_LITERAL(LARGE_STRING), LARGE_STRING);
+  };
+
+  SECTION("Shrinking and expanding strings")
+  {
+    rdcstr test = "A longer string that would have been heap allocated";
+    test.resize(5);
+
+    CHECK(test.size() == 5);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "A lon");
+
+    // should do nothing
+    test.resize(5);
+
+    CHECK(test.size() == 5);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "A lon");
+
+    // this copy will copy to the internal array since it's small enough now
+    rdcstr test2 = test;
+
+    CHECK(test2.size() == 5);
+    CHECK_NULL_TERM(test2);
+    CHECK(test2 == "A lon");
+
+    test2 = "abcdefghij";
+
+    CHECK(test2.size() == 10);
+    CHECK_NULL_TERM(test2);
+
+    test2.resize(3);
+
+    CHECK(test2.size() == 3);
+    CHECK_NULL_TERM(test2);
+
+    test2.resize(6);
+
+    CHECK(test2.size() == 6);
+    CHECK_NULL_TERM(test2);
+
+    test.resize(12345);
+
+    CHECK(test.capacity() == 12345);
+    CHECK(test.size() == 12345);
+
+    const char *prev_ptr = test.c_str();
+
+    // this could fit in the internal array but to avoid allocation thrashing we should keep the
+    // same allocation
+    test = "Short str";
+
+    CHECK(test.capacity() == 12345);
+    CHECK(test.size() == 9);
+    CHECK(test.c_str() == prev_ptr);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "Short str");
+
+    test.resize(4);
+
+    CHECK(test.size() == 4);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "Shor");
+
+    test.resize(8);
+
+    CHECK(test.size() == 8);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "Shor");
+    CHECK(test[4] == 0);
+    CHECK(test[5] == 0);
+    CHECK(test[6] == 0);
+    CHECK(test[7] == 0);
+  };
+
+  SECTION("erase")
+  {
+    rdcstr test = "Hello, World! This is a test string";
+
+    test.erase(0);
+
+    CHECK(test == "ello, World! This is a test string");
+
+    test.erase(0, 4);
+
+    CHECK(test == ", World! This is a test string");
+
+    test.erase(9, 5);
+
+    CHECK(test == ", World! is a test string");
+
+    test.erase(14, 1000);
+
+    CHECK(test == ", World! is a ");
+
+    test.erase(100);
+
+    CHECK(test == ", World! is a ");
+
+    test.erase(100, 100);
+
+    CHECK(test == ", World! is a ");
+  };
+
+  SECTION("append")
+  {
+    rdcstr test = "Hello";
+
+    test += " World";
+
+    CHECK(test.size() == 11);
+    CHECK_NULL_TERM(test);
+    CHECK(test == "Hello World");
+
+    rdcstr test2 = test + "!";
+
+    CHECK(test2.size() == 12);
+    CHECK_NULL_TERM(test2);
+    CHECK(test2 == "Hello World!");
+
+    test2 += " And enough characters to force an allocation";
+
+    CHECK(test2 == "Hello World! And enough characters to force an allocation");
+
+    test2 += ", " + test + "?";
+
+    CHECK(test2 == "Hello World! And enough characters to force an allocation, Hello World?");
+  };
+
+  SECTION("insert")
+  {
+    rdcstr test = "Hello World!";
+
+    test.insert(5, ",");
+
+    CHECK(test == "Hello, World!");
+
+    rdcstr test2 = test;
+
+    test2.insert(0, test);
+
+    CHECK(test2 == "Hello, World!Hello, World!");
+
+    test2.insert(100, "foo");
+
+    CHECK(test2 == "Hello, World!Hello, World!");
+  };
+
+  SECTION("push_back and pop_back")
+  {
+    rdcstr test = "Hello, World!";
+
+    test.push_back('!');
+
+    CHECK(test == "Hello, World!!");
+
+    test.push_back('!');
+
+    CHECK(test == "Hello, World!!!");
+
+    test.pop_back();
+
+    CHECK(test == "Hello, World!!");
+
+    test.pop_back();
+
+    CHECK(test == "Hello, World!");
+
+    test.pop_back();
+
+    CHECK(test == "Hello, World");
+
+    test.clear();
+
+    CHECK(test == "");
+
+    test.pop_back();
+
+    CHECK(test == "");
+
+    test = "Longer string to force a heap allocation: Hello, World!";
+
+    test.push_back('!');
+
+    CHECK(test == "Longer string to force a heap allocation: Hello, World!!");
+
+    test.pop_back();
+
+    CHECK(test == "Longer string to force a heap allocation: Hello, World!");
+
+    test.pop_back();
+
+    CHECK(test == "Longer string to force a heap allocation: Hello, World");
+
+    test.clear();
+
+    CHECK(test == "");
+
+    test.pop_back();
+
+    CHECK(test == "");
+  };
+
+  SECTION("substr")
+  {
+    rdcstr test = "Hello, World!";
+
+    CHECK(test.substr(0) == "Hello, World!");
+    CHECK(test.substr(1) == "ello, World!");
+    CHECK(test.substr(5) == ", World!");
+    CHECK(test.substr(13) == "");
+    CHECK(test.substr(100) == "");
+    CHECK(test.substr(5, 2) == ", ");
+    CHECK(test.substr(5, 100) == ", World!");
+
+    test = "Hello, World! Hello, World! Hello, World! Hello, World! Hello, World!";
+
+    CHECK(test.substr(0) ==
+          "Hello, World! Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(1) == "ello, World! Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(5) == ", World! Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(13) == " Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(69) == "");
+    CHECK(test.substr(100) == "");
+    CHECK(test.substr(5, 2) == ", ");
+    CHECK(test.substr(5, 100) ==
+          ", World! Hello, World! Hello, World! Hello, World! Hello, World!");
+
+    test = "Hello, World! Hello, World! Hello, World! Hello, World! Hello, World!"_lit;
+
+    CHECK(test.substr(0) ==
+          "Hello, World! Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(1) == "ello, World! Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(5) == ", World! Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(13) == " Hello, World! Hello, World! Hello, World! Hello, World!");
+    CHECK(test.substr(69) == "");
+    CHECK(test.substr(100) == "");
+    CHECK(test.substr(5, 2) == ", ");
+    CHECK(test.substr(5, 100) ==
+          ", World! Hello, World! Hello, World! Hello, World! Hello, World!");
+  };
+
+  SECTION("searching")
+  {
+    rdcstr test = "Hello, World!";
+
+    CHECK(test.find("Hello") == 0);
+    CHECK(test.find("World") == 7);
+    CHECK(test.find("ld!") == 10);
+    CHECK(test.find("Foobar") == -1);
+    CHECK(test.find("Hello, World!!") == -1);
+    CHECK(test.find("Hello, World?") == -1);
+    CHECK(test.find("") == 0);
+
+    CHECK(test.indexOf('H') == 0);
+    CHECK(test.indexOf('l') == 2);
+    CHECK(test.indexOf('?') == -1);
+
+    CHECK(test.contains('!'));
+    CHECK_FALSE(test.contains('?'));
+
+    CHECK(test.contains('H'));
+    CHECK(test.contains("Hello"));
+
+    char H = test.takeAt(0);
+
+    CHECK(H == 'H');
+    CHECK_FALSE(test.contains('H'));
+    CHECK_FALSE(test.contains("Hello"));
+
+    test.removeOne('!');
+
+    CHECK_FALSE(test.contains('!'));
+
+    CHECK(test == "ello, World");
+  };
+
+  SECTION("String literal tests")
+  {
+    rdcstr test = STRING_LITERAL(LARGE_STRING);
+    const size_t len = strlen(LARGE_STRING);
+
+    CHECK(test.size() == len);
+    CHECK(test.capacity() == test.size());
+    CHECK(strlen(test.c_str()) == test.size());
+
+    rdcstr test2;
+
+    test2.resize(12345);
+    test2 = test;
+
+    CHECK(test2.size() == len);
+    CHECK(test2.capacity() == test2.size());
+
+    CHECK(test == test2);
+
+    // should both be pointing directly to the string storage, so identical pointers
+    CHECK(test.c_str() == test2.c_str());
+
+    test2.reserve(1);
+
+    // they will be equal still but not with the same storage now
+    CHECK(test == test2);
+    CHECK(test.c_str() != test2.c_str());
+
+    test2[0] = '!';
+
+    CHECK(test != test2);
+
+    test = test2;
+
+    // equal now but still not with the same storage
+    CHECK(test == test2);
+    CHECK(test.c_str() != test2.c_str());
+
+    test = "short literal"_lit;
+    test2 = test;
+
+    // this does the copy-on-write but into the internal array
+    test[0] = 'S';
+
+    CHECK(test == "Short literal");
+    CHECK(test.size() == test2.size());
+  };
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)

@@ -767,57 +767,7 @@ public:
 #endif
 };
 
-DOCUMENT("");
-struct rdcstr : public rdcarray<char>
-{
-  // extra string constructors
-  rdcstr() : rdcarray<char>() {}
-  rdcstr(const rdcstr &in) : rdcarray<char>() { assign(in); }
-  rdcstr(const std::string &in) : rdcarray<char>() { assign(in.c_str(), in.size()); }
-  rdcstr(const char *const in) : rdcarray<char>() { assign(in, strlen(in)); }
-  // extra string assignment
-  rdcstr &operator=(const std::string &in)
-  {
-    assign(in.c_str(), in.size());
-    return *this;
-  }
-  rdcstr &operator=(const char *const in)
-  {
-    assign(in, strlen(in));
-    return *this;
-  }
-
-  // cast operators
-  operator std::string() const { return std::string(elems, elems + usedCount); }
-#if defined(RENDERDOC_QT_COMPAT)
-  rdcstr(const QString &in) : rdcarray<char>()
-  {
-    QByteArray arr = in.toUtf8();
-    assign(arr.data(), (size_t)arr.size());
-  }
-  operator QString() const { return QString::fromUtf8(elems, (int32_t)usedCount); }
-  operator QVariant() const { return QVariant(QString::fromUtf8(elems, (int32_t)usedCount)); }
-#endif
-
-  // conventional data accessor
-  DOCUMENT("");
-  const char *c_str() const { return elems ? elems : ""; }
-  // equality checks
-  bool operator==(const char *const o) const
-  {
-    if(!elems)
-      return o == NULL;
-    return !strcmp(elems, o);
-  }
-  bool operator==(const std::string &o) const { return o == elems; }
-  bool operator==(const rdcstr &o) const { return *this == (const char *)o.elems; }
-  bool operator!=(const char *const o) const { return !(*this == o); }
-  bool operator!=(const std::string &o) const { return !(*this == o); }
-  bool operator!=(const rdcstr &o) const { return !(*this == o); }
-  // define ordering operators
-  bool operator<(const rdcstr &o) const { return strcmp(elems, o.elems) < 0; }
-  bool operator>(const rdcstr &o) const { return strcmp(elems, o.elems) > 0; }
-};
+#include "rdcstr.h"
 
 DOCUMENT("");
 struct bytebuf : public rdcarray<byte>
