@@ -258,14 +258,14 @@ public:
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
   void RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
-                      const map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
+                      const std::map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
   void MergeBarriers(vector<pair<ResourceId, ImageRegionState> > &dststates,
                      vector<pair<ResourceId, ImageRegionState> > &srcstates);
 
   void ApplyBarriers(uint32_t queueFamilyIndex, vector<pair<ResourceId, ImageRegionState> > &states,
-                     map<ResourceId, ImageLayouts> &layouts);
+                     std::map<ResourceId, ImageLayouts> &layouts);
 
   template <typename SerialiserType>
   void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, ImageLayouts> &states,

@@ -79,7 +79,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
   // VKTODOLOW this is a bit conservative, as we save the whole memory object rather than just the
   // bound range.
-  map<VkDeviceMemory, VkDeviceSize> boundMems;
+  std::map<VkDeviceMemory, VkDeviceSize> boundMems;
 
   // value will be filled out later once all memories are added
   for(size_t i = 0; i < buf->record->resInfo->opaquemappings.size(); i++)
@@ -205,7 +205,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 
   // VKTODOLOW this is a bit conservative, as we save the whole memory object rather than just the
   // bound range.
-  map<VkDeviceMemory, VkDeviceSize> boundMems;
+  std::map<VkDeviceMemory, VkDeviceSize> boundMems;
 
   // value will be filled out later once all memories are added
   for(size_t i = 0; i < sparse->opaquemappings.size(); i++)

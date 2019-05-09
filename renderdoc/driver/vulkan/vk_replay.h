@@ -99,7 +99,6 @@
 #endif
 
 #include <map>
-using std::map;
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.
@@ -451,7 +450,7 @@ private:
     VulkanResourceManager *m_ResourceManager;
   };
 
-  map<uint64_t, OutputWindow> m_OutputWindows;
+  std::map<uint64_t, OutputWindow> m_OutputWindows;
   uint64_t m_OutputWinID;
   uint64_t m_ActiveWinID;
   bool m_BindDepth;

@@ -742,23 +742,23 @@ private:
 
   // used both on capture and replay side to track image layouts. Only locked
   // in capture
-  map<ResourceId, ImageLayouts> m_ImageLayouts;
+  std::map<ResourceId, ImageLayouts> m_ImageLayouts;
   Threading::CriticalSection m_ImageLayoutsLock;
 
   // find swapchain for an image
-  map<RENDERDOC_WindowHandle, VkSwapchainKHR> m_SwapLookup;
+  std::map<RENDERDOC_WindowHandle, VkSwapchainKHR> m_SwapLookup;
   Threading::CriticalSection m_SwapLookupLock;
 
   // below are replay-side data only, doesn't have to be thread protected
 
   // current descriptor set contents
-  map<ResourceId, DescriptorSetInfo> m_DescriptorSetState;
+  std::map<ResourceId, DescriptorSetInfo> m_DescriptorSetState;
   // data for a baked command buffer - its drawcalls and events, ready to submit
-  map<ResourceId, BakedCmdBufferInfo> m_BakedCmdBufferInfo;
+  std::map<ResourceId, BakedCmdBufferInfo> m_BakedCmdBufferInfo;
   // immutable creation data
   VulkanCreationInfo m_CreationInfo;
 
-  map<ResourceId, vector<EventUsage>> m_ResourceUses;
+  std::map<ResourceId, vector<EventUsage>> m_ResourceUses;
 
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);

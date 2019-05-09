@@ -296,7 +296,7 @@ void DoSerialise(SerialiserType &ser, ProgramUniforms &el)
 
 template <const bool CopyUniforms, const bool SerialiseUniforms, typename SerialiserType>
 static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuint progSrc,
-                                  GLuint progDst, map<GLint, GLint> *locTranslate)
+                                  GLuint progDst, std::map<GLint, GLint> *locTranslate)
 {
   const bool ReadSourceProgram = CopyUniforms || (SerialiseUniforms && ser && ser->IsWriting());
   const bool WriteDestProgram = CopyUniforms || (SerialiseUniforms && ser && ser->IsReading());
@@ -798,7 +798,7 @@ void CopyProgramUniforms(GLuint progSrc, GLuint progDst)
 
 template <typename SerialiserType>
 void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, GLuint prog,
-                              map<GLint, GLint> *locTranslate)
+                              std::map<GLint, GLint> *locTranslate)
 {
   const bool CopyUniforms = false;
   const bool SerialiseUniforms = true;
@@ -806,9 +806,9 @@ void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, GLuint pr
 }
 
 template void SerialiseProgramUniforms(ReadSerialiser &ser, CaptureState state, GLuint prog,
-                                       map<GLint, GLint> *locTranslate);
+                                       std::map<GLint, GLint> *locTranslate);
 template void SerialiseProgramUniforms(WriteSerialiser &ser, CaptureState state, GLuint prog,
-                                       map<GLint, GLint> *locTranslate);
+                                       std::map<GLint, GLint> *locTranslate);
 
 void CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl)
 {

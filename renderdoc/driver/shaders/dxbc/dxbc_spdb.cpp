@@ -132,7 +132,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
   RDCASSERT(hashtable[0] == 0);
   hashtable++;
 
-  map<string, uint32_t> StreamNames;
+  std::map<string, uint32_t> StreamNames;
 
   uint32_t numset = 0;
   for(uint32_t i = 0; i < maxBit; i++)
@@ -675,7 +675,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
     m_Functions[0] = mainFunc;
   }
 
-  map<uint32_t, string> Names;
+  std::map<uint32_t, string> Names;
 
   if(StreamNames.find("/names") != StreamNames.end())
   {
@@ -756,7 +756,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
 
   PROCSYM32 main = {};
 
-  map<uint32_t, int32_t> FileMapping;    // mapping from hash chunk to index in Files[], or -1
+  std::map<uint32_t, int32_t> FileMapping;    // mapping from hash chunk to index in Files[], or -1
 
   for(size_t m = 0; m < modules.size(); m++)
   {

@@ -30,7 +30,6 @@
 #include "replay/replay_driver.h"
 #include "gl_common.h"
 
-using std::map;
 using std::pair;
 
 class AMDCounters;
@@ -387,7 +386,7 @@ private:
   HighlightCache m_HighlightCache;
 
   // eventId -> data
-  map<uint32_t, GLPostVSData> m_PostVSData;
+  std::map<uint32_t, GLPostVSData> m_PostVSData;
 
   void ClearPostVSCache();
 
@@ -425,13 +424,13 @@ private:
   void CloseReplayContext();
 
   uint64_t m_OutputWindowID;
-  map<uint64_t, OutputWindow> m_OutputWindows;
+  std::map<uint64_t, OutputWindow> m_OutputWindows;
 
   bool m_Proxy;
 
   void CacheTexture(ResourceId id);
 
-  map<ResourceId, TextureDescription> m_CachedTextures;
+  std::map<ResourceId, TextureDescription> m_CachedTextures;
 
   WrappedOpenGL *m_pDriver;
 

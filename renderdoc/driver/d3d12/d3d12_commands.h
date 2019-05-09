@@ -235,13 +235,13 @@ struct D3D12CommandData
 
   ResourceId m_LastCmdListID;
 
-  map<ResourceId, ID3D12CommandAllocator *> m_CrackedAllocators;
+  std::map<ResourceId, ID3D12CommandAllocator *> m_CrackedAllocators;
 
   vector<ID3D12Resource *> m_IndirectBuffers;
   static const uint64_t m_IndirectSize = 4 * 1024 * 1024;
   uint64_t m_IndirectOffset;
 
-  map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
+  std::map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
 
   D3D12RenderState m_RenderState;
 
@@ -340,7 +340,7 @@ struct D3D12CommandData
 
   SDFile *m_StructuredFile;
 
-  map<ResourceId, vector<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, vector<EventUsage> > m_ResourceUses;
 
   D3D12DrawcallTreeNode m_ParentDrawcall;
 

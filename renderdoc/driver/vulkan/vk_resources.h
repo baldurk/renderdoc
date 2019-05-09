@@ -966,8 +966,8 @@ struct DescriptorSetData
   // the refcount has the high-bit set if this resource has sparse
   // mapping information
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
-  map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
-  map<ResourceId, MemRefs> bindMemRefs;
+  std::map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
+  std::map<ResourceId, MemRefs> bindMemRefs;
 };
 
 struct PipelineLayoutData

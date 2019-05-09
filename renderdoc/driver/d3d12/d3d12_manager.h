@@ -563,7 +563,7 @@ struct D3D12ResourceRecord : public ResourceRecord
     cmdInfo->bundles.swap(bakedCommands->cmdInfo->bundles);
   }
 
-  void Insert(map<int32_t, Chunk *> &recordlist)
+  void Insert(std::map<int32_t, Chunk *> &recordlist)
   {
     bool dataWritten = DataWritten;
 
@@ -713,7 +713,7 @@ public:
   }
 
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,
-                     map<ResourceId, SubresourceStateVector> &states);
+                     std::map<ResourceId, SubresourceStateVector> &states);
 
   template <typename SerialiserType>
   void SerialiseResourceStates(SerialiserType &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,

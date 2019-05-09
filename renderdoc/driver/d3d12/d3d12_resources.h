@@ -767,7 +767,7 @@ public:
     ShaderReflection m_Details;
     ShaderBindpointMapping m_Mapping;
 
-    static map<DXBCKey, ShaderEntry *> m_Shaders;
+    static std::map<DXBCKey, ShaderEntry *> m_Shaders;
   };
 
   enum

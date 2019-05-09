@@ -267,15 +267,15 @@ private:
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);
   void Apply_InitialState(GLResource live, const GLInitialContents &initial);
 
-  map<GLResource, GLResourceRecord *> m_GLResourceRecords;
+  std::map<GLResource, GLResourceRecord *> m_GLResourceRecords;
 
-  map<GLResource, ResourceId> m_CurrentResourceIds;
+  std::map<GLResource, ResourceId> m_CurrentResourceIds;
 
   // sync objects must be treated differently as they're not GLuint names, but pointer sized.
   // We manually give them GLuint names so they're otherwise namespaced as (eResSync, GLuint)
-  map<GLsync, ResourceId> m_SyncIDs;
-  map<GLuint, GLsync> m_CurrentSyncs;
-  map<ResourceId, std::string> m_Names;
+  std::map<GLsync, ResourceId> m_SyncIDs;
+  std::map<GLuint, GLsync> m_CurrentSyncs;
+  std::map<ResourceId, std::string> m_Names;
   volatile int64_t m_SyncName;
 
   CaptureState m_State;

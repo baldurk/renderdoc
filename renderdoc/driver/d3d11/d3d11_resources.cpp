@@ -58,14 +58,14 @@ WRAPPED_POOL_INST(WrappedID3D11ClassLinkage);
 WRAPPED_POOL_INST(WrappedID3DDeviceContextState);
 WRAPPED_POOL_INST(WrappedID3D11Fence);
 
-map<ResourceId, WrappedID3D11Texture1D::TextureEntry>
+std::map<ResourceId, WrappedID3D11Texture1D::TextureEntry>
     WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC, ID3D11Texture1D>::m_TextureList;
-map<ResourceId, WrappedID3D11Texture2D1::TextureEntry>
+std::map<ResourceId, WrappedID3D11Texture2D1::TextureEntry>
     WrappedTexture<ID3D11Texture2D, D3D11_TEXTURE2D_DESC, ID3D11Texture2D1>::m_TextureList;
-map<ResourceId, WrappedID3D11Texture3D1::TextureEntry>
+std::map<ResourceId, WrappedID3D11Texture3D1::TextureEntry>
     WrappedTexture<ID3D11Texture3D, D3D11_TEXTURE3D_DESC, ID3D11Texture3D1>::m_TextureList;
-map<ResourceId, WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
-map<ResourceId, WrappedShader::ShaderEntry *> WrappedShader::m_ShaderList;
+std::map<ResourceId, WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
+std::map<ResourceId, WrappedShader::ShaderEntry *> WrappedShader::m_ShaderList;
 Threading::CriticalSection WrappedShader::m_ShaderListLock;
 std::vector<WrappedID3DDeviceContextState *> WrappedID3DDeviceContextState::m_List;
 Threading::CriticalSection WrappedID3DDeviceContextState::m_Lock;

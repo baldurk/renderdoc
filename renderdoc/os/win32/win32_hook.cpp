@@ -40,10 +40,9 @@
 #define VERBOSE_DEBUG_HOOK OPTION_OFF
 
 using std::vector;
-using std::map;
 
 // map from address of IAT entry, to original contents
-map<void **, void *> s_InstalledHooks;
+std::map<void **, void *> s_InstalledHooks;
 Threading::CriticalSection installedLock;
 
 bool ApplyHook(FunctionHook &hook, void **IATentry, bool &already)
@@ -160,7 +159,7 @@ struct CachedHookData
     RDCEraseEl(lowername);
   }
 
-  map<string, DllHookset> DllHooks;
+  std::map<string, DllHookset> DllHooks;
   HMODULE ownmodule;
   Threading::CriticalSection lock;
   char lowername[512];

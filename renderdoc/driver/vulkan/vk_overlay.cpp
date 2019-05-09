@@ -266,7 +266,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   const vector<uint32_t> &m_Events;
 
   // cache modified pipelines
-  map<ResourceId, pair<uint32_t, VkPipeline> > m_PipelineCache;
+  std::map<ResourceId, pair<uint32_t, VkPipeline> > m_PipelineCache;
   VulkanRenderState m_PrevState;
 };
 
@@ -2146,7 +2146,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
       typedef std::pair<uint32_t, Topology> PipeKey;
 
-      map<PipeKey, VkPipeline> pipes;
+      std::map<PipeKey, VkPipeline> pipes;
 
       cmd = m_pDriver->GetNextCmd();
 

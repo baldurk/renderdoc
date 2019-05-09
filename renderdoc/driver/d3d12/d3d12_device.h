@@ -322,7 +322,7 @@ private:
   D3D12TextRenderer *m_TextRenderer = NULL;
 
   set<ResourceId> m_UploadResourceIds;
-  map<uint64_t, ID3D12Resource *> m_UploadBuffers;
+  std::map<uint64_t, ID3D12Resource *> m_UploadBuffers;
 
   Threading::CriticalSection m_MapsLock;
   vector<MapState> m_Maps;
@@ -391,12 +391,12 @@ private:
 
   // used both on capture and replay side to track resource states. Only locked
   // in capture
-  map<ResourceId, SubresourceStateVector> m_ResourceStates;
+  std::map<ResourceId, SubresourceStateVector> m_ResourceStates;
   Threading::CriticalSection m_ResourceStatesLock;
 
   set<ResourceId> m_Cubemaps;
 
-  map<ResourceId, string> m_ResourceNames;
+  std::map<ResourceId, string> m_ResourceNames;
 
   struct SwapPresentInfo
   {
@@ -407,8 +407,8 @@ private:
     int32_t lastPresentedBuffer;
   };
 
-  map<WrappedIDXGISwapChain4 *, SwapPresentInfo> m_SwapChains;
-  map<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
+  std::map<WrappedIDXGISwapChain4 *, SwapPresentInfo> m_SwapChains;
+  std::map<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
   WrappedIDXGISwapChain4 *m_LastSwap;
 
@@ -478,8 +478,11 @@ public:
   {
     return m_ResourceStates[id];
   }
-  const map<ResourceId, SubresourceStateVector> &GetSubresourceStates() { return m_ResourceStates; }
-  const map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
+  const std::map<ResourceId, SubresourceStateVector> &GetSubresourceStates()
+  {
+    return m_ResourceStates;
+  }
+  const std::map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
   void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion)
   {

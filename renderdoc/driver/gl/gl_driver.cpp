@@ -2020,7 +2020,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       {
         RDCDEBUG("Accumulating context resource list");
 
-        map<int32_t, Chunk *> recordlist;
+        std::map<int32_t, Chunk *> recordlist;
         m_ContextRecord->Insert(recordlist);
 
         for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)

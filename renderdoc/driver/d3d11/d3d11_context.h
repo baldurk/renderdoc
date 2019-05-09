@@ -33,7 +33,6 @@
 #include "d3d11_manager.h"
 #include "d3d11_video.h"
 
-using std::map;
 using std::list;
 
 struct MapIntercept
@@ -125,7 +124,7 @@ private:
   set<ResourceId> m_DeferredReferences;
 
   set<ResourceId> m_HighTrafficResources;
-  map<MappedResource, MapIntercept> m_OpenMaps;
+  std::map<MappedResource, MapIntercept> m_OpenMaps;
 
   struct StreamOutData
   {
@@ -135,9 +134,9 @@ private:
     uint64_t numPrims;
   };
 
-  map<ResourceId, StreamOutData> m_StreamOutCounters;
+  std::map<ResourceId, StreamOutData> m_StreamOutCounters;
 
-  map<ResourceId, vector<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, vector<EventUsage> > m_ResourceUses;
 
   WrappedID3D11Device *m_pDevice;
   ID3D11DeviceContext *m_pRealContext;
@@ -159,7 +158,7 @@ private:
 
   StreamReader *m_FrameReader = NULL;
 
-  map<ResourceId, size_t> m_MapResourceRecordAllocs;
+  std::map<ResourceId, size_t> m_MapResourceRecordAllocs;
 
   ResourceId m_ResourceID;
   D3D11ResourceRecord *m_ContextRecord;
@@ -219,7 +218,7 @@ private:
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
   DrawcallDescription m_ParentDrawcall;
-  map<ResourceId, DrawcallDescription> m_CmdLists;
+  std::map<ResourceId, DrawcallDescription> m_CmdLists;
 
   list<DrawcallDescription *> m_DrawcallStack;
 

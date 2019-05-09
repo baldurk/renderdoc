@@ -278,7 +278,7 @@ struct VulkanCreationInfo
     std::vector<VkRect2D> discardRectangles;
     VkDiscardRectangleModeEXT discardMode;
   };
-  map<ResourceId, Pipeline> m_Pipeline;
+  std::map<ResourceId, Pipeline> m_Pipeline;
 
   struct PipelineLayout
   {
@@ -288,7 +288,7 @@ struct VulkanCreationInfo
     vector<VkPushConstantRange> pushRanges;
     vector<ResourceId> descSetLayouts;
   };
-  map<ResourceId, PipelineLayout> m_PipelineLayout;
+  std::map<ResourceId, PipelineLayout> m_PipelineLayout;
 
   struct RenderPass
   {
@@ -335,7 +335,7 @@ struct VulkanCreationInfo
     // in the layout that the subpass uses
     vector<VkRenderPass> loadRPs;
   };
-  map<ResourceId, RenderPass> m_RenderPass;
+  std::map<ResourceId, RenderPass> m_RenderPass;
 
   struct Framebuffer
   {
@@ -354,7 +354,7 @@ struct VulkanCreationInfo
     // See above in loadRPs - we need to duplicate and make framebuffer equivalents for each
     vector<VkFramebuffer> loadFBs;
   };
-  map<ResourceId, Framebuffer> m_Framebuffer;
+  std::map<ResourceId, Framebuffer> m_Framebuffer;
 
   struct Memory
   {
@@ -366,7 +366,7 @@ struct VulkanCreationInfo
 
     VkBuffer wholeMemBuf;
   };
-  map<ResourceId, Memory> m_Memory;
+  std::map<ResourceId, Memory> m_Memory;
 
   struct Buffer
   {
@@ -376,7 +376,7 @@ struct VulkanCreationInfo
     VkBufferUsageFlags usage;
     uint64_t size;
   };
-  map<ResourceId, Buffer> m_Buffer;
+  std::map<ResourceId, Buffer> m_Buffer;
 
   struct BufferView
   {
@@ -388,7 +388,7 @@ struct VulkanCreationInfo
     uint64_t offset;
     uint64_t size;
   };
-  map<ResourceId, BufferView> m_BufferView;
+  std::map<ResourceId, BufferView> m_BufferView;
 
   struct Image
   {
@@ -404,7 +404,7 @@ struct VulkanCreationInfo
     bool cube;
     TextureCategory creationFlags;
   };
-  map<ResourceId, Image> m_Image;
+  std::map<ResourceId, Image> m_Image;
 
   struct Sampler
   {
@@ -427,7 +427,7 @@ struct VulkanCreationInfo
 
     ResourceId ycbcr;
   };
-  map<ResourceId, Sampler> m_Sampler;
+  std::map<ResourceId, Sampler> m_Sampler;
 
   struct YCbCrSampler
   {
@@ -442,7 +442,7 @@ struct VulkanCreationInfo
     FilterMode chromaFilter;
     bool forceExplicitReconstruction;
   };
-  map<ResourceId, YCbCrSampler> m_YCbCrSampler;
+  std::map<ResourceId, YCbCrSampler> m_YCbCrSampler;
 
   struct ImageView
   {
@@ -454,7 +454,7 @@ struct VulkanCreationInfo
     VkImageSubresourceRange range;
     TextureSwizzle swizzle[4];
   };
-  map<ResourceId, ImageView> m_ImageView;
+  std::map<ResourceId, ImageView> m_ImageView;
 
   struct ShaderModule
   {
@@ -477,9 +477,9 @@ struct VulkanCreationInfo
       void Init(VulkanResourceManager *resourceMan, ResourceId id, const SPVModule &spv,
                 const std::string &entry, VkShaderStageFlagBits stage);
     };
-    map<string, Reflection> m_Reflections;
+    std::map<string, Reflection> m_Reflections;
   };
-  map<ResourceId, ShaderModule> m_ShaderModule;
+  std::map<ResourceId, ShaderModule> m_ShaderModule;
 
   struct DescSetPool
   {
@@ -493,13 +493,13 @@ struct VulkanCreationInfo
 
     std::vector<VkDescriptorPool> overflow;
   };
-  map<ResourceId, DescSetPool> m_DescSetPool;
+  std::map<ResourceId, DescSetPool> m_DescSetPool;
 
-  map<ResourceId, string> m_Names;
-  map<ResourceId, SwapchainInfo> m_SwapChain;
-  map<ResourceId, DescSetLayout> m_DescSetLayout;
-  map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;
+  std::map<ResourceId, string> m_Names;
+  std::map<ResourceId, SwapchainInfo> m_SwapChain;
+  std::map<ResourceId, DescSetLayout> m_DescSetLayout;
+  std::map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;
 
   // just contains the queueFamilyIndex (after remapping)
-  map<ResourceId, uint32_t> m_Queue;
+  std::map<ResourceId, uint32_t> m_Queue;
 };

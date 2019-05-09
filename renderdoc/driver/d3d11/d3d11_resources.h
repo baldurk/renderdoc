@@ -432,7 +432,7 @@ public:
     uint32_t length;
   };
 
-  static map<ResourceId, BufferEntry> m_BufferList;
+  static std::map<ResourceId, BufferEntry> m_BufferList;
 
   static const int AllocPoolCount = 128 * 1024;
   static const int AllocPoolMaxByteSize = 13 * 1024 * 1024;
@@ -478,7 +478,7 @@ public:
     TextureDisplayType m_Type;
   };
 
-  static map<ResourceId, TextureEntry> m_TextureList;
+  static std::map<ResourceId, TextureEntry> m_TextureList;
 
   WrappedTexture(NestedType *real, WrappedID3D11Device *device, TextureDisplayType type)
       : WrappedResource11(real, device)
@@ -948,7 +948,7 @@ public:
     ShaderBindpointMapping m_Mapping;
   };
 
-  static map<ResourceId, ShaderEntry *> m_ShaderList;
+  static std::map<ResourceId, ShaderEntry *> m_ShaderList;
   static Threading::CriticalSection m_ShaderListLock;
 
   WrappedShader(WrappedID3D11Device *device, ResourceId origId, ResourceId liveId, const byte *code,

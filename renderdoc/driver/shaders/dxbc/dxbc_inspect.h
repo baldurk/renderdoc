@@ -36,7 +36,6 @@
 using std::vector;
 using std::pair;
 using std::string;
-using std::map;
 
 // matches D3D11_SHADER_VERSION_TYPE from d3d11shader.h
 enum D3D11_ShaderType
@@ -369,7 +368,7 @@ public:
 
   CBuffer m_Interfaces;
 
-  map<string, CBufferVariableType> m_ResourceBinds;
+  std::map<string, CBufferVariableType> m_ResourceBinds;
 
   vector<SigParameter> m_InputSig;
   vector<SigParameter> m_OutputSig;
@@ -418,7 +417,7 @@ private:
   bool IsDeclaration(OpcodeType op);
 
   CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
-  map<uint32_t, CBufferVariableType> m_Variables;
+  std::map<uint32_t, CBufferVariableType> m_Variables;
 
   bool m_Disassembled;
 

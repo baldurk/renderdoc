@@ -1222,17 +1222,17 @@ std::map<RDCDriver, bool> RenderDoc::GetActiveDrivers()
   return ret;
 }
 
-map<RDCDriver, string> RenderDoc::GetReplayDrivers()
+std::map<RDCDriver, string> RenderDoc::GetReplayDrivers()
 {
-  map<RDCDriver, string> ret;
+  std::map<RDCDriver, string> ret;
   for(auto it = m_ReplayDriverProviders.begin(); it != m_ReplayDriverProviders.end(); ++it)
     ret[it->first] = ToStr(it->first);
   return ret;
 }
 
-map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
+std::map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
 {
-  map<RDCDriver, string> ret;
+  std::map<RDCDriver, string> ret;
 
   for(auto it = m_RemoteDriverProviders.begin(); it != m_RemoteDriverProviders.end(); ++it)
     ret[it->first] = ToStr(it->first);

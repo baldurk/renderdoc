@@ -40,7 +40,6 @@
 
 using std::string;
 using std::vector;
-using std::map;
 using std::pair;
 using std::set;
 
@@ -508,8 +507,8 @@ public:
 
   bool HasReplaySupport(RDCDriver driverType);
 
-  map<RDCDriver, string> GetReplayDrivers();
-  map<RDCDriver, string> GetRemoteDrivers();
+  std::map<RDCDriver, string> GetReplayDrivers();
+  std::map<RDCDriver, string> GetRemoteDrivers();
 
   bool HasReplayDriver(RDCDriver driver) const;
   bool HasRemoteDriver(RDCDriver driver) const;
@@ -623,10 +622,10 @@ private:
   Threading::CriticalSection m_ChildLock;
   vector<pair<uint32_t, uint32_t> > m_Children;
 
-  map<string, string> m_ConfigSettings;
+  std::map<string, string> m_ConfigSettings;
 
-  map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
-  map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
+  std::map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
+  std::map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
   std::map<RDCDriver, StructuredProcessor> m_StructProcesssors;
 
@@ -679,9 +678,9 @@ private:
 
   int m_CapturesActive;
 
-  map<DeviceWnd, FrameCap> m_WindowFrameCapturers;
+  std::map<DeviceWnd, FrameCap> m_WindowFrameCapturers;
   DeviceWnd m_ActiveWindow;
-  map<void *, IFrameCapturer *> m_DeviceFrameCapturers;
+  std::map<void *, IFrameCapturer *> m_DeviceFrameCapturers;
 
   IFrameCapturer *MatchFrameCapturer(void *dev, void *wnd);
 

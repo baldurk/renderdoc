@@ -34,7 +34,6 @@
 #include "serialise/serialiser.h"
 
 using std::set;
-using std::map;
 
 // In what way (read, write, etc) was a resource referenced in a frame -
 // used to determine if initial contents are needed and to what degree.
@@ -261,7 +260,7 @@ struct ResourceRecord
   }
 
   void MarkDataUnwritten() { DataWritten = false; }
-  void Insert(map<int32_t, Chunk *> &recordlist)
+  void Insert(std::map<int32_t, Chunk *> &recordlist)
   {
     bool dataWritten = DataWritten;
 
@@ -423,7 +422,7 @@ protected:
   std::vector<std::pair<int32_t, Chunk *>> m_Chunks;
   Threading::CriticalSection *m_ChunkLock;
 
-  map<ResourceId, FrameRefType> m_FrameRefs;
+  std::map<ResourceId, FrameRefType> m_FrameRefs;
 };
 
 template <typename Compose>
@@ -586,10 +585,10 @@ protected:
 
   // used during capture - map from real resource to its wrapper (other way can be done just with an
   // Unwrap)
-  map<RealResourceType, WrappedResourceType> m_WrapperMap;
+  std::map<RealResourceType, WrappedResourceType> m_WrapperMap;
 
   // used during capture - holds resources referenced in current frame (and how they're referenced)
-  map<ResourceId, FrameRefType> m_FrameReferencedResources;
+  std::map<ResourceId, FrameRefType> m_FrameReferencedResources;
 
   // used during capture - holds resources marked as dirty, needing initial contents
   set<ResourceId> m_DirtyResources;
@@ -612,23 +611,23 @@ protected:
   };
 
   // used during capture or replay - holds initial contents
-  map<ResourceId, InitialContentDataOrChunk> m_InitialContents;
+  std::map<ResourceId, InitialContentDataOrChunk> m_InitialContents;
 
   // used during capture or replay - map of resources currently alive with their real IDs, used in
   // capture and replay.
-  map<ResourceId, WrappedResourceType> m_CurrentResourceMap;
+  std::map<ResourceId, WrappedResourceType> m_CurrentResourceMap;
 
   // used during replay - maps back and forth from original id to live id and vice-versa
-  map<ResourceId, ResourceId> m_OriginalIDs, m_LiveIDs;
+  std::map<ResourceId, ResourceId> m_OriginalIDs, m_LiveIDs;
 
   // used during replay - holds resources allocated and the original id that they represent
-  map<ResourceId, WrappedResourceType> m_LiveResourceMap;
+  std::map<ResourceId, WrappedResourceType> m_LiveResourceMap;
 
   // used during capture - holds resource records by id.
-  map<ResourceId, RecordType *> m_ResourceRecords;
+  std::map<ResourceId, RecordType *> m_ResourceRecords;
 
   // used during replay - holds current resource replacements
-  map<ResourceId, ResourceId> m_Replacements;
+  std::map<ResourceId, ResourceId> m_Replacements;
 };
 
 template <typename Configuration>
@@ -920,7 +919,7 @@ void ResourceManager<Configuration>::MarkUnwrittenResources()
 template <typename Configuration>
 void ResourceManager<Configuration>::InsertReferencedChunks(WriteSerialiser &ser)
 {
-  map<int32_t, Chunk *> sortedChunks;
+  std::map<int32_t, Chunk *> sortedChunks;
 
   SCOPED_LOCK(m_Lock);
 

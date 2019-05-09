@@ -43,7 +43,6 @@
 
 using std::string;
 using std::vector;
-using std::map;
 
 struct CaptureOptions;
 

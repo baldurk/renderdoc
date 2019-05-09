@@ -1847,7 +1847,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
     // we use a map here since the indices may be sparse. Especially considering if an index
     // is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
-    map<uint32_t, size_t> indexRemap;
+    std::map<uint32_t, size_t> indexRemap;
     for(size_t i = 0; i < indices.size(); i++)
     {
       // by definition, this index will only appear once in indices[]

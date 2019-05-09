@@ -843,7 +843,7 @@ struct ShaderReflection;
 void CopyProgramUniforms(GLuint progSrc, GLuint progDst);
 template <typename SerialiserType>
 void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, GLuint prog,
-                              map<GLint, GLint> *locTranslate);
+                              std::map<GLint, GLint> *locTranslate);
 void CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
 void CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
 template <typename SerialiserType>

@@ -612,7 +612,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         uint32_t reg, space, bindCount;
       };
 
-      map<string, CBufferBind> cbufferbinds;
+      std::map<string, CBufferBind> cbufferbinds;
 
       uint32_t resourceStride = sizeof(RDEFResource);
 

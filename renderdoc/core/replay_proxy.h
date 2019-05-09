@@ -610,8 +610,8 @@ private:
   };
   // this cache only exists on the client side, with the proxy renderer. It contains the created
   // proxy textures to stand-in for remote real textures.
-  map<ResourceId, ProxyTextureProperties> m_ProxyTextures;
-  map<ResourceId, ResourceId> m_ProxyBufferIds;
+  std::map<ResourceId, ProxyTextureProperties> m_ProxyTextures;
+  std::map<ResourceId, ResourceId> m_ProxyBufferIds;
 
   // this cache exists on *both* sides of the proxy connection, and must be kept in sync. It is used
   // on the remote side to determine which deltas are necessary, and then each time on the client
@@ -623,7 +623,7 @@ private:
   // should not be treated as proxied.
   std::set<ResourceId> m_LocalTextures;
 
-  map<ResourceId, ResourceId> m_LiveIDs;
+  std::map<ResourceId, ResourceId> m_LiveIDs;
 
   struct ShaderReflKey
   {

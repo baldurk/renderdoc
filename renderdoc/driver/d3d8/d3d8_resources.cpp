@@ -29,9 +29,9 @@
 
 ALL_D3D8_TYPES;
 
-map<ResourceId, WrappedIDirect3DVertexBuffer8::BufferEntry>
+std::map<ResourceId, WrappedIDirect3DVertexBuffer8::BufferEntry>
     WrappedD3DBuffer8<IDirect3DVertexBuffer8, D3DVERTEXBUFFER_DESC>::m_BufferList;
-map<ResourceId, WrappedIDirect3DIndexBuffer8::BufferEntry>
+std::map<ResourceId, WrappedIDirect3DIndexBuffer8::BufferEntry>
     WrappedD3DBuffer8<IDirect3DIndexBuffer8, D3DINDEXBUFFER_DESC>::m_BufferList;
 
 D3D8ResourceType IdentifyTypeByPtr(IUnknown *ptr)

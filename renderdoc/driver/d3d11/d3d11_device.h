@@ -44,8 +44,6 @@ class D3D11ShaderCache;
 #define D3D11_1_UAV_SLOT_COUNT 64
 #endif
 
-using std::map;
-
 enum TextureDisplayType
 {
   TEXDISPLAY_UNKNOWN = 0,
@@ -368,12 +366,12 @@ private:
   void CachedObjectsGarbageCollect();
 
   set<WrappedID3D11DeviceContext *> m_DeferredContexts;
-  map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
-  map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
+  std::map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
+  std::map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
 
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
-  map<WrappedIDXGISwapChain4 *, ID3D11RenderTargetView *> m_SwapChains;
+  std::map<WrappedIDXGISwapChain4 *, ID3D11RenderTargetView *> m_SwapChains;
 
   uint32_t m_FrameCounter;
   uint32_t m_FailedFrame;

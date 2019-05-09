@@ -262,7 +262,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     uint32_t sigElem;
     ID3D12PipelineState *pipe;
   };
-  map<ResourceId, CachedPipeline> m_PipelineCache;
+  std::map<ResourceId, CachedPipeline> m_PipelineCache;
   std::set<ResourceId> m_CopiedHeaps;
   D3D12RenderState m_PrevState;
 };

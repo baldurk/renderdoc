@@ -185,7 +185,7 @@ void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageReg
 }
 
 void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
-                                           const map<ResourceId, ImageLayouts> &layouts,
+                                           const std::map<ResourceId, ImageLayouts> &layouts,
                                            uint32_t numBarriers, const VkImageMemoryBarrier *barriers)
 {
   TRDBG("Recording %u barriers", numBarriers);
@@ -467,7 +467,7 @@ void VulkanResourceManager::SetInternalResource(ResourceId id)
 
 void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
                                           vector<pair<ResourceId, ImageRegionState> > &states,
-                                          map<ResourceId, ImageLayouts> &layouts)
+                                          std::map<ResourceId, ImageLayouts> &layouts)
 {
   TRDBG("Applying %u barriers", (uint32_t)states.size());
 

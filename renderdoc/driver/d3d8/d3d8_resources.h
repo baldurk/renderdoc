@@ -171,7 +171,7 @@ public:
     uint32_t length;
   };
 
-  static map<ResourceId, BufferEntry> m_BufferList;
+  static std::map<ResourceId, BufferEntry> m_BufferList;
 
   WrappedD3DBuffer8(NestedType *real, uint32_t byteLength, WrappedD3DDevice8 *device)
       : WrappedIDirect3DResource8(real, device)

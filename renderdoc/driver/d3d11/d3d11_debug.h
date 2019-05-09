@@ -33,7 +33,6 @@
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "replay/replay_driver.h"
 
-using std::map;
 using std::pair;
 
 class Camera;

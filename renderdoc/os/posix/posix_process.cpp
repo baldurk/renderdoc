@@ -253,9 +253,9 @@ static vector<EnvironmentModification> &GetEnvModifications()
   return envCallbacks;
 }
 
-static map<string, string> EnvStringToEnvMap(const char **envstring)
+static std::map<string, string> EnvStringToEnvMap(const char **envstring)
 {
-  map<string, string> ret;
+  std::map<string, string> ret;
 
   const char **e = envstring;
 
@@ -346,7 +346,7 @@ void Process::ApplyEnvironmentModification()
 {
   // turn environment string to a UTF-8 map
   char **currentEnvironment = GetCurrentEnvironment();
-  map<string, string> currentEnv = EnvStringToEnvMap((const char **)currentEnvironment);
+  std::map<string, string> currentEnv = EnvStringToEnvMap((const char **)currentEnvironment);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
 
   for(size_t i = 0; i < modifications.size(); i++)
@@ -706,7 +706,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
 
   // turn environment string to a UTF-8 map
   char **currentEnvironment = GetCurrentEnvironment();
-  map<string, string> env = EnvStringToEnvMap((const char **)currentEnvironment);
+  std::map<string, string> env = EnvStringToEnvMap((const char **)currentEnvironment);
   vector<EnvironmentModification> modifications = GetEnvModifications();
 
   for(const EnvironmentModification &e : envList)

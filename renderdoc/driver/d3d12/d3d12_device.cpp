@@ -1798,7 +1798,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     // in capframe (the transition is thread-protected) so nothing will be
     // pushed to the vector
 
-    map<int32_t, Chunk *> recordlist;
+    std::map<int32_t, Chunk *> recordlist;
 
     for(auto it = queues.begin(); it != queues.end(); ++it)
     {
