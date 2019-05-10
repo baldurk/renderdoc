@@ -1300,7 +1300,7 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
 
     const ResourceFormat &fmt = attrs[i].format;
 
-    offset += byteSize(fmt);
+    offset = attrs[i].byteOffset + byteSize(fmt);
 
     if(fmt.Special())
     {
