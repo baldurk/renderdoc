@@ -2466,3 +2466,17 @@ std::string DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);
 }
+
+#if ENABLED(RDOC_WIN32)
+template <>
+std::string DoStringise(const VkFullScreenExclusiveEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkFullScreenExclusiveEXT);
+  {
+    STRINGISE_ENUM(VK_FULL_SCREEN_EXCLUSIVE_DEFAULT_EXT)
+    STRINGISE_ENUM(VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT)
+    STRINGISE_ENUM(VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+#endif
