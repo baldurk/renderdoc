@@ -67,6 +67,38 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevi
                                                 pPresentModeCount, pPresentModes);
 }
 
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+
+VkResult WrappedVulkan::vkGetDeviceGroupSurfacePresentModes2EXT(
+    VkDevice device, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+    VkDeviceGroupPresentModeFlagsKHR *pModes)
+{
+  return ObjDisp(device)->GetDeviceGroupSurfacePresentModes2EXT(Unwrap(device), pSurfaceInfo, pModes);
+}
+
+VkResult WrappedVulkan::vkAcquireFullScreenExclusiveModeEXT(VkDevice device, VkSwapchainKHR swapchain)
+{
+  return ObjDisp(device)->AcquireFullScreenExclusiveModeEXT(Unwrap(device), swapchain);
+}
+
+VkResult WrappedVulkan::vkReleaseFullScreenExclusiveModeEXT(VkDevice device, VkSwapchainKHR swapchain)
+{
+  return ObjDisp(device)->ReleaseFullScreenExclusiveModeEXT(Unwrap(device), swapchain);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceSurfacePresentModes2EXT(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+    uint32_t *pPresentModeCount, VkPresentModeKHR *pPresentModes)
+{
+  VkPhysicalDeviceSurfaceInfo2KHR unwrapped = *pSurfaceInfo;
+  unwrapped.surface = Unwrap(unwrapped.surface);
+
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceSurfacePresentModes2EXT(Unwrap(physicalDevice), &unwrapped,
+                                                 pPresentModeCount, pPresentModes);
+}
+#endif
+
 VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceCapabilities2EXT(
     VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
     VkSurfaceCapabilities2EXT *pSurfaceCapabilities)

@@ -1583,6 +1583,20 @@ void WrappedVulkan::vkDebugReportMessageEXT(VkInstance instance, VkDebugReportFl
                                                   location, messageCode, pLayerPrefix, pMessage);
 }
 
+void WrappedVulkan::vkSetHdrMetadataEXT(VkDevice device, uint32_t swapchainCount,
+                                        const VkSwapchainKHR *pSwapchains,
+                                        const VkHdrMetadataEXT *pMetadata)
+{
+  return ObjDisp(device)->SetHdrMetadataEXT(Unwrap(device), swapchainCount,
+                                            UnwrapArray(pSwapchains, swapchainCount), pMetadata);
+}
+
+void WrappedVulkan::vkSetLocalDimmingAMD(VkDevice device, VkSwapchainKHR swapChain,
+                                         VkBool32 localDimmingEnable)
+{
+  return ObjDisp(device)->SetLocalDimmingAMD(Unwrap(device), Unwrap(swapChain), localDimmingEnable);
+}
+
 // we use VkObjectType as the object type since it mostly overlaps with the debug report enum so in
 // most cases we can upcast it. There's an overload to translate the few that might conflict.
 // Likewise to re-use the switch in most cases, we return both the record and the unwrapped

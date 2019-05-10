@@ -2070,4 +2070,31 @@ public:
   // VK_EXT_buffer_device_address
   VkDeviceAddress vkGetBufferDeviceAddressEXT(VkDevice device,
                                               const VkBufferDeviceAddressInfoEXT *pInfo);
+
+  // VK_EXT_hdr_metadata
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkSetHdrMetadataEXT, VkDevice device, uint32_t swapchainCount,
+                                const VkSwapchainKHR *pSwapchains, const VkHdrMetadataEXT *pMetadata);
+
+  // VK_AMD_display_native_hdr
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkSetLocalDimmingAMD, VkDevice device,
+                                VkSwapchainKHR swapChain, VkBool32 localDimmingEnable);
+
+  // VK_EXT_full_screen_exclusive
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceGroupSurfacePresentModes2EXT, VkDevice device,
+                                const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+                                VkDeviceGroupPresentModeFlagsKHR *pModes);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSurfacePresentModes2EXT,
+                                VkPhysicalDevice physicalDevice,
+                                const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+                                uint32_t *pPresentModeCount, VkPresentModeKHR *pPresentModes);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAcquireFullScreenExclusiveModeEXT, VkDevice device,
+                                VkSwapchainKHR swapchain);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkReleaseFullScreenExclusiveModeEXT, VkDevice device,
+                                VkSwapchainKHR swapchain);
 };
