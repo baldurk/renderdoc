@@ -479,11 +479,12 @@ void FetchEnabledExtensions()
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 {
   const char *vendor = "";
+  const char *renderer = "";
 
   if(GL.glGetString)
   {
     vendor = (const char *)GL.glGetString(eGL_VENDOR);
-    const char *renderer = (const char *)GL.glGetString(eGL_RENDERER);
+    renderer = (const char *)GL.glGetString(eGL_RENDERER);
     const char *version = (const char *)GL.glGetString(eGL_VERSION);
 
     RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
@@ -768,6 +769,17 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   // I'm not sure if that's correct (weird) behaviour or buggy, but we can work around it just by
   // avoiding use of the DSA function and always doing our emulated version.
   VendorCheck[VendorCheck_AMD_vertex_array_elem_buffer_query] = true;
+
+  // Qualcomm's implementation of glCopyImageSubData is buggy on some drivers and can cause GPU
+  // crashes or corrupted data. We force the initial state copies to happen via our emulation which
+  // uses framebuffer blits.
+  if(strstr(vendor, "Qualcomm") || strstr(vendor, "Adreno") || strstr(renderer, "Qualcomm") ||
+     strstr(vendor, "Adreno"))
+  {
+    RDCWARN("Using hack to avoid glCopyImageSubData on Qualcomm");
+
+    VendorCheck[VendorCheck_Qualcomm_avoid_glCopyImageSubData] = true;
+  }
 
   if(IsGLES)
   {

@@ -26,6 +26,16 @@
 #include "gl_driver.h"
 #include "gl_manager.h"
 
+// declare emulated glCopyImageSubData in case we need to force its use when the driver's version is
+// buggy
+namespace glEmulate
+{
+void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX,
+                                  GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget,
+                                  GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
+                                  GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth);
+};
+
 const GLenum FramebufferInitialData::attachmentNames[10] = {
     eGL_COLOR_ATTACHMENT0, eGL_COLOR_ATTACHMENT1,  eGL_COLOR_ATTACHMENT2, eGL_COLOR_ATTACHMENT3,
     eGL_COLOR_ATTACHMENT4, eGL_COLOR_ATTACHMENT5,  eGL_COLOR_ATTACHMENT6, eGL_COLOR_ATTACHMENT7,
@@ -951,10 +961,18 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
           // it might require would be depth-only formatted).
           if(details.internalFormat == eGL_DEPTH32F_STENCIL8 &&
              VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
+          {
             RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
+          }
           else
-            GL.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0,
-                                  0, 0, w, h, d);
+          {
+            if(VendorCheck[VendorCheck_Qualcomm_avoid_glCopyImageSubData])
+              glEmulate::_glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex,
+                                             details.curType, i, 0, 0, 0, w, h, d);
+            else
+              GL.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i,
+                                    0, 0, 0, w, h, d);
+          }
         }
       }
 
@@ -1971,10 +1989,18 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
             // (shadow maps that it might require would be depth-only formatted).
             if(details.internalFormat == eGL_DEPTH32F_STENCIL8 &&
                VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
+            {
               RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
+            }
             else
-              GL.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i,
-                                    0, 0, 0, w, h, d);
+            {
+              if(VendorCheck[VendorCheck_Qualcomm_avoid_glCopyImageSubData])
+                glEmulate::_glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name,
+                                               details.curType, i, 0, 0, 0, w, h, d);
+              else
+                GL.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType,
+                                      i, 0, 0, 0, w, h, d);
+            }
           }
         }
 
