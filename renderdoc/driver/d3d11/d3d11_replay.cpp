@@ -3531,24 +3531,8 @@ ResourceId D3D11Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_INDEX_BUFFER;
     desc.StructureByteStride = 0;
-
-    if(templateBuf.creationFlags & BufferCategory::Indirect)
-    {
-      desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-      desc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
-    }
-    if(templateBuf.creationFlags & BufferCategory::Index)
-      desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    // D3D11_BIND_CONSTANT_BUFFER size must be <= 65536 on some drivers.
-    if(desc.ByteWidth <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16)
-    {
-      if(templateBuf.creationFlags & BufferCategory::Constants)
-        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    }
-    if(templateBuf.creationFlags & BufferCategory::ReadWrite)
-      desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 
     HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &throwaway);
     if(FAILED(hr))
