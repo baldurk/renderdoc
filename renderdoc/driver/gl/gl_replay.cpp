@@ -2488,10 +2488,12 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
   // fetch and return data now
   {
-    PixelUnpackState unpack;
-    unpack.Fetch(true);
+    MakeCurrentReplayContext(m_DebugCtx);
 
-    ResetPixelUnpackState(true, 1);
+    PixelPackState pack;
+    pack.Fetch(true);
+
+    ResetPixelPackState(true, 1);
 
     if(texType == eGL_RENDERBUFFER)
     {
@@ -2709,7 +2711,7 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       }
     }
 
-    unpack.Apply(true);
+    pack.Apply(true);
 
     drv.glBindTexture(texType, prevtex);
   }
