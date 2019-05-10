@@ -1596,7 +1596,7 @@ void GLRenderState::ApplyState(WrappedOpenGL *driver)
 
         // These aren't valid for glDrawBuffers but can be returned when we call glGet,
         // assume they mean left implicitly
-        if(DBs[i] == eGL_BACK || DBs[i] == eGL_FRONT)
+        if(DBs[i] == eGL_BACK || DBs[i] == eGL_FRONT || DBs[i] == eGL_FRONT_AND_BACK)
           DBs[i] = eGL_COLOR_ATTACHMENT0;
       }
     }
