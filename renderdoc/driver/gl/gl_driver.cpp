@@ -671,6 +671,8 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
         depthfmt = eGL_DEPTH32F_STENCIL8;
       else if(params.depthBits == 24)
         depthfmt = eGL_DEPTH24_STENCIL8;
+      else if(params.depthBits == 0)
+        depthfmt = eGL_STENCIL_INDEX8;
       else
         RDCERR("Unexpected combination of depth & stencil bits: %d & %d", params.depthBits,
                params.stencilBits);
@@ -704,7 +706,9 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
                               GetBaseFormat(depthfmt), GetDataType(depthfmt), NULL);
     }
 
-    if(stencil)
+    if(stencil && params.depthBits == 0)
+      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, target, depth, 0);
+    else if(stencil)
       drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, target, depth, 0);
     else
       drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, target, depth, 0);
