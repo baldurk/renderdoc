@@ -554,9 +554,21 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
 
   if(IsReplayingAndReading())
   {
-    GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
+    // never allow resizing down, even if the application did so. If we encounter that, adjust the
+    // size and upload any data with a subdata call
+    if(bytesize < m_Buffers[GetResourceManager()->GetID(buffer)].size)
+    {
+      GL.glNamedBufferDataEXT(
+          buffer.name, (GLsizeiptr)m_Buffers[GetResourceManager()->GetID(buffer)].size, NULL, usage);
 
-    m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
+      GL.glNamedBufferSubDataEXT(buffer.name, 0, bytesize, data);
+    }
+    else
+    {
+      GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
+
+      m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
+    }
 
     AddResourceInitChunk(buffer);
   }
