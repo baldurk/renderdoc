@@ -272,6 +272,25 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
                                                         refType);
     }
 
+    // binding this buffer mutates VAO state, mark it as written.
+    if(target == eGL_ELEMENT_ARRAY_BUFFER)
+    {
+      GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+
+      if(varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+    }
+
+    // binding this buffer mutates XFB state, mark it as written.
+    if(target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+    {
+      GLResourceRecord *xfbrecord = cd.m_FeedbackRecord;
+
+      if(xfbrecord)
+        GetResourceManager()->MarkResourceFrameReferenced(xfbrecord->Resource,
+                                                          eFrameRef_ReadBeforeWrite);
+    }
+
     GetContextRecord()->AddChunk(chunk);
   }
 
@@ -1165,18 +1184,40 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
-    if(buffer && IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State))
     {
-      FrameRefType refType = eFrameRef_Read;
+      if(buffer)
+      {
+        FrameRefType refType = eFrameRef_Read;
 
-      // these targets write to the buffer
-      if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
-         target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-         target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-        refType = eFrameRef_ReadBeforeWrite;
+        // these targets write to the buffer
+        if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
+           target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+           target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+          refType = eFrameRef_ReadBeforeWrite;
 
-      GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
-                                                        refType);
+        GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
+                                                          refType);
+      }
+
+      // binding this buffer mutates VAO state, mark it as written.
+      if(target == eGL_ELEMENT_ARRAY_BUFFER)
+      {
+        GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+
+        if(varecord)
+          GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+      }
+
+      // binding this buffer mutates XFB state, mark it as written.
+      if(target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+      {
+        GLResourceRecord *xfbrecord = cd.m_FeedbackRecord;
+
+        if(xfbrecord)
+          GetResourceManager()->MarkResourceFrameReferenced(xfbrecord->Resource,
+                                                            eFrameRef_ReadBeforeWrite);
+      }
     }
 
     // it's legal to re-type buffers, generate another BindBuffer chunk to rename
@@ -1275,18 +1316,40 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
-    if(buffer && IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State))
     {
-      FrameRefType refType = eFrameRef_Read;
+      if(buffer)
+      {
+        FrameRefType refType = eFrameRef_Read;
 
-      // these targets write to the buffer
-      if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
-         target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-         target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-        refType = eFrameRef_ReadBeforeWrite;
+        // these targets write to the buffer
+        if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
+           target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+           target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+          refType = eFrameRef_ReadBeforeWrite;
 
-      GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
-                                                        refType);
+        GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
+                                                          refType);
+      }
+
+      // binding this buffer mutates VAO state, mark it as written.
+      if(target == eGL_ELEMENT_ARRAY_BUFFER)
+      {
+        GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+
+        if(varecord)
+          GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+      }
+
+      // binding this buffer mutates XFB state, mark it as written.
+      if(target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+      {
+        GLResourceRecord *xfbrecord = cd.m_FeedbackRecord;
+
+        if(xfbrecord)
+          GetResourceManager()->MarkResourceFrameReferenced(xfbrecord->Resource,
+                                                            eFrameRef_ReadBeforeWrite);
+      }
     }
 
     // it's legal to re-type buffers, generate another BindBuffer chunk to rename
@@ -1419,6 +1482,25 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
           GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
           m_MissingTracks.insert(id);
         }
+      }
+
+      // binding this buffer mutates VAO state, mark it as written.
+      if(target == eGL_ELEMENT_ARRAY_BUFFER)
+      {
+        GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+
+        if(varecord)
+          GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+      }
+
+      // binding this buffer mutates XFB state, mark it as written.
+      if(target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+      {
+        GLResourceRecord *xfbrecord = cd.m_FeedbackRecord;
+
+        if(xfbrecord)
+          GetResourceManager()->MarkResourceFrameReferenced(xfbrecord->Resource,
+                                                            eFrameRef_ReadBeforeWrite);
       }
     }
 
@@ -1599,6 +1681,25 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
           GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
           m_MissingTracks.insert(id);
         }
+      }
+
+      // binding this buffer mutates VAO state, mark it as written.
+      if(target == eGL_ELEMENT_ARRAY_BUFFER)
+      {
+        GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+
+        if(varecord)
+          GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+      }
+
+      // binding this buffer mutates XFB state, mark it as written.
+      if(target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+      {
+        GLResourceRecord *xfbrecord = cd.m_FeedbackRecord;
+
+        if(xfbrecord)
+          GetResourceManager()->MarkResourceFrameReferenced(xfbrecord->Resource,
+                                                            eFrameRef_ReadBeforeWrite);
       }
     }
     else
