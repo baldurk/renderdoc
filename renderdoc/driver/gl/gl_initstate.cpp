@@ -2342,13 +2342,13 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
 
         // now build up the bitmask that we'll bind with. Starting with the current bit, searching
         // forwards
-        GLbitfield stages = 1 << a;
+        GLbitfield stages = ShaderBit(a);
         for(int b = a + 1; b < 5; b++)
           if(data.programs[a].name == data.programs[b].name)
-            stages |= (1 << b);
+            stages |= ShaderBit(b);
 
         // bind the program on all relevant stages
-        GL.glUseProgramStages(live.name, stages, data.programs[a].name);
+        m_Driver->glUseProgramStages(live.name, stages, data.programs[a].name);
 
         // now we can continue - any of the stages we just bound will discard themselves with the
         // 'previous' check above.
@@ -2357,7 +2357,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents in
       // if we have a compute program, bind that. It's outside of the others since it can't be
       // shared
       if(data.programs[5].name)
-        GL.glUseProgramStages(live.name, eGL_COMPUTE_SHADER_BIT, data.programs[5].name);
+        m_Driver->glUseProgramStages(live.name, eGL_COMPUTE_SHADER_BIT, data.programs[5].name);
     }
   }
   else if(live.Namespace == eResVertexArray)
