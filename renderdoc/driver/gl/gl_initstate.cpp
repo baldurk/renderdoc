@@ -531,7 +531,10 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     RDCERR("Unexpected type of resource requiring initial state");
   }
 
-  SetInitialContents(id, initContents);
+  if(IsReplayMode(m_State))
+    SetInitialContents(GetOriginalID(id), initContents);
+  else
+    SetInitialContents(id, initContents);
 }
 
 bool GLResourceManager::Prepare_InitialState(GLResource res)
@@ -1811,14 +1814,19 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
     // textures to be cleared instead of copied.
     PrepareTextureInitialContents(GetID(live), id, live);
   }
-  else if(live.Namespace == eResVertexArray)
+  else if(live.Namespace == eResBuffer)
   {
     ContextPrepare_InitialState(live);
   }
-  else if(live.Namespace != eResBuffer && live.Namespace != eResProgram &&
-          live.Namespace != eResRenderbuffer)
+  else if(live.Namespace == eResVertexArray || live.Namespace == eResFramebuffer ||
+          live.Namespace == eResFeedback || live.Namespace == eResSampler ||
+          live.Namespace == eResProgramPipe)
   {
-    RDCUNIMPLEMENTED("Expect all initial states to be created & not skipped, presently");
+    ContextPrepare_InitialState(live);
+  }
+  else
+  {
+    RDCUNIMPLEMENTED("Unhandled type of resource needing initial states created");
   }
 }
 
