@@ -1459,7 +1459,12 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
     if(record == NULL)
       return;
 
-    if(program)
+    if(IsActiveCapturing(m_State))
+    {
+      GetResourceManager()->MarkResourceFrameReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    }
+
+    if(IsBackgroundCapturing(m_State) && program)
     {
       GLResourceRecord *progrecord =
           GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
