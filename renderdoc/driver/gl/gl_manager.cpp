@@ -39,7 +39,7 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
   {
     ContextPair &ctx = m_Driver->GetCtx();
 
-    MarkResourceFrameReferenced(res, ref == eFrameRef_None ? eFrameRef_None : eFrameRef_Read);
+    MarkResourceFrameReferenced(res, ref);
 
     GLint numVBufferBindings = GetNumVertexBuffers();
 
@@ -47,12 +47,14 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
     {
       GLuint buffer = GetBoundVertexBuffer(i);
 
-      MarkResourceFrameReferenced(BufferRes(ctx, buffer), ref);
+      MarkResourceFrameReferenced(BufferRes(ctx, buffer),
+                                  ref == eFrameRef_None ? eFrameRef_None : eFrameRef_Read);
     }
 
     GLuint ibuffer = 0;
     GL.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
-    MarkResourceFrameReferenced(BufferRes(ctx, ibuffer), ref);
+    MarkResourceFrameReferenced(BufferRes(ctx, ibuffer),
+                                ref == eFrameRef_None ? eFrameRef_None : eFrameRef_Read);
   }
 }
 
@@ -61,7 +63,7 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(res.name == 0)
     return;
 
-  MarkResourceFrameReferenced(res, ref == eFrameRef_None ? eFrameRef_None : eFrameRef_Read);
+  MarkResourceFrameReferenced(res, ref);
 
   ContextPair &ctx = m_Driver->GetCtx();
 
