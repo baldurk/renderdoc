@@ -2303,7 +2303,7 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -2329,7 +2329,7 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)
@@ -2551,7 +2551,7 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -2578,7 +2578,7 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)
@@ -2782,7 +2782,7 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -2809,7 +2809,7 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)
@@ -3006,7 +3006,7 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -3030,7 +3030,7 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)
@@ -3360,7 +3360,7 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -3385,7 +3385,7 @@ void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)
@@ -3597,7 +3597,7 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -3622,7 +3622,7 @@ void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)
@@ -3771,7 +3771,7 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
   // replay
   if(IsReplayMode(m_State))
     RDCERR("Internal textures should be allocated via dsa interfaces");
-  else
+  else if(!IsProxyTarget(target))
     Common_glCopyTextureImage1DEXT(GetCtxData().GetTexUnitRecord(target, texunit), target, level,
                                    internalformat, x, y, width, border);
 }
@@ -3785,7 +3785,7 @@ void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internal
   // replay
   if(IsReplayMode(m_State))
     RDCERR("Internal textures should be allocated via dsa interfaces");
-  else
+  else if(!IsProxyTarget(target))
     Common_glCopyTextureImage1DEXT(GetCtxData().GetActiveTexRecord(target), target, level,
                                    internalformat, x, y, width, border);
 }
@@ -3925,7 +3925,7 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
   // replay
   if(IsReplayMode(m_State))
     RDCERR("Internal textures should be allocated via dsa interfaces");
-  else
+  else if(!IsProxyTarget(target))
     Common_glCopyTextureImage2DEXT(GetCtxData().GetTexUnitRecord(target, texunit), target, level,
                                    internalformat, x, y, width, height, border);
 }
@@ -3939,7 +3939,7 @@ void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internal
   // replay
   if(IsReplayMode(m_State))
     RDCERR("Internal textures should be allocated via dsa interfaces");
-  else
+  else if(!IsProxyTarget(target))
     Common_glCopyTextureImage2DEXT(GetCtxData().GetActiveTexRecord(target), target, level,
                                    internalformat, x, y, width, height, border);
 }
@@ -4063,7 +4063,7 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -4192,7 +4192,7 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -4325,7 +4325,7 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -4470,7 +4470,7 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -4494,7 +4494,7 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     // assuming texstorage is equivalent to teximage (this is not true in the case where someone
     // tries to re-size an image by re-calling teximage).
@@ -4647,7 +4647,7 @@ void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GL
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -4672,7 +4672,7 @@ void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLen
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     // assuming texstorage is equivalent to teximage (this is not true in the case where someone
     // tries to re-size an image by re-calling teximage).
@@ -6157,7 +6157,7 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -6340,7 +6340,7 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record != NULL)
@@ -6361,7 +6361,7 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
   {
     RDCERR("Internal textures should be allocated via dsa interfaces");
   }
-  else
+  else if(!IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetTexUnitRecord(target, texunit);
     if(record != NULL)

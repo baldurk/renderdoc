@@ -1478,7 +1478,7 @@ void WrappedOpenGL::glTexStorageMem1DEXT(GLenum target, GLsizei levels, GLenum i
 {
   SERIALISE_TIME_CALL(GL.glTexStorageMem1DEXT(target, levels, internalFormat, width, memory, offset));
 
-  if(IsCaptureMode(m_State))
+  if(IsCaptureMode(m_State) && !IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
@@ -1592,7 +1592,7 @@ void WrappedOpenGL::glTexStorageMem2DEXT(GLenum target, GLsizei levels, GLenum i
   SERIALISE_TIME_CALL(
       GL.glTexStorageMem2DEXT(target, levels, internalFormat, width, height, memory, offset));
 
-  if(IsCaptureMode(m_State))
+  if(IsCaptureMode(m_State) && !IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
@@ -1715,7 +1715,7 @@ void WrappedOpenGL::glTexStorageMem2DMultisampleEXT(GLenum target, GLsizei sampl
   SERIALISE_TIME_CALL(GL.glTexStorageMem2DMultisampleEXT(
       target, samples, internalFormat, width, height, fixedSampleLocations, memory, offset));
 
-  if(IsCaptureMode(m_State))
+  if(IsCaptureMode(m_State) && !IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
@@ -1830,7 +1830,7 @@ void WrappedOpenGL::glTexStorageMem3DEXT(GLenum target, GLsizei levels, GLenum i
   SERIALISE_TIME_CALL(GL.glTexStorageMem3DEXT(target, levels, internalFormat, width, height, depth,
                                               memory, offset));
 
-  if(IsCaptureMode(m_State))
+  if(IsCaptureMode(m_State) && !IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 
@@ -1951,7 +1951,7 @@ void WrappedOpenGL::glTexStorageMem3DMultisampleEXT(GLenum target, GLsizei sampl
   SERIALISE_TIME_CALL(GL.glTexStorageMem3DMultisampleEXT(
       target, samples, internalFormat, width, height, depth, fixedSampleLocations, memory, offset));
 
-  if(IsCaptureMode(m_State))
+  if(IsCaptureMode(m_State) && !IsProxyTarget(target))
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
 

@@ -404,6 +404,8 @@ private:
     }
     void SetActiveTexRecord(GLenum target, GLResourceRecord *record)
     {
+      if(IsProxyTarget(target))
+        return;
       m_TextureRecord[TextureIdx(target)][m_TextureUnit] = record;
     }
     GLResourceRecord *GetTexUnitRecord(GLenum target, GLenum texunit)
@@ -422,6 +424,8 @@ private:
     // modern DSA bindings set by index, not enum
     void SetTexUnitRecordIndexed(GLenum target, uint32_t unitidx, GLResourceRecord *record)
     {
+      if(IsProxyTarget(target))
+        return;
       m_TextureRecord[TextureIdx(target)][unitidx] = record;
     }
 
