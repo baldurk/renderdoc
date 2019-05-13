@@ -24,11 +24,12 @@
 
 #include "gl_test.h"
 
-struct GL_Simple_Triangle : OpenGLGraphicsTest
+struct GL_Resource_Lifetimes : OpenGLGraphicsTest
 {
   static constexpr const char *Description =
-      "Just draws a simple triangle, using normal pipeline. Basic test that can be used "
-      "for any dead-simple tests that don't require any particular API use";
+      "Test various edge-case resource lifetimes: a resource that is first dirtied within a frame "
+      "so needs initial contents created for it, and a resource that is created and destroyed "
+      "mid-frame (which also gets dirtied after use).";
 
   std::string common = R"EOSHADER(
 
@@ -74,10 +75,12 @@ layout(location = 0, index = 0) out vec4 Color;
 layout(binding = 0) uniform sampler2D checker;
 layout(binding = 1) uniform sampler2D smiley;
 
-layout(binding = 0, std140) uniform constsbuf
+layout(std140) uniform constsbuf
 {
   vec4 flags;
 };
+
+uniform vec4 flags2;
 
 void main()
 {
@@ -87,7 +90,26 @@ void main()
     return;
   }
 
-	Color = vertIn.col * texture(smiley, vertIn.uv.xy * 2.0f) * texture(checker, vertIn.uv.xy * 5.0f);
+  if(flags != flags2)
+  {
+    Color = vec4(0.5f, 0.0f, 0.5f, 1.0f);
+    return;
+  }
+
+  Color = texture(smiley, vertIn.uv.xy * 2.0f) * texture(checker, vertIn.uv.xy * 5.0f);
+  Color.w = 1.0f;
+}
+
+)EOSHADER";
+
+  std::string dummy = R"EOSHADER(
+#version 420 core
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
+{
+	Color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }
 
 )EOSHADER";
@@ -127,7 +149,11 @@ void main()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     GLuint vsprog = MakeProgram(common + vertex, "");
-    GLuint fsprog = MakeProgram("", common + pixel);
+
+    std::string fssrc = common + pixel;
+    const char *fssrc_c = fssrc.c_str();
+
+    const char *dummysrc_c = dummy.c_str();
 
     // function to set up a VAO
     auto SetupVAO = [ib]() {
@@ -180,14 +206,48 @@ void main()
       glDeleteSamplers(1, &sampler);
     };
 
+    auto SetupProgram = [fssrc_c]() {
+      GLuint prog = glCreateProgram();
+      glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
+
+      GLuint shad = glCreateShader(GL_FRAGMENT_SHADER);
+
+      glShaderSource(shad, 1, &fssrc_c, NULL);
+      glCompileShader(shad);
+
+      glAttachShader(prog, shad);
+
+      glLinkProgram(prog);
+
+      glDetachShader(prog, shad);
+      glDeleteShader(shad);
+
+      glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 5);
+
+      const Vec4f flags = {1.0f, 2.0f, 4.0f, 8.0f};
+
+      glProgramUniform4fv(prog, glGetUniformLocation(prog, "flags2"), 1, &flags.x);
+
+      return prog;
+    };
+
+    auto TrashProgram = [dummysrc_c](GLuint prog) {
+      glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 4);
+
+      const Vec4f empty = {};
+      glProgramUniform4fv(prog, glGetUniformLocation(prog, "flags2"), 1, &empty.x);
+
+      glDeleteProgram(prog);
+    };
+
     // Program pipeline setup and trashing
-    auto SetupPipe = [vsprog, fsprog]() {
+    auto SetupPipe = [vsprog](GLuint prog) {
       GLuint pipe = 0;
       glGenProgramPipelines(1, &pipe);
       glBindProgramPipeline(pipe);
 
       glUseProgramStages(pipe, GL_VERTEX_SHADER_BIT, vsprog);
-      glUseProgramStages(pipe, GL_FRAGMENT_SHADER_BIT, fsprog);
+      glUseProgramStages(pipe, GL_FRAGMENT_SHADER_BIT, prog);
 
       return pipe;
     };
@@ -238,8 +298,8 @@ void main()
       glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 4, 4);
       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, checker);
 
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 
@@ -264,7 +324,7 @@ void main()
 
       glBufferData(GL_UNIFORM_BUFFER, sizeof(flags), &flags, GL_STATIC_DRAW);
 
-      glBindBufferBase(GL_UNIFORM_BUFFER, 0, buf);
+      glBindBufferBase(GL_UNIFORM_BUFFER, 5, buf);
 
       return buf;
     };
@@ -282,7 +342,8 @@ void main()
     GLuint fbo = SetupFBO();
     GLuint vao = SetupVAO();
     GLuint sampler = SetupSampler();
-    GLuint pipe = SetupPipe();
+    GLuint fsprog = SetupProgram();
+    GLuint pipe = SetupPipe(fsprog);
     GLuint tex = SetupTex();
     GLuint buf = SetupBuf();
     while(Running())
@@ -301,6 +362,7 @@ void main()
       TrashFBO(fbo);
       TrashVAO(vao);
       TrashSampler(sampler);
+      TrashProgram(fsprog);
       TrashPipe(pipe);
       TrashTex(tex);
       TrashBuf(buf);
@@ -309,7 +371,8 @@ void main()
       fbo = SetupFBO();
       vao = SetupVAO();
       sampler = SetupSampler();
-      pipe = SetupPipe();
+      fsprog = SetupProgram();
+      pipe = SetupPipe(fsprog);
       tex = SetupTex();
       buf = SetupBuf();
       float col2[] = {0.1f, 0.1f, 0.5f, 1.0f};
@@ -321,6 +384,7 @@ void main()
       TrashFBO(fbo);
       TrashVAO(vao);
       TrashSampler(sampler);
+      TrashProgram(fsprog);
       TrashPipe(pipe);
       TrashTex(tex);
       TrashBuf(buf);
@@ -329,7 +393,8 @@ void main()
       fbo = SetupFBO();
       vao = SetupVAO();
       sampler = SetupSampler();
-      pipe = SetupPipe();
+      fsprog = SetupProgram();
+      pipe = SetupPipe(fsprog);
       tex = SetupTex();
       buf = SetupBuf();
 
@@ -340,6 +405,7 @@ void main()
     TrashFBO(fbo);
     TrashVAO(vao);
     TrashSampler(sampler);
+    TrashProgram(fsprog);
     TrashPipe(pipe);
     TrashBuf(buf);
 
@@ -347,4 +413,4 @@ void main()
   }
 };
 
-REGISTER_TEST(GL_Simple_Triangle);
+REGISTER_TEST(GL_Resource_Lifetimes);
