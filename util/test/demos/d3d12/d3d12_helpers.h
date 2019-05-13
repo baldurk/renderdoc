@@ -257,7 +257,7 @@ D3D12_ROOT_PARAMETER1 cbvParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg
 D3D12_ROOT_PARAMETER1 constParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg, UINT num);
 
 D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_RANGE_TYPE type,
-                                 UINT space, UINT basereg, UINT numreg);
+                                 UINT space, UINT basereg, UINT numreg, UINT descOffset = 0);
 
 #define GET_REFCOUNT(val, obj) \
   do                           \
