@@ -152,6 +152,9 @@ std::wstring get_dirname(const std::wstring &path)
 
 void split(const std::string &in, std::vector<std::string> &out, const char sep)
 {
+  if(in.empty())
+    return;
+
   {
     size_t numSeps = 0;
 
@@ -387,6 +390,20 @@ TEST_CASE("String manipulation", "[string]")
 
     merge(vec, str, ' ');
     CHECK(str == "Hello World");
+  };
+
+  SECTION("degenerate cases")
+  {
+    std::vector<std::string> vec;
+    std::string str;
+
+    split(std::string(), vec, ',');
+
+    REQUIRE(vec.empty());
+
+    merge(vec, str, ',');
+
+    REQUIRE(str == "");
   };
 };
 
