@@ -73,17 +73,20 @@ VkResult WrappedVulkan::vkGetDeviceGroupSurfacePresentModes2EXT(
     VkDevice device, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
     VkDeviceGroupPresentModeFlagsKHR *pModes)
 {
-  return ObjDisp(device)->GetDeviceGroupSurfacePresentModes2EXT(Unwrap(device), pSurfaceInfo, pModes);
+  VkPhysicalDeviceSurfaceInfo2KHR unwrapped = *pSurfaceInfo;
+  unwrapped.surface = Unwrap(unwrapped.surface);
+
+  return ObjDisp(device)->GetDeviceGroupSurfacePresentModes2EXT(Unwrap(device), &unwrapped, pModes);
 }
 
 VkResult WrappedVulkan::vkAcquireFullScreenExclusiveModeEXT(VkDevice device, VkSwapchainKHR swapchain)
 {
-  return ObjDisp(device)->AcquireFullScreenExclusiveModeEXT(Unwrap(device), swapchain);
+  return ObjDisp(device)->AcquireFullScreenExclusiveModeEXT(Unwrap(device), Unwrap(swapchain));
 }
 
 VkResult WrappedVulkan::vkReleaseFullScreenExclusiveModeEXT(VkDevice device, VkSwapchainKHR swapchain)
 {
-  return ObjDisp(device)->ReleaseFullScreenExclusiveModeEXT(Unwrap(device), swapchain);
+  return ObjDisp(device)->ReleaseFullScreenExclusiveModeEXT(Unwrap(device), Unwrap(swapchain));
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceSurfacePresentModes2EXT(
