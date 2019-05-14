@@ -1462,6 +1462,8 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
     if(IsActiveCapturing(m_State))
     {
       GetResourceManager()->MarkResourceFrameReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program),
+                                                        eFrameRef_Read);
     }
 
     if(IsBackgroundCapturing(m_State) && program)
