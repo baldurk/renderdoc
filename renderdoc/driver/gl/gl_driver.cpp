@@ -2888,8 +2888,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     }
     else if(system == SystemChunk::InitialContents)
     {
-      return GetResourceManager()->Serialise_InitialState(ser, ResourceId(),
-                                                          GLResource(MakeNullResource));
+      return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL, NULL);
     }
     else if(system == SystemChunk::CaptureScope)
     {

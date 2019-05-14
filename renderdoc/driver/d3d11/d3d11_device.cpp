@@ -140,6 +140,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
+    m_DeviceRecord->ResType = Resource_Unknown;
     m_DeviceRecord->DataInSerialiser = false;
     m_DeviceRecord->InternalResource = true;
     m_DeviceRecord->Length = 0;
@@ -999,7 +1000,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       }
       else if(system == SystemChunk::InitialContents)
       {
-        return Serialise_InitialState(ser, ResourceId(), NULL);
+        return Serialise_InitialState(ser, ResourceId(), NULL, NULL);
       }
       else if(system == SystemChunk::CaptureScope)
       {
@@ -1401,6 +1402,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
   if(IsCaptureMode(m_State))
   {
     D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    record->ResType = Resource_Texture2D;
     record->DataInSerialiser = false;
     record->Length = 0;
     record->NumSubResources = 0;

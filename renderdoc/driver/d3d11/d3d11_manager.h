@@ -71,7 +71,7 @@ struct D3D11ResourceRecord : public ResourceRecord
   };
 
   D3D11ResourceRecord(ResourceId id)
-      : ResourceRecord(id, true), NumSubResources(0), SubResources(NULL)
+      : ResourceRecord(id, true), ResType(Resource_Unknown), NumSubResources(0), SubResources(NULL)
   {
     RDCEraseEl(ImmediateShadow);
   }
@@ -181,6 +181,7 @@ struct D3D11ResourceRecord : public ResourceRecord
     }
   }
 
+  D3D11ResourceType ResType;
   int NumSubResources;
   D3D11ResourceRecord **SubResources;
 
@@ -304,12 +305,13 @@ private:
 
   bool ResourceTypeRelease(ID3D11DeviceChild *res);
 
-  bool Need_InitialStateChunk(ID3D11DeviceChild *res);
+  bool Need_InitialStateChunk(ResourceId id, const InitialContentData &initial);
   bool Prepare_InitialState(ID3D11DeviceChild *res);
-  uint64_t GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res);
-  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, ID3D11DeviceChild *res);
+  uint64_t GetSize_InitialState(ResourceId id, const D3D11InitialContents &initial);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, D3D11ResourceRecord *record,
+                              const D3D11InitialContents *initial);
   void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
-  void Apply_InitialState(ID3D11DeviceChild *live, D3D11InitialContents data);
+  void Apply_InitialState(ID3D11DeviceChild *live, const D3D11InitialContents &data);
 
   WrappedID3D11Device *m_Device;
 };

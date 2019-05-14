@@ -257,7 +257,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   return true;
 }
 
-uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
+uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, const D3D11InitialContents &initial)
 {
   // This function provides an upper bound on how much data Serialise_InitialState will write, so
   // that the chunk can be pre-allocated and not require seeking to fix-up the length.
@@ -267,16 +267,14 @@ uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
 
   ResourcePitch pitch = {};
 
-  D3D11ResourceType type = IdentifyTypeByPtr(res);
-
-  if(type == Resource_UnorderedAccessView)
+  if(initial.resourceType == Resource_UnorderedAccessView)
   {
     // no data stored, just a counter.
     ret += 8;
   }
-  else if(type == Resource_Buffer)
+  else if(initial.resourceType == Resource_Buffer)
   {
-    WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
+    WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)initial.resource;
 
     D3D11_BUFFER_DESC desc = {};
     buf->GetDesc(&desc);
@@ -285,9 +283,9 @@ uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
     ret += desc.ByteWidth;
     ret += WriteSerialiser::GetChunkAlignment();
   }
-  else if(type == Resource_Texture1D)
+  else if(initial.resourceType == Resource_Texture1D)
   {
-    WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)res;
+    WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)initial.resource;
 
     D3D11_TEXTURE1D_DESC desc = {};
     tex->GetDesc(&desc);
@@ -307,9 +305,9 @@ uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
       ret += WriteSerialiser::GetChunkAlignment();
     }
   }
-  else if(type == Resource_Texture2D)
+  else if(initial.resourceType == Resource_Texture2D)
   {
-    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)res;
+    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)initial.resource;
 
     D3D11_TEXTURE2D_DESC desc = {};
     tex->GetDesc(&desc);
@@ -325,8 +323,6 @@ uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
       ret += 4;                      // number of subresources
       ret += 4 * NumSubresources;    // RowPitch for each subresource
 
-      ID3D11Resource *stage = (ID3D11Resource *)m_ResourceManager->GetInitialContents(id).resource;
-
       // Subresource contents:
       for(UINT sub = 0; sub < NumSubresources; sub++)
       {
@@ -338,19 +334,16 @@ uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
         else if(IsYUVPlanarFormat(desc.Format))
           numRows = GetYUVNumRows(desc.Format, numRows);
 
-        if(stage)
-        {
-          pitch = GetResourcePitchForSubresource(m_pImmediateContext->GetReal(), stage, sub);
-          ret += pitch.m_RowPitch * numRows;
-        }
+        pitch = GetResourcePitchForSubresource(m_pImmediateContext->GetReal(), tex, sub);
+        ret += pitch.m_RowPitch * numRows;
 
         ret += WriteSerialiser::GetChunkAlignment();
       }
     }
   }
-  else if(type == Resource_Texture3D)
+  else if(initial.resourceType == Resource_Texture3D)
   {
-    WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)res;
+    WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)initial.resource;
 
     D3D11_TEXTURE3D_DESC desc = {};
     tex->GetDesc(&desc);
@@ -360,58 +353,51 @@ uint64_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
     ret += 4;                      // number of subresources
     ret += 8 * NumSubresources;    // RowPitch and DepthPitch for each subresource
 
-    ID3D11Resource *stage = (ID3D11Resource *)m_ResourceManager->GetInitialContents(id).resource;
-
     // Subresource contents:
     for(UINT sub = 0; sub < NumSubresources; sub++)
     {
       UINT mip = GetMipForSubresource(tex, sub);
 
-      if(stage)
-      {
-        pitch = GetResourcePitchForSubresource(m_pImmediateContext->GetReal(), stage, sub);
-        ret += pitch.m_DepthPitch * RDCMAX(1U, desc.Depth >> mip);
-      }
+      pitch = GetResourcePitchForSubresource(m_pImmediateContext->GetReal(), tex, sub);
+      ret += pitch.m_DepthPitch * RDCMAX(1U, desc.Depth >> mip);
 
       ret += WriteSerialiser::GetChunkAlignment();
     }
   }
   else
   {
-    RDCERR("Trying to serialise initial state of unsupported resource type %s", ToStr(type).c_str());
+    RDCERR("Trying to serialise initial state of unsupported resource type %s",
+           ToStr(initial.resourceType).c_str());
   }
 
   return ret;
 }
 
 template <typename SerialiserType>
-bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId resid,
-                                                 ID3D11DeviceChild *res)
+bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId id,
+                                                 D3D11ResourceRecord *record,
+                                                 const D3D11InitialContents *initial)
 {
   D3D11ResourceType type = Resource_Unknown;
-  ResourceId Id = ResourceId();
-
-  bool ret = true;
 
   if(IsCaptureMode(m_State))
-  {
-    type = IdentifyTypeByPtr(res);
-    Id = GetIDForResource(res);
-  }
+    type = record->ResType;
+
+  bool ret = true;
 
   if(type != Resource_Buffer)
   {
     SERIALISE_ELEMENT(type);
-    SERIALISE_ELEMENT(Id).TypedAs("ID3D11DeviceChild *");
+    SERIALISE_ELEMENT(id).TypedAs("ID3D11DeviceChild *");
   }
 
   if(IsReplayingAndReading())
   {
-    AddResourceCurChunk(Id);
+    AddResourceCurChunk(id);
   }
 
   {
-    RDCDEBUG("Serialise_InitialState(%llu)", Id);
+    RDCDEBUG("Serialise_InitialState(%llu)", id);
 
     if(type == Resource_Buffer)
       RDCDEBUG("    .. buffer");
@@ -434,37 +420,14 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   {
     uint32_t InitialHiddenCount = 0;
 
-    WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)res;
-    if(IsReplayMode(m_State))
+    if(ser.IsWriting())
     {
-      if(m_ResourceManager->HasLiveResource(Id))
-        uav = (WrappedID3D11UnorderedAccessView1 *)m_ResourceManager->GetLiveResource(Id);
-    }
+      ID3D11Buffer *stage = initial ? (ID3D11Buffer *)initial->resource : NULL;
 
-    D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
-    if(uav)
-      uav->GetDesc(&desc);
-
-    bool bufferUAVWithCounter =
-        (desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
-         (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_COUNTER | D3D11_BUFFER_UAV_FLAG_APPEND)) != 0);
-
-    if(bufferUAVWithCounter && ser.IsWriting())
-    {
-      ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
-
-      if(stage != NULL)
+      if(stage)
       {
         D3D11_MAPPED_SUBRESOURCE mapped = {};
-        HRESULT hr = E_INVALIDARG;
-
-        if(stage)
-          hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
-        else
-          RDCERR(
-              "Didn't have stage resource for %llu when serialising initial state! "
-              "Dirty tracking is incorrect",
-              Id);
+        HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
 
         if(FAILED(hr))
         {
@@ -483,18 +446,15 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     SERIALISE_CHECK_READ_ERRORS();
 
-    if(bufferUAVWithCounter && IsReplayingAndReading())
+    if(IsReplayingAndReading())
     {
-      m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, InitialHiddenCount));
+      m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, InitialHiddenCount));
     }
   }
   else if(type == Resource_Buffer)
   {
     if(ser.IsWriting())
     {
-      WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
-      D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
-
       RDCASSERT(record);
 
       D3D11_BUFFER_DESC desc;
@@ -503,7 +463,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       desc.MiscFlags = 0;
       desc.StructureByteStride = 0;
 
-      ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
+      ID3D11Buffer *stage = initial ? (ID3D11Buffer *)initial->resource : NULL;
 
       D3D11_MAPPED_SUBRESOURCE mapped = {};
       HRESULT hr = E_INVALIDARG;
@@ -514,7 +474,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
         RDCERR(
             "Didn't have stage resource for %llu when serialising initial state! "
             "Dirty tracking is incorrect",
-            Id);
+            id);
 
       if(FAILED(hr))
       {
@@ -526,7 +486,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
         MapIntercept intercept;
         intercept.SetD3D(mapped);
-        intercept.Init(buf, record->GetDataPtr());
+        intercept.Init(stage, record->GetDataPtr());
         intercept.CopyFromD3D();
 
         m_pImmediateContext->GetReal()->Unmap(stage, 0);
@@ -535,21 +495,21 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   }
   else if(type == Resource_Texture1D)
   {
-    WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)res;
-    if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(Id))
-      tex = (WrappedID3D11Texture1D *)m_ResourceManager->GetLiveResource(Id);
+    ID3D11Texture1D *prepared = initial ? (ID3D11Texture1D *)initial->resource : NULL;
 
-    D3D11ResourceRecord *record = NULL;
+    ID3D11Texture1D *tex = NULL;
+    D3D11_TEXTURE1D_DESC desc = {0};
+
     if(ser.IsWriting())
     {
-      record = m_ResourceManager->GetResourceRecord(Id);
-
-      RDCASSERT(record);
-    }
-
-    D3D11_TEXTURE1D_DESC desc = {0};
-    if(tex)
+      tex = prepared;
       tex->GetDesc(&desc);
+    }
+    else if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(id))
+    {
+      tex = (WrappedID3D11Texture1D *)m_ResourceManager->GetLiveResource(id);
+      tex->GetDesc(&desc);
+    }
 
     uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
     SERIALISE_ELEMENT(NumSubresources);
@@ -558,8 +518,6 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     if(IsReplayingAndReading() && tex)
       subData = new D3D11_SUBRESOURCE_DATA[NumSubresources];
-
-    ID3D11Texture1D *prepared = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id).resource;
 
     for(UINT sub = 0; sub < NumSubresources; sub++)
     {
@@ -579,7 +537,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           RDCERR(
               "Didn't have stage resource for %llu when serialising initial state! "
               "Dirty tracking is incorrect",
-              Id);
+              id);
 
         if(FAILED(hr))
           RDCERR("Failed to map in initial states %s", ToStr(hr).c_str());
@@ -636,7 +594,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       }
       else
       {
-        m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, dataTex));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, dataTex));
       }
 
       // free the buffers we stole
@@ -648,21 +606,21 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   }
   else if(type == Resource_Texture2D)
   {
-    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)res;
-    if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(Id))
-      tex = (WrappedID3D11Texture2D1 *)m_ResourceManager->GetLiveResource(Id);
+    ID3D11Texture2D *prepared = initial ? (ID3D11Texture2D *)initial->resource : NULL;
 
-    D3D11ResourceRecord *record = NULL;
+    ID3D11Texture2D *tex = NULL;
+    D3D11_TEXTURE2D_DESC desc = {0};
+
     if(ser.IsWriting())
     {
-      record = m_ResourceManager->GetResourceRecord(Id);
-
-      RDCASSERT(record);
-    }
-
-    D3D11_TEXTURE2D_DESC desc = {0};
-    if(tex)
+      tex = prepared;
       tex->GetDesc(&desc);
+    }
+    else if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(id))
+    {
+      tex = (WrappedID3D11Texture2D1 *)m_ResourceManager->GetLiveResource(id);
+      tex->GetDesc(&desc);
+    }
 
     uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
     bool multisampled = desc.SampleDesc.Count > 1 || desc.SampleDesc.Quality > 0;
@@ -703,9 +661,6 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       if(IsReplayingAndReading() && tex)
         subData = new D3D11_SUBRESOURCE_DATA[NumSubresources];
 
-      ID3D11Texture2D *prepared =
-          (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id).resource;
-
       for(UINT sub = 0; sub < NumSubresources; sub++)
       {
         UINT mip = tex ? GetMipForSubresource(tex, sub) : 0;
@@ -731,7 +686,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
             RDCERR(
                 "Didn't have stage resource for %llu when serialising initial state! "
                 "Dirty tracking is incorrect",
-                Id);
+                id);
 
           if(FAILED(hr))
           {
@@ -840,7 +795,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
             dataTex = contentsMS;
           }
 
-          m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, dataTex));
+          m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, dataTex));
         }
 
         // free the buffers we stole
@@ -853,21 +808,21 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   }
   else if(type == Resource_Texture3D)
   {
-    WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)res;
-    if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(Id))
-      tex = (WrappedID3D11Texture3D1 *)m_ResourceManager->GetLiveResource(Id);
+    ID3D11Texture3D *prepared = initial ? (ID3D11Texture3D *)initial->resource : NULL;
 
-    D3D11ResourceRecord *record = NULL;
+    ID3D11Texture3D *tex = NULL;
+    D3D11_TEXTURE3D_DESC desc = {0};
+
     if(ser.IsWriting())
     {
-      record = m_ResourceManager->GetResourceRecord(Id);
-
-      RDCASSERT(record);
-    }
-
-    D3D11_TEXTURE3D_DESC desc = {0};
-    if(tex)
+      tex = prepared;
       tex->GetDesc(&desc);
+    }
+    else if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(id))
+    {
+      tex = (WrappedID3D11Texture3D1 *)m_ResourceManager->GetLiveResource(id);
+      tex->GetDesc(&desc);
+    }
 
     uint32_t NumSubresources = desc.MipLevels;
     SERIALISE_ELEMENT(NumSubresources);
@@ -876,8 +831,6 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     if(IsReplayingAndReading() && tex)
       subData = new D3D11_SUBRESOURCE_DATA[NumSubresources];
-
-    ID3D11Texture3D *prepared = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id).resource;
 
     for(UINT sub = 0; sub < NumSubresources; sub++)
     {
@@ -905,7 +858,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           RDCERR(
               "Didn't have stage resource for %llu when serialising initial state! "
               "Dirty tracking is incorrect",
-              Id);
+              id);
 
         if(FAILED(hr))
         {
@@ -974,7 +927,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       }
       else
       {
-        m_ResourceManager->SetInitialContents(Id, D3D11InitialContents(type, dataTex));
+        m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, dataTex));
       }
 
       // free the buffers we stole
@@ -1321,7 +1274,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
   }
 }
 
-void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11InitialContents initial)
+void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
+                                             const D3D11InitialContents &initial)
 {
   if(initial.resourceType == Resource_UnorderedAccessView)
   {
@@ -1361,7 +1315,9 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11Initi
   }
 }
 
-template bool WrappedID3D11Device::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,
-                                                          ID3D11DeviceChild *res);
-template bool WrappedID3D11Device::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
-                                                          ID3D11DeviceChild *res);
+template bool WrappedID3D11Device::Serialise_InitialState(ReadSerialiser &ser, ResourceId id,
+                                                          D3D11ResourceRecord *record,
+                                                          const D3D11InitialContents *initial);
+template bool WrappedID3D11Device::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                                          D3D11ResourceRecord *record,
+                                                          const D3D11InitialContents *initial);

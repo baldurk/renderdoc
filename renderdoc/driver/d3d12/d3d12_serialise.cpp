@@ -235,9 +235,6 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
   // also invisibly backwards compatible
   D3D12ResourceManager *rm = (D3D12ResourceManager *)ser.GetUserData();
 
-  ID3D12Resource *resource = NULL;
-  ID3D12Resource *counterResource = NULL;
-
   switch(type)
   {
     case D3D12DescriptorType::Sampler:
@@ -253,13 +250,13 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     }
     case D3D12DescriptorType::SRV:
     {
-      if(ser.IsWriting() && rm && rm->HasCurrentResource(el.data.nonsamp.resource))
-        resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+      ser.Serialise("Resource", el.data.nonsamp.resource).TypedAs("ID3D12Resource *");
 
-      ser.Serialise("Resource", resource);
-
+      // convert to Live ID on replay
       if(ser.IsReading())
-        el.data.nonsamp.resource = GetResID(resource);
+        el.data.nonsamp.resource = rm->HasLiveResource(el.data.nonsamp.resource)
+                                       ? rm->GetLiveID(el.data.nonsamp.resource)
+                                       : ResourceId();
 
       // special case because of squeezed descriptor
       D3D12_SHADER_RESOURCE_VIEW_DESC desc;
@@ -272,47 +269,44 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     }
     case D3D12DescriptorType::RTV:
     {
-      if(ser.IsWriting() && rm && rm->HasCurrentResource(el.data.nonsamp.resource))
-        resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+      ser.Serialise("Resource", el.data.nonsamp.resource).TypedAs("ID3D12Resource *");
 
-      ser.Serialise("Resource", resource);
-
+      // convert to Live ID on replay
       if(ser.IsReading())
-        el.data.nonsamp.resource = GetResID(resource);
+        el.data.nonsamp.resource = rm->HasLiveResource(el.data.nonsamp.resource)
+                                       ? rm->GetLiveID(el.data.nonsamp.resource)
+                                       : ResourceId();
 
       ser.Serialise("Descriptor", el.data.nonsamp.rtv);
       break;
     }
     case D3D12DescriptorType::DSV:
     {
-      if(ser.IsWriting() && rm && rm->HasCurrentResource(el.data.nonsamp.resource))
-        resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
+      ser.Serialise("Resource", el.data.nonsamp.resource).TypedAs("ID3D12Resource *");
 
-      ser.Serialise("Resource", resource);
-
+      // convert to Live ID on replay
       if(ser.IsReading())
-        el.data.nonsamp.resource = GetResID(resource);
+        el.data.nonsamp.resource = rm->HasLiveResource(el.data.nonsamp.resource)
+                                       ? rm->GetLiveID(el.data.nonsamp.resource)
+                                       : ResourceId();
 
       ser.Serialise("Descriptor", el.data.nonsamp.dsv);
       break;
     }
     case D3D12DescriptorType::UAV:
     {
-      if(ser.IsWriting())
-      {
-        if(rm && rm->HasCurrentResource(el.data.nonsamp.resource))
-          resource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.resource);
-        if(rm && rm->HasCurrentResource(el.data.nonsamp.counterResource))
-          counterResource = rm->GetCurrentAs<ID3D12Resource>(el.data.nonsamp.counterResource);
-      }
+      ser.Serialise("Resource", el.data.nonsamp.resource).TypedAs("ID3D12Resource *");
+      ser.Serialise("CounterResource", el.data.nonsamp.counterResource).TypedAs("ID3D12Resource *");
 
-      ser.Serialise("Resource", resource);
-      ser.Serialise("CounterResource", counterResource);
-
+      // convert to Live ID on replay
       if(ser.IsReading())
       {
-        el.data.nonsamp.resource = GetResID(resource);
-        el.data.nonsamp.counterResource = GetResID(counterResource);
+        el.data.nonsamp.resource = rm->HasLiveResource(el.data.nonsamp.resource)
+                                       ? rm->GetLiveID(el.data.nonsamp.resource)
+                                       : ResourceId();
+        el.data.nonsamp.counterResource = rm->HasLiveResource(el.data.nonsamp.counterResource)
+                                              ? rm->GetLiveID(el.data.nonsamp.counterResource)
+                                              : ResourceId();
       }
 
       // special case because of squeezed descriptor

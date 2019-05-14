@@ -615,7 +615,8 @@ struct D3D12InitialContents
         descriptors(d),
         numDescriptors(n),
         resource(NULL),
-        srcData(NULL)
+        srcData(NULL),
+        dataSize(0)
   {
   }
   D3D12InitialContents(ID3D12DescriptorHeap *r)
@@ -624,7 +625,8 @@ struct D3D12InitialContents
         descriptors(NULL),
         numDescriptors(0),
         resource(r),
-        srcData(NULL)
+        srcData(NULL),
+        dataSize(0)
   {
   }
   D3D12InitialContents(ID3D12Resource *r)
@@ -633,7 +635,18 @@ struct D3D12InitialContents
         descriptors(NULL),
         numDescriptors(0),
         resource(r),
-        srcData(NULL)
+        srcData(NULL),
+        dataSize(0)
+  {
+  }
+  D3D12InitialContents(byte *data, size_t size)
+      : tag(MapDirect),
+        resourceType(Resource_Resource),
+        descriptors(NULL),
+        numDescriptors(0),
+        resource(NULL),
+        srcData(data),
+        dataSize(size)
   {
   }
   D3D12InitialContents(Tag tg)
@@ -642,7 +655,8 @@ struct D3D12InitialContents
         descriptors(NULL),
         numDescriptors(0),
         resource(NULL),
-        srcData(NULL)
+        srcData(NULL),
+        dataSize(0)
   {
   }
   D3D12InitialContents()
@@ -651,7 +665,8 @@ struct D3D12InitialContents
         descriptors(NULL),
         numDescriptors(0),
         resource(NULL),
-        srcData(NULL)
+        srcData(NULL),
+        dataSize(0)
   {
   }
   template <typename Configuration>
@@ -667,6 +682,7 @@ struct D3D12InitialContents
   uint32_t numDescriptors;
   ID3D12DeviceChild *resource;
   byte *srcData;
+  size_t dataSize;
 };
 
 struct D3D12ResourceManagerConfiguration
@@ -704,7 +720,8 @@ public:
                                std::map<ResourceId, SubresourceStateVector> &states);
 
   template <typename SerialiserType>
-  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, ID3D12DeviceChild *res);
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId id, D3D12ResourceRecord *record,
+                              const D3D12InitialContents *initial);
 
   void SetInternalResource(ID3D12DeviceChild *res);
 
@@ -713,15 +730,15 @@ private:
 
   bool ResourceTypeRelease(ID3D12DeviceChild *res);
 
-  bool Need_InitialStateChunk(ID3D12DeviceChild *res);
   bool Prepare_InitialState(ID3D12DeviceChild *res);
-  uint64_t GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res);
-  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, ID3D12DeviceChild *res)
+  uint64_t GetSize_InitialState(ResourceId id, const D3D12InitialContents &data);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, D3D12ResourceRecord *record,
+                              const D3D12InitialContents *initial)
   {
-    return Serialise_InitialState<WriteSerialiser>(ser, resid, res);
+    return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
   }
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
-  void Apply_InitialState(ID3D12DeviceChild *live, D3D12InitialContents data);
+  void Apply_InitialState(ID3D12DeviceChild *live, const D3D12InitialContents &data);
 
   CaptureState m_State;
   WrappedID3D12Device *m_Device;

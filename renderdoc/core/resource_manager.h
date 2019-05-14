@@ -569,14 +569,16 @@ protected:
 
   virtual bool ResourceTypeRelease(WrappedResourceType res) = 0;
 
-  virtual bool AllowDeletedResource_InitialState() { return false; }
-  virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
+  virtual bool Need_InitialStateChunk(ResourceId id, const InitialContentData &initial)
+  {
+    return true;
+  }
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
-  virtual uint64_t GetSize_InitialState(ResourceId id, WrappedResourceType res) = 0;
-  virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
-                                      WrappedResourceType res) = 0;
+  virtual uint64_t GetSize_InitialState(ResourceId id, const InitialContentData &initial) = 0;
+  virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, RecordType *record,
+                                      const InitialContentData *initialData) = 0;
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
-  virtual void Apply_InitialState(WrappedResourceType live, InitialContentData initial) = 0;
+  virtual void Apply_InitialState(WrappedResourceType live, const InitialContentData &initial) = 0;
   virtual std::vector<ResourceId> InitialContentResources();
 
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
@@ -1083,20 +1085,6 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
       continue;
     }
 
-    WrappedResourceType res = (WrappedResourceType)RecordType::NullResource;
-    bool isAlive = HasCurrentResource(id);
-
-    if(!AllowDeletedResource_InitialState() && !isAlive)
-    {
-#if ENABLED(VERBOSE_DIRTY_RESOURCES)
-      RDCDEBUG("Resource %llu no longer exists - skipping", id);
-#endif
-      continue;
-    }
-
-    if(isAlive)
-      res = GetCurrentResource(id);
-
     RecordType *record = GetResourceRecord(id);
 
     if(record == NULL)
@@ -1121,7 +1109,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
 
     dirty++;
 
-    if(!Need_InitialStateChunk(res))
+    if(!Need_InitialStateChunk(id, it->second.data))
     {
       // this was handled in ApplyInitialContentsNonChunks(), do nothing as there's no point copying
       // the data again (it's already been serialised).
@@ -1134,11 +1122,11 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     }
     else
     {
-      uint64_t size = GetSize_InitialState(id, res);
+      uint64_t size = GetSize_InitialState(id, it->second.data);
 
       SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
 
-      Serialise_InitialState(ser, id, res);
+      Serialise_InitialState(ser, id, record, &it->second.data);
     }
   }
 
@@ -1160,22 +1148,13 @@ void ResourceManager<Configuration>::ApplyInitialContentsNonChunks(WriteSerialis
       continue;
     }
 
-    WrappedResourceType res = (WrappedResourceType)RecordType::NullResource;
-    bool isAlive = HasCurrentResource(id);
-
-    if(!AllowDeletedResource_InitialState() && !isAlive)
-      continue;
-
-    if(isAlive)
-      res = GetCurrentResource(id);
-
     RecordType *record = GetResourceRecord(id);
 
     if(!record || record->InternalResource)
       continue;
 
-    if(!Need_InitialStateChunk(res))
-      Serialise_InitialState(ser, id, res);
+    if(!Need_InitialStateChunk(id, it->second.data))
+      Serialise_InitialState(ser, id, record, &it->second.data);
   }
 }
 

@@ -438,6 +438,7 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView1(ID3D11Resource *pResource
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -583,6 +584,7 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView1(ID3D11Resource *pResource,
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -698,6 +700,7 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView1(ID3D11Resource *pResourc
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -816,6 +819,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -897,6 +901,7 @@ HRESULT WrappedID3D11Device::CreateQuery1(const D3D11_QUERY_DESC1 *pQueryDesc, I
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());

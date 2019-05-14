@@ -72,9 +72,9 @@ bool D3D11ResourceManager::ResourceTypeRelease(ID3D11DeviceChild *res)
   return true;
 }
 
-bool D3D11ResourceManager::Need_InitialStateChunk(ID3D11DeviceChild *res)
+bool D3D11ResourceManager::Need_InitialStateChunk(ResourceId id, const InitialContentData &initial)
 {
-  return IdentifyTypeByPtr(res) != Resource_Buffer;
+  return initial.resourceType != Resource_Buffer;
 }
 
 bool D3D11ResourceManager::Prepare_InitialState(ID3D11DeviceChild *res)
@@ -82,15 +82,16 @@ bool D3D11ResourceManager::Prepare_InitialState(ID3D11DeviceChild *res)
   return m_Device->Prepare_InitialState(res);
 }
 
-uint64_t D3D11ResourceManager::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
+uint64_t D3D11ResourceManager::GetSize_InitialState(ResourceId id, const D3D11InitialContents &initial)
 {
-  return m_Device->GetSize_InitialState(id, res);
+  return m_Device->GetSize_InitialState(id, initial);
 }
 
 bool D3D11ResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
-                                                  ID3D11DeviceChild *res)
+                                                  D3D11ResourceRecord *record,
+                                                  const D3D11InitialContents *initial)
 {
-  return m_Device->Serialise_InitialState(ser, id, res);
+  return m_Device->Serialise_InitialState(ser, id, record, initial);
 }
 
 void D3D11ResourceManager::Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData)
@@ -98,7 +99,8 @@ void D3D11ResourceManager::Create_InitialState(ResourceId id, ID3D11DeviceChild 
   m_Device->Create_InitialState(id, live, hasData);
 }
 
-void D3D11ResourceManager::Apply_InitialState(ID3D11DeviceChild *live, D3D11InitialContents data)
+void D3D11ResourceManager::Apply_InitialState(ID3D11DeviceChild *live,
+                                              const D3D11InitialContents &data)
 {
   m_Device->Apply_InitialState(live, data);
 }

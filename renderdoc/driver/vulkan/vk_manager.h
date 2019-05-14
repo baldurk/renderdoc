@@ -435,13 +435,12 @@ public:
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
-  bool AllowDeletedResource_InitialState() { return true; }
-  bool Need_InitialStateChunk(WrappedVkRes *res);
   bool Prepare_InitialState(WrappedVkRes *res);
-  uint64_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
-  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, WrappedVkRes *res);
+  uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, VkResourceRecord *record,
+                              const VkInitialContents *initial);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
-  void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);
+  void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
   std::vector<ResourceId> InitialContentResources();
 
   CaptureState m_State;

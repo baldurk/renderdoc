@@ -5400,6 +5400,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
 
     D3D11ResourceRecord *record =
         m_pDevice->GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+    record->ResType = Resource_CommandList;
     record->Length = 0;
     record->InternalResource = true;
 

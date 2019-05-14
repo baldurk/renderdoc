@@ -623,14 +623,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
   return false;
 }
 
-uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
+uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialContents &initial)
 {
-  VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-  VkResourceType type = IdentifyTypeByPtr(record->Resource);
-  VkInitialContents initContents = GetResourceManager()->GetInitialContents(id);
-
-  if(type == eResDescriptorSet)
+  if(initial.type == eResDescriptorSet)
   {
+    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+
     RDCASSERT(record->descInfo && record->descInfo->layout);
     const DescSetLayout &layout = *record->descInfo->layout;
 
@@ -641,21 +639,21 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
 
     return 32 + NumBindings * sizeof(DescriptorSetSlot);
   }
-  else if(type == eResBuffer)
+  else if(initial.type == eResBuffer)
   {
     // buffers only have initial states when they're sparse
-    return GetSize_SparseInitialState(id, res);
+    return GetSize_SparseInitialState(id, initial);
   }
-  else if(type == eResImage || type == eResDeviceMemory)
+  else if(initial.type == eResImage || initial.type == eResDeviceMemory)
   {
-    if(initContents.tag == VkInitialContents::Sparse)
-      return GetSize_SparseInitialState(id, res);
+    if(initial.tag == VkInitialContents::Sparse)
+      return GetSize_SparseInitialState(id, initial);
 
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
-    return uint64_t(128 + initContents.mem.size + WriteSerialiser::GetChunkAlignment());
+    return uint64_t(128 + initial.mem.size + WriteSerialiser::GetChunkAlignment());
   }
 
-  RDCERR("Unhandled resource type %s", ToStr(type).c_str());
+  RDCERR("Unhandled resource type %s", ToStr(initial.type).c_str());
   return 128;
 }
 
@@ -672,24 +670,13 @@ static const char *NameOfType(VkResourceType type)
   return "VkResource";
 }
 
-// second parameter isn't used, as we might be serialising init state for a deleted resource
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, WrappedVkRes *)
+bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
+                                           VkResourceRecord *record, const VkInitialContents *initial)
 {
-  VkResourceType type;
-
-  VkResourceRecord *record = NULL;
-  if(ser.IsWriting())
-  {
-    record = GetResourceManager()->GetResourceRecord(id);
-    // use the record's resource, not the one passed in, because the passed in one
-    // might be null if it was deleted
-    type = IdentifyTypeByPtr(record->Resource);
-  }
-
   bool ret = true;
 
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT_LOCAL(type, initial->type);
   SERIALISE_ELEMENT(id).TypedAs(NameOfType(type));
 
   if(IsReplayingAndReading())
@@ -705,12 +692,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     // while writing, fetching binding information from prepared initial contents
     if(ser.IsWriting())
     {
-      VkInitialContents initContents = GetResourceManager()->GetInitialContents(id);
-
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
 
-      Bindings = (DescriptorSetSlot *)initContents.descriptorSlots;
+      Bindings = (DescriptorSetSlot *)initial->descriptorSlots;
 
       for(size_t i = 0; i < layout.bindings.size(); i++)
         NumBindings += layout.bindings[i].descriptorCount;
@@ -927,16 +912,15 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   else if(type == eResBuffer)
   {
     // buffers only have initial states when they're sparse
-    return Serialise_SparseBufferInitialState(ser, id, GetResourceManager()->GetInitialContents(id));
+    return Serialise_SparseBufferInitialState(ser, id, initial);
   }
   else if(type == eResDeviceMemory || type == eResImage)
   {
     VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
-    VkInitialContents initContents = GetResourceManager()->GetInitialContents(id);
 
     // if we have a blob of data, this contains sparse mapping so re-direct to the sparse
     // implementation of this function
-    SERIALISE_ELEMENT_LOCAL(IsSparse, initContents.tag == VkInitialContents::Sparse);
+    SERIALISE_ELEMENT_LOCAL(IsSparse, initial && initial->tag == VkInitialContents::Sparse);
 
     if(IsSparse)
     {
@@ -944,7 +928,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
       if(type == eResImage)
       {
-        ret = Serialise_SparseImageInitialState(ser, id, initContents);
+        ret = Serialise_SparseImageInitialState(ser, id, initial);
       }
       else
       {
@@ -958,7 +942,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     VkResult vkr = VK_SUCCESS;
 
     byte *Contents = NULL;
-    uint64_t ContentsSize = initContents.mem.size;
+    uint64_t ContentsSize = initial ? initial->mem.size : 0;
     MemoryAllocation mappedMem;
 
     // Serialise this separately so that it can be used on reading to prepare the upload memory
@@ -971,11 +955,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     // during writing, we already have the memory copied off - we just need to map it.
     if(ser.IsWriting())
     {
-      if(initContents.mem.mem != VK_NULL_HANDLE)
+      if(initial && initial->mem.mem != VK_NULL_HANDLE)
       {
-        mappedMem = initContents.mem;
-        vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initContents.mem.offs,
-                                    initContents.mem.size, 0, (void **)&Contents);
+        mappedMem = initial->mem;
+        vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initial->mem.offs,
+                                    initial->mem.size, 0, (void **)&Contents);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         // invalidate the cpu cache for this memory range to avoid reading stale data
@@ -1059,7 +1043,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
       }
       else
       {
-        VkInitialContents initial(type, uploadMemory);
+        VkInitialContents initialContents(type, uploadMemory);
 
         VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[liveid];
 
@@ -1067,7 +1051,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
         // offsets to copy out the subresources into the image itself.
         if(c.samples == VK_SAMPLE_COUNT_1_BIT)
         {
-          initial.buf = uploadBuf;
+          initialContents.buf = uploadBuf;
         }
         else
         {
@@ -1227,12 +1211,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
           vkDestroyBuffer(d, uploadBuf, NULL);
           FreeMemoryAllocation(uploadMemory);
 
-          initial.buf = VK_NULL_HANDLE;
-          initial.img = arrayIm;
-          initial.mem = arrayMem;
+          initialContents.buf = VK_NULL_HANDLE;
+          initialContents.img = arrayIm;
+          initialContents.mem = arrayMem;
         }
 
-        GetResourceManager()->SetInitialContents(id, initial);
+        GetResourceManager()->SetInitialContents(id, initialContents);
       }
     }
   }
@@ -1245,10 +1229,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   return ret;
 }
 
-template bool WrappedVulkan::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,
-                                                    WrappedVkRes *);
-template bool WrappedVulkan::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
-                                                    WrappedVkRes *);
+template bool WrappedVulkan::Serialise_InitialState(ReadSerialiser &ser, ResourceId id,
+                                                    VkResourceRecord *record,
+                                                    const VkInitialContents *initial);
+template bool WrappedVulkan::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                                    VkResourceRecord *record,
+                                                    const VkInitialContents *initial);
 
 void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
 {
@@ -1302,7 +1288,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
   }
 }
 
-void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents initial)
+void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial)
 {
   VkResourceType type = initial.type;
 

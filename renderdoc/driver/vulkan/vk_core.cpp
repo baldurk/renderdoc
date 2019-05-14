@@ -2941,7 +2941,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       }
       else if(system == SystemChunk::InitialContents)
       {
-        return Serialise_InitialState(ser, ResourceId(), NULL);
+        return Serialise_InitialState(ser, ResourceId(), NULL, NULL);
       }
       else if(system == SystemChunk::CaptureScope)
       {

@@ -83,6 +83,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     RDCASSERT(GetResourceManager()->GetResourceRecord(pBuffer) == NULL);
 
     D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(pBuffer);
+    record->ResType = Resource_Buffer;
     record->SetDataOffset(offs);
     record->DataInSerialiser = true;
     record->Length = Descriptor.ByteWidth;
@@ -281,6 +282,7 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
         RDCASSERT(record == NULL);
 
         record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(tex);
         record->Length = 1;
 
         if(HasData)
@@ -291,6 +293,7 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
         for(UINT s = 0; s < numSubresources; s++)
         {
           record->SubResources[s] = new D3D11ResourceRecord(ResourceId());
+          record->SubResources[s]->ResType = record->ResType;
           record->SubResources[s]->DataInSerialiser = HasData;
         }
       }
@@ -879,6 +882,7 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -1011,6 +1015,7 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -1151,6 +1156,7 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -1254,6 +1260,7 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
@@ -1364,6 +1371,7 @@ HRESULT WrappedID3D11Device::CreateInputLayout(const D3D11_INPUT_ELEMENT_DESC *p
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -1453,6 +1461,7 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -1548,6 +1557,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -1654,6 +1664,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -1747,6 +1758,7 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -1838,6 +1850,7 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -1933,6 +1946,7 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2028,6 +2042,7 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2348,6 +2363,7 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2451,6 +2467,7 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2554,6 +2571,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2657,6 +2675,7 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2730,6 +2749,7 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2814,6 +2834,7 @@ HRESULT WrappedID3D11Device::CreatePredicate(const D3D11_QUERY_DESC *pPredicateD
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -2894,6 +2915,7 @@ HRESULT WrappedID3D11Device::CreateCounter(const D3D11_COUNTER_DESC *pCounterDes
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -3023,6 +3045,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       RDCASSERT(GetResourceManager()->GetResourceRecord(pResource) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(pResource);
+      record->ResType = Type;
       record->SetDataOffset(offs);
       record->DataInSerialiser = true;
       record->Length = Descriptor.ByteWidth;

@@ -246,21 +246,22 @@ public:
   void Force_ReferenceViews();
 
   template <typename SerialiserType>
-  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, GLResource res);
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId id, GLResourceRecord *record,
+                              const GLInitialContents *initial);
 
   void ContextPrepare_InitialState(GLResource res);
-  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, GLResource res)
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, GLResourceRecord *record,
+                              const GLInitialContents *initial)
   {
-    return Serialise_InitialState<WriteSerialiser>(ser, resid, res);
+    return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
   }
 
   void SetInternalResource(GLResource res);
 
 private:
   bool ResourceTypeRelease(GLResource res);
-  bool Need_InitialStateChunk(GLResource res);
   bool Prepare_InitialState(GLResource res);
-  uint64_t GetSize_InitialState(ResourceId resid, GLResource res);
+  uint64_t GetSize_InitialState(ResourceId resid, const GLInitialContents &initial);
 
   void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
                           GLenum textype, GLint dim, GLint width, GLint height, GLint depth,
@@ -268,7 +269,7 @@ private:
   void PrepareTextureInitialContents(ResourceId liveid, ResourceId origid, GLResource res);
 
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);
-  void Apply_InitialState(GLResource live, GLInitialContents initial);
+  void Apply_InitialState(GLResource live, const GLInitialContents &initial);
 
   map<GLResource, GLResourceRecord *> m_GLResourceRecords;
 

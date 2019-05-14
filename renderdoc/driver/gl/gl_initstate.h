@@ -183,6 +183,8 @@ struct GLInitialContents
     TextureStateInitialData tex;
   };
 
+  GLNamespace type;
+
   // the GL object containing the contents of a texture, buffer, or program
   GLResource resource;
   uint32_t bufferLength;

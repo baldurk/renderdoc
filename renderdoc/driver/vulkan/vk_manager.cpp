@@ -723,25 +723,21 @@ MemRefs *VulkanResourceManager::FindMemRefs(ResourceId mem)
     return NULL;
 }
 
-bool VulkanResourceManager::Need_InitialStateChunk(WrappedVkRes *res)
-{
-  return true;
-}
-
 bool VulkanResourceManager::Prepare_InitialState(WrappedVkRes *res)
 {
   return m_Core->Prepare_InitialState(res);
 }
 
-uint64_t VulkanResourceManager::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
+uint64_t VulkanResourceManager::GetSize_InitialState(ResourceId id, const VkInitialContents &initial)
 {
-  return m_Core->GetSize_InitialState(id, res);
+  return m_Core->GetSize_InitialState(id, initial);
 }
 
-bool VulkanResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
-                                                   WrappedVkRes *res)
+bool VulkanResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                                   VkResourceRecord *record,
+                                                   const VkInitialContents *initial)
 {
-  return m_Core->Serialise_InitialState(ser, resid, res);
+  return m_Core->Serialise_InitialState(ser, id, record, initial);
 }
 
 void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
@@ -749,7 +745,7 @@ void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *liv
   return m_Core->Create_InitialState(id, live, hasData);
 }
 
-void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, VkInitialContents initial)
+void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial)
 {
   return m_Core->Apply_InitialState(live, initial);
 }

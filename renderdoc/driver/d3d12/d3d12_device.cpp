@@ -2727,7 +2727,7 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       }
       else if(system == SystemChunk::InitialContents)
       {
-        return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL);
+        return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL, NULL);
       }
       else if(system == SystemChunk::CaptureScope)
       {

@@ -45,24 +45,21 @@ bool D3D8ResourceManager::ResourceTypeRelease(IUnknown *res)
   return true;
 }
 
-bool D3D8ResourceManager::Need_InitialStateChunk(IUnknown *res)
-{
-  return true;
-}
-
 bool D3D8ResourceManager::Prepare_InitialState(IUnknown *res)
 {
   // TODO
   return false;
 }
 
-uint64_t D3D8ResourceManager::GetSize_InitialState(ResourceId id, IUnknown *res)
+uint64_t D3D8ResourceManager::GetSize_InitialState(ResourceId id, const D3D8InitialContents &data)
 {
   // TODO
   return 128;
 }
 
-bool D3D8ResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id, IUnknown *res)
+bool D3D8ResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                                 D3D8ResourceRecord *record,
+                                                 const D3D8InitialContents *data)
 {
   // TODO
   return false;
@@ -72,7 +69,7 @@ void D3D8ResourceManager::Create_InitialState(ResourceId id, IUnknown *live, boo
 {
 }
 
-void D3D8ResourceManager::Apply_InitialState(IUnknown *live, D3D8InitialContents data)
+void D3D8ResourceManager::Apply_InitialState(IUnknown *live, const D3D8InitialContents &data)
 {
   // TODO
 }

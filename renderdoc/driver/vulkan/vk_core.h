@@ -828,12 +828,12 @@ private:
   bool Prepare_SparseInitialState(WrappedVkImage *im);
   template <typename SerialiserType>
   bool Serialise_SparseBufferInitialState(SerialiserType &ser, ResourceId id,
-                                          VkInitialContents contents);
+                                          const VkInitialContents *contents);
   template <typename SerialiserType>
   bool Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
-                                         VkInitialContents contents);
-  bool Apply_SparseInitialState(WrappedVkBuffer *buf, VkInitialContents contents);
-  bool Apply_SparseInitialState(WrappedVkImage *im, VkInitialContents contents);
+                                         const VkInitialContents *contents);
+  bool Apply_SparseInitialState(WrappedVkBuffer *buf, const VkInitialContents &contents);
+  bool Apply_SparseInitialState(WrappedVkImage *im, const VkInitialContents &contents);
 
   void ApplyInitialContents();
 
@@ -916,12 +916,13 @@ public:
   VulkanReplay *GetReplay() { return &m_Replay; }
   // replay interface
   bool Prepare_InitialState(WrappedVkRes *res);
-  uint64_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
-  uint64_t GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res);
+  uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
+  uint64_t GetSize_SparseInitialState(ResourceId id, const VkInitialContents &initial);
   template <typename SerialiserType>
-  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, WrappedVkRes *res);
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId id, VkResourceRecord *record,
+                              const VkInitialContents *initial);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
-  void Apply_InitialState(WrappedVkRes *live, VkInitialContents initial);
+  void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
 
   void RemapQueueFamilyIndices(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily);
   uint32_t GetQueueFamilyIndex() { return m_QueueFamilyIdx; }

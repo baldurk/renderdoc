@@ -359,15 +359,11 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
   return true;
 }
 
-uint64_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res)
+uint64_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, const VkInitialContents &initial)
 {
-  VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-  VkResourceType type = IdentifyTypeByPtr(record->Resource);
-  VkInitialContents contents = GetResourceManager()->GetInitialContents(id);
-
-  if(type == eResBuffer)
+  if(initial.type == eResBuffer)
   {
-    SparseBufferInitState &info = contents.sparseBuffer;
+    const SparseBufferInitState &info = initial.sparseBuffer;
 
     // some bytes just to cover overheads etc.
     uint64_t ret = 128;
@@ -383,9 +379,9 @@ uint64_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
 
     return ret;
   }
-  else if(type == eResImage)
+  else if(initial.type == eResImage)
   {
-    SparseImageInitState &info = contents.sparseImage;
+    const SparseImageInitState &info = initial.sparseImage;
 
     // some bytes just to cover overheads etc.
     uint64_t ret = 128;
@@ -409,18 +405,18 @@ uint64_t WrappedVulkan::GetSize_SparseInitialState(ResourceId id, WrappedVkRes *
     return ret;
   }
 
-  RDCERR("Unhandled resource type %s", ToStr(type).c_str());
+  RDCERR("Unhandled resource type %s", ToStr(initial.type).c_str());
   return 128;
 }
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, ResourceId id,
-                                                       VkInitialContents contents)
+                                                       const VkInitialContents *contents)
 {
   VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
-  SERIALISE_ELEMENT_LOCAL(SparseState, contents.sparseBuffer);
+  SERIALISE_ELEMENT_LOCAL(SparseState, contents->sparseBuffer);
 
   MemoryAllocation mappedMem;
   byte *Contents = NULL;
@@ -437,7 +433,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
   if(ser.IsWriting())
   {
     // the memory was created not wrapped.
-    mappedMem = contents.mem;
+    mappedMem = contents->mem;
     vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs, mappedMem.size, 0,
                                 (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -531,12 +527,12 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(SerialiserType &ser, Reso
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
-                                                      VkInitialContents contents)
+                                                      const VkInitialContents *contents)
 {
   VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
-  SERIALISE_ELEMENT_LOCAL(SparseState, contents.sparseImage);
+  SERIALISE_ELEMENT_LOCAL(SparseState, contents->sparseImage);
 
   MemoryAllocation mappedMem;
   byte *Contents = NULL;
@@ -552,7 +548,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
   // during writing, we already have the memory copied off - we just need to map it.
   if(ser.IsWriting())
   {
-    mappedMem = contents.mem;
+    mappedMem = contents->mem;
     vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs, mappedMem.size, 0,
                                 (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -658,17 +654,17 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
 }
 
 template bool WrappedVulkan::Serialise_SparseBufferInitialState(ReadSerialiser &ser, ResourceId id,
-                                                                VkInitialContents contents);
+                                                                const VkInitialContents *contents);
 template bool WrappedVulkan::Serialise_SparseBufferInitialState(WriteSerialiser &ser, ResourceId id,
-                                                                VkInitialContents contents);
+                                                                const VkInitialContents *contents);
 template bool WrappedVulkan::Serialise_SparseImageInitialState(ReadSerialiser &ser, ResourceId id,
-                                                               VkInitialContents contents);
+                                                               const VkInitialContents *contents);
 template bool WrappedVulkan::Serialise_SparseImageInitialState(WriteSerialiser &ser, ResourceId id,
-                                                               VkInitialContents contents);
+                                                               const VkInitialContents *contents);
 
-bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VkInitialContents contents)
+bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, const VkInitialContents &contents)
 {
-  SparseBufferInitState &info = contents.sparseBuffer;
+  const SparseBufferInitState &info = contents.sparseBuffer;
 
   // unbind the entire buffer so that any new areas that are bound are unbound again
 
@@ -764,9 +760,9 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VkInitialCont
   return true;
 }
 
-bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VkInitialContents contents)
+bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, const VkInitialContents &contents)
 {
-  SparseImageInitState &info = contents.sparseImage;
+  const SparseImageInitState &info = contents.sparseImage;
 
   VkQueue q = GetQ();
 

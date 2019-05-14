@@ -163,6 +163,7 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -271,6 +272,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->ResType = IdentifyTypeByPtr(wrapped);
       record->Length = 0;
 
       record->AddChunk(scope.Get());
