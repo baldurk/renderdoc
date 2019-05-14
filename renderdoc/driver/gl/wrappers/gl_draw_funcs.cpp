@@ -141,6 +141,8 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
     ResourceId id = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipe));
     const PipelineData &pipeDetails = m_Pipelines[id];
 
+    GL.glGetProgramPipelineiv(pipe, eGL_VERTEX_SHADER, (GLint *)&prog);
+
     vs = pipeDetails.stageShaders[0];
   }
 
