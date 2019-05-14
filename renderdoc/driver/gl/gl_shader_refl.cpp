@@ -1708,7 +1708,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     {
       sort(members[ssbo]);
 
-      if(rwresources[ssbos[ssbo]].name == members[ssbo][0].name)
+      if(!members[ssbo].empty() && rwresources[ssbos[ssbo]].name == members[ssbo][0].name)
         std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo][0].type.members);
       else
         std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo]);
