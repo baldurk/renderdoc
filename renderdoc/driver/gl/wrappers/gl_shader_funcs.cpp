@@ -955,19 +955,15 @@ void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockInd
 {
   SERIALISE_TIME_CALL(GL.glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding));
 
-  if(IsCaptureMode(m_State))
+  // we should only capture this while active, since the initial states will grab everything at the
+  // start of the frame and we only want to pick up dynamic changes after that.
+  if(IsActiveCapturing(m_State))
   {
-    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
-                 program);
-    if(record)
-    {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-      Serialise_glUniformBlockBinding(ser, program, uniformBlockIndex, uniformBlockBinding);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glUniformBlockBinding(ser, program, uniformBlockIndex, uniformBlockBinding);
 
-      record->AddChunk(scope.Get());
-    }
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
