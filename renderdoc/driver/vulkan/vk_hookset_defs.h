@@ -47,7 +47,10 @@
   HookInitExtension(VK_KHR_external_semaphore_win32, ImportSemaphoreWin32HandleKHR);  \
   HookInitExtension(VK_KHR_external_semaphore_win32, GetSemaphoreWin32HandleKHR);     \
   HookInitExtension(VK_KHR_external_fence_win32, ImportFenceWin32HandleKHR);          \
-  HookInitExtension(VK_KHR_external_fence_win32, GetFenceWin32HandleKHR);
+  HookInitExtension(VK_KHR_external_fence_win32, GetFenceWin32HandleKHR);             \
+  HookInitExtension(VK_EXT_full_screen_exclusive, AcquireFullScreenExclusiveModeEXT); \
+  HookInitExtension(VK_EXT_full_screen_exclusive, ReleaseFullScreenExclusiveModeEXT); \
+  HookInitExtension(VK_EXT_full_screen_exclusive, GetDeviceGroupSurfacePresentModes2EXT);
 
 #define HookDefine_PlatformSpecific()                                                            \
   HookDefine4(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance,                           \

@@ -7383,7 +7383,7 @@ void Deserialise(const VkWin32KeyedMutexAcquireReleaseInfoKHR &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkSurfaceFullScreenExclusiveInfoEXT &el)
 {
-  RDCASSERT(ser.IsReading() || el.sType == VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT);
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(fullScreenExclusive);
