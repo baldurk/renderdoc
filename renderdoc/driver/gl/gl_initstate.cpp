@@ -1308,6 +1308,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
       // some uniforms were only intended to affect TF. Therefore set a TF mode for all varyings.
       // As the initial state program is never used for TF, this wont adversely affect anything.
 
+      // don't print debug messages from these links - we know some might fail but as long as we
+      // eventually get one to work that's fine.
+      m_Driver->SuppressDebugMessages(true);
+
       std::vector<const char *> vertexOutputsPtr;
       vertexOutputsPtr.resize(vertexOutputs.size());
       for(size_t i = 0; i < vertexOutputs.size(); i++)
@@ -1339,6 +1343,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
         drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
       }
+
+      m_Driver->SuppressDebugMessages(false);
 
       if(status == 0)
       {
