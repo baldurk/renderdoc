@@ -580,7 +580,7 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
       GL.glNamedBufferDataEXT(
           buffer.name, (GLsizeiptr)m_Buffers[GetResourceManager()->GetID(buffer)].size, NULL, usage);
 
-      GL.glNamedBufferSubDataEXT(buffer.name, 0, bytesize, data);
+      GL.glNamedBufferSubDataEXT(buffer.name, 0, (GLsizeiptr)bytesize, data);
     }
     else
     {
