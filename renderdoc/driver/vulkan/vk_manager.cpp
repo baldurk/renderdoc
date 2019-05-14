@@ -723,11 +723,6 @@ MemRefs *VulkanResourceManager::FindMemRefs(ResourceId mem)
     return NULL;
 }
 
-bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res, bool prepare)
-{
-  return false;
-}
-
 bool VulkanResourceManager::Need_InitialStateChunk(WrappedVkRes *res)
 {
   return true;

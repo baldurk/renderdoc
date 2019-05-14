@@ -569,7 +569,6 @@ protected:
 
   virtual bool ResourceTypeRelease(WrappedResourceType res) = 0;
 
-  virtual bool Force_InitialState(WrappedResourceType res, bool prepare) = 0;
   virtual bool AllowDeletedResource_InitialState() { return false; }
   virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
@@ -1052,22 +1051,6 @@ void ResourceManager<Configuration>::PrepareInitialContents()
   }
 
   RDCDEBUG("Prepared %u dirty resources", prepared);
-
-  prepared = 0;
-
-  for(auto it = m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
-  {
-    if(it->second == (WrappedResourceType)RecordType::NullResource)
-      continue;
-
-    if(Force_InitialState(it->second, true))
-    {
-      prepared++;
-      Prepare_InitialState(it->second);
-    }
-  }
-
-  RDCDEBUG("Force-prepared %u dirty resources", prepared);
 }
 
 template <typename Configuration>
@@ -1160,36 +1143,6 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
   }
 
   RDCDEBUG("Serialised %u resources, skipped %u unreferenced", dirty, skipped);
-  dirty = 0;
-
-  for(auto it = m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
-  {
-    if(it->second == (WrappedResourceType)RecordType::NullResource)
-      continue;
-
-    if(Force_InitialState(it->second, false))
-    {
-      dirty++;
-
-      auto preparedChunk = m_InitialChunks.find(it->first);
-      if(preparedChunk != m_InitialChunks.end())
-      {
-        preparedChunk->second->Write(ser);
-        m_InitialChunks.erase(preparedChunk);
-      }
-      else
-      {
-        uint64_t size = GetSize_InitialState(it->first, it->second);
-
-        SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
-
-        Serialise_InitialState(ser, it->first, it->second);
-      }
-    }
-  }
-
-  RDCDEBUG("Force-serialised %u dirty resources", dirty);
-
 }
 
 template <typename Configuration>

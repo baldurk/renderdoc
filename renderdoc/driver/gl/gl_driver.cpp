@@ -1999,6 +1999,10 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
         SERIALISE_ELEMENT(fbo);
       }
 
+      RDCDEBUG("Forcing inclusion of views");
+
+      GetResourceManager()->Force_ReferenceViews();
+
       RDCDEBUG("Inserting Resource Serialisers");
 
       GetResourceManager()->InsertReferencedChunks(ser);

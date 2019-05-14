@@ -243,6 +243,8 @@ public:
   void MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0 = false);
   void MarkFBOReferenced(GLResource res, FrameRefType ref);
 
+  void Force_ReferenceViews();
+
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, GLResource res);
 
@@ -256,7 +258,6 @@ public:
 
 private:
   bool ResourceTypeRelease(GLResource res);
-  bool Force_InitialState(GLResource res, bool prepare);
   bool Need_InitialStateChunk(GLResource res);
   bool Prepare_InitialState(GLResource res);
   uint64_t GetSize_InitialState(ResourceId resid, GLResource res);

@@ -259,7 +259,6 @@ private:
 
   bool ResourceTypeRelease(ID3D11DeviceChild *res);
 
-  bool Force_InitialState(ID3D11DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D11DeviceChild *res);
   bool Prepare_InitialState(ID3D11DeviceChild *res);
   uint64_t GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res);

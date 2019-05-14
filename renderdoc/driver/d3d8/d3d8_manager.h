@@ -74,7 +74,6 @@ private:
 
   bool ResourceTypeRelease(IUnknown *res);
 
-  bool Force_InitialState(IUnknown *res, bool prepare);
   bool Need_InitialStateChunk(IUnknown *res);
   bool Prepare_InitialState(IUnknown *res);
   uint64_t GetSize_InitialState(ResourceId id, IUnknown *res);

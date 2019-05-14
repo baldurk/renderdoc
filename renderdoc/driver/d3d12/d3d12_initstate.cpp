@@ -30,11 +30,6 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
-bool D3D12ResourceManager::Force_InitialState(ID3D12DeviceChild *res, bool prepare)
-{
-  return false;
-}
-
 bool D3D12ResourceManager::Need_InitialStateChunk(ID3D12DeviceChild *res)
 {
   return true;

@@ -1020,42 +1020,37 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   SetInitialContents(origid, initContents);
 }
 
-bool GLResourceManager::Force_InitialState(GLResource res, bool prepare)
+void GLResourceManager::Force_ReferenceViews()
 {
-  if(res.Namespace != eResBuffer && res.Namespace != eResTexture)
-    return false;
-
   // don't need to force anything if we're already including all resources
   if(RenderDoc::Inst().GetCaptureOptions().refAllResources)
-    return false;
+    return;
 
-  GLResourceRecord *record = GetResourceRecord(res);
-
-  // if we have some viewers, check to see if they were referenced but we weren't, and force our own
-  // initial state inclusion.
-  if(record && !record->viewTextures.empty())
+  for(auto recordit = m_ResourceRecords.begin(); recordit != m_ResourceRecords.end(); ++recordit)
   {
-    // need to prepare all such resources, just in case for the worst case.
-    if(prepare)
-      return true;
+    GLResourceRecord *record = recordit->second;
 
-    // if this data resource was referenced already, just skip
-    if(m_FrameReferencedResources.find(record->GetResourceID()) != m_FrameReferencedResources.end())
-      return false;
-
-    // see if any of our viewers were referenced
-    for(auto it = record->viewTextures.begin(); it != record->viewTextures.end(); ++it)
+    // if this resource has some viewers, check to see if they were referenced by the frame but we
+    // weren't, and force our own reference as well so that our initial states are included
+    if(record && !record->viewTextures.empty())
     {
-      // if so, return true to force our inclusion, for the benefit of the view
-      if(m_FrameReferencedResources.find(*it) != m_FrameReferencedResources.end())
+      // if this data resource was referenced already, just skip
+      if(m_FrameReferencedResources.find(record->GetResourceID()) != m_FrameReferencedResources.end())
+        continue;
+
+      // see if any of our viewers were referenced
+      for(auto it = record->viewTextures.begin(); it != record->viewTextures.end(); ++it)
       {
-        RDCDEBUG("Forcing inclusion of %llu for %llu", record->GetResourceID(), *it);
-        return true;
+        // if so, return true to force our inclusion, for the benefit of the view
+        if(m_FrameReferencedResources.find(*it) != m_FrameReferencedResources.end())
+        {
+          RDCDEBUG("Forcing inclusion of %llu for %llu", record->GetResourceID(), *it);
+          MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_ReadBeforeWrite);
+          break;
+        }
       }
     }
   }
-
-  return false;
 }
 
 uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource res)

@@ -45,11 +45,6 @@ bool D3D8ResourceManager::ResourceTypeRelease(IUnknown *res)
   return true;
 }
 
-bool D3D8ResourceManager::Force_InitialState(IUnknown *res, bool prepare)
-{
-  return false;
-}
-
 bool D3D8ResourceManager::Need_InitialStateChunk(IUnknown *res)
 {
   return true;
