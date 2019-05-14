@@ -1493,7 +1493,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           if(bind.descriptorCount == 0 || bind.stageFlags == 0)
             continue;
 
-          DescriptorSetSlot *slot = setInfo.currentBindings[b];
+          DescriptorSetBindingElement *slot = setInfo.currentBindings[b];
 
           write.dstBinding = uint32_t(b + newBindingsCount);
           write.dstArrayElement = 0;

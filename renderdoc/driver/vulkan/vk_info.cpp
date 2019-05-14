@@ -124,18 +124,18 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   }
 }
 
-void DescSetLayout::CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBindings) const
+void DescSetLayout::CreateBindingsArray(std::vector<DescriptorSetBindingElement *> &descBindings) const
 {
   descBindings.resize(bindings.size());
   for(size_t i = 0; i < bindings.size(); i++)
   {
-    descBindings[i] = new DescriptorSetSlot[bindings[i].descriptorCount];
-    memset(descBindings[i], 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+    descBindings[i] = new DescriptorSetBindingElement[bindings[i].descriptorCount];
+    memset(descBindings[i], 0, sizeof(DescriptorSetBindingElement) * bindings[i].descriptorCount);
   }
 }
 
 void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
-                                        std::vector<DescriptorSetSlot *> &descBindings) const
+                                        std::vector<DescriptorSetBindingElement *> &descBindings) const
 {
   // if we have fewer bindings now, delete the orphaned bindings arrays
   for(size_t i = bindings.size(); i < prevLayout.bindings.size(); i++)
@@ -148,13 +148,14 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
   for(size_t i = 0; i < bindings.size(); i++)
   {
     // allocate new slot array
-    DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
-    memset(newSlots, 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+    DescriptorSetBindingElement *newSlots =
+        new DescriptorSetBindingElement[bindings[i].descriptorCount];
+    memset(newSlots, 0, sizeof(DescriptorSetBindingElement) * bindings[i].descriptorCount);
 
     // copy over any previous bindings that overlapped
     if(i < prevLayout.bindings.size())
       memcpy(newSlots, descBindings[i],
-             sizeof(DescriptorSetSlot) *
+             sizeof(DescriptorSetBindingElement) *
                  RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
 
     // delete old array, and assign the new one

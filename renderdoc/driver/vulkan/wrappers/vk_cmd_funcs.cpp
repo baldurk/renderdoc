@@ -3502,7 +3502,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
   const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
 
-  std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
+  std::vector<DescriptorSetBindingElement *> &bindings = m_DescriptorSetState[setId].currentBindings;
   ResourceId prevLayout = m_DescriptorSetState[setId].layout;
 
   if(prevLayout == ResourceId())
@@ -3523,7 +3523,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
     RDCASSERT(writeDesc.dstBinding < bindings.size());
 
-    DescriptorSetSlot **bind = &bindings[writeDesc.dstBinding];
+    DescriptorSetBindingElement **bind = &bindings[writeDesc.dstBinding];
     const DescSetLayout::Binding *layoutBinding = &desclayout.bindings[writeDesc.dstBinding];
     uint32_t curIdx = writeDesc.dstArrayElement;
 

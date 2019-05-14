@@ -69,7 +69,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       {
         for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
         {
-          initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+          initialContents.descriptorSlots[e++].CreateFrom(record->descInfo->descBindings[i][b]);
         }
       }
     }
@@ -637,7 +637,7 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
     for(size_t i = 0; i < layout.bindings.size(); i++)
       NumBindings += layout.bindings[i].descriptorCount;
 
-    return 32 + NumBindings * sizeof(DescriptorSetSlot);
+    return 32 + NumBindings * sizeof(DescriptorSetBindingElement);
   }
   else if(initial.type == eResBuffer)
   {
@@ -695,7 +695,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
 
-      Bindings = (DescriptorSetSlot *)initial->descriptorSlots;
+      Bindings = initial->descriptorSlots;
 
       for(size_t i = 0; i < layout.bindings.size(); i++)
         NumBindings += layout.bindings[i].descriptorCount;
@@ -785,9 +785,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
         // skipping any invalid descriptors.
 
         // quick check for slots that were completely uninitialised and so don't have valid data
-        if(descriptorCount == 1 && src->texelBufferView == VK_NULL_HANDLE &&
-           src->imageInfo.sampler == VK_NULL_HANDLE && src->imageInfo.imageView == VK_NULL_HANDLE &&
-           src->bufferInfo.buffer == VK_NULL_HANDLE)
+        if(descriptorCount == 1 && src->texelBufferView == ResourceId() &&
+           src->imageInfo.sampler == ResourceId() && src->imageInfo.imageView == ResourceId() &&
+           src->bufferInfo.buffer == ResourceId())
         {
           // do nothing - don't increment bind so that the same write descriptor is used next time.
           continue;
@@ -804,7 +804,13 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
-                dstImage[d] = src[d].imageInfo;
+              {
+                dstImage[d].imageView =
+                    GetResourceManager()->GetLiveHandle<VkImageView>(src[d].imageInfo.imageView);
+                dstImage[d].sampler =
+                    GetResourceManager()->GetLiveHandle<VkSampler>(src[d].imageInfo.sampler);
+                dstImage[d].imageLayout = src[d].imageInfo.imageLayout;
+              }
 
               if(immutableSamplers)
               {
@@ -823,7 +829,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
-                dstTexelBuffer[d] = src[d].texelBufferView;
+                dstTexelBuffer[d] =
+                    GetResourceManager()->GetLiveHandle<VkBufferView>(src[d].texelBufferView);
 
               writes[bind].pTexelBufferView = dstTexelBuffer;
               // NULL the others
@@ -837,7 +844,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
-                dstBuffer[d] = src[d].bufferInfo;
+              {
+                dstBuffer[d].buffer =
+                    GetResourceManager()->GetLiveHandle<VkBuffer>(src[d].bufferInfo.buffer);
+                dstBuffer[d].offset = src[d].bufferInfo.offset;
+                dstBuffer[d].range = src[d].bufferInfo.range;
+              }
 
               writes[bind].pBufferInfo = dstBuffer;
               // NULL the others
@@ -1308,13 +1320,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
-    vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
+    vector<DescriptorSetBindingElement *> &bindings = m_DescriptorSetState[id].currentBindings;
 
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {
       RDCASSERT(writes[i].dstBinding < bindings.size());
 
-      DescriptorSetSlot *bind = bindings[writes[i].dstBinding];
+      DescriptorSetBindingElement *bind = bindings[writes[i].dstBinding];
 
       for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
       {

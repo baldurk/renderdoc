@@ -3361,6 +3361,22 @@ void Deserialise(const VkDebugUtilsMessengerCreateInfoEXT &el)
 // this isn't a real vulkan type, it's our own "anything that could be in a descriptor"
 // structure that
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DescriptorSetSlotImageInfo &el)
+{
+  SERIALISE_MEMBER(sampler).TypedAs("VkSampler");
+  SERIALISE_MEMBER(imageView).TypedAs("VkImageView");
+  SERIALISE_MEMBER(imageLayout);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DescriptorSetSlotBufferInfo &el)
+{
+  SERIALISE_MEMBER(buffer).TypedAs("VkBuffer");
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(range);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
 {
   // Resources in this struct are optional, because if we decided a descriptor wasn't used - we
@@ -3372,9 +3388,9 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
   ser.SetStructArg(
       uint64_t(VkDescriptorImageInfoValidity::Sampler | VkDescriptorImageInfoValidity::ImageView));
 
-  SERIALISE_MEMBER(bufferInfo);
-  SERIALISE_MEMBER(imageInfo);
-  SERIALISE_MEMBER(texelBufferView);
+  SERIALISE_MEMBER(bufferInfo).TypedAs("VkDescriptorBufferInfo");
+  SERIALISE_MEMBER(imageInfo).TypedAs("VkDescriptorImageInfo");
+  SERIALISE_MEMBER(texelBufferView).TypedAs("VkBufferView");
 }
 
 template <typename SerialiserType>

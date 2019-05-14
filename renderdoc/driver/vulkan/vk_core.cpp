@@ -3773,7 +3773,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
 
         for(uint32_t a = 0; a < layout.bindings[bind].descriptorCount; a++)
         {
-          DescriptorSetSlot &slot = descset.currentBindings[bind][a];
+          DescriptorSetBindingElement &slot = descset.currentBindings[bind][a];
 
           ResourceId id;
 

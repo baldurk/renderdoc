@@ -1328,8 +1328,11 @@ public:
         SDObject *last = current.data.children.back();
         last->type.name = name;
 
-        for(SDObject *obj : last->data.children)
-          obj->type.name = name;
+        if(last->type.basetype == SDBasic::Array)
+        {
+          for(SDObject *obj : last->data.children)
+            obj->type.name = name;
+        }
       }
     }
 

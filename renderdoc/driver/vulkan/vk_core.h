@@ -678,7 +678,7 @@ private:
     DescriptorSetInfo(bool p = false) : push(p) {}
     ~DescriptorSetInfo() { clear(); }
     ResourceId layout;
-    vector<DescriptorSetSlot *> currentBindings;
+    vector<DescriptorSetBindingElement *> currentBindings;
     bool push;
 
     void clear()

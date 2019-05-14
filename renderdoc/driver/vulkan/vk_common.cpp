@@ -832,7 +832,7 @@ bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
   return false;
 }
 
-void DescriptorSetSlot::RemoveBindRefs(VkResourceRecord *record)
+void DescriptorSetBindingElement::RemoveBindRefs(VkResourceRecord *record)
 {
   SCOPED_LOCK(record->descInfo->refLock);
 
@@ -877,7 +877,7 @@ void DescriptorSetSlot::RemoveBindRefs(VkResourceRecord *record)
   imageInfo.sampler = VK_NULL_HANDLE;
 }
 
-void DescriptorSetSlot::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
+void DescriptorSetBindingElement::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
 {
   SCOPED_LOCK(record->descInfo->refLock);
 
@@ -909,4 +909,17 @@ void DescriptorSetSlot::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
     if(buf->baseResource != ResourceId())
       record->AddMemFrameRef(buf->baseResource, buf->memOffset, buf->memSize, ref);
   }
+}
+
+void DescriptorSetSlot::CreateFrom(const DescriptorSetBindingElement &slot)
+{
+  bufferInfo.buffer = GetResID(slot.bufferInfo.buffer);
+  bufferInfo.offset = slot.bufferInfo.offset;
+  bufferInfo.range = slot.bufferInfo.range;
+
+  imageInfo.sampler = GetResID(slot.imageInfo.sampler);
+  imageInfo.imageView = GetResID(slot.imageInfo.imageView);
+  imageInfo.imageLayout = slot.imageInfo.imageLayout;
+
+  texelBufferView = GetResID(slot.texelBufferView);
 }

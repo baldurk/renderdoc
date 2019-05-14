@@ -1403,7 +1403,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].currentBindings.size());
         for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
         {
-          DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
+          DescriptorSetBindingElement *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
           const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
 
           curBind.bind = (uint32_t)b;

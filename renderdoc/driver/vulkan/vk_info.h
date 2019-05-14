@@ -59,9 +59,9 @@ struct DescSetLayout
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
             const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-  void CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBindings) const;
+  void CreateBindingsArray(std::vector<DescriptorSetBindingElement *> &descBindings) const;
   void UpdateBindingsArray(const DescSetLayout &prevLayout,
-                           std::vector<DescriptorSetSlot *> &descBindings) const;
+                           std::vector<DescriptorSetBindingElement *> &descBindings) const;
 
   struct Binding
   {

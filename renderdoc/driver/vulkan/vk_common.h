@@ -368,7 +368,7 @@ FrameRefType GetRefType(VkDescriptorType descType);
 
 // the possible contents of a descriptor set slot,
 // taken from the VkWriteDescriptorSet
-struct DescriptorSetSlot
+struct DescriptorSetBindingElement
 {
   VkDescriptorBufferInfo bufferInfo;
   VkDescriptorImageInfo imageInfo;
@@ -378,6 +378,39 @@ struct DescriptorSetSlot
   void AddBindRefs(VkResourceRecord *record, FrameRefType ref);
 };
 
+// serialisable snapshot of descriptor set slots. Needed because if we snapshot
+// DescriptorSetBindingElement
+// the VkBuffer or VkImageView handles may have been deleted and recreated by the time we fetch
+// their ResourceId
+struct DescriptorSetSlotBufferInfo
+{
+  ResourceId buffer;
+  VkDeviceSize offset;
+  VkDeviceSize range;
+};
+
+struct DescriptorSetSlotImageInfo
+{
+  ResourceId sampler;
+  ResourceId imageView;
+  VkImageLayout imageLayout;
+};
+
+struct DescriptorSetSlot
+{
+  void CreateFrom(const DescriptorSetBindingElement &slot);
+
+  // VkDescriptorBufferInfo
+  DescriptorSetSlotBufferInfo bufferInfo;
+
+  // VkDescriptorImageInfo
+  DescriptorSetSlotImageInfo imageInfo;
+
+  ResourceId texelBufferView;
+};
+
+DECLARE_REFLECTION_STRUCT(DescriptorSetSlotBufferInfo);
+DECLARE_REFLECTION_STRUCT(DescriptorSetSlotImageInfo);
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);
 
 bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement);

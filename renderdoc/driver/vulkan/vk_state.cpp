@@ -462,7 +462,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
       push.descriptorType = bind.descriptorType;
       push.descriptorCount = bind.descriptorCount;
 
-      DescriptorSetSlot *slots = setInfo.currentBindings[b];
+      DescriptorSetBindingElement *slots = setInfo.currentBindings[b];
 
       if(push.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
          push.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
