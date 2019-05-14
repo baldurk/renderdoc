@@ -70,13 +70,10 @@ struct D3D11ResourceRecord : public ResourceRecord
     NullResource = NULL
   };
 
-  static byte markerValue[32];
-
   D3D11ResourceRecord(ResourceId id)
       : ResourceRecord(id, true), NumSubResources(0), SubResources(NULL)
   {
-    RDCEraseEl(ShadowPtr);
-    RDCEraseEl(contexts);
+    RDCEraseEl(ImmediateShadow);
   }
 
   ~D3D11ResourceRecord()
@@ -92,67 +89,67 @@ struct D3D11ResourceRecord : public ResourceRecord
     FreeShadowStorage();
   }
 
-  void AllocShadowStorage(int ctx, size_t size)
+  void AllocShadowStorage(size_t ctx, size_t size)
   {
-    if(ShadowPtr[ctx][0] == NULL)
+    if(ctx == 0)
     {
-      ShadowPtr[ctx][0] = AllocAlignedBuffer(size + sizeof(markerValue));
-      ShadowPtr[ctx][1] = AllocAlignedBuffer(size + sizeof(markerValue));
-
-      memcpy(ShadowPtr[ctx][0] + size, markerValue, sizeof(markerValue));
-      memcpy(ShadowPtr[ctx][1] + size, markerValue, sizeof(markerValue));
-
-      ShadowSize[ctx] = size;
+      ImmediateShadow.Alloc(size);
+      return;
     }
+
+    DeferredShadow[ctx].Alloc(size);
   }
 
-  bool VerifyShadowStorage(int ctx)
+  bool VerifyShadowStorage(size_t ctx)
   {
-    if(ShadowPtr[ctx][0] &&
-       memcmp(ShadowPtr[ctx][0] + ShadowSize[ctx], markerValue, sizeof(markerValue)))
-      return false;
+    if(ctx == 0)
+      return ImmediateShadow.Verify();
 
-    if(ShadowPtr[ctx][1] &&
-       memcmp(ShadowPtr[ctx][1] + ShadowSize[ctx], markerValue, sizeof(markerValue)))
-      return false;
-
-    return true;
+    return DeferredShadow[ctx].Verify();
   }
 
   void FreeShadowStorage()
   {
-    for(int i = 0; i < 32; i++)
-    {
-      if(ShadowPtr[i][0] != NULL)
-      {
-        FreeAlignedBuffer(ShadowPtr[i][0]);
-        FreeAlignedBuffer(ShadowPtr[i][1]);
-      }
-      ShadowPtr[i][0] = ShadowPtr[i][1] = NULL;
-    }
+    ImmediateShadow.Free();
+
+    for(size_t i = 0; i < DeferredShadow.size(); i++)
+      DeferredShadow[i].Free();
   }
 
-  byte *GetShadowPtr(int ctx, int p) { return ShadowPtr[ctx][p]; }
-  int GetContextID()
+  byte *GetShadowPtr(size_t ctx, size_t p)
   {
-    // 0 is reserved for the immediate context
-    for(int i = 1; i < 32; i++)
-    {
-      if(contexts[i] == false)
-      {
-        contexts[i] = true;
-        return i;
-      }
-    }
+    if(ctx == 0)
+      return ImmediateShadow.ptr[p];
 
-    RDCERR(
-        "More than 32 deferred contexts wanted an ID! Either a leak, or many many contexts mapping "
-        "the same buffer");
-
-    return 0;
+    return DeferredShadow[ctx - 1].ptr[p];
   }
 
-  void FreeContextID(int ctx) { contexts[ctx] = false; }
+  size_t GetContextID()
+  {
+    SCOPED_LOCK(DeferredShadowLock);
+
+    for(size_t i = 0; i < DeferredShadow.size(); i++)
+      if(!DeferredShadow[i].used)
+        return i + 1;
+
+    ShadowPointerData data = {};
+    data.used = true;
+    DeferredShadow.push_back(data);
+
+    return DeferredShadow.size();
+  }
+
+  void FreeContextID(size_t ctx)
+  {
+    if(ctx == 0)
+      return;
+
+    {
+      SCOPED_LOCK(DeferredShadowLock);
+      DeferredShadow[ctx - 1].used = false;
+    }
+  }
+
   void SetDataPtr(byte *ptr)
   {
     DataPtr = ptr;
@@ -188,10 +185,58 @@ struct D3D11ResourceRecord : public ResourceRecord
   D3D11ResourceRecord **SubResources;
 
 private:
-  byte *ShadowPtr[32][2];
-  size_t ShadowSize[32];
+  byte *ShadowPtr[2];
+  size_t ShadowSize;
 
-  bool contexts[32];
+  struct ShadowPointerData
+  {
+    static byte markerValue[32];
+
+    byte *ptr[2];
+    size_t size;
+    bool used;
+
+    void Alloc(size_t s)
+    {
+      if(ptr[0] == NULL)
+      {
+        size = s;
+
+        ptr[0] = AllocAlignedBuffer(size + sizeof(markerValue));
+        ptr[1] = AllocAlignedBuffer(size + sizeof(markerValue));
+
+        memcpy(ptr[0] + size, markerValue, sizeof(markerValue));
+        memcpy(ptr[1] + size, markerValue, sizeof(markerValue));
+      }
+    }
+
+    bool Verify()
+    {
+      if(ptr[0] && memcmp(ptr[0] + size, markerValue, sizeof(markerValue)))
+        return false;
+
+      if(ptr[1] && memcmp(ptr[1] + size, markerValue, sizeof(markerValue)))
+        return false;
+
+      return true;
+    }
+
+    void Free()
+    {
+      if(ptr[0])
+      {
+        FreeAlignedBuffer(ptr[0]);
+        FreeAlignedBuffer(ptr[1]);
+      }
+
+      ptr[0] = ptr[1] = NULL;
+    }
+  };
+
+  ShadowPointerData ImmediateShadow;
+
+  Threading::CriticalSection DeferredShadowLock;
+  std::vector<ShadowPointerData> DeferredShadow;
 };
 
 struct D3D11InitialContents

@@ -7372,7 +7372,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
 
     RDCASSERT(resMap);
 
-    int ctxMapID = 0;
+    size_t ctxMapID = 0;
 
     if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
     {
@@ -7481,7 +7481,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
 
     if(intercept.verifyWrite)
     {
-      int ctxMapID = 0;
+      size_t ctxMapID = 0;
 
       ResourceId Resource = GetIDForResource(pResource);
 
@@ -7655,7 +7655,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
 
   MappedResource mapIdx(GetIDForResource(pResource), Subresource);
   MapIntercept intercept;
-  int ctxMapID = 0;
+  size_t ctxMapID = 0;
   D3D11ResourceRecord *record = NULL;
 
   size_t len = 0;

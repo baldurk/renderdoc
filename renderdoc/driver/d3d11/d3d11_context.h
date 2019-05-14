@@ -159,7 +159,7 @@ private:
 
   StreamReader *m_FrameReader = NULL;
 
-  map<ResourceId, int> m_MapResourceRecordAllocs;
+  map<ResourceId, size_t> m_MapResourceRecordAllocs;
 
   set<ResourceId> m_MissingTracks;
 

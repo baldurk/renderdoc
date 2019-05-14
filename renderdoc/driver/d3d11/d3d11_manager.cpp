@@ -27,7 +27,7 @@
 #include "driver/d3d11/d3d11_context.h"
 #include "driver/d3d11/d3d11_resources.h"
 
-byte D3D11ResourceRecord::markerValue[32] = {
+byte D3D11ResourceRecord::ShadowPointerData::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,
 };
 
