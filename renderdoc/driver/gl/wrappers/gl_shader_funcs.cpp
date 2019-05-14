@@ -887,6 +887,15 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 
       record->AddChunk(scope.Get());
     }
+
+    // we need initial contents for programs to know any initial bindings potentially if they change
+    // over the frame, and for uniform location remapping.
+    // We just inject a call to prepare the initial contents now, any other post-link data setting
+    // will be replayed as expected.
+    if(IsActiveCapturing(m_State))
+    {
+      GetResourceManager()->ContextPrepare_InitialState(ProgramRes(GetCtx(), program));
+    }
   }
 
   {
