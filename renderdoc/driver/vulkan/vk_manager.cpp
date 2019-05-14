@@ -764,7 +764,7 @@ std::vector<ResourceId> VulkanResourceManager::InitialContentResources()
   std::vector<ResourceId> resources =
       ResourceManager<VulkanResourceManagerConfiguration>::InitialContentResources();
   std::sort(resources.begin(), resources.end(), [this](ResourceId a, ResourceId b) {
-    return m_InitialContents[a].type < m_InitialContents[b].type;
+    return m_InitialContents[a].data.type < m_InitialContents[b].data.type;
   });
   return resources;
 }
