@@ -937,9 +937,15 @@
     <None Include="data\hlsl\misc.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
-    <None Include="data\hlsl\pixelhistory.hlsl" />
-    <None Include="data\hlsl\quadoverdraw.hlsl" />
-    <None Include="data\hlsl\texdisplay.hlsl" />
+    <None Include="data\hlsl\pixelhistory.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
+    <None Include="data\hlsl\quadoverdraw.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
+    <None Include="data\hlsl\texdisplay.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">
