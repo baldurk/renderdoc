@@ -665,7 +665,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
 
       CHECK(strlen(test.c_str()) == len);
       CHECK(test.c_str() != NULL);
-      CHECK(strcmp(test.c_str(), str) == -1);
+      CHECK(strcmp(test.c_str(), str) < 0);
       CHECK(test != str);
       CHECK(test != std::string(str));
       CHECK(test != rdcstr(str));
