@@ -161,8 +161,6 @@ private:
 
   map<ResourceId, size_t> m_MapResourceRecordAllocs;
 
-  set<ResourceId> m_MissingTracks;
-
   ResourceId m_ResourceID;
   D3D11ResourceRecord *m_ContextRecord;
 

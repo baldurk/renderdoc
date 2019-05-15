@@ -1879,8 +1879,6 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->FreeInitialContents();
 
-  GetResourceManager()->FlushPendingDirty();
-
   FreeAllMemory(MemoryScope::InitialContents);
 
   return true;
@@ -1930,8 +1928,6 @@ bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->FreeInitialContents();
 
-  GetResourceManager()->FlushPendingDirty();
-
   FreeAllMemory(MemoryScope::InitialContents);
 
   return true;
@@ -1940,10 +1936,8 @@ bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
 void WrappedVulkan::AdvanceFrame()
 {
   if(IsBackgroundCapturing(m_State))
-  {
     RenderDoc::Inst().Tick();
-    GetResourceManager()->FlushPendingDirty();
-  }
+
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
 }
 

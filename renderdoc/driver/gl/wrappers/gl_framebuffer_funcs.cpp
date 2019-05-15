@@ -191,12 +191,7 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -249,12 +244,7 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -335,12 +325,7 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -394,12 +379,7 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -481,12 +461,7 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -540,12 +515,7 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -651,12 +621,7 @@ void WrappedOpenGL::glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum a
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -742,12 +707,7 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -803,12 +763,7 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -1021,12 +976,7 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -1080,12 +1030,7 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -1188,12 +1133,7 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -1307,12 +1247,7 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
-      ResourceRecord *texrecord =
-          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-      else
-        m_MissingTracks.insert(texrecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
@@ -2044,7 +1979,6 @@ void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
     GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
     if(GetResourceManager()->HasCurrentResource(res))
     {
-      GetResourceManager()->MarkCleanResource(res);
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
       GetResourceManager()->UnregisterResource(res);
@@ -2198,7 +2132,6 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
     GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
     if(GetResourceManager()->HasCurrentResource(res))
     {
-      GetResourceManager()->MarkCleanResource(res);
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
       GetResourceManager()->UnregisterResource(res);

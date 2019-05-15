@@ -384,10 +384,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
     if(target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
        target == eGL_ATOMIC_COUNTER_BUFFER)
     {
-      if(IsBackgroundCapturing(m_State))
-        GetResourceManager()->MarkDirtyResource(r->GetResourceID());
-      else
-        m_MissingTracks.insert(r->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(r->GetResourceID());
     }
   }
   else
@@ -932,7 +929,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
     if(IsActiveCapturing(m_State))
     {
       GetContextRecord()->AddChunk(chunk);
-      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
     }
@@ -985,7 +982,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
     if(IsActiveCapturing(m_State))
     {
       GetContextRecord()->AddChunk(chunk);
-      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
     }
@@ -1066,7 +1063,7 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
     if(IsActiveCapturing(m_State))
     {
       GetContextRecord()->AddChunk(chunk);
-      m_MissingTracks.insert(writerecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
     }
@@ -1127,7 +1124,7 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
     if(IsActiveCapturing(m_State))
     {
       GetContextRecord()->AddChunk(chunk);
-      m_MissingTracks.insert(writerecord->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
     }
@@ -1257,10 +1254,7 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
     if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
              target == eGL_ATOMIC_COUNTER_BUFFER))
     {
-      if(IsActiveCapturing(m_State))
-        m_MissingTracks.insert(r->GetResourceID());
-      else
-        GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
     }
 
     if(IsActiveCapturing(m_State))
@@ -1389,10 +1383,7 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
     if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
              target == eGL_ATOMIC_COUNTER_BUFFER))
     {
-      if(IsActiveCapturing(m_State))
-        m_MissingTracks.insert(r->GetResourceID());
-      else
-        GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
     }
 
     if(IsActiveCapturing(m_State))
@@ -1480,7 +1471,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
         {
           ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
           GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
-          m_MissingTracks.insert(id);
+          GetResourceManager()->MarkDirtyResource(id);
         }
       }
 
@@ -1679,7 +1670,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
         {
           ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
           GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
-          m_MissingTracks.insert(id);
+          GetResourceManager()->MarkDirtyResource(id);
         }
       }
 
@@ -1774,20 +1765,14 @@ void WrappedOpenGL::glInvalidateBufferData(GLuint buffer)
 {
   GL.glInvalidateBufferData(buffer);
 
-  if(IsBackgroundCapturing(m_State))
-    GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
-  else
-    m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
+  GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 }
 
 void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr length)
 {
   GL.glInvalidateBufferSubData(buffer, offset, length);
 
-  if(IsBackgroundCapturing(m_State))
-    GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
-  else
-    m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
+  GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 }
 
 #pragma endregion
@@ -2348,7 +2333,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 
     if(IsActiveCapturing(m_State))
     {
-      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
     }
@@ -2550,7 +2535,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
   {
     if(record)
     {
-      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
 
@@ -2836,7 +2821,6 @@ void WrappedOpenGL::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
     GLResource res = FeedbackRes(GetCtx(), ids[i]);
     if(GetResourceManager()->HasCurrentResource(res))
     {
-      GetResourceManager()->MarkCleanResource(res);
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
       GetResourceManager()->UnregisterResource(res);
@@ -4742,7 +4726,6 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
         record->FreeShadowStorage();
       }
 
-      GetResourceManager()->MarkCleanResource(res);
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
       GetResourceManager()->UnregisterResource(res);
@@ -4759,7 +4742,6 @@ void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
     GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
     if(GetResourceManager()->HasCurrentResource(res))
     {
-      GetResourceManager()->MarkCleanResource(res);
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
       GetResourceManager()->UnregisterResource(res);

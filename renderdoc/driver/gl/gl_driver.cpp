@@ -1677,8 +1677,6 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
 
-  GetResourceManager()->FlushPendingDirty();
-
   ContextData &ctxdata = GetCtxData();
 
   // we only handle context-window associations here as it's too common to
@@ -2360,14 +2358,6 @@ void WrappedOpenGL::CleanupCapture()
   {
     CleanupResourceRecord(it->second.m_ContextDataRecord, true);
   }
-
-  for(auto it = m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
-  {
-    if(GetResourceManager()->HasResourceRecord(*it))
-      GetResourceManager()->MarkDirtyResource(*it);
-  }
-
-  m_MissingTracks.clear();
 }
 
 void WrappedOpenGL::FreeCaptureData()

@@ -621,14 +621,6 @@ void WrappedID3D11DeviceContext::CleanupCapture()
   m_ContextRecord->UnlockChunks();
 
   m_ContextRecord->FreeParents(m_pDevice->GetResourceManager());
-
-  for(auto it = m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
-  {
-    if(m_pDevice->GetResourceManager()->HasResourceRecord(*it))
-      MarkDirtyResource(*it);
-  }
-
-  m_MissingTracks.clear();
 }
 
 void WrappedID3D11DeviceContext::BeginFrame()
@@ -642,9 +634,6 @@ void WrappedID3D11DeviceContext::BeginFrame()
 void WrappedID3D11DeviceContext::EndFrame()
 {
   DrainAnnotationQueue();
-
-  if(IsBackgroundCapturing(m_State))
-    m_pDevice->GetResourceManager()->FlushPendingDirty();
 }
 
 bool WrappedID3D11DeviceContext::IsFL11_1()

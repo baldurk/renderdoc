@@ -917,17 +917,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
       AddForcedReference(GetResID(memory), eFrameRef_ReadBeforeWrite);
 
       // the memory is immediately dirty because we have no way of tracking writes to it
-      bool capframe = false;
-
-      {
-        SCOPED_LOCK(m_CapTransitionLock);
-        capframe = IsActiveCapturing(m_State);
-      }
-
-      if(capframe)
-        GetResourceManager()->MarkPendingDirty(GetResID(memory));
-      else
-        GetResourceManager()->MarkDirtyResource(GetResID(memory));
+      GetResourceManager()->MarkDirtyResource(GetResID(memory));
     }
   }
 
@@ -1171,18 +1161,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // buffers are always bound opaquely and in arbitrary divisions, sparse residency
         // only means not all the buffer needs to be bound, which is not that interesting for
         // our purposes. We just need to make sure sparse buffers are dirty.
-
-        bool capframe = false;
-
-        {
-          SCOPED_LOCK(m_CapTransitionLock);
-          capframe = IsActiveCapturing(m_State);
-        }
-
-        if(capframe)
-          GetResourceManager()->MarkPendingDirty(id);
-        else
-          GetResourceManager()->MarkDirtyResource(id);
+        GetResourceManager()->MarkDirtyResource(id);
       }
 
       if(isSparse || isExternal)
@@ -1656,17 +1635,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       {
         record->resInfo = new ResourceInfo();
 
-        bool capframe = false;
-
-        {
-          SCOPED_LOCK(m_CapTransitionLock);
-          capframe = IsActiveCapturing(m_State);
-        }
-
-        if(capframe)
-          GetResourceManager()->MarkPendingDirty(id);
-        else
-          GetResourceManager()->MarkDirtyResource(id);
+        GetResourceManager()->MarkDirtyResource(id);
 
         // pre-populate memory requirements
         ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage),
@@ -2005,17 +1974,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
         AddForcedReference(GetResID(pBindInfos[i].memory), eFrameRef_ReadBeforeWrite);
 
         // the memory is immediately dirty because we have no way of tracking writes to it
-        bool capframe = false;
-
-        {
-          SCOPED_LOCK(m_CapTransitionLock);
-          capframe = IsActiveCapturing(m_State);
-        }
-
-        if(capframe)
-          GetResourceManager()->MarkPendingDirty(GetResID(pBindInfos[i].memory));
-        else
-          GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
+        GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
       }
     }
   }

@@ -2402,8 +2402,6 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 
   SCOPED_LOCK(m_D3DLock);
 
-  GetResourceManager()->MarkCleanResource(idx);
-
   if(WrappedID3D11DeviceContext::IsAlloc(res))
     RemoveDeferredContext((WrappedID3D11DeviceContext *)res);
 

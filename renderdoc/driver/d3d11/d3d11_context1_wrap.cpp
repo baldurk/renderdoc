@@ -379,7 +379,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
 
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
 
-    m_MissingTracks.insert(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -463,7 +463,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstReso
     Serialise_CopySubresourceRegion1(ser, pDstResource, DstSubresource, DstX, DstY, DstZ,
                                      pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
 
-    m_MissingTracks.insert(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -621,7 +621,7 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
       ID3D11Resource *viewRes = NULL;
       pView->GetResource(&viewRes);
 
-      m_MissingTracks.insert(GetIDForResource(viewRes));
+      MarkDirtyResource(GetIDForResource(viewRes));
       MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_PartialWrite);
 
       SAFE_RELEASE(viewRes);
@@ -1768,7 +1768,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
     SERIALISE_ELEMENT(m_ResourceID).Named("Context").TypedAs("ID3D11DeviceContext *");
     Serialise_DiscardResource(ser, pResource);
 
-    m_MissingTracks.insert(GetIDForResource(pResource));
+    MarkDirtyResource(GetIDForResource(pResource));
     MarkResourceReferenced(GetIDForResource(pResource), eFrameRef_PartialWrite);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1924,7 +1924,7 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
       ID3D11Resource *viewRes = NULL;
       pResourceView->GetResource(&viewRes);
 
-      m_MissingTracks.insert(GetIDForResource(viewRes));
+      MarkDirtyResource(GetIDForResource(viewRes));
       MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_PartialWrite);
 
       SAFE_RELEASE(viewRes);
@@ -2092,7 +2092,7 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
       ID3D11Resource *viewRes = NULL;
       pResourceView->GetResource(&viewRes);
 
-      m_MissingTracks.insert(GetIDForResource(viewRes));
+      MarkDirtyResource(GetIDForResource(viewRes));
       MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_PartialWrite);
 
       SAFE_RELEASE(viewRes);

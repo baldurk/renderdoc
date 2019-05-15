@@ -110,7 +110,6 @@ public:
       {
         ++count;
         ResourceId res = it->second;
-        MarkCleanResource(res);
         if(HasResourceRecord(res))
           GetResourceRecord(res)->Delete(this);
         ReleaseCurrentResource(it->second);
@@ -216,9 +215,6 @@ public:
   using ResourceManager::MarkDirtyResource;
 
   void MarkDirtyResource(GLResource res) { return ResourceManager::MarkDirtyResource(GetID(res)); }
-  using ResourceManager::MarkCleanResource;
-
-  void MarkCleanResource(GLResource res) { return ResourceManager::MarkCleanResource(GetID(res)); }
   void RegisterSync(ContextPair &ctx, GLsync sync, GLuint &name, ResourceId &id)
   {
     name = (GLuint)Atomic::Inc64(&m_SyncName);

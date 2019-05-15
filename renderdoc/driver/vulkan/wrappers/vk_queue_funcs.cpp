@@ -781,6 +781,11 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
   bool capframe = false;
   bool present = false;
 
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = IsActiveCapturing(m_State);
+  }
+
   set<ResourceId> refdIDs;
 
   VkResourceRecord *queueRecord = GetRecord(queue);
@@ -801,80 +806,32 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                                             m_ImageLayouts);
       }
 
-      // need to lock the whole section of code, not just the check on
-      // m_State, as we also need to make sure we don't check the state,
-      // start marking dirty resources then while we're doing so the
-      // state becomes capframe.
-      // the next sections where we mark resources referenced and add
-      // the submit chunk to the frame record don't have to be protected.
-      // Only the decision of whether we're inframe or not, and marking
-      // dirty.
+      for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+          it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
       {
-        SCOPED_LOCK(m_CapTransitionLock);
-        if(IsActiveCapturing(m_State))
+        if(GetResourceManager()->HasCurrentResource(*it))
+          GetResourceManager()->MarkDirtyResource(*it);
+      }
+
+      // with EXT_descriptor_indexing a binding might have been updated after
+      // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
+      for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
+          it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
+      {
+        VkResourceRecord *setrecord = GetRecord(*it);
+
+        SCOPED_LOCK(setrecord->descInfo->refLock);
+
+        const std::map<ResourceId, pair<uint32_t, FrameRefType>> &frameRefs =
+            setrecord->descInfo->bindFrameRefs;
+
+        for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
         {
-          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+          if(refit->second.second == eFrameRef_PartialWrite ||
+             refit->second.second == eFrameRef_ReadBeforeWrite)
           {
-            if(GetResourceManager()->HasCurrentResource(*it))
-              GetResourceManager()->MarkPendingDirty(*it);
-          }
-
-          // with EXT_descriptor_indexing a binding might have been updated after
-          // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
-          for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
-              it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
-          {
-            VkResourceRecord *setrecord = GetRecord(*it);
-
-            SCOPED_LOCK(setrecord->descInfo->refLock);
-
-            const std::map<ResourceId, pair<uint32_t, FrameRefType>> &frameRefs =
-                setrecord->descInfo->bindFrameRefs;
-
-            for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
-            {
-              if(refit->second.second == eFrameRef_PartialWrite ||
-                 refit->second.second == eFrameRef_ReadBeforeWrite)
-              {
-                if(GetResourceManager()->HasCurrentResource(refit->first))
-                  GetResourceManager()->MarkPendingDirty(refit->first);
-              }
-            }
-          }
-
-          capframe = true;
-        }
-        else
-        {
-          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          {
-            if(GetResourceManager()->HasCurrentResource(*it))
-              GetResourceManager()->MarkDirtyResource(*it);
-          }
-
-          // with EXT_descriptor_indexing a binding might have been updated after
-          // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
-          for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
-              it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
-          {
-            VkResourceRecord *setrecord = GetRecord(*it);
-
-            SCOPED_LOCK(setrecord->descInfo->refLock);
-
-            const std::map<ResourceId, pair<uint32_t, FrameRefType>> &frameRefs =
-                setrecord->descInfo->bindFrameRefs;
-
-            for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
-            {
-              if(refit->second.second == eFrameRef_PartialWrite ||
-                 refit->second.second == eFrameRef_ReadBeforeWrite)
-              {
-                if(GetResourceManager()->HasCurrentResource(refit->first))
-                  GetResourceManager()->MarkDirtyResource(refit->first);
-              }
-            }
+            if(GetResourceManager()->HasCurrentResource(refit->first))
+              GetResourceManager()->MarkDirtyResource(refit->first);
           }
         }
       }
@@ -1030,7 +987,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             state.mapFlushed = false;
           }
 
-          GetResourceManager()->MarkPendingDirty(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
         }
         else
         {

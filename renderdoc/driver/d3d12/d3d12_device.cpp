@@ -1855,8 +1855,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->FreeInitialContents();
 
-  GetResourceManager()->FlushPendingDirty();
-
   FlushPendingDescriptorWrites();
 
   return true;
@@ -1900,8 +1898,6 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->FreeInitialContents();
-
-  GetResourceManager()->FlushPendingDirty();
 
   FlushPendingDescriptorWrites();
 

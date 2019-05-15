@@ -764,13 +764,7 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
 
       record->AddChunk(scope.Get());
 
-      {
-        SCOPED_READLOCK(m_CapTransitionLock);
-        if(IsBackgroundCapturing(m_State))
-          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
-        else
-          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
-      }
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
     else
     {
@@ -1346,13 +1340,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
 
       record->AddChunk(scope.Get());
 
-      {
-        SCOPED_READLOCK(m_CapTransitionLock);
-        if(IsBackgroundCapturing(m_State))
-          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
-        else
-          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
-      }
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
     else
     {
@@ -1616,13 +1604,7 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
       record->AddParent(GetRecord(pHeap));
       record->AddChunk(scope.Get());
 
-      {
-        SCOPED_READLOCK(m_CapTransitionLock);
-        if(IsBackgroundCapturing(m_State))
-          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
-        else
-          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
-      }
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
     else
     {
@@ -2338,13 +2320,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
 
       record->AddChunk(scope.Get());
 
-      {
-        SCOPED_READLOCK(m_CapTransitionLock);
-        if(IsBackgroundCapturing(m_State))
-          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
-        else
-          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
-      }
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
 
       {
         SCOPED_LOCK(m_ResourceStatesLock);

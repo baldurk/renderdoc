@@ -375,18 +375,10 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
       // the submit chunk to the frame record don't have to be protected.
       // Only the decision of whether we're inframe or not, and marking
       // dirty.
-      if(capframe)
-      {
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          GetResourceManager()->MarkPendingDirty(*it);
-      }
-      else
-      {
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          GetResourceManager()->MarkDirtyResource(*it);
-      }
+
+      for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+          it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+        GetResourceManager()->MarkDirtyResource(*it);
 
       if(capframe)
       {
@@ -521,7 +513,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
           // update comparison shadow for next time
           memcpy(ref, res->GetMap(subres), size);
 
-          GetResourceManager()->MarkPendingDirty(res->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(res->GetResourceID());
         }
         else
         {

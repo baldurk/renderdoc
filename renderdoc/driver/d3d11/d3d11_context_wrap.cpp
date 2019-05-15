@@ -2274,15 +2274,9 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
       // to avoid having to track "possibly" dirty resources.
       // Besides, it's unlikely an application will set an output then not draw to it
       if(IsActiveCapturing(m_State))
-      {
         MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_PartialWrite);
 
-        m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
-      }
-      else if(IsBackgroundCapturing(m_State))
-      {
-        MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
-      }
+      MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppSOTargets[i]);
     }
   }
@@ -3209,10 +3203,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
         // technically this isn't dirty until the draw call, but let's be conservative
         // to avoid having to track "possibly" dirty resources.
         // Besides, it's unlikely an application will set an output then not draw to it
-        if(IsBackgroundCapturing(m_State))
-          MarkDirtyResource(GetViewResourceResID(ppRenderTargetViews[i]));
-        else if(IsActiveCapturing(m_State))
-          m_MissingTracks.insert(GetViewResourceResID(ppRenderTargetViews[i]));
+        MarkDirtyResource(GetViewResourceResID(ppRenderTargetViews[i]));
       }
 
       RTs[i] = UNWRAP(WrappedID3D11RenderTargetView1, ppRenderTargetViews[i]);
@@ -3221,10 +3212,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
 
   if(pDepthStencilView && IsCaptureMode(m_State))
   {
-    if(IsBackgroundCapturing(m_State))
-      MarkDirtyResource(GetViewResourceResID(pDepthStencilView));
-    else if(IsActiveCapturing(m_State))
-      m_MissingTracks.insert(GetViewResourceResID(pDepthStencilView));
+    MarkDirtyResource(GetViewResourceResID(pDepthStencilView));
   }
 
   if(IsActiveCapturing(m_State))
@@ -3605,10 +3593,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       // technically this isn't dirty until the draw call, but let's be conservative
       // to avoid having to track "possibly" dirty resources.
       // Besides, it's unlikely an application will set an output then not draw to it
-      if(IsBackgroundCapturing(m_State))
-        MarkDirtyResource(GetViewResourceResID(ppRenderTargetViews[i]));
-      else if(IsActiveCapturing(m_State))
-        m_MissingTracks.insert(GetViewResourceResID(ppRenderTargetViews[i]));
+      MarkDirtyResource(GetViewResourceResID(ppRenderTargetViews[i]));
     }
 
     RTs[i] = UNWRAP(WrappedID3D11RenderTargetView1, ppRenderTargetViews[i]);
@@ -3619,10 +3604,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
   {
     if(ppUnorderedAccessViews[i] && IsCaptureMode(m_State))
     {
-      if(IsBackgroundCapturing(m_State))
-        MarkDirtyResource(GetViewResourceResID(ppUnorderedAccessViews[i]));
-      else if(IsActiveCapturing(m_State))
-        m_MissingTracks.insert(GetViewResourceResID(ppUnorderedAccessViews[i]));
+      MarkDirtyResource(GetViewResourceResID(ppUnorderedAccessViews[i]));
     }
 
     UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, ppUnorderedAccessViews[i]);
@@ -3630,10 +3612,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
 
   if(pDepthStencilView && IsCaptureMode(m_State))
   {
-    if(IsBackgroundCapturing(m_State))
-      MarkDirtyResource(GetViewResourceResID(pDepthStencilView));
-    else if(IsActiveCapturing(m_State))
-      m_MissingTracks.insert(GetViewResourceResID(pDepthStencilView));
+    MarkDirtyResource(GetViewResourceResID(pDepthStencilView));
   }
 
   VerifyState();
@@ -4765,16 +4744,13 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(
   {
     if(ppUnorderedAccessViews[i] && IsCaptureMode(m_State))
     {
-      if(IsBackgroundCapturing(m_State))
+      if(IsActiveCapturing(m_State))
       {
-        MarkDirtyResource(GetViewResourceResID(ppUnorderedAccessViews[i]));
-      }
-      else if(IsActiveCapturing(m_State))
-      {
-        m_MissingTracks.insert(GetViewResourceResID(ppUnorderedAccessViews[i]));
         MarkResourceReferenced(GetIDForResource(ppUnorderedAccessViews[i]), eFrameRef_Read);
         MarkResourceReferenced(GetViewResourceResID(ppUnorderedAccessViews[i]), eFrameRef_Read);
       }
+
+      MarkDirtyResource(GetViewResourceResID(ppUnorderedAccessViews[i]));
     }
 
     UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, ppUnorderedAccessViews[i]);
@@ -5280,9 +5256,6 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
       cmdListRecord->AddResourceReferences(m_pDevice->GetResourceManager());
     }
 
-    // still update dirty resources for subsequent captures
-    wrapped->MarkDirtyResources(m_MissingTracks);
-
     {
       // insert a chunk to let us know on replay that we finished the command list's
       // chunks and we can restore the state
@@ -5658,7 +5631,8 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion(ID3D11Resource *pDstResou
 
     m_ContextRecord->AddChunk(scope.Get());
 
-    m_MissingTracks.insert(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
+
     // assume partial update
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Read);
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
@@ -5802,7 +5776,8 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
 
     m_ContextRecord->AddChunk(scope.Get());
 
-    m_MissingTracks.insert(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
+
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
     MarkResourceReferenced(GetIDForResource(pSrcResource), eFrameRef_Read);
   }
@@ -5957,7 +5932,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
 
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
 
-    m_MissingTracks.insert(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -6236,7 +6211,8 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
 
     m_ContextRecord->AddChunk(scope.Get());
 
-    m_MissingTracks.insert(GetIDForResource(pDstBuffer));
+    MarkDirtyResource(GetIDForResource(pDstBuffer));
+
     MarkResourceReferenced(GetIDForResource(pDstBuffer), eFrameRef_Read);
     MarkResourceReferenced(GetIDForResource(pDstBuffer), eFrameRef_PartialWrite);
 
@@ -6256,7 +6232,7 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
 
     record->AddParent(srcRecord);
 
-    MarkDirtyResource(GetViewResourceResID(pSrcView));
+    MarkDirtyResource(GetIDForResource(pDstBuffer));
   }
 }
 
@@ -6350,7 +6326,7 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
 
     m_ContextRecord->AddChunk(scope.Get());
 
-    m_MissingTracks.insert(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_Read);
     MarkResourceReferenced(GetIDForResource(pDstResource), eFrameRef_PartialWrite);
     MarkResourceReferenced(GetIDForResource(pSrcResource), eFrameRef_Read);
@@ -6430,7 +6406,7 @@ void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderR
 
     ResourceId id = GetViewResourceResID(pShaderResourceView);
 
-    m_MissingTracks.insert(id);
+    MarkDirtyResource(id);
 
     MarkResourceReferenced(id, eFrameRef_Read);
     MarkResourceReferenced(id, eFrameRef_PartialWrite);
@@ -6556,7 +6532,7 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
       MarkResourceReferenced(GetIDForResource(pRenderTargetView), eFrameRef_Read);
     }
 
-    m_MissingTracks.insert(GetViewResourceResID(pRenderTargetView));
+    MarkDirtyResource(GetViewResourceResID(pRenderTargetView));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -6636,7 +6612,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
       MarkResourceReferenced(GetIDForResource(pUnorderedAccessView), eFrameRef_Read);
     }
 
-    m_MissingTracks.insert(GetViewResourceResID(pUnorderedAccessView));
+    MarkDirtyResource(GetViewResourceResID(pUnorderedAccessView));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -6716,7 +6692,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
       MarkResourceReferenced(GetIDForResource(pUnorderedAccessView), eFrameRef_Read);
     }
 
-    m_MissingTracks.insert(GetViewResourceResID(pUnorderedAccessView));
+    MarkDirtyResource(GetViewResourceResID(pUnorderedAccessView));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -6809,7 +6785,7 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
       MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
     }
 
-    m_MissingTracks.insert(GetViewResourceResID(pDepthStencilView));
+    MarkDirtyResource(GetViewResourceResID(pDepthStencilView));
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -7600,7 +7576,7 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
       }
       else
       {
-        m_MissingTracks.insert(GetIDForResource(pResource));
+        GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
 
         // create a chunk purely for the user's benefit
         USE_SCRATCH_SERIALISER();

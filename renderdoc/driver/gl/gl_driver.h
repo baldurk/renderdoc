@@ -164,8 +164,6 @@ private:
   ResourceId m_ContextResourceID;
   GLResourceRecord *m_ContextRecord;
 
-  set<ResourceId> m_MissingTracks;
-
   GLResourceManager *m_ResourceManager;
 
   SDFile *m_StructuredFile;
@@ -564,7 +562,6 @@ public:
   void RegisterDebugCallback();
 
   bool IsUnsafeDraw(uint32_t eventId) { return m_UnsafeDraws.find(eventId) != m_UnsafeDraws.end(); }
-  void AddMissingTrack(ResourceId id) { m_MissingTracks.insert(id); }
   // replay interface
   void Initialise(GLInitParams &params, uint64_t sectionVersion);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);

@@ -199,8 +199,6 @@ class ResourceRecordHandler
 {
 public:
   virtual void MarkDirtyResource(ResourceId id) = 0;
-  virtual void MarkCleanResource(ResourceId id) = 0;
-  virtual void MarkPendingDirty(ResourceId id) = 0;
   virtual void RemoveResourceRecord(ResourceId id) = 0;
   virtual void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType) = 0;
   virtual void DestroyResourceRecord(ResourceRecord *record) = 0;
@@ -492,14 +490,6 @@ public:
   // of the frame.
   inline void MarkDirtyResource(ResourceId res);
 
-  // for use when we might be mid-capture, this will get flushed to dirty state before the
-  // next frame but is safe to use mid-capture
-  void MarkPendingDirty(ResourceId res);
-  void FlushPendingDirty();
-
-  // this can be used when the resource is cleared or similar and it's in a known state
-  void MarkCleanResource(ResourceId res);
-
   // returns if the resource has been marked as dirty
   bool IsResourceDirty(ResourceId res);
 
@@ -603,7 +593,6 @@ protected:
 
   // used during capture - holds resources marked as dirty, needing initial contents
   set<ResourceId> m_DirtyResources;
-  set<ResourceId> m_PendingDirtyResources;
 
   struct InitialContentDataOrChunk
   {
@@ -718,26 +707,6 @@ void ResourceManager<Configuration>::MarkDirtyResource(ResourceId res)
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::MarkPendingDirty(ResourceId res)
-{
-  SCOPED_LOCK(m_Lock);
-
-  if(res == ResourceId())
-    return;
-
-  m_PendingDirtyResources.insert(res);
-}
-
-template <typename Configuration>
-void ResourceManager<Configuration>::FlushPendingDirty()
-{
-  SCOPED_LOCK(m_Lock);
-
-  m_DirtyResources.insert(m_PendingDirtyResources.begin(), m_PendingDirtyResources.end());
-  m_PendingDirtyResources.clear();
-}
-
-template <typename Configuration>
 bool ResourceManager<Configuration>::IsResourceDirty(ResourceId res)
 {
   SCOPED_LOCK(m_Lock);
@@ -746,20 +715,6 @@ bool ResourceManager<Configuration>::IsResourceDirty(ResourceId res)
     return false;
 
   return m_DirtyResources.find(res) != m_DirtyResources.end();
-}
-
-template <typename Configuration>
-void ResourceManager<Configuration>::MarkCleanResource(ResourceId res)
-{
-  SCOPED_LOCK(m_Lock);
-
-  if(res == ResourceId())
-    return;
-
-  if(IsResourceDirty(res))
-  {
-    m_DirtyResources.erase(res);
-  }
 }
 
 template <typename Configuration>
@@ -1431,6 +1386,7 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
 
   RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
   m_CurrentResourceMap.erase(id);
+  m_DirtyResources.erase(id);
 }
 
 template <typename Configuration>

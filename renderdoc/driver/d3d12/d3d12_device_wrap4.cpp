@@ -359,13 +359,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
 
       record->AddChunk(scope.Get());
 
-      {
-        SCOPED_READLOCK(m_CapTransitionLock);
-        if(IsBackgroundCapturing(m_State))
-          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
-        else
-          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
-      }
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
     else
     {

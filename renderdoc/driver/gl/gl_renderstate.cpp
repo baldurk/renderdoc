@@ -475,7 +475,6 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
   {
     manager->MarkResourceFrameReferenced(Images[i].res,
                                          initial ? eFrameRef_None : eFrameRef_ReadBeforeWrite);
-    driver->AddMissingTrack(manager->GetID(Images[i].res));
   }
 
   manager->MarkVAOReferenced(VAO, initial ? eFrameRef_None : eFrameRef_Read, true);
@@ -517,9 +516,11 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
   // if same FBO is bound to both targets, treat it as draw only
   if(ReadFBO != DrawFBO)
     manager->MarkFBOReferenced(ReadFBO, initial ? eFrameRef_None : eFrameRef_Read);
+
+  MarkDirty(driver);
 }
 
-void GLRenderState::MarkDirty(WrappedOpenGL *driver)
+void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
 {
   GLResourceManager *manager = driver->GetResourceManager();
 

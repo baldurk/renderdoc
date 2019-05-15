@@ -128,10 +128,7 @@ void GLResourceManager::SetInternalResource(GLResource res)
 bool GLResourceManager::ResourceTypeRelease(GLResource res)
 {
   if(HasCurrentResource(res))
-  {
-    MarkCleanResource(res);
     UnregisterResource(res);
-  }
 
   m_Driver->QueueResourceRelease(res);
   return true;

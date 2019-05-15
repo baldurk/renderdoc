@@ -4427,7 +4427,7 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
     Serialise_glClearTexImage(ser, texture, level, format, type, data);
 
     GetContextRecord()->AddChunk(scope.Get());
-    m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
   }
   else if(IsBackgroundCapturing(m_State))
   {
@@ -4544,7 +4544,7 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
                                  depth, format, type, data);
 
     GetContextRecord()->AddChunk(scope.Get());
-    m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
   }
   else if(IsBackgroundCapturing(m_State))
   {
