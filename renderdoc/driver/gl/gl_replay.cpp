@@ -602,7 +602,14 @@ void GLReplay::CacheTexture(ResourceId id)
     return;
   }
 
-  tex.mips = GetNumMips(target, res.resource.name, tex.width, tex.height, tex.depth);
+  if(res.view)
+  {
+    tex.mips = Log2Floor(res.mipsValid + 1);
+  }
+  else
+  {
+    tex.mips = GetNumMips(target, res.resource.name, tex.width, tex.height, tex.depth);
+  }
 
   GLint compressed = 0;
   drv.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED,
