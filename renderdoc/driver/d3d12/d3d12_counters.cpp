@@ -628,14 +628,14 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
       occlusion++;
     }
 
-    for(size_t c = 0; c < counters.size(); c++)
+    for(size_t c = 0; c < d3dCounters.size(); c++)
     {
       CounterResult result;
 
       result.eventId = cb.m_Results[i].first;
-      result.counter = counters[c];
+      result.counter = d3dCounters[c];
 
-      switch(counters[c])
+      switch(d3dCounters[c])
       {
         case GPUCounter::EventGPUDuration:
         {
