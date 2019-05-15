@@ -41,8 +41,6 @@ typedef GLXContext (*PFN_glXGetCurrentContext)();
 typedef const char *(*PFN_glXQueryExtensionsString)(Display *dpy, int screen);
 typedef PFNGLXGETVISUALFROMFBCONFIGPROC PFN_glXGetVisualFromFBConfig;
 typedef PFNGLXMAKECONTEXTCURRENTPROC PFN_glXMakeContextCurrent;
-typedef PFNGLXCREATEWINDOWPROC PFN_glXCreateWindow;
-typedef PFNGLXDESTROYWINDOWPROC PFN_glXDestroyWindow;
 typedef PFNGLXCHOOSEFBCONFIGPROC PFN_glXChooseFBConfig;
 typedef PFNGLXGETFBCONFIGATTRIBPROC PFN_glXGetFBConfigAttrib;
 typedef PFNGLXQUERYDRAWABLEPROC PFN_glXQueryDrawable;
@@ -70,9 +68,7 @@ typedef void (*PFN_glEnd)();
   FUNC(glXCreateContextAttribsARB); \
   FUNC(glXMakeCurrent);             \
   FUNC(glXMakeContextCurrent);      \
-  FUNC(glXSwapBuffers);             \
-  FUNC(glXCreateWindow);            \
-  FUNC(glXDestroyWindow);
+  FUNC(glXSwapBuffers);
 
 #define GLX_NONHOOKED_SYMBOLS(FUNC) \
   FUNC(glXGetCurrentContext);       \

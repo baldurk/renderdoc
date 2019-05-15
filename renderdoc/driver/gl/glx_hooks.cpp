@@ -38,47 +38,14 @@ public:
   GLXHook() : driver(GetGLPlatform()) {}
   void RegisterHooks();
 
-  XID UnwrapGLXWindow(XID id)
-  {
-    // if it's a GLXWindow
-    auto it = m_GLXWindowMap.find(id);
-
-    if(it != m_GLXWindowMap.end())
-    {
-      // return the drawable used at creation time
-      return it->second;
-    }
-
-    // otherwise just use the id as-is
-    return id;
-  }
-
-  void AddGLXWindow(GLXWindow glx, Window win) { m_GLXWindowMap[glx] = win; }
-  void RemoveGLXWindow(GLXWindow glx)
-  {
-    auto it = m_GLXWindowMap.find(glx);
-
-    if(it != m_GLXWindowMap.end())
-      m_GLXWindowMap.erase(it);
-  }
-
   void UpdateWindowSize(GLWindowingData data, Display *dpy, GLXDrawable drawable)
   {
     if(!data.ctx || !drawable)
       return;
 
-    // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
-    // a BadDrawable error and things go south. Instead we track GLXWindows created
-    // in glXCreateWindow/glXDestroyWindow and look up the source window it was
-    // created from to use that.
-    // If the drawable didn't come through there, it just passes through unscathed
-    // through this function
-    Drawable d = UnwrapGLXWindow(drawable);
-
-    Window root;
-    int x, y;
-    unsigned int width, height, border_width, depth;
-    XGetGeometry(dpy, d, &root, &x, &y, &width, &height, &border_width, &depth);
+    unsigned int width = 1, height = 1;
+    GLX.glXQueryDrawable(dpy, drawable, GLX_WIDTH, &width);
+    GLX.glXQueryDrawable(dpy, drawable, GLX_HEIGHT, &height);
 
     GLInitParams &params = driver.GetInitParams(data);
     params.width = width;
@@ -89,8 +56,6 @@ public:
   void *handle = RTLD_NEXT;
   WrappedOpenGL driver;
   std::set<GLXContext> contexts;
-
-  std::map<XID, XID> m_GLXWindowMap;
 } glxhook;
 
 HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualInfo *vis,
@@ -450,45 +415,6 @@ HOOK_EXPORT void glXSwapBuffers_renderdoc_hooked(Display *dpy, GLXDrawable drawa
   GLX.glXSwapBuffers(dpy, drawable);
 }
 
-HOOK_EXPORT GLXWindow glXCreateWindow_renderdoc_hooked(Display *dpy, GLXFBConfig config, Window win,
-                                                       const int *attribList)
-{
-  if(RenderDoc::Inst().IsReplayApp())
-  {
-    if(!GLX.glXCreateWindow)
-      GLX.PopulateForReplay();
-
-    return GLX.glXCreateWindow(dpy, config, win, attribList);
-  }
-
-  GLXWindow ret = GLX.glXCreateWindow(dpy, config, win, attribList);
-
-  {
-    SCOPED_LOCK(glLock);
-    glxhook.AddGLXWindow(ret, win);
-  }
-
-  return ret;
-}
-
-HOOK_EXPORT void glXDestroyWindow_renderdoc_hooked(Display *dpy, GLXWindow window)
-{
-  if(RenderDoc::Inst().IsReplayApp())
-  {
-    if(!GLX.glXDestroyWindow)
-      GLX.PopulateForReplay();
-
-    return GLX.glXDestroyWindow(dpy, window);
-  }
-
-  {
-    SCOPED_LOCK(glLock);
-    glxhook.RemoveGLXWindow(window);
-  }
-
-  return GLX.glXDestroyWindow(dpy, window);
-}
-
 HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress_renderdoc_hooked(const GLubyte *f)
 {
   if(RenderDoc::Inst().IsReplayApp())
@@ -525,10 +451,6 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress_renderdoc_hooked(const GLubyte *f)
     return (__GLXextFuncPtr)&glXMakeContextCurrent_renderdoc_hooked;
   if(!strcmp(func, "glXSwapBuffers"))
     return (__GLXextFuncPtr)&glXSwapBuffers_renderdoc_hooked;
-  if(!strcmp(func, "glXCreateWindow"))
-    return (__GLXextFuncPtr)&glXCreateWindow_renderdoc_hooked;
-  if(!strcmp(func, "glXDestroyWindow"))
-    return (__GLXextFuncPtr)&glXDestroyWindow_renderdoc_hooked;
   if(!strcmp(func, "glXGetProcAddress"))
     return (__GLXextFuncPtr)&glXGetProcAddress_renderdoc_hooked;
   if(!strcmp(func, "glXGetProcAddressARB"))
@@ -585,17 +507,6 @@ HOOK_EXPORT Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw, GLXDrawab
 HOOK_EXPORT void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 {
   return glXSwapBuffers_renderdoc_hooked(dpy, drawable);
-}
-
-HOOK_EXPORT GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config, Window win,
-                                      const int *attribList)
-{
-  return glXCreateWindow_renderdoc_hooked(dpy, config, win, attribList);
-}
-
-HOOK_EXPORT void glXDestroyWindow(Display *dpy, GLXWindow window)
-{
-  return glXDestroyWindow_renderdoc_hooked(dpy, window);
 }
 
 HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
@@ -706,6 +617,9 @@ GLX_PASSTHRU_2(void, glXDestroyPixmap, Display *, dpy, GLXPixmap, pixmap);
 GLX_PASSTHRU_3(GLXPbuffer, glXCreatePbuffer, Display *, dpy, GLXFBConfig, config, const int *,
                attrib_list);
 GLX_PASSTHRU_2(void, glXDestroyPbuffer, Display *, dpy, GLXPbuffer, pbuf);
+GLX_PASSTHRU_4(GLXWindow, glXCreateWindow, Display *, dpy, GLXFBConfig, config, Window, window,
+               const int *, attrib_list);
+GLX_PASSTHRU_2(void, glXDestroyWindow, Display *, dpy, GLXWindow, window);
 
 static void GLXHooked(void *handle)
 {
