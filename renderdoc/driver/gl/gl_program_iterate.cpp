@@ -381,12 +381,22 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
 
         std::string name = basename;
 
+        // atomic counters cannot be changed, don't fetch their value
+        if(type == eGL_UNSIGNED_INT_ATOMIC_COUNTER)
+          continue;
+
+        if(srcLocation == -1)
+          RDCWARN("Couldn't get srcLocation for %s", name.c_str());
+
         // append the subscript if this item is an array.
         if(isArray)
         {
           name += StringFormat::Fmt("[%d]", arr);
 
           uniformVal.Location = srcLocation = GL.glGetUniformLocation(progSrc, name.c_str());
+
+          if(srcLocation == -1)
+            RDCWARN("Couldn't get srcLocation for %s", name.c_str());
         }
 
         // fetch the data into the ProgramUniformValue, with the appropriate method for its type
@@ -498,7 +508,6 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
           case eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
-          case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
           case eGL_INT:
           case eGL_INT_VEC2:
           case eGL_INT_VEC3:
