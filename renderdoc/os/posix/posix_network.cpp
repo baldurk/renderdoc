@@ -40,8 +40,6 @@
 
 #include "posix_network.h"
 
-using std::string;
-
 // because strerror_r is a complete mess...
 static std::string errno_string(int err)
 {

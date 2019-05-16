@@ -732,9 +732,9 @@ ShaderReflection *GLReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
   return &shaderDetails.reflection;
 }
 
-vector<string> GLReplay::GetDisassemblyTargets()
+vector<std::string> GLReplay::GetDisassemblyTargets()
 {
-  vector<string> ret;
+  vector<std::string> ret;
 
   // default is always first
   ret.insert(ret.begin(), SPIRVDisassemblyTarget);
@@ -742,8 +742,8 @@ vector<string> GLReplay::GetDisassemblyTargets()
   return ret;
 }
 
-string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                   const string &target)
+std::string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                        const std::string &target)
 {
   auto &shaderDetails =
       m_pDriver->m_Shaders[m_pDriver->GetResourceManager()->GetLiveID(refl->resourceId)];
@@ -2143,7 +2143,7 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
   }
 }
 
-void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+void GLReplay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                                     rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   WrappedOpenGL &drv = *m_pDriver;
@@ -2727,8 +2727,9 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     drv.glDeleteTextures(1, &tempTex);
 }
 
-void GLReplay::BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                                 ShaderStage type, ResourceId *id, string *errors)
+void GLReplay::BuildCustomShader(std::string source, std::string entry,
+                                 const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                 ResourceId *id, std::string *errors)
 {
   if(id == NULL || errors == NULL)
   {
@@ -2881,9 +2882,9 @@ void GLReplay::FreeCustomShader(ResourceId id)
   m_pDriver->glDeleteShader(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
-void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                                  const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                 ResourceId *id, string *errors)
+                                 ResourceId *id, std::string *errors)
 {
   if(id == NULL || errors == NULL)
   {

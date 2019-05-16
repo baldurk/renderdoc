@@ -31,8 +31,6 @@
 #include "os/os_specific.h"
 #include "common.h"
 
-using std::string;
-
 class PerformanceTimer
 {
 public:
@@ -133,7 +131,7 @@ public:
 private:
   const char *m_File;
   unsigned int m_Line;
-  string m_Message;
+  std::string m_Message;
   PerformanceTimer m_Timer;
 };
 

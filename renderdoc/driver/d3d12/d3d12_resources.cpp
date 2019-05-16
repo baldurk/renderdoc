@@ -39,7 +39,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 {
   if(!DXBC::DXBCFile::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
   {
-    string originalPath = m_DebugInfoPath;
+    std::string originalPath = m_DebugInfoPath;
 
     if(originalPath.empty())
       originalPath =
@@ -60,7 +60,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 
       size_t numSearchPaths = m_DebugInfoSearchPaths ? m_DebugInfoSearchPaths->size() : 0;
 
-      string foundPath;
+      std::string foundPath;
 
       // while we haven't found a file, keep trying through the search paths. For i==0
       // check the path on its own, in case it's an absolute path.

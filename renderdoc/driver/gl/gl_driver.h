@@ -86,7 +86,7 @@ private:
   void Serialise_DebugMessages(SerialiserType &ser);
   vector<DebugMessage> GetDebugMessages();
 
-  string m_DebugMsgContext;
+  std::string m_DebugMsgContext;
 
   bool m_SuppressDebugMessages;
 
@@ -382,8 +382,8 @@ private:
     float CharAspect;
 
     // extensions
-    vector<string> glExts;
-    string glExtsString;
+    vector<std::string> glExts;
+    std::string glExtsString;
 
     // state
     GLResourceRecord *m_BufferRecord[16];
@@ -505,8 +505,8 @@ private:
   void BuildGLExtensions();
   void BuildGLESExtensions();
 
-  vector<string> m_GLExtensions;
-  vector<string> m_GLESExtensions;
+  vector<std::string> m_GLExtensions;
+  vector<std::string> m_GLESExtensions;
 
   std::set<uint32_t> m_UnsafeDraws;
 
@@ -605,8 +605,8 @@ public:
   {
     ShaderData() : type(eGL_NONE), version(0) {}
     GLenum type;
-    vector<string> sources;
-    vector<string> includepaths;
+    vector<std::string> sources;
+    vector<std::string> includepaths;
     SPVModule spirv;
     std::string disassembly;
     ShaderReflection reflection;

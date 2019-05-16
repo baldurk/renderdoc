@@ -38,7 +38,6 @@
 #include "maths/vec.h"
 #include "os/os_specific.h"
 
-using std::string;
 using std::vector;
 using std::pair;
 using std::set;
@@ -221,11 +220,11 @@ ITERABLE_OPERATORS(VendorExtensions);
 
 struct CaptureData
 {
-  CaptureData(string p, uint64_t t, RDCDriver d, uint32_t f)
+  CaptureData(std::string p, uint64_t t, RDCDriver d, uint32_t f)
       : path(p), timestamp(t), driver(d), frameNumber(f), retrieved(false)
   {
   }
-  string path;
+  std::string path;
   uint64_t timestamp;
   RDCDriver driver;
   uint32_t frameNumber;
@@ -414,8 +413,8 @@ public:
   void RegisterShutdownFunction(ShutdownFunction func) { m_ShutdownFunctions.insert(func); }
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
-  const string &GetConfigSetting(string name) { return m_ConfigSettings[name]; }
-  void SetConfigSetting(string name, string value) { m_ConfigSettings[name] = value; }
+  const std::string &GetConfigSetting(std::string name) { return m_ConfigSettings[name]; }
+  void SetConfigSetting(std::string name, std::string value) { m_ConfigSettings[name] = value; }
   void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
                           RENDERDOC_PreviewWindowCallback previewWindow);
 
@@ -507,8 +506,8 @@ public:
 
   bool HasReplaySupport(RDCDriver driverType);
 
-  std::map<RDCDriver, string> GetReplayDrivers();
-  std::map<RDCDriver, string> GetRemoteDrivers();
+  std::map<RDCDriver, std::string> GetReplayDrivers();
+  std::map<RDCDriver, std::string> GetRemoteDrivers();
 
   bool HasReplayDriver(RDCDriver driver) const;
   bool HasRemoteDriver(RDCDriver driver) const;
@@ -518,7 +517,7 @@ public:
 
   uint32_t GetTargetControlIdent() const { return m_RemoteIdent; }
   bool IsTargetControlConnected();
-  string GetTargetControlUsername();
+  std::string GetTargetControlUsername();
 
   void Tick();
 
@@ -576,7 +575,7 @@ public:
     eOverlay_CaptureDisabled = 0x2,
   };
 
-  string GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
+  std::string GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
 
   void CycleActiveWindow();
   uint32_t GetCapturableWindowCount() { return (uint32_t)m_WindowFrameCapturers.size(); }
@@ -597,11 +596,11 @@ private:
 
   FrameTimer m_FrameTimer;
 
-  string m_LoggingFilename;
+  std::string m_LoggingFilename;
 
-  string m_Target;
-  string m_CaptureFileTemplate;
-  string m_CurrentLogFile;
+  std::string m_Target;
+  std::string m_CaptureFileTemplate;
+  std::string m_CurrentLogFile;
   CaptureOptions m_Options;
   uint32_t m_Overlay;
 
@@ -622,7 +621,7 @@ private:
   Threading::CriticalSection m_ChildLock;
   vector<pair<uint32_t, uint32_t> > m_Children;
 
-  std::map<string, string> m_ConfigSettings;
+  std::map<std::string, std::string> m_ConfigSettings;
 
   std::map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   std::map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
@@ -689,7 +688,7 @@ private:
   volatile bool m_TargetControlThreadShutdown;
   volatile bool m_ControlClientThreadShutdown;
   Threading::CriticalSection m_SingleClientLock;
-  string m_SingleClientName;
+  std::string m_SingleClientName;
 
   PerformanceTimer m_Timer;
 

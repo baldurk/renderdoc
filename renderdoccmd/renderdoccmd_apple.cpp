@@ -28,8 +28,6 @@
 #include <unistd.h>
 #include <string>
 
-using std::string;
-
 void Daemonise()
 {
 }

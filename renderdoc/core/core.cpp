@@ -316,7 +316,7 @@ void RenderDoc::Initialise()
   // set default capture log - useful for when hooks aren't setup
   // through the UI (and a log file isn't set manually)
   {
-    string capture_filename;
+    std::string capture_filename;
 
     const char *base = "RenderDoc_app";
     if(IsReplayApp())
@@ -361,14 +361,14 @@ void RenderDoc::Initialise()
   m_ExHandler = NULL;
 
   {
-    string curFile;
+    std::string curFile;
     FileIO::GetExecutableFilename(curFile);
 
-    string f = strlower(curFile);
+    std::string f = strlower(curFile);
 
     // only create crash handler when we're not in renderdoccmd.exe (to prevent infinite loop as
     // the crash handler itself launches renderdoccmd.exe)
-    if(f.find("renderdoccmd.exe") == string::npos)
+    if(f.find("renderdoccmd.exe") == std::string::npos)
     {
       RecreateCrashHandler();
     }
@@ -584,7 +584,7 @@ bool RenderDoc::IsTargetControlConnected()
   return !RenderDoc::Inst().m_SingleClientName.empty();
 }
 
-string RenderDoc::GetTargetControlUsername()
+std::string RenderDoc::GetTargetControlUsername()
 {
   SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
   return RenderDoc::Inst().m_SingleClientName;
@@ -643,7 +643,7 @@ void RenderDoc::CycleActiveWindow()
   }
 }
 
-string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)
+std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)
 {
   const bool activeWindow = (flags & eOverlay_ActiveWindow);
   const bool capturesEnabled = (flags & eOverlay_CaptureDisabled) == 0;
@@ -1222,17 +1222,17 @@ std::map<RDCDriver, bool> RenderDoc::GetActiveDrivers()
   return ret;
 }
 
-std::map<RDCDriver, string> RenderDoc::GetReplayDrivers()
+std::map<RDCDriver, std::string> RenderDoc::GetReplayDrivers()
 {
-  std::map<RDCDriver, string> ret;
+  std::map<RDCDriver, std::string> ret;
   for(auto it = m_ReplayDriverProviders.begin(); it != m_ReplayDriverProviders.end(); ++it)
     ret[it->first] = ToStr(it->first);
   return ret;
 }
 
-std::map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
+std::map<RDCDriver, std::string> RenderDoc::GetRemoteDrivers()
 {
-  std::map<RDCDriver, string> ret;
+  std::map<RDCDriver, std::string> ret;
 
   for(auto it = m_RemoteDriverProviders.begin(); it != m_RemoteDriverProviders.end(); ++it)
     ret[it->first] = ToStr(it->first);

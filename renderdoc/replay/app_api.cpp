@@ -194,12 +194,12 @@ static uint32_t IsTargetControlConnected()
 
 static uint32_t LaunchReplayUI(uint32_t connectTargetControl, const char *cmdline)
 {
-  string replayapp = FileIO::GetReplayAppFilename();
+  std::string replayapp = FileIO::GetReplayAppFilename();
 
   if(replayapp.empty())
     return 0;
 
-  string cmd = cmdline ? cmdline : "";
+  std::string cmd = cmdline ? cmdline : "";
   if(connectTargetControl)
     cmd += StringFormat::Fmt(" --targetcontrol localhost:%u",
                              RenderDoc::Inst().GetTargetControlIdent());
@@ -312,7 +312,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
   int ret = 0;
   int major = 0, minor = 0, patch = 0;
 
-  string supportedVersions = "";
+  std::string supportedVersions = "";
 
 #define API_VERSION_HANDLE(enumver, actualver)                     \
   supportedVersions += " " STRINGIZE(CONCAT(API_, enumver));       \

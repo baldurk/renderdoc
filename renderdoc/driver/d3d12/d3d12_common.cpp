@@ -652,7 +652,7 @@ const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, std::string &DecodedStr
   return pData;
 }
 
-string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
+std::string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
 {
   std::string finalString;
   std::string formatPart;

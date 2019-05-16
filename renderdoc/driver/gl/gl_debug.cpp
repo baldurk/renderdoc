@@ -373,8 +373,8 @@ void GLReplay::InitDebugData()
 
   for(int i = 0; i < 3; i++)
   {
-    string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-    defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+    std::string defines = std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+    defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_texdisplay_frag), shaderType, glslBaseVer,
                             defines + texSampleDefines);
@@ -703,10 +703,10 @@ void GLReplay::InitDebugData()
             idx |= TEXDISPLAY_SINT_TEX;
 
           {
-            string defines;
-            defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            std::string defines;
+            defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
             defines += texSampleDefines;
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), shaderType,
@@ -719,10 +719,10 @@ void GLReplay::InitDebugData()
           }
 
           {
-            string defines;
-            defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            std::string defines;
+            defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
             defines += texSampleDefines;
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), shaderType, glslCSVer,
@@ -736,10 +736,10 @@ void GLReplay::InitDebugData()
 
           if(t == 1)
           {
-            string defines;
-            defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            std::string defines;
+            defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), shaderType,
                                     glslCSVer, defines);

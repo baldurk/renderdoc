@@ -77,7 +77,7 @@ inline std::string DecodeMarkerString(UINT Metadata, const void *pData, UINT Siz
   else if(Metadata == PIX_EVENT_ANSI_VERSION)
   {
     const char *c = (const char *)pData;
-    MarkerText = string(c, c + Size);
+    MarkerText = std::string(c, c + Size);
   }
   else if(Metadata == PIX_EVENT_PIX3BLOB_VERSION)
   {

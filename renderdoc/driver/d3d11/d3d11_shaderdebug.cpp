@@ -74,7 +74,7 @@ struct DebugHit
 
 bool PromptDebugTimeout(DXBC::ProgramType prog, uint32_t cycleCounter)
 {
-  string msg = StringFormat::Fmt(
+  std::string msg = StringFormat::Fmt(
       "RenderDoc's shader debugging has been running for over %u cycles, which indicates either a "
       "very long-running loop, or possibly an infinite loop. Continuing could lead to extreme "
       "memory allocations, slow UI or even crashes. Would you like to abort debugging to see what "
@@ -1199,7 +1199,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   vector<DataOutput> initialValues;
 
-  string extractHlsl = "struct PSInput\n{\n";
+  std::string extractHlsl = "struct PSInput\n{\n";
 
   int structureStride = 0;
 
@@ -1212,8 +1212,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     structureStride += 4;
   }
 
-  vector<string> floatInputs;
-  vector<pair<string, pair<uint32_t, uint32_t>>>
+  vector<std::string> floatInputs;
+  vector<pair<std::string, pair<uint32_t, uint32_t>>>
       arrays;    // name, pair<start semantic index, end semantic index>
   std::vector<std::string> inputVarNames;
 
@@ -1294,7 +1294,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
       if(!filled)
       {
-        string dummy_reg = "dummy_register";
+        std::string dummy_reg = "dummy_register";
         dummy_reg += ToStr((uint32_t)nextreg + dummy);
         extractHlsl += "float4 var_" + dummy_reg + " : semantic_" + dummy_reg + ";\n";
 
@@ -1740,7 +1740,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   for(size_t i = 0; i < floatInputs.size(); i++)
   {
-    const string &name = floatInputs[i];
+    const std::string &name = floatInputs[i];
     extractHlsl += "  PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
     extractHlsl += "  PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
     extractHlsl += "  PSInitialBuffer[idx].INddxfine." + name + " = ddx_fine(IN." + name + ");\n";

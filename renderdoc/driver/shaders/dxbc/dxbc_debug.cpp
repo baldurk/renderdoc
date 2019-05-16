@@ -1863,7 +1863,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_LOG:
     case OPCODE_SINCOS:
     {
-      string csProgram =
+      std::string csProgram =
           "RWBuffer<float4> outval : register(u0);\n"
           "cbuffer srcOper : register(b0) { float4 inval; };\n"
           "[numthreads(1, 1, 1)]\n"
@@ -3708,9 +3708,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_GATHER4_PO_C:
     case OPCODE_LOD:
     {
-      string sampler = "";
-      string texture = "";
-      string funcRet = "";
+      std::string sampler = "";
+      std::string texture = "";
+      std::string funcRet = "";
       DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
 
       if(op.operation != OPCODE_LOD)
@@ -4074,7 +4074,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         break;
       }
 
-      string sampleProgram;
+      std::string sampleProgram;
 
       char buf[256] = {0};
       char buf2[256] = {0};
@@ -4222,18 +4222,18 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                                ddyCalc.value.i.x, ddyCalc.value.i.y, ddyCalc.value.i.z,
                                ddyCalc.value.i.w);
 
-      string texcoords = buf;
-      string ddx = buf2;
-      string ddy = buf3;
+      std::string texcoords = buf;
+      std::string ddx = buf2;
+      std::string ddy = buf3;
 
       if(op.operation == OPCODE_LD_MS)
       {
         StringFormat::snprintf(buf, 255, formats[0][1], srcOpers[2].value.i.x);
       }
 
-      string sampleIdx = buf;
+      std::string sampleIdx = buf;
 
-      string offsets = "";
+      std::string offsets = "";
 
       if(useOffsets)
       {
@@ -4249,7 +4249,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         offsets = buf;
       }
 
-      string swizzle = ".";
+      std::string swizzle = ".";
 
       char elems[] = "xyzw";
 
@@ -4274,7 +4274,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         }
       }
 
-      string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
+      std::string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
       vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
       vsProgram += "}";
 
@@ -4313,7 +4313,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         // these operations need derivatives but have no hlsl function to call to provide them, so
         // we fake it in the vertex shader
 
-        string uvDim = "1";
+        std::string uvDim = "1";
         uvDim[0] += char(texdim + texdimOffs - 1);
 
         vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" +
@@ -4324,19 +4324,19 @@ State State::GetNext(GlobalState &global, State quad[4]) const
             uv.value.f.x + ddyCalc.value.f.x * 2.0f, uv.value.f.y + ddyCalc.value.f.y * 2.0f,
             uv.value.f.z + ddyCalc.value.f.z * 2.0f, uv.value.f.w + ddyCalc.value.f.w * 2.0f);
 
-        vsProgram += "if(id == 0) uv = " + string(buf) + ";\n";
+        vsProgram += "if(id == 0) uv = " + std::string(buf) + ";\n";
 
         StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
                                uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
 
-        vsProgram += "if(id == 1) uv = " + string(buf) + ";\n";
+        vsProgram += "if(id == 1) uv = " + std::string(buf) + ";\n";
 
         StringFormat::snprintf(
             buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
             uv.value.f.x + ddxCalc.value.f.x * 2.0f, uv.value.f.y + ddxCalc.value.f.y * 2.0f,
             uv.value.f.z + ddxCalc.value.f.z * 2.0f, uv.value.f.w + ddxCalc.value.f.w * 2.0f);
 
-        vsProgram += "if(id == 2) uv = " + string(buf) + ";\n";
+        vsProgram += "if(id == 2) uv = " + std::string(buf) + ";\n";
 
         vsProgram +=
             "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
@@ -4351,7 +4351,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
                            " uv : uvs) : SV_Target0\n{\n";
           sampleProgram +=
-              "return t.SampleCmpLevelZero(s, uv, " + string(buf) + offsets + ").xxxx;";
+              "return t.SampleCmpLevelZero(s, uv, " + std::string(buf) + offsets + ").xxxx;";
           sampleProgram += "\n}\n";
         }
         else if(op.operation == OPCODE_LOD)
@@ -4395,7 +4395,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
         sampleProgram +=
-            "t.Gather" + string(channel) + "(s, " + texcoords + offsets + ")" + swizzle + ";";
+            "t.Gather" + std::string(channel) + "(s, " + texcoords + offsets + ")" + swizzle + ";";
         sampleProgram += "\n}\n";
       }
       else if(op.operation == OPCODE_GATHER4_C || op.operation == OPCODE_GATHER4_PO_C)
@@ -4408,7 +4408,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram += "t.GatherCmp" + string(channel) + "(s, " + texcoords + buf + offsets +
+        sampleProgram += "t.GatherCmp" + std::string(channel) + "(s, " + texcoords + buf + offsets +
                          ")" + swizzle + ";";
         sampleProgram += "\n}\n";
       }

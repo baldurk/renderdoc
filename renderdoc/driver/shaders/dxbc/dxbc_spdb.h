@@ -34,7 +34,6 @@
 
 using std::vector;
 using std::pair;
-using std::string;
 
 namespace DXBC
 {
@@ -176,8 +175,8 @@ struct DBIModule
   int32_t niCompiler;
 
   // invalid when this is read in-place!
-  string moduleName;
-  string objectName;
+  std::string moduleName;
+  std::string objectName;
 };
 
 struct CompilandDetails
@@ -193,7 +192,7 @@ struct CompilandDetails
   } FrontendVersion, BackendVersion;
 
   // invalid when this is read in-place!
-  string CompilerSig;
+  std::string CompilerSig;
 };
 
 struct FileChecksum

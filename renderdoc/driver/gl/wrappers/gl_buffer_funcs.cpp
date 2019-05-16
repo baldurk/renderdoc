@@ -2368,7 +2368,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
         {
           if(!record->VerifyShadowStorage())
           {
-            string msg = StringFormat::Fmt(
+            std::string msg = StringFormat::Fmt(
                 "Overwrite of %llu byte Map()'d buffer detected\n"
                 "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
                 record->Length);

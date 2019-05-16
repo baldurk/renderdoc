@@ -43,7 +43,7 @@ std::string execcmd(const char *cmd)
 
   char buffer[128];
 
-  string result = "";
+  std::string result = "";
 
   while(!feof(pipe))
   {
@@ -63,8 +63,8 @@ bool isNewline(char c)
 
 int GetIdentPort(pid_t childPid)
 {
-  string lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
-  string result;
+  std::string lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
+  std::string result;
   uint32_t wait = 1;
   for(int i = 0; i < 10; ++i)
   {
@@ -85,7 +85,7 @@ int GetIdentPort(pid_t childPid)
   // <TEXT>
   // n*:<PORT>
 
-  string parseResult(result);
+  std::string parseResult(result);
   const size_t len = parseResult.length();
   if(parseResult[0] == 'p')
   {
@@ -108,7 +108,7 @@ int GetIdentPort(pid_t childPid)
       while(i < len)
       {
         const size_t netStart = parseResult.find(netString, i);
-        if(netStart != string::npos)
+        if(netStart != std::string::npos)
         {
           tokenStart = netStart + strlen(netString);
           i = tokenStart;

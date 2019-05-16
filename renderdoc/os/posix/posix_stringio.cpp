@@ -41,17 +41,15 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
-using std::string;
-
 // gives us an address to identify this so with
 static int soLocator = 0;
 
 namespace FileIO
 {
 // in posix/.../..._stringio.cpp
-string GetTempRootPath();
+std::string GetTempRootPath();
 
-string GetHomeFolderFilename()
+std::string GetHomeFolderFilename()
 {
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
@@ -59,14 +57,14 @@ string GetHomeFolderFilename()
   return homedir;
 }
 
-string GetTempFolderFilename()
+std::string GetTempFolderFilename()
 {
   return GetTempRootPath() + "/";
 }
 
-void CreateParentDirectory(const string &filename)
+void CreateParentDirectory(const std::string &filename)
 {
-  string fn = get_dirname(filename);
+  std::string fn = get_dirname(filename);
 
   // want trailing slash so that we create all directories
   fn.push_back('/');
@@ -76,7 +74,7 @@ void CreateParentDirectory(const string &filename)
 
   size_t offs = fn.find('/', 1);
 
-  while(offs != string::npos)
+  while(offs != std::string::npos)
   {
     // create directory path from 0 to offs by NULLing the
     // / at offs, mkdir, then set it back
@@ -88,7 +86,7 @@ void CreateParentDirectory(const string &filename)
   }
 }
 
-bool IsRelativePath(const string &path)
+bool IsRelativePath(const std::string &path)
 {
   if(path.empty())
     return false;
@@ -96,17 +94,17 @@ bool IsRelativePath(const string &path)
   return path.front() != '/';
 }
 
-string GetFullPathname(const string &filename)
+std::string GetFullPathname(const std::string &filename)
 {
   char path[PATH_MAX + 1] = {0};
   realpath(filename.c_str(), path);
 
-  return string(path);
+  return std::string(path);
 }
 
-string FindFileInPath(const string &fileName)
+std::string FindFileInPath(const std::string &fileName)
 {
-  string filePath;
+  std::string filePath;
 
   // Search the PATH directory list for the application (like shell which) to get the absolute path
   // Return "" if no exectuable found in the PATH list
@@ -122,7 +120,7 @@ string FindFileInPath(const string &fileName)
   const char *path = strtok(localPath, pathSeparator);
   while(path)
   {
-    string testPath(path);
+    std::string testPath(path);
     testPath += "/" + fileName;
     if(!access(testPath.c_str(), X_OK))
     {
@@ -136,14 +134,14 @@ string FindFileInPath(const string &fileName)
   return filePath;
 }
 
-string GetReplayAppFilename()
+std::string GetReplayAppFilename()
 {
   // look up the shared object's path via dladdr
   Dl_info info;
   dladdr((void *)&soLocator, &info);
-  string path = info.dli_fname ? info.dli_fname : "";
+  std::string path = info.dli_fname ? info.dli_fname : "";
   path = get_dirname(path);
-  string replay = path + "/qrenderdoc";
+  std::string replay = path + "/qrenderdoc";
 
   FILE *f = FileIO::fopen(replay.c_str(), "r");
   if(f)
@@ -190,10 +188,10 @@ string GetReplayAppFilename()
   return "qrenderdoc";
 }
 
-void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
-                     string &target)
+void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
+                     std::string &logging_filename, std::string &target)
 {
-  string path;
+  std::string path;
   GetExecutableFilename(path);
 
   const char *mod = strrchr(path.c_str(), '/');
@@ -204,7 +202,7 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
   else
     mod = "unknown";
 
-  target = string(mod);
+  target = std::string(mod);
 
   time_t t = time(NULL);
   tm now = *localtime(&t);
@@ -228,7 +226,7 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
            temp_folder, mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
            now.tm_min);
 
-  capture_filename = string(temp_filename);
+  capture_filename = std::string(temp_filename);
 
   snprintf(temp_filename, sizeof(temp_filename) - 1,
            "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName,
@@ -237,12 +235,12 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
   // set by UI when launching programs so all logging goes to the same file
   char *logfile_override = getenv("RENDERDOC_DEBUG_LOG_FILE");
   if(logfile_override)
-    logging_filename = string(logfile_override);
+    logging_filename = std::string(logfile_override);
   else
-    logging_filename = string(temp_filename);
+    logging_filename = std::string(temp_filename);
 }
 
-uint64_t GetModifiedTimestamp(const string &filename)
+uint64_t GetModifiedTimestamp(const std::string &filename)
 {
   struct ::stat st;
   int res = stat(filename.c_str(), &st);
@@ -352,7 +350,7 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
     if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
       continue;
 
-    string fullpath = path;
+    std::string fullpath = path;
     fullpath += '/';
     fullpath += ent->d_name;
 
@@ -405,9 +403,9 @@ std::string ErrorString()
   return buf;
 }
 
-string getline(FILE *f)
+std::string getline(FILE *f)
 {
-  string ret;
+  std::string ret;
 
   while(!FileIO::feof(f))
   {

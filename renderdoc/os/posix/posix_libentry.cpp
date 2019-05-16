@@ -63,7 +63,7 @@ void library_loaded()
       RenderDoc::Inst().SetCaptureFileTemplate(capturefile);
     }
 
-    string curfile;
+    std::string curfile;
     FileIO::GetExecutableFilename(curfile);
 
     RDCLOG("Loading into %s", curfile.c_str());

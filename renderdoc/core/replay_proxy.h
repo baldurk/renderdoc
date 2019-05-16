@@ -400,8 +400,9 @@ public:
     return ~0U;
   }
 
-  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors)
+  void BuildCustomShader(std::string source, std::string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         std::string *errors)
   {
     if(m_Proxy)
     {

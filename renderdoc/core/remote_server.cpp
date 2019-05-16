@@ -819,7 +819,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 
   while(f && !FileIO::feof(f))
   {
-    string line = trim(FileIO::getline(f));
+    std::string line = trim(FileIO::getline(f));
 
     if(line == "")
       continue;
@@ -1197,14 +1197,15 @@ public:
       std::string deviceID;
       Android::ExtractDeviceIDAndIndex(m_hostname, index, deviceID);
 
-      string adbStdout = Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
+      std::string adbStdout =
+          Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
       using namespace std;
       istringstream stdoutStream(adbStdout);
-      string line;
+      std::string line;
       vector<PathEntry> packages;
       while(getline(stdoutStream, line))
       {
-        vector<string> tokens;
+        vector<std::string> tokens;
         split(line, tokens, ':');
         if(tokens.size() == 2 && tokens[0] == "package")
         {
@@ -1866,7 +1867,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteS
   if(rend == NULL)
     return ReplayStatus::InternalError;
 
-  string s = "localhost";
+  std::string s = "localhost";
   if(host != NULL && host[0] != '\0')
     s = host;
 

@@ -141,8 +141,9 @@ public:
   {
     return m_Proxy->GetTargetShaderEncodings();
   }
-  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors)
+  void BuildCustomShader(std::string source, std::string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         std::string *errors)
   {
     m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
   }
@@ -209,7 +210,7 @@ public:
   {
     return vector<CounterResult>();
   }
-  void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+  void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                             rdcarray<ShaderVariable> &outvars, const bytebuf &data)
   {
   }
@@ -229,8 +230,9 @@ public:
   }
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) { return {}; }
   ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) { return NULL; }
-  vector<string> GetDisassemblyTargets() { return {"N/A"}; }
-  string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const string &target)
+  vector<std::string> GetDisassemblyTargets() { return {"N/A"}; }
+  std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                const std::string &target)
   {
     return "";
   }
@@ -262,9 +264,9 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         string *errors)
+                         std::string *errors)
   {
     if(id)
       *id = ResourceId();
@@ -306,7 +308,7 @@ private:
   FrameRecord m_FrameRecord;
   D3D11Pipe::State m_PipelineState;
   IReplayDriver *m_Proxy;
-  string m_Filename;
+  std::string m_Filename;
   ResourceId m_TextureID, m_CustomTexID;
   std::vector<ResourceDescription> m_Resources;
   SDFile m_File;

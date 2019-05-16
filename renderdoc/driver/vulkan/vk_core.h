@@ -805,7 +805,7 @@ private:
                                VkDeviceSize memoryOffset, VkMemoryRequirements mrq);
 
   std::vector<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);
-  string MakeRenderPassOpString(bool store);
+  std::string MakeRenderPassOpString(bool store);
 
   bool IsDrawInRenderPass();
 
@@ -853,8 +853,8 @@ private:
   bool m_LayersEnabled[VkCheckLayer_Max] = {};
 
   // in vk_<platform>.cpp
-  void AddRequiredExtensions(bool instance, vector<string> &extensionList,
-                             const std::set<string> &supportedExtensions);
+  void AddRequiredExtensions(bool instance, vector<std::string> &extensionList,
+                             const std::set<std::string> &supportedExtensions);
 
   bool PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescription &draw, byte *&argptr,
                          byte *argend);

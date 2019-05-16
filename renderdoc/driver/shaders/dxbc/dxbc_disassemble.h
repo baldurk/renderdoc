@@ -32,7 +32,6 @@
 #include "driver/dx/official/d3dcommon.h"
 
 using std::vector;
-using std::string;
 
 namespace DXBC
 {
@@ -724,7 +723,7 @@ struct ASMOperand
 
   bool operator==(const ASMOperand &o) const;
 
-  string toString(DXBCFile *dxbc, ToString flags) const;
+  std::string toString(DXBCFile *dxbc, ToString flags) const;
 
   ///////////////////////////////////////
 
@@ -784,7 +783,7 @@ struct ASMIndex
     return false;
   }
 
-  string str;
+  std::string str;
 
   ///////////////////////////////////////
 
@@ -843,7 +842,7 @@ struct ASMDecl
     numTypes = 0;
   }
 
-  string str;
+  std::string str;
 
   ///////////////////////////////////////
 
@@ -970,7 +969,7 @@ struct ASMOperation
     resType[0] = resType[1] = resType[2] = resType[3] = RETURN_TYPE_UNUSED;
   }
 
-  string str;
+  std::string str;
 
   ///////////////////////////////////////
 

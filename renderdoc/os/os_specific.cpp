@@ -27,8 +27,6 @@
 #include <stdarg.h>
 #include "strings/string_utils.h"
 
-using std::string;
-
 int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args);
 
 namespace StringFormat
@@ -55,7 +53,7 @@ int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
   return ::utf8printf(str, bufSize, format, args);
 }
 
-string Fmt(const char *format, ...)
+std::string Fmt(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -72,7 +70,7 @@ string Fmt(const char *format, ...)
   va_end(args);
   va_end(args2);
 
-  string ret = buf;
+  std::string ret = buf;
 
   delete[] buf;
 
@@ -132,7 +130,7 @@ int Wide2UTF8(wchar_t chr, char mbchr[4])
 
 };    // namespace StringFormat
 
-string Callstack::AddressDetails::formattedString(const char *commonPath)
+std::string Callstack::AddressDetails::formattedString(const char *commonPath)
 {
   char fmt[512] = {0};
 
@@ -140,8 +138,8 @@ string Callstack::AddressDetails::formattedString(const char *commonPath)
 
   if(commonPath)
   {
-    string common = strlower(string(commonPath));
-    string fn = strlower(filename.substr(0, common.length()));
+    std::string common = strlower(std::string(commonPath));
+    std::string fn = strlower(filename.substr(0, common.length()));
 
     if(common == fn)
     {
@@ -157,9 +155,9 @@ string Callstack::AddressDetails::formattedString(const char *commonPath)
   return fmt;
 }
 
-string OSUtility::MakeMachineIdentString(uint64_t ident)
+std::string OSUtility::MakeMachineIdentString(uint64_t ident)
 {
-  string ret = "";
+  std::string ret = "";
 
   if(ident & MachineIdent_Windows)
     ret += "Windows ";

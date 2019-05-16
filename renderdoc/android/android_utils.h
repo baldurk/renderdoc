@@ -31,10 +31,10 @@
 
 namespace Android
 {
-Process::ProcessResult execScript(const string &script, const string &args,
-                                  const string &workDir = ".", bool silent = false);
-Process::ProcessResult execCommand(const string &exe, const string &args,
-                                   const string &workDir = ".", bool silent = false);
+Process::ProcessResult execScript(const std::string &script, const std::string &args,
+                                  const std::string &workDir = ".", bool silent = false);
+Process::ProcessResult execCommand(const std::string &exe, const std::string &args,
+                                   const std::string &workDir = ".", bool silent = false);
 
 enum class ToolDir
 {

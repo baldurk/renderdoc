@@ -36,7 +36,6 @@
 #include "strings/string_utils.h"
 
 using std::set;
-using std::wstring;
 
 // gives us an address to identify this dll with
 static int dllLocator = 0;
@@ -63,7 +62,7 @@ std::string GetDynamicEmbeddedResource(int resource)
     const char *resData = (const char *)LockResource(data);
 
     if(resData)
-      return string(resData, resData + resSize);
+      return std::string(resData, resData + resSize);
   }
 
   return "";
@@ -160,44 +159,44 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-void GetExecutableFilename(string &selfName)
+void GetExecutableFilename(std::string &selfName)
 {
   wchar_t curFile[512] = {0};
   GetModuleFileNameW(NULL, curFile, 511);
 
-  selfName = StringFormat::Wide2UTF8(wstring(curFile));
+  selfName = StringFormat::Wide2UTF8(std::wstring(curFile));
 }
 
-void GetLibraryFilename(string &selfName)
+void GetLibraryFilename(std::string &selfName)
 {
   wchar_t curFile[512] = {0};
   GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), curFile, 511);
 
-  selfName = StringFormat::Wide2UTF8(wstring(curFile));
+  selfName = StringFormat::Wide2UTF8(std::wstring(curFile));
 }
 
-bool IsRelativePath(const string &path)
+bool IsRelativePath(const std::string &path)
 {
   if(path.empty())
     return false;
 
-  wstring wpath = StringFormat::UTF82Wide(path.c_str());
+  std::wstring wpath = StringFormat::UTF82Wide(path.c_str());
   return PathIsRelativeW(wpath.c_str()) != 0;
 }
 
-string GetFullPathname(const string &filename)
+std::string GetFullPathname(const std::string &filename)
 {
-  wstring wfn = StringFormat::UTF82Wide(filename);
+  std::wstring wfn = StringFormat::UTF82Wide(filename);
 
   wchar_t path[512] = {0};
   GetFullPathNameW(wfn.c_str(), ARRAY_COUNT(path) - 1, path, NULL);
 
-  return StringFormat::Wide2UTF8(wstring(path));
+  return StringFormat::Wide2UTF8(std::wstring(path));
 }
 
-string FindFileInPath(const string &file)
+std::string FindFileInPath(const std::string &file)
 {
-  string filePath;
+  std::string filePath;
 
   // Search the PATH directory list for the application (like shell where) to get the absolute path
   // Return "" if no exectuable found in the PATH list
@@ -209,14 +208,14 @@ string FindFileInPath(const string &file)
   char *next = NULL;
   const char *pathSeparator = ";";
   const char *path = strtok_s(envPath, pathSeparator, &next);
-  wstring fileName = StringFormat::UTF82Wide(file);
+  std::wstring fileName = StringFormat::UTF82Wide(file);
 
   while(path)
   {
-    wstring testPath = StringFormat::UTF82Wide(path);
+    std::wstring testPath = StringFormat::UTF82Wide(path);
 
     // Check for the following extensions. If fileName already has one, they will be ignored.
-    std::vector<wstring> extensions;
+    std::vector<std::wstring> extensions;
     extensions.push_back(L".exe");
     extensions.push_back(L".bat");
 
@@ -226,7 +225,7 @@ string FindFileInPath(const string &file)
       if(SearchPathW(testPath.c_str(), fileName.c_str(), extensions[i].c_str(),
                      ARRAY_COUNT(foundPath) - 1, foundPath, NULL) != 0)
       {
-        filePath = StringFormat::Wide2UTF8(wstring(foundPath));
+        filePath = StringFormat::Wide2UTF8(std::wstring(foundPath));
         break;
       }
     }
@@ -239,7 +238,7 @@ string FindFileInPath(const string &file)
 
 void CreateParentDirectory(const std::string &filename)
 {
-  wstring wfn = StringFormat::UTF82Wide(get_dirname(filename));
+  std::wstring wfn = StringFormat::UTF82Wide(get_dirname(filename));
 
   // This function needs \\s not /s. So stupid!
   for(size_t i = 0; i < wfn.size(); i++)
@@ -255,7 +254,7 @@ void CreateParentDirectory(const std::string &filename)
   }
 
   // Find all directories we need to create
-  std::vector<wstring> directoriesToCreate;
+  std::vector<std::wstring> directoriesToCreate;
   while(!wfn.empty())
   {
     DWORD fileAttributes = GetFileAttributesW(wfn.c_str());
@@ -265,7 +264,7 @@ void CreateParentDirectory(const std::string &filename)
     directoriesToCreate.push_back(wfn);
 
     size_t seperatorPos = wfn.find_last_of(L'\\');
-    if(seperatorPos == string::npos)
+    if(seperatorPos == std::string::npos)
       break;
     else
       wfn = wfn.substr(0, seperatorPos);
@@ -278,7 +277,7 @@ void CreateParentDirectory(const std::string &filename)
   }
 }
 
-string GetReplayAppFilename()
+std::string GetReplayAppFilename()
 {
   HMODULE hModule = NULL;
   GetModuleHandleEx(
@@ -287,9 +286,9 @@ string GetReplayAppFilename()
   wchar_t curFile[512] = {0};
   GetModuleFileNameW(hModule, curFile, 511);
 
-  string path = StringFormat::Wide2UTF8(wstring(curFile));
+  std::string path = StringFormat::Wide2UTF8(std::wstring(curFile));
   path = get_dirname(path);
-  string exe = path + "/qrenderdoc.exe";
+  std::string exe = path + "/qrenderdoc.exe";
 
   FILE *f = FileIO::fopen(exe.c_str(), "rb");
   if(f)
@@ -321,14 +320,14 @@ string GetReplayAppFilename()
 
   if(type == REG_EXPAND_SZ || type == REG_SZ)
   {
-    return StringFormat::Wide2UTF8(wstring(curFile));
+    return StringFormat::Wide2UTF8(std::wstring(curFile));
   }
 
   return "";
 }
 
-void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
-                     string &target)
+void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
+                     std::string &logging_filename, std::string &target)
 {
   wchar_t temp_filename[MAX_PATH];
 
@@ -350,7 +349,7 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
 
   mod++;    // now points to base filename without extension
 
-  target = StringFormat::Wide2UTF8(wstring(mod));
+  target = StringFormat::Wide2UTF8(std::wstring(mod));
 
   time_t t = time(NULL);
   tm now;
@@ -361,24 +360,24 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
   wsprintf(filename_start, L"RenderDoc\\%ls_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900 + now.tm_year,
            now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min);
 
-  capture_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
+  capture_filename = StringFormat::Wide2UTF8(std::wstring(temp_filename));
 
   *filename_start = 0;
 
-  wstring wbase = StringFormat::UTF82Wide(string(logBaseName));
+  std::wstring wbase = StringFormat::UTF82Wide(std::string(logBaseName));
 
   wsprintf(filename_start, L"RenderDoc\\%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", wbase.c_str(),
            1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
-  logging_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
+  logging_filename = StringFormat::Wide2UTF8(std::wstring(temp_filename));
 }
 
-string GetHomeFolderFilename()
+std::string GetHomeFolderFilename()
 {
   PWSTR docsPath;
   SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL,
                        &docsPath);
-  wstring documents = docsPath;
+  std::wstring documents = docsPath;
   CoTaskMemFree(docsPath);
 
   if(documents[documents.size() - 1] == '/' || documents[documents.size() - 1] == '\\')
@@ -387,7 +386,7 @@ string GetHomeFolderFilename()
   return StringFormat::Wide2UTF8(documents);
 }
 
-string GetAppFolderFilename(const string &filename)
+std::string GetAppFolderFilename(const std::string &filename)
 {
   PWSTR appDataPath = NULL;
   HRESULT hr = SHGetKnownFolderPath(
@@ -395,7 +394,7 @@ string GetAppFolderFilename(const string &filename)
   if(appDataPath == NULL || FAILED(hr))
     return "";
 
-  wstring appdata = appDataPath;
+  std::wstring appdata = appDataPath;
   CoTaskMemFree(appDataPath);
 
   if(appdata[appdata.size() - 1] == '/' || appdata[appdata.size() - 1] == '\\')
@@ -405,22 +404,22 @@ string GetAppFolderFilename(const string &filename)
 
   CreateDirectoryW(appdata.c_str(), NULL);
 
-  string ret = StringFormat::Wide2UTF8(appdata) + filename;
+  std::string ret = StringFormat::Wide2UTF8(appdata) + filename;
   return ret;
 }
 
-string GetTempFolderFilename()
+std::string GetTempFolderFilename()
 {
   wchar_t temp_filename[MAX_PATH];
 
   GetTempPathW(MAX_PATH, temp_filename);
 
-  return StringFormat::Wide2UTF8(wstring(temp_filename));
+  return StringFormat::Wide2UTF8(std::wstring(temp_filename));
 }
 
-uint64_t GetModifiedTimestamp(const string &filename)
+uint64_t GetModifiedTimestamp(const std::string &filename)
 {
-  wstring wfn = StringFormat::UTF82Wide(filename);
+  std::wstring wfn = StringFormat::UTF82Wide(filename);
 
   struct __stat64 st;
   int res = _wstat64(wfn.c_str(), &st);
@@ -435,16 +434,16 @@ uint64_t GetModifiedTimestamp(const string &filename)
 
 bool Copy(const char *from, const char *to, bool allowOverwrite)
 {
-  wstring wfrom = StringFormat::UTF82Wide(string(from));
-  wstring wto = StringFormat::UTF82Wide(string(to));
+  std::wstring wfrom = StringFormat::UTF82Wide(std::string(from));
+  std::wstring wto = StringFormat::UTF82Wide(std::string(to));
 
   return ::CopyFileW(wfrom.c_str(), wto.c_str(), allowOverwrite == false) != 0;
 }
 
 bool Move(const char *from, const char *to, bool allowOverwrite)
 {
-  wstring wfrom = StringFormat::UTF82Wide(string(from));
-  wstring wto = StringFormat::UTF82Wide(string(to));
+  std::wstring wfrom = StringFormat::UTF82Wide(std::string(from));
+  std::wstring wto = StringFormat::UTF82Wide(std::string(to));
 
   if(exists(to))
   {
@@ -459,7 +458,7 @@ bool Move(const char *from, const char *to, bool allowOverwrite)
 
 void Delete(const char *path)
 {
-  wstring wpath = StringFormat::UTF82Wide(string(path));
+  std::wstring wpath = StringFormat::UTF82Wide(std::string(path));
   ::DeleteFileW(wpath.c_str());
 }
 
@@ -477,7 +476,7 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
 
       if(driveMask & mask)
       {
-        string fn = "A:/";
+        std::string fn = "A:/";
         fn[0] = char('A' + i);
 
         ret.push_back(PathEntry(fn.c_str(), PathProperty::Directory));
@@ -487,7 +486,7 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
     return ret;
   }
 
-  string pathstr = path;
+  std::string pathstr = path;
 
   // normalise path to windows style
   for(size_t i = 0; i < pathstr.size(); i++)
@@ -501,7 +500,7 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
   // append '\*' to do the search we want
   pathstr += "\\*";
 
-  wstring wpath = StringFormat::UTF82Wide(pathstr);
+  std::wstring wpath = StringFormat::UTF82Wide(pathstr);
 
   WIN32_FIND_DATAW findData = {};
   HANDLE find = FindFirstFileW(wpath.c_str(), &findData);
@@ -574,8 +573,8 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
 
 FILE *fopen(const char *filename, const char *mode)
 {
-  wstring wfn = StringFormat::UTF82Wide(string(filename));
-  wstring wmode = StringFormat::UTF82Wide(string(mode));
+  std::wstring wfn = StringFormat::UTF82Wide(std::string(filename));
+  std::wstring wmode = StringFormat::UTF82Wide(std::string(mode));
 
   FILE *ret = NULL;
   ::_wfopen_s(&ret, wfn.c_str(), wmode.c_str());
@@ -584,7 +583,7 @@ FILE *fopen(const char *filename, const char *mode)
 
 bool exists(const char *filename)
 {
-  wstring wfn = StringFormat::UTF82Wide(filename);
+  std::wstring wfn = StringFormat::UTF82Wide(filename);
 
   struct __stat64 st;
   int res = _wstat64(wfn.c_str(), &st);
@@ -603,9 +602,9 @@ std::string ErrorString()
   return buf;
 }
 
-string getline(FILE *f)
+std::string getline(FILE *f)
 {
-  string ret;
+  std::string ret;
 
   while(!FileIO::feof(f))
   {
@@ -667,7 +666,7 @@ static HANDLE logHandle = NULL;
 
 bool logfile_open(const char *filename)
 {
-  wstring wfn = StringFormat::UTF82Wide(string(filename));
+  std::wstring wfn = StringFormat::UTF82Wide(std::string(filename));
   logHandle = CreateFileW(wfn.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                           OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -709,7 +708,7 @@ std::string logfile_readall(const char *filename)
   if(!exists(filename))
     return StringFormat::Fmt("Logfile '%s' doesn't exist", filename);
 
-  wstring wfn = StringFormat::UTF82Wide(string(filename));
+  std::wstring wfn = StringFormat::UTF82Wide(std::string(filename));
   HANDLE h = CreateFileW(wfn.c_str(), FILE_READ_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -766,7 +765,7 @@ void logfile_close(const char *filename)
   {
     // we can just try to delete the file. If it's open elsewhere in another process, the delete
     // will fail.
-    wstring wpath = StringFormat::UTF82Wide(string(filename));
+    std::wstring wpath = StringFormat::UTF82Wide(std::string(filename));
     ::DeleteFileW(wpath.c_str());
   }
 }
@@ -781,11 +780,11 @@ void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format)
 
   wchar_t *buf = new wchar_t[bufSize + 1];
   buf[bufSize] = 0;
-  wstring wfmt = StringFormat::UTF82Wide(string(format));
+  std::wstring wfmt = StringFormat::UTF82Wide(std::string(format));
 
   wcsftime(buf, bufSize, wfmt.c_str(), &tmv);
 
-  string result = StringFormat::Wide2UTF8(wstring(buf));
+  std::string result = StringFormat::Wide2UTF8(std::wstring(buf));
 
   delete[] buf;
 
@@ -800,14 +799,14 @@ void Shutdown()
 {
 }
 
-string Wide2UTF8(const wstring &s)
+std::string Wide2UTF8(const std::wstring &s)
 {
   int bytes_required = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
 
   if(bytes_required == 0)
     return "";
 
-  string ret;
+  std::string ret;
   ret.resize(bytes_required);
 
   int res = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, &ret[0], bytes_required, NULL, NULL);
@@ -827,14 +826,14 @@ string Wide2UTF8(const wstring &s)
   return ret;
 }
 
-wstring UTF82Wide(const string &s)
+std::wstring UTF82Wide(const std::string &s)
 {
   int chars_required = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
 
   if(chars_required == 0)
     return L"";
 
-  wstring ret;
+  std::wstring ret;
   ret.resize(chars_required);
 
   int res = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &ret[0], chars_required);
@@ -859,7 +858,7 @@ namespace OSUtility
 {
 void WriteOutput(int channel, const char *str)
 {
-  wstring wstr = StringFormat::UTF82Wide(string(str));
+  std::wstring wstr = StringFormat::UTF82Wide(std::string(str));
 
   if(channel == OSUtility::Output_DebugMon)
     OutputDebugStringW(wstr.c_str());

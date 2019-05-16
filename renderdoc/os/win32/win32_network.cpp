@@ -407,7 +407,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
 
-  std::wstring whost = StringFormat::UTF82Wide(string(host));
+  std::wstring whost = StringFormat::UTF82Wide(std::string(host));
 
   addrinfoW *addrResult = NULL;
   int res = GetAddrInfoW(whost.c_str(), portwstr, &hints, &addrResult);

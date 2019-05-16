@@ -599,7 +599,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndirectCommand) +
                                                               (count > 0 ? count - 1 : 0) * stride);
 
-      string name = "vkCmdDrawIndirect";
+      std::string name = "vkCmdDrawIndirect";
 
       if(!IsDrawInRenderPass())
       {
@@ -977,7 +977,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) +
                                                               (count > 0 ? count - 1 : 0) * stride);
 
-      string name = "vkCmdDrawIndexedIndirect";
+      std::string name = "vkCmdDrawIndexedIndirect";
 
       if(!IsDrawInRenderPass())
       {
@@ -2263,7 +2263,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
       {
         AddEvent();
 
-        string name = "vkCmdClearAttachments(";
+        std::string name = "vkCmdClearAttachments(";
         for(uint32_t a = 0; a < attachmentCount; a++)
         {
           name += ToStr(pAttachments[a].colorAttachment);
@@ -2664,7 +2664,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCountKHR(
           RDCMAX(m_IndirectBufferSize,
                  sizeof(VkDrawIndirectCommand) + (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
 
-      string name = "vkCmdDrawIndirectCountKHR";
+      std::string name = "vkCmdDrawIndirectCountKHR";
 
       if(!IsDrawInRenderPass())
       {
@@ -2978,7 +2978,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
           RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) +
                                            (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
 
-      string name = "vkCmdDrawIndexedIndirectCountKHR";
+      std::string name = "vkCmdDrawIndexedIndirectCountKHR";
 
       if(!IsDrawInRenderPass())
       {
@@ -3139,7 +3139,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
                                         Unwrap(counterBuffer), counterBufferOffset, counterOffset,
                                         vertexStride);
 
-      string name = "vkCmdDrawIndirectByteCountEXT";
+      std::string name = "vkCmdDrawIndirectByteCountEXT";
 
       if(!IsDrawInRenderPass())
       {

@@ -44,7 +44,7 @@ bool D3D8DebugManager::InitFontRendering()
   int width = FONT_TEX_WIDTH;
   int height = FONT_TEX_HEIGHT;
 
-  string font = GetEmbeddedResource(sourcecodepro_ttf);
+  std::string font = GetEmbeddedResource(sourcecodepro_ttf);
   byte *ttfdata = (byte *)font.c_str();
 
   const int firstChar = int(' ') + 1;

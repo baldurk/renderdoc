@@ -221,7 +221,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
   {
-    string utf8 = StringFormat::Wide2UTF8(Name);
+    std::string utf8 = StringFormat::Wide2UTF8(Name);
     m_pDevice->SetName(this, utf8.c_str());
 
     return m_pList->SetName(Name);

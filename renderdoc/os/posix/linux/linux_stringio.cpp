@@ -47,8 +47,6 @@
 #include <xcb/xcb_keysyms.h>
 #endif
 
-using std::string;
-
 namespace Keyboard
 {
 void Init()
@@ -259,39 +257,39 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-string GetTempRootPath()
+std::string GetTempRootPath()
 {
   return "/tmp";
 }
 
-string GetAppFolderFilename(const string &filename)
+std::string GetAppFolderFilename(const std::string &filename)
 {
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
 
-  string ret = string(homedir) + "/.renderdoc/";
+  std::string ret = std::string(homedir) + "/.renderdoc/";
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   return ret + filename;
 }
 
-void GetExecutableFilename(string &selfName)
+void GetExecutableFilename(std::string &selfName)
 {
   char path[512] = {0};
   readlink("/proc/self/exe", path, 511);
 
-  selfName = string(path);
+  selfName = std::string(path);
 }
 
 int LibraryLocator = 42;
 
-void GetLibraryFilename(string &selfName)
+void GetLibraryFilename(std::string &selfName)
 {
   // this is a hack, but the only reliable way to find the absolute path to the library.
   // dladdr would be fine but it returns the wrong result for symbols in the library
 
-  string librenderdoc_path;
+  std::string librenderdoc_path;
 
   FILE *f = fopen("/proc/self/maps", "r");
 
@@ -366,7 +364,7 @@ void GetLibraryFilename(string &selfName)
       char *end = strchr(c, '\n');
 
       if(end)
-        librenderdoc_path = string(c, end - c);
+        librenderdoc_path = std::string(c, end - c);
     }
 
     delete[] map_string;

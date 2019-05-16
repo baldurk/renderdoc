@@ -116,7 +116,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
     D3D11MarkerRegion::device = this;
 
-    string shaderSearchPathString = RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
+    std::string shaderSearchPathString =
+        RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
     split(shaderSearchPathString, m_ShaderSearchPaths, ';');
 
     ResourceIDGen::SetReplayResourceIDs();
@@ -853,7 +854,7 @@ std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
     }
 
     msg.messageID = (uint32_t)message->ID;
-    msg.description = string(message->pDescription);
+    msg.description = std::string(message->pDescription);
 
     ret.push_back(msg);
 
@@ -2140,7 +2141,8 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
       m_TextRenderer->SetOutputWindow(swapDesc.OutputWindow);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
+      std::string overlayText =
+          RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
 
       if(activeWindow && m_FailedFrame > 0)
       {

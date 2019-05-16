@@ -132,7 +132,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
   RDCASSERT(hashtable[0] == 0);
   hashtable++;
 
-  std::map<string, uint32_t> StreamNames;
+  std::map<std::string, uint32_t> StreamNames;
 
   uint32_t numset = 0;
   for(uint32_t i = 0; i < maxBit; i++)
@@ -675,7 +675,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
     m_Functions[0] = mainFunc;
   }
 
-  std::map<uint32_t, string> Names;
+  std::map<uint32_t, std::string> Names;
 
   if(StreamNames.find("/names") != StreamNames.end())
   {
@@ -728,7 +728,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
     while(cur < end)
     {
       DBIModule *mod = (DBIModule *)cur;
-      cur += sizeof(DBIModule) - sizeof(string) * 2;
+      cur += sizeof(DBIModule) - sizeof(std::string) * 2;
 
       char *moduleName = (char *)cur;
       cur += strlen(moduleName) + 1;
@@ -741,7 +741,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
         cur++;
 
       DBIModule m;
-      memcpy(&m, mod, sizeof(DBIModule) - sizeof(string) * 2);
+      memcpy(&m, mod, sizeof(DBIModule) - sizeof(std::string) * 2);
       m.moduleName = moduleName;
       m.objectName = objectName;
 
@@ -865,7 +865,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           }
           else if(!strcmp(key, "hlslDefines"))
           {
-            string cmdlineDefines = "// Command line defines:\n\n";
+            std::string cmdlineDefines = "// Command line defines:\n\n";
 
             char *c = value;
 
@@ -912,13 +912,14 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
                   char *valend = c;
 
                   cmdlineDefines += "#define ";
-                  cmdlineDefines += string(defstart, defend) + " " + string(valstart, valend);
+                  cmdlineDefines +=
+                      std::string(defstart, defend) + " " + std::string(valstart, valend);
                   cmdlineDefines += "\n";
                 }
                 else
                 {
                   cmdlineDefines += "#define ";
-                  cmdlineDefines += string(defstart, defend);
+                  cmdlineDefines += std::string(defstart, defend);
                   cmdlineDefines += "\n";
                 }
               }

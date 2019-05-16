@@ -80,8 +80,9 @@ public:
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry);
 
-  vector<string> GetDisassemblyTargets();
-  string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const string &target);
+  vector<std::string> GetDisassemblyTargets();
+  std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                const std::string &target);
 
   vector<EventUsage> GetUsage(ResourceId id);
 
@@ -145,9 +146,9 @@ public:
   {
     return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         string *errors);
+                         std::string *errors);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
@@ -172,7 +173,7 @@ public:
 
   void RenderHighlightBox(float w, float h, float scale);
 
-  void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+  void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                             rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
@@ -192,8 +193,9 @@ public:
   ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                            uint32_t eventId, const vector<uint32_t> &passEvents);
 
-  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors);
+  void BuildCustomShader(std::string source, std::string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         std::string *errors);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 

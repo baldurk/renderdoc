@@ -294,7 +294,7 @@ public:
       const char *pStrData = (const char *)pData;
       if(DataSize != 0 && pStrData[DataSize - 1] != '\0')
       {
-        string sName(pStrData, DataSize);
+        std::string sName(pStrData, DataSize);
         m_pDevice->SetResourceName(this, sName.c_str());
       }
       else

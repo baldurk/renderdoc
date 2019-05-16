@@ -42,7 +42,6 @@
 
 #include <replay/renderdoc_replay.h>
 
-using std::string;
 using std::vector;
 
 void Daemonise()
@@ -76,7 +75,7 @@ struct VulkanRegisterCommand : public Command
       std::cout << "Not fixing vulkan layer issues, and suppressing future warnings." << std::endl;
       std::cout << "To undo, remove '$HOME/.renderdoc/ignore_vulkan_layer_issues'." << std::endl;
 
-      string ignorePath = string(getenv("HOME")) + "/.renderdoc/";
+      std::string ignorePath = std::string(getenv("HOME")) + "/.renderdoc/";
 
       mkdir(ignorePath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
@@ -495,7 +494,7 @@ int main(int argc, char *argv[])
 
   // add compiled-in support to version line
   {
-    string support = "APIs supported at compile-time: ";
+    std::string support = "APIs supported at compile-time: ";
     int count = 0;
 
 #if defined(RENDERDOC_SUPPORT_VULKAN)

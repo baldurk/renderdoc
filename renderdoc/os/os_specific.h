@@ -41,7 +41,6 @@
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 
-using std::string;
 using std::vector;
 
 struct CaptureOptions;
@@ -66,7 +65,7 @@ ExecuteResult InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModifica
                                 bool waitForExit);
 struct ProcessResult
 {
-  string strStdout, strStderror;
+  std::string strStdout, strStderror;
   int retCode;
 };
 uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine, bool internal,
@@ -241,11 +240,11 @@ public:
 struct AddressDetails
 {
   AddressDetails() : line(0) {}
-  string function;
-  string filename;
+  std::string function;
+  std::string filename;
   uint32_t line;
 
-  string formattedString(const char *commonPath = NULL);
+  std::string formattedString(const char *commonPath = NULL);
 };
 
 class StackResolver
@@ -267,23 +266,23 @@ bool GetLoadedModules(byte *buf, size_t &size);
 
 namespace FileIO
 {
-void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
-                     string &target);
-string GetHomeFolderFilename();
-string GetAppFolderFilename(const string &filename);
-string GetTempFolderFilename();
-string GetReplayAppFilename();
+void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
+                     std::string &logging_filename, std::string &target);
+std::string GetHomeFolderFilename();
+std::string GetAppFolderFilename(const std::string &filename);
+std::string GetTempFolderFilename();
+std::string GetReplayAppFilename();
 
-void CreateParentDirectory(const string &filename);
+void CreateParentDirectory(const std::string &filename);
 
-bool IsRelativePath(const string &path);
-string GetFullPathname(const string &filename);
-string FindFileInPath(const string &fileName);
+bool IsRelativePath(const std::string &path);
+std::string GetFullPathname(const std::string &filename);
+std::string FindFileInPath(const std::string &fileName);
 
-void GetExecutableFilename(string &selfName);
-void GetLibraryFilename(string &selfName);
+void GetExecutableFilename(std::string &selfName);
+void GetLibraryFilename(std::string &selfName);
 
-uint64_t GetModifiedTimestamp(const string &filename);
+uint64_t GetModifiedTimestamp(const std::string &filename);
 
 bool Copy(const char *from, const char *to, bool allowOverwrite);
 bool Move(const char *from, const char *to, bool allowOverwrite);
@@ -385,7 +384,7 @@ int snprintf(char *str, size_t bufSize, const char *format, ...);
 
 void sntimef(char *str, size_t bufSize, const char *format);
 
-string Fmt(const char *format, ...);
+std::string Fmt(const char *format, ...);
 
 int Wide2UTF8(wchar_t chr, char mbchr[4]);
 };
@@ -437,7 +436,7 @@ enum MachineIdentBits
 };
 
 uint64_t GetMachineIdent();
-string MakeMachineIdentString(uint64_t ident);
+std::string MakeMachineIdentString(uint64_t ident);
 };
 
 namespace Bits

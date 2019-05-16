@@ -91,7 +91,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
   entryPoint = "main";
 
-  string concatenated;
+  std::string concatenated;
 
   for(size_t i = 0; i < sources.size(); i++)
   {
@@ -267,7 +267,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
                                           SPIRVShaderStage(ShaderIdx(type)));
 
-        string s = CompileSPIRV(settings, sources, spirvwords);
+        std::string s = CompileSPIRV(settings, sources, spirvwords);
         if(!spirvwords.empty())
           ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
         else

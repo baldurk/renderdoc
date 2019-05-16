@@ -272,7 +272,7 @@ rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
 
   rdcarray<rdcstr> ret;
 
-  vector<string> targets = m_pDevice->GetDisassemblyTargets();
+  vector<std::string> targets = m_pDevice->GetDisassemblyTargets();
 
   ret.reserve(targets.size());
   for(const std::string &t : targets)
@@ -1929,7 +1929,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
         StringFormat::Fmt("Shader Encoding '%s' is not supported", ToStr(sourceEncoding).c_str()));
 
   ResourceId id;
-  string errs;
+  std::string errs;
 
   switch(type)
   {
@@ -1956,7 +1956,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
   CHECK_REPLAY_THREAD();
 
   ResourceId id;
-  string errs;
+  std::string errs;
 
   switch(type)
   {

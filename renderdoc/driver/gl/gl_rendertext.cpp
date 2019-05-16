@@ -49,7 +49,7 @@ void WrappedOpenGL::ContextData::CreateDebugData()
   // otherwise we fall back to immediate mode rendering by hand
   if(GL.glGetIntegerv && GL.glGenTextures && GL.glBindTexture && GL.glTexImage2D && GL.glTexParameteri)
   {
-    string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
+    std::string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
     byte *ttfdata = (byte *)ttfstring.c_str();
 
     byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
@@ -150,8 +150,8 @@ void WrappedOpenGL::ContextData::CreateDebugData()
          GL.glGetShaderInfoLog && GL.glDeleteShader && GL.glCreateProgram && GL.glAttachShader &&
          GL.glLinkProgram && GL.glGetProgramiv && GL.glGetProgramInfoLog)
       {
-        string vs;
-        string fs;
+        std::string vs;
+        std::string fs;
 
         ShaderType shaderType;
         int glslVersion;

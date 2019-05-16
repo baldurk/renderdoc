@@ -44,8 +44,8 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   return true;
 }
 
-void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList,
-                                          const std::set<string> &supportedExtensions)
+void WrappedVulkan::AddRequiredExtensions(bool instance, vector<std::string> &extensionList,
+                                          const std::set<std::string> &supportedExtensions)
 {
   bool device = !instance;
 
@@ -226,7 +226,7 @@ static std::string GenerateJSON(const std::string &sopath)
   char *txt = (char *)driver_vulkan_renderdoc_json;
   int len = driver_vulkan_renderdoc_json_len;
 
-  string json = string(txt, txt + len);
+  std::string json = std::string(txt, txt + len);
 
   const char dllPathString[] = ".\\\\renderdoc.dll";
 
@@ -237,7 +237,7 @@ static std::string GenerateJSON(const std::string &sopath)
   const char majorString[] = "[MAJOR]";
 
   idx = json.find(majorString);
-  while(idx != string::npos)
+  while(idx != std::string::npos)
   {
     json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MAJOR) +
            json.substr(idx + sizeof(majorString) - 1);
@@ -248,7 +248,7 @@ static std::string GenerateJSON(const std::string &sopath)
   const char minorString[] = "[MINOR]";
 
   idx = json.find(minorString);
-  while(idx != string::npos)
+  while(idx != std::string::npos)
   {
     json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MINOR) +
            json.substr(idx + sizeof(minorString) - 1);
@@ -278,7 +278,7 @@ static std::string GetSOFromJSON(const std::string &json)
     fclose(f);
   }
 
-  string ret = "";
+  std::string ret = "";
 
   // The line is:
   // "library_path": "/foo/bar/librenderdoc.so",
@@ -313,7 +313,7 @@ enum class LayerPath : int
 
 ITERABLE_OPERATORS(LayerPath);
 
-string LayerRegistrationPath(LayerPath path)
+std::string LayerRegistrationPath(LayerPath path)
 {
   switch(path)
   {
@@ -323,10 +323,10 @@ string LayerRegistrationPath(LayerPath path)
     {
       const char *xdg = getenv("XDG_DATA_HOME");
       if(xdg && FileIO::exists(xdg))
-        return string(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
+        return std::string(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
 
       const char *home_path = getenv("HOME");
-      return string(home_path != NULL ? home_path : "") +
+      return std::string(home_path != NULL ? home_path : "") +
              "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json";
     }
     default: break;
@@ -358,7 +358,7 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   const char *home_path = getenv("HOME");
   if(home_path == NULL)
     home_path = "";
-  if(FileExists(string(home_path) + "/.renderdoc/ignore_vulkan_layer_issues"))
+  if(FileExists(std::string(home_path) + "/.renderdoc/ignore_vulkan_layer_issues"))
   {
     flags = VulkanLayerFlags::ThisInstallRegistered;
     return false;
@@ -368,7 +368,7 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   // check that there's only one layer registered, and it points to the same .so file that
   // we are running with in this instance of renderdoccmd
 
-  string librenderdoc_path;
+  std::string librenderdoc_path;
   FileIO::GetLibraryFilename(librenderdoc_path);
 
   if(librenderdoc_path.empty() || !FileExists(librenderdoc_path))
@@ -478,9 +478,9 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 
   LayerPath idx = systemLevel ? LayerPath::etc : LayerPath::home;
 
-  string jsonPath = LayerRegistrationPath(idx);
-  string path = GetSOFromJSON(jsonPath);
-  string libPath;
+  std::string jsonPath = LayerRegistrationPath(idx);
+  std::string path = GetSOFromJSON(jsonPath);
+  std::string libPath;
   FileIO::GetLibraryFilename(libPath);
 
   if(path != libPath)

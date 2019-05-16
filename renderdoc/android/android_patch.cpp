@@ -43,14 +43,14 @@ static const char keystoreName[] = "renderdoc.keystore";
 
 namespace Android
 {
-bool RemoveAPKSignature(const string &apk)
+bool RemoveAPKSignature(const std::string &apk)
 {
   RDCLOG("Checking for existing signature");
 
   std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   // Get the list of files in META-INF
-  string fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  std::string fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
   if(fileList.empty())
     return false;
 
@@ -58,8 +58,8 @@ bool RemoveAPKSignature(const string &apk)
   uint32_t fileCount = 0;
   uint32_t matchCount = 0;
   std::istringstream contents(fileList);
-  string line;
-  string prefix("META-INF");
+  std::string line;
+  std::string prefix("META-INF");
   while(std::getline(contents, line))
   {
     line = trim(line);
@@ -168,13 +168,13 @@ bool AddManifestToAPK(const std::string &apk, const std::string &tmpDir,
   return true;
 }
 
-bool RealignAPK(const string &apk, string &alignedAPK, const string &tmpDir)
+bool RealignAPK(const std::string &apk, std::string &alignedAPK, const std::string &tmpDir)
 {
   std::string zipalign = getToolPath(ToolDir::BuildTools, "zipalign", false);
 
   // Re-align the APK for performance
   RDCLOG("Realigning APK");
-  string errOut =
+  std::string errOut =
       execCommand(zipalign, "-f 4 \"" + apk + "\" \"" + alignedAPK + "\"", tmpDir).strStderror;
 
   if(!errOut.empty())
@@ -199,7 +199,7 @@ bool RealignAPK(const string &apk, string &alignedAPK, const string &tmpDir)
   return false;
 }
 
-string GetAndroidDebugKey()
+std::string GetAndroidDebugKey()
 {
   std::string keystore = getToolPath(ToolDir::None, keystoreName, false);
 
@@ -208,13 +208,13 @@ string GetAndroidDebugKey()
     return keystore;
 
   // otherwise, see if we generated a temporary one
-  string key = FileIO::GetTempFolderFilename() + keystoreName;
+  std::string key = FileIO::GetTempFolderFilename() + keystoreName;
 
   if(FileIO::exists(key.c_str()))
     return key;
 
   // locate keytool and use it to generate a keystore
-  string create;
+  std::string create;
   create += " -genkey";
   create += " -keystore \"" + key + "\"";
   create += " -storepass android";
@@ -234,16 +234,16 @@ string GetAndroidDebugKey()
 
   return key;
 }
-bool DebugSignAPK(const string &apk, const string &workDir)
+bool DebugSignAPK(const std::string &apk, const std::string &workDir)
 {
   RDCLOG("Signing with debug key");
 
   std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
   std::string apksigner = getToolPath(ToolDir::BuildToolsLib, "apksigner.jar", false);
 
-  string debugKey = GetAndroidDebugKey();
+  std::string debugKey = GetAndroidDebugKey();
 
-  string args;
+  std::string args;
   args += " sign ";
   args += " --ks \"" + debugKey + "\" ";
   args += " --ks-pass pass:android ";
@@ -273,12 +273,12 @@ bool DebugSignAPK(const string &apk, const string &workDir)
   }
 
   // Check for signature
-  string list = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  std::string list = execCommand(aapt, "list \"" + apk + "\"").strStdout;
 
   // Walk through the output.  If it starts with META-INF, we're good
   std::istringstream contents(list);
-  string line;
-  string prefix("META-INF");
+  std::string line;
+  std::string prefix("META-INF");
   while(std::getline(contents, line))
   {
     if(line.compare(0, prefix.size(), prefix) == 0)
@@ -292,14 +292,15 @@ bool DebugSignAPK(const string &apk, const string &workDir)
   return false;
 }
 
-bool UninstallOriginalAPK(const string &deviceID, const string &packageName, const string &workDir)
+bool UninstallOriginalAPK(const std::string &deviceID, const std::string &packageName,
+                          const std::string &workDir)
 {
   RDCLOG("Uninstalling previous version of application");
 
   adbExecCommand(deviceID, "uninstall " + packageName, workDir);
 
   // Wait until uninstall completes
-  string uninstallResult;
+  std::string uninstallResult;
   uint32_t elapsed = 0;
   uint32_t timeout = 10000;    // 10 seconds
   while(elapsed < timeout)
@@ -319,8 +320,8 @@ bool UninstallOriginalAPK(const string &deviceID, const string &packageName, con
   return false;
 }
 
-bool ReinstallPatchedAPK(const string &deviceID, const string &apk, const string &abi,
-                         const string &packageName, const string &workDir)
+bool ReinstallPatchedAPK(const std::string &deviceID, const std::string &apk, const std::string &abi,
+                         const std::string &packageName, const std::string &workDir)
 {
   RDCLOG("Reinstalling APK");
 
@@ -330,7 +331,7 @@ bool ReinstallPatchedAPK(const string &deviceID, const string &apk, const string
     adbExecCommand(deviceID, "install --abi " + abi + " \"" + apk + "\"", workDir);
 
   // Wait until re-install completes
-  string reinstallResult;
+  std::string reinstallResult;
   uint32_t elapsed = 0;
   uint32_t timeout = 10000;    // 10 seconds
   while(elapsed < timeout)
@@ -402,16 +403,16 @@ bool CheckPatchingRequirements()
 std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName)
 {
   RDCLOG("Checking installed ABI for %s", packageName.c_str());
-  string abi;
+  std::string abi;
 
-  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
   if(dump.empty())
     RDCERR("Unable to pm dump %s", packageName.c_str());
 
   // Walk through the output and look for primaryCpuAbi
   std::istringstream contents(dump);
-  string line;
-  string prefix("primaryCpuAbi=");
+  std::string line;
+  std::string prefix("primaryCpuAbi=");
   while(std::getline(contents, line))
   {
     line = trim(line);
@@ -430,7 +431,7 @@ std::string DetermineInstalledABI(const std::string &deviceID, const std::string
   return abi;
 }
 
-bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
+bool PullAPK(const std::string &deviceID, const std::string &pkgPath, const std::string &apk)
 {
   RDCLOG("Pulling APK to patch");
 
@@ -455,13 +456,13 @@ bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
   return false;
 }
 
-void CopyAPK(const string &deviceID, const string &pkgPath, const string &copyPath)
+void CopyAPK(const std::string &deviceID, const std::string &pkgPath, const std::string &copyPath)
 {
   RDCLOG("Copying APK to %s", copyPath.c_str());
   adbExecCommand(deviceID, "shell cp " + pkgPath + " " + copyPath);
 }
 
-void RemoveAPK(const string &deviceID, const string &path)
+void RemoveAPK(const std::string &deviceID, const std::string &path)
 {
   RDCLOG("Removing APK from %s", path.c_str());
   adbExecCommand(deviceID, "shell rm -f " + path);

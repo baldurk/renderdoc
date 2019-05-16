@@ -345,9 +345,9 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, ShaderEntryPoint en
   return &shad->second.m_Reflections[entry.name].refl;
 }
 
-vector<string> VulkanReplay::GetDisassemblyTargets()
+vector<std::string> VulkanReplay::GetDisassemblyTargets()
 {
-  vector<string> ret;
+  vector<std::string> ret;
 
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -364,8 +364,8 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
   return ret;
 }
 
-string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                       const string &target)
+std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                            const std::string &target)
 {
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(
       GetResourceManager()->GetLiveID(refl->resourceId));
@@ -1715,7 +1715,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
 }
 
-void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+void VulkanReplay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                                         rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   // Correct SPIR-V will ultimately need to set explicit layout information for each type.
@@ -3434,9 +3434,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   }
 }
 
-void VulkanReplay::BuildCustomShader(string source, string entry,
+void VulkanReplay::BuildCustomShader(std::string source, std::string entry,
                                      const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                     ResourceId *id, string *errors)
+                                     ResourceId *id, std::string *errors)
 {
   SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
 
@@ -3454,13 +3454,13 @@ void VulkanReplay::BuildCustomShader(string source, string entry,
       return;
   }
 
-  vector<string> sources;
+  vector<std::string> sources;
   sources.push_back(source);
   vector<uint32_t> spirv;
 
   SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
 
-  string output = CompileSPIRV(settings, sources, spirv);
+  std::string output = CompileSPIRV(settings, sources, spirv);
 
   if(spirv.empty())
   {
@@ -3548,9 +3548,9 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   return GetResID(GetDebugManager()->GetCustomTexture());
 }
 
-void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
-                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                     ResourceId *id, string *errors)
+void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                     std::string entry, const ShaderCompileFlags &compileFlags,
+                                     ShaderStage type, ResourceId *id, std::string *errors)
 {
   vector<uint32_t> spirv;
 
@@ -3572,12 +3572,12 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
         return;
     }
 
-    vector<string> sources;
+    vector<std::string> sources;
     sources.push_back(std::string((char *)source.begin(), (char *)source.end()));
 
     SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
 
-    string output = CompileSPIRV(settings, sources, spirv);
+    std::string output = CompileSPIRV(settings, sources, spirv);
 
     if(spirv.empty())
     {

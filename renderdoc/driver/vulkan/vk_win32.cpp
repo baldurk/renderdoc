@@ -84,8 +84,8 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList,
-                                          const std::set<string> &supportedExtensions)
+void WrappedVulkan::AddRequiredExtensions(bool instance, vector<std::string> &extensionList,
+                                          const std::set<std::string> &supportedExtensions)
 {
   bool device = !instance;
 

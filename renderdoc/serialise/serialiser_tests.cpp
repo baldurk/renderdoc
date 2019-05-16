@@ -595,7 +595,7 @@ TEST_CASE("Verify multiple chunks can be merged", "[serialiser][chunks]")
     {
       SCOPED_SERIALISE_CHUNK(STRING_AND_INT);
 
-      string s = "string in STRING_AND_INT";
+      std::string s = "string in STRING_AND_INT";
       int i = 4096;
 
       SERIALISE_ELEMENT(s);
@@ -695,7 +695,7 @@ TEST_CASE("Verify multiple chunks can be merged", "[serialiser][chunks]")
         }
         case STRING_AND_INT:
         {
-          string s;
+          std::string s;
           int i = 0;
 
           SERIALISE_ELEMENT(s);
@@ -733,7 +733,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       SCOPED_SERIALISE_CHUNK(5);
 
       std::vector<int> v;
-      std::pair<float, string> p;
+      std::pair<float, std::string> p;
       std::list<uint16_t> l;
 
       v.push_back(1);
@@ -770,7 +770,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     CHECK(chunkID == 5);
 
     std::vector<int> v;
-    std::pair<float, string> p;
+    std::pair<float, std::string> p;
     std::list<uint16_t> l;
 
     SERIALISE_ELEMENT(v);
@@ -819,7 +819,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     ser.ReadChunk<uint32_t>();
     {
       std::vector<int32_t> v;
-      std::pair<float, string> p;
+      std::pair<float, std::string> p;
       std::list<uint16_t> l;
 
       SERIALISE_ELEMENT(v);
@@ -967,7 +967,7 @@ void DoSerialise(SerialiserType &ser, struct1 &el)
 
 struct struct2
 {
-  string name;
+  std::string name;
   std::vector<float> floats;
   std::vector<struct1> viewports;
 };

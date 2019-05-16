@@ -474,7 +474,7 @@ void D3D11Replay::TextureRendering::Init(WrappedID3D11Device *device)
   HRESULT hr = S_OK;
 
   {
-    string hlsl = GetEmbeddedResource(texdisplay_hlsl);
+    std::string hlsl = GetEmbeddedResource(texdisplay_hlsl);
 
     TexDisplayVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_TexDisplayVS", "vs_4_0");
     TexDisplayPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
@@ -546,7 +546,7 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
   D3D11ShaderCache *shaderCache = device->GetShaderCache();
 
   {
-    string hlsl = GetEmbeddedResource(misc_hlsl);
+    std::string hlsl = GetEmbeddedResource(misc_hlsl);
 
     FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
@@ -1023,7 +1023,7 @@ void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
     // float, uint, sint
     for(int i = 0; i < 3; i++)
     {
-      string hlsl = std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+      std::string hlsl = std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       hlsl += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
       hlsl += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
       hlsl += histogramhlsl;

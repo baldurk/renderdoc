@@ -2474,9 +2474,9 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
       if(driver->GetDriverInfo().TexelFetchBrokenDriver())
         defines += "#define NO_TEXEL_FETCH\n";
-      defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-      defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
-      defines += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
+      defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+      defines += std::string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
+      defines += std::string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
 
       glsl =
           GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), eShaderVulkan, 430, defines);

@@ -91,7 +91,7 @@ void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
 // and
 // instance are destroyed. We only clean up after our own objects.
 
-static void StripUnwantedLayers(vector<string> &Layers)
+static void StripUnwantedLayers(vector<std::string> &Layers)
 {
   for(auto it = Layers.begin(); it != Layers.end();)
   {
@@ -210,7 +210,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     ++it;
   }
 
-  std::set<string> supportedExtensions;
+  std::set<std::string> supportedExtensions;
 
   for(size_t i = 0; i <= params.Layers.size(); i++)
   {
@@ -1177,7 +1177,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     // in the serialised VkDeviceCreateInfo don't double-free
     VkDeviceCreateInfo createInfo = CreateInfo;
 
-    std::vector<string> Extensions;
+    std::vector<std::string> Extensions;
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
     {
       // don't include the debug marker extension
@@ -1212,13 +1212,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                  VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME) != Extensions.end())
       m_ExtensionsEnabled[VkCheckExt_EXT_vertex_divisor] = true;
 
-    std::vector<string> Layers;
+    std::vector<std::string> Layers;
     for(uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
       Layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
     StripUnwantedLayers(Layers);
 
-    std::set<string> supportedExtensions;
+    std::set<std::string> supportedExtensions;
 
     for(size_t i = 0; i <= Layers.size(); i++)
     {

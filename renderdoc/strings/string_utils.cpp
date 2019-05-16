@@ -196,11 +196,10 @@ void merge(const std::vector<std::string> &in, std::string &out, const char sep)
 
 std::string removeFromEnd(const std::string &value, const std::string &ending)
 {
-  string::size_type pos;
-  pos = value.rfind(ending);
+  size_t pos = value.rfind(ending);
 
   // Create new string from beginning to pattern
-  if(string::npos != pos)
+  if(std::string::npos != pos)
     return value.substr(0, pos);
 
   // If pattern not found, just return original string

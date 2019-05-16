@@ -1386,7 +1386,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
         list->OMSetRenderTargets(1, &rtv, FALSE, NULL);
 
         int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-        string overlayText =
+        std::string overlayText =
             RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
 
         if(!overlayText.empty())
@@ -2099,7 +2099,7 @@ std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
     }
 
     msg.messageID = (uint32_t)message->ID;
-    msg.description = string(message->pDescription);
+    msg.description = std::string(message->pDescription);
 
     ret.push_back(msg);
 

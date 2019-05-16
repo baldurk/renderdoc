@@ -396,7 +396,7 @@ private:
 
   set<ResourceId> m_Cubemaps;
 
-  std::map<ResourceId, string> m_ResourceNames;
+  std::map<ResourceId, std::string> m_ResourceNames;
 
   struct SwapPresentInfo
   {
@@ -473,7 +473,7 @@ public:
   void AddResourceCurChunk(ResourceDescription &descr);
   void AddResourceCurChunk(ResourceId id);
 
-  const string &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
+  const std::string &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
   vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
   {
     return m_ResourceStates[id];

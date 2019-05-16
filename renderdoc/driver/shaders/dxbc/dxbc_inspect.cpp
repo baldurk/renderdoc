@@ -291,9 +291,9 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
   return ShaderBuiltin::Undefined;
 }
 
-string TypeName(CBufferVariableType::Descriptor desc)
+std::string TypeName(CBufferVariableType::Descriptor desc)
 {
-  string ret;
+  std::string ret;
 
   char *type = "";
   switch(desc.type)
@@ -378,18 +378,18 @@ CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, 
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
-      ret.descriptor.name += " " + string(chunkContents + type->nameOffset);
+      ret.descriptor.name += " " + std::string(chunkContents + type->nameOffset);
     }
     else
     {
       char buf[64] = {0};
       StringFormat::snprintf(buf, 63, "unnamed_iface_0x%08x", typeOffset);
-      ret.descriptor.name += " " + string(buf);
+      ret.descriptor.name += " " + std::string(buf);
     }
   }
 
   // rename unnamed structs to have valid identifiers as type name
-  if(ret.descriptor.name.find("<unnamed>") != string::npos)
+  if(ret.descriptor.name.find("<unnamed>") != std::string::npos)
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
@@ -497,9 +497,9 @@ bool DXBCFile::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
   return false;
 }
 
-string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
+std::string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 {
-  string debugPath;
+  std::string debugPath;
   FileHeader *header = (FileHeader *)ByteCode;
 
   char *data = (char *)ByteCode;    // just for convenience
@@ -612,7 +612,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         uint32_t reg, space, bindCount;
       };
 
-      std::map<string, CBufferBind> cbufferbinds;
+      std::map<std::string, CBufferBind> cbufferbinds;
 
       uint32_t resourceStride = sizeof(RDEFResource);
 
@@ -651,7 +651,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         // and append _s onto each subsequent buffer name
         if(desc.IsCBuffer())
         {
-          string cname = desc.name;
+          std::string cname = desc.name;
 
           while(cbufferbinds.find(cname) != cbufferbinds.end())
             cname += "_";
@@ -707,7 +707,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
               // it's pointing at end().
               size_t itIdx = it - resArray.begin();
 
-              string rname = desc.name;
+              std::string rname = desc.name;
               uint32_t arraySize = desc.bindCount;
 
               desc.bindCount = 1;
@@ -811,7 +811,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
           cb.variables.push_back(v);
         }
 
-        string cname = cb.name;
+        std::string cname = cb.name;
 
         while(cbuffernames.find(cname) != cbuffernames.end())
           cname += "_";
@@ -1251,7 +1251,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
               // make a dummy file to write into that won't be used.
               fileNames.push_back(filename);
-              fileLines.push_back(vector<string>());
+              fileLines.push_back(vector<std::string>());
 
               dstFile = &fileLines.back();
             }

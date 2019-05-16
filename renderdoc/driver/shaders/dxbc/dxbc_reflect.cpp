@@ -148,7 +148,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
       res.variableType.descriptor.columns = (uint8_t)r.numSamples;
       res.variableType.descriptor.elements = 1;
 
-      string name;
+      std::string name;
 
       switch(r.retType)
       {
@@ -231,7 +231,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
       refl->debugInfo.files[i].contents = dxbc->m_DebugInfo->Files[i].second;
     }
 
-    string entry = dxbc->m_DebugInfo->GetEntryFunction();
+    std::string entry = dxbc->m_DebugInfo->GetEntryFunction();
     if(entry.empty())
       entry = "main";
 

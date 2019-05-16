@@ -1386,9 +1386,9 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
         ID3DBlob *result = NULL;
         ID3DBlob *histogram = NULL;
 
-        string hlsl = string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-        hlsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-        hlsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+        std::string hlsl = std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+        hlsl += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+        hlsl += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
         hlsl += histogramhlsl;
 
         shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS",

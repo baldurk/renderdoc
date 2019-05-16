@@ -420,9 +420,9 @@ ShaderReflection *D3D12Replay::GetShader(ResourceId shader, ShaderEntryPoint ent
   return NULL;
 }
 
-vector<string> D3D12Replay::GetDisassemblyTargets()
+vector<std::string> D3D12Replay::GetDisassemblyTargets()
 {
-  vector<string> ret;
+  vector<std::string> ret;
 
   // DXBC is always first
   ret.insert(ret.begin(), DXBCDisassemblyTarget);
@@ -456,8 +456,8 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
   return ret;
 }
 
-string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                      const string &target)
+std::string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                           const std::string &target)
 {
   WrappedID3D12Shader *sh =
       m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->resourceId);
@@ -2652,7 +2652,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
   GetDebugManager()->GetBufferData(buffer, offset, length, retData);
 }
 
-void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+void D3D12Replay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   if(shader == ResourceId())

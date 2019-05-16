@@ -3048,7 +3048,7 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
 
   if(srcPixels)
   {
-    string error;
+    std::string error;
 
     // Only the trivial case is handled yet.
     if(xoffset == 0 && yoffset == 0)

@@ -1190,7 +1190,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         RDCLOG("Activating new GL context: %s / %s / %s", GL.glGetString(eGL_VENDOR),
                GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
 
-      const vector<string> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
+      const vector<std::string> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
 
       if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&
          RenderDoc::Inst().GetCaptureOptions().apiValidation)
@@ -1199,7 +1199,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         GL.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
       }
 
-      vector<string> implExts;
+      vector<std::string> implExts;
 
       int ctxVersion = 0;
       bool ctxGLES = false;
@@ -1217,7 +1217,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       }
       else if(GL.glGetString)
       {
-        string implExtString = (const char *)GL.glGetString(eGL_EXTENSIONS);
+        std::string implExtString = (const char *)GL.glGetString(eGL_EXTENSIONS);
 
         split(implExtString, implExts, ' ');
       }
@@ -1232,8 +1232,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       {
         for(size_t i = 0, j = 0; i < implExts.size() && j < globalExts.size();)
         {
-          const string &a = implExts[i];
-          const string &b = globalExts[j];
+          const std::string &a = implExts[i];
+          const std::string &b = globalExts[j];
 
           if(a == b)
           {
@@ -1739,7 +1739,8 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       if(ctxdata.Legacy())
         flags |= RenderDoc::eOverlay_CaptureDisabled;
-      string overlayText = RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
+      std::string overlayText =
+          RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
 
       if(ctxdata.Legacy())
       {
@@ -2613,7 +2614,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 
       msg.eventId = 0;
       msg.messageID = id;
-      msg.description = string(message, message + length);
+      msg.description = std::string(message, message + length);
       msg.source = MessageSource::API;
 
       switch(severity)

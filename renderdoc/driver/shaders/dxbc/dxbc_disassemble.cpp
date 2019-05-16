@@ -248,7 +248,7 @@ static MaskedElement<MinimumPrecision, 0x0001C000> MinPrecision;
 static MaskedElement<bool, 0x00020000> NonUniform;
 };
 
-string toString(const uint32_t values[], uint32_t numComps);
+std::string toString(const uint32_t values[], uint32_t numComps);
 char *toString(OpcodeType op);
 char *toString(ResourceDimension dim);
 char *toString(ResourceRetType type);
@@ -549,7 +549,7 @@ void DXBCFile::MakeDisassemblyString()
          (lineInfo.fileIndex != prevLineInfo.fileIndex ||
           lineInfo.lineStart != prevLineInfo.lineStart))
       {
-        string line = "";
+        std::string line = "";
         if(lineInfo.fileIndex >= (int32_t)fileLines.size())
         {
           line = "Unknown file";
@@ -572,7 +572,7 @@ void DXBCFile::MakeDisassemblyString()
 
         size_t startLine = line.find_first_not_of(" \t");
 
-        if(startLine != string::npos)
+        if(startLine != std::string::npos)
           line = line.substr(startLine);
 
         m_Disassembly += "\n";
@@ -837,9 +837,9 @@ const CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t m
   return NULL;
 }
 
-string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
+std::string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
 {
-  string str, regstr;
+  std::string str, regstr;
 
   const bool decl = flags & ToString::IsDecl;
   const bool swizzle = flags & ToString::ShowSwizzle;
@@ -2205,7 +2205,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, boo
           RDCASSERT(ret);
         }
 
-        string formatString = (char *)&tokenStream[0];
+        std::string formatString = (char *)&tokenStream[0];
 
         retOp.str = (messageFormat ? "errorf" : "error");
         retOp.str += " \"" + formatString + "\"";
@@ -2618,9 +2618,9 @@ size_t DXBCFile::NumOperands(OpcodeType op)
   return 0xffffffff;
 }
 
-string toString(const uint32_t values[], uint32_t numComps)
+std::string toString(const uint32_t values[], uint32_t numComps)
 {
-  string str = "";
+  std::string str = "";
 
   // fxc actually guesses these types it seems.
   // try setting an int value to 1085276160, it will be displayed in disasm as 5.500000.

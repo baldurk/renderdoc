@@ -314,12 +314,12 @@ struct GeneratorID
 };
 
 template <typename EnumType>
-static string OptionalFlagString(EnumType e)
+static std::string OptionalFlagString(EnumType e)
 {
   return (int)e ? " [" + ToStr(e) + "]" : "";
 }
 
-static string DefaultIDName(uint32_t ID)
+static std::string DefaultIDName(uint32_t ID)
 {
   return StringFormat::Fmt("_%u_", ID);
 }
@@ -347,7 +347,7 @@ struct SPVDecoration
 
   uint32_t val;
 
-  string Str() const
+  std::string Str() const
   {
     switch(decoration)
     {
@@ -401,7 +401,7 @@ struct SPVDecoration
 struct SPVExtInstSet
 {
   SPVExtInstSet() : canonicalNames(NULL), friendlyNames(NULL) {}
-  string setname;
+  std::string setname;
   const char **canonicalNames;
   const char **friendlyNames;
 };
@@ -420,7 +420,7 @@ struct SPVEntryPoint
   // so we reference the function by ID
   uint32_t func;
   spv::ExecutionModel model;
-  string name;
+  std::string name;
   vector<SPVExecutionMode> modes;
 };
 
@@ -473,13 +473,14 @@ struct SPVTypeData
 
   uint32_t id;
 
-  string name;
+  std::string name;
 
   bool IsBasicInt() const { return type == eUInt || type == eSInt; }
   bool IsScalar() const { return type < eBasicCount && type != eVoid; }
-  string DeclareVariable(const vector<SPVDecoration> &vardecorations, const string &varName);
+  std::string DeclareVariable(const vector<SPVDecoration> &vardecorations,
+                              const std::string &varName);
 
-  const string &GetName()
+  const std::string &GetName()
   {
     if(name.empty())
     {
@@ -525,7 +526,7 @@ struct SPVTypeData
       }
       else if(type == eImage)
       {
-        string typestring = baseType->GetName();
+        std::string typestring = baseType->GetName();
         if(imgformat != spv::ImageFormatUnknown)
           typestring += ", " + ToStr(imgformat);
 
@@ -613,7 +614,7 @@ struct SPVTypeData
   vector<SPVDecoration> *decorations;
 
   // struct/function
-  vector<pair<SPVTypeData *, string> > children;
+  vector<pair<SPVTypeData *, std::string> > children;
   vector<vector<SPVDecoration> > childDecorations;    // matches children
 
   // array
@@ -699,7 +700,7 @@ struct SPVOperation
     SPVInstruction *minLod;
   } im;
 
-  void GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg,
+  void GetArg(const vector<SPVInstruction *> &ids, size_t idx, std::string &arg,
               bool bracketArgumentsIfNeeded = true);
 };
 
@@ -765,7 +766,7 @@ struct SPVConstant
     return u32;
   }
 
-  string GetValString()
+  std::string GetValString()
   {
     RDCASSERT(children.empty());
 
@@ -808,7 +809,7 @@ struct SPVConstant
     return StringFormat::Fmt("!%u!", u32);
   }
 
-  string GetIDName()
+  std::string GetIDName()
   {
     if((specOp == spv::OpIAdd || specOp == spv::OpFAdd) && children.size() == 2)
     {
@@ -833,7 +834,7 @@ struct SPVConstant
     }
     else if(specOp != spv::OpNop)
     {
-      string ret = StringFormat::Fmt("SpecOp%s(", ToStr(specOp).c_str());
+      std::string ret = StringFormat::Fmt("SpecOp%s(", ToStr(specOp).c_str());
 
       for(size_t i = 0; i < children.size(); i++)
       {
@@ -868,14 +869,14 @@ struct SPVConstant
 
       if(identical)
       {
-        string ret = children[0]->GetValString() + ".";
+        std::string ret = children[0]->GetValString() + ".";
         for(size_t i = 0; i < children.size(); i++)
           ret += 'x';
         return ret;
       }
     }
 
-    string ret;
+    std::string ret;
     if(type->type == SPVTypeData::eArray)
     {
       ret = type->baseType->GetName();
@@ -1002,14 +1003,14 @@ struct SPVInstruction
 
   struct
   {
-    string filename;
+    std::string filename;
     uint32_t line;
     uint32_t col;
   } source;
 
-  string str;
+  std::string str;
 
-  const string &GetIDName()
+  const std::string &GetIDName()
   {
     if(str.empty())
     {
@@ -1024,7 +1025,7 @@ struct SPVInstruction
     return str;
   }
 
-  string Disassemble(const vector<SPVInstruction *> &ids, bool inlineOp)
+  std::string Disassemble(const vector<SPVInstruction *> &ids, bool inlineOp)
   {
     switch(opcode)
     {
@@ -1056,7 +1057,7 @@ struct SPVInstruction
 
         uint32_t retID = flow->targets[0];
 
-        string arg;
+        std::string arg;
 
         if(ids[retID] == NULL)
           arg = StringFormat::Fmt("<%u>", retID);
@@ -1074,7 +1075,7 @@ struct SPVInstruction
       {
         // we don't output the targets since that is handled specially
 
-        string conditionStr;
+        std::string conditionStr;
         if(flow->condition->op == NULL || flow->condition->op->complexity < NEVER_INLINE_COMPLEXITY)
           conditionStr = flow->condition->Disassemble(ids, true);
         else
@@ -1131,7 +1132,7 @@ struct SPVInstruction
           }
         }
 
-        string dest, src;
+        std::string dest, src;
         op->GetArg(ids, 0, dest);
         op->GetArg(ids, 1, src, false);
 
@@ -1156,7 +1157,7 @@ struct SPVInstruction
       {
         RDCASSERT(!inlineOp && op);
 
-        string dest, src;
+        std::string dest, src;
         op->GetArg(ids, 0, dest);
         op->GetArg(ids, 1, src, false);
 
@@ -1173,7 +1174,7 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string arg;
+        std::string arg;
         op->GetArg(ids, 0, arg, false);
 
 #if LOAD_STORE_CONSTRUCTORS
@@ -1196,7 +1197,7 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string ret = "";
+        std::string ret = "";
 
         if(!inlineOp)
           ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
@@ -1220,7 +1221,7 @@ struct SPVInstruction
 
         if(allEqual)
         {
-          string arg0;
+          std::string arg0;
           op->GetArg(ids, 0, arg0, false);
           ret += arg0 + ")";
           return ret;
@@ -1261,7 +1262,7 @@ struct SPVInstruction
             {
               char swizzle[] = "xyzw";
 
-              string swizzleString;
+              std::string swizzleString;
 
               for(size_t j = begin; j <= end; j++)
               {
@@ -1278,14 +1279,14 @@ struct SPVInstruction
                  swizzleString.length() == op->arguments[i]->op->arguments[0]->op->type->vectorSize &&
                  !strncmp(swizzleString.c_str(), swizzle, swizzleString.length()))
               {
-                string base;
+                std::string base;
                 op->arguments[i]->op->GetArg(ids, 0, base, false);
 
                 ret += base;
               }
               else
               {
-                string base;
+                std::string base;
                 op->arguments[i]->op->GetArg(ids, 0, base);
 
                 ret += StringFormat::Fmt("%s.%s", base.c_str(), swizzleString.c_str());
@@ -1300,7 +1301,7 @@ struct SPVInstruction
 
           if(!added)
           {
-            string constituent;
+            std::string constituent;
             op->GetArg(ids, i, constituent, false);
             ret += constituent;
           }
@@ -1322,13 +1323,13 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string composite;
+        std::string composite;
         op->GetArg(ids, 0, composite);
 
         // unknown argument, we can't access chain it
         if(op->arguments[0]->var == NULL && op->arguments[0]->op == NULL)
         {
-          string ret = "";
+          std::string ret = "";
 
           if(!inlineOp)
             ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
@@ -1352,7 +1353,7 @@ struct SPVInstruction
         size_t start = (accessChain ? 1 : 0);
         size_t count = (accessChain ? op->arguments.size() : op->literals.size());
 
-        string accessString = "";
+        std::string accessString = "";
 
         for(size_t i = start; i < count; i++)
         {
@@ -1384,7 +1385,7 @@ struct SPVInstruction
             }
             else
             {
-              const pair<SPVTypeData *, string> &child = arg0type->children[idx];
+              const pair<SPVTypeData *, std::string> &child = arg0type->children[idx];
               if(child.second.empty())
                 accessString += StringFormat::Fmt("._member%u", idx);
               else
@@ -1402,7 +1403,7 @@ struct SPVInstruction
             else
             {
               // dynamic indexing into this array
-              string arg;
+              std::string arg;
               op->GetArg(ids, i, arg);
               accessString += StringFormat::Fmt("[%s]", arg.c_str());
             }
@@ -1418,7 +1419,7 @@ struct SPVInstruction
             else
             {
               // dynamic indexing into this array
-              string arg;
+              std::string arg;
               op->GetArg(ids, i, arg);
               accessString += StringFormat::Fmt("[%s]", arg.c_str());
             }
@@ -1444,7 +1445,7 @@ struct SPVInstruction
               {
                 // otherwise we have to treat it as another dynamic index, which is valid
 
-                string arg;
+                std::string arg;
                 op->GetArg(ids, i, arg);
                 accessString += StringFormat::Fmt("[%s]", arg.c_str());
 
@@ -1456,7 +1457,7 @@ struct SPVInstruction
           // vector (or matrix + extra)
           if(opcode == spv::OpVectorExtractDynamic)
           {
-            string arg;
+            std::string arg;
             op->GetArg(ids, 1, arg);
             accessString += StringFormat::Fmt("[%s]", arg.c_str());
           }
@@ -1474,11 +1475,11 @@ struct SPVInstruction
           }
         }
 
-        string ret = "";
+        std::string ret = "";
 
         if(opcode == spv::OpCompositeInsert)
         {
-          string insertObj;
+          std::string insertObj;
           op->GetArg(ids, 1, insertObj);
 
           // if we've been inlined, it means that there is a store of the result of
@@ -1512,7 +1513,7 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string ret = "";
+        std::string ret = "";
 
         if(!inlineOp)
           ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
@@ -1539,7 +1540,7 @@ struct SPVInstruction
 
         for(size_t i = 1; i < op->arguments.size(); i++)
         {
-          string arg;
+          std::string arg;
           op->GetArg(ids, i, arg, false);
 
           ret += arg;
@@ -1555,12 +1556,12 @@ struct SPVInstruction
       {
         RDCASSERT(!inlineOp && op);
 
-        string image, coord, sample;
+        std::string image, coord, sample;
         op->GetArg(ids, 0, image);
         op->GetArg(ids, 1, coord, false);
         op->GetArg(ids, 2, sample, false);
 
-        string ret =
+        std::string ret =
             StringFormat::Fmt("%s %s = ImageTexelPointer(%s, %s, %s)", op->type->GetName().c_str(),
                               GetIDName().c_str(), image.c_str(), coord.c_str(), sample.c_str());
 
@@ -1647,7 +1648,7 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string ret = "";
+        std::string ret = "";
 
         if(!inlineOp && op->type && op->type->type != SPVTypeData::eVoid &&
            opcode != spv::OpAtomicStore)
@@ -1668,7 +1669,7 @@ struct SPVInstruction
           // last argument is the component, reads better to have this
           // as part of the operation (if it was a constant instead of
           // an ID
-          string arg;
+          std::string arg;
           op->GetArg(ids, numArgs - 1, arg);
           ret += "ImageGather[" + arg + "](";
 
@@ -1681,7 +1682,7 @@ struct SPVInstruction
 
         for(size_t i = 0; i < numArgs; i++)
         {
-          string arg;
+          std::string arg;
           op->GetArg(ids, i, arg, false);
 
           if(op->im.bias == op->arguments[i])
@@ -1761,7 +1762,7 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string ret = "";
+        std::string ret = "";
 
         if(!inlineOp)
           ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
@@ -1840,7 +1841,7 @@ struct SPVInstruction
               lastvec = vec;
               if(i > 0)
                 ret += ", ";
-              string arg;
+              std::string arg;
               op->GetArg(ids, vec, arg);
 
               ret += arg;
@@ -1878,7 +1879,7 @@ struct SPVInstruction
           default: break;
         }
 
-        string a;
+        std::string a;
         op->GetArg(ids, 0, a);
 
         if(inlineOp)
@@ -2023,7 +2024,7 @@ struct SPVInstruction
           default: RDCERR("Unhandled bin math op in switch"); break;
         }
 
-        string a, b;
+        std::string a, b;
         op->GetArg(ids, 0, a);
         op->GetArg(ids, 1, b);
 
@@ -2038,7 +2039,7 @@ struct SPVInstruction
         // binary math function
         RDCASSERT(op);
 
-        string a, b;
+        std::string a, b;
         op->GetArg(ids, 0, a, false);
         op->GetArg(ids, 1, b, false);
 
@@ -2052,7 +2053,7 @@ struct SPVInstruction
       {
         RDCASSERT(op);
 
-        string a, b, c;
+        std::string a, b, c;
         op->GetArg(ids, 0, a, false);
         op->GetArg(ids, 1, b, false);
         op->GetArg(ids, 2, c, false);
@@ -2073,7 +2074,7 @@ struct SPVInstruction
     }
 
     // fallback for operations that we don't disassemble
-    string ret = "!!";
+    std::string ret = "!!";
 
     if(!str.empty() || id != 0)
       ret += GetIDName() + " <= ";
@@ -2104,9 +2105,10 @@ struct SPVInstruction
   SPVVariable *var;         // this ID is a variable
 };
 
-string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorations, const string &varName)
+std::string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorations,
+                                         const std::string &varName)
 {
-  string ret = "";
+  std::string ret = "";
 
   const SPVDecoration *builtin = NULL;
 
@@ -2117,7 +2119,7 @@ string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorations,
       builtin = &vardecorations[d];
       continue;
     }
-    string decorationStr = vardecorations[d].Str();
+    std::string decorationStr = vardecorations[d].Str();
     if(!decorationStr.empty())
       ret += decorationStr + " ";
   }
@@ -2179,7 +2181,7 @@ string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorations,
   return ret;
 }
 
-void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg,
+void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, std::string &arg,
                           bool bracketArgumentsIfNeeded)
 {
   if(inlineArgs & (1 << idx))
@@ -2335,9 +2337,9 @@ void FindFirstInstructionUse(SPVInstruction *op, SPVInstruction *search, SPVInst
   }
 }
 
-string SPVModule::Disassemble(const string &entryPoint)
+std::string SPVModule::Disassemble(const std::string &entryPoint)
 {
-  string retDisasm = "";
+  std::string retDisasm = "";
 
   // TODO filter to only functions/resources used by entryPoint
 
@@ -2458,7 +2460,7 @@ string SPVModule::Disassemble(const string &entryPoint)
     {
       auto member = structs[i]->type->children[c];
 
-      string varName = member.second;
+      std::string varName = member.second;
 
       if(varName.empty())
         varName = StringFormat::Fmt("_member%u", c);
@@ -2488,7 +2490,7 @@ string SPVModule::Disassemble(const string &entryPoint)
                                             globals[i]->id);
     }
 
-    string varName = globals[i]->str;
+    std::string varName = globals[i]->str;
     retDisasm += StringFormat::Fmt(
         "%s %s;\n", ToStr(globals[i]->var->storage).c_str(),
         globals[i]->var->type->DeclareVariable(globals[i]->decorations, varName).c_str());
@@ -2515,7 +2517,7 @@ string SPVModule::Disassemble(const string &entryPoint)
       continue;
     }
 
-    string varName = specConstants[i]->str;
+    std::string varName = specConstants[i]->str;
     retDisasm += StringFormat::Fmt(
         "%s = Specialize<ID %u>(%s);\n",
         specConstants[i]->constant->type->DeclareVariable(specConstants[i]->decorations, varName).c_str(),
@@ -2529,11 +2531,11 @@ string SPVModule::Disassemble(const string &entryPoint)
     SPVFunction *func = funcs[f]->func;
     RDCASSERT(func && func->retType && func->funcType);
 
-    string args = "";
+    std::string args = "";
 
     for(size_t a = 0; a < func->funcType->children.size(); a++)
     {
-      const pair<SPVTypeData *, string> &arg = func->funcType->children[a];
+      const pair<SPVTypeData *, std::string> &arg = func->funcType->children[a];
       RDCASSERT(a < func->arguments.size());
       const SPVInstruction *argname = func->arguments[a];
 
@@ -3094,7 +3096,7 @@ string SPVModule::Disassemble(const string &entryPoint)
     for(size_t v = 0; v < vars.size(); v++)
     {
       RDCASSERT(vars[v]->var && vars[v]->var->type);
-      retDisasm += string(indent, ' ') +
+      retDisasm += std::string(indent, ' ') +
                    vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                    ";\n";
 
@@ -3119,7 +3121,7 @@ string SPVModule::Disassemble(const string &entryPoint)
     vector<uint32_t> loopstartstack;
     vector<uint32_t> loopmergestack;
 
-    string funcDisassembly = "";
+    std::string funcDisassembly = "";
 
     for(size_t o = 0; o < funcops.size(); o++)
     {
@@ -3136,7 +3138,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 
             handled = true;
 
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
             funcDisassembly += "}\n";
             selectionstack.pop_back();
             switchstack.pop_back();
@@ -3154,13 +3156,13 @@ string SPVModule::Disassemble(const string &entryPoint)
 
                 if(t == targets.size() - 1)
                 {
-                  funcDisassembly += string(indent - tabSize, ' ');
+                  funcDisassembly += std::string(indent - tabSize, ' ');
                   funcDisassembly += "default:\n";
                 }
                 else
                 {
                   RDCASSERT(t < values.size());
-                  funcDisassembly += string(indent - tabSize, ' ');
+                  funcDisassembly += std::string(indent - tabSize, ' ');
 
                   if(cond->op && cond->op->type->type == SPVTypeData::eSInt)
                   {
@@ -3182,7 +3184,7 @@ string SPVModule::Disassemble(const string &entryPoint)
         else if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
         {
           // handle meeting an else block
-          funcDisassembly += string(indent - tabSize, ' ');
+          funcDisassembly += std::string(indent - tabSize, ' ');
           funcDisassembly += "} else ";
 
           if(o + 2 < funcops.size() && funcops[o + 1]->opcode == spv::OpSelectionMerge &&
@@ -3207,7 +3209,7 @@ string SPVModule::Disassemble(const string &entryPoint)
           if(!selectionstack.back().elseif)
           {
             indent -= tabSize;
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
             funcDisassembly += "}\n";
           }
           selectionstack.pop_back();
@@ -3217,7 +3219,7 @@ string SPVModule::Disassemble(const string &entryPoint)
           // handle meeting a loop merge block
           indent -= tabSize;
 
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           funcDisassembly += "}\n";
 
           loopheadstack.pop_back();
@@ -3244,7 +3246,7 @@ string SPVModule::Disassemble(const string &entryPoint)
           // this block is a loop header
           // TODO handle if the loop header condition expression isn't sufficiently in-lined.
           // We need to force inline it.
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           if(funcops[o]->block->exitFlow->flow->condition)
           {
             funcDisassembly +=
@@ -3306,7 +3308,7 @@ string SPVModule::Disassemble(const string &entryPoint)
           {
             // this branch is to the selection merge label of the switch statement, it must
             // be a break instruction
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
             funcDisassembly += "break;\n";
 
             handled = true;
@@ -3350,7 +3352,7 @@ string SPVModule::Disassemble(const string &entryPoint)
           else
           {
             // if we're skipping to the header of the loop before the end, this is a continue
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
             funcDisassembly += "continue;\n";
           }
         }
@@ -3358,12 +3360,12 @@ string SPVModule::Disassemble(const string &entryPoint)
         {
           // if we're skipping to the merge of the loop without going through the
           // branch conditional, this is a break
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           funcDisassembly += "break;\n";
         }
         else
         {
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
         }
       }
@@ -3387,7 +3389,7 @@ string SPVModule::Disassemble(const string &entryPoint)
         if(funcops[o]->opcode == spv::OpBranchConditional)
         {
           if(!elseif)
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
           funcDisassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
 
           indent += tabSize;
@@ -3402,7 +3404,7 @@ string SPVModule::Disassemble(const string &entryPoint)
         }
         else if(funcops[o]->opcode == spv::OpSwitch)
         {
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           funcDisassembly += funcops[o]->Disassemble(ids, false) + " {\n";
 
           indent += tabSize;
@@ -3449,14 +3451,14 @@ string SPVModule::Disassemble(const string &entryPoint)
               // begins and continue as normal.
               if(indent > tabSize)
               {
-                retDisasm += string(tabSize, ' ');
+                retDisasm += std::string(tabSize, ' ');
                 retDisasm +=
                     vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                     ";\n";
               }
               else
               {
-                funcDisassembly += string(indent, ' ');
+                funcDisassembly += std::string(indent, ' ');
                 funcDisassembly +=
                     vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName());
 
@@ -3470,10 +3472,10 @@ string SPVModule::Disassemble(const string &entryPoint)
 
           if(!printed)
           {
-            string storearg;
+            std::string storearg;
             store->op->GetArg(ids, 0, storearg);
 
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
             funcDisassembly += storearg;
           }
           funcDisassembly +=
@@ -3485,7 +3487,7 @@ string SPVModule::Disassemble(const string &entryPoint)
         else
         {
           // print separately
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
           funcops[o]->line = (int)o;
 
@@ -3506,14 +3508,14 @@ string SPVModule::Disassemble(const string &entryPoint)
               // begins and continue as normal.
               if(indent > tabSize)
               {
-                retDisasm += string(tabSize, ' ');
+                retDisasm += std::string(tabSize, ' ');
                 retDisasm +=
                     vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                     ";\n";
               }
               else
               {
-                funcDisassembly += string(indent, ' ');
+                funcDisassembly += std::string(indent, ' ');
                 funcDisassembly +=
                     vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                     " = ";
@@ -3529,7 +3531,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 
           if(!printed)
           {
-            funcDisassembly += string(indent, ' ');
+            funcDisassembly += std::string(indent, ' ');
             funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
           }
         }
@@ -3556,14 +3558,14 @@ string SPVModule::Disassemble(const string &entryPoint)
             // begins and continue as normal.
             if(indent > tabSize)
             {
-              retDisasm += string(tabSize, ' ');
+              retDisasm += std::string(tabSize, ' ');
               retDisasm +=
                   vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                   ";\n";
             }
             else
             {
-              funcDisassembly += string(indent, ' ');
+              funcDisassembly += std::string(indent, ' ');
               funcDisassembly +=
                   vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                   " = ";
@@ -3579,13 +3581,13 @@ string SPVModule::Disassemble(const string &entryPoint)
 
         if(!printed)
         {
-          funcDisassembly += string(indent, ' ');
+          funcDisassembly += std::string(indent, ' ');
           funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
         }
       }
       else
       {
-        funcDisassembly += string(indent, ' ');
+        funcDisassembly += std::string(indent, ' ');
         funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
       }
 
@@ -3607,7 +3609,7 @@ string SPVModule::Disassemble(const string &entryPoint)
         continue;
 
       RDCASSERT(vars[v]->var && vars[v]->var->type);
-      retDisasm += string(indent, ' ') +
+      retDisasm += std::string(indent, ' ') +
                    vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) +
                    ";\n";
     }
@@ -3920,7 +3922,7 @@ typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
 void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_t structID,
-                           uint32_t &regIndex, std::vector<uint32_t> accessChain, string varName,
+                           uint32_t &regIndex, std::vector<uint32_t> accessChain, std::string varName,
                            SPVTypeData *type, const vector<SPVDecoration> &decorations,
                            vector<SigParameter> &sigarray, SPIRVPatchData &patchData)
 {
@@ -4014,7 +4016,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
             continue;
         }
 
-        string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
+        std::string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
 
         AddSignatureParameter(isInput, stage, id, type->id, regIndex, patch.accessChain,
                               baseName + "." + type->children[c].second, type->children[c].first,
@@ -4051,7 +4053,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
   for(uint32_t a = 0; a < arraySize; a++)
   {
-    string n = varName;
+    std::string n = varName;
 
     if(isArray)
     {
@@ -4122,7 +4124,7 @@ std::vector<std::string> SPVModule::EntryPoints() const
   return ret;
 }
 
-ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
+ShaderStage SPVModule::StageForEntry(const std::string &entryPoint) const
 {
   for(SPVInstruction *inst : entries)
   {
@@ -4153,9 +4155,9 @@ ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
   return ShaderStage::Count;
 }
 
-void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const string &entryPoint,
-                               ShaderReflection &reflection, ShaderBindpointMapping &mapping,
-                               SPIRVPatchData &patchData) const
+void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
+                               const std::string &entryPoint, ShaderReflection &reflection,
+                               ShaderBindpointMapping &mapping, SPIRVPatchData &patchData) const
 {
   vector<SigParameter> inputs;
   vector<SigParameter> outputs;
@@ -4205,7 +4207,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const s
       bool isInput = inst->var->storage == spv::StorageClassInput;
       vector<SigParameter> *sigarray = (isInput ? &inputs : &outputs);
 
-      string nm;
+      std::string nm;
       // try to use the instance/variable name
       if(!inst->str.empty())
         nm = inst->str;
@@ -4980,7 +4982,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
         if(WordCount > 4)
         {
-          std::pair<string, string> sourceFile;
+          std::pair<std::string, std::string> sourceFile;
 
           SPVInstruction *filenameInst = module.GetByID(spirv[it + 3]);
           RDCASSERT(filenameInst);
@@ -5044,7 +5046,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       {
         if(!module.sourceFiles.empty())
         {
-          std::pair<string, string> &sourceFile = module.sourceFiles.back();
+          std::pair<std::string, std::string> &sourceFile = module.sourceFiles.back();
 
           sourceFile.second += (const char *)&spirv[it + 1];
         }
@@ -5072,7 +5074,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       }
       case spv::OpExtension:
       {
-        string ext = (const char *)&spirv[it + 1];
+        std::string ext = (const char *)&spirv[it + 1];
         module.extensions.push_back(ext);
         break;
       }
@@ -6481,7 +6483,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         if(varInst->opcode == spv::OpFunction)
         {
           size_t bracket = varInst->str.find('(');
-          if(bracket != string::npos)
+          if(bracket != std::string::npos)
             varInst->str = varInst->str.substr(0, bracket);
         }
 

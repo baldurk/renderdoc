@@ -87,9 +87,10 @@ SDBGChunk::SDBGChunk(void *data)
 
   for(size_t i = 0; i < m_FileHeaders.size(); i++)
   {
-    string filename =
-        string(asciiDatabase + m_FileHeaders[i].filenameOffset, m_FileHeaders[i].filenameLen);
-    string source = string(asciiDatabase + m_FileHeaders[i].sourceOffset, m_FileHeaders[i].sourceLen);
+    std::string filename =
+        std::string(asciiDatabase + m_FileHeaders[i].filenameOffset, m_FileHeaders[i].filenameLen);
+    std::string source =
+        std::string(asciiDatabase + m_FileHeaders[i].sourceOffset, m_FileHeaders[i].sourceLen);
 
     this->Files.push_back(make_pair(filename, source));
   }
@@ -127,7 +128,7 @@ void SDBGChunk::GetLocals(size_t instruction, uintptr_t offset,
 {
 }
 
-string SDBGChunk::GetSymbolName(int symbolID)
+std::string SDBGChunk::GetSymbolName(int symbolID)
 {
   RDCASSERT(symbolID >= 0 && symbolID < (int)m_SymbolTable.size());
 
@@ -136,14 +137,14 @@ string SDBGChunk::GetSymbolName(int symbolID)
   return GetSymbolName(sym.symbol.offset, sym.symbol.count);
 }
 
-string SDBGChunk::GetSymbolName(int32_t symbolOffset, int32_t symbolLength)
+std::string SDBGChunk::GetSymbolName(int32_t symbolOffset, int32_t symbolLength)
 {
   RDCASSERT(symbolOffset < m_Header.compilerSigOffset);
   RDCASSERT(symbolOffset + symbolLength <= m_Header.compilerSigOffset);
 
   int32_t offset = sizeof(m_Header) + m_Header.asciiDBOffset + symbolOffset;
 
-  return string(&m_RawData[offset], symbolLength);
+  return std::string(&m_RawData[offset], symbolLength);
 }
 
 };    // namespace DXBC

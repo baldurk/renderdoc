@@ -95,7 +95,7 @@ struct DllHookset
   vector<HMODULE> altmodules;
   vector<FunctionHook> FunctionHooks;
   DWORD OrdinalBase = 0;
-  vector<string> OrdinalNames;
+  vector<std::string> OrdinalNames;
   std::vector<FunctionLoadCallback> Callbacks;
   Threading::CriticalSection ordinallock;
 
@@ -159,7 +159,7 @@ struct CachedHookData
     RDCEraseEl(lowername);
   }
 
-  std::map<string, DllHookset> DllHooks;
+  std::map<std::string, DllHookset> DllHooks;
   HMODULE ownmodule;
   Threading::CriticalSection lock;
   char lowername[512];
@@ -244,7 +244,7 @@ struct CachedHookData
           DWORD err = GetLastError();
           char *slash = strrchr(filename, L'\\');
 
-          string basename = slash ? strlower(string(slash + 1)) : "";
+          std::string basename = slash ? strlower(std::string(slash + 1)) : "";
 
           if(err == 0 && basename == it->first)
           {
@@ -830,12 +830,12 @@ void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionH
       return;
     }
   }
-  s_HookData->DllHooks[strlower(string(libraryName))].FunctionHooks.push_back(hook);
+  s_HookData->DllHooks[strlower(std::string(libraryName))].FunctionHooks.push_back(hook);
 }
 
 void LibraryHooks::RegisterLibraryHook(const char *libraryName, FunctionLoadCallback loadedCallback)
 {
-  s_HookData->DllHooks[strlower(string(libraryName))].Callbacks.push_back(loadedCallback);
+  s_HookData->DllHooks[strlower(std::string(libraryName))].Callbacks.push_back(loadedCallback);
 }
 
 void LibraryHooks::IgnoreLibrary(const char *libraryName)

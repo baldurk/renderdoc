@@ -35,7 +35,6 @@
 
 using std::vector;
 using std::pair;
-using std::string;
 
 // matches D3D11_SHADER_VERSION_TYPE from d3d11shader.h
 enum D3D11_ShaderType
@@ -118,7 +117,7 @@ enum VariableType
 
 struct ShaderInputBind
 {
-  string name;
+  std::string name;
 
   enum InputType
   {
@@ -258,7 +257,7 @@ struct CBufferVariableType
     uint32_t elements;
     uint32_t members;
     uint32_t bytesize;
-    string name;
+    std::string name;
   } descriptor;
 
   // if a struct, these are variables for each member (this can obviously nest). Not all
@@ -269,11 +268,11 @@ struct CBufferVariableType
 
 struct CBufferVariable
 {
-  string name;
+  std::string name;
 
   struct
   {
-    string name;
+    std::string name;
     uint32_t offset;    // offset in parent (cbuffer or nested struct)
     uint32_t flags;
     std::vector<uint8_t> defaultValue;
@@ -289,7 +288,7 @@ struct CBufferVariable
 
 struct CBuffer
 {
-  string name;
+  std::string name;
 
   uint32_t space;
   uint32_t reg;
@@ -297,7 +296,7 @@ struct CBuffer
 
   struct Descriptor
   {
-    string name;
+    std::string name;
 
     enum Type
     {
@@ -321,13 +320,13 @@ class DXBCDebugChunk
 {
 public:
   virtual ~DXBCDebugChunk() {}
-  virtual string GetCompilerSig() const = 0;
-  virtual string GetEntryFunction() const = 0;
-  virtual string GetShaderProfile() const = 0;
+  virtual std::string GetCompilerSig() const = 0;
+  virtual std::string GetEntryFunction() const = 0;
+  virtual std::string GetShaderProfile() const = 0;
 
   virtual uint32_t GetShaderCompileFlags() const = 0;
 
-  vector<pair<string, string> > Files;    // <filename, source>
+  vector<pair<std::string, std::string> > Files;    // <filename, source>
 
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
 
@@ -368,7 +367,7 @@ public:
 
   CBuffer m_Interfaces;
 
-  std::map<string, CBufferVariableType> m_ResourceBinds;
+  std::map<std::string, CBufferVariableType> m_ResourceBinds;
 
   vector<SigParameter> m_InputSig;
   vector<SigParameter> m_OutputSig;
@@ -380,7 +379,7 @@ public:
 
   vector<byte> m_ShaderBlob;
 
-  const string &GetDisassembly()
+  const std::string &GetDisassembly()
   {
     if(m_Disassembly.empty())
       MakeDisassemblyString();
@@ -396,7 +395,7 @@ public:
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
-  static string GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
+  static std::string GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 
 private:
   DXBCFile(const DXBCFile &o);
@@ -425,7 +424,7 @@ private:
       m_Declarations;    // declarations of inputs, outputs, constant buffers, temp registers etc.
   vector<ASMOperation> m_Instructions;
 
-  string m_Disassembly;
+  std::string m_Disassembly;
 };
 
 };    // namespace DXBC

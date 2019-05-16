@@ -31,8 +31,6 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
-using std::string;
-
 //	for(int i=0; i < 256; i++)
 //	{
 //		uint8_t comp = i&0xff;
@@ -294,7 +292,7 @@ uint64_t Log2Floor(uint64_t value)
 }
 #endif
 
-static string logfile;
+static std::string logfile;
 static bool logfileOpened = false;
 
 const char *rdclog_getfilename()
@@ -304,7 +302,7 @@ const char *rdclog_getfilename()
 
 void rdclog_filename(const char *filename)
 {
-  string previous = logfile;
+  std::string previous = logfile;
 
   logfile = "";
   if(filename && filename[0])
@@ -405,8 +403,8 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
   char location[64] = {0};
 #if ENABLED(INCLUDE_LOCATION_IN_LOG)
-  string loc;
-  loc = get_basename(string(file));
+  std::string loc;
+  loc = get_basename(std::string(file));
   StringFormat::snprintf(location, 63, "% 20s(%4d) - ", loc.c_str(), line);
 #endif
 

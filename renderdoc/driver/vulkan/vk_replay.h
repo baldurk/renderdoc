@@ -245,8 +245,9 @@ public:
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry);
 
-  vector<string> GetDisassemblyTargets();
-  string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const string &target);
+  vector<std::string> GetDisassemblyTargets();
+  std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                const std::string &target);
 
   vector<EventUsage> GetUsage(ResourceId id);
 
@@ -314,11 +315,12 @@ public:
   {
     return {ShaderEncoding::SPIRV, ShaderEncoding::GLSL};
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         string *errors);
-  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                         ShaderStage type, ResourceId *id, string *errors);
+                         std::string *errors);
+  void BuildCustomShader(std::string source, std::string entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
+                         std::string *errors);
   void FreeCustomShader(ResourceId id);
 
   bool RenderTexture(TextureDisplay cfg);
@@ -327,7 +329,7 @@ public:
 
   void RenderHighlightBox(float w, float h, float scale);
 
-  void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+  void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                             rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,

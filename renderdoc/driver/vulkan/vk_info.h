@@ -157,7 +157,7 @@ struct VulkanCreationInfo
     {
       Shader() : refl(NULL), mapping(NULL), patchData(NULL) {}
       ResourceId module;
-      string entryPoint;
+      std::string entryPoint;
       ShaderReflection *refl;
       ShaderBindpointMapping *mapping;
       SPIRVPatchData *patchData;
@@ -463,13 +463,13 @@ struct VulkanCreationInfo
 
     SPVModule spirv;
 
-    string unstrippedPath;
+    std::string unstrippedPath;
 
     struct Reflection
     {
       uint32_t stageIndex;
-      string entryPoint;
-      string disassembly;
+      std::string entryPoint;
+      std::string disassembly;
       ShaderReflection refl;
       ShaderBindpointMapping mapping;
       SPIRVPatchData patchData;
@@ -477,7 +477,7 @@ struct VulkanCreationInfo
       void Init(VulkanResourceManager *resourceMan, ResourceId id, const SPVModule &spv,
                 const std::string &entry, VkShaderStageFlagBits stage);
     };
-    std::map<string, Reflection> m_Reflections;
+    std::map<std::string, Reflection> m_Reflections;
   };
   std::map<ResourceId, ShaderModule> m_ShaderModule;
 
@@ -495,7 +495,7 @@ struct VulkanCreationInfo
   };
   std::map<ResourceId, DescSetPool> m_DescSetPool;
 
-  std::map<ResourceId, string> m_Names;
+  std::map<ResourceId, std::string> m_Names;
   std::map<ResourceId, SwapchainInfo> m_SwapChain;
   std::map<ResourceId, DescSetLayout> m_DescSetLayout;
   std::map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;

@@ -261,7 +261,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   {
     WrappedID3D11Texture1D *d3dtex = (WrappedID3D11Texture1D *)it1D->second.m_Texture;
 
-    string str = GetDebugName(d3dtex);
+    std::string str = GetDebugName(d3dtex);
 
     D3D11_TEXTURE1D_DESC desc;
     d3dtex->GetDesc(&desc);
@@ -308,7 +308,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   {
     WrappedID3D11Texture2D1 *d3dtex = (WrappedID3D11Texture2D1 *)it2D->second.m_Texture;
 
-    string str = GetDebugName(d3dtex);
+    std::string str = GetDebugName(d3dtex);
 
     D3D11_TEXTURE2D_DESC desc;
     d3dtex->GetDesc(&desc);
@@ -367,7 +367,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   {
     WrappedID3D11Texture3D1 *d3dtex = (WrappedID3D11Texture3D1 *)it3D->second.m_Texture;
 
-    string str = GetDebugName(d3dtex);
+    std::string str = GetDebugName(d3dtex);
 
     D3D11_TEXTURE3D_DESC desc;
     d3dtex->GetDesc(&desc);
@@ -450,9 +450,9 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId shader, ShaderEntryPoint ent
   return &ret;
 }
 
-vector<string> D3D11Replay::GetDisassemblyTargets()
+vector<std::string> D3D11Replay::GetDisassemblyTargets()
 {
-  vector<string> ret;
+  vector<std::string> ret;
 
   // DXBC is always first
   ret.insert(ret.begin(), DXBCDisassemblyTarget);
@@ -460,8 +460,8 @@ vector<string> D3D11Replay::GetDisassemblyTargets()
   return ret;
 }
 
-string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                      const string &target)
+std::string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                           const std::string &target)
 {
   auto it =
       WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
@@ -575,7 +575,7 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 
   WrappedID3D11Buffer *d3dbuf = it->second.m_Buffer;
 
-  string str = GetDebugName(d3dbuf);
+  std::string str = GetDebugName(d3dbuf);
 
   ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 

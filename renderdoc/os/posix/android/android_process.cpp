@@ -37,7 +37,7 @@ int GetIdentPort(pid_t childPid)
 {
   int ret = 0;
 
-  string procfile = StringFormat::Fmt("/proc/%d/net/unix", (int)childPid);
+  std::string procfile = StringFormat::Fmt("/proc/%d/net/unix", (int)childPid);
 
   // try for a little while for the /proc entry to appear
   for(int retry = 0; retry < 10; retry++)

@@ -61,31 +61,31 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-string GetTempRootPath()
+std::string GetTempRootPath()
 {
   return "/tmp";
 }
 
-string GetAppFolderFilename(const string &filename)
+std::string GetAppFolderFilename(const std::string &filename)
 {
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
 
-  string ret = string(homedir) + "/.renderdoc/";
+  std::string ret = std::string(homedir) + "/.renderdoc/";
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   return ret + filename;
 }
 
-void GetExecutableFilename(string &selfName)
+void GetExecutableFilename(std::string &selfName)
 {
   char path[512] = {0};
 
   uint32_t pathSize = (uint32_t)sizeof(path);
   if(_NSGetExecutablePath(path, &pathSize) == 0)
   {
-    selfName = string(path);
+    selfName = std::string(path);
   }
   else
   {
@@ -94,7 +94,7 @@ void GetExecutableFilename(string &selfName)
     memset(allocPath, 0, pathSize);
     if(_NSGetExecutablePath(path, &pathSize) == 0)
     {
-      selfName = string(path);
+      selfName = std::string(path);
     }
     else
     {
@@ -110,12 +110,12 @@ void GetExecutableFilename(string &selfName)
   readlink(selfName.c_str(), path, 511);
 
   if(path[0] != 0)
-    selfName = string(path);
+    selfName = std::string(path);
 }
 
 int LibraryLocator = 42;
 
-void GetLibraryFilename(string &selfName)
+void GetLibraryFilename(std::string &selfName)
 {
   Dl_info info;
   if(dladdr(&LibraryLocator, &info))

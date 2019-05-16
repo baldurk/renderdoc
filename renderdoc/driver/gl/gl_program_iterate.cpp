@@ -331,7 +331,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
       GLenum type = eGL_NONE;
       int32_t arraySize = 0;
       int32_t srcLocation = 0;
-      string basename;
+      std::string basename;
       bool isArray = false;
 
       GL.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, numProps, resProps, numProps, NULL, values);

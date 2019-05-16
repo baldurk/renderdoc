@@ -29,7 +29,6 @@
 #include <vector>
 using std::vector;
 using std::pair;
-using std::string;
 
 #pragma once
 
@@ -255,9 +254,9 @@ class SDBGChunk : public DXBCDebugChunk
 public:
   SDBGChunk(void *data);
 
-  string GetCompilerSig() const { return m_CompilerSig; }
-  string GetEntryFunction() const { return m_Entry; }
-  string GetShaderProfile() const { return m_Profile; }
+  std::string GetCompilerSig() const { return m_CompilerSig; }
+  std::string GetEntryFunction() const { return m_Entry; }
+  std::string GetShaderProfile() const { return m_Profile; }
   uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
   void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const;
 
@@ -271,8 +270,8 @@ private:
 
   bool m_HasDebugInfo;
 
-  string GetSymbolName(int symbolID);
-  string GetSymbolName(int32_t symbolOffset, int32_t symbolLength);
+  std::string GetSymbolName(int symbolID);
+  std::string GetSymbolName(int32_t symbolOffset, int32_t symbolLength);
 
   vector<SDBGAsmInstruction> m_Instructions;
   vector<SDBGVariable> m_Variables;
@@ -284,9 +283,9 @@ private:
 
   uint32_t m_ShaderFlags;
 
-  string m_CompilerSig;
-  string m_Entry;
-  string m_Profile;
+  std::string m_CompilerSig;
+  std::string m_Entry;
+  std::string m_Profile;
 
   // these don't need to be exposed, a more processed and friendly
   // version is exposed

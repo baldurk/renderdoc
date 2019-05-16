@@ -56,25 +56,25 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-string GetTempRootPath()
+std::string GetTempRootPath()
 {
   // Save captures in the app's private /sdcard directory, which doesnt require
   // WRITE_EXTERNAL_STORAGE permissions. There is no security enforced here,
   // so the replay server can load it as it has READ_EXTERNAL_STORAGE.
   // This is the same as returned by getExternalFilesDir(). It might possibly change in the future.
-  string package;
+  std::string package;
   GetExecutableFilename(package);
   return "/sdcard/Android/data/" + package + "/files";
 }
 
-string GetAppFolderFilename(const string &filename)
+std::string GetAppFolderFilename(const std::string &filename)
 {
-  return GetTempRootPath() + string("/") + filename;
+  return GetTempRootPath() + std::string("/") + filename;
 }
 
 // For RenderDoc's apk, this returns our package name
 // For other APKs, we use it to get the writable temp directory.
-void GetExecutableFilename(string &selfName)
+void GetExecutableFilename(std::string &selfName)
 {
   char buf[4096];
   snprintf(buf, sizeof(buf), "/proc/%u/cmdline", getpid());
@@ -93,7 +93,7 @@ void GetExecutableFilename(string &selfName)
   selfName = buf;
 }
 
-void GetLibraryFilename(string &selfName)
+void GetLibraryFilename(std::string &selfName)
 {
   RDCERR("GetLibraryFilename is not defined on Android");
   GetExecutableFilename(selfName);

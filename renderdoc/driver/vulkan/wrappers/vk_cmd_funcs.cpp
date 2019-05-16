@@ -225,9 +225,9 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
   return ret;
 }
 
-string WrappedVulkan::MakeRenderPassOpString(bool store)
+std::string WrappedVulkan::MakeRenderPassOpString(bool store)
 {
-  string opDesc = "";
+  std::string opDesc = "";
 
   const VulkanCreationInfo::RenderPass &info =
       m_CreationInfo.m_RenderPass[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass];

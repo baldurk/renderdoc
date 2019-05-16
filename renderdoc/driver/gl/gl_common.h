@@ -571,8 +571,6 @@ StencilOperation MakeStencilOp(GLenum op);
 LogicOperation MakeLogicOp(GLenum op);
 BlendMultiplier MakeBlendMultiplier(GLenum blend);
 BlendOperation MakeBlendOp(GLenum op);
-const char *BlendString(GLenum blendenum);
-const char *SamplerString(GLenum smpenum);
 
 void ClearGLErrors();
 

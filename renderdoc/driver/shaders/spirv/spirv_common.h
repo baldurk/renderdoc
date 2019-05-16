@@ -32,7 +32,6 @@
 #include "3rdparty/glslang/glslang/Include/ResourceLimits.h"
 #include "api/replay/renderdoc_replay.h"
 
-using std::string;
 using std::vector;
 
 enum class SPIRVShaderStage
@@ -127,9 +126,9 @@ struct SPVModule
   uint32_t sourceVer;
 
   std::string cmdline;
-  vector<std::pair<string, string>> sourceFiles;
+  vector<std::pair<std::string, std::string>> sourceFiles;
 
-  vector<string> extensions;
+  vector<std::string> extensions;
 
   vector<spv::Capability> capabilities;
 
@@ -146,18 +145,18 @@ struct SPVModule
   vector<SPVInstruction *> structs;          // struct types
 
   SPVInstruction *GetByID(uint32_t id);
-  string Disassemble(const string &entryPoint);
+  std::string Disassemble(const std::string &entryPoint);
 
   std::vector<std::string> EntryPoints() const;
-  ShaderStage StageForEntry(const string &entryPoint) const;
+  ShaderStage StageForEntry(const std::string &entryPoint) const;
 
-  void MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const string &entryPoint,
+  void MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const std::string &entryPoint,
                       ShaderReflection &reflection, ShaderBindpointMapping &mapping,
                       SPIRVPatchData &patchData) const;
 };
 
-string CompileSPIRV(const SPIRVCompilationSettings &settings, const vector<string> &sources,
-                    vector<uint32_t> &spirv);
+std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
+                         const vector<std::string> &sources, vector<uint32_t> &spirv);
 void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
 
 static const uint32_t SpecializationConstantBindSet = 1234567;

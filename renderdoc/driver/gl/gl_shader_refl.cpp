@@ -96,7 +96,7 @@ void CheckVertexOutputUses(const std::vector<std::string> &sources,
       {
         offs = s.find(name, offs);
 
-        if(offs == string::npos)
+        if(offs == std::string::npos)
           break;
 
         while(offs < s.length())
@@ -179,12 +179,12 @@ static bool iswhitespace(char c)
   return isspacetab(c) || isnewline(c);
 }
 
-GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string> sources,
-                                  vector<string> *includepaths)
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<std::string> sources,
+                                  vector<std::string> *includepaths)
 {
   // in and out blocks are added separately, in case one is there already
   const char *blockIdentifiers[2] = {"in gl_PerVertex", "out gl_PerVertex"};
-  string blocks[2] = {"", ""};
+  std::string blocks[2] = {"", ""};
 
   if(type == eGL_VERTEX_SHADER)
   {
@@ -285,13 +285,13 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
         if(type == eGL_VERTEX_SHADER && blocktype == 0)
           continue;
 
-        string block = blocks[blocktype];
+        std::string block = blocks[blocktype];
         const char *identifier = blockIdentifiers[blocktype];
 
         // if we find the 'identifier' (ie. the block name),
         // assume this block is already present and stop.
         // only try and insert this block if the shader doesn't already have it
-        if(src.find(identifier) != string::npos)
+        if(src.find(identifier) != std::string::npos)
         {
           continue;
         }
@@ -302,11 +302,11 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
           // find if this source contains a #version, accounting for whitespace
           size_t it = 0;
 
-          while(it != string::npos)
+          while(it != std::string::npos)
           {
             it = src.find("#", it);
 
-            if(it == string::npos)
+            if(it == std::string::npos)
               break;
 
             // advance past the #
@@ -324,7 +324,7 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<string
           }
 
           // no #version found
-          if(it == string::npos)
+          if(it == std::string::npos)
           {
             // insert at the start
             it = 0;
@@ -1623,7 +1623,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     GL.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, namebuf);
     namebuf[values[1]] = 0;
 
-    string name = namebuf;
+    std::string name = namebuf;
 
     delete[] namebuf;
 
@@ -1640,7 +1640,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       name = name.substr(0, name.length() - 3);    // trim off [0] on the end
       for(int i = 1; i < values[4]; i++)
       {
-        string arrname = StringFormat::Fmt("%s[%d]", name.c_str(), i);
+        std::string arrname = StringFormat::Fmt("%s[%d]", name.c_str(), i);
 
         res.bindPoint = (int32_t)reslist.size();
         res.name = arrname;
@@ -1742,7 +1742,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   rdcarray<ShaderConstant> globalUniforms;
 
   GLint numUBOs = 0;
-  vector<string> uboNames;
+  vector<std::string> uboNames;
   rdcarray<ShaderConstant> *ubos = NULL;
 
   {

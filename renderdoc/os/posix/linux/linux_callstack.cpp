@@ -178,7 +178,8 @@ private:
       if(addr >= m_Modules[i].base && addr < m_Modules[i].end)
       {
         uint64_t relative = addr - m_Modules[i].base + m_Modules[i].offset;
-        string cmd = StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
+        std::string cmd =
+            StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
 
         FILE *f = ::popen(cmd.c_str(), "r");
 

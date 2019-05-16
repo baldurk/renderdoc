@@ -35,8 +35,6 @@
 #include <Psapi.h>
 #include <tlhelp32.h>
 
-using std::string;
-using std::wstring;
 using std::vector;
 
 static std::string conv(const std::wstring &str)
@@ -246,13 +244,13 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 struct UpgradeCommand : public Command
 {
   UpgradeCommand(const GlobalEnvironment &env) : Command(env) {}
-  virtual void AddOptions(cmdline::parser &parser) { parser.add<string>("path", 0, ""); }
+  virtual void AddOptions(cmdline::parser &parser) { parser.add<std::string>("path", 0, ""); }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    wstring wide_path = conv(parser.get<string>("path"));
+    std::wstring wide_path = conv(parser.get<std::string>("path"));
 
     if(wide_path.back() != '\\' && wide_path.back() != '/')
       wide_path += L'\\';
@@ -264,7 +262,7 @@ struct UpgradeCommand : public Command
     ZeroMemory(&zip, sizeof(zip));
 
     bool successful = false;
-    wstring failReason = L"\"Unknown error\"";
+    std::wstring failReason = L"\"Unknown error\"";
 
     mz_bool b = mz_zip_reader_init_file(&zip, "./update.zip", 0);
 
@@ -295,7 +293,7 @@ struct UpgradeCommand : public Command
             while(*fn)
               *(wfn++) = wchar_t(*(fn++));
 
-            wstring target = wide_path + conv;
+            std::wstring target = wide_path + conv;
 
             wfn = &target[0];
 
@@ -338,7 +336,7 @@ struct UpgradeCommand : public Command
             while(*fn)
               *(wfn++) = wchar_t(*(fn++));
 
-            wstring target = wide_path + conv;
+            std::wstring target = wide_path + conv;
 
             wfn = &target[0];
 
@@ -386,7 +384,7 @@ struct UpgradeCommand : public Command
             while(*fn)
               *(wfn++) = wchar_t(*(fn++));
 
-            wstring target = wide_path + conv;
+            std::wstring target = wide_path + conv;
 
             wfn = &target[0];
 
@@ -408,7 +406,7 @@ struct UpgradeCommand : public Command
     }
 
     // run original UI exe and tell it an update succeeded
-    wstring cmdline = L"\"";
+    std::wstring cmdline = L"\"";
     cmdline += wide_path;
     cmdline += L"/qrenderdoc.exe\" ";
     if(successful)
@@ -534,8 +532,8 @@ struct CrashHandlerCommand : public Command
         }
         else
         {
-          report += "  \"" + string(name.begin(), name.end()) + "\": \"" +
-                    string(val.begin(), val.end()) + "\",\n";
+          report += "  \"" + std::string(name.begin(), name.end()) + "\": \"" +
+                    std::string(val.begin(), val.end()) + "\",\n";
         }
       }
 
@@ -616,22 +614,22 @@ struct GlobalHookCommand : public Command
   GlobalHookCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
-    parser.add<string>("match", 0, "");
-    parser.add<string>("capfile", 0, "");
-    parser.add<string>("debuglog", 0, "");
-    parser.add<string>("capopts", 0, "");
+    parser.add<std::string>("match", 0, "");
+    parser.add<std::string>("capfile", 0, "");
+    parser.add<std::string>("debuglog", 0, "");
+    parser.add<std::string>("capopts", 0, "");
   }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    wstring wpathmatch = conv(parser.get<string>("match"));
-    string capfile = parser.get<string>("capfile");
-    string debuglog = parser.get<string>("debuglog");
+    std::wstring wpathmatch = conv(parser.get<std::string>("match"));
+    std::string capfile = parser.get<std::string>("capfile");
+    std::string debuglog = parser.get<std::string>("debuglog");
 
     CaptureOptions cmdopts;
-    cmdopts.DecodeFromString(parser.get<string>("capopts"));
+    cmdopts.DecodeFromString(parser.get<std::string>("capopts"));
 
     // make sure the user doesn't accidentally run this with 'a' as a parameter or something.
     // "a.exe" is over 4 characters so this limit should not be a problem.
@@ -735,7 +733,7 @@ int main(int, char *)
 
   argv.resize(argc);
   for(size_t i = 0; i < argv.size(); i++)
-    argv[i] = conv(wstring(wargv[i]));
+    argv[i] = conv(std::wstring(wargv[i]));
 
   if(argv.empty())
     argv.push_back("renderdoccmd");

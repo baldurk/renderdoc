@@ -139,13 +139,13 @@ TBuiltInResource DefaultResources = {
     },
 };
 
-string CompileSPIRV(const SPIRVCompilationSettings &settings,
-                    const std::vector<std::string> &sources, vector<uint32_t> &spirv)
+std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
+                         const std::vector<std::string> &sources, vector<uint32_t> &spirv)
 {
   if(settings.stage == SPIRVShaderStage::Invalid)
     return "Invalid shader stage specified";
 
-  string errors = "";
+  std::string errors = "";
 
   const char **strs = new const char *[sources.size()];
 

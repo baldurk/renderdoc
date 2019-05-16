@@ -105,9 +105,9 @@ public:
   virtual rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) = 0;
   virtual ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) = 0;
 
-  virtual vector<string> GetDisassemblyTargets() = 0;
-  virtual string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                   const string &target) = 0;
+  virtual vector<std::string> GetDisassemblyTargets() = 0;
+  virtual std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                        const std::string &target) = 0;
 
   virtual vector<EventUsage> GetUsage(ResourceId id) = 0;
 
@@ -137,9 +137,9 @@ public:
   virtual void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                               const GetTextureDataParams &params, bytebuf &data) = 0;
 
-  virtual void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, string entry,
+  virtual void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                                  const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                 ResourceId *id, string *errors) = 0;
+                                 ResourceId *id, std::string *errors) = 0;
   virtual rdcarray<ShaderEncoding> GetTargetShaderEncodings() = 0;
   virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual void RemoveReplacement(ResourceId id) = 0;
@@ -149,7 +149,7 @@ public:
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
   virtual vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID) = 0;
 
-  virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+  virtual void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                                     rdcarray<ShaderVariable> &outvars, const bytebuf &data) = 0;
 
   virtual vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target,
@@ -213,8 +213,9 @@ public:
                           const MeshDisplay &cfg) = 0;
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
-  virtual void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
-                                 ShaderStage type, ResourceId *id, string *errors) = 0;
+  virtual void BuildCustomShader(std::string source, std::string entry,
+                                 const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                 ResourceId *id, std::string *errors) = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                        uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;

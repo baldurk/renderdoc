@@ -374,7 +374,7 @@ extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
                                                                                 uint32_t nextIdent)
 {
-  string s = "localhost";
+  std::string s = "localhost";
   if(host != NULL && host[0] != '\0')
     s = host;
 
