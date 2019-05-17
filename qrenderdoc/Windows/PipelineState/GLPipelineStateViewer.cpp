@@ -449,7 +449,7 @@ void GLPipelineStateViewer::OnEventChanged(uint32_t eventId)
   setState();
 }
 
-void GLPipelineStateViewer::on_showDisabled_toggled(bool checked)
+void GLPipelineStateViewer::on_showUnused_toggled(bool checked)
 {
   setState();
 }
@@ -494,15 +494,15 @@ void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescri
 
 bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
-  const bool showDisabled = ui->showDisabled->isChecked();
+  const bool showUnused = ui->showUnused->isChecked();
   const bool showEmpty = ui->showEmpty->isChecked();
 
   // show if it's referenced by the shader - regardless of empty or not
   if(usedSlot)
     return true;
 
-  // it's bound, but not referenced, and we have "show disabled"
-  if(showDisabled && !usedSlot && filledSlot)
+  // it's bound, but not referenced, and we have "show unused"
+  if(showUnused && !usedSlot && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
@@ -1216,7 +1216,7 @@ void GLPipelineStateViewer::setState()
   const GLPipe::State &state = *m_Ctx.CurGLPipelineState();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  bool showDisabled = ui->showDisabled->isChecked();
+  bool showUnused = ui->showUnused->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
 
   const QPixmap &tick = Pixmaps::tick(this);
@@ -1327,7 +1327,7 @@ void GLPipelineStateViewer::setState()
 
   if(state.vertexInput.indexBuffer != ResourceId())
   {
-    if(ibufferUsed || showDisabled)
+    if(ibufferUsed || showUnused)
     {
       uint64_t length = 1;
 

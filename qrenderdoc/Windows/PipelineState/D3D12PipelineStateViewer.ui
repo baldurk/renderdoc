@@ -68,12 +68,12 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="showDisabled">
+       <widget class="QToolButton" name="showUnused">
         <property name="toolTip">
-         <string>Show Disabled Items</string>
+         <string>Show items that are bound but not currently used by the pipeline.</string>
         </property>
         <property name="text">
-         <string>Show Disabled Items</string>
+         <string>Show Unused Items</string>
         </property>
         <property name="icon">
          <iconset resource="../../Resources/resources.qrc">
@@ -93,7 +93,7 @@
       <item>
        <widget class="QToolButton" name="showEmpty">
         <property name="toolTip">
-         <string>Show Empty Items</string>
+         <string>Show pipeline bindings which are completely empty and have nothing bound</string>
         </property>
         <property name="text">
          <string>Show Empty Items</string>

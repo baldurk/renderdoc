@@ -1932,9 +1932,9 @@ void TextureViewer::texContextItem_triggered()
   }
 }
 
-void TextureViewer::showDisabled_triggered()
+void TextureViewer::showUnused_triggered()
 {
-  m_ShowDisabled = !m_ShowDisabled;
+  m_ShowUnused = !m_ShowUnused;
 
   if(m_Ctx.IsCaptureLoaded())
     m_Ctx.RefreshStatus();
@@ -1972,7 +1972,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
 {
   QMenu contextMenu(this);
 
-  QAction showDisabled(tr("Show Disabled"), this);
+  QAction showUnused(tr("Show Unused"), this);
   QAction showEmpty(tr("Show Empty"), this);
   QAction openLockedTab(tr("Open new Locked Tab"), this);
   QAction openResourceInspector(tr("Open in Resource Inspector"), this);
@@ -1982,13 +1982,13 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
   openLockedTab.setIcon(Icons::action_hover());
   openResourceInspector.setIcon(Icons::link());
 
-  showDisabled.setChecked(m_ShowDisabled);
-  showDisabled.setChecked(m_ShowEmpty);
+  showUnused.setChecked(m_ShowUnused);
+  showUnused.setChecked(m_ShowEmpty);
 
-  contextMenu.addAction(&showDisabled);
+  contextMenu.addAction(&showUnused);
   contextMenu.addAction(&showEmpty);
 
-  QObject::connect(&showDisabled, &QAction::triggered, this, &TextureViewer::showDisabled_triggered);
+  QObject::connect(&showUnused, &QAction::triggered, this, &TextureViewer::showUnused_triggered);
   QObject::connect(&showEmpty, &QAction::triggered, this, &TextureViewer::showEmpty_triggered);
 
   if(m_Ctx.CurPipelineState().SupportsBarriers())
@@ -2168,7 +2168,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       bool show = used;
 
       // it's bound, but not referenced, and we have "show disabled"
-      show = show || (m_ShowDisabled && !used && id != ResourceId());
+      show = show || (m_ShowUnused && !used && id != ResourceId());
 
       // it's empty, and we have "show empty"
       show = show || (m_ShowEmpty && id == ResourceId());

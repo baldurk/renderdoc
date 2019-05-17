@@ -488,7 +488,7 @@ void D3D12PipelineStateViewer::OnEventChanged(uint32_t eventId)
   setState();
 }
 
-void D3D12PipelineStateViewer::on_showDisabled_toggled(bool checked)
+void D3D12PipelineStateViewer::on_showUnused_toggled(bool checked)
 {
   setState();
 }
@@ -796,15 +796,15 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
 bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
-  const bool showDisabled = ui->showDisabled->isChecked();
+  const bool showUnused = ui->showUnused->isChecked();
   const bool showEmpty = ui->showEmpty->isChecked();
 
   // show if it's referenced by the shader - regardless of empty or not
   if(usedSlot)
     return true;
 
-  // it's bound, but not referenced, and we have "show disabled"
-  if(showDisabled && !usedSlot && filledSlot)
+  // it's bound, but not referenced, and we have "show unused"
+  if(showUnused && !usedSlot && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
@@ -1335,7 +1335,7 @@ void D3D12PipelineStateViewer::setState()
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {
-    if(ibufferUsed || ui->showDisabled->isChecked())
+    if(ibufferUsed || ui->showUnused->isChecked())
     {
       uint64_t length = 0;
 

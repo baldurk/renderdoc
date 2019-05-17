@@ -61,7 +61,7 @@ Each thumbnail has a context menu available via right click. This menu allows yo
 
   Thumbnail Menu: Thumbnail context menu with several options.
 
-There are also two general options - show disabled and show empty. These behave the same as the options in the :doc:`pipeline_state` window - temporarily overriding the default behaviour in RenderDoc to only show texture slots that are referenced in the shader.
+There are also two general options - show unused and show empty. These behave the same as the options in the :doc:`pipeline_state` window - temporarily overriding the default behaviour in RenderDoc to only show texture slots that are referenced in the shader.
 
 Pixel Context Display
 ---------------------

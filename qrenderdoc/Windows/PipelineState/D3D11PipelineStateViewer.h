@@ -56,7 +56,7 @@ public:
 
 private slots:
   // automatic slots
-  void on_showDisabled_toggled(bool checked);
+  void on_showUnused_toggled(bool checked);
   void on_showEmpty_toggled(bool checked);
   void on_exportHTML_clicked();
   void on_meshView_clicked();

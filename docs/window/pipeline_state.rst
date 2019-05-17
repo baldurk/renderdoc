@@ -30,9 +30,9 @@ Any resources that are bound to the pipeline can be opened in more detailed view
 .. |page_white_delete| image:: ../imgs/icons/page_white_delete.png
 .. |page_white_database| image:: ../imgs/icons/page_white_database.png
 
-The pipeline view attempts to only show what is relevant, and not all possible stateful data. To do this (when available) it uses shader reflection data to only display slots which are actually in use by the shaders, and omit any that are unused. This can be overridden with the Show Disabled Items |page_white_delete| button.
+The pipeline view attempts to only show what is relevant, and not all possible stateful data. To do this (when available) it uses shader reflection data to only display slots which are actually in use by the shaders, and omit any that are unused. This can be overridden with the Show Unused Items |page_white_delete| button.
 
-On some APIs like Vulkan it may be common to use 'bindless' approaches where a large number of resources are bound and only a small number are accessed at any time. In these cases RenderDoc uses dynamic feedback to try to determine the set of resources accessed and only displays them. This can similarly be overridden with the Show Disabled Items |page_white_delete| button.
+On some APIs like Vulkan it may be common to use 'bindless' approaches where a large number of resources are bound and only a small number are accessed at any time. In these cases RenderDoc uses dynamic feedback to try to determine the set of resources accessed and only displays them. This can similarly be overridden with the Show Unused Items |page_white_delete| button.
 
 Likewise it will omit any slots which are completely empty (and also unused), and this behaviour can be overridden with the Show Empty Items |page_white_database| button.
 
