@@ -112,48 +112,6 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
 
   BindPipeline(cmd, binding, true);
 
-  if(ibuffer.buf != ResourceId())
-    ObjDisp(cmd)->CmdBindIndexBuffer(
-        Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
-        ibuffer.offs, ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
-
-  for(size_t i = 0; i < vbuffers.size(); i++)
-  {
-    if(vbuffers[i].buf == ResourceId())
-      continue;
-
-    ObjDisp(cmd)->CmdBindVertexBuffers(
-        Unwrap(cmd), (uint32_t)i, 1,
-        UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
-        &vbuffers[i].offs);
-  }
-
-  for(size_t i = 0; i < xfbbuffers.size(); i++)
-  {
-    if(xfbbuffers[i].buf == ResourceId())
-      continue;
-
-    ObjDisp(cmd)->CmdBindTransformFeedbackBuffersEXT(
-        Unwrap(cmd), (uint32_t)i, 1,
-        UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbbuffers[i].buf)),
-        &xfbbuffers[i].offs, &xfbbuffers[i].size);
-  }
-
-  if(!xfbcounters.empty())
-  {
-    std::vector<VkBuffer> buffers;
-    std::vector<VkDeviceSize> offsets;
-
-    for(size_t i = 0; i < xfbcounters.size(); i++)
-    {
-      buffers.push_back(Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
-      offsets.push_back(xfbcounters[i].offs);
-    }
-
-    ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(
-        Unwrap(cmd), firstxfbcounter, (uint32_t)xfbcounters.size(), buffers.data(), offsets.data());
-  }
-
   if(IsConditionalRenderingEnabled())
   {
     VkConditionalRenderingBeginInfoEXT beginInfo;
@@ -352,6 +310,49 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
       {
         RDCWARN("Descriptor set is not bound but pipeline layout expects one");
       }
+    }
+
+    if(ibuffer.buf != ResourceId())
+      ObjDisp(cmd)->CmdBindIndexBuffer(
+          Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
+          ibuffer.offs, ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
+
+    for(size_t i = 0; i < vbuffers.size(); i++)
+    {
+      if(vbuffers[i].buf == ResourceId())
+        continue;
+
+      ObjDisp(cmd)->CmdBindVertexBuffers(
+          Unwrap(cmd), (uint32_t)i, 1,
+          UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
+          &vbuffers[i].offs);
+    }
+
+    for(size_t i = 0; i < xfbbuffers.size(); i++)
+    {
+      if(xfbbuffers[i].buf == ResourceId())
+        continue;
+
+      ObjDisp(cmd)->CmdBindTransformFeedbackBuffersEXT(
+          Unwrap(cmd), (uint32_t)i, 1,
+          UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbbuffers[i].buf)),
+          &xfbbuffers[i].offs, &xfbbuffers[i].size);
+    }
+
+    if(!xfbcounters.empty())
+    {
+      std::vector<VkBuffer> buffers;
+      std::vector<VkDeviceSize> offsets;
+
+      for(size_t i = 0; i < xfbcounters.size(); i++)
+      {
+        buffers.push_back(
+            Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
+        offsets.push_back(xfbcounters[i].offs);
+      }
+
+      ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(
+          Unwrap(cmd), firstxfbcounter, (uint32_t)xfbcounters.size(), buffers.data(), offsets.data());
     }
   }
 

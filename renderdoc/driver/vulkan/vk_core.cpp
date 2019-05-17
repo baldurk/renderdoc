@@ -3099,10 +3099,11 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
         m_RenderState.BeginRenderPassAndApplyState(
             cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics);
       }
-      else if(m_RenderState.compute.pipeline != ResourceId())
+      else
       {
-        // if we had a compute pipeline, need to bind that
+        // even outside of render passes, we need to restore the state
         m_RenderState.BindPipeline(cmd, VulkanRenderState::BindCompute, false);
+        m_RenderState.BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
       }
     }
 
