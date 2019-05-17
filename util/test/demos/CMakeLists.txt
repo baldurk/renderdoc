@@ -15,6 +15,7 @@ set(VULKAN_SRC
         vk/vk_draw_zoo.cpp
         vk/vk_indirect.cpp
         vk/vk_overlay_test.cpp
+        vk/vk_resource_lifetimes.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_simple_triangle.cpp
@@ -30,12 +31,14 @@ set(OPENGL_SRC
         gl/gl_buffer_updates.cpp
         gl/gl_cbuffer_zoo.cpp
         gl/gl_depthstencil_fbo.cpp
+        gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
         gl/gl_map_overrun.cpp
         gl/gl_midframe_context_create.cpp
         gl/gl_mip_gen_rt.cpp
         gl/gl_multi_window.cpp
         gl/gl_overlay_test.cpp
+        gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp
         gl/gl_simple_triangle.cpp
