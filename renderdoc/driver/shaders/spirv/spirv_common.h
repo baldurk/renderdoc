@@ -126,7 +126,7 @@ struct SPVModule
   uint32_t sourceVer;
 
   std::string cmdline;
-  vector<std::pair<std::string, std::string>> sourceFiles;
+  vector<rdcpair<std::string, std::string>> sourceFiles;
 
   vector<std::string> extensions;
 

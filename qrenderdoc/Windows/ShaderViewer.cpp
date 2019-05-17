@@ -3456,8 +3456,8 @@ void ShaderViewer::on_refresh_clicked()
     for(ScintillaEdit *s : m_Scintillas)
     {
       QWidget *w = (QWidget *)s;
-      files.push_back(make_rdcpair<rdcstr, rdcstr>(
-          w->property("filename").toString(), QString::fromUtf8(s->getText(s->textLength() + 1))));
+      files.push_back(
+          {w->property("filename").toString(), QString::fromUtf8(s->getText(s->textLength() + 1))});
     }
 
     if(files.isEmpty())

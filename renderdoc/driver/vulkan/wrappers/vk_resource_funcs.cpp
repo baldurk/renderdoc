@@ -1725,7 +1725,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                 break;
             }
 
-            record->resInfo->pages[a] = new pair<VkDeviceMemory, VkDeviceSize>[numpages];
+            record->resInfo->pages[a] = new rdcpair<VkDeviceMemory, VkDeviceSize>[numpages];
           }
         }
         else

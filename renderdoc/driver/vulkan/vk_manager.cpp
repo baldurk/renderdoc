@@ -33,7 +33,7 @@
 #endif
 
 template <typename SrcBarrierType>
-void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageRegionState> > &dststates,
+void VulkanResourceManager::RecordSingleBarrier(vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
                                                 ResourceId id, const SrcBarrierType &t,
                                                 uint32_t nummips, uint32_t numslices)
 {
@@ -115,7 +115,7 @@ void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageReg
         else if(it->second.subresourceRange.levelCount > 1 ||
                 it->second.subresourceRange.layerCount > 1)
         {
-          pair<ResourceId, ImageRegionState> existing = *it;
+          rdcpair<ResourceId, ImageRegionState> existing = *it;
 
           // remember where we were in the array, as after this iterators will be
           // invalidated.
@@ -180,11 +180,11 @@ void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageReg
   VkImageSubresourceRange subRange = t.subresourceRange;
   subRange.levelCount = nummips;
   subRange.layerCount = numslices;
-  dststates.insert(it, std::make_pair(id, ImageRegionState(VK_QUEUE_FAMILY_IGNORED, subRange,
-                                                           t.oldLayout, t.newLayout)));
+  dststates.insert(it, make_rdcpair(id, ImageRegionState(VK_QUEUE_FAMILY_IGNORED, subRange,
+                                                         t.oldLayout, t.newLayout)));
 }
 
-void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
+void VulkanResourceManager::RecordBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &states,
                                            const std::map<ResourceId, ImageLayouts> &layouts,
                                            uint32_t numBarriers, const VkImageMemoryBarrier *barriers)
 {
@@ -229,8 +229,8 @@ void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionSt
   TRDBG("Post-record, there are %u states", (uint32_t)states.size());
 }
 
-void VulkanResourceManager::MergeBarriers(vector<pair<ResourceId, ImageRegionState> > &dststates,
-                                          vector<pair<ResourceId, ImageRegionState> > &srcstates)
+void VulkanResourceManager::MergeBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
+                                          vector<rdcpair<ResourceId, ImageRegionState> > &srcstates)
 {
   TRDBG("Merging %u states", (uint32_t)srcstates.size());
 
@@ -253,7 +253,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
   auto srcit = states.begin();
 
-  std::vector<pair<ResourceId, ImageRegionState> > vec;
+  std::vector<rdcpair<ResourceId, ImageRegionState> > vec;
 
   for(uint32_t i = 0; i < NumImages; i++)
   {
@@ -294,7 +294,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           state.newLayout = VK_IMAGE_LAYOUT_GENERAL;
         t.subresourceRange = state.subresourceRange;
         barriers.push_back(t);
-        vec.push_back(std::make_pair(liveid, state));
+        vec.push_back(make_rdcpair(liveid, state));
       }
     }
 
@@ -386,7 +386,7 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
     {
       ResourceId mem = it_data->memory;
 
-      auto res = m_MemFrameRefs.insert(std::make_pair(mem, MemRefs()));
+      auto res = m_MemFrameRefs.insert(std::pair<ResourceId, MemRefs>(mem, MemRefs()));
       RDCASSERTMSG("MemRefIntervals for each memory resource must be contigous", res.second);
       Intervals<FrameRefType> &rangeRefs = res.first->second.rangeRefs;
 
@@ -466,7 +466,7 @@ void VulkanResourceManager::SetInternalResource(ResourceId id)
 }
 
 void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
-                                          vector<pair<ResourceId, ImageRegionState> > &states,
+                                          vector<rdcpair<ResourceId, ImageRegionState> > &states,
                                           std::map<ResourceId, ImageLayouts> &layouts)
 {
   TRDBG("Applying %u barriers", (uint32_t)states.size());

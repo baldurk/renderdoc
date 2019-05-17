@@ -197,7 +197,7 @@ std::vector<CounterDescription> IntelCounters::EnumerateCounters()
         counterDesc.counter = (GPUCounter)counterId;
         m_Counters.push_back(counterDesc);
         addedMetrics.insert(counterDesc.name);
-        m_metricLocation[(GPUCounter)counterId] = std::pair<uint32_t, uint32_t>(j, k);
+        m_metricLocation[(GPUCounter)counterId] = rdcpair<uint32_t, uint32_t>(j, k);
         m_counterIds.push_back((GPUCounter)counterId);
       }
     }
@@ -367,8 +367,7 @@ void IntelCounters::EndSample()
     GPUCounter counterId = m_subscribedMetricsByCounterSet[m_passIndex][i];
     uint32_t counterIndex = m_metricLocation[counterId].second;
 
-    m_results[std::pair<GPUCounter, uint32_t>(counterId, m_sampleIndex)] =
-        m_queryResult[counterIndex];
+    m_results[rdcpair<GPUCounter, uint32_t>(counterId, m_sampleIndex)] = m_queryResult[counterIndex];
   }
   m_sampleIndex++;
 }
@@ -390,7 +389,7 @@ std::vector<CounterResult> IntelCounters::GetCounterData(const std::vector<uint3
           if(desc.resultByteWidth == sizeof(uint32_t))
           {
             uint32_t value =
-                m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt32;
+                m_results[rdcpair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt32;
             if(desc.unit == CounterUnit::Percentage)
             {
               value = RDCCLAMP(value, 0U, 100U);
@@ -401,7 +400,7 @@ std::vector<CounterResult> IntelCounters::GetCounterData(const std::vector<uint3
           else if(desc.resultByteWidth == sizeof(uint64_t))
           {
             uint64_t value =
-                m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt64;
+                m_results[rdcpair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt64;
 
             if(desc.unit == CounterUnit::Percentage)
             {
@@ -418,11 +417,11 @@ std::vector<CounterResult> IntelCounters::GetCounterData(const std::vector<uint3
         break;
         case CompType::Float:
         {
-          float value = m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueFloat;
+          float value = m_results[rdcpair<GPUCounter, uint32_t>(desc.counter, sample)].ValueFloat;
           if(desc.unit == CounterUnit::Seconds)
           {
             float nanoseconds =
-                (float)m_results[std::pair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt64;
+                (float)m_results[rdcpair<GPUCounter, uint32_t>(desc.counter, sample)].ValueUInt64;
             value = nanoseconds / 1e9f;
           }
 

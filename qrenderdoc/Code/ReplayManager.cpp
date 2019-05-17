@@ -422,7 +422,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile,
 
   if(m_Remote)
   {
-    std::tie(m_CreateStatus, m_Renderer) =
+    rdctie(m_CreateStatus, m_Renderer) =
         m_Remote->OpenCapture(proxyRenderer, capturefile.toUtf8().data(), progress);
   }
   else
@@ -432,7 +432,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile,
     m_CreateStatus = m_CaptureFile->OpenFile(capturefile.toUtf8().data(), "rdc", NULL);
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
-      std::tie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(progress);
+      rdctie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(progress);
   }
 
   if(m_Renderer == NULL)

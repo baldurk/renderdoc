@@ -255,7 +255,7 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
 
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
-    m_AliasEvents.push_back(std::make_pair(primary, alias));
+    m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
 
   uint32_t *m_pSampleId;
@@ -268,7 +268,7 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  vector<pair<uint32_t, uint32_t> > m_AliasEvents;
+  vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 void D3D12Replay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
@@ -401,7 +401,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
 
       m_NumStatsQueries++;
     }
-    m_Results.push_back(std::make_pair(eid, direct));
+    m_Results.push_back(make_rdcpair(eid, direct));
     return false;
   }
 
@@ -419,7 +419,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) override{};
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
-    m_AliasEvents.push_back(std::make_pair(primary, alias));
+    m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
 
   WrappedID3D12Device *m_pDevice;
@@ -427,7 +427,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   ID3D12QueryHeap *m_TimerQueryHeap;
   ID3D12QueryHeap *m_PipeStatsQueryHeap;
   ID3D12QueryHeap *m_OcclusionQueryHeap;
-  vector<pair<uint32_t, bool> > m_Results;
+  vector<rdcpair<uint32_t, bool> > m_Results;
 
   uint32_t m_NumStatsQueries;
   uint32_t m_NumTimestampQueries;
@@ -436,7 +436,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  vector<pair<uint32_t, uint32_t> > m_AliasEvents;
+  vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &counters)

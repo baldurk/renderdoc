@@ -135,6 +135,8 @@
 %ignore rdcarray::operator[];
 %ignore rdcstr::operator=;
 %ignore rdcstr::operator std::string;
+%ignore rdcpair::operator=;
+%ignore rdcpair::swap;
 
 // simple typemap to delete old byte arrays in a buffer list before assigning the new one
 %typemap(memberin) StructuredBufferList {

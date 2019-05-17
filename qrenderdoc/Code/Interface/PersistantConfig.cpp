@@ -102,7 +102,7 @@ rdcstrpairs convertFromVariant(const QVariantMap &val)
   rdcstrpairs ret;
   for(const QString &k : val.keys())
   {
-    ret.push_back(make_rdcpair<rdcstr, rdcstr>(k, val[k].toString()));
+    ret.push_back({k, val[k].toString()});
   }
   return ret;
 }

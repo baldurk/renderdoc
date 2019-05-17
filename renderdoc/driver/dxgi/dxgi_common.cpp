@@ -1600,12 +1600,12 @@ void WarnUnknownGUID(const char *name, REFIID riid)
   static Threading::CriticalSection lock;
   // we use a vector here, because the number of *distinct* unknown GUIDs encountered is likely to
   // be low (e.g. less than 10).
-  static std::vector<std::pair<IID, int> > warned;
+  static std::vector<rdcpair<IID, int> > warned;
 
   {
     SCOPED_LOCK(lock);
 
-    for(std::pair<IID, int> &w : warned)
+    for(rdcpair<IID, int> &w : warned)
     {
       if(w.first == riid)
       {
@@ -1619,7 +1619,7 @@ void WarnUnknownGUID(const char *name, REFIID riid)
     }
 
     RDCWARN("Querying %s for interface: %s", name, ToStr(riid).c_str());
-    warned.push_back(std::make_pair(riid, 1));
+    warned.push_back(make_rdcpair(riid, 1));
   }
 }
 

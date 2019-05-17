@@ -646,7 +646,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
         drawNode.indirectPatch = indirectPatch;
 
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
         return true;
@@ -669,7 +669,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
       drawNode.indirectPatch = indirectPatch;
 
-      drawNode.resourceUsage.push_back(std::make_pair(
+      drawNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
       if(count > 0)
@@ -1025,7 +1025,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
         drawNode.indirectPatch = indirectPatch;
 
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
         return true;
@@ -1049,7 +1049,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       drawNode.indirectPatch = indirectPatch;
 
-      drawNode.resourceUsage.push_back(std::make_pair(
+      drawNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
       if(count > 0)
@@ -1263,7 +1263,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
         drawNode.indirectPatch = indirectPatch;
 
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
       }
     }
@@ -1369,14 +1369,14 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
 
         if(srcImage == destImage)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::Resolve)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(destImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
         }
       }
@@ -1493,14 +1493,14 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
 
         if(srcImage == destImage)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::Resolve)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(destImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveDst)));
         }
       }
@@ -1617,14 +1617,14 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
 
         if(srcImage == destImage)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(destImage), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
@@ -1735,9 +1735,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(srcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(destImage), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
       }
     }
@@ -1843,9 +1843,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             GetResID(destBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
       }
     }
@@ -1950,14 +1950,14 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
 
         if(srcBuffer == destBuffer)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(destBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
@@ -2065,8 +2065,8 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
-        drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(image), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
+        drawNode.resourceUsage.push_back(
+            make_rdcpair(GetResID(image), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -2169,8 +2169,8 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
-        drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(image), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
+        drawNode.resourceUsage.push_back(
+            make_rdcpair(GetResID(image), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
       }
     }
   }
@@ -2306,9 +2306,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               {
                 att = rp.subpasses[state.subpass].colorAttachments[att];
                 drawNode.resourceUsage.push_back(
-                    std::make_pair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
-                                   EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
-                                              fb.attachments[att].view)));
+                    make_rdcpair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+                                 EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
+                                            fb.attachments[att].view)));
               }
             }
             else if(pAttachments[a].aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
@@ -2317,9 +2317,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               {
                 att = (uint32_t)rp.subpasses[state.subpass].depthstencilAttachment;
                 drawNode.resourceUsage.push_back(
-                    std::make_pair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
-                                   EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
-                                              fb.attachments[att].view)));
+                    make_rdcpair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+                                 EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
+                                            fb.attachments[att].view)));
               }
             }
           }
@@ -2690,7 +2690,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCountKHR(
 
       drawNode.indirectPatch = indirectPatch;
 
-      drawNode.resourceUsage.push_back(std::make_pair(
+      drawNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
@@ -3004,7 +3004,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
 
       drawNode.indirectPatch = indirectPatch;
 
-      drawNode.resourceUsage.push_back(std::make_pair(
+      drawNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
@@ -3164,7 +3164,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
 
       drawNode.indirectPatch = indirectPatch;
 
-      drawNode.resourceUsage.push_back(std::make_pair(
+      drawNode.resourceUsage.push_back(make_rdcpair(
           GetResID(counterBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Indirect)));
 
       return true;

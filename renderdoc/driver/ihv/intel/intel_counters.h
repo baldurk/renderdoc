@@ -80,7 +80,7 @@ private:
   std::vector<CounterDescription> m_Counters;
   std::vector<IMetricSet_1_1 *> m_allMetricSets;
   std::vector<IMetricSet_1_1 *> m_subscribedMetricSets;
-  std::map<GPUCounter, std::pair<uint32_t, uint32_t>> m_metricLocation;
+  std::map<GPUCounter, rdcpair<uint32_t, uint32_t>> m_metricLocation;
   std::vector<std::vector<GPUCounter>> m_subscribedMetricsByCounterSet;
   ID3D11Device *m_device;
   ID3D11DeviceContext *m_deviceContext;
@@ -88,7 +88,7 @@ private:
   std::vector<TTypedValue_1_0> m_queryResult;
   uint32_t m_passIndex;
   uint32_t m_sampleIndex;
-  std::map<std::pair<GPUCounter, uint32_t>, TTypedValue_1_0> m_results;
+  std::map<rdcpair<GPUCounter, uint32_t>, TTypedValue_1_0> m_results;
 
   static HMODULE m_MDLibraryHandle;
   static IMetricsDevice_1_5 *m_metricsDevice;

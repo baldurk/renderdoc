@@ -2579,7 +2579,7 @@ void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderRefl
 }
 
 // first int - the mapping index, second int - the binding
-typedef std::vector<std::pair<size_t, int> > Permutation;
+typedef std::vector<rdcpair<size_t, int> > Permutation;
 
 // copy permutation by value since we mutate it to track the algorithm
 static void ApplyPermutation(Permutation permutation, std::function<void(size_t, size_t)> DoSwap)
@@ -2679,7 +2679,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   // sort by the binding
   struct permutation_sort
   {
-    bool operator()(const std::pair<size_t, int> &a, const std::pair<size_t, int> &b) const
+    bool operator()(const rdcpair<size_t, int> &a, const rdcpair<size_t, int> &b) const
     {
       return a.second < b.second;
     }
@@ -2687,7 +2687,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
 
   permutation.resize(mapping->readOnlyResources.size());
   for(size_t i = 0; i < mapping->readOnlyResources.size(); i++)
-    permutation[i] = std::make_pair(i, mapping->readOnlyResources[i].bind);
+    permutation[i] = make_rdcpair(i, mapping->readOnlyResources[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
@@ -2702,7 +2702,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
 
   permutation.resize(mapping->readWriteResources.size());
   for(size_t i = 0; i < mapping->readWriteResources.size(); i++)
-    permutation[i] = std::make_pair(i, mapping->readWriteResources[i].bind);
+    permutation[i] = make_rdcpair(i, mapping->readWriteResources[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
@@ -2715,7 +2715,7 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
 
   permutation.resize(mapping->constantBlocks.size());
   for(size_t i = 0; i < mapping->constantBlocks.size(); i++)
-    permutation[i] = std::make_pair(i, mapping->constantBlocks[i].bind);
+    permutation[i] = make_rdcpair(i, mapping->constantBlocks[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 

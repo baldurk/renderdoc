@@ -3245,7 +3245,7 @@ void TextureViewer::AutoFitRange()
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
     PixelValue min, max;
-    std::tie(min, max) = m_Output->GetMinMax();
+    rdctie(min, max) = m_Output->GetMinMax();
 
     {
       float minval = FLT_MAX;
@@ -3825,8 +3825,8 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
           rdcstr errors;
 
           ResourceId id;
-          std::tie(id, errors) = r->BuildCustomShader("main", source.toUtf8().data(),
-                                                      ShaderCompileFlags(), ShaderStage::Pixel);
+          rdctie(id, errors) = r->BuildCustomShader("main", source.toUtf8().data(),
+                                                    ShaderCompileFlags(), ShaderStage::Pixel);
 
           if(m_CustomShaderEditor.contains(key))
           {
@@ -3945,7 +3945,7 @@ void TextureViewer::on_customEdit_clicked()
   }
 
   rdcstrpairs files;
-  files.push_back(make_rdcpair<rdcstr, rdcstr>(filename, src));
+  files.push_back({filename, src});
 
   QPointer<TextureViewer> thisPointer(this);
 

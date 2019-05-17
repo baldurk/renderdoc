@@ -2322,7 +2322,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     for(size_t i = 0; i < m_CleanupEvents.size(); i++)
       ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
 
-    for(const std::pair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
+    for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
       vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
   }
 
@@ -3641,14 +3641,14 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
 
   if(d.flags & DrawFlags::Indexed && state.ibuffer != ResourceId())
     drawNode.resourceUsage.push_back(
-        std::make_pair(state.ibuffer, EventUsage(e, ResourceUsage::IndexBuffer)));
+        make_rdcpair(state.ibuffer, EventUsage(e, ResourceUsage::IndexBuffer)));
 
   for(size_t i = 0; i < state.vbuffers.size(); i++)
   {
     if(state.vbuffers[i] != ResourceId())
     {
       drawNode.resourceUsage.push_back(
-          std::make_pair(state.vbuffers[i], EventUsage(e, ResourceUsage::VertexBuffer)));
+          make_rdcpair(state.vbuffers[i], EventUsage(e, ResourceUsage::VertexBuffer)));
     }
   }
 
@@ -3658,7 +3658,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
     if(state.xfbbuffers[i] != ResourceId())
     {
       drawNode.resourceUsage.push_back(
-          std::make_pair(state.xfbbuffers[i], EventUsage(e, ResourceUsage::StreamOut)));
+          make_rdcpair(state.xfbbuffers[i], EventUsage(e, ResourceUsage::StreamOut)));
     }
   }
 
@@ -3795,7 +3795,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
           }
 
           if(id != ResourceId())
-            drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(e, usage)));
+            drawNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(e, usage)));
         }
       }
     }
@@ -3833,8 +3833,8 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
         drawNode.resourceUsage.push_back(
-            std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                           EventUsage(e, ResourceUsage::InputTarget, fb.attachments[att].view)));
+            make_rdcpair(c.m_ImageView[fb.attachments[att].view].image,
+                         EventUsage(e, ResourceUsage::InputTarget, fb.attachments[att].view)));
       }
 
       for(size_t i = 0; i < sub.colorAttachments.size(); i++)
@@ -3843,14 +3843,14 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
         drawNode.resourceUsage.push_back(
-            std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                           EventUsage(e, ResourceUsage::ColorTarget, fb.attachments[att].view)));
+            make_rdcpair(c.m_ImageView[fb.attachments[att].view].image,
+                         EventUsage(e, ResourceUsage::ColorTarget, fb.attachments[att].view)));
       }
 
       if(sub.depthstencilAttachment >= 0)
       {
         int32_t att = sub.depthstencilAttachment;
-        drawNode.resourceUsage.push_back(std::make_pair(
+        drawNode.resourceUsage.push_back(make_rdcpair(
             c.m_ImageView[fb.attachments[att].view].image,
             EventUsage(e, ResourceUsage::DepthStencilTarget, fb.attachments[att].view)));
       }

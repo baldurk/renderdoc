@@ -27,8 +27,6 @@
 
 #include "dxbc_sdbg.h"
 
-using std::make_pair;
-
 namespace DXBC
 {
 static const uint32_t FOURCC_SDBG = MAKE_FOURCC('S', 'D', 'B', 'G');
@@ -92,7 +90,7 @@ SDBGChunk::SDBGChunk(void *data)
     std::string source =
         std::string(asciiDatabase + m_FileHeaders[i].sourceOffset, m_FileHeaders[i].sourceLen);
 
-    this->Files.push_back(make_pair(filename, source));
+    this->Files.push_back(make_rdcpair(filename, source));
   }
 
   // successful grab of info

@@ -33,8 +33,6 @@
 #include "dxbc_sdbg.h"
 #include "dxbc_spdb.h"
 
-using std::make_pair;
-
 namespace DXBC
 {
 struct RDEFCBufferVariable

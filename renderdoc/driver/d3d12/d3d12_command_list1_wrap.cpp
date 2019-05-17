@@ -100,14 +100,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
 
         if(pSrcBuffer == pDstBuffer)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pDstBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
@@ -218,14 +218,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
 
         if(pSrcBuffer == pDstBuffer)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pDstBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
         }
       }
@@ -475,14 +475,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
 
         if(pSrcResource == pDstResource)
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Resolve)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
-          drawNode.resourceUsage.push_back(std::make_pair(
+          drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(pDstResource), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveDst)));
         }
       }

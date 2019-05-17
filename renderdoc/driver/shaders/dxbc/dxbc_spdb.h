@@ -33,7 +33,6 @@
 #include "dxbc_disassemble.h"
 
 using std::vector;
-using std::pair;
 
 namespace DXBC
 {

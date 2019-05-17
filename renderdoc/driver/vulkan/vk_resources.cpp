@@ -3096,7 +3096,7 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *p
     // VKTODOMED handle sparse image arrays or sparse images with mips
     RDCASSERT(newBind.subresource.arrayLayer == 0 && newBind.subresource.mipLevel == 0);
 
-    pair<VkDeviceMemory, VkDeviceSize> *pageTable = pages[newBind.subresource.aspectMask];
+    rdcpair<VkDeviceMemory, VkDeviceSize> *pageTable = pages[newBind.subresource.aspectMask];
 
     VkOffset3D offsInPages = newBind.offset;
     offsInPages.x /= pagedim.width;
@@ -3108,7 +3108,8 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *p
     extInPages.height /= pagedim.height;
     extInPages.depth /= pagedim.depth;
 
-    pair<VkDeviceMemory, VkDeviceSize> mempair = std::make_pair(newBind.memory, newBind.memoryOffset);
+    rdcpair<VkDeviceMemory, VkDeviceSize> mempair =
+        make_rdcpair(newBind.memory, newBind.memoryOffset);
 
     for(uint32_t z = offsInPages.z; z < offsInPages.z + extInPages.depth; z++)
     {
@@ -3823,7 +3824,7 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
   {
     const uint32_t width = 24, height = 24;
 
-    std::vector<std::pair<VkFormat, std::vector<uint32_t> > > tests = {
+    std::vector<rdcpair<VkFormat, std::vector<uint32_t> > > tests = {
         {VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM, {576, 144, 144}},
         {VK_FORMAT_G8_B8R8_2PLANE_420_UNORM, {576, 288}},
         {VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM, {576, 288, 288}},
@@ -3846,7 +3847,7 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
         {VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM, {1152, 1152, 1152}},
     };
 
-    for(std::pair<VkFormat, std::vector<uint32_t> > e : tests)
+    for(rdcpair<VkFormat, std::vector<uint32_t> > e : tests)
     {
       INFO("Format is " << ToStr(e.first));
       for(uint32_t p = 0; p < e.second.size(); p++)

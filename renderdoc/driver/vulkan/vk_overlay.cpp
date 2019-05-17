@@ -65,7 +65,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     VulkanRenderState &pipestate = m_pDriver->GetRenderState();
 
     // check cache first
-    pair<uint32_t, VkPipeline> pipe = m_PipelineCache[pipestate.graphics.pipeline];
+    rdcpair<uint32_t, VkPipeline> pipe = m_PipelineCache[pipestate.graphics.pipeline];
 
     // if we don't get a hit, create a modified pipeline
     if(pipe.second == VK_NULL_HANDLE)
@@ -266,7 +266,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   const vector<uint32_t> &m_Events;
 
   // cache modified pipelines
-  std::map<ResourceId, pair<uint32_t, VkPipeline> > m_PipelineCache;
+  std::map<ResourceId, rdcpair<uint32_t, VkPipeline> > m_PipelineCache;
   VulkanRenderState m_PrevState;
 };
 
@@ -2144,7 +2144,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       pipeCreateInfo.pVertexInputState = &vi;
       pipeCreateInfo.pColorBlendState = &cb;
 
-      typedef std::pair<uint32_t, Topology> PipeKey;
+      typedef rdcpair<uint32_t, Topology> PipeKey;
 
       std::map<PipeKey, VkPipeline> pipes;
 
@@ -2186,7 +2186,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
             binds[0].stride = binds[1].stride = fmt.vertexByteStride;
 
-            PipeKey key = std::make_pair(fmt.vertexByteStride, fmt.topology);
+            PipeKey key = make_rdcpair(fmt.vertexByteStride, fmt.topology);
             VkPipeline pipe = pipes[key];
 
             if(pipe == VK_NULL_HANDLE)

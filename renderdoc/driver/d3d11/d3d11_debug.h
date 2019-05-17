@@ -33,8 +33,6 @@
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "replay/replay_driver.h"
 
-using std::pair;
-
 class Camera;
 class Vec3f;
 

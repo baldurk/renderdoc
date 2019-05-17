@@ -140,7 +140,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
   int curtime = 0;
 
   std::vector<CaptureData> captures;
-  std::vector<pair<uint32_t, uint32_t> > children;
+  std::vector<rdcpair<uint32_t, uint32_t> > children;
   std::map<RDCDriver, bool> drivers;
   float prevCaptureProgress = captureProgress;
   uint32_t prevWindows = 0;
@@ -159,7 +159,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
     std::map<RDCDriver, bool> curdrivers = RenderDoc::Inst().GetActiveDrivers();
 
     std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
-    std::vector<pair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
+    std::vector<rdcpair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
 
     uint32_t curWindows = RenderDoc::Inst().GetCapturableWindowCount();
 

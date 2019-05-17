@@ -536,7 +536,7 @@ public:
     SPIRVId id = decl[1] = MakeId();
     AddType(decl);
 
-    table.insert(it, std::make_pair(t, id));
+    table.insert(it, std::pair<SPIRVType, SPIRVId>(t, id));
 
     return id;
   }

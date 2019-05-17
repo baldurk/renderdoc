@@ -812,7 +812,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
   if(sock == NULL)
     return;
 
-  std::vector<std::pair<uint32_t, uint32_t> > listenRanges;
+  std::vector<rdcpair<uint32_t, uint32_t> > listenRanges;
   bool allowExecution = true;
 
   FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("remoteserver.conf").c_str(), "r");
@@ -837,7 +837,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 
       if(found)
       {
-        listenRanges.push_back(std::make_pair(ip, mask));
+        listenRanges.push_back(make_rdcpair(ip, mask));
         continue;
       }
       else
@@ -868,9 +868,9 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
         "narrow "
         "this down or accept connections from more ranges.");
 
-    listenRanges.push_back(std::make_pair(Network::MakeIP(10, 0, 0, 0), 0xff000000));
-    listenRanges.push_back(std::make_pair(Network::MakeIP(172, 16, 0, 0), 0xfff00000));
-    listenRanges.push_back(std::make_pair(Network::MakeIP(192, 168, 0, 0), 0xffff0000));
+    listenRanges.push_back(make_rdcpair(Network::MakeIP(10, 0, 0, 0), 0xff000000));
+    listenRanges.push_back(make_rdcpair(Network::MakeIP(172, 16, 0, 0), 0xfff00000));
+    listenRanges.push_back(make_rdcpair(Network::MakeIP(192, 168, 0, 0), 0xffff0000));
   }
 
   RDCLOG("Allowing connections from:");
@@ -1031,7 +1031,7 @@ public:
 
     m_Proxies.reserve(m.size());
     for(auto it = m.begin(); it != m.end(); ++it)
-      m_Proxies.push_back(*it);
+      m_Proxies.push_back({it->first, it->second});
 
     m_LogcatThread = NULL;
   }
@@ -1858,7 +1858,7 @@ private:
   std::string m_hostname;
   Android::LogcatThread *m_LogcatThread;
 
-  std::vector<std::pair<RDCDriver, std::string> > m_Proxies;
+  std::vector<rdcpair<RDCDriver, std::string> > m_Proxies;
 };
 
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC

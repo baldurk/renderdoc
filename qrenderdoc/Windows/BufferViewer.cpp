@@ -2745,7 +2745,7 @@ void BufferViewer::render_clicked(QMouseEvent *e)
       uint32_t instanceSelected = 0;
       uint32_t vertSelected = 0;
 
-      std::tie(vertSelected, instanceSelected) =
+      rdctie(vertSelected, instanceSelected) =
           m_Output->PickVertex(m_Ctx.CurEvent(), (uint32_t)curpos.x(), (uint32_t)curpos.y());
 
       if(vertSelected != ~0U)

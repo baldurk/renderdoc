@@ -1423,7 +1423,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
 struct ReplacementSearch
 {
-  bool operator()(const pair<ResourceId, Replacement> &a, ResourceId b) { return a.first < b; }
+  bool operator()(const rdcpair<ResourceId, Replacement> &a, ResourceId b) { return a.first < b; }
 };
 
 void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
@@ -1519,7 +1519,7 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
                                    from, ReplacementSearch());
               m_DependentReplacements.insert(
                   insertPos,
-                  std::make_pair(from, Replacement(origsrcid, ProgramRes(GetCtx(), progdst))));
+                  make_rdcpair(from, Replacement(origsrcid, ProgramRes(GetCtx(), progdst))));
             }
 
             break;
@@ -1576,7 +1576,7 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
                                  from, ReplacementSearch());
             m_DependentReplacements.insert(
                 insertPos,
-                std::make_pair(from, Replacement(origsrcid, ProgramPipeRes(GetCtx(), pipedst))));
+                make_rdcpair(from, Replacement(origsrcid, ProgramPipeRes(GetCtx(), pipedst))));
           }
         }
       }

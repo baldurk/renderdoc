@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
-#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -124,6 +123,32 @@ struct rdcpair
   A first;
   B second;
 
+  rdcpair(const A &a, const B &b) : first(a), second(b) {}
+  rdcpair() = default;
+  rdcpair(const rdcpair<A, B> &o) = default;
+  rdcpair(rdcpair<A, B> &&o) = default;
+  ~rdcpair() = default;
+  inline void swap(rdcpair<A, B> &o)
+  {
+    std::swap(first, o.first);
+    std::swap(second, o.second);
+  }
+
+  template <typename A_, typename B_>
+  rdcpair<A, B> &operator=(const rdcpair<A_, B_> &o)
+  {
+    first = o.first;
+    second = o.second;
+    return *this;
+  }
+
+  rdcpair<A, B> &operator=(const rdcpair<A, B> &o)
+  {
+    first = o.first;
+    second = o.second;
+    return *this;
+  }
+
   bool operator==(const rdcpair<A, B> &o) const { return first == o.first && second == o.second; }
   bool operator<(const rdcpair<A, B> &o) const
   {
@@ -131,16 +156,18 @@ struct rdcpair
       return first < o.first;
     return second < o.second;
   }
-  operator std::tuple<A &, B &>() { return std::tie(first, second); }
 };
 
 template <typename A, typename B>
 rdcpair<A, B> make_rdcpair(const A &a, const B &b)
 {
-  rdcpair<A, B> ret;
-  ret.first = a;
-  ret.second = b;
-  return ret;
+  return rdcpair<A, B>(a, b);
+}
+
+template <typename A, typename B>
+rdcpair<A &, B &> rdctie(A &a, B &b)
+{
+  return rdcpair<A &, B &>(a, b);
 }
 
 // utility class that adds a NULL terminator to array operations only if T == char

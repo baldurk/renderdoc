@@ -27,7 +27,7 @@
 #ifdef RENDERDOC_QT_COMPAT
 
 typedef rdcarray<rdcpair<rdcstr, QVariant> > ExtensionCallbackData;
-#define make_pyarg make_rdcpair<rdcstr, QVariant>
+#define make_pyarg rdcpair<rdcstr, QVariant>
 
 #endif
 

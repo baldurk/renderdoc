@@ -30,8 +30,6 @@
 #include "replay/replay_driver.h"
 #include "gl_common.h"
 
-using std::pair;
-
 class AMDCounters;
 class IntelGlCounters;
 class WrappedOpenGL;

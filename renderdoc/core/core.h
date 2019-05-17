@@ -39,7 +39,6 @@
 #include "os/os_specific.h"
 
 using std::vector;
-using std::pair;
 
 class Chunk;
 struct RDCThumb;
@@ -437,9 +436,9 @@ public:
   void AddChildProcess(uint32_t pid, uint32_t ident)
   {
     SCOPED_LOCK(m_ChildLock);
-    m_Children.push_back(std::make_pair(pid, ident));
+    m_Children.push_back(make_rdcpair(pid, ident));
   }
-  vector<pair<uint32_t, uint32_t> > GetChildProcesses()
+  vector<rdcpair<uint32_t, uint32_t> > GetChildProcesses()
   {
     SCOPED_LOCK(m_ChildLock);
     return m_Children;
@@ -618,7 +617,7 @@ private:
   vector<CaptureData> m_Captures;
 
   Threading::CriticalSection m_ChildLock;
-  vector<pair<uint32_t, uint32_t> > m_Children;
+  vector<rdcpair<uint32_t, uint32_t> > m_Children;
 
   std::map<std::string, std::string> m_ConfigSettings;
 

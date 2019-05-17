@@ -458,7 +458,7 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t 
 
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(eventId);
 
-  const rdcpair<uint32_t, uint32_t> errorReturn = make_rdcpair(~0U, ~0U);
+  const rdcpair<uint32_t, uint32_t> errorReturn = {~0U, ~0U};
 
   if(!draw)
     return errorReturn;

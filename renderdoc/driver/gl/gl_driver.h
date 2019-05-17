@@ -257,7 +257,7 @@ private:
 
   std::map<ResourceId, BufferData> m_Buffers;
 
-  vector<pair<ResourceId, Replacement>> m_DependentReplacements;
+  vector<rdcpair<ResourceId, Replacement>> m_DependentReplacements;
 
   // this object is only created on old captures where VAO0 was a single global object. In new
   // captures each context has its own VAO0.

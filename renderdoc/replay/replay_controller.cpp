@@ -1924,7 +1924,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
   rdcarray<ShaderEncoding> encodings = m_pDevice->GetTargetShaderEncodings();
 
   if(encodings.indexOf(sourceEncoding) == -1)
-    return make_rdcpair<ResourceId, rdcstr>(
+    return rdcpair<ResourceId, rdcstr>(
         ResourceId(),
         StringFormat::Fmt("Shader Encoding '%s' is not supported", ToStr(sourceEncoding).c_str()));
 
@@ -1947,7 +1947,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
   if(id != ResourceId())
     m_TargetResources.insert(id);
 
-  return make_rdcpair<ResourceId, rdcstr>(id, errs);
+  return rdcpair<ResourceId, rdcstr>(id, errs);
 }
 
 rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
@@ -1974,7 +1974,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
   if(id != ResourceId())
     m_CustomShaders.insert(id);
 
-  return make_rdcpair<ResourceId, rdcstr>(id, errs);
+  return rdcpair<ResourceId, rdcstr>(id, errs);
 }
 
 void ReplayController::FreeTargetResource(ResourceId id)

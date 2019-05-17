@@ -822,7 +822,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
         SCOPED_LOCK(setrecord->descInfo->refLock);
 
-        const std::map<ResourceId, pair<uint32_t, FrameRefType>> &frameRefs =
+        const std::map<ResourceId, rdcpair<uint32_t, FrameRefType>> &frameRefs =
             setrecord->descInfo->bindFrameRefs;
 
         for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)

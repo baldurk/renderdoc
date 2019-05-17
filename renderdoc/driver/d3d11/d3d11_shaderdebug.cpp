@@ -1213,8 +1213,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   }
 
   vector<std::string> floatInputs;
-  vector<pair<std::string, pair<uint32_t, uint32_t>>>
-      arrays;    // name, pair<start semantic index, end semantic index>
+  // name, pair<start semantic index, end semantic index>
+  vector<rdcpair<rdcstr, rdcpair<uint32_t, uint32_t>>> arrays;
   std::vector<std::string> inputVarNames;
 
   uint32_t nextreg = 0;
@@ -1394,9 +1394,8 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       }
 
       if(arrayLength > 0)
-        arrays.push_back(
-            std::make_pair(dxbc->m_InputSig[i].semanticName,
-                           std::make_pair(dxbc->m_InputSig[i].semanticIndex, nextIdx - 1)));
+        arrays.push_back(make_rdcpair(dxbc->m_InputSig[i].semanticName,
+                                      make_rdcpair(dxbc->m_InputSig[i].semanticIndex, nextIdx - 1)));
     }
 
     // as another side effect of the above, an element declared as a 1-length array won't be

@@ -960,7 +960,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           // subpass
           uint32_t &sub = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
 
-          std::vector<std::pair<ResourceId, ImageRegionState> > imgbarriers;
+          std::vector<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
           for(sub = m_RenderState.subpass; sub < numSubpasses - 1; sub++)
           {
@@ -2545,7 +2545,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         if(IsLoading(m_State))
         {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(std::make_pair(
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
               GetResID(pBufferMemoryBarriers[i].buffer),
               EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
         }
@@ -2566,7 +2566,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         if(IsLoading(m_State))
         {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(std::make_pair(
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
               GetResID(pImageMemoryBarriers[i].image),
               EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
         }
@@ -3977,9 +3977,9 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
   // since it's relatively expensive to walk the memory, we gather frame references at the same time
   // as unwrapping
-  std::vector<std::pair<ResourceId, FrameRefType> > frameRefs;
-  std::vector<std::pair<VkBufferView, FrameRefType> > bufViewFrameRefs;
-  std::vector<std::pair<VkDescriptorBufferInfo, FrameRefType> > bufFrameRefs;
+  std::vector<rdcpair<ResourceId, FrameRefType> > frameRefs;
+  std::vector<rdcpair<VkBufferView, FrameRefType> > bufViewFrameRefs;
+  std::vector<rdcpair<VkDescriptorBufferInfo, FrameRefType> > bufFrameRefs;
 
   {
     DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;
@@ -4004,7 +4004,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkBufferView *bufView = (VkBufferView *)dst;
 
-          bufViewFrameRefs.push_back(std::make_pair(*bufView, ref));
+          bufViewFrameRefs.push_back(make_rdcpair(*bufView, ref));
 
           *bufView = Unwrap(*bufView);
         }
@@ -4030,14 +4030,14 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           if(hasSampler)
           {
-            frameRefs.push_back(std::make_pair(GetResID(info->sampler), eFrameRef_Read));
+            frameRefs.push_back(make_rdcpair(GetResID(info->sampler), eFrameRef_Read));
             info->sampler = Unwrap(info->sampler);
           }
           if(hasImage)
           {
-            frameRefs.push_back(std::make_pair(GetResID(info->imageView), eFrameRef_Read));
+            frameRefs.push_back(make_rdcpair(GetResID(info->imageView), eFrameRef_Read));
             if(GetRecord(info->imageView)->baseResource != ResourceId())
-              frameRefs.push_back(std::make_pair(GetRecord(info->imageView)->baseResource, ref));
+              frameRefs.push_back(make_rdcpair(GetRecord(info->imageView)->baseResource, ref));
             info->imageView = Unwrap(info->imageView);
           }
         }
@@ -4050,7 +4050,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkDescriptorBufferInfo *info = (VkDescriptorBufferInfo *)dst;
 
-          bufFrameRefs.push_back(std::make_pair(*info, ref));
+          bufFrameRefs.push_back(make_rdcpair(*info, ref));
 
           info->buffer = Unwrap(info->buffer);
         }

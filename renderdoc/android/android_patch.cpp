@@ -354,12 +354,12 @@ bool ReinstallPatchedAPK(const std::string &deviceID, const std::string &apk, co
 bool CheckPatchingRequirements()
 {
   // check for required tools for patching
-  std::vector<std::pair<ToolDir, std::string>> requirements;
+  std::vector<rdcpair<ToolDir, std::string>> requirements;
   std::vector<std::string> missingTools;
-  requirements.push_back(std::make_pair(ToolDir::BuildTools, "aapt"));
-  requirements.push_back(std::make_pair(ToolDir::BuildTools, "zipalign"));
-  requirements.push_back(std::make_pair(ToolDir::BuildToolsLib, "apksigner.jar"));
-  requirements.push_back(std::make_pair(ToolDir::Java, "java"));
+  requirements.push_back({ToolDir::BuildTools, "aapt"});
+  requirements.push_back({ToolDir::BuildTools, "zipalign"});
+  requirements.push_back({ToolDir::BuildToolsLib, "apksigner.jar"});
+  requirements.push_back({ToolDir::Java, "java"});
 
   for(uint32_t i = 0; i < requirements.size(); i++)
   {

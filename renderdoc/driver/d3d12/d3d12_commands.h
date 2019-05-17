@@ -40,7 +40,7 @@ struct D3D12DrawcallTreeNode
 
   D3D12RenderState *state = NULL;
 
-  vector<pair<ResourceId, EventUsage> > resourceUsage;
+  vector<rdcpair<ResourceId, EventUsage> > resourceUsage;
 
   vector<ResourceId> executedCmds;
 
@@ -196,7 +196,7 @@ struct BakedCmdListInfo
   vector<DebugMessage> debugMessages;
   std::list<D3D12DrawcallTreeNode *> drawStack;
 
-  vector<pair<ResourceId, EventUsage> > resourceUsage;
+  vector<rdcpair<ResourceId, EventUsage> > resourceUsage;
 
   ResourceId allocator;
   D3D12_COMMAND_LIST_TYPE type;

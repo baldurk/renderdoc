@@ -563,24 +563,6 @@ struct D3D12ResourceRecord : public ResourceRecord
     cmdInfo->bundles.swap(bakedCommands->cmdInfo->bundles);
   }
 
-  void Insert(std::map<int32_t, Chunk *> &recordlist)
-  {
-    bool dataWritten = DataWritten;
-
-    DataWritten = true;
-
-    for(auto it = Parents.begin(); it != Parents.end(); ++it)
-    {
-      if(!(*it)->DataWritten)
-      {
-        (*it)->Insert(recordlist);
-      }
-    }
-
-    if(!dataWritten)
-      recordlist.insert(m_Chunks.begin(), m_Chunks.end());
-  }
-
   D3D12ResourceType type;
   bool ContainsExecuteIndirect;
   D3D12ResourceRecord *bakedCommands;

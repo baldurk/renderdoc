@@ -900,7 +900,7 @@ struct ResourceInfo
   VkExtent3D pagedim;
   // pagetable per image aspect (some may be NULL) color, depth, stencil, metadata
   // in order of width first, then height, then depth
-  pair<VkDeviceMemory, VkDeviceSize> *pages[NUM_VK_IMAGE_ASPECTS];
+  rdcpair<VkDeviceMemory, VkDeviceSize> *pages[NUM_VK_IMAGE_ASPECTS];
 
   bool IsSparse() const { return pages[0] != NULL; }
   void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings);
@@ -917,7 +917,7 @@ struct CmdBufferRecordingInfo
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
 
-  vector<pair<ResourceId, ImageRegionState> > imgbarriers;
+  vector<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
   // sparse resources referenced by this command buffer (at submit time
   // need to go through the sparse mapping and reference all memory)
@@ -966,7 +966,7 @@ struct DescriptorSetData
   // the refcount has the high-bit set if this resource has sparse
   // mapping information
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
-  std::map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
+  std::map<ResourceId, rdcpair<uint32_t, FrameRefType> > bindFrameRefs;
   std::map<ResourceId, MemRefs> bindMemRefs;
 };
 
@@ -1064,7 +1064,7 @@ FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, Resour
   auto refs = memRefs.find(mem);
   if(refs == memRefs.end())
   {
-    memRefs.insert(std::make_pair(mem, MemRefs(offset, size, refType)));
+    memRefs.insert(std::pair<ResourceId, MemRefs>(mem, MemRefs(offset, size, refType)));
     return refType;
   }
   else
@@ -1123,7 +1123,7 @@ public:
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
-    pair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[id];
+    rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[id];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
       p.second = ref;
@@ -1145,7 +1145,7 @@ public:
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
-    pair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[mem];
+    rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[mem];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
       descInfo->bindMemRefs.erase(mem);

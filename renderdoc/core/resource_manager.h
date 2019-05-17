@@ -303,7 +303,7 @@ struct ResourceRecord
     if(ID == 0)
       ID = GetID();
     LockChunks();
-    m_Chunks.push_back(std::make_pair(ID, chunk));
+    m_Chunks.push_back({ID, chunk});
     UnlockChunks();
   }
 
@@ -417,7 +417,7 @@ protected:
     return Atomic::Inc32(&globalIDCounter);
   }
 
-  std::vector<std::pair<int32_t, Chunk *>> m_Chunks;
+  std::vector<rdcpair<int32_t, Chunk *>> m_Chunks;
   Threading::CriticalSection *m_ChunkLock;
 
   std::map<ResourceId, FrameRefType> m_FrameRefs;

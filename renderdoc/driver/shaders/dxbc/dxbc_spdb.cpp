@@ -36,8 +36,6 @@
 #define SPDBLOG(...) (void)(__VA_ARGS__)
 #endif
 
-using std::make_pair;
-
 namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
@@ -171,7 +169,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
       if(filename[0] == 0)
         filename = "shader";
 
-      Files.push_back(make_pair(filename, (char *)fileContents.Data()));
+      Files.push_back({filename, (char *)fileContents.Data()});
     }
   }
 
@@ -929,7 +927,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
               }
             }
 
-            Files.push_back(make_pair("@cmdline", cmdlineDefines));
+            Files.push_back({"@cmdline", cmdlineDefines});
           }
 
           key = value + strlen(value) + 1;
@@ -1488,7 +1486,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             // source according to #line
             if(!name.empty())
             {
-              Files.push_back(make_pair(name, ""));
+              Files.push_back({name, ""});
 
               FileMapping[chunkOffs] = (int32_t)Files.size() - 1;
             }
@@ -1666,8 +1664,8 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
 
   // Sort files according to the order they come in the Names array, this seems to be more reliable
   // about placing the main file first.
-  std::sort(Files.begin(), Files.end(), [&Names](const std::pair<std::string, std::string> &a,
-                                                 const std::pair<std::string, std::string> &b) {
+  std::sort(Files.begin(), Files.end(), [&Names](const rdcpair<std::string, std::string> &a,
+                                                 const rdcpair<std::string, std::string> &b) {
     // any entries that aren't found in Names at all (like @cmdline that we add) will be sorted to
     // the end.
     size_t aIdx = ~0U, bIdx = ~0U;

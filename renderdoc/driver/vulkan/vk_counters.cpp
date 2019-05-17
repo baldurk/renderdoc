@@ -265,7 +265,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
-    m_AliasEvents.push_back(std::make_pair(primary, alias));
+    m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
 
   uint32_t *m_pSampleId;
@@ -277,7 +277,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  vector<pair<uint32_t, uint32_t> > m_AliasEvents;
+  vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
@@ -428,7 +428,7 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   }
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
-    m_AliasEvents.push_back(std::make_pair(primary, alias));
+    m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
 
   void PreEndCommandBuffer(VkCommandBuffer cmd) override {}
@@ -442,7 +442,7 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  vector<pair<uint32_t, uint32_t> > m_AliasEvents;
+  vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &counters)

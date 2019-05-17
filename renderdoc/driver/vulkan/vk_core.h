@@ -102,7 +102,7 @@ struct VulkanDrawcallTreeNode
 
   VkIndirectPatchData indirectPatch;
 
-  vector<pair<ResourceId, EventUsage>> resourceUsage;
+  vector<rdcpair<ResourceId, EventUsage>> resourceUsage;
 
   vector<ResourceId> executedCmds;
 
@@ -524,7 +524,7 @@ private:
 
     int markerCount;
 
-    std::vector<std::pair<ResourceId, EventUsage>> resourceUsage;
+    std::vector<rdcpair<ResourceId, EventUsage>> resourceUsage;
 
     struct CmdBufferState
     {
@@ -556,7 +556,7 @@ private:
       } conditionalRendering;
     } state;
 
-    std::vector<std::pair<ResourceId, ImageRegionState>> imgbarriers;
+    std::vector<rdcpair<ResourceId, ImageRegionState>> imgbarriers;
 
     ResourceId pushDescriptorID[2][64];
 
@@ -659,7 +659,7 @@ private:
   // we store the list here, since we need to keep all command buffers until the whole replay is
   // finished, but if a command buffer is re-recorded multiple times it would be overwritten in the
   // above map
-  std::vector<std::pair<VkCommandPool, VkCommandBuffer>> m_RerecordCmdList;
+  std::vector<rdcpair<VkCommandPool, VkCommandBuffer>> m_RerecordCmdList;
 
   // There is only a state while currently partially replaying, it's
   // undefined/empty otherwise.

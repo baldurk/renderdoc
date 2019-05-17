@@ -733,7 +733,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       SCOPED_SERIALISE_CHUNK(5);
 
       std::vector<int> v;
-      std::pair<float, std::string> p;
+      rdcpair<float, std::string> p;
       std::list<uint16_t> l;
 
       v.push_back(1);
@@ -743,7 +743,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       v.push_back(5);
       v.push_back(8);
 
-      p = std::make_pair(3.14159f, "M_PI");
+      p = {3.14159f, "M_PI"};
 
       l.push_back(2U);
       l.push_back(3U);
@@ -770,7 +770,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     CHECK(chunkID == 5);
 
     std::vector<int> v;
-    std::pair<float, std::string> p;
+    rdcpair<float, std::string> p;
     std::list<uint16_t> l;
 
     SERIALISE_ELEMENT(v);
@@ -819,7 +819,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     ser.ReadChunk<uint32_t>();
     {
       std::vector<int32_t> v;
-      std::pair<float, std::string> p;
+      rdcpair<float, std::string> p;
       std::list<uint16_t> l;
 
       SERIALISE_ELEMENT(v);

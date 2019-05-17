@@ -29,8 +29,6 @@
 #include "core/resource_manager.h"
 #include "vk_resources.h"
 
-using std::pair;
-
 class WrappedVulkan;
 
 struct MemIDOffset
@@ -254,17 +252,18 @@ public:
 
   // handling memory & image layouts
   template <typename SrcBarrierType>
-  void RecordSingleBarrier(vector<pair<ResourceId, ImageRegionState> > &states, ResourceId id,
+  void RecordSingleBarrier(vector<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
-  void RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
+  void RecordBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &states,
                       const std::map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
-  void MergeBarriers(vector<pair<ResourceId, ImageRegionState> > &dststates,
-                     vector<pair<ResourceId, ImageRegionState> > &srcstates);
+  void MergeBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
+                     vector<rdcpair<ResourceId, ImageRegionState> > &srcstates);
 
-  void ApplyBarriers(uint32_t queueFamilyIndex, vector<pair<ResourceId, ImageRegionState> > &states,
+  void ApplyBarriers(uint32_t queueFamilyIndex,
+                     vector<rdcpair<ResourceId, ImageRegionState> > &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
   template <typename SerialiserType>

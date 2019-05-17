@@ -34,7 +34,6 @@
 #include "dxbc_disassemble.h"
 
 using std::vector;
-using std::pair;
 
 // matches D3D11_SHADER_VERSION_TYPE from d3d11shader.h
 enum D3D11_ShaderType
@@ -326,7 +325,7 @@ public:
 
   virtual uint32_t GetShaderCompileFlags() const = 0;
 
-  vector<pair<std::string, std::string> > Files;    // <filename, source>
+  vector<rdcpair<std::string, std::string> > Files;    // <filename, source>
 
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
 

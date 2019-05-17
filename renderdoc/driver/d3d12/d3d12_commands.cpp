@@ -1407,7 +1407,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, 
   if(id == ResourceId())
     return;
 
-  drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(EID, usage)));
+  drawNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(EID, usage)));
 }
 
 void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode)
@@ -1434,23 +1434,23 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
 
     if(d.flags & DrawFlags::Indexed && state.ibuffer.buf != ResourceId())
       drawNode.resourceUsage.push_back(
-          std::make_pair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
+          make_rdcpair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
 
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
       if(state.vbuffers[i].buf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
+            make_rdcpair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
     }
 
     for(size_t i = 0; i < state.streamouts.size(); i++)
     {
       if(state.streamouts[i].buf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.streamouts[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
+            make_rdcpair(state.streamouts[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
       if(state.streamouts[i].countbuf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
+            make_rdcpair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
     }
 
     vector<ResourceId> rts = state.GetRTVIDs();
@@ -1459,13 +1459,13 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
     {
       if(rts[i] != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(rts[i], EventUsage(e, ResourceUsage::ColorTarget)));
+            make_rdcpair(rts[i], EventUsage(e, ResourceUsage::ColorTarget)));
     }
 
     ResourceId id = state.GetDSVID();
     if(id != ResourceId())
       drawNode.resourceUsage.push_back(
-          std::make_pair(id, EventUsage(e, ResourceUsage::DepthStencilTarget)));
+          make_rdcpair(id, EventUsage(e, ResourceUsage::DepthStencilTarget)));
   }
 
   if(rootdata)

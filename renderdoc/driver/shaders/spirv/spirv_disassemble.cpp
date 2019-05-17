@@ -32,9 +32,6 @@
 #include "strings/string_utils.h"
 #include "spirv_common.h"
 
-using std::pair;
-using std::make_pair;
-
 #undef min
 #undef max
 
@@ -614,7 +611,7 @@ struct SPVTypeData
   vector<SPVDecoration> *decorations;
 
   // struct/function
-  vector<pair<SPVTypeData *, std::string> > children;
+  vector<rdcpair<SPVTypeData *, std::string> > children;
   vector<vector<SPVDecoration> > childDecorations;    // matches children
 
   // array
@@ -1385,7 +1382,7 @@ struct SPVInstruction
             }
             else
             {
-              const pair<SPVTypeData *, std::string> &child = arg0type->children[idx];
+              const rdcpair<SPVTypeData *, std::string> &child = arg0type->children[idx];
               if(child.second.empty())
                 accessString += StringFormat::Fmt("._member%u", idx);
               else
@@ -2535,7 +2532,7 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
 
     for(size_t a = 0; a < func->funcType->children.size(); a++)
     {
-      const pair<SPVTypeData *, std::string> &arg = func->funcType->children[a];
+      const rdcpair<SPVTypeData *, std::string> &arg = func->funcType->children[a];
       RDCASSERT(a < func->arguments.size());
       const SPVInstruction *argname = func->arguments[a];
 
@@ -2915,7 +2912,7 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
     //     Branch 123
     //     Label 123
     // that we want to keep, to identify breaks and fallthroughs
-    vector<pair<uint32_t, SPVFlowControl *> > switchstack;
+    vector<rdcpair<uint32_t, SPVFlowControl *> > switchstack;
 
     // find redundant branch/label pairs
     for(size_t l = 0; l < funcops.size() - 1;)
@@ -2923,7 +2920,7 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
       if(funcops[l]->opcode == spv::OpSwitch)
       {
         RDCASSERT(l > 0 && funcops[l - 1]->opcode == spv::OpSelectionMerge);
-        switchstack.push_back(std::make_pair(funcops[l - 1]->flow->targets[0], funcops[l]->flow));
+        switchstack.push_back(make_rdcpair(funcops[l - 1]->flow->targets[0], funcops[l]->flow));
       }
 
       if(funcops[l]->opcode == spv::OpLabel)
@@ -3409,7 +3406,7 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
 
           indent += tabSize;
 
-          switchstack.push_back(std::make_pair(selectionstack.back().id, funcops[o]->flow));
+          switchstack.push_back(make_rdcpair(selectionstack.back().id, funcops[o]->flow));
         }
         else
         {
@@ -4982,7 +4979,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
         if(WordCount > 4)
         {
-          std::pair<std::string, std::string> sourceFile;
+          rdcpair<std::string, std::string> sourceFile;
 
           SPVInstruction *filenameInst = module.GetByID(spirv[it + 3]);
           RDCASSERT(filenameInst);
@@ -5046,7 +5043,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       {
         if(!module.sourceFiles.empty())
         {
-          std::pair<std::string, std::string> &sourceFile = module.sourceFiles.back();
+          rdcpair<std::string, std::string> &sourceFile = module.sourceFiles.back();
 
           sourceFile.second += (const char *)&spirv[it + 1];
         }
@@ -5272,7 +5269,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
           RDCASSERT(memberInst && memberInst->type);
 
           // names might come later from OpMemberName instructions
-          op.type->children.push_back(make_pair(memberInst->type, ""));
+          op.type->children.push_back({memberInst->type, ""});
           op.type->childDecorations.push_back(vector<SPVDecoration>());
         }
 
@@ -5354,7 +5351,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
           RDCASSERT(argInst && argInst->type);
 
           // function parameters have no name
-          op.type->children.push_back(make_pair(argInst->type, ""));
+          op.type->children.push_back({argInst->type, ""});
           op.type->childDecorations.push_back(vector<SPVDecoration>());
         }
 
