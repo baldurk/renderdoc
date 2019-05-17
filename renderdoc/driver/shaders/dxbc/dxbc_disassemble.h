@@ -31,8 +31,6 @@
 #include "api/replay/renderdoc_replay.h"
 #include "driver/dx/official/d3dcommon.h"
 
-using std::vector;
-
 namespace DXBC
 {
 /////////////////////////////////////////////////////////////////////////
@@ -739,8 +737,8 @@ struct ASMOperand
                        //		.xyzw = {  0,  1,  2,  3 }
                        //		.wzyx = {  3,  2,  1,  0 }
 
-  vector<ASMIndex> indices;    // indices for this register.
-                               // 0 means this is a special register, specified by type alone.
+  std::vector<ASMIndex> indices;    // indices for this register.
+                                    // 0 means this is a special register, specified by type alone.
   // 1 is probably most common. Indicates ASMIndex specifies the register
   // 2 is for constant buffers, array inputs etc. [0] indicates the cbuffer, [1] indicates the
   // cbuffer member
@@ -855,8 +853,8 @@ struct ASMDecl
 
   ASMOperand operand;    // many decls use an operand to declare things
 
-  vector<uint32_t> immediateData;    // raw data (like default value of operand) for immediate
-                                     // constant buffer decl
+  std::vector<uint32_t> immediateData;    // raw data (like default value of operand) for immediate
+                                          // constant buffer decl
 
   // opcode specific data
 
@@ -988,7 +986,7 @@ struct ASMOperation
   ResourceRetType resType[4];    // return type (e.g. for a sample operation)
   uint32_t stride;
 
-  vector<ASMOperand> operands;
+  std::vector<ASMOperand> operands;
 };
 
 };    // DXBC

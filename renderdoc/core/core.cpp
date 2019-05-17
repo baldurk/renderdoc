@@ -654,7 +654,7 @@ std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, in
 
   if(activeWindow)
   {
-    vector<RENDERDOC_InputButton> keys = GetCaptureKeys();
+    std::vector<RENDERDOC_InputButton> keys = GetCaptureKeys();
 
     if(capturesEnabled)
     {
@@ -716,7 +716,7 @@ std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, in
   }
   else if(capturesEnabled)
   {
-    vector<RENDERDOC_InputButton> keys = GetFocusKeys();
+    std::vector<RENDERDOC_InputButton> keys = GetFocusKeys();
 
     overlayText += "Inactive window.";
 

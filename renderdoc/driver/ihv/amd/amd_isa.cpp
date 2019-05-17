@@ -216,14 +216,14 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
 
   if(amdil)
   {
-    vector<byte> data;
+    std::vector<byte> data;
     FileIO::slurp(StringFormat::Fmt("%sout.il", tempPath.c_str()).c_str(), data);
 
     ret = std::string(data.data(), data.data() + data.size());
   }
   else
   {
-    vector<byte> data;
+    std::vector<byte> data;
     FileIO::slurp(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str(), data);
 
     ret = std::string(data.data(), data.data() + data.size());
@@ -368,7 +368,7 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   std::string ret;
 
   {
-    vector<byte> data;
+    std::vector<byte> data;
     FileIO::slurp(outPath.c_str(), data);
     ret = std::string(data.data(), data.data() + data.size());
 

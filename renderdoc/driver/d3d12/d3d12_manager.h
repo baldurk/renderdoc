@@ -420,7 +420,7 @@ struct D3D12ResourceRecord;
 
 struct CmdListRecordingInfo
 {
-  vector<D3D12_RESOURCE_BARRIER> barriers;
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
 
   // a list of all resources dirtied by this command list
   std::set<ResourceId> dirtied;
@@ -432,10 +432,10 @@ struct CmdListRecordingInfo
   // expand a bit more to contain duplicates and then deal with it during frame
   // capture, than to constantly be deduplicating during record (e.g. with a
   // set or sorted vector).
-  vector<D3D12Descriptor *> boundDescs;
+  std::vector<D3D12Descriptor *> boundDescs;
 
   // bundles executed
-  vector<D3D12ResourceRecord *> bundles;
+  std::vector<D3D12ResourceRecord *> bundles;
 };
 
 class WrappedID3D12Resource1;
@@ -580,7 +580,7 @@ struct D3D12ResourceRecord : public ResourceRecord
   size_t m_MapsCount;
 };
 
-typedef vector<D3D12_RESOURCE_STATES> SubresourceStateVector;
+typedef std::vector<D3D12_RESOURCE_STATES> SubresourceStateVector;
 
 struct D3D12InitialContents
 {
@@ -694,7 +694,7 @@ public:
     return (T *)GetCurrentResource(id);
   }
 
-  void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,
+  void ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers,
                      std::map<ResourceId, SubresourceStateVector> &states);
 
   template <typename SerialiserType>

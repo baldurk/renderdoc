@@ -1320,7 +1320,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
-    vector<DescriptorSetBindingElement *> &bindings = m_DescriptorSetState[id].currentBindings;
+    std::vector<DescriptorSetBindingElement *> &bindings = m_DescriptorSetState[id].currentBindings;
 
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {

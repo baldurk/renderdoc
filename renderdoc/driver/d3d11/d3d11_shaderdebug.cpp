@@ -772,7 +772,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_pDevice->GetLayoutDesc(rs->IA.Layout);
+  std::vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
   std::set<UINT> vertexbuffers;
   uint32_t trackingOffs[32] = {0};
@@ -1088,7 +1088,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   State last;
 
-  vector<ShaderDebugState> states;
+  std::vector<ShaderDebugState> states;
 
   if(dxbc->m_DebugInfo)
     dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
@@ -1197,7 +1197,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   if(prevdxbc == NULL && vs != NULL)
     prevdxbc = vs->GetDXBC();
 
-  vector<DataOutput> initialValues;
+  std::vector<DataOutput> initialValues;
 
   std::string extractHlsl = "struct PSInput\n{\n";
 
@@ -1212,9 +1212,9 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     structureStride += 4;
   }
 
-  vector<std::string> floatInputs;
+  std::vector<std::string> floatInputs;
   // name, pair<start semantic index, end semantic index>
-  vector<rdcpair<rdcstr, rdcpair<uint32_t, uint32_t>>> arrays;
+  std::vector<rdcpair<rdcstr, rdcpair<uint32_t, uint32_t>>> arrays;
   std::vector<std::string> inputVarNames;
 
   uint32_t nextreg = 0;
@@ -2261,7 +2261,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   SAFE_DELETE_ARRAY(initialData);
   SAFE_DELETE_ARRAY(evalData);
 
-  vector<ShaderDebugState> states;
+  std::vector<ShaderDebugState> states;
 
   if(dxbc->m_DebugInfo)
     dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, quad[destIdx].locals);
@@ -2467,7 +2467,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     initialState.semantics.ThreadID[i] = threadid[i];
   }
 
-  vector<ShaderDebugState> states;
+  std::vector<ShaderDebugState> states;
 
   if(dxbc->m_DebugInfo)
     dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);

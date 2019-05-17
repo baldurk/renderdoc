@@ -2629,10 +2629,11 @@ bool ReplayProxy::Tick(int type)
       break;
     }
     case eReplayProxy_RenderOverlay:
-      RenderOverlay(ResourceId(), CompType::Typeless, DebugOverlay::NoOverlay, 0, vector<uint32_t>());
+      RenderOverlay(ResourceId(), CompType::Typeless, DebugOverlay::NoOverlay, 0,
+                    std::vector<uint32_t>());
       break;
     case eReplayProxy_PixelHistory:
-      PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, CompType::Typeless);
+      PixelHistory(std::vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, CompType::Typeless);
       break;
     case eReplayProxy_DisassembleShader: DisassembleShader(ResourceId(), NULL, ""); break;
     case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;

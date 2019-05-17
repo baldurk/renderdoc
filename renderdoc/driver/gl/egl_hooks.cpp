@@ -158,7 +158,7 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
 
   LibraryHooks::Refresh();
 
-  vector<EGLint> attribs;
+  std::vector<EGLint> attribs;
 
   // modify attribList to our liking
   {

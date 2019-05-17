@@ -43,7 +43,7 @@
 struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 {
   D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, D3D12_SHADER_BYTECODE quadWrite,
-                            const vector<uint32_t> &events, PortableHandle uav)
+                            const std::vector<uint32_t> &events, PortableHandle uav)
       : m_pDevice(dev), m_QuadWritePS(quadWrite), m_Events(events), m_UAV(uav)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
@@ -252,7 +252,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
   WrappedID3D12Device *m_pDevice;
   D3D12_SHADER_BYTECODE m_QuadWritePS;
-  const vector<uint32_t> &m_Events;
+  const std::vector<uint32_t> &m_Events;
   PortableHandle m_UAV;
 
   // cache modified pipelines
@@ -268,7 +268,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 };
 
 ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventId, const vector<uint32_t> &passEvents)
+                                      uint32_t eventId, const std::vector<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
 
@@ -371,10 +371,10 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
-    const vector<D3D12_RESOURCE_STATES> &states =
+    const std::vector<D3D12_RESOURCE_STATES> &states =
         m_pDevice->GetSubresourceStates(GetResID(realDepth));
 
-    vector<D3D12_RESOURCE_BARRIER> depthBarriers;
+    std::vector<D3D12_RESOURCE_BARRIER> depthBarriers;
     depthBarriers.reserve(states.size());
     for(size_t i = 0; i < states.size(); i++)
     {
@@ -713,7 +713,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   }
   else if(overlay == DebugOverlay::ClearBeforePass || overlay == DebugOverlay::ClearBeforeDraw)
   {
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -825,7 +825,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     {
       SCOPED_TIMER("Triangle size");
 
-      vector<uint32_t> events = passEvents;
+      std::vector<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::TriangleSizeDraw)
         events.clear();
@@ -1019,7 +1019,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   {
     SCOPED_TIMER("Quad Overdraw");
 
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::QuadOverdrawDraw)
       events.clear();

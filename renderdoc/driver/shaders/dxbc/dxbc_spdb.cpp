@@ -84,7 +84,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
   PageMapping directoryMapping(pages, header->PageSize, (uint32_t *)rootdirIndices, rootdirCount);
   const uint32_t *dirContents = (const uint32_t *)directoryMapping.Data();
 
-  vector<PDBStream> streams;
+  std::vector<PDBStream> streams;
 
   streams.resize(*dirContents);
   dirContents++;
@@ -711,7 +711,7 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
     }
   }
 
-  vector<DBIModule> modules;
+  std::vector<DBIModule> modules;
 
   {
     PageMapping dbiMapping(pages, header->PageSize, &streams[3].pageIndices[0],

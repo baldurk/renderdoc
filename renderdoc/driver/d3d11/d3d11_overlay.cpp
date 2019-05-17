@@ -40,7 +40,7 @@
 #include "data/hlsl/hlsl_cbuffers.h"
 
 ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventId, const vector<uint32_t> &passEvents)
+                                      uint32_t eventId, const std::vector<uint32_t> &passEvents)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
 
@@ -572,7 +572,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   }
   else if(overlay == DebugOverlay::ClearBeforePass || overlay == DebugOverlay::ClearBeforeDraw)
   {
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -659,7 +659,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
 
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::TriangleSizeDraw)
       events.clear();
@@ -785,7 +785,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
   {
     SCOPED_TIMER("Quad Overdraw");
 
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::QuadOverdrawDraw)
       events.clear();

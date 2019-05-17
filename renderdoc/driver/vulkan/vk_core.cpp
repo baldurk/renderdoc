@@ -260,7 +260,7 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
   if(m_InternalCmds.pendingcmds.empty())
     return;
 
-  vector<VkCommandBuffer> cmds = m_InternalCmds.pendingcmds;
+  std::vector<VkCommandBuffer> cmds = m_InternalCmds.pendingcmds;
   for(size_t i = 0; i < cmds.size(); i++)
     cmds[i] = Unwrap(cmds[i]);
 
@@ -3557,12 +3557,12 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
     if(fb != ResourceId() && rp != ResourceId())
     {
-      vector<VulkanCreationInfo::Framebuffer::Attachment> &atts =
+      std::vector<VulkanCreationInfo::Framebuffer::Attachment> &atts =
           m_CreationInfo.m_Framebuffer[fb].attachments;
 
       RDCASSERT(sp < m_CreationInfo.m_RenderPass[rp].subpasses.size());
 
-      vector<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].colorAttachments;
+      std::vector<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].colorAttachments;
       int32_t dsAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].depthstencilAttachment;
 
       RDCASSERT(colAtt.size() <= ARRAY_COUNT(draw.outputs));
@@ -3598,9 +3598,9 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
   if(hasEvents)
   {
-    vector<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
-                                      ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
-                                      : m_RootEvents;
+    std::vector<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
+                                           ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
+                                           : m_RootEvents;
 
     draw.events = srcEvents;
     srcEvents.clear();
@@ -3624,7 +3624,8 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages)
+void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
+                             std::vector<DebugMessage> &debugMessages)
 {
   DrawcallDescription &d = drawNode.draw;
 
@@ -3675,7 +3676,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
     ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
 
     // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
-    const vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descSets =
+    const std::vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descSets =
         (shad == 5 ? state.computeDescSets : state.graphicsDescSets);
 
     RDCASSERT(sh.mapping);

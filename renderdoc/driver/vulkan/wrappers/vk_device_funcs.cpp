@@ -91,7 +91,7 @@ void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
 // and
 // instance are destroyed. We only clean up after our own objects.
 
-static void StripUnwantedLayers(vector<std::string> &Layers)
+static void StripUnwantedLayers(std::vector<std::string> &Layers)
 {
   for(auto it = Layers.begin(); it != Layers.end();)
   {

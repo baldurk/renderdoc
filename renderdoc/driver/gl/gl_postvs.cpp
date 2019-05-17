@@ -265,7 +265,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     drv.glAttachShader(feedbackProg, dummyFrag);
 
   std::list<std::string> matrixVaryings;    // matrices need some fixup
-  vector<const char *> varyings;
+  std::vector<const char *> varyings;
 
   CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);
 
@@ -525,7 +525,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
                   drawcall->numIndices * drawcall->indexByteWidth, idxdata);
 
-    vector<uint32_t> indices;
+    std::vector<uint32_t> indices;
 
     uint8_t *idx8 = (uint8_t *)&idxdata[0];
     uint16_t *idx16 = (uint16_t *)&idxdata[0];
@@ -1504,7 +1504,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   drv.glDeleteShader(dummyFrag);
 }
 
-void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
+void GLReplay::InitPostVSBuffers(const std::vector<uint32_t> &passEvents)
 {
   uint32_t prev = 0;
 

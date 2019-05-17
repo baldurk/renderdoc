@@ -1453,7 +1453,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
             make_rdcpair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
     }
 
-    vector<ResourceId> rts = state.GetRTVIDs();
+    std::vector<ResourceId> rts = state.GetRTVIDs();
 
     for(size_t i = 0; i < rts.size(); i++)
     {
@@ -1619,7 +1619,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
     draw.topology = MakePrimitiveTopology(m_BakedCmdListInfo[m_LastCmdListID].state.topo);
     draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.ibuffer.bytewidth;
 
-    vector<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
+    std::vector<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
 
     for(size_t i = 0; i < ARRAY_COUNT(draw.outputs); i++)
     {
@@ -1645,9 +1645,9 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
 
   if(hasEvents)
   {
-    vector<APIEvent> &srcEvents = m_LastCmdListID != ResourceId()
-                                      ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
-                                      : m_RootEvents;
+    std::vector<APIEvent> &srcEvents = m_LastCmdListID != ResourceId()
+                                           ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
+                                           : m_RootEvents;
 
     draw.events = srcEvents;
     srcEvents.clear();
@@ -1672,7 +1672,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
 }
 
 void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
-                                                vector<D3D12DrawcallTreeNode> &cmdBufNodes)
+                                                std::vector<D3D12DrawcallTreeNode> &cmdBufNodes)
 {
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)

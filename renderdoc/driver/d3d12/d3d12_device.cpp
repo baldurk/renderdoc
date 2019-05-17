@@ -799,7 +799,7 @@ void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain4 *swap)
   }
 }
 
-void WrappedID3D12Device::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers)
+void WrappedID3D12Device::ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers)
 {
   SCOPED_LOCK(m_ResourceStatesLock);
   GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
@@ -2590,7 +2590,7 @@ void WrappedID3D12Device::ExecuteLists(WrappedID3D12CommandQueue *queue, bool In
   if(m_InternalCmds.pendingcmds.empty())
     return;
 
-  vector<ID3D12CommandList *> cmds;
+  std::vector<ID3D12CommandList *> cmds;
   cmds.resize(m_InternalCmds.pendingcmds.size());
   for(size_t i = 0; i < cmds.size(); i++)
     cmds[i] = m_InternalCmds.pendingcmds[i];

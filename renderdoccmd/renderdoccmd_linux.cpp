@@ -42,8 +42,6 @@
 
 #include <replay/renderdoc_replay.h>
 
-using std::vector;
-
 void Daemonise()
 {
   // don't change dir, but close stdin/stdou

@@ -55,9 +55,9 @@ D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
   return *this;
 }
 
-vector<ResourceId> D3D12RenderState::GetRTVIDs() const
+std::vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 {
-  vector<ResourceId> ret;
+  std::vector<ResourceId> ret;
 
   for(UINT i = 0; i < rts.size(); i++)
   {

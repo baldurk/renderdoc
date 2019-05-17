@@ -35,8 +35,6 @@
 #include <Psapi.h>
 #include <tlhelp32.h>
 
-using std::vector;
-
 static std::string conv(const std::wstring &str)
 {
   std::string ret;

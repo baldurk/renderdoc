@@ -418,7 +418,7 @@ struct SPVEntryPoint
   uint32_t func;
   spv::ExecutionModel model;
   std::string name;
-  vector<SPVExecutionMode> modes;
+  std::vector<SPVExecutionMode> modes;
 };
 
 struct SPVTypeData
@@ -474,7 +474,7 @@ struct SPVTypeData
 
   bool IsBasicInt() const { return type == eUInt || type == eSInt; }
   bool IsScalar() const { return type < eBasicCount && type != eVoid; }
-  std::string DeclareVariable(const vector<SPVDecoration> &vardecorations,
+  std::string DeclareVariable(const std::vector<SPVDecoration> &vardecorations,
                               const std::string &varName);
 
   const std::string &GetName()
@@ -608,11 +608,11 @@ struct SPVTypeData
     return VarType::Unknown;
   }
 
-  vector<SPVDecoration> *decorations;
+  std::vector<SPVDecoration> *decorations;
 
   // struct/function
-  vector<rdcpair<SPVTypeData *, std::string> > children;
-  vector<vector<SPVDecoration> > childDecorations;    // matches children
+  std::vector<rdcpair<SPVTypeData *, std::string> > children;
+  std::vector<std::vector<SPVDecoration> > childDecorations;    // matches children
 
   // array
   SPVConstant *arraySizeConst = NULL;
@@ -663,7 +663,7 @@ struct SPVOperation
   spv::MemorySemanticsMask semantics, semanticsUnequal;
 
   // OpExtInst
-  vector<uint32_t> literals;
+  std::vector<uint32_t> literals;
 
   // OpFunctionCall
   uint32_t funcCall;
@@ -683,7 +683,7 @@ struct SPVOperation
 
   // arguments always reference IDs that already exist (branch/flow
   // control type statements aren't SPVOperations)
-  vector<SPVInstruction *> arguments;
+  std::vector<SPVInstruction *> arguments;
 
   struct
   {
@@ -697,7 +697,7 @@ struct SPVOperation
     SPVInstruction *minLod;
   } im;
 
-  void GetArg(const vector<SPVInstruction *> &ids, size_t idx, std::string &arg,
+  void GetArg(const std::vector<SPVInstruction *> &ids, size_t idx, std::string &arg,
               bool bracketArgumentsIfNeeded = true);
 };
 
@@ -729,7 +729,7 @@ struct SPVConstant
     SamplerData sampler;
   };
 
-  vector<SPVConstant *> children;
+  std::vector<SPVConstant *> children;
 
   uint32_t EvaluateIntValue()
   {
@@ -929,16 +929,16 @@ struct SPVFlowControl
   SPVInstruction *condition;
 
   // branch weights or switch cases
-  vector<uint32_t> literals;
+  std::vector<uint32_t> literals;
 
   // flow control can reference future IDs, so we index
-  vector<uint32_t> targets;
+  std::vector<uint32_t> targets;
 };
 
 struct SPVBlock
 {
   SPVBlock() : mergeFlow(NULL), exitFlow(NULL) {}
-  vector<SPVInstruction *> instructions;
+  std::vector<SPVInstruction *> instructions;
 
   SPVInstruction *mergeFlow;
   SPVInstruction *exitFlow;
@@ -949,12 +949,12 @@ struct SPVFunction
   SPVFunction() : retType(NULL), funcType(NULL), control(spv::FunctionControlMaskNone) {}
   SPVTypeData *retType;
   SPVTypeData *funcType;
-  vector<SPVInstruction *> arguments;
+  std::vector<SPVInstruction *> arguments;
 
   spv::FunctionControlMask control;
 
-  vector<SPVInstruction *> blocks;
-  vector<SPVInstruction *> variables;
+  std::vector<SPVInstruction *> blocks;
+  std::vector<SPVInstruction *> variables;
 };
 
 struct SPVInstruction
@@ -1022,7 +1022,7 @@ struct SPVInstruction
     return str;
   }
 
-  std::string Disassemble(const vector<SPVInstruction *> &ids, bool inlineOp)
+  std::string Disassemble(const std::vector<SPVInstruction *> &ids, bool inlineOp)
   {
     switch(opcode)
     {
@@ -2088,7 +2088,7 @@ struct SPVInstruction
     return ret;
   }
 
-  vector<SPVDecoration> decorations;
+  std::vector<SPVDecoration> decorations;
 
   // zero or one of these pointers might be set
   SPVExtInstSet *ext;       // this ID is an extended instruction set
@@ -2102,7 +2102,7 @@ struct SPVInstruction
   SPVVariable *var;         // this ID is a variable
 };
 
-std::string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorations,
+std::string SPVTypeData::DeclareVariable(const std::vector<SPVDecoration> &vardecorations,
                                          const std::string &varName)
 {
   std::string ret = "";
@@ -2178,7 +2178,7 @@ std::string SPVTypeData::DeclareVariable(const vector<SPVDecoration> &vardecorat
   return ret;
 }
 
-void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, std::string &arg,
+void SPVOperation::GetArg(const std::vector<SPVInstruction *> &ids, size_t idx, std::string &arg,
                           bool bracketArgumentsIfNeeded)
 {
   if(inlineArgs & (1 << idx))
@@ -2550,8 +2550,8 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
                                    OptionalFlagString(func->control).c_str());
 
     // local copy of variables vector
-    vector<SPVInstruction *> vars = func->variables;
-    vector<SPVInstruction *> funcops;
+    std::vector<SPVInstruction *> vars = func->variables;
+    std::vector<SPVInstruction *> funcops;
 
     for(size_t b = 0; b < func->blocks.size(); b++)
     {
@@ -2912,7 +2912,7 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
     //     Branch 123
     //     Label 123
     // that we want to keep, to identify breaks and fallthroughs
-    vector<rdcpair<uint32_t, SPVFlowControl *> > switchstack;
+    std::vector<rdcpair<uint32_t, SPVFlowControl *> > switchstack;
 
     // find redundant branch/label pairs
     for(size_t l = 0; l < funcops.size() - 1;)
@@ -3111,12 +3111,12 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
       bool elseif;
     };
 
-    vector<sel> selectionstack;
-    vector<uint32_t> elsestack;
+    std::vector<sel> selectionstack;
+    std::vector<uint32_t> elsestack;
 
-    vector<uint32_t> loopheadstack;
-    vector<uint32_t> loopstartstack;
-    vector<uint32_t> loopmergestack;
+    std::vector<uint32_t> loopheadstack;
+    std::vector<uint32_t> loopstartstack;
+    std::vector<uint32_t> loopmergestack;
 
     std::string funcDisassembly = "";
 
@@ -3143,8 +3143,8 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
           else
           {
             SPVInstruction *cond = switchstack.back().second->condition;
-            vector<uint32_t> &targets = switchstack.back().second->targets;
-            vector<uint32_t> &values = switchstack.back().second->literals;
+            std::vector<uint32_t> &targets = switchstack.back().second->targets;
+            std::vector<uint32_t> &values = switchstack.back().second->literals;
             for(size_t t = 0; t < targets.size(); t++)
             {
               if(targets[t] == funcops[o]->id)
@@ -3312,7 +3312,7 @@ std::string SPVModule::Disassemble(const std::string &entryPoint)
           }
           else
           {
-            vector<uint32_t> &targets = switchstack.back().second->targets;
+            std::vector<uint32_t> &targets = switchstack.back().second->targets;
             for(size_t t = 0; t < targets.size(); t++)
             {
               if(targets[t] == funcops[o]->flow->targets[0])
@@ -3920,8 +3920,8 @@ typedef bindpair<ShaderResource> shaderrespair;
 
 void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_t structID,
                            uint32_t &regIndex, std::vector<uint32_t> accessChain, std::string varName,
-                           SPVTypeData *type, const vector<SPVDecoration> &decorations,
-                           vector<SigParameter> &sigarray, SPIRVPatchData &patchData)
+                           SPVTypeData *type, const std::vector<SPVDecoration> &decorations,
+                           std::vector<SigParameter> &sigarray, SPIRVPatchData &patchData)
 {
   SigParameter sig;
 
@@ -4156,10 +4156,10 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
                                const std::string &entryPoint, ShaderReflection &reflection,
                                ShaderBindpointMapping &mapping, SPIRVPatchData &patchData) const
 {
-  vector<SigParameter> inputs;
-  vector<SigParameter> outputs;
-  vector<cblockpair> cblocks;
-  vector<shaderrespair> samplers, roresources, rwresources;
+  std::vector<SigParameter> inputs;
+  std::vector<SigParameter> outputs;
+  std::vector<cblockpair> cblocks;
+  std::vector<shaderrespair> samplers, roresources, rwresources;
 
   // VKTODOLOW filter to only functions/resources used by entryPoint
   reflection.entryPoint = entryPoint;
@@ -4202,7 +4202,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
     if(inst->var->storage == spv::StorageClassInput || inst->var->storage == spv::StorageClassOutput)
     {
       bool isInput = inst->var->storage == spv::StorageClassInput;
-      vector<SigParameter> *sigarray = (isInput ? &inputs : &outputs);
+      std::vector<SigParameter> *sigarray = (isInput ? &inputs : &outputs);
 
       std::string nm;
       // try to use the instance/variable name
@@ -4282,7 +4282,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
         if(inst->var->type->type == SPVTypeData::ePointer &&
            inst->var->type->baseType->type == SPVTypeData::eStruct)
         {
-          vector<vector<SPVDecoration> > &childDecorations =
+          std::vector<std::vector<SPVDecoration> > &childDecorations =
               inst->var->type->baseType->childDecorations;
 
           for(size_t c = 0; c < childDecorations.size(); c++)
@@ -4777,8 +4777,8 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
   // sort system value semantics to the start of the list
   struct sig_param_sort
   {
-    sig_param_sort(const vector<SigParameter> &arr) : sigArray(arr) {}
-    const vector<SigParameter> &sigArray;
+    sig_param_sort(const std::vector<SigParameter> &arr) : sigArray(arr) {}
+    const std::vector<SigParameter> &sigArray;
 
     bool operator()(const size_t idxA, const size_t idxB)
     {
@@ -5270,7 +5270,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
           // names might come later from OpMemberName instructions
           op.type->children.push_back({memberInst->type, ""});
-          op.type->childDecorations.push_back(vector<SPVDecoration>());
+          op.type->childDecorations.push_back(std::vector<SPVDecoration>());
         }
 
         module.structs.push_back(&op);
@@ -5352,7 +5352,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
           // function parameters have no name
           op.type->children.push_back({argInst->type, ""});
-          op.type->childDecorations.push_back(vector<SPVDecoration>());
+          op.type->childDecorations.push_back(std::vector<SPVDecoration>());
         }
 
         SPVInstruction *baseTypeInst = module.GetByID(spirv[it + 2]);

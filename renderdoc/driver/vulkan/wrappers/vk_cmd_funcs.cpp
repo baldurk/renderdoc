@@ -234,7 +234,7 @@ std::string WrappedVulkan::MakeRenderPassOpString(bool store)
   const VulkanCreationInfo::Framebuffer &fbinfo =
       m_CreationInfo.m_Framebuffer[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer];
 
-  const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
+  const std::vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
 
   if(atts.empty())
   {

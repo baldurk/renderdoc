@@ -175,11 +175,11 @@ int64_t nextTLSSlot = 0;
 
 struct TLSData
 {
-  vector<void *> data;
+  std::vector<void *> data;
 };
 
 static CriticalSection *m_TLSListLock = NULL;
-static vector<TLSData *> *m_TLSList = NULL;
+static std::vector<TLSData *> *m_TLSList = NULL;
 
 void Init()
 {
@@ -188,7 +188,7 @@ void Init()
     RDCFATAL("Can't allocate OS TLS slot");
 
   m_TLSListLock = new CriticalSection();
-  m_TLSList = new vector<TLSData *>();
+  m_TLSList = new std::vector<TLSData *>();
 }
 
 void Shutdown()

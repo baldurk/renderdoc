@@ -874,7 +874,7 @@ struct SwapchainInfo
     VkImageView view;
     VkFramebuffer fb;
   };
-  vector<SwapImage> images;
+  std::vector<SwapImage> images;
   uint32_t lastPresent;
 };
 
@@ -889,7 +889,7 @@ struct ResourceInfo
   }
 
   // for buffers or non-sparse-resident images (bound with opaque mappings)
-  vector<VkSparseMemoryBind> opaquemappings;
+  std::vector<VkSparseMemoryBind> opaquemappings;
 
   VkMemoryRequirements memreqs;
 
@@ -917,7 +917,7 @@ struct CmdBufferRecordingInfo
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
 
-  vector<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
+  std::vector<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
   // sparse resources referenced by this command buffer (at submit time
   // need to go through the sparse mapping and reference all memory)
@@ -931,7 +931,7 @@ struct CmdBufferRecordingInfo
   // submit with latest binding refs.
   std::set<VkDescriptorSet> boundDescSets;
 
-  vector<VkResourceRecord *> subcmds;
+  std::vector<VkResourceRecord *> subcmds;
 
   std::map<ResourceId, MemRefs> memFrameRefs;
 
@@ -955,7 +955,7 @@ struct DescriptorSetData
 
   // descriptor set bindings for this descriptor set. Filled out on
   // create from the layout.
-  vector<DescriptorSetBindingElement *> descBindings;
+  std::vector<DescriptorSetBindingElement *> descBindings;
 
   // lock protecting bindFrameRefs and bindMemRefs
   Threading::CriticalSection refLock;
@@ -1241,7 +1241,7 @@ public:
   // pointer to either the pool this item is allocated from, or the children allocated
   // from this pool. Protected by the chunk lock
   VkResourceRecord *pool;
-  vector<VkResourceRecord *> pooledChildren;
+  std::vector<VkResourceRecord *> pooledChildren;
 
   // we only need a couple of bytes to store the view's range,
   // so just pack/unpack into bitfields
@@ -1325,7 +1325,7 @@ struct ImageLayouts
   }
 
   uint32_t queueFamilyIndex = 0;
-  vector<ImageRegionState> subresourceStates;
+  std::vector<ImageRegionState> subresourceStates;
   int layerCount, levelCount, sampleCount;
   VkExtent3D extent;
   VkFormat format;

@@ -1979,7 +1979,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   }
 
   uint32_t bufStride = 0;
-  vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
+  std::vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
 
   struct CompactedAttrBuffer
   {
@@ -3287,7 +3287,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
 struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
 {
-  VulkanInitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
+  VulkanInitPostVSCallback(WrappedVulkan *vk, const std::vector<uint32_t> &events)
       : m_pDriver(vk), m_Events(events)
   {
     m_pDriver->SetDrawcallCB(this);
@@ -3320,7 +3320,7 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   const std::vector<uint32_t> &m_Events;
 };
 
-void VulkanReplay::InitPostVSBuffers(const vector<uint32_t> &events)
+void VulkanReplay::InitPostVSBuffers(const std::vector<uint32_t> &events)
 {
   // first we must replay up to the first event without replaying it. This ensures any
   // non-command buffer calls like memory unmaps etc all happen correctly before this

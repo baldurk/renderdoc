@@ -160,7 +160,7 @@ void Process::ApplyEnvironmentModification()
   LPWCH envStrings = GetEnvironmentStringsW();
   EnvMap envValues = EnvStringToEnvMap(envStrings);
   FreeEnvironmentStringsW(envStrings);
-  vector<EnvironmentModification> &modifications = GetEnvModifications();
+  std::vector<EnvironmentModification> &modifications = GetEnvModifications();
 
   ApplyEnvModifications(envValues, modifications, true);
 

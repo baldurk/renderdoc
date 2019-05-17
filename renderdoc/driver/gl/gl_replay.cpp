@@ -103,9 +103,9 @@ const SDFile &GLReplay::GetStructuredFile()
   return m_pDriver->GetStructuredFile();
 }
 
-vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
+std::vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
 {
-  vector<uint32_t> passEvents;
+  std::vector<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
@@ -135,9 +135,9 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
   return passEvents;
 }
 
-vector<WindowingSystem> GLReplay::GetSupportedWindowSystems()
+std::vector<WindowingSystem> GLReplay::GetSupportedWindowSystems()
 {
-  vector<WindowingSystem> ret;
+  std::vector<WindowingSystem> ret;
 
 #if ENABLED(RDOC_LINUX)
   // only Xlib supported for GLX. We can't report XCB here since we need
@@ -698,7 +698,7 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
   return ret;
 }
 
-vector<DebugMessage> GLReplay::GetDebugMessages()
+std::vector<DebugMessage> GLReplay::GetDebugMessages()
 {
   return m_pDriver->GetDebugMessages();
 }
@@ -732,9 +732,9 @@ ShaderReflection *GLReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
   return &shaderDetails.reflection;
 }
 
-vector<std::string> GLReplay::GetDisassemblyTargets()
+std::vector<std::string> GLReplay::GetDisassemblyTargets()
 {
-  vector<std::string> ret;
+  std::vector<std::string> ret;
 
   // default is always first
   ret.insert(ret.begin(), SPIRVDisassemblyTarget);
@@ -2081,7 +2081,7 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
         }
         else
         {
-          vector<ShaderVariable> elems;
+          std::vector<ShaderVariable> elems;
           for(uint32_t a = 0; a < desc.elements; a++)
           {
             ShaderVariable el = var;
@@ -3055,7 +3055,7 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
           {
             GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, intFormat);
 
-            vector<byte> dummy;
+            std::vector<byte> dummy;
             dummy.resize(compSize);
 
             if(dim == 1)
@@ -3341,17 +3341,18 @@ void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
   m_pDriver->glNamedBufferSubDataEXT(buf, 0, dataSize, data);
 }
 
-vector<EventUsage> GLReplay::GetUsage(ResourceId id)
+std::vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 {
   return m_pDriver->GetUsage(id);
 }
 
-vector<PixelModification> GLReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                 uint32_t x, uint32_t y, uint32_t slice,
-                                                 uint32_t mip, uint32_t sampleIdx, CompType typeHint)
+std::vector<PixelModification> GLReplay::PixelHistory(std::vector<EventUsage> events,
+                                                      ResourceId target, uint32_t x, uint32_t y,
+                                                      uint32_t slice, uint32_t mip,
+                                                      uint32_t sampleIdx, CompType typeHint)
 {
   GLNOTIMP("GLReplay::PixelHistory");
-  return vector<PixelModification>();
+  return std::vector<PixelModification>();
 }
 
 ShaderDebugTrace GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,

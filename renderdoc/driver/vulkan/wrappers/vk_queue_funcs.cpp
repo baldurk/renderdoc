@@ -517,7 +517,7 @@ bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescript
 
 void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 {
-  vector<VulkanDrawcallTreeNode> &cmdBufNodes = cmdBufInfo.draw->children;
+  std::vector<VulkanDrawcallTreeNode> &cmdBufNodes = cmdBufInfo.draw->children;
 
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)

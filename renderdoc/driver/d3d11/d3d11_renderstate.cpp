@@ -1154,7 +1154,7 @@ bool D3D11RenderState::InputAssembler::Used_VB(WrappedID3D11Device *device, uint
   if(Layout == NULL)
     return false;
 
-  const vector<D3D11_INPUT_ELEMENT_DESC> &vec = device->GetLayoutDesc(Layout);
+  const std::vector<D3D11_INPUT_ELEMENT_DESC> &vec = device->GetLayoutDesc(Layout);
 
   for(size_t i = 0; i < vec.size(); i++)
     if(vec[i].InputSlot == slot)

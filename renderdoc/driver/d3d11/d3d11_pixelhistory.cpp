@@ -280,12 +280,12 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
     SAFE_RELEASE(curCSUAV[i]);
 }
 
-vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                    uint32_t x, uint32_t y, uint32_t slice,
-                                                    uint32_t mip, uint32_t sampleIdx,
-                                                    CompType typeHint)
+std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage> events,
+                                                         ResourceId target, uint32_t x, uint32_t y,
+                                                         uint32_t slice, uint32_t mip,
+                                                         uint32_t sampleIdx, CompType typeHint)
 {
-  vector<PixelModification> history;
+  std::vector<PixelModification> history;
 
   // this function needs a *huge* amount of tidying, refactoring and documenting.
 
@@ -331,7 +331,7 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
            (uint32_t)events.size());
 
   // these occlusion queries are run with every test possible disabled
-  vector<ID3D11Query *> occl;
+  std::vector<ID3D11Query *> occl;
   occl.reserve(events.size());
 
   ID3D11Query *testQueries[6] = {0};    // one query for each test we do per-drawcall
@@ -649,7 +649,7 @@ vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, R
 
   // while issuing the above queries we can check to see which tests are enabled so we don't
   // bother checking if depth testing failed if the depth test was disabled
-  vector<uint32_t> flags(events.size());
+  std::vector<uint32_t> flags(events.size());
   enum
   {
     TestEnabled_BackfaceCulling = 1 << 0,

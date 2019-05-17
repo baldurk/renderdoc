@@ -314,7 +314,7 @@ private:
   D3D11ShaderCache *m_ShaderCache = NULL;
   D3D11ResourceManager *m_ResourceManager = NULL;
 
-  vector<std::string> m_ShaderSearchPaths;
+  std::vector<std::string> m_ShaderSearchPaths;
 
   D3D11InitParams m_InitParams;
   uint64_t m_SectionVersion;
@@ -366,7 +366,7 @@ private:
   void CachedObjectsGarbageCollect();
 
   std::set<WrappedID3D11DeviceContext *> m_DeferredContexts;
-  std::map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
+  std::map<ID3D11InputLayout *, std::vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
   std::map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
 
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
@@ -381,11 +381,11 @@ private:
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
-  vector<DebugMessage> m_DebugMessages;
+  std::vector<DebugMessage> m_DebugMessages;
 
-  vector<FrameDescription> m_CapturedFrames;
+  std::vector<FrameDescription> m_CapturedFrames;
   FrameRecord m_FrameRecord;
-  vector<DrawcallDescription *> m_Drawcalls;
+  std::vector<DrawcallDescription *> m_Drawcalls;
 
 public:
   static const int AllocPoolCount = 4;
@@ -445,12 +445,12 @@ public:
   std::vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
-  const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout)
+  const std::vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout)
   {
     return m_LayoutDescs[layout];
   }
 
-  vector<std::string> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
+  std::vector<std::string> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
 

@@ -1190,7 +1190,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         RDCLOG("Activating new GL context: %s / %s / %s", GL.glGetString(eGL_VENDOR),
                GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
 
-      const vector<std::string> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
+      const std::vector<std::string> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
 
       if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&
          RenderDoc::Inst().GetCaptureOptions().apiValidation)
@@ -1199,7 +1199,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         GL.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
       }
 
-      vector<std::string> implExts;
+      std::vector<std::string> implExts;
 
       int ctxVersion = 0;
       bool ctxGLES = false;
@@ -4571,7 +4571,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     // we don't have duplicate uses
     for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
     {
-      vector<EventUsage> &v = it->second;
+      std::vector<EventUsage> &v = it->second;
       std::sort(v.begin(), v.end());
       v.erase(std::unique(v.begin(), v.end()), v.end());
     }

@@ -89,7 +89,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 
       if(lz4 || originalShaderSize >= m_Bytecode.size())
       {
-        vector<byte> originalBytecode;
+        std::vector<byte> originalBytecode;
 
         originalBytecode.resize((size_t)originalShaderSize);
         FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize,
@@ -97,7 +97,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 
         if(lz4)
         {
-          vector<byte> decompressed;
+          std::vector<byte> decompressed;
 
           // first try decompressing to 1MB flat
           decompressed.resize(100 * 1024);

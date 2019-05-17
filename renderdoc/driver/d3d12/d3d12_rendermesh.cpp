@@ -213,7 +213,7 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   return cache;
 }
 
-void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
+void D3D12Replay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
 {
   if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
@@ -645,16 +645,16 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const vector<MeshFormat> &seconda
     FloatVector activeVertex;
 
     // primitive this vert is a part of (red prim, optional)
-    vector<FloatVector> activePrim;
+    std::vector<FloatVector> activePrim;
 
     // for patch lists, to show other verts in patch (green dots, optional)
     // for non-patch lists, we use the activePrim and adjacentPrimVertices
     // to show what other verts are related
-    vector<FloatVector> inactiveVertices;
+    std::vector<FloatVector> inactiveVertices;
 
     // adjacency (line or tri, strips or lists) (green prims, optional)
     // will be N*M long, N adjacent prims of M verts each. M = primSize below
-    vector<FloatVector> adjacentPrimVertices;
+    std::vector<FloatVector> adjacentPrimVertices;
 
     helper.topology = Topology::TriangleList;
     uint32_t primSize = 3;    // number of verts per primitive

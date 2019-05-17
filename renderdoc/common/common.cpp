@@ -318,7 +318,7 @@ void rdclog_filename(const char *filename)
 
     if(logfileOpened && previous.c_str())
     {
-      vector<unsigned char> previousContents;
+      std::vector<unsigned char> previousContents;
       FileIO::slurp(previous.c_str(), previousContents);
 
       if(!previousContents.empty())

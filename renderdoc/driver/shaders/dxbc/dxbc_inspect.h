@@ -33,8 +33,6 @@
 #include "common/common.h"
 #include "dxbc_disassemble.h"
 
-using std::vector;
-
 // matches D3D11_SHADER_VERSION_TYPE from d3d11shader.h
 enum D3D11_ShaderType
 {
@@ -262,7 +260,7 @@ struct CBufferVariableType
   // if a struct, these are variables for each member (this can obviously nest). Not all
   // elements of the nested member descriptor are valid, as this might not be in a cbuffer,
   // but might be a loose structure
-  vector<CBufferVariable> members;
+  std::vector<CBufferVariable> members;
 };
 
 struct CBufferVariable
@@ -325,7 +323,7 @@ public:
 
   virtual uint32_t GetShaderCompileFlags() const = 0;
 
-  vector<rdcpair<std::string, std::string> > Files;    // <filename, source>
+  std::vector<rdcpair<std::string, std::string> > Files;    // <filename, source>
 
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
 
@@ -354,29 +352,29 @@ public:
   ShaderStatistics m_ShaderStats;
   DXBCDebugChunk *m_DebugInfo;
 
-  vector<uint32_t> m_Immediate;
+  std::vector<uint32_t> m_Immediate;
 
   bool m_GuessedResources;
-  vector<ShaderInputBind> m_SRVs;
-  vector<ShaderInputBind> m_UAVs;
+  std::vector<ShaderInputBind> m_SRVs;
+  std::vector<ShaderInputBind> m_UAVs;
 
-  vector<ShaderInputBind> m_Samplers;
+  std::vector<ShaderInputBind> m_Samplers;
 
-  vector<CBuffer> m_CBuffers;
+  std::vector<CBuffer> m_CBuffers;
 
   CBuffer m_Interfaces;
 
   std::map<std::string, CBufferVariableType> m_ResourceBinds;
 
-  vector<SigParameter> m_InputSig;
-  vector<SigParameter> m_OutputSig;
-  vector<SigParameter> m_PatchConstantSig;
+  std::vector<SigParameter> m_InputSig;
+  std::vector<SigParameter> m_OutputSig;
+  std::vector<SigParameter> m_PatchConstantSig;
 
   uint32_t DispatchThreadsDimension[3];
 
-  vector<uint32_t> m_HexDump;
+  std::vector<uint32_t> m_HexDump;
 
-  vector<byte> m_ShaderBlob;
+  std::vector<byte> m_ShaderBlob;
 
   const std::string &GetDisassembly()
   {
@@ -419,9 +417,9 @@ private:
 
   bool m_Disassembled;
 
-  vector<ASMDecl>
+  std::vector<ASMDecl>
       m_Declarations;    // declarations of inputs, outputs, constant buffers, temp registers etc.
-  vector<ASMOperation> m_Instructions;
+  std::vector<ASMOperation> m_Instructions;
 
   std::string m_Disassembly;
 };

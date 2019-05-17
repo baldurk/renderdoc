@@ -78,7 +78,7 @@ struct Module
   IDiaSession *pSession;
 };
 
-vector<Module> modules;
+std::vector<Module> modules;
 
 std::wstring GetSymSearchPath()
 {
@@ -411,7 +411,7 @@ private:
 
   void Collect();
 
-  vector<DWORD64> m_AddrStack;
+  std::vector<DWORD64> m_AddrStack;
 };
 
 class Win32CallstackResolver : public Callstack::StackResolver
@@ -436,7 +436,7 @@ private:
 
   std::vector<std::string> pdbRememberedPaths;
   std::vector<std::string> pdbIgnores;
-  vector<Module> modules;
+  std::vector<Module> modules;
 
   char pipeMessageBuf[2048];
 };

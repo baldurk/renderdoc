@@ -32,9 +32,9 @@
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
 
-vector<GPUCounter> D3D11Replay::EnumerateCounters()
+std::vector<GPUCounter> D3D11Replay::EnumerateCounters()
 {
-  vector<GPUCounter> ret;
+  std::vector<GPUCounter> ret;
 
   ret.push_back(GPUCounter::EventGPUDuration);
   ret.push_back(GPUCounter::InputVerticesRead);
@@ -52,19 +52,19 @@ vector<GPUCounter> D3D11Replay::EnumerateCounters()
 
   if(m_pAMDCounters)
   {
-    vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
+    std::vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
     ret.insert(ret.end(), amdCounters.begin(), amdCounters.end());
   }
 
   if(m_pNVCounters)
   {
-    vector<GPUCounter> nvCounters = m_pNVCounters->GetPublicCounterIds();
+    std::vector<GPUCounter> nvCounters = m_pNVCounters->GetPublicCounterIds();
     ret.insert(ret.end(), nvCounters.begin(), nvCounters.end());
   }
 
   if(m_pIntelCounters)
   {
-    vector<GPUCounter> intelCounters = m_pIntelCounters->GetPublicCounterIds();
+    std::vector<GPUCounter> intelCounters = m_pIntelCounters->GetPublicCounterIds();
     ret.insert(ret.end(), intelCounters.begin(), intelCounters.end());
   }
 
@@ -231,7 +231,7 @@ struct GPUTimer
 struct D3D11CounterContext
 {
   uint32_t eventStart;
-  vector<GPUTimer> timers;
+  std::vector<GPUTimer> timers;
 };
 
 void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode)
@@ -333,7 +333,7 @@ void D3D11Replay::SerializeImmediateContext()
 }
 
 void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
-                                vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
+                                std::vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
 {
   if(drawnode.children.empty())
     return;
@@ -365,7 +365,7 @@ void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
 }
 
 void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
-                               vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
+                               std::vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
 {
   if(drawnode.children.empty())
     return;
@@ -400,7 +400,8 @@ void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
 }
 
 void D3D11Replay::FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex,
-                                  vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
+                                  std::vector<uint32_t> &eventIDs,
+                                  const DrawcallDescription &drawnode)
 {
   if(drawnode.children.empty())
     return;
@@ -434,13 +435,13 @@ void D3D11Replay::FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex,
   }
 }
 
-vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &counters)
+std::vector<CounterResult> D3D11Replay::FetchCountersAMD(const std::vector<GPUCounter> &counters)
 {
   ID3D11Device *d3dDevice = m_pDevice->GetReal();
 
   if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
   {
-    return vector<CounterResult>();
+    return std::vector<CounterResult>();
   }
 
   uint32_t sessionID = m_pAMDCounters->CreateSession();
@@ -461,7 +462,7 @@ vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &co
 
   uint32_t sampleIndex = 0;
 
-  vector<uint32_t> eventIDs;
+  std::vector<uint32_t> eventIDs;
 
   for(uint32_t p = 0; p < passCount; p++)
   {
@@ -480,7 +481,7 @@ vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &co
 
   m_pAMDCounters->EndSesssion(sessionID);
 
-  vector<CounterResult> ret =
+  std::vector<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
 
   m_pAMDCounters->EndMeasurementMode();
@@ -488,14 +489,14 @@ vector<CounterResult> D3D11Replay::FetchCountersAMD(const vector<GPUCounter> &co
   return ret;
 }
 
-vector<CounterResult> D3D11Replay::FetchCountersNV(const vector<GPUCounter> &counters)
+std::vector<CounterResult> D3D11Replay::FetchCountersNV(const std::vector<GPUCounter> &counters)
 {
   const FrameRecord &frameRecord = m_pDevice->GetFrameRecord();
   const FrameStatistics &frameStats = frameRecord.frameInfo.stats;
 
   const uint32_t objectsCount = frameStats.draws.calls + frameStats.dispatches.calls + 1;
 
-  vector<CounterResult> ret;
+  std::vector<CounterResult> ret;
 
   if(m_pNVCounters->PrepareExperiment(counters, objectsCount))
   {
@@ -503,7 +504,7 @@ vector<CounterResult> D3D11Replay::FetchCountersNV(const vector<GPUCounter> &cou
 
     uint32_t passCount = m_pNVCounters->BeginExperiment();
     uint32_t sampleIndex = 0;
-    vector<uint32_t> eventIDs;
+    std::vector<uint32_t> eventIDs;
 
     for(uint32_t passIdx = 0; passIdx < passCount; ++passIdx)
     {
@@ -523,7 +524,7 @@ vector<CounterResult> D3D11Replay::FetchCountersNV(const vector<GPUCounter> &cou
   return ret;
 }
 
-vector<CounterResult> D3D11Replay::FetchCountersIntel(const vector<GPUCounter> &counters)
+std::vector<CounterResult> D3D11Replay::FetchCountersIntel(const std::vector<GPUCounter> &counters)
 {
   m_pIntelCounters->DisableAllCounters();
 
@@ -542,7 +543,7 @@ vector<CounterResult> D3D11Replay::FetchCountersIntel(const vector<GPUCounter> &
 
   uint32_t sampleIndex = 0;
 
-  vector<uint32_t> eventIDs;
+  std::vector<uint32_t> eventIDs;
 
   for(uint32_t p = 0; p < passCount; p++)
   {
@@ -562,9 +563,9 @@ vector<CounterResult> D3D11Replay::FetchCountersIntel(const vector<GPUCounter> &
   return m_pIntelCounters->GetCounterData(eventIDs, counters);
 }
 
-vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &counters)
+std::vector<CounterResult> D3D11Replay::FetchCounters(const std::vector<GPUCounter> &counters)
 {
-  vector<CounterResult> ret;
+  std::vector<CounterResult> ret;
 
   if(counters.empty())
   {
@@ -574,14 +575,14 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
 
   SCOPED_TIMER("Fetch Counters, counters to fetch %u", counters.size());
 
-  vector<GPUCounter> d3dCounters;
+  std::vector<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
                [](const GPUCounter &c) { return IsGenericCounter(c); });
 
   if(m_pAMDCounters)
   {
     // Filter out the AMD counters
-    vector<GPUCounter> amdCounters;
+    std::vector<GPUCounter> amdCounters;
     std::copy_if(counters.begin(), counters.end(), std::back_inserter(amdCounters),
                  [](const GPUCounter &c) { return IsAMDCounter(c); });
 
@@ -594,7 +595,7 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
   if(m_pNVCounters)
   {
     // Filter out the AMD counters
-    vector<GPUCounter> nvCounters;
+    std::vector<GPUCounter> nvCounters;
     std::copy_if(counters.begin(), counters.end(), std::back_inserter(nvCounters),
                  [](const GPUCounter &c) { return IsNvidiaCounter(c); });
 
@@ -606,7 +607,7 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &count
 
   if(m_pIntelCounters)
   {
-    vector<GPUCounter> intelCounters;
+    std::vector<GPUCounter> intelCounters;
     std::copy_if(counters.begin(), counters.end(), std::back_inserter(intelCounters),
                  [](const GPUCounter &c) { return IsIntelCounter(c); });
 

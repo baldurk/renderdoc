@@ -39,8 +39,6 @@
 
 #define VERBOSE_DEBUG_HOOK OPTION_OFF
 
-using std::vector;
-
 // map from address of IAT entry, to original contents
 std::map<void **, void *> s_InstalledHooks;
 Threading::CriticalSection installedLock;
@@ -92,10 +90,10 @@ struct DllHookset
   bool hooksfetched = false;
   // if we have multiple copies of the dll loaded (unlikely), the other module handles will be
   // stored here
-  vector<HMODULE> altmodules;
-  vector<FunctionHook> FunctionHooks;
+  std::vector<HMODULE> altmodules;
+  std::vector<FunctionHook> FunctionHooks;
   DWORD OrdinalBase = 0;
-  vector<std::string> OrdinalNames;
+  std::vector<std::string> OrdinalNames;
   std::vector<FunctionLoadCallback> Callbacks;
   Threading::CriticalSection ordinallock;
 

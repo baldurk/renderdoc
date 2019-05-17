@@ -1594,7 +1594,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
-    vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
+    std::vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurCompRootSig)->sig.params[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
@@ -2157,7 +2157,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
-    vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
+    std::vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurGfxRootSig)->sig.params[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
@@ -3800,7 +3800,7 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
 
   byte *dataPtr = &data[0];
 
-  vector<D3D12RenderState::SignatureElement> &sigelems =
+  std::vector<D3D12RenderState::SignatureElement> &sigelems =
       gfx ? m_Cmd->m_RenderState.graphics.sigelems : m_Cmd->m_RenderState.compute.sigelems;
 
   // while executing, decide where to start and stop. We do this by modifying the max count and

@@ -272,7 +272,7 @@ rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
 
   rdcarray<rdcstr> ret;
 
-  vector<std::string> targets = m_pDevice->GetDisassemblyTargets();
+  std::vector<std::string> targets = m_pDevice->GetDisassemblyTargets();
 
   ret.reserve(targets.size());
   for(const std::string &t : targets)
@@ -833,7 +833,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     // otherwise take all mips, as by default
   }
 
-  vector<byte *> subdata;
+  std::vector<byte *> subdata;
 
   bool downcast = false;
 
@@ -1587,7 +1587,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 
   std::vector<EventUsage> usage = m_pDevice->GetUsage(id);
 
-  vector<EventUsage> events;
+  std::vector<EventUsage> events;
 
   for(size_t i = 0; i < usage.size(); i++)
   {

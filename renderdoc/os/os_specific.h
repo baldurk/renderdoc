@@ -41,8 +41,6 @@
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 
-using std::vector;
-
 struct CaptureOptions;
 
 namespace Process
@@ -335,7 +333,7 @@ inline bool dump(const char *filename, const void *buffer, size_t size)
   return numWritten == size;
 }
 
-inline bool slurp(const char *filename, vector<unsigned char> &buffer)
+inline bool slurp(const char *filename, std::vector<unsigned char> &buffer)
 {
   FILE *f = FileIO::fopen(filename, "rb");
   if(f == NULL)

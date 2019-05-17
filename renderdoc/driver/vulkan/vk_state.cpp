@@ -216,7 +216,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
     ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[graphics.pipeline].layout;
     VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-    const vector<VkPushConstantRange> &pushRanges =
+    const std::vector<VkPushConstantRange> &pushRanges =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
     bool dynamicStates[VkDynamicCount] = {0};
@@ -282,7 +282,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    const vector<ResourceId> &descSetLayouts =
+    const std::vector<ResourceId> &descSetLayouts =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
     // only iterate over the desc sets that this layout actually uses, not all that were bound
@@ -364,7 +364,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
     ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[compute.pipeline].layout;
     VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-    const vector<VkPushConstantRange> &pushRanges =
+    const std::vector<VkPushConstantRange> &pushRanges =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
     // only set push constant ranges that the layout uses
@@ -373,7 +373,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    const vector<ResourceId> &descSetLayouts =
+    const std::vector<ResourceId> &descSetLayouts =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
     for(size_t i = 0; i < descSetLayouts.size(); i++)

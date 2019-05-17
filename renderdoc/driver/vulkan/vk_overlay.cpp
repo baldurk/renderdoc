@@ -40,7 +40,7 @@
 struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, VkDescriptorSetLayout descSetLayout,
-                             VkDescriptorSet descSet, const vector<uint32_t> &events)
+                             VkDescriptorSet descSet, const std::vector<uint32_t> &events)
       : m_pDriver(vk),
         m_DescSetLayout(descSetLayout),
         m_DescSet(descSet),
@@ -88,7 +88,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
       // this layout has storage image and
       descSetLayouts[descSet] = m_DescSetLayout;
 
-      const vector<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
+      const std::vector<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {
           VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -263,7 +263,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   WrappedVulkan *m_pDriver;
   VkDescriptorSetLayout m_DescSetLayout;
   VkDescriptorSet m_DescSet;
-  const vector<uint32_t> &m_Events;
+  const std::vector<uint32_t> &m_Events;
 
   // cache modified pipelines
   std::map<ResourceId, rdcpair<uint32_t, VkPipeline> > m_PipelineCache;
@@ -1538,7 +1538,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -1590,7 +1590,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
 
       VkClearAttachment blackclear = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
-      vector<VkClearAttachment> atts;
+      std::vector<VkClearAttachment> atts;
 
       VulkanCreationInfo::Framebuffer &fb =
           m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.framebuffer];
@@ -1662,7 +1662,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
       DoPipelineBarrier(cmd, 1, &barrier);
 
-      vector<uint32_t> events = passEvents;
+      std::vector<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::QuadOverdrawDraw)
         events.clear();
@@ -1906,7 +1906,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       m_pDriver->SubmitCmds();
 #endif
 
-      vector<uint32_t> events = passEvents;
+      std::vector<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::TriangleSizeDraw)
         events.clear();

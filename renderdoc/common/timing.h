@@ -94,7 +94,7 @@ public:
   double GetMaxFrameTime() const { return m_MaxFrametime; }
 private:
   PerformanceTimer m_HighPrecisionTimer;
-  vector<double> m_FrameTimes;
+  std::vector<double> m_FrameTimes;
   double m_TotalTime;
   double m_AvgFrametime;
   double m_MinFrametime;

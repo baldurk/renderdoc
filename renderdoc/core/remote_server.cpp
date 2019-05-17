@@ -1199,13 +1199,13 @@ public:
 
       std::string adbStdout =
           Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
-      using namespace std;
-      istringstream stdoutStream(adbStdout);
+
+      std::istringstream stdoutStream(adbStdout);
       std::string line;
-      vector<PathEntry> packages;
+      std::vector<PathEntry> packages;
       while(getline(stdoutStream, line))
       {
-        vector<std::string> tokens;
+        std::vector<std::string> tokens;
         split(line, tokens, ':');
         if(tokens.size() == 2 && tokens[0] == "package")
         {

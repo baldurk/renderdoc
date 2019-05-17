@@ -650,7 +650,7 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
 #define BARRIER_ASSERT(...)
 #endif
 
-void D3D12ResourceManager::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,
+void D3D12ResourceManager::ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers,
                                          std::map<ResourceId, SubresourceStateVector> &states)
 {
   for(size_t b = 0; b < barriers.size(); b++)

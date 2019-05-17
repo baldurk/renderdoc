@@ -707,7 +707,7 @@ public:
     }
 
     DXBCKey GetKey() { return m_Key; }
-    void SetDebugInfoPath(vector<std::string> *searchPaths, const std::string &path)
+    void SetDebugInfoPath(std::vector<std::string> *searchPaths, const std::string &path)
     {
       m_DebugInfoSearchPaths = searchPaths;
       m_DebugInfoPath = path;
@@ -746,7 +746,7 @@ public:
       return m_Mapping;
     }
 
-    vector<WrappedID3D12PipelineState *> m_Pipes;
+    std::vector<WrappedID3D12PipelineState *> m_Pipes;
 
   private:
     ShaderEntry(const ShaderEntry &e);
@@ -758,9 +758,9 @@ public:
     DXBCKey m_Key;
 
     std::string m_DebugInfoPath;
-    vector<std::string> *m_DebugInfoSearchPaths;
+    std::vector<std::string> *m_DebugInfoSearchPaths;
 
-    vector<byte> m_Bytecode;
+    std::vector<byte> m_Bytecode;
 
     bool m_Built;
     DXBC::DXBCFile *m_DXBCFile;

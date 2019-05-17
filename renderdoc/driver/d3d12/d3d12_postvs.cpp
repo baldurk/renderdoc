@@ -236,7 +236,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     }
   }
 
-  vector<D3D12_SO_DECLARATION_ENTRY> sodecls;
+  std::vector<D3D12_SO_DECLARATION_ENTRY> sodecls;
 
   UINT stride = 0;
   int posidx = -1;
@@ -381,7 +381,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
                       RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
 
-      vector<uint32_t> indices;
+      std::vector<uint32_t> indices;
 
       uint16_t *idx16 = (uint16_t *)&idxdata[0];
       uint32_t *idx32 = (uint32_t *)&idxdata[0];
@@ -1302,7 +1302,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
 {
   D3D12InitPostVSCallback(WrappedID3D12Device *dev, D3D12Replay *replay,
-                          const vector<uint32_t> &events)
+                          const std::vector<uint32_t> &events)
       : m_pDevice(dev), m_Replay(replay), m_Events(events)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
@@ -1329,10 +1329,10 @@ struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
 
   WrappedID3D12Device *m_pDevice;
   D3D12Replay *m_Replay;
-  const vector<uint32_t> &m_Events;
+  const std::vector<uint32_t> &m_Events;
 };
 
-void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
+void D3D12Replay::InitPostVSBuffers(const std::vector<uint32_t> &events)
 {
   // first we must replay up to the first event without replaying it. This ensures any
   // non-command buffer calls like memory unmaps etc all happen correctly before this

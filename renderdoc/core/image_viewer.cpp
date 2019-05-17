@@ -70,7 +70,7 @@ public:
   bool IsRemoteProxy() { return true; }
   void Shutdown() { delete this; }
   // pass through necessary operations to proxy
-  vector<WindowingSystem> GetSupportedWindowSystems()
+  std::vector<WindowingSystem> GetSupportedWindowSystems()
   {
     return m_Proxy->GetSupportedWindowSystems();
   }
@@ -116,7 +116,7 @@ public:
   }
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                     CompType typeHint, float minval, float maxval, bool channels[4],
-                    vector<uint32_t> &histogram)
+                    std::vector<uint32_t> &histogram)
   {
     return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval,
                                  channels, histogram);
@@ -174,11 +174,12 @@ public:
     return ReplayStatus::Succeeded;
   }
   const SDFile &GetStructuredFile() { return m_File; }
-  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
+  void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
+                  const MeshDisplay &cfg)
   {
   }
-  std::vector<ResourceId> GetBuffers() { return vector<ResourceId>(); }
-  vector<DebugMessage> GetDebugMessages() { return vector<DebugMessage>(); }
+  std::vector<ResourceId> GetBuffers() { return std::vector<ResourceId>(); }
+  std::vector<DebugMessage> GetDebugMessages() { return std::vector<DebugMessage>(); }
   BufferDescription GetBuffer(ResourceId id)
   {
     BufferDescription ret;
@@ -195,20 +196,20 @@ public:
   const GLPipe::State *GetGLPipelineState() { return NULL; }
   const VKPipe::State *GetVulkanPipelineState() { return NULL; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType) {}
-  vector<uint32_t> GetPassEvents(uint32_t eventId) { return vector<uint32_t>(); }
-  vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }
+  std::vector<uint32_t> GetPassEvents(uint32_t eventId) { return std::vector<uint32_t>(); }
+  std::vector<EventUsage> GetUsage(ResourceId id) { return std::vector<EventUsage>(); }
   bool IsRenderOutput(ResourceId id) { return false; }
   ResourceId GetLiveID(ResourceId id) { return id; }
-  vector<GPUCounter> EnumerateCounters() { return vector<GPUCounter>(); }
+  std::vector<GPUCounter> EnumerateCounters() { return std::vector<GPUCounter>(); }
   CounterDescription DescribeCounter(GPUCounter counterID)
   {
     CounterDescription desc = {};
     desc.counter = counterID;
     return desc;
   }
-  vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters)
+  std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters)
   {
-    return vector<CounterResult>();
+    return std::vector<CounterResult>();
   }
   void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                             rdcarray<ShaderVariable> &outvars, const bytebuf &data)
@@ -216,7 +217,7 @@ public:
   }
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}
   void InitPostVSBuffers(uint32_t eventId) {}
-  void InitPostVSBuffers(const vector<uint32_t> &eventId) {}
+  void InitPostVSBuffers(const std::vector<uint32_t> &eventId) {}
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID, MeshDataStage stage)
   {
     MeshFormat ret;
@@ -224,24 +225,24 @@ public:
     return ret;
   }
   ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                           uint32_t eventId, const vector<uint32_t> &passEvents)
+                           uint32_t eventId, const std::vector<uint32_t> &passEvents)
   {
     return ResourceId();
   }
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) { return {}; }
   ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) { return NULL; }
-  vector<std::string> GetDisassemblyTargets() { return {"N/A"}; }
+  std::vector<std::string> GetDisassemblyTargets() { return {"N/A"}; }
   std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                 const std::string &target)
   {
     return "";
   }
   void FreeTargetResource(ResourceId id) {}
-  vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
-                                         uint32_t y, uint32_t slice, uint32_t mip,
-                                         uint32_t sampleIdx, CompType typeHint)
+  std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
+                                              uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
+                                              uint32_t sampleIdx, CompType typeHint)
   {
-    return vector<PixelModification>();
+    return std::vector<PixelModification>();
   }
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset)

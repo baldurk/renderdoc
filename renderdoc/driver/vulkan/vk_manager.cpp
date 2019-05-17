@@ -33,9 +33,9 @@
 #endif
 
 template <typename SrcBarrierType>
-void VulkanResourceManager::RecordSingleBarrier(vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
-                                                ResourceId id, const SrcBarrierType &t,
-                                                uint32_t nummips, uint32_t numslices)
+void VulkanResourceManager::RecordSingleBarrier(
+    std::vector<rdcpair<ResourceId, ImageRegionState> > &dststates, ResourceId id,
+    const SrcBarrierType &t, uint32_t nummips, uint32_t numslices)
 {
   bool done = false;
 
@@ -184,7 +184,7 @@ void VulkanResourceManager::RecordSingleBarrier(vector<rdcpair<ResourceId, Image
                                                          t.oldLayout, t.newLayout)));
 }
 
-void VulkanResourceManager::RecordBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &states,
+void VulkanResourceManager::RecordBarriers(std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
                                            const std::map<ResourceId, ImageLayouts> &layouts,
                                            uint32_t numBarriers, const VkImageMemoryBarrier *barriers)
 {
@@ -229,8 +229,9 @@ void VulkanResourceManager::RecordBarriers(vector<rdcpair<ResourceId, ImageRegio
   TRDBG("Post-record, there are %u states", (uint32_t)states.size());
 }
 
-void VulkanResourceManager::MergeBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
-                                          vector<rdcpair<ResourceId, ImageRegionState> > &srcstates)
+void VulkanResourceManager::MergeBarriers(
+    std::vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
+    std::vector<rdcpair<ResourceId, ImageRegionState> > &srcstates)
 {
   TRDBG("Merging %u states", (uint32_t)srcstates.size());
 
@@ -466,7 +467,7 @@ void VulkanResourceManager::SetInternalResource(ResourceId id)
 }
 
 void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
-                                          vector<rdcpair<ResourceId, ImageRegionState> > &states,
+                                          std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
                                           std::map<ResourceId, ImageLayouts> &layouts)
 {
   TRDBG("Applying %u barriers", (uint32_t)states.size());

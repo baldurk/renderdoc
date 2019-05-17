@@ -32,8 +32,6 @@
 #include "3rdparty/glslang/glslang/Include/ResourceLimits.h"
 #include "api/replay/renderdoc_replay.h"
 
-using std::vector;
-
 enum class SPIRVShaderStage
 {
   Vertex,
@@ -114,7 +112,7 @@ struct SPVModule
   SPVModule();
   ~SPVModule();
 
-  vector<uint32_t> spirv;
+  std::vector<uint32_t> spirv;
 
   struct
   {
@@ -126,23 +124,23 @@ struct SPVModule
   uint32_t sourceVer;
 
   std::string cmdline;
-  vector<rdcpair<std::string, std::string>> sourceFiles;
+  std::vector<rdcpair<std::string, std::string>> sourceFiles;
 
-  vector<std::string> extensions;
+  std::vector<std::string> extensions;
 
-  vector<spv::Capability> capabilities;
+  std::vector<spv::Capability> capabilities;
 
-  vector<SPVInstruction *>
+  std::vector<SPVInstruction *>
       operations;    // all operations (including those that don't generate an ID)
 
-  vector<SPVInstruction *> ids;    // pointers indexed by ID
+  std::vector<SPVInstruction *> ids;    // pointers indexed by ID
 
-  vector<SPVInstruction *> sourceexts;       // source extensions
-  vector<SPVInstruction *> entries;          // entry points
-  vector<SPVInstruction *> globals;          // global variables
-  vector<SPVInstruction *> specConstants;    // specialization constants
-  vector<SPVInstruction *> funcs;            // functions
-  vector<SPVInstruction *> structs;          // struct types
+  std::vector<SPVInstruction *> sourceexts;       // source extensions
+  std::vector<SPVInstruction *> entries;          // entry points
+  std::vector<SPVInstruction *> globals;          // global variables
+  std::vector<SPVInstruction *> specConstants;    // specialization constants
+  std::vector<SPVInstruction *> funcs;            // functions
+  std::vector<SPVInstruction *> structs;          // struct types
 
   SPVInstruction *GetByID(uint32_t id);
   std::string Disassemble(const std::string &entryPoint);
@@ -156,7 +154,7 @@ struct SPVModule
 };
 
 std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
-                         const vector<std::string> &sources, vector<uint32_t> &spirv);
+                         const std::vector<std::string> &sources, std::vector<uint32_t> &spirv);
 void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
 
 static const uint32_t SpecializationConstantBindSet = 1234567;

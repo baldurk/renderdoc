@@ -94,7 +94,7 @@ struct DescSetLayout
     VkShaderStageFlags stageFlags;
     ResourceId *immutableSampler;
   };
-  vector<Binding> bindings;
+  std::vector<Binding> bindings;
 
   uint32_t dynamicCount;
   VkDescriptorSetLayoutCreateFlags flags;
@@ -162,7 +162,7 @@ struct VulkanCreationInfo
       ShaderBindpointMapping *mapping;
       SPIRVPatchData *patchData;
 
-      vector<SpecConstant> specialization;
+      std::vector<SpecConstant> specialization;
     };
     Shader shaders[6];
 
@@ -176,7 +176,7 @@ struct VulkanCreationInfo
       // VkVertexInputBindingDivisorDescriptionEXT
       uint32_t instanceDivisor;
     };
-    vector<Binding> vertexBindings;
+    std::vector<Binding> vertexBindings;
 
     struct Attribute
     {
@@ -185,7 +185,7 @@ struct VulkanCreationInfo
       VkFormat format;
       uint32_t byteoffset;
     };
-    vector<Attribute> vertexAttrs;
+    std::vector<Attribute> vertexAttrs;
 
     // VkPipelineInputAssemblyStateCreateInfo
     VkPrimitiveTopology topology;
@@ -199,8 +199,8 @@ struct VulkanCreationInfo
 
     // VkPipelineViewportStateCreateInfo
     uint32_t viewportCount;
-    vector<VkViewport> viewports;
-    vector<VkRect2D> scissors;
+    std::vector<VkViewport> viewports;
+    std::vector<VkRect2D> scissors;
 
     // VkPipelineRasterizationStateCreateInfo
     bool depthClampEnable;
@@ -269,7 +269,7 @@ struct VulkanCreationInfo
 
       uint8_t channelWriteMask;
     };
-    vector<Attachment> attachments;
+    std::vector<Attachment> attachments;
 
     // VkPipelineDynamicStateCreateInfo
     bool dynamicStates[VkDynamicCount];
@@ -285,8 +285,8 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkPipelineLayoutCreateInfo *pCreateInfo);
 
-    vector<VkPushConstantRange> pushRanges;
-    vector<ResourceId> descSetLayouts;
+    std::vector<VkPushConstantRange> pushRanges;
+    std::vector<ResourceId> descSetLayouts;
   };
   std::map<ResourceId, PipelineLayout> m_PipelineLayout;
 
@@ -310,30 +310,30 @@ struct VulkanCreationInfo
       VkImageLayout finalLayout;
     };
 
-    vector<Attachment> attachments;
+    std::vector<Attachment> attachments;
 
     struct Subpass
     {
       // these are split apart since they layout is
       // rarely used but the indices are often used
-      vector<uint32_t> inputAttachments;
-      vector<uint32_t> colorAttachments;
-      vector<uint32_t> resolveAttachments;
+      std::vector<uint32_t> inputAttachments;
+      std::vector<uint32_t> colorAttachments;
+      std::vector<uint32_t> resolveAttachments;
       int32_t depthstencilAttachment;
       int32_t fragmentDensityAttachment;
 
-      vector<VkImageLayout> inputLayouts;
-      vector<VkImageLayout> colorLayouts;
+      std::vector<VkImageLayout> inputLayouts;
+      std::vector<VkImageLayout> colorLayouts;
       VkImageLayout depthstencilLayout;
       VkImageLayout fragmentDensityLayout;
 
       std::vector<uint32_t> multiviews;
     };
-    vector<Subpass> subpasses;
+    std::vector<Subpass> subpasses;
 
     // one for each subpass, as we preserve attachments
     // in the layout that the subpass uses
-    vector<VkRenderPass> loadRPs;
+    std::vector<VkRenderPass> loadRPs;
   };
   std::map<ResourceId, RenderPass> m_RenderPass;
 
@@ -347,12 +347,12 @@ struct VulkanCreationInfo
       ResourceId view;
       VkFormat format;
     };
-    vector<Attachment> attachments;
+    std::vector<Attachment> attachments;
 
     uint32_t width, height, layers;
 
     // See above in loadRPs - we need to duplicate and make framebuffer equivalents for each
-    vector<VkFramebuffer> loadFBs;
+    std::vector<VkFramebuffer> loadFBs;
   };
   std::map<ResourceId, Framebuffer> m_Framebuffer;
 

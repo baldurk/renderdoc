@@ -668,8 +668,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     RDCWARN("Presenting multiple swapchains at once - only first will be processed");
   }
 
-  vector<VkSwapchainKHR> unwrappedSwaps;
-  vector<VkSemaphore> unwrappedSems;
+  std::vector<VkSwapchainKHR> unwrappedSwaps;
+  std::vector<VkSemaphore> unwrappedSems;
 
   VkPresentInfoKHR unwrappedInfo = *pPresentInfo;
 

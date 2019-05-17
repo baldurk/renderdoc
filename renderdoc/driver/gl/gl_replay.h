@@ -105,13 +105,13 @@ public:
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry);
 
-  vector<std::string> GetDisassemblyTargets();
+  std::vector<std::string> GetDisassemblyTargets();
   std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                 const std::string &target);
 
-  vector<DebugMessage> GetDebugMessages();
+  std::vector<DebugMessage> GetDebugMessages();
 
-  vector<EventUsage> GetUsage(ResourceId id);
+  std::vector<EventUsage> GetUsage(ResourceId id);
 
   FrameRecord GetFrameRecord();
 
@@ -126,9 +126,9 @@ public:
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
   const SDFile &GetStructuredFile();
 
-  vector<uint32_t> GetPassEvents(uint32_t eventId);
+  std::vector<uint32_t> GetPassEvents(uint32_t eventId);
 
-  vector<WindowingSystem> GetSupportedWindowSystems();
+  std::vector<WindowingSystem> GetSupportedWindowSystems();
 
   AMDRGPControl *GetRGPControl() { return NULL; }
   uint64_t MakeOutputWindow(WindowingData window, bool depth);
@@ -144,7 +144,7 @@ public:
   void FlipOutputWindow(uint64_t id);
 
   void InitPostVSBuffers(uint32_t eventId);
-  void InitPostVSBuffers(const vector<uint32_t> &passEvents);
+  void InitPostVSBuffers(const std::vector<uint32_t> &passEvents);
 
   ResourceId GetLiveID(ResourceId id);
 
@@ -152,7 +152,7 @@ public:
                  CompType typeHint, float *minval, float *maxval);
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                     CompType typeHint, float minval, float maxval, bool channels[4],
-                    vector<uint32_t> &histogram);
+                    std::vector<uint32_t> &histogram);
 
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
                               MeshDataStage stage);
@@ -164,11 +164,12 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
-  vector<GPUCounter> EnumerateCounters();
+  std::vector<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
-  vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
+  std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters);
 
-  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
+  void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
+                  const MeshDisplay &cfg);
 
   rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {ShaderEncoding::GLSL}; }
   void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
@@ -195,9 +196,9 @@ public:
   void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                             rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
-  vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
-                                         uint32_t y, uint32_t slice, uint32_t mip,
-                                         uint32_t sampleIdx, CompType typeHint);
+  std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
+                                              uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
+                                              uint32_t sampleIdx, CompType typeHint);
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -210,7 +211,7 @@ public:
                       uint32_t x, uint32_t y);
 
   ResourceId RenderOverlay(ResourceId id, CompType typeHint, DebugOverlay overlay, uint32_t eventId,
-                           const vector<uint32_t> &passEvents);
+                           const std::vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 
@@ -404,7 +405,7 @@ private:
   void CheckGLSLVersion(const char *sl, int &glslVersion);
 
   void FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
-                  const vector<GPUCounter> &counters);
+                  const std::vector<GPUCounter> &counters);
 
   GLuint CreateShader(GLenum shaderType, const std::string &src);
   GLuint CreateShaderProgram(const std::string &vs, const std::string &fs,
@@ -444,16 +445,16 @@ private:
   // AMD counter instance
   AMDCounters *m_pAMDCounters = NULL;
 
-  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs,
+  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, std::vector<uint32_t> *eventIDs,
                      const DrawcallDescription &drawnode);
 
-  vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
+  std::vector<CounterResult> FetchCountersAMD(const std::vector<GPUCounter> &counters);
 
   // Intel counter instance
   IntelGlCounters *m_pIntelCounters = NULL;
 
-  void FillTimersIntel(uint32_t *eventStartID, uint32_t *sampleIndex, vector<uint32_t> *eventIDs,
-                       const DrawcallDescription &drawnode);
+  void FillTimersIntel(uint32_t *eventStartID, uint32_t *sampleIndex,
+                       std::vector<uint32_t> *eventIDs, const DrawcallDescription &drawnode);
 
-  vector<CounterResult> FetchCountersIntel(const vector<GPUCounter> &counters);
+  std::vector<CounterResult> FetchCountersIntel(const std::vector<GPUCounter> &counters);
 };

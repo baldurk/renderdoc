@@ -112,7 +112,7 @@ private:
   uint32_t m_EventID;
   ReplayOutputType m_Type;
 
-  vector<uint32_t> passEvents;
+  std::vector<uint32_t> passEvents;
 
   int32_t m_Width;
   int32_t m_Height;
@@ -223,7 +223,7 @@ private:
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;
-  vector<DrawcallDescription *> m_Drawcalls;
+  std::vector<DrawcallDescription *> m_Drawcalls;
 
   uint64_t m_ThreadID;
 

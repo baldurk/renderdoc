@@ -244,7 +244,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     RDCASSERT(dxbcDS);
   }
 
-  vector<D3D11_SO_DECLARATION_ENTRY> sodecls;
+  std::vector<D3D11_SO_DECLARATION_ENTRY> sodecls;
 
   UINT stride = 0;
   int posidx = -1;
@@ -356,7 +356,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
       SAFE_RELEASE(idxBuf);
 
-      vector<uint32_t> indices;
+      std::vector<uint32_t> indices;
 
       uint16_t *idx16 = (uint16_t *)&idxdata[0];
       uint32_t *idx32 = (uint32_t *)&idxdata[0];
@@ -1068,7 +1068,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
   }
 }
 
-void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
+void D3D11Replay::InitPostVSBuffers(const std::vector<uint32_t> &passEvents)
 {
   uint32_t prev = 0;
 

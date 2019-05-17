@@ -391,7 +391,7 @@ rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool c
 {
   CHECK_REPLAY_THREAD();
 
-  vector<uint32_t> hist;
+  std::vector<uint32_t> hist;
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 
@@ -858,7 +858,7 @@ void ReplayOutput::DisplayMesh()
   mesh.second.vertexResourceId = m_pDevice->GetLiveID(mesh.second.vertexResourceId);
   mesh.second.indexResourceId = m_pDevice->GetLiveID(mesh.second.indexResourceId);
 
-  vector<MeshFormat> secondaryDraws;
+  std::vector<MeshFormat> secondaryDraws;
 
   // we choose a pallette here so that the colours stay consistent (i.e the
   // current draw is always the same colour), but also to indicate somewhat

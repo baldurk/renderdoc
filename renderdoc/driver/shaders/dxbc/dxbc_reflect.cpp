@@ -99,7 +99,8 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
   return ret;
 }
 
-static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::ShaderInputBind> &in,
+static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc,
+                             const std::vector<DXBC::ShaderInputBind> &in,
                              rdcarray<Bindpoint> &mapping, rdcarray<ShaderResource> &refl)
 {
   for(size_t i = 0; i < in.size(); i++)

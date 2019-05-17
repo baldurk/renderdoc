@@ -688,9 +688,9 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
       // Note we preserve the arrays in SM5.1
       if(h->targetVersion < 0x501)
       {
-        for(vector<ShaderInputBind> *arr : {&m_SRVs, &m_UAVs, &m_Samplers})
+        for(std::vector<ShaderInputBind> *arr : {&m_SRVs, &m_UAVs, &m_Samplers})
         {
-          vector<ShaderInputBind> &resArray = *arr;
+          std::vector<ShaderInputBind> &resArray = *arr;
           for(auto it = resArray.begin(); it != resArray.end();)
           {
             if(it->bindCount > 1)
@@ -893,7 +893,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
     {
       SIGNHeader *sign = (SIGNHeader *)fourcc;
 
-      vector<SigParameter> *sig = NULL;
+      std::vector<SigParameter> *sig = NULL;
 
       bool input = false;
       bool output = false;
@@ -1249,7 +1249,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
               // make a dummy file to write into that won't be used.
               fileNames.push_back(filename);
-              fileLines.push_back(vector<std::string>());
+              fileLines.push_back(std::vector<std::string>());
 
               dstFile = &fileLines.back();
             }

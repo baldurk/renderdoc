@@ -179,8 +179,8 @@ static bool iswhitespace(char c)
   return isspacetab(c) || isnewline(c);
 }
 
-GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, vector<std::string> sources,
-                                  vector<std::string> *includepaths)
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, std::vector<std::string> sources,
+                                  std::vector<std::string> *includepaths)
 {
   // in and out blocks are added separately, in case one is there already
   const char *blockIdentifiers[2] = {"in gl_PerVertex", "out gl_PerVertex"};
@@ -1050,8 +1050,8 @@ int ParseVersionStatement(const char *version)
   return ret;
 }
 
-static void AddSigParameter(vector<SigParameter> &sigs, uint32_t &regIndex, const SigParameter &sig,
-                            const char *nm, int rows, int arrayIdx)
+static void AddSigParameter(std::vector<SigParameter> &sigs, uint32_t &regIndex,
+                            const SigParameter &sig, const char *nm, int rows, int arrayIdx)
 {
   if(rows == 1)
   {
@@ -1650,7 +1650,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     }
   }
 
-  vector<int32_t> ssbos;
+  std::vector<int32_t> ssbos;
   uint32_t ssboMembers = 0;
 
   GLint numSSBOs = 0;
@@ -1742,7 +1742,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   rdcarray<ShaderConstant> globalUniforms;
 
   GLint numUBOs = 0;
-  vector<std::string> uboNames;
+  std::vector<std::string> uboNames;
   rdcarray<ShaderConstant> *ubos = NULL;
 
   {
@@ -1821,7 +1821,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
 
     if(numInputs > 0)
     {
-      vector<SigParameter> sigs;
+      std::vector<SigParameter> sigs;
       sigs.reserve(numInputs);
 
       uint32_t regIndex = 0;

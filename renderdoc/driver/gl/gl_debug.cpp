@@ -1498,7 +1498,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
 bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                             CompType typeHint, float minval, float maxval, bool channels[4],
-                            vector<uint32_t> &histogram)
+                            std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval || texid == ResourceId())
     return false;

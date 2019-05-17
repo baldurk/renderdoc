@@ -107,7 +107,7 @@ public:
     bytebuf data;
   };
 
-  vector<groupsharedMem> groupshared;
+  std::vector<groupsharedMem> groupshared;
 
   struct SampleEvalCacheKey
   {

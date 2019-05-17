@@ -938,9 +938,9 @@ public:
     ResourceId m_ID;
 
     std::string m_DebugInfoPath;
-    vector<std::string> *m_DebugInfoSearchPaths;
+    std::vector<std::string> *m_DebugInfoSearchPaths;
 
-    vector<byte> m_Bytecode;
+    std::vector<byte> m_Bytecode;
 
     bool m_Built = false;
     DXBC::DXBCFile *m_DXBCFile;

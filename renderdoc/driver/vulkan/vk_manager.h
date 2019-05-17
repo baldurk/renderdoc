@@ -252,18 +252,18 @@ public:
 
   // handling memory & image layouts
   template <typename SrcBarrierType>
-  void RecordSingleBarrier(vector<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
+  void RecordSingleBarrier(std::vector<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
-  void RecordBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &states,
+  void RecordBarriers(std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
                       const std::map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
-  void MergeBarriers(vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
-                     vector<rdcpair<ResourceId, ImageRegionState> > &srcstates);
+  void MergeBarriers(std::vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
+                     std::vector<rdcpair<ResourceId, ImageRegionState> > &srcstates);
 
   void ApplyBarriers(uint32_t queueFamilyIndex,
-                     vector<rdcpair<ResourceId, ImageRegionState> > &states,
+                     std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
   template <typename SerialiserType>

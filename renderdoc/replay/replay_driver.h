@@ -100,16 +100,16 @@ public:
   virtual std::vector<ResourceId> GetTextures() = 0;
   virtual TextureDescription GetTexture(ResourceId id) = 0;
 
-  virtual vector<DebugMessage> GetDebugMessages() = 0;
+  virtual std::vector<DebugMessage> GetDebugMessages() = 0;
 
   virtual rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) = 0;
   virtual ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) = 0;
 
-  virtual vector<std::string> GetDisassemblyTargets() = 0;
+  virtual std::vector<std::string> GetDisassemblyTargets() = 0;
   virtual std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                         const std::string &target) = 0;
 
-  virtual vector<EventUsage> GetUsage(ResourceId id) = 0;
+  virtual std::vector<EventUsage> GetUsage(ResourceId id) = 0;
 
   virtual void SavePipelineState(uint32_t eventId) = 0;
   virtual const D3D11Pipe::State *GetD3D11PipelineState() = 0;
@@ -123,10 +123,10 @@ public:
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
   virtual const SDFile &GetStructuredFile() = 0;
 
-  virtual vector<uint32_t> GetPassEvents(uint32_t eventId) = 0;
+  virtual std::vector<uint32_t> GetPassEvents(uint32_t eventId) = 0;
 
   virtual void InitPostVSBuffers(uint32_t eventId) = 0;
-  virtual void InitPostVSBuffers(const vector<uint32_t> &passEvents) = 0;
+  virtual void InitPostVSBuffers(const std::vector<uint32_t> &passEvents) = 0;
 
   virtual ResourceId GetLiveID(ResourceId id) = 0;
 
@@ -145,16 +145,17 @@ public:
   virtual void RemoveReplacement(ResourceId id) = 0;
   virtual void FreeTargetResource(ResourceId id) = 0;
 
-  virtual vector<GPUCounter> EnumerateCounters() = 0;
+  virtual std::vector<GPUCounter> EnumerateCounters() = 0;
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
-  virtual vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID) = 0;
+  virtual std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counterID) = 0;
 
   virtual void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
                                     rdcarray<ShaderVariable> &outvars, const bytebuf &data) = 0;
 
-  virtual vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                 uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                                                 uint32_t sampleIdx, CompType typeHint) = 0;
+  virtual std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events,
+                                                      ResourceId target, uint32_t x, uint32_t y,
+                                                      uint32_t slice, uint32_t mip,
+                                                      uint32_t sampleIdx, CompType typeHint) = 0;
   virtual ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
   virtual ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -163,7 +164,7 @@ public:
                                        const uint32_t threadid[3]) = 0;
 
   virtual ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                   uint32_t eventId, const vector<uint32_t> &passEvents) = 0;
+                                   uint32_t eventId, const std::vector<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
@@ -179,7 +180,7 @@ class IReplayDriver : public IRemoteDriver
 public:
   virtual bool IsRemoteProxy() = 0;
 
-  virtual vector<WindowingSystem> GetSupportedWindowSystems() = 0;
+  virtual std::vector<WindowingSystem> GetSupportedWindowSystems() = 0;
 
   virtual AMDRGPControl *GetRGPControl() = 0;
 
@@ -199,7 +200,7 @@ public:
                          CompType typeHint, float *minval, float *maxval) = 0;
   virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                             CompType typeHint, float minval, float maxval, bool channels[4],
-                            vector<uint32_t> &histogram) = 0;
+                            std::vector<uint32_t> &histogram) = 0;
 
   virtual ResourceId CreateProxyTexture(const TextureDescription &templateTex) = 0;
   virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
@@ -209,7 +210,7 @@ public:
   virtual ResourceId CreateProxyBuffer(const BufferDescription &templateBuf) = 0;
   virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;
 
-  virtual void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws,
+  virtual void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
                           const MeshDisplay &cfg) = 0;
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
@@ -263,9 +264,9 @@ struct HighlightCache
   void CacheHighlightingData(uint32_t eventId, const MeshDisplay &cfg);
 
   bool FetchHighlightPositions(const MeshDisplay &cfg, FloatVector &activeVertex,
-                               vector<FloatVector> &activePrim,
-                               vector<FloatVector> &adjacentPrimVertices,
-                               vector<FloatVector> &inactiveVertices);
+                               std::vector<FloatVector> &activePrim,
+                               std::vector<FloatVector> &adjacentPrimVertices,
+                               std::vector<FloatVector> &inactiveVertices);
 
   static FloatVector InterpretVertex(const byte *data, uint32_t vert, uint32_t vertexByteStride,
                                      const ResourceFormat &fmt, const byte *end, bool &valid);

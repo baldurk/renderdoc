@@ -38,8 +38,6 @@
 #include "maths/vec.h"
 #include "os/os_specific.h"
 
-using std::vector;
-
 class Chunk;
 struct RDCThumb;
 
@@ -438,13 +436,13 @@ public:
     SCOPED_LOCK(m_ChildLock);
     m_Children.push_back(make_rdcpair(pid, ident));
   }
-  vector<rdcpair<uint32_t, uint32_t> > GetChildProcesses()
+  std::vector<rdcpair<uint32_t, uint32_t> > GetChildProcesses()
   {
     SCOPED_LOCK(m_ChildLock);
     return m_Children;
   }
 
-  vector<CaptureData> GetCaptures()
+  std::vector<CaptureData> GetCaptures()
   {
     SCOPED_LOCK(m_CaptureLock);
     return m_Captures;
@@ -563,8 +561,8 @@ public:
       m_CaptureKeys[i] = keys[i];
   }
 
-  const vector<RENDERDOC_InputButton> &GetFocusKeys() { return m_FocusKeys; }
-  const vector<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
+  const std::vector<RENDERDOC_InputButton> &GetFocusKeys() { return m_FocusKeys; }
+  const std::vector<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
   bool ShouldTriggerCapture(uint32_t frameNumber);
 
   enum
@@ -587,8 +585,8 @@ private:
 
   uint32_t m_Cap;
 
-  vector<RENDERDOC_InputButton> m_FocusKeys;
-  vector<RENDERDOC_InputButton> m_CaptureKeys;
+  std::vector<RENDERDOC_InputButton> m_FocusKeys;
+  std::vector<RENDERDOC_InputButton> m_CaptureKeys;
 
   GlobalEnvironment m_GlobalEnv;
 
@@ -614,10 +612,10 @@ private:
   std::map<rdcstr, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
 
   Threading::CriticalSection m_CaptureLock;
-  vector<CaptureData> m_Captures;
+  std::vector<CaptureData> m_Captures;
 
   Threading::CriticalSection m_ChildLock;
-  vector<rdcpair<uint32_t, uint32_t> > m_Children;
+  std::vector<rdcpair<uint32_t, uint32_t> > m_Children;
 
   std::map<std::string, std::string> m_ConfigSettings;
 

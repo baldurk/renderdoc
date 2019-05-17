@@ -151,7 +151,7 @@ struct LookupModule
 class LinuxResolver : public Callstack::StackResolver
 {
 public:
-  LinuxResolver(vector<LookupModule> modules) { m_Modules = modules; }
+  LinuxResolver(std::vector<LookupModule> modules) { m_Modules = modules; }
   Callstack::AddressDetails GetAddr(uint64_t addr)
   {
     EnsureCached(addr);
@@ -247,7 +247,7 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCal
   char *search = start;
   char *dbend = (char *)(moduleDB + DBSize);
 
-  vector<LookupModule> modules;
+  std::vector<LookupModule> modules;
 
   while(search && search < dbend)
   {

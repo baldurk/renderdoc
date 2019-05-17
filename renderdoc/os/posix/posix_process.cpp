@@ -247,9 +247,9 @@ static const std::string GetAbsoluteAppPathFromName(const std::string &appName)
   return FileIO::FindFileInPath(appName);
 }
 
-static vector<EnvironmentModification> &GetEnvModifications()
+static std::vector<EnvironmentModification> &GetEnvModifications()
 {
-  static vector<EnvironmentModification> envCallbacks;
+  static std::vector<EnvironmentModification> envCallbacks;
   return envCallbacks;
 }
 
@@ -348,7 +348,7 @@ void Process::ApplyEnvironmentModification()
   char **currentEnvironment = GetCurrentEnvironment();
   std::map<std::string, std::string> currentEnv =
       EnvStringToEnvMap((const char **)currentEnvironment);
-  vector<EnvironmentModification> &modifications = GetEnvModifications();
+  std::vector<EnvironmentModification> &modifications = GetEnvModifications();
 
   for(size_t i = 0; i < modifications.size(); i++)
   {
@@ -708,7 +708,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   // turn environment string to a UTF-8 map
   char **currentEnvironment = GetCurrentEnvironment();
   std::map<std::string, std::string> env = EnvStringToEnvMap((const char **)currentEnvironment);
-  vector<EnvironmentModification> modifications = GetEnvModifications();
+  std::vector<EnvironmentModification> modifications = GetEnvModifications();
 
   for(const EnvironmentModification &e : envList)
     modifications.push_back(e);

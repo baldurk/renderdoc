@@ -134,7 +134,7 @@ private:
 
   std::map<ResourceId, StreamOutData> m_StreamOutCounters;
 
-  std::map<ResourceId, vector<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, std::vector<EventUsage> > m_ResourceUses;
 
   WrappedID3D11Device *m_pDevice;
   ID3D11DeviceContext *m_pRealContext;
@@ -185,7 +185,7 @@ private:
 
   D3D11RenderState *m_DeferredSavedState;
 
-  vector<APIEvent> m_CurEvents, m_Events;
+  std::vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
   bool HasNonMarkerEvents();
@@ -204,7 +204,7 @@ private:
     uint32_t m_Col;
     std::wstring m_Name;
   };
-  vector<Annotation> m_AnnotationQueue;
+  std::vector<Annotation> m_AnnotationQueue;
   Threading::CriticalSection m_AnnotLock;
 
   SDFile *m_StructuredFile = NULL;
@@ -316,7 +316,7 @@ public:
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   void MarkResourceReferenced(ResourceId id, FrameRefType refType);
 
-  vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
+  std::vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   void ClearMaps();
 
   uint32_t GetEventID() { return m_CurEventID; }

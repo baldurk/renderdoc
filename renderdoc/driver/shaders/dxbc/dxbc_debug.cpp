@@ -592,7 +592,7 @@ ShaderVariable sub(const ShaderVariable &a, const ShaderVariable &b, const VarTy
 
 void State::Init()
 {
-  vector<uint32_t> indexTempSizes;
+  std::vector<uint32_t> indexTempSizes;
 
   for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
   {
@@ -1269,7 +1269,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
   s.nextInstruction++;
   s.flags = ShaderEvents::NoEvent;
 
-  vector<ShaderVariable> srcOpers;
+  std::vector<ShaderVariable> srcOpers;
 
   size_t numOperands = s.dxbc->NumOperands(op.operation);
 

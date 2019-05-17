@@ -167,11 +167,11 @@ public:
     return ReplayStatus::Succeeded;
   }
   AMDRGPControl *GetRGPControl() { return NULL; }
-  vector<WindowingSystem> GetSupportedWindowSystems()
+  std::vector<WindowingSystem> GetSupportedWindowSystems()
   {
     if(m_Proxy)
       return m_Proxy->GetSupportedWindowSystems();
-    return vector<WindowingSystem>();
+    return std::vector<WindowingSystem>();
   }
   uint64_t MakeOutputWindow(WindowingData window, bool depth)
   {
@@ -261,7 +261,7 @@ public:
 
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                     CompType typeHint, float minval, float maxval, bool channels[4],
-                    vector<uint32_t> &histogram)
+                    std::vector<uint32_t> &histogram)
   {
     if(m_Proxy)
     {
@@ -325,7 +325,8 @@ public:
     }
   }
 
-  void RenderMesh(uint32_t eventId, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
+  void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
+                  const MeshDisplay &cfg)
   {
     if(m_Proxy && cfg.position.vertexResourceId != ResourceId())
     {
@@ -349,7 +350,7 @@ public:
         proxiedCfg.position.indexResourceId = m_ProxyBufferIds[proxiedCfg.position.indexResourceId];
       }
 
-      vector<MeshFormat> secDraws = secondaryDraws;
+      std::vector<MeshFormat> secDraws = secondaryDraws;
 
       for(size_t i = 0; i < secDraws.size(); i++)
       {

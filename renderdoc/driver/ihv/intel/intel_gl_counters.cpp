@@ -48,7 +48,7 @@ IntelGlCounters::~IntelGlCounters()
 
 std::vector<GPUCounter> IntelGlCounters::GetPublicCounterIds() const
 {
-  vector<GPUCounter> counters;
+  std::vector<GPUCounter> counters;
 
   for(const IntelGlCounter &c : m_Counters)
     counters.push_back(c.desc.counter);

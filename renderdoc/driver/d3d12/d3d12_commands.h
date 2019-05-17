@@ -36,13 +36,13 @@ struct D3D12DrawcallTreeNode
   D3D12DrawcallTreeNode(const D3D12DrawcallTreeNode &other) { *this = other; }
   ~D3D12DrawcallTreeNode() { SAFE_DELETE(state); }
   DrawcallDescription draw;
-  vector<D3D12DrawcallTreeNode> children;
+  std::vector<D3D12DrawcallTreeNode> children;
 
   D3D12RenderState *state = NULL;
 
-  vector<rdcpair<ResourceId, EventUsage> > resourceUsage;
+  std::vector<rdcpair<ResourceId, EventUsage> > resourceUsage;
 
-  vector<ResourceId> executedCmds;
+  std::vector<ResourceId> executedCmds;
 
   D3D12DrawcallTreeNode &operator=(const DrawcallDescription &d)
   {
@@ -86,9 +86,9 @@ struct D3D12DrawcallTreeNode
     }
   }
 
-  vector<DrawcallDescription> Bake()
+  std::vector<DrawcallDescription> Bake()
   {
-    vector<DrawcallDescription> ret;
+    std::vector<DrawcallDescription> ret;
     if(children.empty())
       return ret;
 
@@ -189,21 +189,21 @@ struct BakedCmdListInfo
     UINT realCount = 0;
   };
 
-  vector<ID3D12GraphicsCommandList4 *> crackedLists;
-  vector<ExecuteData> executeEvents;
+  std::vector<ID3D12GraphicsCommandList4 *> crackedLists;
+  std::vector<ExecuteData> executeEvents;
 
-  vector<APIEvent> curEvents;
-  vector<DebugMessage> debugMessages;
+  std::vector<APIEvent> curEvents;
+  std::vector<DebugMessage> debugMessages;
   std::list<D3D12DrawcallTreeNode *> drawStack;
 
-  vector<rdcpair<ResourceId, EventUsage> > resourceUsage;
+  std::vector<rdcpair<ResourceId, EventUsage> > resourceUsage;
 
   ResourceId allocator;
   D3D12_COMMAND_LIST_TYPE type;
   UINT nodeMask;
   D3D12RenderState state;
 
-  vector<D3D12_RESOURCE_BARRIER> barriers;
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
 
   ResourceId parentList;
 
@@ -237,7 +237,7 @@ struct D3D12CommandData
 
   std::map<ResourceId, ID3D12CommandAllocator *> m_CrackedAllocators;
 
-  vector<ID3D12Resource *> m_IndirectBuffers;
+  std::vector<ID3D12Resource *> m_IndirectBuffers;
   static const uint64_t m_IndirectSize = 4 * 1024 * 1024;
   uint64_t m_IndirectOffset;
 
@@ -298,7 +298,7 @@ struct D3D12CommandData
   // so we just set this command list
   ID3D12GraphicsCommandList4 *m_OutsideCmdList = NULL;
 
-  void InsertDrawsAndRefreshIDs(ResourceId cmd, vector<D3D12DrawcallTreeNode> &cmdBufNodes);
+  void InsertDrawsAndRefreshIDs(ResourceId cmd, std::vector<D3D12DrawcallTreeNode> &cmdBufNodes);
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
   // drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a
@@ -322,16 +322,16 @@ struct D3D12CommandData
       return eventId < o.eventId;
     }
   };
-  vector<DrawcallUse> m_DrawcallUses;
+  std::vector<DrawcallUse> m_DrawcallUses;
 
-  vector<DebugMessage> m_EventMessages;
+  std::vector<DebugMessage> m_EventMessages;
 
   std::map<ResourceId, ID3D12GraphicsCommandList4 *> m_RerecordCmds;
   std::vector<ID3D12GraphicsCommandList4 *> m_RerecordCmdList;
 
   bool m_AddedDrawcall;
 
-  vector<APIEvent> m_RootEvents, m_Events;
+  std::vector<APIEvent> m_RootEvents, m_Events;
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
@@ -340,7 +340,7 @@ struct D3D12CommandData
 
   SDFile *m_StructuredFile;
 
-  std::map<ResourceId, vector<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, std::vector<EventUsage> > m_ResourceUses;
 
   D3D12DrawcallTreeNode m_ParentDrawcall;
 

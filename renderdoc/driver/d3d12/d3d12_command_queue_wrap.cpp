@@ -193,8 +193,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         for(size_t e = 0; e < cmdListInfo.draw->executedCmds.size(); e++)
         {
-          vector<uint32_t> &submits = m_Cmd.m_Partial[D3D12CommandData::Secondary]
-                                          .cmdListExecs[cmdListInfo.draw->executedCmds[e]];
+          std::vector<uint32_t> &submits = m_Cmd.m_Partial[D3D12CommandData::Secondary]
+                                               .cmdListExecs[cmdListInfo.draw->executedCmds[e]];
 
           for(size_t s = 0; s < submits.size(); s++)
             submits[s] += m_Cmd.m_RootEventID;

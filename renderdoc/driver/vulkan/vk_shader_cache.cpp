@@ -270,7 +270,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
   static VkPipelineShaderStageCreateInfo stages[6];
   static VkSpecializationInfo specInfo[6];
-  static vector<VkSpecializationMapEntry> specMapEntries;
+  static std::vector<VkSpecializationMapEntry> specMapEntries;
   static std::vector<byte> specdata;
 
   size_t specEntries = 0;
@@ -536,7 +536,7 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
 
   VkPipelineShaderStageCreateInfo stage;    // Returned by value
   static VkSpecializationInfo specInfo;
-  static vector<VkSpecializationMapEntry> specMapEntries;
+  static std::vector<VkSpecializationMapEntry> specMapEntries;
   static std::vector<byte> specdata;
 
   const uint32_t i = 5;    // Compute stage

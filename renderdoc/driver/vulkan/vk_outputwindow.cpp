@@ -1187,7 +1187,7 @@ void VulkanReplay::DestroyOutputWindow(uint64_t id)
   m_OutputWindows.erase(it);
 }
 
-vector<WindowingSystem> VulkanReplay::GetSupportedWindowSystems()
+std::vector<WindowingSystem> VulkanReplay::GetSupportedWindowSystems()
 {
   return m_pDriver->m_SupportedWindowSystems;
 }

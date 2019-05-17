@@ -170,7 +170,7 @@ void DoSerialise(SerialiserType &ser, TextureStateInitialData &el)
 void WrappedOpenGL::TextureData::GetCompressedImageDataGLES(int mip, GLenum target, size_t size,
                                                             byte *buf)
 {
-  const vector<byte> &data = compressedData[mip];
+  const std::vector<byte> &data = compressedData[mip];
 
   memset(buf, 0, size);
 
@@ -629,7 +629,7 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat,
         {
           GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalFormat);
 
-          vector<byte> dummy;
+          std::vector<byte> dummy;
           dummy.resize(compSize);
 
           if(dim == 1)

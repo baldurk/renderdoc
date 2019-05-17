@@ -27,7 +27,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-using std::vector;
 
 #pragma once
 
@@ -272,13 +271,13 @@ private:
   std::string GetSymbolName(int symbolID);
   std::string GetSymbolName(int32_t symbolOffset, int32_t symbolLength);
 
-  vector<SDBGAsmInstruction> m_Instructions;
-  vector<SDBGVariable> m_Variables;
-  vector<SDBGInputRegister> m_Inputs;
-  vector<SDBGSymbol> m_SymbolTable;
-  vector<SDBGScope> m_Scopes;
-  vector<SDBGType> m_Types;
-  vector<int32_t> m_Int32Database;
+  std::vector<SDBGAsmInstruction> m_Instructions;
+  std::vector<SDBGVariable> m_Variables;
+  std::vector<SDBGInputRegister> m_Inputs;
+  std::vector<SDBGSymbol> m_SymbolTable;
+  std::vector<SDBGScope> m_Scopes;
+  std::vector<SDBGType> m_Types;
+  std::vector<int32_t> m_Int32Database;
 
   uint32_t m_ShaderFlags;
 
@@ -289,8 +288,8 @@ private:
   // these don't need to be exposed, a more processed and friendly
   // version is exposed
   SDBGHeader m_Header;
-  vector<SDBGFileHeader> m_FileHeaders;
+  std::vector<SDBGFileHeader> m_FileHeaders;
 
-  vector<char> m_RawData;
+  std::vector<char> m_RawData;
 };
 };

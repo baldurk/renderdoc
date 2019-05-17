@@ -262,7 +262,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
       if(reflected)
       {
-        vector<uint32_t> spirvwords;
+        std::vector<uint32_t> spirvwords;
 
         SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
                                           SPIRVShaderStage(ShaderIdx(type)));

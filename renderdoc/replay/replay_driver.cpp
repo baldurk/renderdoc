@@ -59,7 +59,7 @@ static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
                              DrawFlags::APICalls));
 }
 
-static DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> &drawcallTable,
+static DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
                                                   rdcarray<DrawcallDescription> &draws,
                                                   DrawcallDescription *parent,
                                                   DrawcallDescription *&previous)
@@ -382,7 +382,7 @@ static void StandardFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
       var.type = VarType::Float;
       var.rowMajor = rowMajor;
 
-      vector<ShaderVariable> varmembers;
+      std::vector<ShaderVariable> varmembers;
 
       if(isArray)
       {
@@ -443,7 +443,7 @@ static void StandardFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
         var.rows = 0;
         var.columns = 0;
 
-        vector<ShaderVariable> varmembers;
+        std::vector<ShaderVariable> varmembers;
         varmembers.resize(elems);
 
         std::string base = outvars[outIdx].name;
@@ -723,9 +723,9 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
 }
 
 bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector &activeVertex,
-                                             vector<FloatVector> &activePrim,
-                                             vector<FloatVector> &adjacentPrimVertices,
-                                             vector<FloatVector> &inactiveVertices)
+                                             std::vector<FloatVector> &activePrim,
+                                             std::vector<FloatVector> &adjacentPrimVertices,
+                                             std::vector<FloatVector> &inactiveVertices)
 {
   bool valid = true;
 

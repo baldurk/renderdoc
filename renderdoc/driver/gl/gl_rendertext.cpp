@@ -487,7 +487,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       GL.glBindProgramPipeline(0);
 
     // draw string (based on sample code from stb_truetype.h)
-    vector<Vec4f> vertices;
+    std::vector<Vec4f> vertices;
     {
       y += 1.0f;
       y *= charPixelHeight;

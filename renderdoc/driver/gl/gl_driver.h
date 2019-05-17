@@ -79,10 +79,10 @@ private:
 
   GLPlatform &m_Platform;
 
-  vector<DebugMessage> m_DebugMessages;
+  std::vector<DebugMessage> m_DebugMessages;
   template <typename SerialiserType>
   void Serialise_DebugMessages(SerialiserType &ser);
-  vector<DebugMessage> GetDebugMessages();
+  std::vector<DebugMessage> GetDebugMessages();
 
   std::string m_DebugMsgContext;
 
@@ -213,13 +213,13 @@ private:
     }
   }
 
-  vector<FrameDescription> m_CapturedFrames;
+  std::vector<FrameDescription> m_CapturedFrames;
   FrameRecord m_FrameRecord;
-  vector<DrawcallDescription *> m_Drawcalls;
+  std::vector<DrawcallDescription *> m_Drawcalls;
 
   // replay
 
-  vector<APIEvent> m_CurEvents, m_Events;
+  std::vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
   bool HasNonDebugMarkers();
@@ -238,12 +238,12 @@ private:
 
   std::list<DrawcallDescription *> m_DrawcallStack;
 
-  std::map<ResourceId, vector<EventUsage>> m_ResourceUses;
+  std::map<ResourceId, std::vector<EventUsage>> m_ResourceUses;
 
   bool m_FetchCounters;
 
   // buffer used
-  vector<byte> m_ScratchBuf;
+  std::vector<byte> m_ScratchBuf;
 
   struct BufferData
   {
@@ -255,7 +255,7 @@ private:
 
   std::map<ResourceId, BufferData> m_Buffers;
 
-  vector<rdcpair<ResourceId, Replacement>> m_DependentReplacements;
+  std::vector<rdcpair<ResourceId, Replacement>> m_DependentReplacements;
 
   // this object is only created on old captures where VAO0 was a single global object. In new
   // captures each context has its own VAO0.
@@ -380,7 +380,7 @@ private:
     float CharAspect;
 
     // extensions
-    vector<std::string> glExts;
+    std::vector<std::string> glExts;
     std::string glExtsString;
 
     // state
@@ -479,8 +479,8 @@ private:
     }
   };
 
-  vector<QueuedResource> m_QueuedInitialFetches;
-  vector<QueuedResource> m_QueuedReleases;
+  std::vector<QueuedResource> m_QueuedInitialFetches;
+  std::vector<QueuedResource> m_QueuedReleases;
 
   void QueuePrepareInitialState(GLResource res);
   void QueueResourceRelease(GLResource res);
@@ -503,8 +503,8 @@ private:
   void BuildGLExtensions();
   void BuildGLESExtensions();
 
-  vector<std::string> m_GLExtensions;
-  vector<std::string> m_GLESExtensions;
+  std::vector<std::string> m_GLExtensions;
+  std::vector<std::string> m_GLESExtensions;
 
   std::set<uint32_t> m_UnsafeDraws;
 
@@ -574,7 +574,7 @@ public:
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
-  vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
+  std::vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams,
                      bool core, bool attribsCreate);
   void RegisterReplayContext(GLWindowingData winData, void *shareContext, bool core,
@@ -603,8 +603,8 @@ public:
   {
     ShaderData() : type(eGL_NONE), version(0) {}
     GLenum type;
-    vector<std::string> sources;
-    vector<std::string> includepaths;
+    std::vector<std::string> sources;
+    std::vector<std::string> includepaths;
     SPVModule spirv;
     std::string disassembly;
     ShaderReflection reflection;
@@ -633,7 +633,7 @@ public:
   struct ProgramData
   {
     ProgramData() : linked(false) { RDCEraseEl(stageShaders); }
-    vector<ResourceId> shaders;
+    std::vector<ResourceId> shaders;
 
     std::map<GLint, GLint> locationTranslate;
 

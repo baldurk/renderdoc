@@ -50,15 +50,15 @@ struct D3D12RenderState
   void ApplyComputeRootElements(ID3D12GraphicsCommandList4 *cmd) const;
   void ApplyGraphicsRootElements(ID3D12GraphicsCommandList4 *cmd) const;
 
-  vector<D3D12_VIEWPORT> views;
-  vector<D3D12_RECT> scissors;
+  std::vector<D3D12_VIEWPORT> views;
+  std::vector<D3D12_RECT> scissors;
 
   // these are D3D12Descriptor copies since the values of the descriptors are read during
   // OMSetRenderTargets and may not exist anywhere after that if they are immediately overwritten.
-  vector<D3D12Descriptor> rts;
+  std::vector<D3D12Descriptor> rts;
   D3D12Descriptor dsv;
 
-  vector<ResourceId> GetRTVIDs() const;
+  std::vector<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
 
   struct SignatureElement
@@ -140,10 +140,10 @@ struct D3D12RenderState
 
     ResourceId id;
     UINT64 offset;
-    vector<UINT> constants;
+    std::vector<UINT> constants;
   };
 
-  vector<ResourceId> heaps;
+  std::vector<ResourceId> heaps;
 
   struct StreamOut
   {
@@ -154,13 +154,13 @@ struct D3D12RenderState
     ResourceId countbuf;
     UINT64 countoffs;
   };
-  vector<StreamOut> streamouts;
+  std::vector<StreamOut> streamouts;
 
   struct RootSignature
   {
     ResourceId rootsig;
 
-    vector<SignatureElement> sigelems;
+    std::vector<SignatureElement> sigelems;
   } compute, graphics;
 
   ResourceId pipe;
@@ -194,7 +194,7 @@ struct D3D12RenderState
     UINT stride;
     UINT size;
   };
-  vector<VertBuffer> vbuffers;
+  std::vector<VertBuffer> vbuffers;
 
   D3D12ResourceManager *GetResourceManager() const { return m_ResourceManager; }
   D3D12ResourceManager *m_ResourceManager = NULL;

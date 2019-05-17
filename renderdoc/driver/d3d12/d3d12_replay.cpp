@@ -420,9 +420,9 @@ ShaderReflection *D3D12Replay::GetShader(ResourceId shader, ShaderEntryPoint ent
   return NULL;
 }
 
-vector<std::string> D3D12Replay::GetDisassemblyTargets()
+std::vector<std::string> D3D12Replay::GetDisassemblyTargets()
 {
-  vector<std::string> ret;
+  std::vector<std::string> ret;
 
   // DXBC is always first
   ret.insert(ret.begin(), DXBCDisassemblyTarget);
@@ -604,7 +604,7 @@ ResourceId D3D12Replay::GetLiveID(ResourceId id)
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
-vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
+std::vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
 {
   return m_pDevice->GetQueue()->GetUsage(id);
 }
@@ -2386,7 +2386,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
 bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                                CompType typeHint, float minval, float maxval, bool channels[4],
-                               vector<uint32_t> &histogram)
+                               std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -2562,9 +2562,9 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
   return false;
 }
 
-vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
+std::vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
 {
-  vector<uint32_t> passEvents;
+  std::vector<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
@@ -2731,7 +2731,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, std::string entryPoint
   StandardFillCBufferVariables(c.variables, outvars, rootData.empty() ? data : rootData);
 }
 
-vector<DebugMessage> D3D12Replay::GetDebugMessages()
+std::vector<DebugMessage> D3D12Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
 }
@@ -3074,7 +3074,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     list = m_pDevice->GetNewList();
 
     // put source texture into resolve source state
-    const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    const std::vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
 
     std::vector<D3D12_RESOURCE_BARRIER> barriers;
     barriers.reserve(states.size());
@@ -3142,7 +3142,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     list = m_pDevice->GetNewList();
 
     // put source texture into shader read state
-    const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    const std::vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
 
     std::vector<D3D12_RESOURCE_BARRIER> barriers;
     barriers.reserve(states.size());
@@ -3204,7 +3204,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpTexture == NULL)
   {
-    const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    const std::vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
     barriers.reserve(states.size());
     for(size_t i = 0; i < states.size(); i++)
     {
@@ -3534,12 +3534,12 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
 
 #pragma region not yet implemented
 
-vector<PixelModification> D3D12Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                    uint32_t x, uint32_t y, uint32_t slice,
-                                                    uint32_t mip, uint32_t sampleIdx,
-                                                    CompType typeHint)
+std::vector<PixelModification> D3D12Replay::PixelHistory(std::vector<EventUsage> events,
+                                                         ResourceId target, uint32_t x, uint32_t y,
+                                                         uint32_t slice, uint32_t mip,
+                                                         uint32_t sampleIdx, CompType typeHint)
 {
-  return vector<PixelModification>();
+  return std::vector<PixelModification>();
 }
 
 ShaderDebugTrace D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,

@@ -893,7 +893,7 @@ std::string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
       {
         uint32_t idx = (uint32_t)indices[0].index;
 
-        vector<ShaderInputBind> *list = NULL;
+        std::vector<ShaderInputBind> *list = NULL;
 
         if(type == TYPE_RESOURCE)
           list = &dxbc->m_SRVs;

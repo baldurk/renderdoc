@@ -79,7 +79,7 @@ static uint32_t GetNumCaptures()
 
 static uint32_t GetCapture(uint32_t idx, char *filename, uint32_t *pathlength, uint64_t *timestamp)
 {
-  vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+  std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
 
   if(idx >= (uint32_t)caps.size())
   {
@@ -109,7 +109,7 @@ static void SetCaptureFileComments(const char *filePath, const char *comments)
   std::string path;
   if(filePath == NULL || filePath[0] == 0)
   {
-    vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+    std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
     if(caps.empty())
     {
       RDCERR(

@@ -106,9 +106,9 @@ const SDFile &VulkanReplay::GetStructuredFile()
   return m_pDriver->GetStructuredFile();
 }
 
-vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
+std::vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
 {
-  vector<uint32_t> passEvents;
+  std::vector<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
@@ -179,7 +179,7 @@ FrameRecord VulkanReplay::GetFrameRecord()
   return m_pDriver->GetFrameRecord();
 }
 
-vector<DebugMessage> VulkanReplay::GetDebugMessages()
+std::vector<DebugMessage> VulkanReplay::GetDebugMessages()
 {
   return m_pDriver->GetDebugMessages();
 }
@@ -345,9 +345,9 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, ShaderEntryPoint en
   return &shad->second.m_Reflections[entry.name].refl;
 }
 
-vector<std::string> VulkanReplay::GetDisassemblyTargets()
+std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
 {
-  vector<std::string> ret;
+  std::vector<std::string> ret;
 
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -1946,7 +1946,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
        0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
   };
 
-  vector<VkWriteDescriptorSet> writeSets;
+  std::vector<VkWriteDescriptorSet> writeSets;
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
   {
     if(writeSet[i].descriptorCount > 0)
@@ -2131,7 +2131,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
 bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                                 CompType typeHint, float minval, float maxval, bool channels[4],
-                                vector<uint32_t> &histogram)
+                                std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -2261,7 +2261,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
        altimdesc, NULL, NULL},
   };
 
-  vector<VkWriteDescriptorSet> writeSets;
+  std::vector<VkWriteDescriptorSet> writeSets;
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
   {
     if(writeSet[i].descriptorCount > 0)
@@ -2439,7 +2439,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   return true;
 }
 
-vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
+std::vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 {
   return m_pDriver->GetUsage(id);
 }
@@ -3454,9 +3454,9 @@ void VulkanReplay::BuildCustomShader(std::string source, std::string entry,
       return;
   }
 
-  vector<std::string> sources;
+  std::vector<std::string> sources;
   sources.push_back(source);
-  vector<uint32_t> spirv;
+  std::vector<uint32_t> spirv;
 
   SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
 
@@ -3552,7 +3552,7 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
                                      std::string entry, const ShaderCompileFlags &compileFlags,
                                      ShaderStage type, ResourceId *id, std::string *errors)
 {
-  vector<uint32_t> spirv;
+  std::vector<uint32_t> spirv;
 
   if(sourceEncoding == ShaderEncoding::GLSL)
   {
@@ -3572,7 +3572,7 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
         return;
     }
 
-    vector<std::string> sources;
+    std::vector<std::string> sources;
     sources.push_back(std::string((char *)source.begin(), (char *)source.end()));
 
     SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
@@ -3742,13 +3742,13 @@ void VulkanReplay::RemoveReplacement(ResourceId id)
   ClearFeedbackCache();
 }
 
-vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                     uint32_t x, uint32_t y, uint32_t slice,
-                                                     uint32_t mip, uint32_t sampleIdx,
-                                                     CompType typeHint)
+std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
+                                                          ResourceId target, uint32_t x, uint32_t y,
+                                                          uint32_t slice, uint32_t mip,
+                                                          uint32_t sampleIdx, CompType typeHint)
 {
   VULKANNOTIMP("PixelHistory");
-  return vector<PixelModification>();
+  return std::vector<PixelModification>();
 }
 
 ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,

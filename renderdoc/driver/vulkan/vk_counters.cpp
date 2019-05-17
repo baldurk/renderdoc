@@ -31,9 +31,9 @@
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
 
-vector<GPUCounter> VulkanReplay::EnumerateCounters()
+std::vector<GPUCounter> VulkanReplay::EnumerateCounters()
 {
-  vector<GPUCounter> ret;
+  std::vector<GPUCounter> ret;
 
   VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
 
@@ -62,7 +62,7 @@ vector<GPUCounter> VulkanReplay::EnumerateCounters()
 
   if(m_pAMDCounters)
   {
-    vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
+    std::vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
     ret.insert(ret.end(), amdCounters.begin(), amdCounters.end());
   }
 
@@ -202,7 +202,7 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 {
   VulkanAMDDrawCallback(WrappedVulkan *dev, VulkanReplay *rp, uint32_t &sampleIndex,
-                        vector<uint32_t> &eventIDs)
+                        std::vector<uint32_t> &eventIDs)
       : m_pDriver(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
   {
     m_pDriver->SetDrawcallCB(this);
@@ -271,17 +271,17 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   uint32_t *m_pSampleId;
   WrappedVulkan *m_pDriver;
   VulkanReplay *m_pReplay;
-  vector<uint32_t> *m_pEventIds;
+  std::vector<uint32_t> *m_pEventIds;
   std::set<VkCommandBuffer> m_begunCommandBuffers;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  std::vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
-                                 vector<uint32_t> *eventIDs)
+                                 std::vector<uint32_t> *eventIDs)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
@@ -291,14 +291,14 @@ void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
   m_pDriver->ReplayLog(*eventStartID, maxEID, eReplay_Full);
 }
 
-vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &counters)
+std::vector<CounterResult> VulkanReplay::FetchCountersAMD(const std::vector<GPUCounter> &counters)
 {
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
   if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Vk, (void *)&context))
   {
-    return vector<CounterResult>();
+    return std::vector<CounterResult>();
   }
 
   uint32_t sessionID = m_pAMDCounters->CreateSession();
@@ -319,7 +319,7 @@ vector<CounterResult> VulkanReplay::FetchCountersAMD(const vector<GPUCounter> &c
 
   uint32_t sampleIndex = 0;
 
-  vector<uint32_t> eventIDs;
+  std::vector<uint32_t> eventIDs;
 
   for(uint32_t i = 0; i < passCount; i++)
   {
@@ -437,28 +437,28 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   VkQueryPool m_TimeStampQueryPool;
   VkQueryPool m_OcclusionQueryPool;
   VkQueryPool m_PipeStatsQueryPool;
-  vector<uint32_t> m_Results;
+  std::vector<uint32_t> m_Results;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  std::vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &counters)
+std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCounter> &counters)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
-  vector<GPUCounter> vkCounters;
+  std::vector<GPUCounter> vkCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkCounters),
                [](const GPUCounter &c) { return IsGenericCounter(c); });
 
-  vector<CounterResult> ret;
+  std::vector<CounterResult> ret;
 
   if(m_pAMDCounters)
   {
     // Filter out the AMD counters
-    vector<GPUCounter> amdCounters;
+    std::vector<GPUCounter> amdCounters;
     std::copy_if(counters.begin(), counters.end(), std::back_inserter(amdCounters),
                  [](const GPUCounter &c) { return IsAMDCounter(c); });
 
@@ -568,7 +568,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
   // replay the events to perform all the queries
   m_pDriver->ReplayLog(0, maxEID, eReplay_Full);
 
-  vector<uint64_t> m_TimeStampData;
+  std::vector<uint64_t> m_TimeStampData;
   m_TimeStampData.resize(cb.m_Results.size() * 2);
 
   vkr = ObjDisp(dev)->GetQueryPoolResults(
@@ -579,7 +579,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), timeStampPool, NULL);
 
-  vector<uint64_t> m_OcclusionData;
+  std::vector<uint64_t> m_OcclusionData;
   m_OcclusionData.resize(cb.m_Results.size());
   if(occlusionPool != VK_NULL_HANDLE)
   {
@@ -592,7 +592,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);
   }
 
-  vector<uint64_t> m_PipeStatsData;
+  std::vector<uint64_t> m_PipeStatsData;
   m_PipeStatsData.resize(cb.m_Results.size() * 11);
   if(pipeStatsPool != VK_NULL_HANDLE)
   {

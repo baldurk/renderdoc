@@ -184,7 +184,7 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
 }
 
 ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                   uint32_t eventId, const vector<uint32_t> &passEvents)
+                                   uint32_t eventId, const std::vector<uint32_t> &passEvents)
 {
   WrappedOpenGL &drv = *m_pDriver;
 
@@ -856,7 +856,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -914,7 +914,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     *v = Vec4f(rs.Viewports[0].width, rs.Viewports[0].height);
     drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
-    vector<uint32_t> events = passEvents;
+    std::vector<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::TriangleSizeDraw)
       events.clear();
@@ -1283,7 +1283,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
       drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-      vector<uint32_t> events = passEvents;
+      std::vector<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::QuadOverdrawDraw)
         events.clear();

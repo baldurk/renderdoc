@@ -450,9 +450,9 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId shader, ShaderEntryPoint ent
   return &ret;
 }
 
-vector<std::string> D3D11Replay::GetDisassemblyTargets()
+std::vector<std::string> D3D11Replay::GetDisassemblyTargets()
 {
-  vector<std::string> ret;
+  std::vector<std::string> ret;
 
   // DXBC is always first
   ret.insert(ret.begin(), DXBCDisassemblyTarget);
@@ -502,12 +502,12 @@ FrameRecord D3D11Replay::GetFrameRecord()
   return m_pDevice->GetFrameRecord();
 }
 
-vector<EventUsage> D3D11Replay::GetUsage(ResourceId id)
+std::vector<EventUsage> D3D11Replay::GetUsage(ResourceId id)
 {
   return m_pDevice->GetImmediateContext()->GetUsage(id);
 }
 
-vector<DebugMessage> D3D11Replay::GetDebugMessages()
+std::vector<DebugMessage> D3D11Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
 }
@@ -654,7 +654,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
 
   if(rs->IA.Layout)
   {
-    const vector<D3D11_INPUT_ELEMENT_DESC> &vec = m_pDevice->GetLayoutDesc(rs->IA.Layout);
+    const std::vector<D3D11_INPUT_ELEMENT_DESC> &vec = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
     ResourceId layoutId = GetIDForResource(rs->IA.Layout);
 
@@ -1488,9 +1488,9 @@ const SDFile &D3D11Replay::GetStructuredFile()
   return m_pDevice->GetStructuredFile();
 }
 
-vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
+std::vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
 {
-  vector<uint32_t> passEvents;
+  std::vector<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
@@ -1529,7 +1529,7 @@ ResourceId D3D11Replay::GetLiveID(ResourceId id)
 
 bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                                CompType typeHint, float minval, float maxval, bool channels[4],
-                               vector<uint32_t> &histogram)
+                               std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;

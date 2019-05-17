@@ -168,7 +168,8 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   }
 
   // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-  const vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(GetResID(resource));
+  const std::vector<D3D12_RESOURCE_STATES> &states =
+      m_pDevice->GetSubresourceStates(GetResID(resource));
 
   barriers.reserve(states.size());
   for(size_t i = 0; i < states.size(); i++)
