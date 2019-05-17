@@ -232,8 +232,9 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     samp->setHeader(header);
 
-    samp->setColumns({tr("Slot"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
-    header->setColumnStretchHints({1, 2, 2, 2, 2});
+    samp->setColumns(
+        {tr("Slot"), tr("Object"), tr("Wrap Mode"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
+    header->setColumnStretchHints({1, 2, 2, 2, 2, 2});
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
@@ -836,12 +837,13 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         else if(s.filter.filter != FilterFunction::Normal)
           filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {slotname, addressing, filter,
-             QFormatStr("%1 - %2")
-                 .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
-                 .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
-             s.mipLODBias});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem({
+            slotname, s.resourceId != ResourceId() ? s.resourceId : r.resourceId, addressing,
+            filter, QFormatStr("%1 - %2")
+                        .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
+                        .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
+            s.mipLODBias,
+        });
 
         if(!filledSlot)
           setEmptyRow(node);
