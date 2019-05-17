@@ -264,7 +264,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(dummyFrag)
     drv.glAttachShader(feedbackProg, dummyFrag);
 
-  list<std::string> matrixVaryings;    // matrices need some fixup
+  std::list<std::string> matrixVaryings;    // matrices need some fixup
   vector<const char *> varyings;
 
   CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);

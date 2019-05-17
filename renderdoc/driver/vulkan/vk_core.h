@@ -34,7 +34,6 @@
 #include "vk_replay.h"
 #include "vk_state.h"
 
-using std::list;
 using std::vector;
 
 class VulkanShaderCache;
@@ -860,9 +859,9 @@ private:
                          byte *argend);
   void InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
 
-  list<VulkanDrawcallTreeNode *> m_DrawcallStack;
+  std::list<VulkanDrawcallTreeNode *> m_DrawcallStack;
 
-  list<VulkanDrawcallTreeNode *> &GetDrawcallStack()
+  std::list<VulkanDrawcallTreeNode *> &GetDrawcallStack()
   {
     if(m_LastCmdBufferID != ResourceId())
       return m_BakedCmdBufferInfo[m_LastCmdBufferID].drawStack;

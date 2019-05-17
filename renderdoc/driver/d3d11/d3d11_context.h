@@ -33,8 +33,6 @@
 #include "d3d11_manager.h"
 #include "d3d11_video.h"
 
-using std::list;
-
 struct MapIntercept
 {
   MapIntercept()
@@ -220,7 +218,7 @@ private:
   DrawcallDescription m_ParentDrawcall;
   std::map<ResourceId, DrawcallDescription> m_CmdLists;
 
-  list<DrawcallDescription *> m_DrawcallStack;
+  std::list<DrawcallDescription *> m_DrawcallStack;
 
   D3D11ResourceManager *GetResourceManager();
   static std::string GetChunkName(uint32_t idx);

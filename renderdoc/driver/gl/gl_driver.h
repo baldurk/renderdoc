@@ -38,8 +38,6 @@
 #include "gl_replay.h"
 #include "gl_resources.h"
 
-using std::list;
-
 struct GLInitParams
 {
   GLInitParams();
@@ -238,7 +236,7 @@ private:
 
   DrawcallDescription m_ParentDrawcall;
 
-  list<DrawcallDescription *> m_DrawcallStack;
+  std::list<DrawcallDescription *> m_DrawcallStack;
 
   std::map<ResourceId, vector<EventUsage>> m_ResourceUses;
 
