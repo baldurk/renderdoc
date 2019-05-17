@@ -746,7 +746,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
   if(m_Cap > 0)
     m_Cap--;
 
-  set<uint32_t> frames;
+  std::set<uint32_t> frames;
   frames.swap(m_QueuedFrameCaptures);
   for(auto it = frames.begin(); it != frames.end(); ++it)
   {

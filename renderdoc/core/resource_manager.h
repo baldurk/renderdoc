@@ -33,8 +33,6 @@
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
 
-using std::set;
-
 // In what way (read, write, etc) was a resource referenced in a frame -
 // used to determine if initial contents are needed and to what degree.
 // These values are used both as states (representing the cumulative previous
@@ -591,7 +589,7 @@ protected:
   std::map<ResourceId, FrameRefType> m_FrameReferencedResources;
 
   // used during capture - holds resources marked as dirty, needing initial contents
-  set<ResourceId> m_DirtyResources;
+  std::set<ResourceId> m_DirtyResources;
 
   struct InitialContentDataOrChunk
   {
@@ -842,7 +840,7 @@ void ResourceManager<Configuration>::CreateInitialContents(ReadSerialiser &ser)
 {
   using namespace ResourceManagerInternal;
 
-  set<ResourceId> neededInitials;
+  std::set<ResourceId> neededInitials;
 
   std::vector<WrittenRecord> WrittenRecords;
   SERIALISE_ELEMENT(WrittenRecords);

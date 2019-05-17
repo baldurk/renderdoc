@@ -921,15 +921,15 @@ struct CmdBufferRecordingInfo
 
   // sparse resources referenced by this command buffer (at submit time
   // need to go through the sparse mapping and reference all memory)
-  set<ResourceInfo *> sparse;
+  std::set<ResourceInfo *> sparse;
 
   // a list of all resources dirtied by this command buffer
-  set<ResourceId> dirtied;
+  std::set<ResourceId> dirtied;
 
   // a list of descriptor sets that are bound at any point in this command buffer
   // used to look up all the frame refs per-desc set and apply them on queue
   // submit with latest binding refs.
-  set<VkDescriptorSet> boundDescSets;
+  std::set<VkDescriptorSet> boundDescSets;
 
   vector<VkResourceRecord *> subcmds;
 

@@ -321,7 +321,7 @@ private:
   D3D12ShaderCache *m_ShaderCache = NULL;
   D3D12TextRenderer *m_TextRenderer = NULL;
 
-  set<ResourceId> m_UploadResourceIds;
+  std::set<ResourceId> m_UploadResourceIds;
   std::map<uint64_t, ID3D12Resource *> m_UploadBuffers;
 
   Threading::CriticalSection m_MapsLock;
@@ -394,7 +394,7 @@ private:
   std::map<ResourceId, SubresourceStateVector> m_ResourceStates;
   Threading::CriticalSection m_ResourceStatesLock;
 
-  set<ResourceId> m_Cubemaps;
+  std::set<ResourceId> m_Cubemaps;
 
   std::map<ResourceId, std::string> m_ResourceNames;
 

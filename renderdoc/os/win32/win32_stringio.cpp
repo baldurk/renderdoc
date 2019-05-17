@@ -35,8 +35,6 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
-using std::set;
-
 // gives us an address to identify this dll with
 static int dllLocator = 0;
 
@@ -79,7 +77,7 @@ bool PlatformHasKeyInput()
   return true;
 }
 
-set<HWND> inputWindows;
+std::set<HWND> inputWindows;
 
 void AddInputWindow(void *wnd)
 {

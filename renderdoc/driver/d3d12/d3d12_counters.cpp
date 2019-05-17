@@ -262,7 +262,7 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
   WrappedID3D12Device *m_pDevice;
   D3D12Replay *m_pReplay;
   vector<uint32_t> *m_pEventIds;
-  set<ID3D12GraphicsCommandList *> m_begunCommandLists;
+  std::set<ID3D12GraphicsCommandList *> m_begunCommandLists;
 
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're

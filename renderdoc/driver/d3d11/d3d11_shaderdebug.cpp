@@ -774,7 +774,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
-  set<UINT> vertexbuffers;
+  std::set<UINT> vertexbuffers;
   uint32_t trackingOffs[32] = {0};
 
   UINT MaxStepRate = 1U;

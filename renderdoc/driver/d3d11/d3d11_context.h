@@ -120,10 +120,10 @@ private:
     }
   };
 
-  set<ResourceId> m_DeferredDirty;
-  set<ResourceId> m_DeferredReferences;
+  std::set<ResourceId> m_DeferredDirty;
+  std::set<ResourceId> m_DeferredReferences;
 
-  set<ResourceId> m_HighTrafficResources;
+  std::set<ResourceId> m_HighTrafficResources;
   std::map<MappedResource, MapIntercept> m_OpenMaps;
 
   struct StreamOutData

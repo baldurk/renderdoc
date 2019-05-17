@@ -261,7 +261,7 @@ struct GLResourceRecord : public ResourceRecord
   // for anything that is viewed if the viewer is frame referenced. Otherwise we might
   // lose the underlying data for the view.
   // Since it's 1-to-many, we keep a set here.
-  set<ResourceId> viewTextures;
+  std::set<ResourceId> viewTextures;
 
   GLResource Resource;
 

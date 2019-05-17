@@ -184,7 +184,7 @@ private:
   CaptureFailReason m_FailureReason;
   bool m_SuccessfulCapture;
 
-  set<ResourceId> m_HighTrafficResources;
+  std::set<ResourceId> m_HighTrafficResources;
 
   int m_ReplayEventCount = 0;
 
@@ -192,12 +192,12 @@ private:
   // we need to flush both types of maps, but for implicit sync points we only
   // want to consider coherent maps, and since that happens often we want it to
   // be as efficient as possible.
-  set<GLResourceRecord *> m_CoherentMaps;
-  set<GLResourceRecord *> m_PersistentMaps;
+  std::set<GLResourceRecord *> m_CoherentMaps;
+  std::set<GLResourceRecord *> m_PersistentMaps;
 
   // this function iterates over all the maps, checking for any changes between
   // the shadow pointers, and propogates that to 'real' GL
-  void PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps);
+  void PersistentMapMemoryBarrier(const std::set<GLResourceRecord *> &maps);
 
   // this function is called at any point that could possibly pick up a change
   // in a coherent persistent mapped buffer, to propogate changes across. In most

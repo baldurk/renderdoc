@@ -1265,8 +1265,8 @@ class WrappedID3D11CommandList : public WrappedDeviceChild11<ID3D11CommandList>
   bool m_Successful;    // indicates whether we have all of the commands serialised for this command
                         // list
 
-  set<ResourceId> m_Dirty;
-  set<ResourceId> m_References;
+  std::set<ResourceId> m_Dirty;
+  std::set<ResourceId> m_References;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11CommandList);
@@ -1294,14 +1294,14 @@ public:
 
   WrappedID3D11DeviceContext *GetContext() { return m_pContext; }
   bool IsCaptured() { return m_Successful; }
-  void SwapReferences(set<ResourceId> &refs) { m_References.swap(refs); }
-  void SwapDirtyResources(set<ResourceId> &dirty) { m_Dirty.swap(dirty); }
+  void SwapReferences(std::set<ResourceId> &refs) { m_References.swap(refs); }
+  void SwapDirtyResources(std::set<ResourceId> &dirty) { m_Dirty.swap(dirty); }
   void MarkDirtyResources(D3D11ResourceManager *manager)
   {
     for(auto it = m_Dirty.begin(); it != m_Dirty.end(); ++it)
       manager->MarkDirtyResource(*it);
   }
-  void MarkDirtyResources(set<ResourceId> &missingTracks)
+  void MarkDirtyResources(std::set<ResourceId> &missingTracks)
   {
     for(auto it = m_Dirty.begin(); it != m_Dirty.end(); ++it)
       missingTracks.insert(*it);

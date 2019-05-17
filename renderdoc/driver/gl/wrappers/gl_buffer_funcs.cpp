@@ -2650,14 +2650,14 @@ void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLs
   return GL.glFlushMappedBufferRange(target, offset, length);
 }
 
-void WrappedOpenGL::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps)
+void WrappedOpenGL::PersistentMapMemoryBarrier(const std::set<GLResourceRecord *> &maps)
 {
   PUSH_CURRENT_CHUNK;
 
   // this function iterates over all the maps, checking for any changes between
   // the shadow pointers, and propogates that to 'real' GL
 
-  for(set<GLResourceRecord *>::const_iterator it = maps.begin(); it != maps.end(); ++it)
+  for(std::set<GLResourceRecord *>::const_iterator it = maps.begin(); it != maps.end(); ++it)
   {
     GLResourceRecord *record = *it;
 

@@ -348,7 +348,7 @@ private:
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
-  set<ID3D11DeviceChild *> m_CachedStateObjects;
+  std::set<ID3D11DeviceChild *> m_CachedStateObjects;
 
   // This function will check if m_CachedStateObjects is growing too large, and if so
   // go through m_CachedStateObjects and release any state objects that are purely
@@ -365,7 +365,7 @@ private:
   // Must be called while m_D3DLock is held.
   void CachedObjectsGarbageCollect();
 
-  set<WrappedID3D11DeviceContext *> m_DeferredContexts;
+  std::set<WrappedID3D11DeviceContext *> m_DeferredContexts;
   std::map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
   std::map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
 

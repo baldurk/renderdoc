@@ -423,7 +423,7 @@ struct CmdListRecordingInfo
   vector<D3D12_RESOURCE_BARRIER> barriers;
 
   // a list of all resources dirtied by this command list
-  set<ResourceId> dirtied;
+  std::set<ResourceId> dirtied;
 
   // a list of descriptors that are bound at any point in this command list
   // used to look up all the frame refs per-descriptor and apply them on queue

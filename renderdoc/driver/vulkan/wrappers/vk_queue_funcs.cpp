@@ -786,7 +786,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     capframe = IsActiveCapturing(m_State);
   }
 
-  set<ResourceId> refdIDs;
+  std::set<ResourceId> refdIDs;
 
   VkResourceRecord *queueRecord = GetRecord(queue);
 

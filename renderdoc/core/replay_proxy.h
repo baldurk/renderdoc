@@ -594,8 +594,8 @@ private:
   // this cache only exists on the client side, with the proxy renderer. This denotes cases where we
   // already have up-to-date texture data for the current event so we don't need to check for any
   // deltas. It is cleared any time we set event.
-  set<TextureCacheEntry> m_TextureProxyCache;
-  set<ResourceId> m_BufferProxyCache;
+  std::set<TextureCacheEntry> m_TextureProxyCache;
+  std::set<ResourceId> m_BufferProxyCache;
 
   struct ProxyTextureProperties
   {

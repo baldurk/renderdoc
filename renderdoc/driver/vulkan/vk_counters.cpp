@@ -272,7 +272,7 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   WrappedVulkan *m_pDriver;
   VulkanReplay *m_pReplay;
   vector<uint32_t> *m_pEventIds;
-  set<VkCommandBuffer> m_begunCommandBuffers;
+  std::set<VkCommandBuffer> m_begunCommandBuffers;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that

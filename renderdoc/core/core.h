@@ -40,7 +40,6 @@
 
 using std::vector;
 using std::pair;
-using std::set;
 
 class Chunk;
 struct RDCThumb;
@@ -604,7 +603,7 @@ private:
   CaptureOptions m_Options;
   uint32_t m_Overlay;
 
-  set<uint32_t> m_QueuedFrameCaptures;
+  std::set<uint32_t> m_QueuedFrameCaptures;
 
   uint32_t m_RemoteIdent;
   Threading::ThreadHandle m_RemoteThread;
@@ -635,7 +634,7 @@ private:
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
 
-  set<ShutdownFunction> m_ShutdownFunctions;
+  std::set<ShutdownFunction> m_ShutdownFunctions;
 
   struct FrameCap
   {
