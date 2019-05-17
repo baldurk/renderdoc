@@ -80,7 +80,7 @@ using google_breakpad::CrashGenerationServer;
 bool clientConnected = false;
 bool exitServer = false;
 
-wstring wdump = L"";
+std::wstring wdump = L"";
 std::vector<google_breakpad::CustomInfoEntry> customInfo;
 
 static void _cdecl OnClientConnected(void *context, const ClientInfo *client_info)
@@ -89,7 +89,7 @@ static void _cdecl OnClientConnected(void *context, const ClientInfo *client_inf
 }
 
 static void _cdecl OnClientCrashed(void *context, const ClientInfo *client_info,
-                                   const wstring *dump_path)
+                                   const std::wstring *dump_path)
 {
   if(dump_path)
   {
@@ -441,20 +441,20 @@ struct UpgradeCommand : public Command
 struct CrashHandlerCommand : public Command
 {
   CrashHandlerCommand(const GlobalEnvironment &env) : Command(env) {}
-  virtual void AddOptions(cmdline::parser &parser) { parser.add<string>("pipe", 0, ""); }
+  virtual void AddOptions(cmdline::parser &parser) { parser.add<std::string>("pipe", 0, ""); }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    std::wstring pipe = conv(parser.get<string>("pipe"));
+    std::wstring pipe = conv(parser.get<std::string>("pipe"));
 
     CrashGenerationServer *crashServer = NULL;
 
     wchar_t tempPath[MAX_PATH] = {0};
     GetTempPathW(MAX_PATH - 1, tempPath);
 
-    wstring dumpFolder = tempPath;
+    std::wstring dumpFolder = tempPath;
     dumpFolder += L"RenderDoc/dumps";
 
     CreateDirectoryW(dumpFolder.c_str(), NULL);
@@ -513,12 +513,12 @@ struct CrashHandlerCommand : public Command
 
     if(!wdump.empty())
     {
-      string report = "{\n";
+      std::string report = "{\n";
 
       for(size_t i = 0; i < customInfo.size(); i++)
       {
-        wstring name = customInfo[i].name;
-        wstring val = customInfo[i].value;
+        std::wstring name = customInfo[i].name;
+        std::wstring val = customInfo[i].value;
 
         if(name == L"logpath")
         {
@@ -547,7 +547,7 @@ struct CrashHandlerCommand : public Command
       report += "}\n";
 
       {
-        wstring destjson = dumpFolder + L"\\report.json";
+        std::wstring destjson = dumpFolder + L"\\report.json";
 
         FILE *f = NULL;
         _wfopen_s(&f, destjson.c_str(), L"w");
