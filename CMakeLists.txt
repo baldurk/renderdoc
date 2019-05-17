@@ -239,8 +239,13 @@ if(ENABLE_VULKAN)
     add_definitions(-DRENDERDOC_SUPPORT_VULKAN)
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
+
+if(cmake_build_type_lower STREQUAL "release" OR
+   cmake_build_type_lower STREQUAL "relwithdebinfo" OR
+   cmake_build_type_lower STREQUAL "minsizerel")
     add_definitions(-D_RELEASE)
+    message(STATUS "Building RenderDoc in Release mode: ${CMAKE_BUILD_TYPE}")
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
