@@ -164,7 +164,7 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdEndConditionalRenderingEXT)
     STRINGISE_ENUM_CLASS(vkCmdSetSampleLocationsEXT)
     STRINGISE_ENUM_CLASS(vkCmdSetDiscardRectangleEXT)
-    STRINGISE_ENUM_CLASS_NAMED(DeviceMemoryRefs, "Device Memory References")
+    STRINGISE_ENUM_CLASS_NAMED(DeviceMemoryRefs, "Internal: Device Memory References")
     STRINGISE_ENUM_CLASS(vkResetQueryPoolEXT);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }

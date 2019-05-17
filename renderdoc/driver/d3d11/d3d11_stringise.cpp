@@ -63,7 +63,7 @@ rdcstr DoStringise(const D3D11Chunk &el)
 
   BEGIN_ENUM_STRINGISE(D3D11Chunk)
   {
-    STRINGISE_ENUM_CLASS_NAMED(DeviceInitialisation, "Device Initialisation");
+    STRINGISE_ENUM_CLASS_NAMED(DeviceInitialisation, "Internal: Device Initialisation");
     STRINGISE_ENUM_CLASS_NAMED(SetResourceName, "ID3D11Resource::SetDebugName");
     STRINGISE_ENUM_CLASS_NAMED(CreateSwapBuffer, "IDXGISwapChain::GetBuffer");
     STRINGISE_ENUM_CLASS_NAMED(CreateTexture1D, "ID3D11Device::CreateTexture1D");
@@ -191,7 +191,7 @@ rdcstr DoStringise(const D3D11Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
     STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");
     STRINGISE_ENUM_CLASS_NAMED(PopMarker, "Pop Debug Region");
-    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "SetShaderDebugPath");
+    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "Internal: SetShaderDebugPath");
     STRINGISE_ENUM_CLASS_NAMED(DiscardResource, "ID3D11DeviceContext1::DiscardResource");
     STRINGISE_ENUM_CLASS_NAMED(DiscardView, "ID3D11DeviceContext1::DiscardView");
     STRINGISE_ENUM_CLASS_NAMED(DiscardView1, "ID3D11DeviceContext1::DiscardView1");

@@ -36,14 +36,14 @@ rdcstr DoStringise(const GLChunk &el)
     STRINGISE_ENUM_CLASS_NAMED(MakeContextCurrent, "MakeContextCurrent");
 
     STRINGISE_ENUM_CLASS_NAMED(glIndirectSubCommand, "Indirect sub-command");
-    STRINGISE_ENUM_CLASS_NAMED(glContextInit, "Context Initialisation");
+    STRINGISE_ENUM_CLASS_NAMED(glContextInit, "Internal: Context Initialisation");
 
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain);
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain2);
 
-    STRINGISE_ENUM_CLASS_NAMED(ContextConfiguration, "Context Configuration");
+    STRINGISE_ENUM_CLASS_NAMED(ContextConfiguration, "Internal: Context Configuration");
 
-    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Coherent Mapped Memory Write");
+    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal: Coherent Mapped Memory Write");
 
 // re-use list of GL functions as chunks. Many of these will be aliased. This may not appear in the
 // same order as the definition, but that's OK.
