@@ -93,14 +93,15 @@ void main()
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
       glViewport(100, 0, GLsizei(100), GLsizei(100));
+      glUniform1ui(glGetUniformLocation(program, "path"), 1);
       setMarker("Second Test");
-      glUniform1uiEXT(glGetUniformLocation(program, "path"), 1);
+      glVertexAttribBinding(1, 1);
       glProgramUniform4f(program, glGetUniformLocation(program, "a"), 0.0f, 1.0f, 1.0f, 1.0f);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
       glViewport(200, 0, GLsizei(100), GLsizei(100));
       setMarker("Third Test");
-      glMemoryBarrierEXT(GL_COMMAND_BARRIER_BIT);
+      glVertexArrayAttribBinding(vao, 1, 1);
       glUniform4f(glGetUniformLocation(program, "a"), 1.0f, 1.0f, 0.0f, 1.0f);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
