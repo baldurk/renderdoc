@@ -176,7 +176,7 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   return 0;
 }
 
-ExecuteResult StartAndroidPackageForCapture(const char *host, const char *package,
+ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packageAndActivity,
                                             const char *intentArgs, const CaptureOptions &opts)
 {
   int index = 0;
@@ -187,10 +187,14 @@ ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packag
   ret.status = ReplayStatus::UnknownError;
   ret.ident = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
 
-  std::string packageName = get_basename(std::string(package));    // Remove leading '/' if any
+  std::string packageName = GetPackageName(packageAndActivity);    // Remove leading '/' if any
 
   // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
-  std::string activityName = GetDefaultActivityForPackage(deviceID, packageName);
+  std::string activityName = GetActivityName(packageAndActivity);
+
+  // if the activity name isn't specified, get the default one
+  if(activityName.empty() || activityName == "#DefaultActivity")
+    activityName = GetDefaultActivityForPackage(deviceID, packageName);
 
   uint16_t jdwpPort = GetJdwpPort();
 

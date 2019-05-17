@@ -59,6 +59,40 @@ void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::strin
   deviceID = c;
 }
 
+std::string GetPackageName(const std::string &packageAndActivity)
+{
+  if(packageAndActivity.empty())
+    return "";
+
+  size_t start = 0;
+  if(packageAndActivity[0] == '/')
+    start++;
+
+  size_t activitySep = packageAndActivity.find('/', start);
+
+  if(activitySep == std::string::npos)
+    return packageAndActivity.substr(start);
+
+  return packageAndActivity.substr(start, activitySep - start);
+}
+
+std::string GetActivityName(const std::string &packageAndActivity)
+{
+  if(packageAndActivity.empty())
+    return "";
+
+  size_t start = 0;
+  if(packageAndActivity[0] == '/')
+    start++;
+
+  size_t activitySep = packageAndActivity.find('/', start);
+
+  if(activitySep == std::string::npos)
+    return "";
+
+  return packageAndActivity.substr(activitySep + 1);
+}
+
 ABI GetABI(const std::string &abiName)
 {
   if(abiName == "armeabi-v7a")

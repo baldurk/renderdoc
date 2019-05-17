@@ -125,6 +125,10 @@ public:
         }
       }
     }
+    else if(roots.size() == 1 && roots[0]->file.filename == "")
+    {
+      normPath.insert(0, QLatin1Char('/'));
+    }
 
     // normPath is now of the form /subdir1/subdir2/subdir3/...
     // with ret pointing to the root directory (trivial on unix)
@@ -476,6 +480,7 @@ private:
             child->parent = node;
             child->parentIndex = i;
             child->file = sortedFiles[i];
+            child->populated = !(child->file.flags & PathProperty::Directory);
             node->children.push_back(child);
           }
         });
@@ -604,6 +609,8 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirect
 
   QObject::connect(ui->fileList->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &VirtualFileDialog::fileList_selectionChanged);
+  QObject::connect(ui->dirList->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+                   &VirtualFileDialog::dirList_selectionChanged);
 }
 
 VirtualFileDialog::~VirtualFileDialog()
@@ -710,6 +717,14 @@ void VirtualFileDialog::changeCurrentDir(const QModelIndex &index, bool recordHi
 void VirtualFileDialog::on_dirList_clicked(const QModelIndex &index)
 {
   changeCurrentDir(m_DirProxy->mapToSource(index));
+}
+
+void VirtualFileDialog::dirList_selectionChanged(const QItemSelection &selected,
+                                                 const QItemSelection &deselected)
+{
+  QModelIndexList indices = selected.indexes();
+  if(indices.count() >= 1)
+    on_dirList_clicked(indices[0]);
 }
 
 void VirtualFileDialog::on_fileList_doubleClicked(const QModelIndex &index)

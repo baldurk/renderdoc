@@ -63,6 +63,7 @@ private slots:
   void on_upFolder_clicked();
 
   // manual slots
+  void dirList_selectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
   void fileList_selectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
 
 private:

@@ -523,9 +523,8 @@ bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
 }
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const char *hostname,
-                                                                         const char *packageName,
-                                                                         AndroidFlags *flags)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
+    const char *hostname, const char *packageAndActivity, AndroidFlags *flags)
 {
   int index = 0;
   std::string deviceID;
@@ -534,13 +533,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
   // Reset the flags each time we check
   *flags = AndroidFlags::NoFlags;
 
-  if(Android::IsDebuggable(deviceID, get_basename(std::string(packageName))))
+  if(Android::IsDebuggable(deviceID, Android::GetPackageName(packageAndActivity)))
   {
     *flags |= AndroidFlags::Debuggable;
   }
   else
   {
-    RDCLOG("%s is not debuggable", packageName);
+    RDCLOG("%s is not debuggable", packageAndActivity);
   }
 
   if(Android::HasRootAccess(deviceID))
@@ -553,10 +552,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
 }
 
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
-    const char *hostname, const char *packageName, RENDERDOC_ProgressCallback progress)
+    const char *hostname, const char *packageAndActivity, RENDERDOC_ProgressCallback progress)
 {
+  std::string package = Android::GetPackageName(packageAndActivity);
+
   Process::ProcessResult result = {};
-  std::string package(get_basename(std::string(packageName)));
 
   int index = 0;
   std::string deviceID;
@@ -629,17 +629,17 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
 
   progress(0.525f);
 
-  if(!Android::UninstallOriginalAPK(deviceID, packageName, tmpDir))
+  if(!Android::UninstallOriginalAPK(deviceID, package, tmpDir))
     return AndroidFlags::RepackagingAPKFailure;
 
   progress(0.6f);
 
-  if(!Android::ReinstallPatchedAPK(deviceID, alignedAPK, abi, packageName, tmpDir))
+  if(!Android::ReinstallPatchedAPK(deviceID, alignedAPK, abi, package, tmpDir))
     return AndroidFlags::RepackagingAPKFailure;
 
   progress(0.95f);
 
-  if(!Android::IsDebuggable(deviceID, packageName))
+  if(!Android::IsDebuggable(deviceID, package))
     return AndroidFlags::ManifestPatchFailure;
 
   progress(1.0f);

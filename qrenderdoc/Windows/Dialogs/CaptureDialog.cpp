@@ -108,12 +108,20 @@ void CaptureDialog::PopulateMostRecent()
     if(!settings.executable.isEmpty())
     {
       ui->loadLastCapture->setEnabled(true);
-      if(settings.executable.indexOf('/') < 0 && settings.executable.indexOf('\\') < 0)
-        ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(QString(settings.executable)));
+
+      QString exe = settings.executable;
+
+      // if the executable isn't a path, display the full name
+      bool fullName = (exe.indexOf(QLatin1Char('/')) < 0 && exe.indexOf(QLatin1Char('\\')) < 0);
+
+      // if it's not a windows path and only contains one '/', it's an android package so also
+      // display the full name
+      fullName |= (exe.indexOf(QLatin1Char('\\')) < 0 && exe.count(QLatin1Char('/')) == 1);
+
+      if(fullName)
+        ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(exe));
       else
-        ui->loadLastCapture->setText(
-            tr("Load Last Settings - %1")
-                .arg(QFileInfo(QString(settings.executable)).completeBaseName()));
+        ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(QFileInfo(exe).fileName()));
       return;
     }
   }

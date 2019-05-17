@@ -1197,33 +1197,133 @@ public:
       std::string deviceID;
       Android::ExtractDeviceIDAndIndex(m_hostname, index, deviceID);
 
-      std::string adbStdout =
-          Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
-
-      std::istringstream stdoutStream(adbStdout);
-      std::string line;
-      std::vector<PathEntry> packages;
-      while(getline(stdoutStream, line))
+      if(path[0] == 0 || (path[0] == '/' && path[1] == 0))
       {
-        std::vector<std::string> tokens;
-        split(line, tokens, ':');
-        if(tokens.size() == 2 && tokens[0] == "package")
-        {
-          PathEntry package;
-          package.filename = trim(tokens[1]);
-          package.size = 0;
-          package.lastmod = 0;
-          package.flags = PathProperty::Executable;
+        SCOPED_TIMER("Fetching android packages and activities");
 
+        std::string adbStdout =
+            Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
+
+        std::vector<std::string> lines;
+        split(adbStdout, lines, '\n');
+
+        std::vector<PathEntry> packages;
+        for(const std::string &line : lines)
+        {
           // hide our own internal packages
-          if(strstr(package.filename.c_str(), "org.renderdoc."))
+          if(strstr(line.c_str(), "package:org.renderdoc."))
             continue;
 
-          packages.push_back(package);
-        }
-      }
+          if(!strncmp(line.c_str(), "package:", 8))
+          {
+            PathEntry pkg;
+            pkg.filename = trim(line.substr(8));
+            pkg.size = 0;
+            pkg.lastmod = 0;
+            pkg.flags = PathProperty::Directory;
 
-      return packages;
+            packages.push_back(pkg);
+          }
+        }
+
+        adbStdout = Android::adbExecCommand(deviceID, "shell dumpsys package").strStdout;
+
+        split(adbStdout, lines, '\n');
+
+        for(const std::string &line : lines)
+        {
+          // quick check, look for a /
+          if(line.find('/') == std::string::npos)
+            continue;
+
+          // line should be something like: '    78f9sba com.package.name/.NameOfActivity .....'
+
+          const char *c = line.c_str();
+
+          // expect whitespace
+          while(*c && isspace(*c))
+            c++;
+
+          // expect hex
+          while(*c && ((*c >= '0' && *c <= '9') || (*c >= 'a' && *c <= 'f')))
+            c++;
+
+          // expect space
+          if(*c != ' ')
+            continue;
+
+          c++;
+
+          // expect the package now. Search to see if it's one of the ones we listed above
+          std::string package;
+
+          for(const PathEntry &p : packages)
+            if(!strncmp(c, p.filename.c_str(), p.filename.size()))
+              package = p.filename;
+
+          // didn't find a matching package
+          if(package.empty())
+            continue;
+
+          c += package.size();
+
+          // expect a /
+          if(*c != '/')
+            continue;
+
+          c++;
+
+          const char *end = strchr(c, ' ');
+
+          if(end == NULL)
+            end = c + strlen(c);
+
+          while(isspace(*(end - 1)))
+            end--;
+
+          m_AndroidActivities.insert({package, rdcstr(c, end - c)});
+        }
+
+        return packages;
+      }
+      else
+      {
+        rdcstr package = path;
+
+        if(!package.empty() && package[0] == '/')
+          package.erase(0);
+
+        std::vector<PathEntry> activities;
+
+        for(const Activity &act : m_AndroidActivities)
+        {
+          if(act.package == package)
+          {
+            PathEntry activity;
+            if(act.activity[0] == '.')
+              activity.filename = package + act.activity;
+            else
+              activity.filename = act.activity;
+            activity.size = 0;
+            activity.lastmod = 0;
+            activity.flags = PathProperty::Executable;
+            activities.push_back(activity);
+          }
+        }
+
+        PathEntry defaultActivity;
+        defaultActivity.filename = "#DefaultActivity";
+        defaultActivity.size = 0;
+        defaultActivity.lastmod = 0;
+        defaultActivity.flags = PathProperty::Executable;
+
+        // if there's only one activity listed, assume it's the default and don't add a virtual
+        // entry
+        if(activities.size() != 1)
+          activities.push_back(defaultActivity);
+
+        return activities;
+      }
     }
 
     {
@@ -1859,6 +1959,21 @@ private:
   Android::LogcatThread *m_LogcatThread;
 
   std::vector<rdcpair<RDCDriver, std::string> > m_Proxies;
+
+  struct Activity
+  {
+    rdcstr package;
+    rdcstr activity;
+
+    bool operator<(const Activity &o) const
+    {
+      if(package != o.package)
+        return package < o.package;
+      return activity < o.activity;
+    }
+  };
+
+  std::set<Activity> m_AndroidActivities;
 };
 
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
