@@ -410,12 +410,37 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         # vec4 F[3][2][2];
         # Multidimensional arrays are represented as structs with N members
-        # Due to lacking reflection, we only access F[1][0][1] so that's the only one present
-        var_check.check('F').cols(0).rows(0).structSize(1).members({
-            '[1]': lambda x: x.cols(0).rows(0).structSize(1).members({
+        # Due to lacking reflection, we skip structSize() checks, but check everything else if it's present (if it's
+        # not, it will be skipped)
+        var_check.check('F').cols(0).rows(0).members({
+            '[0]': lambda x: x.cols(0).rows(0).members({
+                '[0]': lambda x: x.cols(0).rows(0).arraySize(2).members({
+                    0: lambda x: x.cols(4).rows(1).value([190.0, 200.0, 210.0, 220.0]),
+                    1: lambda x: x.cols(4).rows(1).value([230.0, 240.0, 250.0, 260.0]),
+                }),
+                '[1]': lambda x: x.cols(0).rows(0).arraySize(2).members({
+                    0: lambda x: x.cols(4).rows(1).value([270.0, 280.0, 290.0, 300.0]),
+                    1: lambda x: x.cols(4).rows(1).value([310.0, 320.0, 330.0, 340.0]),
+                }),
+            }),
+            '[1]': lambda x: x.cols(0).rows(0).members({
                 '[0]': lambda x: x.cols(0).rows(0).arraySize(2).members({
                     0: lambda x: x.cols(4).rows(1).value([350.0, 360.0, 370.0, 380.0]),
                     1: lambda x: x.cols(4).rows(1).value([390.0, 400.0, 410.0, 420.0]),
+                }),
+                '[1]': lambda x: x.cols(0).rows(0).arraySize(2).members({
+                    0: lambda x: x.cols(4).rows(1).value([430.0, 440.0, 450.0, 460.0]),
+                    1: lambda x: x.cols(4).rows(1).value([470.0, 480.0, 490.0, 500.0]),
+                }),
+            }),
+            '[2]': lambda x: x.cols(0).rows(0).members({
+                '[0]': lambda x: x.cols(0).rows(0).arraySize(2).members({
+                    0: lambda x: x.cols(4).rows(1).value([510.0, 520.0, 530.0, 540.0]),
+                    1: lambda x: x.cols(4).rows(1).value([550.0, 560.0, 570.0, 580.0]),
+                }),
+                '[1]': lambda x: x.cols(0).rows(0).arraySize(2).members({
+                    0: lambda x: x.cols(4).rows(1).value([590.0, 600.0, 610.0, 620.0]),
+                    1: lambda x: x.cols(4).rows(1).value([630.0, 640.0, 650.0, 660.0]),
                 }),
             }),
         })
@@ -428,7 +453,8 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         var_check.check('G').cols(0).rows(0).arraySize(2).members({
             # G[0]
             0: lambda s: s.cols(0).rows(0).structSize(3).members({
-                'a': lambda x: x.cols(0).rows(0).structSize(1).members({
+                'a': lambda x: x.cols(0).rows(0).members({
+                    'a': lambda y: y.cols(3).rows(1).value([680.0, 690.0, 700.0]),
                     'b': lambda y: y.cols(1).rows(1).value([710.0]),
                 }),
                 'b': lambda x: x.cols(0).rows(0).arraySize(4).members({
@@ -438,23 +464,28 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
                     3: lambda y: y.cols(4).rows(1),
                 }),
                 'c': lambda x: x.cols(0).rows(0).arraySize(4).members({
-                    0: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    0: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
-                    1: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    1: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
-                    2: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    2: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
-                    3: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    3: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
                 }),
             }),
             # G[1]
             1: lambda s: s.cols(0).rows(0).structSize(3).members({
-                'a': lambda x: x.cols(0).rows(0).structSize(1).members({
+                'a': lambda x: x.cols(0).rows(0).members({
+                    'a': lambda y: y.cols(3).rows(1).value([1040.0, 1050.0, 1060.0]),
                     'b': lambda y: y.cols(1).rows(1).value([1070.0]),
                 }),
                 'b': lambda x: x.cols(0).rows(0).arraySize(4).members({
@@ -464,17 +495,21 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
                     3: lambda y: y.cols(4).rows(1).value([1200.0, 1210.0, 1220.0, 1230.0]),
                 }),
                 'c': lambda x: x.cols(0).rows(0).arraySize(4).members({
-                    0: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    0: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
-                    1: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    1: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
-                    2: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    2: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
-                    3: lambda y: y.cols(0).rows(0).structSize(1).members({
+                    3: lambda y: y.cols(0).rows(0).members({
                         'a': lambda z: z.cols(3).rows(1).value([1360.0, 1370.0, 1380.0]),
+                        'b': lambda z: z.cols(1).rows(1),
                     }),
                 }),
             }),
