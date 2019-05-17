@@ -793,7 +793,9 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         QString addPrefix;
         QString addVal;
 
-        QString addr[] = {ToQStr(s.addressS), ToQStr(s.addressT), ToQStr(s.addressR)};
+        QString addr[] = {ToQStr(s.addressS, GraphicsAPI::OpenGL),
+                          ToQStr(s.addressT, GraphicsAPI::OpenGL),
+                          ToQStr(s.addressR, GraphicsAPI::OpenGL)};
 
         // arrange like either STR: WRAP or ST: WRAP, R: CLAMP
         for(int a = 0; a < 3; a++)
@@ -2670,7 +2672,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
         QString addPrefix;
         QString addVal;
 
-        QString addr[] = {ToQStr(s.addressS), ToQStr(s.addressT), ToQStr(s.addressR)};
+        QString addr[] = {ToQStr(s.addressS, GraphicsAPI::OpenGL),
+                          ToQStr(s.addressT, GraphicsAPI::OpenGL),
+                          ToQStr(s.addressR, GraphicsAPI::OpenGL)};
 
         // arrange like either STR: WRAP or ST: WRAP, R: CLAMP
         for(int a = 0; a < 3; a++)

@@ -807,6 +807,36 @@ QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype)
   return lit("Unknown");
 }
 
+QString ToQStr(const AddressMode addr, const GraphicsAPI apitype)
+{
+  if(IsD3D(apitype))
+  {
+    switch(addr)
+    {
+      case AddressMode::Wrap: return lit("Wrap");
+      case AddressMode::Mirror: return lit("Mirror");
+      case AddressMode::MirrorOnce: return lit("MirrorOnce");
+      case AddressMode::ClampEdge: return lit("ClampEdge");
+      case AddressMode::ClampBorder: return lit("ClampBorder");
+      default: break;
+    }
+  }
+  else
+  {
+    switch(addr)
+    {
+      case AddressMode::Repeat: return lit("Repeat");
+      case AddressMode::MirrorRepeat: return lit("MirrorRepeat");
+      case AddressMode::MirrorClamp: return lit("MirrorClamp");
+      case AddressMode::ClampEdge: return lit("ClampEdge");
+      case AddressMode::ClampBorder: return lit("ClampBorder");
+      default: break;
+    }
+  }
+
+  return lit("Unknown");
+}
+
 QString TypeString(const SigParameter &sig)
 {
   QString ret = lit("");

@@ -738,8 +738,9 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
 
   QString filter;
 
-  QString addr[] = {ToQStr(descriptor.addressU), ToQStr(descriptor.addressV),
-                    ToQStr(descriptor.addressW)};
+  QString addr[] = {ToQStr(descriptor.addressU, GraphicsAPI::Vulkan),
+                    ToQStr(descriptor.addressV, GraphicsAPI::Vulkan),
+                    ToQStr(descriptor.addressW, GraphicsAPI::Vulkan)};
 
   // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
   for(int a = 0; a < 3; a++)

@@ -1006,7 +1006,9 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RD
       QString addPrefix;
       QString addVal;
 
-      QString addr[] = {ToQStr(s.addressU), ToQStr(s.addressV), ToQStr(s.addressW)};
+      QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D11),
+                        ToQStr(s.addressV, GraphicsAPI::D3D11),
+                        ToQStr(s.addressW, GraphicsAPI::D3D11)};
 
       // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
       for(int a = 0; a < 3; a++)
@@ -2625,7 +2627,9 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
       QString addPrefix;
       QString addVal;
 
-      QString addr[] = {ToQStr(s.addressU), ToQStr(s.addressV), ToQStr(s.addressW)};
+      QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D11),
+                        ToQStr(s.addressV, GraphicsAPI::D3D11),
+                        ToQStr(s.addressW, GraphicsAPI::D3D11)};
 
       // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
       for(int a = 0; a < 3; a++)

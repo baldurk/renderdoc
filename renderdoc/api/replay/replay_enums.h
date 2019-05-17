@@ -327,14 +327,26 @@ DOCUMENT(R"(A texture addressing mode in a single direction (U,V or W).
 
   The texture is tiled at every multiple of 1.0.
 
+.. data:: Repeat
+
+  Alias of :data:`Wrap`.
+
 .. data:: Mirror
 
   The texture is tiled as with :data:`Wrap`, but with the absolute value of the texture co-ordinate.
+
+.. data:: MirrorRepeat
+
+  Alias of :data:`Mirror`.
 
 .. data:: MirrorOnce
 
   The texture is mirrored with :data:`Mirror`, but the texture does not tile as with
   :data:`ClampEdge`.
+
+.. data:: MirrorClamp
+
+  Alias of :data:`MirrorOnce`.
 
 .. data:: ClampEdge
 
@@ -348,8 +360,11 @@ DOCUMENT(R"(A texture addressing mode in a single direction (U,V or W).
 enum class AddressMode : uint32_t
 {
   Wrap,
+  Repeat = Wrap,
   Mirror,
+  MirrorRepeat = Mirror,
   MirrorOnce,
+  MirrorClamp = MirrorOnce,
   ClampEdge,
   ClampBorder,
 };

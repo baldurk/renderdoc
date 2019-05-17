@@ -424,7 +424,7 @@ rdcstr DoStringise(const TextureFilter &el)
     if(a == 0 || filters[a] == filters[a - 1])
     {
       if(filtPrefix != "")
-        filtPrefix += "/";
+        filtPrefix += "&";
       filtPrefix += filterPrefixes[a];
     }
     else
