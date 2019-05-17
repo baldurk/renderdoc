@@ -141,7 +141,7 @@ The frame marker hierarchy is top-down in this case, and can be expanded or coll
 
 There is a vertical line around the current drawcall, as well as a |flag_green| above, and a gray outline around the event where the mouse is hovering.
 
-When the currently selected texture is used in the frame, each drawcall that references it draws a marker below the bar. A purple marker indicates that the drawcall at that point is writing to the texture, and a green marker indicates that it is reading. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular drawcall unless you zoom in.
+When the currently selected texture is used in the frame, each drawcall that references it draws a marker below the bar. The different colours of marker indicate whether the drawcall at that point is writing to the texture, reading, both reading & writing simultaneously, etc. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular drawcall unless you zoom in.
 
 This can be a very useful tool to trace data through a frame, as well as highlighting potential redundancy or errors if a target is being written to where it should not.
 
