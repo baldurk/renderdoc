@@ -262,13 +262,13 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
       timer->eventId = d.eventId;
       timer->before = timer->after = timer->stats = timer->occlusion = NULL;
 
-      hr = m_pDevice->CreateQuery(&qtimedesc, &timer->before);
+      hr = m_pDevice->GetReal()->CreateQuery(&qtimedesc, &timer->before);
       RDCASSERTEQUAL(hr, S_OK);
-      hr = m_pDevice->CreateQuery(&qtimedesc, &timer->after);
+      hr = m_pDevice->GetReal()->CreateQuery(&qtimedesc, &timer->after);
       RDCASSERTEQUAL(hr, S_OK);
-      hr = m_pDevice->CreateQuery(&qstatsdesc, &timer->stats);
+      hr = m_pDevice->GetReal()->CreateQuery(&qstatsdesc, &timer->stats);
       RDCASSERTEQUAL(hr, S_OK);
-      hr = m_pDevice->CreateQuery(&qoccldesc, &timer->occlusion);
+      hr = m_pDevice->GetReal()->CreateQuery(&qoccldesc, &timer->occlusion);
       RDCASSERTEQUAL(hr, S_OK);
     }
 
@@ -277,18 +277,18 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
     SerializeImmediateContext();
 
     if(timer->stats)
-      m_pImmediateContext->Begin(timer->stats);
+      m_pImmediateContext->GetReal()->Begin(timer->stats);
     if(timer->occlusion)
-      m_pImmediateContext->Begin(timer->occlusion);
+      m_pImmediateContext->GetReal()->Begin(timer->occlusion);
     if(timer->before && timer->after)
-      m_pImmediateContext->End(timer->before);
+      m_pImmediateContext->GetReal()->End(timer->before);
     m_pDevice->ReplayLog(ctx.eventStart, d.eventId, eReplay_OnlyDraw);
     if(timer->before && timer->after)
-      m_pImmediateContext->End(timer->after);
+      m_pImmediateContext->GetReal()->End(timer->after);
     if(timer->occlusion)
-      m_pImmediateContext->End(timer->occlusion);
+      m_pImmediateContext->GetReal()->End(timer->occlusion);
     if(timer->stats)
-      m_pImmediateContext->End(timer->stats);
+      m_pImmediateContext->GetReal()->End(timer->stats);
 
     ctx.eventStart = d.eventId + 1;
   }
@@ -299,7 +299,7 @@ void D3D11Replay::SerializeImmediateContext()
   ID3D11Query *query = 0;
   D3D11_QUERY_DESC desc = {D3D11_QUERY_EVENT};
 
-  HRESULT hr = m_pDevice->CreateQuery(&desc, &query);
+  HRESULT hr = m_pDevice->GetReal()->CreateQuery(&desc, &query);
   if(FAILED(hr))
   {
     return;
@@ -307,13 +307,13 @@ void D3D11Replay::SerializeImmediateContext()
 
   BOOL completed = FALSE;
 
-  m_pImmediateContext->End(query);
+  m_pImmediateContext->GetReal()->End(query);
 
   m_pImmediateContext->Flush();
 
   do
   {
-    hr = m_pImmediateContext->GetData(query, &completed, sizeof(BOOL), 0);
+    hr = m_pImmediateContext->GetReal()->GetData(query, &completed, sizeof(BOOL), 0);
     if(hr == S_FALSE)
     {
       ::Sleep(0);
@@ -680,24 +680,28 @@ std::vector<CounterResult> D3D11Replay::FetchCounters(const std::vector<GPUCount
         if(ctx.timers[i].before && ctx.timers[i].after && ctx.timers[i].stats &&
            ctx.timers[i].occlusion)
         {
-          hr = m_pImmediateContext->GetData(ctx.timers[i].before, &a, sizeof(UINT64), 0);
+          hr = m_pImmediateContext->GetReal()->GetData(ctx.timers[i].before, &a, sizeof(UINT64), 0);
           RDCASSERTEQUAL(hr, S_OK);
 
           UINT64 b = 0;
-          hr = m_pImmediateContext->GetData(ctx.timers[i].after, &b, sizeof(UINT64), 0);
+          hr = m_pImmediateContext->GetReal()->GetData(ctx.timers[i].after, &b, sizeof(UINT64), 0);
           RDCASSERTEQUAL(hr, S_OK);
 
           double duration = (double(b - a) / ticksToSecs);
 
+          if(b == 0)
+            duration = 0.0;
+
           a = b;
 
           D3D11_QUERY_DATA_PIPELINE_STATISTICS pipelineStats;
-          hr = m_pImmediateContext->GetData(ctx.timers[i].stats, &pipelineStats,
-                                            sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
+          hr = m_pImmediateContext->GetReal()->GetData(
+              ctx.timers[i].stats, &pipelineStats, sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
           RDCASSERTEQUAL(hr, S_OK);
 
           UINT64 occlusion = 0;
-          hr = m_pImmediateContext->GetData(ctx.timers[i].occlusion, &occlusion, sizeof(UINT64), 0);
+          hr = m_pImmediateContext->GetReal()->GetData(ctx.timers[i].occlusion, &occlusion,
+                                                       sizeof(UINT64), 0);
           RDCASSERTEQUAL(hr, S_OK);
 
           for(size_t c = 0; c < d3dCounters.size(); c++)
