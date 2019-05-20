@@ -72,7 +72,7 @@
       <DisableSpecificWarnings>4100;4054;4055</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <AdditionalDependencies>kernel32.lib;user32.lib;msimg32.lib;gdi32.lib;shell32.lib;shlwapi.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>

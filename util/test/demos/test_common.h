@@ -154,8 +154,11 @@ struct GraphicsTest
   virtual GraphicsWindow *MakeWindow(int width, int height, const char *title) { return NULL; }
   virtual int main(int argc, char **argv) { return 9; }
   virtual bool IsSupported() { return false; }
+  virtual void Prepare(int argc, char **argv) {}
   virtual bool Init(int argc, char **argv);
   virtual void Shutdown();
+
+  std::string Avail;
 
   std::string GetDataPath(const std::string &filename);
 
@@ -193,6 +196,8 @@ struct TestMetadata
   const char *Description;
   GraphicsTest *test;
 
+  bool IsAvailable() const { return test->Avail.empty(); }
+  const char *AvailMessage() const { return test->Avail.c_str(); }
   std::string QualifiedName() const
   {
     std::string ret = APIName();

@@ -225,6 +225,14 @@ std::vector<TestMetadata> &test_list()
   return list;
 }
 
+void check_tests(int argc, char **argv)
+{
+  std::vector<TestMetadata> &tests = test_list();
+
+  for(TestMetadata &test : tests)
+    test.test->Prepare(argc, argv);
+}
+
 void RegisterTest(TestMetadata test)
 {
   test_list().push_back(test);
@@ -244,7 +252,8 @@ int main(int argc, char **argv)
 Usage: %s Test_Name [test_options]
 
   --help                        Print this help message.
-  --list                        Lists the available tests.
+  --list                        Lists all tests, with name, API, description, availability.
+  --list-available              Lists the available test names only, one per line.
   --validate
   --debug                       Run the demo with API validation enabled.
   --frames <n>
@@ -263,8 +272,27 @@ Usage: %s Test_Name [test_options]
 
   if(argc >= 2 && !strcmp(argv[1], "--list"))
   {
+    check_tests(argc, argv);
+
     for(const TestMetadata &test : tests)
-      printf("%s (%s) - %s\n", test.Name, test.APIName(), test.Description);
+      printf("%s (%s %s) - %s\n", test.Name, test.APIName(),
+             test.IsAvailable() ? "Available" : test.AvailMessage(), test.Description);
+
+    fflush(stdout);
+    return 1;
+  }
+
+  if(argc >= 2 && !strcmp(argv[1], "--list-raw"))
+  {
+    check_tests(argc, argv);
+
+    for(const TestMetadata &test : tests)
+    {
+      if(!test.IsAvailable())
+        continue;
+
+      printf("%s\n", test.Name);
+    }
 
     fflush(stdout);
     return 1;
@@ -285,6 +313,8 @@ Usage: %s Test_Name [test_options]
   }
   else
   {
+    check_tests(argc, argv);
+
     const int width = 400, height = 575;
 
     nk_context *ctx = NuklearInit(width, height, "RenderDoc Test Program");
@@ -437,24 +467,12 @@ Usage: %s Test_Name [test_options]
   if(testchoice.empty())
     return 0;
 
-#if defined(WIN32)
-  if(AllocConsole())
-  {
-    FILE *dummy = NULL;
-    freopen_s(&dummy, "CONOUT$", "w", stdout);
-    freopen_s(&dummy, "CONOUT$", "w", stderr);
-  }
-#endif
-
-  //////////////////////////////////////////////////////////////
-  // D3D11 tests
-  //////////////////////////////////////////////////////////////
-
   for(const TestMetadata &test : tests)
   {
     if(testchoice == test.Name)
     {
       TEST_LOG("\n\n======\nRunning %s\n\n", test.Name);
+      test.test->Prepare(argc, argv);
       int ret = test.test->main(argc, argv);
       test.test->Shutdown();
       return ret;
