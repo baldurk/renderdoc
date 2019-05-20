@@ -663,6 +663,8 @@ void VulkanPipelineStateViewer::clearState()
   clearShaderState(ui->fsShader, ui->fsResources, ui->fsUBOs);
   clearShaderState(ui->csShader, ui->csResources, ui->csUBOs);
 
+  ui->xfbBuffers->clear();
+
   QToolButton *shaderButtons[] = {
       ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
       ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,

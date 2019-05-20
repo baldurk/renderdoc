@@ -883,6 +883,8 @@ void D3D12PipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csRootSig, ui->csResources, ui->csSamplers, ui->csCBuffers,
                    ui->csUAVs);
 
+  ui->gsStreamOut->clear();
+
   QToolButton *shaderButtons[] = {
       ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
       ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,

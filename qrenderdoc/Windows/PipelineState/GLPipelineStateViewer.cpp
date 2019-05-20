@@ -584,6 +584,8 @@ void GLPipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csTextures, ui->csSamplers, ui->csUBOs, ui->csSubroutines,
                    ui->csReadWrite);
 
+  ui->xfbBuffers->clear();
+
   QToolButton *shaderButtons[] = {
       ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
       ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,

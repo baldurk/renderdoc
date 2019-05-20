@@ -848,6 +848,8 @@ void D3D11PipelineStateViewer::clearState()
       ui->iaBytecodeViewButton,
   };
 
+  ui->gsStreamOut->clear();
+
   for(QToolButton *b : shaderButtons)
     b->setEnabled(false);
 
