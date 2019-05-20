@@ -611,7 +611,7 @@ struct GLDispatchTable
   PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;    // aliases glBlitFramebufferEXT
 
   // GLES core
-  PFNGLPRIMITIVEBOUNDINGBOXPROC glPrimitiveBoundingBox;    // aliases glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBoxOES
+  PFNGLPRIMITIVEBOUNDINGBOXPROC glPrimitiveBoundingBox;    // aliases glPrimitiveBoundingBoxARB, glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBoxOES
   PFNGLBLENDBARRIERPROC glBlendBarrier;
 
   // GLES: EXT_multisampled_render_to_texture

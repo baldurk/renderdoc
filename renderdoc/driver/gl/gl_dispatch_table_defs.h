@@ -976,6 +976,7 @@
   FUNC(glBlitFramebuffer, glBlitFramebuffer); \
   FUNC(glBlitFramebuffer, glBlitFramebufferEXT); \
   FUNC(glPrimitiveBoundingBox, glPrimitiveBoundingBox); \
+  FUNC(glPrimitiveBoundingBox, glPrimitiveBoundingBoxARB); \
   FUNC(glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
   FUNC(glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
   FUNC(glBlendBarrier, glBlendBarrier); \
@@ -2236,6 +2237,7 @@
   FuncWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
   AliasWrapper10(void, glBlitFramebufferEXT, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
   FuncWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
+  AliasWrapper8(void, glPrimitiveBoundingBoxARB, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
   AliasWrapper8(void, glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
   AliasWrapper8(void, glPrimitiveBoundingBoxOES, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
   FuncWrapper0(void, glBlendBarrier); \
@@ -3705,7 +3707,6 @@
   FUNC(glPopName); \
   FUNC(glPresentFrameDualFillNV); \
   FUNC(glPresentFrameKeyedNV); \
-  FUNC(glPrimitiveBoundingBoxARB); \
   FUNC(glPrimitiveRestartIndexNV); \
   FUNC(glPrimitiveRestartNV); \
   FUNC(glPrioritizeTexturesEXT); \
@@ -5618,7 +5619,6 @@
   UnsupportedWrapper0(void, glPopName); \
   UnsupportedWrapper13(void, glPresentFrameDualFillNV, GLuint, video_slot, GLuint64EXT, minPresentTime, GLuint, beginPresentTimeId, GLuint, presentDurationId, GLenum, type, GLenum, target0, GLuint, fill0, GLenum, target1, GLuint, fill1, GLenum, target2, GLuint, fill2, GLenum, target3, GLuint, fill3); \
   UnsupportedWrapper11(void, glPresentFrameKeyedNV, GLuint, video_slot, GLuint64EXT, minPresentTime, GLuint, beginPresentTimeId, GLuint, presentDurationId, GLenum, type, GLenum, target0, GLuint, fill0, GLuint, key0, GLenum, target1, GLuint, fill1, GLuint, key1); \
-  UnsupportedWrapper8(void, glPrimitiveBoundingBoxARB, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
   UnsupportedWrapper1(void, glPrimitiveRestartIndexNV, GLuint, index); \
   UnsupportedWrapper0(void, glPrimitiveRestartNV); \
   UnsupportedWrapper3(void, glPrioritizeTexturesEXT, GLsizei, n, const GLuint *, textures, const GLclampf *, priorities); \

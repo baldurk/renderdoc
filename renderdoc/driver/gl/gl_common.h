@@ -2151,6 +2151,7 @@ enum class GLChunk : uint32_t
   glGetPerfQueryInfoINTEL,
 
   glBlendEquationARB,
+  glPrimitiveBoundingBoxARB,
 
   Max,
 };

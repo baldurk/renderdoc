@@ -65,6 +65,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_ARB_enhanced_layouts");
   m_GLExtensions.push_back("GL_ARB_ES2_compatibility");
   m_GLExtensions.push_back("GL_ARB_ES3_1_compatibility");
+  m_GLExtensions.push_back("GL_ARB_ES3_2_compatibility");
   m_GLExtensions.push_back("GL_ARB_ES3_compatibility");
   m_GLExtensions.push_back("GL_ARB_explicit_attrib_location");
   m_GLExtensions.push_back("GL_ARB_explicit_uniform_location");
@@ -283,7 +284,6 @@ void WrappedOpenGL::BuildGLExtensions()
   * GL_KHR_texture_compression_astc_ldr <- could be difficult. Maybe falls into the category of
   'only
                                            support if it's supported on replaying driver'?
-  * GL_ARB_ES3_2_compatibility
   * GL_ARB_gpu_shader_int64
   * GL_ARB_sample_locations
   * GL_ARB_texture_filter_minmax
@@ -3625,6 +3625,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glPolygonOffsetClamp: return Serialise_glPolygonOffsetClamp(ser, 0, 0, 0);
     case GLChunk::glPrimitiveBoundingBoxEXT:
     case GLChunk::glPrimitiveBoundingBoxOES:
+    case GLChunk::glPrimitiveBoundingBoxARB:
     case GLChunk::glPrimitiveBoundingBox:
       return Serialise_glPrimitiveBoundingBox(ser, 0, 0, 0, 0, 0, 0, 0, 0);
 
