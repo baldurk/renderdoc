@@ -118,9 +118,46 @@ void Builder::postProcessType(const Instruction& inst, Id typeId)
     case OpAccessChain:
     case OpPtrAccessChain:
     case OpCopyObject:
+        break;
     case OpFConvert:
     case OpSConvert:
     case OpUConvert:
+        // Look for any 8/16-bit storage capabilities. If there are none, assume that
+        // the convert instruction requires the Float16/Int8/16 capability.
+        if (containsType(typeId, OpTypeFloat, 16) || containsType(typeId, OpTypeInt, 16)) {
+            bool foundStorage = false;
+            for (auto it = capabilities.begin(); it != capabilities.end(); ++it) {
+                spv::Capability cap = *it;
+                if (cap == spv::CapabilityStorageInputOutput16 ||
+                    cap == spv::CapabilityStoragePushConstant16 ||
+                    cap == spv::CapabilityStorageUniformBufferBlock16 ||
+                    cap == spv::CapabilityStorageUniform16) {
+                    foundStorage = true;
+                    break;
+                }
+            }
+            if (!foundStorage) {
+                if (containsType(typeId, OpTypeFloat, 16))
+                    addCapability(CapabilityFloat16);
+                if (containsType(typeId, OpTypeInt, 16))
+                    addCapability(CapabilityInt16);
+            }
+        }
+        if (containsType(typeId, OpTypeInt, 8)) {
+            bool foundStorage = false;
+            for (auto it = capabilities.begin(); it != capabilities.end(); ++it) {
+                spv::Capability cap = *it;
+                if (cap == spv::CapabilityStoragePushConstant8 ||
+                    cap == spv::CapabilityUniformAndStorageBuffer8BitAccess ||
+                    cap == spv::CapabilityStorageBuffer8BitAccess) {
+                    foundStorage = true;
+                    break;
+                }
+            }
+            if (!foundStorage) {
+                addCapability(CapabilityInt8);
+            }
+        }
         break;
     case OpExtInst:
 #if AMD_EXTENSIONS
@@ -258,10 +295,9 @@ void Builder::postProcess(Instruction& inst)
                 assert(inst.getNumOperands() >= 3);
                 unsigned int memoryAccess = inst.getImmediateOperand((inst.getOpCode() == OpStore) ? 2 : 1);
                 assert(memoryAccess & MemoryAccessAlignedMask);
+                static_cast<void>(memoryAccess);
                 // Compute the index of the alignment operand.
                 int alignmentIdx = 2;
-                if (memoryAccess & MemoryAccessVolatileMask)
-                    alignmentIdx++;
                 if (inst.getOpCode() == OpStore)
                     alignmentIdx++;
                 // Merge new and old (mis)alignment
@@ -328,6 +364,24 @@ void Builder::postProcess()
 
     // Add per-instruction capabilities, extensions, etc.,
 
+    // Look for any 8/16 bit type in physical storage buffer class, and set the
+    // appropriate capability. This happens in createSpvVariable for other storage
+    // classes, but there isn't always a variable for physical storage buffer.
+    for (int t = 0; t < (int)groupedTypes[OpTypePointer].size(); ++t) {
+        Instruction* type = groupedTypes[OpTypePointer][t];
+        if (type->getImmediateOperand(0) == (unsigned)StorageClassPhysicalStorageBufferEXT) {
+            if (containsType(type->getIdOperand(1), OpTypeInt, 8)) {
+                addExtension(spv::E_SPV_KHR_8bit_storage);
+                addCapability(spv::CapabilityStorageBuffer8BitAccess);
+            }
+            if (containsType(type->getIdOperand(1), OpTypeInt, 16) ||
+                containsType(type->getIdOperand(1), OpTypeFloat, 16)) {
+                addExtension(spv::E_SPV_KHR_16bit_storage);
+                addCapability(spv::CapabilityStorageBuffer16BitAccess);
+            }
+        }
+    }
+
     // process all reachable instructions...
     for (auto bi = reachableBlocks.cbegin(); bi != reachableBlocks.cend(); ++bi) {
         const Block* block = *bi;
@@ -364,24 +418,6 @@ void Builder::postProcess()
                         addDecoration(resultId, spv::DecorationAliasedPointerEXT);
                     }
                 }
-            }
-        }
-    }
-
-    // Look for any 8/16 bit type in physical storage buffer class, and set the
-    // appropriate capability. This happens in createSpvVariable for other storage
-    // classes, but there isn't always a variable for physical storage buffer.
-    for (int t = 0; t < (int)groupedTypes[OpTypePointer].size(); ++t) {
-        Instruction* type = groupedTypes[OpTypePointer][t];
-        if (type->getImmediateOperand(0) == (unsigned)StorageClassPhysicalStorageBufferEXT) {
-            if (containsType(type->getIdOperand(1), OpTypeInt, 8)) {
-                addExtension(spv::E_SPV_KHR_8bit_storage);
-                addCapability(spv::CapabilityStorageBuffer8BitAccess);
-            }
-            if (containsType(type->getIdOperand(1), OpTypeInt, 16) ||
-                containsType(type->getIdOperand(1), OpTypeFloat, 16)) {
-                addExtension(spv::E_SPV_KHR_16bit_storage);
-                addCapability(spv::CapabilityStorageBuffer16BitAccess);
             }
         }
     }

@@ -43,6 +43,7 @@
 #else
 #include <cmath>
 #endif
+#include <cstdint>
 
 namespace {
 
@@ -236,6 +237,7 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpPostDecrement:  out.debug << "Post-Decrement";       break;
     case EOpPreIncrement:   out.debug << "Pre-Increment";        break;
     case EOpPreDecrement:   out.debug << "Pre-Decrement";        break;
+    case EOpCopyObject:     out.debug << "copy object";          break;
 
     // * -> bool
     case EOpConvInt8ToBool:    out.debug << "Convert int8_t to bool";  break;
@@ -817,6 +819,7 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpConstructStruct:  out.debug << "Construct structure";  break;
     case EOpConstructTextureSampler: out.debug << "Construct combined texture-sampler"; break;
     case EOpConstructReference:  out.debug << "Construct reference";  break;
+    case EOpConstructCooperativeMatrix:  out.debug << "Construct cooperative matrix";  break;
 
     case EOpLessThan:         out.debug << "Compare Less Than";             break;
     case EOpGreaterThan:      out.debug << "Compare Greater Than";          break;
@@ -1066,6 +1069,10 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpWritePackedPrimitiveIndices4x8NV: out.debug << "writePackedPrimitiveIndices4x8NV"; break;
 #endif
 
+    case EOpCooperativeMatrixLoad:  out.debug << "Load cooperative matrix";  break;
+    case EOpCooperativeMatrixStore:  out.debug << "Store cooperative matrix";  break;
+    case EOpCooperativeMatrixMulAdd: out.debug << "MulAdd cooperative matrices"; break;
+
     default: out.debug.message(EPrefixError, "Bad aggregation op");
     }
 
@@ -1157,8 +1164,11 @@ static void OutputDouble(TInfoSink& out, double value, TOutputTraverser::EExtraO
         switch (extra) {
         case TOutputTraverser::BinaryDoubleOutput:
         {
+            uint64_t b;
+            static_assert(sizeof(b) == sizeof(value), "sizeof(uint64_t) != sizeof(double)");
+            memcpy(&b, &value, sizeof(b));
+
             out.debug << " : ";
-            long long b = *reinterpret_cast<long long*>(&value);
             for (size_t i = 0; i < 8 * sizeof(value); ++i, ++b) {
                 out.debug << ((b & 0x8000000000000000) != 0 ? "1" : "0");
                 b <<= 1;

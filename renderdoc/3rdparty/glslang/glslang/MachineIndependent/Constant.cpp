@@ -941,6 +941,10 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
             newConstArray[i].setDConst(unionArray[i].getDConst()); break;
         case EOpConvDoubleToFloat:
             newConstArray[i].setDConst(unionArray[i].getDConst()); break;
+        case EOpConvPtrToUint64:
+        case EOpConvUint64ToPtr:
+        case EOpConstructReference:
+            newConstArray[i].setU64Const(unionArray[i].getU64Const()); break;
 
 
 
@@ -1354,7 +1358,9 @@ TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, cons
     // arrays, vectors, matrices, all use simple multiplicative math
     // while structures need to add up heterogeneous members
     int start;
-    if (node->isArray() || ! node->isStruct())
+    if (node->getType().isCoopMat())
+        start = 0;
+    else if (node->isArray() || ! node->isStruct())
         start = size * index;
     else {
         // it is a structure

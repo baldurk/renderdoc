@@ -85,6 +85,8 @@ enum TOperator {
     EOpPreIncrement,
     EOpPreDecrement,
 
+    EOpCopyObject,
+
     // (u)int* -> bool
     EOpConvInt8ToBool,
     EOpConvUint8ToBool,
@@ -615,6 +617,10 @@ enum TOperator {
     EOpAny,
     EOpAll,
 
+    EOpCooperativeMatrixLoad,
+    EOpCooperativeMatrixStore,
+    EOpCooperativeMatrixMulAdd,
+
     //
     // Branch
     //
@@ -737,6 +743,7 @@ enum TOperator {
     EOpConstructTextureSampler,
     EOpConstructNonuniform,     // expected to be transformed away, not present in final AST
     EOpConstructReference,
+    EOpConstructCooperativeMatrix,
     EOpConstructGuardEnd,
 
     //
