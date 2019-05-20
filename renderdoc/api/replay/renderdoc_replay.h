@@ -697,10 +697,13 @@ Should only be called for texture outputs.
 
 :param WindowingData window: A :class:`WindowingData` describing the native window.
 :param ResourceId textureId: The texture ID to display in the thumbnail preview.
+:param int slice: The slice of the texture to display.
+:param int mip: The mip of the texture to display.
 :return: A boolean indicating if the thumbnail was successfully created.
 :rtype: ``bool``
 )");
-  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, CompType typeHint) = 0;
+  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, CompType typeHint,
+                            uint32_t mip, uint32_t slice) = 0;
 
   DOCUMENT(R"(Render to the window handle specified when the output was created.
 

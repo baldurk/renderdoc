@@ -241,8 +241,8 @@ private:
 
   ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
   void UI_CreateThumbnails();
-  void InitResourcePreview(ResourcePreview *prev, ResourceId id, CompType typeHint, bool force,
-                           Following &follow, const QString &bindName, const QString &slotName);
+  void InitResourcePreview(ResourcePreview *prev, BoundResource res, bool force, Following &follow,
+                           const QString &bindName, const QString &slotName);
 
   void InitStageResourcePreviews(ShaderStage stage, const rdcarray<ShaderResource> &resourceDetails,
                                  const rdcarray<Bindpoint> &mapping,

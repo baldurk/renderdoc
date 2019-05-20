@@ -308,7 +308,8 @@ bool ReplayOutput::SetPixelContext(WindowingData window)
   return m_PixelContext.outputID != 0;
 }
 
-bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint)
+bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint,
+                                uint32_t mip, uint32_t slice)
 {
   CHECK_REPLAY_THREAD();
 
@@ -333,11 +334,10 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
     if(m_Thumbnails[i].wndHandle == GetHandle(window))
     {
       m_Thumbnails[i].texture = texID;
-
       m_Thumbnails[i].depthMode = depthMode;
-
       m_Thumbnails[i].typeHint = typeHint;
-
+      m_Thumbnails[i].mip = mip;
+      m_Thumbnails[i].slice = slice;
       m_Thumbnails[i].dirty = true;
 
       return true;
@@ -349,6 +349,8 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
   p.texture = texID;
   p.depthMode = depthMode;
   p.typeHint = typeHint;
+  p.mip = mip;
+  p.slice = slice;
   p.dirty = true;
 
   RDCASSERT(p.outputID > 0);
@@ -705,7 +707,7 @@ void ReplayOutput::Display()
     disp.hdrMultiplier = -1.0f;
     disp.linearDisplayAsGamma = true;
     disp.flipY = false;
-    disp.mip = 0;
+    disp.mip = m_Thumbnails[i].mip;
     disp.sampleIdx = ~0U;
     disp.customShaderId = ResourceId();
     disp.resourceId = m_pDevice->GetLiveID(m_Thumbnails[i].texture);
@@ -713,7 +715,7 @@ void ReplayOutput::Display()
     disp.scale = -1.0f;
     disp.rangeMin = 0.0f;
     disp.rangeMax = 1.0f;
-    disp.sliceFace = 0;
+    disp.sliceFace = m_Thumbnails[i].slice;
     disp.xOffset = 0.0f;
     disp.yOffset = 0.0f;
     disp.rawOutput = false;

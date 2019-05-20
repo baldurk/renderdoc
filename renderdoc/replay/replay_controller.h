@@ -47,7 +47,8 @@ public:
   rdcpair<int32_t, int32_t> GetDimensions();
 
   void ClearThumbnails();
-  bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint);
+  bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint, uint32_t mip,
+                    uint32_t slice);
 
   void Display();
 
@@ -93,6 +94,8 @@ private:
   {
     ResourceId texture;
     bool depthMode;
+    uint32_t mip;
+    uint32_t slice;
     uint64_t wndHandle;
     CompType typeHint;
     uint64_t outputID;
