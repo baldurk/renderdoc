@@ -675,7 +675,8 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
     for(APIEvent &ev : n.draw.events)
     {
       ev.eventId += m_RootEventID;
-      m_Events.push_back(ev);
+      m_Events.resize(ev.eventId + 1);
+      m_Events[ev.eventId] = ev;
     }
 
     if(!n.draw.events.empty())

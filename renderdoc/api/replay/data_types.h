@@ -558,20 +558,20 @@ Also eventIds may not correspond directly to an actual function call - sometimes
 a multi draw indirect will be one function call that expands to multiple events to allow inspection
 of results part way through the multi draw.
 )");
-  uint32_t eventId;
+  uint32_t eventId = 0;
 
   DOCUMENT("A list of addresses in the CPU callstack where this function was called.");
   rdcarray<uint64_t> callstack;
 
   DOCUMENT("The chunk index for this function call in the structured file.");
-  uint32_t chunkIndex;
+  uint32_t chunkIndex = 0;
 
   DOCUMENT(R"(A byte offset in the data stream where this event happens.
 
 .. note:: This should only be used as a relative measure, it is not a literal number of bytes from
   the start of the file on disk.
 )");
-  uint64_t fileOffset;
+  uint64_t fileOffset = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(APIEvent);

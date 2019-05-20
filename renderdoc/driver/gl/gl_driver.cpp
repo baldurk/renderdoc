@@ -4962,18 +4962,22 @@ void WrappedOpenGL::AddEvent()
   m_CurEvents.push_back(apievent);
 
   if(IsLoading(m_State))
-    m_Events.push_back(apievent);
+  {
+    m_Events.resize(apievent.eventId + 1);
+    m_Events[apievent.eventId] = apievent;
+  }
 }
 
 const APIEvent &WrappedOpenGL::GetEvent(uint32_t eventId)
 {
-  for(const APIEvent &e : m_Events)
-  {
-    if(e.eventId >= eventId)
-      return e;
-  }
+  // start at where the requested eventId would be
+  size_t idx = eventId;
 
-  return m_Events.back();
+  // find the next valid event (some may be skipped)
+  while(idx < m_Events.size() - 1 && m_Events[idx].eventId == 0)
+    idx++;
+
+  return m_Events[RDCMIN(idx, m_Events.size() - 1)];
 }
 
 const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventId)

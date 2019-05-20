@@ -2305,12 +2305,6 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
     SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
 
-    struct SortEID
-    {
-      bool operator()(const APIEvent &a, const APIEvent &b) { return a.eventId < b.eventId; }
-    };
-
-    std::sort(m_Events.begin(), m_Events.end(), SortEID());
     m_ParentDrawcall.children.clear();
   }
 
@@ -3897,7 +3891,8 @@ void WrappedVulkan::AddEvent()
   else
   {
     m_RootEvents.push_back(apievent);
-    m_Events.push_back(apievent);
+    m_Events.resize(apievent.eventId + 1);
+    m_Events[apievent.eventId] = apievent;
 
     m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(), m_EventMessages.end());
   }
@@ -3907,13 +3902,14 @@ void WrappedVulkan::AddEvent()
 
 const APIEvent &WrappedVulkan::GetEvent(uint32_t eventId)
 {
-  for(const APIEvent &e : m_Events)
-  {
-    if(e.eventId >= eventId)
-      return e;
-  }
+  // start at where the requested eventId would be
+  size_t idx = eventId;
 
-  return m_Events.back();
+  // find the next valid event (some may be skipped)
+  while(idx < m_Events.size() - 1 && m_Events[idx].eventId == 0)
+    idx++;
+
+  return m_Events[RDCMIN(idx, m_Events.size() - 1)];
 }
 
 const DrawcallDescription *WrappedVulkan::GetDrawcall(uint32_t eventId)

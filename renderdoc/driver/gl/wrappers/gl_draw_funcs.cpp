@@ -2103,7 +2103,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)
@@ -2265,7 +2265,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)
@@ -2432,7 +2432,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)
@@ -2617,7 +2617,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)
@@ -2840,7 +2840,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)
@@ -3063,7 +3063,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)
@@ -3295,7 +3295,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
     }
     else if(IsActiveReplaying(m_State))
     {
-      size_t i = 0;
+      size_t i = m_CurEventID;
       for(; i < m_Events.size(); i++)
       {
         if(m_Events[i].eventId >= m_CurEventID)

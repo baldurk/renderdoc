@@ -391,13 +391,14 @@ std::string WrappedID3D12CommandQueue::GetChunkName(uint32_t idx)
 
 const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventId)
 {
-  for(const APIEvent &e : m_Cmd.m_Events)
-  {
-    if(e.eventId >= eventId)
-      return e;
-  }
+  // start at where the requested eventId would be
+  size_t idx = eventId;
 
-  return m_Cmd.m_Events.back();
+  // find the next valid event (some may be skipped)
+  while(idx < m_Cmd.m_Events.size() - 1 && m_Cmd.m_Events[idx].eventId == 0)
+    idx++;
+
+  return m_Cmd.m_Events[RDCMIN(idx, m_Cmd.m_Events.size() - 1)];
 }
 
 bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chunk)
@@ -840,11 +841,6 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
 
   m_StructuredFile = NULL;
-
-  if(IsLoading(m_State))
-  {
-    std::sort(m_Cmd.m_Events.begin(), m_Cmd.m_Events.end());
-  }
 
   for(size_t i = 0; i < m_Cmd.m_RerecordCmdList.size(); i++)
     SAFE_RELEASE(m_Cmd.m_RerecordCmdList[i]);
@@ -1392,7 +1388,8 @@ void D3D12CommandData::AddEvent()
   else
   {
     m_RootEvents.push_back(apievent);
-    m_Events.push_back(apievent);
+    m_Events.resize(apievent.eventId + 1);
+    m_Events[apievent.eventId] = apievent;
 
     for(auto it = m_EventMessages.begin(); it != m_EventMessages.end(); ++it)
       m_pDevice->AddDebugMessage(*it);
@@ -1694,7 +1691,8 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
     for(APIEvent &ev : n.draw.events)
     {
       ev.eventId += m_RootEventID;
-      m_Events.push_back(ev);
+      m_Events.resize(ev.eventId + 1);
+      m_Events[ev.eventId] = ev;
     }
 
     DrawcallUse use(m_Events.back().fileOffset, n.draw.eventId, cmd, cmdBufNodes[i].draw.eventId);
