@@ -131,6 +131,8 @@ RDTreeView::RDTreeView(QWidget *parent) : QTreeView(parent)
 
 RDTreeView::~RDTreeView()
 {
+  setModel(NULL);
+
   delete m_ElidedTooltip;
 }
 

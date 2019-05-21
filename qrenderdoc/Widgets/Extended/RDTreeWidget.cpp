@@ -596,6 +596,8 @@ RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 
 RDTreeWidget::~RDTreeWidget()
 {
+  RDTreeView::setModel(NULL);
+
   delete m_root;
   delete m_model;
 }
