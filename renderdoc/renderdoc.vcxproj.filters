@@ -136,6 +136,9 @@
     <Filter Include="Common\Serialise\Codecs\cpp_codec\vulkan">
       <UniqueIdentifier>{ee6a7f7e-becf-43f0-8c7f-e0109a364ebb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Posix\GGP">
+      <UniqueIdentifier>{b76c42f4-d523-4417-a474-56d278d35a36}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -835,6 +838,24 @@
     </ClCompile>
     <ClCompile Include="core\intervals_tests.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\ggp\ggp_callstack.cpp">
+      <Filter>OS\Posix\GGP</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\ggp\ggp_hook.cpp">
+      <Filter>OS\Posix\GGP</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\ggp\ggp_network.cpp">
+      <Filter>OS\Posix\GGP</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\ggp\ggp_process.cpp">
+      <Filter>OS\Posix\GGP</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\ggp\ggp_stringio.cpp">
+      <Filter>OS\Posix\GGP</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\ggp\ggp_threading.cpp">
+      <Filter>OS\Posix\GGP</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

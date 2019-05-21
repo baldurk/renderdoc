@@ -151,7 +151,7 @@ struct LookupModule
 class GgpResolver : public Callstack::StackResolver
 {
 public:
-  GgpResolver(vector<LookupModule> modules) { m_Modules = modules; }
+  GgpResolver(std::vector<LookupModule> modules) { m_Modules = modules; }
   Callstack::AddressDetails GetAddr(uint64_t addr)
   {
     EnsureCached(addr);
@@ -178,7 +178,8 @@ private:
       if(addr >= m_Modules[i].base && addr < m_Modules[i].end)
       {
         uint64_t relative = addr - m_Modules[i].base + m_Modules[i].offset;
-        string cmd = StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
+        std::string cmd =
+            StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
 
         FILE *f = ::popen(cmd.c_str(), "r");
 
@@ -246,7 +247,7 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCal
   char *search = start;
   char *dbend = (char *)(moduleDB + DBSize);
 
-  vector<LookupModule> modules;
+  std::vector<LookupModule> modules;
 
   while(search && search < dbend)
   {

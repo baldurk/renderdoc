@@ -41,14 +41,14 @@ char **GetCurrentEnvironment()
 std::vector<int> getSockets(pid_t childPid)
 {
   std::vector<int> sockets;
-  string dirPath = StringFormat::Fmt("/proc/%d/fd", (int)childPid);
+  std::string dirPath = StringFormat::Fmt("/proc/%d/fd", (int)childPid);
   std::vector<PathEntry> files = FileIO::GetFilesInDirectory(dirPath.c_str());
   if(files.empty())
     return sockets;
 
   for(const PathEntry &file : files)
   {
-    string target = StringFormat::Fmt("%s/%s", dirPath.c_str(), file.filename.c_str());
+    std::string target = StringFormat::Fmt("%s/%s", dirPath.c_str(), file.filename.c_str());
     char linkname[1024];
     ssize_t length = readlink(target.c_str(), linkname, 1023);
     if(length == -1)
@@ -67,7 +67,7 @@ int GetIdentPort(pid_t childPid)
 {
   int ret = 0;
 
-  string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
+  std::string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
 
   int waitTime = INITIAL_WAIT_TIME;
 
