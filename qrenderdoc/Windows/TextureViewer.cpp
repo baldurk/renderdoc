@@ -2064,7 +2064,9 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     if(m_Ctx.GetTexture(res.resourceId))
     {
       m_Ctx.Replay().AsyncInvoke([this, winData, res](IReplayController *) {
-        m_Output->AddThumbnail(winData, res.resourceId, res.typeHint, res.firstMip, res.firstSlice);
+        m_Output->AddThumbnail(winData, res.resourceId, res.typeHint,
+                               res.firstMip >= 0 ? res.firstMip : 0,
+                               res.firstSlice >= 0 ? res.firstSlice : 0);
       });
     }
     else
