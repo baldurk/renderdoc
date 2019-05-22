@@ -167,6 +167,7 @@ private:
   void populateBBox(PopulateBufferData *data);
   void calcBoundingData(CalcBoundingBoxData &bbox);
   void UI_UpdateBoundingBox(const CalcBoundingBoxData &bbox);
+  void UI_UpdateBoundingBoxLabels(int compCount = 0);
 
   void UI_ResetArcball();
 

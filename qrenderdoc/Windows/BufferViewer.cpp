@@ -1628,6 +1628,9 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
+  ui->minBoundsLabel->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->maxBoundsLabel->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+
   ui->rowOffset->setFont(Formatter::PreferredFont());
   ui->instance->setFont(Formatter::PreferredFont());
   ui->viewIndex->setFont(Formatter::PreferredFont());
@@ -1814,6 +1817,9 @@ void BufferViewer::SetupMeshView()
   ui->formatSpecifier->setVisible(false);
   ui->cameraControlsGroup->setVisible(false);
 
+  ui->minBoundsLabel->setText(lit("---"));
+  ui->maxBoundsLabel->setText(lit("---"));
+
   ui->outputTabs->setWindowTitle(tr("Preview"));
   ui->dockarea->addToolWindow(ui->outputTabs, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(ui->outputTabs, ToolWindowManager::HideCloseButton);
@@ -1861,6 +1867,7 @@ void BufferViewer::SetupMeshView()
     model->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
 
     UI_CalculateMeshFormats();
+    on_resetCamera_clicked();
     UpdateCurrentMeshConfig();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
@@ -1870,6 +1877,7 @@ void BufferViewer::SetupMeshView()
     model->setPosColumn(m_ContextColumn);
 
     UI_CalculateMeshFormats();
+    on_resetCamera_clicked();
     UpdateCurrentMeshConfig();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
@@ -2413,6 +2421,51 @@ void BufferViewer::UI_UpdateBoundingBox(const CalcBoundingBoxData &bbox)
   delete &bbox;
 }
 
+void BufferViewer::UI_UpdateBoundingBoxLabels(int compCount)
+{
+  if(compCount == 0)
+  {
+    BufferItemModel *model = currentBufferModel();
+    if(model)
+    {
+      int posEl = model->posColumn();
+      if(posEl >= 0 && posEl < model->getConfig().columns.count())
+      {
+        compCount = model->getConfig().columns[posEl].format.compCount;
+      }
+    }
+  }
+
+  QString min, max;
+
+  float *minData = &m_Config.minBounds.x;
+  float *maxData = &m_Config.maxBounds.x;
+
+  const QString comps = lit("xyzw");
+
+  for(int i = 0; i < compCount && i < 4; i++)
+  {
+    if(i != 0)
+    {
+      min += lit("\n");
+      max += lit("\n");
+    }
+
+    min += tr("Min %1: %2").arg(comps[i]).arg(Formatter::Format(minData[i]));
+    max += tr("Max %1: %2").arg(comps[i]).arg(Formatter::Format(maxData[i]));
+  }
+
+  if(min.isEmpty())
+    ui->minBoundsLabel->setText(lit("---"));
+  else
+    ui->minBoundsLabel->setText(min);
+
+  if(max.isEmpty())
+    ui->maxBoundsLabel->setText(lit("---"));
+  else
+    ui->maxBoundsLabel->setText(max);
+}
+
 void BufferViewer::UI_ResetArcball()
 {
   BBoxData bbox;
@@ -2702,7 +2755,7 @@ void BufferViewer::UpdateCurrentMeshConfig()
 
   m_Config.showBBox = false;
 
-  if(model && !isCurrentRasterOut())
+  if(model)
   {
     int posEl = model->posColumn();
     if(posEl >= 0 && posEl < model->getConfig().columns.count() &&
@@ -2710,7 +2763,11 @@ void BufferViewer::UpdateCurrentMeshConfig()
     {
       m_Config.minBounds = bbox.bounds[stage].Min[posEl];
       m_Config.maxBounds = bbox.bounds[stage].Max[posEl];
-      m_Config.showBBox = true;
+      m_Config.showBBox = !isCurrentRasterOut();
+
+      int compCount = model->getConfig().columns[posEl].format.compCount;
+
+      UI_UpdateBoundingBoxLabels(compCount);
     }
   }
 }
@@ -3555,6 +3612,27 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
 void BufferViewer::on_toggleControls_toggled(bool checked)
 {
   ui->cameraControlsGroup->setVisible(checked);
+
+  // temporarily set minimum bounds to the longest float we could format, to ensure the minimum size
+  // we calculate below is as big as needs to be (sigh...). This is necessary because Qt doesn't
+  // properly propagate the minimum size up through the scroll area and instead sizes it down much
+  // smaller.
+  FloatVector prev = m_Config.minBounds;
+
+  m_Config.minBounds.x = 1.0f;
+  m_Config.minBounds.y = 1.2345e-20f;
+  m_Config.minBounds.z = 123456.7890123456789f;
+  m_Config.minBounds.w = 1.2345e+20f;
+
+  UI_UpdateBoundingBoxLabels(4);
+
+  m_Config.minBounds = prev;
+
+  ui->cameraControlsWidget->setMinimumSize(ui->cameraControlsWidget->minimumSizeHint());
+  ui->cameraControlsScroll->setMinimumWidth(ui->cameraControlsWidget->minimumSizeHint().width() +
+                                            ui->cameraControlsScroll->verticalScrollBar()->width());
+
+  UI_UpdateBoundingBoxLabels();
 
   EnableCameraGuessControls();
 }
