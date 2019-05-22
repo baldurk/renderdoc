@@ -79,11 +79,15 @@ void RDHeaderView::setModel(QAbstractItemModel *model)
 
   QHeaderView::setModel(model);
 
-  QObject::connect(model, &QAbstractItemModel::headerDataChanged, this,
-                   &RDHeaderView::headerDataChanged);
-  QObject::connect(model, &QAbstractItemModel::columnsInserted, this, &RDHeaderView::columnsInserted);
-  QObject::connect(model, &QAbstractItemModel::rowsInserted, this, &RDHeaderView::rowsChanged);
-  QObject::connect(model, &QAbstractItemModel::rowsRemoved, this, &RDHeaderView::rowsChanged);
+  if(model)
+  {
+    QObject::connect(model, &QAbstractItemModel::headerDataChanged, this,
+                     &RDHeaderView::headerDataChanged);
+    QObject::connect(model, &QAbstractItemModel::columnsInserted, this,
+                     &RDHeaderView::columnsInserted);
+    QObject::connect(model, &QAbstractItemModel::rowsInserted, this, &RDHeaderView::rowsChanged);
+    QObject::connect(model, &QAbstractItemModel::rowsRemoved, this, &RDHeaderView::rowsChanged);
+  }
 }
 
 void RDHeaderView::reset()
