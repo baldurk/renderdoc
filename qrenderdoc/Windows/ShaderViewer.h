@@ -178,6 +178,8 @@ private:
 
   bool isSourceDebugging();
 
+  ShaderEncoding currentEncoding();
+
   VariableCategory m_TooltipVarCat = VariableCategory::Temporaries;
   QString m_TooltipName;
   int m_TooltipVarIdx = -1;
@@ -189,6 +191,7 @@ private:
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
   ShaderCompileFlags m_Flags;
+  QList<ShaderEncoding> m_Encodings;
   ShaderStage m_Stage;
   QString m_DebugContext;
   ResourceId m_Pipeline;
@@ -246,7 +249,7 @@ private:
   void addFileList();
 
   ScintillaEdit *MakeEditor(const QString &name, const QString &text, int lang);
-  ScintillaEdit *AddFileScintilla(const QString &name, const QString &text);
+  ScintillaEdit *AddFileScintilla(const QString &name, const QString &text, ShaderEncoding encoding);
 
   ScintillaEdit *currentScintilla();
   ScintillaEdit *nextScintilla(ScintillaEdit *cur);

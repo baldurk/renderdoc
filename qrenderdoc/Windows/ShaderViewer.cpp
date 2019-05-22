@@ -194,13 +194,17 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   m_Flags = flags;
 
   // set up compilation parameters
+  for(ShaderEncoding i : values<ShaderEncoding>())
+    if(IsTextRepresentation(i) || shaderEncoding == i)
+      m_Encodings << i;
+
   QStringList strs;
   strs.clear();
-  for(ShaderEncoding i : values<ShaderEncoding>())
+  for(ShaderEncoding i : m_Encodings)
     strs << ToQStr(i);
 
   ui->encoding->addItems(strs);
-  ui->encoding->setCurrentIndex((int)shaderEncoding);
+  ui->encoding->setCurrentIndex(m_Encodings.indexOf(shaderEncoding));
   ui->entryFunc->setText(entryPoint);
 
   PopulateCompileTools();
@@ -252,7 +256,7 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
     QString name = QFileInfo(kv.first).fileName();
     QString text = kv.second;
 
-    ScintillaEdit *scintilla = AddFileScintilla(name, text);
+    ScintillaEdit *scintilla = AddFileScintilla(name, text, shaderEncoding);
 
     scintilla->setReadOnly(false);
     QObject::connect(scintilla, &ScintillaEdit::keyPressed, this, &ShaderViewer::editable_keyPressed);
@@ -445,7 +449,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       QString name = QFileInfo(f.filename).fileName();
       QString text = f.contents;
 
-      ScintillaEdit *scintilla = AddFileScintilla(name, text);
+      ScintillaEdit *scintilla = AddFileScintilla(name, text, m_ShaderDetails->debugInfo.encoding);
 
       if(sel == NULL)
         sel = scintilla;
@@ -841,10 +845,11 @@ void ShaderViewer::OnEventChanged(uint32_t eventId)
   updateWindowTitle();
 }
 
-ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text)
+ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text,
+                                              ShaderEncoding encoding)
 {
-  ScintillaEdit *scintilla = MakeEditor(
-      lit("scintilla") + name, text, IsD3D(m_Ctx.APIProps().localRenderer) ? SCLEX_HLSL : SCLEX_GLSL);
+  ScintillaEdit *scintilla = MakeEditor(lit("scintilla") + name, text,
+                                        encoding == ShaderEncoding::HLSL ? SCLEX_HLSL : SCLEX_GLSL);
   scintilla->setReadOnly(true);
   scintilla->setWindowTitle(name);
   ((QWidget *)scintilla)->setProperty("name", name);
@@ -3236,6 +3241,15 @@ bool ShaderViewer::isSourceDebugging()
   return !m_DisassemblyFrame->isVisible();
 }
 
+ShaderEncoding ShaderViewer::currentEncoding()
+{
+  int idx = ui->encoding->currentIndex();
+  if(idx >= 0 && idx < m_Encodings.count())
+    return m_Encodings[idx];
+
+  return ShaderEncoding::Unknown;
+}
+
 void ShaderViewer::on_findReplace_clicked()
 {
   if(m_FindReplace->isVisible())
@@ -3254,7 +3268,7 @@ void ShaderViewer::on_findReplace_clicked()
 
 void ShaderViewer::PopulateCompileTools()
 {
-  ShaderEncoding encoding = ShaderEncoding(ui->encoding->currentIndex());
+  ShaderEncoding encoding = currentEncoding();
   rdcarray<ShaderEncoding> accepted = m_Ctx.TargetShaderEncodings();
 
   QStringList strs;
@@ -3290,7 +3304,7 @@ void ShaderViewer::PopulateCompileTools()
 
 void ShaderViewer::PopulateCompileToolParameters()
 {
-  ShaderEncoding encoding = ShaderEncoding(ui->encoding->currentIndex());
+  ShaderEncoding encoding = currentEncoding();
   rdcarray<ShaderEncoding> accepted = m_Ctx.TargetShaderEncodings();
 
   ui->toolCommandLine->clear();
@@ -3439,19 +3453,17 @@ void ShaderViewer::on_refresh_clicked()
     return;
   }
 
+  ShaderEncoding encoding = currentEncoding();
+
   // if we don't have any compile tools - even the 'builtin' one, this compilation is not going to
   // succeed.
   if(ui->compileTool->count() == 0)
   {
-    ShaderEncoding encoding = ShaderEncoding(ui->encoding->currentIndex());
-
     ShowErrors(tr("No compilation tool found that takes %1 as input and produces compatible output")
                    .arg(ToQStr(encoding)));
   }
   else if(m_SaveCallback)
   {
-    ShaderEncoding encoding = ShaderEncoding(ui->encoding->currentIndex());
-
     rdcstrpairs files;
     for(ScintillaEdit *s : m_Scintillas)
     {
