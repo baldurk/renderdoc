@@ -418,6 +418,14 @@ public:
     }
   }
 
+  rdcarray<ShaderEncoding> GetCustomShaderEncodings()
+  {
+    if(m_Proxy)
+      return m_Proxy->GetCustomShaderEncodings();
+
+    return {};
+  }
+
   void FreeCustomShader(ResourceId id)
   {
     if(m_Proxy)

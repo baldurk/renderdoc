@@ -181,6 +181,10 @@ public:
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                       const GetTextureDataParams &params, bytebuf &data);
 
+  rdcarray<ShaderEncoding> GetCustomShaderEncodings()
+  {
+    return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
+  }
   rdcarray<ShaderEncoding> GetTargetShaderEncodings()
   {
     return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};

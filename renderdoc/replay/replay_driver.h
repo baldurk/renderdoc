@@ -217,6 +217,7 @@ public:
   virtual void BuildCustomShader(std::string source, std::string entry,
                                  const ShaderCompileFlags &compileFlags, ShaderStage type,
                                  ResourceId *id, std::string *errors) = 0;
+  virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                        uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;

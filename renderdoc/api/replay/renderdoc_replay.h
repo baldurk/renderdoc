@@ -1039,6 +1039,21 @@ of the compile process or using alternate/updated tools.
 )");
   virtual rdcarray<ShaderEncoding> GetTargetShaderEncodings() = 0;
 
+  DOCUMENT(R"(Retrieve the list of supported :class:`ShaderEncoding` which can be build using
+:meth:`BuildCustomShader`.
+
+The list is sorted in priority order, so if the caller has a shader in a form but could
+compile/translate it to another, prefer to satisfy the first encoding before later encodings.
+
+This typically means the 'native' encoding is listed first, and then subsequent encodings are
+compiled internally - so compiling externally could be preferable as it allows better customisation
+of the compile process or using alternate/updated tools.
+
+:return: The list of target shader encodings available.
+:rtype: ``list`` of :class:`ShaderEncoding`
+)");
+  virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
+
   DOCUMENT(R"(Replace one resource with another for subsequent replay and analysis work.
 
 This is commonly used for modifying the capture by selectively replacing resources with newly

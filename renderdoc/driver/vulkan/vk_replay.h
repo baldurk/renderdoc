@@ -312,6 +312,10 @@ public:
   void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
                   const MeshDisplay &cfg);
 
+  rdcarray<ShaderEncoding> GetCustomShaderEncodings()
+  {
+    return {ShaderEncoding::SPIRV, ShaderEncoding::GLSL};
+  }
   rdcarray<ShaderEncoding> GetTargetShaderEncodings()
   {
     return {ShaderEncoding::SPIRV, ShaderEncoding::GLSL};

@@ -532,7 +532,7 @@ DECLARE_REFLECTION_STRUCT(IPythonShell);
 
 DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
-.. function:: SaveCallback(context, viewer, files)
+.. function:: SaveCallback(context, viewer, encoding, flags, entry, compiled)
 
   Not a member function - the signature for any ``SaveCallback`` callbacks.
 
@@ -1227,6 +1227,15 @@ building target shaders for the currently loaded capture. See
 :rtype: ``list`` of :class:`~renderdoc.ShaderEncoding`
 )");
   virtual rdcarray<ShaderEncoding> TargetShaderEncodings() = 0;
+
+  DOCUMENT(R"(Retrieve the list of :class:`~renderdoc.ShaderEncoding` that are available for
+building custom shaders for the currently loaded capture. See
+:meth:`~renderdoc.ReplayController.BuildCustomShader`.
+
+:return: The available encodings.
+:rtype: ``list`` of :class:`~renderdoc.ShaderEncoding`
+)");
+  virtual rdcarray<ShaderEncoding> CustomShaderEncodings() = 0;
 
   DOCUMENT(R"(Retrieve the currently selected :data:`eventId <renderdoc.APIEvent.eventId>`.
 

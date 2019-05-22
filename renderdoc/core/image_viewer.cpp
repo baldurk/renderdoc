@@ -141,6 +141,10 @@ public:
   {
     return m_Proxy->GetTargetShaderEncodings();
   }
+  rdcarray<ShaderEncoding> GetCustomShaderEncodings()
+  {
+    return m_Proxy->GetCustomShaderEncodings();
+  }
   void BuildCustomShader(std::string source, std::string entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors)

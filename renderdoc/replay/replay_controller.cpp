@@ -1908,6 +1908,13 @@ void ReplayController::Shutdown()
   delete this;
 }
 
+rdcarray<ShaderEncoding> ReplayController::GetCustomShaderEncodings()
+{
+  CHECK_REPLAY_THREAD();
+
+  return m_pDevice->GetCustomShaderEncodings();
+}
+
 rdcarray<ShaderEncoding> ReplayController::GetTargetShaderEncodings()
 {
   CHECK_REPLAY_THREAD();

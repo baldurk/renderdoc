@@ -171,6 +171,7 @@ public:
   void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
                   const MeshDisplay &cfg);
 
+  rdcarray<ShaderEncoding> GetCustomShaderEncodings() { return {ShaderEncoding::GLSL}; }
   rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {ShaderEncoding::GLSL}; }
   void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,

@@ -158,6 +158,7 @@ public:
                                                 ShaderStage type);
   void FreeCustomShader(ResourceId id);
 
+  rdcarray<ShaderEncoding> GetCustomShaderEncodings();
   rdcarray<ShaderEncoding> GetTargetShaderEncodings();
   rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry, ShaderEncoding sourceEncoding,
                                                 bytebuf source,

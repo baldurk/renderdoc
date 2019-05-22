@@ -69,6 +69,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return m_Ctx.TargetShaderEncodings();
   }
+  virtual rdcarray<ShaderEncoding> CustomShaderEncodings() override
+  {
+    return m_Ctx.CustomShaderEncodings();
+  }
   virtual uint32_t CurSelectedEvent() override { return m_Ctx.CurSelectedEvent(); }
   virtual uint32_t CurEvent() override { return m_Ctx.CurEvent(); }
   virtual const DrawcallDescription *CurSelectedDrawcall() override
