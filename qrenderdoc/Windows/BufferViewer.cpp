@@ -2187,11 +2187,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       m_PostVS = bufdata->postVS;
       m_PostGS = bufdata->postGS;
 
-      UI_CalculateMeshFormats();
-      UpdateCurrentMeshConfig();
-
-      populateBBox(bufdata);
-
       // if we didn't have a position column selected before, or the name has changed, re-guess
       if(m_ModelVSIn->posColumn() == -1 ||
          bufdata->highlightNames[0] != bufdata->vsinConfig.columnName(m_ModelVSIn->posColumn()))
@@ -2217,6 +2212,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
          bufdata->highlightNames[5] !=
              bufdata->gsoutConfig.columnName(m_ModelGSOut->secondaryColumn()))
         m_ModelGSOut->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
+
+      populateBBox(bufdata);
+
+      UI_CalculateMeshFormats();
+      UpdateCurrentMeshConfig();
 
       ApplyRowAndColumnDims(m_ModelVSIn->columnCount(), ui->vsinData);
       ApplyRowAndColumnDims(m_ModelVSOut->columnCount(), ui->vsoutData);
@@ -2420,7 +2420,8 @@ void BufferViewer::UI_ResetArcball()
   if(model)
   {
     int posEl = model->posColumn();
-    if(posEl >= 0 && posEl < model->columnCount() && posEl < bbox.bounds[stage].Min.count())
+    if(posEl >= 0 && posEl < model->getConfig().columns.count() &&
+       posEl < bbox.bounds[stage].Min.count())
     {
       FloatVector diag;
       diag.x = bbox.bounds[stage].Max[posEl].x - bbox.bounds[stage].Min[posEl].x;
@@ -2703,7 +2704,8 @@ void BufferViewer::UpdateCurrentMeshConfig()
   if(model && nonRasterizedOutput)
   {
     int posEl = model->posColumn();
-    if(posEl >= 0 && posEl < model->columnCount() && posEl < bbox.bounds[stage].Min.count())
+    if(posEl >= 0 && posEl < model->getConfig().columns.count() &&
+       posEl < bbox.bounds[stage].Min.count())
     {
       m_Config.minBounds = bbox.bounds[stage].Min[posEl];
       m_Config.maxBounds = bbox.bounds[stage].Max[posEl];
