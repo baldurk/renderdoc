@@ -383,6 +383,9 @@ void RDHeaderView::resizeSectionsWithHints()
     minsizesTotal += sizes[i];
   }
 
+  if(stretchHintTotal == 0)
+    return;
+
   int available = 0;
 
   if(orientation() == Qt::Horizontal)
