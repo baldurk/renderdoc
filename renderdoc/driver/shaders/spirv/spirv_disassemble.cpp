@@ -4939,13 +4939,18 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
   module.generator = spirv[2];
 
-  bool isglslang = false;
+  bool hasParamsInModuleProcessed = false;
 
   {
     uint32_t toolid = (module.generator & 0xffff0000) >> 16;
 
-    if(toolid == 8 || toolid == 13)
-      isglslang = true;
+    // see table above:
+    //  - 8 is glslang
+    //  - 13 is shaderc
+    //  - 14 is dxc
+
+    if(toolid == 8 || toolid == 13 || toolid == 14)
+      hasParamsInModuleProcessed = true;
   }
 
   uint32_t idbound = spirv[3];
@@ -4990,7 +4995,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
           // glslang outputs command-line arguments as OpModuleProcessed - before SPIR-V 1.1 where
           // it was an actual op, it was output as comments in the source.
-          if(isglslang)
+          if(hasParamsInModuleProcessed)
           {
             const char compileFlagPrefix[] = "// OpModuleProcessed ";
             const char endMarker[] = "#line 1\n";
@@ -5062,7 +5067,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       case spv::OpModuleProcessed:
       {
         // glslang outputs command-line arguments as OpModuleProcessed
-        if(isglslang)
+        if(hasParamsInModuleProcessed)
         {
           module.cmdline += " --";
           module.cmdline += (const char *)&spirv[it + 1];

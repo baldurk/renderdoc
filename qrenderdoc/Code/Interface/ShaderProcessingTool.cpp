@@ -47,6 +47,7 @@ rdcstr DoStringise(const KnownShaderTool &el)
     STRINGISE_ENUM_CLASS_NAMED(glslangValidatorGLSL, "glslang (GLSL)");
     STRINGISE_ENUM_CLASS_NAMED(glslangValidatorHLSL, "glslang (HLSL)");
     STRINGISE_ENUM_CLASS_NAMED(spirv_as, "spirv-as");
+    STRINGISE_ENUM_CLASS_NAMED(dxc, "dxc");
   }
   END_ENUM_STRINGISE();
 }
@@ -211,10 +212,12 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
       arg = input_file;
     if(arg == lit("{output_file}"))
       arg = output_file = tmpPath(lit("shader_output"));
-    if(arg == lit("{glsl_stage4}"))
-      arg = glsl_stage4[int(shaderDetails->stage)];
-    if(arg == lit("{hlsl_stage2}"))
-      arg = hlsl_stage2[int(shaderDetails->stage)];
+
+    // allow substring matches from the left, to enable e.g. {hlsl_stage2}_6_0
+    if(arg.left(13) == lit("{glsl_stage4}"))
+      arg.replace(0, 13, glsl_stage4[int(shaderDetails->stage)]);
+    if(arg.left(13) == lit("{hlsl_stage2}"))
+      arg.replace(0, 13, hlsl_stage2[int(shaderDetails->stage)]);
   }
 
   QFile binHandle(input_file);
@@ -257,10 +260,12 @@ ShaderToolOutput ShaderProcessingTool::CompileShader(QWidget *window, rdcstr sou
       arg = output_file = tmpPath(lit("shader_output"));
     if(arg == lit("{entry_point}"))
       arg = entryPoint;
-    if(arg == lit("{glsl_stage4}"))
-      arg = glsl_stage4[int(stage)];
-    if(arg == lit("{hlsl_stage2}"))
-      arg = hlsl_stage2[int(stage)];
+
+    // allow substring matches from the left, to enable e.g. {hlsl_stage2}_6_0
+    if(arg.left(13) == lit("{glsl_stage4}"))
+      arg.replace(0, 13, glsl_stage4[int(stage)]);
+    if(arg.left(13) == lit("{hlsl_stage2}"))
+      arg.replace(0, 13, hlsl_stage2[int(stage)]);
   }
 
   QFile binHandle(input_file);

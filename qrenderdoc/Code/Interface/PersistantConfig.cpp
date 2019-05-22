@@ -557,6 +557,8 @@ rdcstr ShaderProcessingTool::DefaultArguments() const
     return "-D -g -V -o {output_file} {input_file} -S {glsl_stage4} -e {entry_point}";
   else if(tool == KnownShaderTool::spirv_as)
     return "-o {output_file} {input_file}";
+  else if(tool == KnownShaderTool::dxc)
+    return "-T {hlsl_stage2}_6_0 -E {entry_point} -Fo {output_file} {input_file} -spirv";
 
   return args;
 }

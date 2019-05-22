@@ -54,6 +54,10 @@ DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
   `spirv-as from SPIRV-Tools <https://github.com/KhronosGroup/SPIRV-Tools>`_.
 
+.. data:: dxc
+
+  `DirectX Shader Compiler <https://github.com/microsoft/DirectXShaderCompiler>`_.
+
 )");
 enum class KnownShaderTool : uint32_t
 {
@@ -64,6 +68,7 @@ enum class KnownShaderTool : uint32_t
   glslangValidatorGLSL,
   glslangValidatorHLSL,
   spirv_as,
+  dxc,
   Count,
 };
 
@@ -81,6 +86,8 @@ inline rdcstr ToolExecutable(KnownShaderTool tool)
     return "glslangValidator";
   else if(tool == KnownShaderTool::spirv_as)
     return "spirv-as";
+  else if(tool == KnownShaderTool::dxc)
+    return "dxc";
 
   return "";
 }
@@ -95,6 +102,8 @@ inline ShaderEncoding ToolInput(KnownShaderTool tool)
     return ShaderEncoding::HLSL;
   else if(tool == KnownShaderTool::spirv_as)
     return ShaderEncoding::SPIRVAsm;
+  else if(tool == KnownShaderTool::dxc)
+    return ShaderEncoding::HLSL;
 
   return ShaderEncoding::Unknown;
 }
@@ -106,7 +115,8 @@ inline ShaderEncoding ToolOutput(KnownShaderTool tool)
   else if(tool == KnownShaderTool::spirv_dis)
     return ShaderEncoding::SPIRVAsm;
   else if(tool == KnownShaderTool::glslangValidatorGLSL ||
-          tool == KnownShaderTool::glslangValidatorHLSL || tool == KnownShaderTool::spirv_as)
+          tool == KnownShaderTool::glslangValidatorHLSL || tool == KnownShaderTool::spirv_as ||
+          tool == KnownShaderTool::dxc)
     return ShaderEncoding::SPIRV;
 
   return ShaderEncoding::Unknown;
