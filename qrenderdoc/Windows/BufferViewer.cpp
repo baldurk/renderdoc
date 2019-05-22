@@ -2555,6 +2555,7 @@ void BufferViewer::UI_CalculateMeshFormats()
 
       m_PostVSPosition = m_PostVS;
       m_PostVSPosition.vertexByteOffset += vsoutConfig.columns[elIdx].offset;
+      m_PostVSPosition.unproject = vsoutConfig.columns[elIdx].systemValue == ShaderBuiltin::Position;
 
       elIdx = m_ModelVSOut->secondaryColumn();
 
@@ -2579,6 +2580,7 @@ void BufferViewer::UI_CalculateMeshFormats()
 
       m_PostGSPosition = m_PostGS;
       m_PostGSPosition.vertexByteOffset += gsoutConfig.columns[elIdx].offset;
+      m_PostGSPosition.unproject = gsoutConfig.columns[elIdx].systemValue == ShaderBuiltin::Position;
 
       elIdx = m_ModelGSOut->secondaryColumn();
 
@@ -2594,9 +2596,6 @@ void BufferViewer::UI_CalculateMeshFormats()
 
     if(!(draw->flags & DrawFlags::Indexed))
       m_PostVSPosition.indexByteStride = m_VSInPosition.indexByteStride = 0;
-
-    m_PostGSPosition.unproject = true;
-    m_PostVSPosition.unproject = !m_Ctx.CurPipelineState().IsTessellationEnabled();
   }
   else
   {
@@ -2703,14 +2702,7 @@ void BufferViewer::UpdateCurrentMeshConfig()
 
   m_Config.showBBox = false;
 
-  bool nonRasterizedOutput = false;
-
-  if(stage == 0)
-    nonRasterizedOutput = true;
-  else if(stage == 1 && m_Ctx.CurPipelineState().IsTessellationEnabled())
-    nonRasterizedOutput = true;
-
-  if(model && nonRasterizedOutput)
+  if(model && !isCurrentRasterOut())
   {
     int posEl = model->posColumn();
     if(posEl >= 0 && posEl < model->getConfig().columns.count() &&
@@ -2913,20 +2905,16 @@ BufferItemModel *BufferViewer::modelForStage(MeshDataStage stage)
 
 bool BufferViewer::isCurrentRasterOut()
 {
-  if(m_CurStage == MeshDataStage::VSIn)
-  {
-    return false;
-  }
-  else if(m_CurStage == MeshDataStage::VSOut)
-  {
-    if(m_Ctx.IsCaptureLoaded() && m_Ctx.CurPipelineState().IsTessellationEnabled())
-      return false;
+  BufferItemModel *model = currentBufferModel();
+  int stage = currentStageIndex();
 
-    return true;
-  }
-  else if(m_CurStage == MeshDataStage::GSOut)
+  if(model)
   {
-    return true;
+    int posEl = model->posColumn();
+    if(posEl >= 0 && posEl < model->getConfig().columns.count())
+    {
+      return model->getConfig().columns[posEl].systemValue == ShaderBuiltin::Position;
+    }
   }
 
   return false;
