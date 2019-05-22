@@ -172,6 +172,12 @@ Describes how to render a texture preview of an image. Describes the zoom and pa
 texture when rendering on a particular output, as well as the modification and selection of a
 particular subresource (such as array slice, mip or multi-sampled sample).
 
+.. note::
+  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
+  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
+  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
+  bottom-left co-ordinates, care must be taken to translate them.
+
 .. data:: ResolveSamples
 
   Value for :data:`sampleIdx` if the samples should be averaged.

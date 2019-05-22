@@ -785,6 +785,12 @@ Should only be called for texture outputs.
 
 Should only be called for texture outputs.
 
+.. note::
+  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
+  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
+  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
+  bottom-left co-ordinates, care must be taken to translate them.
+
 :param ResourceId textureId: The texture to pick the pixel from.
 :param bool customShader: Whether to apply the configured custom shader.
 :param int x: The x co-ordinate to pick from.
@@ -800,6 +806,12 @@ Should only be called for texture outputs.
 
   DOCUMENT(R"(Retrieves the vertex and instance that is under the cursor location, when viewed
 relative to the current window with the current mesh display configuration.
+
+.. note::
+  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
+  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
+  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
+  bottom-left co-ordinates, care must be taken to translate them.
 
 Should only be called for mesh outputs.
 
@@ -1163,6 +1175,12 @@ only ever have one result (only one entry point per shader).
 
   DOCUMENT(R"(Retrieve the history of modifications to the selected pixel on the selected texture.
 
+.. note::
+  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
+  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
+  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
+  bottom-left co-ordinates, care must be taken to translate them.
+
 :param ResourceId texture: The texture to search for modifications.
 :param int x: The x co-ordinate.
 :param int y: The y co-ordinate.
@@ -1193,6 +1211,12 @@ only ever have one result (only one entry point per shader).
                                         uint32_t instOffset, uint32_t vertOffset) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a pixel shader.
+
+.. note::
+  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
+  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
+  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
+  bottom-left co-ordinates, care must be taken to translate them.
 
 :param int x: The x co-ordinate.
 :param int y: The y co-ordinate.
