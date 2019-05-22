@@ -2033,6 +2033,9 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
       // it.
       access &= ~(GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
+      // also can't be unsynchronized for some reason
+      access &= ~GL_MAP_UNSYNCHRONIZED_BIT;
+
       directMap = true;
       persistent = true;
     }
