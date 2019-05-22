@@ -166,16 +166,6 @@ const VKPipe::Shader &PipeState::GetVulkanStage(ShaderStage stage) const
   return m_Vulkan->computeShader;
 }
 
-rdcstr PipeState::GetShaderExtension() const
-{
-  if(IsCaptureGL() || IsCaptureVK())
-  {
-    return "glsl";
-  }
-
-  return "hlsl";
-}
-
 Viewport PipeState::GetViewport(int index) const
 {
   Viewport ret = {};

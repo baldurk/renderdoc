@@ -54,6 +54,13 @@ float aspect(const QSizeF &s)
   return s.width() / s.height();
 }
 
+static QMap<QString, ShaderEncoding> encodingExtensions = {
+    {lit("hlsl"), ShaderEncoding::HLSL},
+    {lit("glsl"), ShaderEncoding::GLSL},
+    {lit("frag"), ShaderEncoding::GLSL},
+    {lit("spvasm"), ShaderEncoding::SPIRVAsm},
+};
+
 Q_DECLARE_METATYPE(Following);
 
 const Following Following::Default = Following();
@@ -1470,6 +1477,13 @@ void TextureViewer::UI_UpdateChannels()
   const bool yuvDecodeDisplay = ui->channels->currentIndex() == 2;
   const bool customDisplay = ui->channels->currentIndex() == 3;
 
+  if(customDisplay && m_NeedCustomReload)
+  {
+    m_NeedCustomReload = false;
+
+    reloadCustomShaders(QString());
+  }
+
   ui->channels->setItemText(0, yuv ? lit("YUVA") : lit("RGBA"));
   ui->channelRed->setText(lit("R"));
   ui->channelGreen->setText(lit("G"));
@@ -2671,7 +2685,8 @@ void TextureViewer::OnCaptureLoaded()
                    &TextureViewer::customShaderModified);
   QObject::connect(m_Watcher, &QFileSystemWatcher::directoryChanged, this,
                    &TextureViewer::customShaderModified);
-  reloadCustomShaders(QString());
+
+  m_NeedCustomReload = true;
 }
 
 void TextureViewer::Reset()
@@ -3743,6 +3758,28 @@ void TextureViewer::on_textureList_clicked(const QModelIndex &index)
   ViewTexture(id, false);
 }
 
+bool TextureViewer::canCompileCustomShader(ShaderEncoding encoding)
+{
+  rdcarray<ShaderEncoding> supported = m_Ctx.CustomShaderEncodings();
+
+  // if it's directly supported, we can trivially compile it
+  if(supported.contains(encoding))
+    return true;
+
+  // otherwise see if we have a tool that can compile it for us
+
+  for(const ShaderProcessingTool &tool : m_Ctx.Config().ShaderProcessors)
+  {
+    // if this tool transforms from the encoding to one we support, we can compile a shader of this
+    // encoding
+    if(tool.input == encoding && supported.contains(tool.output))
+      return true;
+  }
+
+  // all options exhausted, we can't compile this
+  return false;
+}
+
 void TextureViewer::reloadCustomShaders(const QString &filter)
 {
   if(!m_Ctx.IsCaptureLoaded())
@@ -3766,7 +3803,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
   }
   else
   {
-    QString fn = QFileInfo(filter).baseName();
+    QString fn = QFileInfo(filter).fileName();
     QString key = fn.toUpper();
 
     if(m_CustomShaders.contains(key))
@@ -3794,10 +3831,18 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
     }
   }
 
+  QStringList filters;
+  for(auto it = encodingExtensions.begin(); it != encodingExtensions.end(); ++it)
+  {
+    if(!canCompileCustomShader(it.value()))
+      continue;
+
+    filters.push_back(lit("*.") + it.key());
+  }
+
   QStringList files =
       QDir(configFilePath(QString()))
-          .entryList({QFormatStr("*.%1").arg(m_Ctx.CurPipelineState().GetShaderExtension())},
-                     QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
+          .entryList(filters, QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
 
   QStringList watchedFiles = m_Watcher->files();
   if(!watchedFiles.isEmpty())
@@ -3805,8 +3850,13 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
 
   for(const QString &f : files)
   {
-    QString fn = QFileInfo(f).baseName();
+    QFileInfo fileInfo(f);
+    QString fn = fileInfo.fileName();
     QString key = fn.toUpper();
+    ShaderEncoding encoding = encodingExtensions[fileInfo.completeSuffix()];
+
+    if(!filter.isEmpty() && filter.toUpper() != key)
+      continue;
 
     m_Watcher->addPath(configFilePath(f));
 
@@ -3818,36 +3868,87 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
         QTextStream stream(&fileHandle);
         QString source = stream.readAll();
 
+        bytebuf shaderBytes(source.toUtf8());
+
+        rdcarray<ShaderEncoding> supported = m_Ctx.TargetShaderEncodings();
+
+        rdcstr errors;
+
+        // we don't accept this encoding directly, need to compile
+        if(!supported.contains(encoding))
+        {
+          for(const ShaderProcessingTool &tool : m_Ctx.Config().ShaderProcessors)
+          {
+            // pick the first tool that can convert to an accepted format
+            if(tool.input == encoding && supported.contains(tool.output))
+            {
+              ShaderToolOutput out =
+                  tool.CompileShader(this, source, "main", ShaderStage::Pixel, "");
+
+              errors = out.log;
+
+              if(m_CustomShaderEditor.contains(key))
+                m_CustomShaderEditor[key]->ShowErrors(errors);
+
+              if(out.result.isEmpty())
+                break;
+
+              encoding = tool.output;
+              shaderBytes = out.result;
+              break;
+            }
+          }
+        }
+
+        // if the encoding still isn't supported, all tools failed. Bail out now
+        if(!supported.contains(encoding))
+        {
+          if(m_CustomShaderEditor.contains(key))
+            m_CustomShaderEditor[key]->ShowErrors(errors);
+
+          m_CustomShaders[key] = ResourceId();
+
+          QString prevtext = ui->customShader->currentText();
+          ui->customShader->addItem(fn);
+          ui->customShader->setCurrentText(prevtext);
+          continue;
+        }
+
         ANALYTIC_SET(UIFeatures.CustomTextureVisualise, true);
 
         fileHandle.close();
 
         m_CustomShaders[key] = ResourceId();
         m_CustomShadersBusy.push_back(key);
-        m_Ctx.Replay().AsyncInvoke([this, fn, key, source](IReplayController *r) {
-          rdcstr errors;
+        m_Ctx.Replay().AsyncInvoke(
+            [this, fn, key, shaderBytes, encoding, errors](IReplayController *r) {
+              rdcstr buildErrors;
 
-          ResourceId id;
-          rdctie(id, errors) = r->BuildCustomShader("main", source.toUtf8().data(),
-                                                    ShaderCompileFlags(), ShaderStage::Pixel);
+              ResourceId id;
+              rdctie(id, buildErrors) = r->BuildCustomShader(
+                  "main", encoding, shaderBytes, ShaderCompileFlags(), ShaderStage::Pixel);
 
-          if(m_CustomShaderEditor.contains(key))
-          {
-            IShaderViewer *editor = m_CustomShaderEditor[key];
-            GUIInvoke::call(editor->Widget(), [editor, errors]() { editor->ShowErrors(errors); });
-          }
+              if(!errors.empty())
+                buildErrors = errors + "\n\n" + buildErrors;
 
-          GUIInvoke::call(this, [this, fn, key, id]() {
-            QString prevtext = ui->customShader->currentText();
-            ui->customShader->addItem(fn);
-            ui->customShader->setCurrentText(prevtext);
+              if(m_CustomShaderEditor.contains(key))
+              {
+                IShaderViewer *editor = m_CustomShaderEditor[key];
+                GUIInvoke::call(editor->Widget(),
+                                [editor, buildErrors]() { editor->ShowErrors(buildErrors); });
+              }
 
-            m_CustomShaders[key] = id;
-            m_CustomShadersBusy.removeOne(key);
+              GUIInvoke::call(this, [this, fn, key, id]() {
+                QString prevtext = ui->customShader->currentText();
+                ui->customShader->addItem(fn);
+                ui->customShader->setCurrentText(prevtext);
 
-            UI_UpdateChannels();
-          });
-        });
+                m_CustomShaders[key] = id;
+                m_CustomShadersBusy.removeOne(key);
+
+                UI_UpdateChannels();
+              });
+            });
       }
     }
   }
@@ -3873,11 +3974,34 @@ void TextureViewer::on_customCreate_clicked()
     return;
   }
 
-  QString path = configFilePath(filename + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
+  ShaderEncoding enc = encodingExtensions[QFileInfo(filename).completeSuffix()];
+
+  if(enc == ShaderEncoding::Unknown)
+  {
+    QString extString;
+
+    for(auto it = encodingExtensions.begin(); it != encodingExtensions.end(); ++it)
+    {
+      if(!canCompileCustomShader(it.value()))
+        continue;
+
+      if(!extString.isEmpty())
+        extString += lit(", ");
+      extString += it.key();
+    }
+
+    RDDialog::critical(this, tr("Error Creating Shader"),
+                       tr("No file extension specified, unknown shading language.\n"
+                          "Filename must contain one of: %1")
+                           .arg(extString));
+    return;
+  }
+
+  QString path = configFilePath(filename);
 
   QString src;
 
-  if(IsD3D(m_Ctx.APIProps().pipelineType))
+  if(enc == ShaderEncoding::HLSL)
   {
     src =
         lit("float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0\n"
@@ -3885,7 +4009,7 @@ void TextureViewer::on_customCreate_clicked()
             "    return float4(0,0,0,1);\n"
             "}\n");
   }
-  else
+  else if(enc == ShaderEncoding::GLSL)
   {
     src =
         lit("#version 420 core\n\n"
@@ -3895,6 +4019,14 @@ void TextureViewer::on_customCreate_clicked()
             "{\n"
             "    color_out = vec4(0,0,0,1);\n"
             "}\n");
+  }
+  else if(enc == ShaderEncoding::SPIRVAsm)
+  {
+    src = lit("; SPIR-V");
+  }
+  else
+  {
+    src = tr("Unknown format - no template available");
   }
 
   QFile fileHandle(path);
@@ -3928,7 +4060,7 @@ void TextureViewer::on_customEdit_clicked()
     return;
   }
 
-  QString path = configFilePath(filename + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
+  QString path = configFilePath(filename);
 
   QString src;
 
@@ -3954,13 +4086,15 @@ void TextureViewer::on_customEdit_clicked()
 
   IShaderViewer *s = m_Ctx.EditShader(
       true, ShaderStage::Fragment, lit("main"), files,
-      IsD3D(m_Ctx.APIProps().localRenderer) ? ShaderEncoding::HLSL : ShaderEncoding::GLSL,
-      ShaderCompileFlags(),
+      encodingExtensions[QFileInfo(filename).completeSuffix()], ShaderCompileFlags(),
       // Save Callback
       [thisPointer, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer,
-                                         ShaderEncoding encoding, ShaderCompileFlags flags,
-                                         rdcstr entryFunc, bytebuf bytes) {
+                                         ShaderEncoding, ShaderCompileFlags, rdcstr, bytebuf bytes) {
         {
+          // don't trigger a full refresh
+          if(thisPointer)
+            thisPointer->m_CustomShaderWriteTime = thisPointer->m_CustomShaderTimer.elapsed();
+
           QFile fileHandle(path);
           if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
           {
@@ -4018,8 +4152,7 @@ void TextureViewer::on_customDelete_clicked()
 
   if(res == QMessageBox::Yes)
   {
-    QString path =
-        configFilePath(shaderName + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
+    QString path = configFilePath(shaderName);
     if(!QFileInfo::exists(path))
     {
       RDDialog::critical(
@@ -4043,8 +4176,22 @@ void TextureViewer::on_customDelete_clicked()
 
 void TextureViewer::customShaderModified(const QString &path)
 {
+  static bool recurse = false;
+
+  if(recurse)
+    return;
+
+  // if we just wrote a shader less than 100ms ago, don't refresh - this will have been handled
+  // internally at a finer granularity than 'all shaders'
+  if(m_CustomShaderWriteTime > m_CustomShaderTimer.elapsed() - 100)
+    return;
+
+  recurse = true;
+
   // allow time for modifications to finish
   QThread::msleep(15);
 
   reloadCustomShaders(QString());
+
+  recurse = false;
 }

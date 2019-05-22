@@ -2736,9 +2736,9 @@ std::vector<DebugMessage> D3D12Replay::GetDebugMessages()
   return m_pDevice->GetDebugMessages();
 }
 
-void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
-                              const ShaderCompileFlags &compileFlags, ShaderStage type,
-                              ResourceId *id, std::string *errors)
+void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
+                              const std::string &entry, const ShaderCompileFlags &compileFlags,
+                              ShaderStage type, ResourceId *id, std::string *errors)
 {
   if(id == NULL || errors == NULL)
   {
@@ -2796,7 +2796,7 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std
 }
 
 void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    std::string entry, const ShaderCompileFlags &compileFlags,
+                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId *id, std::string *errors)
 {
   ShaderCompileFlags debugCompileFlags =
@@ -3425,14 +3425,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   SAFE_RELEASE(tmpTexture);
 }
 
-void D3D12Replay::BuildCustomShader(std::string source, std::string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, std::string *errors)
+void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId *id, std::string *errors)
 {
-  bytebuf buf;
-  buf.resize(source.size());
-  memcpy(buf.data(), source.c_str(), buf.size());
-  BuildShader(ShaderEncoding::HLSL, buf, entry, compileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,

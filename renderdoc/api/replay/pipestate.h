@@ -184,15 +184,6 @@ requirements.
 )");
   rdcstr OutputAbbrev() const;
 
-  DOCUMENT(R"(Retrieves the common file extension for high level shaders in the current API.
-
-Typically this is ``glsl`` or ``hlsl``.
-
-:return: The file extension with no ``.``.
-:rtype: ``str``
-)");
-  rdcstr GetShaderExtension() const;
-
   DOCUMENT(R"(Retrieves the viewport for a given index.
 
 :param int index: The index to retrieve.

@@ -6,7 +6,9 @@ This page details how to set up a custom shader for visualisation. This can be u
 Introduction
 ------------
 
-The basic process of setting up the custom shader involves writing a ``.hlsl`` or ``.glsl`` file that will be compiled and used by RenderDoc. Note that the type used matches the API used, and RenderDoc will automatically list only the hlsl shaders you have if you load a log with D3D11 or D3D12, and glsl for OpenGL or Vulkan.
+The basic process of setting up the custom shader involves writing a shader file that will be compiled and used by RenderDoc. Note that you can use any language that is either natively accepted by the graphics API used, or any language that can be compiled to an accepted shader.
+
+For example on D3D11 or D3D12, hlsl is the only language usable by default, but on Vulkan you can use hlsl or glsl as long as a compiler is available.
 
 There are several special global variables that can be specified and will be filled in with values by RenderDoc.
 

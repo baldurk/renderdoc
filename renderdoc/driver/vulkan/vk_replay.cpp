@@ -3434,54 +3434,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   }
 }
 
-void VulkanReplay::BuildCustomShader(std::string source, std::string entry,
-                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                     ResourceId *id, std::string *errors)
+void VulkanReplay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                     const std::string &entry, const ShaderCompileFlags &compileFlags,
+                                     ShaderStage type, ResourceId *id, std::string *errors)
 {
-  SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
-
-  switch(type)
-  {
-    case ShaderStage::Vertex: stage = SPIRVShaderStage::Vertex; break;
-    case ShaderStage::Hull: stage = SPIRVShaderStage::TessControl; break;
-    case ShaderStage::Domain: stage = SPIRVShaderStage::TessEvaluation; break;
-    case ShaderStage::Geometry: stage = SPIRVShaderStage::Geometry; break;
-    case ShaderStage::Pixel: stage = SPIRVShaderStage::Fragment; break;
-    case ShaderStage::Compute: stage = SPIRVShaderStage::Compute; break;
-    default:
-      RDCERR("Unexpected type in BuildShader!");
-      *id = ResourceId();
-      return;
-  }
-
-  std::vector<std::string> sources;
-  sources.push_back(source);
-  std::vector<uint32_t> spirv;
-
-  SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
-
-  std::string output = CompileSPIRV(settings, sources, spirv);
-
-  if(spirv.empty())
-  {
-    *id = ResourceId();
-    *errors = output;
-    return;
-  }
-
-  VkShaderModuleCreateInfo modinfo = {
-      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-      NULL,
-      0,
-      spirv.size() * sizeof(uint32_t),
-      &spirv[0],
-  };
-
-  VkShaderModule module;
-  VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &module);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  *id = GetResID(module);
+  BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
 void VulkanReplay::FreeCustomShader(ResourceId id)
@@ -3549,7 +3506,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
 }
 
 void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                     std::string entry, const ShaderCompileFlags &compileFlags,
+                                     const std::string &entry, const ShaderCompileFlags &compileFlags,
                                      ShaderStage type, ResourceId *id, std::string *errors)
 {
   std::vector<uint32_t> spirv;

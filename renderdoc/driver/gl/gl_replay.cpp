@@ -2727,64 +2727,11 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     drv.glDeleteTextures(1, &tempTex);
 }
 
-void GLReplay::BuildCustomShader(std::string source, std::string entry,
-                                 const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                 ResourceId *id, std::string *errors)
+void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                 const std::string &entry, const ShaderCompileFlags &compileFlags,
+                                 ShaderStage type, ResourceId *id, std::string *errors)
 {
-  if(id == NULL || errors == NULL)
-  {
-    if(id)
-      *id = ResourceId();
-    return;
-  }
-
-  WrappedOpenGL &drv = *m_pDriver;
-
-  MakeCurrentReplayContext(m_DebugCtx);
-
-  GLenum shtype = eGL_VERTEX_SHADER;
-  switch(type)
-  {
-    case ShaderStage::Vertex: shtype = eGL_VERTEX_SHADER; break;
-    case ShaderStage::Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
-    case ShaderStage::Tess_Eval: shtype = eGL_TESS_EVALUATION_SHADER; break;
-    case ShaderStage::Geometry: shtype = eGL_GEOMETRY_SHADER; break;
-    case ShaderStage::Fragment: shtype = eGL_FRAGMENT_SHADER; break;
-    case ShaderStage::Compute: shtype = eGL_COMPUTE_SHADER; break;
-    default:
-    {
-      RDCERR("Unknown shader type %u", type);
-      if(id)
-        *id = ResourceId();
-      return;
-    }
-  }
-
-  const char *src = source.c_str();
-  GLuint shader = drv.glCreateShader(shtype);
-
-  drv.glShaderSource(shader, 1, &src, NULL);
-
-  drv.glCompileShader(shader);
-
-  GLint status = 0;
-  drv.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
-
-  if(errors)
-  {
-    GLint len = 1024;
-    drv.glGetShaderiv(shader, eGL_INFO_LOG_LENGTH, &len);
-    char *buffer = new char[len + 1];
-    drv.glGetShaderInfoLog(shader, len, NULL, buffer);
-    buffer[len] = 0;
-    *errors = buffer;
-    delete[] buffer;
-  }
-
-  if(status == 0)
-    *id = ResourceId();
-  else
-    *id = m_pDriver->GetResourceManager()->GetID(ShaderRes(m_pDriver->GetCtx(), shader));
+  BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
@@ -2882,9 +2829,9 @@ void GLReplay::FreeCustomShader(ResourceId id)
   m_pDriver->glDeleteShader(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
-void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
-                                 const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                 ResourceId *id, std::string *errors)
+void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                 const std::string &entry, const ShaderCompileFlags &compileFlags,
+                                 ShaderStage type, ResourceId *id, std::string *errors)
 {
   if(id == NULL || errors == NULL)
   {

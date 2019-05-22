@@ -401,13 +401,13 @@ public:
     return ~0U;
   }
 
-  void BuildCustomShader(std::string source, std::string entry,
+  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors)
   {
     if(m_Proxy)
     {
-      m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
+      m_Proxy->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
     }
     else
     {
@@ -531,7 +531,7 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEncoding>, GetTargetShaderEncodings);
   IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, ShaderEncoding sourceEncoding, bytebuf source,
-                             std::string entry, const ShaderCompileFlags &compileFlags,
+                             const std::string &entry, const ShaderCompileFlags &compileFlags,
                              ShaderStage type, ResourceId *id, std::string *errors);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplaceResource, ResourceId from, ResourceId to);
   IMPLEMENT_FUNCTION_PROXIED(void, RemoveReplacement, ResourceId id);

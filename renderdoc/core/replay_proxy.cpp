@@ -1266,7 +1266,8 @@ rdcarray<ShaderEncoding> ReplayProxy::GetTargetShaderEncodings()
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                             ShaderEncoding sourceEncoding, bytebuf source,
-                                            std::string entry, const ShaderCompileFlags &compileFlags,
+                                            const std::string &entry,
+                                            const ShaderCompileFlags &compileFlags,
                                             ShaderStage type, ResourceId *id, std::string *errors)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_BuildTargetShader;
@@ -1309,7 +1310,7 @@ void ReplayProxy::Proxied_BuildTargetShader(ParamSerialiser &paramser, ReturnSer
 }
 
 void ReplayProxy::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    std::string entry, const ShaderCompileFlags &compileFlags,
+                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId *id, std::string *errors)
 {
   PROXY_FUNCTION(BuildTargetShader, sourceEncoding, source, entry, compileFlags, type, id, errors);
@@ -2614,9 +2615,12 @@ bool ReplayProxy::Tick(int type)
     }
     case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, 0, MeshDataStage::Unknown); break;
     case eReplayProxy_BuildTargetShader:
-      BuildTargetShader(ShaderEncoding::Unknown, bytebuf(), "", ShaderCompileFlags(),
+    {
+      std::string entry;
+      BuildTargetShader(ShaderEncoding::Unknown, bytebuf(), entry, ShaderCompileFlags(),
                         ShaderStage::Vertex, NULL, NULL);
       break;
+    }
     case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;
     case eReplayProxy_DebugVertex: DebugVertex(0, 0, 0, 0, 0, 0); break;

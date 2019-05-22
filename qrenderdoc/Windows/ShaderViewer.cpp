@@ -193,6 +193,8 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   m_Stage = stage;
   m_Flags = flags;
 
+  m_CustomShader = customShader;
+
   // set up compilation parameters
   for(ShaderEncoding i : values<ShaderEncoding>())
     if(IsTextRepresentation(i) || shaderEncoding == i)
@@ -2611,7 +2613,9 @@ void ShaderViewer::AddWatch(const rdcstr &variable)
 
 int ShaderViewer::snippetPos()
 {
-  if(IsD3D(m_Ctx.APIProps().pipelineType))
+  ShaderEncoding encoding = currentEncoding();
+
+  if(encoding != ShaderEncoding::GLSL)
     return 0;
 
   if(m_Scintillas.isEmpty())
@@ -2626,283 +2630,402 @@ int ShaderViewer::snippetPos()
   return ver.second + 1;
 }
 
-void ShaderViewer::insertVulkanUBO()
+void ShaderViewer::insertSnippet(const QString &text)
 {
+  if(text.isEmpty())
+    return;
+
   if(m_Scintillas.isEmpty())
     return;
 
-  m_Scintillas[0]->insertText(snippetPos(),
-                              "layout(binding = 0, std140) uniform RENDERDOC_Uniforms\n"
-                              "{\n"
-                              "    uvec4 TexDim;\n"
-                              "    uint SelectedMip;\n"
-                              "    int TextureType;\n"
-                              "    uint SelectedSliceFace;\n"
-                              "    int SelectedSample;\n"
-                              "    uvec4 YUVDownsampleRate;\n"
-                              "    uvec4 YUVAChannels;\n"
-                              "} RENDERDOC;\n\n");
+  m_Scintillas[0]->insertText(snippetPos(), text.toUtf8().data());
+
+  m_Scintillas[0]->setSelection(0, 0);
+}
+
+QString ShaderViewer::vulkanUBO()
+{
+  ShaderEncoding encoding = currentEncoding();
+
+  if(encoding == ShaderEncoding::GLSL)
+  {
+    return lit(R"(
+layout(binding = 0, std140) uniform RENDERDOC_Uniforms
+{
+    uvec4 TexDim;
+    uint SelectedMip;
+    int TextureType;
+    uint SelectedSliceFace;
+    int SelectedSample;
+    uvec4 YUVDownsampleRate;
+    uvec4 YUVAChannels;
+} RENDERDOC;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::HLSL)
+  {
+    return lit(R"(
+cbuffer RENDERDOC_Constants : register(b0)
+{
+    uint4 RENDERDOC_TexDim;
+    uint RENDERDOC_SelectedMip;
+    int RENDERDOC_TextureType;
+    uint RENDERDOC_SelectedSliceFace;
+    int RENDERDOC_SelectedSample;
+    uint4 RENDERDOC_YUVDownsampleRate;
+    uint4 RENDERDOC_YUVAChannels;
+};
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    return lit("; Can't insert snippets for SPIR-V ASM");
+  }
+
+  return QString();
 }
 
 void ShaderViewer::snippet_textureDimensions()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+  QString text;
 
-  if(IsD3D(api))
+  if(api == GraphicsAPI::Vulkan)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// xyz == width, height, depth. w == # mips\n"
-                                "uint4 RENDERDOC_TexDim;\n"
-                                "uint4 RENDERDOC_YUVDownsampleRate;\n"
-                                "uint4 RENDERDOC_YUVAChannels; \n\n");
+    text = vulkanUBO();
   }
-  else if(api == GraphicsAPI::OpenGL)
+  else if(encoding == ShaderEncoding::HLSL)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// xyz == width, height, depth. w == # mips\n"
-                                "uniform uvec4 RENDERDOC_TexDim;\n\n");
+    text = lit(R"(
+// xyz == width, height, depth. w == # mips
+uint4 RENDERDOC_TexDim;
+uint4 RENDERDOC_YUVDownsampleRate;
+uint4 RENDERDOC_YUVAChannels;
+
+)");
   }
-  else if(api == GraphicsAPI::Vulkan)
+  else if(encoding == ShaderEncoding::GLSL)
   {
-    insertVulkanUBO();
+    text = lit(R"(
+// xyz == width, height, depth. w == # mips
+uniform uvec4 RENDERDOC_TexDim;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    text = lit("; Can't insert snippets for SPIR-V ASM");
   }
 
-  m_Scintillas[0]->setSelection(0, 0);
+  insertSnippet(text);
 }
 
 void ShaderViewer::snippet_selectedMip()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+  QString text;
 
-  if(IsD3D(api))
+  if(api == GraphicsAPI::Vulkan)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// selected mip in UI\n"
-                                "uint RENDERDOC_SelectedMip;\n\n");
+    text = vulkanUBO();
   }
-  else if(api == GraphicsAPI::OpenGL)
+  else if(encoding == ShaderEncoding::HLSL)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// selected mip in UI\n"
-                                "uniform uint RENDERDOC_SelectedMip;\n\n");
+    text = lit(R"(
+// selected mip in UI
+uint RENDERDOC_SelectedMip;
+
+)");
   }
-  else if(api == GraphicsAPI::Vulkan)
+  else if(encoding == ShaderEncoding::GLSL)
   {
-    insertVulkanUBO();
+    text = lit(R"(
+// selected mip in UI
+uniform uint RENDERDOC_SelectedMip;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    text = lit("; Can't insert snippets for SPIR-V ASM");
   }
 
-  m_Scintillas[0]->setSelection(0, 0);
+  insertSnippet(text);
 }
 
 void ShaderViewer::snippet_selectedSlice()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+  QString text;
 
-  if(IsD3D(api))
+  if(api == GraphicsAPI::Vulkan)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// selected array slice or cubemap face in UI\n"
-                                "uint RENDERDOC_SelectedSliceFace;\n\n");
+    text = vulkanUBO();
   }
-  else if(api == GraphicsAPI::OpenGL)
+  else if(encoding == ShaderEncoding::HLSL)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// selected array slice or cubemap face in UI\n"
-                                "uniform uint RENDERDOC_SelectedSliceFace;\n\n");
+    text = lit(R"(
+// selected array slice or cubemap face in UI
+uint RENDERDOC_SelectedSliceFace;
+
+)");
   }
-  else if(api == GraphicsAPI::Vulkan)
+  else if(encoding == ShaderEncoding::GLSL)
   {
-    insertVulkanUBO();
+    text = lit(R"(
+// selected array slice or cubemap face in UI
+uniform uint RENDERDOC_SelectedSliceFace;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    text = lit("; Can't insert snippets for SPIR-V ASM");
   }
 
-  m_Scintillas[0]->setSelection(0, 0);
+  insertSnippet(text);
 }
 
 void ShaderViewer::snippet_selectedSample()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+  QString text;
 
-  if(IsD3D(api))
+  if(api == GraphicsAPI::Vulkan)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// selected MSAA sample or -numSamples for resolve. See docs\n"
-                                "int RENDERDOC_SelectedSample;\n\n");
+    text = vulkanUBO();
   }
-  else if(api == GraphicsAPI::OpenGL)
+  else if(encoding == ShaderEncoding::HLSL)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// selected MSAA sample or -numSamples for resolve. See docs\n"
-                                "uniform int RENDERDOC_SelectedSample;\n\n");
+    text = lit(R"(
+// selected MSAA sample or -numSamples for resolve. See docs
+int RENDERDOC_SelectedSample;
+
+)");
   }
-  else if(api == GraphicsAPI::Vulkan)
+  else if(encoding == ShaderEncoding::GLSL)
   {
-    insertVulkanUBO();
+    text = lit(R"(
+// selected MSAA sample or -numSamples for resolve. See docs
+uniform int RENDERDOC_SelectedSample;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    text = lit("; Can't insert snippets for SPIR-V ASM");
   }
 
-  m_Scintillas[0]->setSelection(0, 0);
+  insertSnippet(text);
 }
 
 void ShaderViewer::snippet_selectedType()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+  QString text;
 
-  if(IsD3D(api))
+  if(api == GraphicsAPI::Vulkan)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil\n"
-                                "// 6 = Depth (MS), 7 = Depth + Stencil (MS)\n"
-                                "uint RENDERDOC_TextureType;\n\n");
+    text = vulkanUBO();
   }
-  else if(api == GraphicsAPI::OpenGL)
+  else if(encoding == ShaderEncoding::HLSL)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube\n"
-                                "// 5 = 1DArray, 6 = 2DArray, 7 = CubeArray\n"
-                                "// 8 = Rect, 9 = Buffer, 10 = 2DMS\n"
-                                "uniform uint RENDERDOC_TextureType;\n\n");
+    text = lit(R"(
+// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil
+// 6 = Depth (MS), 7 = Depth + Stencil (MS)
+uint RENDERDOC_TextureType;
+
+)");
   }
-  else if(api == GraphicsAPI::Vulkan)
+  else if(encoding == ShaderEncoding::GLSL)
   {
-    insertVulkanUBO();
+    text = lit(R"(
+// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube
+// 5 = 1DArray, 6 = 2DArray, 7 = CubeArray
+// 8 = Rect, 9 = Buffer, 10 = 2DMS
+uniform uint RENDERDOC_TextureType;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    text = lit("; Can't insert snippets for SPIR-V ASM");
   }
 
-  m_Scintillas[0]->setSelection(0, 0);
+  insertSnippet(text);
 }
 
 void ShaderViewer::snippet_samplers()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
-
-  if(IsD3D(api))
+  if(encoding == ShaderEncoding::HLSL)
   {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// Samplers\n"
-                                "SamplerState pointSampler : register(s0);\n"
-                                "SamplerState linearSampler : register(s1);\n"
-                                "// End Samplers\n\n");
-
-    m_Scintillas[0]->setSelection(0, 0);
+    if(api == GraphicsAPI::Vulkan)
+    {
+      insertSnippet(lit(R"(
+// Samplers
+SamplerState pointSampler : register(s50);
+SamplerState linearSampler : register(s51);
+// End Samplers
+)"));
+    }
+    else
+    {
+      insertSnippet(lit(R"(
+// Samplers
+SamplerState pointSampler : register(s0);
+SamplerState linearSampler : register(s1);
+// End Samplers
+)"));
+    }
   }
 }
 
 void ShaderViewer::snippet_resources()
 {
-  if(m_Scintillas.isEmpty())
-    return;
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
-  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+  if(encoding == ShaderEncoding::HLSL)
+  {
+    if(api == GraphicsAPI::Vulkan)
+    {
+      insertSnippet(lit(R"(
+// Textures
+// Floating point
+Texture1DArray<float4> texDisplayTex1DArray : register(t6);
+Texture2DArray<float4> texDisplayTex2DArray : register(t7);
+Texture3D<float4> texDisplayTex3D : register(t8);
+Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
+Texture2DArray<float4> texDisplayYUVArray : register(t10);
 
-  if(IsD3D(api))
-  {
-    m_Scintillas[0]->insertText(
-        snippetPos(),
-        "// Textures\n"
-        "Texture1DArray<float4> texDisplayTex1DArray : register(t1);\n"
-        "Texture2DArray<float4> texDisplayTex2DArray : register(t2);\n"
-        "Texture3D<float4> texDisplayTex3D : register(t3);\n"
-        "Texture2DArray<float2> texDisplayTexDepthArray : register(t4);\n"
-        "Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);\n"
-        "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);\n"
-        "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);\n"
-        "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);\n"
-        "Texture2DArray<float4> texDisplayYUVArray : register(t10);\n"
-        "\n"
-        "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);\n"
-        "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);\n"
-        "Texture3D<uint4> texDisplayUIntTex3D : register(t13);\n"
-        "Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);\n"
-        "\n"
-        "Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);\n"
-        "Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);\n"
-        "Texture3D<int4> texDisplayIntTex3D : register(t23);\n"
-        "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);\n"
-        "// End Textures\n\n\n");
-  }
-  else if(api == GraphicsAPI::OpenGL)
-  {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// Textures\n"
-                                "// Unsigned int samplers\n"
-                                "layout (binding = 1) uniform usampler1D texUInt1D;\n"
-                                "layout (binding = 2) uniform usampler2D texUInt2D;\n"
-                                "layout (binding = 3) uniform usampler3D texUInt3D;\n"
-                                "// cube = 4\n"
-                                "layout (binding = 5) uniform usampler1DArray texUInt1DArray;\n"
-                                "layout (binding = 6) uniform usampler2DArray texUInt2DArray;\n"
-                                "// cube array = 7\n"
-                                "layout (binding = 8) uniform usampler2DRect texUInt2DRect;\n"
-                                "layout (binding = 9) uniform usamplerBuffer texUIntBuffer;\n"
-                                "layout (binding = 10) uniform usampler2DMS texUInt2DMS;\n"
-                                "\n"
-                                "// Int samplers\n"
-                                "layout (binding = 1) uniform isampler1D texSInt1D;\n"
-                                "layout (binding = 2) uniform isampler2D texSInt2D;\n"
-                                "layout (binding = 3) uniform isampler3D texSInt3D;\n"
-                                "// cube = 4\n"
-                                "layout (binding = 5) uniform isampler1DArray texSInt1DArray;\n"
-                                "layout (binding = 6) uniform isampler2DArray texSInt2DArray;\n"
-                                "// cube array = 7\n"
-                                "layout (binding = 8) uniform isampler2DRect texSInt2DRect;\n"
-                                "layout (binding = 9) uniform isamplerBuffer texSIntBuffer;\n"
-                                "layout (binding = 10) uniform isampler2DMS texSInt2DMS;\n"
-                                "\n"
-                                "// Floating point samplers\n"
-                                "layout (binding = 1) uniform sampler1D tex1D;\n"
-                                "layout (binding = 2) uniform sampler2D tex2D;\n"
-                                "layout (binding = 3) uniform sampler3D tex3D;\n"
-                                "layout (binding = 4) uniform samplerCube texCube;\n"
-                                "layout (binding = 5) uniform sampler1DArray tex1DArray;\n"
-                                "layout (binding = 6) uniform sampler2DArray tex2DArray;\n"
-                                "layout (binding = 7) uniform samplerCubeArray texCubeArray;\n"
-                                "layout (binding = 8) uniform sampler2DRect tex2DRect;\n"
-                                "layout (binding = 9) uniform samplerBuffer texBuffer;\n"
-                                "layout (binding = 10) uniform sampler2DMS tex2DMS;\n"
-                                "// End Textures\n\n\n");
-  }
-  else if(api == GraphicsAPI::Vulkan)
-  {
-    m_Scintillas[0]->insertText(snippetPos(),
-                                "// Textures\n"
-                                "// Floating point samplers\n"
-                                "layout(binding = 6) uniform sampler1DArray tex1DArray;\n"
-                                "layout(binding = 7) uniform sampler2DArray tex2DArray;\n"
-                                "layout(binding = 8) uniform sampler3D tex3D;\n"
-                                "layout(binding = 9) uniform sampler2DMS tex2DMS;\n"
-                                "layout(binding = 10) uniform sampler2DArray texYUVArray[2];\n"
-                                "\n"
-                                "// Unsigned int samplers\n"
-                                "layout(binding = 11) uniform usampler1DArray texUInt1DArray;\n"
-                                "layout(binding = 12) uniform usampler2DArray texUInt2DArray;\n"
-                                "layout(binding = 13) uniform usampler3D texUInt3D;\n"
-                                "layout(binding = 14) uniform usampler2DMS texUInt2DMS;\n"
-                                "\n"
-                                "// Int samplers\n"
-                                "layout(binding = 16) uniform isampler1DArray texSInt1DArray;\n"
-                                "layout(binding = 17) uniform isampler2DArray texSInt2DArray;\n"
-                                "layout(binding = 18) uniform isampler3D texSInt3D;\n"
-                                "layout(binding = 19) uniform isampler2DMS texSInt2DMS;\n"
-                                "// End Textures\n\n\n");
-  }
+// Unsigned int samplers
+Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
+Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
+Texture3D<uint4> texDisplayUIntTex3D : register(t13);
+Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t14);
 
-  m_Scintillas[0]->setSelection(0, 0);
+// Int samplers
+Texture1DArray<int4> texDisplayIntTex1DArray : register(t16);
+Texture2DArray<int4> texDisplayIntTex2DArray : register(t17);
+Texture3D<int4> texDisplayIntTex3D : register(t18);
+Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t19);
+// End Textures
+)"));
+    }
+    else
+    {
+      insertSnippet(lit(R"(
+// Textures
+Texture1DArray<float4> texDisplayTex1DArray : register(t1);
+Texture2DArray<float4> texDisplayTex2DArray : register(t2);
+Texture3D<float4> texDisplayTex3D : register(t3);
+Texture2DArray<float2> texDisplayTexDepthArray : register(t4);
+Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);
+Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);
+Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
+Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
+Texture2DArray<float4> texDisplayYUVArray : register(t10);
+
+// Unsigned int samplers
+Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
+Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
+Texture3D<uint4> texDisplayUIntTex3D : register(t13);
+Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);
+
+// Int samplers
+Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);
+Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);
+Texture3D<int4> texDisplayIntTex3D : register(t23);
+Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);
+// End Textures
+)"));
+    }
+  }
+  else if(encoding == ShaderEncoding::GLSL)
+  {
+    if(api == GraphicsAPI::Vulkan)
+    {
+      insertSnippet(lit(R"(
+// Textures
+// Floating point samplers
+layout(binding = 6) uniform sampler1DArray tex1DArray;
+layout(binding = 7) uniform sampler2DArray tex2DArray;
+layout(binding = 8) uniform sampler3D tex3D;
+layout(binding = 9) uniform sampler2DMS tex2DMS;
+layout(binding = 10) uniform sampler2DArray texYUVArray[2];
+
+// Unsigned int samplers
+layout(binding = 11) uniform usampler1DArray texUInt1DArray;
+layout(binding = 12) uniform usampler2DArray texUInt2DArray;
+layout(binding = 13) uniform usampler3D texUInt3D;
+layout(binding = 14) uniform usampler2DMS texUInt2DMS;
+
+// Int samplers
+layout(binding = 16) uniform isampler1DArray texSInt1DArray;
+layout(binding = 17) uniform isampler2DArray texSInt2DArray;
+layout(binding = 18) uniform isampler3D texSInt3D;
+layout(binding = 19) uniform isampler2DMS texSInt2DMS;
+// End Textures
+)"));
+    }
+    else
+    {
+      insertSnippet(lit(R"(
+// Textures
+// Unsigned int samplers
+layout (binding = 1) uniform usampler1D texUInt1D;
+layout (binding = 2) uniform usampler2D texUInt2D;
+layout (binding = 3) uniform usampler3D texUInt3D;
+// cube = 4
+layout (binding = 5) uniform usampler1DArray texUInt1DArray;
+layout (binding = 6) uniform usampler2DArray texUInt2DArray;
+// cube array = 7
+layout (binding = 8) uniform usampler2DRect texUInt2DRect;
+layout (binding = 9) uniform usamplerBuffer texUIntBuffer;
+layout (binding = 10) uniform usampler2DMS texUInt2DMS;
+
+// Int samplers
+layout (binding = 1) uniform isampler1D texSInt1D;
+layout (binding = 2) uniform isampler2D texSInt2D;
+layout (binding = 3) uniform isampler3D texSInt3D;
+// cube = 4
+layout (binding = 5) uniform isampler1DArray texSInt1DArray;
+layout (binding = 6) uniform isampler2DArray texSInt2DArray;
+// cube array = 7
+layout (binding = 8) uniform isampler2DRect texSInt2DRect;
+layout (binding = 9) uniform isamplerBuffer texSIntBuffer;
+layout (binding = 10) uniform isampler2DMS texSInt2DMS;
+
+// Floating point samplers
+layout (binding = 1) uniform sampler1D tex1D;
+layout (binding = 2) uniform sampler2D tex2D;
+layout (binding = 3) uniform sampler3D tex3D;
+layout (binding = 4) uniform samplerCube texCube;
+layout (binding = 5) uniform sampler1DArray tex1DArray;
+layout (binding = 6) uniform sampler2DArray tex2DArray;
+layout (binding = 7) uniform samplerCubeArray texCubeArray;
+layout (binding = 8) uniform sampler2DRect tex2DRect;
+layout (binding = 9) uniform samplerBuffer texBuffer;
+layout (binding = 10) uniform sampler2DMS tex2DMS;
+// End Textures
+)"));
+    }
+  }
 }
 
 bool ShaderViewer::eventFilter(QObject *watched, QEvent *event)
@@ -3457,7 +3580,7 @@ void ShaderViewer::on_refresh_clicked()
 
   // if we don't have any compile tools - even the 'builtin' one, this compilation is not going to
   // succeed.
-  if(ui->compileTool->count() == 0)
+  if(ui->compileTool->count() == 0 && !m_CustomShader)
   {
     ShowErrors(tr("No compilation tool found that takes %1 as input and produces compatible output")
                    .arg(ToQStr(encoding)));
@@ -3488,8 +3611,8 @@ void ShaderViewer::on_refresh_clicked()
 
     rdcarray<ShaderEncoding> accepted = m_Ctx.TargetShaderEncodings();
 
-    if(accepted.indexOf(encoding) >= 0 &&
-       ui->compileTool->currentIndex() == ui->compileTool->count() - 1)
+    if(m_CustomShader || (accepted.indexOf(encoding) >= 0 &&
+                          ui->compileTool->currentIndex() == ui->compileTool->count() - 1))
     {
       // if using the builtin compiler, just pass through
     }

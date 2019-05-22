@@ -27,6 +27,7 @@
 #include <QFrame>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QTime>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
@@ -322,15 +323,21 @@ private:
 
   TextureSave m_SaveConfig;
 
+  bool m_NeedCustomReload = false;
+
   TextureDescription *m_CachedTexture;
   Following m_Following = Following::Default;
   QMap<ResourceId, TexSettings> m_TextureSettings;
+
+  QTime m_CustomShaderTimer;
+  int m_CustomShaderWriteTime = 0;
 
   QFileSystemWatcher *m_Watcher = NULL;
   QStringList m_CustomShadersBusy;
   QMap<QString, ResourceId> m_CustomShaders;
   QMap<QString, IShaderViewer *> m_CustomShaderEditor;
 
+  bool canCompileCustomShader(ShaderEncoding encoding);
   void reloadCustomShaders(const QString &filter);
 
   TextureDisplay m_TexDisplay;

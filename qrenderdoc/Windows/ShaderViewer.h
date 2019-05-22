@@ -171,6 +171,8 @@ private:
   void gotoSourceDebugging();
   void gotoDisassemblyDebugging();
 
+  void insertSnippet(const QString &text);
+
   void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
   void showVariableTooltip(QString name);
   void updateVariableTooltip();
@@ -190,6 +192,7 @@ private:
   ICaptureContext &m_Ctx;
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
+  bool m_CustomShader = false;
   ShaderCompileFlags m_Flags;
   QList<ShaderEncoding> m_Encodings;
   ShaderStage m_Stage;
@@ -255,7 +258,7 @@ private:
   ScintillaEdit *nextScintilla(ScintillaEdit *cur);
 
   int snippetPos();
-  void insertVulkanUBO();
+  QString vulkanUBO();
 
   int instructionForLine(sptr_t line);
 

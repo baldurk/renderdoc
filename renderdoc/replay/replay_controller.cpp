@@ -1958,7 +1958,8 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
 }
 
 rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
-    const char *entry, const char *source, const ShaderCompileFlags &compileFlags, ShaderStage type)
+    const char *entry, ShaderEncoding sourceEncoding, bytebuf source,
+    const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1976,10 +1977,19 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
     default: RDCERR("Unexpected type in BuildShader!"); return rdcpair<ResourceId, rdcstr>();
   }
 
-  m_pDevice->BuildCustomShader(source, entry, compileFlags, type, &id, &errs);
+  RDCLOG("Building custom shader");
+
+  m_pDevice->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, &id, &errs);
 
   if(id != ResourceId())
+  {
+    RDCLOG("Successfully built custom shader");
     m_CustomShaders.insert(id);
+  }
+  else
+  {
+    RDCLOG("Failed to build custom shader");
+  }
 
   return rdcpair<ResourceId, rdcstr>(id, errs);
 }

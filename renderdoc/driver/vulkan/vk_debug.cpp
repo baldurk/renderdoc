@@ -1690,6 +1690,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
 
+  CREATE_OBJECT(PointSampler, VK_FILTER_NEAREST);
   CREATE_OBJECT(LinearSampler, VK_FILTER_LINEAR);
 
   CREATE_OBJECT(DescSetLayout,
@@ -1711,6 +1712,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                     {18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {50, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_ALL, &PointSampler},
+                    {51, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_ALL, &LinearSampler},
                 });
 
   CREATE_OBJECT(PipeLayout, DescSetLayout, 0);
@@ -2003,6 +2006,7 @@ void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
   UBO.Destroy();
   HeatmapUBO.Destroy();
 
+  driver->vkDestroySampler(driver->GetDev(), PointSampler, NULL);
   driver->vkDestroySampler(driver->GetDev(), LinearSampler, NULL);
 
   for(size_t i = 0; i < ARRAY_COUNT(DummyImages); i++)

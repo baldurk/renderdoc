@@ -189,7 +189,7 @@ public:
   {
     return {ShaderEncoding::DXBC, ShaderEncoding::HLSL};
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors);
   void ReplaceResource(ResourceId from, ResourceId to);
@@ -237,7 +237,7 @@ public:
   ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                            uint32_t eventId, const std::vector<uint32_t> &passEvents);
 
-  void BuildCustomShader(std::string source, std::string entry,
+  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
@@ -252,7 +252,7 @@ private:
 
   D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
-  void BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
+  void BuildShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                    const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                    std::string *errors);
 

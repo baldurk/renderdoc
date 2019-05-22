@@ -3478,7 +3478,11 @@ void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
 
   ResourceId id;
   std::string errors;
-  driver->BuildCustomShader(source, "main", ShaderCompileFlags(), stage, &id, &errors);
+  bytebuf buf;
+  buf.resize(source.size());
+  memcpy(buf.data(), source.data(), source.size());
+  driver->BuildCustomShader(ShaderEncoding::GLSL, buf, "main", ShaderCompileFlags(), stage, &id,
+                            &errors);
 
   if(id == ResourceId())
   {

@@ -320,10 +320,10 @@ public:
   {
     return {ShaderEncoding::SPIRV, ShaderEncoding::GLSL};
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors);
-  void BuildCustomShader(std::string source, std::string entry,
+  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors);
   void FreeCustomShader(ResourceId id);
@@ -523,6 +523,7 @@ private:
     VkDescriptorSet DescSet[16] = {VK_NULL_HANDLE};
     uint32_t NextSet = 0;
 
+    VkSampler PointSampler = VK_NULL_HANDLE;
     VkSampler LinearSampler = VK_NULL_HANDLE;
 
     // descriptors must be valid even if they're skipped dynamically in the shader, so we create

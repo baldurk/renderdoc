@@ -982,19 +982,19 @@ or hardware-specific ISA formats.
 
   DOCUMENT(R"(Builds a shader suitable for running on the local replay instance as a custom shader.
 
-The language used is native to the local renderer - HLSL for D3D based renderers, GLSL otherwise.
-
 See :data:`TextureDisplay.customShaderId`.
 
 :param str entry: The entry point to use when compiling.
-:param str source: The source file.
+:param ShaderEncoding sourceEncoding: The encoding of the source data.
+:param bytes source: The source data itself.
 :param int compileFlags: API-specific compilation flags.
 :param ShaderStage type: The stage that this shader will be executed at.
 :return: A ``tuple`` with the id of the new shader if compilation was successful,
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, const char *source,
+  virtual rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry,
+                                                        ShaderEncoding sourceEncoding, bytebuf source,
                                                         const ShaderCompileFlags &compileFlags,
                                                         ShaderStage type) = 0;
 
@@ -1007,8 +1007,6 @@ See :meth:`BuildCustomShader`.
   virtual void FreeCustomShader(ResourceId id) = 0;
 
   DOCUMENT(R"(Builds a shader suitable for running in the capture's API as a replacement shader.
-
-The language used is native to the API's renderer - HLSL for D3D based renderers, GLSL otherwise.
 
 :param str entry: The entry point to use when compiling.
 :param ShaderEncoding sourceEncoding: The encoding of the source data.

@@ -2292,9 +2292,9 @@ D3D11DebugManager *D3D11Replay::GetDebugManager()
   return m_pDevice->GetDebugManager();
 }
 
-void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
-                              const ShaderCompileFlags &compileFlags, ShaderStage type,
-                              ResourceId *id, std::string *errors)
+void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
+                              const std::string &entry, const ShaderCompileFlags &compileFlags,
+                              ShaderStage type, ResourceId *id, std::string *errors)
 {
   if(id == NULL || errors == NULL)
   {
@@ -2449,7 +2449,7 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source, std
 }
 
 void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    std::string entry, const ShaderCompileFlags &compileFlags,
+                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId *id, std::string *errors)
 {
   ShaderCompileFlags debugCompileFlags =
@@ -2458,14 +2458,11 @@ void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sourc
   BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
 }
 
-void D3D11Replay::BuildCustomShader(std::string source, std::string entry,
-                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
-                                    ResourceId *id, std::string *errors)
+void D3D11Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
+                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId *id, std::string *errors)
 {
-  bytebuf buf;
-  buf.resize(source.size());
-  memcpy(buf.data(), source.c_str(), buf.size());
-  BuildShader(ShaderEncoding::HLSL, buf, entry, compileFlags, type, id, errors);
+  BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)

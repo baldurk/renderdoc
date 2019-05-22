@@ -153,7 +153,8 @@ public:
   rdcarray<rdcstr> GetDisassemblyTargets();
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const char *target);
 
-  rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, const char *source,
+  rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, ShaderEncoding sourceEncoding,
+                                                bytebuf source,
                                                 const ShaderCompileFlags &compileFlags,
                                                 ShaderStage type);
   void FreeCustomShader(ResourceId id);

@@ -145,11 +145,11 @@ public:
   {
     return m_Proxy->GetCustomShaderEncodings();
   }
-  void BuildCustomShader(std::string source, std::string entry,
+  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors)
   {
-    m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
+    m_Proxy->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
@@ -269,7 +269,7 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, std::string entry,
+  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors)
   {

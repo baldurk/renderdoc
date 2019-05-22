@@ -833,6 +833,9 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
                                              drawcall->instanceOffset);
           m_pImmediateContext->End(m_SOStatsQueries[inst - 1]);
         }
+
+        if((inst % 2000) == 0)
+          SerializeImmediateContext();
       }
     }
 
