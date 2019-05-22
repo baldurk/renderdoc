@@ -2318,8 +2318,17 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
 
     for(int i = 0; i < s.columns.count(); i++)
     {
-      minOutputList.push_back(FloatVector(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX));
-      maxOutputList.push_back(FloatVector(-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX));
+      FloatVector maxvec(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+
+      if(s.columns[i].format.compCount == 1)
+        maxvec.y = maxvec.z = maxvec.w = 0.0;
+      else if(s.columns[i].format.compCount == 2)
+        maxvec.z = maxvec.w = 0.0;
+      else if(s.columns[i].format.compCount == 3)
+        maxvec.w = 0.0;
+
+      minOutputList.push_back(maxvec);
+      maxOutputList.push_back(FloatVector(-maxvec.x, -maxvec.y, -maxvec.z, -maxvec.w));
     }
 
     QVector<CachedElData> cache;
