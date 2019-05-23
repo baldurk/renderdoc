@@ -214,6 +214,7 @@ struct TestMetadata
       case TestAPI::Vulkan: return "VK";
       case TestAPI::OpenGL: return "GL";
       case TestAPI::D3D12: return "D3D12";
+      case TestAPI::Count: break;
     }
 
     return "???";
