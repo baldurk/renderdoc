@@ -56,10 +56,16 @@ add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
 
 install(TARGETS demos DESTINATION .)
 
+if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(BIN_SUFFIX "x64")
+else()
+    set(BIN_SUFFIX "x86")
+endif()
+
 target_include_directories(demos
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vk/official
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_XCB_KHR=1)
 target_link_libraries(demos PRIVATE -lX11 -lxcb -lX11-xcb ${CMAKE_DL_LIBS})
-set_target_properties(demos PROPERTIES OUTPUT_NAME demos_x64)
+set_target_properties(demos PROPERTIES OUTPUT_NAME demos_${BIN_SUFFIX})
 
