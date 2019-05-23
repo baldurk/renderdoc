@@ -22,6 +22,7 @@
 * THE SOFTWARE.
 ******************************************************************************/
 
+#include <stdlib.h>
 #include "test_common.h"
 
 std::string GetCWD()
@@ -48,4 +49,9 @@ std::string GetEnvVar(const char *var)
     return data;
 
   return "";
+}
+
+void tmpnam_via_mkstemp(char (&buf)[MAX_PATH])
+{
+  snprintf(buf, MAX_PATH - 1, "/tmp/rdoc_tmp/%x", rand());
 }

@@ -44,6 +44,8 @@ std::wstring UTF82Wide(const std::string &s);
 #define popen _popen
 #define pclose _pclose
 
+#define get_tmpnam tmpnam_s
+
 #define msleep(time) Sleep(time)
 
 #define WEXITSTATUS(code) code

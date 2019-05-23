@@ -300,8 +300,8 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
   char infile[MAX_PATH] = {};
   char outfile[MAX_PATH] = {};
-  tmpnam(infile);
-  tmpnam(outfile);
+  get_tmpnam(infile);
+  get_tmpnam(outfile);
 
   command_line += " -o ";
   command_line += outfile;
