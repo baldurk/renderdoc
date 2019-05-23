@@ -933,7 +933,6 @@ struct ClearColorValue
   };
 
   operator const VkClearColorValue *() const { return (VkClearColorValue *)this; }
-  operator const VkClearColorValue &() const { return (VkClearColorValue &)*this; }
 };
 
 struct ClearValue
@@ -996,7 +995,6 @@ struct PipelineShaderStageCreateInfo : public VkPipelineShaderStageCreateInfo
   }
 
   operator const VkPipelineShaderStageCreateInfo *() const { return this; }
-  operator const VkPipelineShaderStageCreateInfo &() const { return *this; }
 };
 
 struct ComputePipelineCreateInfo : public VkComputePipelineCreateInfo
@@ -1016,7 +1014,6 @@ struct ComputePipelineCreateInfo : public VkComputePipelineCreateInfo
   }
 
   operator const VkComputePipelineCreateInfo *() const { return this; }
-  operator const VkComputePipelineCreateInfo &() const { return *this; }
 };
 
 // we inherit privately and selectively make public the things we want to give direct access to
@@ -1134,11 +1131,6 @@ struct GraphicsPipelineCreateInfo : private VkGraphicsPipelineCreateInfo
     bake();
     return (const VkGraphicsPipelineCreateInfo *)this;
   }
-  operator const VkGraphicsPipelineCreateInfo &()
-  {
-    bake();
-    return (const VkGraphicsPipelineCreateInfo &)*this;
-  }
 
 private:
   void bake();
@@ -1214,11 +1206,6 @@ struct RenderPassCreator : private VkRenderPassCreateInfo
   {
     bake();
     return (const VkRenderPassCreateInfo *)this;
-  }
-  operator const VkRenderPassCreateInfo &()
-  {
-    bake();
-    return (const VkRenderPassCreateInfo &)*this;
   }
 
 private:
