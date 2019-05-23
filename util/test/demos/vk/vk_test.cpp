@@ -59,59 +59,265 @@ VulkanGraphicsTest::VulkanGraphicsTest()
   features.depthClamp = true;
 }
 
-bool VulkanGraphicsTest::Init(int argc, char **argv)
+namespace
 {
-  // parse parameters here to override parameters
-  GraphicsTest::Init(argc, argv);
+bool volk = false;
+bool spv = false;
+VkInstance inst = VK_NULL_HANDLE;
+VkPhysicalDevice selectedPhys = VK_NULL_HANDLE;
+std::vector<const char *> enabledInstExts;
+std::vector<const char *> enabledLayers;
+};
 
-  if(volkInitialize() != VK_SUCCESS)
+void VulkanGraphicsTest::Prepare(int argc, char **argv)
+{
+  GraphicsTest::Prepare(argc, argv);
+
+  static bool prepared = false;
+
+  if(!prepared)
   {
-    TEST_ERROR("Couldn't init vulkan");
-    return false;
-  }
+    prepared = true;
 
-  if(!SpvCompilationSupported())
-  {
-    TEST_ERROR("glslc must be in PATH to run vulkan tests");
-    return false;
-  }
+    volk = (volkInitialize() == VK_SUCCESS);
 
-  instExts.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    spv = SpvCompilationSupported();
+
+    if(volk && spv)
+    {
+      enabledInstExts.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
 #if defined(WIN32)
-  instExts.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+      enabledInstExts.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #else
-  instExts.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+      enabledInstExts.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 
-  X11Window::Init();
+      X11Window::Init();
 #endif
 
-  if(debugDevice)
-    instExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  else
-    optInstExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+      std::vector<const char *> optInstExts;
 
-  std::vector<const char *> layers;
+      // this is used by so many sub extensions, initialise it if we can.
+      optInstExts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
-  std::vector<VkLayerProperties> supportedLayers;
-  CHECK_VKR(vkh::enumerateInstanceLayerProperties(supportedLayers));
+      // enable debug utils when possible
+      optInstExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-  if(debugDevice)
-  {
-    for(const VkLayerProperties &layer : supportedLayers)
-    {
-      if(!strcmp(layer.layerName, "VK_LAYER_LUNARG_standard_validation"))
+      std::vector<VkLayerProperties> supportedLayers;
+      CHECK_VKR(vkh::enumerateInstanceLayerProperties(supportedLayers));
+
+      if(debugDevice)
       {
-        layers.push_back(layer.layerName);
-        break;
+        for(const VkLayerProperties &layer : supportedLayers)
+        {
+          if(!strcmp(layer.layerName, "VK_LAYER_LUNARG_standard_validation"))
+          {
+            enabledLayers.push_back(layer.layerName);
+            break;
+          }
+        }
+      }
+
+      std::vector<VkExtensionProperties> supportedExts;
+      CHECK_VKR(vkh::enumerateInstanceExtensionProperties(supportedExts, NULL));
+
+      // strip any extensions that are not supported
+      for(auto it = enabledInstExts.begin(); it != enabledInstExts.end();)
+      {
+        bool found = false;
+        for(VkExtensionProperties &ext : supportedExts)
+        {
+          if(!strcmp(ext.extensionName, *it))
+          {
+            found = true;
+            break;
+          }
+        }
+
+        if(found)
+        {
+          ++it;
+        }
+        else
+        {
+          DEBUG_BREAK();
+          it = enabledInstExts.erase(it);
+        }
+      }
+
+      // add any optional extensions that are supported
+      for(const char *search : optInstExts)
+      {
+        bool found = false;
+        for(VkExtensionProperties &ext : supportedExts)
+        {
+          if(!strcmp(ext.extensionName, search))
+          {
+            found = true;
+            break;
+          }
+        }
+
+        if(found)
+          enabledInstExts.push_back(search);
+      }
+
+      vkh::ApplicationInfo app("RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0),
+                               "RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_0);
+
+      VkResult vkr = vkCreateInstance(vkh::InstanceCreateInfo(app, enabledLayers, enabledInstExts),
+                                      NULL, &inst);
+
+      if(vkr == VK_SUCCESS)
+      {
+        volkLoadInstance((VkInstance)inst);
+
+        std::vector<VkPhysicalDevice> physDevices;
+        CHECK_VKR(vkh::enumeratePhysicalDevices(physDevices, inst));
+
+        std::vector<VkPhysicalDeviceProperties> physProps;
+        for(VkPhysicalDevice p : physDevices)
+        {
+          VkPhysicalDeviceProperties props;
+          vkGetPhysicalDeviceProperties(p, &props);
+          physProps.push_back(props);
+        }
+
+        // default to the first discrete card
+        for(size_t i = 0; i < physDevices.size(); i++)
+        {
+          if(physProps[i].deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+          {
+            selectedPhys = physDevices[i];
+            break;
+          }
+        }
+
+        // if none found, default to first
+        if(selectedPhys == VK_NULL_HANDLE && !physDevices.empty())
+          selectedPhys = physDevices[0];
+
+        // allow command line override
+        for(int i = 0; i < argc; i++)
+        {
+          if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
+          {
+            std::string needle = strlower(argv[i + 1]);
+
+            const bool nv = (needle == "nv" || needle == "nvidia");
+            const bool amd = (needle == "amd");
+            const bool intel = (needle == "intel");
+
+            for(size_t p = 0; p < physDevices.size(); p++)
+            {
+              std::string haystack = strlower(physProps[p].deviceName);
+
+              if(haystack.find(needle) != std::string::npos ||
+                 (nv && physProps[p].vendorID == 0x10DE) || (amd && physProps[p].vendorID == 0x1002) ||
+                 (intel && physProps[p].vendorID == 0x8086))
+              {
+                selectedPhys = physDevices[p];
+                break;
+              }
+            }
+
+            break;
+          }
+        }
       }
     }
   }
 
-  std::vector<VkExtensionProperties> supportedExts;
-  CHECK_VKR(vkh::enumerateInstanceExtensionProperties(supportedExts, NULL));
+  instance = inst;
+  phys = selectedPhys;
+  instExts = enabledInstExts;
 
-  for(const char *search : instExts)
+  if(!volk)
+    Avail = "volk did not initialise - vulkan library is not available";
+  else if(!spv)
+    Avail = InternalSpvCompiler()
+                ? "Internal SPIR-V compiler did not initialise"
+                : "Couldn't find 'glslc' in PATH - required for SPIR-V compilation";
+  else if(instance == VK_NULL_HANDLE)
+    Avail = "Vulkan instance did not initialise";
+  else if(phys == VK_NULL_HANDLE)
+    Avail = "Couldn't find vulkan physical device";
+
+  if(!Avail.empty())
+    return;
+
+  devExts.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+  VkPhysicalDeviceFeatures supported;
+  vkGetPhysicalDeviceFeatures(phys, &supported);
+
+#define CHECK_FEATURE(a)                                                  \
+  if(features.a && !supported.a)                                          \
+  {                                                                       \
+    Avail = "Required physical device feature '" #a "' is not supported"; \
+    return;                                                               \
+  }
+
+  CHECK_FEATURE(robustBufferAccess);
+  CHECK_FEATURE(fullDrawIndexUint32);
+  CHECK_FEATURE(imageCubeArray);
+  CHECK_FEATURE(independentBlend);
+  CHECK_FEATURE(geometryShader);
+  CHECK_FEATURE(tessellationShader);
+  CHECK_FEATURE(sampleRateShading);
+  CHECK_FEATURE(dualSrcBlend);
+  CHECK_FEATURE(logicOp);
+  CHECK_FEATURE(multiDrawIndirect);
+  CHECK_FEATURE(drawIndirectFirstInstance);
+  CHECK_FEATURE(depthClamp);
+  CHECK_FEATURE(depthBiasClamp);
+  CHECK_FEATURE(fillModeNonSolid);
+  CHECK_FEATURE(depthBounds);
+  CHECK_FEATURE(wideLines);
+  CHECK_FEATURE(largePoints);
+  CHECK_FEATURE(alphaToOne);
+  CHECK_FEATURE(multiViewport);
+  CHECK_FEATURE(samplerAnisotropy);
+  CHECK_FEATURE(textureCompressionETC2);
+  CHECK_FEATURE(textureCompressionASTC_LDR);
+  CHECK_FEATURE(textureCompressionBC);
+  CHECK_FEATURE(occlusionQueryPrecise);
+  CHECK_FEATURE(pipelineStatisticsQuery);
+  CHECK_FEATURE(vertexPipelineStoresAndAtomics);
+  CHECK_FEATURE(fragmentStoresAndAtomics);
+  CHECK_FEATURE(shaderTessellationAndGeometryPointSize);
+  CHECK_FEATURE(shaderImageGatherExtended);
+  CHECK_FEATURE(shaderStorageImageExtendedFormats);
+  CHECK_FEATURE(shaderStorageImageMultisample);
+  CHECK_FEATURE(shaderStorageImageReadWithoutFormat);
+  CHECK_FEATURE(shaderStorageImageWriteWithoutFormat);
+  CHECK_FEATURE(shaderUniformBufferArrayDynamicIndexing);
+  CHECK_FEATURE(shaderSampledImageArrayDynamicIndexing);
+  CHECK_FEATURE(shaderStorageBufferArrayDynamicIndexing);
+  CHECK_FEATURE(shaderStorageImageArrayDynamicIndexing);
+  CHECK_FEATURE(shaderClipDistance);
+  CHECK_FEATURE(shaderCullDistance);
+  CHECK_FEATURE(shaderFloat64);
+  CHECK_FEATURE(shaderInt64);
+  CHECK_FEATURE(shaderInt16);
+  CHECK_FEATURE(shaderResourceResidency);
+  CHECK_FEATURE(shaderResourceMinLod);
+  CHECK_FEATURE(sparseBinding);
+  CHECK_FEATURE(sparseResidencyBuffer);
+  CHECK_FEATURE(sparseResidencyImage2D);
+  CHECK_FEATURE(sparseResidencyImage3D);
+  CHECK_FEATURE(sparseResidency2Samples);
+  CHECK_FEATURE(sparseResidency4Samples);
+  CHECK_FEATURE(sparseResidency8Samples);
+  CHECK_FEATURE(sparseResidency16Samples);
+  CHECK_FEATURE(sparseResidencyAliased);
+  CHECK_FEATURE(variableMultisampleRate);
+  CHECK_FEATURE(inheritedQueries);
+
+  std::vector<VkExtensionProperties> supportedExts;
+  CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
+
+  for(const char *search : devExts)
   {
     bool found = false;
     for(VkExtensionProperties &ext : supportedExts)
@@ -125,34 +331,41 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
 
     if(!found)
     {
-      TEST_ERROR("Required instance extension '%s' missing", search);
-      return false;
-    }
-  }
-
-  // add any optional extensions that are supported
-  for(const char *search : optInstExts)
-  {
-    bool found = false;
-    for(VkExtensionProperties &ext : supportedExts)
-    {
-      if(!strcmp(ext.extensionName, search))
+      // try the layers we're enabling
+      for(const char *layer : enabledLayers)
       {
-        found = true;
-        break;
+        std::vector<VkExtensionProperties> layerExts;
+        CHECK_VKR(vkh::enumerateDeviceExtensionProperties(layerExts, phys, layer));
+
+        for(VkExtensionProperties &ext : layerExts)
+        {
+          if(!strcmp(ext.extensionName, search))
+          {
+            found = true;
+            break;
+          }
+        }
+
+        if(found)
+          break;
+      }
+
+      if(!found)
+      {
+        Avail = "Required device extension '";
+        Avail += search;
+        Avail += "' is not supported";
+        return;
       }
     }
-
-    if(found)
-      instExts.push_back(search);
   }
+}
 
-  vkh::ApplicationInfo app("RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0),
-                           "RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_0);
-
-  CHECK_VKR(vkCreateInstance(vkh::InstanceCreateInfo(app, layers, instExts), NULL, &instance));
-
-  volkLoadInstance((VkInstance)instance);
+bool VulkanGraphicsTest::Init()
+{
+  // parse parameters here to override parameters
+  if(!GraphicsTest::Init())
+    return false;
 
   if(debugDevice)
   {
@@ -161,64 +374,6 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
                       &vulkanCallback, NULL, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
         NULL, &debugUtilsMessenger));
-  }
-
-  std::vector<VkPhysicalDevice> physDevices;
-  CHECK_VKR(vkh::enumeratePhysicalDevices(physDevices, instance));
-
-  if(physDevices.empty())
-  {
-    TEST_ERROR("No vulkan devices available");
-    return false;
-  }
-
-  std::vector<VkPhysicalDeviceProperties> physProps;
-  for(VkPhysicalDevice p : physDevices)
-  {
-    VkPhysicalDeviceProperties props;
-    vkGetPhysicalDeviceProperties(p, &props);
-    physProps.push_back(props);
-  }
-
-  // default to the first discrete card
-  for(size_t i = 0; i < physDevices.size(); i++)
-  {
-    if(physProps[i].deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-    {
-      phys = physDevices[i];
-      break;
-    }
-  }
-
-  // if none found, default to first
-  if(phys == VK_NULL_HANDLE)
-    phys = physDevices[0];
-
-  // allow command line override
-  for(int i = 0; i < argc; i++)
-  {
-    if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
-    {
-      std::string needle = strlower(argv[i + 1]);
-
-      const bool nv = (needle == "nv" || needle == "nvidia");
-      const bool amd = (needle == "amd");
-      const bool intel = (needle == "intel");
-
-      for(size_t p = 0; p < physDevices.size(); p++)
-      {
-        std::string haystack = strlower(physProps[p].deviceName);
-
-        if(haystack.find(needle) != std::string::npos || (nv && physProps[p].vendorID == 0x10DE) ||
-           (amd && physProps[p].vendorID == 0x1002) || (intel && physProps[p].vendorID == 0x8086))
-        {
-          phys = physDevices[p];
-          break;
-        }
-      }
-
-      break;
-    }
   }
 
   std::vector<VkQueueFamilyProperties> queueProps;
@@ -252,68 +407,8 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
     return false;
   };
 
-  devExts.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
-  VkPhysicalDeviceFeatures supported;
-  vkGetPhysicalDeviceFeatures(phys, &supported);
-
-  const VkBool32 *enabledBegin = (VkBool32 *)&features;
-  const VkBool32 *enabledEnd = enabledBegin + sizeof(features);
-
-  const VkBool32 *supportedBegin = (VkBool32 *)&features;
-
-  for(; enabledBegin != enabledEnd; ++enabledBegin, ++supportedBegin)
-  {
-    if(*enabledBegin && !*supportedBegin)
-    {
-      TEST_ERROR("Feature enabled that isn't supported");
-      return false;
-    }
-  }
-
-  supportedExts.clear();
+  std::vector<VkExtensionProperties> supportedExts;
   CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
-
-  for(const char *search : devExts)
-  {
-    bool found = false;
-    for(VkExtensionProperties &ext : supportedExts)
-    {
-      if(!strcmp(ext.extensionName, search))
-      {
-        found = true;
-        break;
-      }
-    }
-
-    if(!found)
-    {
-      // try the layers we're enabling
-      for(const char *layer : layers)
-      {
-        std::vector<VkExtensionProperties> layerExts;
-        CHECK_VKR(vkh::enumerateDeviceExtensionProperties(layerExts, phys, layer));
-
-        for(VkExtensionProperties &ext : layerExts)
-        {
-          if(!strcmp(ext.extensionName, search))
-          {
-            found = true;
-            break;
-          }
-        }
-
-        if(found)
-          break;
-      }
-
-      if(!found)
-      {
-        TEST_ERROR("Required device extension '%s' missing", search);
-        return false;
-      }
-    }
-  }
 
   // add any optional extensions that are supported
   for(const char *search : optDevExts)
@@ -334,7 +429,7 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
 
   CHECK_VKR(vkCreateDevice(phys,
                            vkh::DeviceCreateInfo({vkh::DeviceQueueCreateInfo(queueFamilyIndex, 1)},
-                                                 layers, devExts, features)
+                                                 enabledLayers, devExts, features)
                                .next(devInfoNext),
                            NULL, &device));
 
@@ -382,27 +477,12 @@ bool VulkanGraphicsTest::Init(int argc, char **argv)
 
   vmaCreateAllocator(&allocInfo, &allocator);
 
+  VkPhysicalDeviceProperties physProps;
+  vkGetPhysicalDeviceProperties(phys, &physProps);
+
+  TEST_LOG("Running Vulkan test on %s", physProps.deviceName);
+
   return true;
-}
-
-bool VulkanGraphicsTest::IsSupported()
-{
-  if(volkGetInstanceVersion() > 0)
-    return true;
-
-  static bool glslcChecked = false;
-  static bool glslcSupported = false;
-
-  if(!glslcChecked)
-  {
-    glslcChecked = true;
-    glslcSupported = SpvCompilationSupported();
-  }
-
-  if(!glslcSupported)
-    return false;
-
-  return volkInitialize() == VK_SUCCESS;
 }
 
 GraphicsWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *title)
@@ -916,6 +996,18 @@ void VulkanGraphicsTest::acquireImage()
 
     vkr = vkAcquireNextImageKHR(device, swap, UINT64_MAX, renderStartSemaphore, VK_NULL_HANDLE,
                                 &swapIndex);
+  }
+}
+
+void VulkanGraphicsTest::getPhysFeatures2(void *nextStruct)
+{
+  for(const char *ext : enabledInstExts)
+  {
+    if(!strcmp(ext, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+    {
+      vkGetPhysicalDeviceFeatures2KHR(phys, vkh::PhysicalDeviceFeatures2KHR().next(nextStruct));
+      return;
+    }
   }
 }
 

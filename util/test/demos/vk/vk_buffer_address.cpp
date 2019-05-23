@@ -114,22 +114,32 @@ void main()
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
+  void Prepare(int argc, char **argv)
   {
-    VkPhysicalDeviceBufferAddressFeaturesEXT bufaddrFeatures = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,
-    };
-
-    bufaddrFeatures.bufferDeviceAddress = VK_TRUE;
-
-    devInfoNext = &bufaddrFeatures;
-
-    instExts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     devExts.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
     devExts.push_back(VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME);
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+
+    if(!Avail.empty())
+      return;
+
+    static VkPhysicalDeviceBufferAddressFeaturesEXT bufaddrFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,
+    };
+
+    getPhysFeatures2(&bufaddrFeatures);
+
+    if(!bufaddrFeatures.bufferDeviceAddress)
+      Avail = "Buffer device address feature 'bufferDeviceAddress' not available";
+
+    devInfoNext = &bufaddrFeatures;
+  }
+
+  int main()
+  {
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     VkPipelineLayout layout = createPipelineLayout(

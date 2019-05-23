@@ -29,10 +29,10 @@ struct Empty_Viewports : D3D11GraphicsTest
   static constexpr const char *Description =
       "Test setting some viewports that are empty, but enabled";
 
-  int main(int argc, char **argv)
+  int main()
   {
     // initialise, create window, create device, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");

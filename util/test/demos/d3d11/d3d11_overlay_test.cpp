@@ -29,10 +29,10 @@ struct D3D11_Overlay_Test : D3D11GraphicsTest
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";
 
-  int main(int argc, char **argv)
+  int main()
   {
     // initialise, create window, create device, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");

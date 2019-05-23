@@ -143,13 +143,19 @@ void main()
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
+  void Prepare(int argc, char **argv)
   {
-    optDevExts.push_back(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME);
     features.multiDrawIndirect = VK_TRUE;
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
+  int main()
+  {
+    optDevExts.push_back(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME);
+
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     bool KHR_draw_indirect_count =

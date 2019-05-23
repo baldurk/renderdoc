@@ -189,6 +189,11 @@ void LoadXPM(const char **XPM, Texture &tex)
 
 static shaderc_compiler_t shaderc = NULL;
 
+bool InternalSpvCompiler()
+{
+  return bool(USE_LINKED_SHADERC);
+}
+
 bool SpvCompilationSupported()
 {
   if(shaderc)
@@ -201,7 +206,7 @@ bool SpvCompilationSupported()
   if(shaderc)
     return true;
 
-  FILE *pipe = popen("glslc" EXECUTABLE_SUFFIX " --help", "r");
+  FILE *pipe = popen("glslc" EXECUTABLE_SUFFIX " --help 2>&1", "r");
 
   if(!pipe)
     return false;
@@ -349,9 +354,21 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
   return ret;
 }
 
-bool GraphicsTest::Init(int argc, char **argv)
+int GraphicsTest::maxFrameCount = -1;
+std::string GraphicsTest::dataRoot;
+int GraphicsTest::screenWidth = 400;
+int GraphicsTest::screenHeight = 300;
+bool GraphicsTest::debugDevice = false;
+
+void GraphicsTest::Prepare(int argc, char **argv)
 {
-  srand(0U);
+  static bool prepared = false;
+
+  // nothing to do per-test if we've already prepared
+  if(prepared)
+    return;
+
+  prepared = true;
 
   dataRoot = GetEnvVar("RENDERDOC_DEMOS_DATA");
 
@@ -372,6 +389,26 @@ bool GraphicsTest::Init(int argc, char **argv)
       maxFrameCount = atoi(argv[i + 1]);
     }
 
+    if(i + 1 < argc && (!strcmp(argv[i], "--width") || !strcmp(argv[i], "-w")))
+    {
+      screenWidth = atoi(argv[i + 1]);
+
+      if(screenWidth < 1)
+        screenWidth = 1;
+      if(screenWidth > 7680)
+        screenWidth = 7680;
+    }
+
+    if(i + 1 < argc && (!strcmp(argv[i], "--height") || !strcmp(argv[i], "-h")))
+    {
+      screenHeight = atoi(argv[i + 1]);
+
+      if(screenHeight < 1)
+        screenHeight = 1;
+      if(screenHeight > 4320)
+        screenHeight = 4320;
+    }
+
     if(i + 1 < argc && !strcmp(argv[i], "--data"))
     {
       dataRoot = argv[i + 1];
@@ -380,28 +417,31 @@ bool GraphicsTest::Init(int argc, char **argv)
       dataRoot += "/";
     }
   }
+}
+
+bool GraphicsTest::Init()
+{
+  srand(0U);
+
+  pRENDERDOC_GetAPI RENDERDOC_GetAPI = NULL;
 
 #if defined(WIN32)
-
   HMODULE mod = GetModuleHandleA("renderdoc.dll");
   if(mod)
-  {
-    pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+#else
+  void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
+  if(mod)
+    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+#endif
 
-    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_4_0, (void **)&rdoc);
+  if(RENDERDOC_GetAPI)
+  {
+    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc);
 
     if(ret != 1)
       rdoc = NULL;
-
-    ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc100);
-
-    if(ret != 1)
-      rdoc100 = NULL;
   }
-
-#else
-
-#endif
 
   return true;
 }

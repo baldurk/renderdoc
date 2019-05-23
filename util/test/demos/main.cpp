@@ -256,6 +256,11 @@ Usage: %s Test_Name [test_options]
   --list-available              Lists the available test names only, one per line.
   --validate
   --debug                       Run the demo with API validation enabled.
+  --gpu [identifier]            Try to select the corresponding GPU where available and possible
+                                through the API. Identifier is e.g. 'nv' or 'amd', or can be '1080'
+  --warp                        On D3D APIs, use the software rasterizer.
+  --width / -w                  Specify the window width.
+  --height / -h                 Specify the window height.
   --frames <n>
   --max-frames <n>
   --frame-count <n>             Only run the demo for this number of frames
@@ -274,9 +279,26 @@ Usage: %s Test_Name [test_options]
   {
     check_tests(argc, argv);
 
+    TestAPI prev = TestAPI::Count;
+
     for(const TestMetadata &test : tests)
-      printf("%s (%s %s) - %s\n", test.Name, test.APIName(),
-             test.IsAvailable() ? "Available" : test.AvailMessage(), test.Description);
+    {
+      if(test.API != prev)
+      {
+        if(prev != TestAPI::Count)
+          printf("\n\n");
+        printf("======== %s tests ========\n\n", test.APIName());
+      }
+
+      prev = test.API;
+
+      printf("%s: %s", test.Name, test.IsAvailable() ? "Available" : "Unavailable");
+
+      if(!test.IsAvailable())
+        printf(" because %s", test.AvailMessage());
+
+      printf("\n\t%s\n\n", test.Description);
+    }
 
     fflush(stdout);
     return 1;
@@ -286,12 +308,13 @@ Usage: %s Test_Name [test_options]
   {
     check_tests(argc, argv);
 
+    // output TSV
+    printf("Name\tAvailable\tAvailMessage\n");
+
     for(const TestMetadata &test : tests)
     {
-      if(!test.IsAvailable())
-        continue;
-
-      printf("%s\n", test.Name);
+      printf("%s\t%s\t%s\n", test.Name, test.IsAvailable() ? "True" : "False",
+             test.IsAvailable() ? "Available" : test.AvailMessage());
     }
 
     fflush(stdout);
@@ -375,6 +398,9 @@ Usage: %s Test_Name [test_options]
 
           for(int i = 0; i < (int)tests.size(); i++)
           {
+            if(!tests[i].IsAvailable())
+              continue;
+
             std::string name = tests[i].QualifiedName();
             std::string lower_name = strlower(name);
 
@@ -473,7 +499,14 @@ Usage: %s Test_Name [test_options]
     {
       TEST_LOG("\n\n======\nRunning %s\n\n", test.Name);
       test.test->Prepare(argc, argv);
-      int ret = test.test->main(argc, argv);
+
+      if(!test.IsAvailable())
+      {
+        TEST_ERROR("%s is not available: %s", test.Name, test.test->Avail.c_str());
+        return 5;
+      }
+
+      int ret = test.test->main();
       test.test->Shutdown();
       return ret;
     }

@@ -482,13 +482,17 @@ float4 main() : SV_Target0
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
+  void Prepare(int argc, char **argv)
   {
-    // needed for HLSL packing
     devExts.push_back(VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME);
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
+  int main()
+  {
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({

@@ -30,10 +30,10 @@ struct Counter_Query_Pred : D3D11GraphicsTest
       "Tests use of D3D11 counters, queries and predication. "
       "for any dead-simple tests that don't require any particular API use";
 
-  int main(int argc, char **argv)
+  int main()
   {
     // initialise, create window, create device, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     DefaultA2V vertData[] = {

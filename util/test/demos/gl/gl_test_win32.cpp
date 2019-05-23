@@ -32,24 +32,41 @@ typedef BOOL(WINAPI *PFN_wglMakeCurrent)(HDC, HGLRC);
 typedef HGLRC(WINAPI *PFN_wglCreateContext)(HDC);
 typedef BOOL(WINAPI *PFN_wglDeleteContext)(HGLRC);
 
-bool OpenGLGraphicsTest::Init(int argc, char **argv)
+namespace
 {
-  // parse parameters here to override parameters
-  GraphicsTest::Init(argc, argv);
+PFN_wglMakeCurrent makeCurrent = NULL;
+PFN_wglCreateContext createContext = NULL;
+PFN_wglDeleteContext deleteContext = NULL;
+};
 
-  HMODULE opengl = LoadLibraryA("opengl32.dll");
+void OpenGLGraphicsTest::Prepare(int argc, char **argv)
+{
+  GraphicsTest::Prepare(argc, argv);
 
-  if(!opengl)
+  static bool prepared = false;
+
+  if(!prepared)
   {
-    TEST_ERROR("Couldn't load opengl32");
-    return false;
+    prepared = true;
+
+    HMODULE opengl = LoadLibraryA("opengl32.dll");
+
+    if(opengl)
+    {
+      makeCurrent = (PFN_wglMakeCurrent)GetProcAddress(opengl, "wglMakeCurrent");
+      createContext = (PFN_wglCreateContext)GetProcAddress(opengl, "wglCreateContext");
+      deleteContext = (PFN_wglDeleteContext)GetProcAddress(opengl, "wglDeleteContext");
+    }
   }
 
-  PFN_wglMakeCurrent makeCurrent = (PFN_wglMakeCurrent)GetProcAddress(opengl, "wglMakeCurrent");
-  PFN_wglCreateContext makeContext =
-      (PFN_wglCreateContext)GetProcAddress(opengl, "wglCreateContext");
-  PFN_wglDeleteContext deleteContext =
-      (PFN_wglDeleteContext)GetProcAddress(opengl, "wglDeleteContext");
+  if(!makeCurrent)
+    Avail = "opengl32.dll is not available";
+}
+
+bool OpenGLGraphicsTest::Init()
+{
+  if(!GraphicsTest::Init())
+    return false;
 
   mainWindow = new Win32Window(screenWidth, screenHeight, screenTitle);
 
@@ -76,7 +93,7 @@ bool OpenGLGraphicsTest::Init(int argc, char **argv)
   int pf = ::ChoosePixelFormat(dc, &pfd);
   ::SetPixelFormat(dc, pf, &pfd);
 
-  HGLRC rc = makeContext(dc);
+  HGLRC rc = createContext(dc);
 
   makeCurrent(dc, rc);
 
@@ -108,27 +125,6 @@ bool OpenGLGraphicsTest::Init(int argc, char **argv)
   PostInit();
 
   return true;
-}
-
-bool OpenGLGraphicsTest::IsSupported()
-{
-  static bool checked = false, result = false;
-
-  if(checked)
-    return result;
-
-  checked = true;
-
-  HMODULE opengl = LoadLibraryA("opengl32.dll");
-
-  if(opengl)
-  {
-    result = true;
-
-    FreeLibrary(opengl);
-  }
-
-  return result;
 }
 
 GraphicsWindow *OpenGLGraphicsTest::MakeWindow(int width, int height, const char *title)
@@ -255,9 +251,6 @@ void OpenGLGraphicsTest::DestroyContext(void *ctx)
   if(ctx == NULL)
     return;
 
-  PFN_wglDeleteContext deleteContext =
-      (PFN_wglDeleteContext)GetProcAddress(GetModuleHandleA("opengl32.dll"), "wglDeleteContext");
-
   deleteContext((HGLRC)ctx);
 }
 
@@ -266,9 +259,6 @@ void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
   Win32Window *win32win = (Win32Window *)win;
 
   HDC dc = GetDC(win32win->wnd);
-
-  PFN_wglMakeCurrent makeCurrent =
-      (PFN_wglMakeCurrent)GetProcAddress(GetModuleHandleA("opengl32.dll"), "wglMakeCurrent");
 
   makeCurrent(dc, (HGLRC)ctx);
 

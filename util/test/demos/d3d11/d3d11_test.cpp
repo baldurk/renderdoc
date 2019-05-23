@@ -32,34 +32,63 @@
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
 
-bool D3D11GraphicsTest::Init(int argc, char **argv)
+namespace
 {
-  // parse parameters here to override parameters
-  GraphicsTest::Init(argc, argv);
+HMODULE d3d11 = NULL;
+HMODULE dxgi = NULL;
+HMODULE d3dcompiler = NULL;
+IDXGIFactoryPtr factory;
+IDXGIAdapterPtr adapter;
+bool warp = false;
+};
 
-  // D3D11 specific can go here
-  // ...
+void D3D11GraphicsTest::Prepare(int argc, char **argv)
+{
+  GraphicsTest::Prepare(argc, argv);
 
-  HMODULE d3d11 = LoadLibraryA("d3d11.dll");
-  HMODULE dxgi = LoadLibraryA("dxgi.dll");
-  HMODULE d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_45.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
+  static bool prepared = false;
 
-  if(!d3d11 || !dxgi || !d3dcompiler)
+  if(!prepared)
   {
-    TEST_ERROR("Couldn't load D3D11");
-    return false;
+    prepared = true;
+
+    d3d11 = LoadLibraryA("d3d11.dll");
+    dxgi = LoadLibraryA("dxgi.dll");
+    d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_45.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
+
+    PFN_CREATE_DXGI_FACTORY createFactory =
+        (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory");
+
+    HRESULT hr = S_OK;
+
+    hr = createFactory(__uuidof(IDXGIFactory), (void **)&factory);
+
+    if(SUCCEEDED(hr))
+      adapter = ChooseD3DAdapter(factory, argc, argv, warp);
   }
 
-  PFN_CREATE_DXGI_FACTORY createFactory =
-      (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory");
+  if(!d3d11)
+    Avail = "d3d11.dll is not available";
+  else if(!dxgi)
+    Avail = "dxgi.dll is not available";
+  else if(!d3dcompiler)
+    Avail = "d3dcompiler_XX.dll is not available";
+  else if(!factory)
+    Avail = "Couldn't create DXGI factory";
+}
+
+bool D3D11GraphicsTest::Init()
+{
+  if(!GraphicsTest::Init())
+    return false;
 
   dyn_D3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(d3d11, "D3D11CreateDevice");
   dyn_D3D11CreateDeviceAndSwapChain = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
@@ -75,82 +104,13 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   if(d3d11_1)
     features[0] = D3D_FEATURE_LEVEL_11_1;
 
+  if(warp)
+    driver = D3D_DRIVER_TYPE_WARP;
+
+  if(adapter)
+    driver = D3D_DRIVER_TYPE_UNKNOWN;
+
   HRESULT hr = S_OK;
-
-  IDXGIFactoryPtr factory = NULL;
-
-  hr = createFactory(__uuidof(IDXGIFactory), (void **)&factory);
-
-  if(factory.GetInterfacePtr() == NULL || FAILED(hr))
-  {
-    TEST_ERROR("CreateDXGIFactory failed: %x", hr);
-    return false;
-  }
-
-  struct AdapterInfo
-  {
-    IDXGIAdapterPtr adapter;
-    DXGI_ADAPTER_DESC desc;
-  };
-
-  std::vector<AdapterInfo> adapters;
-
-  for(UINT i = 0; i < 10; i++)
-  {
-    IDXGIAdapterPtr a;
-    hr = factory->EnumAdapters(i, &a);
-    if(hr == S_OK && a)
-    {
-      DXGI_ADAPTER_DESC desc;
-      a->GetDesc(&desc);
-      adapters.push_back({a, desc});
-    }
-    else
-    {
-      break;
-    }
-  }
-
-  IDXGIAdapterPtr adapter = NULL;
-
-  for(int i = 0; i < argc; i++)
-  {
-    if(!strcmp(argv[i], "--warp"))
-    {
-      driver = D3D_DRIVER_TYPE_WARP;
-      break;
-    }
-    if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
-    {
-      std::string needle = strlower(argv[i + 1]);
-
-      if(needle == "warp")
-      {
-        driver = D3D_DRIVER_TYPE_WARP;
-        break;
-      }
-
-      const bool nv = (needle == "nv" || needle == "nvidia");
-      const bool amd = (needle == "amd");
-      const bool intel = (needle == "intel");
-
-      for(size_t a = 0; a < adapters.size(); a++)
-      {
-        std::string haystack = strlower(Wide2UTF8(adapters[a].desc.Description));
-
-        if(haystack.find(needle) != std::string::npos || (nv && adapters[a].desc.VendorId == 0x10DE) ||
-           (amd && adapters[a].desc.VendorId == 0x1002) ||
-           (intel && adapters[a].desc.VendorId == 0x8086))
-        {
-          driver = D3D_DRIVER_TYPE_UNKNOWN;
-          adapter = adapters[a].adapter;
-          break;
-        }
-      }
-
-      break;
-    }
-  }
 
   UINT flags = createFlags | (debugDevice ? D3D11_CREATE_DEVICE_DEBUG : 0);
 
@@ -200,7 +160,7 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
   swapDesc.SampleDesc.Count = backbufferMSAA;
   swapDesc.SampleDesc.Quality = 0;
   swapDesc.OutputWindow = win->wnd;
-  swapDesc.Windowed = fullscreen ? FALSE : TRUE;
+  swapDesc.Windowed = TRUE;
   swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
   swapDesc.Flags = 0;
 
@@ -256,37 +216,6 @@ bool D3D11GraphicsTest::Init(int argc, char **argv)
 GraphicsWindow *D3D11GraphicsTest::MakeWindow(int width, int height, const char *title)
 {
   return new Win32Window(width, height, title);
-}
-
-bool D3D11GraphicsTest::IsSupported()
-{
-  static bool checked = false, result = false;
-
-  if(checked)
-    return result;
-
-  checked = true;
-
-  HMODULE d3d11 = LoadLibraryA("d3d11.dll");
-  HMODULE d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_45.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
-
-  if(d3d11)
-    FreeLibrary(d3d11);
-  if(d3dcompiler)
-    FreeLibrary(d3dcompiler);
-
-  if(d3d11 && d3dcompiler)
-    result = true;
-
-  return result;
 }
 
 void D3D11GraphicsTest::PostDeviceCreate()

@@ -27,16 +27,8 @@
 #include <comdef.h>
 #include "dx/d3d_helpers.h"
 #include "dx/official/d3d12.h"
-#include "dx/official/dxgi1_4.h"
-
-#define COM_SMARTPTR(classname) _COM_SMARTPTR_TYPEDEF(classname, __uuidof(classname))
 
 COM_SMARTPTR(ID3DBlob);
-COM_SMARTPTR(IDXGISwapChain);
-COM_SMARTPTR(IDXGISwapChain1);
-COM_SMARTPTR(IDXGIFactory4);
-COM_SMARTPTR(IDXGIAdapter);
-COM_SMARTPTR(IDXGISurface);
 
 COM_SMARTPTR(ID3D12Debug);
 COM_SMARTPTR(ID3D12Debug1);

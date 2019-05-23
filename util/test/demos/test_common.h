@@ -61,6 +61,7 @@ enum class ShaderStage
   comp
 };
 
+bool InternalSpvCompiler();
 bool SpvCompilationSupported();
 std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTarget target,
                                          ShaderLang lang, ShaderStage stage, const char *entry_point);
@@ -152,10 +153,9 @@ struct GraphicsTest
 {
   virtual ~GraphicsTest() {}
   virtual GraphicsWindow *MakeWindow(int width, int height, const char *title) { return NULL; }
-  virtual int main(int argc, char **argv) { return 9; }
-  virtual bool IsSupported() { return false; }
-  virtual void Prepare(int argc, char **argv) {}
-  virtual bool Init(int argc, char **argv);
+  virtual int main() { return 9; }
+  virtual void Prepare(int argc, char **argv);
+  virtual bool Init();
   virtual void Shutdown();
 
   std::string Avail;
@@ -164,20 +164,20 @@ struct GraphicsTest
 
   bool FrameLimit();
 
-  std::string dataRoot;
-
   int curFrame = 0;
-  int maxFrameCount = -1;
 
-  int screenWidth = 400;
-  int screenHeight = 300;
   const char *screenTitle = "RenderDoc test program";
-  bool fullscreen = false;
-  bool debugDevice = false;
+
   bool headless = false;
 
-  RENDERDOC_API_1_0_0 *rdoc100 = NULL;
-  RENDERDOC_API_1_4_0 *rdoc = NULL;
+  RENDERDOC_API_1_0_0 *rdoc = NULL;
+
+  // shared parameters
+  static int maxFrameCount;
+  static std::string dataRoot;
+  static int screenWidth;
+  static int screenHeight;
+  static bool debugDevice;
 };
 
 enum class TestAPI
@@ -248,8 +248,7 @@ void RegisterTest(TestMetadata test);
       test.Name = #TestName;                    \
       test.Description = TestName::Description; \
       test.test = &m_impl;                      \
-      if(m_impl.IsSupported())                  \
-        RegisterTest(test);                     \
+      RegisterTest(test);                       \
     }                                           \
   };                                            \
   };                                            \

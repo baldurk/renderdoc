@@ -45,10 +45,10 @@ struct D3D11GraphicsTest : public GraphicsTest
 {
   static const TestAPI API = TestAPI::D3D11;
 
-  bool Init(int argc, char **argv);
+  void Prepare(int argc, char **argv);
+  bool Init();
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
-  bool IsSupported();
 
   void PostDeviceCreate();
 
@@ -185,4 +185,7 @@ struct D3D11GraphicsTest : public GraphicsTest
   ID3D11DeviceContext1Ptr ctx1;
   ID3D11DeviceContext2Ptr ctx2;
   ID3DUserDefinedAnnotationPtr annot;
+
+private:
+  static bool prepared_d3d11;
 };

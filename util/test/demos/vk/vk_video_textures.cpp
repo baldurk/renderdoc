@@ -219,18 +219,22 @@ void main()
     VkDescriptorSet descset;
   };
 
-  int main(int argc, char **argv)
+  void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 
-    // add required extensions
+    // add required dependency extensions
     devExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
     devExts.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
     devExts.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
-    instExts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
+  int main()
+  {
     // initialise, create window, create device, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({

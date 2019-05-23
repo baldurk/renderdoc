@@ -23,6 +23,8 @@
 ******************************************************************************/
 
 #include "d3d_helpers.h"
+#include <vector>
+#include "../test_common.h"
 
 std::string D3DFullscreenQuadVertex = R"EOSHADER(
 
@@ -84,3 +86,75 @@ float4 main(v2f IN) : SV_Target0
 }
 
 )EOSHADER";
+
+IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv, bool &warp)
+{
+  struct AdapterInfo
+  {
+    IDXGIAdapterPtr adapter;
+    DXGI_ADAPTER_DESC desc;
+  };
+
+  std::vector<AdapterInfo> adapters;
+
+  HRESULT hr = S_OK;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapterPtr a;
+    hr = factory->EnumAdapters(i, &a);
+    if(hr == S_OK && a)
+    {
+      DXGI_ADAPTER_DESC desc;
+      a->GetDesc(&desc);
+      adapters.push_back({a, desc});
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  IDXGIAdapterPtr adapter = NULL;
+
+  for(int i = 0; i < argc; i++)
+  {
+    if(!strcmp(argv[i], "--warp"))
+    {
+      warp = true;
+      adapter = NULL;
+      break;
+    }
+    if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
+    {
+      std::string needle = strlower(argv[i + 1]);
+
+      if(needle == "warp")
+      {
+        adapter = warp;
+        break;
+      }
+
+      const bool nv = (needle == "nv" || needle == "nvidia");
+      const bool amd = (needle == "amd");
+      const bool intel = (needle == "intel");
+
+      for(size_t a = 0; a < adapters.size(); a++)
+      {
+        std::string haystack = strlower(Wide2UTF8(adapters[a].desc.Description));
+
+        if(haystack.find(needle) != std::string::npos || (nv && adapters[a].desc.VendorId == 0x10DE) ||
+           (amd && adapters[a].desc.VendorId == 0x1002) ||
+           (intel && adapters[a].desc.VendorId == 0x8086))
+        {
+          adapter = adapters[a].adapter;
+          break;
+        }
+      }
+
+      break;
+    }
+  }
+
+  return adapter;
+}

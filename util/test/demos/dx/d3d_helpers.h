@@ -24,8 +24,21 @@
 
 #pragma once
 
+#include <comdef.h>
 #include <string>
+#include "dx/official/dxgi1_4.h"
 
 extern std::string D3DFullscreenQuadVertex;
 extern std::string D3DDefaultVertex;
 extern std::string D3DDefaultPixel;
+
+#define COM_SMARTPTR(classname) _COM_SMARTPTR_TYPEDEF(classname, __uuidof(classname))
+
+COM_SMARTPTR(IDXGISwapChain);
+COM_SMARTPTR(IDXGISwapChain1);
+COM_SMARTPTR(IDXGIFactory);
+COM_SMARTPTR(IDXGIFactory4);
+COM_SMARTPTR(IDXGIAdapter);
+COM_SMARTPTR(IDXGISurface);
+
+IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv, bool &warp);

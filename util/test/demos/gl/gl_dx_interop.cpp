@@ -126,13 +126,20 @@ void main()
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
-  {
-    D3D11GraphicsTest d3d;
+  D3D11GraphicsTest d3d;
 
+  void Prepare(int argc, char **argv)
+  {
     d3d.headless = true;
 
-    if(!d3d.Init(argc, argv))
+    d3d.Prepare(argc, argv);
+
+    OpenGLGraphicsTest::Prepare(argc, argv);
+  }
+
+  int main()
+  {
+    if(!d3d.Init())
       return 4;
 
     ID3DBlobPtr vsblob = d3d.Compile(dxcommon + dxvertex, "main", "vs_5_0");
@@ -154,7 +161,7 @@ void main()
     d3d.ctx->ClearRenderTargetView(rtv2, black);
 
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     DefaultA2V quad[] = {

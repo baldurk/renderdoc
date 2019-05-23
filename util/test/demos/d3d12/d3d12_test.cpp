@@ -32,34 +32,80 @@
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
 
-bool D3D12GraphicsTest::Init(int argc, char **argv)
+namespace
 {
-  // parse parameters here to override parameters
-  GraphicsTest::Init(argc, argv);
+HMODULE d3d12 = NULL;
+HMODULE dxgi = NULL;
+HMODULE d3dcompiler = NULL;
+IDXGIFactory4Ptr factory;
+IDXGIAdapterPtr adapter;
+};
 
-  // D3D12 specific can go here
-  // ...
+void D3D12GraphicsTest::Prepare(int argc, char **argv)
+{
+  GraphicsTest::Prepare(argc, argv);
 
-  HMODULE d3d12 = LoadLibraryA("d3d12.dll");
-  HMODULE dxgi = LoadLibraryA("dxgi.dll");
-  HMODULE d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_45.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
+  static bool prepared = false;
 
-  if(!d3d12 || !dxgi || !d3dcompiler)
+  if(!prepared)
   {
-    TEST_ERROR("Couldn't load D3D12");
-    return false;
+    prepared = true;
+
+    d3d12 = LoadLibraryA("d3d12.dll");
+    dxgi = LoadLibraryA("dxgi.dll");
+    d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_45.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
+    if(!d3dcompiler)
+      d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
+
+    if(d3d12)
+    {
+      PFN_CREATE_DXGI_FACTORY2 createFactory2 =
+          (PFN_CREATE_DXGI_FACTORY2)GetProcAddress(dxgi, "CreateDXGIFactory2");
+
+      if(createFactory2)
+      {
+        HRESULT hr = createFactory2(debugDevice ? DXGI_CREATE_FACTORY_DEBUG : 0,
+                                    __uuidof(IDXGIFactory4), (void **)&factory);
+
+        if(SUCCEEDED(hr))
+        {
+          bool warp = false;
+
+          adapter = ChooseD3DAdapter(factory, argc, argv, warp);
+
+          if(warp)
+            factory->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&adapter);
+        }
+      }
+    }
   }
 
-  PFN_CREATE_DXGI_FACTORY2 createFactory2 =
-      (PFN_CREATE_DXGI_FACTORY2)GetProcAddress(dxgi, "CreateDXGIFactory2");
+  if(!d3d12)
+    Avail = "d3d12.dll is not available";
+  else if(!dxgi)
+    Avail = "dxgi.dll is not available";
+  else if(!d3dcompiler)
+    Avail = "d3dcompiler_XX.dll is not available";
+  else if(!factory)
+    Avail = "Couldn't create DXGI factory";
+
+  m_Factory = factory;
+}
+
+bool D3D12GraphicsTest::Init()
+{
+  // parse parameters here to override parameters
+  if(!GraphicsTest::Init())
+    return false;
+
+  // we can assume d3d12, dxgi and d3dcompiler are valid since we shouldn't be running the test if
+  // Prepare() failed
 
   dyn_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
 
@@ -105,94 +151,8 @@ bool D3D12GraphicsTest::Init(int argc, char **argv)
   {
     HRESULT hr = S_OK;
 
-    hr = createFactory2(debugDevice ? DXGI_CREATE_FACTORY_DEBUG : 0, __uuidof(IDXGIFactory4),
-                        (void **)&m_Factory);
-
-    if(m_Factory.GetInterfacePtr() == NULL || FAILED(hr))
-    {
-      TEST_ERROR("CreateDXGIFactory2 failed: %x", hr);
-      return false;
-    }
-
-    struct AdapterInfo
-    {
-      IDXGIAdapterPtr adapter;
-      DXGI_ADAPTER_DESC desc;
-    };
-
-    std::vector<AdapterInfo> adapters;
-
-    for(UINT i = 0; i < 10; i++)
-    {
-      IDXGIAdapterPtr a;
-      hr = m_Factory->EnumAdapters(i, &a);
-      if(hr == S_OK && a)
-      {
-        DXGI_ADAPTER_DESC desc;
-        a->GetDesc(&desc);
-        adapters.push_back({a, desc});
-      }
-      else
-      {
-        break;
-      }
-    }
-
-    IDXGIAdapterPtr warp = NULL;
-    m_Factory->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&warp);
-
-    IDXGIAdapterPtr adapter = NULL;
-
-    for(int i = 0; i < argc; i++)
-    {
-      if(!strcmp(argv[i], "--warp"))
-      {
-        adapter = warp;
-        break;
-      }
-      if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
-      {
-        std::string needle = strlower(argv[i + 1]);
-
-        if(needle == "warp")
-        {
-          adapter = warp;
-          break;
-        }
-
-        const bool nv = (needle == "nv" || needle == "nvidia");
-        const bool amd = (needle == "amd");
-        const bool intel = (needle == "intel");
-
-        for(size_t a = 0; a < adapters.size(); a++)
-        {
-          std::string haystack = strlower(Wide2UTF8(adapters[a].desc.Description));
-
-          if(haystack.find(needle) != std::string::npos ||
-             (nv && adapters[a].desc.VendorId == 0x10DE) ||
-             (amd && adapters[a].desc.VendorId == 0x1002) ||
-             (intel && adapters[a].desc.VendorId == 0x8086))
-          {
-            adapter = adapters[a].adapter;
-            break;
-          }
-        }
-
-        break;
-      }
-    }
-
     hr = dyn_D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device),
                                (void **)&dev);
-
-    // if it failed, try again on warp
-    if(FAILED(hr))
-    {
-      adapter = warp;
-      if(adapter)
-        hr = dyn_D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device),
-                                   (void **)&dev);
-    }
 
     if(FAILED(hr))
     {
@@ -374,37 +334,6 @@ bool D3D12GraphicsTest::Init(int argc, char **argv)
 GraphicsWindow *D3D12GraphicsTest::MakeWindow(int width, int height, const char *title)
 {
   return new Win32Window(width, height, title);
-}
-
-bool D3D12GraphicsTest::IsSupported()
-{
-  static bool checked = false, result = false;
-
-  if(checked)
-    return result;
-
-  checked = true;
-
-  HMODULE d3d12 = LoadLibraryA("d3d12.dll");
-  HMODULE d3dcompiler = LoadLibraryA("d3dcompiler_47.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_46.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_45.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
-  if(!d3dcompiler)
-    d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
-
-  if(d3d12)
-    FreeLibrary(d3d12);
-  if(d3dcompiler)
-    FreeLibrary(d3dcompiler);
-
-  if(d3d12 && d3dcompiler)
-    result = true;
-
-  return result;
 }
 
 void D3D12GraphicsTest::Shutdown()

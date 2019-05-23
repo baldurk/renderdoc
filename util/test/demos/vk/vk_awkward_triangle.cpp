@@ -81,12 +81,12 @@ void main()
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
+  int main()
   {
     features.shaderFloat64 = true;
 
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());

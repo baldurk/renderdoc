@@ -214,28 +214,41 @@ void main()
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
+  void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
     // dependencies of VK_EXT_descriptor_indexing
     devExts.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
-    instExts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
     features.fragmentStoresAndAtomics = VK_TRUE;
 
-    VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexing = {
+    VulkanGraphicsTest::Prepare(argc, argv);
+
+    if(!Avail.empty())
+      return;
+
+    static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexing = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
     };
 
-    descIndexing.descriptorBindingPartiallyBound = VK_TRUE;
-    descIndexing.runtimeDescriptorArray = VK_TRUE;
-    descIndexing.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    getPhysFeatures2(&descIndexing);
+
+    if(!descIndexing.descriptorBindingPartiallyBound)
+      Avail = "Descriptor indexing feature 'descriptorBindingPartiallyBound' not available";
+    else if(!descIndexing.runtimeDescriptorArray)
+      Avail = "Descriptor indexing feature 'runtimeDescriptorArray' not available";
+    else if(!descIndexing.shaderSampledImageArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderSampledImageArrayNonUniformIndexing' not available";
 
     devInfoNext = &descIndexing;
+  }
 
+  int main()
+  {
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     VkDescriptorSetLayoutBindingFlagsCreateInfoEXT descFlags = {

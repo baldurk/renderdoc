@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <dlfcn.h>
 #include <signal.h>
 #include <unistd.h>
 

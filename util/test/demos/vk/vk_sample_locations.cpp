@@ -73,13 +73,17 @@ void main()
 
 )EOSHADER";
 
-  int main(int argc, char **argv)
+  void Prepare(int argc, char **argv)
   {
-    instExts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     devExts.push_back(VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME);
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
+  int main()
+  {
     // initialise, create window, create context, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     VkPhysicalDeviceSampleLocationsPropertiesEXT sampleProps = {

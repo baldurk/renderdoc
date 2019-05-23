@@ -29,10 +29,28 @@
 
 #include "../linux/linux_window.h"
 
-bool OpenGLGraphicsTest::Init(int argc, char **argv)
+void OpenGLGraphicsTest::Prepare(int argc, char **argv)
 {
-  // parse parameters here to override parameters
-  GraphicsTest::Init(argc, argv);
+  GraphicsTest::Prepare(argc, argv);
+
+  static bool prepared = false;
+  static void *libGL = NULL;
+
+  if(!prepared)
+  {
+    prepared = true;
+
+    libGL = dlopen("libGL.so", RTLD_GLOBAL | RTLD_NOW);
+  }
+
+  if(!libGL)
+    Avail = "libGL.so is not available";
+}
+
+bool OpenGLGraphicsTest::Init()
+{
+  if(!GraphicsTest::Init())
+    return false;
 
   X11Window::Init();
 
@@ -63,23 +81,6 @@ bool OpenGLGraphicsTest::Init(int argc, char **argv)
   PostInit();
 
   return true;
-}
-
-bool OpenGLGraphicsTest::IsSupported()
-{
-  static bool checked = false, result = false;
-
-  if(checked)
-    return result;
-
-  checked = true;
-
-  void *GL = dlopen("libGL.so", RTLD_GLOBAL | RTLD_NOW);
-
-  if(GL)
-    result = true;
-
-  return result;
 }
 
 GraphicsWindow *OpenGLGraphicsTest::MakeWindow(int width, int height, const char *title)

@@ -45,6 +45,9 @@ void OpenGLGraphicsTest::PostInit()
     glDebugMessageCallback(&debugCallback, NULL);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   }
+
+  TEST_LOG("Running GL test on %s / %s / %s", glGetString(GL_VENDOR), glGetString(GL_RENDERER),
+           glGetString(GL_VERSION));
 }
 
 void OpenGLGraphicsTest::Shutdown()

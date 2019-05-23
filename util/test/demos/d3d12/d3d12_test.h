@@ -46,10 +46,10 @@ struct D3D12GraphicsTest : public GraphicsTest
 {
   static const TestAPI API = TestAPI::D3D12;
 
-  bool Init(int argc, char **argv);
+  void Prepare(int argc, char **argv);
+  bool Init();
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
-  bool IsSupported();
 
   enum BufType
   {

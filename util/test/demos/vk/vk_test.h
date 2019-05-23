@@ -140,9 +140,9 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   VulkanGraphicsTest();
 
-  bool Init(int argc, char **argv);
+  void Prepare(int argc, char **argv);
+  bool Init();
   void Shutdown();
-  bool IsSupported();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
   VkResult CreateSurface(GraphicsWindow *win, VkSurfaceKHR *outSurf);
 
@@ -182,19 +182,22 @@ struct VulkanGraphicsTest : public GraphicsTest
   void destroySwap();
   void acquireImage();
 
+  void getPhysFeatures2(void *nextStruct);
+
   // requested features
   VkPhysicalDeviceFeatures features = {};
 
-  // required extensions before Init(), enabled extensions after Init()
+  // enabled instance extensions
   std::vector<const char *> instExts;
+
+  // required extensions before Init(), enabled extensions after Init()
   std::vector<const char *> devExts;
+
+  // optional extensions, will be added to devExts if supported (allows fallback paths)
+  std::vector<const char *> optDevExts;
 
   // a custom struct to pass to vkDeviceCreateInfo::pNext
   const void *devInfoNext = NULL;
-
-  // optional extensions
-  std::vector<const char *> optInstExts;
-  std::vector<const char *> optDevExts;
 
   // core objects
   VkInstance instance;
@@ -244,4 +247,7 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   // VMA
   VmaAllocator allocator = VK_NULL_HANDLE;
+
+private:
+  static bool prepared_vk;
 };

@@ -170,10 +170,10 @@ float4 main(v2f IN) : SV_Target0
     ID3D12ResourcePtr cb;
   };
 
-  int main(int argc, char **argv)
+  int main()
   {
     // initialise, create window, create device, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");

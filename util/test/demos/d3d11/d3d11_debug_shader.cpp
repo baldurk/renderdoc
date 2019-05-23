@@ -206,7 +206,7 @@ float4 main(v2f IN) : SV_Target0
   int main(int argc, char **argv)
   {
     // initialise, create window, create device, etc
-    if(!Init(argc, argv))
+    if(!Init())
       return 3;
 
     ID3DBlobPtr vsblob = Compile(common + vertex, "main", "vs_5_0");
