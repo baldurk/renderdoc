@@ -189,6 +189,8 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     log.comment("driver={}".format(driver))
 
+    log.print("Demos running from {}".format(util.get_demos_binary()))
+
     layerInfo = rd.VulkanLayerRegistrationInfo()
     if rd.NeedVulkanLayerRegistration(layerInfo):
         log.print("Vulkan layer needs to be registered: {}".format(str(layerInfo.flags)))

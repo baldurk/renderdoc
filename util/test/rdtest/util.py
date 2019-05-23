@@ -2,6 +2,8 @@ import sys
 import os
 import re
 import time
+import struct
+import platform
 import hashlib
 import zipfile
 from typing import Tuple, List
@@ -27,6 +29,7 @@ _data_dir = os.path.realpath('data')
 _data_extra_dir = os.path.realpath('data_extra')
 _temp_dir = os.path.realpath('tmp')
 _test_name = 'Unknown_Test'
+_demos_bin = os.path.realpath('demos_x64')
 
 
 def set_root_dir(path: str):
@@ -52,6 +55,34 @@ def set_artifact_dir(path: str):
 def set_temp_dir(path: str):
     global _temp_dir
     _temp_dir = os.path.abspath(path)
+
+
+def set_demos_binary(path: str):
+    global _demos_bin
+    if path == "":
+        # Try to guess where the demos binary might be, but if we can't find it fall back to just trying it in PATH
+        if struct.calcsize("P") == 8:
+            _demos_bin = 'demos_x64'
+        else:
+            _demos_bin = 'demos_x86'
+
+        if platform.system() == 'Windows':
+            _demos_bin += '.exe'
+
+        # Try a few common locations
+        attempts = [
+            os.path.join(get_root_dir(), _demos_bin),                    # in the root (default for Windows)
+            os.path.join(get_root_dir(), 'build', _demos_bin),           # in a build folder (potential for linux)
+            os.path.join(get_root_dir(), 'demos', _demos_bin),           # in the demos folder (ditto)
+            os.path.join(get_root_dir(), 'demos', 'build', _demos_bin),  # in build in the demos folder (ditto)
+        ]
+
+        for attempt in attempts:
+            if os.path.exists(attempt):
+                _demos_bin = os.path.abspath(attempt)
+                break
+    else:
+        _demos_bin = os.path.abspath(path)
 
 
 def set_current_test(name: str):
@@ -89,6 +120,10 @@ def get_artifact_path(name: str):
 
 def get_tmp_dir():
     return _temp_dir
+
+
+def get_demos_binary():
+    return _demos_bin
 
 
 def get_tmp_path(name: str):

@@ -2,6 +2,8 @@ import argparse
 import os
 import sys
 
+script_dir = os.path.realpath(os.path.dirname(__file__))
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--renderdoc',
                     help="The location of the renderdoc library to use", type=str)
@@ -17,14 +19,16 @@ parser.add_argument('--in-process',
                     help="Lists the tests available to run", action="store_true")
 parser.add_argument('--slow-tests',
                     help="Run potentially slow tests", action="store_true")
-parser.add_argument('--data', default="data",
+parser.add_argument('--data', default=os.path.join(script_dir, "data"),
                     help="The folder that reference data is in. Will not be modified.", type=str)
-parser.add_argument('--data-extra', default="data_extra",
+parser.add_argument('--demos-binary', default="",
+                    help="The path to the built demos binary.", type=str)
+parser.add_argument('--data-extra', default=os.path.join(script_dir, "data_extra"),
                     help="The folder that extra reference data is in (typically very large captures that aren't part "
                          "of the normal repo). Will not be modified.", type=str)
-parser.add_argument('--artifacts', default="artifacts",
+parser.add_argument('--artifacts', default=os.path.join(script_dir, "artifacts"),
                     help="The folder to put output artifacts in. Will be completely cleared.", type=str)
-parser.add_argument('--temp', default="tmp",
+parser.add_argument('--temp', default=os.path.join(script_dir, "tmp"),
                     help="The folder to put temporary run data in. Will be completely cleared.", type=str)
 parser.add_argument('--debugger',
                     help="Enable debugger mode, exceptions are not caught by the framework.", action="store_true")
@@ -55,6 +59,13 @@ if args.pyrenderdoc is not None:
     sys.path.insert(0, custom_pyrenderdoc)
 
 sys.path.insert(0, os.path.realpath(os.path.dirname(__file__)))
+
+data_path = os.path.realpath(args.data)
+data_extra_path = os.path.realpath(args.data_extra)
+temp_path = os.path.realpath(args.temp)
+demos_binary = args.demos_binary
+if demos_binary != "":
+    demos_binary = os.path.realpath(demos_binary)
 
 os.chdir(sys.path[0])
 
@@ -88,9 +99,10 @@ if args.list:
 
 rdtest.set_root_dir(os.path.realpath(os.path.dirname(__file__)))
 rdtest.set_artifact_dir(artifacts_dir)
-rdtest.set_data_dir(os.path.realpath(args.data))
-rdtest.set_data_extra_dir(os.path.realpath(args.data_extra))
-rdtest.set_temp_dir(os.path.realpath(args.temp))
+rdtest.set_data_dir(data_path)
+rdtest.set_data_extra_dir(data_extra_path)
+rdtest.set_temp_dir(temp_path)
+rdtest.set_demos_binary(demos_binary)
 
 # debugger option implies in-process test running
 if args.debugger:
