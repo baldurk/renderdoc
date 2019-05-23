@@ -3,8 +3,7 @@ import renderdoc as rd
 
 
 class GL_VAO_0(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "VAO_0", 5)
+    demos_test_name = 'GL_VAO_0'
 
     def check_capture(self):
         self.check_final_backbuffer()

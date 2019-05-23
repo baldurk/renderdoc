@@ -3,8 +3,7 @@ import rdtest
 
 
 class GL_Simple_Triangle(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "GL_Simple_Triangle", 5)
+    demos_test_name = 'GL_Simple_Triangle'
 
     def check_capture(self):
         self.check_final_backbuffer()

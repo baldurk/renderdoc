@@ -3,8 +3,7 @@ import renderdoc as rd
 
 
 class GL_Entry_Points(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "GL_Entry_Points", 5)
+    demos_test_name = 'GL_Entry_Points'
 
     def check_capture(self):
         sdf = self.controller.GetStructuredFile()

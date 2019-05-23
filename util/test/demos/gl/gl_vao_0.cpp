@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct VAO_0 : OpenGLGraphicsTest
+struct GL_VAO_0 : OpenGLGraphicsTest
 {
   static constexpr const char *Description = "Uses VAO 0 (i.e. never binds a VAO)";
 
@@ -151,4 +151,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VAO_0);
+REGISTER_TEST(GL_VAO_0);

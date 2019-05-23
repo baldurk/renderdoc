@@ -5,6 +5,7 @@ import re
 import renderdoc as rd
 from . import util
 from . import analyse
+from . import capture
 from .logging import log, TestFailureException
 
 
@@ -126,8 +127,22 @@ class ConstantBufferChecker:
 
 class TestCase:
     slow_test = False
-    platform = ''
-    platform_version = 0
+    demos_test_name = ''
+    demos_frame_cap = 5
+    _test_list = {}
+
+    @staticmethod
+    def set_test_list(tests):
+        TestCase._test_list = tests
+
+    def check_support(self):
+        if self.demos_test_name != '':
+            if self.demos_test_name not in TestCase._test_list:
+                return False,'Test {} not in compiled tests'.format(self.demos_test_name)
+            return TestCase._test_list[self.demos_test_name]
+
+        # Otherwise assume we can run - child tests can override if they want to do some other check
+        return True,""
 
     def __init__(self):
         self.capture_filename = ""
@@ -161,6 +176,10 @@ class TestCase:
         :return: The path to the capture to open. If in a temporary path, it will be
           deleted if the test completes.
         """
+
+        if self.demos_test_name != '':
+            return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name, self.demos_frame_cap)
+
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")
 

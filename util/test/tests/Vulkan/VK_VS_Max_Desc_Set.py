@@ -3,8 +3,7 @@ import renderdoc as rd
 
 
 class VK_VS_Max_Desc_Set(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "VS_Max_Desc_Set", 5)
+    demos_test_name = 'VK_VS_Max_Desc_Set'
 
     def check_capture(self):
 

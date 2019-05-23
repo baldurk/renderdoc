@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct Secondary_CmdBuf : VulkanGraphicsTest
+struct VK_Secondary_CmdBuf : VulkanGraphicsTest
 {
   static constexpr const char *Description = "Draw using secondary command buffers";
 
@@ -238,4 +238,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Secondary_CmdBuf);
+REGISTER_TEST(VK_Secondary_CmdBuf);

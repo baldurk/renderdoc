@@ -3,8 +3,7 @@ import renderdoc as rd
 
 
 class GL_Buffer_Updates(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "GL_Buffer_Updates", 5)
+    demos_test_name = 'GL_Buffer_Updates'
 
     def check_capture(self):
         # Make an output so we can pick pixels

@@ -3,8 +3,7 @@ import renderdoc as rd
 
 
 class VK_Overlay_Test(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "VK_Overlay_Test", 5)
+    demos_test_name = 'VK_Overlay_Test'
 
     def check_capture(self):
         self.check_final_backbuffer()

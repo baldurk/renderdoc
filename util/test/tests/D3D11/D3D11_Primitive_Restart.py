@@ -3,10 +3,7 @@ import renderdoc as rd
 
 
 class D3D11_Primitive_Restart(rdtest.TestCase):
-    platform = 'win32'
-
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "Primitive_Restart", 5)
+    demos_test_name = 'D3D11_Primitive_Restart'
 
     def check_capture(self):
         self.check_final_backbuffer()

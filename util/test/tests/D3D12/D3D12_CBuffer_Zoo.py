@@ -3,11 +3,7 @@ import renderdoc as rd
 
 
 class D3D12_CBuffer_Zoo(rdtest.TestCase):
-    platform = 'win32'
-    platform_version = 10
-
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "D3D12_CBuffer_Zoo", 5)
+    demos_test_name = 'D3D12_CBuffer_Zoo'
 
     def check_capture(self):
         draw = self.find_draw("Draw")

@@ -3,8 +3,7 @@ import rdtest
 
 
 class GL_Separable_Geometry_Shaders(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "GL_Separable_Geometry_Shaders", 5)
+    demos_test_name = 'GL_Separable_Geometry_Shaders'
 
     def check_capture(self):
         draw = self.find_draw("Draw")

@@ -3,8 +3,7 @@ import renderdoc as rd
 
 
 class VK_Descriptor_Indexing(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "VK_Descriptor_Indexing", 5)
+    demos_test_name = 'VK_Descriptor_Indexing'
 
     def check_capture(self):
 

@@ -141,6 +141,18 @@ def _run_test(testclass, failedcases: list):
                            .format(test_run.returncode))
 
 
+def fetch_tests():
+    output = subprocess.run([util.get_demos_binary(), '--list-raw'], stdout=subprocess.PIPE).stdout
+
+    # Skip the header, grab all the remaining lines
+    tests = str(output, 'utf-8').splitlines()[1:]
+
+    # Split the TSV values and store
+    split_tests = [ test.split('\t') for test in tests ]
+
+    return { x[0]: (x[1] == 'True', x[2]) for x in split_tests }
+
+
 def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests: bool, debugger: bool):
     start_time = time.time()
 
@@ -228,6 +240,8 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     os.environ['RENDERDOC_DEMOS_DATA'] = util.get_data_path('demos')
 
+    testcase.TestCase.set_test_list(fetch_tests())
+
     testcases = get_tests()
 
     include_regexp = re.compile(test_include, re.IGNORECASE)
@@ -254,9 +268,12 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     for testclass in testcases:
         name = testclass.__name__
 
-        if ((testclass.platform != '' and testclass.platform != plat) or
-                (testclass.platform_version != 0 and testclass.platform_version > ver)):
-            log.print("Skipping {} as it's not supported on this platform '{} version {}'".format(name, plat, ver))
+        instance = testclass()
+
+        supported,unsupported_reason = instance.check_support()
+
+        if not supported:
+            log.print("Skipping {} as {}".format(name, unsupported_reason))
             skippedcases.append(testclass)
             continue
 
@@ -282,7 +299,6 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         def do():
             if in_process:
-                instance = testclass()
                 instance.invoketest()
             else:
                 _run_test(testclass, failedcases)

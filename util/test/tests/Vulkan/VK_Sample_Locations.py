@@ -3,8 +3,7 @@ import rdtest
 
 
 class VK_Sample_Locations(rdtest.TestCase):
-    def get_capture(self):
-        return rdtest.run_and_capture("demos_x64", "VK_Sample_Locations", 5)
+    demos_test_name = 'VK_Sample_Locations'
 
     def check_capture(self):
         draw: rd.DrawcallDescription = self.find_draw("Degenerate")
