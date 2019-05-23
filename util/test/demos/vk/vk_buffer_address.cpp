@@ -66,11 +66,11 @@ struct DefaultA2V {
   vec2 uv;
 };
 
-layout(bufferreference, scalar, bufferreferencealign = 16) buffer TriangleData {
+layout(buffer_reference, scalar, buffer_reference_align = 16) buffer TriangleData {
   DefaultA2V verts[3];
 };
 
-layout(bufferreference, scalar, bufferreferencealign = 16) buffer DrawData {
+layout(buffer_reference, scalar, buffer_reference_align = 16) buffer DrawData {
   TriangleData tri;
   vec4 tint;
   vec2 offset;
