@@ -177,12 +177,14 @@ def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
 
     # If the format needs post-processing such as normalisation, do that now
     if fmt.compType == rd.CompType.UNorm:
-        divisor = float((1 << fmt.compByteWidth) - 1)
-        value = tuple(float(value[i]) / divisor for i in value)
+        divisor = float((1 << (fmt.compByteWidth*8)) - 1)
+        value = tuple(float(i) / divisor for i in value)
     elif fmt.compType == rd.CompType.SNorm:
-        max_neg = -(1 << (fmt.compByteWidth - 1))
-        divisor = float(-(max_neg-1))
-        value = tuple((float(value[i]) if (value[i] == max_neg) else (float(value[i]) / divisor)) for i in value)
+        max_neg = -(1 << (fmt.compByteWidth*8 - 1))
+        divisor = -float(max_neg+1)
+        value = tuple(-1.0 if (i == max_neg) else float(i / divisor) for i in value)
+    elif fmt.compType == rd.CompType.UScaled or fmt.compType == rd.CompType.SScaled:
+        value = tuple(float(i) for i in value)
 
     # If the format is BGRA, swap the two components
     if fmt.BGRAOrder():
