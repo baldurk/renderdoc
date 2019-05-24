@@ -134,7 +134,6 @@ void main()
     glBindBufferBase(GL_UNIFORM_BUFFER, 1, fsbuf);
 
     GLuint glslprogram = MakeProgram(vertex, pixel);
-    glObjectLabel(GL_PROGRAM, glslprogram, -1, "Full program");
 
     GLuint spirvprogram = MakeProgram();
 

@@ -272,7 +272,6 @@ void main()
     glBufferStorage(GL_UNIFORM_BUFFER, sizeof(Vec4f), &red, 0);
 
     GLuint program = MakeProgram(vertex, pixel);
-    glObjectLabel(GL_PROGRAM, program, -1, "Full program");
 
     while(Running())
     {

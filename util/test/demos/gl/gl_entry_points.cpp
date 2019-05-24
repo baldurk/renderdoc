@@ -76,7 +76,6 @@ void main()
     glEnableVertexAttribArray(0);
 
     GLuint program = MakeProgram(vertex, pixel);
-    glObjectLabel(GL_PROGRAM, program, -1, "Full program");
 
     while(Running())
     {

@@ -84,7 +84,6 @@ void main()
     glEnableVertexAttribArray(2);
 
     GLuint program = MakeProgram(vertex, pixel);
-    glObjectLabel(GL_PROGRAM, program, -1, "Full program");
 
     GLuint tex = MakeTexture();
     glBindTexture(GL_TEXTURE_2D, tex);

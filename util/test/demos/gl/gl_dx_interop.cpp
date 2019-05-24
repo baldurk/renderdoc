@@ -200,7 +200,6 @@ void main()
     glEnableVertexAttribArray(2);
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
-    glObjectLabel(GL_PROGRAM, program, -1, "Full program");
 
     GLuint gl_fromd3d = MakeTexture();
     HANDLE interop_fromd3d =

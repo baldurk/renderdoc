@@ -70,10 +70,11 @@ void OpenGLGraphicsTest::Shutdown()
   DestroyContext(mainContext);
 }
 
-GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc, bool sep)
+GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc, std::string geomSrc)
 {
   GLuint vs = vertSrc.empty() ? 0 : glCreateShader(GL_VERTEX_SHADER);
   GLuint fs = fragSrc.empty() ? 0 : glCreateShader(GL_FRAGMENT_SHADER);
+  GLuint gs = geomSrc.empty() ? 0 : glCreateShader(GL_GEOMETRY_SHADER);
 
   const char *cstr = NULL;
 
@@ -81,7 +82,6 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
   {
     cstr = vertSrc.c_str();
     glShaderSource(vs, 1, &cstr, NULL);
-    glObjectLabel(GL_SHADER, vs, -1, "VS doodad");
     glCompileShader(vs);
   }
 
@@ -89,8 +89,14 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
   {
     cstr = fragSrc.c_str();
     glShaderSource(fs, 1, &cstr, NULL);
-    glObjectLabel(GL_SHADER, fs, -1, "FS thingy");
     glCompileShader(fs);
+  }
+
+  if(gs)
+  {
+    cstr = geomSrc.c_str();
+    glShaderSource(gs, 1, &cstr, NULL);
+    glCompileShader(gs);
   }
 
   char buffer[1024];
@@ -107,6 +113,7 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
     TEST_ERROR("Shader error: %s", buffer);
     glDeleteShader(vs);
     glDeleteShader(fs);
+    glDeleteShader(gs);
     return 0;
   }
 
@@ -121,6 +128,22 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
     TEST_ERROR("Shader error: %s", buffer);
     glDeleteShader(vs);
     glDeleteShader(fs);
+    glDeleteShader(gs);
+    return 0;
+  }
+
+  if(gs)
+    glGetShaderiv(gs, GL_COMPILE_STATUS, &status);
+  else
+    status = 1;
+
+  if(status == 0)
+  {
+    glGetShaderInfoLog(gs, 1024, NULL, buffer);
+    TEST_ERROR("Shader error: %s", buffer);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    glDeleteShader(gs);
     return 0;
   }
 
@@ -130,8 +153,10 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
     glAttachShader(program, vs);
   if(fs)
     glAttachShader(program, fs);
+  if(gs)
+    glAttachShader(program, gs);
 
-  if(!vs || !fs || sep)
+  if(!vs || !fs)
     glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
 
   glLinkProgram(program);
@@ -155,6 +180,11 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
   {
     glDetachShader(program, fs);
     glDeleteShader(fs);
+  }
+  if(gs)
+  {
+    glDetachShader(program, gs);
+    glDeleteShader(gs);
   }
 
   if(program)
