@@ -205,6 +205,7 @@
     <ClCompile Include="3rdparty\lz4\lz4.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_common.cpp" />
+    <ClCompile Include="vk\vk_multi_thread_windows.cpp" />
     <ClCompile Include="vk\vk_vertex_attr_zoo.cpp" />
     <ClCompile Include="vk\vk_buffer_address.cpp" />
     <ClCompile Include="vk\vk_cbuffer_zoo.cpp" />
