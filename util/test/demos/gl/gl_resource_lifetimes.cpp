@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct GL_Resource_Lifetimes : OpenGLGraphicsTest
+TEST(GL_Resource_Lifetimes, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test various edge-case resource lifetimes: a resource that is first dirtied within a frame "
@@ -413,4 +413,4 @@ void main()
   }
 };
 
-REGISTER_TEST(GL_Resource_Lifetimes);
+REGISTER_TEST();

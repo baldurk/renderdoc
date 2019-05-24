@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct StreamOut : D3D11GraphicsTest
+TEST(D3D11_StreamOut, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test using D3D11's streamout feature";
 
@@ -131,4 +131,4 @@ struct StreamOut : D3D11GraphicsTest
   }
 };
 
-REGISTER_TEST(StreamOut);
+REGISTER_TEST();

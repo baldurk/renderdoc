@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Overdraw_Stress : D3D11GraphicsTest
+TEST(D3D11_Overdraw_Stress, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Renders a lot of overlapping triangles";
 
@@ -123,4 +123,4 @@ struct Overdraw_Stress : D3D11GraphicsTest
   }
 };
 
-REGISTER_TEST(Overdraw_Stress);
+REGISTER_TEST();

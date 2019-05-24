@@ -46,7 +46,7 @@
 #define STRINGISE2(a) #a
 #define STRINGISE(a) STRINGISE2(a)
 
-struct VK_Descriptor_Indexing : VulkanGraphicsTest
+TEST(VK_Descriptor_Indexing, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle using descriptor indexing with large descriptor sets.";
@@ -583,4 +583,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Descriptor_Indexing);
+REGISTER_TEST();

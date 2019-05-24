@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct VK_Sample_Locations : VulkanGraphicsTest
+TEST(VK_Sample_Locations, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws two triangles with different sample locations using VK_EXT_sample_locations";
@@ -302,4 +302,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Sample_Locations);
+REGISTER_TEST();

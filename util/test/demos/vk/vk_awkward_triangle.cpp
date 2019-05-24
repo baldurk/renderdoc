@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct Awkward_Triangle : VulkanGraphicsTest
+TEST(VK_Awkward_Triangle, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle but using vertex buffers in formats that only support VBs and not "
@@ -170,4 +170,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Awkward_Triangle);
+REGISTER_TEST();

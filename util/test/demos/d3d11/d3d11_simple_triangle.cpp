@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct D3D11_Simple_Triangle : D3D11GraphicsTest
+TEST(D3D11_Simple_Triangle, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "
@@ -70,4 +70,4 @@ struct D3D11_Simple_Triangle : D3D11GraphicsTest
   }
 };
 
-REGISTER_TEST(D3D11_Simple_Triangle);
+REGISTER_TEST();

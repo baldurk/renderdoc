@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct VK_Structured_Buffer_Nested : VulkanGraphicsTest
+TEST(VK_Structured_Buffer_Nested, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "
@@ -337,4 +337,4 @@ float4 main() : SV_Target0
   }
 };
 
-REGISTER_TEST(VK_Structured_Buffer_Nested);
+REGISTER_TEST();

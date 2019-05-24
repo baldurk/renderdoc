@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Byte_Address_Buffers : D3D11GraphicsTest
+TEST(D3D11_Byte_Address_Buffers, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Tests reading and writing from byte address buffers";
 
@@ -83,4 +83,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Byte_Address_Buffers);
+REGISTER_TEST();

@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct GL_Structured_Buffer_Nested : OpenGLGraphicsTest
+TEST(GL_Structured_Buffer_Nested, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "
@@ -209,4 +209,4 @@ void main()
   }
 };
 
-REGISTER_TEST(GL_Structured_Buffer_Nested);
+REGISTER_TEST();

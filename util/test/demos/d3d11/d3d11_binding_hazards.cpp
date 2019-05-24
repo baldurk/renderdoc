@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Binding_Hazards : D3D11GraphicsTest
+TEST(D3D11_Binding_Hazards, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test of D3D11 hazard tracking write/read bindings";
 
@@ -242,4 +242,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Binding_Hazards);
+REGISTER_TEST();

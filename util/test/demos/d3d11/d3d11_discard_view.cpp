@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Discard_View : D3D11GraphicsTest
+TEST(D3D11_Discard_View, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test that discards an RTV";
 
@@ -131,4 +131,4 @@ float4 main() : SV_Target0
   }
 };
 
-REGISTER_TEST(Discard_View);
+REGISTER_TEST();

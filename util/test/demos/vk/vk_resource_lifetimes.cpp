@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct VK_Resource_Lifetimes : VulkanGraphicsTest
+TEST(VK_Resource_Lifetimes, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Test various edge-case resource lifetimes: a resource that is first dirtied within a frame "
@@ -567,4 +567,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Resource_Lifetimes);
+REGISTER_TEST();

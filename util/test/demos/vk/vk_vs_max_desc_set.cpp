@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct VK_VS_Max_Desc_Set : VulkanGraphicsTest
+TEST(VK_VS_Max_Desc_Set, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Uses the device's maximum number of descriptor sets in the vertex shader.";
@@ -197,4 +197,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_VS_Max_Desc_Set);
+REGISTER_TEST();

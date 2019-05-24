@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct GL_Overlay_Test : OpenGLGraphicsTest
+TEST(GL_Overlay_Test, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";
@@ -230,4 +230,4 @@ void main()
   }
 };
 
-REGISTER_TEST(GL_Overlay_Test);
+REGISTER_TEST();

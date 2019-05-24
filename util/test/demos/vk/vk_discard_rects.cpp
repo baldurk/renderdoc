@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-struct VK_Discard_Rectangles : VulkanGraphicsTest
+TEST(VK_Discard_Rectangles, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a large number of triangles using VK_EXT_discard_rectangles discard rectangles to "
@@ -210,4 +210,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Discard_Rectangles);
+REGISTER_TEST();

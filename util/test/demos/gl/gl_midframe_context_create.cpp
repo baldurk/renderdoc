@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct Midframe_Context_Create : OpenGLGraphicsTest
+TEST(GL_Midframe_Context_Create, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Creates a context and activates it in the middle of rendering.";
@@ -141,4 +141,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Midframe_Context_Create);
+REGISTER_TEST();

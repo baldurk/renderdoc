@@ -30,7 +30,7 @@
 #if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || \
     defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
 
-struct VK_Buffer_Address : VulkanGraphicsTest
+TEST(VK_Buffer_Address, VulkanGraphicsTest)
 {
   static constexpr const char *Description = "Test capture and replay of VK_EXT_buffer_reference";
 
@@ -280,6 +280,6 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Buffer_Address);
+REGISTER_TEST();
 
 #endif    // if 64-bit

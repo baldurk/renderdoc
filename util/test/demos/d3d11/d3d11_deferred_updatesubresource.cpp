@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Deferred_UpdateSubresource : D3D11GraphicsTest
+TEST(D3D11_Deferred_UpdateSubresource, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test that does UpdateSubresource on a deferred context which might need some "
@@ -233,4 +233,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(Deferred_UpdateSubresource);
+REGISTER_TEST();

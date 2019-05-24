@@ -287,7 +287,7 @@ Usage: %s Test_Name [test_options]
       {
         if(prev != TestAPI::Count)
           printf("\n\n");
-        printf("======== %s tests ========\n\n", test.APIName());
+        printf("======== %s tests ========\n\n", APIName(test.API));
       }
 
       prev = test.API;
@@ -401,8 +401,7 @@ Usage: %s Test_Name [test_options]
             if(!tests[i].IsAvailable())
               continue;
 
-            std::string name = tests[i].QualifiedName();
-            std::string lower_name = strlower(name);
+            std::string lower_name = strlower(tests[i].Name);
 
             // apply filters
             if(!allow[(int)tests[i].API] ||
@@ -419,7 +418,7 @@ Usage: %s Test_Name [test_options]
             if(curtest == -1)
               curtest = i;
 
-            if(nk_select_label(ctx, name.c_str(), NK_TEXT_LEFT, curtest == i))
+            if(nk_select_label(ctx, tests[i].Name, NK_TEXT_LEFT, curtest == i))
               curtest = i;
           }
 
@@ -446,7 +445,7 @@ Usage: %s Test_Name [test_options]
             nk_layout_row_push(ctx, 0.25f);
             nk_label(ctx, "API:", NK_TEXT_ALIGN_TOP | NK_TEXT_ALIGN_RIGHT);
             nk_layout_row_push(ctx, 0.75f);
-            nk_label(ctx, selected_test.APIName(), NK_TEXT_ALIGN_TOP | NK_TEXT_ALIGN_LEFT);
+            nk_label(ctx, APIName(selected_test.API), NK_TEXT_ALIGN_TOP | NK_TEXT_ALIGN_LEFT);
             nk_layout_row_end(ctx);
 
             nk_layout_row_begin(ctx, NK_DYNAMIC, 0, 2);

@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Debug_Shader : D3D11GraphicsTest
+TEST(D3D11_Debug_Shader, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Tests simple shader debugging identities by rendering many small triangles and "
@@ -284,4 +284,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(Debug_Shader);
+REGISTER_TEST();

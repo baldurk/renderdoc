@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct GL_Entry_Points : OpenGLGraphicsTest
+TEST(GL_Entry_Points, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test that RenderDoc correctly lists the different function call aliases used.";
@@ -112,4 +112,4 @@ void main()
   }
 };
 
-REGISTER_TEST(GL_Entry_Points);
+REGISTER_TEST();

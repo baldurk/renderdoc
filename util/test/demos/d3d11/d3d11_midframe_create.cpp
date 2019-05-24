@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct D3D11_Midframe_Create : D3D11GraphicsTest
+TEST(D3D11_Midframe_Create, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Tests creating resources mid-frame to make sure that they and their contents are "
@@ -270,4 +270,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(D3D11_Midframe_Create);
+REGISTER_TEST();

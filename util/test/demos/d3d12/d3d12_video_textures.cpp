@@ -37,7 +37,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-struct D3D12_Video_Textures : D3D12GraphicsTest
+TEST(D3D12_Video_Textures, D3D12GraphicsTest)
 {
   static constexpr const char *Description = "Tests of YUV textures";
 
@@ -700,4 +700,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(D3D12_Video_Textures);
+REGISTER_TEST();

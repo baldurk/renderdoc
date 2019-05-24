@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Structured_Buffer_MisalignedDirty : D3D11GraphicsTest
+TEST(D3D11_Structured_Buffer_MisalignedDirty, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test updating a misaligned chunk of a structured buffer";
@@ -141,4 +141,4 @@ float4 main() : SV_Target0
   }
 };
 
-REGISTER_TEST(Structured_Buffer_MisalignedDirty);
+REGISTER_TEST();

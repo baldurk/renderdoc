@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct D3D11_Draw_Zoo : D3D11GraphicsTest
+TEST(D3D11_Draw_Zoo, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Draws several variants using different vertex/index offsets.";
@@ -399,4 +399,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(D3D11_Draw_Zoo);
+REGISTER_TEST();

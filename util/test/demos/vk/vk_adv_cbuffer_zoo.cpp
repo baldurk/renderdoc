@@ -108,7 +108,7 @@ struct UBO
   int8_t test;
 };
 
-struct VK_Adv_CBuffer_Zoo : VulkanGraphicsTest
+TEST(VK_Adv_CBuffer_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests VK_EXT_scalar_block_layout as well as 8-bit/16-bit storage "
@@ -404,4 +404,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Adv_CBuffer_Zoo);
+REGISTER_TEST();

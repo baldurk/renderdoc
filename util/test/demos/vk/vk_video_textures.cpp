@@ -37,7 +37,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-struct VK_Video_Textures : VulkanGraphicsTest
+TEST(VK_Video_Textures, VulkanGraphicsTest)
 {
   static constexpr const char *Description = "Tests of YUV textures";
 
@@ -993,4 +993,4 @@ void main()
   }
 };
 
-REGISTER_TEST(VK_Video_Textures);
+REGISTER_TEST();

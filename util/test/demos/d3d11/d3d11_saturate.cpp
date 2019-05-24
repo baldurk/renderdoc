@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Saturate : D3D11GraphicsTest
+TEST(D3D11_Saturate, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Tests using saturate, originally for a bug report";
 
@@ -104,4 +104,4 @@ void main(float4 pos : SV_Position, out float4 a : SV_Target0, out float4 b : SV
   }
 };
 
-REGISTER_TEST(Saturate);
+REGISTER_TEST();

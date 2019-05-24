@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Empty_Compute_Dispatch : D3D11GraphicsTest
+TEST(D3D11_Empty_Compute_Dispatch, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test dispatching with one threadgroup count set to 0";
 
@@ -77,4 +77,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Empty_Compute_Dispatch);
+REGISTER_TEST();

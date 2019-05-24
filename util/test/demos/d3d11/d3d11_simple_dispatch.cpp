@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Simple_Dispatch : D3D11GraphicsTest
+TEST(D3D11_Simple_Dispatch, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test that just does a dispatch and some copies, for checking basic compute stuff";
@@ -98,4 +98,4 @@ void main()
   }
 };
 
-REGISTER_TEST(Simple_Dispatch);
+REGISTER_TEST();

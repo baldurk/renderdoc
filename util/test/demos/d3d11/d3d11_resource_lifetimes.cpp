@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct D3D11_Resource_Lifetimes : D3D11GraphicsTest
+TEST(D3D11_Resource_Lifetimes, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test various edge-case resource lifetimes: a resource that is first dirtied within a frame "
@@ -192,4 +192,4 @@ float4 main(v2f IN) : SV_Target0
   }
 };
 
-REGISTER_TEST(D3D11_Resource_Lifetimes);
+REGISTER_TEST();

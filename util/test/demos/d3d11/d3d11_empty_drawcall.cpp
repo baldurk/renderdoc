@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Empty_Drawcall : D3D11GraphicsTest
+TEST(D3D11_Empty_Drawcall, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test a drawcall of 0 size";
 
@@ -68,4 +68,4 @@ struct Empty_Drawcall : D3D11GraphicsTest
   }
 };
 
-REGISTER_TEST(Empty_Drawcall);
+REGISTER_TEST();

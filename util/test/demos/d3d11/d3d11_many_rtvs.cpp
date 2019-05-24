@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-struct Many_RTVs : D3D11GraphicsTest
+TEST(D3D11_Many_RTVs, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test repeatedly creating and destroying RTVs";
 
@@ -103,4 +103,4 @@ float4 main() : SV_Target0
   }
 };
 
-REGISTER_TEST(Many_RTVs);
+REGISTER_TEST();

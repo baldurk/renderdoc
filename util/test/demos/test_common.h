@@ -189,6 +189,20 @@ enum class TestAPI
   Count,
 };
 
+inline const char *APIName(TestAPI API)
+{
+  switch(API)
+  {
+    case TestAPI::D3D11: return "D3D11";
+    case TestAPI::Vulkan: return "Vulkan";
+    case TestAPI::OpenGL: return "OpenGL";
+    case TestAPI::D3D12: return "D3D12";
+    case TestAPI::Count: break;
+  }
+
+  return "???";
+}
+
 struct TestMetadata
 {
   TestAPI API;
@@ -198,28 +212,6 @@ struct TestMetadata
 
   bool IsAvailable() const { return test->Avail.empty(); }
   const char *AvailMessage() const { return test->Avail.c_str(); }
-  std::string QualifiedName() const
-  {
-    std::string ret = APIName();
-    ret += "::";
-    ret += Name;
-    return ret;
-  }
-
-  const char *APIName() const
-  {
-    switch(API)
-    {
-      case TestAPI::D3D11: return "D3D11";
-      case TestAPI::Vulkan: return "VK";
-      case TestAPI::OpenGL: return "GL";
-      case TestAPI::D3D12: return "D3D12";
-      case TestAPI::Count: break;
-    }
-
-    return "???";
-  }
-
   bool operator<(const TestMetadata &o)
   {
     if(API != o.API)
@@ -235,24 +227,32 @@ struct TestMetadata
 
 void RegisterTest(TestMetadata test);
 
-#define REGISTER_TEST(TestName)                 \
-  namespace                                     \
-  {                                             \
-  struct TestRegistration                       \
-  {                                             \
-    TestName m_impl;                            \
-    TestRegistration()                          \
-    {                                           \
-      TestMetadata test;                        \
-      test.API = TestName::API;                 \
-      test.Name = #TestName;                    \
-      test.Description = TestName::Description; \
-      test.test = &m_impl;                      \
-      RegisterTest(test);                       \
-    }                                           \
-  };                                            \
-  };                                            \
-  static TestRegistration Anon##__LINE__;
+#define TEST(Test, Parent)                \
+  struct Test;                            \
+  typedef Test CurrentTest;               \
+  namespace                               \
+  {                                       \
+  constexpr const char *TestName = #Test; \
+  };                                      \
+  struct Test : Parent
+
+#define REGISTER_TEST()                            \
+  namespace                                        \
+  {                                                \
+  struct TestRegistration                          \
+  {                                                \
+    CurrentTest m_impl;                            \
+    TestRegistration()                             \
+    {                                              \
+      TestMetadata test;                           \
+      test.API = CurrentTest::API;                 \
+      test.Name = TestName;                        \
+      test.Description = CurrentTest::Description; \
+      test.test = &m_impl;                         \
+      RegisterTest(test);                          \
+    }                                              \
+  } Anon##__LINE__;                                \
+  };
 
 std::string GetCWD();
 std::string GetEnvVar(const char *var);

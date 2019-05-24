@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-struct GL_Buffer_Updates : OpenGLGraphicsTest
+TEST(GL_Buffer_Updates, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test of buffer updates, both buffers that are updated regularly and get marked as "
@@ -520,4 +520,4 @@ void main()
   }
 };
 
-REGISTER_TEST(GL_Buffer_Updates);
+REGISTER_TEST();
