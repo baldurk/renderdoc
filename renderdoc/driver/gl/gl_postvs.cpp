@@ -872,6 +872,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         drv.glAttachShader(feedbackProg, stageShaders[i]);
 
     varyings.clear();
+    matrixVaryings.clear();
 
     stride = 0;
     posidx = -1;
@@ -906,7 +907,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(sig.systemValue == ShaderBuiltin::Position)
         posidx = int32_t(varyings.size()) - 1;
 
-      stride += sizeof(float) * sig.compCount;
+      uint32_t elemSize = sig.compType == CompType::Double ? sizeof(double) : sizeof(float);
+
+      stride += elemSize * sig.compCount;
     }
 
     // shift position attribute up to first, keeping order otherwise
