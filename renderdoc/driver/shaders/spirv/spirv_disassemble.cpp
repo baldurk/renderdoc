@@ -4095,6 +4095,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
         regIndex++;
 
         patch.accessChain.back()++;
+        patch.isArraySubsequentElement = true;
       }
 
       patch.isMatrix = false;
