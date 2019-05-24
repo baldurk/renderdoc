@@ -613,7 +613,7 @@ struct D3D12InitialContents
   }
   D3D12InitialContents(ID3D12Resource *r)
       : tag(Copy),
-        resourceType(Resource_DescriptorHeap),
+        resourceType(Resource_Resource),
         descriptors(NULL),
         numDescriptors(0),
         resource(r),
@@ -631,9 +631,9 @@ struct D3D12InitialContents
         dataSize(size)
   {
   }
-  D3D12InitialContents(Tag tg)
+  D3D12InitialContents(Tag tg, D3D12ResourceType type)
       : tag(tg),
-        resourceType(Resource_DescriptorHeap),
+        resourceType(type),
         descriptors(NULL),
         numDescriptors(0),
         resource(NULL),

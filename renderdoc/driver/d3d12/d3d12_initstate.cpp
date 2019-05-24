@@ -522,7 +522,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         // CPU-side
         mappedBuffer = NULL;
 
-        D3D12InitialContents initContents(D3D12InitialContents::Copy);
+        D3D12InitialContents initContents(D3D12InitialContents::Copy, type);
         ResourceContents = initContents.srcData = AllocAlignedBuffer(RDCMAX(ContentsLength, 64ULL));
         initContents.resourceType = Resource_Resource;
         SetInitialContents(id, initContents);
@@ -597,7 +597,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
     if(IsReplayingAndReading() && mappedBuffer)
     {
-      D3D12InitialContents initContents(D3D12InitialContents::Copy);
+      D3D12InitialContents initContents(D3D12InitialContents::Copy, type);
       initContents.resourceType = Resource_Resource;
       initContents.resource = mappedBuffer;
 
