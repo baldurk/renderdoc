@@ -124,16 +124,24 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
     accum_offset = 0
 
     for i in range(0, len(attrs)):
-        attrs[i].mesh.vertexByteOffset = accum_offset
-
         # Note that some APIs such as Vulkan will pad the size of the attribute here
         # while others will tightly pack
         fmt = attrs[i].mesh.format
 
-        accum_offset += (8 if fmt.compType == rd.CompType.Double else 4) * fmt.compCount
+        elem_size = (8 if fmt.compType == rd.CompType.Double else 4)
 
-        if pipe.HasAlignedPostVSData(data_stage) and (accum_offset % 16) != 0:
-            accum_offset += 16 - (accum_offset % 16)
+        alignment = elem_size
+        if fmt.compCount == 2:
+            alignment = elem_size * 2
+        elif fmt.compCount > 2:
+            alignment = elem_size * 4
+
+        if pipe.HasAlignedPostVSData(data_stage) and (accum_offset % alignment) != 0:
+            accum_offset += alignment - (accum_offset % alignment)
+
+        attrs[i].mesh.vertexByteOffset = accum_offset
+
+        accum_offset += elem_size * fmt.compCount
 
     return attrs
 
