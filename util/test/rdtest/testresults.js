@@ -73,13 +73,17 @@ document.body.onload = function() {
     if(m) {
       if(m[1] == '##') {
       	title = m[2].replace(/ ##$/, '');
-        html += '<h1>' + title + '</h1>';
 
         var hash = m[2].match(/Version ([0-9.]*) \(([a-f0-9]*)\)/);
         if(hash) {
         	document.title = title;
           commit = hash[2];
         }
+
+        title = title.replace(commit, '<a href="https://github.com/baldurk/renderdoc/commit/' + commit + '">' + commit.substr(0, 8) + '</a>');
+
+        html += '<h1>' + title + '</h1>';
+
       } else if(m[1] == '//') {
       	// comments, skip
       } else if(m[1] == '..') {
