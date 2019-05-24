@@ -182,10 +182,15 @@ float4 main() : SV_Target0
 
 )EOSHADER";
 
+  void Prepare(int argc, char **argv)
+  {
+    features.fragmentStoresAndAtomics = VK_TRUE;
+
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
   int main()
   {
-    features.fragmentStoresAndAtomics = true;
-
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
