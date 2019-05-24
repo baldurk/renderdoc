@@ -124,7 +124,5 @@ bool Win32Window::Update()
   if(msg.message == WM_CHAR && msg.wParam == VK_ESCAPE)
     return false;
 
-  Sleep(20);
-
   return true;
 }

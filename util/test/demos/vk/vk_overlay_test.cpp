@@ -150,11 +150,11 @@ void main()
     vb.upload(VBData);
 
     // create depth-stencil image
-    AllocatedImage depthimg(allocator,
-                            vkh::ImageCreateInfo(scissor.extent.width, scissor.extent.height, 0,
-                                                 VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
-                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage depthimg(
+        allocator, vkh::ImageCreateInfo(
+                       mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                       VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
         depthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
@@ -163,8 +163,8 @@ void main()
     // create renderpass using the DS image
     vkh::RenderPassCreator renderPassCreateInfo;
 
-    renderPassCreateInfo.attachments.push_back(
-        vkh::AttachmentDescription(swapFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
+    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+        mainWindow->format, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
         VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_1_BIT,
@@ -177,11 +177,11 @@ void main()
 
     // create framebuffers using swapchain images and DS image
     std::vector<VkFramebuffer> fbs;
-    fbs.resize(swapImageViews.size());
+    fbs.resize(mainWindow->GetCount());
 
-    for(size_t i = 0; i < swapImageViews.size(); i++)
-      fbs[i] = createFramebuffer(
-          vkh::FramebufferCreateInfo(renderPass, {swapImageViews[i], dsvview}, scissor.extent));
+    for(size_t i = 0; i < mainWindow->GetCount(); i++)
+      fbs[i] = createFramebuffer(vkh::FramebufferCreateInfo(
+          renderPass, {mainWindow->GetView(i), dsvview}, mainWindow->scissor.extent));
 
     // create PSO
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
@@ -236,23 +236,23 @@ void main()
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      VkViewport v = viewport;
+      VkViewport v = mainWindow->viewport;
       v.x += 10.0f;
       v.y += 10.0f;
       v.width -= 20.0f;
       v.height -= 20.0f;
       vkCmdSetViewport(cmd, 0, 1, &v);
-      vkCmdSetScissor(cmd, 0, 1, &scissor);
+      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkCmdBeginRenderPass(cmd,
-                           vkh::RenderPassBeginInfo(renderPass, fbs[swapIndex], scissor,
-                                                    {vkh::ClearValue(), vkh::ClearValue(1.0f, 0)}),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(
+          cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                                        {vkh::ClearValue(), vkh::ClearValue(1.0f, 0)}),
+          VK_SUBPASS_CONTENTS_INLINE);
 
       // draw the setup triangles
 

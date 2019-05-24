@@ -501,10 +501,11 @@ float4 main() : SV_Target0
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
 
-    AllocatedImage img(allocator, vkh::ImageCreateInfo(scissor.extent.width, scissor.extent.height,
-                                                       0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage img(
+        allocator,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView imgview = createImageView(
         vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
@@ -519,8 +520,8 @@ float4 main() : SV_Target0
 
     VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
 
-    VkFramebuffer framebuffer =
-        createFramebuffer(vkh::FramebufferCreateInfo(renderPass, {imgview}, scissor.extent));
+    VkFramebuffer framebuffer = createFramebuffer(
+        vkh::FramebufferCreateInfo(renderPass, {imgview}, mainWindow->scissor.extent));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -603,13 +604,13 @@ float4 main() : SV_Target0
                            vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, scissor,
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
-      vkCmdSetViewport(cmd, 0, 1, &viewport);
-      vkCmdSetScissor(cmd, 0, 1, &scissor);
+      vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, glslpipe);

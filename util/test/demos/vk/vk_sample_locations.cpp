@@ -99,23 +99,25 @@ void main()
     // create multi-sampled image
     AllocatedImage msaaimg(
         allocator,
-        vkh::ImageCreateInfo(scissor.extent.width, scissor.extent.height, 0, swapFormat,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             mainWindow->format,
                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                  VK_IMAGE_USAGE_SAMPLED_BIT,
                              1, 1, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
-    VkImageView msview =
-        createImageView(vkh::ImageViewCreateInfo(msaaimg.image, VK_IMAGE_VIEW_TYPE_2D, swapFormat));
+    VkImageView msview = createImageView(
+        vkh::ImageViewCreateInfo(msaaimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format));
 
     // create renderpass using the DS image
     vkh::RenderPassCreator renderPassCreateInfo;
 
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        swapFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_SAMPLE_COUNT_4_BIT));
-    renderPassCreateInfo.attachments.push_back(
-        vkh::AttachmentDescription(swapFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
+        mainWindow->format, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE, VK_SAMPLE_COUNT_4_BIT));
+    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+        mainWindow->format, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
 
     renderPassCreateInfo.addSubpass(
         {VkAttachmentReference({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL})}, VK_ATTACHMENT_UNUSED,
@@ -125,11 +127,11 @@ void main()
 
     // create framebuffers using swapchain images and DS image
     std::vector<VkFramebuffer> fbs;
-    fbs.resize(swapImageViews.size());
+    fbs.resize(mainWindow->GetCount());
 
-    for(size_t i = 0; i < swapImageViews.size(); i++)
-      fbs[i] = createFramebuffer(
-          vkh::FramebufferCreateInfo(renderPass, {msview, swapImageViews[i]}, scissor.extent));
+    for(size_t i = 0; i < mainWindow->GetCount(); i++)
+      fbs[i] = createFramebuffer(vkh::FramebufferCreateInfo(
+          renderPass, {msview, mainWindow->GetView(i)}, mainWindow->scissor.extent));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -199,10 +201,10 @@ void main()
                                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, msaaimg.image),
                });
 
-      VkRect2D region = scissor;
+      VkRect2D region = mainWindow->scissor;
       region.extent.width /= 2;
 
-      VkViewport view = viewport;
+      VkViewport view = mainWindow->viewport;
       view.width /= 2.0f;
 
       VkRenderPassSampleLocationsBeginInfoEXT sampleBegin = {
@@ -254,9 +256,10 @@ void main()
       sampleBegin.postSubpassSampleLocationsCount = 1;
       sampleBegin.pPostSubpassSampleLocations = &subpassSamples;
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, fbs[swapIndex], region,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)})
-                                    .next(&sampleBegin),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], region,
+                                                    {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)})
+                               .next(&sampleBegin),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
@@ -274,9 +277,10 @@ void main()
 
       subpassSamples.sampleLocationsInfo.pSampleLocations = locations2;
 
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, fbs[swapIndex], region,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)})
-                                    .next(&sampleBegin),
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], region,
+                                                    {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)})
+                               .next(&sampleBegin),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);

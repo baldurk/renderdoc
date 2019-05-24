@@ -92,8 +92,8 @@ void main()
 
     vkGetPhysicalDeviceProperties2KHR(phys, vkh::PhysicalDeviceProperties2KHR().next(&discardProps));
 
-    const int32_t w = (int32_t)scissor.extent.width;
-    const int32_t h = (int32_t)scissor.extent.height;
+    const int32_t w = (int32_t)mainWindow->scissor.extent.width;
+    const int32_t h = (int32_t)mainWindow->scissor.extent.height;
 
     VkRect2D discardRects[] = {
         // TL eye
@@ -118,7 +118,7 @@ void main()
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
-    pipeCreateInfo.renderPass = swapRenderPass;
+    pipeCreateInfo.renderPass = mainWindow->rp;
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
@@ -176,16 +176,16 @@ void main()
                            vkh::ImageSubresourceRange());
 
       vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
+          cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
           VK_SUBPASS_CONTENTS_INLINE);
 
-      VkViewport view = viewport;
+      VkViewport view = mainWindow->viewport;
       view.width /= 2.0f;
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdSetDiscardRectangleEXT(cmd, 0, ARRAY_COUNT(discardRects), discardRects);
       vkCmdSetViewport(cmd, 0, 1, &view);
-      vkCmdSetScissor(cmd, 0, 1, &scissor);
+      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
       vkCmdDraw(cmd, 3000, 1, 0, 0);
 

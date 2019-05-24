@@ -112,7 +112,7 @@ void main()
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
-    pipeCreateInfo.renderPass = swapRenderPass;
+    pipeCreateInfo.renderPass = mainWindow->rp;
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
@@ -465,7 +465,7 @@ void main()
         vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
         vkCmdBeginRenderPass(
-            cmd, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
+            cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
             VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
@@ -473,7 +473,7 @@ void main()
                                 NULL);
         VkViewport view = {0, 0, 128, 128, 0, 1};
         vkCmdSetViewport(cmd, 0, 1, &view);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkCmdDraw(cmd, 3, 1, 0, 0);
 
@@ -506,7 +506,7 @@ void main()
         vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
         vkCmdBeginRenderPass(
-            cmd, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
+            cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
             VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
@@ -514,7 +514,7 @@ void main()
                                 NULL);
         VkViewport view = {128, 0, 128, 128, 0, 1};
         vkCmdSetViewport(cmd, 0, 1, &view);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkCmdDraw(cmd, 3, 1, 0, 0);
 
@@ -554,6 +554,8 @@ void main()
 
       Present();
     }
+
+    vkDeviceWaitIdle(device);
 
     // destroy resources
     TrashBuffer(cb, cbmem);

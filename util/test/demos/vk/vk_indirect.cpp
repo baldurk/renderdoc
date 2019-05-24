@@ -174,7 +174,7 @@ void main()
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = drawlayout;
-    pipeCreateInfo.renderPass = swapRenderPass;
+    pipeCreateInfo.renderPass = mainWindow->rp;
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
@@ -278,6 +278,8 @@ void main()
       VkImage swapimg =
           StartUsingBackbuffer(primary, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
+      setMarker(primary, "Do Clear");
+
       vkCmdClearColorImage(primary, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
@@ -323,16 +325,16 @@ void main()
                                                VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
       }
 
-      vkCmdBeginRenderPass(
-          primary, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
-          VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(),
+                                                             mainWindow->scissor),
+                           VK_SUBPASS_CONTENTS_INLINE);
 
       {
         VkCommandBuffer cmd = primary;
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawpipe);
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -454,22 +456,22 @@ void main()
 
       vkCmdExecuteCommands(primary, 1, &dispatch_secondary);
 
-      vkCmdBeginRenderPass(
-          primary, vkh::RenderPassBeginInfo(swapRenderPass, swapFramebuffers[swapIndex], scissor),
-          VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+      vkCmdBeginRenderPass(primary, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(),
+                                                             mainWindow->scissor),
+                           VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
       VkCommandBuffer draw_secondary = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
       vkBeginCommandBuffer(draw_secondary, vkh::CommandBufferBeginInfo(
                                                VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
-                                               vkh::CommandBufferInheritanceInfo(swapRenderPass, 0)));
+                                               vkh::CommandBufferInheritanceInfo(mainWindow->rp, 0)));
 
       {
         VkCommandBuffer cmd = draw_secondary;
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, drawpipe);
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
 

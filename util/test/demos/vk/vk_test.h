@@ -25,6 +25,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 #include <set>
 #include <vector>
 #include "../test_common.h"
@@ -134,6 +135,71 @@ struct AllocatedImage
     }                                                                                \
   } while(0);
 
+struct VulkanGraphicsTest;
+
+struct VulkanWindow : public GraphicsWindow
+{
+  VkFormat format;
+  uint32_t imgIndex = 0;
+  VkRenderPass rp = VK_NULL_HANDLE;
+  VkViewport viewport;
+  VkRect2D scissor;
+
+  VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win);
+  virtual ~VulkanWindow();
+  void Shutdown();
+
+  size_t GetCount() { return imgs.size(); }
+  VkImage GetImage(size_t idx = ~0U)
+  {
+    if(idx == ~0U)
+      idx = imgIndex;
+    return imgs[idx];
+  }
+  VkImageView GetView(size_t idx = ~0U)
+  {
+    if(idx == ~0U)
+      idx = imgIndex;
+    return imgviews[idx];
+  }
+  VkFramebuffer GetFB(size_t idx = ~0U)
+  {
+    if(idx == ~0U)
+      idx = imgIndex;
+    return fbs[idx];
+  }
+  bool Initialised() { return swap != VK_NULL_HANDLE; }
+  VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level);
+  void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
+              const std::vector<VkCommandBuffer> &seccmds, VkQueue q);
+  void Present(VkQueue q);
+  void Acquire();
+
+  // forward GraphicsWindow functions to internal window
+  void Resize(int width, int height) { m_Win->Resize(width, height); }
+  bool Update() { return m_Win->Update(); }
+private:
+  bool CreateSwapchain();
+  void DestroySwapchain();
+
+  VkSurfaceKHR surface = VK_NULL_HANDLE;
+  VkSwapchainKHR swap = VK_NULL_HANDLE;
+  std::vector<VkImage> imgs;
+  std::vector<VkImageView> imgviews;
+  VkSemaphore renderStartSemaphore = VK_NULL_HANDLE, renderEndSemaphore = VK_NULL_HANDLE;
+  std::vector<VkFramebuffer> fbs;
+
+  VkCommandPool cmdPool;
+  std::set<VkFence> fences;
+
+  std::vector<VkCommandBuffer> freeCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
+  std::vector<std::pair<VkCommandBuffer, VkFence>>
+      pendingCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
+
+  GraphicsWindow *m_Win;
+  VulkanGraphicsTest *m_Test;
+};
+
 struct VulkanGraphicsTest : public GraphicsTest
 {
   static const TestAPI API = TestAPI::Vulkan;
@@ -143,20 +209,23 @@ struct VulkanGraphicsTest : public GraphicsTest
   void Prepare(int argc, char **argv);
   bool Init();
   void Shutdown();
-  GraphicsWindow *MakeWindow(int width, int height, const char *title);
-  VkResult CreateSurface(GraphicsWindow *win, VkSurfaceKHR *outSurf);
+  VulkanWindow *MakeWindow(int width, int height, const char *title);
 
   bool Running();
-  VkImage StartUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags nextUse, VkImageLayout layout);
-  void FinishUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags prevUse, VkImageLayout layout);
+  VkImage StartUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags nextUse, VkImageLayout layout,
+                               VulkanWindow *window = NULL);
+  void FinishUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlags prevUse, VkImageLayout layout,
+                             VulkanWindow *window = NULL);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-              const std::vector<VkCommandBuffer> &seccmds = {});
-  void Present();
+              const std::vector<VkCommandBuffer> &seccmds = {}, VulkanWindow *window = NULL,
+              VkQueue q = VK_NULL_HANDLE);
+  void Present(VulkanWindow *window = NULL, VkQueue q = VK_NULL_HANDLE);
 
   VkPipelineShaderStageCreateInfo CompileShaderModule(const std::string &source_text,
                                                       ShaderLang lang, ShaderStage stage,
                                                       const char *entry_point = "main");
-  VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                   VulkanWindow *window = NULL);
 
   void setName(VkObjectType objType, uint64_t obj, const std::string &name);
   void pushMarker(VkCommandBuffer cmd, const std::string &name);
@@ -176,13 +245,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkPipelineLayout createPipelineLayout(const VkPipelineLayoutCreateInfo *info);
   VkDescriptorSetLayout createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo *info);
 
-  void resize();
-  void onResize(std::function<void()> callback) { resizeCallbacks.push_back(callback); }
-  bool createSwap();
-  void destroySwap();
-  void acquireImage();
-
   void getPhysFeatures2(void *nextStruct);
+
+  std::mutex mutex;
 
   // requested features
   VkPhysicalDeviceFeatures features = {};
@@ -203,24 +268,12 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkInstance instance;
   VkPhysicalDevice phys;
   VkDevice device;
-  uint32_t queueFamilyIndex;
+  uint32_t queueFamilyIndex = ~0U;
+  uint32_t queueCount;
   VkQueue queue;
-
-  // swapchain stuff
-  VkSurfaceKHR surface = VK_NULL_HANDLE;
-  VkSwapchainKHR swap;
-  VkFormat swapFormat;
-  std::vector<VkImage> swapImages;
-  std::vector<VkImageView> swapImageViews;
-  uint32_t swapIndex = 0;
-  VkSemaphore renderStartSemaphore, renderEndSemaphore;
-  std::vector<std::function<void()>> resizeCallbacks;
-  VkRenderPass swapRenderPass;
-  std::vector<VkFramebuffer> swapFramebuffers;
 
   // utilities
   VkDebugUtilsMessengerEXT debugUtilsMessenger;
-  VkCommandPool cmdPool;
 
   // tracking object lifetimes
   std::vector<VkShaderModule> shaders;
@@ -233,21 +286,13 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkPipelineLayout> pipelayouts;
   std::vector<VkDescriptorSetLayout> setlayouts;
 
-  VkViewport viewport;
-  VkRect2D scissor;
-
-  GraphicsWindow *mainWindow = NULL;
-
-  // internal bookkeeping
-  std::set<VkFence> fences;
-
-  std::vector<VkCommandBuffer> freeCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
-  std::vector<std::pair<VkCommandBuffer, VkFence>>
-      pendingCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
+  VulkanWindow *mainWindow = NULL;
 
   // VMA
   VmaAllocator allocator = VK_NULL_HANDLE;
 
 private:
   static bool prepared_vk;
+
+  GraphicsWindow *MakePlatformWindow(int width, int height, const char *title);
 };
