@@ -100,7 +100,7 @@ void main()
     AllocatedImage msaaimg(
         allocator,
         vkh::ImageCreateInfo(scissor.extent.width, scissor.extent.height, 0, swapFormat,
-                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                  VK_IMAGE_USAGE_SAMPLED_BIT,
                              1, 1, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
@@ -112,7 +112,7 @@ void main()
     vkh::RenderPassCreator renderPassCreateInfo;
 
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        swapFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        swapFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_SAMPLE_COUNT_4_BIT));
     renderPassCreateInfo.attachments.push_back(
         vkh::AttachmentDescription(swapFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
@@ -196,7 +196,7 @@ void main()
                    vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
                                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, msaaimg.image),
+                                           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, msaaimg.image),
                });
 
       VkRect2D region = scissor;

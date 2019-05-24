@@ -112,7 +112,7 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
         {
           if(!strcmp(layer.layerName, "VK_LAYER_LUNARG_standard_validation"))
           {
-            enabledLayers.push_back(layer.layerName);
+            enabledLayers.push_back("VK_LAYER_LUNARG_standard_validation");
             break;
           }
         }

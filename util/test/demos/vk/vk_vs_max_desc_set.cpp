@@ -33,6 +33,8 @@ TEST(VK_VS_Max_Desc_Set, VulkanGraphicsTest)
 
 #version 430 core
 
+#extension GL_EXT_samplerless_texture_functions : require
+
 struct v2f
 {
 	vec4 pos;
@@ -54,7 +56,7 @@ void main()
 {
 	vertOut.pos = vec4(Position.xyz*vec3(1,-1,1), 1);
 	gl_Position = vertOut.pos;
-	vertOut.col = get_cbuffer_color();
+	vertOut.col = get_color();
 	vertOut.uv = vec4(UV.xy, 0, 1);
 }
 
@@ -82,11 +84,21 @@ void main()
     VkPhysicalDeviceProperties props = vkh::getPhysicalDeviceProperties(phys);
     VkPhysicalDeviceLimits &limits = props.limits;
 
-    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
-    }));
+    // we use sampled images up to the last set, since some drivers support fewer UBOs per stage
+    // than descriptor sets
+    VkDescriptorSetLayout imgsetlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT},
+        }));
 
-    std::vector<VkDescriptorSetLayout> maxSetLayouts(limits.maxBoundDescriptorSets, setlayout);
+    VkDescriptorSetLayout ubosetlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+        }));
+
+    std::vector<VkDescriptorSetLayout> maxSetLayouts(limits.maxBoundDescriptorSets, imgsetlayout);
+
+    maxSetLayouts.back() = ubosetlayout;
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(maxSetLayouts));
 
@@ -104,14 +116,27 @@ void main()
     std::string dynamic_decl, dynamic_func;
 
     dynamic_decl = "\n";
-    dynamic_func = "vec4 get_cbuffer_color() { return vec4(0)";
+    dynamic_func = "vec4 get_color() { return vec4(0)";
+
+    uint32_t numimgs = limits.maxBoundDescriptorSets - 1;
 
     for(uint32_t i = 0; i < limits.maxBoundDescriptorSets; i++)
     {
       std::string istr = std::to_string(i);
-      dynamic_decl += "layout(set = " + istr + ", binding = 0, std140) uniform constsbuf" + istr +
-                      " { vec4 col" + istr + "; };\n";
-      dynamic_func += " + col" + istr;
+
+      if(i < numimgs)
+      {
+        dynamic_decl +=
+            "layout(set = " + istr + ", binding = 0) uniform texture2D tex" + istr + ";\n";
+        dynamic_func +=
+            " + texelFetch(tex" + istr + ", ivec2(0), 0) / vec4(" + std::to_string(numimgs) + ")";
+      }
+      else
+      {
+        dynamic_decl +=
+            "layout(set = " + istr + ", binding = 0, std140) uniform constsbuf { vec4 col; };\n";
+        dynamic_func += " + col";
+      }
     }
 
     dynamic_decl += "\n";
@@ -133,27 +158,66 @@ void main()
 
     vb.upload(DefaultTri);
 
-    Vec4f cbufferdata[512];
-
-    float divisor = 1.0f / float(limits.maxBoundDescriptorSets);
-
-    for(uint32_t i = 0; i < limits.maxBoundDescriptorSets; i++)
-      cbufferdata[i] = Vec4f(1.0f * divisor, 0.2f * divisor, 0.75f * divisor, 0.8f * divisor);
+    Vec4f cbufferdata = Vec4f(0.0f, 0.2f, 0.75f, 0.8f);
 
     AllocatedBuffer cb(
         allocator, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    cb.upload(cbufferdata);
+    cb.upload(&cbufferdata, sizeof(cbufferdata));
 
-    VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+    AllocatedImage img(allocator, vkh::ImageCreateInfo(
+                                      4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView imgview = createImageView(
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    {
+      VkCommandBuffer cmd = GetCommandBuffer();
+
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, img.image),
+               });
+
+      vkCmdClearColorImage(cmd, img.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           vkh::ClearColorValue(1.0f, 0.0f, 0.0f, 0.0f), 1,
+                           vkh::ImageSubresourceRange());
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, img.image),
+               });
+
+      vkEndCommandBuffer(cmd);
+
+      Submit(99, 99, {cmd});
+
+      vkDeviceWaitIdle(device);
+    }
+
+    VkDescriptorSet imgdescset = allocateDescriptorSet(imgsetlayout);
+    VkDescriptorSet ubodescset = allocateDescriptorSet(ubosetlayout);
 
     vkh::updateDescriptorSets(
-        device, {
-                    vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                            {vkh::DescriptorBufferInfo(cb.buffer)}),
-                });
+        device,
+        {
+            vkh::WriteDescriptorSet(
+                imgdescset, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                {
+                    vkh::DescriptorImageInfo(imgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+                }),
+            vkh::WriteDescriptorSet(ubodescset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                    {vkh::DescriptorBufferInfo(cb.buffer)}),
+        });
 
     while(Running())
     {
@@ -173,7 +237,8 @@ void main()
                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
           VK_SUBPASS_CONTENTS_INLINE);
 
-      std::vector<VkDescriptorSet> descsets(limits.maxBoundDescriptorSets, descset);
+      std::vector<VkDescriptorSet> descsets(limits.maxBoundDescriptorSets, imgdescset);
+      descsets.back() = ubodescset;
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, descsets, {});
       vkCmdSetViewport(cmd, 0, 1, &viewport);
       vkCmdSetScissor(cmd, 0, 1, &scissor);

@@ -982,6 +982,8 @@ void main()
       Present();
     }
 
+    vkDeviceWaitIdle(device);
+
     for(size_t i = 0; i < ARRAY_COUNT(ycbcr); i++)
     {
       vkDestroySampler(device, ycbcr[i].sampler, NULL);

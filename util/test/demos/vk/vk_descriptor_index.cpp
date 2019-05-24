@@ -576,6 +576,8 @@ void main()
       Present();
     }
 
+    vkDeviceWaitIdle(device);
+
     vkDestroyDescriptorPool(device, descpool, NULL);
     vkDestroySampler(device, sampler, NULL);
 
