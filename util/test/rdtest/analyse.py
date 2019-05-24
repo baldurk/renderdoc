@@ -227,7 +227,7 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], attrs:
 
     # Calculate the strip restart index for this index width
     striprestart_index = None
-    if controller.GetPipelineState().IsStripRestartEnabled():
+    if controller.GetPipelineState().IsStripRestartEnabled() and attrs[0].mesh.indexResourceId != rd.ResourceId.Null():
         striprestart_index = (controller.GetPipelineState().GetStripRestartIndex() &
                               ((1 << (attrs[0].mesh.indexByteStride*8)) - 1))
 
