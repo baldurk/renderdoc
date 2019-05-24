@@ -611,12 +611,12 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
 
 rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
 {
-  auto striequal = [](const std::string &a, const std::string &b) {
+  auto striequal = [](const rdcstr &a, const rdcstr &b) {
     if(a.length() != b.length())
       return false;
 
     for(size_t i = 0; i < a.length(); i++)
-      if(toupper(a[i]) == toupper(b[i]))
+      if(toupper(a[i]) != toupper(b[i]))
         return false;
 
     return true;
@@ -634,12 +634,12 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
       ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
-        std::string semName = layouts[i].semanticName;
+        const rdcstr &semName = layouts[i].semanticName;
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !striequal(semName, layouts[j].semanticName))
+          if(i != j && striequal(semName, layouts[j].semanticName))
           {
             needsSemanticIdx = true;
             break;
@@ -670,7 +670,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
           rdcarray<SigParameter> &sig = m_D3D11->inputAssembly.bytecode->inputSignature;
           for(int ia = 0; ia < sig.count(); ia++)
           {
-            if(!striequal(semName, sig[ia].semanticName) &&
+            if(striequal(semName, sig[ia].semanticName) &&
                sig[ia].semanticIndex == layouts[i].semanticIndex)
             {
               ret[i].used = true;
@@ -692,12 +692,12 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
       ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
-        std::string semName = layouts[i].semanticName;
+        const rdcstr &semName = layouts[i].semanticName;
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !striequal(semName, std::string(layouts[j].semanticName)))
+          if(i != j && striequal(semName, std::string(layouts[j].semanticName)))
           {
             needsSemanticIdx = true;
             break;
@@ -728,7 +728,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
           rdcarray<SigParameter> &sig = m_D3D12->vertexShader.reflection->inputSignature;
           for(int ia = 0; ia < sig.count(); ia++)
           {
-            if(!striequal(semName, sig[ia].semanticName) &&
+            if(striequal(semName, sig[ia].semanticName) &&
                sig[ia].semanticIndex == layouts[i].semanticIndex)
             {
               ret[i].used = true;
