@@ -84,6 +84,34 @@ class MeshAttribute:
     name: str
 
 
+def get_vsin_attrs(controller: rd.ReplayController, index_mesh: rd.MeshFormat):
+    pipe: rd.PipeState = controller.GetPipelineState()
+    inputs: List[rd.VertexInputAttribute] = pipe.GetVertexInputs()
+
+    attrs: List[MeshAttribute] = []
+    vbs: List[rd.BoundVBuffer] = pipe.GetVBuffers()
+
+    for a in inputs:
+        if not a.used:
+            continue
+
+        attr = MeshAttribute()
+        attr.name = a.name
+        attr.mesh = rd.MeshFormat(index_mesh)
+
+        attr.mesh.vertexByteStride = vbs[a.vertexBuffer].byteStride
+        attr.mesh.instStepRate = a.instanceRate
+        attr.mesh.instanced = a.perInstance
+        attr.mesh.vertexResourceId = vbs[a.vertexBuffer].resourceId
+        attr.mesh.vertexByteOffset = vbs[a.vertexBuffer].byteOffset + a.byteOffset
+
+        attr.mesh.format = a.format
+
+        attrs.append(attr)
+
+    return attrs
+
+
 def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_stage: rd.MeshDataStage):
     pipe: rd.PipeState = controller.GetPipelineState()
 
