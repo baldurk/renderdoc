@@ -152,6 +152,7 @@
     <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
     <ClCompile Include="d3d11\d3d11_test.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
+    <ClCompile Include="d3d11\d3d11_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
@@ -159,6 +160,7 @@
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
+    <ClCompile Include="d3d12\d3d12_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_video_textures.cpp" />
     <ClCompile Include="dx\d3d_helpers.cpp" />
     <ClCompile Include="3rdparty\glad\glad.c" />
@@ -193,6 +195,7 @@
     <ClCompile Include="gl\gl_test_win32.cpp" />
     <ClCompile Include="gl\gl_unsized_ms_fbo_attachment.cpp" />
     <ClCompile Include="gl\gl_vao_0.cpp" />
+    <ClCompile Include="gl\gl_vertex_attr_zoo.cpp" />
     <ClCompile Include="linux\linux_platform.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -202,7 +205,7 @@
     <ClCompile Include="3rdparty\lz4\lz4.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_common.cpp" />
-    <ClCompile Include="vk\vk_awkward_triangle.cpp" />
+    <ClCompile Include="vk\vk_vertex_attr_zoo.cpp" />
     <ClCompile Include="vk\vk_buffer_address.cpp" />
     <ClCompile Include="vk\vk_cbuffer_zoo.cpp" />
     <ClCompile Include="vk\vk_descriptor_index.cpp" />

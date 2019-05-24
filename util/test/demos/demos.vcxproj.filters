@@ -127,9 +127,6 @@
     <ClCompile Include="d3d11\d3d11_refcount_check.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk_awkward_triangle.cpp">
-      <Filter>Vulkan\demos</Filter>
-    </ClCompile>
     <ClCompile Include="gl\gl_spirv_shader.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
@@ -283,6 +280,18 @@
       <Filter>D3D11\demos</Filter>
     </ClCompile>
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_vertex_attr_zoo.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_vertex_attr_zoo.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_vertex_attr_zoo.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_vertex_attr_zoo.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
   </ItemGroup>

@@ -7,7 +7,6 @@ set(VULKAN_SRC
         vk/vk_helpers.cpp
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
-        vk/vk_awkward_triangle.cpp
         vk/vk_buffer_address.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_descriptor_index.cpp
@@ -20,6 +19,7 @@ set(VULKAN_SRC
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_structured_buffer_nested.cpp
+        vk/vk_vertex_attr_zoo.cpp
         vk/vk_video_textures.cpp
         vk/vk_vs_max_desc_set.cpp)
 
@@ -44,7 +44,8 @@ set(OPENGL_SRC
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
         gl/gl_unsized_ms_fbo_attachment.cpp
-        gl/gl_vao_0.cpp)
+        gl/gl_vao_0.cpp
+        gl/gl_vertex_attr_zoo.cpp)
 
 set(SRC main.cpp
         test_common.cpp

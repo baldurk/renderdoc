@@ -552,3 +552,10 @@ ID3D11GeometryShaderPtr D3D11GraphicsTest::CreateGS(ID3DBlobPtr blob,
                                                      (UINT)strides.size(), 0, NULL, &ret));
   return ret;
 }
+
+ID3D11GeometryShaderPtr D3D11GraphicsTest::CreateGS(ID3DBlobPtr blob)
+{
+  ID3D11GeometryShaderPtr ret;
+  CHECK_HR(dev->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &ret));
+  return ret;
+}
