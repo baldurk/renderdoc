@@ -211,7 +211,7 @@ bool SpvCompilationSupported()
   if(!pipe)
     return false;
 
-  msleep(250);
+  msleep(500);
 
   int code = pclose(pipe);
 
