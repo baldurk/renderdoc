@@ -53,5 +53,5 @@ std::string GetEnvVar(const char *var)
 
 void tmpnam_via_mkstemp(char (&buf)[MAX_PATH])
 {
-  snprintf(buf, MAX_PATH - 1, "/tmp/rdoc_tmp/%x", rand());
+  snprintf(buf, MAX_PATH - 1, "/tmp/rdoc_tmp_%x", rand());
 }
