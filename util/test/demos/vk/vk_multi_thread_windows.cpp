@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <thread>
 #include "vk_test.h"
 
 TEST(VK_Multi_Thread_Windows, VulkanGraphicsTest)

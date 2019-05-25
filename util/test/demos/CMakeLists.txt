@@ -64,10 +64,12 @@ else()
     set(BIN_SUFFIX "x86")
 endif()
 
+find_package(Threads REQUIRED)
+
 target_include_directories(demos
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vk/official
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_XCB_KHR=1)
-target_link_libraries(demos PRIVATE -lX11 -lxcb -lX11-xcb ${CMAKE_DL_LIBS})
+target_link_libraries(demos PRIVATE -lX11 -lxcb -lX11-xcb ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 set_target_properties(demos PROPERTIES OUTPUT_NAME demos_${BIN_SUFFIX})
 
