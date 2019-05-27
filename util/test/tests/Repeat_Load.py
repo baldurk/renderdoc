@@ -7,10 +7,10 @@ class Repeat_Load(rdtest.TestCase):
     slow_test = True
 
     def repeat_load(self, path):
-        memory_peak = memory_baseline = 0
+        memory_usage = memory_baseline = 0
 
         for i in range(20):
-            rdtest.log.print("Loading for iteration {}".format(i))
+            rdtest.log.print("Loading for iteration {}".format(i+1))
 
             try:
                 controller = rdtest.open_capture(path)
@@ -25,7 +25,6 @@ class Repeat_Load(rdtest.TestCase):
             # not be full
             if i == 1:
                 memory_baseline = memory_usage
-            memory_peak = max(memory_peak, memory_usage)
 
             controller.Shutdown()
 
@@ -35,12 +34,12 @@ class Repeat_Load(rdtest.TestCase):
                 pct_over = '{:.2f}%'.format((memory_usage / memory_baseline)*100)
 
             rdtest.log.success("Succeeded iteration {}, memory usage was {} ({} of baseline)"
-                               .format(i, memory_usage, pct_over))
+                               .format(i+1, memory_usage, pct_over))
 
-        pct_over = '{:.2f}%'.format((memory_peak / memory_baseline)*100)
-        msg = 'peak memory usage was {}, {} compared to baseline {}'.format(memory_peak, pct_over, memory_baseline)
+        pct_over = '{:.2f}%'.format((memory_usage / memory_baseline)*100)
+        msg = 'final memory usage was {}, {} compared to baseline {}'.format(memory_usage, pct_over, memory_baseline)
 
-        if memory_baseline * 1.25 < memory_peak:
+        if memory_baseline * 1.25 < memory_usage:
             raise rdtest.TestFailureException(msg)
         else:
             rdtest.log.success(msg)
