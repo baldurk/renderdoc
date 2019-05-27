@@ -316,6 +316,16 @@ class TestCase:
 
         return None
 
+    def get_resource(self, id: rd.ResourceId):
+        resources = self.controller.GetResources()
+
+        for r in resources:
+            r: rd.ResourceDescription
+            if r.resourceId == id:
+                return r
+
+        return None
+
     def get_last_draw(self):
         last_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[-1]
 
