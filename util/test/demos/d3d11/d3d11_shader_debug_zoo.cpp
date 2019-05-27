@@ -24,11 +24,9 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Debug_Shader, D3D11GraphicsTest)
+TEST(D3D11_Shader_Debug_Zoo, D3D11GraphicsTest)
 {
-  static constexpr const char *Description =
-      "Tests simple shader debugging identities by rendering many small triangles and "
-      "performing one calculation to each to an F32 target";
+  static constexpr const char *Description = "Tests shader debugging in different edge cases";
 
   struct ConstsA2V
   {
@@ -65,13 +63,7 @@ v2f main(consts IN, uint tri : SV_InstanceID)
 {
 	v2f OUT = (v2f)0;
 
-	OUT.pos = float4(IN.pos.xyz * 0.1f, 1);
-
-	uint row = tri / 10;
-	uint col = tri % 10;
-
-	OUT.pos.x += -0.9f + col*0.2f;
-	OUT.pos.y +=  0.85f - row*0.3f;
+	OUT.pos = float4(IN.pos.x + IN.pos.z * float(tri), IN.pos.y, 0.0f, 1);
 
 	OUT.zeroVal = IN.zeroVal.xx;
 	OUT.oneVal = IN.oneVal;
@@ -203,6 +195,8 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
+  static const uint32_t numTests = 34;
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -237,14 +231,17 @@ float4 main(v2f IN) : SV_Target0
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
 
-    ID3D11Texture2DPtr fltTex =
-        MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, screenWidth, screenHeight).RTV();
+    static const uint32_t texDim = AlignUp(numTests, 64U) * 4;
+
+    ID3D11Texture2DPtr fltTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, texDim, 4).RTV();
     ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
 
+    float triWidth = 8.0f / float(texDim);
+
     ConstsA2V triangle[] = {
-        {Vec3f(-0.5f, 0.0f, 0.0f), 0.0f, 1.0f, -1.0f},
-        {Vec3f(0.0f, 1.0f, 0.0f), 0.0f, 1.0f, -1.0f},
-        {Vec3f(0.5f, 0.0f, 0.0f), 0.0f, 1.0f, -1.0f},
+        {Vec3f(-1.0f, -1.0f, triWidth), 0.0f, 1.0f, -1.0f},
+        {Vec3f(-1.0f, 1.0f, triWidth), 0.0f, 1.0f, -1.0f},
+        {Vec3f(-1.0f + triWidth, 1.0f, triWidth), 0.0f, 1.0f, -1.0f},
     };
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(triangle);
@@ -271,11 +268,11 @@ float4 main(v2f IN) : SV_Target0
       ctx->VSSetShader(vs, NULL, 0);
       ctx->PSSetShader(ps, NULL, 0);
 
-      RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+      RSSetViewport({0.0f, 0.0f, (float)texDim, 4.0f, 0.0f, 1.0f});
 
       ctx->OMSetRenderTargets(1, &fltRT.GetInterfacePtr(), NULL);
 
-      ctx->DrawInstanced(3, 70, 0, 0);
+      ctx->DrawInstanced(3, numTests, 0, 0);
 
       Present();
     }

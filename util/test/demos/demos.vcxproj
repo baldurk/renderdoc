@@ -137,7 +137,7 @@
     <ClCompile Include="d3d11\d3d11_mip_gen_rt.cpp" />
     <ClCompile Include="d3d11\d3d11_mip_rtv.cpp" />
     <ClCompile Include="d3d11\d3d11_overdraw_stress.cpp" />
-    <ClCompile Include="d3d11\d3d11_debug_shader.cpp" />
+    <ClCompile Include="d3d11\d3d11_shader_debug_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_overlay_test.cpp" />
     <ClCompile Include="d3d11\d3d11_primitive_restart.cpp" />
     <ClCompile Include="d3d11\d3d11_refcount_check.cpp" />

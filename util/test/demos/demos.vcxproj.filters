@@ -16,9 +16,6 @@
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
-    <ClCompile Include="d3d11\d3d11_debug_shader.cpp">
-      <Filter>D3D11\demos</Filter>
-    </ClCompile>
     <ClCompile Include="d3d11\d3d11_mip_rtv.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
@@ -299,6 +296,9 @@
     </ClCompile>
     <ClCompile Include="gl\gl_per_type_tex_units.cpp">
       <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_shader_debug_zoo.cpp">
+      <Filter>D3D11\demos</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

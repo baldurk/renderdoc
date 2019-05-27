@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import time
+import math
 import struct
 import platform
 import hashlib
@@ -243,6 +244,10 @@ def value_compare(ref, data):
     if type(ref) == float:
         if type(data) != float:
             return False
+
+        # Special handling for NaNs
+        if math.isnan(ref) == math.isnan(data):
+            return True
 
         # Floats are equal if the absolute difference is less than epsilon times the largest.
         largest = max(abs(ref), abs(data))
