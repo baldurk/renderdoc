@@ -871,6 +871,10 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   uint32_t queueCount = 0;
   VkQueueFamilyProperties queueProps[16] = {};
 
+  VkPhysicalDeviceDriverPropertiesKHR driverProps = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+  };
+
   if(ser.IsWriting())
   {
     memcpy(memIdxMap, GetRecord(*pPhysicalDevices)->memIdxMap, sizeof(memIdxMap));
@@ -890,6 +894,33 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
 
     ObjDisp(instance)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(*pPhysicalDevices),
                                                               &queueCount, queueProps);
+
+    if(GetExtensions(GetRecord(instance)).ext_KHR_get_physical_device_properties2)
+    {
+      uint32_t count = 0;
+      ObjDisp(*pPhysicalDevices)
+          ->EnumerateDeviceExtensionProperties(Unwrap(*pPhysicalDevices), NULL, &count, NULL);
+
+      VkExtensionProperties *props = new VkExtensionProperties[count];
+      ObjDisp(*pPhysicalDevices)
+          ->EnumerateDeviceExtensionProperties(Unwrap(*pPhysicalDevices), NULL, &count, props);
+
+      for(uint32_t e = 0; e < count; e++)
+      {
+        if(!strcmp(props[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+        {
+          VkPhysicalDeviceProperties2 physProps2 = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+          };
+
+          physProps2.pNext = &driverProps;
+          ObjDisp(instance)->GetPhysicalDeviceProperties2(Unwrap(*pPhysicalDevices), &physProps2);
+          break;
+        }
+      }
+
+      SAFE_DELETE_ARRAY(props);
+    }
   }
 
   SERIALISE_ELEMENT(memIdxMap);
@@ -899,20 +930,28 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   SERIALISE_ELEMENT(queueCount);
   SERIALISE_ELEMENT(queueProps);
 
+  // serialisation of the driver properties was added in 0x10
+  if(ser.VersionAtLeast(0x10))
+  {
+    SERIALISE_ELEMENT(driverProps);
+
+    // we don't need any special handling if this is missing - the properties will be empty which is
+    // the same as a new capture if we can't query the properties
+  }
+
   VkPhysicalDevice pd = VK_NULL_HANDLE;
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
+    bool firstTime = true;
+
+    for(bool used : m_ReplayPhysicalDevicesUsed)
+      if(used)
+        firstTime = false;
+
     {
-      VkDriverInfo capturedVersion(physProps);
-
-      RDCLOG("Capture describes physical device %u:", PhysicalDeviceIndex);
-      RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
-             capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
-             physProps.vendorID, physProps.deviceID);
-
       if(PhysicalDeviceIndex >= m_OriginalPhysicalDevices.size())
         m_OriginalPhysicalDevices.resize(PhysicalDeviceIndex + 1);
 
@@ -931,31 +970,81 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     // bad side-effects as e.g. we have to pick one memidxmap, but this is as good as we can do.
 
     uint32_t bestIdx = 0;
-    VkPhysicalDeviceProperties bestPhysProps;
-    VkPhysicalDeviceMemoryProperties bestMemProps;
+    VkPhysicalDeviceProperties bestPhysProps = {};
+    VkPhysicalDeviceDriverPropertiesKHR bestDriverProps = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+    };
 
-    pd = m_ReplayPhysicalDevices[bestIdx];
-
-    ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &bestPhysProps);
-    ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &bestMemProps);
-
-    for(uint32_t i = 1; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
+    for(uint32_t i = 0; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
     {
-      VkPhysicalDeviceProperties compPhysProps;
-      VkPhysicalDeviceMemoryProperties compMemProps;
+      VkPhysicalDeviceProperties compPhysProps = {};
+      VkPhysicalDeviceDriverPropertiesKHR compDriverProps = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+      };
 
       pd = m_ReplayPhysicalDevices[i];
 
       // find the best possible match for this physical device
       ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &compPhysProps);
-      ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &compMemProps);
+
+      if(m_EnabledExtensions.ext_KHR_get_physical_device_properties2)
+      {
+        uint32_t count = 0;
+        ObjDisp(pd)->EnumerateDeviceExtensionProperties(Unwrap(pd), NULL, &count, NULL);
+
+        VkExtensionProperties *props = new VkExtensionProperties[count];
+        ObjDisp(pd)->EnumerateDeviceExtensionProperties(Unwrap(pd), NULL, &count, props);
+
+        for(uint32_t e = 0; e < count; e++)
+        {
+          if(!strcmp(props[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+          {
+            VkPhysicalDeviceProperties2 physProps2 = {
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+            };
+
+            physProps2.pNext = &compDriverProps;
+            ObjDisp(pd)->GetPhysicalDeviceProperties2(Unwrap(pd), &physProps2);
+            break;
+          }
+        }
+
+        SAFE_DELETE_ARRAY(props);
+      }
+
+      if(firstTime)
+      {
+        VkDriverInfo runningVersion(compPhysProps);
+
+        RDCLOG("Replay has physical device %u available:", i);
+        RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", compPhysProps.deviceName,
+               runningVersion.Major(), runningVersion.Minor(), runningVersion.Patch(),
+               compPhysProps.vendorID, compPhysProps.deviceID);
+
+        if(compDriverProps.driverID != 0)
+        {
+          RDCLOG(
+              "   - %s driver: %s (%s) - CTS %d.%d.%d.%d", ToStr(compDriverProps.driverID).c_str(),
+              compDriverProps.driverName, compDriverProps.driverInfo,
+              compDriverProps.conformanceVersion.major, compDriverProps.conformanceVersion.minor,
+              compDriverProps.conformanceVersion.subminor, compDriverProps.conformanceVersion.patch);
+        }
+      }
+
+      // the first is the best at the start
+      if(i == 0)
+      {
+        bestPhysProps = compPhysProps;
+        bestDriverProps = compDriverProps;
+        continue;
+      }
 
       // an exact vendorID match is a better match than not
       if(compPhysProps.vendorID == physProps.vendorID && bestPhysProps.vendorID != physProps.vendorID)
       {
         bestIdx = i;
         bestPhysProps = compPhysProps;
-        bestMemProps = compMemProps;
+        bestDriverProps = compDriverProps;
         continue;
       }
       else if(compPhysProps.vendorID != physProps.vendorID)
@@ -968,10 +1057,43 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
       {
         bestIdx = i;
         bestPhysProps = compPhysProps;
-        bestMemProps = compMemProps;
+        bestDriverProps = compDriverProps;
         continue;
       }
       else if(compPhysProps.deviceID != physProps.deviceID)
+      {
+        continue;
+      }
+
+      // driver matching. Only do this if both capture and replay gave us valid driver info to
+      // compare
+      if(compDriverProps.driverID && driverProps.driverID)
+      {
+        // check for a better driverID match
+        if(compDriverProps.driverID == driverProps.driverID &&
+           bestDriverProps.driverID != driverProps.driverID)
+        {
+          bestIdx = i;
+          bestPhysProps = compPhysProps;
+          bestDriverProps = compDriverProps;
+          continue;
+        }
+        else if(compDriverProps.driverID != driverProps.driverID)
+        {
+          continue;
+        }
+      }
+
+      // if we have an exact driver version match, prefer that
+      if(compPhysProps.driverVersion == physProps.driverVersion &&
+         bestPhysProps.driverVersion != physProps.driverVersion)
+      {
+        bestIdx = i;
+        bestPhysProps = compPhysProps;
+        bestDriverProps = compDriverProps;
+        continue;
+      }
+      else if(compPhysProps.driverVersion != physProps.driverVersion)
       {
         continue;
       }
@@ -982,7 +1104,6 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
       {
         bestIdx = i;
         bestPhysProps = compPhysProps;
-        bestMemProps = compMemProps;
         continue;
       }
 
@@ -990,12 +1111,22 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     }
 
     {
-      VkDriverInfo runningVersion(bestPhysProps);
+      VkDriverInfo capturedVersion(physProps);
 
-      RDCLOG("Mapping during replay to physical device %u:", bestIdx);
-      RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", bestPhysProps.deviceName,
-             runningVersion.Major(), runningVersion.Minor(), runningVersion.Patch(),
-             bestPhysProps.vendorID, bestPhysProps.deviceID);
+      RDCLOG("Found capture physical device %u:", PhysicalDeviceIndex);
+      RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
+             capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
+             physProps.vendorID, physProps.deviceID);
+
+      if(driverProps.driverID != 0)
+      {
+        RDCLOG("   - %s driver: %s (%s) - CTS %d.%d.%d.%d", ToStr(driverProps.driverID).c_str(),
+               driverProps.driverName, driverProps.driverInfo, driverProps.conformanceVersion.major,
+               driverProps.conformanceVersion.minor, driverProps.conformanceVersion.subminor,
+               driverProps.conformanceVersion.patch);
+      }
+
+      RDCLOG("Mapping during replay to best-match physical device %u", bestIdx);
     }
 
     pd = m_ReplayPhysicalDevices[bestIdx];
@@ -1030,7 +1161,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     if(m_ReplayPhysicalDevicesUsed[bestIdx])
     {
       // error if we're remapping multiple physical devices to the same best match
-      RDCERR(
+      RDCWARN(
           "Mapping multiple capture-time physical devices to a single replay-time physical device."
           "This means the HW has changed between capture and replay and may cause bugs.");
     }
@@ -1287,6 +1418,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     {
       Extensions.push_back("VK_MVK_moltenvk");
       RDCLOG("Enabling VK_MVK_moltenvk");
+    }
+
+    // enable VK_KHR_driver_properties if it's available, to match up to capture-time
+    if(supportedExtensions.find(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      Extensions.push_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+      RDCLOG("Enabling VK_KHR_driver_properties");
     }
 
     bool xfb = false;
@@ -2272,6 +2410,35 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
   }
+
+  std::vector<const char *> Extensions(
+      createInfo.ppEnabledExtensionNames,
+      createInfo.ppEnabledExtensionNames + createInfo.enabledExtensionCount);
+
+  // enable VK_KHR_driver_properties if it's available
+  {
+    uint32_t count = 0;
+    ObjDisp(physicalDevice)
+        ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &count, NULL);
+
+    VkExtensionProperties *props = new VkExtensionProperties[count];
+    ObjDisp(physicalDevice)
+        ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &count, props);
+
+    for(uint32_t e = 0; e < count; e++)
+    {
+      if(!strcmp(props[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+      {
+        Extensions.push_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+        break;
+      }
+    }
+
+    SAFE_DELETE_ARRAY(props);
+  }
+
+  createInfo.ppEnabledExtensionNames = Extensions.data();
+  createInfo.enabledExtensionCount = (uint32_t)Extensions.size();
 
   uint32_t qCount = 0;
   VkResult vkr = VK_SUCCESS;

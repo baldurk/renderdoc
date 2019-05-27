@@ -270,6 +270,11 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0xF -> 0x10 - added serialisation of VkPhysicalDeviceDriverPropertiesKHR into enumerated
+  // physical devices
+  if(ver == 0xF)
+    return true;
+
   // 0xE -> 0xF - serialisation of VkPhysicalDeviceVulkanMemoryModelFeaturesKHR changed in vulkan
   // 1.1.99, adding a new field
   if(ver == 0xE)
