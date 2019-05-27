@@ -50,3 +50,16 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
         }
 
         self.check_mesh_data(postvs_ref, postvs_data)
+
+        # Now check the draw with a vertex offset
+        draw = self.find_draw("Draw", draw.eventId+1)
+
+        self.check(draw is not None)
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+
+        # Data should be identical
+
+        self.check_mesh_data(postvs_ref, postvs_data)
