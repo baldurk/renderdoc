@@ -39,6 +39,7 @@ set(OPENGL_SRC
         gl/gl_mip_gen_rt.cpp
         gl/gl_multi_window.cpp
         gl/gl_overlay_test.cpp
+        gl/gl_per_type_tex_units.cpp
         gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp

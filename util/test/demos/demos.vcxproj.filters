@@ -297,6 +297,9 @@
     <ClCompile Include="vk\vk_multi_thread_windows.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_per_type_tex_units.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
