@@ -152,6 +152,7 @@
     <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
     <ClCompile Include="d3d11\d3d11_test.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
+    <ClCompile Include="d3d11\d3d11_untyped_backbuffer_descriptor.cpp" />
     <ClCompile Include="d3d11\d3d11_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
@@ -160,6 +161,7 @@
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
+    <ClCompile Include="d3d12\d3d12_untyped_backbuffer_descriptor.cpp" />
     <ClCompile Include="d3d12\d3d12_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_video_textures.cpp" />
     <ClCompile Include="dx\d3d_helpers.cpp" />
