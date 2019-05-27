@@ -187,9 +187,6 @@ struct D3D11ResourceRecord : public ResourceRecord
   D3D11ResourceRecord **SubResources;
 
 private:
-  byte *ShadowPtr[2];
-  size_t ShadowSize;
-
   struct ShadowPointerData
   {
     static byte markerValue[32];
