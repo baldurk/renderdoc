@@ -1009,7 +1009,7 @@ void LiveCapture::captureAdded(const NewCaptureData &newCapture)
     cap->api = QString::fromUtf8(m_Connection->GetAPI());
 
   cap->timestamp =
-      QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0)).addSecs(newCapture.timestamp).toLocalTime();
+      QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0), Qt::UTC).addSecs(newCapture.timestamp).toLocalTime();
 
   cap->thumb = QImage(newCapture.thumbnail.data(), newCapture.thumbWidth, newCapture.thumbHeight,
                       newCapture.thumbWidth * 3, QImage::Format_RGB888)
