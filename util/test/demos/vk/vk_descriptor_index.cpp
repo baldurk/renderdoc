@@ -228,6 +228,20 @@ void main()
     if(!Avail.empty())
       return;
 
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(phys, &props);
+
+    // lazy - we could reduce this limit to a couple by not using combined image samplers
+    if(props.limits.maxDescriptorSetSamplers < DESC_ARRAY1_SIZE + DESC_ARRAY2_SIZE)
+      Avail = "maxDescriptorSetSamplers " + std::to_string(props.limits.maxDescriptorSetSamplers) +
+              " is insufficient";
+    else if(props.limits.maxDescriptorSetSampledImages < DESC_ARRAY1_SIZE + DESC_ARRAY2_SIZE)
+      Avail = "maxDescriptorSetSampledImages " +
+              std::to_string(props.limits.maxDescriptorSetSampledImages) + " is insufficient";
+
+    if(!Avail.empty())
+      return;
+
     static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexing = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
     };
