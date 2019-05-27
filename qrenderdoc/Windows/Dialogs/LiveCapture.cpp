@@ -770,7 +770,12 @@ void LiveCapture::openCapture(Capture *cap)
 bool LiveCapture::saveCapture(Capture *cap, QString path)
 {
   if(path.isEmpty())
+  {
     path = m_Main->GetSavePath();
+
+    if(path.isEmpty())
+      return false;
+  }
 
   if(QString(m_Ctx.GetCaptureFilename()) == path)
   {
@@ -783,76 +788,71 @@ bool LiveCapture::saveCapture(Capture *cap, QString path)
   // we copy the temp capture to the desired path, but the capture item remains referring to the
   // temp path.
   // This ensures that if the user deletes the saved path we can still open or re-save it.
-  if(!path.isEmpty())
+  if(cap->local)
   {
-    if(cap->local)
+    QFile src(cap->path);
+    QFile dst(path);
+
+    // remove any existing file, the user was already prompted to overwrite
+    if(dst.exists())
     {
-      QFile src(cap->path);
-      QFile dst(path);
-
-      // remove any existing file, the user was already prompted to overwrite
-      if(dst.exists())
-      {
-        if(!dst.remove())
-        {
-          RDDialog::critical(this, tr("Cannot save"),
-                             tr("Couldn't remove file at %1\n%2").arg(path).arg(dst.errorString()));
-          return false;
-        }
-      }
-
-      if(!src.copy(path))
+      if(!dst.remove())
       {
         RDDialog::critical(this, tr("Cannot save"),
-                           tr("Couldn't copy file to %1\n%2").arg(path).arg(src.errorString()));
+                           tr("Couldn't remove file at %1\n%2").arg(path).arg(dst.errorString()));
         return false;
       }
     }
-    else if(m_Connection && m_Connection->Connected())
+
+    if(!src.copy(path))
     {
-      // if we have a current live connection, prefer using it
-      m_CopyCaptureLocalPath = path;
-      m_CopyCaptureID = cap->remoteID;
+      RDDialog::critical(this, tr("Cannot save"),
+                         tr("Couldn't copy file to %1\n%2").arg(path).arg(src.errorString()));
+      return false;
     }
-    else
+  }
+  else if(m_Connection && m_Connection->Connected())
+  {
+    // if we have a current live connection, prefer using it
+    m_CopyCaptureLocalPath = path;
+    m_CopyCaptureID = cap->remoteID;
+  }
+  else
+  {
+    if(!m_Ctx.Replay().CurrentRemote() ||
+       QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
+       !m_Ctx.Replay().CurrentRemote()->connected)
     {
-      if(!m_Ctx.Replay().CurrentRemote() ||
-         QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
-         !m_Ctx.Replay().CurrentRemote()->connected)
-      {
-        RDDialog::critical(this, tr("No active replay context"),
-                           tr("This capture is on remote host %1 and there is no active replay "
-                              "context on that host.\n") +
-                               tr("Without an active replay context the capture cannot be saved, "
-                                  "try switching to a replay context on %1.")
-                                   .arg(m_Hostname));
-        return false;
-      }
-
-      m_Ctx.Replay().CopyCaptureFromRemote(cap->path, path, this);
-
-      if(!QFile::exists(path))
-      {
-        RDDialog::critical(this, tr("Cannot save"),
-                           tr("File couldn't be transferred from remote host"));
-        return false;
-      }
-
-      m_Ctx.Replay().DeleteCapture(cap->path, false);
+      RDDialog::critical(this, tr("No active replay context"),
+                         tr("This capture is on remote host %1 and there is no active replay "
+                            "context on that host.\n") +
+                             tr("Without an active replay context the capture cannot be saved, "
+                                "try switching to a replay context on %1.")
+                                 .arg(m_Hostname));
+      return false;
     }
 
-    // delete the temporary copy
-    if(!cap->saved)
-      m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
+    m_Ctx.Replay().CopyCaptureFromRemote(cap->path, path, this);
 
-    cap->saved = true;
-    cap->path = path;
-    AddRecentFile(m_Ctx.Config().RecentCaptureFiles, path, 10);
-    m_Main->PopulateRecentCaptureFiles();
-    return true;
+    if(!QFile::exists(path))
+    {
+      RDDialog::critical(this, tr("Cannot save"),
+                         tr("File couldn't be transferred from remote host"));
+      return false;
+    }
+
+    m_Ctx.Replay().DeleteCapture(cap->path, false);
   }
 
-  return false;
+  // delete the temporary copy
+  if(!cap->saved)
+    m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
+
+  cap->saved = true;
+  cap->path = path;
+  AddRecentFile(m_Ctx.Config().RecentCaptureFiles, path, 10);
+  m_Main->PopulateRecentCaptureFiles();
+  return true;
 }
 
 void LiveCapture::cleanItems()
@@ -1057,6 +1057,10 @@ void LiveCapture::connectionClosed()
            !m_Ctx.Replay().CurrentRemote()->connected)
           return;
       }
+
+      // don't close if a dialog is open
+      if(QApplication::activeModalWidget() || QApplication::activePopupWidget())
+        return;
 
       if(cap->opened)
         return;
