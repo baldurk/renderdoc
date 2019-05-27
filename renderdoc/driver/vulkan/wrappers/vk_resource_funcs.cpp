@@ -512,6 +512,7 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
   }
 
   m_ForcedReferences.erase(GetResID(memory));
+  m_CreationInfo.erase(GetResID(memory));
 
   GetResourceManager()->ReleaseWrappedResource(memory);
 

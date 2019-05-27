@@ -502,4 +502,26 @@ struct VulkanCreationInfo
 
   // just contains the queueFamilyIndex (after remapping)
   std::map<ResourceId, uint32_t> m_Queue;
+
+  void erase(ResourceId id)
+  {
+    m_Pipeline.erase(id);
+    m_PipelineLayout.erase(id);
+    m_RenderPass.erase(id);
+    m_Framebuffer.erase(id);
+    m_Memory.erase(id);
+    m_Buffer.erase(id);
+    m_BufferView.erase(id);
+    m_Image.erase(id);
+    m_Sampler.erase(id);
+    m_YCbCrSampler.erase(id);
+    m_ImageView.erase(id);
+    m_ShaderModule.erase(id);
+    m_DescSetPool.erase(id);
+    m_Names.erase(id);
+    m_SwapChain.erase(id);
+    m_DescSetLayout.erase(id);
+    m_DescUpdateTemplate.erase(id);
+    m_Queue.erase(id);
+  }
 };
