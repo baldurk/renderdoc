@@ -163,6 +163,7 @@
     </ClCompile>
     <ClCompile Include="spirv_editor.cpp" />
     <ClCompile Include="spirv_reflect.cpp" />
+    <ClCompile Include="spirv_gen.cpp" />
     <ClCompile Include="spirv_stringise.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -216,6 +217,8 @@
     <ClInclude Include="spirv_common.h" />
     <ClInclude Include="spirv_compile.h" />
     <ClInclude Include="spirv_editor.h" />
+    <ClInclude Include="spirv_gen.h" />
+    <ClInclude Include="spirv_op_helpers.h" />
     <ClInclude Include="spirv_reflect.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

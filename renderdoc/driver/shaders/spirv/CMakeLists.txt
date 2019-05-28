@@ -93,6 +93,9 @@ set(sources
     spirv_common.h
     spirv_editor.cpp
     spirv_editor.h
+    spirv_gen.cpp
+    spirv_gen.h
+    spirv_op_helpers.h
     spirv_compile.cpp
     spirv_compile.h
     spirv_reflect.cpp

@@ -28,29 +28,12 @@
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "api/replay/renderdoc_replay.h"
+#include "spirv_gen.h"
 
 namespace rdcspv
 {
 // length of 1 word in the top 16-bits, OpNop = 0 in the lower 16-bits
 static constexpr uint32_t OpNopWord = 0x00010000U;
-
-struct Id
-{
-  constexpr inline Id() : id(0) {}
-  // only allow explicit functions to cast to/from uint32_t
-  constexpr static inline Id fromWord(uint32_t i) { return Id(i); }
-  inline uint32_t value() const { return id; }
-  constexpr inline explicit operator bool() const { return id != 0; }
-  constexpr inline bool operator==(const Id o) const { return id == o.id; }
-  constexpr inline bool operator!=(const Id o) const { return id != o.id; }
-  constexpr inline bool operator<(const Id o) const { return id < o.id; }
-  constexpr inline bool operator==(const uint32_t o) const { return id == o; }
-  constexpr inline bool operator!=(const uint32_t o) const { return id != o; }
-  constexpr inline bool operator<(const uint32_t o) const { return id < o; }
-private:
-  constexpr inline Id(uint32_t i) : id(i) {}
-  uint32_t id;
-};
 
 class Operation;
 
@@ -134,6 +117,8 @@ private:
 class Operation
 {
 public:
+  // temporary hack so the (unused) generated code will compile
+  Operation(rdcspv::Op op, const std::vector<uint32_t> &data) : Operation((spv::Op)op, data) {}
   // constructor of a synthetic operation, from an operation & subsequent words, calculates the
   // length then constructs the first word with opcode + length.
   Operation(spv::Op op, const std::vector<uint32_t> &data)
