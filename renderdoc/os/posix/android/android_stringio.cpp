@@ -90,7 +90,10 @@ void GetExecutableFilename(std::string &selfName)
     return;
   }
 
-  selfName = buf;
+  // Strip any process name from cmdline (android:process)
+  std::string cmdline = buf;
+  std::string filename = cmdline.substr(0, cmdline.find(":"));
+  selfName = filename;
 }
 
 void GetLibraryFilename(std::string &selfName)
