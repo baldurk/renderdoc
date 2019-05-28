@@ -50,6 +50,8 @@ bool toolExists(const std::string &path);
 std::string GetFirstMatchingLine(const std::string &haystack, const std::string &needle);
 
 bool IsSupported(std::string deviceID);
+bool SupportsNativeLayers(const rdcstr &deviceID);
+std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName);
 rdcstr GetFriendlyName(const rdcstr &deviceID);
 
 // supported ABIs

@@ -901,27 +901,59 @@ static void EGLHooked(void *handle)
 }
 
 #if ENABLED(RDOC_WIN32)
+
 bool ShouldHookEGL()
 {
   const char *toggle = Process::GetEnvVariable("RENDERDOC_HOOK_EGL");
 
   // if the var is set to 0, then don't hook EGL
   if(toggle && toggle[0] == '0')
+  {
+    RDCLOG(
+        "EGL hooks disabled by RENDERDOC_HOOK_EGL environment variable - "
+        "if GLES emulator is in use, underlying API will be captured");
     return false;
+  }
 
   return true;
 }
+
+#elif ENABLED(RDOC_ANDROID)
+
+bool ShouldHookEGL()
+{
+  void *egl_handle = dlopen("libEGL.so", RTLD_LAZY);
+  PFN_eglQueryString query_string = (PFN_eglQueryString)dlsym(egl_handle, "eglQueryString");
+  if(!query_string)
+  {
+    RDCERR("Unable to find eglQueryString entry point, enabling EGL hooking");
+    return true;
+  }
+
+  const char *eglExts = query_string(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+
+  if(eglExts && strstr(eglExts, "EGL_ANDROID_GLES_layers"))
+  {
+    RDCLOG("EGL_ANDROID_GLES_layers detected, disabling EGL hooks - GLES layering in effect");
+    return false;
+  }
+
+  return true;
+}
+
+#else
+
+bool ShouldHookEGL()
+{
+  return true;
+}
+
 #endif
 
 void EGLHook::RegisterHooks()
 {
-#if ENABLED(RDOC_WIN32)
   if(!ShouldHookEGL())
-  {
-    RDCLOG("EGL hooks disabled - if GLES emulator is in use, underlying API will be captured");
     return;
-  }
-#endif
 
   RDCLOG("Registering EGL hooks");
 
@@ -960,3 +992,49 @@ void EGLHook::RegisterHooks()
   EGL_HOOKED_SYMBOLS(EGL_REGISTER)
 #undef EGL_REGISTER
 }
+
+// Android GLES layering support
+#if ENABLED(RDOC_ANDROID)
+
+typedef __eglMustCastToProperFunctionPointerType(EGLAPIENTRY *PFNEGLGETNEXTLAYERPROCADDRESSPROC)(
+    void *, const char *funcName);
+
+HOOK_EXPORT void AndroidGLESLayer_Initialize(void *layer_id,
+                                             PFNEGLGETNEXTLAYERPROCADDRESSPROC next_gpa)
+{
+  RDCLOG("Initialising Android GLES layer with ID %p", layer_id);
+
+  // as a hook callback this is only called while capturing
+  RDCASSERT(!RenderDoc::Inst().IsReplayApp());
+
+// populate EGL dispatch table with the next layer's function pointers. Fetch all 'hooked' and
+// non-hooked functions
+#define EGL_FETCH(func, isext)                                                 \
+  EGL.func = (CONCAT(PFN_egl, func))next_gpa(layer_id, "egl" STRINGIZE(func)); \
+  if(!EGL.func)                                                                \
+    RDCWARN("Couldn't fetch function pointer for egl" STRINGIZE(func));
+  EGL_HOOKED_SYMBOLS(EGL_FETCH)
+  EGL_NONHOOKED_SYMBOLS(EGL_FETCH)
+#undef EGL_FETCH
+
+  // populate GL dispatch table with the next layer's function pointers
+  GL.PopulateWithCallback(
+      [layer_id, next_gpa](const char *f) { return (void *)next_gpa(layer_id, f); });
+}
+
+HOOK_EXPORT void *AndroidGLESLayer_GetProcAddress(const char *funcName,
+                                                  __eglMustCastToProperFunctionPointerType next)
+{
+// return our egl hooks
+#define GPA_FUNCTION(name, isext)              \
+  if(!strcmp(funcName, "egl" STRINGIZE(name))) \
+    return (void *)&CONCAT(egl, CONCAT(name, _renderdoc_hooked));
+  EGL_HOOKED_SYMBOLS(GPA_FUNCTION)
+#undef GPA_FUNCTION
+
+  // otherwise, consult our database of hooks
+  // Android GLES layer spec expects us to return next unmodified for functions we don't support
+  return HookedGetProcAddress(funcName, (void *)next);
+}
+
+#endif    // ENABLED(RDOC_ANDROID)

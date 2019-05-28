@@ -403,6 +403,12 @@ bool RemoveRenderDocAndroidServer(const std::string &deviceID)
 void ResetCaptureSettings(const std::string &deviceID)
 {
   Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :", ".", true);
+  Android::adbExecCommand(deviceID, "shell settings delete global enable_gpu_debug_layers", ".",
+                          true);
+  Android::adbExecCommand(deviceID, "shell settings delete global gpu_debug_app", ".", true);
+  Android::adbExecCommand(deviceID, "shell settings delete global gpu_debug_layer_app", ".", true);
+  Android::adbExecCommand(deviceID, "shell settings delete global gpu_debug_layers", ".", true);
+  Android::adbExecCommand(deviceID, "shell settings delete global gpu_debug_layers_gles", ".", true);
 }
 
 rdcarray<rdcstr> EnumerateDevices()
@@ -937,6 +943,7 @@ struct AndroidController : public IDeviceProtocolHandler
     return &m_Inst;
   };
 };
+
 ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w, const char *c,
                                                     const rdcarray<EnvironmentModification> &env,
                                                     const CaptureOptions &opts)
@@ -977,9 +984,41 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     Android::adbExecCommand(m_deviceID, StringFormat::Fmt("forward --remove tcp:%i", jdwpPort));
     // force stop the package if it was running before
     Android::adbExecCommand(m_deviceID, "shell am force-stop " + packageName);
-    // enable the vulkan layer (will only be used by vulkan programs)
-    Android::adbExecCommand(m_deviceID,
-                            "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
+
+    bool hookWithJDWP = true;
+
+    if(Android::SupportsNativeLayers(m_deviceID))
+    {
+      RDCLOG("Using Android 10 native GPU layering");
+
+      // if we have Android 10 native layering, don't use JDWP hooking
+      hookWithJDWP = false;
+
+      // set up environment variables for the package, and point to ourselves for vulkan and GLES
+      // layers
+      std::string installedABI = Android::DetermineInstalledABI(m_deviceID, packageName);
+      std::string layerPackage = GetRenderDocPackageForABI(Android::GetABI(installedABI));
+      Android::adbExecCommand(m_deviceID, "shell settings put global enable_gpu_debug_layers 1");
+      Android::adbExecCommand(m_deviceID, "shell settings put global gpu_debug_app " + packageName);
+      Android::adbExecCommand(m_deviceID,
+                              "shell settings put global gpu_debug_layer_app " + layerPackage);
+      Android::adbExecCommand(
+          m_deviceID, "shell settings put global gpu_debug_layers " RENDERDOC_VULKAN_LAYER_NAME);
+      Android::adbExecCommand(
+          m_deviceID, "shell settings put global gpu_debug_layers_gles " RENDERDOC_ANDROID_LIBRARY);
+    }
+    else
+    {
+      RDCLOG("Using pre-Android 10 Vulkan layering and JDWP injection");
+
+      // use JDWP hooking to inject our library for GLES
+      hookWithJDWP = true;
+
+      // enable the vulkan layer (will only be used by vulkan programs)
+      Android::adbExecCommand(m_deviceID,
+                              "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
+    }
+
     // if in VR mode, enable frame delimiter markers
     Android::adbExecCommand(m_deviceID, "shell setprop debug.vr.profiler 1");
     // create the data directory we will use for storing, in case the application doesn't
@@ -1007,8 +1046,6 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) != std::string::npos)
       RDCLib.clear();
 
-    bool injectLibraries = true;
-
     if(RDCLib.empty())
     {
       RDCLOG("No library found in %s/lib/*/" RENDERDOC_ANDROID_LIBRARY
@@ -1017,7 +1054,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     }
     else
     {
-      injectLibraries = false;
+      hookWithJDWP = false;
       RDCLOG("Library found, no injection required: %s", RDCLib.c_str());
     }
 
@@ -1025,7 +1062,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     RDCLOG("Launching package '%s' with activity '%s'", packageName.c_str(), activityName.c_str());
 
-    if(injectLibraries)
+    if(hookWithJDWP)
     {
       RDCLOG("Setting up to launch the application as a debugger to inject.");
 
@@ -1043,8 +1080,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     }
     else
     {
-      RDCLOG(
-          "Not doing any injection - assuming APK is pre-loaded with RenderDoc capture library.");
+      RDCLOG("Launching APK with no debugger or direct injection.");
 
       // start the activity in this package with debugging enabled and force-stop after starting
       Android::adbExecCommand(m_deviceID,

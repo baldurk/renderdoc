@@ -24,6 +24,7 @@
 
 #include "android_utils.h"
 #include <algorithm>
+#include <sstream>
 #include "core/core.h"
 #include "strings/string_utils.h"
 
@@ -181,6 +182,51 @@ bool IsSupported(std::string deviceID)
   }
 
   return true;
+}
+
+bool SupportsNativeLayers(const rdcstr &deviceID)
+{
+  std::string api =
+      trim(Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout);
+
+  int apiVersion = atoi(api.c_str());
+
+  // SDK 29 == Android 10.0, the first version that included layering
+  if(apiVersion >= 29)
+    return true;
+
+  return false;
+}
+
+std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName)
+{
+  RDCLOG("Checking installed ABI for %s", packageName.c_str());
+  std::string abi;
+
+  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  if(dump.empty())
+    RDCERR("Unable to pm dump %s", packageName.c_str());
+
+  // Walk through the output and look for primaryCpuAbi
+  std::istringstream contents(dump);
+  std::string line;
+  std::string prefix("primaryCpuAbi=");
+  while(std::getline(contents, line))
+  {
+    line = trim(line);
+    if(line.compare(0, prefix.size(), prefix) == 0)
+    {
+      // Extract the abi
+      abi = line.substr(line.find_last_of("=") + 1);
+      RDCLOG("primaryCpuAbi found: %s", abi.c_str());
+      break;
+    }
+  }
+
+  if(abi.empty())
+    RDCERR("Unable to determine installed abi for: %s", packageName.c_str());
+
+  return abi;
 }
 
 rdcstr GetFriendlyName(const rdcstr &deviceID)

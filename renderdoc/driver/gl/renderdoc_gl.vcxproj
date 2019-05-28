@@ -135,6 +135,7 @@
     <ClCompile Include="cgl_hooks.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="egl_layer_android.cpp" />
     <ClCompile Include="glx_fake_vk_hooks.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

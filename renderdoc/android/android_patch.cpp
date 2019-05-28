@@ -390,37 +390,6 @@ bool CheckPatchingRequirements()
   return true;
 }
 
-std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName)
-{
-  RDCLOG("Checking installed ABI for %s", packageName.c_str());
-  std::string abi;
-
-  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
-  if(dump.empty())
-    RDCERR("Unable to pm dump %s", packageName.c_str());
-
-  // Walk through the output and look for primaryCpuAbi
-  std::istringstream contents(dump);
-  std::string line;
-  std::string prefix("primaryCpuAbi=");
-  while(std::getline(contents, line))
-  {
-    line = trim(line);
-    if(line.compare(0, prefix.size(), prefix) == 0)
-    {
-      // Extract the abi
-      abi = line.substr(line.find_last_of("=") + 1);
-      RDCLOG("primaryCpuAbi found: %s", abi.c_str());
-      break;
-    }
-  }
-
-  if(abi.empty())
-    RDCERR("Unable to determine installed abi for: %s", packageName.c_str());
-
-  return abi;
-}
-
 bool PullAPK(const std::string &deviceID, const std::string &pkgPath, const std::string &apk)
 {
   RDCLOG("Pulling APK to patch");

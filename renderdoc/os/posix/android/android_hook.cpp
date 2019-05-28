@@ -728,6 +728,12 @@ void LibraryHooks::EndHookRegistration()
     HOOK_DEBUG_PRINT("%s: %p", lib.c_str(), handle);
   }
 
+  if(libs.empty())
+  {
+    RDCLOG("No library hooks registered, not doing any hooking");
+    return;
+  }
+
   PatchHookedFunctions();
 
   // this already hooks dlopen (if possible) and android_dlopen_ext, which is enough
@@ -782,6 +788,12 @@ void LibraryHooks::EndHookRegistration()
 
 void LibraryHooks::Refresh()
 {
+  if(suppressTLS == 0)
+  {
+    RDCLOG("Not refreshing android hooks with no libraries registered");
+    return;
+  }
+
   RDCLOG("Refreshing android hooks...");
   dl_iterate_phdr(dl_iterate_callback, NULL);
   RDCLOG("Refreshed");
@@ -807,5 +819,8 @@ ScopedSuppressHooking::~ScopedSuppressHooking()
 
 bool hooks_suppressed()
 {
+  if(suppressTLS == 0)
+    return true;
+
   return (uintptr_t)Threading::GetTLSValue(suppressTLS) > 0;
 }

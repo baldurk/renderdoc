@@ -49,19 +49,16 @@ DECLARE_REFLECTION_ENUM(RDCGLenum);
 #define RENDERDOC_SUPPORT_GL
 #define RENDERDOC_SUPPORT_GLES
 
-// checks a runtime opt-out option to disallow hooking EGL on windows. This means that the
-// underlying GL or D3D calls will be captured instead.
-bool ShouldHookEGL();
-
 #else
 
 // other cases are defined by build-time configuration
 
-// for consistency, we always enable this on other platforms - if GLES support is disabled at
-// compile time then it does nothing.
-#define RENDERDOC_HOOK_EGL OPTION_ON
-
 #endif
+
+// checks a runtime opt-out option to disallow hooking EGL. On Windows with no EGL support then the
+// EGL library is an emulator, so this means we'll capture the underlying calls it makes to the
+// native API. On Android this is useful if we detect that GLES layering is supported.
+bool ShouldHookEGL();
 
 #define GL_APICALL
 
