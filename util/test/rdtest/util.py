@@ -246,7 +246,7 @@ def value_compare(ref, data):
             return False
 
         # Special handling for NaNs
-        if math.isnan(ref) == math.isnan(data):
+        if math.isnan(ref) and math.isnan(data):
             return True
 
         # Floats are equal if the absolute difference is less than epsilon times the largest.
