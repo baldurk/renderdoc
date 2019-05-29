@@ -2943,9 +2943,12 @@ void APIENTRY _glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint e
 
 void GLDispatchTable::EmulateUnsupportedFunctions()
 {
-#define EMULATE_UNSUPPORTED(func) \
-  if(!this->func)                 \
-    this->func = &CONCAT(glEmulate::_, func);
+#define EMULATE_UNSUPPORTED(func)             \
+  if(!this->func)                             \
+  {                                           \
+    RDCLOG("Emulating " #func);               \
+    this->func = &CONCAT(glEmulate::_, func); \
+  }
 
   EMULATE_UNSUPPORTED(glTransformFeedbackBufferBase)
   EMULATE_UNSUPPORTED(glTransformFeedbackBufferRange)
@@ -3097,6 +3100,8 @@ void GLDispatchTable::EmulateRequiredExtensions()
 
   if(!HasExt[ARB_program_interface_query])
   {
+    RDCLOG("Emulating ARB_program_interface_query");
+
     EMULATE_FUNC(glGetProgramInterfaceiv);
     EMULATE_FUNC(glGetProgramResourceIndex);
     EMULATE_FUNC(glGetProgramResourceName);
@@ -3106,6 +3111,8 @@ void GLDispatchTable::EmulateRequiredExtensions()
   // only emulate ARB_vertex_attrib_binding on replay
   if(!HasExt[ARB_vertex_attrib_binding] && RenderDoc::Inst().IsReplayApp())
   {
+    RDCLOG("Emulating ARB_vertex_attrib_binding");
+
     glEmulate::_ResetVertexAttribBinding();
 
     EMULATE_FUNC(glBindVertexBuffer);
@@ -3134,6 +3141,16 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glGetIntegeri_v);
     EMULATE_FUNC(glGetVertexAttribiv);
 
+    // emulate the EXT_dsa accessor functions too
+    EMULATE_FUNC(glVertexArrayBindVertexBufferEXT);
+    EMULATE_FUNC(glVertexArrayVertexAttribFormatEXT);
+    EMULATE_FUNC(glVertexArrayVertexAttribIFormatEXT);
+    EMULATE_FUNC(glVertexArrayVertexAttribLFormatEXT);
+    EMULATE_FUNC(glVertexArrayVertexAttribBindingEXT);
+    EMULATE_FUNC(glVertexArrayVertexBindingDivisorEXT);
+    EMULATE_FUNC(glGetVertexArrayIntegeri_vEXT);
+    EMULATE_FUNC(glGetVertexArrayIntegervEXT);
+
     if(GL.glGetInteger64i_v)
     {
       SAVE_REAL_FUNC(glGetInteger64i_v);
@@ -3144,17 +3161,23 @@ void GLDispatchTable::EmulateRequiredExtensions()
   // APIs that are not available at all in GLES.
   if(IsGLES)
   {
+    RDCLOG("Emulating GLES 3.x functions");
+
     EMULATE_FUNC(glGetBufferSubData);
     EMULATE_FUNC(glGetTexImage);
 
     if(GLCoreVersion < 31)
     {
+      RDCLOG("Emulating GLES 3.1 functions");
+
       EMULATE_FUNC(glGetTexLevelParameteriv);
       EMULATE_FUNC(glGetTexLevelParameterfv);
     }
 
     if(GLCoreVersion < 32)
     {
+      RDCLOG("Emulating GLES 3.2 functions");
+
       EMULATE_FUNC(glDrawElementsBaseVertex);
       EMULATE_FUNC(glDrawElementsInstancedBaseVertex);
       EMULATE_FUNC(glDrawRangeElementsBaseVertex);
