@@ -483,6 +483,9 @@
     <ClInclude Include="api\replay\rdcstr.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="core\bit_flag_iterator.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -856,6 +859,9 @@
     </ClCompile>
     <ClCompile Include="os\posix\ggp\ggp_threading.cpp">
       <Filter>OS\Posix\GGP</Filter>
+    </ClCompile>
+    <ClCompile Include="core\bit_flag_iterator_tests.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

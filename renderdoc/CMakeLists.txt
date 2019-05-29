@@ -115,6 +115,8 @@ set(sources
     core/replay_proxy.h
     core/intervals.h
     core/intervals_tests.cpp
+    core/bit_flag_iterator.h
+    core/bit_flag_iterator_tests.cpp
     android/android.cpp
     android/android_patch.cpp
     android/android_tools.cpp
