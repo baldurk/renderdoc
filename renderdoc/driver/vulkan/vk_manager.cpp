@@ -458,6 +458,28 @@ template bool VulkanResourceManager::Serialise_DeviceMemoryRefs(ReadSerialiser &
 template bool VulkanResourceManager::Serialise_DeviceMemoryRefs(WriteSerialiser &ser,
                                                                 std::vector<MemRefInterval> &data);
 
+template <typename SerialiserType>
+bool VulkanResourceManager::Serialise_ImageRefs(SerialiserType &ser, std::vector<ImgRefsPair> &data)
+{
+  SERIALISE_ELEMENT(data);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    // unpack data into m_ImgFrameRefs
+    for(auto it = data.begin(); it != data.end(); it++)
+      m_ImgFrameRefs.insert({it->image, it->imgRefs});
+  }
+
+  return true;
+}
+
+template bool VulkanResourceManager::Serialise_ImageRefs(ReadSerialiser &ser,
+                                                         std::vector<ImgRefsPair> &imageRefs);
+template bool VulkanResourceManager::Serialise_ImageRefs(WriteSerialiser &ser,
+                                                         std::vector<ImgRefsPair> &imageRefs);
+
 void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
 {
   std::vector<MemRefInterval> data;
@@ -475,6 +497,24 @@ void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
   {
     SCOPED_SERIALISE_CHUNK(VulkanChunk::DeviceMemoryRefs, sizeEstimate);
     Serialise_DeviceMemoryRefs(ser, data);
+  }
+}
+
+void VulkanResourceManager::InsertImageRefs(WriteSerialiser &ser)
+{
+  std::vector<ImgRefsPair> data;
+  data.reserve(m_ImgFrameRefs.size());
+  size_t sizeEstimate = 32;
+
+  for(auto it = m_ImgFrameRefs.begin(); it != m_ImgFrameRefs.end(); it++)
+  {
+    data.push_back({it->first, it->second});
+    sizeEstimate += sizeof(ImgRefsPair) + sizeof(FrameRefType) * it->second.rangeRefs.size();
+  }
+
+  {
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::ImageRefs, sizeEstimate);
+    Serialise_ImageRefs(ser, data);
   }
 }
 

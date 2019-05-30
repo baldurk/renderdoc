@@ -906,10 +906,13 @@ struct ImageInfo
     // images, and the depth of 2D images must equal 1. We need to ensure this holds, even if the
     // application is invalid, since we rely on `depth>1` to detect 3D images and correctly handle
     // 2D views of 3D images.
-    switch(ci.imageType)
+    if(ci.imageType == VK_IMAGE_TYPE_1D)
     {
-      case VK_IMAGE_TYPE_1D: extent.height = extent.depth = 1; break;
-      case VK_IMAGE_TYPE_2D: extent.depth = 1; break;
+      extent.height = extent.depth = 1;
+    }
+    else if(ci.imageType == VK_IMAGE_TYPE_2D)
+    {
+      extent.depth = 1;
     }
   }
   ImageInfo(const SwapchainInfo &swapInfo)
@@ -1133,6 +1136,34 @@ struct ImgRefs
   FrameRefType Merge(const ImgRefs &other, Compose comp);
   inline FrameRefType Merge(const ImgRefs &other) { return Merge(other, ComposeFrameRefs); }
 };
+
+DECLARE_REFLECTION_STRUCT(ImgRefs);
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ImgRefs &el)
+{
+  SERIALISE_MEMBER(rangeRefs);
+  SERIALISE_MEMBER(imageInfo);
+  SERIALISE_MEMBER(aspectMask);
+  SERIALISE_MEMBER(areAspectsSplit);
+  SERIALISE_MEMBER(areLevelsSplit);
+  SERIALISE_MEMBER(areLayersSplit);
+}
+
+struct ImgRefsPair
+{
+  ResourceId image;
+  ImgRefs imgRefs;
+};
+
+DECLARE_REFLECTION_STRUCT(ImgRefsPair);
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ImgRefsPair &el)
+{
+  SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(imgRefs);
+}
 
 template <typename Compose>
 FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose comp)

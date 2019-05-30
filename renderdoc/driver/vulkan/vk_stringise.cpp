@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1134, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1135, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -166,6 +166,7 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdSetDiscardRectangleEXT)
     STRINGISE_ENUM_CLASS_NAMED(DeviceMemoryRefs, "Internal: Device Memory References")
     STRINGISE_ENUM_CLASS(vkResetQueryPoolEXT);
+    STRINGISE_ENUM_CLASS_NAMED(ImageRefs, "Image References")
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
