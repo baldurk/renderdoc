@@ -139,6 +139,9 @@
     <ClCompile Include="vk_bindless_feedback.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="imgrefs_tests.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
