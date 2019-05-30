@@ -16,7 +16,7 @@ parsed_args = parser.parse_args()
 # on msys, use crlf output
 nl = None
 if sys.platform == 'msys':
-	nl = "\r\n"
+    nl = "\r\n"
 
 # Get the file, relative to this script's location (same directory)
 # that way we're not sensitive to CWD
@@ -55,63 +55,63 @@ typedefs = {}
 
 # Open the dispatch table file
 with open(pathname + "gl_dispatch_table.h", 'r') as fp:
-	# For each line that defines a dispatch pointer, process it
-	for func in [line.strip() for line in fp.readlines() if "PFN" in line]:
-		match = def_regex.search(func)
+    # For each line that defines a dispatch pointer, process it
+    for func in [line.strip() for line in fp.readlines() if "PFN" in line]:
+        match = def_regex.search(func)
 
-		# All lines that contain a dispatch pointer should match the regex
-		if not match:
-			raise RuntimeError("Badly formed definition: {0}".format(func))
+        # All lines that contain a dispatch pointer should match the regex
+        if not match:
+            raise RuntimeError("Badly formed definition: {0}".format(func))
 
-		# Split the list of aliases
-		aliases = match.group('aliases')
-		aliases = re.split(', *', aliases) if aliases != '' else []
+        # Split the list of aliases
+        aliases = match.group('aliases')
+        aliases = re.split(', *', aliases) if aliases != '' else []
 
-		# Add the hook
-		hook = { 'typedef': match.group('typedef'), 'name': match.group('name'), 'aliases': aliases }
-		hooks.append(hook)
+        # Add the hook
+        hook = { 'typedef': match.group('typedef'), 'name': match.group('name'), 'aliases': aliases }
+        hooks.append(hook)
 
-		# Add the typedefs for the base function and all aliases as used
-		typedefs['PFN{0}PROC'.format(hook['name'].upper())] = {'used': True}
-		for a in aliases:
-			typedefs['PFN{0}PROC'.format(a.upper())] = {'used': True}
+        # Add the typedefs for the base function and all aliases as used
+        typedefs['PFN{0}PROC'.format(hook['name'].upper())] = {'used': True}
+        for a in aliases:
+            typedefs['PFN{0}PROC'.format(a.upper())] = {'used': True}
 
 # Read all the official headers into a single string
 official_headers = []
 for header in ['glcorearb.h', 'glext.h', 'gl32.h', 'glesext.h', 'wglext.h', 'legacygl.h']:
-	with open(pathname + 'official' + os.path.sep + header, 'r') as fp:
-		official_headers += fp.readlines()
+    with open(pathname + 'official' + os.path.sep + header, 'r') as fp:
+        official_headers += fp.readlines()
 
 # Look for function definitions and add typedef function names.
 for line in official_headers:
-	match = func_regex.search(line)
-	if match:
-		typedef = 'PFN{0}PROC'.format(match.group(2).upper())
-		if typedef not in typedefs:
-			typedefs[typedef] = {'used': False}
+    match = func_regex.search(line)
+    if match:
+        typedef = 'PFN{0}PROC'.format(match.group(2).upper())
+        if typedef not in typedefs:
+            typedefs[typedef] = {'used': False}
 
-		typedefs[typedef]['function'] = match.group(2)
+        typedefs[typedef]['function'] = match.group(2)
 
 # Now find typedefs and add return type/argument data
 for line in official_headers:
-	match = typedef_regex.search(line)
-	if match:
-		typedef = match.group('typedef')
-		typedefs[typedef]['return'] = match.group('return').strip()
+    match = typedef_regex.search(line)
+    if match:
+        typedef = match.group('typedef')
+        typedefs[typedef]['return'] = match.group('return').strip()
 
-		args = match.group('args')
+        args = match.group('args')
 
-		if args == '' or args == 'void':
-			args = []
-		else:
-			# Replace array arguments with pointers - see glPathGlyphIndexRangeNV
-			args = array_regex.sub(r"\1 *\2", match.group('args'))
-			# Create an array with each parameter as an element
-			args = [a.strip() for a in args.split(',')]
-			# Split up each argument
-			args = [re.split(' *, *', argsplit_regex.sub(r"\1\2,\3", a)) for a in args]
+        if args == '' or args == 'void':
+            args = []
+        else:
+            # Replace array arguments with pointers - see glPathGlyphIndexRangeNV
+            args = array_regex.sub(r"\1 *\2", match.group('args'))
+            # Create an array with each parameter as an element
+            args = [a.strip() for a in args.split(',')]
+            # Split up each argument
+            args = [re.split(' *, *', argsplit_regex.sub(r"\1\2,\3", a)) for a in args]
 
-		typedefs[typedef]['args'] = args
+        typedefs[typedef]['args'] = args
 
 # f.write the file, starting with a template header
 f.write('''
@@ -158,10 +158,10 @@ f.write('''
 f.write('#define ForEachSupported(FUNC) \\\n')
 
 for hook in hooks:
-	f.write('  FUNC({}, {}); \\\n'.format(hook['name'], hook['name']))
-	for a in hook['aliases']:
-		f.write('  FUNC({}, {}); \\\n'.format(hook['name'], a))
-		
+    f.write('  FUNC({}, {}); \\\n'.format(hook['name'], hook['name']))
+    for a in hook['aliases']:
+        f.write('  FUNC({}, {}); \\\n'.format(hook['name'], a))
+        
 f.write("\n\n\n\n")
 
 # f.write the actual definitions - used to forward into FuncWrapperN/AliasWrapperN to define exported
@@ -169,30 +169,30 @@ f.write("\n\n\n\n")
 f.write('#define DefineSupportedHooks() \\\n')
 
 for hook in hooks:
-	typedef = typedefs[hook['typedef']]
+    typedef = typedefs[hook['typedef']]
 
-	num = len(typedef['args'])
+    num = len(typedef['args'])
 
-	arglist = ''
-	for arg in typedef['args']:
-		arglist += ', {}, {}'.format(arg[0], arg[1])
+    arglist = ''
+    for arg in typedef['args']:
+        arglist += ', {}, {}'.format(arg[0], arg[1])
 
-	f.write('  FuncWrapper{}({}, {}{}); \\\n'.format(num, typedef['return'], hook['name'], arglist))
-	for a in hook['aliases']:
-		f.write('  AliasWrapper{}({}, {}, {}{}); \\\n'.format(num, typedef['return'], a, hook['name'], arglist))
-		
+    f.write('  FuncWrapper{}({}, {}{}); \\\n'.format(num, typedef['return'], hook['name'], arglist))
+    for a in hook['aliases']:
+        f.write('  AliasWrapper{}({}, {}, {}{}); \\\n'.format(num, typedef['return'], a, hook['name'], arglist))
+        
 f.write("\n\n\n\n")
 
 f.write('#define ForEachUnsupported(FUNC) \\\n')
 
 for key in OrderedDict(sorted(typedefs.items())):
-	typedef = typedefs[key]
+    typedef = typedefs[key]
 
-	# Don't f.write for functions we support, or wgl/etc functions
-	if typedef['used'] or typedef['function'][0:2] != 'gl':
-		continue
+    # Don't f.write for functions we support, or wgl/etc functions
+    if typedef['used'] or typedef['function'][0:2] != 'gl':
+        continue
 
-	f.write('  FUNC({}); \\\n'.format(typedef['function']))
+    f.write('  FUNC({}); \\\n'.format(typedef['function']))
 
 f.write("\n\n\n\n")
 
@@ -200,24 +200,24 @@ f.write("\n\n\n\n")
 f.write('#define DefineUnsupportedHooks() \\\n')
 
 for key in OrderedDict(sorted(typedefs.items())):
-	typedef = typedefs[key]
+    typedef = typedefs[key]
 
-	# Don't f.write for functions we support, or wgl/etc functions
-	if typedef['used'] or typedef['function'][0:2] != 'gl':
-		continue
+    # Don't f.write for functions we support, or wgl/etc functions
+    if typedef['used'] or typedef['function'][0:2] != 'gl':
+        continue
 
-	num = len(typedef['args'])
+    num = len(typedef['args'])
 
-	arglist = ''
-	for arg in typedef['args']:
-		arglist += ', {}, {}'.format(arg[0], arg[1])
+    arglist = ''
+    for arg in typedef['args']:
+        arglist += ', {}, {}'.format(arg[0], arg[1])
 
-	f.write('  UnsupportedWrapper{}({}, {}{}); \\\n'.format(num, typedef['return'], typedef['function'], arglist))
-	
+    f.write('  UnsupportedWrapper{}({}, {}{}); \\\n'.format(num, typedef['return'], typedef['function'], arglist))
+    
 # Now generate wrapper macros
 f.write('''
 
-		
+        
 // the _renderdoc_hooked variants are to make sure we always have a function symbol exported that we
 // can return from GetProcAddress. On posix systems if another library (or the application itself)
 // creates a symbol called 'glEnable' we'll return the address of that, and break badly. Instead we
@@ -279,13 +279,13 @@ template = '''
 '''
 
 for num in range(parsed_args.maxparam+1):
-	macroargs = ', '.join([('t{0}, p{0}'.format(n+1)) for n in range(num)])
-	argdecl = ', '.join([('t{0} p{0}'.format(n+1)) for n in range(num)])
-	argpass = ', '.join([('p{0}'.format(n+1)) for n in range(num)])
+    macroargs = ', '.join([('t{0}, p{0}'.format(n+1)) for n in range(num)])
+    argdecl = ', '.join([('t{0} p{0}'.format(n+1)) for n in range(num)])
+    argpass = ', '.join([('p{0}'.format(n+1)) for n in range(num)])
 
-	macroargs = ', ' + macroargs if num > 0 else macroargs
+    macroargs = ', ' + macroargs if num > 0 else macroargs
 
-	f.write(template.format(num=num, macroargs=macroargs,
-						  argdecl=argdecl, argpass=argpass))
+    f.write(template.format(num=num, macroargs=macroargs,
+                          argdecl=argdecl, argpass=argpass))
 
 f.close()
