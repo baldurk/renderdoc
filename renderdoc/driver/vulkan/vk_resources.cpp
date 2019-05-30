@@ -3136,9 +3136,6 @@ void VkResourceRecord::MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf,
                                                           FrameRefType bufRefType,
                                                           FrameRefType imgRefType)
 {
-  MarkResourceFrameReferenced(img->GetResourceID(), imgRefType);
-  MarkResourceFrameReferenced(img->baseResource, imgRefType);
-
   if(IsDirtyFrameRef(imgRefType))
     cmdInfo->dirtied.insert(img->GetResourceID());
 
@@ -3150,6 +3147,12 @@ void VkResourceRecord::MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf,
   for(uint32_t ri = 0; ri < regionCount; ri++)
   {
     const VkBufferImageCopy &region = regions[ri];
+
+    ImageRange range(region.imageSubresource);
+    range.offset = region.imageOffset;
+    range.extent = region.imageExtent;
+
+    MarkImageFrameReferenced(img, range, imgRefType);
 
     VkFormat regionFormat = imgFormat;
     uint32_t plane = 0;
