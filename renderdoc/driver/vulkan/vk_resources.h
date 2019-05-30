@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/wrapped_pool.h"
+#include "core/bit_flag_iterator.h"
 #include "core/intervals.h"
 #include "core/resource_manager.h"
 #include "vk_common.h"
@@ -1006,6 +1007,221 @@ struct AttachmentInfo
   VkImageMemoryBarrier barrier;
 };
 
+struct ImageRange
+{
+  ImageRange() {}
+  ImageRange(const VkImageSubresourceRange &range)
+      : aspectMask(range.aspectMask),
+        baseMipLevel(range.baseMipLevel),
+        levelCount(range.levelCount),
+        baseArrayLayer(range.baseArrayLayer),
+        layerCount(range.layerCount)
+  {
+  }
+  ImageRange(const VkImageSubresourceLayers &range)
+      : aspectMask(range.aspectMask),
+        baseMipLevel(range.mipLevel),
+        levelCount(1),
+        baseArrayLayer(range.baseArrayLayer),
+        layerCount(range.layerCount)
+  {
+  }
+  VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM;
+  uint32_t baseMipLevel = 0;
+  uint32_t levelCount = VK_REMAINING_MIP_LEVELS;
+  uint32_t baseArrayLayer = 0;
+  uint32_t layerCount = VK_REMAINING_ARRAY_LAYERS;
+  VkOffset3D offset = {0, 0, 0};
+  VkExtent3D extent = {~0u, ~0u, ~0u};
+  VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+};
+
+typedef BitFlagIterator<VkImageAspectFlagBits, VkImageAspectFlags, int32_t> ImageAspectFlagIter;
+
+struct ImgRefs
+{
+  std::vector<FrameRefType> rangeRefs;
+  WrappedVkRes *initializedLiveRes;
+  VkImageType type;
+  VkImageAspectFlags aspectMask;
+  int levelCount;
+  int layerCount;
+  VkExtent3D extent;
+
+  bool areAspectsSplit = false;
+  bool areLevelsSplit = false;
+  bool areLayersSplit = false;
+
+  int GetAspectCount() const;
+
+  ImgRefs() : initializedLiveRes(NULL) {}
+  inline ImgRefs(VkImageType type, VkImageAspectFlags aspectMask, int levelCount, int layerCount,
+                 VkExtent3D extent)
+      : rangeRefs(1, eFrameRef_None),
+        initializedLiveRes(NULL),
+        type(type),
+        aspectMask(aspectMask),
+        levelCount(levelCount),
+        layerCount(layerCount),
+        extent(extent)
+  {
+    if(type == VK_IMAGE_TYPE_3D)
+      // Depth slices of 3D views are treated as array layers
+      layerCount = extent.depth;
+  }
+  int SubresourceIndex(VkImageAspectFlagBits aspect, int level, int layer) const;
+  int SubresourceIndex(int aspectIndex, int level, int layer) const;
+  inline FrameRefType SubresourceRef(VkImageAspectFlagBits aspect, int level, int layer) const
+  {
+    return rangeRefs[SubresourceIndex(aspect, level, layer)];
+  }
+  inline FrameRefType SubresourceRef(int aspectIndex, int level, int layer) const
+  {
+    return rangeRefs[SubresourceIndex(aspectIndex, level, layer)];
+  }
+  void Split(bool splitAspects, bool splitLevels, bool splitLayers);
+  template <typename Compose>
+  FrameRefType Update(ImageRange range, FrameRefType refType, Compose comp);
+  inline FrameRefType Update(const ImageRange &range, FrameRefType refType)
+  {
+    return Update(range, refType, ComposeFrameRefs);
+  }
+  template <typename Compose>
+  FrameRefType Merge(const ImgRefs &other, Compose comp);
+  inline FrameRefType Merge(const ImgRefs &other) { return Merge(other, ComposeFrameRefs); }
+};
+
+template <typename Compose>
+FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose comp)
+{
+  range.extent.width = RDCMIN(range.extent.width, extent.width - range.offset.x);
+  range.extent.height = RDCMIN(range.extent.height, extent.height - range.offset.y);
+
+  if(type == VK_IMAGE_TYPE_3D && range.viewType != VK_IMAGE_VIEW_TYPE_2D &&
+     range.viewType != VK_IMAGE_VIEW_TYPE_2D_ARRAY)
+  {
+    // The Vulkan spec allows 2D `VkImageView`s of 3D `VkImage`s--the depth slices of the images are
+    // interpreted as array layers in the 2D view. Note that the spec does not allow 3D images to
+    // have array layers, so 3D images always have exactly 1 array layer when not accessed using a
+    // 2D view.
+    //
+    // `ImgRefs` treats the depth slices of 3D images as array layers (as if accessed through a 2D
+    // view). When a 3D image is accessed without a 2D view, we need to translate the Z axis into
+    // array layer indices.
+
+    range.extent.depth = RDCMIN(range.extent.depth, extent.depth - range.offset.z);
+    range.baseArrayLayer = range.offset.z;
+    range.layerCount = range.extent.depth;
+  }
+  else if(range.layerCount == VK_REMAINING_ARRAY_LAYERS)
+  {
+    range.layerCount = layerCount - range.baseArrayLayer;
+  }
+
+  if(range.levelCount == VK_REMAINING_MIP_LEVELS)
+    range.levelCount = levelCount - range.baseMipLevel;
+
+  if(refType == eFrameRef_CompleteWrite &&
+     (range.offset.x != 0 || range.offset.y != 0 || range.extent.width != extent.width ||
+      range.extent.height != extent.height))
+    // Complete write, but only to part of the image.
+    // We don't track writes at the pixel level, so turn this into a partial write
+    refType = eFrameRef_PartialWrite;
+
+  if(range.aspectMask != aspectMask)
+  {
+    if(range.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)
+    {
+      // For multi-planar images, the color aspect can be an alias for the plane aspects
+      range.aspectMask |=
+          (VK_IMAGE_ASPECT_PLANE_0_BIT | VK_IMAGE_ASPECT_PLANE_1_BIT | VK_IMAGE_ASPECT_PLANE_2_BIT) &
+          aspectMask;
+    }
+    range.aspectMask &= aspectMask;
+  }
+
+  Split(range.aspectMask != aspectMask,
+        range.baseMipLevel != 0 || (int)range.levelCount != levelCount,
+        range.baseArrayLayer != 0 || (int)range.layerCount != layerCount);
+
+  std::vector<VkImageAspectFlags> splitAspects;
+  if(areAspectsSplit)
+  {
+    for(auto aspectIt = ImageAspectFlagIter::begin(aspectMask);
+        aspectIt != ImageAspectFlagIter::end(); ++aspectIt)
+    {
+      splitAspects.push_back(*aspectIt);
+    }
+  }
+  else
+  {
+    splitAspects.push_back(aspectMask);
+  }
+
+  int splitLevelCount = 1;
+  int levelEnd = 1;
+  if(areLevelsSplit)
+  {
+    splitLevelCount = levelCount;
+    levelEnd = (int)(range.baseMipLevel + range.levelCount);
+  }
+
+  int splitLayerCount = 1;
+  int layerEnd = 1;
+  if(areLayersSplit)
+  {
+    splitLayerCount = layerCount;
+    layerEnd = (int)(range.baseArrayLayer + range.layerCount);
+  }
+
+  FrameRefType maxRefType = eFrameRef_None;
+  for(int aspectIndex = 0; aspectIndex < (int)splitAspects.size(); ++aspectIndex)
+  {
+    VkImageAspectFlags aspect = splitAspects[aspectIndex];
+    if((aspect & range.aspectMask) == 0)
+      continue;
+    for(int level = (int)range.baseMipLevel; level < levelEnd; ++level)
+    {
+      for(int layer = (int)range.baseArrayLayer; layer < layerEnd; ++layer)
+      {
+        int index = (aspectIndex * splitLevelCount + level) * splitLayerCount + layer;
+        rangeRefs[index] = comp(rangeRefs[index], refType);
+        maxRefType = RDCMAX(maxRefType, rangeRefs[index]);
+      }
+    }
+  }
+  return maxRefType;
+}
+
+template <typename Compose>
+FrameRefType ImgRefs::Merge(const ImgRefs &other, Compose comp)
+{
+  Split(other.areAspectsSplit, other.areLevelsSplit, other.areLayersSplit);
+
+  int splitAspectCount = 1;
+  if(areAspectsSplit)
+    splitAspectCount = GetAspectCount();
+
+  int splitLevelCount = areLevelsSplit ? levelCount : 1;
+
+  int splitLayerCount = areLayersSplit ? layerCount : 1;
+
+  FrameRefType maxRefType = eFrameRef_None;
+  for(int aspectIndex = 0; aspectIndex < splitAspectCount; ++aspectIndex)
+  {
+    for(int level = 0; level < splitLevelCount; ++level)
+    {
+      for(int layer = 0; layer < splitLayerCount; ++layer)
+      {
+        int index = SubresourceIndex(aspectIndex, level, layer);
+        rangeRefs[index] = comp(rangeRefs[index], other.SubresourceRef(aspectIndex, level, layer));
+        maxRefType = RDCMAX(maxRefType, rangeRefs[index]);
+      }
+    }
+  }
+  return maxRefType;
+}
+
 struct MemRefs
 {
   Intervals<FrameRefType> rangeRefs;
@@ -1052,6 +1268,20 @@ FrameRefType MemRefs::Merge(MemRefs &other, Compose comp)
                     return ref;
                   });
   return maxRefType;
+}
+
+struct ImageLayouts;
+
+template <typename Compose>
+FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
+                                 const ImageLayouts &layout, const ImageRange &range,
+                                 FrameRefType refType, Compose comp);
+
+inline FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
+                                        const ImageLayouts &layout, const ImageRange &range,
+                                        FrameRefType refType)
+{
+  return MarkImageReferenced(imgRefs, img, layout, range, refType, ComposeFrameRefs);
 }
 
 template <typename Compose>
@@ -1319,7 +1549,12 @@ public:
 
 struct ImageLayouts
 {
-  ImageLayouts() : layerCount(1), levelCount(1), sampleCount(1), format(VK_FORMAT_UNDEFINED)
+  ImageLayouts()
+      : layerCount(1),
+        levelCount(1),
+        sampleCount(1),
+        format(VK_FORMAT_UNDEFINED),
+        imageType(VK_IMAGE_TYPE_MAX_ENUM)
   {
     extent.width = extent.height = extent.depth = 1;
   }
@@ -1358,3 +1593,22 @@ void GetYUVShaderParameters(VkFormat f, Vec4u &YUVDownsampleRate, Vec4u &YUVACha
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);
 uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
                           uint32_t mip, uint32_t plane);
+
+template <typename Compose>
+FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
+                                 const ImageLayouts &layout, const ImageRange &range,
+                                 FrameRefType refType, Compose comp)
+{
+  if(refType == eFrameRef_None)
+    return refType;
+  auto refs = imgRefs.find(img);
+  if(refs == imgRefs.end())
+  {
+    refs =
+        imgRefs
+            .insert(std::make_pair(img, ImgRefs(layout.imageType, FormatImageAspects(layout.format),
+                                                layout.levelCount, layout.layerCount, layout.extent)))
+            .first;
+  }
+  return refs->second.Update(range, refType, comp);
+}
