@@ -28,10 +28,6 @@
 #include <vector>
 
 #include "api/replay/renderdoc_replay.h"
-#include "driver/gl/gl_common.h"
-#include "replay/replay_driver.h"
-
-class WrappedOpenGL;
 
 inline constexpr GPUCounter MakeIntelGlCounter(int index)
 {

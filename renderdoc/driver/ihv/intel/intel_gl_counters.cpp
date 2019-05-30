@@ -27,7 +27,6 @@
 
 #include "common/common.h"
 #include "driver/gl/gl_dispatch_table.h"
-#include "driver/gl/gl_driver.h"
 #include "strings/string_utils.h"
 
 #include "intel_gl_counters.h"
