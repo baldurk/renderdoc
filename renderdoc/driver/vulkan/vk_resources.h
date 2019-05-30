@@ -1016,6 +1016,7 @@ struct DescriptorSetData
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
   std::map<ResourceId, rdcpair<uint32_t, FrameRefType> > bindFrameRefs;
   std::map<ResourceId, MemRefs> bindMemRefs;
+  std::map<ResourceId, ImgRefs> bindImgRefs;
 };
 
 struct PipelineLayoutData
@@ -1408,6 +1409,39 @@ public:
       p.first++;
       p.first |= (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0);
     }
+  }
+
+  void AddImgFrameRef(VkResourceRecord *view, FrameRefType refType)
+  {
+    AddBindFrameRef(view->GetResourceID(), eFrameRef_Read,
+                    view->resInfo && view->resInfo->IsSparse());
+    if(view->baseResourceMem != ResourceId())
+      AddBindFrameRef(view->baseResourceMem, eFrameRef_Read, false);
+
+    rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[view->baseResource];
+    if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
+    {
+      descInfo->bindImgRefs.erase(view->baseResource);
+      p.first = 1;
+      p.second = eFrameRef_None;
+    }
+    else
+    {
+      p.first++;
+    }
+
+    ImageRange imgRange;
+    imgRange.aspectMask = view->viewRange.aspectMask;
+    imgRange.baseMipLevel = view->viewRange.baseMipLevel;
+    imgRange.levelCount = view->viewRange.levelCount;
+    imgRange.baseArrayLayer = view->viewRange.baseArrayLayer;
+    imgRange.layerCount = view->viewRange.layerCount;
+    imgRange.viewType = view->viewRange.viewType();
+
+    FrameRefType maxRef = MarkImageReferenced(descInfo->bindImgRefs, view->baseResource,
+                                              view->resInfo->imageInfo, imgRange, refType);
+
+    p.second = std::max(p.second, maxRef);
   }
 
   void AddMemFrameRef(ResourceId mem, VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
