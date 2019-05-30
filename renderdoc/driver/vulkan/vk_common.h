@@ -592,6 +592,7 @@ enum class VulkanChunk : uint32_t
   vkCmdSetDiscardRectangleEXT,
   DeviceMemoryRefs,
   vkResetQueryPoolEXT,
+  ImageRefs,
   Max,
 };
 

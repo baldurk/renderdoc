@@ -1813,6 +1813,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->Serialise_InitialContentsNeeded(ser);
     GetResourceManager()->InsertDeviceMemoryRefs(ser);
+    GetResourceManager()->InsertImageRefs(ser);
 
     {
       SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
@@ -2911,6 +2912,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkResetQueryPoolEXT:
       return Serialise_vkResetQueryPoolEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
       break;
+    case VulkanChunk::ImageRefs:
+    {
+      std::vector<ImgRefsPair> data;
+      return GetResourceManager()->Serialise_ImageRefs(ser, data);
+    }
     default:
     {
       SystemChunk system = (SystemChunk)chunk;

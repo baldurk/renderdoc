@@ -273,7 +273,11 @@ public:
   template <typename SerialiserType>
   bool Serialise_DeviceMemoryRefs(SerialiserType &ser, std::vector<MemRefInterval> &data);
 
+  template <typename SerialiserType>
+  bool Serialise_ImageRefs(SerialiserType &ser, std::vector<ImgRefsPair> &data);
+
   void InsertDeviceMemoryRefs(WriteSerialiser &ser);
+  void InsertImageRefs(WriteSerialiser &ser);
 
   ResourceId GetID(WrappedVkRes *res)
   {
