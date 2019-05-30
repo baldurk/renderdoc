@@ -1483,6 +1483,8 @@ public:
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);
   void MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range, FrameRefType refType);
+  void MarkImageViewFrameReferenced(VkResourceRecord *view, const ImageRange &range,
+                                    FrameRefType refType);
   void MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);
   void MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf, VkResourceRecord *img,
@@ -1526,6 +1528,7 @@ public:
       levelCount = 1;
       baseArrayLayer = 0;
       layerCount = 1;
+      packedViewType = 7;
     }
 
     ViewRange &operator=(const VkImageSubresourceRange &range)
@@ -1567,6 +1570,27 @@ public:
 
       return ret;
     }
+
+    inline VkImageViewType viewType() const
+    {
+      if(packedViewType <= VK_IMAGE_VIEW_TYPE_END_RANGE)
+        return (VkImageViewType)packedViewType;
+      else
+        return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+    }
+
+    inline void setViewType(VkImageViewType t)
+    {
+      if(t <= VK_IMAGE_VIEW_TYPE_END_RANGE)
+        packedViewType = t;
+      else
+        packedViewType = 7;
+    }
+
+    // View type (VkImageViewType).
+    // Values <= 6, fits in 3 bits; 7 encodes an unknown/uninitialized view type.
+    // Stored as uint32_t instead of VkImageViewType to prevent signed extension.
+    uint32_t packedViewType : 3;
 
     // only need 4 bits for the aspects
     uint32_t aspectMask : 4;

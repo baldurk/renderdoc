@@ -3070,6 +3070,40 @@ void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const Ima
       id, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
 }
 
+void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, const ImageRange &range,
+                                                    FrameRefType refType)
+{
+  ResourceId img = view->baseResource;
+  ResourceId mem = view->baseResourceMem;
+
+  // mark image view as read
+  MarkResourceFrameReferenced(view->GetResourceID(), eFrameRef_Read);
+
+  // mark memory backing image as read
+  MarkResourceFrameReferenced(mem, eFrameRef_Read);
+
+  if(refType != eFrameRef_Read && refType != eFrameRef_None)
+    cmdInfo->dirtied.insert(img);
+
+  ImageRange imgRange;
+  imgRange.aspectMask = view->viewRange.aspectMask;
+  imgRange.baseMipLevel = view->viewRange.baseMipLevel + range.baseMipLevel;
+  imgRange.levelCount = range.levelCount;
+  imgRange.baseArrayLayer = view->viewRange.baseArrayLayer + range.baseArrayLayer;
+  imgRange.layerCount = range.layerCount;
+  imgRange.offset = range.offset;
+  imgRange.extent = range.extent;
+  imgRange.viewType = view->viewRange.viewType();
+
+  FrameRefType maxRef =
+      MarkImageReferenced(cmdInfo->imgFrameRefs, img, view->resInfo->imageInfo, imgRange, refType);
+
+  // maintain the reference type of the image itself as the maximum reference type of any
+  // subresource
+  MarkResourceFrameReferenced(
+      img, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+}
+
 void VkResourceRecord::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
                                                  VkDeviceSize size, FrameRefType refType)
 {
