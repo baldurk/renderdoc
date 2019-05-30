@@ -1879,6 +1879,7 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
       record->baseResourceMem = imageRecord->baseResource;
       record->resInfo = imageRecord->resInfo;
       record->viewRange = pCreateInfo->subresourceRange;
+      record->viewRange.setViewType(pCreateInfo->viewType);
     }
     else
     {
