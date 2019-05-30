@@ -38,49 +38,51 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   SECTION("unsplit")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 0);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) == 0);
   };
   SECTION("split aspect")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, false, false);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 1);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) == 1);
   };
   SECTION("split levels")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(false, true, false);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 2);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) == 2);
   };
   SECTION("split layers")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(false, false, true);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 5);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) == 5);
   };
   SECTION("split aspect and levels")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, true, false);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 11 + 2);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) == 11 + 2);
   };
   SECTION("split aspect and layers")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, false, true);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 17 + 5);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) == 17 + 5);
   };
   SECTION("split levels and layers")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(false, true, true);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 2 * 17 + 5);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) ==
+          2 * 17 + 5);
   };
   SECTION("split aspect and levels and layers")
   {
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, true, true);
-    CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 11 * 17 + 2 * 17 + 5);
+    CHECK(imgRefs.SubresourceIndex(imgRefs.AspectIndex(VK_IMAGE_ASPECT_STENCIL_BIT), 2, 5) ==
+          11 * 17 + 2 * 17 + 5);
   };
   SECTION("update unsplit")
   {
