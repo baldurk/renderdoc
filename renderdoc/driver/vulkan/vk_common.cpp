@@ -933,11 +933,8 @@ void DescriptorSetBindingElement::AddBindRefs(VkResourceRecord *record, FrameRef
   }
   if(imageInfo.imageView != VK_NULL_HANDLE)
   {
-    record->AddBindFrameRef(GetResID(imageInfo.imageView), eFrameRef_Read,
-                            GetRecord(imageInfo.imageView)->resInfo != NULL);
-    record->AddBindFrameRef(GetRecord(imageInfo.imageView)->baseResource, ref);
-    if(GetRecord(imageInfo.imageView)->baseResourceMem != ResourceId())
-      record->AddBindFrameRef(GetRecord(imageInfo.imageView)->baseResourceMem, eFrameRef_Read);
+    VkResourceRecord *view = GetRecord(imageInfo.imageView);
+    record->AddImgFrameRef(view, ref);
   }
   if(imageInfo.sampler != VK_NULL_HANDLE)
   {

@@ -864,6 +864,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
             }
           }
+          GetResourceManager()->MergeReferencedImages(setrecord->descInfo->bindImgRefs);
           GetResourceManager()->MergeReferencedMemory(setrecord->descInfo->bindMemRefs);
         }
 
