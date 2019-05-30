@@ -1329,6 +1329,7 @@ struct ImageLayouts
   int layerCount, levelCount, sampleCount;
   VkExtent3D extent;
   VkFormat format;
+  VkImageType imageType;
 };
 
 DECLARE_REFLECTION_STRUCT(ImageLayouts);
