@@ -1463,6 +1463,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       layouts.levelCount = CreateInfo.mipLevels;
       layouts.extent = CreateInfo.extent;
       layouts.format = CreateInfo.format;
+      layouts.imageType = CreateInfo.imageType;
 
       range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       if(IsDepthOnlyFormat(CreateInfo.format))
@@ -1758,6 +1759,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     layout->sampleCount = (int)pCreateInfo->samples;
     layout->extent = pCreateInfo->extent;
     layout->format = pCreateInfo->format;
+    layout->imageType = pCreateInfo->imageType;
 
     layout->subresourceStates.clear();
 
