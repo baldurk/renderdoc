@@ -2903,6 +2903,22 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
   return ret;
 }
 
+VkImageAspectFlags FormatImageAspects(VkFormat fmt)
+{
+  if(IsStencilOnlyFormat(fmt))
+    return VK_IMAGE_ASPECT_STENCIL_BIT;
+  else if(IsDepthOnlyFormat(fmt))
+    return VK_IMAGE_ASPECT_DEPTH_BIT;
+  else if(IsDepthAndStencilFormat(fmt))
+    return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+  else if(GetYUVPlaneCount(fmt) == 3)
+    return VK_IMAGE_ASPECT_PLANE_0_BIT | VK_IMAGE_ASPECT_PLANE_1_BIT | VK_IMAGE_ASPECT_PLANE_2_BIT;
+  else if(GetYUVPlaneCount(fmt) == 2)
+    return VK_IMAGE_ASPECT_PLANE_0_BIT | VK_IMAGE_ASPECT_PLANE_1_BIT;
+  else
+    return VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
 VkResourceRecord::~VkResourceRecord()
 {
   VkResourceType resType = Resource != NULL ? IdentifyTypeByPtr(Resource) : eResUnknown;
