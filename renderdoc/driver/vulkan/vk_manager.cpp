@@ -731,6 +731,20 @@ ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
   return ResourceId();
 }
 
+void VulkanResourceManager::MarkImageFrameReferenced(const VkResourceRecord *img,
+                                                     const ImageRange &range, FrameRefType refType)
+{
+  MarkImageFrameReferenced(img->GetResourceID(), img->resInfo->imageInfo, range, refType);
+}
+
+void VulkanResourceManager::MarkImageFrameReferenced(ResourceId img, const ImageInfo &imageInfo,
+                                                     const ImageRange &range, FrameRefType refType)
+{
+  FrameRefType maxRef = MarkImageReferenced(m_ImgFrameRefs, img, imageInfo, range, refType);
+  MarkResourceFrameReferenced(
+      img, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+}
+
 void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
                                                       VkDeviceSize size, FrameRefType refType)
 {
@@ -739,6 +753,18 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
   FrameRefType maxRef = MarkMemoryReferenced(m_MemFrameRefs, mem, offset, size, refType);
   MarkResourceFrameReferenced(
       mem, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+}
+
+void VulkanResourceManager::MergeReferencedImages(std::map<ResourceId, ImgRefs> &imgRefs)
+{
+  for(auto j = imgRefs.begin(); j != imgRefs.end(); j++)
+  {
+    auto i = m_ImgFrameRefs.find(j->first);
+    if(i == m_ImgFrameRefs.end())
+      m_ImgFrameRefs.insert(*j);
+    else
+      i->second.Merge(j->second);
+  }
 }
 
 void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs)
@@ -755,6 +781,11 @@ void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> 
   }
 }
 
+void VulkanResourceManager::ClearReferencedImages()
+{
+  m_ImgFrameRefs.clear();
+}
+
 void VulkanResourceManager::ClearReferencedMemory()
 {
   SCOPED_LOCK(m_Lock);
@@ -766,6 +797,15 @@ MemRefs *VulkanResourceManager::FindMemRefs(ResourceId mem)
 {
   auto it = m_MemFrameRefs.find(mem);
   if(it != m_MemFrameRefs.end())
+    return &it->second;
+  else
+    return NULL;
+}
+
+ImgRefs *VulkanResourceManager::FindImgRefs(ResourceId img)
+{
+  auto it = m_ImgFrameRefs.find(img);
+  if(it != m_ImgFrameRefs.end())
     return &it->second;
   else
     return NULL;

@@ -422,12 +422,19 @@ public:
 
   void SetInternalResource(ResourceId id);
 
+  void MarkImageFrameReferenced(const VkResourceRecord *img, const ImageRange &range,
+                                FrameRefType refType);
+  void MarkImageFrameReferenced(ResourceId img, const ImageInfo &imageInfo, const ImageRange &range,
+                                FrameRefType refType);
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize start, VkDeviceSize end,
                                  FrameRefType refType);
 
   void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
+  void MergeReferencedImages(std::map<ResourceId, ImgRefs> &imgRefs);
+  void ClearReferencedImages();
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
+  ImgRefs *FindImgRefs(ResourceId img);
 
   inline bool OptimizeInitialState() { return m_OptimizeInitialState; }
 private:
@@ -444,5 +451,6 @@ private:
   CaptureState m_State;
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
+  std::map<ResourceId, ImgRefs> m_ImgFrameRefs;
   bool m_OptimizeInitialState = false;
 };
