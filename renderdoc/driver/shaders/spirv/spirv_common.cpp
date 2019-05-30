@@ -24,3 +24,44 @@
 
 #include "spirv_common.h"
 #include "common/common.h"
+
+template <>
+rdcstr DoStringise(const rdcspv::Id &el)
+{
+  return StringFormat::Fmt("%u", el.id);
+}
+
+void rdcspv::Iter::nopRemove(size_t idx, size_t count)
+{
+  RDCASSERT(idx >= 1);
+  size_t oldSize = size();
+
+  if(count == 0)
+    count = oldSize - idx;
+
+  // reduce the size of this op
+  word(0) = rdcspv::Operation::MakeHeader(opcode(), oldSize - count);
+
+  if(idx + count < oldSize)
+  {
+    // move any words on the end into the middle, then nop them
+    for(size_t i = 0; i < count; i++)
+    {
+      word(idx + i) = word(idx + count + i);
+      word(oldSize - i - 1) = OpNopWord;
+    }
+  }
+  else
+  {
+    for(size_t i = 0; i < count; i++)
+    {
+      word(idx + i) = OpNopWord;
+    }
+  }
+}
+
+void rdcspv::Iter::nopRemove()
+{
+  for(size_t i = 0, sz = size(); i < sz; i++)
+    word(i) = OpNopWord;
+}

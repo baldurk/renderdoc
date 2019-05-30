@@ -29,151 +29,24 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
+#include "spirv_common.h"
 
-class SPIRVOperation;
 class SPIRVEditor;
-
-struct SPIRVId
-{
-  constexpr inline SPIRVId() : id(0) {}
-  constexpr inline SPIRVId(uint32_t i) : id(i) {}
-  inline operator uint32_t() const { return id; }
-  constexpr inline bool operator==(const SPIRVId o) const { return id == o.id; }
-  constexpr inline bool operator!=(const SPIRVId o) const { return id != o.id; }
-  constexpr inline bool operator<(const SPIRVId o) const { return id < o.id; }
-  constexpr inline bool operator==(const uint32_t o) const { return id == o; }
-  constexpr inline bool operator!=(const uint32_t o) const { return id != o; }
-  constexpr inline bool operator<(const uint32_t o) const { return id < o; }
-  uint32_t id;
-};
-
-DECLARE_STRINGISE_TYPE(SPIRVId);
-
-// length of 1 word in the top 16-bits, OpNop = 0 in the lower 16-bits
-#define SPV_NOP (0x00010000)
-
-class SPIRVIterator
-{
-public:
-  // constructors
-  SPIRVIterator() = default;
-  SPIRVIterator(std::vector<uint32_t> &w, size_t o) : words(&w), offset(o) {}
-  // increment to the next op
-  SPIRVIterator operator++(int)
-  {
-    SPIRVIterator ret = *this;
-    operator++();
-    return ret;
-  }
-  SPIRVIterator operator++()
-  {
-    do
-    {
-      offset += cur() >> spv::WordCountShift;
-      // silently skip nops
-    } while(*this && opcode() == spv::OpNop);
-
-    return *this;
-  }
-  bool operator==(const SPIRVIterator &it) const = delete;
-  bool operator!=(const SPIRVIterator &it) const = delete;
-  bool operator<(const SPIRVIterator &it) const { return words == it.words && offset < it.offset; }
-  // utility functions
-  explicit operator bool() const { return words != NULL && offset < words->size(); }
-  uint32_t &operator*() { return cur(); }
-  const uint32_t &operator*() const { return cur(); }
-  spv::Op opcode() { return spv::Op(cur() & spv::OpCodeMask); }
-  uint32_t &word(size_t idx) { return words->at(offset + idx); }
-  const uint32_t &word(size_t idx) const { return words->at(offset + idx); }
-  size_t offs() const { return offset; }
-  size_t size() const { return cur() >> spv::WordCountShift; }
-private:
-  inline uint32_t &cur() { return words->at(offset); }
-  inline const uint32_t &cur() const { return words->at(offset); }
-  // we add some friend classes to poke directly into words when it wants to edit
-  friend class SPIRVOperation;
-  friend class SPIRVEditor;
-  std::vector<uint32_t>::iterator it() { return words->begin() + offset; }
-  std::vector<uint32_t>::const_iterator it() const { return words->cbegin() + offset; }
-  size_t offset = 0;
-  std::vector<uint32_t> *words = NULL;
-};
-
-class SPIRVOperation
-{
-public:
-  // constructor of a synthetic operation, from an operation & subsequent words, calculates the
-  // length then constructs the first word with opcode + length.
-  SPIRVOperation(spv::Op op, const std::vector<uint32_t> &data)
-  {
-    words.push_back(MakeHeader(op, data.size() + 1));
-    words.insert(words.begin() + 1, data.begin(), data.end());
-
-    iter = SPIRVIterator(words, 0);
-  }
-
-  SPIRVOperation(const SPIRVOperation &op)
-  {
-    words = op.words;
-
-    iter = SPIRVIterator(words, 0);
-  }
-
-  static SPIRVOperation copy(SPIRVIterator it)
-  {
-    SPIRVOperation ret(it);
-
-    ret.words.insert(ret.words.begin(), it.it(), it.it() + it.size());
-    ret.iter = SPIRVIterator(ret.words, 0);
-
-    return ret;
-  }
-
-  // constructor that takes existing words from elsewhere and just references it.
-  // Since this is iterator based, normal iteration invalidation rules apply, if you modify earlier
-  // in the SPIR-V this operation will become invalid.
-  SPIRVOperation(SPIRVIterator it) : iter(it) {}
-  uint32_t &operator[](size_t idx) { return iter.word(idx); }
-  const uint32_t &operator[](size_t idx) const { return iter.word(idx); }
-  size_t size() const { return iter.size(); }
-  // replace part of this operation with NOPs and update the length. Cannot completely erase the
-  // operation
-  void nopRemove(size_t idx, size_t count = 0);
-
-private:
-  friend class SPIRVEditor;
-
-  std::vector<uint32_t>::const_iterator begin() const { return iter.it(); }
-  std::vector<uint32_t>::const_iterator end() const { return iter.it() + size(); }
-  inline static uint32_t MakeHeader(spv::Op op, size_t WordCount)
-  {
-    return (uint32_t(op) & spv::OpCodeMask) | (uint16_t(WordCount) << spv::WordCountShift);
-  }
-  void nopRemove();
-
-  // everything is based around this iterator, which may point into our local storage or to external
-  // storage.
-  SPIRVIterator iter;
-
-  // may not be used, if we refer to an external iterator
-  std::vector<uint32_t> words;
-};
 
 struct SPIRVEntry
 {
-  SPIRVId id;
+  rdcspv::Id id;
   std::string name;
 };
 
 struct SPIRVVariable
 {
-  SPIRVId id;
-  SPIRVId type;
+  rdcspv::Id id;
+  rdcspv::Id type;
   spv::StorageClass storageClass;
-  SPIRVId init;
+  rdcspv::Id init;
 
   bool operator<(const SPIRVVariable &o) const
   {
@@ -195,7 +68,7 @@ struct SPIRVVariable
 
 struct SPIRVDecoration
 {
-  SPIRVId id;
+  rdcspv::Id id;
   spv::Decoration dec = spv::DecorationMax;
   uint32_t parameters[4] = {};
 
@@ -242,7 +115,7 @@ struct SPIRVScalar
 {
   SPIRVScalar() : type(spv::OpMax), width(0), signedness(false) {}
   constexpr SPIRVScalar(spv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
-  SPIRVScalar(SPIRVIterator op);
+  SPIRVScalar(rdcspv::Iter op);
 
   spv::Op type;
   uint32_t width;
@@ -263,18 +136,18 @@ struct SPIRVScalar
     return type == o.type && width == o.width && signedness == o.signedness;
   }
 
-  SPIRVOperation decl(SPIRVEditor &editor) const
+  rdcspv::Operation decl(SPIRVEditor &editor) const
   {
     if(type == spv::OpTypeVoid)
-      return SPIRVOperation(type, {0});
+      return rdcspv::Operation(type, {0});
     else if(type == spv::OpTypeBool)
-      return SPIRVOperation(type, {0});
+      return rdcspv::Operation(type, {0});
     else if(type == spv::OpTypeFloat)
-      return SPIRVOperation(type, {0, width});
+      return rdcspv::Operation(type, {0, width});
     else if(type == spv::OpTypeInt)
-      return SPIRVOperation(type, {0, width, signedness ? 1U : 0U});
+      return rdcspv::Operation(type, {0, width, signedness ? 1U : 0U});
     else
-      return SPIRVOperation(spv::OpNop, {0});
+      return rdcspv::Operation(spv::OpNop, {0});
   }
 };
 
@@ -317,7 +190,7 @@ struct SPIRVVector
 
   bool operator!=(const SPIRVVector &o) const { return !operator==(o); }
   bool operator==(const SPIRVVector &o) const { return scalar == o.scalar && count == o.count; }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVMatrix
@@ -335,13 +208,13 @@ struct SPIRVMatrix
 
   bool operator!=(const SPIRVMatrix &o) const { return !operator==(o); }
   bool operator==(const SPIRVMatrix &o) const { return vector == o.vector && count == o.count; }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVPointer
 {
-  SPIRVPointer(SPIRVId b, spv::StorageClass s) : baseId(b), storage(s) {}
-  SPIRVId baseId;
+  SPIRVPointer(rdcspv::Id b, spv::StorageClass s) : baseId(b), storage(s) {}
+  rdcspv::Id baseId;
   spv::StorageClass storage;
 
   bool operator<(const SPIRVPointer &o) const
@@ -356,7 +229,7 @@ struct SPIRVPointer
   {
     return baseId == o.baseId && storage == o.storage;
   }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVImage
@@ -397,7 +270,7 @@ struct SPIRVImage
     return retType == o.retType && dim == o.dim && depth == o.depth && arrayed == o.arrayed &&
            ms == o.ms && sampled == o.sampled && format == o.format;
   }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVSampler
@@ -406,25 +279,28 @@ struct SPIRVSampler
   bool operator<(const SPIRVSampler &o) const { return false; }
   bool operator!=(const SPIRVSampler &o) const { return false; }
   bool operator==(const SPIRVSampler &o) const { return true; }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVSampledImage
 {
-  SPIRVSampledImage(SPIRVId b) : baseId(b) {}
-  SPIRVId baseId;
+  SPIRVSampledImage(rdcspv::Id b) : baseId(b) {}
+  rdcspv::Id baseId;
 
   bool operator<(const SPIRVSampledImage &o) const { return baseId < o.baseId; }
   bool operator!=(const SPIRVSampledImage &o) const { return !operator==(o); }
   bool operator==(const SPIRVSampledImage &o) const { return baseId == o.baseId; }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 struct SPIRVFunction
 {
-  SPIRVFunction(SPIRVId ret, const std::vector<SPIRVId> &args) : returnId(ret), argumentIds(args) {}
-  SPIRVId returnId;
-  std::vector<SPIRVId> argumentIds;
+  SPIRVFunction(rdcspv::Id ret, const std::vector<rdcspv::Id> &args)
+      : returnId(ret), argumentIds(args)
+  {
+  }
+  rdcspv::Id returnId;
+  std::vector<rdcspv::Id> argumentIds;
 
   bool operator<(const SPIRVFunction &o) const
   {
@@ -438,11 +314,11 @@ struct SPIRVFunction
   {
     return returnId == o.returnId && argumentIds == o.argumentIds;
   }
-  SPIRVOperation decl(SPIRVEditor &editor) const;
+  rdcspv::Operation decl(SPIRVEditor &editor) const;
 };
 
 template <typename SPIRVType>
-using SPIRVTypeId = std::pair<SPIRVType, SPIRVId>;
+using SPIRVTypeId = std::pair<SPIRVType, rdcspv::Id>;
 
 template <typename SPIRVType>
 using SPIRVTypeIds = std::vector<SPIRVTypeId<SPIRVType>>;
@@ -478,85 +354,84 @@ public:
   ~SPIRVEditor() { StripNops(); }
   void StripNops();
 
-  SPIRVId MakeId();
+  rdcspv::Id MakeId();
 
-  void AddWord(SPIRVIterator iter, uint32_t word);
-  void AddOperation(SPIRVIterator iter, const SPIRVOperation &op);
+  void AddOperation(rdcspv::Iter iter, const rdcspv::Operation &op);
 
   // callbacks to allow us to update our internal structures over changes
 
   // called before any modifications are made. Removes the operation from internal structures.
-  void PreModify(SPIRVIterator iter) { UnregisterOp(iter); }
+  void PreModify(rdcspv::Iter iter) { UnregisterOp(iter); }
   // called after any modifications, re-adds the operation to internal structures with its new
   // properties
-  void PostModify(SPIRVIterator iter) { RegisterOp(iter); }
+  void PostModify(rdcspv::Iter iter) { RegisterOp(iter); }
   // removed an operation and replaces it with nops
-  void Remove(SPIRVIterator iter)
+  void Remove(rdcspv::Iter iter)
   {
     UnregisterOp(iter);
-    SPIRVOperation(iter).nopRemove();
+    iter.nopRemove();
   }
 
   void SetName(uint32_t id, const char *name);
-  void AddDecoration(const SPIRVOperation &op);
+  void AddDecoration(const rdcspv::Operation &op);
   void AddCapability(spv::Capability cap);
   void AddExtension(const std::string &extension);
-  void AddExecutionMode(SPIRVId entry, spv::ExecutionMode mode, std::vector<uint32_t> params = {});
-  SPIRVId ImportExtInst(const char *setname);
-  SPIRVId AddType(const SPIRVOperation &op);
-  SPIRVId AddVariable(const SPIRVOperation &op);
-  SPIRVId AddConstant(const SPIRVOperation &op);
-  void AddFunction(const SPIRVOperation *ops, size_t count);
+  void AddExecutionMode(rdcspv::Id entry, spv::ExecutionMode mode, std::vector<uint32_t> params = {});
+  rdcspv::Id ImportExtInst(const char *setname);
+  rdcspv::Id AddType(const rdcspv::Operation &op);
+  rdcspv::Id AddVariable(const rdcspv::Operation &op);
+  rdcspv::Id AddConstant(const rdcspv::Operation &op);
+  void AddFunction(const rdcspv::Operation *ops, size_t count);
 
-  SPIRVIterator GetID(SPIRVId id);
+  rdcspv::Iter GetID(rdcspv::Id id);
   // the entry point has 'two' opcodes, the entrypoint declaration and the function.
   // This returns the first, GetID returns the second.
-  SPIRVIterator GetEntry(SPIRVId id);
-  SPIRVIterator Begin(SPIRVSection::Type section)
+  rdcspv::Iter GetEntry(rdcspv::Id id);
+  rdcspv::Iter Begin(SPIRVSection::Type section)
   {
-    return SPIRVIterator(spirv, sections[section].startOffset);
+    return rdcspv::Iter(spirv, sections[section].startOffset);
   }
-  SPIRVIterator End(SPIRVSection::Type section)
+  rdcspv::Iter End(SPIRVSection::Type section)
   {
-    return SPIRVIterator(spirv, sections[section].endOffset);
+    return rdcspv::Iter(spirv, sections[section].endOffset);
   }
 
   // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
   // will be declared and the new ID returned
   template <typename SPIRVType>
-  SPIRVId DeclareType(const SPIRVType &t)
+  rdcspv::Id DeclareType(const SPIRVType &t)
   {
-    std::map<SPIRVType, SPIRVId> &table = GetTable<SPIRVType>();
+    std::map<SPIRVType, rdcspv::Id> &table = GetTable<SPIRVType>();
 
     auto it = table.lower_bound(t);
     if(it != table.end() && it->first == t)
       return it->second;
 
-    SPIRVOperation decl = t.decl(*this);
-    SPIRVId id = decl[1] = MakeId();
+    rdcspv::Operation decl = t.decl(*this);
+    rdcspv::Id id = decl[1] = MakeId();
     AddType(decl);
 
-    table.insert(it, std::pair<SPIRVType, SPIRVId>(t, id));
+    table.insert(it, std::pair<SPIRVType, rdcspv::Id>(t, id));
 
     return id;
   }
 
   template <typename SPIRVType>
-  SPIRVId GetType(const SPIRVType &t)
+  rdcspv::Id GetType(const SPIRVType &t)
   {
-    std::map<SPIRVType, SPIRVId> &table = GetTable<SPIRVType>();
+    std::map<SPIRVType, rdcspv::Id> &table = GetTable<SPIRVType>();
 
     auto it = table.find(t);
     if(it != table.end())
       return it->second;
 
-    return SPIRVId();
+    return rdcspv::Id();
   }
 
   template <typename SPIRVType>
   SPIRVTypeIds<SPIRVType> GetTypes()
   {
-    std::map<SPIRVType, SPIRVId> &table = GetTable<SPIRVType>();
+    std::map<SPIRVType, rdcspv::Id> &table = GetTable<SPIRVType>();
 
     SPIRVTypeIds<SPIRVType> ret;
 
@@ -567,33 +442,33 @@ public:
   }
 
   template <typename SPIRVType>
-  const std::map<SPIRVType, SPIRVId> &GetTypeInfo() const
+  const std::map<SPIRVType, rdcspv::Id> &GetTypeInfo() const
   {
     return GetTable<SPIRVType>();
   }
 
-  SPIRVBinding GetBinding(SPIRVId id) const
+  SPIRVBinding GetBinding(rdcspv::Id id) const
   {
     auto it = bindings.find(id);
     if(it == bindings.end())
       return SPIRVBinding();
     return it->second;
   }
-  const std::set<SPIRVId> &GetStructTypes() const { return structTypes; }
-  SPIRVId DeclareStructType(std::vector<uint32_t> members);
+  const std::set<rdcspv::Id> &GetStructTypes() const { return structTypes; }
+  rdcspv::Id DeclareStructType(std::vector<uint32_t> members);
 
   // helper for AddConstant
   template <typename T>
-  SPIRVId AddConstantImmediate(T t)
+  rdcspv::Id AddConstantImmediate(T t)
   {
-    SPIRVId typeId = DeclareType(scalar<T>());
+    rdcspv::Id typeId = DeclareType(scalar<T>());
     std::vector<uint32_t> words = {typeId, MakeId()};
 
     words.insert(words.end(), sizeof(T) / 4, 0U);
 
     memcpy(&words[2], &t, sizeof(T));
 
-    return AddConstant(SPIRVOperation(spv::OpConstant, words));
+    return AddConstant(rdcspv::Operation(spv::OpConstant, words));
   }
 
   // simple properties that are public.
@@ -609,14 +484,14 @@ public:
   // accessors to structs/vectors of data
   const std::vector<SPIRVEntry> &GetEntries() { return entries; }
   const std::vector<SPIRVVariable> &GetVariables() { return variables; }
-  const std::vector<SPIRVId> &GetFunctions() { return functions; }
-  SPIRVId GetIDType(SPIRVId id) { return idTypes[id]; }
+  const std::vector<rdcspv::Id> &GetFunctions() { return functions; }
+  rdcspv::Id GetIDType(rdcspv::Id id) { return idTypes[id]; }
 private:
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
   void addWords(size_t offs, int32_t num);
 
-  void RegisterOp(SPIRVIterator iter);
-  void UnregisterOp(SPIRVIterator iter);
+  void RegisterOp(rdcspv::Iter iter);
+  void UnregisterOp(rdcspv::Iter iter);
 
   struct LogicalSection
   {
@@ -631,35 +506,35 @@ private:
 
   std::vector<SPIRVDecoration> decorations;
 
-  std::map<SPIRVId, SPIRVBinding> bindings;
+  std::map<rdcspv::Id, SPIRVBinding> bindings;
 
   std::vector<size_t> idOffsets;
-  std::vector<SPIRVId> idTypes;
+  std::vector<rdcspv::Id> idTypes;
 
   std::vector<SPIRVEntry> entries;
   std::vector<SPIRVVariable> variables;
-  std::vector<SPIRVId> functions;
+  std::vector<rdcspv::Id> functions;
   std::set<std::string> extensions;
   std::set<spv::Capability> capabilities;
 
-  std::map<std::string, SPIRVId> extSets;
+  std::map<std::string, rdcspv::Id> extSets;
 
-  std::map<SPIRVScalar, SPIRVId> scalarTypes;
-  std::map<SPIRVVector, SPIRVId> vectorTypes;
-  std::map<SPIRVMatrix, SPIRVId> matrixTypes;
-  std::map<SPIRVPointer, SPIRVId> pointerTypes;
-  std::map<SPIRVImage, SPIRVId> imageTypes;
-  std::map<SPIRVSampler, SPIRVId> samplerTypes;
-  std::map<SPIRVSampledImage, SPIRVId> sampledImageTypes;
-  std::map<SPIRVFunction, SPIRVId> functionTypes;
+  std::map<SPIRVScalar, rdcspv::Id> scalarTypes;
+  std::map<SPIRVVector, rdcspv::Id> vectorTypes;
+  std::map<SPIRVMatrix, rdcspv::Id> matrixTypes;
+  std::map<SPIRVPointer, rdcspv::Id> pointerTypes;
+  std::map<SPIRVImage, rdcspv::Id> imageTypes;
+  std::map<SPIRVSampler, rdcspv::Id> samplerTypes;
+  std::map<SPIRVSampledImage, rdcspv::Id> sampledImageTypes;
+  std::map<SPIRVFunction, rdcspv::Id> functionTypes;
 
-  std::set<SPIRVId> structTypes;
-
-  template <typename SPIRVType>
-  std::map<SPIRVType, SPIRVId> &GetTable();
+  std::set<rdcspv::Id> structTypes;
 
   template <typename SPIRVType>
-  const std::map<SPIRVType, SPIRVId> &GetTable() const;
+  std::map<SPIRVType, rdcspv::Id> &GetTable();
+
+  template <typename SPIRVType>
+  const std::map<SPIRVType, rdcspv::Id> &GetTable() const;
 
   std::vector<uint32_t> &spirv;
 };
