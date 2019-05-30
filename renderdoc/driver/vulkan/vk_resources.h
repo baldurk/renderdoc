@@ -1078,6 +1078,20 @@ struct ImageRange
         layerCount(range.layerCount)
   {
   }
+  ImageRange(const VkBufferImageCopy &range)
+      : aspectMask(range.imageSubresource.aspectMask),
+        baseMipLevel(range.imageSubresource.mipLevel),
+        levelCount(1),
+        baseArrayLayer(range.imageSubresource.baseArrayLayer),
+        layerCount(range.imageSubresource.layerCount),
+        offset(range.imageOffset),
+        extent(range.imageExtent)
+  {
+  }
+  inline operator VkImageSubresourceRange() const
+  {
+    return {aspectMask, baseMipLevel, levelCount, baseArrayLayer, layerCount};
+  }
   VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM;
   uint32_t baseMipLevel = 0;
   uint32_t levelCount = VK_REMAINING_MIP_LEVELS;
@@ -1115,15 +1129,19 @@ struct ImgRefs
       // Depth slices of 3D views are treated as array layers
       this->imageInfo.layerCount = imageInfo.extent.depth;
   }
-  int SubresourceIndex(VkImageAspectFlagBits aspect, int level, int layer) const;
+  int AspectIndex(VkImageAspectFlagBits aspect) const;
   int SubresourceIndex(int aspectIndex, int level, int layer) const;
-  inline FrameRefType SubresourceRef(VkImageAspectFlagBits aspect, int level, int layer) const
-  {
-    return rangeRefs[SubresourceIndex(aspect, level, layer)];
-  }
   inline FrameRefType SubresourceRef(int aspectIndex, int level, int layer) const
   {
     return rangeRefs[SubresourceIndex(aspectIndex, level, layer)];
+  }
+  inline InitReqType SubresourceInitReq(int aspectIndex, int level, int layer) const
+  {
+    return InitReq(SubresourceRef(aspectIndex, level, layer));
+  }
+  inline InitReqType SubresourceInitReq(int aspectIndex, int level, int layer, bool initialized) const
+  {
+    return InitReq(SubresourceRef(aspectIndex, level, layer));
   }
   void Split(bool splitAspects, bool splitLevels, bool splitLayers);
   template <typename Compose>

@@ -2930,7 +2930,7 @@ int ImgRefs::GetAspectCount() const
   return aspectCount;
 }
 
-int ImgRefs::SubresourceIndex(VkImageAspectFlagBits aspect, int level, int layer) const
+int ImgRefs::AspectIndex(VkImageAspectFlagBits aspect) const
 {
   int aspectIndex = 0;
   if(areAspectsSplit)
@@ -2943,7 +2943,7 @@ int ImgRefs::SubresourceIndex(VkImageAspectFlagBits aspect, int level, int layer
       ++aspectIndex;
     }
   }
-  return SubresourceIndex(aspectIndex, level, layer);
+  return aspectIndex;
 }
 
 int ImgRefs::SubresourceIndex(int aspectIndex, int level, int layer) const
