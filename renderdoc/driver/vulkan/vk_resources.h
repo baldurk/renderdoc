@@ -1344,6 +1344,7 @@ bool IsUIntFormat(VkFormat f);
 bool IsDoubleFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);
 bool IsYUVFormat(VkFormat f);
+VkImageAspectFlags FormatImageAspects(VkFormat f);
 
 uint32_t GetYUVPlaneCount(VkFormat f);
 uint32_t GetYUVNumRows(VkFormat f, uint32_t height);
