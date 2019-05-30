@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
-#include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/spirv_reflect.h"
 
 template <>
 VkComputePipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkComputePipelineCreateInfo *info,

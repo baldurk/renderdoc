@@ -39,6 +39,9 @@
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
+#include "spirv_common.h"
+#include "spirv_reflect.h"
+
 // need to manually put these headers in the spv namespace
 namespace spv
 {

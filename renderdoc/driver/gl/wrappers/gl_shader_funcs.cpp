@@ -26,7 +26,8 @@
 #include "../gl_driver.h"
 #include "../gl_shader_refl.h"
 #include "common/common.h"
-#include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/glslang_compile.h"
+#include "driver/shaders/spirv/spirv_compile.h"
 #include "strings/string_utils.h"
 
 enum GLshaderbitfield

@@ -30,7 +30,7 @@
 #include "driver/gl/gl_dispatch_table.h"
 #include "driver/gl/gl_driver.h"
 #include "driver/gl/gl_resources.h"
-#include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/glslang_compile.h"
 
 namespace glEmulate
 {

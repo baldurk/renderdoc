@@ -26,6 +26,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
+#include "driver/shaders/spirv/spirv_compile.h"
 #include "vk_core.h"
 
 typedef std::vector<uint32_t> *SPIRVBlob;

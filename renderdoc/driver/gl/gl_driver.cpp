@@ -26,7 +26,7 @@
 #include "gl_driver.h"
 #include <algorithm>
 #include "common/common.h"
-#include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/spirv_compile.h"
 #include "jpeg-compressor/jpge.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"

@@ -29,7 +29,7 @@
 #include "common/common.h"
 #include "common/timing.h"
 #include "core/core.h"
-#include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/spirv_reflect.h"
 #include "replay/replay_driver.h"
 #include "gl_common.h"
 #include "gl_dispatch_table.h"
@@ -37,6 +37,12 @@
 #include "gl_renderstate.h"
 #include "gl_replay.h"
 #include "gl_resources.h"
+
+namespace glslang
+{
+class TShader;
+class TProgram;
+};
 
 struct GLInitParams
 {

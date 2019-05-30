@@ -87,11 +87,16 @@ if(UNIX)
 endif()
 
 set(sources
+    glslang_compile.cpp
+    glslang_compile.h
     spirv_common.cpp
     spirv_common.h
-    spirv_editor.h
     spirv_editor.cpp
+    spirv_editor.h
     spirv_compile.cpp
+    spirv_compile.h
+    spirv_reflect.cpp
+    spirv_reflect.h
     spirv_disassemble.cpp
     spirv_stringise.cpp
     ${glslang_sources})

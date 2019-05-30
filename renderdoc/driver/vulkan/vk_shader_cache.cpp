@@ -25,7 +25,6 @@
 #include "vk_shader_cache.h"
 #include "common/shader_cache.h"
 #include "data/glsl_shaders.h"
-#include "driver/shaders/spirv/spirv_common.h"
 #include "strings/string_utils.h"
 
 enum class FeatureCheck

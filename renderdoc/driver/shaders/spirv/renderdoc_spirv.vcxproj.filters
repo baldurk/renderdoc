@@ -134,6 +134,8 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
+    <ClCompile Include="spirv_reflect.cpp" />
+    <ClCompile Include="glslang_compile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
@@ -276,5 +278,8 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
+    <ClInclude Include="spirv_compile.h" />
+    <ClInclude Include="glslang_compile.h" />
+    <ClInclude Include="spirv_reflect.h" />
   </ItemGroup>
 </Project>

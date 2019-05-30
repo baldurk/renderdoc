@@ -136,6 +136,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvPostProcess.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.cpp" />
+    <ClCompile Include="glslang_compile.cpp" />
     <ClCompile Include="precompiled.cpp">
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -161,6 +162,7 @@
       <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="spirv_editor.cpp" />
+    <ClCompile Include="spirv_reflect.cpp" />
     <ClCompile Include="spirv_stringise.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -209,9 +211,12 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spvIR.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvTools.h" />
+    <ClInclude Include="glslang_compile.h" />
     <ClInclude Include="precompiled.h" />
     <ClInclude Include="spirv_common.h" />
+    <ClInclude Include="spirv_compile.h" />
     <ClInclude Include="spirv_editor.h" />
+    <ClInclude Include="spirv_reflect.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

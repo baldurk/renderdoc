@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <functional>
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
+#include "driver/shaders/spirv/glslang_compile.h"
 #include "gl_driver.h"
 
 template <>
@@ -269,7 +270,7 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, std::vector<s
 
         glslang::TShader::ForbidIncluder incl;
 
-        bool success = sh.preprocess(&DefaultResources, 100, ENoProfile, false, false,
+        bool success = sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false,
                                      EShMsgOnlyPreprocessor, &src, incl);
 
         if(!success)

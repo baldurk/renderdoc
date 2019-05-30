@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2019 Baldur Karlsson
+ * Copyright (c) 2019 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,4 +24,40 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <string>
+#include <vector>
+
+enum class SPIRVShaderStage
+{
+  Vertex,
+  TessControl,
+  TessEvaluation,
+  Geometry,
+  Fragment,
+  Compute,
+  Invalid,
+};
+
+enum class SPIRVSourceLanguage
+{
+  Unknown,
+  OpenGLGLSL,
+  VulkanGLSL,
+  VulkanHLSL,
+};
+
+struct SPIRVCompilationSettings
+{
+  SPIRVCompilationSettings(SPIRVSourceLanguage l, SPIRVShaderStage s) : stage(s), lang(l) {}
+  SPIRVCompilationSettings() = default;
+
+  SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
+  SPIRVSourceLanguage lang = SPIRVSourceLanguage::Unknown;
+  std::string entryPoint;
+};
+
+void InitSPIRVCompiler();
+void ShutdownSPIRVCompiler();
+
+std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
+                         const std::vector<std::string> &sources, std::vector<uint32_t> &spirv);

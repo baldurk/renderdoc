@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2019 Baldur Karlsson
+ * Copyright (c) 2019 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,33 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "spirv_reflect.h"
+#include "replay/replay_driver.h"
 
-#include <stdint.h>
+void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
+                               rdcarray<ShaderVariable> &outvars,
+                               const std::vector<SpecConstant> &specInfo)
+{
+  StandardFillCBufferVariables(invars, outvars, bytebuf());
+
+  RDCASSERTEQUAL(invars.size(), outvars.size());
+
+  for(size_t v = 0; v < invars.size() && v < outvars.size(); v++)
+  {
+    outvars[v].value.uv[0] = (invars[v].defaultValue & 0xFFFFFFFF);
+    outvars[v].value.uv[1] = ((invars[v].defaultValue >> 32) & 0xFFFFFFFF);
+  }
+
+  // find any actual values specified
+  for(size_t i = 0; i < specInfo.size(); i++)
+  {
+    for(size_t v = 0; v < invars.size() && v < outvars.size(); v++)
+    {
+      if(specInfo[i].specID == invars[v].byteOffset)
+      {
+        memcpy(outvars[v].value.uv, specInfo[i].data.data(),
+               RDCMIN(specInfo[i].data.size(), sizeof(outvars[v].value.uv)));
+      }
+    }
+  }
+}

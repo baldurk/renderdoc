@@ -25,7 +25,7 @@
 #include "glsl_shaders.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 #include "common/common.h"
-#include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/glslang_compile.h"
 
 #define GLSL_HEADERS(HEADER) \
   HEADER(glsl_globals)       \
@@ -128,7 +128,8 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   std::string ret;
 
-  bool success = sh.preprocess(&DefaultResources, 100, ENoProfile, false, false, flags, &ret, incl);
+  bool success =
+      sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false, flags, &ret, incl);
 
   size_t offs = ret.find(include_ext);
   if(offs != std::string::npos)

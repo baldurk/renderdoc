@@ -28,6 +28,7 @@
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
+#include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"

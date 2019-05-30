@@ -25,7 +25,6 @@
 #include <float.h>
 #include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
-#include "driver/shaders/spirv/spirv_common.h"
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "vk_core.h"
 #include "vk_debug.h"

@@ -982,6 +982,7 @@ TYPETABLE(SPIRVFunction, functionTypes);
 #include "3rdparty/catch/catch.hpp"
 #include "core/core.h"
 #include "spirv_common.h"
+#include "spirv_compile.h"
 
 static void RemoveSection(std::vector<uint32_t> &spirv, size_t offsets[SPIRVSection::Count][2],
                           SPIRVSection::Type section)
