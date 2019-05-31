@@ -35,14 +35,18 @@ static constexpr uint32_t OpNopWord = 0x00010000U;
 struct Id
 {
   constexpr inline Id() : id(0) {}
-  constexpr inline Id(uint32_t i) : id(i) {}
-  inline operator uint32_t() const { return id; }
+  // only allow explicit functions to cast to/from uint32_t
+  constexpr static inline Id fromWord(uint32_t i) { return Id(i); }
+  inline uint32_t value() const { return id; }
+  constexpr inline explicit operator bool() const { return id != 0; }
   constexpr inline bool operator==(const Id o) const { return id == o.id; }
   constexpr inline bool operator!=(const Id o) const { return id != o.id; }
   constexpr inline bool operator<(const Id o) const { return id < o.id; }
   constexpr inline bool operator==(const uint32_t o) const { return id == o; }
   constexpr inline bool operator!=(const uint32_t o) const { return id != o; }
   constexpr inline bool operator<(const uint32_t o) const { return id < o; }
+private:
+  constexpr inline Id(uint32_t i) : id(i) {}
   uint32_t id;
 };
 

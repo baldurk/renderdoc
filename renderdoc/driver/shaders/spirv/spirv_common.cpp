@@ -28,7 +28,10 @@
 template <>
 rdcstr DoStringise(const rdcspv::Id &el)
 {
-  return StringFormat::Fmt("%u", el.id);
+  uint32_t id;
+  RDCCOMPILE_ASSERT(sizeof(el) == sizeof(id), "SPIR-V Id isn't 32-bit!");
+  memcpy(&id, &el, sizeof(el));
+  return StringFormat::Fmt("%u", id);
 }
 
 void rdcspv::Iter::nopRemove(size_t idx, size_t count)

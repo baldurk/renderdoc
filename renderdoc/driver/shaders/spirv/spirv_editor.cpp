@@ -49,23 +49,23 @@ SPIRVScalar::SPIRVScalar(rdcspv::Iter it)
 
 rdcspv::Operation SPIRVVector::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeVector, {0U, editor.DeclareType(scalar), count});
+  return rdcspv::Operation(spv::OpTypeVector, {0U, editor.DeclareType(scalar).value(), count});
 }
 
 rdcspv::Operation SPIRVMatrix::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeMatrix, {0U, editor.DeclareType(vector), count});
+  return rdcspv::Operation(spv::OpTypeMatrix, {0U, editor.DeclareType(vector).value(), count});
 }
 
 rdcspv::Operation SPIRVPointer::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypePointer, {0U, (uint32_t)storage, baseId});
+  return rdcspv::Operation(spv::OpTypePointer, {0U, (uint32_t)storage, baseId.value()});
 }
 
 rdcspv::Operation SPIRVImage::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeImage, {0U, editor.DeclareType(retType), (uint32_t)dim, depth,
-                                              arrayed, ms, sampled, (uint32_t)format});
+  return rdcspv::Operation(spv::OpTypeImage, {0U, editor.DeclareType(retType).value(), (uint32_t)dim,
+                                              depth, arrayed, ms, sampled, (uint32_t)format});
 }
 
 rdcspv::Operation SPIRVSampler::decl(SPIRVEditor &editor) const
@@ -75,7 +75,7 @@ rdcspv::Operation SPIRVSampler::decl(SPIRVEditor &editor) const
 
 rdcspv::Operation SPIRVSampledImage::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeSampledImage, {0U, baseId});
+  return rdcspv::Operation(spv::OpTypeSampledImage, {0U, baseId.value()});
 }
 
 rdcspv::Operation SPIRVFunction::decl(SPIRVEditor &editor) const
@@ -83,9 +83,9 @@ rdcspv::Operation SPIRVFunction::decl(SPIRVEditor &editor) const
   std::vector<uint32_t> words;
 
   words.push_back(0U);
-  words.push_back(returnId);
+  words.push_back(returnId.value());
   for(rdcspv::Id id : argumentIds)
-    words.push_back(id);
+    words.push_back(id.value());
 
   return rdcspv::Operation(spv::OpTypeFunction, words);
 }
@@ -276,16 +276,16 @@ rdcspv::Id SPIRVEditor::MakeId()
   spirv[3]++;
   idOffsets.resize(spirv[3]);
   idTypes.resize(spirv[3]);
-  return ret;
+  return rdcspv::Id::fromWord(ret);
 }
 
-void SPIRVEditor::SetName(uint32_t id, const char *name)
+void SPIRVEditor::SetName(rdcspv::Id id, const char *name)
 {
   size_t sz = strlen(name);
   std::vector<uint32_t> uintName((sz / 4) + 1);
   memcpy(&uintName[0], name, sz);
 
-  uintName.insert(uintName.begin(), id);
+  uintName.insert(uintName.begin(), id.value());
 
   rdcspv::Operation op(spv::OpName, uintName);
 
@@ -354,7 +354,7 @@ void SPIRVEditor::AddExecutionMode(rdcspv::Id entry, spv::ExecutionMode mode,
   size_t offset = sections[SPIRVSection::ExecutionMode].endOffset;
 
   params.insert(params.begin(), (uint32_t)mode);
-  params.insert(params.begin(), (uint32_t)entry);
+  params.insert(params.begin(), entry.value());
 
   rdcspv::Operation op(spv::OpExecutionMode, params);
   op.insertInto(spirv, offset);
@@ -383,7 +383,7 @@ rdcspv::Id SPIRVEditor::ImportExtInst(const char *setname)
   std::vector<uint32_t> uintName((sz / 4) + 1);
   memcpy(&uintName[0], setname, sz);
 
-  uintName.insert(uintName.begin(), ret);
+  uintName.insert(uintName.begin(), ret.value());
 
   rdcspv::Operation op(spv::OpExtInstImport, uintName);
   op.insertInto(spirv, it.offs());
@@ -399,8 +399,8 @@ rdcspv::Id SPIRVEditor::AddType(const rdcspv::Operation &op)
 {
   size_t offset = sections[SPIRVSection::Types].endOffset;
 
-  rdcspv::Id id = op[1];
-  idOffsets[id] = offset;
+  rdcspv::Id id = rdcspv::Id::fromWord(op[1]);
+  idOffsets[id.value()] = offset;
   op.insertInto(spirv, offset);
   RegisterOp(rdcspv::Iter(spirv, offset));
   addWords(offset, op.size());
@@ -411,8 +411,8 @@ rdcspv::Id SPIRVEditor::AddVariable(const rdcspv::Operation &op)
 {
   size_t offset = sections[SPIRVSection::Variables].endOffset;
 
-  rdcspv::Id id = op[2];
-  idOffsets[id] = offset;
+  rdcspv::Id id = rdcspv::Id::fromWord(op[2]);
+  idOffsets[id.value()] = offset;
   op.insertInto(spirv, offset);
   RegisterOp(rdcspv::Iter(spirv, offset));
   addWords(offset, op.size());
@@ -423,8 +423,8 @@ rdcspv::Id SPIRVEditor::AddConstant(const rdcspv::Operation &op)
 {
   size_t offset = sections[SPIRVSection::Constants].endOffset;
 
-  rdcspv::Id id = op[2];
-  idOffsets[id] = offset;
+  rdcspv::Id id = rdcspv::Id::fromWord(op[2]);
+  idOffsets[id.value()] = offset;
   op.insertInto(spirv, offset);
   RegisterOp(rdcspv::Iter(spirv, offset));
   addWords(offset, op.size());
@@ -443,7 +443,7 @@ void SPIRVEditor::AddFunction(const rdcspv::Operation *ops, size_t count)
 
 rdcspv::Iter SPIRVEditor::GetID(rdcspv::Id id)
 {
-  size_t offs = idOffsets[id];
+  size_t offs = idOffsets[id.value()];
 
   if(offs)
     return rdcspv::Iter(spirv, offs);
@@ -458,7 +458,7 @@ rdcspv::Iter SPIRVEditor::GetEntry(rdcspv::Id id)
 
   while(it && it < end)
   {
-    if(it.word(2) == id)
+    if(it.word(2) == id.value())
       return it;
     it++;
   }
@@ -466,11 +466,13 @@ rdcspv::Iter SPIRVEditor::GetEntry(rdcspv::Id id)
   return rdcspv::Iter();
 }
 
-rdcspv::Id SPIRVEditor::DeclareStructType(std::vector<uint32_t> members)
+rdcspv::Id SPIRVEditor::DeclareStructType(const std::vector<rdcspv::Id> &members)
 {
+  std::vector<uint32_t> words(members.size());
+  memcpy(words.data(), members.data(), words.size() * sizeof(uint32_t));
   rdcspv::Id typeId = MakeId();
-  members.insert(members.begin(), typeId);
-  AddType(rdcspv::Operation(spv::OpTypeStruct, members));
+  words.insert(words.begin(), typeId.value());
+  AddType(rdcspv::Operation(spv::OpTypeStruct, words));
   return typeId;
 }
 
@@ -497,14 +499,14 @@ void SPIRVEditor::RegisterOp(rdcspv::Iter it)
     if(hasResult && hasResultType)
     {
       RDCASSERT(it.word(2) < idTypes.size());
-      idTypes[it.word(2)] = it.word(1);
+      idTypes[it.word(2)] = rdcspv::Id::fromWord(it.word(1));
     }
   }
 
   if(opcode == spv::OpEntryPoint)
   {
     SPIRVEntry entry;
-    entry.id = it.word(2);
+    entry.id = rdcspv::Id::fromWord(it.word(2));
     entry.name = (const char *)&it.word(3);
 
     entries.push_back(entry);
@@ -525,32 +527,32 @@ void SPIRVEditor::RegisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpExtInstImport)
   {
-    rdcspv::Id id = it.word(1);
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
     const char *name = (const char *)&it.word(2);
     extSets[name] = id;
   }
   else if(opcode == spv::OpFunction)
   {
-    rdcspv::Id id = it.word(2);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(2));
+    idOffsets[id.value()] = it.offs();
 
     functions.push_back(id);
   }
   else if(opcode == spv::OpVariable)
   {
     SPIRVVariable var;
-    var.type = it.word(1);
-    var.id = it.word(2);
+    var.type = rdcspv::Id::fromWord(it.word(1));
+    var.id = rdcspv::Id::fromWord(it.word(2));
     var.storageClass = (spv::StorageClass)it.word(3);
     if(it.size() > 4)
-      var.init = it.word(4);
+      var.init = rdcspv::Id::fromWord(it.word(4));
 
     variables.push_back(var);
   }
   else if(opcode == spv::OpDecorate)
   {
     SPIRVDecoration decoration;
-    decoration.id = it.word(1);
+    decoration.id = rdcspv::Id::fromWord(it.word(1));
     decoration.dec = (spv::Decoration)it.word(2);
 
     RDCASSERTMSG("Too many parameters in decoration", it.size() <= 7, it.size());
@@ -569,18 +571,18 @@ void SPIRVEditor::RegisterOp(rdcspv::Iter it)
   else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
           opcode == spv::OpTypeFloat)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
     SPIRVScalar scalar(it);
     scalarTypes[scalar] = id;
   }
   else if(opcode == spv::OpTypeVector)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
-    rdcspv::Iter scalarIt = GetID(it.word(2));
+    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
 
     if(!scalarIt)
     {
@@ -592,10 +594,10 @@ void SPIRVEditor::RegisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpTypeMatrix)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
-    rdcspv::Iter vectorIt = GetID(it.word(2));
+    rdcspv::Iter vectorIt = GetID(rdcspv::Id::fromWord(it.word(2)));
 
     if(!vectorIt)
     {
@@ -603,17 +605,17 @@ void SPIRVEditor::RegisterOp(rdcspv::Iter it)
       return;
     }
 
-    rdcspv::Iter scalarIt = GetID(vectorIt.word(2));
+    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(vectorIt.word(2)));
     uint32_t vectorDim = vectorIt.word(3);
 
     matrixTypes[SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3))] = id;
   }
   else if(opcode == spv::OpTypeImage)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
-    rdcspv::Iter scalarIt = GetID(it.word(2));
+    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
 
     if(!scalarIt)
     {
@@ -626,45 +628,45 @@ void SPIRVEditor::RegisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpTypeSampler)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
     samplerTypes[SPIRVSampler()] = id;
   }
   else if(opcode == spv::OpTypeSampledImage)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
-    rdcspv::Id base = it.word(2);
+    rdcspv::Id base = rdcspv::Id::fromWord(it.word(2));
 
     sampledImageTypes[SPIRVSampledImage(base)] = id;
   }
   else if(opcode == spv::OpTypePointer)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
-    pointerTypes[SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2))] = id;
+    pointerTypes[SPIRVPointer(rdcspv::Id::fromWord(it.word(3)), (spv::StorageClass)it.word(2))] = id;
   }
   else if(opcode == spv::OpTypeStruct)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
     structTypes.insert(id);
   }
   else if(opcode == spv::OpTypeFunction)
   {
-    rdcspv::Id id = it.word(1);
-    idOffsets[id] = it.offs();
+    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
+    idOffsets[id.value()] = it.offs();
 
     std::vector<rdcspv::Id> args;
 
     for(size_t i = 3; i < it.size(); i++)
-      args.push_back(it.word(i));
+      args.push_back(rdcspv::Id::fromWord(it.word(i)));
 
-    functionTypes[SPIRVFunction(it.word(2), args)] = id;
+    functionTypes[SPIRVFunction(rdcspv::Id::fromWord(it.word(2)), args)] = id;
   }
 }
 
@@ -677,7 +679,7 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
     spv::HasResultAndType(opcode, &hasResult, &hasResultType);
 
     if(hasResult && hasResultType)
-      idTypes[it.word(2)] = 0;
+      idTypes[it.word(2)] = rdcspv::Id();
   }
 
   rdcspv::Id id;
@@ -695,7 +697,7 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpFunction)
   {
-    id = it.word(2);
+    id = rdcspv::Id::fromWord(it.word(2));
     for(auto funcIt = functions.begin(); funcIt != functions.end(); ++funcIt)
     {
       if(*funcIt == id)
@@ -707,7 +709,7 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpVariable)
   {
-    id = it.word(2);
+    id = rdcspv::Id::fromWord(it.word(2));
     for(auto varIt = variables.begin(); varIt != variables.end(); ++varIt)
     {
       if(varIt->id == id)
@@ -720,7 +722,7 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
   else if(opcode == spv::OpDecorate)
   {
     SPIRVDecoration decoration;
-    decoration.id = it.word(1);
+    decoration.id = rdcspv::Id::fromWord(it.word(1));
     decoration.dec = (spv::Decoration)it.word(2);
 
     RDCASSERTMSG("Too many parameters in decoration", it.size() <= 7, it.size());
@@ -754,16 +756,16 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
   else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
           opcode == spv::OpTypeFloat)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
     SPIRVScalar scalar(it);
     scalarTypes.erase(scalar);
   }
   else if(opcode == spv::OpTypeVector)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
-    rdcspv::Iter scalarIt = GetID(it.word(2));
+    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
 
     if(!scalarIt)
     {
@@ -775,9 +777,9 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpTypeMatrix)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
-    rdcspv::Iter vectorIt = GetID(it.word(2));
+    rdcspv::Iter vectorIt = GetID(rdcspv::Id::fromWord(it.word(2)));
 
     if(!vectorIt)
     {
@@ -785,16 +787,16 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
       return;
     }
 
-    rdcspv::Iter scalarIt = GetID(vectorIt.word(2));
+    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(vectorIt.word(2)));
     uint32_t vectorDim = vectorIt.word(3);
 
     matrixTypes.erase(SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3)));
   }
   else if(opcode == spv::OpTypeImage)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
-    rdcspv::Iter scalarIt = GetID(it.word(2));
+    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
 
     if(!scalarIt)
     {
@@ -807,44 +809,44 @@ void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
   }
   else if(opcode == spv::OpTypeSampler)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
     samplerTypes.erase(SPIRVSampler());
   }
   else if(opcode == spv::OpTypeSampledImage)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
-    rdcspv::Id base = it.word(2);
+    rdcspv::Id base = rdcspv::Id::fromWord(it.word(2));
 
     sampledImageTypes.erase(SPIRVSampledImage(base));
   }
   else if(opcode == spv::OpTypePointer)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
-    pointerTypes.erase(SPIRVPointer(it.word(3), (spv::StorageClass)it.word(2)));
+    pointerTypes.erase(SPIRVPointer(rdcspv::Id::fromWord(it.word(3)), (spv::StorageClass)it.word(2)));
   }
   else if(opcode == spv::OpTypeStruct)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
     structTypes.erase(id);
   }
   else if(opcode == spv::OpTypeFunction)
   {
-    id = it.word(1);
+    id = rdcspv::Id::fromWord(it.word(1));
 
     std::vector<rdcspv::Id> args;
 
     for(size_t i = 3; i < it.size(); i++)
-      args.push_back(it.word(i));
+      args.push_back(rdcspv::Id::fromWord(it.word(i)));
 
-    functionTypes.erase(SPIRVFunction(it.word(2), args));
+    functionTypes.erase(SPIRVFunction(rdcspv::Id::fromWord(it.word(2)), args));
   }
 
   if(id)
-    idOffsets[id] = 0;
+    idOffsets[id.value()] = 0;
 }
 
 void SPIRVEditor::addWords(size_t offs, int32_t num)

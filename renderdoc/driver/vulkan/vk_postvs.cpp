@@ -100,7 +100,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // tbuffer type for this input
     tbufferType tbuffer;
     // gvec4 type for this input, used as result type when fetching from tbuffer
-    uint32_t vec4ID;
+    rdcspv::Id vec4ID;
     // Uniform Pointer ID for this output. Used only for output data, to write to output SSBO
     rdcspv::Id uniformPtrID;
     // Output Pointer ID for this attribute.
@@ -130,15 +130,15 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       if(it.word(2) == spv::StorageClassInput)
       {
-        id = it.word(1);
+        id = rdcspv::Id::fromWord(it.word(1));
         inputs.insert(id);
       }
       else if(it.word(2) == spv::StorageClassOutput)
       {
-        id = it.word(1);
+        id = rdcspv::Id::fromWord(it.word(1));
         outputs.insert(id);
 
-        rdcspv::Id baseId = it.word(3);
+        rdcspv::Id baseId = rdcspv::Id::fromWord(it.word(3));
 
         rdcspv::Iter baseIt = editor.GetID(baseId);
         if(baseIt && baseIt.opcode() == spv::OpTypeStruct)
@@ -147,7 +147,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       if(id)
       {
-        SPIRVPointer privPtr(it.word(3), spv::StorageClassPrivate);
+        SPIRVPointer privPtr(rdcspv::Id::fromWord(it.word(3)), spv::StorageClassPrivate);
 
         rdcspv::Id origId = editor.GetType(privPtr);
 
@@ -181,7 +181,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         editor.PreModify(it);
         it.word(3) = spv::StorageClassPrivate;
 
-        inputs.insert(it.word(2));
+        inputs.insert(rdcspv::Id::fromWord(it.word(2)));
       }
       else if(it.word(3) == spv::StorageClassOutput)
       {
@@ -189,16 +189,16 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         editor.PreModify(it);
         it.word(3) = spv::StorageClassPrivate;
 
-        outputs.insert(it.word(2));
+        outputs.insert(rdcspv::Id::fromWord(it.word(2)));
       }
 
-      auto replIt = typeReplacements.find(it.word(1));
+      auto replIt = typeReplacements.find(rdcspv::Id::fromWord(it.word(1)));
       if(replIt != typeReplacements.end())
       {
         if(!mod)
           editor.PreModify(it);
         mod = true;
-        it.word(1) = typeReplacements[it.word(1)];
+        it.word(1) = typeReplacements[rdcspv::Id::fromWord(it.word(1))].value();
       }
 
       if(mod)
@@ -222,23 +222,23 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     {
       bool mod = false;
 
-      auto replIt = typeReplacements.find(it.word(1));
+      auto replIt = typeReplacements.find(rdcspv::Id::fromWord(it.word(1)));
       if(replIt != typeReplacements.end())
       {
         editor.PreModify(it);
         mod = true;
-        it.word(1) = typeReplacements[it.word(1)];
+        it.word(1) = typeReplacements[rdcspv::Id::fromWord(it.word(1))].value();
       }
 
       for(size_t i = 4; i < it.size(); it++)
       {
-        replIt = typeReplacements.find(it.word(i));
+        replIt = typeReplacements.find(rdcspv::Id::fromWord(it.word(i)));
         if(replIt != typeReplacements.end())
         {
           if(!mod)
             editor.PreModify(it);
           mod = true;
-          it.word(i) = typeReplacements[it.word(i)];
+          it.word(i) = typeReplacements[rdcspv::Id::fromWord(it.word(i))].value();
         }
       }
 
@@ -247,11 +247,11 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     }
     else if(it.opcode() == spv::OpConstantNull)
     {
-      auto replIt = typeReplacements.find(it.word(1));
+      auto replIt = typeReplacements.find(rdcspv::Id::fromWord(it.word(1)));
       if(replIt != typeReplacements.end())
       {
         editor.PreModify(it);
-        it.word(1) = typeReplacements[it.word(1)];
+        it.word(1) = typeReplacements[rdcspv::Id::fromWord(it.word(1))].value();
         editor.PostModify(it);
       }
     }
@@ -269,9 +269,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       editor.PreModify(it);
 
       uint32_t &id = it.word(1);
-      auto replIt = typeReplacements.find(id);
+      auto replIt = typeReplacements.find(rdcspv::Id::fromWord(id));
       if(replIt != typeReplacements.end())
-        id = typeReplacements[id];
+        id = typeReplacements[rdcspv::Id::fromWord(id)].value();
 
       editor.PostModify(it);
     }
@@ -296,7 +296,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // remove block decoration from input or output structs
     if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBlock)
     {
-      rdcspv::Id id = it.word(1);
+      rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
 
       if(outputs.find(id) != outputs.end() || inputs.find(id) != inputs.end())
         editor.Remove(it);
@@ -316,7 +316,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     }
   }
 
-  rdcspv::Id entryID = 0;
+  rdcspv::Id entryID;
 
   std::set<rdcspv::Id> entries;
 
@@ -334,9 +334,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       it < end2; ++it)
   {
     if(it.opcode() == spv::OpName &&
-       (inputs.find(it.word(1)) != inputs.end() || outputs.find(it.word(1)) != outputs.end()))
+       (inputs.find(rdcspv::Id::fromWord(it.word(1))) != inputs.end() ||
+        outputs.find(rdcspv::Id::fromWord(it.word(1))) != outputs.end()))
     {
-      rdcspv::Id id = it.word(1);
+      rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
       std::string oldName = (const char *)&it.word(2);
       editor.Remove(it);
       if(typeReplacements.find(id) == typeReplacements.end())
@@ -344,7 +345,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     }
 
     // remove any OpName for the old entry points
-    if(it.opcode() == spv::OpName && entries.find(it.word(1)) != entries.end())
+    if(it.opcode() == spv::OpName && entries.find(rdcspv::Id::fromWord(it.word(1))) != entries.end())
       editor.Remove(it);
   }
 
@@ -360,7 +361,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // constant for this index
     io.constID = editor.AddConstantImmediate(i);
 
-    io.variableID = patchData.outputs[i].ID;
+    io.variableID = rdcspv::Id::fromWord(patchData.outputs[i].ID);
 
     // base type - either a scalar or a vector, since matrix outputs are decayed to vectors
     {
@@ -401,7 +402,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // constant for this index
     io.constID = editor.AddConstantImmediate(i);
 
-    io.variableID = patchData.inputs[i].ID;
+    io.variableID = rdcspv::Id::fromWord(patchData.inputs[i].ID);
 
     SPIRVScalar scalarType = scalar<uint32_t>();
 
@@ -447,13 +448,13 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   struct tbufferIDs
   {
-    uint32_t imageTypeID;
-    uint32_t imageSampledTypeID;
-    uint32_t pointerTypeID;
-    uint32_t variableID;
+    rdcspv::Id imageTypeID;
+    rdcspv::Id imageSampledTypeID;
+    rdcspv::Id pointerTypeID;
+    rdcspv::Id variableID;
   } tbuffers[tbuffer_count];
 
-  uint32_t arraySize = editor.AddConstantImmediate<uint32_t>(MeshOutputTBufferArraySize);
+  rdcspv::Id arraySize = editor.AddConstantImmediate<uint32_t>(MeshOutputTBufferArraySize);
 
   for(tbufferType tb : {tbuffer_float, tbuffer_sint, tbuffer_uint})
   {
@@ -475,11 +476,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         SPIRVImage(scalarType, spv::DimBuffer, 0, 0, 0, 1, spv::ImageFormatUnknown));
     tbuffers[tb].imageSampledTypeID = editor.DeclareType(SPIRVSampledImage(tbuffers[tb].imageTypeID));
 
-    uint32_t arrayType = editor.MakeId();
-    editor.AddType(rdcspv::Operation(spv::OpTypeArray,
-                                     {arrayType, tbuffers[tb].imageSampledTypeID, arraySize}));
+    rdcspv::Id arrayType = editor.MakeId();
+    editor.AddType(rdcspv::Operation(
+        spv::OpTypeArray,
+        {arrayType.value(), tbuffers[tb].imageSampledTypeID.value(), arraySize.value()}));
 
-    uint32_t arrayPtrType =
+    rdcspv::Id arrayPtrType =
         editor.DeclareType(SPIRVPointer(arrayType, spv::StorageClassUniformConstant));
 
     tbuffers[tb].pointerTypeID = editor.DeclareType(
@@ -487,20 +489,23 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     tbuffers[tb].variableID = editor.MakeId();
     editor.AddVariable(rdcspv::Operation(
-        spv::OpVariable, {arrayPtrType, tbuffers[tb].variableID, spv::StorageClassUniformConstant}));
+        spv::OpVariable,
+        {arrayPtrType.value(), tbuffers[tb].variableID.value(), spv::StorageClassUniformConstant}));
 
     editor.SetName(tbuffers[tb].variableID, name);
 
     editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {tbuffers[tb].variableID, (uint32_t)spv::DecorationDescriptorSet, 0}));
+        spv::OpDecorate,
+        {tbuffers[tb].variableID.value(), (uint32_t)spv::DecorationDescriptorSet, 0}));
     editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {tbuffers[tb].variableID, (uint32_t)spv::DecorationBinding, (uint32_t)tb}));
+        spv::OpDecorate,
+        {tbuffers[tb].variableID.value(), (uint32_t)spv::DecorationBinding, (uint32_t)tb}));
   }
 
-  rdcspv::Id uint32Vec4ID = 0;
-  rdcspv::Id idxImageTypeID = 0;
-  rdcspv::Id idxImagePtr = 0;
-  rdcspv::Id idxSampledTypeID = 0;
+  rdcspv::Id uint32Vec4ID;
+  rdcspv::Id idxImageTypeID;
+  rdcspv::Id idxImagePtr;
+  rdcspv::Id idxSampledTypeID;
 
   if(draw->flags & DrawFlags::Indexed)
   {
@@ -510,19 +515,20 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         SPIRVImage(scalar<uint32_t>(), spv::DimBuffer, 0, 0, 0, 1, spv::ImageFormatUnknown));
     idxSampledTypeID = editor.DeclareType(SPIRVSampledImage(idxImageTypeID));
 
-    uint32_t idxImagePtrType =
+    rdcspv::Id idxImagePtrType =
         editor.DeclareType(SPIRVPointer(idxSampledTypeID, spv::StorageClassUniformConstant));
 
     idxImagePtr = editor.MakeId();
     editor.AddVariable(rdcspv::Operation(
-        spv::OpVariable, {idxImagePtrType, idxImagePtr, spv::StorageClassUniformConstant}));
+        spv::OpVariable,
+        {idxImagePtrType.value(), idxImagePtr.value(), spv::StorageClassUniformConstant}));
 
     editor.SetName(idxImagePtr, "ibuffer");
 
     editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {idxImagePtr, (uint32_t)spv::DecorationDescriptorSet, 0}));
-    editor.AddDecoration(
-        rdcspv::Operation(spv::OpDecorate, {idxImagePtr, (uint32_t)spv::DecorationBinding, 1}));
+        spv::OpDecorate, {idxImagePtr.value(), (uint32_t)spv::DecorationDescriptorSet, 0}));
+    editor.AddDecoration(rdcspv::Operation(
+        spv::OpDecorate, {idxImagePtr.value(), (uint32_t)spv::DecorationBinding, 1}));
   }
 
   if(numInputs > 0)
@@ -530,7 +536,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     editor.AddCapability(spv::CapabilitySampledBuffer);
   }
 
-  rdcspv::Id outBufferVarID = 0;
+  rdcspv::Id outBufferVarID;
   rdcspv::Id numVertsConstID = editor.AddConstantImmediate<uint32_t>(numVerts);
   rdcspv::Id numInstConstID = editor.AddConstantImmediate<uint32_t>(draw->numInstances);
   rdcspv::Id numViewsConstID = editor.AddConstantImmediate<uint32_t>(numViews);
@@ -541,7 +547,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   // declare the output buffer and its type
   {
-    std::vector<uint32_t> words;
+    std::vector<rdcspv::Id> words;
     for(uint32_t o = 0; o < numOutputs; o++)
       words.push_back(outs[o].basetypeID);
 
@@ -550,8 +556,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     editor.SetName(vertStructID, "vertex_struct");
 
     // vertex vertArray[];
-    rdcspv::Id runtimeArrayID =
-        editor.AddType(rdcspv::Operation(spv::OpTypeRuntimeArray, {editor.MakeId(), vertStructID}));
+    rdcspv::Id runtimeArrayID = editor.AddType(rdcspv::Operation(
+        spv::OpTypeRuntimeArray, {editor.MakeId().value(), vertStructID.value()}));
     editor.SetName(runtimeArrayID, "vertex_array");
 
     // struct meshOutput { vertex vertArray[]; };
@@ -565,7 +571,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     // meshOutput *outputData;
     outBufferVarID = editor.AddVariable(rdcspv::Operation(
-        spv::OpVariable, {outputStructPtrID, editor.MakeId(), spv::StorageClassUniform}));
+        spv::OpVariable,
+        {outputStructPtrID.value(), editor.MakeId().value(), spv::StorageClassUniform}));
     editor.SetName(outBufferVarID, "outputData");
 
     uint32_t memberOffset = 0;
@@ -591,7 +598,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       // apply decoration to each member in the struct with its offset in the struct
       editor.AddDecoration(rdcspv::Operation(
-          spv::OpMemberDecorate, {vertStructID, o, spv::DecorationOffset, memberOffset}));
+          spv::OpMemberDecorate, {vertStructID.value(), o, spv::DecorationOffset, memberOffset}));
 
       memberOffset += elemSize * refl.outputSignature[o].compCount;
     }
@@ -604,30 +611,31 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     // the array is the only element in the output struct, so
     // it's at offset 0
-    editor.AddDecoration(
-        rdcspv::Operation(spv::OpMemberDecorate, {outputStructID, 0, spv::DecorationOffset, 0}));
+    editor.AddDecoration(rdcspv::Operation(spv::OpMemberDecorate,
+                                           {outputStructID.value(), 0, spv::DecorationOffset, 0}));
 
     // set array stride
     editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {runtimeArrayID, spv::DecorationArrayStride, bufStride}));
+        spv::OpDecorate, {runtimeArrayID.value(), spv::DecorationArrayStride, bufStride}));
 
     // set object type
     editor.AddDecoration(
-        rdcspv::Operation(spv::OpDecorate, {outputStructID, spv::DecorationBufferBlock}));
+        rdcspv::Operation(spv::OpDecorate, {outputStructID.value(), spv::DecorationBufferBlock}));
 
     // set binding
+    editor.AddDecoration(rdcspv::Operation(
+        spv::OpDecorate, {outBufferVarID.value(), spv::DecorationDescriptorSet, 0}));
     editor.AddDecoration(
-        rdcspv::Operation(spv::OpDecorate, {outBufferVarID, spv::DecorationDescriptorSet, 0}));
-    editor.AddDecoration(
-        rdcspv::Operation(spv::OpDecorate, {outBufferVarID, spv::DecorationBinding, 0}));
+        rdcspv::Operation(spv::OpDecorate, {outBufferVarID.value(), spv::DecorationBinding, 0}));
   }
 
   rdcspv::Id uint32Vec3ID = editor.DeclareType(SPIRVVector(scalar<uint32_t>(), 3));
   rdcspv::Id invocationPtr = editor.DeclareType(SPIRVPointer(uint32Vec3ID, spv::StorageClassInput));
-  rdcspv::Id invocationId = editor.AddVariable(
-      rdcspv::Operation(spv::OpVariable, {invocationPtr, editor.MakeId(), spv::StorageClassInput}));
+  rdcspv::Id invocationId = editor.AddVariable(rdcspv::Operation(
+      spv::OpVariable, {invocationPtr.value(), editor.MakeId().value(), spv::StorageClassInput}));
   editor.AddDecoration(rdcspv::Operation(
-      spv::OpDecorate, {invocationId, spv::DecorationBuiltIn, spv::BuiltInGlobalInvocationId}));
+      spv::OpDecorate,
+      {invocationId.value(), spv::DecorationBuiltIn, spv::BuiltInGlobalInvocationId}));
 
   editor.SetName(invocationId, "rdoc_invocation");
 
@@ -653,9 +661,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     it.nopRemove(5);
 
     it.word(1) = spv::ExecutionModelGLCompute;
-    it.word(2) = wrapperEntry;
+    it.word(2) = wrapperEntry.value();
     it.word(3) = MAKE_FOURCC('r', 'd', 'c', 0);
-    it.word(4) = invocationId;
+    it.word(4) = invocationId.value();
 
     editor.PostModify(it);
 
@@ -671,7 +679,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   {
     if(it.opcode() == spv::OpExecutionMode)
     {
-      rdcspv::Id modeEntryID = rdcspv::Id(it.word(1));
+      rdcspv::Id modeEntryID = rdcspv::Id::fromWord(it.word(1));
 
       // We only need to be cautious about what we are stripping for the entry
       // that we are actually translating, the rest aren't used anyways.
@@ -704,94 +712,105 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     rdcspv::Id funcType = editor.DeclareType(SPIRVFunction(voidType, {}));
 
     ops.push_back(rdcspv::Operation(
-        spv::OpFunction, {voidType, wrapperEntry, spv::FunctionControlMaskNone, funcType}));
+        spv::OpFunction,
+        {voidType.value(), wrapperEntry.value(), spv::FunctionControlMaskNone, funcType.value()}));
 
-    ops.push_back(rdcspv::Operation(spv::OpLabel, {editor.MakeId()}));
+    ops.push_back(rdcspv::Operation(spv::OpLabel, {editor.MakeId().value()}));
     {
       // uint3 invocationVec = gl_GlobalInvocationID;
-      uint32_t invocationVector = editor.MakeId();
-      ops.push_back(rdcspv::Operation(spv::OpLoad, {uint32Vec3ID, invocationVector, invocationId}));
+      rdcspv::Id invocationVector = editor.MakeId();
+      ops.push_back(rdcspv::Operation(
+          spv::OpLoad, {uint32Vec3ID.value(), invocationVector.value(), invocationId.value()}));
 
       // uint invocation = invocationVec.x
-      uint32_t uintInvocationID = editor.MakeId();
-      ops.push_back(rdcspv::Operation(spv::OpCompositeExtract,
-                                      {uint32ID, uintInvocationID, invocationVector, 0U}));
+      rdcspv::Id uintInvocationID = editor.MakeId();
+      ops.push_back(rdcspv::Operation(
+          spv::OpCompositeExtract,
+          {uint32ID.value(), uintInvocationID.value(), invocationVector.value(), 0U}));
 
       // arraySlotID = uintInvocationID;
-      uint32_t arraySlotID = uintInvocationID;
+      rdcspv::Id arraySlotID = uintInvocationID;
 
       editor.SetName(uintInvocationID, "arraySlot");
 
       // uint viewinst = uintInvocationID / numVerts
-      uint32_t viewinstID = editor.MakeId();
-      ops.push_back(rdcspv::Operation(spv::OpUDiv,
-                                      {uint32ID, viewinstID, uintInvocationID, numVertsConstID}));
+      rdcspv::Id viewinstID = editor.MakeId();
+      ops.push_back(
+          rdcspv::Operation(spv::OpUDiv, {uint32ID.value(), viewinstID.value(),
+                                          uintInvocationID.value(), numVertsConstID.value()}));
 
       editor.SetName(viewinstID, "viewInstance");
 
-      uint32_t instID = editor.MakeId();
-      ops.push_back(rdcspv::Operation(spv::OpUMod, {uint32ID, instID, viewinstID, numInstConstID}));
+      rdcspv::Id instID = editor.MakeId();
+      ops.push_back(rdcspv::Operation(spv::OpUMod, {uint32ID.value(), instID.value(),
+                                                    viewinstID.value(), numInstConstID.value()}));
 
       editor.SetName(instID, "instanceID");
 
-      uint32_t viewID = editor.MakeId();
-      ops.push_back(rdcspv::Operation(spv::OpUDiv, {uint32ID, viewID, viewinstID, numInstConstID}));
+      rdcspv::Id viewID = editor.MakeId();
+      ops.push_back(rdcspv::Operation(spv::OpUDiv, {uint32ID.value(), viewID.value(),
+                                                    viewinstID.value(), numInstConstID.value()}));
 
       editor.SetName(viewID, "viewID");
 
       // bool inBounds = viewID < numViews;
-      uint32_t inBounds = editor.MakeId();
-      ops.push_back(rdcspv::Operation(spv::OpULessThan, {editor.DeclareType(scalar<bool>()),
-                                                         inBounds, viewID, numViewsConstID}));
+      rdcspv::Id inBounds = editor.MakeId();
+      ops.push_back(rdcspv::Operation(spv::OpULessThan,
+                                      {editor.DeclareType(scalar<bool>()).value(), inBounds.value(),
+                                       viewID.value(), numViewsConstID.value()}));
 
       // if(inBounds) goto continueLabel; else goto killLabel;
-      uint32_t killLabel = editor.MakeId();
-      uint32_t continueLabel = editor.MakeId();
-      ops.push_back(
-          rdcspv::Operation(spv::OpSelectionMerge, {killLabel, spv::SelectionControlMaskNone}));
-      ops.push_back(rdcspv::Operation(spv::OpBranchConditional, {inBounds, continueLabel, killLabel}));
+      rdcspv::Id killLabel = editor.MakeId();
+      rdcspv::Id continueLabel = editor.MakeId();
+      ops.push_back(rdcspv::Operation(spv::OpSelectionMerge,
+                                      {killLabel.value(), spv::SelectionControlMaskNone}));
+      ops.push_back(rdcspv::Operation(
+          spv::OpBranchConditional, {inBounds.value(), continueLabel.value(), killLabel.value()}));
 
       // continueLabel:
-      ops.push_back(rdcspv::Operation(spv::OpLabel, {continueLabel}));
+      ops.push_back(rdcspv::Operation(spv::OpLabel, {continueLabel.value()}));
 
       // uint vtx = uintInvocationID % numVerts
-      uint32_t vtxID = editor.MakeId();
-      ops.push_back(
-          rdcspv::Operation(spv::OpUMod, {uint32ID, vtxID, uintInvocationID, numVertsConstID}));
+      rdcspv::Id vtxID = editor.MakeId();
+      ops.push_back(rdcspv::Operation(
+          spv::OpUMod,
+          {uint32ID.value(), vtxID.value(), uintInvocationID.value(), numVertsConstID.value()}));
 
       editor.SetName(vtxID, "vertexID");
 
-      uint32_t vertexIndexID = vtxID;
+      rdcspv::Id vertexIndexID = vtxID;
 
       // if we're indexing, look up the index buffer. We don't have to apply vertexOffset - it was
       // already applied when we read back and uniq-ified the index buffer.
       if(draw->flags & DrawFlags::Indexed)
       {
         // sampledimage idximg = *idximgPtr;
-        uint32_t loaded = editor.MakeId();
-        ops.push_back(rdcspv::Operation(spv::OpLoad, {idxSampledTypeID, loaded, idxImagePtr}));
+        rdcspv::Id loaded = editor.MakeId();
+        ops.push_back(rdcspv::Operation(
+            spv::OpLoad, {idxSampledTypeID.value(), loaded.value(), idxImagePtr.value()}));
 
         // image rawimg = imageFromSampled(idximg);
-        uint32_t rawimg = editor.MakeId();
-        ops.push_back(rdcspv::Operation(spv::OpImage, {idxImageTypeID, rawimg, loaded}));
+        rdcspv::Id rawimg = editor.MakeId();
+        ops.push_back(rdcspv::Operation(spv::OpImage,
+                                        {idxImageTypeID.value(), rawimg.value(), loaded.value()}));
 
         // uvec4 result = texelFetch(rawimg, vtxID);
-        uint32_t result = editor.MakeId();
-        ops.push_back(
-            rdcspv::Operation(spv::OpImageFetch, {uint32Vec4ID, result, rawimg, vertexIndexID}));
+        rdcspv::Id result = editor.MakeId();
+        ops.push_back(rdcspv::Operation(spv::OpImageFetch, {uint32Vec4ID.value(), result.value(),
+                                                            rawimg.value(), vertexIndexID.value()}));
 
         // vertexIndex = result.x;
         vertexIndexID = editor.MakeId();
-        ops.push_back(
-            rdcspv::Operation(spv::OpCompositeExtract, {uint32ID, vertexIndexID, result, 0}));
+        ops.push_back(rdcspv::Operation(
+            spv::OpCompositeExtract, {uint32ID.value(), vertexIndexID.value(), result.value(), 0}));
       }
 
       // we use the current value of vertexIndex and use instID, to lookup per-vertex and
       // per-instance attributes. This is because when we fetched the vertex data, we advanced by
       // (in non-indexed draws) vertexOffset, and by instanceOffset. Rather than fetching data
       // that's only used as padding skipped over by these offsets.
-      uint32_t vertexLookupID = vertexIndexID;
-      uint32_t instanceLookupID = instID;
+      rdcspv::Id vertexLookupID = vertexIndexID;
+      rdcspv::Id instanceLookupID = instID;
 
       if(!(draw->flags & DrawFlags::Indexed))
       {
@@ -799,26 +818,26 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         // 0-based one to calculate the array slot
         vertexIndexID = editor.MakeId();
         ops.push_back(rdcspv::Operation(
-            spv::OpIAdd, {uint32ID, vertexIndexID, vtxID,
-                          editor.AddConstantImmediate<uint32_t>(draw->vertexOffset)}));
+            spv::OpIAdd, {uint32ID.value(), vertexIndexID.value(), vtxID.value(),
+                          editor.AddConstantImmediate<uint32_t>(draw->vertexOffset).value()}));
       }
       editor.SetName(vertexIndexID, "vertexIndex");
 
       // instIndex = inst + instOffset
-      uint32_t instIndexID = editor.MakeId();
+      rdcspv::Id instIndexID = editor.MakeId();
       ops.push_back(rdcspv::Operation(
-          spv::OpIAdd, {uint32ID, instIndexID, instID,
-                        editor.AddConstantImmediate<uint32_t>(draw->instanceOffset)}));
+          spv::OpIAdd, {uint32ID.value(), instIndexID.value(), instID.value(),
+                        editor.AddConstantImmediate<uint32_t>(draw->instanceOffset).value()}));
       editor.SetName(instIndexID, "instanceIndex");
 
-      uint32_t idxs[64] = {};
+      rdcspv::Id idxs[64] = {};
 
       for(size_t i = 0; i < refl.inputSignature.size(); i++)
       {
         ShaderBuiltin builtin = refl.inputSignature[i].systemValue;
         if(builtin != ShaderBuiltin::Undefined)
         {
-          uint32_t valueID = 0;
+          rdcspv::Id valueID;
           CompType compType = CompType::UInt;
 
           if(builtin == ShaderBuiltin::VertexIndex)
@@ -858,15 +877,17 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           {
             if(refl.inputSignature[i].compType == compType)
             {
-              ops.push_back(rdcspv::Operation(spv::OpStore, {ins[i].variableID, valueID}));
+              ops.push_back(
+                  rdcspv::Operation(spv::OpStore, {ins[i].variableID.value(), valueID.value()}));
             }
             else
             {
-              uint32_t castedValue = editor.MakeId();
+              rdcspv::Id castedValue = editor.MakeId();
               // assume we can just bitcast
-              ops.push_back(
-                  rdcspv::Operation(spv::OpBitcast, {ins[i].basetypeID, castedValue, valueID}));
-              ops.push_back(rdcspv::Operation(spv::OpStore, {ins[i].variableID, castedValue}));
+              ops.push_back(rdcspv::Operation(
+                  spv::OpBitcast, {ins[i].basetypeID.value(), castedValue.value(), valueID.value()}));
+              ops.push_back(rdcspv::Operation(spv::OpStore,
+                                              {ins[i].variableID.value(), castedValue.value()}));
             }
           }
           else
@@ -887,22 +908,24 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
           uint32_t location = refl.inputSignature[i].regIndex;
 
-          uint32_t ptrId = editor.MakeId();
+          rdcspv::Id ptrId = editor.MakeId();
           // sampledimage *imgPtr = xxx_tbuffers[i];
           ops.push_back(rdcspv::Operation(
-              spv::OpAccessChain,
-              {tb.pointerTypeID, ptrId, tb.variableID, idxs[refl.inputSignature[i].regIndex]}));
+              spv::OpAccessChain, {tb.pointerTypeID.value(), ptrId.value(), tb.variableID.value(),
+                                   idxs[refl.inputSignature[i].regIndex].value()}));
 
           // sampledimage img = *imgPtr;
-          uint32_t loaded = editor.MakeId();
-          ops.push_back(rdcspv::Operation(spv::OpLoad, {tb.imageSampledTypeID, loaded, ptrId}));
+          rdcspv::Id loaded = editor.MakeId();
+          ops.push_back(rdcspv::Operation(
+              spv::OpLoad, {tb.imageSampledTypeID.value(), loaded.value(), ptrId.value()}));
 
           // image rawimg = imageFromSampled(img);
-          uint32_t rawimg = editor.MakeId();
-          ops.push_back(rdcspv::Operation(spv::OpImage, {tb.imageTypeID, rawimg, loaded}));
+          rdcspv::Id rawimg = editor.MakeId();
+          ops.push_back(rdcspv::Operation(
+              spv::OpImage, {tb.imageTypeID.value(), rawimg.value(), loaded.value()}));
 
           // vec4 result = texelFetch(rawimg, vtxID or instID);
-          uint32_t idx = vertexLookupID;
+          rdcspv::Id idx = vertexLookupID;
 
           if(location < instDivisor.size())
           {
@@ -927,23 +950,26 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             {
               // otherwise we divide by the divisor
               idx = editor.MakeId();
-              divisor = editor.AddConstantImmediate<uint32_t>(divisor);
-              ops.push_back(
-                  rdcspv::Operation(spv::OpUDiv, {uint32ID, idx, instanceLookupID, divisor}));
+              rdcspv::Id divisorId = editor.AddConstantImmediate<uint32_t>(divisor);
+              ops.push_back(rdcspv::Operation(
+                  spv::OpUDiv,
+                  {uint32ID.value(), idx.value(), instanceLookupID.value(), divisorId.value()}));
             }
           }
 
           if(refl.inputSignature[i].compType == CompType::Double)
           {
             // since doubles are packed into two uints, we need to multiply the index by two
-            uint32_t doubled = editor.MakeId();
-            ops.push_back(rdcspv::Operation(
-                spv::OpIMul, {uint32ID, doubled, idx, editor.AddConstantImmediate<uint32_t>(2)}));
+            rdcspv::Id doubled = editor.MakeId();
+            ops.push_back(
+                rdcspv::Operation(spv::OpIMul, {uint32ID.value(), doubled.value(), idx.value(),
+                                                editor.AddConstantImmediate<uint32_t>(2).value()}));
             idx = doubled;
           }
 
-          uint32_t result = editor.MakeId();
-          ops.push_back(rdcspv::Operation(spv::OpImageFetch, {ins[i].vec4ID, result, rawimg, idx}));
+          rdcspv::Id result = editor.MakeId();
+          ops.push_back(rdcspv::Operation(spv::OpImageFetch, {ins[i].vec4ID.value(), result.value(),
+                                                              rawimg.value(), idx.value()}));
 
           if(refl.inputSignature[i].compType == CompType::Double)
           {
@@ -951,27 +977,30 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             // packing. We can fetch the data unconditionally since it's harmless to read out of the
             // bounds of the buffer
 
-            uint32_t nextidx = editor.MakeId();
-            ops.push_back(rdcspv::Operation(
-                spv::OpIAdd, {uint32ID, nextidx, idx, editor.AddConstantImmediate<uint32_t>(1)}));
-
-            uint32_t result2 = editor.MakeId();
+            rdcspv::Id nextidx = editor.MakeId();
             ops.push_back(
-                rdcspv::Operation(spv::OpImageFetch, {ins[i].vec4ID, result2, rawimg, nextidx}));
+                rdcspv::Operation(spv::OpIAdd, {uint32ID.value(), nextidx.value(), idx.value(),
+                                                editor.AddConstantImmediate<uint32_t>(1).value()}));
 
-            uint32_t glsl450 = editor.ImportExtInst("GLSL.std.450");
+            rdcspv::Id result2 = editor.MakeId();
+            ops.push_back(rdcspv::Operation(
+                spv::OpImageFetch,
+                {ins[i].vec4ID.value(), result2.value(), rawimg.value(), nextidx.value()}));
 
-            uint32_t uvec2Type = editor.DeclareType(SPIRVVector(scalar<uint32_t>(), 2));
-            uint32_t comps[4] = {};
+            rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
+
+            rdcspv::Id uvec2Type = editor.DeclareType(SPIRVVector(scalar<uint32_t>(), 2));
+            rdcspv::Id comps[4] = {};
 
             for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
             {
               // first extract the uvec2 we want
-              uint32_t packed = editor.MakeId();
+              rdcspv::Id packed = editor.MakeId();
 
               // uvec2 packed = result.[xy/zw] / result2.[xy/zw];
-              ops.push_back(rdcspv::Operation(
-                  spv::OpVectorShuffle, {uvec2Type, packed, result, result2, c * 2 + 0, c * 2 + 1}));
+              ops.push_back(rdcspv::Operation(spv::OpVectorShuffle,
+                                              {uvec2Type.value(), packed.value(), result.value(),
+                                               result2.value(), c * 2 + 0, c * 2 + 1}));
 
               char swizzle[] = "xyzw";
 
@@ -981,8 +1010,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
               comps[c] = editor.MakeId();
               ops.push_back(rdcspv::Operation(
                   spv::OpExtInst, {
-                                      editor.DeclareType(scalar<double>()), comps[c], glsl450,
-                                      GLSLstd450PackDouble2x32, packed,
+                                      editor.DeclareType(scalar<double>()).value(), comps[c].value(),
+                                      glsl450.value(), GLSLstd450PackDouble2x32, packed.value(),
                                   }));
             }
 
@@ -995,10 +1024,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             {
               result = editor.MakeId();
 
-              std::vector<uint32_t> words = {ins[i].basetypeID, result};
+              std::vector<uint32_t> words = {ins[i].basetypeID.value(), result.value()};
 
               for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
-                words.push_back(comps[c]);
+                words.push_back(comps[c].value());
 
               // baseTypeN value = result.xyz;
               ops.push_back(rdcspv::Operation(spv::OpCompositeConstruct, words));
@@ -1008,20 +1037,22 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           {
             // for one component, extract x
 
-            uint32_t swizzleIn = result;
+            rdcspv::Id swizzleIn = result;
             result = editor.MakeId();
 
             // baseType value = result.x;
-            ops.push_back(rdcspv::Operation(spv::OpCompositeExtract,
-                                            {ins[i].basetypeID, result, swizzleIn, 0}));
+            ops.push_back(rdcspv::Operation(
+                spv::OpCompositeExtract,
+                {ins[i].basetypeID.value(), result.value(), swizzleIn.value(), 0}));
           }
           else if(refl.inputSignature[i].compCount != 4)
           {
             // for less than 4 components, extract the sub-vector
-            uint32_t swizzleIn = result;
+            rdcspv::Id swizzleIn = result;
             result = editor.MakeId();
 
-            std::vector<uint32_t> words = {ins[i].basetypeID, result, swizzleIn, swizzleIn};
+            std::vector<uint32_t> words = {ins[i].basetypeID.value(), result.value(),
+                                           swizzleIn.value(), swizzleIn.value()};
 
             for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
               words.push_back(c);
@@ -1036,84 +1067,90 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           if(patchData.inputs[i].accessChain.empty())
           {
             // *global = value
-            ops.push_back(rdcspv::Operation(spv::OpStore, {ins[i].variableID, result}));
+            ops.push_back(
+                rdcspv::Operation(spv::OpStore, {ins[i].variableID.value(), result.value()}));
           }
           else
           {
             // for composite types we need to access chain first
-            uint32_t subElement = editor.MakeId();
-            std::vector<uint32_t> words = {ins[i].privatePtrID, subElement, patchData.inputs[i].ID};
+            rdcspv::Id subElement = editor.MakeId();
+            std::vector<uint32_t> words = {ins[i].privatePtrID.value(), subElement.value(),
+                                           patchData.inputs[i].ID};
 
             for(uint32_t accessIdx : patchData.inputs[i].accessChain)
             {
               if(idxs[accessIdx] == 0)
                 idxs[accessIdx] = editor.AddConstantImmediate<uint32_t>(accessIdx);
 
-              words.push_back(idxs[accessIdx]);
+              words.push_back(idxs[accessIdx].value());
             }
 
             ops.push_back(rdcspv::Operation(spv::OpAccessChain, words));
 
-            ops.push_back(rdcspv::Operation(spv::OpStore, {subElement, result}));
+            ops.push_back(rdcspv::Operation(spv::OpStore, {subElement.value(), result.value()}));
           }
         }
       }
 
       // real_main();
-      ops.push_back(rdcspv::Operation(spv::OpFunctionCall, {voidType, editor.MakeId(), entryID}));
+      ops.push_back(rdcspv::Operation(
+          spv::OpFunctionCall, {voidType.value(), editor.MakeId().value(), entryID.value()}));
 
       rdcspv::Id zero = editor.AddConstantImmediate<uint32_t>(0);
 
       for(uint32_t o = 0; o < numOutputs; o++)
       {
-        uint32_t loaded = 0;
+        rdcspv::Id loaded;
 
         // not a structure member or array child, can load directly
         if(patchData.outputs[o].accessChain.empty())
         {
           loaded = editor.MakeId();
           // type loaded = *globalvar;
-          ops.push_back(rdcspv::Operation(spv::OpLoad,
-                                          {outs[o].basetypeID, loaded, patchData.outputs[o].ID}));
+          ops.push_back(rdcspv::Operation(
+              spv::OpLoad, {outs[o].basetypeID.value(), loaded.value(), patchData.outputs[o].ID}));
         }
         else
         {
-          uint32_t readPtr = editor.MakeId();
+          rdcspv::Id readPtr = editor.MakeId();
           loaded = editor.MakeId();
 
           // structure member, need to access chain first
-          std::vector<uint32_t> words = {outs[o].privatePtrID, readPtr, patchData.outputs[o].ID};
+          std::vector<uint32_t> words = {outs[o].privatePtrID.value(), readPtr.value(),
+                                         patchData.outputs[o].ID};
 
           for(uint32_t idx : patchData.outputs[o].accessChain)
           {
             if(idxs[idx] == 0)
               idxs[idx] = editor.AddConstantImmediate<uint32_t>(idx);
 
-            words.push_back(idxs[idx]);
+            words.push_back(idxs[idx].value());
           }
 
           // type *readPtr = globalvar.globalsub...;
           ops.push_back(rdcspv::Operation(spv::OpAccessChain, words));
           // type loaded = *readPtr;
-          ops.push_back(rdcspv::Operation(spv::OpLoad, {outs[o].basetypeID, loaded, readPtr}));
+          ops.push_back(rdcspv::Operation(
+              spv::OpLoad, {outs[o].basetypeID.value(), loaded.value(), readPtr.value()}));
         }
 
         // access chain the destination
         // type *writePtr = outBuffer.verts[arraySlot].outputN
-        uint32_t writePtr = editor.MakeId();
+        rdcspv::Id writePtr = editor.MakeId();
         ops.push_back(rdcspv::Operation(
             spv::OpAccessChain,
-            {outs[o].uniformPtrID, writePtr, outBufferVarID, zero, arraySlotID, outs[o].constID}));
+            {outs[o].uniformPtrID.value(), writePtr.value(), outBufferVarID.value(), zero.value(),
+             arraySlotID.value(), outs[o].constID.value()}));
 
         // *writePtr = loaded;
-        ops.push_back(rdcspv::Operation(spv::OpStore, {writePtr, loaded}));
+        ops.push_back(rdcspv::Operation(spv::OpStore, {writePtr.value(), loaded.value()}));
       }
 
       // goto killLabel;
-      ops.push_back(rdcspv::Operation(spv::OpBranch, {killLabel}));
+      ops.push_back(rdcspv::Operation(spv::OpBranch, {killLabel.value()}));
 
       // killLabel:
-      ops.push_back(rdcspv::Operation(spv::OpLabel, {killLabel}));
+      ops.push_back(rdcspv::Operation(spv::OpLabel, {killLabel.value()}));
     }
     ops.push_back(rdcspv::Operation(spv::OpReturn, {}));
 
@@ -1132,7 +1169,7 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
   rdcarray<SigParameter> outsig = refl.outputSignature;
   std::vector<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
 
-  uint32_t entryid = 0;
+  rdcspv::Id entryid;
   for(const SPIRVEntry &entry : editor.GetEntries())
   {
     if(entry.name == entryName)
@@ -1147,7 +1184,7 @@ static void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData
   for(rdcspv::Iter it = editor.Begin(SPIRVSection::ExecutionMode);
       it < editor.End(SPIRVSection::ExecutionMode); ++it)
   {
-    if(it.opcode() == spv::OpExecutionMode && it.word(1) == entryid &&
+    if(it.opcode() == spv::OpExecutionMode && rdcspv::Id::fromWord(it.word(1)) == entryid &&
        it.word(2) == spv::ExecutionModeXfb)
     {
       hasXFB = true;

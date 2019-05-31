@@ -372,7 +372,7 @@ public:
     iter.nopRemove();
   }
 
-  void SetName(uint32_t id, const char *name);
+  void SetName(rdcspv::Id id, const char *name);
   void AddDecoration(const rdcspv::Operation &op);
   void AddCapability(spv::Capability cap);
   void AddExtension(const std::string &extension);
@@ -408,7 +408,8 @@ public:
       return it->second;
 
     rdcspv::Operation decl = t.decl(*this);
-    rdcspv::Id id = decl[1] = MakeId();
+    rdcspv::Id id = MakeId();
+    decl[1] = id.value();
     AddType(decl);
 
     table.insert(it, std::pair<SPIRVType, rdcspv::Id>(t, id));
@@ -455,14 +456,14 @@ public:
     return it->second;
   }
   const std::set<rdcspv::Id> &GetStructTypes() const { return structTypes; }
-  rdcspv::Id DeclareStructType(std::vector<uint32_t> members);
+  rdcspv::Id DeclareStructType(const std::vector<rdcspv::Id> &members);
 
   // helper for AddConstant
   template <typename T>
   rdcspv::Id AddConstantImmediate(T t)
   {
     rdcspv::Id typeId = DeclareType(scalar<T>());
-    std::vector<uint32_t> words = {typeId, MakeId()};
+    std::vector<uint32_t> words = {typeId.value(), MakeId().value()};
 
     words.insert(words.end(), sizeof(T) / 4, 0U);
 
@@ -485,7 +486,7 @@ public:
   const std::vector<SPIRVEntry> &GetEntries() { return entries; }
   const std::vector<SPIRVVariable> &GetVariables() { return variables; }
   const std::vector<rdcspv::Id> &GetFunctions() { return functions; }
-  rdcspv::Id GetIDType(rdcspv::Id id) { return idTypes[id]; }
+  rdcspv::Id GetIDType(rdcspv::Id id) { return idTypes[id.value()]; }
 private:
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
   void addWords(size_t offs, int32_t num);
