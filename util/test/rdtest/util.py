@@ -245,9 +245,17 @@ def value_compare(ref, data):
         if type(data) != float:
             return False
 
-        # Special handling for NaNs
+        # Special handling for NaNs - NaNs are always equal to NaNs, but NaN is never equal to any other value
         if math.isnan(ref) and math.isnan(data):
             return True
+        elif math.isnan(ref) != math.isnan(data):
+            return False
+
+        # Same as above for infs, but check the sign
+        if math.isinf(ref) and math.isinf(data):
+            return math.copysign(1.0, ref) == math.copysign(1.0, data)
+        elif math.isinf(ref) != math.isinf(data):
+            return False
 
         # Floats are equal if the absolute difference is less than epsilon times the largest.
         largest = max(abs(ref), abs(data))
