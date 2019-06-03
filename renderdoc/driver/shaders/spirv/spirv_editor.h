@@ -32,66 +32,9 @@
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "spirv_common.h"
+#include "spirv_op_helpers.h"
 
 class SPIRVEditor;
-
-struct SPIRVEntry
-{
-  rdcspv::Id id;
-  std::string name;
-};
-
-struct SPIRVVariable
-{
-  rdcspv::Id id;
-  rdcspv::Id type;
-  spv::StorageClass storageClass;
-  rdcspv::Id init;
-
-  bool operator<(const SPIRVVariable &o) const
-  {
-    if(id != o.id)
-      return id < o.id;
-    if(type != o.type)
-      return type < o.type;
-    if(storageClass != o.storageClass)
-      return storageClass < o.storageClass;
-    return init < o.init;
-  }
-
-  bool operator!=(const SPIRVVariable &o) const { return !operator==(o); }
-  bool operator==(const SPIRVVariable &o) const
-  {
-    return id == o.id && type == o.type && storageClass == o.storageClass && init == o.init;
-  }
-};
-
-struct SPIRVDecoration
-{
-  rdcspv::Id id;
-  spv::Decoration dec = spv::DecorationMax;
-  uint32_t parameters[4] = {};
-
-  bool operator<(const SPIRVDecoration &o) const
-  {
-    if(id != o.id)
-      return id < o.id;
-    if(dec != o.dec)
-      return dec < o.dec;
-
-    for(size_t i = 0; i < ARRAY_COUNT(parameters); i++)
-      if(parameters[i] != o.parameters[i])
-        return parameters[i] < o.parameters[i];
-
-    return false;
-  }
-
-  bool operator!=(const SPIRVDecoration &o) const { return !operator==(o); }
-  bool operator==(const SPIRVDecoration &o) const
-  {
-    return id == o.id && dec == o.dec && !memcmp(parameters, o.parameters, sizeof(parameters));
-  }
-};
 
 struct SPIRVBinding
 {
@@ -113,11 +56,11 @@ struct SPIRVBinding
 
 struct SPIRVScalar
 {
-  SPIRVScalar() : type(spv::OpMax), width(0), signedness(false) {}
-  constexpr SPIRVScalar(spv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
+  SPIRVScalar() : type(rdcspv::Op::Max), width(0), signedness(false) {}
+  constexpr SPIRVScalar(rdcspv::Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
   SPIRVScalar(rdcspv::Iter op);
 
-  spv::Op type;
+  rdcspv::Op type;
   uint32_t width;
   bool signedness;
 
@@ -138,16 +81,16 @@ struct SPIRVScalar
 
   rdcspv::Operation decl(SPIRVEditor &editor) const
   {
-    if(type == spv::OpTypeVoid)
-      return rdcspv::Operation(type, {0});
-    else if(type == spv::OpTypeBool)
-      return rdcspv::Operation(type, {0});
-    else if(type == spv::OpTypeFloat)
-      return rdcspv::Operation(type, {0, width});
-    else if(type == spv::OpTypeInt)
-      return rdcspv::Operation(type, {0, width, signedness ? 1U : 0U});
+    if(type == rdcspv::Op::TypeVoid)
+      return rdcspv::OpTypeVoid(rdcspv::Id());
+    else if(type == rdcspv::Op::TypeBool)
+      return rdcspv::OpTypeBool(rdcspv::Id());
+    else if(type == rdcspv::Op::TypeFloat)
+      return rdcspv::OpTypeFloat(rdcspv::Id(), width);
+    else if(type == rdcspv::Op::TypeInt)
+      return rdcspv::OpTypeInt(rdcspv::Id(), width, signedness ? 1U : 0U);
     else
-      return rdcspv::Operation(spv::OpNop, {0});
+      return rdcspv::OpNop();
   }
 };
 
@@ -162,18 +105,18 @@ inline constexpr SPIRVScalar scalar();
     return SPIRVScalar(op, width, sign);       \
   }
 
-SCALAR_TYPE(void, spv::OpTypeVoid, 0, false);
-SCALAR_TYPE(bool, spv::OpTypeBool, 0, false);
-SCALAR_TYPE(uint8_t, spv::OpTypeInt, 8, false);
-SCALAR_TYPE(uint16_t, spv::OpTypeInt, 16, false);
-SCALAR_TYPE(uint32_t, spv::OpTypeInt, 32, false);
-SCALAR_TYPE(uint64_t, spv::OpTypeInt, 64, false);
-SCALAR_TYPE(int8_t, spv::OpTypeInt, 8, true);
-SCALAR_TYPE(int16_t, spv::OpTypeInt, 16, true);
-SCALAR_TYPE(int32_t, spv::OpTypeInt, 32, true);
-SCALAR_TYPE(int64_t, spv::OpTypeInt, 64, true);
-SCALAR_TYPE(float, spv::OpTypeFloat, 32, false);
-SCALAR_TYPE(double, spv::OpTypeFloat, 64, false);
+SCALAR_TYPE(void, rdcspv::Op::TypeVoid, 0, false);
+SCALAR_TYPE(bool, rdcspv::Op::TypeBool, 0, false);
+SCALAR_TYPE(uint8_t, rdcspv::Op::TypeInt, 8, false);
+SCALAR_TYPE(uint16_t, rdcspv::Op::TypeInt, 16, false);
+SCALAR_TYPE(uint32_t, rdcspv::Op::TypeInt, 32, false);
+SCALAR_TYPE(uint64_t, rdcspv::Op::TypeInt, 64, false);
+SCALAR_TYPE(int8_t, rdcspv::Op::TypeInt, 8, true);
+SCALAR_TYPE(int16_t, rdcspv::Op::TypeInt, 16, true);
+SCALAR_TYPE(int32_t, rdcspv::Op::TypeInt, 32, true);
+SCALAR_TYPE(int64_t, rdcspv::Op::TypeInt, 64, true);
+SCALAR_TYPE(float, rdcspv::Op::TypeFloat, 32, false);
+SCALAR_TYPE(double, rdcspv::Op::TypeFloat, 64, false);
 
 struct SPIRVVector
 {
@@ -213,9 +156,9 @@ struct SPIRVMatrix
 
 struct SPIRVPointer
 {
-  SPIRVPointer(rdcspv::Id b, spv::StorageClass s) : baseId(b), storage(s) {}
+  SPIRVPointer(rdcspv::Id b, rdcspv::StorageClass s) : baseId(b), storage(s) {}
   rdcspv::Id baseId;
-  spv::StorageClass storage;
+  rdcspv::StorageClass storage;
 
   bool operator<(const SPIRVPointer &o) const
   {
@@ -234,19 +177,19 @@ struct SPIRVPointer
 
 struct SPIRVImage
 {
-  SPIRVImage(SPIRVScalar ret, spv::Dim d, uint32_t dp, uint32_t ar, uint32_t m, uint32_t samp,
-             spv::ImageFormat f)
+  SPIRVImage(SPIRVScalar ret, rdcspv::Dim d, uint32_t dp, uint32_t ar, uint32_t m, uint32_t samp,
+             rdcspv::ImageFormat f)
       : retType(ret), dim(d), depth(dp), arrayed(ar), ms(m), sampled(samp), format(f)
   {
   }
 
   SPIRVScalar retType;
-  spv::Dim dim;
+  rdcspv::Dim dim;
   uint32_t depth;
   uint32_t arrayed;
   uint32_t ms;
   uint32_t sampled;
-  spv::ImageFormat format;
+  rdcspv::ImageFormat format;
 
   bool operator<(const SPIRVImage &o) const
   {
@@ -295,12 +238,11 @@ struct SPIRVSampledImage
 
 struct SPIRVFunction
 {
-  SPIRVFunction(rdcspv::Id ret, const std::vector<rdcspv::Id> &args)
-      : returnId(ret), argumentIds(args)
+  SPIRVFunction(rdcspv::Id ret, const rdcarray<rdcspv::Id> &args) : returnId(ret), argumentIds(args)
   {
   }
   rdcspv::Id returnId;
-  std::vector<rdcspv::Id> argumentIds;
+  rdcarray<rdcspv::Id> argumentIds;
 
   bool operator<(const SPIRVFunction &o) const
   {
@@ -374,9 +316,9 @@ public:
 
   void SetName(rdcspv::Id id, const char *name);
   void AddDecoration(const rdcspv::Operation &op);
-  void AddCapability(spv::Capability cap);
-  void AddExtension(const std::string &extension);
-  void AddExecutionMode(rdcspv::Id entry, spv::ExecutionMode mode, std::vector<uint32_t> params = {});
+  void AddCapability(rdcspv::Capability cap);
+  void AddExtension(const rdcstr &extension);
+  void AddExecutionMode(const rdcspv::Operation &mode);
   rdcspv::Id ImportExtInst(const char *setname);
   rdcspv::Id AddType(const rdcspv::Operation &op);
   rdcspv::Id AddVariable(const rdcspv::Operation &op);
@@ -469,7 +411,7 @@ public:
 
     memcpy(&words[2], &t, sizeof(T));
 
-    return AddConstant(rdcspv::Operation(spv::OpConstant, words));
+    return AddConstant(rdcspv::Operation(rdcspv::Op::Constant, words));
   }
 
   // simple properties that are public.
@@ -479,12 +421,12 @@ public:
   } moduleVersion;
   uint32_t generator = 0;
 
-  spv::SourceLanguage sourceLang = spv::SourceLanguageUnknown;
+  rdcspv::SourceLanguage sourceLang = rdcspv::SourceLanguage::Unknown;
   uint32_t sourceVer = 0;
 
   // accessors to structs/vectors of data
-  const std::vector<SPIRVEntry> &GetEntries() { return entries; }
-  const std::vector<SPIRVVariable> &GetVariables() { return variables; }
+  const std::vector<rdcspv::OpEntryPoint> &GetEntries() { return entries; }
+  const std::vector<rdcspv::OpVariable> &GetVariables() { return variables; }
   const std::vector<rdcspv::Id> &GetFunctions() { return functions; }
   rdcspv::Id GetIDType(rdcspv::Id id) { return idTypes[id.value()]; }
 private:
@@ -502,23 +444,23 @@ private:
 
   LogicalSection sections[SPIRVSection::Count];
 
-  spv::AddressingModel addressmodel;
-  spv::MemoryModel memorymodel;
+  rdcspv::AddressingModel addressmodel;
+  rdcspv::MemoryModel memorymodel;
 
-  std::vector<SPIRVDecoration> decorations;
+  std::vector<rdcspv::OpDecorate> decorations;
 
   std::map<rdcspv::Id, SPIRVBinding> bindings;
 
   std::vector<size_t> idOffsets;
   std::vector<rdcspv::Id> idTypes;
 
-  std::vector<SPIRVEntry> entries;
-  std::vector<SPIRVVariable> variables;
+  std::vector<rdcspv::OpEntryPoint> entries;
+  std::vector<rdcspv::OpVariable> variables;
   std::vector<rdcspv::Id> functions;
-  std::set<std::string> extensions;
-  std::set<spv::Capability> capabilities;
+  std::set<rdcstr> extensions;
+  std::set<rdcspv::Capability> capabilities;
 
-  std::map<std::string, rdcspv::Id> extSets;
+  std::map<rdcstr, rdcspv::Id> extSets;
 
   std::map<SPIRVScalar, rdcspv::Id> scalarTypes;
   std::map<SPIRVVector, rdcspv::Id> vectorTypes;
@@ -539,3 +481,18 @@ private:
 
   std::vector<uint32_t> &spirv;
 };
+
+inline bool operator<(const rdcspv::OpDecorate &a, const rdcspv::OpDecorate &b)
+{
+  if(a.target != b.target)
+    return a.target < b.target;
+  if(a.decoration.value != b.decoration.value)
+    return a.decoration.value < b.decoration.value;
+
+  return memcmp(&a.decoration, &b.decoration, sizeof(a.decoration)) < 0;
+}
+
+inline bool operator==(const rdcspv::OpDecorate &a, const rdcspv::OpDecorate &b)
+{
+  return a.target == b.target && !memcmp(&a.decoration, &b.decoration, sizeof(a.decoration));
+}

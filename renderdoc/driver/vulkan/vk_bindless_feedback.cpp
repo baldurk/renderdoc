@@ -23,9 +23,8 @@
  ******************************************************************************/
 
 #include <float.h>
-#include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "driver/shaders/spirv/spirv_editor.h"
+#include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_shader_cache.h"
@@ -56,22 +55,19 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     uint64ID = editor.DeclareType(scalar<uint64_t>());
     int64ID = editor.DeclareType(scalar<int64_t>());
 
-    uint32StructID = editor.AddType(
-        rdcspv::Operation(spv::OpTypeStruct, {editor.MakeId().value(), uint32ID.value()}));
+    uint32StructID = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {uint32ID}));
 
     // any function parameters we add are uint64 byte offsets
     funcParamType = uint64ID;
   }
   else
   {
-    rdcspv::Id runtimeArrayID = editor.AddType(
-        rdcspv::Operation(spv::OpTypeRuntimeArray, {editor.MakeId().value(), uint32ID.value()}));
+    rdcspv::Id runtimeArrayID = editor.AddType(rdcspv::OpTypeRuntimeArray(editor.MakeId(), uint32ID));
 
-    editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {runtimeArrayID.value(), spv::DecorationArrayStride, sizeof(uint32_t)}));
+    editor.AddDecoration(rdcspv::OpDecorate(
+        runtimeArrayID, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(sizeof(uint32_t))));
 
-    uint32StructID = editor.AddType(
-        rdcspv::Operation(spv::OpTypeStruct, {editor.MakeId().value(), runtimeArrayID.value()}));
+    uint32StructID = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {runtimeArrayID}));
 
     // any function parameters we add are uint32 indices
     funcParamType = uint32ID;
@@ -79,8 +75,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
   editor.SetName(uint32StructID, "__rd_feedbackStruct");
 
-  editor.AddDecoration(rdcspv::Operation(spv::OpMemberDecorate,
-                                         {uint32StructID.value(), 0, spv::DecorationOffset, 0}));
+  editor.AddDecoration(rdcspv::OpMemberDecorate(
+      uint32StructID, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
 
   // map from variable ID to watch, to variable ID to get offset from (as a SPIR-V constant,
   // or as either uint64 byte offset for buffer addressing or uint32 ssbo index otherwise)
@@ -88,16 +84,16 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
   // iterate over all variables. We do this here because in the absence of the buffer address
   // extension we might declare our own below and patch bindings - so we need to look these up now
-  for(const SPIRVVariable &var : editor.GetVariables())
+  for(const rdcspv::OpVariable &var : editor.GetVariables())
   {
     // skip variables without one of these storage classes, as they are not descriptors
-    if(var.storageClass != spv::StorageClassUniformConstant &&
-       var.storageClass != spv::StorageClassUniform &&
-       var.storageClass != spv::StorageClassStorageBuffer)
+    if(var.storageClass != rdcspv::StorageClass::UniformConstant &&
+       var.storageClass != rdcspv::StorageClass::Uniform &&
+       var.storageClass != rdcspv::StorageClass::StorageBuffer)
       continue;
 
     // get this variable's binding info
-    SPIRVBinding bind = editor.GetBinding(var.id);
+    SPIRVBinding bind = editor.GetBinding(var.result);
 
     // if this is one of the bindings we care about
     auto it = offsetMap.find(bind);
@@ -106,7 +102,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       // store the offset for this variable so we watch for access chains and know where to store to
       if(useBufferAddress)
       {
-        rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint64_t>(it->second.offset);
+        rdcspv::Id id = varLookup[var.result] =
+            editor.AddConstantImmediate<uint64_t>(it->second.offset);
 
         editor.SetName(
             id, StringFormat::Fmt("__feedbackOffset_set%u_bind%u", it->first.set, it->first.binding)
@@ -117,7 +114,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
         // check that the offset fits in 32-bit word, convert byte offset to uint32 index
         uint64_t index = it->second.offset / 4;
         RDCASSERT(index < 0xFFFFFFFFULL, bind.set, bind.binding, it->second.offset);
-        rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint32_t>(uint32_t(index));
+        rdcspv::Id id = varLookup[var.result] =
+            editor.AddConstantImmediate<uint32_t>(uint32_t(index));
 
         editor.SetName(
             id, StringFormat::Fmt("__feedbackIndex_set%u_bind%u", it->first.set, it->first.binding)
@@ -134,30 +132,31 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     editor.AddExtension("SPV_EXT_physical_storage_buffer");
 
     // change the memory model to physical storage buffer 64
-    rdcspv::Operation op(editor.Begin(SPIRVSection::MemoryModel));
-    op[1] = spv::AddressingModelPhysicalStorageBuffer64EXT;
+    rdcspv::Iter it = editor.Begin(SPIRVSection::MemoryModel);
+    rdcspv::OpMemoryModel model(it);
+    model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64EXT;
+    it = model;
 
     // add capabilities
-    editor.AddCapability(spv::CapabilityPhysicalStorageBufferAddressesEXT);
-    editor.AddCapability(spv::CapabilityInt64);
+    editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddressesEXT);
+    editor.AddCapability(rdcspv::Capability::Int64);
 
     // declare the address constants and make our pointers physical storage buffer pointers
     bufferAddressConst = editor.AddConstantImmediate<uint64_t>(addr);
     uint32ptrtype =
-        editor.DeclareType(SPIRVPointer(uint32ID, spv::StorageClassPhysicalStorageBufferEXT));
+        editor.DeclareType(SPIRVPointer(uint32ID, rdcspv::StorageClass::PhysicalStorageBufferEXT));
 
     editor.SetName(bufferAddressConst, "__rd_feedbackAddress");
 
     // struct is block decorated
-    editor.AddDecoration(
-        rdcspv::Operation(spv::OpDecorate, {uint32StructID.value(), spv::DecorationBlock}));
+    editor.AddDecoration(rdcspv::OpDecorate(uint32StructID, rdcspv::Decoration::Block));
   }
   else
   {
     // the pointers are uniform pointers
     rdcspv::Id bufptrtype =
-        editor.DeclareType(SPIRVPointer(uint32StructID, spv::StorageClassUniform));
-    uint32ptrtype = editor.DeclareType(SPIRVPointer(uint32ID, spv::StorageClassUniform));
+        editor.DeclareType(SPIRVPointer(uint32StructID, rdcspv::StorageClass::Uniform));
+    uint32ptrtype = editor.DeclareType(SPIRVPointer(uint32ID, rdcspv::StorageClass::Uniform));
 
     // patch all bindings up by 1
     for(rdcspv::Iter it = editor.Begin(SPIRVSection::Annotations),
@@ -171,47 +170,50 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       // where all descriptor sets are already used. In theory we only have to do this with set 0,
       // but that requires knowing which variables are in set 0 and it's simpler to increase all
       // bindings.
-      if(it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationBinding)
+      if(it.opcode() == rdcspv::Op::Decorate)
       {
-        RDCASSERT(it.word(3) != 0xffffffff);
-        it.word(3) += 1;
+        rdcspv::OpDecorate dec(it);
+        if(dec.decoration == rdcspv::Decoration::Binding)
+        {
+          RDCASSERT(dec.decoration.binding != 0xffffffff);
+          dec.decoration.binding += 1;
+          it = dec;
+        }
       }
     }
 
     // add our SSBO variable, at set 0 binding 0
     ssboVar = editor.MakeId();
-    editor.AddVariable(rdcspv::Operation(
-        spv::OpVariable, {bufptrtype.value(), ssboVar.value(), spv::StorageClassUniform}));
-    editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {ssboVar.value(), (uint32_t)spv::DecorationDescriptorSet, 0}));
+    editor.AddDecoration(rdcspv::OpVariable(bufptrtype, ssboVar, rdcspv::StorageClass::Uniform));
     editor.AddDecoration(
-        rdcspv::Operation(spv::OpDecorate, {ssboVar.value(), (uint32_t)spv::DecorationBinding, 0}));
+        rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0)));
+    editor.AddDecoration(
+        rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::Binding>(0)));
 
     editor.SetName(ssboVar, "__rd_feedbackBuffer");
 
     // struct is bufferblock decorated
-    editor.AddDecoration(rdcspv::Operation(
-        spv::OpDecorate, {uint32StructID.value(), (uint32_t)spv::DecorationBufferBlock}));
+    editor.AddDecoration(rdcspv::OpDecorate(uint32StructID, rdcspv::Decoration::BufferBlock));
   }
 
   rdcspv::Id rtarrayOffset = editor.AddConstantImmediate<uint32_t>(0U);
   rdcspv::Id usedValue = editor.AddConstantImmediate<uint32_t>(0xFFFFFFFFU);
-  rdcspv::Id scope = editor.AddConstantImmediate<uint32_t>(spv::ScopeInvocation);
+  rdcspv::Id scope = editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::Scope::Invocation);
   rdcspv::Id semantics = editor.AddConstantImmediate<uint32_t>(0U);
   rdcspv::Id uint32shift = editor.AddConstantImmediate<uint32_t>(2U);
 
   std::map<rdcspv::Id, SPIRVScalar> intTypeLookup;
 
   for(auto scalarType : editor.GetTypeInfo<SPIRVScalar>())
-    if(scalarType.first.type == spv::OpTypeInt)
+    if(scalarType.first.type == rdcspv::Op::TypeInt)
       intTypeLookup[scalarType.second] = scalarType.first;
 
   rdcspv::Id entryID;
-  for(const SPIRVEntry &entry : editor.GetEntries())
+  for(const rdcspv::OpEntryPoint &entry : editor.GetEntries())
   {
     if(entry.name == entryName)
     {
-      entryID = entry.id;
+      entryID = entry.entryPoint;
       break;
     }
   }
@@ -245,14 +247,16 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
     rdcspv::Iter it = editor.GetID(funcId);
 
-    RDCASSERT(it.opcode() == spv::OpFunction);
+    RDCASSERT(it.opcode() == rdcspv::Op::Function);
 
     if(!patchArgIndices.empty())
     {
+      rdcspv::OpFunction func(it);
+
       // find the function's type declaration, add the necessary arguments, redeclare and patch it
       for(const SPIRVTypeId<SPIRVFunction> &funcType : funcTypes)
       {
-        if(funcType.second == it.word(4))
+        if(funcType.second == func.functionType)
         {
           SPIRVFunction patchedFuncType = funcType.first;
           for(size_t i = 0; i < patchArgIndices.size(); i++)
@@ -264,7 +268,13 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
           it = editor.GetID(funcId);
 
           // change the declared function type
-          it.word(4) = newFuncTypeID.value();
+          func.functionType = newFuncTypeID;
+
+          editor.PreModify(it);
+
+          it = func;
+
+          editor.PostModify(it);
 
           break;
         }
@@ -280,13 +290,15 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
     size_t argIndex = 0;
     size_t watchIndex = 0;
-    while(it.opcode() == spv::OpFunctionParameter)
+    while(it.opcode() == rdcspv::Op::FunctionParameter)
     {
+      rdcspv::OpFunctionParameter param(it);
+
       // if this is a parameter we're patching, add it into varLookup
       if(watchIndex < patchArgIndices.size() && patchArgIndices[watchIndex] == argIndex)
       {
         // when we see use of this parameter, patch it using the added parameter
-        varLookup[rdcspv::Id::fromWord(it.word(2))] = patchedParamIDs[watchIndex];
+        varLookup[param.result] = patchedParamIDs[watchIndex];
         // watch for the next argument
         watchIndex++;
       }
@@ -298,8 +310,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     // we're past the existing function parameters, now declare our new ones
     for(size_t i = 0; i < patchedParamIDs.size(); i++)
     {
-      editor.AddOperation(it, rdcspv::Operation(spv::OpFunctionParameter,
-                                                {funcParamType.value(), patchedParamIDs[i].value()}));
+      editor.AddOperation(it, rdcspv::OpFunctionParameter(funcParamType, patchedParamIDs[i]));
       ++it;
     }
 
@@ -307,40 +318,42 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     for(; it; ++it)
     {
       // finish when we hit the end of the function
-      if(it.opcode() == spv::OpFunctionEnd)
+      if(it.opcode() == rdcspv::Op::FunctionEnd)
         break;
 
       // if we see an OpCopyObject, just add it to the map pointing to the same value
-      if(it.opcode() == spv::OpCopyObject)
+      if(it.opcode() == rdcspv::Op::CopyObject)
       {
-        rdcspv::Id sourcevar = rdcspv::Id::fromWord(it.word(3));
+        rdcspv::OpCopyObject copy(it);
 
         // is this a var we want to snoop?
-        auto varIt = varLookup.find(sourcevar);
+        auto varIt = varLookup.find(copy.operand);
         if(varIt != varLookup.end())
         {
-          varLookup[rdcspv::Id::fromWord(it.word(2))] = varIt->second;
+          varLookup[copy.result] = varIt->second;
         }
       }
 
-      if(it.opcode() == spv::OpFunctionCall)
+      if(it.opcode() == rdcspv::Op::FunctionCall)
       {
+        rdcspv::OpFunctionCall call(it);
+
         // check if any of the variables being passed are ones we care about. Accumulate the added
         // parameters
         std::vector<uint32_t> funccall;
         std::vector<size_t> patchArgs;
 
         // examine each argument to see if it's one we care about
-        for(size_t i = 4; i < it.size(); i++)
+        for(size_t i = 0; i < call.arguments.size(); i++)
         {
           // if this param we're snooping then pass our offset - whether it's a constant or a
           // function
           // argument itself - into the function call
-          auto varIt = varLookup.find(rdcspv::Id::fromWord(it.word(i)));
+          auto varIt = varLookup.find(call.arguments[i]);
           if(varIt != varLookup.end())
           {
             funccall.push_back(varIt->second.value());
-            patchArgs.push_back(i - 4);
+            patchArgs.push_back(i);
           }
         }
 
@@ -355,35 +368,35 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
           // add our patched call afterwards
           it++;
-          editor.AddOperation(it, rdcspv::Operation(spv::OpFunctionCall, funccall));
+          editor.AddOperation(it, rdcspv::Operation(rdcspv::Op::FunctionCall, funccall));
 
           // remove the old call
           editor.Remove(oldCall);
         }
 
         // if this function isn't marked for patching yet, and isn't patched, queue it
-        rdcspv::Id funcid = rdcspv::Id::fromWord(it.word(3));
-        if(functionPatchQueue[funcid].empty() &&
-           patchedFunctions.find(funcid) == patchedFunctions.end())
-          functionPatchQueue[funcid] = patchArgs;
+        if(functionPatchQueue[call.function].empty() &&
+           patchedFunctions.find(call.function) == patchedFunctions.end())
+          functionPatchQueue[call.function] = patchArgs;
       }
 
       // if we see an access chain of a variable we're snooping, save out the result
-      if(it.opcode() == spv::OpAccessChain || it.opcode() == spv::OpInBoundsAccessChain)
+      if(it.opcode() == rdcspv::Op::AccessChain || it.opcode() == rdcspv::Op::InBoundsAccessChain)
       {
-        rdcspv::Id sourcevar = rdcspv::Id::fromWord(it.word(3));
+        rdcspv::OpAccessChain chain(it);
+        chain.op = it.opcode();
 
         // is this a var we want to snoop?
-        auto varIt = varLookup.find(sourcevar);
+        auto varIt = varLookup.find(chain.base);
         if(varIt != varLookup.end())
         {
           // multi-dimensional arrays of descriptors is not allowed - however an access chain could
           // be longer than 5 words (1 index). Think of the case of a uniform buffer where the first
           // index goes into the descriptor array, and further indices go inside the uniform buffer
           // members.
-          RDCASSERT(it.size() >= 5, it.size());
+          RDCASSERT(chain.indexes.size() > 1, chain.indexes.size());
 
-          rdcspv::Id index = rdcspv::Id::fromWord(it.word(4));
+          rdcspv::Id index = chain.indexes[0];
 
           // patch after the access chain
           it++;
@@ -418,8 +431,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
               rdcspv::Id unsignedIndex = editor.MakeId();
               editor.AddOperation(
-                  it, rdcspv::Operation(spv::OpBitcast, {editor.DeclareType(indexTypeData).value(),
-                                                         unsignedIndex.value(), index.value()}));
+                  it, rdcspv::OpBitcast(editor.DeclareType(indexTypeData), unsignedIndex, index));
               it++;
 
               index = unsignedIndex;
@@ -429,11 +441,9 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             if(indexTypeData.width != targetIndexWidth)
             {
               rdcspv::Id extendedtype =
-                  editor.DeclareType(SPIRVScalar(spv::OpTypeInt, targetIndexWidth, false));
+                  editor.DeclareType(SPIRVScalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
               rdcspv::Id extendedindex = editor.MakeId();
-              editor.AddOperation(
-                  it, rdcspv::Operation(spv::OpUConvert, {extendedtype.value(),
-                                                          extendedindex.value(), index.value()}));
+              editor.AddOperation(it, rdcspv::OpUConvert(extendedtype, extendedindex, index));
               it++;
 
               index = extendedindex;
@@ -450,33 +460,26 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             // baseaddr = bufferAddressConst + bindingOffset
             rdcspv::Id baseaddr = editor.MakeId();
             editor.AddOperation(
-                it,
-                rdcspv::Operation(spv::OpIAdd, {uint64ID.value(), baseaddr.value(),
-                                                bufferAddressConst.value(), varIt->second.value()}));
+                it, rdcspv::OpIAdd(uint64ID, baseaddr, bufferAddressConst, varIt->second));
             it++;
 
             // shift the index since this is a byte offset
             // shiftedindex = index << uint32shift
             rdcspv::Id shiftedindex = editor.MakeId();
-            editor.AddOperation(it, rdcspv::Operation(spv::OpShiftLeftLogical,
-                                                      {uint64ID.value(), shiftedindex.value(),
-                                                       index.value(), uint32shift.value()}));
+            editor.AddOperation(
+                it, rdcspv::OpShiftLeftLogical(uint64ID, shiftedindex, index, uint32shift));
             it++;
 
             // add the index on top of that
             // offsetaddr = baseaddr + shiftedindex
             rdcspv::Id offsetaddr = editor.MakeId();
-            editor.AddOperation(
-                it, rdcspv::Operation(spv::OpIAdd, {uint64ID.value(), offsetaddr.value(),
-                                                    baseaddr.value(), shiftedindex.value()}));
+            editor.AddOperation(it, rdcspv::OpIAdd(uint64ID, offsetaddr, baseaddr, shiftedindex));
             it++;
 
             // make a pointer out of it
             // uint32_t *bufptr = (uint32_t *)offsetaddr
             bufptr = editor.MakeId();
-            editor.AddOperation(
-                it, rdcspv::Operation(spv::OpConvertUToPtr,
-                                      {uint32ptrtype.value(), bufptr.value(), offsetaddr.value()}));
+            editor.AddOperation(it, rdcspv::OpConvertUToPtr(uint32ptrtype, bufptr, offsetaddr));
             it++;
           }
           else
@@ -486,27 +489,21 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             // add the index to this binding's base index
             // ssboindex = bindingOffset + index
             rdcspv::Id ssboindex = editor.MakeId();
-            editor.AddOperation(
-                it, rdcspv::Operation(spv::OpIAdd, {uint32ID.value(), ssboindex.value(),
-                                                    index.value(), varIt->second.value()}));
+            editor.AddOperation(it, rdcspv::OpIAdd(uint32ID, ssboindex, index, varIt->second));
             it++;
 
             // accesschain to get the pointer we'll atomic into.
             // accesschain is 0 to access rtarray (first member) then ssboindex for array index
             // uint32_t *bufptr = (uint32_t *)&buf.rtarray[ssboindex];
             bufptr = editor.MakeId();
-            editor.AddOperation(
-                it, rdcspv::Operation(spv::OpAccessChain,
-                                      {uint32ptrtype.value(), bufptr.value(), ssboVar.value(),
-                                       rtarrayOffset.value(), ssboindex.value()}));
+            editor.AddOperation(it, rdcspv::OpAccessChain(uint32ptrtype, bufptr, ssboVar,
+                                                          {rtarrayOffset, ssboindex}));
             it++;
           }
 
           // atomically set the uint32 that's pointed to
-          editor.AddOperation(
-              it, rdcspv::Operation(spv::OpAtomicUMax,
-                                    {uint32ID.value(), editor.MakeId().value(), bufptr.value(),
-                                     scope.value(), semantics.value(), usedValue.value()}));
+          editor.AddOperation(it, rdcspv::OpAtomicUMax(uint32ID, editor.MakeId(), bufptr, scope,
+                                                       semantics, usedValue));
 
           // no it++ here, it will happen implicitly on loop continue
         }

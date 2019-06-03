@@ -1705,7 +1705,7 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
 
 void OpDecoder::AddUsedIDs(std::set<Id> &usedids, const ConstIter &it)
 {
-  switch((rdcspv::Op)it.opcode())
+  switch(it.opcode())
   {
     case rdcspv::Op::Nop:
       break;
@@ -4629,7 +4629,7 @@ void OpDecoder::AddUsedIDs(std::set<Id> &usedids, const ConstIter &it)
 std::string OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal)
 {
   std::string ret;
-  switch((rdcspv::Op)it.opcode())
+  switch(it.opcode())
   {
     case rdcspv::Op::Nop:
     {
@@ -8230,7 +8230,7 @@ std::string OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcs
   
 OpDecoder::OpDecoder(const ConstIter &it)
 {
-  op = (rdcspv::Op)it.opcode();
+  op = it.opcode();
   wordCount = (uint16_t)it.size();
   switch(op)
   {

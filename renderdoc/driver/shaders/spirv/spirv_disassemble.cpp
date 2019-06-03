@@ -30,7 +30,6 @@
 #include "maths/formatpacking.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
-#include "spirv_common.h"
 
 #undef min
 #undef max

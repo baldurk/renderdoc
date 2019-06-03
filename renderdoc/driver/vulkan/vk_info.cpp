@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "vk_info.h"
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 
 VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
 {

@@ -68,3 +68,22 @@ void rdcspv::Iter::nopRemove()
   for(size_t i = 0, sz = size(); i < sz; i++)
     word(i) = OpNopWord;
 }
+
+rdcspv::Iter &rdcspv::Iter::operator=(const Operation &op)
+{
+  size_t newSize = op.size();
+  size_t oldSize = size();
+  if(newSize > oldSize)
+  {
+    RDCERR("Can't resize up from %zu to %zu", oldSize, newSize);
+    return *this;
+  }
+
+  memcpy(&cur(), &op[0], sizeof(uint32_t) * RDCMIN(oldSize, newSize));
+
+  // set remaining words to NOP if we reduced the size
+  for(size_t i = newSize; i < oldSize; i++)
+    word(i) = OpNopWord;
+
+  return *this;
+}

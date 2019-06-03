@@ -24,7 +24,6 @@
 
 #include "vk_debug.h"
 #include <float.h>
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"

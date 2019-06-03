@@ -23,9 +23,9 @@
  ******************************************************************************/
 
 #include <float.h>
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "data/glsl_shaders.h"
 #include "driver/shaders/spirv/spirv_common.h"
+#include "driver/shaders/spirv/spirv_gen.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -145,10 +145,11 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
       size_t it = 5;
       while(it < spirv.size())
       {
-        uint16_t WordCount = spirv[it] >> spv::WordCountShift;
-        spv::Op opcode = spv::Op(spirv[it] & spv::OpCodeMask);
+        uint16_t WordCount = spirv[it] >> rdcspv::WordCountShift;
+        rdcspv::Op opcode = rdcspv::Op(spirv[it] & rdcspv::OpCodeMask);
 
-        if(opcode == spv::OpDecorate && spirv[it + 2] == spv::DecorationDescriptorSet)
+        if(opcode == rdcspv::Op::Decorate &&
+           spirv[it + 2] == (uint32_t)rdcspv::Decoration::DescriptorSet)
         {
           spirv[it + 3] = descSet;
           break;
@@ -288,10 +289,10 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   size_t it = 5;
   while(it < spirvLength)
   {
-    uint16_t WordCount = alias.spirv[it] >> spv::WordCountShift;
-    spv::Op opcode = spv::Op(alias.spirv[it] & spv::OpCodeMask);
+    uint16_t WordCount = alias.spirv[it] >> rdcspv::WordCountShift;
+    rdcspv::Op opcode = rdcspv::Op(alias.spirv[it] & rdcspv::OpCodeMask);
 
-    if(opcode == spv::OpConstant)
+    if(opcode == rdcspv::Op::Constant)
     {
       if(alias.data[it + 3] >= 1.0f && alias.data[it + 3] <= 1.5f)
         alias.data[it + 3] = col[0];

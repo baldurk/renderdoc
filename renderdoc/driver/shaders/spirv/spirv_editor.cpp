@@ -22,77 +22,75 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#define SPV_ENABLE_UTILITY_CODE
-
 #include "spirv_editor.h"
 #include <algorithm>
 #include <utility>
 #include "common/common.h"
 #include "serialise/serialiser.h"
-
-static const uint32_t FirstRealWord = 5;
+#include "spirv_op_helpers.h"
 
 SPIRVScalar::SPIRVScalar(rdcspv::Iter it)
 {
   type = it.opcode();
 
-  if(type == spv::OpTypeInt || type == spv::OpTypeFloat)
-    width = it.word(2);
-  else
-    width = 0;
-
-  if(type == spv::OpTypeInt)
-    signedness = it.word(3) == 1;
-  else
+  if(type == rdcspv::Op::TypeInt)
+  {
+    rdcspv::OpTypeInt decoded(it);
+    width = decoded.width;
+    signedness = decoded.signedness == 1;
+  }
+  else if(type == rdcspv::Op::TypeFloat)
+  {
+    rdcspv::OpTypeFloat decoded(it);
+    width = decoded.width;
     signedness = false;
+  }
+  else
+  {
+    width = 0;
+    signedness = false;
+  }
 }
 
 rdcspv::Operation SPIRVVector::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeVector, {0U, editor.DeclareType(scalar).value(), count});
+  return rdcspv::OpTypeVector(rdcspv::Id(), editor.DeclareType(scalar), count);
 }
 
 rdcspv::Operation SPIRVMatrix::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeMatrix, {0U, editor.DeclareType(vector).value(), count});
+  return rdcspv::OpTypeMatrix(rdcspv::Id(), editor.DeclareType(vector), count);
 }
 
 rdcspv::Operation SPIRVPointer::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypePointer, {0U, (uint32_t)storage, baseId.value()});
+  return rdcspv::OpTypePointer(rdcspv::Id(), storage, baseId);
 }
 
 rdcspv::Operation SPIRVImage::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeImage, {0U, editor.DeclareType(retType).value(), (uint32_t)dim,
-                                              depth, arrayed, ms, sampled, (uint32_t)format});
+  return rdcspv::OpTypeImage(rdcspv::Id(), editor.DeclareType(retType), dim, depth, arrayed, ms,
+                             sampled, format);
 }
 
 rdcspv::Operation SPIRVSampler::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeSampler, {0U});
+  return rdcspv::OpTypeSampler(rdcspv::Id());
 }
 
 rdcspv::Operation SPIRVSampledImage::decl(SPIRVEditor &editor) const
 {
-  return rdcspv::Operation(spv::OpTypeSampledImage, {0U, baseId.value()});
+  return rdcspv::OpTypeSampledImage(rdcspv::Id(), baseId);
 }
 
 rdcspv::Operation SPIRVFunction::decl(SPIRVEditor &editor) const
 {
-  std::vector<uint32_t> words;
-
-  words.push_back(0U);
-  words.push_back(returnId.value());
-  for(rdcspv::Id id : argumentIds)
-    words.push_back(id.value());
-
-  return rdcspv::Operation(spv::OpTypeFunction, words);
+  return rdcspv::OpTypeFunction(rdcspv::Id(), returnId, argumentIds);
 }
 
 SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
 {
-  if(spirv.size() < FirstRealWord || spirv[0] != spv::MagicNumber)
+  if(spirv.size() < rdcspv::FirstRealWord || spirv[0] != rdcspv::MagicNumber)
   {
     RDCERR("Empty or invalid SPIR-V module");
     return;
@@ -133,48 +131,49 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   if(sections[section].startOffset == 0) \
     sections[section].startOffset = it.offs();
 
-  for(rdcspv::Iter it(spirv, FirstRealWord); it; it++)
+  for(rdcspv::Iter it(spirv, rdcspv::FirstRealWord); it; it++)
   {
-    spv::Op opcode = it.opcode();
+    rdcspv::Op opcode = it.opcode();
 
-    if(opcode == spv::OpCapability)
+    if(opcode == rdcspv::Op::Capability)
     {
       START_SECTION(SPIRVSection::Capabilities);
     }
-    else if(opcode == spv::OpExtension)
+    else if(opcode == rdcspv::Op::Extension)
     {
       START_SECTION(SPIRVSection::Extensions);
     }
-    else if(opcode == spv::OpExtInstImport)
+    else if(opcode == rdcspv::Op::ExtInstImport)
     {
       START_SECTION(SPIRVSection::ExtInst);
     }
-    else if(opcode == spv::OpMemoryModel)
+    else if(opcode == rdcspv::Op::MemoryModel)
     {
       START_SECTION(SPIRVSection::MemoryModel);
     }
-    else if(opcode == spv::OpEntryPoint)
+    else if(opcode == rdcspv::Op::EntryPoint)
     {
       START_SECTION(SPIRVSection::EntryPoints);
     }
-    else if(opcode == spv::OpExecutionMode || opcode == spv::OpExecutionModeId)
+    else if(opcode == rdcspv::Op::ExecutionMode || opcode == rdcspv::Op::ExecutionModeId)
     {
       START_SECTION(SPIRVSection::ExecutionMode);
     }
-    else if(opcode == spv::OpString || opcode == spv::OpSource ||
-            opcode == spv::OpSourceContinued || opcode == spv::OpSourceExtension ||
-            opcode == spv::OpName || opcode == spv::OpMemberName || opcode == spv::OpModuleProcessed)
+    else if(opcode == rdcspv::Op::String || opcode == rdcspv::Op::Source ||
+            opcode == rdcspv::Op::SourceContinued || opcode == rdcspv::Op::SourceExtension ||
+            opcode == rdcspv::Op::Name || opcode == rdcspv::Op::MemberName ||
+            opcode == rdcspv::Op::ModuleProcessed)
     {
       START_SECTION(SPIRVSection::Debug);
     }
-    else if(opcode == spv::OpDecorate || opcode == spv::OpMemberDecorate ||
-            opcode == spv::OpGroupDecorate || opcode == spv::OpGroupMemberDecorate ||
-            opcode == spv::OpDecorationGroup || opcode == spv::OpDecorateStringGOOGLE ||
-            opcode == spv::OpMemberDecorateStringGOOGLE)
+    else if(opcode == rdcspv::Op::Decorate || opcode == rdcspv::Op::MemberDecorate ||
+            opcode == rdcspv::Op::GroupDecorate || opcode == rdcspv::Op::GroupMemberDecorate ||
+            opcode == rdcspv::Op::DecorationGroup || opcode == rdcspv::Op::DecorateStringGOOGLE ||
+            opcode == rdcspv::Op::MemberDecorateStringGOOGLE)
     {
       START_SECTION(SPIRVSection::Annotations);
     }
-    else if(opcode == spv::OpFunction)
+    else if(opcode == rdcspv::Op::Function)
     {
       START_SECTION(SPIRVSection::Functions);
     }
@@ -195,7 +194,7 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
 #undef START_SECTION
 
   // ensure we got everything right. First section should start at the beginning
-  RDCASSERTEQUAL(sections[SPIRVSection::First].startOffset, FirstRealWord);
+  RDCASSERTEQUAL(sections[SPIRVSection::First].startOffset, rdcspv::FirstRealWord);
 
   // we now set the endOffset of each section to the start of the next. Any empty sections
   // temporarily have startOffset set to endOffset, we'll pad them with a nop below.
@@ -250,7 +249,7 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
 
 void SPIRVEditor::StripNops()
 {
-  for(size_t i = FirstRealWord; i < spirv.size();)
+  for(size_t i = rdcspv::FirstRealWord; i < spirv.size();)
   {
     while(spirv[i] == rdcspv::OpNopWord)
     {
@@ -258,7 +257,7 @@ void SPIRVEditor::StripNops()
       addWords(i, -1);
     }
 
-    uint32_t len = spirv[i] >> spv::WordCountShift;
+    uint32_t len = spirv[i] >> rdcspv::WordCountShift;
 
     if(len == 0)
     {
@@ -287,14 +286,14 @@ void SPIRVEditor::SetName(rdcspv::Id id, const char *name)
 
   uintName.insert(uintName.begin(), id.value());
 
-  rdcspv::Operation op(spv::OpName, uintName);
+  rdcspv::Operation op(rdcspv::Op::Name, uintName);
 
   rdcspv::Iter it;
 
   // OpName must be before OpModuleProcessed.
   for(it = Begin(SPIRVSection::Debug); it < End(SPIRVSection::Debug); ++it)
   {
-    if(it.opcode() == spv::OpModuleProcessed)
+    if(it.opcode() == rdcspv::Op::ModuleProcessed)
       break;
   }
 
@@ -311,30 +310,30 @@ void SPIRVEditor::AddDecoration(const rdcspv::Operation &op)
   addWords(offset, op.size());
 }
 
-void SPIRVEditor::AddCapability(spv::Capability cap)
+void SPIRVEditor::AddCapability(rdcspv::Capability cap)
 {
   // don't add duplicate capabilities
   if(capabilities.find(cap) != capabilities.end())
     return;
 
   // insert the operation at the very start
-  rdcspv::Operation op(spv::OpCapability, {(uint32_t)cap});
-  op.insertInto(spirv, FirstRealWord);
-  RegisterOp(rdcspv::Iter(spirv, FirstRealWord));
-  addWords(FirstRealWord, op.size());
+  rdcspv::Operation op(rdcspv::Op::Capability, {(uint32_t)cap});
+  op.insertInto(spirv, rdcspv::FirstRealWord);
+  RegisterOp(rdcspv::Iter(spirv, rdcspv::FirstRealWord));
+  addWords(rdcspv::FirstRealWord, op.size());
 }
 
-void SPIRVEditor::AddExtension(const std::string &extension)
+void SPIRVEditor::AddExtension(const rdcstr &extension)
 {
   // don't add duplicate extensions
   if(extensions.find(extension) != extensions.end())
     return;
 
   // start at the beginning
-  rdcspv::Iter it(spirv, FirstRealWord);
+  rdcspv::Iter it(spirv, rdcspv::FirstRealWord);
 
   // skip past any capabilities
-  while(it.opcode() == spv::OpCapability)
+  while(it.opcode() == rdcspv::Op::Capability)
     it++;
 
   // insert the extension instruction
@@ -342,24 +341,19 @@ void SPIRVEditor::AddExtension(const std::string &extension)
   std::vector<uint32_t> uintName((sz / 4) + 1);
   memcpy(&uintName[0], extension.c_str(), sz);
 
-  rdcspv::Operation op(spv::OpExtension, uintName);
+  rdcspv::Operation op(rdcspv::Op::Extension, uintName);
   op.insertInto(spirv, it.offs());
   RegisterOp(it);
   addWords(it.offs(), op.size());
 }
 
-void SPIRVEditor::AddExecutionMode(rdcspv::Id entry, spv::ExecutionMode mode,
-                                   std::vector<uint32_t> params)
+void SPIRVEditor::AddExecutionMode(const rdcspv::Operation &mode)
 {
   size_t offset = sections[SPIRVSection::ExecutionMode].endOffset;
 
-  params.insert(params.begin(), (uint32_t)mode);
-  params.insert(params.begin(), entry.value());
-
-  rdcspv::Operation op(spv::OpExecutionMode, params);
-  op.insertInto(spirv, offset);
+  mode.insertInto(spirv, offset);
   RegisterOp(rdcspv::Iter(spirv, offset));
-  addWords(offset, op.size());
+  addWords(offset, mode.size());
 }
 
 rdcspv::Id SPIRVEditor::ImportExtInst(const char *setname)
@@ -370,10 +364,10 @@ rdcspv::Id SPIRVEditor::ImportExtInst(const char *setname)
     return ret;
 
   // start at the beginning
-  rdcspv::Iter it(spirv, FirstRealWord);
+  rdcspv::Iter it(spirv, rdcspv::FirstRealWord);
 
   // skip past any capabilities and extensions
-  while(it.opcode() == spv::OpCapability || it.opcode() == spv::OpExtension)
+  while(it.opcode() == rdcspv::Op::Capability || it.opcode() == rdcspv::Op::Extension)
     it++;
 
   // insert the import instruction
@@ -385,7 +379,7 @@ rdcspv::Id SPIRVEditor::ImportExtInst(const char *setname)
 
   uintName.insert(uintName.begin(), ret.value());
 
-  rdcspv::Operation op(spv::OpExtInstImport, uintName);
+  rdcspv::Operation op(rdcspv::Op::ExtInstImport, uintName);
   op.insertInto(spirv, it.offs());
   RegisterOp(it);
   addWords(it.offs(), op.size());
@@ -458,7 +452,9 @@ rdcspv::Iter SPIRVEditor::GetEntry(rdcspv::Id id)
 
   while(it && it < end)
   {
-    if(it.word(2) == id.value())
+    rdcspv::OpEntryPoint entry(it);
+
+    if(entry.entryPoint == id.value())
       return it;
     it++;
   }
@@ -468,11 +464,8 @@ rdcspv::Iter SPIRVEditor::GetEntry(rdcspv::Id id)
 
 rdcspv::Id SPIRVEditor::DeclareStructType(const std::vector<rdcspv::Id> &members)
 {
-  std::vector<uint32_t> words(members.size());
-  memcpy(words.data(), members.data(), words.size() * sizeof(uint32_t));
   rdcspv::Id typeId = MakeId();
-  words.insert(words.begin(), typeId.value());
-  AddType(rdcspv::Operation(spv::OpTypeStruct, words));
+  AddType(rdcspv::OpTypeStruct(typeId, members));
   return typeId;
 }
 
@@ -490,363 +483,303 @@ void SPIRVEditor::AddOperation(rdcspv::Iter iter, const rdcspv::Operation &op)
 
 void SPIRVEditor::RegisterOp(rdcspv::Iter it)
 {
-  spv::Op opcode = it.opcode();
+  rdcspv::Op opcode = it.opcode();
 
+  rdcspv::OpDecoder opdata(it);
+  if(opdata.result != rdcspv::Id() && opdata.resultType != rdcspv::Id())
   {
-    bool hasResult = false, hasResultType = false;
-    spv::HasResultAndType(opcode, &hasResult, &hasResultType);
-
-    if(hasResult && hasResultType)
-    {
-      RDCASSERT(it.word(2) < idTypes.size());
-      idTypes[it.word(2)] = rdcspv::Id::fromWord(it.word(1));
-    }
+    RDCASSERT(opdata.result.value() < idTypes.size());
+    idTypes[opdata.result.value()] = opdata.resultType;
   }
 
-  if(opcode == spv::OpEntryPoint)
-  {
-    SPIRVEntry entry;
-    entry.id = rdcspv::Id::fromWord(it.word(2));
-    entry.name = (const char *)&it.word(3);
+  if(opdata.result != rdcspv::Id())
+    idOffsets[opdata.result.value()] = it.offs();
 
-    entries.push_back(entry);
-  }
-  else if(opcode == spv::OpMemoryModel)
+  if(opcode == rdcspv::Op::EntryPoint)
   {
-    addressmodel = (spv::AddressingModel)it.word(2);
-    memorymodel = (spv::MemoryModel)it.word(3);
+    entries.push_back(rdcspv::OpEntryPoint(it));
   }
-  else if(opcode == spv::OpCapability)
+  else if(opcode == rdcspv::Op::MemoryModel)
   {
-    capabilities.insert((spv::Capability)it.word(1));
+    rdcspv::OpMemoryModel decoded(it);
+    addressmodel = decoded.addressingModel;
+    memorymodel = decoded.memoryModel;
   }
-  else if(opcode == spv::OpExtension)
+  else if(opcode == rdcspv::Op::Capability)
   {
-    const char *name = (const char *)&it.word(1);
-    extensions.insert(name);
+    rdcspv::OpCapability decoded(it);
+    capabilities.insert(decoded.capability);
   }
-  else if(opcode == spv::OpExtInstImport)
+  else if(opcode == rdcspv::Op::Extension)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    const char *name = (const char *)&it.word(2);
-    extSets[name] = id;
+    rdcspv::OpExtension decoded(it);
+    extensions.insert(decoded.name);
   }
-  else if(opcode == spv::OpFunction)
+  else if(opcode == rdcspv::Op::ExtInstImport)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(2));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpExtInstImport decoded(it);
+    extSets[decoded.name] = decoded.result;
+  }
+  else if(opcode == rdcspv::Op::Function)
+  {
+    functions.push_back(opdata.result);
+  }
+  else if(opcode == rdcspv::Op::Variable)
+  {
+    variables.push_back(rdcspv::OpVariable(it));
+  }
+  else if(opcode == rdcspv::Op::Decorate)
+  {
+    rdcspv::OpDecorate decorate(it);
 
-    functions.push_back(id);
+    auto it = std::lower_bound(
+        decorations.begin(), decorations.end(), decorate,
+        [](const rdcspv::OpDecorate &a, const rdcspv::OpDecorate &b) { return a < b; });
+    decorations.insert(it, decorate);
+
+    if(decorate.decoration == rdcspv::Decoration::DescriptorSet)
+      bindings[decorate.target].set = decorate.decoration.descriptorSet;
+    if(decorate.decoration == rdcspv::Decoration::Binding)
+      bindings[decorate.target].binding = decorate.decoration.binding;
   }
-  else if(opcode == spv::OpVariable)
+  else if(opcode == rdcspv::Op::TypeVoid || opcode == rdcspv::Op::TypeBool ||
+          opcode == rdcspv::Op::TypeInt || opcode == rdcspv::Op::TypeFloat)
   {
-    SPIRVVariable var;
-    var.type = rdcspv::Id::fromWord(it.word(1));
-    var.id = rdcspv::Id::fromWord(it.word(2));
-    var.storageClass = (spv::StorageClass)it.word(3);
-    if(it.size() > 4)
-      var.init = rdcspv::Id::fromWord(it.word(4));
-
-    variables.push_back(var);
-  }
-  else if(opcode == spv::OpDecorate)
-  {
-    SPIRVDecoration decoration;
-    decoration.id = rdcspv::Id::fromWord(it.word(1));
-    decoration.dec = (spv::Decoration)it.word(2);
-
-    RDCASSERTMSG("Too many parameters in decoration", it.size() <= 7, it.size());
-
-    for(size_t i = 0; i + 3 < it.size() && i < ARRAY_COUNT(decoration.parameters); i++)
-      decoration.parameters[i] = it.word(i + 3);
-
-    auto it = std::lower_bound(decorations.begin(), decorations.end(), decoration);
-    decorations.insert(it, decoration);
-
-    if(decoration.dec == spv::DecorationDescriptorSet)
-      bindings[decoration.id].set = decoration.parameters[0];
-    if(decoration.dec == spv::DecorationBinding)
-      bindings[decoration.id].binding = decoration.parameters[0];
-  }
-  else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
-          opcode == spv::OpTypeFloat)
-  {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
-
     SPIRVScalar scalar(it);
-    scalarTypes[scalar] = id;
+    scalarTypes[scalar] = opdata.result;
   }
-  else if(opcode == spv::OpTypeVector)
+  else if(opcode == rdcspv::Op::TypeVector)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpTypeVector decoded(it);
 
-    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
+    rdcspv::Iter scalarIt = GetID(decoded.componentType);
 
     if(!scalarIt)
     {
-      RDCERR("Vector type declared with unknown scalar component type %u", it.word(2));
+      RDCERR("Vector type declared with unknown scalar component type %u", decoded.componentType);
       return;
     }
 
-    vectorTypes[SPIRVVector(scalarIt, it.word(3))] = id;
+    vectorTypes[SPIRVVector(scalarIt, decoded.componentCount)] = decoded.result;
   }
-  else if(opcode == spv::OpTypeMatrix)
+  else if(opcode == rdcspv::Op::TypeMatrix)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpTypeMatrix decodedMatrix(it);
 
-    rdcspv::Iter vectorIt = GetID(rdcspv::Id::fromWord(it.word(2)));
+    rdcspv::Iter vectorIt = GetID(decodedMatrix.columnType);
 
     if(!vectorIt)
     {
-      RDCERR("Matrix type declared with unknown vector component type %u", it.word(2));
+      RDCERR("Matrix type declared with unknown vector component type %u", decodedMatrix.columnType);
       return;
     }
 
-    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(vectorIt.word(2)));
-    uint32_t vectorDim = vectorIt.word(3);
+    rdcspv::OpTypeVector decodedVector(vectorIt);
 
-    matrixTypes[SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3))] = id;
+    rdcspv::Iter scalarIt = GetID(decodedVector.componentType);
+
+    matrixTypes[SPIRVMatrix(SPIRVVector(scalarIt, decodedVector.componentCount),
+                            decodedMatrix.columnCount)] = decodedMatrix.result;
   }
-  else if(opcode == spv::OpTypeImage)
+  else if(opcode == rdcspv::Op::TypeImage)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpTypeImage decoded(it);
 
-    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
+    rdcspv::Iter scalarIt = GetID(decoded.sampledType);
 
     if(!scalarIt)
     {
-      RDCERR("Image type declared with unknown scalar component type %u", it.word(2));
+      RDCERR("Image type declared with unknown scalar component type %u", decoded.sampledType);
       return;
     }
 
-    imageTypes[SPIRVImage(scalarIt, (spv::Dim)it.word(3), it.word(4), it.word(5), it.word(6),
-                          it.word(7), (spv::ImageFormat)it.word(8))] = id;
+    imageTypes[SPIRVImage(scalarIt, decoded.dim, decoded.depth, decoded.arrayed, decoded.mS,
+                          decoded.sampled, decoded.imageFormat)] = decoded.result;
   }
-  else if(opcode == spv::OpTypeSampler)
+  else if(opcode == rdcspv::Op::TypeSampler)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
-
-    samplerTypes[SPIRVSampler()] = id;
+    samplerTypes[SPIRVSampler()] = opdata.result;
   }
-  else if(opcode == spv::OpTypeSampledImage)
+  else if(opcode == rdcspv::Op::TypeSampledImage)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpTypeSampledImage decoded(it);
 
-    rdcspv::Id base = rdcspv::Id::fromWord(it.word(2));
-
-    sampledImageTypes[SPIRVSampledImage(base)] = id;
+    sampledImageTypes[SPIRVSampledImage(decoded.imageType)] = decoded.result;
   }
-  else if(opcode == spv::OpTypePointer)
+  else if(opcode == rdcspv::Op::TypePointer)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpTypePointer decoded(it);
 
-    pointerTypes[SPIRVPointer(rdcspv::Id::fromWord(it.word(3)), (spv::StorageClass)it.word(2))] = id;
+    pointerTypes[SPIRVPointer(decoded.type, decoded.storageClass)] = decoded.result;
   }
-  else if(opcode == spv::OpTypeStruct)
+  else if(opcode == rdcspv::Op::TypeStruct)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
-
-    structTypes.insert(id);
+    structTypes.insert(opdata.result);
   }
-  else if(opcode == spv::OpTypeFunction)
+  else if(opcode == rdcspv::Op::TypeFunction)
   {
-    rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
-    idOffsets[id.value()] = it.offs();
+    rdcspv::OpTypeFunction decoded(it);
 
-    std::vector<rdcspv::Id> args;
-
-    for(size_t i = 3; i < it.size(); i++)
-      args.push_back(rdcspv::Id::fromWord(it.word(i)));
-
-    functionTypes[SPIRVFunction(rdcspv::Id::fromWord(it.word(2)), args)] = id;
+    functionTypes[SPIRVFunction(decoded.returnType, decoded.parameters)] = decoded.result;
   }
 }
 
 void SPIRVEditor::UnregisterOp(rdcspv::Iter it)
 {
-  spv::Op opcode = it.opcode();
+  rdcspv::Op opcode = it.opcode();
 
+  rdcspv::OpDecoder opdata(it);
+  if(opdata.result != rdcspv::Id() && opdata.resultType != rdcspv::Id())
+    idTypes[opdata.result.value()] = rdcspv::Id();
+
+  if(opdata.result != rdcspv::Id())
+    idOffsets[opdata.result.value()] = 0;
+
+  if(opcode == rdcspv::Op::EntryPoint)
   {
-    bool hasResult = false, hasResultType = false;
-    spv::HasResultAndType(opcode, &hasResult, &hasResultType);
+    rdcspv::OpEntryPoint decoded(it);
 
-    if(hasResult && hasResultType)
-      idTypes[it.word(2)] = rdcspv::Id();
-  }
-
-  rdcspv::Id id;
-
-  if(opcode == spv::OpEntryPoint)
-  {
     for(auto entryIt = entries.begin(); entryIt != entries.end(); ++entryIt)
     {
-      if(entryIt->id == it.word(2))
+      if(entryIt->entryPoint == decoded.entryPoint)
       {
         entries.erase(entryIt);
         break;
       }
     }
   }
-  else if(opcode == spv::OpFunction)
+  else if(opcode == rdcspv::Op::Function)
   {
-    id = rdcspv::Id::fromWord(it.word(2));
     for(auto funcIt = functions.begin(); funcIt != functions.end(); ++funcIt)
     {
-      if(*funcIt == id)
+      if(*funcIt == opdata.result)
       {
         functions.erase(funcIt);
         break;
       }
     }
   }
-  else if(opcode == spv::OpVariable)
+  else if(opcode == rdcspv::Op::Variable)
   {
-    id = rdcspv::Id::fromWord(it.word(2));
     for(auto varIt = variables.begin(); varIt != variables.end(); ++varIt)
     {
-      if(varIt->id == id)
+      if(varIt->result == opdata.result)
       {
         variables.erase(varIt);
         break;
       }
     }
   }
-  else if(opcode == spv::OpDecorate)
+  else if(opcode == rdcspv::Op::Decorate)
   {
-    SPIRVDecoration decoration;
-    decoration.id = rdcspv::Id::fromWord(it.word(1));
-    decoration.dec = (spv::Decoration)it.word(2);
+    rdcspv::OpDecorate decorate(it);
 
-    RDCASSERTMSG("Too many parameters in decoration", it.size() <= 7, it.size());
-
-    for(size_t i = 0; i + 3 < it.size() && i < ARRAY_COUNT(decoration.parameters); i++)
-      decoration.parameters[i] = it.word(i + 3);
-
-    auto it = std::find(decorations.begin(), decorations.end(), decoration);
-    if(it != decorations.end())
+    auto it = std::lower_bound(
+        decorations.begin(), decorations.end(), decorate,
+        [](const rdcspv::OpDecorate &a, const rdcspv::OpDecorate &b) { return a < b; });
+    if(it != decorations.end() && *it == decorate)
       decorations.erase(it);
 
-    if(decoration.dec == spv::DecorationDescriptorSet)
-      bindings[decoration.id].set = SPIRVBinding().set;
-    if(decoration.dec == spv::DecorationBinding)
-      bindings[decoration.id].binding = SPIRVBinding().binding;
+    if(decorate.decoration == rdcspv::Decoration::DescriptorSet)
+      bindings[decorate.target].set = SPIRVBinding().set;
+    if(decorate.decoration == rdcspv::Decoration::Binding)
+      bindings[decorate.target].binding = SPIRVBinding().binding;
   }
-  else if(opcode == spv::OpCapability)
+  else if(opcode == rdcspv::Op::Capability)
   {
-    capabilities.erase((spv::Capability)it.word(1));
+    rdcspv::OpCapability decoded(it);
+    capabilities.erase(decoded.capability);
   }
-  else if(opcode == spv::OpExtension)
+  else if(opcode == rdcspv::Op::Extension)
   {
-    const char *name = (const char *)&it.word(1);
-    extensions.erase(name);
+    rdcspv::OpExtension decoded(it);
+    extensions.erase(decoded.name);
   }
-  else if(opcode == spv::OpExtInstImport)
+  else if(opcode == rdcspv::Op::ExtInstImport)
   {
-    const char *name = (const char *)&it.word(2);
-    extSets.erase(name);
+    rdcspv::OpExtInstImport decoded(it);
+    extSets.erase(decoded.name);
   }
-  else if(opcode == spv::OpTypeVoid || opcode == spv::OpTypeBool || opcode == spv::OpTypeInt ||
-          opcode == spv::OpTypeFloat)
+  else if(opcode == rdcspv::Op::TypeVoid || opcode == rdcspv::Op::TypeBool ||
+          opcode == rdcspv::Op::TypeInt || opcode == rdcspv::Op::TypeFloat)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
-
     SPIRVScalar scalar(it);
     scalarTypes.erase(scalar);
   }
-  else if(opcode == spv::OpTypeVector)
+  else if(opcode == rdcspv::Op::TypeVector)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
+    rdcspv::OpTypeVector decoded(it);
 
-    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
+    rdcspv::Iter scalarIt = GetID(decoded.componentType);
 
     if(!scalarIt)
     {
-      RDCERR("Vector type declared with unknown scalar component type %u", it.word(2));
+      RDCERR("Vector type declared with unknown scalar component type %u", decoded.componentType);
       return;
     }
 
-    vectorTypes.erase(SPIRVVector(scalarIt, it.word(3)));
+    vectorTypes.erase(SPIRVVector(scalarIt, decoded.componentCount));
   }
-  else if(opcode == spv::OpTypeMatrix)
+  else if(opcode == rdcspv::Op::TypeMatrix)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
+    rdcspv::OpTypeMatrix decodedMatrix(it);
 
-    rdcspv::Iter vectorIt = GetID(rdcspv::Id::fromWord(it.word(2)));
+    rdcspv::Iter vectorIt = GetID(decodedMatrix.columnType);
 
     if(!vectorIt)
     {
-      RDCERR("Matrix type declared with unknown vector component type %u", it.word(2));
+      RDCERR("Matrix type declared with unknown vector component type %u", decodedMatrix.columnType);
       return;
     }
 
-    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(vectorIt.word(2)));
-    uint32_t vectorDim = vectorIt.word(3);
+    rdcspv::OpTypeVector decodedVector(vectorIt);
 
-    matrixTypes.erase(SPIRVMatrix(SPIRVVector(scalarIt, vectorDim), it.word(3)));
+    rdcspv::Iter scalarIt = GetID(decodedVector.componentType);
+
+    matrixTypes.erase(SPIRVMatrix(SPIRVVector(scalarIt, decodedVector.componentCount),
+                                  decodedMatrix.columnCount));
   }
-  else if(opcode == spv::OpTypeImage)
+  else if(opcode == rdcspv::Op::TypeImage)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
+    rdcspv::OpTypeImage decoded(it);
 
-    rdcspv::Iter scalarIt = GetID(rdcspv::Id::fromWord(it.word(2)));
+    rdcspv::Iter scalarIt = GetID(decoded.sampledType);
 
     if(!scalarIt)
     {
-      RDCERR("Image type declared with unknown scalar component type %u", it.word(2));
+      RDCERR("Image type declared with unknown scalar component type %u", decoded.sampledType);
       return;
     }
 
-    imageTypes.erase(SPIRVImage(scalarIt, (spv::Dim)it.word(3), it.word(4), it.word(5), it.word(6),
-                                it.word(7), (spv::ImageFormat)it.word(8)));
+    imageTypes.erase(SPIRVImage(scalarIt, decoded.dim, decoded.depth, decoded.arrayed, decoded.mS,
+                                decoded.sampled, decoded.imageFormat));
   }
-  else if(opcode == spv::OpTypeSampler)
+  else if(opcode == rdcspv::Op::TypeSampler)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
-
     samplerTypes.erase(SPIRVSampler());
   }
-  else if(opcode == spv::OpTypeSampledImage)
+  else if(opcode == rdcspv::Op::TypeSampledImage)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
+    rdcspv::OpTypeSampledImage decoded(it);
 
-    rdcspv::Id base = rdcspv::Id::fromWord(it.word(2));
-
-    sampledImageTypes.erase(SPIRVSampledImage(base));
+    sampledImageTypes.erase(SPIRVSampledImage(decoded.imageType));
   }
-  else if(opcode == spv::OpTypePointer)
+  else if(opcode == rdcspv::Op::TypePointer)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
+    rdcspv::OpTypePointer decoded(it);
 
-    pointerTypes.erase(SPIRVPointer(rdcspv::Id::fromWord(it.word(3)), (spv::StorageClass)it.word(2)));
+    pointerTypes.erase(SPIRVPointer(decoded.type, decoded.storageClass));
   }
-  else if(opcode == spv::OpTypeStruct)
+  else if(opcode == rdcspv::Op::TypeStruct)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
-
-    structTypes.erase(id);
+    structTypes.erase(opdata.result);
   }
-  else if(opcode == spv::OpTypeFunction)
+  else if(opcode == rdcspv::Op::TypeFunction)
   {
-    id = rdcspv::Id::fromWord(it.word(1));
+    rdcspv::OpTypeFunction decoded(it);
 
-    std::vector<rdcspv::Id> args;
-
-    for(size_t i = 3; i < it.size(); i++)
-      args.push_back(rdcspv::Id::fromWord(it.word(i)));
-
-    functionTypes.erase(SPIRVFunction(rdcspv::Id::fromWord(it.word(2)), args));
+    functionTypes.erase(SPIRVFunction(decoded.returnType, decoded.parameters));
   }
-
-  if(id)
-    idOffsets[id.value()] = 0;
 }
 
 void SPIRVEditor::addWords(size_t offs, int32_t num)
@@ -954,7 +887,7 @@ static void CheckSPIRV(SPIRVEditor &ed, size_t offsets[SPIRVSection::Count][2])
   // should only be one entry point
   REQUIRE(ed.GetEntries().size() == 1);
 
-  rdcspv::Id entryId = ed.GetEntries()[0].id;
+  rdcspv::Id entryId = ed.GetEntries()[0].entryPoint;
 
   // check that the iterator places us precisely at the start of the functions section
   CHECK(ed.GetID(entryId).offs() == ed.Begin(SPIRVSection::Functions).offs());

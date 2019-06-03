@@ -26,7 +26,6 @@
 
 #include <stdint.h>
 #include <vector>
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "api/replay/renderdoc_replay.h"
 #include "spirv_gen.h"
 
@@ -52,9 +51,9 @@ public:
   {
     do
     {
-      offset += cur() >> spv::WordCountShift;
+      offset += cur() >> rdcspv::WordCountShift;
       // silently skip nops
-    } while(*this && opcode() == spv::OpNop);
+    } while(*this && opcode() == rdcspv::Op::Nop);
 
     return *this;
   }
@@ -67,10 +66,10 @@ public:
   // utility functions
   explicit operator bool() const { return words != NULL && offset < words->size(); }
   const uint32_t &operator*() const { return cur(); }
-  spv::Op opcode() const { return spv::Op(cur() & spv::OpCodeMask); }
+  rdcspv::Op opcode() const { return rdcspv::Op(cur() & rdcspv::OpCodeMask); }
   const uint32_t &word(size_t idx) const { return words->at(offset + idx); }
   size_t offs() const { return offset; }
-  size_t size() const { return cur() >> spv::WordCountShift; }
+  size_t size() const { return cur() >> rdcspv::WordCountShift; }
 protected:
   IterBase() = default;
   IterBase(ConstOrNotVector &w, size_t o) : words(&w), offset(o) {}
@@ -105,6 +104,7 @@ public:
   void nopRemove(size_t idx, size_t count = 0);
   // completely remove the operation and replace with NOPs
   void nopRemove();
+  Iter &operator=(const Operation &op);
 
 private:
   friend class Operation;
@@ -117,11 +117,9 @@ private:
 class Operation
 {
 public:
-  // temporary hack so the (unused) generated code will compile
-  Operation(rdcspv::Op op, const std::vector<uint32_t> &data) : Operation((spv::Op)op, data) {}
   // constructor of a synthetic operation, from an operation & subsequent words, calculates the
   // length then constructs the first word with opcode + length.
-  Operation(spv::Op op, const std::vector<uint32_t> &data)
+  Operation(rdcspv::Op op, const std::vector<uint32_t> &data)
   {
     words.push_back(MakeHeader(op, data.size() + 1));
     words.insert(words.begin() + 1, data.begin(), data.end());
@@ -146,6 +144,17 @@ public:
     return ret;
   }
 
+  // helper for fixed size ops that don't want to generate a temporary vector to use the above
+  // constructor
+  template <typename FixedOpHelper, size_t WordCopyCount = FixedOpHelper::FixedWordSize>
+  Operation(const FixedOpHelper &helper)
+  {
+    words.resize(WordCopyCount);
+    memcpy(words.data(), &helper, WordCopyCount * sizeof(uint32_t));
+
+    iter = Iter(words, 0);
+  }
+
   // constructor that takes existing words from elsewhere and just references it.
   // Since this is iterator based, normal iteration invalidation rules apply, if you modify earlier
   // in the SPIR-V this operation will become invalid.
@@ -159,9 +168,9 @@ public:
   {
     dest.insert(dest.begin() + offset, begin(), end());
   }
-  inline static uint32_t MakeHeader(spv::Op op, size_t WordCount)
+  inline static uint32_t MakeHeader(rdcspv::Op op, size_t WordCount)
   {
-    return (uint32_t(op) & spv::OpCodeMask) | (uint16_t(WordCount) << spv::WordCountShift);
+    return (uint32_t(op) & rdcspv::OpCodeMask) | (uint16_t(WordCount) << rdcspv::WordCountShift);
   }
 
 private:
@@ -174,6 +183,7 @@ private:
   // may not be used, if we refer to an external iterator
   std::vector<uint32_t> words;
 };
+
 };    // namespace rdcspv
 
 DECLARE_STRINGISE_TYPE(rdcspv::Id);

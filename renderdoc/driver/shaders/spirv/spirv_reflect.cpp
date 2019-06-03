@@ -63,11 +63,11 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
   std::vector<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
 
   rdcspv::Id entryid;
-  for(const SPIRVEntry &entry : editor.GetEntries())
+  for(const rdcspv::OpEntryPoint &entry : editor.GetEntries())
   {
     if(entry.name == entryName)
     {
-      entryid = entry.id;
+      entryid = entry.entryPoint;
       break;
     }
   }
@@ -77,8 +77,9 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
   for(rdcspv::Iter it = editor.Begin(SPIRVSection::ExecutionMode);
       it < editor.End(SPIRVSection::ExecutionMode); ++it)
   {
-    if(it.opcode() == spv::OpExecutionMode && rdcspv::Id::fromWord(it.word(1)) == entryid &&
-       it.word(2) == spv::ExecutionModeXfb)
+    rdcspv::OpExecutionMode execMode(it);
+
+    if(execMode.entryPoint == entryid && execMode.mode == rdcspv::ExecutionMode::Xfb)
     {
       hasXFB = true;
       break;
@@ -91,21 +92,28 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
         it < editor.End(SPIRVSection::Annotations); ++it)
     {
       // remove any existing xfb decorations
-      if(it.opcode() == spv::OpDecorate &&
-         (it.word(2) == spv::DecorationXfbBuffer || it.word(2) == spv::DecorationXfbStride))
+      if(it.opcode() == rdcspv::Op::Decorate)
       {
-        editor.Remove(it);
+        rdcspv::OpDecorate decorate(it);
+
+        if(decorate.decoration == rdcspv::Decoration::XfbBuffer ||
+           decorate.decoration == rdcspv::Decoration::XfbStride)
+        {
+          editor.Remove(it);
+        }
       }
 
       // offset is trickier, need to see if it'll match one we want later
-      if((it.opcode() == spv::OpDecorate && it.word(2) == spv::DecorationOffset) ||
-         (it.opcode() == spv::OpMemberDecorate && it.word(3) == spv::DecorationOffset))
+      if((it.opcode() == rdcspv::Op::Decorate &&
+          rdcspv::OpDecorate(it).decoration == rdcspv::Decoration::Offset) ||
+         (it.opcode() == rdcspv::Op::MemberDecorate &&
+          rdcspv::OpMemberDecorate(it).decoration == rdcspv::Decoration::Offset))
       {
         for(size_t i = 0; i < outsig.size(); i++)
         {
           if(outpatch[i].structID)
           {
-            if(it.opcode() == spv::OpMemberDecorate && it.word(1) == outpatch[i].structID &&
+            if(it.opcode() == rdcspv::Op::MemberDecorate && it.word(1) == outpatch[i].structID &&
                it.word(2) == outpatch[i].structMemberIndex)
             {
               editor.Remove(it);
@@ -113,7 +121,7 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
           }
           else
           {
-            if(it.opcode() == spv::OpDecorate && it.word(1) == outpatch[i].ID)
+            if(it.opcode() == rdcspv::Op::Decorate && rdcspv::OpDecorate(it).target == outpatch[i].ID)
             {
               editor.Remove(it);
             }
@@ -124,10 +132,10 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
   }
   else
   {
-    editor.AddExecutionMode(entryid, spv::ExecutionModeXfb);
+    editor.AddExecutionMode(rdcspv::OpExecutionMode(entryid, rdcspv::ExecutionMode::Xfb));
   }
 
-  editor.AddCapability(spv::CapabilityTransformFeedback);
+  editor.AddCapability(rdcspv::Capability::TransformFeedback);
 
   // find the position output and move it to the front
   for(size_t i = 0; i < outsig.size(); i++)
@@ -149,16 +157,17 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
     {
       // do not patch anything as we only patch the base array, but reserve space in the stride
     }
-    else if(outpatch[i].structID)
+    else if(outpatch[i].structID && !outpatch[i].accessChain.empty())
     {
-      editor.AddDecoration(rdcspv::Operation(
-          spv::OpMemberDecorate,
-          {outpatch[i].structID, outpatch[i].structMemberIndex, spv::DecorationOffset, xfbStride}));
+      editor.AddDecoration(rdcspv::OpMemberDecorate(
+          rdcspv::Id::fromWord(outpatch[i].structID), outpatch[i].structMemberIndex,
+          rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
     }
     else if(outpatch[i].ID)
     {
-      editor.AddDecoration(rdcspv::Operation(
-          spv::OpDecorate, {outpatch[i].ID, (uint32_t)spv::DecorationOffset, xfbStride}));
+      editor.AddDecoration(
+          rdcspv::OpDecorate(rdcspv::Id::fromWord(outpatch[i].ID),
+                             rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
     }
 
     uint32_t compByteSize = 4;
@@ -176,10 +185,12 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
     if(outpatch[i].ID && !outpatch[i].isArraySubsequentElement &&
        vars.find(outpatch[i].ID) == vars.end())
     {
-      editor.AddDecoration(rdcspv::Operation(
-          spv::OpDecorate, {outpatch[i].ID, (uint32_t)spv::DecorationXfbBuffer, 0}));
-      editor.AddDecoration(rdcspv::Operation(
-          spv::OpDecorate, {outpatch[i].ID, (uint32_t)spv::DecorationXfbStride, xfbStride}));
+      editor.AddDecoration(
+          rdcspv::OpDecorate(rdcspv::Id::fromWord(outpatch[i].ID),
+                             rdcspv::DecorationParam<rdcspv::Decoration::XfbBuffer>(0)));
+      editor.AddDecoration(
+          rdcspv::OpDecorate(rdcspv::Id::fromWord(outpatch[i].ID),
+                             rdcspv::DecorationParam<rdcspv::Decoration::XfbStride>(xfbStride)));
       vars.insert(outpatch[i].ID);
     }
   }

@@ -25,7 +25,6 @@
 #pragma once
 
 #include <vector>
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "api/replay/renderdoc_replay.h"
 
 struct SPVInstruction;
@@ -71,6 +70,14 @@ struct SPIRVPatchData
   // the output topology for tessellation and geometry shaders
   Topology outTopo = Topology::Unknown;
 };
+
+#ifndef spirv_HPP
+namespace spv
+{
+using SourceLanguage = uint32_t;
+using Capability = uint32_t;
+};
+#endif
 
 struct SPVModule
 {
