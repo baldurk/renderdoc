@@ -702,7 +702,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     return;
   }
 
-  ID3D11ShaderResourceView *srvs[8] = {NULL};
+  ID3D11ShaderResourceView *srvs[16] = {NULL};
 
   int srvIndex = 0;
 
@@ -712,7 +712,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
   srvs[srvIndex] = srvMS;
 
-  ctx->PSSetShaderResources(0, 8, srvs);
+  ctx->PSSetShaderResources(0, 16, srvs);
 
   // loop over every array slice in MS texture
   for(UINT slice = 0; slice < descMS.ArraySize; slice++)
