@@ -29,6 +29,8 @@
 
 #include "api/replay/renderdoc_replay.h"
 
+typedef unsigned int GLuint;
+
 inline constexpr GPUCounter MakeIntelGlCounter(int index)
 {
   return GPUCounter((int)GPUCounter::FirstIntel + index);

@@ -25,7 +25,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
+#include "api/replay/renderdoc_replay.h"
 
 namespace rdcspv
 {
