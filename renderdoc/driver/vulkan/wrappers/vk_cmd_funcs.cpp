@@ -998,7 +998,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
             barrier.subresourceRange = it->second.subresourceRange;
 
-            if(barrier.oldLayout != barrier.newLayout)
+            if(barrier.oldLayout != barrier.newLayout &&
+               barrier.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
               revertBarriers.push_back(barrier);
           }
 
