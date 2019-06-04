@@ -134,10 +134,13 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
 
   align = (VkDeviceSize)driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment;
 
+  // for simplicity, consider the non-coherent atom size also an alignment requirement
+  align = AlignUp(align, driver->GetDeviceProps().limits.nonCoherentAtomSize);
+
   sz = size;
   // offset must be aligned, so ensure we have at least ringSize
   // copies accounting for that
-  totalsize = ringSize == 1 ? size : AlignUp(size, align) * ringSize;
+  totalsize = AlignUp(size, align) * RDCMAX(1U, ringSize);
   curoffset = 0;
 
   ringCount = ringSize;
@@ -208,11 +211,16 @@ void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
   VkDeviceSize offset = bindoffset ? curoffset : 0;
   VkDeviceSize size = usedsize > 0 ? usedsize : sz;
 
-  // wrap around the ring, assuming the ring is large enough
-  // that this memory is now free
+  // align the size so we always consume coherent atoms
+  size = AlignUp(size, align);
+
+  // wrap around the ring as soon as the 'sz' would overflow. This is because if we're using dynamic
+  // offsets in the descriptor the range is still set to that fixed size and the validation
+  // complains if we go off the end (even if it's unused). Rather than constantly update the
+  // descriptor, we just conservatively wrap and waste the last bit of space.
   if(offset + sz > totalsize)
     offset = 0;
-  RDCASSERT(offset + sz <= totalsize);
+  RDCASSERT(offset + size <= totalsize);
 
   // offset must be aligned
   curoffset = AlignUp(offset + size, align);

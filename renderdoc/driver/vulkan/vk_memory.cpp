@@ -178,11 +178,16 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryRequirements mrq,
                                                           MemoryScope scope, MemoryType type)
 {
+  const VkDeviceSize nonCoherentAtomSize = GetDeviceProps().limits.nonCoherentAtomSize;
+
   MemoryAllocation ret;
   ret.scope = scope;
   ret.type = type;
   ret.buffer = buffer;
   ret.size = AlignUp(mrq.size, mrq.alignment);
+  // for ease, ensure all allocations are multiples of the non-coherent atom size, so we can
+  // invalidate/flush safely. This is at most 256 bytes which is likely already satisfied.
+  ret.size = AlignUp(ret.size, nonCoherentAtomSize);
 
   RDCDEBUG("Allocating 0x%llx with alignment 0x%llx in 0x%x for a %s (%s in %s)", ret.size,
            mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image", ToStr(type).c_str(),

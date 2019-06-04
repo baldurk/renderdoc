@@ -263,7 +263,7 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
 
   // we only use a subset of the [MAX_SINGLE_LINE_LENGTH] array needed for each line, so this ring
   // can be smaller
-  m_TextStringUBO.Create(driver, dev, 4096, 10, 0);
+  m_TextStringUBO.Create(driver, dev, 4096, 20, 0);
   RDCCOMPILE_ASSERT(sizeof(StringUBOData) <= 4096, "font uniforms size");
 
   rm->SetInternalResource(GetResID(m_TextStringUBO.buf));

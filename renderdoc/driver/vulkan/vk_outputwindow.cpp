@@ -721,7 +721,7 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   RDCASSERT(pData != NULL);
 
   VkMappedMemoryRange range = {
-      VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, bufInfo.size,
+      VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,
   };
 
   vkr = vt->InvalidateMappedMemoryRanges(Unwrap(device), 1, &range);
