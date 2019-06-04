@@ -571,13 +571,14 @@ struct D3D12ResourceRecord : public ResourceRecord
   struct MapData
   {
     MapData() : refcount(0), realPtr(NULL), shadowPtr(NULL) {}
-    volatile int32_t refcount;
+    int32_t refcount;
     byte *realPtr;
     byte *shadowPtr;
   };
 
   MapData *m_Maps;
   size_t m_MapsCount;
+  Threading::CriticalSection m_MapLock;
 };
 
 typedef std::vector<D3D12_RESOURCE_STATES> SubresourceStateVector;

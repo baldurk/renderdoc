@@ -325,6 +325,8 @@ WrappedID3D12Resource1::~WrappedID3D12Resource1()
 
 byte *WrappedID3D12Resource1::GetMap(UINT Subresource)
 {
+  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
+
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
   size_t mapcount = GetResourceRecord()->m_MapsCount;
 
@@ -336,6 +338,8 @@ byte *WrappedID3D12Resource1::GetMap(UINT Subresource)
 
 byte *WrappedID3D12Resource1::GetShadow(UINT Subresource)
 {
+  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
+
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   return map[Subresource].shadowPtr;
@@ -343,6 +347,8 @@ byte *WrappedID3D12Resource1::GetShadow(UINT Subresource)
 
 void WrappedID3D12Resource1::AllocShadow(UINT Subresource, size_t size)
 {
+  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
+
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
   if(map[Subresource].shadowPtr == NULL)
@@ -351,6 +357,8 @@ void WrappedID3D12Resource1::AllocShadow(UINT Subresource, size_t size)
 
 void WrappedID3D12Resource1::FreeShadow()
 {
+  SCOPED_LOCK(GetResourceRecord()->m_MapLock);
+
   D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
   size_t mapcount = GetResourceRecord()->m_MapsCount;
 
@@ -383,14 +391,15 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource1::Map(UINT Subresource,
 
   if(SUCCEEDED(hr) && GetResourceRecord())
   {
+    SCOPED_LOCK(GetResourceRecord()->m_MapLock);
+
     D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
 
     map[Subresource].realPtr = (byte *)mapPtr;
-
-    int32_t refcount = Atomic::Inc32(&map[Subresource].refcount);
+    map[Subresource].refcount++;
 
     // on the first map, register this so we can flush any updates in case it's left persistant
-    if(refcount == 1)
+    if(map[Subresource].refcount == 1)
       m_pDevice->Map(this, Subresource);
   }
 
@@ -403,20 +412,23 @@ void STDMETHODCALLTYPE WrappedID3D12Resource1::Unmap(UINT Subresource,
   if(GetResourceRecord())
   {
     D3D12ResourceRecord::MapData *map = GetResourceRecord()->m_Maps;
-    size_t mapcount = GetResourceRecord()->m_MapsCount;
 
-    // may not have a map if e.g. no pointer was requested
-    if(Subresource < mapcount)
     {
-      int32_t refcount = Atomic::Dec32(&map[Subresource].refcount);
+      SCOPED_LOCK(GetResourceRecord()->m_MapLock);
 
-      if(refcount == 0)
+      // may not have a ref at all if e.g. no pointer was requested
+      if(map[Subresource].refcount >= 1)
       {
-        m_pDevice->Unmap(this, Subresource, map[Subresource].realPtr, pWrittenRange);
+        map[Subresource].refcount--;
 
-        FreeAlignedBuffer(map[Subresource].shadowPtr);
-        map[Subresource].realPtr = NULL;
-        map[Subresource].shadowPtr = NULL;
+        if(map[Subresource].refcount == 0)
+        {
+          m_pDevice->Unmap(this, Subresource, map[Subresource].realPtr, pWrittenRange);
+
+          FreeAlignedBuffer(map[Subresource].shadowPtr);
+          map[Subresource].realPtr = NULL;
+          map[Subresource].shadowPtr = NULL;
+        }
       }
     }
   }
@@ -437,17 +449,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource1::WriteToSubresource(UINT DstSub
 
   if(GetResourceRecord())
   {
-    size_t mapcount = GetResourceRecord()->m_MapsCount;
-
-    if(DstSubresource < mapcount)
-    {
-      m_pDevice->WriteToSubresource(this, DstSubresource, pDstBox, pSrcData, SrcDepthPitch,
-                                    SrcDepthPitch);
-    }
-    else
-    {
-      RDCERR("WriteToSubresource without matching map!");
-    }
+    m_pDevice->WriteToSubresource(this, DstSubresource, pDstBox, pSrcData, SrcDepthPitch,
+                                  SrcDepthPitch);
   }
 
   return ret;
