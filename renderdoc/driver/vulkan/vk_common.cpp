@@ -328,9 +328,32 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout)
   return VkAccessFlags(0);
 }
 
-void ReplacePresentableImageLayout(VkImageLayout &layout)
+void SanitiseOldImageLayout(VkImageLayout &layout)
 {
+  // we don't replay with present layouts since we don't create actual swapchains. So change any
+  // present layouts to general layouts
   if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR || layout == VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR)
+    layout = VK_IMAGE_LAYOUT_GENERAL;
+
+  // we can't transition to PREINITIALIZED, so instead use GENERAL. This allows host access so we
+  // can still replay maps of the image's memory. In theory we can still transition from
+  // PREINITIALIZED on replay, but consider that we need to be able to reset layouts and suddenly we
+  // have a problem transitioning from PREINITIALIZED more than once - so for that reason we
+  // instantly promote any images that are PREINITIALIZED to GENERAL at the start of the frame
+  // capture, and from then on treat it as the same
+  if(layout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+    layout = VK_IMAGE_LAYOUT_GENERAL;
+}
+
+void SanitiseNewImageLayout(VkImageLayout &layout)
+{
+  // apply any general image layout sanitisation
+  SanitiseOldImageLayout(layout);
+
+  // we also can't transition to UNDEFINED, so go to GENERAL instead. This is safe since if the
+  // layout was supposed to be undefined before then the only valid transition *from* the state is
+  // UNDEFINED, which will work silently.
+  if(layout == VK_IMAGE_LAYOUT_UNDEFINED)
     layout = VK_IMAGE_LAYOUT_GENERAL;
 }
 

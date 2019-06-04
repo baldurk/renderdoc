@@ -1313,27 +1313,23 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 
     if(IsLoading(m_State))
     {
-      // for the first load, ensure all images are in a non-undefined layout. Any images that don't
-      // have an initial layout to transition back into were likely created mid-frame so their state
-      // is expected to be transitioned from undefined in the capture itself.
+      // for the first load, promote any PREINITIALIZED images to GENERAL here since we treat
+      // PREINIT as if it was GENERAL.
       for(auto it = m_ImageLayouts.begin(); it != m_ImageLayouts.end(); ++it)
       {
         for(auto stit = it->second.subresourceStates.begin();
             stit != it->second.subresourceStates.end(); ++stit)
         {
-          if(stit->newLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+          if(stit->newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED &&
              GetResourceManager()->HasCurrentResource(it->first))
           {
             VkImage img = GetResourceManager()->GetCurrentHandle<VkImage>(it->first);
 
-            if(GetResID(img) != GetResourceManager()->GetOriginalID(GetResID(img)))
             {
               VkImageMemoryBarrier barrier = {};
 
-              stit->newLayout = VK_IMAGE_LAYOUT_GENERAL;
-
               barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-              barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+              barrier.oldLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
               barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
               barrier.srcQueueFamilyIndex = m_QueueFamilyIdx;
               barrier.dstQueueFamilyIndex = m_QueueFamilyIdx;
@@ -1351,6 +1347,11 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
     {
       for(size_t i = 0; i < imgBarriers.size(); i++)
       {
+        // sanitise the layouts before passing to Vulkan
+        if(!IsLoading(m_State))
+          SanitiseOldImageLayout(imgBarriers[i].oldLayout);
+        SanitiseNewImageLayout(imgBarriers[i].newLayout);
+
         imgBarriers[i].srcAccessMask = MakeAccessMask(imgBarriers[i].oldLayout);
         imgBarriers[i].dstAccessMask = MakeAccessMask(imgBarriers[i].newLayout);
       }

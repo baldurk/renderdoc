@@ -1331,6 +1331,7 @@ struct ImageLayouts
   VkFormat format;
   VkImageType imageType;
   bool memoryBound = false;
+  VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 };
 
 DECLARE_REFLECTION_STRUCT(ImageLayouts);

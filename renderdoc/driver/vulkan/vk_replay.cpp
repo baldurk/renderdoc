@@ -1671,6 +1671,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     {
       VKPipe::ImageData &img = m_VulkanPipelineState.images[i];
 
+      if(rm->GetOriginalID(it->first) == it->first)
+        continue;
+
       img.resourceId = rm->GetOriginalID(it->first);
 
       img.layouts.resize(it->second.subresourceStates.size());
@@ -1691,6 +1694,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       i++;
     }
+
+    m_VulkanPipelineState.images.resize(i);
   }
 
   if(state.conditionalRendering.buffer != ResourceId())

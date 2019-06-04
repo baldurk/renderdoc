@@ -102,7 +102,8 @@ StencilOperation MakeStencilOp(VkStencilOp op);
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
-void ReplacePresentableImageLayout(VkImageLayout &layout);
+void SanitiseOldImageLayout(VkImageLayout &layout);
+void SanitiseNewImageLayout(VkImageLayout &layout);
 
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers);
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers);

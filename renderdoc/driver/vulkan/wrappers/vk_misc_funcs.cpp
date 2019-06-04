@@ -757,9 +757,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
       if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
-      // renderpass can't start or end in presentable layout on replay
-      ReplacePresentableImageLayout(att[i].initialLayout);
-      ReplacePresentableImageLayout(att[i].finalLayout);
+      // sanitise the actual layouts used to create the renderpass
+      SanitiseOldImageLayout(att[i].initialLayout);
+      SanitiseNewImageLayout(att[i].finalLayout);
     }
 
     VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &CreateInfo, NULL, &rp);
@@ -988,8 +988,8 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2KHR(SerialiserType &ser, VkDevi
         att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
       // renderpass can't start or end in presentable layout on replay
-      ReplacePresentableImageLayout(att[i].initialLayout);
-      ReplacePresentableImageLayout(att[i].finalLayout);
+      SanitiseOldImageLayout(att[i].initialLayout);
+      SanitiseNewImageLayout(att[i].finalLayout);
     }
 
     VkResult ret = ObjDisp(device)->CreateRenderPass2KHR(Unwrap(device), &CreateInfo, NULL, &rp);

@@ -306,6 +306,9 @@
     <ClCompile Include="d3d11\d3d11_untyped_backbuffer_descriptor.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_image_layouts.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

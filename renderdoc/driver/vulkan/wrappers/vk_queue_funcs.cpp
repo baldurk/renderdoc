@@ -244,13 +244,14 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
         for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
         {
-          ResourceId cmd =
-              GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
+          ResourceId liveCmd = GetResID(submitInfo.pCommandBuffers[c]);
+          ResourceId cmd = GetResourceManager()->GetOriginalID(liveCmd);
 
           BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
           GetResourceManager()->ApplyBarriers(m_CreationInfo.m_Queue[GetResID(queue)],
-                                              m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
+                                              m_BakedCmdBufferInfo[liveCmd].imgbarriers,
+                                              m_ImageLayouts);
 
           std::string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)",
                                                basename.c_str(), c, ToStr(cmd).c_str());

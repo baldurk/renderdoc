@@ -256,6 +256,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
   std::vector<rdcpair<ResourceId, ImageRegionState> > vec;
 
+  std::set<ResourceId> updatedState;
+
   for(uint32_t i = 0; i < NumImages; i++)
   {
     SERIALISE_ELEMENT_LOCAL(Image, (ResourceId)(srcit->first)).TypedAs("VkImage"_lit);
@@ -267,6 +269,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
     if(IsReplayingAndReading() && liveid != ResourceId())
     {
+      updatedState.insert(liveid);
+
       for(ImageRegionState &state : ImageState.subresourceStates)
       {
         VkImageMemoryBarrier t;
@@ -284,15 +288,10 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           t.dstQueueFamilyIndex = t.srcQueueFamilyIndex = m_Core->GetQueueFamilyIndex();
         state.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
         t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
+
         t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         t.newLayout = state.newLayout;
 
-        // sanitise the new layout
-        ReplacePresentableImageLayout(state.newLayout);
-        if(t.newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-          t.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        if(state.newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-          state.newLayout = VK_IMAGE_LAYOUT_GENERAL;
         t.subresourceRange = state.subresourceRange;
 
         auto stit = states.find(liveid);
@@ -307,6 +306,45 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
     if(ser.IsWriting())
       srcit++;
+  }
+
+  // on replay, any images from the capture which didn't get touched above were created mid-frame so
+  // we reset them to their initialLayout.
+  if(IsReplayingAndReading())
+  {
+    for(auto it = states.begin(); it != states.end(); ++it)
+    {
+      ResourceId liveid = it->first;
+
+      if(GetOriginalID(liveid) != liveid && updatedState.find(liveid) == updatedState.end())
+      {
+        for(ImageRegionState &state : it->second.subresourceStates)
+        {
+          VkImageMemoryBarrier t = {};
+          t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+          t.srcQueueFamilyIndex = it->second.queueFamilyIndex;
+          t.dstQueueFamilyIndex = it->second.queueFamilyIndex;
+          m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
+          if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
+            t.dstQueueFamilyIndex = t.srcQueueFamilyIndex = m_Core->GetQueueFamilyIndex();
+          state.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
+          t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
+
+          t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+          state.newLayout = t.newLayout = it->second.initialLayout;
+
+          t.subresourceRange = state.subresourceRange;
+
+          auto stit = states.find(liveid);
+
+          if(stit == states.end() || stit->second.memoryBound)
+          {
+            barriers.push_back(t);
+            vec.push_back(make_rdcpair(liveid, state));
+          }
+        }
+      }
+    }
   }
 
   // we don't have to specify a queue here because all of the images have a specific queue above

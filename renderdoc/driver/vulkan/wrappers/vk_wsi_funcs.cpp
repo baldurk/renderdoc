@@ -450,6 +450,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       m_ImageLayouts[liveId].format = iminfo.format;
       m_ImageLayouts[liveId].imageType = iminfo.type;
       m_ImageLayouts[liveId].memoryBound = true;
+      m_ImageLayouts[liveId].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
       m_ImageLayouts[liveId].subresourceStates.clear();
       m_ImageLayouts[liveId].subresourceStates.push_back(ImageRegionState(
@@ -588,6 +589,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           m_ImageLayouts[imid].format = pCreateInfo->imageFormat;
           m_ImageLayouts[imid].imageType = VK_IMAGE_TYPE_2D;
           m_ImageLayouts[imid].memoryBound = true;
+          m_ImageLayouts[imid].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
           m_ImageLayouts[imid].subresourceStates.clear();
           m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(

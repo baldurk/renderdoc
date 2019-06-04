@@ -331,6 +331,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     {
       srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
+
+      SanitiseOldImageLayout(srcimBarrier.oldLayout);
+
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
@@ -489,6 +492,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
       srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
       srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+
+      SanitiseNewImageLayout(srcimBarrier.newLayout);
+
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
@@ -1424,6 +1430,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+          SanitiseOldImageLayout(barrier.oldLayout);
+
           DoPipelineBarrier(cmd, 1, &barrier);
 
           if(extQCmd != VK_NULL_HANDLE)
@@ -1464,6 +1473,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
           barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
+
+          SanitiseNewImageLayout(barrier.newLayout);
+
           DoPipelineBarrier(cmd, 1, &barrier);
 
           if(extQCmd != VK_NULL_HANDLE)
@@ -1528,6 +1540,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+          SanitiseOldImageLayout(barrier.oldLayout);
+
           DoPipelineBarrier(cmd, 1, &barrier);
 
           if(extQCmd != VK_NULL_HANDLE)
@@ -1568,6 +1583,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         {
           barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
           barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+          SanitiseNewImageLayout(barrier.newLayout);
+
           DoPipelineBarrier(cmd, 1, &barrier);
 
           if(extQCmd != VK_NULL_HANDLE)
@@ -1652,6 +1670,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       {
         barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
         barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+        SanitiseOldImageLayout(barrier.oldLayout);
+
         DoPipelineBarrier(cmd, 1, &barrier);
 
         if(extQCmd != VK_NULL_HANDLE)
@@ -1698,7 +1719,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       {
         barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
         barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+        SanitiseNewImageLayout(barrier.newLayout);
+
         barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
+
         DoPipelineBarrier(cmd, 1, &barrier);
 
         if(extQCmd != VK_NULL_HANDLE)
@@ -1834,7 +1859,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
       dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+      SanitiseOldImageLayout(dstimBarrier.oldLayout);
+
       dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
+
       DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -1945,7 +1974,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
       dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+
+      SanitiseNewImageLayout(dstimBarrier.newLayout);
+
       dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);
+
       DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)

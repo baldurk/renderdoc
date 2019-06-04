@@ -779,8 +779,6 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
       {
         imgBarriers.push_back(pImageMemoryBarriers[i]);
         imgBarriers.back().image = Unwrap(imgBarriers.back().image);
-        ReplacePresentableImageLayout(imgBarriers.back().oldLayout);
-        ReplacePresentableImageLayout(imgBarriers.back().newLayout);
 
         RemapQueueFamilyIndices(imgBarriers.back().srcQueueFamilyIndex,
                                 imgBarriers.back().dstQueueFamilyIndex);
@@ -816,18 +814,25 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
       m_PersistentEvents.push_back(ev);
     }
 
+    ResourceId cmd = GetResID(commandBuffer);
+    GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
+                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
     if(commandBuffer != VK_NULL_HANDLE)
     {
+      // now sanitise layouts before passing to vulkan
+      for(VkImageMemoryBarrier &barrier : imgBarriers)
+      {
+        SanitiseOldImageLayout(barrier.oldLayout);
+        SanitiseNewImageLayout(barrier.newLayout);
+      }
+
       ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
       ObjDisp(commandBuffer)
           ->CmdWaitEvents(Unwrap(commandBuffer), 1, &ev, srcStageMask, dstStageMask,
                           memoryBarrierCount, pMemoryBarriers, (uint32_t)bufBarriers.size(),
                           bufBarriers.data(), (uint32_t)imgBarriers.size(), imgBarriers.data());
     }
-
-    ResourceId cmd = GetResID(commandBuffer);
-    GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
-                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
   }
 
   return true;
