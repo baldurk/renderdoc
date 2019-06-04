@@ -744,6 +744,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
       for(uint32_t j = 0; j < initialContents.numDescriptors; j++)
       {
+        uint32_t descriptorCount = layout.bindings[j].descriptorCount;
+
+        if(descriptorCount == 0)
+          continue;
+
         writes[bind].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writes[bind].pNext = NULL;
 
@@ -755,8 +760,6 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
         // descriptor count starts at 0. We increment it as we find valid descriptors
         writes[bind].descriptorCount = 0;
         writes[bind].descriptorType = layout.bindings[j].descriptorType;
-
-        uint32_t descriptorCount = layout.bindings[j].descriptorCount;
 
         ResourceId *immutableSamplers = layout.bindings[j].immutableSampler;
 
