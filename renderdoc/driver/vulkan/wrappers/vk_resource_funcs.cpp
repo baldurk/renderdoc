@@ -952,6 +952,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 
     ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
 
+    m_ImageLayouts[GetResID(image)].memoryBound = true;
+
     GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
     GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
 
@@ -983,6 +985,14 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
 
       chunk = scope.Get();
     }
+
+    ImageLayouts *layout = NULL;
+    {
+      SCOPED_LOCK(m_ImageLayoutsLock);
+      layout = &m_ImageLayouts[GetResID(image)];
+    }
+
+    layout->memoryBound = true;
 
     // memory object bindings are immutable and must happen before creation or use,
     // so this can always go into the record, even if a resource is created and bound
@@ -2014,6 +2024,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       if(!ok)
         return false;
 
+      m_ImageLayouts[GetResID(bindInfo.image)].memoryBound = true;
+
       GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
       GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
 
@@ -2054,6 +2066,14 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
 
         chunk = scope.Get();
       }
+
+      ImageLayouts *layout = NULL;
+      {
+        SCOPED_LOCK(m_ImageLayoutsLock);
+        layout = &m_ImageLayouts[imgrecord->GetResourceID()];
+      }
+
+      layout->memoryBound = true;
 
       // memory object bindings are immutable and must happen before creation or use,
       // so this can always go into the record, even if a resource is created and bound

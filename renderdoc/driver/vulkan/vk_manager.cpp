@@ -294,8 +294,14 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
         if(state.newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
           state.newLayout = VK_IMAGE_LAYOUT_GENERAL;
         t.subresourceRange = state.subresourceRange;
-        barriers.push_back(t);
-        vec.push_back(make_rdcpair(liveid, state));
+
+        auto stit = states.find(liveid);
+
+        if(stit == states.end() || stit->second.memoryBound)
+        {
+          barriers.push_back(t);
+          vec.push_back(make_rdcpair(liveid, state));
+        }
       }
     }
 

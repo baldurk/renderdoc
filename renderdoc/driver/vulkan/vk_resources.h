@@ -1330,6 +1330,7 @@ struct ImageLayouts
   VkExtent3D extent;
   VkFormat format;
   VkImageType imageType;
+  bool memoryBound = false;
 };
 
 DECLARE_REFLECTION_STRUCT(ImageLayouts);
