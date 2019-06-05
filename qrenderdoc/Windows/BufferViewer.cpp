@@ -2610,6 +2610,11 @@ void BufferViewer::UI_CalculateMeshFormats()
       m_PostVSPosition.vertexByteOffset += vsoutConfig.columns[elIdx].offset;
       m_PostVSPosition.unproject = vsoutConfig.columns[elIdx].systemValue == ShaderBuiltin::Position;
 
+      // if geometry/tessellation is enabled, don't unproject VS output data
+      if(m_Ctx.CurPipelineState().GetShader(ShaderStage::Tess_Eval) != ResourceId() ||
+         m_Ctx.CurPipelineState().GetShader(ShaderStage::Geometry) != ResourceId())
+        m_PostVSPosition.unproject = false;
+
       elIdx = m_ModelVSOut->secondaryColumn();
 
       if(elIdx >= 0 && elIdx < vsoutConfig.columns.count())
@@ -2964,6 +2969,12 @@ bool BufferViewer::isCurrentRasterOut()
 {
   BufferItemModel *model = currentBufferModel();
   int stage = currentStageIndex();
+
+  // if geometry/tessellation is enabled, only the GS out stage is rasterized output
+  if((m_Ctx.CurPipelineState().GetShader(ShaderStage::Tess_Eval) != ResourceId() ||
+      m_Ctx.CurPipelineState().GetShader(ShaderStage::Geometry) != ResourceId()) &&
+     m_CurStage != MeshDataStage::GSOut)
+    return false;
 
   if(model)
   {
