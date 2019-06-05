@@ -1070,7 +1070,7 @@ void GLReplay::DeleteDebugData()
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  if(DebugData.overlayProg != 0)
+  if(DebugData.overlayProg)
     drv.glDeleteProgram(DebugData.overlayProg);
 
   drv.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
@@ -1084,23 +1084,31 @@ void GLReplay::DeleteDebugData()
   drv.glDeleteFramebuffers(1, &DebugData.overlayFBO);
   drv.glDeleteTextures(1, &DebugData.overlayTex);
 
-  drv.glDeleteShader(DebugData.quadoverdrawFragShader);
-  drv.glDeleteProgram(DebugData.quadoverdrawResolveProg);
+  if(DebugData.quadoverdrawFragShader)
+    drv.glDeleteShader(DebugData.quadoverdrawFragShader);
+  if(DebugData.quadoverdrawResolveProg)
+    drv.glDeleteProgram(DebugData.quadoverdrawResolveProg);
 
-  drv.glDeleteShader(DebugData.texDisplayVertexShader);
+  if(DebugData.texDisplayVertexShader)
+    drv.glDeleteShader(DebugData.texDisplayVertexShader);
   for(int i = 0; i < 3; i++)
-    drv.glDeleteProgram(DebugData.texDisplayProg[i]);
+    if(DebugData.texDisplayProg[i])
+      drv.glDeleteProgram(DebugData.texDisplayProg[i]);
 
-  drv.glDeleteProgram(DebugData.checkerProg);
+  if(DebugData.checkerProg)
+    drv.glDeleteProgram(DebugData.checkerProg);
   if(DebugData.fixedcolFragShader)
     drv.glDeleteShader(DebugData.fixedcolFragShader);
 
   for(size_t i = 0; i < ARRAY_COUNT(DebugData.meshProg); i++)
   {
-    drv.glDeleteProgram(DebugData.meshProg[i]);
-    drv.glDeleteProgram(DebugData.meshgsProg[i]);
+    if(DebugData.meshProg[i])
+      drv.glDeleteProgram(DebugData.meshProg[i]);
+    if(DebugData.meshgsProg[i])
+      drv.glDeleteProgram(DebugData.meshgsProg[i]);
   }
-  drv.glDeleteProgram(DebugData.trisizeProg);
+  if(DebugData.trisizeProg)
+    drv.glDeleteProgram(DebugData.trisizeProg);
 
   drv.glDeleteBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
   drv.glDeleteFramebuffers(1, &DebugData.pickPixelFBO);
@@ -1125,24 +1133,31 @@ void GLReplay::DeleteDebugData()
       if(i == 2)
         idx |= TEXDISPLAY_SINT_TEX;
 
-      drv.glDeleteProgram(DebugData.minmaxTileProgram[idx]);
-      drv.glDeleteProgram(DebugData.histogramProgram[idx]);
+      if(DebugData.minmaxTileProgram[idx])
+        drv.glDeleteProgram(DebugData.minmaxTileProgram[idx]);
+      if(DebugData.histogramProgram[idx])
+        drv.glDeleteProgram(DebugData.histogramProgram[idx]);
 
-      drv.glDeleteProgram(DebugData.minmaxResultProgram[i]);
-      DebugData.minmaxResultProgram[i] = 0;
+      if(DebugData.minmaxResultProgram[i])
+        drv.glDeleteProgram(DebugData.minmaxResultProgram[i]);
     }
   }
 
-  drv.glDeleteProgram(DebugData.meshPickProgram);
+  if(DebugData.meshPickProgram)
+    drv.glDeleteProgram(DebugData.meshPickProgram);
   drv.glDeleteBuffers(1, &DebugData.pickIBBuf);
   drv.glDeleteBuffers(1, &DebugData.pickVBBuf);
   drv.glDeleteBuffers(1, &DebugData.pickResultBuf);
 
-  drv.glDeleteProgram(DebugData.Array2MS);
-  drv.glDeleteProgram(DebugData.MS2Array);
+  if(DebugData.Array2MS)
+    drv.glDeleteProgram(DebugData.Array2MS);
+  if(DebugData.MS2Array)
+    drv.glDeleteProgram(DebugData.MS2Array);
 
-  drv.glDeleteProgram(DebugData.DepthArray2MS);
-  drv.glDeleteProgram(DebugData.DepthMS2Array);
+  if(DebugData.DepthArray2MS)
+    drv.glDeleteProgram(DebugData.DepthArray2MS);
+  if(DebugData.DepthMS2Array)
+    drv.glDeleteProgram(DebugData.DepthMS2Array);
 
   drv.glDeleteBuffers(1, &DebugData.minmaxTileResult);
   drv.glDeleteBuffers(1, &DebugData.minmaxResult);
