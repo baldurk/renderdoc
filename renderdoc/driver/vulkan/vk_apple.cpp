@@ -109,7 +109,7 @@ void *LoadVulkanLibrary()
   }
 
   // then try the standard SDK install path under /usr/local/lib
-  void *ret = Process::LoadModule(("/usr/local/lib/" + VulkanLibraryName).c_str());
+  ret = Process::LoadModule(("/usr/local/lib/" + VulkanLibraryName).c_str());
 
   if(ret)
   {
