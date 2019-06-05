@@ -28,6 +28,7 @@
 #include "common/common.h"
 #include "common/wrapped_pool.h"
 #include "driver/dx/official/dxgi1_6.h"
+#include "driver/dx/official/dxgidebug.h"
 
 MIDL_INTERFACE("6f15aaf2-d208-4e89-9ab4-489535d34f9c") ID3D11Texture2D;
 MIDL_INTERFACE("51218251-1E33-4617-9CCB-4D3A4367E7BB") ID3D11Texture2D1;

@@ -69,6 +69,179 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
   }
 };
 
+struct DummyDXGIInfoQueue : public IDXGIInfoQueue
+{
+public:
+  // IUnknown boilerplate
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    InterlockedIncrement(&m_iRefcount);
+    return m_iRefcount;
+  }
+  ULONG STDMETHODCALLTYPE Release() { return InterlockedDecrement(&m_iRefcount); }
+  unsigned int m_iRefcount = 0;
+  // IDXGIInfoQueue
+  virtual HRESULT STDMETHODCALLTYPE SetMessageCountLimit(DXGI_DEBUG_ID Producer,
+                                                         UINT64 MessageCountLimit)
+  {
+    return S_OK;
+  }
+
+  virtual void STDMETHODCALLTYPE ClearStoredMessages(DXGI_DEBUG_ID Producer) { return; }
+  virtual HRESULT STDMETHODCALLTYPE GetMessage(DXGI_DEBUG_ID Producer, UINT64 MessageIndex,
+                                               _Out_writes_bytes_opt_(*pMessageByteLength)
+                                                   DXGI_INFO_QUEUE_MESSAGE *pMessage,
+                                               _Inout_ SIZE_T *pMessageByteLength)
+  {
+    return S_OK;
+  }
+
+  virtual UINT64 STDMETHODCALLTYPE GetNumStoredMessagesAllowedByRetrievalFilters(DXGI_DEBUG_ID Producer)
+  {
+    return 0;
+  }
+
+  virtual UINT64 STDMETHODCALLTYPE GetNumStoredMessages(DXGI_DEBUG_ID Producer) { return 0; }
+  virtual UINT64 STDMETHODCALLTYPE GetNumMessagesDiscardedByMessageCountLimit(DXGI_DEBUG_ID Producer)
+  {
+    return 0;
+  }
+
+  virtual UINT64 STDMETHODCALLTYPE GetMessageCountLimit(DXGI_DEBUG_ID Producer) { return 0; }
+  virtual UINT64 STDMETHODCALLTYPE GetNumMessagesAllowedByStorageFilter(DXGI_DEBUG_ID Producer)
+  {
+    return 0;
+  }
+
+  virtual UINT64 STDMETHODCALLTYPE GetNumMessagesDeniedByStorageFilter(DXGI_DEBUG_ID Producer)
+  {
+    return 0;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE AddStorageFilterEntries(DXGI_DEBUG_ID Producer,
+                                                            DXGI_INFO_QUEUE_FILTER *pFilter)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetStorageFilter(DXGI_DEBUG_ID Producer,
+                                                     _Out_writes_bytes_opt_(*pFilterByteLength)
+                                                         DXGI_INFO_QUEUE_FILTER *pFilter,
+                                                     _Inout_ SIZE_T *pFilterByteLength)
+  {
+    return S_OK;
+  }
+
+  virtual void STDMETHODCALLTYPE ClearStorageFilter(DXGI_DEBUG_ID Producer) { return; }
+  virtual HRESULT STDMETHODCALLTYPE PushEmptyStorageFilter(DXGI_DEBUG_ID Producer) { return S_OK; }
+  virtual HRESULT STDMETHODCALLTYPE PushDenyAllStorageFilter(DXGI_DEBUG_ID Producer)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE PushCopyOfStorageFilter(DXGI_DEBUG_ID Producer) { return S_OK; }
+  virtual HRESULT STDMETHODCALLTYPE PushStorageFilter(DXGI_DEBUG_ID Producer,
+                                                      DXGI_INFO_QUEUE_FILTER *pFilter)
+  {
+    return S_OK;
+  }
+
+  virtual void STDMETHODCALLTYPE PopStorageFilter(DXGI_DEBUG_ID Producer) { return; }
+  virtual UINT STDMETHODCALLTYPE GetStorageFilterStackSize(DXGI_DEBUG_ID Producer) { return 0; }
+  virtual HRESULT STDMETHODCALLTYPE AddRetrievalFilterEntries(DXGI_DEBUG_ID Producer,
+                                                              DXGI_INFO_QUEUE_FILTER *pFilter)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetRetrievalFilter(DXGI_DEBUG_ID Producer,
+                                                       _Out_writes_bytes_opt_(*pFilterByteLength)
+                                                           DXGI_INFO_QUEUE_FILTER *pFilter,
+                                                       _Inout_ SIZE_T *pFilterByteLength)
+  {
+    return S_OK;
+  }
+
+  virtual void STDMETHODCALLTYPE ClearRetrievalFilter(DXGI_DEBUG_ID Producer) { return; }
+  virtual HRESULT STDMETHODCALLTYPE PushEmptyRetrievalFilter(DXGI_DEBUG_ID Producer)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE PushDenyAllRetrievalFilter(DXGI_DEBUG_ID Producer)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE PushCopyOfRetrievalFilter(DXGI_DEBUG_ID Producer)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE PushRetrievalFilter(DXGI_DEBUG_ID Producer,
+                                                        DXGI_INFO_QUEUE_FILTER *pFilter)
+  {
+    return S_OK;
+  }
+
+  virtual void STDMETHODCALLTYPE PopRetrievalFilter(DXGI_DEBUG_ID Producer) { return; }
+  virtual UINT STDMETHODCALLTYPE GetRetrievalFilterStackSize(DXGI_DEBUG_ID Producer) { return 0; }
+  virtual HRESULT STDMETHODCALLTYPE AddMessage(DXGI_DEBUG_ID Producer,
+                                               DXGI_INFO_QUEUE_MESSAGE_CATEGORY Category,
+                                               DXGI_INFO_QUEUE_MESSAGE_SEVERITY Severity,
+                                               DXGI_INFO_QUEUE_MESSAGE_ID ID, LPCSTR pDescription)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE AddApplicationMessage(DXGI_INFO_QUEUE_MESSAGE_SEVERITY Severity,
+                                                          LPCSTR pDescription)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetBreakOnCategory(DXGI_DEBUG_ID Producer,
+                                                       DXGI_INFO_QUEUE_MESSAGE_CATEGORY Category,
+                                                       BOOL bEnable)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetBreakOnSeverity(DXGI_DEBUG_ID Producer,
+                                                       DXGI_INFO_QUEUE_MESSAGE_SEVERITY Severity,
+                                                       BOOL bEnable)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetBreakOnID(DXGI_DEBUG_ID Producer,
+                                                 DXGI_INFO_QUEUE_MESSAGE_ID ID, BOOL bEnable)
+  {
+    return S_OK;
+  }
+
+  virtual BOOL STDMETHODCALLTYPE GetBreakOnCategory(DXGI_DEBUG_ID Producer,
+                                                    DXGI_INFO_QUEUE_MESSAGE_CATEGORY Category)
+  {
+    return FALSE;
+  }
+
+  virtual BOOL STDMETHODCALLTYPE GetBreakOnSeverity(DXGI_DEBUG_ID Producer,
+                                                    DXGI_INFO_QUEUE_MESSAGE_SEVERITY Severity)
+  {
+    return FALSE;
+  }
+
+  virtual BOOL STDMETHODCALLTYPE GetBreakOnID(DXGI_DEBUG_ID Producer, DXGI_INFO_QUEUE_MESSAGE_ID ID)
+  {
+    return FALSE;
+  }
+
+  virtual void STDMETHODCALLTYPE SetMuteDebugOutput(DXGI_DEBUG_ID Producer, BOOL bMute) { return; }
+  virtual BOOL STDMETHODCALLTYPE GetMuteDebugOutput(DXGI_DEBUG_ID Producer) { return FALSE; }
+};
+
 class DXGIHook : LibraryHook
 {
 public:
@@ -89,6 +262,7 @@ private:
   static DXGIHook dxgihooks;
 
   RenderDocAnalysis m_RenderDocAnalysis;
+  DummyDXGIInfoQueue m_DummyInfoQueue;
 
   HookedFunction<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory;
   HookedFunction<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory1;
@@ -143,6 +317,17 @@ private:
       *ppDebug = &dxgihooks.m_RenderDocAnalysis;
       return S_OK;
     }
+    if(riid == __uuidof(IDXGIInfoQueue))
+    {
+      RDCWARN(
+          "Returning a dummy IDXGIInfoQueue that does nothing. RenderDoc takes control of the "
+          "debug layer.");
+      dxgihooks.m_DummyInfoQueue.AddRef();
+      *ppDebug = &dxgihooks.m_DummyInfoQueue;
+      return S_OK;
+    }
+
+    // IDXGIDebug and IDXGIDebug1 can come through here, but we don't need to wrap them.
 
     if(dxgihooks.GetDebugInterface())
       return dxgihooks.GetDebugInterface()(riid, ppDebug);
@@ -161,6 +346,17 @@ private:
       *ppDebug = &dxgihooks.m_RenderDocAnalysis;
       return S_OK;
     }
+    if(riid == __uuidof(IDXGIInfoQueue))
+    {
+      RDCWARN(
+          "Returning a dummy IDXGIInfoQueue that does nothing. RenderDoc takes control of the "
+          "debug layer.");
+      dxgihooks.m_DummyInfoQueue.AddRef();
+      *ppDebug = &dxgihooks.m_DummyInfoQueue;
+      return S_OK;
+    }
+
+    // IDXGIDebug and IDXGIDebug1 can come through here, but we don't need to wrap them.
 
     if(dxgihooks.GetDebugInterface1())
       return dxgihooks.GetDebugInterface1()(Flags, riid, ppDebug);
