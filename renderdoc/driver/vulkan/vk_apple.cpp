@@ -94,17 +94,26 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
   h = getMetalLayerHeight(outw.wnd);
 }
 
-static const char *VulkanLibraryName = "libvulkan.1.dylib";
+static const rdcstr VulkanLibraryName = "libvulkan.1.dylib"_lit;
 
 void *LoadVulkanLibrary()
 {
   // first try to load the module globally. If so we assume the user has a global (or at least
   // user-wide) configuration that we should use.
-  void *ret = Process::LoadModule(VulkanLibraryName);
+  void *ret = Process::LoadModule(VulkanLibraryName.c_str());
 
   if(ret)
   {
     RDCLOG("Loaded global libvulkan.1.dylib, using default MoltenVK environment");
+    return ret;
+  }
+
+  // then try the standard SDK install path under /usr/local/lib
+  void *ret = Process::LoadModule(("/usr/local/lib/" + VulkanLibraryName).c_str());
+
+  if(ret)
+  {
+    RDCLOG("Loaded /usr/local/lib/libvulkan.1.dylib, using installed MoltenVK environment");
     return ret;
   }
 
