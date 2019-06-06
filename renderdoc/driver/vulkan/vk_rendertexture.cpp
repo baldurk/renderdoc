@@ -164,6 +164,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[cfg.resourceId];
   TextureDisplayViews &texviews = m_TexRender.TextureViews[cfg.resourceId];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.resourceId);
+  const ImageInfo &imageInfo = layouts.imageInfo;
 
   CreateTexImageView(liveIm, iminfo, cfg.typeHint, texviews);
 
@@ -189,14 +190,14 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   int viewIndex = 0;
 
   // if we're displaying the stencil, set up for stencil display
-  if(layouts.format == VK_FORMAT_S8_UINT ||
-     (IsStencilFormat(layouts.format) && !cfg.red && cfg.green))
+  if(imageInfo.format == VK_FORMAT_S8_UINT ||
+     (IsStencilFormat(imageInfo.format) && !cfg.red && cfg.green))
   {
     descSetBinding = 10;
     displayformat |= TEXDISPLAY_UINT_TEX;
 
     // for stencil we use view 1 as long as it's a depth-stencil texture
-    if(IsDepthAndStencilFormat(layouts.format))
+    if(IsDepthAndStencilFormat(imageInfo.format))
       viewIndex = 1;
 
     // rescale the range so that stencil seems to fit to 0-1

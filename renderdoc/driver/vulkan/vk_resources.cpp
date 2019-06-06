@@ -3075,9 +3075,11 @@ void VkResourceRecord::MarkBufferFrameReferenced(VkResourceRecord *buf, VkDevice
     MarkMemoryFrameReferenced(buf->baseResource, buf->memOffset + offset, size, refType);
 }
 
-void VkResourceRecord::MarkBufferImageCopyFrameReferenced(
-    VkResourceRecord *buf, VkResourceRecord *img, const ImageLayouts &layout, uint32_t regionCount,
-    const VkBufferImageCopy *regions, FrameRefType bufRefType, FrameRefType imgRefType)
+void VkResourceRecord::MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf,
+                                                          VkResourceRecord *img, uint32_t regionCount,
+                                                          const VkBufferImageCopy *regions,
+                                                          FrameRefType bufRefType,
+                                                          FrameRefType imgRefType)
 {
   MarkResourceFrameReferenced(img->GetResourceID(), imgRefType);
   MarkResourceFrameReferenced(img->baseResource, imgRefType);
@@ -3088,16 +3090,18 @@ void VkResourceRecord::MarkBufferImageCopyFrameReferenced(
   // mark buffer just as read
   MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
 
+  VkFormat imgFormat = img->resInfo->imageInfo.format;
+
   for(uint32_t ri = 0; ri < regionCount; ri++)
   {
     const VkBufferImageCopy &region = regions[ri];
 
-    VkFormat regionFormat = layout.format;
+    VkFormat regionFormat = imgFormat;
     uint32_t plane = 0;
     switch(region.imageSubresource.aspectMask)
     {
       case VK_IMAGE_ASPECT_STENCIL_BIT: regionFormat = VK_FORMAT_S8_UINT; break;
-      case VK_IMAGE_ASPECT_DEPTH_BIT: regionFormat = GetDepthOnlyFormat(layout.format); break;
+      case VK_IMAGE_ASPECT_DEPTH_BIT: regionFormat = GetDepthOnlyFormat(imgFormat); break;
       case VK_IMAGE_ASPECT_PLANE_1_BIT: plane = 1; break;
       case VK_IMAGE_ASPECT_PLANE_2_BIT: plane = 2; break;
       default: break;

@@ -879,6 +879,39 @@ struct SwapchainInfo
   uint32_t lastPresent;
 };
 
+struct ImageInfo
+{
+  int layerCount = 0;
+  int levelCount = 0;
+  int sampleCount = 0;
+  VkExtent3D extent = {0, 0, 0};
+  VkFormat format = VK_FORMAT_UNDEFINED;
+  VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
+  ImageInfo() {}
+  ImageInfo(const VkImageCreateInfo &ci)
+      : layerCount(ci.arrayLayers),
+        levelCount(ci.mipLevels),
+        sampleCount((int)ci.samples),
+        extent(ci.extent),
+        format(ci.format),
+        imageType(ci.imageType)
+  {
+  }
+  ImageInfo(const SwapchainInfo &swapInfo)
+      : layerCount(swapInfo.arraySize),
+        levelCount(1),
+        sampleCount(1),
+        format(swapInfo.format),
+        imageType(VK_IMAGE_TYPE_2D)
+  {
+    extent.width = swapInfo.extent.width;
+    extent.height = swapInfo.extent.height;
+    extent.depth = 1;
+  }
+};
+
+DECLARE_REFLECTION_STRUCT(ImageInfo);
+
 // these structs are allocated for images and buffers, then pointed to (non-owning) by views
 struct ResourceInfo
 {
@@ -902,6 +935,8 @@ struct ResourceInfo
   // pagetable per image aspect (some may be NULL) color, depth, stencil, metadata
   // in order of width first, then height, then depth
   rdcpair<VkDeviceMemory, VkDeviceSize> *pages[NUM_VK_IMAGE_ASPECTS];
+
+  ImageInfo imageInfo;
 
   bool IsSparse() const { return pages[0] != NULL; }
   void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings);
@@ -1274,14 +1309,14 @@ struct ImageLayouts;
 
 template <typename Compose>
 FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
-                                 const ImageLayouts &layout, const ImageRange &range,
+                                 const ImageInfo &imageInfo, const ImageRange &range,
                                  FrameRefType refType, Compose comp);
 
 inline FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
-                                        const ImageLayouts &layout, const ImageRange &range,
+                                        const ImageInfo &imageInfo, const ImageRange &range,
                                         FrameRefType refType)
 {
-  return MarkImageReferenced(imgRefs, img, layout, range, refType, ComposeFrameRefs);
+  return MarkImageReferenced(imgRefs, img, imageInfo, range, refType, ComposeFrameRefs);
 }
 
 template <typename Compose>
@@ -1443,9 +1478,8 @@ public:
   void MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);
   void MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf, VkResourceRecord *img,
-                                          const ImageLayouts &layout, uint32_t regionCount,
-                                          const VkBufferImageCopy *regions, FrameRefType bufRefType,
-                                          FrameRefType imgRefType);
+                                          uint32_t regionCount, const VkBufferImageCopy *regions,
+                                          FrameRefType bufRefType, FrameRefType imgRefType);
   void MarkBufferViewFrameReferenced(VkResourceRecord *buf, FrameRefType refType);
   // these are all disjoint, so only a record of the right type will have each
   // Note some of these need to be deleted in the constructor, so we check the
@@ -1549,24 +1583,11 @@ public:
 
 struct ImageLayouts
 {
-  ImageLayouts()
-      : layerCount(1),
-        levelCount(1),
-        sampleCount(1),
-        format(VK_FORMAT_UNDEFINED),
-        imageType(VK_IMAGE_TYPE_MAX_ENUM)
-  {
-    extent.width = extent.height = extent.depth = 1;
-  }
-
   uint32_t queueFamilyIndex = 0;
   std::vector<ImageRegionState> subresourceStates;
-  int layerCount, levelCount, sampleCount;
-  VkExtent3D extent;
-  VkFormat format;
-  VkImageType imageType;
   bool memoryBound = false;
   VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  ImageInfo imageInfo;
 };
 
 DECLARE_REFLECTION_STRUCT(ImageLayouts);
@@ -1598,7 +1619,7 @@ uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFor
 
 template <typename Compose>
 FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
-                                 const ImageLayouts &layout, const ImageRange &range,
+                                 const ImageInfo &imageInfo, const ImageRange &range,
                                  FrameRefType refType, Compose comp)
 {
   if(refType == eFrameRef_None)
@@ -1606,11 +1627,11 @@ FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, Resourc
   auto refs = imgRefs.find(img);
   if(refs == imgRefs.end())
   {
-    refs =
-        imgRefs
-            .insert(std::make_pair(img, ImgRefs(layout.imageType, FormatImageAspects(layout.format),
-                                                layout.levelCount, layout.layerCount, layout.extent)))
-            .first;
+    refs = imgRefs
+               .insert(std::make_pair(
+                   img, ImgRefs(imageInfo.imageType, FormatImageAspects(imageInfo.format),
+                                imageInfo.levelCount, imageInfo.layerCount, imageInfo.extent)))
+               .first;
   }
   return refs->second.Update(range, refType, comp);
 }
