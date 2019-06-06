@@ -712,11 +712,16 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
   ANALYTIC_ADDAVG(Performance.LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
 #endif
 
-  ANALYTIC_SET(CaptureFeatures.ShaderLinkage, m_APIProps.ShaderLinkage);
-  ANALYTIC_SET(CaptureFeatures.YUVTextures, m_APIProps.YUVTextures);
-  ANALYTIC_SET(CaptureFeatures.SparseResources, m_APIProps.SparseResources);
-  ANALYTIC_SET(CaptureFeatures.MultiGPU, m_APIProps.MultiGPU);
-  ANALYTIC_SET(CaptureFeatures.D3D12Bundle, m_APIProps.D3D12Bundle);
+  if(m_APIProps.ShaderLinkage)
+    ANALYTIC_SET(CaptureFeatures.ShaderLinkage, true);
+  if(m_APIProps.YUVTextures)
+    ANALYTIC_SET(CaptureFeatures.YUVTextures, true);
+  if(m_APIProps.SparseResources)
+    ANALYTIC_SET(CaptureFeatures.SparseResources, true);
+  if(m_APIProps.MultiGPU)
+    ANALYTIC_SET(CaptureFeatures.MultiGPU, true);
+  if(m_APIProps.D3D12Bundle)
+    ANALYTIC_SET(CaptureFeatures.D3D12Bundle, true);
 
   if(m_APIProps.vendor != GPUVendor::Unknown)
   {
