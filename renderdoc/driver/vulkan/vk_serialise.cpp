@@ -3418,6 +3418,12 @@ void DoSerialise(SerialiserType &ser, ImageLayouts &el)
     SERIALISE_MEMBER(queueFamilyIndex);
   }
   SERIALISE_MEMBER(subresourceStates);
+  SERIALISE_MEMBER(imageInfo);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ImageInfo &el)
+{
   SERIALISE_MEMBER(layerCount);
   SERIALISE_MEMBER(levelCount);
   SERIALISE_MEMBER(sampleCount);

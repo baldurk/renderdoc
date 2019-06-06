@@ -298,6 +298,9 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR 
 
         record->AddParent(swaprecord);
 
+        record->resInfo = new ResourceInfo();
+        record->resInfo->imageInfo = ImageInfo(*swaprecord->swapInfo);
+
         // note we add the chunk to the swap record, that way when the swapchain is created it will
         // always create all of its images on replay. The image's record is kept around for
         // reference tracking and any other chunks. Because it has a parent relationship on the
@@ -446,14 +449,15 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       range.layerCount = CreateInfo.imageArrayLayers;
       range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-      m_ImageLayouts[liveId].extent = iminfo.extent;
-      m_ImageLayouts[liveId].format = iminfo.format;
-      m_ImageLayouts[liveId].imageType = iminfo.type;
-      m_ImageLayouts[liveId].memoryBound = true;
-      m_ImageLayouts[liveId].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+      ImageLayouts &layouts = m_ImageLayouts[liveId];
 
-      m_ImageLayouts[liveId].subresourceStates.clear();
-      m_ImageLayouts[liveId].subresourceStates.push_back(ImageRegionState(
+      layouts.imageInfo = ImageInfo(swapinfo);
+
+      layouts.memoryBound = true;
+      layouts.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+      layouts.subresourceStates.clear();
+      layouts.subresourceStates.push_back(ImageRegionState(
           VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
     }
   }
@@ -584,17 +588,18 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
         // fill out image info so we track resource state barriers
+        ImageLayouts *layout = NULL;
         {
           SCOPED_LOCK(m_ImageLayoutsLock);
-          m_ImageLayouts[imid].format = pCreateInfo->imageFormat;
-          m_ImageLayouts[imid].imageType = VK_IMAGE_TYPE_2D;
-          m_ImageLayouts[imid].memoryBound = true;
-          m_ImageLayouts[imid].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-          m_ImageLayouts[imid].subresourceStates.clear();
-          m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(
-              VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+          layout = &m_ImageLayouts[imid];
         }
+        layout->imageInfo = GetRecord(images[i])->resInfo->imageInfo;
+        layout->memoryBound = true;
+        layout->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        layout->subresourceStates.clear();
+        layout->subresourceStates.push_back(ImageRegionState(
+            VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 
         {
           VkImageViewCreateInfo info = {

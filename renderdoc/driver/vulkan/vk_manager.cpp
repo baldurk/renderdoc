@@ -210,7 +210,7 @@ void VulkanResourceManager::RecordBarriers(std::vector<rdcpair<ResourceId, Image
     if(nummips == VK_REMAINING_MIP_LEVELS)
     {
       if(it != layouts.end())
-        nummips = it->second.levelCount - t.subresourceRange.baseMipLevel;
+        nummips = it->second.imageInfo.levelCount - t.subresourceRange.baseMipLevel;
       else
         nummips = 1;
     }
@@ -218,7 +218,7 @@ void VulkanResourceManager::RecordBarriers(std::vector<rdcpair<ResourceId, Image
     if(numslices == VK_REMAINING_ARRAY_LAYERS)
     {
       if(it != layouts.end())
-        numslices = it->second.layerCount - t.subresourceRange.baseArrayLayer;
+        numslices = it->second.imageInfo.layerCount - t.subresourceRange.baseArrayLayer;
       else
         numslices = 1;
     }
@@ -370,9 +370,10 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
   for(auto it = states.begin(); it != states.end(); ++it)
   {
     ImageLayouts &layouts = it->second;
+    const ImageInfo &imageInfo = layouts.imageInfo;
 
     if(layouts.subresourceStates.size() > 1 &&
-       layouts.subresourceStates.size() == size_t(layouts.layerCount * layouts.levelCount))
+       layouts.subresourceStates.size() == size_t(imageInfo.layerCount * imageInfo.levelCount))
     {
       VkImageLayout layout = layouts.subresourceStates[0].newLayout;
 
@@ -393,8 +394,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
                                         layouts.subresourceStates.end());
         layouts.subresourceStates[0].subresourceRange.baseArrayLayer = 0;
         layouts.subresourceStates[0].subresourceRange.baseMipLevel = 0;
-        layouts.subresourceStates[0].subresourceRange.layerCount = layouts.layerCount;
-        layouts.subresourceStates[0].subresourceRange.levelCount = layouts.levelCount;
+        layouts.subresourceStates[0].subresourceRange.layerCount = imageInfo.layerCount;
+        layouts.subresourceStates[0].subresourceRange.levelCount = imageInfo.levelCount;
       }
     }
   }
@@ -538,12 +539,14 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
     if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
       stit->second.queueFamilyIndex = queueFamilyIndex;
 
+    const ImageInfo &imageInfo = stit->second.imageInfo;
+
     uint32_t nummips = t.subresourceRange.levelCount;
     uint32_t numslices = t.subresourceRange.layerCount;
     if(nummips == VK_REMAINING_MIP_LEVELS)
-      nummips = layouts[id].levelCount;
+      nummips = imageInfo.levelCount;
     if(numslices == VK_REMAINING_ARRAY_LAYERS)
-      numslices = layouts[id].layerCount;
+      numslices = imageInfo.layerCount;
 
     if(nummips == 0)
       nummips = 1;

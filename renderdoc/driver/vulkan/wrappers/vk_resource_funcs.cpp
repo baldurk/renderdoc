@@ -1467,14 +1467,10 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       range.layerCount = CreateInfo.arrayLayers;
 
       ImageLayouts &layouts = m_ImageLayouts[live];
+      layouts.imageInfo = ImageInfo(CreateInfo);
+
       layouts.subresourceStates.clear();
 
-      layouts.layerCount = CreateInfo.arrayLayers;
-      layouts.sampleCount = (int)CreateInfo.samples;
-      layouts.levelCount = CreateInfo.mipLevels;
-      layouts.extent = CreateInfo.extent;
-      layouts.format = CreateInfo.format;
-      layouts.imageType = CreateInfo.imageType;
       layouts.initialLayout = CreateInfo.initialLayout;
 
       range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1621,6 +1617,13 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pImage);
       record->AddChunk(chunk);
 
+      record->resInfo = new ResourceInfo();
+      ResourceInfo &resInfo = *record->resInfo;
+      resInfo.imageInfo = ImageInfo(*pCreateInfo);
+
+      // pre-populate memory requirements
+      ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &resInfo.memreqs);
+
       bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
                                              VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
@@ -1646,13 +1649,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       // sure to fetch their contents even if we don't see any writes.
       if(isSparse || isExternal)
       {
-        record->resInfo = new ResourceInfo();
-
         GetResourceManager()->MarkDirtyResource(id);
-
-        // pre-populate memory requirements
-        ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage),
-                                                    &record->resInfo->memreqs);
 
         // for external images, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
@@ -1679,16 +1676,15 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
             if(mrq.size > 0)
             {
               RDCDEBUG("External image requires %llu bytes at %llu alignment, in %x memory types",
-                       record->resInfo->memreqs.size, record->resInfo->memreqs.alignment,
-                       record->resInfo->memreqs.memoryTypeBits);
+                       resInfo.memreqs.size, resInfo.memreqs.alignment,
+                       resInfo.memreqs.memoryTypeBits);
               RDCDEBUG(
                   "Non-external version requires %llu bytes at %llu alignment, in %x memory types",
                   mrq.size, mrq.alignment, mrq.memoryTypeBits);
 
-              record->resInfo->memreqs.size = RDCMAX(record->resInfo->memreqs.size, mrq.size);
-              record->resInfo->memreqs.alignment =
-                  RDCMAX(record->resInfo->memreqs.size, mrq.alignment);
-              record->resInfo->memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+              resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
+              resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.size, mrq.alignment);
+              resInfo.memreqs.memoryTypeBits &= mrq.memoryTypeBits;
             }
           }
           else
@@ -1714,22 +1710,20 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
           RDCASSERT(numreqs > 0);
 
-          record->resInfo->pagedim = reqs[0].formatProperties.imageGranularity;
-          record->resInfo->imgdim = pCreateInfo->extent;
-          record->resInfo->imgdim.width /= record->resInfo->pagedim.width;
-          record->resInfo->imgdim.height /= record->resInfo->pagedim.height;
-          record->resInfo->imgdim.depth /= record->resInfo->pagedim.depth;
+          resInfo.pagedim = reqs[0].formatProperties.imageGranularity;
+          resInfo.imgdim = pCreateInfo->extent;
+          resInfo.imgdim.width /= resInfo.pagedim.width;
+          resInfo.imgdim.height /= resInfo.pagedim.height;
+          resInfo.imgdim.depth /= resInfo.pagedim.depth;
 
-          uint32_t numpages = record->resInfo->imgdim.width * record->resInfo->imgdim.height *
-                              record->resInfo->imgdim.depth;
+          uint32_t numpages = resInfo.imgdim.width * resInfo.imgdim.height * resInfo.imgdim.depth;
 
           for(uint32_t i = 0; i < numreqs; i++)
           {
             // assume all page sizes are the same for all aspects
-            RDCASSERT(
-                record->resInfo->pagedim.width == reqs[i].formatProperties.imageGranularity.width &&
-                record->resInfo->pagedim.height == reqs[i].formatProperties.imageGranularity.height &&
-                record->resInfo->pagedim.depth == reqs[i].formatProperties.imageGranularity.depth);
+            RDCASSERT(resInfo.pagedim.width == reqs[i].formatProperties.imageGranularity.width &&
+                      resInfo.pagedim.height == reqs[i].formatProperties.imageGranularity.height &&
+                      resInfo.pagedim.depth == reqs[i].formatProperties.imageGranularity.depth);
 
             int a = 0;
             for(a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
@@ -1738,7 +1732,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                 break;
             }
 
-            record->resInfo->pages[a] = new rdcpair<VkDeviceMemory, VkDeviceSize>[numpages];
+            resInfo.pages[a] = new rdcpair<VkDeviceMemory, VkDeviceSize>[numpages];
           }
         }
         else
@@ -1765,15 +1759,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       SCOPED_LOCK(m_ImageLayoutsLock);
       layout = &m_ImageLayouts[id];
     }
+    layout->imageInfo = ImageInfo(*pCreateInfo);
 
-    layout->layerCount = pCreateInfo->arrayLayers;
-    layout->levelCount = pCreateInfo->mipLevels;
-    layout->sampleCount = (int)pCreateInfo->samples;
-    layout->extent = pCreateInfo->extent;
-    layout->format = pCreateInfo->format;
-    layout->imageType = pCreateInfo->imageType;
     layout->initialLayout = pCreateInfo->initialLayout;
-
     layout->subresourceStates.clear();
 
     range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

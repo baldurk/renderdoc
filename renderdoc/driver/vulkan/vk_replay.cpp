@@ -1788,7 +1788,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 {
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
 
-  if(IsDepthAndStencilFormat(layouts.format))
+  if(IsDepthAndStencilFormat(layouts.imageInfo.format))
   {
     // for depth/stencil we need to run the code twice - once to fetch depth and once to fetch
     // stencil - since we can't process float depth and int stencil at the same time

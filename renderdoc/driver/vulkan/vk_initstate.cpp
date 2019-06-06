@@ -97,8 +97,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkResult vkr = VK_SUCCESS;
 
     WrappedVkImage *im = (WrappedVkImage *)res;
+    const ResourceInfo &resInfo = *im->record->resInfo;
+    const ImageInfo &imageInfo = resInfo.imageInfo;
 
-    if(im->record->resInfo && im->record->resInfo->IsSparse())
+    if(resInfo.IsSparse())
     {
       // if the image is sparse we have to do a different kind of initial state prepare,
       // to serialise out the page mapping. The fetching of memory is also different
@@ -133,8 +135,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     // must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
     VkDeviceSize bufAlignment = 4;
-    if(IsBlockFormat(layout->format))
-      bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, layout->format, 0);
+    if(IsBlockFormat(imageInfo.format))
+      bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, imageInfo.format, 0);
 
     VkBufferCreateInfo bufInfo = {
         VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -147,23 +149,23 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkImage arrayIm = VK_NULL_HANDLE;
 
     VkImage realim = im->real.As<VkImage>();
-    int numLayers = layout->layerCount;
+    int numLayers = imageInfo.layerCount;
 
-    if(layout->sampleCount > 1)
+    if(imageInfo.sampleCount > 1)
     {
       // first decompose to array
-      numLayers *= layout->sampleCount;
+      numLayers *= imageInfo.sampleCount;
 
       VkImageCreateInfo arrayInfo = {
           VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
-          VK_IMAGE_TYPE_2D, layout->format, layout->extent, (uint32_t)layout->levelCount,
+          VK_IMAGE_TYPE_2D, imageInfo.format, imageInfo.extent, (uint32_t)imageInfo.levelCount,
           (uint32_t)numLayers, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL,
           VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
               VK_IMAGE_USAGE_TRANSFER_DST_BIT,
           VK_SHARING_MODE_EXCLUSIVE, 0, NULL, VK_IMAGE_LAYOUT_UNDEFINED,
       };
 
-      if(IsDepthOrStencilFormat(layout->format))
+      if(IsDepthOrStencilFormat(imageInfo.format))
         arrayInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
       else
         arrayInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
@@ -184,13 +186,13 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       // backing the array image only.
     }
 
-    uint32_t planeCount = GetYUVPlaneCount(layout->format);
+    uint32_t planeCount = GetYUVPlaneCount(imageInfo.format);
     uint32_t horizontalPlaneShift = 0;
     uint32_t verticalPlaneShift = 0;
 
     if(planeCount > 1)
     {
-      switch(layout->format)
+      switch(imageInfo.format)
       {
         case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
@@ -222,11 +224,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       }
     }
 
-    VkFormat sizeFormat = GetDepthOnlyFormat(layout->format);
+    VkFormat sizeFormat = GetDepthOnlyFormat(imageInfo.format);
 
     for(int a = 0; a < numLayers; a++)
     {
-      for(int m = 0; m < layout->levelCount; m++)
+      for(int m = 0; m < imageInfo.levelCount; m++)
       {
         bufInfo.size = AlignUp(bufInfo.size, bufAlignment);
 
@@ -235,21 +237,21 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
           // need to consider each plane aspect separately. We simplify the calculation by just
           // aligning up the width to a multiple of 4, that ensures each plane will start at a
           // multiple of 4 because the rowpitch must be a multiple of 4
-          bufInfo.size += GetByteSize(AlignUp4(layout->extent.width), layout->extent.height,
-                                      layout->extent.depth, sizeFormat, m);
+          bufInfo.size += GetByteSize(AlignUp4(imageInfo.extent.width), imageInfo.extent.height,
+                                      imageInfo.extent.depth, sizeFormat, m);
         }
         else
         {
-          bufInfo.size += GetByteSize(layout->extent.width, layout->extent.height,
-                                      layout->extent.depth, sizeFormat, m);
+          bufInfo.size += GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
+                                      imageInfo.extent.depth, sizeFormat, m);
 
-          if(sizeFormat != layout->format)
+          if(sizeFormat != imageInfo.format)
           {
             // if there's stencil and depth, allocate space for stencil
             bufInfo.size = AlignUp(bufInfo.size, bufAlignment);
 
-            bufInfo.size += GetByteSize(layout->extent.width, layout->extent.height,
-                                        layout->extent.depth, VK_FORMAT_S8_UINT, m);
+            bufInfo.size += GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
+                                        imageInfo.extent.depth, VK_FORMAT_S8_UINT, m);
           }
         }
       }
@@ -284,11 +286,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    if(IsStencilOnlyFormat(layout->format))
+    if(IsStencilOnlyFormat(imageInfo.format))
     {
       aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
     }
-    else if(IsDepthOrStencilFormat(layout->format))
+    else if(IsDepthOrStencilFormat(imageInfo.format))
     {
       aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
     }
@@ -311,10 +313,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         layout->queueFamilyIndex,
         m_QueueFamilyIdx,
         realim,
-        {aspectFlags, 0, (uint32_t)layout->levelCount, 0, (uint32_t)numLayers},
+        {aspectFlags, 0, (uint32_t)imageInfo.levelCount, 0, (uint32_t)numLayers},
     };
 
-    if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(layout->format))
+    if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(imageInfo.format))
       srcimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
     // update the real image layout into transfer-source
@@ -369,8 +371,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      GetDebugManager()->CopyTex2DMSToArray(Unwrap(arrayIm), realim, layout->extent,
-                                            layout->layerCount, layout->sampleCount, layout->format);
+      GetDebugManager()->CopyTex2DMSToArray(Unwrap(arrayIm), realim, imageInfo.extent,
+                                            imageInfo.layerCount, imageInfo.sampleCount,
+                                            imageInfo.format);
 
       cmd = GetNextCmd();
 
@@ -393,9 +396,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // loop over every slice/mip, copying it to the appropriate point in the buffer
     for(int a = 0; a < numLayers; a++)
     {
-      VkExtent3D extent = layout->extent;
+      VkExtent3D extent = imageInfo.extent;
 
-      for(int m = 0; m < layout->levelCount; m++)
+      for(int m = 0; m < imageInfo.levelCount; m++)
       {
         VkBufferImageCopy region = {
             0,
@@ -425,8 +428,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
               region.imageExtent.height >>= verticalPlaneShift;
             }
 
-            bufOffset += GetPlaneByteSize(layout->extent.width, layout->extent.height,
-                                          layout->extent.depth, sizeFormat, m, i);
+            bufOffset += GetPlaneByteSize(imageInfo.extent.width, imageInfo.extent.height,
+                                          imageInfo.extent.depth, sizeFormat, m, i);
 
             ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), realim,
                                              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf),
@@ -439,13 +442,13 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
           region.bufferOffset = bufOffset;
 
-          bufOffset += GetByteSize(layout->extent.width, layout->extent.height,
-                                   layout->extent.depth, sizeFormat, m);
+          bufOffset += GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
+                                   imageInfo.extent.depth, sizeFormat, m);
 
           ObjDisp(d)->CmdCopyImageToBuffer(
               Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf), 1, &region);
 
-          if(sizeFormat != layout->format)
+          if(sizeFormat != imageInfo.format)
           {
             // if we removed stencil from the format, copy that separately now.
             bufOffset = AlignUp(bufOffset, bufAlignment);
@@ -453,8 +456,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
             region.bufferOffset = bufOffset;
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 
-            bufOffset += GetByteSize(layout->extent.width, layout->extent.height,
-                                     layout->extent.depth, VK_FORMAT_S8_UINT, m);
+            bufOffset += GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
+                                     imageInfo.extent.depth, VK_FORMAT_S8_UINT, m);
 
             ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), realim,
                                              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf),
@@ -470,7 +473,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= bufInfo.size, bufOffset,
-                 readbackmem.size, layout->extent, layout->format, numLayers, layout->levelCount);
+                 readbackmem.size, imageInfo.extent, imageInfo.format, numLayers,
+                 imageInfo.levelCount);
 
     // transfer back to whatever it was
     srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -1382,7 +1386,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       if(initial.tag == VkInitialContents::ClearColorImage)
       {
-        VkFormat format = m_ImageLayouts[id].format;
+        VkFormat format = m_ImageLayouts[id].imageInfo.format;
 
         if(IsBlockFormat(format) || IsYUVFormat(format))
         {

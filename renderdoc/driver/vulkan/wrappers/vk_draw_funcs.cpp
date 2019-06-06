@@ -1770,8 +1770,8 @@ void WrappedVulkan::vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuff
 
     record->AddChunk(scope.Get());
     record->MarkBufferImageCopyFrameReferenced(GetRecord(srcBuffer), GetRecord(destImage),
-                                               m_ImageLayouts[GetResID(destImage)], regionCount,
-                                               pRegions, eFrameRef_Read, eFrameRef_PartialWrite);
+                                               regionCount, pRegions, eFrameRef_Read,
+                                               eFrameRef_PartialWrite);
   }
 }
 
@@ -1878,8 +1878,8 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(VkCommandBuffer commandBuffer, VkImag
 
     record->AddChunk(scope.Get());
     record->MarkBufferImageCopyFrameReferenced(GetRecord(destBuffer), GetRecord(srcImage),
-                                               m_ImageLayouts[GetResID(srcImage)], regionCount,
-                                               pRegions, eFrameRef_CompleteWrite, eFrameRef_Read);
+                                               regionCount, pRegions, eFrameRef_CompleteWrite,
+                                               eFrameRef_Read);
   }
 }
 
