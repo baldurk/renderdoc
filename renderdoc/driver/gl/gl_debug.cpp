@@ -1138,8 +1138,11 @@ void GLReplay::DeleteDebugData()
       if(DebugData.histogramProgram[idx])
         drv.glDeleteProgram(DebugData.histogramProgram[idx]);
 
-      if(DebugData.minmaxResultProgram[i])
-        drv.glDeleteProgram(DebugData.minmaxResultProgram[i]);
+      if(t == 1)
+      {
+        if(DebugData.minmaxResultProgram[i])
+          drv.glDeleteProgram(DebugData.minmaxResultProgram[i]);
+      }
     }
   }
 
