@@ -67,9 +67,6 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
   reflection.encoding = ShaderEncoding::SPIRV;
   reflection.rawBytes.assign((byte *)spirv.spirv.data(), spirv.spirv.size() * sizeof(uint32_t));
 
-  // we discard this too, because we don't need it - we don't do any SPIR-V patching in GL
-  SPIRVPatchData patchData;
-
   spirv.MakeReflection(GraphicsAPI::OpenGL, ShaderStage(ShaderIdx(type)), pEntryPoint, reflection,
                        mapping, patchData);
 
@@ -568,9 +565,6 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
       }
     }
 
-    // if we're capturing and don't have ARB_program_interface_query we're going to have to emulate
-    // it using glslang for compilation and reflection
-    if(IsReplayMode(m_State) || !HasExt[ARB_program_interface_query])
     {
       ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
       ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
@@ -640,9 +634,6 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
       }
     }
 
-    // if we're capturing and don't have ARB_program_interface_query we're going to have to emulate
-    // it using glslang for compilation and reflection
-    if(IsReplayMode(m_State) || !HasExt[ARB_program_interface_query])
     {
       ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
       ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
@@ -1350,6 +1341,16 @@ void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum 
   if(IsReplayMode(m_State))
   {
     GL.glShaderBinary(count, shaders, binaryformat, binary, length);
+
+    if(binaryformat == eGL_SHADER_BINARY_FORMAT_SPIR_V)
+    {
+      for(GLsizei i = 0; i < count; i++)
+      {
+        ResourceId liveId = GetResourceManager()->GetID(ShaderRes(GetCtx(), shaders[i]));
+        m_Shaders[liveId].spirvWords.assign((uint32_t *)binary,
+                                            (uint32_t *)((byte *)binary + length));
+      }
+    }
   }
   else if(IsCaptureMode(m_State) && binaryformat == eGL_SHADER_BINARY_FORMAT_SPIR_V)
   {
@@ -1368,6 +1369,9 @@ void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum 
         Serialise_glShaderBinary(ser, 1, shaders + i, binaryformat, binary, length);
 
         record->AddChunk(scope.Get());
+
+        m_Shaders[record->GetResourceID()].spirvWords.assign((uint32_t *)binary,
+                                                             (uint32_t *)((byte *)binary + length));
       }
     }
   }
@@ -1973,7 +1977,26 @@ void WrappedOpenGL::glSpecializeShader(GLuint shader, const GLchar *pEntryPoint,
                                    pConstantIndex, pConstantValue);
 
       record->AddChunk(scope.Get());
+
+      ResourceId id = record->GetResourceID();
+
+      ParseSPIRV(m_Shaders[id].spirvWords.data(), m_Shaders[id].spirvWords.size(),
+                 m_Shaders[id].spirv);
+
+      m_Shaders[id].ProcessSPIRVCompilation(
+          *this, id, shader, pEntryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
     }
+  }
+  else
+  {
+    ResourceId liveId = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+
+    ParseSPIRV(m_Shaders[liveId].spirvWords.data(), m_Shaders[liveId].spirvWords.size(),
+               m_Shaders[liveId].spirv);
+
+    m_Shaders[liveId].ProcessSPIRVCompilation(*this, liveId, shader, pEntryPoint,
+                                              numSpecializationConstants, pConstantIndex,
+                                              pConstantValue);
   }
 }
 

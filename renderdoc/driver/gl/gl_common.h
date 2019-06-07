@@ -839,14 +839,23 @@ bool ValidateFunctionPointers();
 
 struct ShaderReflection;
 
-void CopyProgramUniforms(GLuint progSrc, GLuint progDst);
+struct PerStageReflections
+{
+  const ShaderReflection *refls[6] = {};
+  const ShaderBindpointMapping *mappings[6] = {};
+};
+
+void CopyProgramUniforms(const PerStageReflections &srcStages, GLuint progSrc,
+                         const PerStageReflections &dstStages, GLuint progDst);
 template <typename SerialiserType>
-void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, GLuint prog,
+void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state,
+                              const PerStageReflections &stages, GLuint prog,
                               std::map<GLint, GLint> *locTranslate);
-void CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
-void CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
+bool CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
+bool CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl);
 template <typename SerialiserType>
-void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, GLuint prog);
+bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
+                              const PerStageReflections &stages, GLuint prog);
 
 struct DrawElementsIndirectCommand
 {

@@ -4712,6 +4712,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
   {
     globalsblock.name = "$Globals";
     globalsblock.bufferBacked = false;
+    globalsblock.byteSize = (uint32_t)globalsblock.variables.size();
     globalsblock.bindPoint = (int)cblocks.size();
 
     Bindpoint bindmap;

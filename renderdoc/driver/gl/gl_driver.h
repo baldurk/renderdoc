@@ -621,6 +621,7 @@ public:
 
     // used for if the application actually uploaded SPIR-V
     std::vector<uint32_t> spirvWords;
+    SPIRVPatchData patchData;
 
     // the parameters passed to glSpecializeShader
     std::string entryPoint;
@@ -679,6 +680,25 @@ public:
   std::map<ResourceId, ShaderData> m_Shaders;
   std::map<ResourceId, ProgramData> m_Programs;
   std::map<ResourceId, PipelineData> m_Pipelines;
+
+  void FillReflectionArray(ResourceId program, PerStageReflections &stages)
+  {
+    ProgramData &progdata = m_Programs[program];
+    for(size_t i = 0; i < ARRAY_COUNT(progdata.stageShaders); i++)
+    {
+      ResourceId shadId = progdata.stageShaders[i];
+      if(shadId != ResourceId())
+      {
+        stages.refls[i] = &m_Shaders[shadId].reflection;
+        stages.mappings[i] = &m_Shaders[shadId].mapping;
+      }
+    }
+  }
+
+  void FillReflectionArray(GLResource program, PerStageReflections &stages)
+  {
+    FillReflectionArray(GetResourceManager()->GetID(program), stages);
+  }
 
   struct TextureData
   {

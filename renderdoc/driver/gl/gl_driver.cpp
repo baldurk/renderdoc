@@ -1443,6 +1443,9 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
         ResourceId progsrcid = it->first;
         ProgramData &progdata = it->second;
 
+        PerStageReflections stages;
+        FillReflectionArray(it->first, stages);
+
         // see if the shader is used
         for(int i = 0; i < 6; i++)
         {
@@ -1505,8 +1508,11 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
             }
             else
             {
+              PerStageReflections dstStages;
+              FillReflectionArray(progdstid, dstStages);
+
               // copy uniforms
-              CopyProgramUniforms(progsrc, progdst);
+              CopyProgramUniforms(stages, progsrc, dstStages, progdst);
 
               ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
 

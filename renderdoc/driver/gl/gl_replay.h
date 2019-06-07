@@ -240,7 +240,8 @@ private:
                  CompType typeHint, bool stencil, float *minval, float *maxval);
 
   void CreateCustomShaderTex(uint32_t w, uint32_t h);
-  void CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader);
+  bool CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader,
+                            GLuint fragShaderSPIRV);
 
   void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
                           GLint arraySize, GLint samples, GLenum intFormat, uint32_t selectedSlice);

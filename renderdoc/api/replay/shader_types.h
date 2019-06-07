@@ -1007,7 +1007,7 @@ struct ShaderReflection
   ShaderDebugInfo debugInfo;
 
   DOCUMENT("The :class:`ShaderEncoding` of this shader. See :data:`rawBytes`.");
-  ShaderEncoding encoding;
+  ShaderEncoding encoding = ShaderEncoding::Unknown;
 
   DOCUMENT(R"(A raw ``bytes`` dump of the original shader, encoded in the form denoted by
 :data:`encoding`.

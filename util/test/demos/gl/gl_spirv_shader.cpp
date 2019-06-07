@@ -41,7 +41,7 @@ layout(location = 2) out vec2 oUV;
 
 layout(location = 2) uniform vec4 offset;
 layout(location = 8) uniform vec4 scale;
-layout(location = 13) uniform vec4 UVscroll;
+layout(location = 13) uniform vec2 UVscroll;
 
 void main()
 {
@@ -221,6 +221,21 @@ void main()
       float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
 
+      GLsizei w = GLsizei(screenWidth) >> 1;
+      GLsizei h = GLsizei(screenHeight) >> 1;
+
+      glBindVertexArray(vao);
+
+      glViewport(0, 0, w, h);
+
+      glUseProgram(glslprogram);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+
+      glViewport(w, 0, w, h);
+
+      glUseProgram(spirvprogram);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+
       vsdata.UVscroll.x += 0.01f;
       vsdata.UVscroll.y += 0.02f;
 
@@ -235,20 +250,18 @@ void main()
         // UVscroll location 13
         glUniform4fv(2, 1, &vsdata.offset.x);
         glUniform4fv(8, 1, &vsdata.scale.x);
-        glUniform4fv(13, 1, &vsdata.UVscroll.x);
+        glUniform2fv(13, 1, &vsdata.UVscroll.x);
 
         // tint location 7
         glUniform4fv(7, 1, &fsdata.x);
       }
 
-      glBindVertexArray(vao);
-
-      glViewport(0, 0, GLsizei(screenWidth) >> 1, GLsizei(screenHeight));
+      glViewport(0, h, w, h);
 
       glUseProgram(glslprogram);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
-      glViewport(GLsizei(screenWidth) >> 1, 0, GLsizei(screenWidth) >> 1, GLsizei(screenHeight));
+      glViewport(w, h, w, h);
 
       glUseProgram(spirvprogram);
       glDrawArrays(GL_TRIANGLES, 0, 3);

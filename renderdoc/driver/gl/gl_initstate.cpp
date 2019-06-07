@@ -238,8 +238,11 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     SERIALISE_ELEMENT(id).TypedAs("GLResource"_lit);
     SERIALISE_ELEMENT(res.Namespace);
 
-    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, res.name);
-    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, res.name, NULL);
+    PerStageReflections stages;
+    m_Driver->FillReflectionArray(id, stages);
+
+    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, stages, res.name);
+    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, stages, res.name, NULL);
 
     SetInitialChunk(id, scope.Get());
     return;
@@ -1074,8 +1077,11 @@ uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLIniti
     SERIALISE_ELEMENT(resid).TypedAs("GLResource"_lit);
     SERIALISE_ELEMENT(res.Namespace);
 
-    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, res.name);
-    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, res.name, NULL);
+    PerStageReflections stages;
+    m_Driver->FillReflectionArray(GetID(res), stages);
+
+    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, stages, res.name);
+    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, stages, res.name, NULL);
 
     return ser.GetWriter()->GetOffset() + 256;
   }
@@ -1234,9 +1240,15 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
     GLuint bindingsProgram = 0, uniformsProgram = 0;
     std::map<GLint, GLint> *translationTable = NULL;
 
+    PerStageReflections stages;
+
+    bool IsProgramSPIRV = false;
+
     if(IsReplayingAndReading())
     {
       WrappedOpenGL::ProgramData &details = m_Driver->m_Programs[GetLiveID(id)];
+
+      m_Driver->FillReflectionArray(GetLiveID(id), stages);
 
       GLuint initProg = drv.glCreateProgram();
 
@@ -1251,6 +1263,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
         numShaders++;
 
         const auto &shadDetails = m_Driver->m_Shaders[details.stageShaders[i]];
+
+        IsProgramSPIRV |= shadDetails.reflection.encoding == ShaderEncoding::SPIRV;
 
         GLuint shad = drv.glCreateShader(shadDetails.type);
 
@@ -1316,8 +1330,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
       vertexOutputsPtr.resize(vertexOutputs.size());
       for(size_t i = 0; i < vertexOutputs.size(); i++)
         vertexOutputsPtr[i] = vertexOutputs[i].c_str();
-      drv.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
-                                      &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
+
+      if(!IsProgramSPIRV)
+        drv.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
+                                        &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
       drv.glLinkProgram(initProg);
 
       GLint status = 0;
@@ -1325,7 +1341,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
       // if it failed to link, first remove the varyings hack above as maybe the driver is barfing
       // on trying to make some output a varying
-      if(status == 0)
+      if(status == 0 && !IsProgramSPIRV)
       {
         drv.glTransformFeedbackVaryings(initProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
         drv.glLinkProgram(initProg);
@@ -1369,6 +1385,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
       translationTable = &details.locationTranslate;
     }
+    else
+    {
+      m_Driver->FillReflectionArray(id, stages);
+    }
 
     if(ser.IsWriting())
     {
@@ -1378,20 +1398,22 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
       bindingsProgram = uniformsProgram = GetCurrentResource(id).name;
     }
 
-    SerialiseProgramBindings(ser, m_State, bindingsProgram);
+    bool changedBindings = SerialiseProgramBindings(ser, m_State, stages, bindingsProgram);
 
     // re-link the program to set the new attrib bindings
-    if(IsReplayingAndReading() && !ser.IsErrored())
+    if(IsReplayingAndReading() && !ser.IsErrored() && changedBindings)
       GL.glLinkProgram(bindingsProgram);
 
-    SerialiseProgramUniforms(ser, m_State, uniformsProgram, translationTable);
+    SerialiseProgramUniforms(ser, m_State, stages, uniformsProgram, translationTable);
 
     SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading())
     {
       // see above for why we're copying this back
-      CopyProgramUniforms(uniformsProgram, bindingsProgram);
+      // we can pass in the same stages array, it's the same program essentially (reflection is
+      // identical)
+      CopyProgramUniforms(stages, uniformsProgram, stages, bindingsProgram);
 
       SetInitialContents(id, GLInitialContents(ProgramRes(m_Driver->GetCtx(), bindingsProgram), 0));
     }
@@ -2125,20 +2147,27 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
 
     const WrappedOpenGL::ProgramData &prog = m_Driver->m_Programs[Id];
 
+    bool changedBindings = false;
+
     if(prog.stageShaders[0] != ResourceId())
-      CopyProgramAttribBindings(initial.resource.name, live.name,
-                                &m_Driver->m_Shaders[prog.stageShaders[0]].reflection);
+      changedBindings |= CopyProgramAttribBindings(
+          initial.resource.name, live.name, &m_Driver->m_Shaders[prog.stageShaders[0]].reflection);
 
     if(prog.stageShaders[4] != ResourceId())
-      CopyProgramFragDataBindings(initial.resource.name, live.name,
-                                  &m_Driver->m_Shaders[prog.stageShaders[4]].reflection);
+      changedBindings |= CopyProgramFragDataBindings(
+          initial.resource.name, live.name, &m_Driver->m_Shaders[prog.stageShaders[4]].reflection);
 
     // we need to re-link the program to apply the bindings, as long as it's linkable.
     // See the comment on shaderProgramUnlinkable for more information.
-    if(!prog.shaderProgramUnlinkable)
+    if(!prog.shaderProgramUnlinkable && changedBindings)
       GL.glLinkProgram(live.name);
 
-    CopyProgramUniforms(initial.resource.name, live.name);
+    PerStageReflections stages;
+    m_Driver->FillReflectionArray(Id, stages);
+
+    // we can pass in the same stages array, it's the same program essentially (reflection is
+    // identical)
+    CopyProgramUniforms(stages, initial.resource.name, stages, live.name);
   }
   else if(live.Namespace == eResFramebuffer)
   {

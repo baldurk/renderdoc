@@ -37,7 +37,8 @@
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
-void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader)
+bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader,
+                                    GLuint fragShaderSPIRV)
 {
   WrappedOpenGL &drv = *m_pDriver;
 
@@ -60,11 +61,14 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   // the reflection for the vertex shader, used to copy vertex bindings
   ShaderReflection *vsRefl = NULL;
 
+  bool HasSPIRVShaders = false;
+  bool HasGLSLShaders = false;
+
   if(Program == 0)
   {
     if(Pipeline == 0)
     {
-      return;
+      return false;
     }
     else
     {
@@ -76,6 +80,14 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
       {
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
+          const WrappedOpenGL::ShaderData &shadDetails =
+              m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
+
+          if(shadDetails.reflection.encoding == ShaderEncoding::SPIRV)
+            HasSPIRVShaders = true;
+          else
+            HasGLSLShaders = true;
+
           programs[i] =
               m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
           shaders[i] =
@@ -88,9 +100,6 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
 
             if(progDetails.shaderProgramUnlinkable)
             {
-              const WrappedOpenGL::ShaderData &shadDetails =
-                  m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
-
               std::vector<const char *> sources;
               sources.reserve(shadDetails.sources.size());
 
@@ -133,21 +142,40 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
         shaders[i] =
             m_pDriver->GetResourceManager()->GetCurrentResource(progDetails.stageShaders[i]).name;
 
+        const WrappedOpenGL::ShaderData &shadDetails =
+            m_pDriver->m_Shaders[progDetails.stageShaders[i]];
+
+        if(shadDetails.reflection.encoding == ShaderEncoding::SPIRV)
+          HasSPIRVShaders = true;
+        else
+          HasGLSLShaders = true;
+
         if(i == 0)
           vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
       }
     }
   }
 
+  if(HasGLSLShaders && HasSPIRVShaders)
+    RDCERR("Unsupported - mixed GLSL and SPIR-V shaders in pipeline");
+
   // attach the shaders
   for(size_t i = 0; i < 4; i++)
     if(shaders[i])
       drv.glAttachShader(DebugData.overlayProg, shaders[i]);
 
-  drv.glAttachShader(DebugData.overlayProg, fragShader);
+  if(HasSPIRVShaders)
+  {
+    RDCASSERT(fragShaderSPIRV);
+    drv.glAttachShader(DebugData.overlayProg, fragShaderSPIRV);
+  }
+  else
+  {
+    drv.glAttachShader(DebugData.overlayProg, fragShader);
+  }
 
   // copy the vertex attribs over from the source program
-  if(vsRefl && programs[0])
+  if(vsRefl && programs[0] && !HasSPIRVShaders)
     CopyProgramAttribBindings(programs[0], DebugData.overlayProg, vsRefl);
 
   // link the overlay program
@@ -158,7 +186,10 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
     if(shaders[i])
       drv.glDetachShader(DebugData.overlayProg, shaders[i]);
 
-  drv.glDetachShader(DebugData.overlayProg, fragShader);
+  if(HasSPIRVShaders)
+    drv.glDetachShader(DebugData.overlayProg, fragShaderSPIRV);
+  else
+    drv.glDetachShader(DebugData.overlayProg, fragShader);
 
   // delete any temporaries
   for(size_t i = 0; i < 4; i++)
@@ -173,14 +204,28 @@ void GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   {
     drv.glGetProgramInfoLog(DebugData.overlayProg, 1024, NULL, buffer);
     RDCERR("Error linking overlay program: %s", buffer);
-    return;
+    return false;
   }
 
   // copy the uniform values over from the source program. This is redundant but harmless if the
   // same program is bound to multiple stages. It's just inefficient
-  for(size_t i = 0; i < 4; i++)
-    if(programs[i])
-      CopyProgramUniforms(programs[i], DebugData.overlayProg);
+  {
+    PerStageReflections dstStages;
+    m_pDriver->FillReflectionArray(ProgramRes(ctx, DebugData.overlayProg), dstStages);
+
+    for(size_t i = 0; i < 4; i++)
+    {
+      if(programs[i])
+      {
+        PerStageReflections stages;
+        m_pDriver->FillReflectionArray(ProgramRes(ctx, programs[i]), stages);
+
+        CopyProgramUniforms(stages, programs[i], dstStages, DebugData.overlayProg);
+      }
+    }
+  }
+
+  return HasSPIRVShaders;
 }
 
 ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
@@ -276,6 +321,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       std::string source =
           GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), shaderType, glslVer, defines);
       DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
+
+      // we expect if the SPIR-V extension is present then we've compiled this variant.
+      if(HasExt[ARB_gl_spirv])
+      {
+        RDCASSERT(DebugData.quadoverdrawFragShaderSPIRV);
+      }
     }
   }
   else
@@ -287,8 +338,19 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   // we bind the separable program created for each shader, and copy
   // uniforms and attrib bindings from the 'real' programs, wherever
   // they are.
-  CreateOverlayProgram(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFragShader);
+  bool spirvOverlay =
+      CreateOverlayProgram(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFragShader,
+                           DebugData.fixedcolFragShaderSPIRV);
   drv.glUseProgram(DebugData.overlayProg);
+
+  GLint overlayFixedColLocation = 0;
+
+  // on SPIR-V overlays we don't query the location, it's baked into the shader
+  if(spirvOverlay)
+    overlayFixedColLocation = 99;
+  else
+    overlayFixedColLocation =
+        drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -386,9 +448,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float black[] = {0.0f, 0.0f, 0.0f, 0.5f};
     drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     float colVal[] = {0.8f, 0.1f, 0.8f, 1.0f};
-    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, colVal);
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, colVal);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
   }
@@ -397,9 +458,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float wireCol[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, wireCol);
 
-    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     wireCol[3] = 1.0f;
-    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, wireCol);
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, wireCol);
 
     if(!IsGLES)
     {
@@ -591,9 +651,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
     float red[] = {1.0f, 0.0f, 0.0f, 1.0f};
-    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, red);
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, red);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
@@ -776,7 +835,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
 
     float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
-    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, green);
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, green);
 
     if(overlay == DebugOverlay::Depth)
     {
@@ -834,8 +893,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     col[0] = 1.0f;
     col[3] = 1.0f;
 
-    GLint colLoc = drv.glGetUniformLocation(DebugData.overlayProg, "RENDERDOC_Fixed_Color");
-    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, col);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
 
@@ -847,7 +905,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     col[0] = 0.0f;
     col[1] = 1.0f;
 
-    drv.glProgramUniform4fv(DebugData.overlayProg, colLoc, 1, col);
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, col);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
   }
@@ -1429,15 +1487,19 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           // replace fragment shader. This is exactly what we did
           // at the start of this function for the single-event case, but now we have
           // to do it for every event
-          CreateOverlayProgram(prog, pipe, DebugData.quadoverdrawFragShader);
+          spirvOverlay = CreateOverlayProgram(prog, pipe, DebugData.quadoverdrawFragShader,
+                                              DebugData.quadoverdrawFragShaderSPIRV);
           drv.glUseProgram(DebugData.overlayProg);
           drv.glBindProgramPipeline(0);
 
-          GLint loc = drv.glGetUniformLocation(DebugData.overlayProg, "overdrawImage");
-          if(loc != -1)
-            drv.glUniform1i(loc, 0);
-          else
-            RDCERR("Couldn't get location of overdrawImage");
+          if(!spirvOverlay)
+          {
+            GLint loc = drv.glGetUniformLocation(DebugData.overlayProg, "overdrawImage");
+            if(loc != -1)
+              drv.glUniform1i(loc, 0);
+            else
+              RDCERR("Couldn't get location of overdrawImage");
+          }
 
           drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
           SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,

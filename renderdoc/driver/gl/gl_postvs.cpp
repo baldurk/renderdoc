@@ -76,6 +76,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   ShaderReflection *vsRefl = NULL;
   ShaderReflection *tesRefl = NULL;
   ShaderReflection *gsRefl = NULL;
+  SPIRVPatchData vsPatch, tesPatch, gsPatch;
 
   // the program we'll be binding, that we attach shaders to
   GLuint feedbackProg = drv.glCreateProgram();
@@ -124,14 +125,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           {
             vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
             glslVer = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].version;
+            vsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].patchData;
           }
           else if(i == 2)
           {
             tesRefl = GetShader(pipeDetails.stageShaders[2], ShaderEntryPoint());
+            tesPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[2]].patchData;
           }
           else if(i == 3)
           {
             gsRefl = GetShader(pipeDetails.stageShaders[3], ShaderEntryPoint());
+            gsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[3]].patchData;
           }
 
           stageShaders[i] = rm->GetCurrentResource(pipeDetails.stageShaders[i]).name;
@@ -147,15 +151,29 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
               const WrappedOpenGL::ShaderData &shadDetails =
                   m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
 
-              std::vector<const char *> sources;
-              sources.reserve(shadDetails.sources.size());
-
-              for(const std::string &s : shadDetails.sources)
-                sources.push_back(s.c_str());
-
               stageShaders[i] = tmpShaders[i] = drv.glCreateShader(ShaderEnum(i));
-              drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
-              drv.glCompileShader(tmpShaders[i]);
+
+              if(!shadDetails.sources.empty())
+              {
+                std::vector<const char *> sources;
+                sources.reserve(shadDetails.sources.size());
+
+                for(const std::string &s : shadDetails.sources)
+                  sources.push_back(s.c_str());
+
+                drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
+                drv.glCompileShader(tmpShaders[i]);
+              }
+              else if(!shadDetails.spirvWords.empty())
+              {
+                drv.glShaderBinary(1, &tmpShaders[i], eGL_SHADER_BINARY_FORMAT_SPIR_V,
+                                   shadDetails.spirvWords.data(),
+                                   (GLsizei)shadDetails.spirvWords.size() * sizeof(uint32_t));
+
+                drv.glSpecializeShader(tmpShaders[i], shadDetails.entryPoint.c_str(),
+                                       (GLuint)shadDetails.specIDs.size(),
+                                       shadDetails.specIDs.data(), shadDetails.specValues.data());
+              }
 
               GLint status = 0;
               drv.glGetShaderiv(tmpShaders[i], eGL_COMPILE_STATUS, &status);
@@ -184,14 +202,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         {
           vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
           glslVer = m_pDriver->m_Shaders[progDetails.stageShaders[0]].version;
+          vsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[0]].patchData;
         }
         else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
           tesRefl = GetShader(progDetails.stageShaders[2], ShaderEntryPoint());
+          tesPatch = m_pDriver->m_Shaders[progDetails.stageShaders[2]].patchData;
         }
         else if(i == 3 && progDetails.stageShaders[3] != ResourceId())
         {
           gsRefl = GetShader(progDetails.stageShaders[3], ShaderEntryPoint());
+          gsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[3]].patchData;
         }
 
         stageShaders[i] = rm->GetCurrentResource(progDetails.stageShaders[i]).name;
@@ -257,203 +278,267 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
   }
 
-  // attach the vertex shader
-  drv.glAttachShader(feedbackProg, stageShaders[0]);
-
-  // attach the dummy fragment shader, if it exists
-  if(dummyFrag)
-    drv.glAttachShader(feedbackProg, dummyFrag);
-
-  std::list<std::string> matrixVaryings;    // matrices need some fixup
-  std::vector<const char *> varyings;
-
-  CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);
-
-  varyings.clear();
-
   uint32_t stride = 0;
+  GLuint vsOrigShader = 0;
+
   int32_t posidx = -1;
 
-  for(const SigParameter &sig : vsRefl->outputSignature)
+  if(vsRefl->encoding == ShaderEncoding::SPIRV)
   {
-    const char *name = sig.varName.c_str();
-    size_t len = sig.varName.size();
+    // SPIR-V path
+    vsOrigShader = stageShaders[0];
 
-    bool include = true;
+    stageShaders[0] = tmpShaders[0] = drv.glCreateShader(eGL_VERTEX_SHADER);
 
-    // for matrices with names including :row1, :row2 etc we only include :row0
-    // as a varying (but increment the stride for all rows to account for the space)
-    // and modify the name to remove the :row0 part
-    const char *colon = strchr(name, ':');
-    if(colon)
+    for(const SigParameter &sig : vsRefl->outputSignature)
     {
-      if(name[len - 1] != '0')
+      if(sig.systemValue == ShaderBuiltin::Position)
       {
-        include = false;
-      }
-      else
-      {
-        matrixVaryings.push_back(std::string(name, colon));
-        name = matrixVaryings.back().c_str();
+        posidx = 0;
+        break;
       }
     }
 
-    if(include)
-      varyings.push_back(name);
+    std::vector<uint32_t> spirv;
+    spirv.resize(vsRefl->rawBytes.size() / sizeof(uint32_t));
+    memcpy(spirv.data(), vsRefl->rawBytes.data(), vsRefl->rawBytes.size());
 
-    if(sig.systemValue == ShaderBuiltin::Position)
-      posidx = int32_t(varyings.size()) - 1;
+    AddXFBAnnotations(*vsRefl, vsPatch, vsRefl->entryPoint.c_str(), spirv, stride);
 
-    if(sig.compType == CompType::Double)
-      stride += sizeof(double) * sig.compCount;
-    else
-      stride += sizeof(float) * sig.compCount;
-  }
+    drv.glShaderBinary(1, &stageShaders[0], eGL_SHADER_BINARY_FORMAT_SPIR_V, spirv.data(),
+                       (GLsizei)spirv.size() * 4);
 
-  // shift position attribute up to first, keeping order otherwise
-  // the same
-  if(posidx > 0)
-  {
-    const char *pos = varyings[posidx];
-    varyings.erase(varyings.begin() + posidx);
-    varyings.insert(varyings.begin(), pos);
-  }
+    drv.glSpecializeShader(stageShaders[0], vsRefl->entryPoint.c_str(), 0, NULL, NULL);
 
-  // this is REALLY ugly, but I've seen problems with varying specification, so we try and
-  // do some fixup by removing prefixes from the results we got from PROGRAM_OUTPUT.
-  //
-  // the problem I've seen is:
-  //
-  // struct vertex
-  // {
-  //   vec4 Color;
-  // };
-  //
-  // layout(location = 0) out vertex Out;
-  //
-  // (from g_truc gl-410-primitive-tessellation-2). On AMD the varyings are what you might expect
-  // (from
-  // the PROGRAM_OUTPUT interface names reflected out): "Out.Color", "gl_Position"
-  // however nvidia complains unless you use "Color", "gl_Position". This holds even if you add
-  // other
-  // variables to the vertex struct.
-  //
-  // strangely another sample that in-lines the output block like so:
-  //
-  // out block
-  // {
-  //   vec2 Texcoord;
-  // } Out;
-  //
-  // uses "block.Texcoord" (reflected name from PROGRAM_OUTPUT and accepted by varyings string on
-  // both
-  // vendors). This is inconsistent as it's type.member not structname.member as move.
-  //
-  // The spec is very vague on exactly what these names should be, so I can't say which is correct
-  // out of these three possibilities.
-  //
-  // So our 'fix' is to loop while we have problems linking with the varyings (since we know
-  // otherwise
-  // linking should succeed, as we only get here with a successfully linked separable program - if
-  // it fails
-  // to link, it's assigned 0 earlier) and remove any prefixes from variables seen in the link error
-  // string.
-  // The error string is something like:
-  // "error: Varying (named Out.Color) specified but not present in the program object."
-  //
-  // Yeh. Ugly. Not guaranteed to work at all, but hopefully the common case will just be a single
-  // block
-  // without any nesting so this might work.
-  // At least we don't have to reallocate strings all over, since the memory is
-  // already owned elsewhere, we just need to modify pointers to trim prefixes. Bright side?
+    char buffer[1024] = {};
+    GLint status = 0;
+    GL.glGetShaderiv(stageShaders[0], eGL_COMPILE_STATUS, &status);
+    if(status == 0)
+    {
+      GL.glGetShaderInfoLog(stageShaders[0], 1024, NULL, buffer);
+      RDCERR("SPIR-V post-vs patched shader compile error: %s", buffer);
+      return;
+    }
+    // attach the vertex shader
+    drv.glAttachShader(feedbackProg, stageShaders[0]);
 
-  GLint status = 0;
-  bool finished = false;
-  for(;;)
-  {
-    // specify current varyings & relink
-    drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
-                                    eGL_INTERLEAVED_ATTRIBS);
+    // attach the dummy fragment shader, if it exists
+    if(dummyFrag)
+      drv.glAttachShader(feedbackProg, dummyFrag);
+
     drv.glLinkProgram(feedbackProg);
 
     drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
 
-    // all good! Hopefully we'll mostly hit this
-    if(status == 1)
-      break;
-
-    // if finished is true, this was our last attempt - there are no
-    // more fixups possible
-    if(finished)
-      break;
-
-    char buffer[1025] = {0};
-    drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
-
-    // assume we're finished and can't retry any more after this.
-    // if we find a potential 'fixup' we'll set this back to false
-    finished = true;
-
-    // see if any of our current varyings are present in the buffer string
-    for(size_t i = 0; i < varyings.size(); i++)
+    if(status == 0)
     {
-      if(strstr(buffer, varyings[i]))
+      drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
+      RDCERR("SPIR-V post-vs patched program link error: %s", buffer);
+      return;
+    }
+  }
+  else
+  {
+    // non-SPIRV path
+
+    // attach the vertex shader
+    drv.glAttachShader(feedbackProg, stageShaders[0]);
+
+    // attach the dummy fragment shader, if it exists
+    if(dummyFrag)
+      drv.glAttachShader(feedbackProg, dummyFrag);
+
+    std::list<std::string> matrixVaryings;
+    std::vector<const char *> varyings;
+
+    CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);
+
+    for(const SigParameter &sig : vsRefl->outputSignature)
+    {
+      const char *name = sig.varName.c_str();
+      size_t len = sig.varName.size();
+
+      bool include = true;
+
+      // for matrices with names including :row1, :row2 etc we only include :row0
+      // as a varying (but increment the stride for all rows to account for the space)
+      // and modify the name to remove the :row0 part
+      const char *colon = strchr(name, ':');
+      if(colon)
       {
-        const char *prefix_removed = strchr(varyings[i], '.');
-
-        // does it contain a prefix?
-        if(prefix_removed)
+        if(name[len - 1] != '0')
         {
-          prefix_removed++;    // now this is our string without the prefix
+          include = false;
+        }
+        else
+        {
+          matrixVaryings.push_back(std::string(name, colon));
+          name = matrixVaryings.back().c_str();
+        }
+      }
 
-          // first check this won't cause a duplicate - if it does, we have to try something else
-          bool duplicate = false;
-          for(size_t j = 0; j < varyings.size(); j++)
+      if(include)
+        varyings.push_back(name);
+
+      if(sig.systemValue == ShaderBuiltin::Position)
+        posidx = int32_t(varyings.size()) - 1;
+
+      if(sig.compType == CompType::Double)
+        stride += sizeof(double) * sig.compCount;
+      else
+        stride += sizeof(float) * sig.compCount;
+    }
+
+    // shift position attribute up to first, keeping order otherwise
+    // the same
+    if(posidx > 0)
+    {
+      const char *pos = varyings[posidx];
+      varyings.erase(varyings.begin() + posidx);
+      varyings.insert(varyings.begin(), pos);
+    }
+
+    // this is REALLY ugly, but I've seen problems with varying specification, so we try and
+    // do some fixup by removing prefixes from the results we got from PROGRAM_OUTPUT.
+    //
+    // the problem I've seen is:
+    //
+    // struct vertex
+    // {
+    //   vec4 Color;
+    // };
+    //
+    // layout(location = 0) out vertex Out;
+    //
+    // (from g_truc gl-410-primitive-tessellation-2). On AMD the varyings are what you might expect
+    // (from the PROGRAM_OUTPUT interface names reflected out): "Out.Color", "gl_Position"
+    // however nvidia complains unless you use "Color", "gl_Position". This holds even if you add
+    // other variables to the vertex struct.
+    //
+    // strangely another sample that in-lines the output block like so:
+    //
+    // out block
+    // {
+    //   vec2 Texcoord;
+    // } Out;
+    //
+    // uses "block.Texcoord" (reflected name from PROGRAM_OUTPUT and accepted by varyings string on
+    // both vendors). This is inconsistent as it's type.member not structname.member as move.
+    //
+    // The spec is very vague on exactly what these names should be, so I can't say which is correct
+    // out of these three possibilities.
+    //
+    // So our 'fix' is to loop while we have problems linking with the varyings (since we know
+    // otherwise linking should succeed, as we only get here with a successfully linked separable
+    // program - if it fails to link, it's assigned 0 earlier) and remove any prefixes from
+    // variables seen in the link error string.
+    // The error string is something like:
+    // "error: Varying (named Out.Color) specified but not present in the program object."
+    //
+    // Yeh. Ugly. Not guaranteed to work at all, but hopefully the common case will just be a single
+    // block without any nesting so this might work.
+    // At least we don't have to reallocate strings all over, since the memory is
+    // already owned elsewhere, we just need to modify pointers to trim prefixes. Bright side?
+
+    GLint status = 0;
+    bool finished = false;
+    for(;;)
+    {
+      // specify current varyings & relink
+      drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
+                                      eGL_INTERLEAVED_ATTRIBS);
+      drv.glLinkProgram(feedbackProg);
+
+      drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+
+      // all good! Hopefully we'll mostly hit this
+      if(status == 1)
+        break;
+
+      // if finished is true, this was our last attempt - there are no
+      // more fixups possible
+      if(finished)
+        break;
+
+      char buffer[1025] = {0};
+      drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
+
+      // assume we're finished and can't retry any more after this.
+      // if we find a potential 'fixup' we'll set this back to false
+      finished = true;
+
+      // see if any of our current varyings are present in the buffer string
+      for(size_t i = 0; i < varyings.size(); i++)
+      {
+        if(strstr(buffer, varyings[i]))
+        {
+          const char *prefix_removed = strchr(varyings[i], '.');
+
+          // does it contain a prefix?
+          if(prefix_removed)
           {
-            if(!strcmp(varyings[j], prefix_removed))
+            prefix_removed++;    // now this is our string without the prefix
+
+            // first check this won't cause a duplicate - if it does, we have to try something else
+            bool duplicate = false;
+            for(size_t j = 0; j < varyings.size(); j++)
             {
-              duplicate = true;
+              if(!strcmp(varyings[j], prefix_removed))
+              {
+                duplicate = true;
+                break;
+              }
+            }
+
+            if(!duplicate)
+            {
+              // we'll attempt this fixup
+              RDCWARN("Attempting XFB varying fixup, subst '%s' for '%s'", varyings[i],
+                      prefix_removed);
+              varyings[i] = prefix_removed;
+              finished = false;
+
+              // don't try more than one at once (just in case)
               break;
             }
-          }
-
-          if(!duplicate)
-          {
-            // we'll attempt this fixup
-            RDCWARN("Attempting XFB varying fixup, subst '%s' for '%s'", varyings[i], prefix_removed);
-            varyings[i] = prefix_removed;
-            finished = false;
-
-            // don't try more than one at once (just in case)
-            break;
           }
         }
       }
     }
+
+    if(status == 0)
+    {
+      char buffer[1025] = {0};
+      drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
+      RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
+      m_PostVSData[eventId] = GLPostVSData();
+
+      // delete any temporaries
+      for(size_t i = 0; i < 4; i++)
+        if(tmpShaders[i])
+          drv.glDeleteShader(tmpShaders[i]);
+
+      drv.glDeleteShader(dummyFrag);
+
+      drv.glDeleteProgram(feedbackProg);
+
+      return;
+    }
   }
 
-  if(status == 0)
-  {
-    char buffer[1025] = {0};
-    drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
-    RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
-    m_PostVSData[eventId] = GLPostVSData();
-
-    // delete any temporaries
-    for(size_t i = 0; i < 4; i++)
-      if(tmpShaders[i])
-        drv.glDeleteShader(tmpShaders[i]);
-
-    drv.glDeleteShader(dummyFrag);
-
-    drv.glDeleteProgram(feedbackProg);
-
-    return;
-  }
+  // here the SPIR-V and GLSL paths recombine.
 
   // copy across any uniform values, bindings etc from the real program containing
   // the vertex stage
-  CopyProgramUniforms(stageSrcPrograms[0], feedbackProg);
+  {
+    PerStageReflections stages;
+    m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), stageSrcPrograms[0]), stages);
+
+    PerStageReflections dstStages;
+    m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), feedbackProg), dstStages);
+
+    CopyProgramUniforms(stages, stageSrcPrograms[0], dstStages, feedbackProg);
+  }
 
   // we don't want to do any work, so just discard before rasterizing
   drv.glEnable(eGL_RASTERIZER_DISCARD);
@@ -860,129 +945,209 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(tesRefl || gsRefl)
   {
     ShaderReflection *lastRefl = gsRefl;
+    SPIRVPatchData lastPatch = gsPatch;
+    int lastIndex = 3;
 
     if(!lastRefl)
+    {
       lastRefl = tesRefl;
+      lastPatch = tesPatch;
+      lastIndex = 2;
+    }
+
+    bool lastSPIRV = (lastRefl->encoding == ShaderEncoding::SPIRV);
 
     RDCASSERT(lastRefl);
 
+    // if the vertex shader was SPIR-V we didn't attach it and instead attached a tmp one with
+    // patched SPIR-V. Detach it and attach the original one without any XFB annotations
+    if(vsOrigShader)
+    {
+      drv.glDetachShader(feedbackProg, stageShaders[0]);
+      stageShaders[0] = vsOrigShader;
+      drv.glAttachShader(feedbackProg, stageShaders[0]);
+    }
+
     // attach the other non-vertex shaders
     for(int i = 1; i < 4; i++)
-      if(stageShaders[i])
-        drv.glAttachShader(feedbackProg, stageShaders[i]);
-
-    varyings.clear();
-    matrixVaryings.clear();
-
-    stride = 0;
-    posidx = -1;
-
-    for(const SigParameter &sig : lastRefl->outputSignature)
     {
-      const char *name = sig.varName.c_str();
-      size_t len = sig.varName.size();
-
-      bool include = true;
-
-      // for matrices with names including :row1, :row2 etc we only include :row0
-      // as a varying (but increment the stride for all rows to account for the space)
-      // and modify the name to remove the :row0 part
-      const char *colon = strchr(name, ':');
-      if(colon)
+      if(stageShaders[i])
       {
-        if(name[len - 1] != '0')
+        // if the last shader is non-SPIR-V, don't attach it - we'll build our own
+        if(lastSPIRV && i == lastIndex)
+          continue;
+
+        drv.glAttachShader(feedbackProg, stageShaders[i]);
+      }
+    }
+
+    GLint status = 0;
+
+    if(lastSPIRV)
+    {
+      // SPIR-V path
+      stageShaders[lastIndex] = tmpShaders[lastIndex] = drv.glCreateShader(ShaderEnum(lastIndex));
+
+      posidx = -1;
+
+      for(const SigParameter &sig : lastRefl->outputSignature)
+      {
+        if(sig.systemValue == ShaderBuiltin::Position)
         {
-          include = false;
-        }
-        else
-        {
-          matrixVaryings.push_back(std::string(name, colon));
-          name = matrixVaryings.back().c_str();
+          posidx = 0;
+          break;
         }
       }
 
-      if(include)
-        varyings.push_back(name);
+      std::vector<uint32_t> spirv;
+      spirv.resize(lastRefl->rawBytes.size() / sizeof(uint32_t));
+      memcpy(spirv.data(), lastRefl->rawBytes.data(), lastRefl->rawBytes.size());
 
-      if(sig.systemValue == ShaderBuiltin::Position)
-        posidx = int32_t(varyings.size()) - 1;
+      AddXFBAnnotations(*lastRefl, lastPatch, lastRefl->entryPoint.c_str(), spirv, stride);
 
-      uint32_t elemSize = sig.compType == CompType::Double ? sizeof(double) : sizeof(float);
+      drv.glShaderBinary(1, &stageShaders[lastIndex], eGL_SHADER_BINARY_FORMAT_SPIR_V, spirv.data(),
+                         (GLsizei)spirv.size() * 4);
 
-      stride += elemSize * sig.compCount;
-    }
+      drv.glSpecializeShader(stageShaders[lastIndex], lastRefl->entryPoint.c_str(), 0, NULL, NULL);
 
-    // shift position attribute up to first, keeping order otherwise
-    // the same
-    if(posidx > 0)
-    {
-      const char *pos = varyings[posidx];
-      varyings.erase(varyings.begin() + posidx);
-      varyings.insert(varyings.begin(), pos);
-    }
+      char buffer[1024] = {};
+      GL.glGetShaderiv(stageShaders[lastIndex], eGL_COMPILE_STATUS, &status);
+      if(status == 0)
+      {
+        GL.glGetShaderInfoLog(stageShaders[lastIndex], 1024, NULL, buffer);
+        RDCERR("SPIR-V post-gs patched shader compile error: %s", buffer);
+        return;
+      }
 
-    // see above for the justification/explanation of this monstrosity.
+      // attach the last shader
+      drv.glAttachShader(feedbackProg, stageShaders[lastIndex]);
 
-    status = 0;
-    finished = false;
-    for(;;)
-    {
-      // specify current varyings & relink
-      drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
-                                      eGL_INTERLEAVED_ATTRIBS);
       drv.glLinkProgram(feedbackProg);
 
       drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
 
-      // all good! Hopefully we'll mostly hit this
-      if(status == 1)
-        break;
-
-      // if finished is true, this was our last attempt - there are no
-      // more fixups possible
-      if(finished)
-        break;
-
-      char buffer[1025] = {0};
-      drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
-
-      // assume we're finished and can't retry any more after this.
-      // if we find a potential 'fixup' we'll set this back to false
-      finished = true;
-
-      // see if any of our current varyings are present in the buffer string
-      for(size_t i = 0; i < varyings.size(); i++)
+      if(status == 0)
       {
-        if(strstr(buffer, varyings[i]))
+        drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
+        RDCERR("SPIR-V post-gs patched program link error: %s", buffer);
+        return;
+      }
+    }
+    else
+    {
+      std::list<std::string> matrixVaryings;
+      std::vector<const char *> varyings;
+
+      stride = 0;
+      posidx = -1;
+
+      for(const SigParameter &sig : lastRefl->outputSignature)
+      {
+        const char *name = sig.varName.c_str();
+        size_t len = sig.varName.size();
+
+        bool include = true;
+
+        // for matrices with names including :row1, :row2 etc we only include :row0
+        // as a varying (but increment the stride for all rows to account for the space)
+        // and modify the name to remove the :row0 part
+        const char *colon = strchr(name, ':');
+        if(colon)
         {
-          const char *prefix_removed = strchr(varyings[i], '.');
-
-          // does it contain a prefix?
-          if(prefix_removed)
+          if(name[len - 1] != '0')
           {
-            prefix_removed++;    // now this is our string without the prefix
+            include = false;
+          }
+          else
+          {
+            matrixVaryings.push_back(std::string(name, colon));
+            name = matrixVaryings.back().c_str();
+          }
+        }
 
-            // first check this won't cause a duplicate - if it does, we have to try something else
-            bool duplicate = false;
-            for(size_t j = 0; j < varyings.size(); j++)
+        if(include)
+          varyings.push_back(name);
+
+        if(sig.systemValue == ShaderBuiltin::Position)
+          posidx = int32_t(varyings.size()) - 1;
+
+        uint32_t elemSize = sig.compType == CompType::Double ? sizeof(double) : sizeof(float);
+
+        stride += elemSize * sig.compCount;
+      }
+
+      // shift position attribute up to first, keeping order otherwise
+      // the same
+      if(posidx > 0)
+      {
+        const char *pos = varyings[posidx];
+        varyings.erase(varyings.begin() + posidx);
+        varyings.insert(varyings.begin(), pos);
+      }
+
+      // see above for the justification/explanation of this monstrosity.
+
+      bool finished = false;
+      for(;;)
+      {
+        // specify current varyings & relink
+        drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
+                                        eGL_INTERLEAVED_ATTRIBS);
+        drv.glLinkProgram(feedbackProg);
+
+        drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+
+        // all good! Hopefully we'll mostly hit this
+        if(status == 1)
+          break;
+
+        // if finished is true, this was our last attempt - there are no
+        // more fixups possible
+        if(finished)
+          break;
+
+        char buffer[1025] = {0};
+        drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
+
+        // assume we're finished and can't retry any more after this.
+        // if we find a potential 'fixup' we'll set this back to false
+        finished = true;
+
+        // see if any of our current varyings are present in the buffer string
+        for(size_t i = 0; i < varyings.size(); i++)
+        {
+          if(strstr(buffer, varyings[i]))
+          {
+            const char *prefix_removed = strchr(varyings[i], '.');
+
+            // does it contain a prefix?
+            if(prefix_removed)
             {
-              if(!strcmp(varyings[j], prefix_removed))
+              prefix_removed++;    // now this is our string without the prefix
+
+              // first check this won't cause a duplicate - if it does, we have to try something
+              // else
+              bool duplicate = false;
+              for(size_t j = 0; j < varyings.size(); j++)
               {
-                duplicate = true;
+                if(!strcmp(varyings[j], prefix_removed))
+                {
+                  duplicate = true;
+                  break;
+                }
+              }
+
+              if(!duplicate)
+              {
+                // we'll attempt this fixup
+                RDCWARN("Attempting XFB varying fixup, subst '%s' for '%s'", varyings[i],
+                        prefix_removed);
+                varyings[i] = prefix_removed;
+                finished = false;
+
+                // don't try more than one at once (just in case)
                 break;
               }
-            }
-
-            if(!duplicate)
-            {
-              // we'll attempt this fixup
-              RDCWARN("Attempting XFB varying fixup, subst '%s' for '%s'", varyings[i],
-                      prefix_removed);
-              varyings[i] = prefix_removed;
-              finished = false;
-
-              // don't try more than one at once (just in case)
-              break;
             }
           }
         }
@@ -1002,20 +1167,44 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
     else
     {
+      PerStageReflections dstStages;
+      m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), feedbackProg), dstStages);
+
       // copy across any uniform values, bindings etc from the real program containing
       // the vertex stage
-      CopyProgramUniforms(stageSrcPrograms[0], feedbackProg);
+      {
+        PerStageReflections stages;
+        m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), stageSrcPrograms[0]), stages);
+
+        CopyProgramUniforms(stages, stageSrcPrograms[0], dstStages, feedbackProg);
+      }
 
       // if tessellation is enabled, bind & copy uniforms. Note, control shader is optional
       // independent of eval shader (default values are used for the tessellation levels).
       if(stageSrcPrograms[1])
-        CopyProgramUniforms(stageSrcPrograms[1], feedbackProg);
+      {
+        PerStageReflections stages;
+        m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), stageSrcPrograms[1]), stages);
+
+        CopyProgramUniforms(stages, stageSrcPrograms[1], dstStages, feedbackProg);
+      }
+
       if(stageSrcPrograms[2])
-        CopyProgramUniforms(stageSrcPrograms[2], feedbackProg);
+      {
+        PerStageReflections stages;
+        m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), stageSrcPrograms[2]), stages);
+
+        CopyProgramUniforms(stages, stageSrcPrograms[2], dstStages, feedbackProg);
+      }
 
       // if we have a geometry shader, bind & copy uniforms
       if(stageSrcPrograms[3])
-        CopyProgramUniforms(stageSrcPrograms[3], feedbackProg);
+      {
+        PerStageReflections stages;
+        m_pDriver->FillReflectionArray(ProgramRes(drv.GetCtx(), stageSrcPrograms[3]), stages);
+
+        CopyProgramUniforms(stages, stageSrcPrograms[3], dstStages, feedbackProg);
+      }
 
       // bind our program and do the feedback draw
       drv.glUseProgram(feedbackProg);

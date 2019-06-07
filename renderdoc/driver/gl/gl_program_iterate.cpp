@@ -78,6 +78,343 @@ struct ProgramUniforms
 
 DECLARE_REFLECTION_STRUCT(ProgramUniforms);
 
+struct UnrolledSPIRVConstant
+{
+  GLenum glType = eGL_NONE;
+  char name[1024] = {};
+  uint32_t arraySize = 1;
+  int32_t location = -1;
+};
+
+static GLenum MakeGLType(const ShaderVariableType &type)
+{
+  if(type.descriptor.type == VarType::Double)
+  {
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 4)
+      return eGL_DOUBLE_MAT4;
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 3)
+      return eGL_DOUBLE_MAT4x3;
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 2)
+      return eGL_DOUBLE_MAT4x2;
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 1)
+      return eGL_DOUBLE_VEC4;
+
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 4)
+      return eGL_DOUBLE_MAT3x4;
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 3)
+      return eGL_DOUBLE_MAT3;
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 2)
+      return eGL_DOUBLE_MAT3x2;
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 1)
+      return eGL_DOUBLE_VEC3;
+
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 4)
+      return eGL_DOUBLE_MAT2x4;
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 3)
+      return eGL_DOUBLE_MAT2x4;
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 2)
+      return eGL_DOUBLE_MAT2;
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 1)
+      return eGL_DOUBLE_VEC2;
+
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+      return eGL_DOUBLE_VEC4;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+      return eGL_DOUBLE_VEC3;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+      return eGL_DOUBLE_VEC2;
+
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+      return eGL_DOUBLE_VEC4;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+      return eGL_DOUBLE_VEC3;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+      return eGL_DOUBLE_VEC2;
+
+    return eGL_DOUBLE;
+  }
+  else if(type.descriptor.type == VarType::Float)
+  {
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 4)
+      return eGL_FLOAT_MAT4;
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 3)
+      return eGL_FLOAT_MAT4x3;
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 2)
+      return eGL_FLOAT_MAT4x2;
+    if(type.descriptor.columns == 4 && type.descriptor.rows == 1)
+      return eGL_FLOAT_VEC4;
+
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 4)
+      return eGL_FLOAT_MAT3x4;
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 3)
+      return eGL_FLOAT_MAT3;
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 2)
+      return eGL_FLOAT_MAT3x2;
+    if(type.descriptor.columns == 3 && type.descriptor.rows == 1)
+      return eGL_FLOAT_VEC3;
+
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 4)
+      return eGL_FLOAT_MAT2x4;
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 3)
+      return eGL_FLOAT_MAT2x4;
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 2)
+      return eGL_FLOAT_MAT2;
+    if(type.descriptor.columns == 2 && type.descriptor.rows == 1)
+      return eGL_FLOAT_VEC2;
+
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+      return eGL_FLOAT_VEC4;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+      return eGL_FLOAT_VEC3;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+      return eGL_FLOAT_VEC2;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 1)
+      return eGL_FLOAT;
+
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+      return eGL_FLOAT_VEC4;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+      return eGL_FLOAT_VEC3;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+      return eGL_FLOAT_VEC2;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 1)
+      return eGL_FLOAT;
+
+    return eGL_FLOAT;
+  }
+  else if(type.descriptor.type == VarType::SInt)
+  {
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+      return eGL_INT_VEC4;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+      return eGL_INT_VEC3;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+      return eGL_INT_VEC2;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 1)
+      return eGL_INT;
+
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+      return eGL_INT_VEC4;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+      return eGL_INT_VEC3;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+      return eGL_INT_VEC2;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 1)
+      return eGL_INT;
+
+    return eGL_INT;
+  }
+  else if(type.descriptor.type == VarType::UInt)
+  {
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 4)
+      return eGL_UNSIGNED_INT_VEC4;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 3)
+      return eGL_UNSIGNED_INT_VEC3;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 2)
+      return eGL_UNSIGNED_INT_VEC2;
+    if(type.descriptor.columns == 1 && type.descriptor.rows == 1)
+      return eGL_UNSIGNED_INT;
+
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 4)
+      return eGL_UNSIGNED_INT_VEC4;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 3)
+      return eGL_UNSIGNED_INT_VEC3;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 2)
+      return eGL_UNSIGNED_INT_VEC2;
+    if(type.descriptor.rows == 1 && type.descriptor.columns == 1)
+      return eGL_UNSIGNED_INT;
+
+    return eGL_UNSIGNED_INT;
+  }
+
+  RDCERR("Unhandled GL type");
+
+  return eGL_FLOAT;
+}
+
+static GLenum MakeGLType(const ShaderResource &res)
+{
+  if(res.variableType.descriptor.type == VarType::UInt)
+  {
+    switch(res.resType)
+    {
+      case TextureType::Buffer: return eGL_UNSIGNED_INT_SAMPLER_BUFFER;
+      case TextureType::Texture1D: return eGL_UNSIGNED_INT_SAMPLER_1D;
+      case TextureType::Texture1DArray: return eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY;
+      case TextureType::Texture2D: return eGL_UNSIGNED_INT_SAMPLER_2D;
+      case TextureType::TextureRect: return eGL_UNSIGNED_INT_SAMPLER_2D_RECT;
+      case TextureType::Texture2DArray: return eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY;
+      case TextureType::Texture2DMS: return eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE;
+      case TextureType::Texture2DMSArray: return eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY;
+      case TextureType::Texture3D: return eGL_UNSIGNED_INT_SAMPLER_3D;
+      case TextureType::TextureCube: return eGL_UNSIGNED_INT_SAMPLER_CUBE;
+      case TextureType::TextureCubeArray: return eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY;
+    }
+  }
+  else if(res.variableType.descriptor.type == VarType::SInt)
+  {
+    switch(res.resType)
+    {
+      case TextureType::Buffer: return eGL_INT_SAMPLER_BUFFER;
+      case TextureType::Texture1D: return eGL_INT_SAMPLER_1D;
+      case TextureType::Texture1DArray: return eGL_INT_SAMPLER_1D_ARRAY;
+      case TextureType::Texture2D: return eGL_INT_SAMPLER_2D;
+      case TextureType::TextureRect: return eGL_INT_SAMPLER_2D_RECT;
+      case TextureType::Texture2DArray: return eGL_INT_SAMPLER_2D_ARRAY;
+      case TextureType::Texture2DMS: return eGL_INT_SAMPLER_2D_MULTISAMPLE;
+      case TextureType::Texture2DMSArray: return eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY;
+      case TextureType::Texture3D: return eGL_INT_SAMPLER_3D;
+      case TextureType::TextureCube: return eGL_INT_SAMPLER_CUBE;
+      case TextureType::TextureCubeArray: return eGL_INT_SAMPLER_CUBE_MAP_ARRAY;
+    }
+  }
+  else
+  {
+    switch(res.resType)
+    {
+      case TextureType::Buffer: return eGL_SAMPLER_BUFFER;
+      case TextureType::Texture1D: return eGL_SAMPLER_1D;
+      case TextureType::Texture1DArray: return eGL_SAMPLER_1D_ARRAY;
+      case TextureType::Texture2D: return eGL_SAMPLER_2D;
+      case TextureType::TextureRect: return eGL_SAMPLER_2D_RECT;
+      case TextureType::Texture2DArray: return eGL_SAMPLER_2D_ARRAY;
+      case TextureType::Texture2DMS: return eGL_SAMPLER_2D_MULTISAMPLE;
+      case TextureType::Texture2DMSArray: return eGL_SAMPLER_2D_MULTISAMPLE_ARRAY;
+      case TextureType::Texture3D: return eGL_SAMPLER_3D;
+      case TextureType::TextureCube: return eGL_SAMPLER_CUBE;
+      case TextureType::TextureCubeArray: return eGL_SAMPLER_CUBE_MAP_ARRAY;
+    }
+  }
+
+  RDCERR("Unhandled GL type");
+
+  return eGL_SAMPLER_2D;
+}
+
+static void UnrollConstant(rdcarray<UnrolledSPIRVConstant> &unrolled, const ShaderConstant &var,
+                           const rdcstr &basename, uint32_t &location)
+{
+  rdcstr name = basename;
+
+  if(!basename.empty())
+  {
+    if(var.name[0] == '[')
+      name += var.name;
+    else
+      name += "." + var.name;
+  }
+  else
+  {
+    name = var.name;
+  }
+
+  const uint32_t arraySize = RDCMAX(1U, var.type.descriptor.elements);
+
+  if(var.type.members.empty())
+  {
+    if(arraySize > 1)
+      name += "[0]";
+
+    UnrolledSPIRVConstant u;
+    u.glType = MakeGLType(var.type);
+    memcpy(u.name, name.c_str(), RDCMIN(name.size(), ARRAY_COUNT(u.name)));
+    u.arraySize = arraySize;
+    u.location = basename.empty() ? var.byteOffset : location;
+
+    unrolled.push_back(u);
+
+    location += arraySize;
+  }
+  else
+  {
+    if(basename.empty())
+      location = var.byteOffset;
+
+    for(uint32_t i = 0; i < arraySize; i++)
+    {
+      if(arraySize > 1)
+        name += StringFormat::Fmt("[%u]", i);
+
+      for(const ShaderConstant &member : var.type.members)
+        UnrollConstant(unrolled, member, name, location);
+    }
+  }
+}
+
+static void UnrollConstant(rdcarray<UnrolledSPIRVConstant> &unrolled, const ShaderConstant &var)
+{
+  uint32_t location;
+  UnrollConstant(unrolled, var, rdcstr(), location);
+}
+
+static void UnrollConstants(const PerStageReflections &stages,
+                            rdcarray<UnrolledSPIRVConstant> &globals)
+{
+  for(size_t s = 0; s < 6; s++)
+  {
+    if(!stages.refls[s])
+      continue;
+
+    // check if we have a non-buffer backed UBO, if so that's our globals.
+    for(const ConstantBlock &cb : stages.refls[s]->constantBlocks)
+    {
+      if(!cb.bufferBacked && cb.byteSize > 0)
+      {
+        for(const ShaderConstant &shaderConst : cb.variables)
+        {
+          // location is stored in the byteOffset. Search to see if we already have a global at
+          // this location since stages can share the same globals
+          int32_t location = (int32_t)shaderConst.byteOffset;
+
+          bool already = false;
+
+          for(const UnrolledSPIRVConstant &existing : globals)
+          {
+            if(existing.location == location)
+            {
+              already = true;
+              break;
+            }
+          }
+
+          if(!already)
+            UnrollConstant(globals, shaderConst);
+        }
+      }
+    }
+
+    // now include the samplers which can be bound
+    for(const ShaderResource &res : stages.refls[s]->readOnlyResources)
+    {
+      if(res.isTexture && res.bindPoint < stages.mappings[s]->readOnlyResources.count())
+      {
+        int32_t location = -stages.mappings[s]->readOnlyResources[res.bindPoint].bind;
+
+        bool already = false;
+
+        for(const UnrolledSPIRVConstant &existing : globals)
+        {
+          if(existing.location == location)
+          {
+            already = true;
+            break;
+          }
+        }
+
+        if(!already)
+        {
+          UnrolledSPIRVConstant u;
+          u.glType = MakeGLType(res);
+          memcpy(u.name, res.name.c_str(), RDCMIN(res.name.size(), ARRAY_COUNT(u.name)));
+          u.arraySize = 1;
+          u.location = location;
+          globals.push_back(u);
+        }
+      }
+    }
+  }
+}
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
 {
@@ -151,6 +488,7 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
     case eGL_UNSIGNED_INT_SAMPLER_2D:
     case eGL_UNSIGNED_INT_SAMPLER_3D:
     case eGL_UNSIGNED_INT_SAMPLER_CUBE:
+    case eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
     case eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
     case eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
     case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
@@ -295,14 +633,31 @@ void DoSerialise(SerialiserType &ser, ProgramUniforms &el)
 }
 
 template <const bool CopyUniforms, const bool SerialiseUniforms, typename SerialiserType>
-static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuint progSrc,
-                                  GLuint progDst, std::map<GLint, GLint> *locTranslate)
+static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
+                                  const PerStageReflections &srcStages, GLuint progSrc,
+                                  const PerStageReflections &dstStages, GLuint progDst,
+                                  std::map<GLint, GLint> *locTranslate)
 {
   const bool ReadSourceProgram = CopyUniforms || (SerialiseUniforms && ser && ser->IsWriting());
   const bool WriteDestProgram = CopyUniforms || (SerialiseUniforms && ser && ser->IsReading());
 
   RDCCOMPILE_ASSERT((CopyUniforms && !SerialiseUniforms) || (!CopyUniforms && SerialiseUniforms),
                     "Invalid call to ForAllProgramUniforms");
+
+  // When programs are SPIR-V we have to rely on our own reflection since the driver's reflection
+  // can't be trusted, or at least used in a normal way. Since SPIR-V is immutable for many things
+  // we only need to process uniform values - for compatibility we still serialise the same, but we
+  // skip fetching or applying UBO bindings etc.
+  bool IsSrcProgramSPIRV = false;
+  for(size_t i = 0; i < 6; i++)
+    IsSrcProgramSPIRV |= srcStages.refls[i] && srcStages.refls[i]->encoding == ShaderEncoding::SPIRV;
+
+  bool IsDstProgramSPIRV = false;
+  for(size_t i = 0; i < 6; i++)
+    IsDstProgramSPIRV |= dstStages.refls[i] && dstStages.refls[i]->encoding == ShaderEncoding::SPIRV;
+
+  RDCASSERTMSG("Expect both programs to be SPIR-V in ForAllProgramUniforms",
+               IsSrcProgramSPIRV == IsDstProgramSPIRV, IsSrcProgramSPIRV, IsDstProgramSPIRV);
 
   // this struct will be serialised with the uniform binding data, or if we're just copying it will
   // be used to store the data fetched from the source program, before being applied to the
@@ -314,14 +669,28 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
   // if we're reading the source program, iterate over the interfaces and fetch the data.
   if(CheckConstParam(ReadSourceProgram))
   {
-    const size_t numProps = 5;
-    GLenum resProps[numProps] = {
+    constexpr size_t numProps = 5;
+    constexpr GLenum resProps[numProps] = {
         eGL_BLOCK_INDEX, eGL_TYPE, eGL_NAME_LENGTH, eGL_ARRAY_SIZE, eGL_LOCATION,
     };
     GLint values[numProps];
 
     GLint NumUniforms = 0;
-    GL.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &NumUniforms);
+    rdcarray<UnrolledSPIRVConstant> spirvGlobals;
+
+    if(IsSrcProgramSPIRV)
+    {
+      // Unfortunately since this is a program-global reflection we need to go through each shader
+      // and add its variables (if they don't already exist) to get a union of all shaders for the
+      // program.
+      UnrollConstants(srcStages, spirvGlobals);
+
+      NumUniforms = (GLint)spirvGlobals.size();
+    }
+    else
+    {
+      GL.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &NumUniforms);
+    }
 
     // this is a very conservative figure - many uniforms will be in UBOs and so will be ignored
     serialisedUniforms.ValueUniforms.reserve(NumUniforms);
@@ -334,7 +703,26 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
       std::string basename;
       bool isArray = false;
 
-      GL.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, numProps, resProps, numProps, NULL, values);
+      if(IsSrcProgramSPIRV)
+      {
+        // hardcode manual reflection from SPIR-V constant.
+        RDCCOMPILE_ASSERT(numProps == 5 && resProps[0] == eGL_BLOCK_INDEX &&
+                              resProps[1] == eGL_TYPE && resProps[2] == eGL_NAME_LENGTH &&
+                              resProps[3] == eGL_ARRAY_SIZE && resProps[4] == eGL_LOCATION,
+                          "reflection properties have changed - update manual SPIR-V reflection");
+
+        // these are implicitly globals
+        values[0] = -1;
+        values[1] = spirvGlobals[i].glType;
+        values[2] = 1;    // unused
+        values[3] = spirvGlobals[i].arraySize;
+        values[4] = spirvGlobals[i].location;
+      }
+      else
+      {
+        GL.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, numProps, resProps, numProps, NULL,
+                                  values);
+      }
 
       // we don't need to consider uniforms within UBOs
       if(values[0] >= 0)
@@ -346,7 +734,15 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
       srcLocation = values[4];
 
       char n[1024] = {0};
-      GL.glGetProgramResourceName(progSrc, eGL_UNIFORM, i, values[2], NULL, n);
+      if(IsSrcProgramSPIRV)
+      {
+        RDCCOMPILE_ASSERT(sizeof(n) == sizeof(spirvGlobals[i].name), "Array sizes have changed");
+        memcpy(n, spirvGlobals[i].name, sizeof(n));
+      }
+      else
+      {
+        GL.glGetProgramResourceName(progSrc, eGL_UNIFORM, i, values[2], NULL, n);
+      }
 
       if(arraySize > 1)
       {
@@ -372,6 +768,8 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
       uniform.IsArray = isArray;
       uniform.Values.resize(arraySize);
 
+      GLuint baseLocation = srcLocation;
+
       // loop over every element in the array (arraySize = 1 for non arrays)
       for(GLint arr = 0; arr < arraySize; arr++)
       {
@@ -393,7 +791,10 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
         {
           name += StringFormat::Fmt("[%d]", arr);
 
-          uniformVal.Location = srcLocation = GL.glGetUniformLocation(progSrc, name.c_str());
+          if(IsSrcProgramSPIRV)
+            uniformVal.Location = srcLocation = baseLocation + arr;
+          else
+            uniformVal.Location = srcLocation = GL.glGetUniformLocation(progSrc, name.c_str());
 
           if(srcLocation == -1)
             RDCWARN("Couldn't get srcLocation for %s", name.c_str());
@@ -470,6 +871,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
           case eGL_UNSIGNED_INT_SAMPLER_2D:
           case eGL_UNSIGNED_INT_SAMPLER_3D:
           case eGL_UNSIGNED_INT_SAMPLER_CUBE:
+          case eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
@@ -530,7 +932,10 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
 
     // now find how many UBOs we have, and store their binding indices
     GLint numUBOs = 0;
-    GL.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
+
+    // SPIR-V shaders don't allow changing UBO values, so simply omit them entirely
+    if(!IsSrcProgramSPIRV)
+      GL.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
     serialisedUniforms.UBOBindings.reserve(numUBOs);
 
@@ -549,7 +954,9 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
 
     // finally, if SSBOs are supported on this implementation, fetch their bindings
     GLint numSSBOs = 0;
-    if(HasExt[ARB_shader_storage_buffer_object])
+
+    // SPIR-V shaders don't allow changing SSBO values, so simply omit them entirely
+    if(HasExt[ARB_shader_storage_buffer_object] && !IsSrcProgramSPIRV)
       GL.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
 
     serialisedUniforms.SSBOBindings.reserve(numSSBOs);
@@ -579,6 +986,10 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
   // serialisedUniforms
   if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
   {
+    rdcarray<UnrolledSPIRVConstant> spirvGlobals;
+    if(IsDstProgramSPIRV)
+      UnrollConstants(dstStages, spirvGlobals);
+
     // loop over the loose global uniforms, see if there is an equivalent, and apply it.
     for(const ProgramUniform &uniform : serialisedUniforms.ValueUniforms)
     {
@@ -591,7 +1002,33 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
         if(uniform.IsArray)
           name += StringFormat::Fmt("[%u]", (uint32_t)arr);
 
-        GLint dstLocation = GL.glGetUniformLocation(progDst, name.c_str());
+        GLint dstLocation = -1;
+
+        if(IsDstProgramSPIRV)
+        {
+          dstLocation = -1;
+
+          int32_t baseLocation = val.Location - (int32_t)arr;
+
+          RDCASSERT(baseLocation == uniform.Values[0].Location);
+
+          // for SPIR-V the locations are fixed in the shader and are not mutable. We just check for
+          // existance of something with this location. If nothing is found, we return -1
+          // (non-existant) which prevents us from trying to write to a bad location.
+          for(const UnrolledSPIRVConstant &var : spirvGlobals)
+          {
+            if(var.location == baseLocation)
+            {
+              dstLocation = val.Location;
+              break;
+            }
+          }
+        }
+        else
+        {
+          dstLocation = GL.glGetUniformLocation(progDst, name.c_str());
+        }
+
         if(locTranslate)
           (*locTranslate)[val.Location] = dstLocation;
 
@@ -669,6 +1106,17 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
           case eGL_DOUBLE_VEC2: GL.glProgramUniform2dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC3: GL.glProgramUniform3dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC4: GL.glProgramUniform4dv(progDst, dstLocation, 1, dv); break;
+          case eGL_INT_VEC2: GL.glProgramUniform2iv(progDst, dstLocation, 1, iv); break;
+          case eGL_INT_VEC3: GL.glProgramUniform3iv(progDst, dstLocation, 1, iv); break;
+          case eGL_INT_VEC4: GL.glProgramUniform4iv(progDst, dstLocation, 1, iv); break;
+          case eGL_UNSIGNED_INT:
+          case eGL_BOOL: GL.glProgramUniform1uiv(progDst, dstLocation, 1, uiv); break;
+          case eGL_UNSIGNED_INT_VEC2:
+          case eGL_BOOL_VEC2: GL.glProgramUniform2uiv(progDst, dstLocation, 1, uiv); break;
+          case eGL_UNSIGNED_INT_VEC3:
+          case eGL_BOOL_VEC3: GL.glProgramUniform3uiv(progDst, dstLocation, 1, uiv); break;
+          case eGL_UNSIGNED_INT_VEC4:
+          case eGL_BOOL_VEC4: GL.glProgramUniform4uiv(progDst, dstLocation, 1, uiv); break;
 
           case eGL_IMAGE_1D:
           case eGL_IMAGE_2D:
@@ -703,8 +1151,8 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
           case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
-            if(IsGLES)
-              // Image uniforms cannot be re-assigned in GLES.
+            if(IsGLES || IsDstProgramSPIRV)
+              // Image uniforms cannot be re-assigned in GLES or with SPIR-V programs.
               break;
           // deliberate fall-through
           // treat all samplers as just an int (since they just store their binding value)
@@ -741,41 +1189,37 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
           case eGL_UNSIGNED_INT_SAMPLER_2D:
           case eGL_UNSIGNED_INT_SAMPLER_3D:
           case eGL_UNSIGNED_INT_SAMPLER_CUBE:
+          case eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
           case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_BUFFER:
           case eGL_UNSIGNED_INT_SAMPLER_2D_RECT:
-          case eGL_INT: GL.glProgramUniform1iv(progDst, dstLocation, 1, iv); break;
-          case eGL_INT_VEC2: GL.glProgramUniform2iv(progDst, dstLocation, 1, iv); break;
-          case eGL_INT_VEC3: GL.glProgramUniform3iv(progDst, dstLocation, 1, iv); break;
-          case eGL_INT_VEC4: GL.glProgramUniform4iv(progDst, dstLocation, 1, iv); break;
-          case eGL_UNSIGNED_INT:
-          case eGL_BOOL: GL.glProgramUniform1uiv(progDst, dstLocation, 1, uiv); break;
-          case eGL_UNSIGNED_INT_VEC2:
-          case eGL_BOOL_VEC2: GL.glProgramUniform2uiv(progDst, dstLocation, 1, uiv); break;
-          case eGL_UNSIGNED_INT_VEC3:
-          case eGL_BOOL_VEC3: GL.glProgramUniform3uiv(progDst, dstLocation, 1, uiv); break;
-          case eGL_UNSIGNED_INT_VEC4:
-          case eGL_BOOL_VEC4: GL.glProgramUniform4uiv(progDst, dstLocation, 1, uiv); break;
+          case eGL_INT:
+            if(!IsDstProgramSPIRV)    // SPIR-V shaders treat samplers as immutable
+              GL.glProgramUniform1iv(progDst, dstLocation, 1, iv);
+            break;
           default: RDCERR("Unhandled uniform type '%s'", ToStr(val.Type).c_str());
         }
       }
     }
 
-    // apply UBO bindings
-    for(const ProgramBinding &bind : serialisedUniforms.UBOBindings)
+    if(!IsDstProgramSPIRV)
     {
-      GLuint idx = GL.glGetUniformBlockIndex(progDst, bind.Name.c_str());
-      if(idx != GL_INVALID_INDEX)
-        GL.glUniformBlockBinding(progDst, idx, bind.Binding);
+      // apply UBO bindings
+      for(const ProgramBinding &bind : serialisedUniforms.UBOBindings)
+      {
+        GLuint idx = GL.glGetUniformBlockIndex(progDst, bind.Name.c_str());
+        if(idx != GL_INVALID_INDEX)
+          GL.glUniformBlockBinding(progDst, idx, bind.Binding);
+      }
     }
 
     // apply SSBO bindings
     // GLES does not allow modification of SSBO bindings - which is good as we don't need to restore
     // them, since they're immutable.
-    if(!IsGLES)
+    if(!IsDstProgramSPIRV && !IsGLES)
     {
       for(const ProgramBinding &bind : serialisedUniforms.SSBOBindings)
       {
@@ -797,30 +1241,40 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, GLuin
   }
 }
 
-void CopyProgramUniforms(GLuint progSrc, GLuint progDst)
+void CopyProgramUniforms(const PerStageReflections &srcStages, GLuint progSrc,
+                         const PerStageReflections &dstStages, GLuint progDst)
 {
   const bool CopyUniforms = true;
   const bool SerialiseUniforms = false;
   ForAllProgramUniforms<CopyUniforms, SerialiseUniforms, ReadSerialiser>(
-      NULL, CaptureState::ActiveReplaying, progSrc, progDst, NULL);
+      NULL, CaptureState::ActiveReplaying, srcStages, progSrc, dstStages, progDst, NULL);
 }
 
 template <typename SerialiserType>
-void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, GLuint prog,
+void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state,
+                              const PerStageReflections &stages, GLuint prog,
                               std::map<GLint, GLint> *locTranslate)
 {
   const bool CopyUniforms = false;
   const bool SerialiseUniforms = true;
-  ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(&ser, state, prog, prog, locTranslate);
+  ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(&ser, state, stages, prog, stages, prog,
+                                                         locTranslate);
 }
 
-template void SerialiseProgramUniforms(ReadSerialiser &ser, CaptureState state, GLuint prog,
+template void SerialiseProgramUniforms(ReadSerialiser &ser, CaptureState state,
+                                       const PerStageReflections &stages, GLuint prog,
                                        std::map<GLint, GLint> *locTranslate);
-template void SerialiseProgramUniforms(WriteSerialiser &ser, CaptureState state, GLuint prog,
+template void SerialiseProgramUniforms(WriteSerialiser &ser, CaptureState state,
+                                       const PerStageReflections &stages, GLuint prog,
                                        std::map<GLint, GLint> *locTranslate);
 
-void CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl)
+bool CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl)
 {
+  // don't try to copy bindings for SPIR-V shaders. The queries by name may fail, and the bindings
+  // are immutable anyway
+  if(refl->encoding == ShaderEncoding::SPIRV)
+    return false;
+
   // copy over attrib bindings
   for(const SigParameter &sig : refl->inputSignature)
   {
@@ -832,10 +1286,17 @@ void CopyProgramAttribBindings(GLuint progsrc, GLuint progdst, ShaderReflection 
     if(idx >= 0)
       GL.glBindAttribLocation(progdst, (GLuint)idx, sig.varName.c_str());
   }
+
+  return !refl->inputSignature.empty();
 }
 
-void CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl)
+bool CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflection *refl)
 {
+  // don't try to copy bindings for SPIR-V shaders. The queries by name may fail, and the bindings
+  // are immutable anyway
+  if(refl->encoding == ShaderEncoding::SPIRV)
+    return false;
+
   uint64_t used = 0;
 
   // copy over fragdata bindings
@@ -874,15 +1335,25 @@ void CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflectio
       }
     }
   }
+
+  return !refl->outputSignature.empty();
 }
 
 template <typename SerialiserType>
-void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, GLuint prog)
+bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
+                              const PerStageReflections &stages, GLuint prog)
 {
   std::vector<ProgramBinding> InputBindings;
   std::vector<ProgramBinding> OutputBindings;
 
-  if(ser.IsWriting())
+  // technically we can completely skip this if the shaders are SPIR-V, but for compatibility we
+  // instead just skip the fetch & apply steps, so that we can still serialise in a backwards
+  // compatible way.
+  bool IsProgramSPIRV = false;
+  for(size_t i = 0; i < 6; i++)
+    IsProgramSPIRV |= stages.refls[i] && stages.refls[i]->encoding == ShaderEncoding::SPIRV;
+
+  if(ser.IsWriting() && !IsProgramSPIRV)
   {
     char buf[128] = {};
 
@@ -915,7 +1386,7 @@ void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, GLuint pr
   SERIALISE_ELEMENT(InputBindings);
   SERIALISE_ELEMENT(OutputBindings);
 
-  if(ser.IsReading() && IsReplayMode(state))
+  if(ser.IsReading() && IsReplayMode(state) && !IsProgramSPIRV)
   {
     for(int sigType = 0; sigType < 2; sigType++)
     {
@@ -963,7 +1434,11 @@ void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, GLuint pr
       }
     }
   }
+
+  return !IsProgramSPIRV && (!InputBindings.empty() || !OutputBindings.empty());
 }
 
-template void SerialiseProgramBindings(ReadSerialiser &ser, CaptureState state, GLuint prog);
-template void SerialiseProgramBindings(WriteSerialiser &ser, CaptureState state, GLuint prog);
+template bool SerialiseProgramBindings(ReadSerialiser &ser, CaptureState state,
+                                       const PerStageReflections &stages, GLuint prog);
+template bool SerialiseProgramBindings(WriteSerialiser &ser, CaptureState state,
+                                       const PerStageReflections &stages, GLuint prog);
