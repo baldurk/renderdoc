@@ -27,6 +27,7 @@
 #include <algorithm>
 #include "common/common.h"
 #include "data/glsl_shaders.h"
+#include "driver/shaders/spirv/glslang_compile.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -46,6 +47,46 @@ GLuint GLReplay::CreateShader(GLenum shaderType, const std::string &src)
   GL.glShaderSource(ret, 1, &csrc, NULL);
 
   GL.glCompileShader(ret);
+
+  char buffer[1024] = {};
+  GLint status = 0;
+  GL.glGetShaderiv(ret, eGL_COMPILE_STATUS, &status);
+  if(status == 0)
+  {
+    GL.glGetShaderInfoLog(ret, 1024, NULL, buffer);
+    RDCERR("%s compile error: %s", ToStr(shaderType).c_str(), buffer);
+    return 0;
+  }
+
+  return ret;
+}
+
+GLuint GLReplay::CreateSPIRVShader(GLenum shaderType, const std::string &src)
+{
+  if(!HasExt[ARB_gl_spirv])
+  {
+    RDCERR("Compiling SPIR-V shader without ARB_gl_spirv - should be checked above!");
+    return 0;
+  }
+
+  SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
+                                    SPIRVShaderStage(ShaderIdx(shaderType)));
+
+  std::vector<uint32_t> spirv;
+  std::string s = CompileSPIRV(settings, {src}, spirv);
+
+  if(spirv.empty())
+  {
+    RDCERR("Couldn't compile shader to SPIR-V: %s", s.c_str());
+    return 0;
+  }
+
+  GLuint ret = GL.glCreateShader(shaderType);
+
+  GL.glShaderBinary(1, &ret, eGL_SHADER_BINARY_FORMAT_SPIR_V, spirv.data(),
+                    (GLsizei)spirv.size() * 4);
+
+  GL.glSpecializeShader(ret, "main", 0, NULL, NULL);
 
   char buffer[1024] = {};
   GLint status = 0;
@@ -367,6 +408,30 @@ void GLReplay::InitDebugData()
   }
 
   vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
+
+  // pre-compile SPIR-V shaders up front since this is more expensive
+  if(HasExt[ARB_gl_spirv])
+  {
+    // SPIR-V shaders are always generated as desktop GL 430, for ease
+    std::string source =
+        GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), eShaderGLSPIRV, 430);
+    DebugData.fixedcolFragShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, source);
+
+    if(HasExt[ARB_gpu_shader5] && HasExt[ARB_shader_image_load_store])
+    {
+      std::string defines = "";
+
+      if(!HasExt[ARB_derivative_control])
+      {
+        defines += "#define dFdxFine dFdx\n\n";
+        defines += "#define dFdyFine dFdy\n\n";
+      }
+
+      source =
+          GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), eShaderGLSPIRV, 430, defines);
+      DebugData.quadoverdrawFragShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, source);
+    }
+  }
 
   // used to combine with custom shaders.
   DebugData.texDisplayVertexShader = CreateShader(eGL_VERTEX_SHADER, vs);
@@ -1086,6 +1151,8 @@ void GLReplay::DeleteDebugData()
 
   if(DebugData.quadoverdrawFragShader)
     drv.glDeleteShader(DebugData.quadoverdrawFragShader);
+  if(DebugData.quadoverdrawFragShaderSPIRV)
+    drv.glDeleteShader(DebugData.quadoverdrawFragShaderSPIRV);
   if(DebugData.quadoverdrawResolveProg)
     drv.glDeleteProgram(DebugData.quadoverdrawResolveProg);
 
@@ -1099,6 +1166,8 @@ void GLReplay::DeleteDebugData()
     drv.glDeleteProgram(DebugData.checkerProg);
   if(DebugData.fixedcolFragShader)
     drv.glDeleteShader(DebugData.fixedcolFragShader);
+  if(DebugData.fixedcolFragShaderSPIRV)
+    drv.glDeleteShader(DebugData.fixedcolFragShaderSPIRV);
 
   for(size_t i = 0; i < ARRAY_COUNT(DebugData.meshProg); i++)
   {

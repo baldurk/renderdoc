@@ -730,6 +730,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(46, 99, ARB_polygon_offset_clamp)                 \
   EXT_TO_CHECK(46, 99, ARB_texture_filter_anisotropic)           \
   EXT_TO_CHECK(46, 99, ARB_pipeline_statistics_query)            \
+  EXT_TO_CHECK(46, 99, ARB_gl_spirv)                             \
   EXT_TO_CHECK(99, 99, ARB_indirect_parameters)                  \
   EXT_TO_CHECK(99, 99, ARB_seamless_cubemap_per_texture)         \
   EXT_TO_CHECK(99, 99, EXT_depth_bounds_test)                    \

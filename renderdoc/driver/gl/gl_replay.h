@@ -344,6 +344,7 @@ private:
     GLuint checkerProg;
 
     GLuint fixedcolFragShader;
+    GLuint fixedcolFragShaderSPIRV;
 
     // 0 = both floats, 1 = position doubles, 2 = secondary doubles, 3 = both doubles
     GLuint meshProg[4];
@@ -370,6 +371,7 @@ private:
     GLuint dummyTexBufferStore;
 
     GLuint quadoverdrawFragShader;
+    GLuint quadoverdrawFragShaderSPIRV;
     GLuint quadoverdrawResolveProg;
 
     ResourceId overlayTexId;
@@ -409,6 +411,7 @@ private:
                   const std::vector<GPUCounter> &counters);
 
   GLuint CreateShader(GLenum shaderType, const std::string &src);
+  GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src);
   GLuint CreateShaderProgram(const std::string &vs, const std::string &fs,
                              const std::string &gs = "");
   GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs = 0);
