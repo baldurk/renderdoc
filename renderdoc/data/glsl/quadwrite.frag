@@ -42,7 +42,16 @@
 // descriptor set will be patched from 0 to whichever descriptor set we're using in code
 layout(set = 0, binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
 #else    // OPENGL and OPENGL_ES
-layout(r32ui) uniform coherent uimage2DArray overdrawImage;
+
+// if we're compiling for GL SPIR-V, give the image an explicit binding
+#ifdef GL_SPIRV
+layout(binding = 0, r32ui)
+#else
+layout(r32ui)
+#endif
+
+    uniform coherent uimage2DArray overdrawImage;
+
 #endif
 layout(early_fragment_tests) in;
 

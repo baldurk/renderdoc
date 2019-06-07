@@ -125,6 +125,8 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   if(type == eShaderVulkan)
     flags = EShMessages(flags | EShMsgSpvRules | EShMsgVulkanRules);
+  else if(type == eShaderGLSPIRV)
+    flags = EShMessages(flags | EShMsgSpvRules);
 
   std::string ret;
 

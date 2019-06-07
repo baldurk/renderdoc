@@ -26,7 +26,8 @@ enum ShaderType
 {
   eShaderGLSL,
   eShaderGLSLES,
-  eShaderVulkan
+  eShaderVulkan,
+  eShaderGLSPIRV,
 };
 
 #include <string>

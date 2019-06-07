@@ -36,8 +36,15 @@ IO_LOCATION(0) out vec4 color_out;
 
 #endif
 
-#ifndef VULKAN    // OpenGL can't use SPIR-V patching
-uniform vec4 RENDERDOC_Fixed_Color;
+#ifndef VULKAN    // Vulkan uses SPIR-V patching
+
+// if we're compiling for GL SPIR-V, give the uniform an explicit location
+#ifdef GL_SPIRV
+layout(location = 99)
+#endif
+
+    uniform vec4 RENDERDOC_Fixed_Color;
+
 #endif
 
 void main(void)

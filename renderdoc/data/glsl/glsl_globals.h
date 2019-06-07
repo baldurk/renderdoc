@@ -38,6 +38,16 @@
 
 #else    // ifdef VULKAN
 
+// GL SPIR-V compilation uses a mixture
+#ifdef GL_SPIRV
+
+#define BINDING(b) layout(binding = b, std140)
+#define IO_LOCATION(l) layout(location = l)
+#define VERTEX_ID gl_VertexID
+#define INSTANCE_ID gl_InstanceID
+
+#else
+
 // drop I/O location specifiers and bindings on GL, we don't use separate programs so I/O variables
 // can be matched by name, and we don't want to require GL_ARB_shading_language_420pack so we can't
 // specify bindings in shaders.
@@ -45,6 +55,8 @@
 #define IO_LOCATION(l)
 #define VERTEX_ID gl_VertexID
 #define INSTANCE_ID gl_InstanceID
+
+#endif
 
 #endif    // ifdef VULKAN
 
