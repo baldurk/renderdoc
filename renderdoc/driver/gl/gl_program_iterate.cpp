@@ -249,6 +249,7 @@ static GLenum MakeGLType(const ShaderResource &res)
       case TextureType::Texture3D: return eGL_UNSIGNED_INT_SAMPLER_3D;
       case TextureType::TextureCube: return eGL_UNSIGNED_INT_SAMPLER_CUBE;
       case TextureType::TextureCubeArray: return eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY;
+      default: break;
     }
   }
   else if(res.variableType.descriptor.type == VarType::SInt)
@@ -266,6 +267,7 @@ static GLenum MakeGLType(const ShaderResource &res)
       case TextureType::Texture3D: return eGL_INT_SAMPLER_3D;
       case TextureType::TextureCube: return eGL_INT_SAMPLER_CUBE;
       case TextureType::TextureCubeArray: return eGL_INT_SAMPLER_CUBE_MAP_ARRAY;
+      default: break;
     }
   }
   else
@@ -283,6 +285,7 @@ static GLenum MakeGLType(const ShaderResource &res)
       case TextureType::Texture3D: return eGL_SAMPLER_3D;
       case TextureType::TextureCube: return eGL_SAMPLER_CUBE;
       case TextureType::TextureCubeArray: return eGL_SAMPLER_CUBE_MAP_ARRAY;
+      default: break;
     }
   }
 
