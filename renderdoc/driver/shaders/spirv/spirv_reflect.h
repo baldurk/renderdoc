@@ -128,3 +128,7 @@ struct SpecConstant
 void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
                                const std::vector<SpecConstant> &specInfo);
+
+// common function used by any API that utilises SPIR-V
+void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
+                       const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride);
