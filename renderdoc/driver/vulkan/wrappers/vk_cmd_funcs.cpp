@@ -997,7 +997,12 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
             if(barrier.oldLayout != barrier.newLayout &&
                barrier.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+            {
+              SanitiseOldImageLayout(barrier.oldLayout);
+              SanitiseNewImageLayout(barrier.newLayout);
+
               revertBarriers.push_back(barrier);
+            }
           }
 
           if(!revertBarriers.empty())
