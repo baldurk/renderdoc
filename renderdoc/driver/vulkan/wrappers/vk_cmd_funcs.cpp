@@ -3038,16 +3038,19 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
       {
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
 
+        BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
+
         // add a fake marker
         DrawcallDescription marker;
         marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkBeginCommandBuffer(%s)",
                                         c, ToStr(cmd).c_str());
         marker.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
         AddEvent();
+
+        parentCmdBufInfo.curEvents.back().chunkIndex = cmdBufInfo.beginChunk;
+
         AddDrawcall(marker, true);
         parentCmdBufInfo.curEventID++;
-
-        BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
         if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass == ResourceId() &&
            (cmdBufInfo.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT))
