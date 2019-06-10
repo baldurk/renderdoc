@@ -3200,7 +3200,11 @@ void GLDispatchTable::EmulateRequiredExtensions()
   //
   // We don't have to emulate functions that we neither call directly, nor promote to, so e.g.
   // MultiTex functions.
-  if(!HasExt[EXT_direct_state_access])
+  //
+  // We ALWAYS emulate on replay since the EXT_dsa functions are too buggy on drivers like NV to be
+  // relied upon to work without messing up. We only 'promote' to EXT_dsa on replay so we can still
+  // leave the functions as they are during capture.
+  if(!HasExt[EXT_direct_state_access] || RenderDoc::Inst().IsReplayApp())
   {
     RDCLOG("Emulating EXT_direct_state_access");
     EMULATE_FUNC(glCheckNamedFramebufferStatusEXT);
