@@ -614,6 +614,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
 
       LiveCapture *live = new LiveCapture(m_Ctx, QString(), QString(), ret.ident, this, this);
       ShowLiveCapture(live);
+      callback(live);
     });
   });
   th->start();
