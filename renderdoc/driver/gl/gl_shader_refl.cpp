@@ -36,6 +36,7 @@ rdcstr DoStringise(const FFVertexOutput &el)
   {
     STRINGISE_ENUM_CLASS_NAMED(PointSize, "gl_PointSize");
     STRINGISE_ENUM_CLASS_NAMED(ClipDistance, "gl_ClipDistance");
+    STRINGISE_ENUM_CLASS_NAMED(CullDistance, "gl_CullDistance");
     STRINGISE_ENUM_CLASS_NAMED(ClipVertex, "gl_ClipVertex");
     STRINGISE_ENUM_CLASS_NAMED(FrontColor, "gl_FrontColor");
     STRINGISE_ENUM_CLASS_NAMED(BackColor, "gl_BackColor");

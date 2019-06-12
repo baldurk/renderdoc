@@ -33,6 +33,7 @@ enum class FFVertexOutput : uint32_t
   PointSize,
   First = PointSize,
   ClipDistance,
+  CullDistance,
 
   // Compatibility implicit varyings, generally only comes back from glslang's reflection
   ClipVertex,
