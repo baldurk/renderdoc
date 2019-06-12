@@ -30,8 +30,18 @@ enum ShaderType
   eShaderGLSPIRV,
 };
 
+#include <functional>
 #include <string>
 #include <vector>
 
 std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int version,
                                const std::string &defines = "");
+
+// for unit tests
+struct ShaderReflection;
+struct ShaderBindpointMapping;
+enum class ShaderStage : uint32_t;
+using ReflectionMaker =
+    std::function<void(ShaderStage stage, const std::string &source, const std::string &entryPoint,
+                       ShaderReflection &refl, ShaderBindpointMapping &mapping)>;
+void TestGLSLReflection(ShaderType testType, ReflectionMaker compile);

@@ -184,3 +184,53 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
     }
   }
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+#include "data/glsl_shaders.h"
+#include "glslang_compile.h"
+
+TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
+{
+  ShaderType type = ShaderType::eShaderVulkan;
+  auto compiler = [&type](ShaderStage stage, const std::string &source, const std::string &entryPoint,
+                          ShaderReflection &refl, ShaderBindpointMapping &mapping) {
+
+    InitSPIRVCompiler();
+    RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+
+    std::vector<uint32_t> spirv;
+    SPIRVCompilationSettings settings(type == ShaderType::eShaderVulkan
+                                          ? SPIRVSourceLanguage::VulkanGLSL
+                                          : SPIRVSourceLanguage::OpenGLGLSL,
+                                      SPIRVShaderStage(stage));
+    std::string errors = CompileSPIRV(settings, {source}, spirv);
+
+    INFO("SPIR-V compile output: " << errors);
+
+    REQUIRE(!spirv.empty());
+
+    SPVModule spv;
+    ParseSPIRV(spirv.data(), spirv.size(), spv);
+
+    SPIRVPatchData patchData;
+    spv.MakeReflection(type == ShaderType::eShaderVulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,
+                       stage, entryPoint, refl, mapping, patchData);
+  };
+
+  // test both Vulkan and GL SPIR-V reflection
+  SECTION("Vulkan GLSL reflection")
+  {
+    type = ShaderType::eShaderVulkan;
+    TestGLSLReflection(type, compiler);
+  };
+
+  SECTION("OpenGL GLSL reflection")
+  {
+    type = ShaderType::eShaderGLSPIRV;
+    TestGLSLReflection(type, compiler);
+  };
+}
+
+#endif
