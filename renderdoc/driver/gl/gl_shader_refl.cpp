@@ -1726,7 +1726,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     // number of elements, and make all child byteOffset values relative to their parent
     for(size_t ssbo = 0; ssbo < ssbos.size(); ssbo++)
     {
-      rdcarray<ShaderConstant> &ssboVars = rwresources[ssbo].variableType.members;
+      rdcarray<ShaderConstant> &ssboVars = rwresources[ssbos[ssbo]].variableType.members;
       for(size_t rootMember = 0; rootMember + 1 < ssboVars.size(); rootMember++)
       {
         ShaderConstant &member = ssboVars[rootMember];

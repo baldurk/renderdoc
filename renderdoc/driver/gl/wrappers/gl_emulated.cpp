@@ -3782,7 +3782,7 @@ void main() {
                 const ShaderConstant &submember = member.type.members[0];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.byteOffset == 40);
+                CHECK(submember.byteOffset == 0);
                 CHECK(submember.type.members.empty());
                 CHECK(submember.type.descriptor.type == VarType::Float);
                 CHECK(submember.type.descriptor.rows == 1);
@@ -3795,7 +3795,7 @@ void main() {
                 const ShaderConstant &submember = member.type.members[1];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.byteOffset == 44);
+                CHECK(submember.byteOffset == 4);
                 CHECK(submember.type.members.empty());
                 CHECK(submember.type.descriptor.type == VarType::SInt);
                 CHECK(submember.type.descriptor.rows == 1);
@@ -3808,7 +3808,7 @@ void main() {
                 const ShaderConstant &submember = member.type.members[2];
                 INFO("SSBO submember: " << submember.name.c_str());
 
-                CHECK(submember.byteOffset == 48);
+                CHECK(submember.byteOffset == 8);
                 CHECK(submember.type.members.empty());
                 CHECK(submember.type.descriptor.type == VarType::Float);
                 CHECK(submember.type.descriptor.rows == 2);
