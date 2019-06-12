@@ -4411,6 +4411,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
     }
     else if(inst->var->storage == spv::StorageClassUniform ||
             inst->var->storage == spv::StorageClassUniformConstant ||
+            inst->var->storage == spv::StorageClassAtomicCounter ||
             inst->var->storage == spv::StorageClassStorageBuffer ||
             inst->var->storage == spv::StorageClassPushConstant)
     {
@@ -4431,7 +4432,64 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
         type = type->baseType;
       }
 
-      if(type->type < SPVTypeData::eCompositeCount)
+      if(inst->var->storage == spv::StorageClassAtomicCounter)
+      {
+        // GL style global atomic counter int
+        RDCASSERT(sourceAPI == GraphicsAPI::OpenGL);
+
+        ShaderResource res;
+
+        res.isReadOnly = false;
+        res.isTexture = false;
+        if(!inst->str.empty())
+          res.name = inst->str;
+        else if(!type->name.empty())
+          res.name = type->name;
+        else
+          res.name = StringFormat::Fmt("atomic%u", inst->id);
+        res.resType = TextureType::Buffer;
+
+        res.variableType.descriptor.columns = 1;
+        res.variableType.descriptor.rows = 1;
+        res.variableType.descriptor.rowMajorStorage = false;
+        res.variableType.descriptor.type = VarType::UInt;
+        res.variableType.descriptor.name = type->GetName();
+
+        Bindpoint bindmap;
+        // set can be implicitly 0, but the binding must be set explicitly.
+        // If no binding is found, we set INVALID_BIND and sort to the end of the resources
+        // list as it's not bound anywhere (most likely, declared but not used)
+        bindmap.bind = INVALID_BIND;
+
+        for(size_t d = 0; d < inst->decorations.size(); d++)
+        {
+          if(inst->decorations[d].decoration == spv::DecorationBinding)
+            bindmap.bind = (int32_t)inst->decorations[d].val;
+        }
+
+        bindmap.used = false;
+
+        for(size_t o = 0; o < operations.size(); o++)
+        {
+          if(operations[o]->op)
+          {
+            for(size_t a = 0; a < operations[o]->op->arguments.size(); a++)
+            {
+              if(operations[o]->op->arguments[a] == inst)
+              {
+                bindmap.used = true;
+                break;
+              }
+            }
+          }
+        }
+
+        // atomic counter should always be fully bound
+        RDCASSERT(bindmap.bind != INVALID_BIND);
+
+        rwresources.push_back(shaderrespair(bindmap, res));
+      }
+      else if(type->type < SPVTypeData::eCompositeCount)
       {
         // global loose variable - add to $Globals block
         RDCASSERT(type->type != SPVTypeData::ePointer);
