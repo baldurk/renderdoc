@@ -1061,6 +1061,8 @@ static void AddSigParameter(std::vector<SigParameter> &sigs, uint32_t &regIndex,
 
     if(s.regIndex == ~0U)
       s.regIndex = regIndex++;
+    else if(arrayIdx >= 0)
+      s.regIndex += arrayIdx;
 
     if(arrayIdx >= 0)
     {
@@ -1078,6 +1080,10 @@ static void AddSigParameter(std::vector<SigParameter> &sigs, uint32_t &regIndex,
 
       if(s.regIndex == ~0U)
         s.regIndex = regIndex++;
+      else if(arrayIdx >= 0)
+        s.regIndex += rows * arrayIdx + r;
+      else
+        s.regIndex += r;
 
       if(arrayIdx >= 0)
       {
