@@ -3985,6 +3985,13 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
     // step through multi-dimensional arrays
     while(type->type == SPVTypeData::eArray)
       type = type->baseType;
+
+    // if this is a root array in the geometry shader, don't reflect it as an array
+    if(stage == ShaderStage::Geometry && structID == 0)
+    {
+      arraySize = 1;
+      isArray = false;
+    }
   }
 
   // arrays will need an extra access chain index
