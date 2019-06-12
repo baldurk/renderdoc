@@ -1795,6 +1795,10 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
                                   (GLint *)&cblock.byteSize);
 
         sort(ubos[i]);
+
+        for(ShaderConstant &member : ubos[i])
+          MakeChildByteOffsetsRelative(member);
+
         std::swap(cblock.variables, ubos[i]);
 
         refl.constantBlocks.push_back(cblock);
