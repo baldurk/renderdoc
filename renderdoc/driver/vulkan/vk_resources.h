@@ -888,6 +888,16 @@ struct ImageInfo
   VkFormat format = VK_FORMAT_UNDEFINED;
   VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
   ImageInfo() {}
+  ImageInfo(VkImageType imageType, VkFormat format, VkExtent3D extent, int levelCount,
+            int layerCount, int sampleCount)
+      : imageType(imageType),
+        format(format),
+        extent(extent),
+        levelCount(levelCount),
+        layerCount(layerCount),
+        sampleCount(sampleCount)
+  {
+  }
   ImageInfo(const VkImageCreateInfo &ci)
       : layerCount(ci.arrayLayers),
         levelCount(ci.mipLevels),
@@ -1073,15 +1083,14 @@ struct ImageRange
 
 typedef BitFlagIterator<VkImageAspectFlagBits, VkImageAspectFlags, int32_t> ImageAspectFlagIter;
 
+VkImageAspectFlags FormatImageAspects(VkFormat fmt);
+
 struct ImgRefs
 {
   std::vector<FrameRefType> rangeRefs;
-  WrappedVkRes *initializedLiveRes;
-  VkImageType type;
+  WrappedVkRes *initializedLiveRes = NULL;
+  ImageInfo imageInfo;
   VkImageAspectFlags aspectMask;
-  int levelCount;
-  int layerCount;
-  VkExtent3D extent;
 
   bool areAspectsSplit = false;
   bool areLevelsSplit = false;
@@ -1090,19 +1099,14 @@ struct ImgRefs
   int GetAspectCount() const;
 
   ImgRefs() : initializedLiveRes(NULL) {}
-  inline ImgRefs(VkImageType type, VkImageAspectFlags aspectMask, int levelCount, int layerCount,
-                 VkExtent3D extent)
+  inline ImgRefs(const ImageInfo &imageInfo)
       : rangeRefs(1, eFrameRef_None),
-        initializedLiveRes(NULL),
-        type(type),
-        aspectMask(aspectMask),
-        levelCount(levelCount),
-        layerCount(layerCount),
-        extent(extent)
+        imageInfo(imageInfo),
+        aspectMask(FormatImageAspects(imageInfo.format))
   {
-    if(type == VK_IMAGE_TYPE_3D)
+    if(imageInfo.imageType == VK_IMAGE_TYPE_3D)
       // Depth slices of 3D views are treated as array layers
-      layerCount = extent.depth;
+      this->imageInfo.layerCount = imageInfo.extent.depth;
   }
   int SubresourceIndex(VkImageAspectFlagBits aspect, int level, int layer) const;
   int SubresourceIndex(int aspectIndex, int level, int layer) const;
@@ -1129,10 +1133,10 @@ struct ImgRefs
 template <typename Compose>
 FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose comp)
 {
-  range.extent.width = RDCMIN(range.extent.width, extent.width - range.offset.x);
-  range.extent.height = RDCMIN(range.extent.height, extent.height - range.offset.y);
+  range.extent.width = RDCMIN(range.extent.width, imageInfo.extent.width - range.offset.x);
+  range.extent.height = RDCMIN(range.extent.height, imageInfo.extent.height - range.offset.y);
 
-  if(type == VK_IMAGE_TYPE_3D && range.viewType != VK_IMAGE_VIEW_TYPE_2D &&
+  if(imageInfo.imageType == VK_IMAGE_TYPE_3D && range.viewType != VK_IMAGE_VIEW_TYPE_2D &&
      range.viewType != VK_IMAGE_VIEW_TYPE_2D_ARRAY)
   {
     // The Vulkan spec allows 2D `VkImageView`s of 3D `VkImage`s--the depth slices of the images are
@@ -1144,21 +1148,21 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
     // view). When a 3D image is accessed without a 2D view, we need to translate the Z axis into
     // array layer indices.
 
-    range.extent.depth = RDCMIN(range.extent.depth, extent.depth - range.offset.z);
+    range.extent.depth = RDCMIN(range.extent.depth, imageInfo.extent.depth - range.offset.z);
     range.baseArrayLayer = range.offset.z;
     range.layerCount = range.extent.depth;
   }
   else if(range.layerCount == VK_REMAINING_ARRAY_LAYERS)
   {
-    range.layerCount = layerCount - range.baseArrayLayer;
+    range.layerCount = imageInfo.layerCount - range.baseArrayLayer;
   }
 
   if(range.levelCount == VK_REMAINING_MIP_LEVELS)
-    range.levelCount = levelCount - range.baseMipLevel;
+    range.levelCount = imageInfo.levelCount - range.baseMipLevel;
 
   if(refType == eFrameRef_CompleteWrite &&
-     (range.offset.x != 0 || range.offset.y != 0 || range.extent.width != extent.width ||
-      range.extent.height != extent.height))
+     (range.offset.x != 0 || range.offset.y != 0 || range.extent.width != imageInfo.extent.width ||
+      range.extent.height != imageInfo.extent.height))
     // Complete write, but only to part of the image.
     // We don't track writes at the pixel level, so turn this into a partial write
     refType = eFrameRef_PartialWrite;
@@ -1176,8 +1180,8 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   }
 
   Split(range.aspectMask != aspectMask,
-        range.baseMipLevel != 0 || (int)range.levelCount != levelCount,
-        range.baseArrayLayer != 0 || (int)range.layerCount != layerCount);
+        range.baseMipLevel != 0 || (int)range.levelCount != imageInfo.levelCount,
+        range.baseArrayLayer != 0 || (int)range.layerCount != imageInfo.layerCount);
 
   std::vector<VkImageAspectFlags> splitAspects;
   if(areAspectsSplit)
@@ -1197,7 +1201,7 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   int levelEnd = 1;
   if(areLevelsSplit)
   {
-    splitLevelCount = levelCount;
+    splitLevelCount = imageInfo.levelCount;
     levelEnd = (int)(range.baseMipLevel + range.levelCount);
   }
 
@@ -1205,7 +1209,7 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   int layerEnd = 1;
   if(areLayersSplit)
   {
-    splitLayerCount = layerCount;
+    splitLayerCount = imageInfo.layerCount;
     layerEnd = (int)(range.baseArrayLayer + range.layerCount);
   }
 
@@ -1237,9 +1241,9 @@ FrameRefType ImgRefs::Merge(const ImgRefs &other, Compose comp)
   if(areAspectsSplit)
     splitAspectCount = GetAspectCount();
 
-  int splitLevelCount = areLevelsSplit ? levelCount : 1;
+  int splitLevelCount = areLevelsSplit ? imageInfo.levelCount : 1;
 
-  int splitLayerCount = areLayersSplit ? layerCount : 1;
+  int splitLayerCount = areLayersSplit ? imageInfo.layerCount : 1;
 
   FrameRefType maxRefType = eFrameRef_None;
   for(int aspectIndex = 0; aspectIndex < splitAspectCount; ++aspectIndex)
@@ -1627,11 +1631,7 @@ FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, Resourc
   auto refs = imgRefs.find(img);
   if(refs == imgRefs.end())
   {
-    refs = imgRefs
-               .insert(std::make_pair(
-                   img, ImgRefs(imageInfo.imageType, FormatImageAspects(imageInfo.format),
-                                imageInfo.levelCount, imageInfo.layerCount, imageInfo.extent)))
-               .first;
+    refs = imgRefs.insert(std::make_pair(img, ImgRefs(imageInfo))).first;
   }
   return refs->second.Update(range, refType, comp);
 }

@@ -2952,12 +2952,12 @@ int ImgRefs::SubresourceIndex(int aspectIndex, int level, int layer) const
     aspectIndex = 0;
   int splitLevelCount = 1;
   if(areLevelsSplit)
-    splitLevelCount = levelCount;
+    splitLevelCount = imageInfo.levelCount;
   else
     level = 0;
   int splitLayerCount = 1;
   if(areLayersSplit)
-    splitLayerCount = layerCount;
+    splitLayerCount = imageInfo.layerCount;
   else
     layer = 0;
   return (aspectIndex * splitLevelCount + level) * splitLayerCount + layer;
@@ -2971,11 +2971,11 @@ void ImgRefs::Split(bool splitAspects, bool splitLevels, bool splitLayers)
     newSplitAspectCount = GetAspectCount();
   }
 
-  int oldSplitLevelCount = areLevelsSplit ? levelCount : 1;
-  int newSplitLevelCount = splitLevels ? levelCount : oldSplitLevelCount;
+  int oldSplitLevelCount = areLevelsSplit ? imageInfo.levelCount : 1;
+  int newSplitLevelCount = splitLevels ? imageInfo.levelCount : oldSplitLevelCount;
 
-  int oldSplitLayerCount = areLayersSplit ? layerCount : 1;
-  int newSplitLayerCount = splitLayers ? layerCount : oldSplitLayerCount;
+  int oldSplitLayerCount = areLayersSplit ? imageInfo.layerCount : 1;
+  int newSplitLayerCount = splitLayers ? imageInfo.layerCount : oldSplitLayerCount;
 
   int newSize = newSplitAspectCount * newSplitLevelCount * newSplitLayerCount;
   if(newSize == (int)rangeRefs.size())
