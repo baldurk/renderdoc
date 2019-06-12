@@ -4953,6 +4953,13 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
     if(reflection.inputSignature[i].systemValue == ShaderBuiltin::Undefined)
       mapping.inputAttributes[reflection.inputSignature[i].regIndex] = (int32_t)i;
 
+  for(cblockpair &cb : cblocks)
+  {
+    // sort the variables within each block because we want them in offset order but they don't have
+    // to be declared in offset order in the SPIR-V.
+    std::sort(cb.bindres.variables.begin(), cb.bindres.variables.end());
+  }
+
   std::sort(cblocks.begin(), cblocks.end());
   std::sort(samplers.begin(), samplers.end());
   std::sort(roresources.begin(), roresources.end());
