@@ -119,6 +119,7 @@ struct SPVModule
 };
 
 static const uint32_t SpecializationConstantBindSet = 1234567;
+static const uint32_t PushConstantBindSet = 1234568;
 
 void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
 

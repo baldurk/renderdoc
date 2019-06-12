@@ -4473,7 +4473,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
 
         // set something crazy so this doesn't overlap with a real buffer binding
         if(pushConst)
-          bindmap.bindset = 10000;
+          bindmap.bindset = PushConstantBindSet;
 
         for(size_t d = 0; type->decorations && d < type->decorations->size(); d++)
         {
@@ -4688,7 +4688,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
   {
     ConstantBlock cblock;
 
-    cblock.name = StringFormat::Fmt("Specialization Constants");
+    cblock.name = "Specialization Constants";
     cblock.bufferBacked = false;
     cblock.byteSize = 0;
 
