@@ -697,10 +697,10 @@ struct ShaderConstant
   }
   bool operator<(const ShaderConstant &o) const
   {
-    if(!(name == o.name))
-      return name < o.name;
     if(!(byteOffset == o.byteOffset))
       return byteOffset < o.byteOffset;
+    if(!(name == o.name))
+      return name < o.name;
     if(!(defaultValue == o.defaultValue))
       return defaultValue < o.defaultValue;
     if(!(type == o.type))
@@ -709,7 +709,7 @@ struct ShaderConstant
   }
   DOCUMENT("The name of this constant");
   rdcstr name;
-  DOCUMENT("The byte offset of this constant relative to the start of the block");
+  DOCUMENT("The byte offset of this constant relative to the parent structure");
   uint32_t byteOffset;
   DOCUMENT("If this constant is no larger than a 64-bit constant, gives a default value for it.");
   uint64_t defaultValue;
