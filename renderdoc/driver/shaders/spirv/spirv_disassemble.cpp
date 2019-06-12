@@ -3876,6 +3876,7 @@ ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el)
     case spv::BuiltInTessLevelOuter: return ShaderBuiltin::OuterTessFactor;
     case spv::BuiltInTessLevelInner: return ShaderBuiltin::InsideTessFactor;
     case spv::BuiltInPatchVertices: return ShaderBuiltin::PatchNumVertices;
+    case spv::BuiltInFragCoord: return ShaderBuiltin::Position;
     case spv::BuiltInFrontFacing: return ShaderBuiltin::IsFrontFace;
     case spv::BuiltInSampleId: return ShaderBuiltin::MSAASampleIndex;
     case spv::BuiltInSamplePosition: return ShaderBuiltin::MSAASamplePosition;
@@ -3955,8 +3956,11 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
   }
 
   // fragment shader outputs are implicitly colour outputs
-  if(stage == ShaderStage::Fragment && type->storage == spv::StorageClassOutput)
+  if(stage == ShaderStage::Fragment && type->storage == spv::StorageClassOutput &&
+     sig.systemValue == ShaderBuiltin::Undefined)
     sig.systemValue = ShaderBuiltin::ColorOutput;
+  else if(sig.systemValue != ShaderBuiltin::Undefined)
+    sig.regIndex = 0;
 
   if(type->type == SPVTypeData::ePointer)
     type = type->baseType;
