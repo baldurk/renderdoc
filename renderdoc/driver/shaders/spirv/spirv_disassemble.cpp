@@ -4947,7 +4947,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
 
   mapping.inputAttributes.resize(numInputs);
   for(size_t i = 0; i < numInputs; i++)
-    mapping.inputAttributes[i] = INVALID_BIND;
+    mapping.inputAttributes[i] = -1;
 
   for(size_t i = 0; i < reflection.inputSignature.size(); i++)
     if(reflection.inputSignature[i].systemValue == ShaderBuiltin::Undefined)
