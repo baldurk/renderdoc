@@ -6427,6 +6427,20 @@ bool WrappedID3D11DeviceContext::Serialise_ClearState(SerialiserType &ser)
 {
   if(IsReplayingAndReading())
   {
+    // end stream-out queries for outgoing targets
+    for(UINT b = 0; b < D3D11_SO_STREAM_COUNT; b++)
+    {
+      ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+
+      if(buf)
+      {
+        ResourceId id = GetIDForResource(buf);
+
+        m_pRealContext->End(m_StreamOutCounters[id].query);
+        m_StreamOutCounters[id].running = false;
+      }
+    }
+
     m_CurrentPipelineState->Clear();
     m_pRealContext->ClearState();
     VerifyState();
@@ -6452,6 +6466,20 @@ void WrappedID3D11DeviceContext::ClearState()
     Serialise_ClearState(GET_SERIALISER);
 
     m_ContextRecord->AddChunk(scope.Get());
+  }
+
+  // end stream-out queries for outgoing targets
+  for(UINT b = 0; b < D3D11_SO_STREAM_COUNT; b++)
+  {
+    ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+
+    if(buf)
+    {
+      ResourceId id = GetIDForResource(buf);
+
+      m_pRealContext->End(m_StreamOutCounters[id].query);
+      m_StreamOutCounters[id].running = false;
+    }
   }
 
   m_CurrentPipelineState->Clear();

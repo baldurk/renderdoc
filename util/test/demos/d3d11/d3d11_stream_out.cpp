@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_StreamOut, D3D11GraphicsTest)
+TEST(D3D11_Stream_Out, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test using D3D11's streamout feature";
 
@@ -74,8 +74,24 @@ TEST(D3D11_StreamOut, D3D11GraphicsTest)
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
     ID3D11BufferPtr so[2] = {
-        MakeBuffer().StreamOut().Size(2048), MakeBuffer().StreamOut().Size(2048),
+        MakeBuffer().StreamOut().Vertex().Size(2048), MakeBuffer().StreamOut().Vertex().Size(2048),
     };
+
+    D3D11_INPUT_ELEMENT_DESC layoutdesc[] = {
+        {
+            "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0,
+        },
+        {
+            "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0,
+        },
+        {
+            "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0,
+        },
+    };
+
+    ID3D11InputLayoutPtr streamoutLayout;
+    CHECK_HR(dev->CreateInputLayout(layoutdesc, ARRAY_COUNT(layoutdesc), vsblob->GetBufferPointer(),
+                                    vsblob->GetBufferSize(), &streamoutLayout));
 
     while(Running())
     {
@@ -123,6 +139,51 @@ TEST(D3D11_StreamOut, D3D11GraphicsTest)
       ctx->SOSetTargets(2, bufs, NULL);
 
       ctx->Draw(3, 0);
+
+      ctx->UpdateSubresource(so[0], 0, NULL, empty, 2048, 2048);
+      ctx->UpdateSubresource(so[1], 0, NULL, empty, 2048, 2048);
+
+      // test DrawAuto()
+
+      RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+
+      // draw with streamout and explicitly unbind
+      ctx->SOSetTargets(2, bufs, offs);
+      ctx->Draw(3, 0);
+      ctx->SOSetTargets(0, NULL, NULL);
+
+      RSSetViewport({0.0f, 0.0f, (float)screenWidth / 4.0f, (float)screenHeight / 4.0f, 0.0f, 1.0f});
+
+      ctx->IASetVertexBuffers(0, 2, bufs, &strides[0], offs);
+      ctx->IASetInputLayout(streamoutLayout);
+      ctx->DrawAuto();
+
+      RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+
+      ID3D11Buffer *emptyBuf[2] = {};
+      ctx->IASetVertexBuffers(0, 2, emptyBuf, &strides[0], offs);
+      IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
+      ctx->IASetInputLayout(defaultLayout);
+
+      // draw with streamout and clear state
+      ctx->SOSetTargets(2, bufs, offs);
+      ctx->DrawInstanced(3, 2, 0, 0);
+      ctx->ClearState();
+
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+      ctx->VSSetShader(vs, NULL, 0);
+      ctx->GSSetShader(gs, NULL, 0);
+      ctx->PSSetShader(ps, NULL, 0);
+
+      ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
+
+      RSSetViewport({screenWidth / 4.0f, 0.0f, (float)screenWidth / 4.0f,
+                     (float)screenHeight / 4.0f, 0.0f, 1.0f});
+
+      ctx->IASetVertexBuffers(0, 2, bufs, &strides[0], offs);
+      ctx->IASetInputLayout(streamoutLayout);
+      ctx->DrawAuto();
 
       Present();
     }

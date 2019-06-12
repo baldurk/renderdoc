@@ -70,9 +70,6 @@
     <ClCompile Include="gl\gl_vao_0.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
-    <ClCompile Include="d3d11\d3d11_streamout.cpp">
-      <Filter>D3D11\demos</Filter>
-    </ClCompile>
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
@@ -308,6 +305,9 @@
     </ClCompile>
     <ClCompile Include="vk\vk_image_layouts.cpp">
       <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_stream_out.cpp">
+      <Filter>D3D11\demos</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
