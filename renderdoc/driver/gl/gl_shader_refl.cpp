@@ -2158,7 +2158,18 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
         bool operator()(const SigParameter &a, const SigParameter &b)
         {
           if(a.systemValue == b.systemValue)
-            return a.regIndex < b.regIndex;
+          {
+            if(a.regIndex != b.regIndex)
+              return a.regIndex < b.regIndex;
+
+            return a.varName < b.varName;
+          }
+
+          if(a.systemValue == ShaderBuiltin::Undefined)
+            return false;
+          if(b.systemValue == ShaderBuiltin::Undefined)
+            return true;
+
           return a.systemValue < b.systemValue;
         }
       };

@@ -3591,9 +3591,22 @@ void main() {
 
     REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 3);
     {
-      CHECK(refl.inputSignature[0].varName == "a_input");
+      CHECK(refl.inputSignature[0].varName == "gl_FragCoord");
       {
         const SigParameter &sig = refl.inputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+
+      CHECK(refl.inputSignature[1].varName == "a_input");
+      {
+        const SigParameter &sig = refl.inputSignature[1];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 3);
@@ -3604,9 +3617,9 @@ void main() {
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.inputSignature[1].varName == "z_input");
+      CHECK(refl.inputSignature[2].varName == "z_input");
       {
-        const SigParameter &sig = refl.inputSignature[1];
+        const SigParameter &sig = refl.inputSignature[2];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 6);
@@ -3615,19 +3628,6 @@ void main() {
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
-      }
-
-      CHECK(refl.inputSignature[2].varName == "gl_FragCoord");
-      {
-        const SigParameter &sig = refl.inputSignature[2];
-        INFO("signature element: " << sig.varName.c_str());
-
-        CHECK(sig.regIndex == 0);
-        CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
-        CHECK(sig.compCount == 4);
-        CHECK(sig.regChannelMask == 0xf);
-        CHECK(sig.channelUsedMask == 0xf);
       }
     }
 
@@ -4213,38 +4213,51 @@ void main()
 
     REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 2);
     {
-      CHECK(refl.inputSignature[0].varName == "block.Texcoord");
+      CHECK(refl.inputSignature[0].varName == "gl_PerVertex.gl_Position");
       {
         const SigParameter &sig = refl.inputSignature[0];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 0);
-        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
         CHECK(sig.compType == CompType::Float);
-        CHECK(sig.compCount == 2);
-        CHECK(sig.regChannelMask == 0x3);
-        CHECK(sig.channelUsedMask == 0x3);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
       }
 
-      CHECK(refl.inputSignature[1].varName == "gl_PerVertex.gl_Position");
+      CHECK(refl.inputSignature[1].varName == "block.Texcoord");
       {
         const SigParameter &sig = refl.inputSignature[1];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 2);
+        CHECK(sig.regChannelMask == 0x3);
+        CHECK(sig.channelUsedMask == 0x3);
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 2);
+    {
+      CHECK(refl.outputSignature[0].varName == "gl_Position");
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
       }
-    }
 
-    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 2);
-    {
-      CHECK(refl.outputSignature[0].varName == "block.Texcoord");
+      CHECK(refl.outputSignature[1].varName == "block.Texcoord");
       {
-        const SigParameter &sig = refl.outputSignature[0];
+        const SigParameter &sig = refl.outputSignature[1];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 0);
@@ -4253,19 +4266,6 @@ void main()
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
-      }
-
-      CHECK(refl.outputSignature[1].varName == "gl_Position");
-      {
-        const SigParameter &sig = refl.outputSignature[1];
-        INFO("signature element: " << sig.varName.c_str());
-
-        CHECK(sig.regIndex == 0);
-        CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
-        CHECK(sig.compCount == 4);
-        CHECK(sig.regChannelMask == 0xf);
-        CHECK(sig.channelUsedMask == 0xf);
       }
     }
   };
@@ -4295,9 +4295,22 @@ void main()
 
     REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 6);
     {
-      CHECK(refl.outputSignature[0].varName == "outarr[0]");
+      CHECK(refl.outputSignature[0].varName == "gl_Position");
       {
         const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+
+      CHECK(refl.outputSignature[1].varName == "outarr[0]");
+      {
+        const SigParameter &sig = refl.outputSignature[1];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 0);
@@ -4309,9 +4322,9 @@ void main()
         CHECK(sig.channelUsedMask == 0x7);
       }
 
-      CHECK(refl.outputSignature[1].varName == "outarr[1]");
+      CHECK(refl.outputSignature[2].varName == "outarr[1]");
       {
-        const SigParameter &sig = refl.outputSignature[1];
+        const SigParameter &sig = refl.outputSignature[2];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 1);
@@ -4323,9 +4336,9 @@ void main()
         CHECK(sig.channelUsedMask == 0x7);
       }
 
-      CHECK(refl.outputSignature[2].varName == "outarr[2]");
+      CHECK(refl.outputSignature[3].varName == "outarr[2]");
       {
-        const SigParameter &sig = refl.outputSignature[2];
+        const SigParameter &sig = refl.outputSignature[3];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 2);
@@ -4337,9 +4350,9 @@ void main()
         CHECK(sig.channelUsedMask == 0x7);
       }
 
-      CHECK(refl.outputSignature[3].varName == "outmat:row0");
+      CHECK(refl.outputSignature[4].varName == "outmat:row0");
       {
-        const SigParameter &sig = refl.outputSignature[3];
+        const SigParameter &sig = refl.outputSignature[4];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 3);
@@ -4350,9 +4363,9 @@ void main()
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.outputSignature[4].varName == "outmat:row1");
+      CHECK(refl.outputSignature[5].varName == "outmat:row1");
       {
-        const SigParameter &sig = refl.outputSignature[4];
+        const SigParameter &sig = refl.outputSignature[5];
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 4);
@@ -4361,19 +4374,6 @@ void main()
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
-      }
-
-      CHECK(refl.outputSignature[5].varName == "gl_Position");
-      {
-        const SigParameter &sig = refl.outputSignature[5];
-        INFO("signature element: " << sig.varName.c_str());
-
-        CHECK(sig.regIndex == 0);
-        CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
-        CHECK(sig.compCount == 4);
-        CHECK(sig.regChannelMask == 0xf);
-        CHECK(sig.channelUsedMask == 0xf);
       }
     }
   };
