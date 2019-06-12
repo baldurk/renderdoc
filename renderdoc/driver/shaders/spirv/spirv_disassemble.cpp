@@ -5731,6 +5731,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       }
       //////////////////////////////////////////////////////////////////////
       // Operations with special parameters
+      case spv::OpAtomicLoad:
       case spv::OpLoad:
       {
         SPVInstruction *typeInst = module.GetByID(spirv[it + 1]);
@@ -5744,9 +5745,29 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
         op.op->arguments.push_back(ptrInst);
 
-        op.op->access = spv::MemoryAccessMaskNone;
-        if(WordCount > 4)
-          op.op->access = spv::MemoryAccessMask(spirv[it + 4]);
+        if(op.opcode == spv::OpAtomicLoad)
+        {
+          SPVInstruction *scopeInst = module.GetByID(spirv[it + 4]);
+
+          // shader capability requires this to be a constant
+          RDCASSERT(scopeInst && scopeInst->constant);
+
+          if(scopeInst && scopeInst->constant)
+            op.op->scope = (spv::Scope)scopeInst->constant->u32;
+
+          SPVInstruction *semanticsInst = module.GetByID(spirv[it + 5]);
+          // shader capability requires this to be a constant
+          RDCASSERT(semanticsInst && semanticsInst->constant);
+
+          if(semanticsInst && semanticsInst->constant)
+            op.op->semantics = (spv::MemorySemanticsMask)semanticsInst->constant->u32;
+        }
+        else
+        {
+          op.op->access = spv::MemoryAccessMaskNone;
+          if(WordCount > 4)
+            op.op->access = spv::MemoryAccessMask(spirv[it + 4]);
+        }
 
         op.id = spirv[it + 2];
         module.ids[spirv[it + 2]] = &op;
