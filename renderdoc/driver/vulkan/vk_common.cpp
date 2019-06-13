@@ -722,6 +722,8 @@ StencilOperation MakeStencilOp(VkStencilOp op)
 
 BASIC_TYPE_SERIALISE_STRINGIFY(VkPackedVersion, (uint32_t &)el, SDBasic::UnsignedInteger, 4);
 
+INSTANTIATE_SERIALISE_TYPE(VkPackedVersion);
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkInitParams &el)
 {
