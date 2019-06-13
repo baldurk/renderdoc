@@ -1580,7 +1580,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   const uint32_t maxSize = 2048;
   RenderDoc::FramePixels fp;
 
-  if(swap != VK_NULL_HANDLE)
+  if(swaprecord != NULL)
   {
     VkDevice device = GetDev();
     VkCommandBuffer cmd = GetNextCmd();
