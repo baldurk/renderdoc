@@ -1553,12 +1553,15 @@ public:
       IDXGIAdapter1 *adapter = (IDXGIAdapter1 *)*ppvAdapter;
       *ppvAdapter = (IDXGIAdapter1 *)(new WrappedIDXGIAdapter4(adapter));
     }
-    else
+    else if(riid == __uuidof(IDXGIAdapter))
     {
-      RDCASSERT(riid == __uuidof(IDXGIAdapter), riid);
-
       IDXGIAdapter *adapter = (IDXGIAdapter *)*ppvAdapter;
       *ppvAdapter = (IDXGIAdapter *)(new WrappedIDXGIAdapter4(adapter));
+    }
+    else
+    {
+      RDCWARN("Wrapping unknown adapter GUID %s", ToStr(riid).c_str());
+      RefCountDXGIObject::HandleWrap(riid, ppvAdapter);
     }
   }
 
