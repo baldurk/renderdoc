@@ -1597,7 +1597,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
       record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_ReadBeforeWrite);
       if(att->baseResourceMem != ResourceId())
         record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
-      if(att->resInfo)
+      if(att->resInfo && att->resInfo->IsSparse())
         record->cmdInfo->sparse.insert(att->resInfo);
       record->cmdInfo->dirtied.insert(att->baseResource);
     }

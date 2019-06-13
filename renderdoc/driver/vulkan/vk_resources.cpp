@@ -3069,7 +3069,7 @@ void VkResourceRecord::MarkBufferFrameReferenced(VkResourceRecord *buf, VkDevice
   {
     size = buf->memSize;
   }
-  if(buf->resInfo)
+  if(buf->resInfo && buf->resInfo->IsSparse())
     cmdInfo->sparse.insert(buf->resInfo);
   if(buf->baseResource != ResourceId())
     MarkMemoryFrameReferenced(buf->baseResource, buf->memOffset + offset, size, refType);
@@ -3179,7 +3179,7 @@ void VkResourceRecord::MarkBufferViewFrameReferenced(VkResourceRecord *bufView, 
   if(bufView->baseResource != ResourceId())
     MarkResourceFrameReferenced(bufView->baseResource, eFrameRef_Read);
 
-  if(bufView->resInfo)
+  if(bufView->resInfo && bufView->resInfo->IsSparse())
     cmdInfo->sparse.insert(bufView->resInfo);
   if(bufView->baseResourceMem != ResourceId())
     MarkMemoryFrameReferenced(bufView->baseResourceMem, bufView->memOffset, bufView->memSize,
