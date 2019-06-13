@@ -2099,8 +2099,9 @@ void WrappedVulkan::vkCmdClearColorImage(VkCommandBuffer commandBuffer, VkImage 
     record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_PartialWrite);
     record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
     record->cmdInfo->dirtied.insert(GetResID(image));
-    if(GetRecord(image)->resInfo)
-      record->cmdInfo->sparse.insert(GetRecord(image)->resInfo);
+    VkResourceRecord *imageRecord = GetRecord(image);
+    if(imageRecord->resInfo && imageRecord->resInfo->IsSparse())
+      record->cmdInfo->sparse.insert(imageRecord->resInfo);
   }
 }
 
@@ -2207,8 +2208,9 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(VkCommandBuffer commandBuffer, V
     record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_PartialWrite);
     record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
     record->cmdInfo->dirtied.insert(GetResID(image));
-    if(GetRecord(image)->resInfo)
-      record->cmdInfo->sparse.insert(GetRecord(image)->resInfo);
+    VkResourceRecord *imageRecord = GetRecord(image);
+    if(imageRecord->resInfo && imageRecord->resInfo->IsSparse())
+      record->cmdInfo->sparse.insert(imageRecord->resInfo);
   }
 }
 

@@ -924,7 +924,8 @@ void DescriptorSetBindingElement::AddBindRefs(VkResourceRecord *record, FrameRef
   if(texelBufferView != VK_NULL_HANDLE)
   {
     VkResourceRecord *bufView = GetRecord(texelBufferView);
-    record->AddBindFrameRef(bufView->GetResourceID(), eFrameRef_Read, bufView->resInfo != NULL);
+    record->AddBindFrameRef(bufView->GetResourceID(), eFrameRef_Read,
+                            bufView->resInfo && bufView->resInfo->IsSparse());
     if(bufView->baseResource != ResourceId())
       record->AddBindFrameRef(bufView->baseResource, eFrameRef_Read);
     if(bufView->baseResourceMem != ResourceId())
@@ -945,7 +946,8 @@ void DescriptorSetBindingElement::AddBindRefs(VkResourceRecord *record, FrameRef
   if(bufferInfo.buffer != VK_NULL_HANDLE)
   {
     VkResourceRecord *buf = GetRecord(bufferInfo.buffer);
-    record->AddBindFrameRef(GetResID(bufferInfo.buffer), eFrameRef_Read, buf->resInfo != NULL);
+    record->AddBindFrameRef(GetResID(bufferInfo.buffer), eFrameRef_Read,
+                            buf->resInfo && buf->resInfo->IsSparse());
     if(buf->baseResource != ResourceId())
       record->AddMemFrameRef(buf->baseResource, buf->memOffset, buf->memSize, ref);
   }
