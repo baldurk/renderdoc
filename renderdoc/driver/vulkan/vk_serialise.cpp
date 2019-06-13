@@ -1463,7 +1463,12 @@ void DoSerialise(SerialiserType &ser, VkQueueFamilyProperties &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceProperties &el)
 {
-  SERIALISE_MEMBER(apiVersion);
+  // serialise apiVersion as packed version so we get a nice display.
+  VkPackedVersion packedVer = el.apiVersion;
+  ser.Serialise("apiVersion"_lit, packedVer).TypedAs("uint32_t"_lit);
+  el.apiVersion = packedVer;
+
+  // driver version is *not* necessarily via VK_MAKE_VERSION
   SERIALISE_MEMBER(driverVersion);
   SERIALISE_MEMBER(vendorID);
   SERIALISE_MEMBER(deviceID);

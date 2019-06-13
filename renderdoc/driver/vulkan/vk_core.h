@@ -42,7 +42,8 @@ struct VkInitParams
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
 
   std::string AppName, EngineName;
-  uint32_t AppVersion = 0, EngineVersion = 0, APIVersion = 0;
+  uint32_t AppVersion = 0, EngineVersion = 0;
+  VkPackedVersion APIVersion;
 
   std::vector<std::string> Layers;
   std::vector<std::string> Extensions;

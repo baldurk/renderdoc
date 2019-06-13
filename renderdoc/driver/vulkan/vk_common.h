@@ -115,6 +115,34 @@ int StageIndex(VkShaderStageFlagBits stageFlag);
 
 class WrappedVulkan;
 
+struct VkPackedVersion
+{
+  VkPackedVersion(uint32_t v = 0) : version(v) {}
+  uint32_t version;
+
+  bool operator<(uint32_t v) const { return version < v; }
+  bool operator>(uint32_t v) const { return version > v; }
+  bool operator<=(uint32_t v) const { return version <= v; }
+  bool operator>=(uint32_t v) const { return version >= v; }
+  bool operator==(uint32_t v) const { return version == v; }
+  bool operator!=(uint32_t v) const { return version == v; }
+  // int overloads because VK_MAKE_VERSION is type int...
+  bool operator<(int v) const { return version < (uint32_t)v; }
+  bool operator>(int v) const { return version > (uint32_t)v; }
+  bool operator<=(int v) const { return version <= (uint32_t)v; }
+  bool operator>=(int v) const { return version >= (uint32_t)v; }
+  bool operator==(int v) const { return version == (uint32_t)v; }
+  bool operator!=(int v) const { return version == (uint32_t)v; }
+  operator uint32_t() const { return version; }
+  VkPackedVersion &operator=(uint32_t v)
+  {
+    version = v;
+    return *this;
+  }
+};
+
+DECLARE_REFLECTION_STRUCT(VkPackedVersion);
+
 // replay only class for handling marker regions.
 //
 // The cmd allows you to pass in an existing command buffer to insert/add the marker to.

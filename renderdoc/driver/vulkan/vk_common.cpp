@@ -720,6 +720,8 @@ StencilOperation MakeStencilOp(VkStencilOp op)
   return StencilOperation::Keep;
 }
 
+BASIC_TYPE_SERIALISE_STRINGIFY(VkPackedVersion, (uint32_t &)el, SDBasic::UnsignedInteger, 4);
+
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkInitParams &el)
 {
@@ -727,7 +729,7 @@ void DoSerialise(SerialiserType &ser, VkInitParams &el)
   SERIALISE_MEMBER(EngineName);
   SERIALISE_MEMBER(AppVersion);
   SERIALISE_MEMBER(EngineVersion);
-  SERIALISE_MEMBER(APIVersion);
+  SERIALISE_MEMBER(APIVersion).TypedAs("uint32_t"_lit);
   SERIALISE_MEMBER(Layers);
   SERIALISE_MEMBER(Extensions);
   SERIALISE_MEMBER(InstanceID).TypedAs("VkInstance"_lit);

@@ -2467,6 +2467,13 @@ rdcstr DoStringise(const VkExtent3D &el)
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);
 }
 
+template <>
+rdcstr DoStringise(const VkPackedVersion &el)
+{
+  return StringFormat::Fmt("VK_MAKE_VERSION(%u, %u, %u)", VK_VERSION_MAJOR(el.version),
+                           VK_VERSION_MINOR(el.version), VK_VERSION_PATCH(el.version));
+}
+
 #if ENABLED(RDOC_WIN32)
 template <>
 rdcstr DoStringise(const VkFullScreenExclusiveEXT &el)
