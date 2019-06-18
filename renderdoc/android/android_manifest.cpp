@@ -159,14 +159,13 @@ bool PatchManifest(std::vector<byte> &manifestBytes)
   // save the capacity so we can check we never resize
   size_t capacity = manifestBytes.capacity();
 
-  byte *start = &manifestBytes[0];
-  byte *end = start + manifestBytes.size();
+  byte *start = &manifestBytes.front();
 
   byte *cur = start;
 
   ResChunk_header *xmlroot = (ResChunk_header *)cur;
 
-  if((byte *)(xmlroot + 1) > end)
+  if((byte *)(xmlroot + 1) > &manifestBytes.back())
   {
     RDCERR("Manifest is truncated, %zu bytes doesn't contain full XML header", manifestBytes.size());
     return false;
@@ -208,10 +207,10 @@ bool PatchManifest(std::vector<byte> &manifestBytes)
     return false;
   }
 
-  if(cur + stringpool->header.size > end)
+  if(cur + stringpool->header.size > &manifestBytes.back())
   {
     RDCERR("String pool is truncated, expected %u more bytes but only have %u",
-           stringpool->header.size, uint32_t(end - cur));
+           stringpool->header.size, uint32_t(&manifestBytes.back() - cur));
     return false;
   }
 
@@ -232,10 +231,10 @@ bool PatchManifest(std::vector<byte> &manifestBytes)
     return false;
   }
 
-  if(cur + resMap->size > end)
+  if(cur + resMap->size > &manifestBytes.back())
   {
     RDCERR("Resource map is truncated, expected %u more bytes but only have %u", resMap->size,
-           uint32_t(end - cur));
+           uint32_t(&manifestBytes.back() - cur));
     return false;
   }
 
@@ -250,7 +249,7 @@ bool PatchManifest(std::vector<byte> &manifestBytes)
   // close. Since the <application> tag is only valid in one place in the XML we can just continue
   // iterating until we find it - we don't actually need to care about the structure of the XML
   // since we are identifying a unique tag and adding one attribute.
-  while(cur < end)
+  while(cur < &manifestBytes.back())
   {
     ResChunk_header *node = (ResChunk_header *)cur;
 
@@ -555,7 +554,7 @@ bool PatchManifest(std::vector<byte> &manifestBytes)
     // skip resource map
     cur += ((ResChunk_header *)cur)->size;
 
-    while(cur < end)
+    while(cur < &manifestBytes.back())
     {
       ResXMLTree_node *node = (ResXMLTree_node *)cur;
 
