@@ -157,7 +157,7 @@ void main()
 
         void *data = NULL;
         vkMapMemory(device, preinitMem, 0, mrq.size, 0, &data);
-        memset(data, 0x40, mrq.size);
+        memset(data, 0x40, (size_t)mrq.size);
         vkUnmapMemory(device, preinitMem);
       }
 
@@ -166,19 +166,20 @@ void main()
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
       VkImage swapimg = mainWindow->GetImage();
-      if(curFrame <= mainWindow->GetCount())
+      if((size_t)curFrame <= mainWindow->GetCount())
         setName(swapimg, "Image:Swapchain");
 
       setMarker(cmd, "Before Transition");
 
       // after the first N frames, we expect the swapchain to be in PRESENT_SRC
-      vkh::cmdPipelineBarrier(cmd, {
-                                       vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT,
-                                                               curFrame <= mainWindow->GetCount()
-                                                                   ? VK_IMAGE_LAYOUT_UNDEFINED
-                                                                   : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                                               VK_IMAGE_LAYOUT_GENERAL, swapimg),
-                                   });
+      vkh::cmdPipelineBarrier(cmd,
+                              {
+                                  vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                          (size_t)curFrame <= mainWindow->GetCount()
+                                                              ? VK_IMAGE_LAYOUT_UNDEFINED
+                                                              : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                                          VK_IMAGE_LAYOUT_GENERAL, swapimg),
+                              });
 
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
