@@ -63,6 +63,7 @@ enum RemoteServerPacket
   eRemoteServer_ListDir,
   eRemoteServer_ExecuteAndInject,
   eRemoteServer_ShutdownServer,
+  eRemoteServer_GetDriverName,
   eRemoteServer_GetSectionCount,
   eRemoteServer_FindSectionByName,
   eRemoteServer_FindSectionByType,
@@ -582,6 +583,17 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_GetResolve);
         SERIALISE_ELEMENT(StackFrames);
+      }
+    }
+    else if(type == eRemoteServer_GetDriverName)
+    {
+      reader.EndChunk();
+
+      std::string driver = rdc ? rdc->GetDriverName() : "";
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_GetDriverName);
+        SERIALISE_ELEMENT(driver);
       }
     }
     else if(type == eRemoteServer_GetSectionCount)
@@ -1629,6 +1641,36 @@ public:
     }
 
     rend->Shutdown();
+  }
+
+  rdcstr DriverName()
+  {
+    if(!Connected())
+      return 0;
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_GetDriverName);
+    }
+
+    std::string driverName = "";
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_GetDriverName)
+      {
+        SERIALISE_ELEMENT(driverName);
+      }
+      else
+      {
+        RDCERR("Unexpected response to GetDriverName");
+      }
+
+      ser.EndChunk();
+    }
+
+    return driverName;
   }
 
   int GetSectionCount()
