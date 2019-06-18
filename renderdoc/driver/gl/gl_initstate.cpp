@@ -1853,6 +1853,9 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
   {
     ContextPrepare_InitialState(live);
   }
+  else if(live.Namespace == eResRenderbuffer)
+  {
+  }
   else
   {
     RDCUNIMPLEMENTED("Unhandled type of resource needing initial states created");
