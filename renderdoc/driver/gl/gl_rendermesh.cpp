@@ -124,6 +124,15 @@ void GLReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secon
         GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.vertexResourceId).name;
         drv.glBindVertexBuffer(0, vb, (GLintptr)fmt.vertexByteOffset, fmt.vertexByteStride);
 
+        {
+          GLint bytesize = 0;
+          drv.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &bytesize);
+
+          // skip empty source buffers
+          if(bytesize == 0)
+            continue;
+        }
+
         GLenum secondarytopo = MakeGLPrimitiveTopology(fmt.topology);
 
         if(fmt.indexByteStride)
@@ -253,6 +262,16 @@ void GLReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secon
 
     GLuint vb =
         m_pDriver->GetResourceManager()->GetCurrentResource(meshData[i]->vertexResourceId).name;
+
+    {
+      GLint bytesize = 0;
+      drv.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &bytesize);
+
+      // skip empty source buffers
+      if(bytesize == 0)
+        continue;
+    }
+
     drv.glBindVertexBuffer(i, vb, offs, meshData[i]->vertexByteStride);
 
     if(meshData[i]->instanced)
