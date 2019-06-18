@@ -663,7 +663,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
         return;
       }
 
-      driver = QString::fromUtf8(file->DriverName());
+      driver = file->DriverName();
       machineIdent = QString::fromUtf8(file->RecordedMachineIdent());
       support = file->LocalReplaySupport();
 
@@ -795,10 +795,6 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
       if(driver == lit("Image"))
       {
         ANALYTIC_SET(UIFeatures.ImageViewer, true);
-      }
-      else if(!driver.isEmpty())
-      {
-        ANALYTIC_ADDUNIQ(APIs, driver);
       }
 
       m_Ctx.LoadCapture(fileToLoad, origFilename, temporary, local);

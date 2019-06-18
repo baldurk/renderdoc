@@ -939,6 +939,11 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
       bytebuf buf = access->GetSectionContents(idx);
       LoadNotes(QString::fromUtf8((const char *)buf.data(), buf.count()));
     }
+    QString driver = access->DriverName();
+    if(!driver.isEmpty())
+    {
+      ANALYTIC_ADDUNIQ(APIs, driver);
+    }
   }
 
   m_LoadInProgress = false;

@@ -120,7 +120,7 @@ public:
   rdcstr ErrorString() { return m_ErrorString; }
   void Shutdown() { delete this; }
   ReplaySupport LocalReplaySupport() { return m_Support; }
-  const char *DriverName() { return m_DriverName.c_str(); }
+  rdcstr DriverName() { return m_DriverName; }
   const char *RecordedMachineIdent() { return m_Ident.c_str(); }
   rdcpair<ReplayStatus, IReplayController *> OpenCapture(RENDERDOC_ProgressCallback progress);
 

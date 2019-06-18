@@ -1532,6 +1532,13 @@ Must only be called after :meth:`InitResolver` has returned ``True``.
 )");
   virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack) = 0;
 
+  DOCUMENT(R"(Retrieves the name of the driver that was used to create this capture.
+
+:return: A simple string identifying the driver used to make the capture.
+:rtype: ``str``
+)");
+  virtual rdcstr DriverName() = 0;
+
 protected:
   ICaptureAccess() = default;
   ~ICaptureAccess() = default;
@@ -1796,13 +1803,6 @@ replay support.
 :rtype: ReplaySupport
 )");
   virtual ReplaySupport LocalReplaySupport() = 0;
-
-  DOCUMENT(R"(Retrieves the name of the driver that was used to create this capture.
-
-:return: A simple string identifying the driver used to make the capture.
-:rtype: ``str``
-)");
-  virtual const char *DriverName() = 0;
 
   DOCUMENT(R"(Retrieves the identifying string describing what type of machine created this capture.
 
