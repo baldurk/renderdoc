@@ -159,12 +159,13 @@ private:
   MainWindow *m_Main;
 
   LambdaThread *m_ConnectThread = NULL;
-  bool m_TriggerCapture = false;
-  bool m_QueueCapture = false;
+  QSemaphore m_TriggerCapture;
+  QSemaphore m_QueueCapture;
+  QSemaphore m_CopyCapture;
+  QSemaphore m_Disconnect;
   int m_CaptureNumFrames = 1;
   int m_QueueCaptureFrameNum = 0;
   int m_CaptureCounter = 0;
-  QSemaphore m_Disconnect;
   ITargetControl *m_Connection = NULL;
 
   uint32_t m_CopyCaptureID = ~0U;

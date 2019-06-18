@@ -193,7 +193,7 @@ void LiveCapture::QueueCapture(int frameNumber, int numFrames)
 {
   m_QueueCaptureFrameNum = frameNumber;
   m_CaptureNumFrames = numFrames;
-  m_QueueCapture = true;
+  m_QueueCapture.release();
 }
 
 void LiveCapture::showEvent(QShowEvent *event)
@@ -275,13 +275,13 @@ void LiveCapture::on_queueCap_clicked()
 {
   m_CaptureNumFrames = (int)ui->numFrames->value();
   m_QueueCaptureFrameNum = (int)ui->captureFrame->value();
-  m_QueueCapture = true;
+  m_QueueCapture.release();
 }
 
 void LiveCapture::on_triggerImmediateCapture_clicked()
 {
-  m_TriggerCapture = true;
   m_CaptureNumFrames = (int)ui->numFrames->value();
+  m_TriggerCapture.release();
 }
 
 void LiveCapture::on_cycleActiveWindow_clicked()
@@ -508,10 +508,10 @@ void LiveCapture::captureCountdownTick()
 
   if(m_CaptureCounter == 0)
   {
-    m_TriggerCapture = true;
     m_CaptureNumFrames = (int)ui->numFrames->value();
     ui->triggerDelayedCapture->setEnabled(true);
     ui->triggerDelayedCapture->setText(tr("Trigger After Delay"));
+    m_TriggerCapture.release();
   }
   else
   {
@@ -816,6 +816,8 @@ bool LiveCapture::saveCapture(Capture *cap, QString path)
     // if we have a current live connection, prefer using it
     m_CopyCaptureLocalPath = path;
     m_CopyCaptureID = cap->remoteID;
+
+    m_CopyCapture.release();
   }
   else
   {
@@ -1151,22 +1153,20 @@ void LiveCapture::connectionThreadEntry()
 
   while(m_Connection && m_Connection->Connected())
   {
-    if(m_TriggerCapture)
+    if(m_TriggerCapture.tryAcquire())
     {
       m_Connection->TriggerCapture((uint)m_CaptureNumFrames);
-      m_TriggerCapture = false;
       m_CaptureNumFrames = 1;
     }
 
-    if(m_QueueCapture)
+    if(m_QueueCapture.tryAcquire())
     {
       m_Connection->QueueCapture((uint32_t)m_QueueCaptureFrameNum, (uint32_t)m_CaptureNumFrames);
-      m_QueueCapture = false;
       m_QueueCaptureFrameNum = 0;
       m_CaptureNumFrames = 1;
     }
 
-    if(!m_CopyCaptureLocalPath.isEmpty())
+    if(m_CopyCapture.tryAcquire())
     {
       m_Connection->CopyCapture(m_CopyCaptureID, m_CopyCaptureLocalPath.toUtf8().data());
       m_CopyCaptureLocalPath = QString();
