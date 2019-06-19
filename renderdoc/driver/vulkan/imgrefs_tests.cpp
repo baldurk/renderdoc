@@ -37,63 +37,54 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
 {
   SECTION("unsplit")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 0);
   };
   SECTION("split aspect")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, false, false);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 1);
   };
   SECTION("split levels")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(false, true, false);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 2);
   };
   SECTION("split layers")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(false, false, true);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 5);
   };
   SECTION("split aspect and levels")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, true, false);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 11 + 2);
   };
   SECTION("split aspect and layers")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, false, true);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 17 + 5);
   };
   SECTION("split levels and layers")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(false, true, true);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 2 * 17 + 5);
   };
   SECTION("split aspect and levels and layers")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     imgRefs.Split(true, true, true);
     CHECK(imgRefs.SubresourceIndex(VK_IMAGE_ASPECT_STENCIL_BIT, 2, 5) == 11 * 17 + 2 * 17 + 5);
   };
   SECTION("update unsplit")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     ImageRange range;
     imgRefs.Update(range, eFrameRef_Read);
     std::vector<FrameRefType> expected = {eFrameRef_Read};
@@ -101,8 +92,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   };
   SECTION("update split aspect")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     ImageRange range;
     range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     imgRefs.Update(range, eFrameRef_Read);
@@ -111,8 +101,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   };
   SECTION("update split levels")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     ImageRange range;
     range.baseMipLevel = 1;
     range.levelCount = 3;
@@ -125,8 +114,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   };
   SECTION("update split layers")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     ImageRange range;
     range.baseArrayLayer = 7;
     imgRefs.Update(range, eFrameRef_Read);
@@ -139,8 +127,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   };
   SECTION("update split aspect then levels")
   {
-    ImgRefs imgRefs(
-        ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     ImageRange range0;
     range0.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     imgRefs.Update(range0, eFrameRef_Read);
@@ -162,7 +149,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update split layers then aspects and levels")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_2D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 7, 5, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 7, 5, 1));
     ImageRange range0;
     range0.baseArrayLayer = 1;
     range0.layerCount = 2;
@@ -210,7 +197,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update 3D image default view")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_3D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
     ImageRange range;
     range.layerCount = 1;
     imgRefs.Update(range, eFrameRef_Read);
@@ -219,7 +206,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update 3D image 3D view")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_3D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
     ImageRange range;
     range.layerCount = 1;
     range.viewType = VK_IMAGE_VIEW_TYPE_3D;
@@ -229,7 +216,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update 3D image 2D view")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_3D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
     ImageRange range;
     range.layerCount = 1;
     range.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -240,7 +227,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update 3D image 2D array view")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_3D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
     ImageRange range;
     range.baseArrayLayer = 1;
     range.layerCount = 2;
@@ -252,7 +239,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update 3D image 2D array view full")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_3D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
     ImageRange range;
     range.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     imgRefs.Update(range, eFrameRef_Read);
@@ -261,7 +248,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
   }
   SECTION("update 3D image 3D view full")
   {
-    ImgRefs imgRefs(ImageInfo(VK_IMAGE_TYPE_3D, VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
+    ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 5}, 11, 1, 1));
     ImageRange range;
     range.viewType = VK_IMAGE_VIEW_TYPE_3D;
     imgRefs.Update(range, eFrameRef_Read);

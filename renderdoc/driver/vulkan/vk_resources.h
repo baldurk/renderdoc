@@ -886,12 +886,9 @@ struct ImageInfo
   int sampleCount = 0;
   VkExtent3D extent = {0, 0, 0};
   VkFormat format = VK_FORMAT_UNDEFINED;
-  VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
   ImageInfo() {}
-  ImageInfo(VkImageType imageType, VkFormat format, VkExtent3D extent, int levelCount,
-            int layerCount, int sampleCount)
-      : imageType(imageType),
-        format(format),
+  ImageInfo(VkFormat format, VkExtent3D extent, int levelCount, int layerCount, int sampleCount)
+      : format(format),
         extent(extent),
         levelCount(levelCount),
         layerCount(layerCount),
@@ -903,16 +900,20 @@ struct ImageInfo
         levelCount(ci.mipLevels),
         sampleCount((int)ci.samples),
         extent(ci.extent),
-        format(ci.format),
-        imageType(ci.imageType)
+        format(ci.format)
   {
+    // The Vulkan spec Valid Usage for `VkImageCreateInfo` specifies that the height and depth of 1D
+    // images, and the depth of 2D images must equal 1. We need to ensure this holds, even if the
+    // application is invalid, since we rely on `depth>1` to detect 3D images and correctly handle
+    // 2D views of 3D images.
+    switch(ci.imageType)
+    {
+      case VK_IMAGE_TYPE_1D: extent.height = extent.depth = 1; break;
+      case VK_IMAGE_TYPE_2D: extent.depth = 1; break;
+    }
   }
   ImageInfo(const SwapchainInfo &swapInfo)
-      : layerCount(swapInfo.arraySize),
-        levelCount(1),
-        sampleCount(1),
-        format(swapInfo.format),
-        imageType(VK_IMAGE_TYPE_2D)
+      : layerCount(swapInfo.arraySize), levelCount(1), sampleCount(1), format(swapInfo.format)
   {
     extent.width = swapInfo.extent.width;
     extent.height = swapInfo.extent.height;
@@ -1107,7 +1108,7 @@ struct ImgRefs
         imageInfo(imageInfo),
         aspectMask(FormatImageAspects(imageInfo.format))
   {
-    if(imageInfo.imageType == VK_IMAGE_TYPE_3D)
+    if(imageInfo.extent.depth > 1)
       // Depth slices of 3D views are treated as array layers
       this->imageInfo.layerCount = imageInfo.extent.depth;
   }
@@ -1139,7 +1140,7 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   range.extent.width = RDCMIN(range.extent.width, imageInfo.extent.width - range.offset.x);
   range.extent.height = RDCMIN(range.extent.height, imageInfo.extent.height - range.offset.y);
 
-  if(imageInfo.imageType == VK_IMAGE_TYPE_3D && range.viewType != VK_IMAGE_VIEW_TYPE_2D &&
+  if(imageInfo.extent.depth > 1 && range.viewType != VK_IMAGE_VIEW_TYPE_2D &&
      range.viewType != VK_IMAGE_VIEW_TYPE_2D_ARRAY)
   {
     // The Vulkan spec allows 2D `VkImageView`s of 3D `VkImage`s--the depth slices of the images are
