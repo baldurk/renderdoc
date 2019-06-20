@@ -41,12 +41,14 @@
 //
 
 // To prevent a project rebuild cascading when the git commit changes, we declare a char array
-// that's implemented in version.inl, which can be included in each module that uses the version.
+// that's implemented in version.cpp, which is linked into the core module.
 // It's 41 characters to allow 40 characters of commit hash plus trailing NULL.
-// Then the .cpp that includes version.inl is the only one that actually needs to have the hash
-// defined properly.
-// This replaces the previous GIT_COMMIT_HASH define here.
+// Then version.cpp is the only thing that needs to be rebuilt when the git commit changes
+//
+// Only available internally, external users should use RENDERDOC_GetCommitHash()
+#if defined(RENDERDOC_EXPORTS)
 extern "C" const char GitVersionHash[41];
+#endif
 
 // If this variable is set to 1, then this build is considered a stable version - based on a tagged
 // version number upstream, possibly with some patches applied as necessary.

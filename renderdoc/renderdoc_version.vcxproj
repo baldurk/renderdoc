@@ -122,6 +122,6 @@ namespace GitIntrospection {
     </ItemGroup>
   </Target>
   <ItemGroup>
-    <ClCompile Include="api\replay\version.cpp" />
+    <ClCompile Include="replay\version.cpp" />
   </ItemGroup>
 </Project>

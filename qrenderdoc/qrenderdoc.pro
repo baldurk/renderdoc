@@ -124,8 +124,6 @@ win32 {
 	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc_python.cxx
 	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc.py.c
 
-	SOURCES += $$_PRO_FILE_PWD_/../renderdoc/api/replay/version.cpp
-
 	CONFIG += warn_off
 	CONFIG += c++14
 	QMAKE_CFLAGS_WARN_OFF -= -w

@@ -1015,7 +1015,7 @@ void MainWindow::SetTitle(const QString &filename)
   else
     text += tr("Unstable release (%1 - %2)")
                 .arg(lit(FULL_VERSION_STRING))
-                .arg(QString::fromLatin1(GitVersionHash));
+                .arg(QString::fromLatin1(RENDERDOC_GetCommitHash()));
 
   if(IsRunningAsAdmin())
     text += tr(" (Administrator)");
@@ -2631,7 +2631,7 @@ void MainWindow::on_action_Send_Error_Report_triggered()
   QVariantMap json;
 
   json[lit("version")] = lit(FULL_VERSION_STRING);
-  json[lit("gitcommit")] = QString::fromLatin1(GitVersionHash);
+  json[lit("gitcommit")] = QString::fromLatin1(RENDERDOC_GetCommitHash());
   json[lit("replaycrash")] = 1;
   json[lit("report")] = (QString)report;
 

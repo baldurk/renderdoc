@@ -93,7 +93,6 @@ set(sources
     api/replay/vk_pipestate.h
     api/replay/version.h
     api/replay/renderdoc_tostr.inl
-    api/replay/version.cpp
     common/common.cpp
     common/common.h
     common/custom_assert.h
@@ -472,6 +471,12 @@ target_include_directories(rdoc ${RDOC_INCLUDES})
 list(APPEND renderdoc_objects
     $<TARGET_OBJECTS:rdoc>
     ${data_objects})
+
+add_library(rdoc_version OBJECT replay/version.cpp)
+target_compile_definitions(rdoc_version PRIVATE -DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+
+list(APPEND renderdoc_objects
+    $<TARGET_OBJECTS:rdoc_version>)
 
 # posix_libentry must be the last so that library_loaded is called after
 # static objects are constructed. We guarantee this happens after even

@@ -65,7 +65,7 @@ endif()
 
 # version setting variables. See renderdoc/api/replay/version.h
 
-set(BUILD_VERSION_HASH "" CACHE STRING "The current git commit hash. See GIT_COMMIT_HASH in renderdoc/api/replay/version.cpp")
+set(BUILD_VERSION_HASH "" CACHE STRING "The current git commit hash. See renderdoc/replay/version.cpp")
 option(BUILD_VERSION_STABLE "If this is a stable build. See RENDERDOC_STABLE_BUILD in renderdoc/api/replay/version.h" OFF)
 set(BUILD_VERSION_DIST_NAME "" CACHE STRING "The name of the distribution. See DISTRIBUTION_NAME in renderdoc/api/replay/version.h")
 set(BUILD_VERSION_DIST_VER "" CACHE STRING "The distribution-specific version number. See DISTRIBUTION_VERSION in renderdoc/api/replay/version.h")
@@ -134,7 +134,26 @@ endfunction(get_git_hash)
 # get git commit hash
 get_git_hash(GIT_COMMIT_HASH)
 string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
-add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git/HEAD")
+    # Use configure_file to force a re-configure if the HEAD file changes. That means changing branch.
+    # The re-configure will pick up a new git commit hash above, if it exists and is valid.
+    # This will be slightly redundant if BUILD_VERSION_HASH is specified but that is not a case we expect to care about.
+    configure_file("${CMAKE_SOURCE_DIR}/.git/HEAD" "${CMAKE_BINARY_DIR}/git_HEAD" COPYONLY)
+
+    # in addition, if HEAD is a ref, do the same on the file it's pointing to (since HEAD won't change for commits to the current branch)
+    # if we change branch then this will correspondingly 
+    file(READ ${CMAKE_SOURCE_DIR}/.git/HEAD HEAD_CONTENTS)
+    string(STRIP "${HEAD_CONTENTS}" HEAD_CONTENTS)
+
+    if("${HEAD_CONTENTS}" MATCHES "ref: ")
+        string(REPLACE "ref: " "" REF_LOCATION "${HEAD_CONTENTS}")
+
+        if(EXISTS "${CMAKE_SOURCE_DIR}/.git/${REF_LOCATION}")
+            configure_file("${CMAKE_SOURCE_DIR}/.git/${REF_LOCATION}" "${CMAKE_BINARY_DIR}/git_ref" COPYONLY)
+        endif()
+    endif()
+endif()
 
 project(RenderDoc CXX C)
 

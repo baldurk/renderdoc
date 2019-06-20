@@ -153,10 +153,6 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # propagate build version info. Lots of escaping needed here to pass ""s into the define value
-file(APPEND
-    ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-    "DEFINES+=GIT_COMMIT_HASH='\\\\\"${GIT_COMMIT_HASH}\\\\\"'\n")
-
 if(BUILD_VERSION_STABLE)
     file(APPEND
          ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
