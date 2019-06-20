@@ -29,16 +29,6 @@
 #include "strings/string_utils.h"
 #include "android_utils.h"
 
-// we use GIT_COMMIT_HASH here instead of GitVersionHash since the value is actually only used on
-// android - where GIT_COMMIT_HASH is available globally. We need to have it available in a static
-// initializer at compile time, which wouldn't be possible with GitVersionHash.
-#if !defined(GIT_COMMIT_HASH)
-#define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED_AT_BUILD_TIME"
-#endif
-
-extern "C" RENDERDOC_API const char RENDERDOC_Version_Tag_String[] =
-    "RenderDoc_build_version: " FULL_VERSION_STRING " from git commit " GIT_COMMIT_HASH;
-
 static const char keystoreName[] = "renderdoc.keystore";
 
 namespace Android
