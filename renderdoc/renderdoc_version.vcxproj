@@ -108,12 +108,13 @@ namespace GitIntrospection {
       </Code>
     </Task>
   </UsingTask>
+  <PropertyGroup><DisableFastUpToDateCheck>true</DisableFastUpToDateCheck></PropertyGroup>
   <!-- Only actually run the task if we located the assembly for LibGit2Sharp. Otherwise silently skip this step. -->
   <Target Name="RunTask" BeforeTargets="PrepareForBuild" Condition="exists('$(LibGit2SharpPath)')">
     <GetGitCommit Repository="$(SolutionDir)" LibGit2SharpAssemblyPath="$(LibGit2SharpPath)" ContinueOnError="WarnAndContinue">
       <Output TaskParameter="Sha1" PropertyName="CommitId" />
     </GetGitCommit>
-    <Message Text="Building from Git commit $(CommitId)" />
+    <Message Importance="high" Text="Building from Git commit $(CommitId)" />
     <ItemGroup Condition="$(CommitId.Length) &gt; 0">
       <ClCompile>
         <PreprocessorDefinitions>GIT_COMMIT_HASH="$(CommitId)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
