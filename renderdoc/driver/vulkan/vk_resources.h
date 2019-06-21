@@ -1143,6 +1143,8 @@ struct ImgRefs
   {
     return InitReq(SubresourceRef(aspectIndex, level, layer));
   }
+  std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > SubresourceRangeInitReqs(
+      VkImageSubresourceRange range) const;
   void Split(bool splitAspects, bool splitLevels, bool splitLayers);
   template <typename Compose>
   FrameRefType Update(ImageRange range, FrameRefType refType, Compose comp);

@@ -407,7 +407,7 @@ int StageIndex(VkShaderStageFlagBits stageFlag)
   return 0;
 }
 
-void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers)
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, const VkImageMemoryBarrier *barriers)
 {
   RDCASSERT(cmd != VK_NULL_HANDLE);
   ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -417,7 +417,7 @@ void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier
                                    count, barriers);    // image memory barriers
 }
 
-void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers)
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, const VkBufferMemoryBarrier *barriers)
 {
   RDCASSERT(cmd != VK_NULL_HANDLE);
   ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -427,7 +427,7 @@ void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrie
                                    0, NULL);           // image memory barriers
 }
 
-void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkMemoryBarrier *barriers)
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, const VkMemoryBarrier *barriers)
 {
   RDCASSERT(cmd != VK_NULL_HANDLE);
   ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,

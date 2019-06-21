@@ -2963,6 +2963,54 @@ int ImgRefs::SubresourceIndex(int aspectIndex, int level, int layer) const
   return (aspectIndex * splitLevelCount + level) * splitLayerCount + layer;
 }
 
+std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::SubresourceRangeInitReqs(
+    VkImageSubresourceRange range) const
+{
+  VkImageSubresourceRange out(range);
+  std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > res;
+  std::vector<VkImageAspectFlags> splitAspects;
+  if(areAspectsSplit)
+  {
+    for(auto aspectIt = ImageAspectFlagIter::begin(aspectMask & range.aspectMask);
+        aspectIt != ImageAspectFlagIter::end(); ++aspectIt)
+    {
+      splitAspects.push_back(*aspectIt);
+    }
+  }
+  else
+  {
+    splitAspects.push_back(range.aspectMask);
+  }
+
+  int splitLevelCount = 1;
+  if(areLevelsSplit || range.baseMipLevel != 0 || range.levelCount < (uint32_t)imageInfo.levelCount)
+  {
+    splitLevelCount = range.levelCount;
+    out.levelCount = 1;
+  }
+  int splitLayerCount = 1;
+  if(areLayersSplit || range.baseArrayLayer != 0 || range.layerCount < (uint32_t)imageInfo.layerCount)
+  {
+    splitLayerCount = range.layerCount;
+    out.layerCount = 1;
+  }
+  int aspectIndex = 0;
+  for(auto aspectIt = splitAspects.begin(); aspectIt != splitAspects.end(); ++aspectIt, ++aspectIndex)
+  {
+    out.aspectMask = *aspectIt;
+    for(int level = range.baseMipLevel; level < splitLevelCount; ++level)
+    {
+      out.baseMipLevel = level;
+      for(int layer = range.baseArrayLayer; layer < splitLayerCount; ++layer)
+      {
+        out.baseArrayLayer = layer;
+        res.push_back(make_rdcpair(out, SubresourceInitReq(aspectIndex, level, layer)));
+      }
+    }
+  }
+  return res;
+}
+
 void ImgRefs::Split(bool splitAspects, bool splitLevels, bool splitLayers)
 {
   int newSplitAspectCount = 1;
