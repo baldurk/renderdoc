@@ -105,9 +105,9 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout);
 void SanitiseOldImageLayout(VkImageLayout &layout);
 void SanitiseNewImageLayout(VkImageLayout &layout);
 
-void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers);
-void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers);
-void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkMemoryBarrier *barriers);
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, const VkImageMemoryBarrier *barriers);
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, const VkBufferMemoryBarrier *barriers);
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, const VkMemoryBarrier *barriers);
 
 int SampleCount(VkSampleCountFlagBits countFlag);
 int SampleIndex(VkSampleCountFlagBits countFlag);
