@@ -2476,10 +2476,8 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
       SPIRVBlob histogram = NULL;
       std::string err;
 
-      std::string defines = "";
+      std::string defines = shaderCache->GetGlobalDefines();
 
-      if(driver->GetDriverInfo().TexelFetchBrokenDriver())
-        defines += "#define NO_TEXEL_FETCH\n";
       defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       defines += std::string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
       defines += std::string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";

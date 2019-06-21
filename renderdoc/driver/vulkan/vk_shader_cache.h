@@ -75,6 +75,7 @@ public:
   void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
   void MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 
+  std::string GetGlobalDefines() { return m_GlobalDefines; }
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf00d00d5;
@@ -82,6 +83,8 @@ private:
 
   WrappedVulkan *m_pDriver = NULL;
   VkDevice m_Device = VK_NULL_HANDLE;
+
+  std::string m_GlobalDefines;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
   std::map<uint32_t, SPIRVBlob> m_ShaderCache;

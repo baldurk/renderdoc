@@ -127,6 +127,12 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   VkDriverInfo driverVersion = driver->GetDriverInfo();
   const VkPhysicalDeviceFeatures &features = driver->GetDeviceFeatures();
 
+  m_GlobalDefines = "";
+  if(driverVersion.TexelFetchBrokenDriver())
+    m_GlobalDefines += "#define NO_TEXEL_FETCH\n";
+  if(driverVersion.RunningOnMetal())
+    m_GlobalDefines += "#define METAL_BACKEND\n";
+
   std::string src;
   SPIRVCompilationSettings compileSettings;
   compileSettings.lang = SPIRVSourceLanguage::VulkanGLSL;
@@ -163,12 +169,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(config.stage == SPIRVShaderStage::Geometry && !features.geometryShader)
       continue;
 
-    std::string defines = "";
-    if(driverVersion.TexelFetchBrokenDriver())
-      defines += "#define NO_TEXEL_FETCH\n";
-
-    src =
-        GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430, defines);
+    src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430,
+                             m_GlobalDefines);
 
     compileSettings.stage = config.stage;
     std::string err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);
