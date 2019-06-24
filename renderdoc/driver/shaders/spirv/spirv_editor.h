@@ -414,16 +414,6 @@ public:
     return AddConstant(rdcspv::Operation(rdcspv::Op::Constant, words));
   }
 
-  // simple properties that are public.
-  struct
-  {
-    uint8_t major = 1, minor = 0;
-  } moduleVersion;
-  uint32_t generator = 0;
-
-  rdcspv::SourceLanguage sourceLang = rdcspv::SourceLanguage::Unknown;
-  uint32_t sourceVer = 0;
-
   // accessors to structs/vectors of data
   const std::vector<rdcspv::OpEntryPoint> &GetEntries() { return entries; }
   const std::vector<rdcspv::OpVariable> &GetVariables() { return variables; }

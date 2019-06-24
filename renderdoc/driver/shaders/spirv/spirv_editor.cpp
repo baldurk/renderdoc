@@ -96,9 +96,6 @@ SPIRVEditor::SPIRVEditor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
     return;
   }
 
-  moduleVersion.major = uint8_t((spirv[1] & 0x00ff0000) >> 16);
-  moduleVersion.minor = uint8_t((spirv[1] & 0x0000ff00) >> 8);
-  generator = spirv[2];
   idOffsets.resize(spirv[3]);
   idTypes.resize(spirv[3]);
 
