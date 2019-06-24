@@ -654,27 +654,30 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   uint32_t ret = (uint32_t)RunProcess(app, workingDir, cmdLine, currentEnvironment,
                                       result ? stdoutPipe : NULL, result ? stderrPipe : NULL);
 
-  if(ret && result)
+  if(result)
   {
     result->strStdout = "";
     result->strStderror = "";
 
-    ssize_t stdoutRead, stderrRead;
-    char chBuf[4096];
-    do
+    if(ret)
     {
-      stdoutRead = read(stdoutPipe[0], chBuf, sizeof(chBuf));
-      if(stdoutRead > 0)
-        result->strStdout += std::string(chBuf, stdoutRead);
-    } while(stdoutRead > 0);
+      ssize_t stdoutRead, stderrRead;
+      char chBuf[4096];
+      do
+      {
+        stdoutRead = read(stdoutPipe[0], chBuf, sizeof(chBuf));
+        if(stdoutRead > 0)
+          result->strStdout += std::string(chBuf, stdoutRead);
+      } while(stdoutRead > 0);
 
-    do
-    {
-      stderrRead = read(stderrPipe[0], chBuf, sizeof(chBuf));
-      if(stderrRead > 0)
-        result->strStderror += std::string(chBuf, stderrRead);
+      do
+      {
+        stderrRead = read(stderrPipe[0], chBuf, sizeof(chBuf));
+        if(stderrRead > 0)
+          result->strStderror += std::string(chBuf, stderrRead);
 
-    } while(stderrRead > 0);
+      } while(stderrRead > 0);
+    }
 
     // Close read ends.
     close(stdoutPipe[0]);
