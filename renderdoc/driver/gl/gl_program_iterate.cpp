@@ -571,11 +571,20 @@ void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
     case eGL_FLOAT_MAT2:
     case eGL_DOUBLE_MAT2:
     case eGL_FLOAT_VEC4:
-    case eGL_DOUBLE_VEC4: elemCount = 4; break;
+    case eGL_DOUBLE_VEC4:
+    case eGL_INT_VEC4:
+    case eGL_UNSIGNED_INT_VEC4:
+    case eGL_BOOL_VEC4: elemCount = 4; break;
     case eGL_FLOAT_VEC3:
-    case eGL_DOUBLE_VEC3: elemCount = 3; break;
+    case eGL_DOUBLE_VEC3:
+    case eGL_INT_VEC3:
+    case eGL_UNSIGNED_INT_VEC3:
+    case eGL_BOOL_VEC3: elemCount = 3; break;
     case eGL_FLOAT_VEC2:
-    case eGL_DOUBLE_VEC2: elemCount = 2; break;
+    case eGL_DOUBLE_VEC2:
+    case eGL_INT_VEC2:
+    case eGL_UNSIGNED_INT_VEC2:
+    case eGL_BOOL_VEC2: elemCount = 2; break;
     default:
       // all other types are elemCount = 1
       break;
