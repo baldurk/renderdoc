@@ -7,7 +7,7 @@ rm -rf /io/*
 cd /
 mkdir renderdoc_build
 cd renderdoc_build
-CC=clang CXX=clang++ CFLAGS="-fPIC -fvisibility=hidden" LDFLAGS="-static-libstdc++" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/io/dist/ -DVULKAN_LAYER_FOLDER=/io/dist/etc/vulkan/implicit_layer.d -DSTATIC_QRENDERDOC=ON -DQRENDERDOC_NO_CXX11_REGEX=ON /renderdoc
+CC=clang CXX=clang++ CFLAGS="-fPIC -fvisibility=hidden" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/io/dist/ -DVULKAN_LAYER_FOLDER=/io/dist/etc/vulkan/implicit_layer.d -DSTATIC_QRENDERDOC=ON -DQRENDERDOC_NO_CXX11_REGEX=ON /renderdoc
 make -j8
 make install
 

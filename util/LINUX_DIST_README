@@ -34,11 +34,18 @@ Requirements:
 These should be available on any system with X installed. You can always
 build RenderDoc yourself from source. For more information, github.
 
-To run qrenderdoc, Qt is statically linked two additional system
+To run qrenderdoc, Qt is statically linked but additional system
 libraries are needed:
 
-* libfontconfig
-* libfreetype
+* libstdc++ >= 6.0.21 (from GCC 5.x)
+* libfontconfig1 >= 2.11.0
+* libfreetype6 >= 2.4.8
+* libproxy >= 0.4.7
+
+If you get errors on run about missing GLIBCXX symbols then you likely
+haven't met the libstdc++ requirement and will need to either find a
+package in your distribution to install gcc 5.x, or else compile
+RenderDoc from source (though you will still need gcc-5 to compile).
 
 Vulkan Layer registration:
 --------------------------

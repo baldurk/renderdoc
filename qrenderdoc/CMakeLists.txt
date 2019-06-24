@@ -26,7 +26,7 @@ endif()
 if(STATIC_QRENDERDOC)
     set(QMAKE_CXXFLAGS "-DSTATIC_QRENDERDOC=1")
     set(QMAKE_CONFIG "debug static")
-    set(QMAKE_LDFLAGS "-static-libstdc++ -lutil")
+    set(QMAKE_LDFLAGS "-lutil")
 endif()
 
 if(NOT APPLE)
