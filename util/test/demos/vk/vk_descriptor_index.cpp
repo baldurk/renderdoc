@@ -39,6 +39,7 @@
 #endif
 
 #define BUFIDX 15
+#define INDEX3 4
 #define INDEX1 49
 #define INDEX2 381
 #define NONUNIFORMIDX 20
@@ -185,12 +186,20 @@ void dispatch_indirect_color(int dummy1,
   }
 }
 
+void add_parameterless()
+{
+  // use array directly without it being a function parameter
+  Color += 0.1f * texture(tex1[)EOSHADER" STRINGISE(INDEX3) R"EOSHADER(], vertIn.uv.xy);
+}
+
 void main()
 {
   if(vertIn.uv.y < 0.2f)
   {
     // nonuniform dynamic index
     Color = texture(tex1[nonuniformEXT(int(vertIn.col.w+0.5f))], vertIn.uv.xy);
+
+    add_parameterless();
   }
   else
   {
@@ -490,6 +499,11 @@ void main()
     vkh::updateDescriptorSets(
         device,
         {
+            vkh::WriteDescriptorSet(
+                descset[0], 1, INDEX3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {
+                    vkh::DescriptorImageInfo(imgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
+                }),
             vkh::WriteDescriptorSet(
                 descset[0], 1, INDEX1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {

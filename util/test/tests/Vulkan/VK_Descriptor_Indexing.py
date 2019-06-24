@@ -19,10 +19,11 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         #   - buffer 15 in bind 0 should be used
         #   - images 19, 20, 21 in bind 1 should be used for the non-uniform index
         #     images 49 & 59 in bind 1 should be used for the first fixed index
+        #     image 4 in bind 1 should be used for the global access from a function with no dynamic/patched parameters
         #   - images 381 & 386 in bind 2 should be used for the second fixed index
         bind_info = {
             0: { 'dynamicallyUsedCount': 1, 'used': [15] },
-            1: { 'dynamicallyUsedCount': 5, 'used': [19, 20, 21, 49, 59] },
+            1: { 'dynamicallyUsedCount': 6, 'used': [4, 19, 20, 21, 49, 59] },
             2: { 'dynamicallyUsedCount': 2, 'used': [381, 386] },
         }
 

@@ -344,6 +344,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
           }
         }
 
+        // if we have parameters to patch, replace the function call
         if(!funccall.empty())
         {
           // prepend all the existing words
@@ -358,13 +359,13 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
           // remove the old call
           editor.Remove(oldCall);
-
-          // if this function isn't marked for patching yet, and isn't patched, queue it
-          rdcspv::Id funcid = rdcspv::Id::fromWord(it.word(3));
-          if(functionPatchQueue[funcid].empty() &&
-             patchedFunctions.find(funcid) == patchedFunctions.end())
-            functionPatchQueue[funcid] = patchArgs;
         }
+
+        // if this function isn't marked for patching yet, and isn't patched, queue it
+        rdcspv::Id funcid = rdcspv::Id::fromWord(it.word(3));
+        if(functionPatchQueue[funcid].empty() &&
+           patchedFunctions.find(funcid) == patchedFunctions.end())
+          functionPatchQueue[funcid] = patchArgs;
       }
 
       // if we see an access chain of a variable we're snooping, save out the result
