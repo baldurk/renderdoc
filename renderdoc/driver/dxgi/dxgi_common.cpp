@@ -1373,6 +1373,7 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_BC7_UNORM_SRGB: return DXGI_FORMAT_BC7_TYPELESS;
 
     case DXGI_FORMAT_R1_UNORM:
+    case DXGI_FORMAT_A8_UNORM:
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
     case DXGI_FORMAT_B5G6R5_UNORM:
     case DXGI_FORMAT_B5G5R5A1_UNORM:
@@ -1833,6 +1834,7 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
         break;
       case ResourceFormatType::D24S8: ret = DXGI_FORMAT_R24G8_TYPELESS; break;
       case ResourceFormatType::D32S8: ret = DXGI_FORMAT_R32G8X24_TYPELESS; break;
+      case ResourceFormatType::A8: ret = DXGI_FORMAT_A8_UNORM; break;
       case ResourceFormatType::YUV8:
       {
         int subsampling = fmt.YUVSubsampling();
