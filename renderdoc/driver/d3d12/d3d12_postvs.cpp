@@ -30,7 +30,7 @@
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
-void D3D12Replay::CreateSOBuffers()
+bool D3D12Replay::CreateSOBuffers()
 {
   HRESULT hr = S_OK;
 
@@ -38,6 +38,15 @@ void D3D12Replay::CreateSOBuffers()
   SAFE_RELEASE(m_SOStagingBuffer);
   SAFE_RELEASE(m_SOPatchedIndexBuffer);
   SAFE_RELEASE(m_SOQueryHeap);
+
+  if(m_SOBufferSize >= 0xFFFF0000ULL)
+  {
+    RDCERR(
+        "Stream-out buffer size %llu is close to or over 4GB, out of memory very likely so "
+        "skipping",
+        m_SOBufferSize);
+    return false;
+  }
 
   D3D12_RESOURCE_DESC soBufDesc;
   soBufDesc.Alignment = 0;
@@ -65,13 +74,13 @@ void D3D12Replay::CreateSOBuffers()
                                           D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
                                           __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
 
-  m_SOBuffer->SetName(L"m_SOBuffer");
-
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO output buffer, HRESULT: %s", ToStr(hr).c_str());
-    return;
+    return false;
   }
+
+  m_SOBuffer->SetName(L"m_SOBuffer");
 
   soBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
   heapProps.Type = D3D12_HEAP_TYPE_READBACK;
@@ -80,13 +89,13 @@ void D3D12Replay::CreateSOBuffers()
                                           D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                           __uuidof(ID3D12Resource), (void **)&m_SOStagingBuffer);
 
-  m_SOStagingBuffer->SetName(L"m_SOStagingBuffer");
-
   if(FAILED(hr))
   {
     RDCERR("Failed to create readback buffer, HRESULT: %s", ToStr(hr).c_str());
-    return;
+    return false;
   }
+
+  m_SOStagingBuffer->SetName(L"m_SOStagingBuffer");
 
   // this is a buffer of unique indices, so it allows for
   // the worst case - float4 per vertex, all unique indices.
@@ -97,13 +106,13 @@ void D3D12Replay::CreateSOBuffers()
       &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
       __uuidof(ID3D12Resource), (void **)&m_SOPatchedIndexBuffer);
 
-  m_SOPatchedIndexBuffer->SetName(L"m_SOPatchedIndexBuffer");
-
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO index buffer, HRESULT: %s", ToStr(hr).c_str());
-    return;
+    return false;
   }
+
+  m_SOPatchedIndexBuffer->SetName(L"m_SOPatchedIndexBuffer");
 
   D3D12_QUERY_HEAP_DESC queryDesc;
   queryDesc.Count = 16;
@@ -114,7 +123,7 @@ void D3D12Replay::CreateSOBuffers()
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO query heap, HRESULT: %s", ToStr(hr).c_str());
-    return;
+    return false;
   }
 
   D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
@@ -128,6 +137,8 @@ void D3D12Replay::CreateSOBuffers()
 
   m_pDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
                                        GetDebugManager()->GetUAVClearHandle(STREAM_OUT_UAV));
+
+  return true;
 }
 
 void D3D12Replay::ClearPostVSCache()
@@ -349,7 +360,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       {
         m_pDevice->GPUSync();
 
-        CreateSOBuffers();
+        if(!CreateSOBuffers())
+        {
+          m_PostVSData[eventId].vsin.topo = topo;
+          m_PostVSData[eventId].vsout.topo = topo;
+          return;
+        }
       }
 
       list = GetDebugManager()->ResetDebugList();
@@ -454,7 +470,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       {
         m_pDevice->GPUSync();
 
-        CreateSOBuffers();
+        if(!CreateSOBuffers())
+        {
+          m_PostVSData[eventId].vsin.topo = topo;
+          m_PostVSData[eventId].vsout.topo = topo;
+          return;
+        }
       }
 
       GetDebugManager()->FillBuffer(m_SOPatchedIndexBuffer, 0, &indices[0],
@@ -900,7 +921,13 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         uint64_t oldSize = m_SOBufferSize;
         m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
         RDCWARN("Resizing stream-out buffer from %llu to %llu for output", oldSize, m_SOBufferSize);
-        CreateSOBuffers();
+
+        if(!CreateSOBuffers())
+        {
+          m_PostVSData[eventId].vsin.topo = topo;
+          m_PostVSData[eventId].vsout.topo = topo;
+          return;
+        }
       }
 
       GetDebugManager()->ResetDebugAlloc();
@@ -1040,7 +1067,13 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
           uint64_t oldSize = m_SOBufferSize;
           m_SOBufferSize = CalcMeshOutputSize(m_SOBufferSize, outputSize);
           RDCWARN("Resizing stream-out buffer from %llu to %llu for output", oldSize, m_SOBufferSize);
-          CreateSOBuffers();
+
+          if(!CreateSOBuffers())
+          {
+            m_PostVSData[eventId].vsin.topo = topo;
+            m_PostVSData[eventId].vsout.topo = topo;
+            return;
+          }
 
           continue;
         }

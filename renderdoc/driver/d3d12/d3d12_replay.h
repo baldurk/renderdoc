@@ -217,7 +217,7 @@ private:
 
   void ClearPostVSCache();
 
-  void CreateSOBuffers();
+  bool CreateSOBuffers();
 
   void BuildShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                    const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
