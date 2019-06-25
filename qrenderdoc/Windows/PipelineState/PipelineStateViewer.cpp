@@ -70,6 +70,7 @@ static uint32_t byteSize(const ResourceFormat &fmt)
       case ResourceFormatType::YUV12:
       case ResourceFormatType::YUV16:
       case ResourceFormatType::PVRTC: return ~0U;
+      case ResourceFormatType::A8: return 1;
       case ResourceFormatType::R10G10B10A2:
       case ResourceFormatType::R11G11B10: return 4;
     }

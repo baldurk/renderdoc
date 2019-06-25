@@ -704,6 +704,7 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
       case ResourceFormatType::D32S8:
         return fmt.compType == CompType::Typeless ? "D32S8_TYPELESS" : "D32S8";
       case ResourceFormatType::S8: return "S8";
+      case ResourceFormatType::A8: return "A8_UNORM";
       case ResourceFormatType::YUV8:
       case ResourceFormatType::YUV10:
       case ResourceFormatType::YUV12:

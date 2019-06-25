@@ -305,6 +305,7 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
       special.type = ResourceFormatType::R9G9B9E5;
       return special;
+    case DXGI_FORMAT_A8_UNORM: special.type = ResourceFormatType::A8; return special;
     case DXGI_FORMAT_B4G4R4A4_UNORM:
       fmt8.SetBGRAOrder(true);
       special.type = ResourceFormatType::R4G4B4A4;
@@ -475,6 +476,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       case ResourceFormatType::D24S8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
       case ResourceFormatType::D32S8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
       case ResourceFormatType::S8: return DXGI_FORMAT_R8_UINT;
+      case ResourceFormatType::A8: return DXGI_FORMAT_A8_UNORM;
       default:
       case ResourceFormatType::R4G4:
       case ResourceFormatType::D16S8:
@@ -733,7 +735,8 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
   {
     switch(data.format.type)
     {
-      case ResourceFormatType::S8: bytesPerPixel = 1; break;
+      case ResourceFormatType::S8:
+      case ResourceFormatType::A8: bytesPerPixel = 1; break;
       case ResourceFormatType::R10G10B10A2:
       case ResourceFormatType::R9G9B9E5:
       case ResourceFormatType::R11G11B10:
@@ -992,7 +995,8 @@ dds_data load_dds_from_file(FILE *f)
   uint32_t bytesPerPixel = 1;
   switch(ret.format.type)
   {
-    case ResourceFormatType::S8: bytesPerPixel = 1; break;
+    case ResourceFormatType::S8:
+    case ResourceFormatType::A8: bytesPerPixel = 1; break;
     case ResourceFormatType::R10G10B10A2:
     case ResourceFormatType::R9G9B9E5:
     case ResourceFormatType::R11G11B10:

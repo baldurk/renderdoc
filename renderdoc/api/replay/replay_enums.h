@@ -1312,6 +1312,10 @@ or formats that don't have equal byte-multiple sizes for each channel.
 .. data:: PVRTC
 
   PowerVR properitary texture compression format.
+
+.. data:: A8
+
+  8-bit unsigned normalised alpha - equivalent to standard R8 with a pre-baked swizzle.
 )");
 enum class ResourceFormatType : uint8_t
 {
@@ -1343,6 +1347,7 @@ enum class ResourceFormatType : uint8_t
   YUV12,
   YUV16,
   PVRTC,
+  A8,
 };
 
 DECLARE_REFLECTION_ENUM(ResourceFormatType);

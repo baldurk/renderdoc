@@ -1039,7 +1039,8 @@ private:
         case ResourceFormatType::D24S8:
         case ResourceFormatType::D32S8: compCount = 2; break;
         case ResourceFormatType::BC4:
-        case ResourceFormatType::S8: compCount = 1; break;
+        case ResourceFormatType::S8:
+        case ResourceFormatType::A8: compCount = 1; break;
         case ResourceFormatType::YUV8:
         case ResourceFormatType::YUV10:
         case ResourceFormatType::YUV12:

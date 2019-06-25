@@ -918,7 +918,8 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   {
     switch(td.format.type)
     {
-      case ResourceFormatType::S8: bytesPerPixel = 1; break;
+      case ResourceFormatType::S8:
+      case ResourceFormatType::A8: bytesPerPixel = 1; break;
       case ResourceFormatType::R10G10B10A2:
       case ResourceFormatType::R9G9B9E5:
       case ResourceFormatType::R11G11B10:

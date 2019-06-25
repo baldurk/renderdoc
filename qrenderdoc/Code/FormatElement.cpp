@@ -657,6 +657,7 @@ QString FormatElement::GenerateTextureBufferFormat(const TextureDescription &tex
     case ResourceFormatType::YUV10:
     case ResourceFormatType::YUV12:
     case ResourceFormatType::YUV16: baseType = lit("xshort4"); break;
+    case ResourceFormatType::A8:
     case ResourceFormatType::S8:
     case ResourceFormatType::Undefined: baseType = lit("xbyte"); break;
   }

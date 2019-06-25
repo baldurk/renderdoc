@@ -1731,12 +1731,19 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
   }
 
   // special handling for formats that don't query neatly
-  if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT ||
-     fmt == eGL_LUMINANCE || fmt == eGL_ALPHA)
+  if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_LUMINANCE)
   {
     ret.compByteWidth = 1;
     ret.compCount = 1;
     ret.compType = CompType::UNorm;
+    return ret;
+  }
+  else if(fmt == eGL_ALPHA || fmt == eGL_ALPHA8_EXT)
+  {
+    ret.compByteWidth = 1;
+    ret.compCount = 1;
+    ret.compType = CompType::UNorm;
+    ret.type = ResourceFormatType::A8;
     return ret;
   }
   else if(fmt == eGL_LUMINANCE8_ALPHA8_EXT || fmt == eGL_LUMINANCE_ALPHA)
@@ -2132,6 +2139,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
       case ResourceFormatType::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
       case ResourceFormatType::PVRTC: RDCERR("PVRTC can't be decoded unambiguously"); break;
       case ResourceFormatType::S8: ret = eGL_STENCIL_INDEX8; break;
+      case ResourceFormatType::A8: ret = eGL_ALPHA8_EXT; break;
       case ResourceFormatType::Undefined: return eGL_NONE;
       default: RDCERR("Unsupported resource format type %u", fmt.type); break;
     }
