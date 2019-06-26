@@ -163,6 +163,7 @@
     <addaction name="action_Counter_Viewer"/>
     <addaction name="action_Resource_Inspector"/>
     <addaction name="action_Comments"/>
+    <addaction name="action_Diagnostic_Log"/>
     <addaction name="separator"/>
     <addaction name="extension_dummy_Window"/>
    </widget>
@@ -498,6 +499,11 @@
   <action name="action_Manage_Extensions">
    <property name="text">
     <string>Manage Extensions</string>
+   </property>
+  </action>
+  <action name="action_Diagnostic_Log">
+   <property name="text">
+    <string>Dia&amp;gnostic Log</string>
    </property>
   </action>
  </widget>

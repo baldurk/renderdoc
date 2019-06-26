@@ -564,7 +564,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
   friendly = Android::GetFriendlyName(deviceID);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr &deviceList)
 {
   std::string adbStdout = Android::adbExecCommand("", "devices", ".", true).strStdout;
 
@@ -592,7 +592,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
     }
   }
 
-  *deviceList = ret;
+  deviceList = ret;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidInitialise()

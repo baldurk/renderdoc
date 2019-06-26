@@ -2293,6 +2293,9 @@ analysis program.
 )");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile();
 
+DOCUMENT("Internal function for fetching the contents of a log");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(rdcstr &logfile);
+
 DOCUMENT("Internal function for logging text simply.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text);
 
@@ -2351,7 +2354,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
                                                                             rdcstr &friendly);
 
 DOCUMENT("Internal function for enumerating android devices.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr &deviceList);
 
 DOCUMENT("Internal function for initialising android use.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidInitialise();

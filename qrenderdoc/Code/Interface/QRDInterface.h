@@ -441,6 +441,22 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IDebugMessageView);
 
+DOCUMENT("The diagnostic log viewing window.");
+struct IDiagnosticLogView
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`DiagnosticLogView` if PySide2 is available, or "
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
+  virtual QWidget *Widget() = 0;
+
+protected:
+  IDiagnosticLogView() = default;
+  ~IDiagnosticLogView() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IDiagnosticLogView);
+
 DOCUMENT("The capture comments window.");
 struct ICommentView
 {
@@ -1597,6 +1613,13 @@ If no bookmark exists, this function will do nothing.
 )");
   virtual IDebugMessageView *GetDebugMessageView() = 0;
 
+  DOCUMENT(R"(Retrieve the current singleton :class:`LogView`.
+
+:return: The current window, which is created (but not shown) it there wasn't one open.
+:rtype: LogView
+)");
+  virtual IDiagnosticLogView *GetDiagnosticLogView() = 0;
+
   DOCUMENT(R"(Retrieve the current singleton :class:`CommentView`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
@@ -1688,6 +1711,13 @@ If no bookmark exists, this function will do nothing.
 )");
   virtual bool HasDebugMessageView() = 0;
 
+  DOCUMENT(R"(Check if there is a current :class:`DiagnosticLogView` open.
+
+:return: ``True`` if there is a window open.
+:rtype: ``bool``
+)");
+  virtual bool HasDiagnosticLogView() = 0;
+
   DOCUMENT(R"(Check if there is a current :class:`CommentView` open.
 
 :return: ``True`` if there is a window open.
@@ -1748,6 +1778,9 @@ place if needed.
   DOCUMENT(
       "Raise the current :class:`DebugMessageView`, showing it in the default place if needed.");
   virtual void ShowDebugMessageView() = 0;
+  DOCUMENT(
+      "Raise the current :class:`DiagnosticLogView`, showing it in the default place if needed.");
+  virtual void ShowDiagnosticLogView() = 0;
   DOCUMENT("Raise the current :class:`CommentView`, showing it in the default place if needed.");
   virtual void ShowCommentView() = 0;
   DOCUMENT(

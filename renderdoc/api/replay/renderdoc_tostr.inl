@@ -183,6 +183,20 @@ rdcstr DoStringise(const EnvSep &el)
 }
 
 template <>
+rdcstr DoStringise(const LogType &el)
+{
+  BEGIN_ENUM_STRINGISE(LogType)
+  {
+    STRINGISE_ENUM_CLASS(Debug);
+    STRINGISE_ENUM_CLASS_NAMED(Comment, "Log");
+    STRINGISE_ENUM_CLASS(Warning);
+    STRINGISE_ENUM_CLASS(Error);
+    STRINGISE_ENUM_CLASS(Fatal);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const Topology &el)
 {
   BEGIN_ENUM_STRINGISE(Topology)

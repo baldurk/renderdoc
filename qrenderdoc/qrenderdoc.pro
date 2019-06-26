@@ -211,6 +211,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/BufferViewer.cpp \
     Widgets/Extended/RDTableView.cpp \
     Windows/DebugMessageView.cpp \
+    Windows/LogView.cpp \
     Windows/CommentView.cpp \
     Windows/StatisticsViewer.cpp \
     Windows/TimelineBar.cpp \
@@ -287,6 +288,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/BufferViewer.h \
     Widgets/Extended/RDTableView.h \
     Windows/DebugMessageView.h \
+    Windows/LogView.h \
     Windows/CommentView.h \
     Windows/StatisticsViewer.h \
     Windows/TimelineBar.h \
@@ -331,6 +333,7 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/BufferViewer.ui \
     Windows/ShaderViewer.ui \
     Windows/DebugMessageView.ui \
+    Windows/LogView.ui \
     Windows/CommentView.ui \
     Windows/StatisticsViewer.ui \
     Windows/Dialogs/SettingsDialog.ui \

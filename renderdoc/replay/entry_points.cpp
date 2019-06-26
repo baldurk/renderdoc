@@ -251,6 +251,11 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile()
   return RDCGETLOGFILE();
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(rdcstr &logfile)
+{
+  logfile = FileIO::logfile_readall(RDCGETLOGFILE());
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
                                                                    const rdcarray<rdcstr> &args)
 {

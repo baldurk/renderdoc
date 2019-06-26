@@ -25,56 +25,73 @@
 #pragma once
 
 #include <QFrame>
+#include <QTimer>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {
-class DebugMessageView;
+class LogView;
 }
 
+class QStandardItem;
+class QStandardItemModel;
 class QAction;
 class QMenu;
-class DebugMessageItemModel;
-class DebugMessageFilterModel;
+class LogItemModel;
+class LogFilterModel;
 
-class DebugMessageView : public QFrame, public IDebugMessageView, public ICaptureViewer
+struct LogMessage
+{
+  QString Source;
+  uint32_t PID;
+  QTime Timestamp;
+  QString Location;
+  LogType Type;
+  QString Message;
+};
+
+class LogView : public QFrame, public IDiagnosticLogView
 {
   Q_OBJECT
 
 public:
-  explicit DebugMessageView(ICaptureContext &ctx, QWidget *parent = 0);
-  ~DebugMessageView();
+  explicit LogView(ICaptureContext &ctx, QWidget *parent = 0);
+  ~LogView();
 
-  // IDebugMessageView
+  // ILogView
   QWidget *Widget() override { return this; }
-  // ICaptureViewer
-  void OnCaptureLoaded() override;
-  void OnCaptureClosed() override;
-  void OnSelectedEventChanged(uint32_t eventId) override {}
-  void OnEventChanged(uint32_t eventId) override {}
-  void RefreshMessageList();
-
 private slots:
   // automatic slots
-  void on_messages_doubleClicked(const QModelIndex &index);
+  void on_openExternal_clicked();
+  void on_save_clicked();
+  void on_textFilter_textChanged(const QString &text);
+  void on_textFilterMeaning_currentIndexChanged(int index);
+  void on_regexpFilter_toggled();
 
   // manual slots
-  void messages_contextMenu(const QPoint &pos);
-  void messages_toggled();
+  void messages_refresh();
+  void messages_keyPress(QKeyEvent *event);
+  void pidFilter_changed(QStandardItem *item);
+  void typeFilter_changed(QStandardItem *item);
 
 private:
-  void paintEvent(QPaintEvent *e) override;
-  Ui::DebugMessageView *ui;
+  Ui::LogView *ui;
   ICaptureContext &m_Ctx;
 
-  DebugMessageItemModel *m_ItemModel;
-  DebugMessageFilterModel *m_FilterModel;
+  size_t prevOffset = 0;
 
-  DebugMessage m_ContextMessage;
-  QMenu *m_ContextMenu;
-  QAction *m_ShowHidden;
-  QAction *m_ToggleSource;
-  QAction *m_ToggleSeverity;
-  QAction *m_ToggleCategory;
-  QAction *m_ToggleMessageType;
+  QVector<LogMessage> m_Messages;
+
+  QList<uint32_t> m_PIDs;
+
+  LogItemModel *m_ItemModel = NULL;
+  LogFilterModel *m_FilterModel = NULL;
+
+  friend class LogItemModel;
+  friend class LogFilterModel;
+
+  QStandardItemModel *m_PIDModel = NULL;
+  QStandardItemModel *m_TypeModel = NULL;
+
+  QTimer m_RefreshTimer;
 };

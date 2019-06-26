@@ -717,6 +717,12 @@
     <ClCompile Include="Windows\Dialogs\ExtensionManager.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\LogView.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_LogView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1069,6 +1075,9 @@
     </ClInclude>
     <ClInclude Include="Code\Interface\Extensions.h">
       <Filter>Code\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_LogView.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1450,6 +1459,12 @@
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\ExtensionManager.h">
       <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\LogView.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\LogView.h">
+      <Filter>Windows</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

@@ -3373,6 +3373,7 @@ DOCUMENT(R"(The type of a log message
 enum class LogType : int32_t
 {
   Debug,
+  First = Debug,
   Comment,
   Warning,
   Error,
@@ -3381,6 +3382,8 @@ enum class LogType : int32_t
 };
 
 DECLARE_REFLECTION_ENUM(LogType);
+
+ITERABLE_OPERATORS(LogType);
 
 #if defined(ENABLE_PYTHON_FLAG_ENUMS)
 

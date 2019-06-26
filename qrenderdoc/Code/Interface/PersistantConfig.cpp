@@ -238,7 +238,7 @@ void PersistantConfig::AddAndroidHosts()
   SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
 
   rdcstr androidHosts;
-  RENDERDOC_EnumerateAndroidDevices(&androidHosts);
+  RENDERDOC_EnumerateAndroidDevices(androidHosts);
   for(const QString &hostName :
       QString(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
   {
