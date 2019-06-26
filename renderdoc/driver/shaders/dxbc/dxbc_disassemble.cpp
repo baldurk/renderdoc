@@ -2363,6 +2363,21 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, boo
     retOp.str += retOp.saturate ? "_sat" : "";
   }
 
+  if(retOp.preciseValues)
+  {
+    rdcstr preciseStr;
+    if(retOp.preciseValues & 0x1)
+      preciseStr += "x";
+    if(retOp.preciseValues & 0x2)
+      preciseStr += "y";
+    if(retOp.preciseValues & 0x4)
+      preciseStr += "z";
+    if(retOp.preciseValues & 0x8)
+      preciseStr += "w";
+
+    retOp.str += StringFormat::Fmt(" [precise(%s)] ", preciseStr.c_str());
+  }
+
   for(size_t i = 0; i < retOp.operands.size(); i++)
   {
     if(i == 0)
