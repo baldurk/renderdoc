@@ -2122,7 +2122,11 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     pipeInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::QuadResolveFS);
     pipeInfo.pipeLayout = m_QuadResolvePipeLayout;
 
-    CREATE_OBJECT(m_QuadResolvePipeline[i], pipeInfo);
+    if(pipeInfo.fragment != VK_NULL_HANDLE &&
+       shaderCache->GetBuiltinModule(BuiltinShader::QuadWriteFS) != VK_NULL_HANDLE)
+    {
+      CREATE_OBJECT(m_QuadResolvePipeline[i], pipeInfo);
+    }
 
     driver->vkDestroyRenderPass(driver->GetDev(), RGBA16MSRP, NULL);
   }

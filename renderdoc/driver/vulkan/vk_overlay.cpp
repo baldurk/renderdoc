@@ -1870,6 +1870,17 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
   {
     VulkanRenderState prevstate = m_pDriver->m_RenderState;
 
+    VkPipelineShaderStageCreateInfo stages[3] = {
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
+         shaderCache->GetBuiltinModule(BuiltinShader::MeshVS), "main", NULL},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+         shaderCache->GetBuiltinModule(BuiltinShader::TrisizeFS), "main", NULL},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_GEOMETRY_BIT,
+         shaderCache->GetBuiltinModule(BuiltinShader::TrisizeGS), "main", NULL},
+    };
+
+    if(stages[0].module != VK_NULL_HANDLE && stages[1].module != VK_NULL_HANDLE &&
+       stages[2].module != VK_NULL_HANDLE)
     {
       SCOPED_TIMER("Triangle Size");
 
@@ -2075,15 +2086,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
       m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
-
-      VkPipelineShaderStageCreateInfo stages[3] = {
-          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
-           shaderCache->GetBuiltinModule(BuiltinShader::MeshVS), "main", NULL},
-          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-           shaderCache->GetBuiltinModule(BuiltinShader::TrisizeFS), "main", NULL},
-          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_GEOMETRY_BIT,
-           shaderCache->GetBuiltinModule(BuiltinShader::TrisizeGS), "main", NULL},
-      };
 
       VkPipelineInputAssemblyStateCreateInfo ia = {
           VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};

@@ -70,7 +70,7 @@ static const BuiltinShaderConfig builtinShaders[] = {
     {BuiltinShader::QuadResolveFS, EmbeddedResource(glsl_quadresolve_frag),
      SPIRVShaderStage::Fragment, FeatureCheck::FragmentStores, true},
     {BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag), SPIRVShaderStage::Fragment,
-     FeatureCheck::FragmentStores, false},
+     FeatureCheck::FragmentStores | FeatureCheck::NonMetalBackend, false},
     {BuiltinShader::TrisizeGS, EmbeddedResource(glsl_trisize_geom), SPIRVShaderStage::Geometry,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), SPIRVShaderStage::Fragment,
