@@ -1627,6 +1627,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
                                              VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
+      bool isLinear = (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR);
+
       bool isExternal = false;
 
       const VkBaseInStructure *next = (const VkBaseInStructure *)pCreateInfo->pNext;
@@ -1647,7 +1649,12 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       // sparse and external images are considered dirty from creation. For sparse images this is
       // so that we can serialise the tracked page table, for external images this is so we can be
       // sure to fetch their contents even if we don't see any writes.
-      if(isSparse || isExternal)
+      //
+      // We also dirty linear images since we may not get another chance - if they are bound to
+      // host-visible memory they may only be updated via memory maps, and we want to be sure to
+      // correctly copy their initial contents out rather than relying on memory contents (which may
+      // not be valid to map from/into if the image isn't in GENERAL layout).
+      if(isSparse || isExternal || isLinear)
       {
         GetResourceManager()->MarkDirtyResource(id);
 
