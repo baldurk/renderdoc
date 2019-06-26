@@ -2263,7 +2263,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // create new pipeline
   VkPipeline pipe;
   vkr = m_pDriver->vkCreateComputePipelines(m_Device, VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &pipe);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  if(vkr != VK_SUCCESS)
+  {
+    RDCERR("Failed to create patched compute pipeline: %s", ToStr(vkr).c_str());
+    return;
+  }
 
   // make copy of state to draw from
   VulkanRenderState modifiedstate = state;
