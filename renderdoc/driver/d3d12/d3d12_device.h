@@ -363,6 +363,8 @@ private:
 
   bool m_AppControlledCapture;
 
+  bool m_InvalidPSO = false;
+
   Threading::RWLock m_CapTransitionLock;
   CaptureState m_State;
 

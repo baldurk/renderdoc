@@ -24,6 +24,13 @@ RenderDoc has initial support for D3D12, but it contains some caveats. In additi
 * Pixel history is not implemented.
 * Shader debugging is not currently supported.
 
+DXIL support
+------------
+
+Currently DXIL is not supported. RenderDoc uses the standard functionality through ``ID3D12Device::CheckFeatureSupport`` to report that SM6 is unsupported, and a valid application must check this before creating PSOs that use DXIL code since not all versions of Windows 10 support DXIL either.
+
+If such a PSO is detected, RenderDoc will display an overlay message to that effect and prevent capturing.
+
 See Also
 --------
 

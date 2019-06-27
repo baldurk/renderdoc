@@ -378,6 +378,33 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
     D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
     unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
 
+    // check for bytecode - if the user is wrongly using DXIL we will fail to load the capture
+    {
+      D3D12_SHADER_BYTECODE *shaders[] = {
+          &unwrappedDesc.VS, &unwrappedDesc.HS, &unwrappedDesc.DS,
+          &unwrappedDesc.GS, &unwrappedDesc.PS,
+      };
+
+      const char *name[] = {"VS", "HS", "DS", "GS", "PS"};
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      {
+        if(shaders[i]->BytecodeLength > 0 && shaders[i]->pShaderBytecode)
+        {
+          if(!DXBC::DXBCFile::CheckForShaderCode(shaders[i]->pShaderBytecode,
+                                                 shaders[i]->BytecodeLength))
+          {
+            RDCERR(
+                "No shader code found in %s bytecode in pipeline state. "
+                "DXIL is unsupported and must be checked for using CheckFeatureSupport.",
+                name[i]);
+            m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+            return false;
+          }
+        }
+      }
+    }
+
     ID3D12PipelineState *ret = NULL;
     HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, guid, (void **)&ret);
 
@@ -487,6 +514,32 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
 
   if(SUCCEEDED(ret))
   {
+    // check for bytecode - if the user is wrongly using DXIL we will prevent capturing
+    {
+      D3D12_SHADER_BYTECODE *shaders[] = {
+          &unwrappedDesc.VS, &unwrappedDesc.HS, &unwrappedDesc.DS,
+          &unwrappedDesc.GS, &unwrappedDesc.PS,
+      };
+
+      const char *name[] = {"VS", "HS", "DS", "GS", "PS"};
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      {
+        if(shaders[i]->BytecodeLength > 0 && shaders[i]->pShaderBytecode)
+        {
+          if(!DXBC::DXBCFile::CheckForShaderCode(shaders[i]->pShaderBytecode,
+                                                 shaders[i]->BytecodeLength))
+          {
+            RDCERR(
+                "No shader code found in %s bytecode in pipeline state. "
+                "DXIL is unsupported and must be checked for using CheckFeatureSupport.",
+                name[i]);
+            m_InvalidPSO = true;
+          }
+        }
+      }
+    }
+
     WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(real, this);
 
     if(IsCaptureMode(m_State))
@@ -594,6 +647,18 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
     D3D12_COMPUTE_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
     unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
 
+    // check for bytecode - if the user is wrongly using DXIL we will hard-fail instead of producing
+    // a corrupted capture.
+    if(!DXBC::DXBCFile::CheckForShaderCode(unwrappedDesc.CS.pShaderBytecode,
+                                           unwrappedDesc.CS.BytecodeLength))
+    {
+      RDCERR(
+          "No shader code found in CS bytecode in pipeline state. "
+          "DXIL is unsupported and must be checked for using CheckFeatureSupport.");
+      m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+      return false;
+    }
+
     ID3D12PipelineState *ret = NULL;
     HRESULT hr = m_pDevice->CreateComputePipelineState(&unwrappedDesc, guid, (void **)&ret);
 
@@ -647,6 +712,17 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
 
   if(SUCCEEDED(ret))
   {
+    // check for bytecode - if the user is wrongly using DXIL we will hard-fail instead of producing
+    // a corrupted capture.
+    if(!DXBC::DXBCFile::CheckForShaderCode(unwrappedDesc.CS.pShaderBytecode,
+                                           unwrappedDesc.CS.BytecodeLength))
+    {
+      RDCERR(
+          "No shader code found in CS bytecode in pipeline state. "
+          "DXIL is unsupported and must be checked for using CheckFeatureSupport.");
+      m_InvalidPSO = true;
+    }
+
     WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(real, this);
 
     if(IsCaptureMode(m_State))

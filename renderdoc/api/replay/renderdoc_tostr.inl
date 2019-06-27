@@ -39,7 +39,7 @@ rdcstr DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(FileIOFailed, "File I/O failed");
     STRINGISE_ENUM_CLASS_NAMED(FileIncompatibleVersion, "File of incompatible version");
     STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File corrupted");
-    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API is not unsupported");
+    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API is unsupported");
     STRINGISE_ENUM_CLASS_NAMED(APIInitFailed, "API initialisation failed");
     STRINGISE_ENUM_CLASS_NAMED(APIIncompatibleVersion,
                                "Captured API data has an incompatible version");

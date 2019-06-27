@@ -1389,6 +1389,9 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
         std::string overlayText =
             RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
 
+        if(m_InvalidPSO)
+          overlayText += "ERROR: Invalid PSO created, likely using DXIL which is not supported.\n";
+
         if(!overlayText.empty())
           m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
 
@@ -1407,6 +1410,10 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
   RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D12, true);
 
   if(!activeWindow)
+    return S_OK;
+
+  // disallow capturing if an invalid PSO has been created
+  if(m_InvalidPSO)
     return S_OK;
 
   // kill any current capture that isn't application defined
