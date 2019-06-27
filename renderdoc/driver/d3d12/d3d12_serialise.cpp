@@ -1250,7 +1250,17 @@ void DoSerialise(SerialiserType &ser, D3D12_SUBRESOURCE_RANGE_UINT64 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_WRITEBUFFERIMMEDIATE_PARAMETER &el)
 {
-  SERIALISE_MEMBER(Dest);
+  if(ser.VersionAtLeast(0x7))
+  {
+    SERIALISE_MEMBER_TYPED(D3D12BufferLocation, Dest);
+  }
+  else
+  {
+    RDCERR(
+        "Replay will crash - old capture with corrupted D3D12_WRITEBUFFERIMMEDIATE_PARAMETER. "
+        "Re-capture to fix this.");
+    SERIALISE_MEMBER(Dest);
+  }
   SERIALISE_MEMBER(Value);
 }
 
