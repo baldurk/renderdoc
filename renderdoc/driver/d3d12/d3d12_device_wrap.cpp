@@ -1382,10 +1382,21 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
   if(riidResource != __uuidof(ID3D12Resource) && riidResource != __uuidof(ID3D12Resource1))
     return E_NOINTERFACE;
 
+  const D3D12_RESOURCE_DESC *pCreateDesc = pDesc;
+  D3D12_RESOURCE_DESC localDesc;
+
+  if(pDesc && pDesc->Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && pDesc->SampleDesc.Count > 1)
+  {
+    localDesc = *pDesc;
+    // need to be able to create SRVs of MSAA textures to copy out their contents
+    localDesc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    pCreateDesc = &localDesc;
+  }
+
   void *realptr = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateCommittedResource(
-                          pHeapProperties, HeapFlags, pDesc, InitialResourceState,
+                          pHeapProperties, HeapFlags, pCreateDesc, InitialResourceState,
                           pOptimizedClearValue, riidResource, &realptr));
 
   ID3D12Resource *real = NULL;
@@ -1649,9 +1660,20 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
   if(riid != __uuidof(ID3D12Resource))
     return E_NOINTERFACE;
 
+  const D3D12_RESOURCE_DESC *pCreateDesc = pDesc;
+  D3D12_RESOURCE_DESC localDesc;
+
+  if(pDesc && pDesc->Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && pDesc->SampleDesc.Count > 1)
+  {
+    localDesc = *pDesc;
+    // need to be able to create SRVs of MSAA textures to copy out their contents
+    localDesc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    pCreateDesc = &localDesc;
+  }
+
   ID3D12Resource *real = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, pDesc,
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, pCreateDesc,
                                                             InitialState, pOptimizedClearValue,
                                                             riid, (void **)&real));
 
