@@ -1028,7 +1028,7 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
 
         // if this UAV has a hidden counter, immediately mark it as dirty so we force initial
         // contents to fetch its counter
-        if(pDesc->ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
+        if(pDesc && pDesc->ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
            (pDesc->Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_COUNTER | D3D11_BUFFER_UAV_FLAG_APPEND)) != 0)
         {
           GetResourceManager()->MarkDirtyResource(id);
