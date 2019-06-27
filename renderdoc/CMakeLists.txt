@@ -307,6 +307,11 @@ elseif(UNIX)
         os/posix/posix_specific.h)
 endif()
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set_source_files_properties(3rdparty/tinyfiledialogs/tinyfiledialogs.c
+        PROPERTIES COMPILE_FLAGS "-Wno-format-overflow")
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     set_source_files_properties(3rdparty/tinyexr/tinyexr.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")

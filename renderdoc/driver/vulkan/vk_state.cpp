@@ -67,20 +67,24 @@ VulkanRenderState &VulkanRenderState::operator=(const VulkanRenderState &o)
   maxdepth = o.maxdepth;
   front = o.front;
   back = o.back;
+  sampleLocations = o.sampleLocations;
+  discardRectangles = o.discardRectangles;
   memcpy(pushconsts, o.pushconsts, sizeof(pushconsts));
+  pushConstSize = o.pushConstSize;
   renderPass = o.renderPass;
   subpass = o.subpass;
   framebuffer = o.framebuffer;
   renderArea = o.renderArea;
 
-  compute.pipeline = o.compute.pipeline;
-  compute.descSets = o.compute.descSets;
-
-  graphics.pipeline = o.graphics.pipeline;
-  graphics.descSets = o.graphics.descSets;
+  compute = o.compute;
+  graphics = o.graphics;
 
   ibuffer = o.ibuffer;
   vbuffers = o.vbuffers;
+
+  xfbbuffers = o.xfbbuffers;
+  firstxfbcounter = o.firstxfbcounter;
+  xfbcounters = o.xfbcounters;
 
   conditionalRendering = o.conditionalRendering;
 

@@ -104,22 +104,33 @@ set(sources
 add_definitions(-DAMD_EXTENSIONS)
 add_definitions(-DNV_EXTENSIONS)
 
-set_source_files_properties(${glslang_sources}
-    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing")
+set_property(SOURCE ${glslang_sources}
+    PROPERTY COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing")
 
-if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
-    set_source_files_properties(
+# GCC 7.0 and above needs -Wno-implicit-fallthrough on these files
+if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
+    set_property(SOURCE
         ${glslang_dir}/glslang/MachineIndependent/reflection.cpp
         ${glslang_dir}/glslang/MachineIndependent/Intermediate.cpp
-        PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough -Wno-ignored-qualifiers")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-implicit-fallthrough")
+endif()
+
+# GCC 9.0 and above needs -Wno-deprecated-copy on glslang files, but also on
+# spirv_compile.cpp since one of the issues is in the non-public header that
+# is used from GlslangToSpv.h
+if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
+    set_property(SOURCE
+        ${glslang_sources}
+        spirv_compile.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-deprecated-copy")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE "${glslang_sources}"
-        APPEND PROPERTY COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-inconsistent-missing-override")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option -Wno-inconsistent-missing-override")
 
-    set_source_files_properties(${glslang_dir}/SPIRV/GlslangToSpv.cpp
-        PROPERTIES COMPILE_FLAGS "-Wno-tautological-constant-out-of-range-compare")
+    set_property(SOURCE ${glslang_dir}/SPIRV/GlslangToSpv.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-constant-out-of-range-compare")
 endif()
 
 add_library(rdoc_spirv OBJECT ${sources})

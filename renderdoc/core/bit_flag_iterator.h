@@ -32,6 +32,7 @@ private:
 public:
   inline BitFlagIterator() : flags(0) {}
   inline BitFlagIterator(FlagType mask) : flags(mask) {}
+  inline BitFlagIterator(const BitFlagIterator &o) : flags(o.flags) {}
   static inline BitFlagIterator begin(FlagType mask) { return BitFlagIterator(mask); }
   static inline BitFlagIterator end() { return BitFlagIterator(0); }
   inline BitType operator*() const { return (BitType)(flags & (FlagType)(-(SignedType)flags)); }

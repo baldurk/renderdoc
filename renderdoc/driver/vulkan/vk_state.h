@@ -54,6 +54,7 @@ struct VulkanRenderState
   };
 
   VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo);
+  VulkanRenderState(const VulkanRenderState &o) { *this = o; }
   VulkanRenderState &operator=(const VulkanRenderState &o);
   void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
   void EndRenderPass(VkCommandBuffer cmd);
@@ -148,6 +149,4 @@ struct VulkanRenderState
   VulkanResourceManager *GetResourceManager();
   VulkanCreationInfo *m_CreationInfo;
   WrappedVulkan *m_pDriver;
-
-  std::vector<VkImageMemoryBarrier> rpBarriers;
 };

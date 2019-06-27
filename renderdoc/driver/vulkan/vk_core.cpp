@@ -3056,8 +3056,6 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     // it back again afterwards.
     std::vector<VkImageMemoryBarrier> loadRPImgBarriers;
 
-    m_RenderState.rpBarriers.clear();
-
     // we'll need our own command buffer if we're replaying just a subsection
     // of events within a single command buffer record - always if it's only
     // one drawcall, or if start event ID is > 0 we assume the outside code
