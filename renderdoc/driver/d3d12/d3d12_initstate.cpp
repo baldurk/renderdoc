@@ -157,6 +157,14 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
         m_Device->Evict(1, &pageable);
       }
+      else
+      {
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+        m_Device->CloseInitialStateList();
+        m_Device->ExecuteLists(NULL, true);
+        m_Device->FlushLists(true);
+#endif
+      }
 
       SetInitialContents(GetResID(r), D3D12InitialContents(copyDst));
       return true;
@@ -343,6 +351,14 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
         if(nonresident)
           m_Device->Evict(1, &pageable);
+      }
+      else
+      {
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+        m_Device->CloseInitialStateList();
+        m_Device->ExecuteLists(NULL, true);
+        m_Device->FlushLists(true);
+#endif
       }
 
       SAFE_RELEASE(arrayTexture);
