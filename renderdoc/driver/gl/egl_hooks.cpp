@@ -696,6 +696,24 @@ EGL_PASSTHRU_0(EGLBoolean, eglWaitClient)
 /* EGL 1.4 */
 EGL_PASSTHRU_0(EGLContext, eglGetCurrentContext)
 
+/* EGL 1.5 */
+EGL_PASSTHRU_3(EGLSync, eglCreateSync, EGLDisplay, dpy, EGLenum, type, const EGLAttrib *, attrib_list)
+EGL_PASSTHRU_2(EGLBoolean, eglDestroySync, EGLDisplay, dpy, EGLSync, sync)
+EGL_PASSTHRU_4(EGLint, eglClientWaitSync, EGLDisplay, dpy, EGLSync, sync, EGLint, flags, EGLTime,
+               timeout)
+EGL_PASSTHRU_4(EGLBoolean, eglGetSyncAttrib, EGLDisplay, dpy, EGLSync, sync, EGLint, attribute,
+               EGLAttrib *, value)
+EGL_PASSTHRU_5(EGLImage, eglCreateImage, EGLDisplay, dpy, EGLContext, ctx, EGLenum, target,
+               EGLClientBuffer, buffer, const EGLAttrib *, attrib_list)
+EGL_PASSTHRU_2(EGLBoolean, eglDestroyImage, EGLDisplay, dpy, EGLImage, image)
+EGL_PASSTHRU_3(EGLDisplay, eglGetPlatformDisplay, EGLenum, platform, void *, native_display,
+               const EGLAttrib *, attrib_list)
+EGL_PASSTHRU_4(EGLSurface, eglCreatePlatformWindowSurface, EGLDisplay, dpy, EGLConfig, config,
+               void *, native_window, const EGLAttrib *, attrib_list)
+EGL_PASSTHRU_4(EGLSurface, eglCreatePlatformPixmapSurface, EGLDisplay, dpy, EGLConfig, config,
+               void *, native_pixmap, const EGLAttrib *, attrib_list)
+EGL_PASSTHRU_3(EGLBoolean, eglWaitSync, EGLDisplay, dpy, EGLSync, sync, EGLint, flags)
+
 static void EGLHooked(void *handle)
 {
   RDCDEBUG("EGL library hooked");
