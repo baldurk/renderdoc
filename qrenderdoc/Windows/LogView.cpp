@@ -26,6 +26,7 @@
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QFontDatabase>
+#include <QKeyEvent>
 #include <QStandardItemModel>
 #include "Code/QRDUtils.h"
 #include "Widgets/Extended/RDHeaderView.h"
