@@ -845,7 +845,8 @@ void GLReplay::InitDebugData()
                              eGL_DYNAMIC_READ);
   }
 
-  if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_image_load_store])
+  if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_image_load_store] &&
+     HasExt[ARB_texture_multisample])
   {
     cs = GenerateGLSLShader(GetEmbeddedResource(glsl_ms2array_comp), shaderType, glslCSVer);
     DebugData.MS2Array = CreateCShaderProgram(cs);
@@ -863,8 +864,8 @@ void GLReplay::InitDebugData()
     DebugData.MS2Array = 0;
     DebugData.Array2MS = 0;
     RDCWARN(
-        "GL_ARB_compute_shader or ARB_shader_image_load_store not supported, disabling 2DMS "
-        "save/load.");
+        "GL_ARB_compute_shader or ARB_shader_image_load_store or ARB_texture_multisample not "
+        "supported, disabling 2DMS save/load.");
     m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
                                MessageSource::RuntimeWarning,
                                "GL_ARB_compute_shader or ARB_shader_image_load_store not "

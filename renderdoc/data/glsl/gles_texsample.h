@@ -34,6 +34,10 @@
 #define TEXSAMPLE_MULTISAMPLE 1
 #endif
 
+#if __VERSION__ >= 320
+#define TEXSAMPLE_MULTISAMPLE_ARRAY 1
+#endif
+
 #if UINT_TEX
 
 // these bindings are defined based on the RESTYPE_ defines in glsl_ubos.h
@@ -51,6 +55,8 @@ uniform PRECISION usamplerBuffer texUIntBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
 uniform PRECISION usampler2DMS texUInt2DMS;
+#endif
+#ifdef TEXSAMPLE_MULTISAMPLE_ARRAY
 uniform PRECISION usampler2DMSArray texUInt2DMSArray;
 #endif
 
@@ -88,7 +94,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMSARRAY)
   {
-#ifdef TEXSAMPLE_MULTISAMPLE
+#ifdef TEXSAMPLE_MULTISAMPLE_ARRAY
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -131,6 +137,8 @@ uniform PRECISION isamplerBuffer texSIntBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
 uniform PRECISION isampler2DMS texSInt2DMS;
+#endif
+#ifdef TEXSAMPLE_MULTISAMPLE_ARRAY
 uniform PRECISION isampler2DMSArray texSInt2DMSArray;
 #endif
 
@@ -173,7 +181,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMSARRAY)
   {
-#ifdef TEXSAMPLE_MULTISAMPLE
+#ifdef TEXSAMPLE_MULTISAMPLE_ARRAY
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -213,6 +221,8 @@ uniform PRECISION samplerBuffer texBuffer;
 #endif
 #ifdef TEXSAMPLE_MULTISAMPLE
 uniform PRECISION sampler2DMS tex2DMS;
+#endif
+#ifdef TEXSAMPLE_MULTISAMPLE_ARRAY
 uniform PRECISION sampler2DMSArray tex2DMSArray;
 #endif
 
@@ -301,7 +311,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMSARRAY)
   {
-#ifdef TEXSAMPLE_MULTISAMPLE
+#ifdef TEXSAMPLE_MULTISAMPLE_ARRAY
     if(sampleIdx < 0)
     {
       int sampleCount = -sampleIdx;
