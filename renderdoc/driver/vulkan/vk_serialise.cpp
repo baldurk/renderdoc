@@ -809,6 +809,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, VkPresentInfoKHR)                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR, VkAcquireNextImageInfoKHR)               \
                                                                                                        \
+  /* VK_KHR_uniform_buffer_standard_layout */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES_KHR,          \
+               VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR)                                 \
+                                                                                                       \
   /* VK_KHR_variable_pointers */                                                                       \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES,                           \
                VkPhysicalDeviceVariablePointerFeatures)                                                \
@@ -904,9 +908,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_surface_protected_capabilities */                                                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR)                              \
-                                                                                                       \
-  /* VK_KHR_uniform_buffer_standard_layout */                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES_KHR)     \
                                                                                                        \
   /* VK_INTEL_performance_query */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
@@ -3263,6 +3264,22 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceVulkanMemoryModelFeaturesK
 
 template <>
 void Deserialise(const VkPhysicalDeviceVulkanMemoryModelFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(uniformBufferStandardLayout);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -6862,6 +6879,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVariablePointerFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkanMemoryModelFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceYcbcrImageArraysFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineCacheCreateInfo);
