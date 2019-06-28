@@ -466,7 +466,7 @@ bool D3D11RenderState::PredicationWouldPass()
   return PredicateValue != data;
 }
 
-void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
+void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context) const
 {
   context->ClearState();
 

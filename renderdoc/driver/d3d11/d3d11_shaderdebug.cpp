@@ -2028,6 +2028,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   ShaderDebugTrace traces[4];
 
+  tracker.State().ApplyState(m_pImmediateContext);
+
   GlobalState global;
   GetDebugManager()->CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs,
                                              rs->PS.SRVs);

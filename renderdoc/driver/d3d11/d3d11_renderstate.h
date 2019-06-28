@@ -51,7 +51,7 @@ struct D3D11RenderState
 
   void CopyState(const D3D11RenderState &other);
 
-  void ApplyState(WrappedID3D11DeviceContext *context);
+  void ApplyState(WrappedID3D11DeviceContext *context) const;
   void Clear();
 
   ///////////////////////////////////////////////////////////////////////////////
