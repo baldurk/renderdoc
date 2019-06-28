@@ -804,6 +804,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,                              \
                VkSharedPresentSurfaceCapabilitiesKHR)                                                  \
                                                                                                        \
+  /* VK_KHR_surface_protected_capabilities */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR,                                   \
+               VkSurfaceProtectedCapabilitiesKHR)                                                      \
+                                                                                                       \
   /* VK_KHR_swapchain */                                                                               \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, VkSwapchainCreateInfoKHR)                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, VkPresentInfoKHR)                                   \
@@ -905,9 +909,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_GOOGLE_display_timing */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                       \
-                                                                                                       \
-  /* VK_KHR_surface_protected_capabilities */                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR)                              \
                                                                                                        \
   /* VK_INTEL_performance_query */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
@@ -4212,6 +4213,21 @@ void Deserialise(const VkSurfaceFormat2KHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSurfaceProtectedCapabilitiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(supportsProtected);
+}
+
+template <>
+void Deserialise(const VkSurfaceProtectedCapabilitiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDisplayNativeHdrSurfaceCapabilitiesAMD &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -6936,6 +6952,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSubpassEndInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceFormat2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkSurfaceProtectedCapabilitiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCounterCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainDisplayNativeHdrCreateInfoAMD);
