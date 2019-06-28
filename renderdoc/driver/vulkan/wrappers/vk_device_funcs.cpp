@@ -2081,6 +2081,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(uniformBufferStandardLayout);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(fragmentShaderSampleInterlock);
+        CHECK_PHYS_EXT_FEATURE(fragmentShaderPixelInterlock);
+        CHECK_PHYS_EXT_FEATURE(fragmentShaderShadingRateInterlock);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
