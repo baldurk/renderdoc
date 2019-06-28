@@ -163,7 +163,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="official\vk_layer.h" />
-    <ClInclude Include="official\vk_layer_dispatch_table.h" />
     <ClInclude Include="official\vk_platform.h" />
     <ClInclude Include="official\vulkan.h" />
     <ClInclude Include="official\vulkan_android.h" />
@@ -184,6 +183,7 @@
     <ClInclude Include="vk_core.h" />
     <ClInclude Include="vk_debug.h" />
     <ClInclude Include="vk_dispatchtables.h" />
+    <ClInclude Include="vk_dispatch_defs.h" />
     <ClInclude Include="vk_hookset_defs.h" />
     <ClInclude Include="vk_info.h" />
     <ClInclude Include="vk_manager.h" />

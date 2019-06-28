@@ -969,7 +969,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
                                   uint32_t x, uint32_t y)
 {
   VkDevice dev = m_pDriver->GetDev();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkMarkerRegion::Begin(StringFormat::Fmt("VulkanReplay::PickVertex(%u, %u)", x, y));
 
@@ -1426,7 +1426,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)
 {
   VkDevice dev = m_pDriver->GetDev();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   WrappedVkRes *res = m_pDriver->GetResourceManager()->GetCurrentResource(buff);
 

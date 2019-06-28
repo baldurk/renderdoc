@@ -32,6 +32,7 @@
 #undef CreateSemaphore
 #endif
 
+#include "vk_dispatch_defs.h"
 #include "vk_hookset_defs.h"
 
 void InitReplayTables(void *vulkanModule);
@@ -51,8 +52,8 @@ struct InstanceDeviceInfo
 void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info);
 void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info);
 
-VkLayerDispatchTableExtended *GetDeviceDispatchTable(void *device);
-VkLayerInstanceDispatchTableExtended *GetInstanceDispatchTable(void *instance);
+VkDevDispatchTable *GetDeviceDispatchTable(void *device);
+VkInstDispatchTable *GetInstanceDispatchTable(void *instance);
 
 class WrappedVulkan;
 

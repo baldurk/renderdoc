@@ -192,9 +192,6 @@
     <ClInclude Include="vk_rendertext.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="official\vk_layer_dispatch_table.h">
-      <Filter>official</Filter>
-    </ClInclude>
     <ClInclude Include="official\vulkan_android.h">
       <Filter>official</Filter>
     </ClInclude>
@@ -233,6 +230,9 @@
     </ClInclude>
     <ClInclude Include="official\vulkan_metal.h">
       <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_dispatch_defs.h">
+      <Filter>Layer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

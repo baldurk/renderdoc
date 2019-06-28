@@ -875,6 +875,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
                                                                                                        \
+  /* VK_EXT_fragment_shader_interlock */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT)          \
+                                                                                                       \
+  /* VK_EXT_headless_surface */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT)                                \
+                                                                                                       \
   /* VK_EXT_image_drm_format_modifier */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT)                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                              \
@@ -899,6 +905,20 @@ SERIALISE_VK_HANDLES();
   /* VK_KHR_surface_protected_capabilities */                                                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR)                              \
                                                                                                        \
+  /* VK_KHR_uniform_buffer_standard_layout */                                                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES_KHR)     \
+                                                                                                       \
+  /* VK_INTEL_performance_query */                                                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_INITIALIZE_PERFORMANCE_API_INFO_INTEL)                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_MARKER_INFO_INTEL)                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_STREAM_MARKER_INFO_INTEL)                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_OVERRIDE_INFO_INTEL)                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_CONFIGURATION_ACQUIRE_INFO_INTEL)                    \
+                                                                                                       \
+  /* VK_INTEL_shader_integer_functions2 */                                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS2_FEATURES_INTEL)        \
+                                                                                                       \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
                                                                                                        \
@@ -912,6 +932,11 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_NV_corner_sampled_image */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CORNER_SAMPLED_IMAGE_FEATURES_NV)                \
+                                                                                                       \
+  /* VK_NV_coverage_reduction_mode */                                                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COVERAGE_REDUCTION_MODE_FEATURES_NV)             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_REDUCTION_STATE_CREATE_INFO_NV)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV)                        \
                                                                                                        \
   /* VK_NV_dedicated_allocation_image_aliasing */                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEDICATED_ALLOCATION_IMAGE_ALIASING_FEATURES_NV) \
@@ -956,6 +981,10 @@ SERIALISE_VK_HANDLES();
   /* VK_NV_scissor_exclusive */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_EXCLUSIVE_SCISSOR_STATE_CREATE_INFO_NV)        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXCLUSIVE_SCISSOR_FEATURES_NV)                   \
+                                                                                                       \
+  /* VK_NV_shader_sm_builtins  */                                                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV)                \
                                                                                                        \
   /* VK_NV_shading_rate_image */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV)       \

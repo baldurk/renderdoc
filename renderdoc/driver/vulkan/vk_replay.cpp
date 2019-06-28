@@ -351,7 +351,7 @@ std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
   std::vector<std::string> ret;
 
   VkDevice dev = m_pDriver->GetDev();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   if(vt->GetShaderInfoAMD)
     ret.push_back(LiveDriverDisassemblyTarget);
@@ -385,7 +385,7 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
   }
 
   VkDevice dev = m_pDriver->GetDev();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   if(target == LiveDriverDisassemblyTarget && vt->GetShaderInfoAMD)
   {
@@ -477,7 +477,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
     VkDevice dev = m_pDriver->GetDev();
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-    const VkLayerDispatchTable *vt = ObjDisp(dev);
+    const VkDevDispatchTable *vt = ObjDisp(dev);
 
     VkResult vkr = VK_SUCCESS;
 
@@ -586,7 +586,7 @@ void VulkanReplay::RenderCheckerboard()
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -712,7 +712,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -1827,7 +1827,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 {
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
@@ -2144,7 +2144,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
@@ -2503,7 +2503,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};

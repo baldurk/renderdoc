@@ -20,6 +20,7 @@ set(sources
     vk_shader_cache.cpp
     vk_dispatchtables.cpp
     vk_dispatchtables.h
+    vk_dispatch_defs.h
     vk_hookset_defs.h
     vk_info.cpp
     vk_info.h
@@ -39,7 +40,6 @@ set(sources
     vk_layer.cpp
     imgrefs_tests.cpp
     official/vk_layer.h
-    official/vk_layer_dispatch_table.h
     official/vk_platform.h
     official/vulkan.h
     official/vulkan_android.h

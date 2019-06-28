@@ -58,6 +58,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "core/resource_manager.h"
+#include "official/vk_layer.h"
 #include "official/vulkan.h"
 #include "serialise/serialiser.h"
 #include "vk_dispatchtables.h"

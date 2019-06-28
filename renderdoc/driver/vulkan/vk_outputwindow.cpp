@@ -87,7 +87,7 @@ VulkanReplay::OutputWindow::OutputWindow()
 
 void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 {
-  const VkLayerDispatchTable *vt = ObjDisp(device);
+  const VkDevDispatchTable *vt = ObjDisp(device);
 
   vt->DeviceWaitIdle(Unwrap(device));
 
@@ -168,7 +168,7 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, bool depth)
 {
-  const VkLayerDispatchTable *vt = ObjDisp(device);
+  const VkDevDispatchTable *vt = ObjDisp(device);
   VkInstance inst = driver->GetInstance();
   VkPhysicalDevice phys = driver->GetPhysDev();
 
@@ -644,7 +644,7 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   VkDevice device = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
-  const VkLayerDispatchTable *vt = ObjDisp(device);
+  const VkDevDispatchTable *vt = ObjDisp(device);
 
   vt->DeviceWaitIdle(Unwrap(device));
 
@@ -828,7 +828,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
   VkResult vkr = VK_SUCCESS;
 
   // if we have a swapchain, acquire the next image.
@@ -946,7 +946,7 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -996,7 +996,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -1049,7 +1049,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};

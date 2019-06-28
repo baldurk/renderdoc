@@ -804,8 +804,8 @@ void WrappedVulkan::Shutdown()
   VkInstance inst = Unwrap(m_Instance);
   VkDevice dev = Unwrap(m_Device);
 
-  const VkLayerDispatchTable *vt = m_Device != VK_NULL_HANDLE ? ObjDisp(m_Device) : NULL;
-  const VkLayerInstanceDispatchTable *vit = m_Instance != VK_NULL_HANDLE ? ObjDisp(m_Instance) : NULL;
+  const VkDevDispatchTable *vt = m_Device != VK_NULL_HANDLE ? ObjDisp(m_Device) : NULL;
+  const VkInstDispatchTable *vit = m_Instance != VK_NULL_HANDLE ? ObjDisp(m_Instance) : NULL;
 
   // this destroys the wrapped objects for the devices and instances
   m_ResourceManager->Shutdown();

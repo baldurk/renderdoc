@@ -1064,8 +1064,8 @@ void WrappedVulkan::FilterToSupportedExtensions(std::vector<VkExtensionPropertie
     // if neither is less than the other, the extensions are equal
     if(nameCompare == 0)
     {
-      // warn on spec version mismatch, but allow it.
-      if(supportedExtensions[i].specVersion != it->specVersion)
+      // warn on spec version mismatch if it's newer than ours, but allow it.
+      if(supportedExtensions[i].specVersion < it->specVersion)
         RDCWARN(
             "Spec versions of %s are different between supported extension (%d) and reported (%d)!",
             it->extensionName, supportedExtensions[i].specVersion, it->specVersion);
@@ -1585,7 +1585,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     VkDevice device = GetDev();
     VkCommandBuffer cmd = GetNextCmd();
 
-    const VkLayerDispatchTable *vt = ObjDisp(device);
+    const VkDevDispatchTable *vt = ObjDisp(device);
 
     vt->DeviceWaitIdle(Unwrap(device));
 

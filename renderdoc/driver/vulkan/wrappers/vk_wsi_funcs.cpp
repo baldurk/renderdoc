@@ -506,7 +506,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
     VkResult vkr = VK_SUCCESS;
 
-    const VkLayerDispatchTable *vt = ObjDisp(device);
+    const VkDevDispatchTable *vt = ObjDisp(device);
 
     {
       VkAttachmentDescription attDesc = {
@@ -736,7 +736,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       uint32_t swapQueueIndex = m_ImageLayouts[GetResID(im)].queueFamilyIndex;
 
-      VkLayerDispatchTable *vt = ObjDisp(GetDev());
+      VkDevDispatchTable *vt = ObjDisp(GetDev());
 
       TextPrintState textstate = {
           GetNextCmd(),

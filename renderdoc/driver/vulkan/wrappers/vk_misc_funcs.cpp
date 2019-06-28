@@ -202,7 +202,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 
   // MULTIDEVICE need to get the actual device that created this object
   VkDevice dev = m_Device;
-  const VkLayerDispatchTable *vt = m_Device != VK_NULL_HANDLE ? ObjDisp(dev) : NULL;
+  const VkDevDispatchTable *vt = m_Device != VK_NULL_HANDLE ? ObjDisp(dev) : NULL;
 
   WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
   WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
@@ -1686,6 +1686,7 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_OBJECT_TABLE_NVX:
     case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX:
     case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV:
+    case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL:
     case VK_OBJECT_TYPE_UNKNOWN:
     case VK_OBJECT_TYPE_RANGE_SIZE:
     case VK_OBJECT_TYPE_MAX_ENUM: break;

@@ -91,7 +91,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLay
   if(cache.pipes[(uint32_t)SolidShade::NoSolid] != VK_NULL_HANDLE)
     return cache;
 
-  const VkLayerDispatchTable *vt = ObjDisp(m_Device);
+  const VkDevDispatchTable *vt = ObjDisp(m_Device);
   VkResult vkr = VK_SUCCESS;
 
   // should we try and evict old pipelines from the cache here?
@@ -375,7 +375,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-  const VkLayerDispatchTable *vt = ObjDisp(dev);
+  const VkDevDispatchTable *vt = ObjDisp(dev);
 
   VkResult vkr = VK_SUCCESS;
 

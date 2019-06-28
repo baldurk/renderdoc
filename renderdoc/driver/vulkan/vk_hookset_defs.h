@@ -24,9 +24,6 @@
 
 #pragma once
 
-#include "official/vk_layer.h"
-#include "official/vk_layer_dispatch_table.h"
-
 // extensions made core in 1.1
 #define VK11 VK_MAKE_VERSION(1, 1, 0)
 
@@ -1181,14 +1178,3 @@
   HookDefine3(void, vkSetLocalDimmingAMD, VkDevice, device, VkSwapchainKHR, swapChain, VkBool32,     \
               localDimmingEnable);                                                                   \
   HookDefine_PlatformSpecific()
-
-struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
-{
-};
-
-struct VkLayerDispatchTableExtended : VkLayerDispatchTable
-{
-  // for consistency & ease, we declare the CreateDevice pointer here
-  // even though it won't actually ever get used and is on the instance dispatch chain
-  PFN_vkCreateDevice CreateDevice;
-};

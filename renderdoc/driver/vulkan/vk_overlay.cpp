@@ -394,7 +394,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                                        uint32_t eventId, const std::vector<uint32_t> &passEvents)
 {
-  const VkLayerDispatchTable *vt = ObjDisp(m_Device);
+  const VkDevDispatchTable *vt = ObjDisp(m_Device);
 
   VulkanShaderCache *shaderCache = m_pDriver->GetShaderCache();
 
