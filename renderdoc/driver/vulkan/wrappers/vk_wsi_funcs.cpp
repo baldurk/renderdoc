@@ -1085,6 +1085,39 @@ VkResult WrappedVulkan::vkGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR 
   return ObjDisp(device)->GetSwapchainStatusKHR(Unwrap(device), Unwrap(swapchain));
 }
 
+VkResult WrappedVulkan::vkCreateHeadlessSurfaceEXT(VkInstance instance,
+                                                   const VkHeadlessSurfaceCreateInfoEXT *pCreateInfo,
+                                                   const VkAllocationCallbacks *pAllocator,
+                                                   VkSurfaceKHR *pSurface)
+{
+  // should not come in here at all on replay
+  RDCASSERT(IsCaptureMode(m_State));
+
+  VkResult ret = ObjDisp(instance)->CreateHeadlessSurfaceEXT(Unwrap(instance), pCreateInfo,
+                                                             pAllocator, pSurface);
+
+  if(ret == VK_SUCCESS)
+  {
+    // we must wrap surfaces to be consistent with the rest of the code and surface handling,
+    // but there's nothing actually to do here - no meaningful data we care about here.
+    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+    // we don't have an actual OS handle to identify this window. Instead construct something
+    // that should be unique and hopefully not clashing/overlapping with other window handles
+    // in use.
+    uintptr_t fakeWindowHandle = (uintptr_t)wrapped->real.handle;
+
+    // since there's no point in allocating a full resource record and storing the window
+    // handle under there somewhere, we just cast. We won't use the resource record for anything
+
+    wrapped->record = (VkResourceRecord *)fakeWindowHandle;
+  }
+
+  return ret;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,
                                 const VkSwapchainCreateInfoKHR *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkSwapchainKHR *pSwapchain);

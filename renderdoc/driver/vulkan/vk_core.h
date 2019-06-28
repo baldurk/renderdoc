@@ -2100,4 +2100,9 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkReleaseFullScreenExclusiveModeEXT, VkDevice device,
                                 VkSwapchainKHR swapchain);
+
+  VkResult vkCreateHeadlessSurfaceEXT(VkInstance instance,
+                                      const VkHeadlessSurfaceCreateInfoEXT *pCreateInfo,
+                                      const VkAllocationCallbacks *pAllocator,
+                                      VkSurfaceKHR *pSurface);
 };

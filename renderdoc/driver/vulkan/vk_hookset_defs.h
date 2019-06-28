@@ -339,6 +339,7 @@
   DeclExt(protected_memory);                    \
   DeclExt(KHR_get_surface_capabilities2);       \
   DeclExt(KHR_get_display_properties2);         \
+  DeclExt(EXT_headless_surface);                \
   /* device extensions */                       \
   DeclExt(EXT_debug_marker);                    \
   DeclExt(GGP_frame_token);                     \
@@ -415,7 +416,8 @@
   CheckExt(KHR_get_display_properties2, VKXX);         \
   CheckExt(EXT_sample_locations, VKXX);                \
   CheckExt(EXT_calibrated_timestamps, VKXX);           \
-  CheckExt(EXT_full_screen_exclusive, VKXX);
+  CheckExt(EXT_full_screen_exclusive, VKXX);           \
+  CheckExt(EXT_headless_surface, VKXX);
 
 #define CheckDeviceExts()                         \
   CheckExt(EXT_debug_marker, VKXX);               \
@@ -519,6 +521,7 @@
   HookInitExtension(KHR_get_display_properties2, GetDisplayPlaneCapabilities2KHR);                   \
   HookInitExtension(EXT_sample_locations, GetPhysicalDeviceMultisamplePropertiesEXT);                \
   HookInitExtension(EXT_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsEXT);        \
+  HookInitExtension(EXT_headless_surface, CreateHeadlessSurfaceEXT);                                 \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                                 \
@@ -1177,4 +1180,7 @@
               const VkSwapchainKHR *, pSwapchains, const VkHdrMetadataEXT *, pMetadata);             \
   HookDefine3(void, vkSetLocalDimmingAMD, VkDevice, device, VkSwapchainKHR, swapChain, VkBool32,     \
               localDimmingEnable);                                                                   \
+  HookDefine4(VkResult, vkCreateHeadlessSurfaceEXT, VkInstance, instance,                            \
+              const VkHeadlessSurfaceCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *,    \
+              pAllocator, VkSurfaceKHR *, pSurface);                                                 \
   HookDefine_PlatformSpecific()
