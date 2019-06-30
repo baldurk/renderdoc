@@ -302,6 +302,13 @@ public:
         m_pDevice->SetResourceName(this, pStrData);
       }
     }
+    else if(guid == WKPDID_D3DDebugObjectNameW)
+    {
+      const wchar_t *pStrData = (const wchar_t *)pData;
+      std::wstring wName(pStrData, DataSize / 2);
+      std::string sName = StringFormat::Wide2UTF8(wName);
+      m_pDevice->SetResourceName(this, sName.c_str());
+    }
 
     return m_pReal->SetPrivateData(guid, DataSize, pData);
   }
