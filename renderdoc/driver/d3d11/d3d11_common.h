@@ -187,20 +187,32 @@ inline void SetDebugName(T *pObj, const char *name)
 }
 
 template <class T>
-inline const char *GetDebugName(T *pObj)
+inline std::string GetDebugName(T *pObj)
 {
-  static char tmpBuf[1024] = {0};
-  UINT size = 1023;
+  static const UINT DEBUG_NAME_SIZE = 1024;
+  static wchar_t tmpBuf[DEBUG_NAME_SIZE] = {0};    // Used for both char and wchar_t
   if(pObj)
   {
-    HRESULT hr = pObj->GetPrivateData(WKPDID_D3DDebugObjectName, &size, tmpBuf);
-    if(FAILED(hr))
-      return "";
+    // Try char first
+    UINT size = DEBUG_NAME_SIZE - 1;
+    HRESULT hr = pObj->GetPrivateData(WKPDID_D3DDebugObjectName, &size, (char *)tmpBuf);
+    if(SUCCEEDED(hr))
+    {
+      return std::string((char *)tmpBuf, size);
+    }
 
-    tmpBuf[size] = 0;
-    return tmpBuf;
+    // Try wchar_t
+    size = (DEBUG_NAME_SIZE - 1) * sizeof(wchar_t);
+    hr = pObj->GetPrivateData(WKPDID_D3DDebugObjectNameW, &size, tmpBuf);
+    if(SUCCEEDED(hr))
+    {
+      size /= 2;    // Convert from bytes read to wide char count
+      std::wstring sName(tmpBuf, size);
+      return StringFormat::Wide2UTF8(sName);
+    }
   }
-  return "";
+
+  return std::string();
 }
 
 class RefCounter

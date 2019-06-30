@@ -194,7 +194,15 @@ public:
   HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
   {
     if(guid == WKPDID_D3DDebugObjectName)
+    {
       m_pDevice->SetName(this, (const char *)pData);
+    }
+    else if(guid == WKPDID_D3DDebugObjectNameW)
+    {
+      std::wstring wName((const wchar_t *)pData, DataSize / 2);
+      std::string sName = StringFormat::Wide2UTF8(wName);
+      m_pDevice->SetName(this, sName.c_str());
+    }
 
     return m_pReal->SetPrivateData(guid, DataSize, pData);
   }
