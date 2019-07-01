@@ -154,7 +154,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 112</type>
+#define <name>VK_HEADER_VERSION</name> 113</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -3134,10 +3134,10 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>void</type>*    <name>pNext</name><comment>Pointer to next structure</comment></member>
             <member><type>uint32_t</type> <name>shaderEngineCount</name><comment>number of shader engines</comment></member>
             <member><type>uint32_t</type> <name>shaderArraysPerEngineCount</name><comment>number of shader arrays</comment></member>
-            <member><type>uint32_t</type> <name>computeUnitsPerShaderArray</name><comment>number of CUs per shader array</comment></member>
+            <member><type>uint32_t</type> <name>computeUnitsPerShaderArray</name><comment>number of physical CUs per shader array</comment></member>
             <member><type>uint32_t</type> <name>simdPerComputeUnit</name><comment>number of SIMDs per compute unit</comment></member>
             <member><type>uint32_t</type> <name>wavefrontsPerSimd</name><comment>number of wavefront slots in each SIMD</comment></member>
-            <member><type>uint32_t</type> <name>wavefrontSize</name><comment>number of threads per wavefront</comment></member>
+            <member><type>uint32_t</type> <name>wavefrontSize</name><comment>maximum number of threads per wavefront</comment></member>
             <member><type>uint32_t</type> <name>sgprsPerSimd</name><comment>number of physical SGPRs per SIMD</comment></member>
             <member><type>uint32_t</type> <name>minSgprAllocation</name><comment>minimum number of SGPRs that can be allocated by a wave</comment></member>
             <member><type>uint32_t</type> <name>maxSgprAllocation</name><comment>number of available SGPRs</comment></member>
@@ -3963,6 +3963,24 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>VkBool32</type>               <name>fragmentShaderSampleInterlock</name></member>
             <member><type>VkBool32</type>               <name>fragmentShaderPixelInterlock</name></member>
             <member><type>VkBool32</type>               <name>fragmentShaderShadingRateInterlock</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkBool32</type>                           <name>shaderDemoteToHelperInvocation</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkBool32</type>                           <name>texelBufferAlignment</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT" structextends="VkPhysicalDeviceMemoryProperties2" returnedonly="true">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkDeviceSize</type>                       <name>storageTexelBufferOffsetAlignmentBytes</name></member>
+            <member><type>VkBool32</type>                           <name>storageTexelBufferOffsetSingleTexelAlignment</name></member>
+            <member><type>VkDeviceSize</type>                       <name>uniformTexelBufferOffsetAlignmentBytes</name></member>
+            <member><type>VkBool32</type>                           <name>uniformTexelBufferOffsetSingleTexelAlignment</name></member>
         </type>
     </types>
 
@@ -11076,10 +11094,12 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_KHR_extension_276&quot;"              name="VK_KHR_extension_276"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_277" number="277" type="device" author="EXT" contact="Jeff Bolz @jeffbolznv" supported="disabled">
+        <extension name="VK_EXT_shader_demote_to_helper_invocation" number="277" type="device" requires="VK_KHR_get_physical_device_properties2" author="EXT" contact="Jeff Bolz @jeffbolznv" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_277_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_277&quot;"              name="VK_EXT_extension_277"/>
+                <enum value="1"                                                     name="VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_shader_demote_to_helper_invocation&quot;" name="VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                          name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT"/>
+                <type name="VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT"/>
             </require>
         </extension>
         <extension name="VK_NV_extension_278" number="278" type="device" author="NV" contact="Christoph Kubisch @pixeljetstream" supported="disabled">
@@ -11106,10 +11126,14 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_ARM_extension_281&quot;"              name="VK_ARM_extension_281"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_282" number="282" type="device" author="EXT" contact="Jeff Bolz @jeffbolznv" supported="disabled">
+        <extension name="VK_EXT_texel_buffer_alignment" number="282" type="device" requires="VK_KHR_get_physical_device_properties2" author="EXT" contact="Jeff Bolz @jeffbolznv" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_282_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_282&quot;"              name="VK_EXT_extension_282"/>
+                <enum value="1"                                             name="VK_EXT_TEXEL_BUFFER_ALIGNMENT_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_texel_buffer_alignment&quot;"     name="VK_EXT_TEXEL_BUFFER_ALIGNMENT_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT"/>
+                <enum offset="1" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT"/>
+                <type name="VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT"/>
+                <type name="VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT"/>
             </require>
         </extension>
     </extensions>

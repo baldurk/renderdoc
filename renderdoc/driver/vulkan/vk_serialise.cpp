@@ -574,9 +574,19 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT,                     \
                VkPhysicalDeviceScalarBlockLayoutFeaturesEXT)                                           \
                                                                                                        \
+  /* VK_EXT_shader_demote_to_helper_invocation */                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT,      \
+               VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT)                              \
+                                                                                                       \
   /* VK_EXT_separate_stencil_usage */                                                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT,                                  \
                VkImageStencilUsageCreateInfoEXT)                                                       \
+                                                                                                       \
+  /* VK_EXT_texel_buffer_alignment */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT,                  \
+               VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT)                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT,                \
+               VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT)                                      \
                                                                                                        \
   /* VK_EXT_transform_feedback */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                      \
@@ -4616,6 +4626,58 @@ void Deserialise(const VkPhysicalDeviceTransformFeedbackPropertiesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderDemoteToHelperInvocation);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(texelBufferAlignment);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(storageTexelBufferOffsetAlignmentBytes);
+  SERIALISE_MEMBER(storageTexelBufferOffsetSingleTexelAlignment);
+  SERIALISE_MEMBER(uniformTexelBufferOffsetAlignmentBytes);
+  SERIALISE_MEMBER(uniformTexelBufferOffsetSingleTexelAlignment);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPipelineSampleLocationsStateCreateInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -6905,11 +6967,14 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceScalarBlockLayoutFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParametersFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSampleLocationsPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSurfaceInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVariablePointerFeatures);
