@@ -54,8 +54,6 @@ struct VulkanRenderState
   };
 
   VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo);
-  VulkanRenderState(const VulkanRenderState &o) { *this = o; }
-  VulkanRenderState &operator=(const VulkanRenderState &o);
   void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
   void EndRenderPass(VkCommandBuffer cmd);
 

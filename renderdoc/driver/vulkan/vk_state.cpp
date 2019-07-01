@@ -56,41 +56,6 @@ VulkanRenderState::VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *
   RDCEraseEl(conditionalRendering);
 }
 
-VulkanRenderState &VulkanRenderState::operator=(const VulkanRenderState &o)
-{
-  views = o.views;
-  scissors = o.scissors;
-  lineWidth = o.lineWidth;
-  bias = o.bias;
-  memcpy(blendConst, o.blendConst, sizeof(blendConst));
-  mindepth = o.mindepth;
-  maxdepth = o.maxdepth;
-  front = o.front;
-  back = o.back;
-  sampleLocations = o.sampleLocations;
-  discardRectangles = o.discardRectangles;
-  memcpy(pushconsts, o.pushconsts, sizeof(pushconsts));
-  pushConstSize = o.pushConstSize;
-  renderPass = o.renderPass;
-  subpass = o.subpass;
-  framebuffer = o.framebuffer;
-  renderArea = o.renderArea;
-
-  compute = o.compute;
-  graphics = o.graphics;
-
-  ibuffer = o.ibuffer;
-  vbuffers = o.vbuffers;
-
-  xfbbuffers = o.xfbbuffers;
-  firstxfbcounter = o.firstxfbcounter;
-  xfbcounters = o.xfbcounters;
-
-  conditionalRendering = o.conditionalRendering;
-
-  return *this;
-}
-
 void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding)
 {
   RDCASSERT(renderPass != ResourceId());
