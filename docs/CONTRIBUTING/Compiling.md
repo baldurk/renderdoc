@@ -40,7 +40,9 @@ cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a ..
 make
 ```
 
-On Windows, you need to specify the 'generator' type to the cmake invocation. The exact parameter will depend on your bash shell, but options are e.g. `-G "MSYS Makefiles"` or `-G "MinGW Makefiles"`, i.e.:
+On Windows, you should always build Android from a bash shell - cygwin, msys2, Windows WSL, etc. Building from cmd may work but is not supported.
+
+On windows cmake you need to specify the 'generator' type to the cmake invocation. The exact parameter will depend on your bash shell, but options are e.g. `-G "MSYS Makefiles"` or `-G "MinGW Makefiles"`, i.e.:
 
 ```
 cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -G "MSYS Makefiles" ..
