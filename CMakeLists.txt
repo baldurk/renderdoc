@@ -262,11 +262,14 @@ endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
 
+set(RELEASE_MODE 0)
+
 if(cmake_build_type_lower STREQUAL "release" OR
    cmake_build_type_lower STREQUAL "relwithdebinfo" OR
    cmake_build_type_lower STREQUAL "minsizerel")
     add_definitions(-D_RELEASE)
     message(STATUS "Building RenderDoc in Release mode: ${CMAKE_BUILD_TYPE}")
+    set(RELEASE_MODE 1)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -300,7 +303,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND warning_flags -Wno-unused-lambda-capture)
     endif()
 
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(NOT RELEASE_MODE)
         list(APPEND warning_flags -Werror)
     endif()
 
