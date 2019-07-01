@@ -1646,7 +1646,8 @@ public:
   rdcstr DriverName()
   {
     if(!Connected())
-      return 0;
+      return "";
+
     {
       WRITE_DATA_SCOPE();
       SCOPED_SERIALISE_CHUNK(eRemoteServer_GetDriverName);
