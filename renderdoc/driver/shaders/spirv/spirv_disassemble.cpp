@@ -4369,9 +4369,11 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
     }
     else if(inst->var->storage == spv::StorageClassUniform ||
             inst->var->storage == spv::StorageClassUniformConstant ||
+            inst->var->storage == spv::StorageClassStorageBuffer ||
             inst->var->storage == spv::StorageClassPushConstant)
     {
       bool pushConst = (inst->var->storage == spv::StorageClassPushConstant);
+      bool ssbo = (inst->var->storage == spv::StorageClassStorageBuffer);
 
       SPVTypeData *type = inst->var->type;
       if(type->type == SPVTypeData::ePointer)
@@ -4427,8 +4429,6 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
         // If no binding is found, we set INVALID_BIND and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
         bindmap.bind = INVALID_BIND;
-
-        bool ssbo = false;
 
         ShaderResource res;
 
