@@ -220,7 +220,7 @@
     <Message Text="Processing layer JSON file for RenderDoc $(MajorVersion).$(MinorVersion)" Importance="High" />
     <!-- Read the template json, replace the major/minor versions -->
     <PropertyGroup>
-      <JSONContents>$([System.IO.File]::ReadAllText('$(ProjectDir)renderdoc.json').Replace('[MAJOR]', '$(MajorVersion)').Replace('[MINOR]', '$(MinorVersion)'))</JSONContents>
+      <JSONContents>$([System.IO.File]::ReadAllText('$(ProjectDir)renderdoc.json').Replace('@RENDERDOC_VERSION_MAJOR@', '$(MajorVersion)').Replace('@RENDERDOC_VERSION_MINOR@', '$(MinorVersion)').Replace('@VULKAN_LAYER_MODULE_PATH@', '.\\renderdoc.dll'))</JSONContents>
     </PropertyGroup>
     <!-- Write it out to the output directory -->
     <WriteLinesToFile File="$(OutDir)renderdoc.json" Lines="$(JSONContents)" Overwrite="true" />

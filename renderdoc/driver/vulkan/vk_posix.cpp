@@ -228,13 +228,13 @@ static std::string GenerateJSON(const std::string &sopath)
 
   std::string json = std::string(txt, txt + len);
 
-  const char dllPathString[] = ".\\\\renderdoc.dll";
+  const char modulePathString[] = "@VULKAN_LAYER_MODULE_PATH@";
 
-  size_t idx = json.find(dllPathString);
+  size_t idx = json.find(modulePathString);
 
-  json = json.substr(0, idx) + sopath + json.substr(idx + sizeof(dllPathString) - 1);
+  json = json.substr(0, idx) + sopath + json.substr(idx + sizeof(modulePathString) - 1);
 
-  const char majorString[] = "[MAJOR]";
+  const char majorString[] = "@RENDERDOC_VERSION_MAJOR@";
 
   idx = json.find(majorString);
   while(idx != std::string::npos)
@@ -245,7 +245,7 @@ static std::string GenerateJSON(const std::string &sopath)
     idx = json.find(majorString);
   }
 
-  const char minorString[] = "[MINOR]";
+  const char minorString[] = "@RENDERDOC_VERSION_MINOR@";
 
   idx = json.find(minorString);
   while(idx != std::string::npos)

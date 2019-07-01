@@ -188,23 +188,25 @@ endif()
 
 message(STATUS "Calculating version")
 
-execute_process(
-    COMMAND awk "{ if (/_MAJOR [0-9]/) { print $3 } }" renderdoc/api/replay/version.h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE RENDERDOC_VERSION_MAJOR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
+file(READ ${CMAKE_SOURCE_DIR}/renderdoc/api/replay/version.h VERSION_CONTENTS)
 
-execute_process(
-    COMMAND awk "{ if (/_MINOR [0-9]/) { print $3 } }" renderdoc/api/replay/version.h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE RENDERDOC_VERSION_MINOR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
+string(REGEX MATCH "_MAJOR [0-9]+" MAJOR_VERSION_LINE "${VERSION_CONTENTS}")
+string(REGEX MATCH "[0-9]+" RENDERDOC_VERSION_MAJOR "${MAJOR_VERSION_LINE}")
+
+string(REGEX MATCH "_MINOR [0-9]+" MINOR_VERSION_LINE "${VERSION_CONTENTS}")
+string(REGEX MATCH "[0-9]+" RENDERDOC_VERSION_MINOR "${MINOR_VERSION_LINE}")
 
 set(RENDERDOC_VERSION "${RENDERDOC_VERSION_MAJOR}.${RENDERDOC_VERSION_MINOR}")
 
 message(STATUS "Building RenderDoc version ${RENDERDOC_VERSION}")
+
+if(RENDERDOC_VERSION_MAJOR STREQUAL "")
+    message(FATAL_ERROR "Couldn't calculate major version")
+endif()
+
+if(RENDERDOC_VERSION_MINOR STREQUAL "")
+    message(FATAL_ERROR "Couldn't calculate minor version")
+endif()
 
 if(APPLE)
     message(STATUS "Disabling GLES driver on apple")
