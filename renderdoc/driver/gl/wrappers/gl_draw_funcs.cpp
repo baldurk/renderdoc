@@ -311,6 +311,18 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 {
   CoherentMapImplicitBarrier();
 
+  if(IsCaptureMode(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z));
 
   if(IsActiveCapturing(m_State))
@@ -321,15 +333,6 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
     Serialise_glDispatchCompute(ser, num_groups_x, num_groups_y, num_groups_z);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -419,6 +422,18 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z,
                                                        group_size_x, group_size_y, group_size_z));
 
@@ -431,15 +446,6 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
                                             group_size_x, group_size_y, group_size_z);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -492,6 +498,18 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDispatchComputeIndirect(indirect));
 
   if(IsActiveCapturing(m_State))
@@ -502,15 +520,6 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
     Serialise_glDispatchComputeIndirect(ser, indirect);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -658,6 +667,18 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawTransformFeedback(mode, id));
 
   if(IsActiveCapturing(m_State))
@@ -669,15 +690,6 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
     Serialise_glDrawTransformFeedback(ser, mode, id);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -728,6 +740,18 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawTransformFeedbackInstanced(mode, id, instancecount));
 
   if(IsActiveCapturing(m_State))
@@ -739,15 +763,6 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
     Serialise_glDrawTransformFeedbackInstanced(ser, mode, id, instancecount);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -797,6 +812,18 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawTransformFeedbackStream(mode, id, stream));
 
   if(IsActiveCapturing(m_State))
@@ -808,15 +835,6 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
     Serialise_glDrawTransformFeedbackStream(ser, mode, id, stream);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -871,6 +889,18 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount));
 
   if(IsActiveCapturing(m_State))
@@ -882,15 +912,6 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
     Serialise_glDrawTransformFeedbackStreamInstanced(ser, mode, id, stream, instancecount);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1101,6 +1122,18 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawArrays(mode, first, count));
 
   if(IsActiveCapturing(m_State))
@@ -1116,16 +1149,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, eGL_NONE);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1183,6 +1207,18 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawArraysIndirect(mode, indirect));
 
   if(IsActiveCapturing(m_State))
@@ -1194,15 +1230,6 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
     Serialise_glDrawArraysIndirect(ser, mode, indirect);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1252,6 +1279,18 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawArraysInstanced(mode, first, count, instancecount));
 
   if(IsActiveCapturing(m_State))
@@ -1267,16 +1306,7 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, eGL_NONE);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1329,6 +1359,18 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance));
 
@@ -1345,16 +1387,7 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, eGL_NONE);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1406,6 +1439,18 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawElements(mode, count, type, indices));
 
   if(IsActiveCapturing(m_State))
@@ -1420,16 +1465,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1493,6 +1529,18 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawElementsIndirect(mode, type, indirect));
 
   if(IsActiveCapturing(m_State))
@@ -1504,15 +1552,6 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
     Serialise_glDrawElementsIndirect(ser, mode, type, indirect);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1568,6 +1607,18 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawRangeElements(mode, start, end, count, type, indices));
 
   if(IsActiveCapturing(m_State))
@@ -1582,16 +1633,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1651,6 +1693,18 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex));
 
@@ -1666,16 +1720,7 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1730,6 +1775,18 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawElementsBaseVertex(mode, count, type, indices, basevertex));
 
   if(IsActiveCapturing(m_State))
@@ -1744,16 +1801,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1808,6 +1856,18 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawElementsInstanced(mode, count, type, indices, instancecount));
 
   if(IsActiveCapturing(m_State))
@@ -1822,16 +1882,7 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1891,6 +1942,18 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawElementsInstancedBaseInstance(mode, count, type, indices,
                                                              instancecount, baseinstance));
 
@@ -1907,16 +1970,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -1976,6 +2030,18 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex));
 
@@ -1992,16 +2058,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -2062,6 +2119,18 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glDrawElementsInstancedBaseVertexBaseInstance(
       mode, count, type, indices, instancecount, basevertex, baseinstance));
 
@@ -2078,16 +2147,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 
     GetContextRecord()->AddChunk(scope.Get());
 
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-
     RestoreClientMemoryArrays(clientMemory, type);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -2206,6 +2266,18 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glMultiDrawArrays(mode, first, count, drawcount));
 
   if(IsActiveCapturing(m_State))
@@ -2217,15 +2289,6 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
     Serialise_glMultiDrawArrays(ser, mode, first, count, drawcount);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -2370,6 +2433,18 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glMultiDrawElements(mode, count, type, indices, drawcount));
 
   if(IsActiveCapturing(m_State))
@@ -2381,15 +2456,6 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
     Serialise_glMultiDrawElements(ser, mode, count, type, indices, drawcount);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -2539,6 +2605,18 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex));
 
@@ -2551,15 +2629,6 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
     Serialise_glMultiDrawElementsBaseVertex(ser, mode, count, type, indices, drawcount, basevertex);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -2753,6 +2822,18 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glMultiDrawArraysIndirect(mode, indirect, drawcount, stride));
 
   if(IsActiveCapturing(m_State))
@@ -2764,15 +2845,6 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
     Serialise_glMultiDrawArraysIndirect(ser, mode, indirect, drawcount, stride);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -2976,6 +3048,18 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride));
 
   if(IsActiveCapturing(m_State))
@@ -2987,15 +3071,6 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
     Serialise_glMultiDrawElementsIndirect(ser, mode, type, indirect, drawcount, stride);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -3200,6 +3275,18 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCount(GLenum mode, const void *indi
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glMultiDrawArraysIndirectCount(mode, indirect, drawcount, maxdrawcount, stride));
 
@@ -3212,15 +3299,6 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCount(GLenum mode, const void *indi
     Serialise_glMultiDrawArraysIndirectCount(ser, mode, indirect, drawcount, maxdrawcount, stride);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -3432,6 +3510,18 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCount(GLenum mode, GLenum type, c
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glMultiDrawElementsIndirectCount(mode, type, indirect, drawcount, maxdrawcount, stride));
 
@@ -3445,15 +3535,6 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCount(GLenum mode, GLenum type, c
                                                stride);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
@@ -3538,6 +3619,22 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
+                                            eFrameRef_ReadBeforeWrite);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
+                                            eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
@@ -3549,21 +3646,24 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
     Serialise_glClearNamedFramebufferfv(ser, framebuffer, buffer, drawbuffer, value);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    GLRenderState state;
-    state.FetchState(this);
-    state.MarkReferenced(this, false);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GLRenderState state;
-    state.MarkDirty(this);
   }
 }
 
 void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
   CoherentMapImplicitBarrier();
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
 
   SERIALISE_TIME_CALL(GL.glClearBufferfv(buffer, drawbuffer, value));
 
@@ -3682,6 +3782,18 @@ void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glClearBufferiv(buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
@@ -3786,6 +3898,18 @@ void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer
 void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
   CoherentMapImplicitBarrier();
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
 
   SERIALISE_TIME_CALL(GL.glClearBufferuiv(buffer, drawbuffer, value));
 
@@ -3910,6 +4034,18 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
+
   SERIALISE_TIME_CALL(GL.glClearBufferfi(buffer, drawbuffer, depth, stencil));
 
   if(IsActiveCapturing(m_State))
@@ -4014,6 +4150,11 @@ void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalform
 {
   CoherentMapImplicitBarrier();
 
+  if(IsCaptureMode(m_State))
+  {
+    GetResourceManager()->MarkDirtyWithWriteReference(BufferRes(GetCtx(), buffer));
+  }
+
   SERIALISE_TIME_CALL(GL.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data));
 
   if(IsActiveCapturing(m_State))
@@ -4026,16 +4167,24 @@ void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalform
 
     GetContextRecord()->AddChunk(scope.Get());
   }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
-  }
 }
 
 void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLenum format,
                                       GLenum type, const void *data)
 {
   CoherentMapImplicitBarrier();
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLRenderState state;
+    state.MarkDirty(this);
+  }
+  else if(IsActiveCapturing(m_State))
+  {
+    GLRenderState state;
+    state.FetchState(this);
+    state.MarkReferenced(this, false);
+  }
 
   SERIALISE_TIME_CALL(GL.glClearBufferData(target, internalformat, format, type, data));
 
@@ -4157,6 +4306,11 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
 {
   CoherentMapImplicitBarrier();
 
+  if(IsCaptureMode(m_State))
+  {
+    GetResourceManager()->MarkDirtyWithWriteReference(BufferRes(GetCtx(), buffer));
+  }
+
   SERIALISE_TIME_CALL(
       GL.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data));
 
@@ -4170,10 +4324,6 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
                                            data);
 
     GetContextRecord()->AddChunk(scope.Get());
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
   }
 }
 
@@ -4190,6 +4340,14 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
                                          const void *data)
 {
   CoherentMapImplicitBarrier();
+
+  if(IsCaptureMode(m_State))
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
+    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+  }
 
   SERIALISE_TIME_CALL(
       GL.glClearBufferSubData(target, internalformat, offset, size, format, type, data));
@@ -4212,10 +4370,6 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
                                                size, format, type, data);
 
         GetContextRecord()->AddChunk(scope.Get());
-      }
-      else if(IsBackgroundCapturing(m_State))
-      {
-        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
       }
     }
   }
@@ -4458,6 +4612,11 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
 {
   CoherentMapImplicitBarrier();
 
+  if(IsCaptureMode(m_State))
+  {
+    GetResourceManager()->MarkDirtyWithWriteReference(TextureRes(GetCtx(), texture));
+  }
+
   SERIALISE_TIME_CALL(GL.glClearTexImage(texture, level, format, type, data));
 
   if(IsActiveCapturing(m_State))
@@ -4469,10 +4628,6 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
     Serialise_glClearTexImage(ser, texture, level, format, type, data);
 
     GetContextRecord()->AddChunk(scope.Get());
-    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
     GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
   }
 }
@@ -4573,6 +4728,11 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
 {
   CoherentMapImplicitBarrier();
 
+  if(IsCaptureMode(m_State))
+  {
+    GetResourceManager()->MarkDirtyWithWriteReference(TextureRes(GetCtx(), texture));
+  }
+
   SERIALISE_TIME_CALL(GL.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width,
                                             height, depth, format, type, data));
 
@@ -4586,10 +4746,6 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
                                  depth, format, type, data);
 
     GetContextRecord()->AddChunk(scope.Get());
-    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
     GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
   }
 }

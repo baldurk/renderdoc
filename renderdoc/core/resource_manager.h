@@ -112,6 +112,10 @@ bool IncludesWrite(FrameRefType refType);
 const FrameRefType eFrameRef_Minimum = eFrameRef_None;
 const FrameRefType eFrameRef_Maximum = eFrameRef_WriteBeforeRead;
 
+// Threshold value for resource "age", i.e. how long it wasn't
+// referred with the any write reference.
+const double PERSISTENT_RESOURCE_AGE = 3000;
+
 DECLARE_REFLECTION_ENUM(FrameRefType);
 
 // Compose frame refs that occur in a known order.
@@ -527,7 +531,7 @@ public:
   typedef typename Configuration::RecordType RecordType;
   typedef typename Configuration::InitialContentData InitialContentData;
 
-  ResourceManager();
+  ResourceManager(CaptureState &state);
   virtual ~ResourceManager();
 
   void Shutdown();
@@ -625,6 +629,18 @@ public:
   WrappedResourceType GetWrapper(RealResourceType real);
   void RemoveWrapper(RealResourceType real);
 
+  void Prepare_ResourceInitialStateIfNeeded(ResourceId id);
+  void Prepare_ResourceIfActivePostponed(ResourceId id);
+
+  void UpdateLastWriteTime(ResourceId id);
+  void ResetLastWriteTimes();
+  void ResetCaptureStartTime();
+
+  bool HasPersistentAge(ResourceId id);
+  bool IsResourcePostponed(ResourceId id);
+  bool IsResourcePersistent(ResourceId id);
+
+  virtual bool IsResourceTrackedForPersistency(const WrappedResourceType &res) { return false; }
 protected:
   friend InitialContentData;
   // 'interface' to implement by derived classes
@@ -702,10 +718,28 @@ protected:
 
   // used during replay - holds current resource replacements
   std::map<ResourceId, ResourceId> m_Replacements;
+
+  // During initial resources preparation, persistent resources are
+  // postponed until serializing to RDC file.
+  std::set<ResourceId> m_PostponedResourceIDs;
+
+  // On marking resource write-referenced in frame, its last write
+  // time is reset. The time is used to determine persistent resources,
+  // and is checked against the `PERSISTENT_RESOURCE_AGE`.
+  std::map<ResourceId, double> m_LastWriteTime;
+
+  // Timestamp at the beginning of the frame capture. Used to determine which
+  // resources to refresh for their last write time (see `m_LastWriteTime`).
+  double m_captureStartTime;
+
+  PerformanceTimer m_ResourcesUpdateTimer;
+
+  // The capture state is propagated by a specific driver.
+  CaptureState &m_State;
 };
 
 template <typename Configuration>
-ResourceManager<Configuration>::ResourceManager()
+ResourceManager<Configuration>::ResourceManager(CaptureState &state) : m_State(state)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ResourceManager));
@@ -749,6 +783,15 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
   SCOPED_LOCK(m_Lock);
 
   if(id == ResourceId())
+    return;
+
+  if(IsDirtyFrameRef(refType))
+  {
+    Prepare_ResourceIfActivePostponed(id);
+    UpdateLastWriteTime(id);
+  }
+
+  if(IsBackgroundCapturing(m_State))
     return;
 
   bool newRef = MarkReferenced(m_FrameReferencedResources, id, refType, comp);
@@ -909,6 +952,97 @@ void ResourceManager<Configuration>::FreeInitialContents()
     if(!m_InitialContents.empty())
       m_InitialContents.erase(m_InitialContents.begin());
   }
+  m_PostponedResourceIDs.clear();
+}
+
+template <typename Configuration>
+void ResourceManager<Configuration>::Prepare_ResourceInitialStateIfNeeded(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+
+  if(!IsResourcePostponed(id))
+    return;
+
+  WrappedResourceType res = GetCurrentResource(id);
+  Prepare_InitialState(res);
+
+  m_PostponedResourceIDs.erase(id);
+}
+
+template <typename Configuration>
+void ResourceManager<Configuration>::Prepare_ResourceIfActivePostponed(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+
+  // If the resource was postponed during Active Capture, we need to prepare it
+  // right away, since next Read might be invalid.
+  if(!IsActiveCapturing(m_State) || !IsResourcePostponed(id))
+    return;
+
+  RDCDEBUG("Preparing resource %llu after it has been postponed.", id);
+  Prepare_ResourceInitialStateIfNeeded(id);
+}
+
+template <typename Configuration>
+inline void ResourceManager<Configuration>::UpdateLastWriteTime(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+  m_LastWriteTime[id] = m_ResourcesUpdateTimer.GetMilliseconds();
+}
+
+template <typename Configuration>
+inline void ResourceManager<Configuration>::ResetCaptureStartTime()
+{
+  SCOPED_LOCK(m_Lock);
+  // This time is used to analyze which resources to refresh
+  // for their last write time.
+  m_captureStartTime = m_ResourcesUpdateTimer.GetMilliseconds();
+}
+
+template <typename Configuration>
+inline void ResourceManager<Configuration>::ResetLastWriteTimes()
+{
+  SCOPED_LOCK(m_Lock);
+  for(auto it = m_LastWriteTime.begin(); it != m_LastWriteTime.end(); ++it)
+  {
+    // Reset only those resources which were below the threshold on
+    // capture start. Other resource are already above the threshold.
+    if(m_captureStartTime - it->second <= PERSISTENT_RESOURCE_AGE)
+      it->second = m_ResourcesUpdateTimer.GetMilliseconds();
+  }
+}
+
+template <typename Configuration>
+inline bool ResourceManager<Configuration>::HasPersistentAge(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+
+  auto it = m_LastWriteTime.find(id);
+
+  if(it == m_LastWriteTime.end())
+    return true;
+
+  return m_ResourcesUpdateTimer.GetMilliseconds() - it->second >= PERSISTENT_RESOURCE_AGE;
+}
+
+template <typename Configuration>
+inline bool ResourceManager<Configuration>::IsResourcePostponed(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+  return m_PostponedResourceIDs.find(id) != m_PostponedResourceIDs.end();
+}
+
+template <typename Configuration>
+inline bool ResourceManager<Configuration>::IsResourcePersistent(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+
+  WrappedResourceType res = GetCurrentResource(id);
+
+  if(!IsResourceTrackedForPersistency(res))
+    return false;
+
+  return HasPersistentAge(id);
 }
 
 template <typename Configuration>
@@ -1071,6 +1205,14 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     if(record == NULL || record->InternalResource)
       continue;
 
+    if(IsResourcePersistent(id))
+    {
+      m_PostponedResourceIDs.insert(id);
+      // Set empty contents here, it'll be prepared on serialization.
+      SetInitialContents(id, InitialContentData());
+      continue;
+    }
+
     prepared++;
 
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
@@ -1135,6 +1277,9 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     RDCDEBUG("Serialising dirty Resource %llu", id);
 #endif
 
+    // Load postponed resource if needed.
+    Prepare_ResourceInitialStateIfNeeded(id);
+
     dirty++;
 
     if(!Need_InitialStateChunk(id, it->second.data))
@@ -1156,6 +1301,9 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
 
       Serialise_InitialState(ser, id, record, &it->second.data);
     }
+
+    // Reset back to empty contents, unloading the actual resource.
+    SetInitialContents(id, InitialContentData());
   }
 
   RDCDEBUG("Serialised %u resources, skipped %u unreferenced", dirty, skipped);
@@ -1458,8 +1606,14 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
   SCOPED_LOCK(m_Lock);
 
   RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
+
+  // We potentially need to prepare this resource on Active Capture,
+  // if it was postponed, but is about to go away.
+  Prepare_ResourceIfActivePostponed(id);
+
   m_CurrentResourceMap.erase(id);
   m_DirtyResources.erase(id);
+  m_LastWriteTime.erase(id);
 }
 
 template <typename Configuration>

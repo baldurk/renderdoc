@@ -608,6 +608,14 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
       record->Map.orphaned = true;
   }
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+    if(record)
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_PartialWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glNamedBufferDataEXT(buffer, size, data, usage));
 
   if(IsCaptureMode(m_State))
@@ -748,6 +756,14 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
     GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
     if(record)
       record->Map.orphaned = true;
+  }
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
+    if(record)
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_PartialWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glBufferData(target, size, data, usage));
@@ -906,6 +922,14 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
 void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size,
                                             const void *data)
 {
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+    if(record)
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glNamedBufferSubDataEXT(buffer, offset, size, data));
 
   if(IsCaptureMode(m_State))
@@ -956,6 +980,14 @@ void WrappedOpenGL::glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei
 
 void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
 {
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    if(record)
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glBufferSubData(target, offset, size, data));
 
   if(IsCaptureMode(m_State))
@@ -1030,6 +1062,16 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 {
   CoherentMapImplicitBarrier();
 
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *writerecord =
+        GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), writeBuffer));
+
+    if(writerecord)
+      GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(
       GL.glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size));
 
@@ -1093,6 +1135,14 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
                                         GLintptr writeOffset, GLsizeiptr size)
 {
   CoherentMapImplicitBarrier();
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *writerecord = GetCtxData().m_BufferRecord[BufferIdx(writeTarget)];
+    if(writerecord)
+      GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+  }
 
   SERIALISE_TIME_CALL(GL.glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size));
 
@@ -1523,6 +1573,8 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
     if(buffers && IsBackgroundCapturing(m_State) && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
+      GetResourceManager()->MarkResourceFrameReferenced(cd.m_FeedbackRecord->Resource,
+                                                        eFrameRef_ReadBeforeWrite);
       GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
       for(int i = 0; i < count; i++)
@@ -1640,12 +1692,19 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
                                        const GLuint *buffers, const GLintptr *offsets,
                                        const GLsizeiptr *sizes)
 {
+  ContextData &cd = GetCtxData();
+
+  if(buffers && IsBackgroundCapturing(m_State) && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
+     RecordUpdateCheck(cd.m_FeedbackRecord))
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(cd.m_FeedbackRecord->Resource,
+                                                      eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glBindBuffersRange(target, first, count, buffers, offsets, sizes));
 
   if(IsCaptureMode(m_State) && count > 0)
   {
-    ContextData &cd = GetCtxData();
-
     size_t idx = BufferIdx(target);
 
     if(buffers == NULL || buffers[0] == 0)
@@ -2337,9 +2396,10 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
     if(IsActiveCapturing(m_State))
     {
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                        eFrameRef_ReadBeforeWrite);
     }
+
+    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                      eFrameRef_ReadBeforeWrite);
 
     GLboolean ret = GL_TRUE;
 
@@ -2520,6 +2580,12 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
   GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
   RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
                buffer);
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                      eFrameRef_ReadBeforeWrite);
+  }
 
   // only need to pay attention to flushes when in capframe. Otherwise (see above) we
   // treat the map as a normal map, and let ALL modified regions go through, flushed or not,
@@ -2870,8 +2936,6 @@ void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLui
     if(IsActiveCapturing(m_State))
     {
       GetContextRecord()->AddChunk(scope.Get());
-      GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
-                                                        eFrameRef_ReadBeforeWrite);
     }
     else if(xfb != 0)
     {
@@ -2883,6 +2947,9 @@ void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLui
       if(buffer != 0)
         fbrecord->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
     }
+
+    GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
+                                                      eFrameRef_ReadBeforeWrite);
   }
 }
 
@@ -2916,6 +2983,12 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(SerialiserType &ser
 void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
                                                    GLintptr offset, GLsizeiptr size)
 {
+  if(IsBackgroundCapturing(m_State))
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
+                                                      eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glTransformFeedbackBufferRange(xfb, index, buffer, offset, size));
 
   if(IsCaptureMode(m_State))

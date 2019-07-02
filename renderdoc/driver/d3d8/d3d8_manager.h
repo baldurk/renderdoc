@@ -67,7 +67,11 @@ struct D3D8ResourceManagerConfiguration
 class D3D8ResourceManager : public ResourceManager<D3D8ResourceManagerConfiguration>
 {
 public:
-  D3D8ResourceManager(WrappedD3DDevice8 *dev) : m_Device(dev) {}
+  D3D8ResourceManager(CaptureState &state, WrappedD3DDevice8 *dev)
+      : ResourceManager(state), m_Device(dev)
+  {
+  }
+
 private:
   bool AutoReferenceResource(ResourceId id, D3D8ResourceRecord *record);
   ResourceId GetID(IUnknown *res);

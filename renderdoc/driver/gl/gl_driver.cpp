@@ -671,7 +671,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_DeviceRecord = NULL;
 
-  m_ResourceManager = new GLResourceManager(this);
+  m_ResourceManager = new GLResourceManager(m_State, this);
 
   m_ScratchSerialiser.SetUserData(GetResourceManager());
 
@@ -714,6 +714,14 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
 {
   m_SectionVersion = sectionVersion;
   m_GlobalInitParams = params;
+}
+
+void WrappedOpenGL::MarkReferencedWhileCapturing(GLResourceRecord *record, FrameRefType refType)
+{
+  if(!record || !IsCaptureMode(m_State))
+    return;
+
+  GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), refType);
 }
 
 void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId,
@@ -1977,6 +1985,8 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   m_State = CaptureState::ActiveCapturing;
 
+  GetResourceManager()->ResetCaptureStartTime();
+
   m_AppControlledCapture = true;
 
   m_Failures = 0;
@@ -2182,6 +2192,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
     m_State = CaptureState::BackgroundCapturing;
+
+    GetResourceManager()->ResetLastWriteTimes();
 
     GetResourceManager()->MarkUnwrittenResources();
 

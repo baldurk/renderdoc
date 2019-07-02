@@ -127,7 +127,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_State = CaptureState::BackgroundCapturing;
   }
 
-  m_ResourceManager = new D3D11ResourceManager(this);
+  m_ResourceManager = new D3D11ResourceManager(m_State, this);
 
   m_ShaderCache = new D3D11ShaderCache(this);
 

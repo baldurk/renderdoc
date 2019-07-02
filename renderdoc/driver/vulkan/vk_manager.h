@@ -186,8 +186,8 @@ DECLARE_REFLECTION_STRUCT(MemRefInterval);
 class VulkanResourceManager : public ResourceManager<VulkanResourceManagerConfiguration>
 {
 public:
-  VulkanResourceManager(CaptureState state, WrappedVulkan *core)
-      : ResourceManager(), m_State(state), m_Core(core)
+  VulkanResourceManager(CaptureState &state, WrappedVulkan *core)
+      : ResourceManager(state), m_Core(core)
   {
   }
   void SetState(CaptureState state) { m_State = state; }
@@ -453,7 +453,6 @@ private:
   void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
   std::vector<ResourceId> InitialContentResources();
 
-  CaptureState m_State;
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
   std::map<ResourceId, ImgRefs> m_ImgFrameRefs;

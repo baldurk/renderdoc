@@ -679,8 +679,8 @@ struct D3D12ResourceManagerConfiguration
 class D3D12ResourceManager : public ResourceManager<D3D12ResourceManagerConfiguration>
 {
 public:
-  D3D12ResourceManager(CaptureState state, WrappedID3D12Device *dev)
-      : ResourceManager(), m_State(state), m_Device(dev)
+  D3D12ResourceManager(CaptureState &state, WrappedID3D12Device *dev)
+      : ResourceManager(state), m_Device(dev)
   {
   }
   template <class T>
@@ -723,6 +723,5 @@ private:
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D12DeviceChild *live, const D3D12InitialContents &data);
 
-  CaptureState m_State;
   WrappedID3D12Device *m_Device;
 };
