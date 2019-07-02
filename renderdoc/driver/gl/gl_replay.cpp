@@ -445,10 +445,17 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.msQual = 0;
     tex.msSamp = RDCMAX(1, res.samples);
 
-    tex.format = MakeResourceFormat(eGL_TEXTURE_2D, res.internalFormat);
+    if(res.internalFormat == eGL_NONE)
+    {
+      tex.format = ResourceFormat();
+    }
+    else
+    {
+      tex.format = MakeResourceFormat(eGL_TEXTURE_2D, res.internalFormat);
 
-    if(IsDepthStencilFormat(res.internalFormat))
-      tex.creationFlags |= TextureCategory::DepthTarget;
+      if(IsDepthStencilFormat(res.internalFormat))
+        tex.creationFlags |= TextureCategory::DepthTarget;
+    }
 
     tex.byteSize = (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount);
 
