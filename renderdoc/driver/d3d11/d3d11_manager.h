@@ -289,7 +289,10 @@ struct D3D11ResourceManagerConfiguration
 class D3D11ResourceManager : public ResourceManager<D3D11ResourceManagerConfiguration>
 {
 public:
-  D3D11ResourceManager(WrappedID3D11Device *dev) : m_Device(dev) {}
+  D3D11ResourceManager(CaptureState &state, WrappedID3D11Device *dev)
+      : ResourceManager(state), m_Device(dev)
+  {
+  }
   ID3D11DeviceChild *UnwrapResource(ID3D11DeviceChild *res);
   ID3D11Resource *UnwrapResource(ID3D11Resource *res)
   {

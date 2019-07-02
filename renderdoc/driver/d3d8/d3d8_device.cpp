@@ -69,7 +69,7 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
     m_Wnd = NULL;
   }
 
-  m_ResourceManager = new D3D8ResourceManager(this);
+  m_ResourceManager = new D3D8ResourceManager(m_State, this);
 }
 
 void WrappedD3DDevice8::CheckForDeath()

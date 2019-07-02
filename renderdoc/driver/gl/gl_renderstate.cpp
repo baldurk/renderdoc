@@ -539,7 +539,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
       GL.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&name);
 
       if(name)
-        manager->MarkDirtyResource(BufferRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(BufferRes(ctx, name));
     }
   }
 
@@ -553,7 +553,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
       GL.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&name);
 
       if(name)
-        manager->MarkDirtyResource(TextureRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
     }
   }
 
@@ -567,7 +567,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
       GL.glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint *)&name);
 
       if(name)
-        manager->MarkDirtyResource(BufferRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(BufferRes(ctx, name));
     }
   }
 
@@ -581,7 +581,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
       GL.glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint *)&name);
 
       if(name)
-        manager->MarkDirtyResource(BufferRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(BufferRes(ctx, name));
     }
   }
 
@@ -606,7 +606,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
         if(type == eGL_RENDERBUFFER)
           manager->MarkDirtyResource(RenderbufferRes(ctx, name));
         else
-          manager->MarkDirtyResource(TextureRes(ctx, name));
+          manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
       }
     }
 
@@ -620,7 +620,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
       if(type == eGL_RENDERBUFFER)
         manager->MarkDirtyResource(RenderbufferRes(ctx, name));
       else
-        manager->MarkDirtyResource(TextureRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
     }
 
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
@@ -633,7 +633,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
       if(type == eGL_RENDERBUFFER)
         manager->MarkDirtyResource(RenderbufferRes(ctx, name));
       else
-        manager->MarkDirtyResource(TextureRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
     }
   }
 }

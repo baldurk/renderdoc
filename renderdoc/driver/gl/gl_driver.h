@@ -1907,6 +1907,8 @@ public:
   void Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data,
                                       GLbitfield flags);
 
+  void MarkReferencedWhileCapturing(GLResourceRecord *record, FrameRefType refType);
+
   IMPLEMENT_FUNCTION_SERIALISED(GLenum, glCheckNamedFramebufferStatusEXT, GLuint framebuffer,
                                 GLenum target);
   IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureImage1DEXT, GLuint texture, GLenum target,

@@ -27,10 +27,14 @@
 #include <algorithm>
 #include "driver/gl/gl_driver.h"
 
-GLResourceManager::GLResourceManager(WrappedOpenGL *driver)
-    : ResourceManager(), m_Driver(driver), m_SyncName(1)
+GLResourceManager::GLResourceManager(CaptureState &state, WrappedOpenGL *driver)
+    : ResourceManager(state), m_Driver(driver), m_SyncName(1)
 {
-  m_State = m_Driver->GetState();
+}
+
+bool GLResourceManager::IsResourceTrackedForPersistency(const GLResource &res)
+{
+  return res.Namespace == eResTexture || res.Namespace == eResBuffer;
 }
 
 void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0)

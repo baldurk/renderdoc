@@ -42,7 +42,7 @@ struct GLResourceManagerConfiguration
 class GLResourceManager : public ResourceManager<GLResourceManagerConfiguration>
 {
 public:
-  GLResourceManager(WrappedOpenGL *driver);
+  GLResourceManager(CaptureState &state, WrappedOpenGL *driver);
   ~GLResourceManager() {}
   void Shutdown()
   {
@@ -215,6 +215,14 @@ public:
   using ResourceManager::MarkDirtyResource;
 
   void MarkDirtyResource(GLResource res) { return ResourceManager::MarkDirtyResource(GetID(res)); }
+  // Mark resource as dirty and write-referenced.
+  // Write-referenced resources are used to track resource "age".
+  void MarkDirtyWithWriteReference(GLResource res)
+  {
+    MarkResourceFrameReferenced(res, eFrameRef_ReadBeforeWrite);
+    MarkDirtyResource(res);
+  }
+
   void RegisterSync(ContextPair &ctx, GLsync sync, GLuint &name, ResourceId &id)
   {
     name = (GLuint)Atomic::Inc64(&m_SyncName);
@@ -238,6 +246,8 @@ public:
   // this would be handled by record parenting, but that would be a nightmare to track.
   void MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0 = false);
   void MarkFBOReferenced(GLResource res, FrameRefType ref);
+
+  bool IsResourceTrackedForPersistency(const GLResource &res);
 
   void Force_ReferenceViews();
 
@@ -278,6 +288,5 @@ private:
   std::map<ResourceId, std::string> m_Names;
   volatile int64_t m_SyncName;
 
-  CaptureState m_State;
   WrappedOpenGL *m_Driver;
 };

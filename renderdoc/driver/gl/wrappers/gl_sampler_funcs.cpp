@@ -288,6 +288,9 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
       record->AddChunk(scope.Get());
       record->UpdateCount++;
 
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_ReadBeforeWrite);
+
       if(record->UpdateCount > 20)
       {
         m_HighTrafficResources.insert(record->GetResourceID());
@@ -347,6 +350,9 @@ void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat pa
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
+
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_ReadBeforeWrite);
 
       if(record->UpdateCount > 20)
       {
@@ -409,6 +415,9 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
       record->AddChunk(scope.Get());
       record->UpdateCount++;
 
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_ReadBeforeWrite);
+
       if(record->UpdateCount > 20)
       {
         m_HighTrafficResources.insert(record->GetResourceID());
@@ -469,6 +478,9 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
+
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_ReadBeforeWrite);
 
       if(record->UpdateCount > 20)
       {
@@ -531,6 +543,9 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
       record->AddChunk(scope.Get());
       record->UpdateCount++;
 
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_ReadBeforeWrite);
+
       if(record->UpdateCount > 20)
       {
         m_HighTrafficResources.insert(record->GetResourceID());
@@ -591,6 +606,9 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
+
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_ReadBeforeWrite);
 
       if(record->UpdateCount > 20)
       {
