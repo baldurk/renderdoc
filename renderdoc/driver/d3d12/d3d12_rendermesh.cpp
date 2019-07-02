@@ -411,7 +411,12 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &se
     {
       default:
       case SolidShade::Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
-      case SolidShade::Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
+      case SolidShade::Lit:
+        pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit];
+        // point list topologies don't have lighting obvious, just render them as solid
+        if(!pipe)
+          pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth];
+        break;
       case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
     }
 
