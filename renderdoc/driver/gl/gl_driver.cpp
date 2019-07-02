@@ -612,6 +612,10 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
 
   WrappedOpenGL &drv = *this;
 
+  GLuint unpackbuf = 0;
+  GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
+  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
   drv.glGenFramebuffers(1, &fbo);
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
 
@@ -768,6 +772,8 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
       GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
     }
   }
+
+  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 }
 
 std::string WrappedOpenGL::GetChunkName(uint32_t idx)

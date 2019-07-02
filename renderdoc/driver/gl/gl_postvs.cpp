@@ -72,6 +72,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(rs.VAO.name)
     drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
 
+  drv.glBindBuffer(eGL_QUERY_BUFFER, 0);
+
   // reflection structures
   ShaderReflection *vsRefl = NULL;
   ShaderReflection *tesRefl = NULL;
@@ -1680,6 +1682,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
   drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+
+  if(HasExt[ARB_query_buffer_object])
+    drv.glBindBuffer(eGL_QUERY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Query].name);
 
   drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
