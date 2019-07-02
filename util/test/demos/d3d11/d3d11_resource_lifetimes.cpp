@@ -98,6 +98,21 @@ float4 main(v2f IN) : SV_Target0
       return ret;
     };
 
+    ID3D11BufferPtr dummy = MakeBuffer().Constant().Size(sizeof(Vec4f));
+
+    auto SetupVBuf = [this, dummy]() {
+      ID3D11BufferPtr ret = MakeBuffer().Vertex().Size(sizeof(Vec4f)).Mappable();
+
+      // force the buffer to become dirty
+      ctx->CopyResource(ret, dummy);
+
+      // map the dirty resource
+      D3D11_MAPPED_SUBRESOURCE map = Map(ret, 0, D3D11_MAP_WRITE_NO_OVERWRITE);
+      ctx->Unmap(ret, 0);
+
+      return ret;
+    };
+
     auto TrashBuf = [this](ID3D11BufferPtr &buf) {
       D3D11_MAPPED_SUBRESOURCE map = Map(buf, 0, D3D11_MAP_WRITE_DISCARD);
       memset(map.pData, 0, sizeof(Vec4f));
@@ -176,6 +191,10 @@ float4 main(v2f IN) : SV_Target0
       ctx->Draw(3, 0);
       TrashBuf(cb);
       TrashSRV(srv);
+
+      // create, dirty, and map the dirty buffer mid-frame
+      ID3D11BufferPtr vbtmp = SetupVBuf();
+      TrashBuf(vbtmp);
 
       // set up resources for next frame
       cb = SetupBuf();

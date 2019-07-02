@@ -7398,15 +7398,13 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
 
       if(MapType != D3D11_MAP_WRITE_DISCARD)
       {
-        if(m_pDevice->GetResourceManager()->IsResourceDirty(Resource))
-        {
-          ID3D11DeviceChild *initial =
-              m_pDevice->GetResourceManager()->GetInitialContents(Resource).resource;
+        ID3D11DeviceChild *initial =
+            m_pDevice->GetResourceManager()->GetInitialContents(Resource).resource;
 
+        if(initial)
+        {
           if(WrappedID3D11Buffer::IsAlloc(pResource))
           {
-            RDCASSERT(initial);
-
             ID3D11Buffer *stage = (ID3D11Buffer *)initial;
 
             D3D11_MAPPED_SUBRESOURCE mapped;
