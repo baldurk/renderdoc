@@ -588,7 +588,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
       case SolidShade::Lit:
         pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit];
         // point list topologies don't have lighting obvious, just render them as solid
-        if(!pipe)
+        if(pipe == VK_NULL_HANDLE)
           pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth];
         break;
       case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
