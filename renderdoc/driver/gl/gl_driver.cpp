@@ -1762,7 +1762,9 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
       }
       else if(!ctxdata.isCore)
       {
-        overlayText += "WARNING: Non-core context in use. Compatibility profile not supported.\n";
+        overlayText +=
+            "WARNING: Core profile not explicitly requested. Compatibility profile is not "
+            "supported.\n";
       }
 
       if(activeWindow && m_FailedFrame > 0)
