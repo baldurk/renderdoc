@@ -54,20 +54,18 @@ private:
 
 class Operation;
 
-class Iter
+template <typename ConstOrNotVector>
+class IterBase
 {
 public:
-  // constructors
-  Iter() = default;
-  Iter(std::vector<uint32_t> &w, size_t o) : words(&w), offset(o) {}
   // increment to the next op
-  Iter operator++(int)
+  IterBase<ConstOrNotVector> operator++(int)
   {
-    Iter ret = *this;
+    IterBase<ConstOrNotVector> ret = *this;
     operator++();
     return ret;
   }
-  Iter operator++()
+  IterBase<ConstOrNotVector> operator++()
   {
     do
     {
@@ -77,18 +75,48 @@ public:
 
     return *this;
   }
-  bool operator==(const Iter &it) const = delete;
-  bool operator!=(const Iter &it) const = delete;
-  bool operator<(const Iter &it) const { return words == it.words && offset < it.offset; }
+  bool operator==(const IterBase<ConstOrNotVector> &it) const = delete;
+  bool operator!=(const IterBase<ConstOrNotVector> &it) const = delete;
+  bool operator<(const IterBase<ConstOrNotVector> &it) const
+  {
+    return words == it.words && offset < it.offset;
+  }
   // utility functions
   explicit operator bool() const { return words != NULL && offset < words->size(); }
-  uint32_t &operator*() { return cur(); }
   const uint32_t &operator*() const { return cur(); }
-  spv::Op opcode() { return spv::Op(cur() & spv::OpCodeMask); }
-  uint32_t &word(size_t idx) { return words->at(offset + idx); }
+  spv::Op opcode() const { return spv::Op(cur() & spv::OpCodeMask); }
   const uint32_t &word(size_t idx) const { return words->at(offset + idx); }
   size_t offs() const { return offset; }
   size_t size() const { return cur() >> spv::WordCountShift; }
+protected:
+  IterBase() = default;
+  IterBase(ConstOrNotVector &w, size_t o) : words(&w), offset(o) {}
+  inline const uint32_t &cur() const { return words->at(offset); }
+  size_t offset = 0;
+  ConstOrNotVector *words = NULL;
+};
+
+class ConstIter : public IterBase<const std::vector<uint32_t>>
+{
+public:
+  // constructors
+  ConstIter() = default;
+  ConstIter(const std::vector<uint32_t> &w, size_t o) : IterBase<const std::vector<uint32_t>>(w, o)
+  {
+  }
+};
+
+class Iter : public ConstIter
+{
+public:
+  // constructors
+  Iter() = default;
+  Iter(std::vector<uint32_t> &w, size_t o) : ConstIter(w, o) {}
+  // mutable utility functions
+  using ConstIter::operator*;
+  uint32_t &operator*() { return cur(); }
+  using ConstIter::word;
+  uint32_t &word(size_t idx) { return mutable_words()->at(offset + idx); }
   // replace part of this operation with NOPs and update the length. Cannot completely erase the
   // operation, or expand it
   void nopRemove(size_t idx, size_t count = 0);
@@ -97,12 +125,10 @@ public:
 
 private:
   friend class Operation;
-  inline uint32_t &cur() { return words->at(offset); }
-  inline const uint32_t &cur() const { return words->at(offset); }
-  std::vector<uint32_t>::iterator it() { return words->begin() + offset; }
+  inline uint32_t &cur() { return mutable_words()->at(offset); }
+  std::vector<uint32_t>::iterator it() { return mutable_words()->begin() + offset; }
   std::vector<uint32_t>::const_iterator it() const { return words->cbegin() + offset; }
-  size_t offset = 0;
-  std::vector<uint32_t> *words = NULL;
+  std::vector<uint32_t> *mutable_words() { return (std::vector<uint32_t> *)words; }
 };
 
 class Operation
