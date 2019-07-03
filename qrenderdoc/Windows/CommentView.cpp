@@ -58,7 +58,9 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
     {
       QString text = QString::fromUtf8(m_commentsEditor->getText(m_commentsEditor->textLength() + 1));
       text.remove(QLatin1Char('\r'));
+      m_ignoreModifications = true;
       m_Ctx.SetNotes(lit("comments"), text);
+      m_ignoreModifications = false;
     }
   });
 
@@ -93,15 +95,17 @@ void CommentView::OnCaptureLoaded()
 
 void CommentView::OnEventChanged(uint32_t eventId)
 {
+  if(m_ignoreModifications)
+    return;
+
   QString oldText = QString::fromUtf8(m_commentsEditor->getText(m_commentsEditor->textLength() + 1));
   QString newText = m_Ctx.GetNotes("comments");
 
   if(oldText != newText)
   {
-    bool oldIgnore = m_ignoreModifications;
     m_ignoreModifications = true;
     m_commentsEditor->setText(newText.toUtf8().data());
     m_commentsEditor->emptyUndoBuffer();
-    m_ignoreModifications = oldIgnore;
+    m_ignoreModifications = false;
   }
 }
