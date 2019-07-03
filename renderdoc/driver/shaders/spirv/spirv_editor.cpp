@@ -294,7 +294,7 @@ void Editor::AddFunction(const Operation *ops, size_t count)
 
 Iter Editor::GetID(Id id)
 {
-  size_t offs = idOffsets[id.value()];
+  size_t offs = idOffsets[id];
 
   if(offs)
     return Iter(m_SPIRV, offs);
@@ -311,7 +311,7 @@ Iter Editor::GetEntry(Id id)
   {
     OpEntryPoint entry(it);
 
-    if(entry.entryPoint == id.value())
+    if(entry.entryPoint == id)
       return it;
     it++;
   }
@@ -353,19 +353,21 @@ void Editor::RegisterOp(Iter it)
   else if(opdata.op == Op::TypeVector)
   {
     OpTypeVector decoded(it);
-    vectorTypeToId[Vector(scalarTypes[decoded.componentType], decoded.componentCount)] =
+    vectorTypeToId[Vector(dataTypes[decoded.componentType].scalar(), decoded.componentCount)] =
         decoded.result;
   }
   else if(opdata.op == Op::TypeMatrix)
   {
     OpTypeMatrix decoded(it);
-    matrixTypeToId[Matrix(vectorTypes[decoded.columnType], decoded.columnCount)] = decoded.result;
+    matrixTypeToId[Matrix(dataTypes[decoded.columnType].vector(), decoded.columnCount)] =
+        decoded.result;
   }
   else if(opdata.op == Op::TypeImage)
   {
     OpTypeImage decoded(it);
-    imageTypeToId[Image(scalarTypes[decoded.sampledType], decoded.dim, decoded.depth, decoded.arrayed,
-                        decoded.mS, decoded.sampled, decoded.imageFormat)] = decoded.result;
+    imageTypeToId[Image(dataTypes[decoded.sampledType].scalar(), decoded.dim, decoded.depth,
+                        decoded.arrayed, decoded.mS, decoded.sampled, decoded.imageFormat)] =
+        decoded.result;
   }
   else if(opdata.op == Op::TypeSampler)
   {
@@ -412,17 +414,17 @@ void Editor::UnregisterOp(Iter it)
   else if(opdata.op == Op::TypeVector)
   {
     OpTypeVector decoded(it);
-    vectorTypeToId.erase(Vector(scalarTypes[decoded.componentType], decoded.componentCount));
+    vectorTypeToId.erase(Vector(dataTypes[decoded.componentType].scalar(), decoded.componentCount));
   }
   else if(opdata.op == Op::TypeMatrix)
   {
     OpTypeMatrix decoded(it);
-    matrixTypeToId.erase(Matrix(vectorTypes[decoded.columnType], decoded.columnCount));
+    matrixTypeToId.erase(Matrix(dataTypes[decoded.columnType].vector(), decoded.columnCount));
   }
   else if(opdata.op == Op::TypeImage)
   {
     OpTypeImage decoded(it);
-    imageTypeToId.erase(Image(scalarTypes[decoded.sampledType], decoded.dim, decoded.depth,
+    imageTypeToId.erase(Image(dataTypes[decoded.sampledType].scalar(), decoded.dim, decoded.depth,
                               decoded.arrayed, decoded.mS, decoded.sampled, decoded.imageFormat));
   }
   else if(opdata.op == Op::TypeSampler)

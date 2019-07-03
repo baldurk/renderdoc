@@ -58,6 +58,36 @@ struct Scalar
   {
     return type == o.type && width == o.width && signedness == o.signedness;
   }
+
+  VarType Type() const
+  {
+    if(type == Op::TypeFloat)
+    {
+      if(width == 32)
+        return VarType::Float;
+      else if(width == 16)
+        return VarType::Half;
+      else if(width == 64)
+        return VarType::Double;
+    }
+    else if(type == Op::TypeInt)
+    {
+      if(width == 32)
+        return signedness ? VarType::SInt : VarType::UInt;
+      else if(width == 16)
+        return signedness ? VarType::SShort : VarType::UShort;
+      else if(width == 64)
+        return signedness ? VarType::SLong : VarType::ULong;
+      else if(width == 8)
+        return signedness ? VarType::SByte : VarType::UByte;
+    }
+    else if(type == Op::TypeBool)
+    {
+      return VarType::UInt;
+    }
+
+    return VarType::Unknown;
+  }
 };
 
 // helper to create Scalar objects for known types
@@ -221,6 +251,159 @@ struct FunctionType
   }
 };
 
+struct Decorations
+{
+  // common ones directly
+  enum Flags
+  {
+    NoFlags = 0,
+    Block = 0x1,
+    BufferBlock = 0x2,
+    RowMajor = 0x4,
+    ColMajor = 0x8,
+
+    // which packed decorations have been set
+    HasLocation = 0x01000000,
+    HasArrayStride = 0x02000000,
+    HasDescriptorSet = 0x04000000,
+    HasOffset = 0x08000000,
+    HasBuiltIn = 0x10000000,
+    HasBinding = 0x20000000,
+    HasMatrixStride = 0x40000000,
+    HasSpecId = 0x80000000,
+  };
+  Flags flags = NoFlags;
+
+  bool HasDecorations() const { return flags != NoFlags || !others.empty(); }
+  // to save some space we union things that can't be used on the same type of object
+  union
+  {
+    uint32_t location = ~0U;    // only valid on variables
+    uint32_t arrayStride;       // only valid on types
+  };
+
+  union
+  {
+    uint32_t set = ~0U;    // only valid on global variables
+    uint32_t offset;       // only valid on struct members
+  };
+
+  union
+  {
+    BuiltIn builtIn = BuiltIn::Invalid;    // only valid on builtins
+    uint32_t binding;    // only valid on binding objects (images, samplers, buffers)
+  };
+
+  union
+  {
+    uint32_t matrixStride = ~0U;    // only valid on matrices
+    uint32_t specID;                // only valid on scalars
+  };
+
+  // others in an array
+  rdcarray<DecorationAndParamData> others;
+
+  void Register(const DecorationAndParamData &decoration);
+  void Unregister(const DecorationAndParamData &decoration);
+};
+
+struct DataType
+{
+  enum Type
+  {
+    UnknownType,
+    ScalarType,
+    VectorType,
+    MatrixType,
+    StructType,
+    PointerType,
+    ArrayType,
+    ImageType,
+    SamplerType,
+    SampledImageType,
+  };
+
+  struct Child
+  {
+    Id type;
+    rdcstr name;
+    Decorations decorations;
+  };
+
+  DataType() = default;
+  DataType(Id i, Id inner, const Matrix &m)
+      : id(i), type(MatrixType), pointerType(inner, StorageClass::Max), basicType(m)
+  {
+  }
+  DataType(Id i, Id inner, const Vector &v)
+      : id(i), type(VectorType), pointerType(inner, StorageClass::Max), basicType(v, 0)
+  {
+  }
+  DataType(Id i, const Scalar &s) : id(i), type(ScalarType), basicType(Vector(s, 0), 0) {}
+  DataType(Id i, const Pointer &p) : id(i), type(PointerType), pointerType(p) {}
+  DataType(Id i, Id c, Id l) : id(i), type(ArrayType), pointerType(c, StorageClass::Max), length(l)
+  {
+  }
+  DataType(Id i, const rdcarray<Id> &c) : id(i), type(StructType)
+  {
+    children.reserve(c.size());
+    for(Id child : c)
+    {
+      children.push_back({child});
+    }
+  }
+  DataType(Id i, Type t) : id(i), type(t) {}
+  const Scalar &scalar() const { return basicType.vector.scalar; }
+  const Vector &vector() const { return basicType.vector; }
+  const Matrix &matrix() const { return basicType; }
+  Id InnerType() const { return pointerType.baseId; }
+  bool IsOpaqueType() const
+  {
+    return type == ImageType || type == SamplerType || type == SampledImageType;
+  }
+  Id id;
+  rdcstr name;
+  Type type = UnknownType;
+
+  Matrix basicType;
+  Pointer pointerType;
+  Id length;    // for arrays
+  rdcarray<Child> children;
+};
+
+struct OpExecutionMode;
+struct OpExecutionModeId;
+
+struct ExecutionModes
+{
+  // common ones directly
+  Topology outTopo = Topology::Unknown;
+
+  enum DepthMode
+  {
+    DepthNormal,
+    DepthGreater,
+    DepthLess,
+  } depthMode;
+
+  struct
+  {
+    uint32_t x = 0, y = 0, z = 0;
+  } localSize;
+  struct
+  {
+    Id x, y, z;
+  } localSizeId;
+
+  // others in an array
+  rdcarray<rdcpair<rdcspv::ExecutionMode, uint32_t>> others;
+
+  void Register(const OpExecutionMode &mode);
+  void Register(const OpExecutionModeId &mode);
+  void Unregister(const OpExecutionMode &mode);
+  void Unregister(const OpExecutionModeId &mode);
+};
+
 struct EntryPoint
 {
   EntryPoint() = default;
@@ -228,6 +411,7 @@ struct EntryPoint
   ExecutionModel executionModel;
   Id id;
   rdcstr name;
+  ExecutionModes executionModes;
 
   bool operator<(const EntryPoint &o) const
   {
@@ -264,6 +448,22 @@ struct Variable
   }
 };
 
+struct Constant
+{
+  Id type;
+  Id id;
+  ShaderVariable value;
+  rdcarray<Id> children;
+};
+
+struct SpecOp
+{
+  Id type;
+  Id id;
+  Op op;
+  rdcarray<Id> params;
+};
+
 // hack around enum class being useless for array indices :(
 struct Section
 {
@@ -292,12 +492,12 @@ class Processor
 {
 public:
   Processor();
+  ~Processor();
 
   // accessors to structs/vectors of data
-  const std::vector<Id> &GetFunctions() { return functions; }
   const std::vector<EntryPoint> &GetEntries() { return entries; }
   const std::vector<Variable> &GetGlobals() { return globals; }
-  Id GetIDType(Id id) { return idTypes[id.value()]; }
+  Id GetIDType(Id id) { return idTypes[id]; }
 protected:
   virtual void Parse(const std::vector<uint32_t> &spirvWords);
 
@@ -314,24 +514,30 @@ protected:
   // after parsing - e.g. to do any deferred post-processing
   virtual void PostParse();
 
-  std::vector<size_t> idOffsets;
-  std::vector<Id> idTypes;
+  uint32_t m_MajorVersion = 0, m_MinorVersion = 0;
+  Generator m_Generator;
+  uint32_t m_GeneratorVersion = 0;
 
-  std::vector<Id> functions;
+  DenseIdMap<size_t> idOffsets;
+  DenseIdMap<Id> idTypes;
+
   std::vector<EntryPoint> entries;
   std::vector<Variable> globals;
 
   std::set<rdcstr> extensions;
   std::set<Capability> capabilities;
 
-  std::map<Id, Scalar> scalarTypes;
-  std::map<Id, Vector> vectorTypes;
-  std::map<Id, Matrix> matrixTypes;
-  std::map<Id, Pointer> pointerTypes;
-  std::map<Id, Image> imageTypes;
-  std::map<Id, Sampler> samplerTypes;
-  std::map<Id, SampledImage> sampledImageTypes;
-  std::map<Id, FunctionType> functionTypes;
+  SparseIdMap<Constant> constants;
+  SparseIdMap<SpecOp> specOps;
+  std::set<Id> specConstants;
+
+  DenseIdMap<Decorations> decorations;
+
+  SparseIdMap<DataType> dataTypes;
+  SparseIdMap<Image> imageTypes;
+  SparseIdMap<Sampler> samplerTypes;
+  SparseIdMap<SampledImage> sampledImageTypes;
+  SparseIdMap<FunctionType> functionTypes;
 
   std::map<rdcstr, Id> extSets;
 
@@ -342,6 +548,16 @@ protected:
   };
 
   LogicalSection m_Sections[Section::Count];
+
+private:
+  struct DeferredMemberDecoration
+  {
+    Id id;
+    uint32_t member;
+    DecorationAndParamData dec;
+  };
+
+  rdcarray<DeferredMemberDecoration> m_MemberDecorations;
 };
 
 };    // namespace rdcspv

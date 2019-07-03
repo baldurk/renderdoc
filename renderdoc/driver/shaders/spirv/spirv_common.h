@@ -25,8 +25,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <map>
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
+#include "common/common.h"
 #include "spirv_gen.h"
 
 namespace rdcspv
@@ -182,6 +184,35 @@ private:
 
   // may not be used, if we refer to an external iterator
   std::vector<uint32_t> words;
+};
+
+template <typename T>
+class SparseIdMap : public std::map<Id, T>
+{
+public:
+  // this is helpful when we have const maps that we expect to contain ids for valid SPIR-V
+  using std::map<Id, T>::operator[];
+  const T &operator[](Id id) const
+  {
+    auto it = std::map<Id, T>::find(id);
+    if(it != std::map<Id, T>::end())
+      return it->second;
+
+    RDCERR("Lookup of invalid Id %u expected in SparseIdMap", id);
+    return dummy;
+  }
+
+private:
+  T dummy;
+};
+
+template <typename T>
+class DenseIdMap : public std::vector<T>
+{
+public:
+  using std::vector<T>::operator[];
+  T &operator[](Id id) { return (*this)[id.value()]; }
+  const T &operator[](Id id) const { return (*this)[id.value()]; }
 };
 
 };    // namespace rdcspv

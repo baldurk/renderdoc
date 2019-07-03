@@ -146,3 +146,69 @@ void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
 // common function used by any API that utilises SPIR-V
 void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
                        const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride);
+
+// new reflection interface
+
+#include "spirv_processor.h"
+
+namespace rdcspv
+{
+struct SourceFile
+{
+  SourceLanguage lang;
+  rdcstr name;
+  rdcstr contents;
+};
+
+class Reflector : public Processor
+{
+public:
+  Reflector();
+  virtual void Parse(const std::vector<uint32_t> &spirvWords);
+
+  std::string Disassemble(const std::string &entryPoint);
+
+  std::vector<std::string> EntryPoints() const;
+  ShaderStage StageForEntry(const std::string &entryPoint) const;
+
+  void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage,
+                      const std::string &entryPoint, const std::vector<SpecConstant> &specInfo,
+                      ShaderReflection &reflection, ShaderBindpointMapping &mapping,
+                      SPIRVPatchData &patchData) const;
+
+private:
+  virtual void PreParse(uint32_t maxId);
+  virtual void PostParse();
+  virtual void RegisterOp(Iter iter);
+  virtual void UnregisterOp(Iter iter);
+
+  ShaderVariable EvaluateConstant(Id constID, const std::vector<SpecConstant> &specInfo) const;
+
+  void MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
+                                  uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
+                                  const std::vector<SpecConstant> &specInfo) const;
+  void MakeConstantBlockVariable(ShaderConstant &outConst, const DataType &type, const rdcstr &name,
+                                 const Decorations &decorations,
+                                 const std::vector<SpecConstant> &specInfo) const;
+  void AddSignatureParameter(const bool isInput, const ShaderStage stage, const Id id,
+                             const Id structID, uint32_t &regIndex,
+                             const SPIRVPatchData::InterfaceAccess &parentPatch,
+                             const rdcstr &varName, const DataType &type,
+                             const Decorations &decorations, rdcarray<SigParameter> &sigarray,
+                             SPIRVPatchData &patchData,
+                             const std::vector<SpecConstant> &specInfo) const;
+
+  rdcstr cmdline;
+  DenseIdMap<rdcstr> strings;
+  rdcarray<SourceFile> sources;
+
+  struct MemberName
+  {
+    Id id;
+    uint32_t member;
+    rdcstr name;
+  };
+
+  rdcarray<MemberName> memberNames;
+};
+};
