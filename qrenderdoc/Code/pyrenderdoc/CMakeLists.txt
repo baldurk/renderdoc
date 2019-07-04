@@ -67,3 +67,6 @@ set_target_properties(_qrenderdoc PROPERTIES OUTPUT_NAME "qrenderdoc")
 # Make sure we build after the wrappers are generated
 add_dependencies(_renderdoc swig-bindings)
 add_dependencies(_qrenderdoc swig-bindings)
+
+install(TARGETS _renderdoc DESTINATION lib${LIB_SUFFIX}/${LIB_SUBFOLDER})
+install(TARGETS _qrenderdoc DESTINATION lib${LIB_SUFFIX}/${LIB_SUBFOLDER})
