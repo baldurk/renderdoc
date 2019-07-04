@@ -853,6 +853,8 @@ QString TypeString(const SigParameter &sig)
     ret += lit("snorm float");
   else if(sig.compType == CompType::Depth)
     ret += lit("float");
+  else if(sig.compType == CompType::Double)
+    ret += lit("double");
 
   if(sig.compCount > 1)
     ret += QString::number(sig.compCount);
