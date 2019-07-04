@@ -3922,8 +3922,9 @@ typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
 void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_t structID,
-                           uint32_t &regIndex, std::vector<uint32_t> accessChain, std::string varName,
-                           SPVTypeData *type, const std::vector<SPVDecoration> &decorations,
+                           uint32_t &regIndex, const SPIRVPatchData::InterfaceAccess &parentPatch,
+                           std::string varName, SPVTypeData *type,
+                           const std::vector<SPVDecoration> &decorations,
                            std::vector<SigParameter> &sigarray, SPIRVPatchData &patchData)
 {
   SigParameter sig;
@@ -3931,9 +3932,12 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
   sig.needSemanticIndex = false;
 
   SPIRVPatchData::InterfaceAccess patch;
-  patch.accessChain = accessChain;
+  patch.accessChain = parentPatch.accessChain;
   patch.ID = id;
   patch.structID = structID;
+  patch.isArraySubsequentElement = parentPatch.isArraySubsequentElement;
+  if(structID)
+    patch.structMemberIndex = patch.accessChain.back();
 
   bool rowmajor = true;
 
@@ -3941,7 +3945,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
   for(size_t d = 0; d < decorations.size(); d++)
   {
     if(decorations[d].decoration == spv::DecorationLocation)
-      sig.regIndex = decorations[d].val;
+      sig.regIndex = regIndex = decorations[d].val;
     else if(decorations[d].decoration == spv::DecorationBuiltIn)
       sig.systemValue = BuiltInToSystemAttribute(stage, (spv::BuiltIn)decorations[d].val);
     else if(decorations[d].decoration == spv::DecorationRowMajor)
@@ -3965,10 +3969,23 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
     isArray = true;
     type = type->baseType;
 
+    // for geometry/tessellation evaluation shaders, ignore the root level of array-ness for inputs
+    if((stage == ShaderStage::Geometry || stage == ShaderStage::Tess_Eval) && isInput && structID == 0)
+      arraySize = 1;
+
+    // for tessellation control shaders, ignore the root level of array-ness for both inputs and
+    // outputs
+    if(stage == ShaderStage::Tess_Control && structID == 0)
+      arraySize = 1;
+
     // step through multi-dimensional arrays
     while(type->type == SPVTypeData::eArray)
       type = type->baseType;
   }
+
+  // arrays will need an extra access chain index
+  if(isArray)
+    patch.accessChain.push_back(0U);
 
   if(type->type == SPVTypeData::eStruct)
   {
@@ -3993,6 +4010,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
     for(uint32_t a = 0; a < arraySize; a++)
     {
+      // push the member-index access chain value
       patch.accessChain.push_back(0U);
 
       for(size_t c = 0; c < type->children.size(); c++)
@@ -4016,13 +4034,27 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
             continue;
         }
 
-        std::string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
+        std::string baseName = varName;
 
-        AddSignatureParameter(isInput, stage, id, type->id, regIndex, patch.accessChain,
+        if(isArray)
+          baseName = StringFormat::Fmt("%s[%u]", varName.c_str(), a);
+
+        AddSignatureParameter(isInput, stage, id, type->id, regIndex, patch,
                               baseName + "." + type->children[c].second, type->children[c].first,
                               type->childDecorations[c], sigarray, patchData);
 
+        // increment the member-index access chain value
         patch.accessChain.back()++;
+      }
+
+      // pop the member-index access chain value
+      patch.accessChain.pop_back();
+
+      // increment the array-index access chain value
+      if(isArray)
+      {
+        patch.accessChain.back()++;
+        patch.isArraySubsequentElement = true;
       }
     }
 
@@ -4046,10 +4078,6 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
   sig.stream = 0;
 
   sig.regChannelMask = sig.channelUsedMask = (1 << type->vectorSize) - 1;
-
-  // arrays will need an extra access chain index
-  if(isArray)
-    patch.accessChain.push_back(0U);
 
   for(uint32_t a = 0; a < arraySize; a++)
   {
@@ -4097,15 +4125,18 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
 
         regIndex++;
 
+        // increment the matrix column access chain
         patch.accessChain.back()++;
         patch.isArraySubsequentElement = true;
       }
 
+      // pop the matrix column access chain
       patch.isMatrix = false;
       patch.accessChain.pop_back();
     }
 
     sig.regIndex += RDCMAX(1U, type->matrixSize);
+    // increment the array index access chain (if it exists)
     if(isArray)
     {
       patch.accessChain.back()++;
@@ -4221,8 +4252,8 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
         nm = StringFormat::Fmt("sig%u", inst->id);
 
       uint32_t dummy = 0;
-      AddSignatureParameter(isInput, stage, inst->id, 0, dummy, std::vector<uint32_t>(), nm,
-                            inst->var->type, inst->decorations, *sigarray, patchData);
+      AddSignatureParameter(isInput, stage, inst->id, 0, dummy, {}, nm, inst->var->type,
+                            inst->decorations, *sigarray, patchData);
 
       // eliminate any members of gl_PerVertex that are actually unused and just came along
       // for the ride (usually with gl_Position, but maybe declared globally and still unused)

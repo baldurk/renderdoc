@@ -43,10 +43,13 @@ struct SPIRVPatchData
   struct InterfaceAccess
   {
     // ID of the base variable
-    uint32_t ID;
+    uint32_t ID = 0;
 
     // ID of the struct parent of this variable
-    uint32_t structID;
+    uint32_t structID = 0;
+
+    // member in the parent struct of this variable (for MemberDecorate)
+    uint32_t structMemberIndex = 0;
 
     // the access chain of indices
     std::vector<uint32_t> accessChain;

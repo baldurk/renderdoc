@@ -103,10 +103,10 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
       {
         for(size_t i = 0; i < outsig.size(); i++)
         {
-          if(outpatch[i].structID && !outpatch[i].accessChain.empty())
+          if(outpatch[i].structID)
           {
             if(it.opcode() == spv::OpMemberDecorate && it.word(1) == outpatch[i].structID &&
-               it.word(2) == outpatch[i].accessChain.back())
+               it.word(2) == outpatch[i].structMemberIndex)
             {
               editor.Remove(it);
             }
@@ -149,11 +149,11 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
     {
       // do not patch anything as we only patch the base array, but reserve space in the stride
     }
-    else if(outpatch[i].structID && !outpatch[i].accessChain.empty())
+    else if(outpatch[i].structID)
     {
       editor.AddDecoration(rdcspv::Operation(
           spv::OpMemberDecorate,
-          {outpatch[i].structID, outpatch[i].accessChain.back(), spv::DecorationOffset, xfbStride}));
+          {outpatch[i].structID, outpatch[i].structMemberIndex, spv::DecorationOffset, xfbStride}));
     }
     else if(outpatch[i].ID)
     {

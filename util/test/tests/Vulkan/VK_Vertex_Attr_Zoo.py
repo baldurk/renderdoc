@@ -27,7 +27,6 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Double': [9.8765432109, -5.6789012345],
                 'Array[0]': [1.0, 2.0],
                 'Array[1]': [3.0, 4.0],
-                'Array[2]': [5.0, 6.0],
                 'Matrix:row0': [7.0, 8.0],
                 'Matrix:row1': [9.0, 10.0],
             },
@@ -39,7 +38,6 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Double': [-7.89012345678, 6.54321098765],
                 'Array[0]': [11.0, 12.0],
                 'Array[1]': [13.0, 14.0],
-                'Array[2]': [15.0, 16.0],
                 'Matrix:row0': [17.0, 18.0],
                 'Matrix:row1': [19.0, 20.0],
             },
@@ -51,7 +49,6 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Double': [0.1234567890123, 4.5678901234],
                 'Array[0]': [21.0, 22.0],
                 'Array[1]': [23.0, 24.0],
-                'Array[2]': [25.0, 26.0],
                 'Matrix:row0': [27.0, 28.0],
                 'Matrix:row1': [29.0, 30.0],
             },
@@ -114,5 +111,32 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
             raise rdtest.TestFailureException("Picked value {} doesn't match expectation".format(picked.floatValue))
 
         rdtest.log.success("Triangle picked value is as expected")
+
+        # Step to the next draw with awkward struct/array outputs
+        self.controller.SetFrameEvent(draw.next.eventId, False)
+
+        ref = {
+            0: {
+                'outData.outStruct.a': [1.1],
+                'outData.outStruct.b[0]': [2.2],
+                'outData.outStruct.b[1]': [3.3],
+                'outData.outStruct.c.foo[0]': [4.4],
+                'outData.outStruct.c.foo[1]': [5.5],
+                'outData.outStruct.d[0].foo': [6.6],
+                'outData.outStruct.d[1].foo': [7.7],
+            },
+        }
+
+        self.check_mesh_data(ref, self.get_postvs(rd.MeshDataStage.VSOut))
+
+        rdtest.log.success("Nested vertex output data is as expected")
+
+        # The array-of-structs data is a broken in transform feedback
+        del ref[0]['outData.outStruct.d[0].foo']
+        del ref[0]['outData.outStruct.d[1].foo']
+
+        self.check_mesh_data(ref, self.get_postvs(rd.MeshDataStage.GSOut))
+
+        rdtest.log.success("Nested geometry output data is as expected")
 
         out.Shutdown()

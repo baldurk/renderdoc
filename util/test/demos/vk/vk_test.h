@@ -271,6 +271,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   uint32_t queueFamilyIndex = ~0U;
   uint32_t queueCount;
   VkQueue queue;
+  VkPhysicalDeviceProperties physProperties;
 
   // utilities
   VkDebugUtilsMessengerEXT debugUtilsMessenger;

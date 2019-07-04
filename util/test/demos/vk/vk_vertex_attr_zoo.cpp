@@ -38,7 +38,6 @@ TEST(VK_Vertex_Attr_Zoo, VulkanGraphicsTest)
     double df[2];
     float arr0[2];
     float arr1[2];
-    float arr2[2];
     float mat0[2];
     float mat1[2];
   };
@@ -51,16 +50,16 @@ layout(location = 1) in vec4 InUNorm;
 layout(location = 2) in vec4 InUScaled;
 layout(location = 3) in uvec4 InUInt;
 layout(location = 4) in dvec2 InDouble;
-layout(location = 5) in vec2 InArray[3];
-layout(location = 8) in mat2x2 InMatrix;
+layout(location = 5) in vec2 InArray[2];
+layout(location = 7) in mat2x2 InMatrix;
 
 layout(location = 0) out vec4 OutSNorm;
 layout(location = 1) out vec4 OutUNorm;
 layout(location = 2) out vec4 OutUScaled;
 layout(location = 3) out uvec4 OutUInt;
 layout(location = 4) out dvec2 OutDouble;
-layout(location = 5) out vec2 OutArray[3];
-layout(location = 8) out mat2x2 OutMatrix;
+layout(location = 5) out vec2 OutArray[2];
+layout(location = 7) out mat2x2 OutMatrix;
 
 void main()
 {
@@ -88,8 +87,8 @@ layout(location = 1) in vec4 InUNorm;
 layout(location = 2) in vec4 InUScaled;
 layout(location = 3) flat in uvec4 InUInt;
 layout(location = 4) flat in dvec2 InDouble;
-layout(location = 5) in vec2 InArray[3];
-layout(location = 8) in mat2x2 InMatrix;
+layout(location = 5) in vec2 InArray[2];
+layout(location = 7) in mat2x2 InMatrix;
 
 layout(location = 0, index = 0) out vec4 Color;
 
@@ -133,16 +132,16 @@ layout(location = 1) in vec4 InUNorm[3];
 layout(location = 2) in vec4 InUScaled[3];
 layout(location = 3) in uvec4 InUInt[3];
 layout(location = 4) in dvec2 InDouble[3];
-layout(location = 5) in vec2 InArray[3][3];
-layout(location = 8) in mat2x2 InMatrix[3];
+layout(location = 5) in vec2 InArray[3][2];
+layout(location = 7) in mat2x2 InMatrix[3];
 
 layout(location = 0) out vec4 OutSNorm;
 layout(location = 1) out vec4 OutUNorm;
 layout(location = 2) out vec4 OutUScaled;
 layout(location = 3) out uvec4 OutUInt;
 layout(location = 4) out dvec2 OutDouble;
-layout(location = 5) out vec2 OutArray[3];
-layout(location = 8) out mat2x2 OutMatrix;
+layout(location = 5) out vec2 OutArray[2];
+layout(location = 7) out mat2x2 OutMatrix;
 
 void main()
 {
@@ -165,6 +164,108 @@ void main()
 
 )EOSHADER";
 
+  std::string vertex2 = R"EOSHADER(
+#version 450 core
+
+layout(location = 0) out vec4 OutDummy;
+
+struct ArrayWrapper
+{
+  float foo[2];
+};
+
+struct SimpleWrapper
+{
+  float foo;
+};
+
+struct MyStruct
+{
+  float a;
+  float b[2];
+  ArrayWrapper c;
+  SimpleWrapper d[2];
+};
+
+layout(location = 1) out OutData
+{
+  MyStruct outStruct;
+} outData;
+
+void main()
+{
+  const vec4 verts[3] = vec4[3](vec4(-0.5, 0.5, 0.0, 1.0), vec4(0.0, -0.5, 0.0, 1.0),
+                                vec4(0.5, 0.5, 0.0, 1.0));
+
+  gl_Position = verts[gl_VertexIndex];
+
+  OutDummy = vec4(0,0,0,0);
+
+  outData.outStruct.a = 1.1f;
+  outData.outStruct.b[0] = 2.2f;
+  outData.outStruct.b[1] = 3.3f;
+  outData.outStruct.c.foo[0] = 4.4f;
+  outData.outStruct.c.foo[1] = 5.5f;
+  outData.outStruct.d[0].foo = 6.6f;
+  outData.outStruct.d[1].foo = 7.7f;
+}
+
+)EOSHADER";
+
+  std::string geom2 = R"EOSHADER(
+#version 450 core
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+layout(location = 0) in vec4 InDummy[3];
+
+struct ArrayWrapper
+{
+  float foo[2];
+};
+
+struct SimpleWrapper
+{
+  float foo;
+};
+
+struct MyStruct
+{
+  float a;
+  float b[2];
+  ArrayWrapper c;
+  SimpleWrapper d[2];
+};
+
+layout(location = 1) in OutData
+{
+  MyStruct inStruct;
+} inData[3];
+
+layout(location = 0) out vec4 OutDummy;
+
+layout(location = 1) out OutData
+{
+  MyStruct outStruct;
+} outData;
+
+void main()
+{
+  for(int i = 0; i < 3; i++)
+  {
+    gl_Position = vec4(gl_in[i].gl_Position.yx, 0.4f, 1.2f);
+
+    OutDummy = InDummy[i];
+    outData.outStruct = inData[i].inStruct;
+
+    EmitVertex();
+  }
+  EndPrimitive();
+}
+
+)EOSHADER";
+
   void Prepare(int argc, char **argv)
   {
     // we could have fallbacks for these, but they're supported everywhere we run our tests
@@ -172,6 +273,9 @@ void main()
     features.geometryShader = VK_TRUE;
 
     VulkanGraphicsTest::Prepare(argc, argv);
+
+    if(physProperties.limits.maxVertexOutputComponents < 128)
+      Avail = "Not enough vertex output components to run test";
   }
 
   int main()
@@ -197,9 +301,8 @@ void main()
         vkh::vertexAttrFormatted(4, 0, vertin, df, VK_FORMAT_R64G64_SFLOAT),
         vkh::vertexAttrFormatted(5, 0, vertin, arr0, VK_FORMAT_R32G32_SFLOAT),
         vkh::vertexAttrFormatted(6, 0, vertin, arr1, VK_FORMAT_R32G32_SFLOAT),
-        vkh::vertexAttrFormatted(7, 0, vertin, arr2, VK_FORMAT_R32G32_SFLOAT),
-        vkh::vertexAttrFormatted(8, 0, vertin, mat0, VK_FORMAT_R32G32_SFLOAT),
-        vkh::vertexAttrFormatted(9, 0, vertin, mat1, VK_FORMAT_R32G32_SFLOAT),
+        vkh::vertexAttrFormatted(7, 0, vertin, mat0, VK_FORMAT_R32G32_SFLOAT),
+        vkh::vertexAttrFormatted(8, 0, vertin, mat1, VK_FORMAT_R32G32_SFLOAT),
     };
 
     pipeCreateInfo.stages = {
@@ -210,6 +313,15 @@ void main()
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
+    pipeCreateInfo.stages = {
+        CompileShaderModule(vertex2, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(geom2, ShaderLang::glsl, ShaderStage::geom, "main"),
+    };
+
+    pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
+
+    VkPipeline pipe2 = createGraphicsPipeline(pipeCreateInfo);
+
     vertin triangle[] = {
         {
             {32767, -32768, 32767, -32767},
@@ -217,8 +329,7 @@ void main()
             {9.8765432109, -5.6789012345},
             {1.0f, 2.0f},
             {3.0f, 4.0f},
-            {5.0f, 6.0f},
-            {7.0, 8.0f},
+            {7.0f, 8.0f},
             {9.0f, 10.0f},
         },
         {
@@ -227,8 +338,7 @@ void main()
             {-7.89012345678, 6.54321098765},
             {11.0f, 12.0f},
             {13.0f, 14.0f},
-            {15.0f, 16.0f},
-            {17.0, 18.0f},
+            {17.0f, 18.0f},
             {19.0f, 20.0f},
         },
         {
@@ -237,8 +347,7 @@ void main()
             {0.1234567890123, 4.5678901234},
             {21.0f, 22.0f},
             {23.0f, 24.0f},
-            {25.0f, 26.0f},
-            {27.0, 28.0f},
+            {27.0f, 28.0f},
             {29.0f, 30.0f},
         },
     };
@@ -271,6 +380,9 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe2);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);

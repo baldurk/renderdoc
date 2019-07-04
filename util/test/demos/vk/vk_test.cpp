@@ -317,6 +317,8 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   std::vector<VkExtensionProperties> supportedExts;
   CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
 
+  vkGetPhysicalDeviceProperties(phys, &physProperties);
+
   for(const char *search : devExts)
   {
     bool found = false;
@@ -468,10 +470,7 @@ bool VulkanGraphicsTest::Init()
 
   vmaCreateAllocator(&allocInfo, &allocator);
 
-  VkPhysicalDeviceProperties physProps;
-  vkGetPhysicalDeviceProperties(phys, &physProps);
-
-  TEST_LOG("Running Vulkan test on %s", physProps.deviceName);
+  TEST_LOG("Running Vulkan test on %s", physProperties.deviceName);
 
   return true;
 }
