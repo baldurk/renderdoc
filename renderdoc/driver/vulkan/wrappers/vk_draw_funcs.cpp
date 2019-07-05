@@ -1377,7 +1377,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
           drawNode.resourceUsage.push_back(make_rdcpair(
               GetResID(srcImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
           drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(destImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
+              GetResID(destImage), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveDst)));
         }
       }
     }
