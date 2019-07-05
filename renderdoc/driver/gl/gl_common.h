@@ -687,7 +687,8 @@ extern bool IsGLES;
   EXT_TO_CHECK(33, 30, ARB_explicit_attrib_location)             \
   EXT_TO_CHECK(33, 30, ARB_sampler_objects)                      \
   EXT_TO_CHECK(33, 30, ARB_texture_swizzle)                      \
-  EXT_TO_CHECK(33, 30, ARB_occlusion_query2)                     \
+  EXT_TO_CHECK(33, 99, ARB_occlusion_query2)                     \
+  EXT_TO_CHECK(33, 99, ARB_timer_query)                          \
   EXT_TO_CHECK(40, 32, ARB_draw_buffers_blend)                   \
   EXT_TO_CHECK(40, 31, ARB_draw_indirect)                        \
   EXT_TO_CHECK(40, 32, ARB_gpu_shader5)                          \
@@ -787,6 +788,8 @@ extern bool IsGLES;
   EXT_COMP_CHECK(ARB_texture_storage_multisample, OES_texture_storage_multisample_2d_array) \
   EXT_COMP_CHECK(ARB_texture_view, EXT_texture_view)                                        \
   EXT_COMP_CHECK(ARB_texture_view, OES_texture_view)                                        \
+  EXT_COMP_CHECK(ARB_timer_query, EXT_timer_query)                                          \
+  EXT_COMP_CHECK(ARB_timer_query, EXT_disjoint_timer_query)                                 \
   EXT_COMP_CHECK(ARB_viewport_array, NV_viewport_array)                                     \
   EXT_COMP_CHECK(ARB_viewport_array, OES_viewport_array)                                    \
   EXT_COMP_CHECK(ARB_texture_buffer_object, EXT_texture_buffer)                             \

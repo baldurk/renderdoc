@@ -34,7 +34,8 @@ std::vector<GPUCounter> GLReplay::EnumerateCounters()
 {
   std::vector<GPUCounter> ret;
 
-  ret.push_back(GPUCounter::EventGPUDuration);
+  if(HasExt[ARB_timer_query])
+    ret.push_back(GPUCounter::EventGPUDuration);
 
   if(HasExt[ARB_occlusion_query2])
     ret.push_back(GPUCounter::SamplesPassed);
@@ -523,8 +524,11 @@ std::vector<CounterResult> GLReplay::FetchCounters(const std::vector<GPUCounter>
   double nanosToSecs = 1.0 / 1000000000.0;
 
   GLuint prevbind = 0;
-  m_pDriver->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&prevbind);
-  m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, 0);
+  if(HasExt[ARB_query_buffer_object])
+  {
+    m_pDriver->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&prevbind);
+    m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, 0);
+  }
 
   for(size_t i = 0; i < ctx.queries.size(); i++)
   {
@@ -556,7 +560,8 @@ std::vector<CounterResult> GLReplay::FetchCounters(const std::vector<GPUCounter>
     }
   }
 
-  m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, prevbind);
+  if(HasExt[ARB_query_buffer_object])
+    m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, prevbind);
 
   for(size_t i = 0; i < ctx.queries.size(); i++)
     for(uint32_t c = 0; c < counters.size(); c++)
