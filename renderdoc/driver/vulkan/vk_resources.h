@@ -1136,16 +1136,13 @@ struct ImgRefs
   {
     return rangeRefs[SubresourceIndex(aspectIndex, level, layer)];
   }
-  inline InitReqType SubresourceInitReq(int aspectIndex, int level, int layer) const
+  inline InitReqType SubresourceInitReq(int aspectIndex, int level, int layer, InitPolicy policy,
+                                        bool initialized) const
   {
-    return InitReq(SubresourceRef(aspectIndex, level, layer));
-  }
-  inline InitReqType SubresourceInitReq(int aspectIndex, int level, int layer, bool initialized) const
-  {
-    return InitReq(SubresourceRef(aspectIndex, level, layer));
+    return InitReq(SubresourceRef(aspectIndex, level, layer), policy, initialized);
   }
   std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > SubresourceRangeInitReqs(
-      VkImageSubresourceRange range) const;
+      VkImageSubresourceRange range, InitPolicy policy, bool initialized) const;
   void Split(bool splitAspects, bool splitLevels, bool splitLayers);
   template <typename Compose>
   FrameRefType Update(ImageRange range, FrameRefType refType, Compose comp);

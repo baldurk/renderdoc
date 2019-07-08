@@ -139,41 +139,97 @@ bool IsDirtyFrameRef(FrameRefType refType);
 // init/reset requirements.
 enum InitReqType
 {
-  // Initial contents of the resource are not used, and also not modified.
-  // No initialization/reset is required for correct replay, but may be helpful
-  // to avoid user confusion when analyzing the resource.
-  // Corresponds to `None` ref type.
+  // No initialization required.
   eInitReq_None,
 
-  // Initial contents of the resource are not used, but the contents are
-  // potentially modified during the frame.
-  // No initialization/reset is required for correct replay, but may be helpful
-  // to avoid user confusion when analyzing the resource.
-  // Corresponds to `PartialWrite` and `CompleteWrite` ref types.
+  // Initialize the resource by clearing.
   eInitReq_Clear,
 
-  // Initial contents of the resource are read, but not overwritten;
-  // the resource needs to be initialized before the first replay, but need not
-  // be reset before subsequent replays.
-  // Corresponds to `Read` ref type.
-  eInitReq_InitOnce,
+  // Initialize the resource by copying initial data.
+  eInitReq_Copy,
+};
 
-  // Initial contents of the resource are read, and later overwritten;
-  // the resource needs to be reset before each replay.
-  // Corresponds to `ReadBeforeWrite` ref type.
-  eInitReq_Reset,
+enum InitPolicy
+{
+  // Completely disable optimizations--copy initial data into every resource
+  // before every replay.
+  eInitPolicy_NoOpt,
+
+  // CopyAll--conservative policy which ensures each subresource begins each
+  // replay with the correct initial data.
+  //
+  // Initialization policy:
+  //   Copy initial data into each subresource
+  //
+  // Reset policy:
+  //   Copy initial data into each subresource which is written
+  eInitPolicy_CopyAll,
+
+  // ClearUnread--avoid copying initial data which is never read by the replay
+  // commands. A user inspecting a resource before it is written may observe
+  // cleared data, rather than the actual initial data.
+  //
+  // Initialization policy:
+  //   Copy initial data into each subresource that is read.
+  //   Clear each subresource that is not read.
+  //
+  // Reset policy:
+  //   Copy initial data into each subresource where the initial data is read
+  //   and then overwritten.
+  //   Clear each subresource which is written, but whose initial data is not read.
+  eInitPolicy_ClearUnread,
+
+  // Fastest--Initialize/reset as little as possible for correct replay.
+  // A user inspecting a resource before it is written may observe the data
+  // from a future write (from the previous replay).
+  //
+  // Initialization policy:
+  //   Copy initial data into each subresource that is read.
+  //   Clear each subresource that is not read.
+  //
+  // Reset policy:
+  //   Copy initial data into each subresource where the initial data is read
+  //   and then overwritten.
+  eInitPolicy_Fastest,
 };
 
 // Return the initialization/reset requirements for a FrameRefType
-inline InitReqType InitReq(FrameRefType refType)
+inline InitReqType InitReq(FrameRefType refType, InitPolicy policy, bool initialized)
 {
-  switch(refType)
+#define COPY_ONCE (initialized ? eInitReq_None : eInitReq_Copy)
+#define CLEAR_ONCE (initialized ? eInitReq_None : eInitReq_Clear)
+  switch(policy)
   {
-    case eFrameRef_None: return eInitReq_None;
-    case eFrameRef_Read: return eInitReq_InitOnce;
-    case eFrameRef_ReadBeforeWrite: return eInitReq_Reset;
-    default: return eInitReq_Clear;
+    case eInitPolicy_NoOpt: return eInitReq_Copy;
+    case eInitPolicy_CopyAll:
+      switch(refType)
+      {
+        case eFrameRef_None: return COPY_ONCE;
+        case eFrameRef_Read: return COPY_ONCE;
+        default: return eInitReq_Copy;
+      }
+    case eInitPolicy_ClearUnread:
+      switch(refType)
+      {
+        case eFrameRef_None: return CLEAR_ONCE;
+        case eFrameRef_Read: return COPY_ONCE;
+        case eFrameRef_ReadBeforeWrite: return eInitReq_Copy;
+        case eFrameRef_WriteBeforeRead: return eInitReq_Copy;
+        default: return eInitReq_Clear;
+      }
+    case eInitPolicy_Fastest:
+      switch(refType)
+      {
+        case eFrameRef_None: return CLEAR_ONCE;
+        case eFrameRef_Read: return COPY_ONCE;
+        case eFrameRef_ReadBeforeWrite: return eInitReq_Copy;
+        case eFrameRef_WriteBeforeRead: return COPY_ONCE;
+        default: return CLEAR_ONCE;
+      }
+    default: RDCERR("Unknown initialization policy (%d).", policy); return eInitReq_Copy;
   }
+#undef COPY_ONCE
+#undef CLEAR_ONCE
 }
 
 // handle marking a resource referenced for read or write and storing RAW access etc.

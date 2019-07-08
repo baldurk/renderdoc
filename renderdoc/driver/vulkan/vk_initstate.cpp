@@ -1314,7 +1314,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 }
 
 std::vector<VkImageMemoryBarrier> WrappedVulkan::ImageInitializationBarriers(
-    ResourceId id, WrappedVkRes *live, bool initialized, const ImgRefs *imgRefs) const
+    ResourceId id, WrappedVkRes *live, InitPolicy policy, bool initialized, const ImgRefs *imgRefs) const
 {
   std::vector<VkImageMemoryBarrier> barriers;
 
@@ -1346,10 +1346,11 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::ImageInitializationBarriers(
     }
     else
     {
-      auto initReqs = imgRefs->SubresourceRangeInitReqs(barrier.subresourceRange);
+      auto initReqs =
+          imgRefs->SubresourceRangeInitReqs(barrier.subresourceRange, policy, initialized);
       for(auto initIt = initReqs.begin(); initIt != initReqs.end(); ++initIt)
       {
-        if(initIt->second == eInitReq_Reset || initIt->second == eInitReq_Clear)
+        if(initIt->second != eInitReq_None)
         {
           barrier.subresourceRange = initIt->first;
           barriers.push_back(barrier);
@@ -1478,6 +1479,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     ResourceId orig = GetResourceManager()->GetOriginalID(id);
     ImgRefs *imgRefs = NULL;
     bool initialized = false;
+    InitPolicy policy = GetResourceManager()->GetInitPolicy();
     if(GetResourceManager()->OptimizeInitialState())
     {
       imgRefs = GetResourceManager()->FindImgRefs(orig);
@@ -1934,8 +1936,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    std::vector<VkImageMemoryBarrier> barriers =
-        ImageInitializationBarriers(id, live, initialized, imgRefs);
+    std::vector<VkImageMemoryBarrier> barriers = ImageInitializationBarriers(
+        id, live, GetResourceManager()->GetInitPolicy(), initialized, imgRefs);
     DoPipelineBarrier(cmd, (uint32_t)barriers.size(), barriers.data());
 
     std::map<uint32_t, std::vector<VkImageMemoryBarrier> > extQBarriers = GetExtQBarriers(barriers);
@@ -1951,19 +1953,20 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     std::vector<VkBufferImageCopy> copyRegions;
     std::vector<VkImageSubresourceRange> clearRegions;
 
-#define INIT_REGION()                                                                           \
-  if(!initialized)                                                                              \
-  {                                                                                             \
-    copyRegions.push_back(region);                                                              \
-  }                                                                                             \
-  else                                                                                          \
-  {                                                                                             \
-    InitReqType initReq = imgRefs->SubresourceInitReq(                                          \
-        imgRefs->AspectIndex((VkImageAspectFlagBits)region.imageSubresource.aspectMask), m, a); \
-    if(initReq == eInitReq_Reset)                                                               \
-      copyRegions.push_back(region);                                                            \
-    else if(initReq == eInitReq_Clear)                                                          \
-      clearRegions.push_back(ImageRange(region.imageSubresource));                              \
+#define INIT_REGION()                                                                          \
+  if(!initialized)                                                                             \
+  {                                                                                            \
+    copyRegions.push_back(region);                                                             \
+  }                                                                                            \
+  else                                                                                         \
+  {                                                                                            \
+    InitReqType initReq = imgRefs->SubresourceInitReq(                                         \
+        imgRefs->AspectIndex((VkImageAspectFlagBits)region.imageSubresource.aspectMask), m, a, \
+        policy, initialized);                                                                  \
+    if(initReq == eInitReq_Copy)                                                               \
+      copyRegions.push_back(region);                                                           \
+    else if(initReq == eInitReq_Clear)                                                         \
+      clearRegions.push_back(ImageRange(region.imageSubresource));                             \
   }
 
     // copy each slice/mip individually
@@ -2100,22 +2103,23 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       // No information about the memory usage in the frame.
       // Pessimistically assume the entire memory needs to be reset.
-      resetReq.update(0, initial.mem.size, eInitReq_Reset,
-                      [](InitReqType x, InitReqType y) -> InitReqType { return std::max(x, y); });
+      resetReq.update(0, initial.mem.size, eInitReq_Copy,
+                      [](InitReqType x, InitReqType y) -> InitReqType { return RDCMAX(x, y); });
     }
     else
     {
       bool initialized = memRefs->initializedLiveRes == live;
       memRefs->initializedLiveRes = live;
+      InitPolicy policy = GetResourceManager()->GetInitPolicy();
       for(auto it = memRefs->rangeRefs.begin(); it != memRefs->rangeRefs.end(); it++)
       {
-        InitReqType t = InitReq(it->value());
-        if(t == eInitReq_Reset || (t == eInitReq_InitOnce && !initialized))
-          resetReq.update(it->start(), it->finish(), eInitReq_Reset,
-                          [](InitReqType x, InitReqType y) -> InitReqType { return std::max(x, y); });
-        else if(t == eInitReq_Clear || (t == eInitReq_None && !initialized))
+        InitReqType t = InitReq(it->value(), policy, initialized);
+        if(t == eInitReq_Copy)
+          resetReq.update(it->start(), it->finish(), eInitReq_Copy,
+                          [](InitReqType x, InitReqType y) -> InitReqType { return RDCMAX(x, y); });
+        else if(t == eInitReq_Clear)
           resetReq.update(it->start(), it->finish(), eInitReq_Clear,
-                          [](InitReqType x, InitReqType y) -> InitReqType { return std::max(x, y); });
+                          [](InitReqType x, InitReqType y) -> InitReqType { return RDCMAX(x, y); });
       }
     }
 
@@ -2158,7 +2162,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(dstBuf), it->start(), size, 0);
           fillCount++;
           break;
-        case eInitReq_Reset: regions.push_back({it->start(), it->start(), size}); break;
+        case eInitReq_Copy: regions.push_back({it->start(), it->start(), size}); break;
         default: break;
       }
     }
