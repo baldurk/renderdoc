@@ -94,6 +94,10 @@ enum FrameRefType
   eFrameRef_ReadBeforeWrite = 4,
 };
 
+bool IncludesRead(FrameRefType refType);
+
+bool IncludesWrite(FrameRefType refType);
+
 const FrameRefType eFrameRef_Minimum = eFrameRef_None;
 const FrameRefType eFrameRef_Maximum = eFrameRef_ReadBeforeWrite;
 
