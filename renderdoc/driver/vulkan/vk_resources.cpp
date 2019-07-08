@@ -3114,8 +3114,7 @@ void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const Ima
 
   // maintain the reference type of the image itself as the maximum reference type of any
   // subresource
-  MarkResourceFrameReferenced(
-      id, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+  MarkResourceFrameReferenced(id, maxRef, ComposeFrameRefsDisjoint);
 }
 
 void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, const ImageRange &range,
@@ -3148,8 +3147,7 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
 
   // maintain the reference type of the image itself as the maximum reference type of any
   // subresource
-  MarkResourceFrameReferenced(
-      img, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+  MarkResourceFrameReferenced(img, maxRef, ComposeFrameRefsDisjoint);
 }
 
 void VkResourceRecord::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
@@ -3158,8 +3156,7 @@ void VkResourceRecord::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize of
   if(refType != eFrameRef_Read && refType != eFrameRef_None)
     cmdInfo->dirtied.insert(mem);
   FrameRefType maxRef = MarkMemoryReferenced(cmdInfo->memFrameRefs, mem, offset, size, refType);
-  MarkResourceFrameReferenced(
-      mem, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+  MarkResourceFrameReferenced(mem, maxRef, ComposeFrameRefsDisjoint);
 }
 
 void VkResourceRecord::MarkBufferFrameReferenced(VkResourceRecord *buf, VkDeviceSize offset,

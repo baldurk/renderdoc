@@ -1281,7 +1281,7 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
       {
         int index = (aspectIndex * splitLevelCount + level) * splitLayerCount + layer;
         rangeRefs[index] = comp(rangeRefs[index], refType);
-        maxRefType = RDCMAX(maxRefType, rangeRefs[index]);
+        maxRefType = ComposeFrameRefsDisjoint(maxRefType, rangeRefs[index]);
       }
     }
   }
@@ -1310,7 +1310,7 @@ FrameRefType ImgRefs::Merge(const ImgRefs &other, Compose comp)
       {
         int index = SubresourceIndex(aspectIndex, level, layer);
         rangeRefs[index] = comp(rangeRefs[index], other.SubresourceRef(aspectIndex, level, layer));
-        maxRefType = RDCMAX(maxRefType, rangeRefs[index]);
+        maxRefType = ComposeFrameRefsDisjoint(maxRefType, rangeRefs[index]);
       }
     }
   }
@@ -1346,7 +1346,7 @@ FrameRefType MemRefs::Update(VkDeviceSize offset, VkDeviceSize size, FrameRefTyp
   rangeRefs.update(offset, offset + size, refType,
                    [&maxRefType, comp](FrameRefType oldRef, FrameRefType newRef) -> FrameRefType {
                      FrameRefType ref = comp(oldRef, newRef);
-                     maxRefType = std::max(maxRefType, ref);
+                     maxRefType = ComposeFrameRefsDisjoint(maxRefType, ref);
                      return ref;
                    });
   return maxRefType;
@@ -1359,7 +1359,7 @@ FrameRefType MemRefs::Merge(MemRefs &other, Compose comp)
   rangeRefs.merge(other.rangeRefs,
                   [&maxRefType, comp](FrameRefType oldRef, FrameRefType newRef) -> FrameRefType {
                     FrameRefType ref = comp(oldRef, newRef);
-                    maxRefType = std::max(maxRefType, ref);
+                    maxRefType = ComposeFrameRefsDisjoint(maxRefType, ref);
                     return ref;
                   });
   return maxRefType;
@@ -1494,7 +1494,7 @@ public:
     FrameRefType maxRef = MarkImageReferenced(descInfo->bindImgRefs, view->baseResource,
                                               view->resInfo->imageInfo, imgRange, refType);
 
-    p.second = std::max(p.second, maxRef);
+    p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
 
   void AddMemFrameRef(ResourceId mem, VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
@@ -1517,7 +1517,7 @@ public:
     }
     FrameRefType maxRef = MarkMemoryReferenced(descInfo->bindMemRefs, mem, offset, size, refType,
                                                ComposeFrameRefsUnordered);
-    p.second = std::max(p.second, maxRef);
+    p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
 
   void RemoveBindFrameRef(ResourceId id)
