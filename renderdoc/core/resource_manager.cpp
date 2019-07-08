@@ -83,21 +83,12 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
         return second;
 
     case eFrameRef_Read:
-      switch(second)
-      {
-        case eFrameRef_None:
-        case eFrameRef_Read:
-          // Only referenced as `Read` (and possibly `None`)
-          return eFrameRef_Read;
-
-        case eFrameRef_PartialWrite:
-        case eFrameRef_CompleteWrite:
-        case eFrameRef_ReadBeforeWrite:
-          // First read, and then written
-          return eFrameRef_ReadBeforeWrite;
-
-        default: RDCERR("Unknown FrameRefType: %d", second); return eFrameRef_Maximum;
-      }
+    case eFrameRef_WriteBeforeRead:
+      if(IncludesWrite(second))
+        // `first` reads before `second` writes
+        return eFrameRef_ReadBeforeWrite;
+      else
+        return first;
 
     case eFrameRef_CompleteWrite:
     case eFrameRef_ReadBeforeWrite:
@@ -126,7 +117,12 @@ FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second)
 
 FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y)
 {
-  return RDCMAX(x, y);
+  if(x == eFrameRef_ReadBeforeWrite || y == eFrameRef_ReadBeforeWrite)
+    // If any subresource is `ReadBeforeWrite`, then the whole resource is.
+    return eFrameRef_ReadBeforeWrite;
+  else
+    // For all other cases, just return the larger value.
+    return RDCMAX(x, y);
 }
 
 bool IncludesRead(FrameRefType refType)
@@ -134,6 +130,7 @@ bool IncludesRead(FrameRefType refType)
   switch(refType)
   {
     case eFrameRef_Read:
+    case eFrameRef_WriteBeforeRead:
     case eFrameRef_ReadBeforeWrite: return true;
     default: return false;
   }
@@ -145,6 +142,7 @@ bool IncludesWrite(FrameRefType refType)
   {
     case eFrameRef_PartialWrite:
     case eFrameRef_CompleteWrite:
+    case eFrameRef_WriteBeforeRead:
     case eFrameRef_ReadBeforeWrite: return true;
     default: return false;
   }
