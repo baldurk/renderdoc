@@ -448,18 +448,24 @@ public:
   WrappedID3D11Buffer(ID3D11Buffer *real, uint32_t byteLength, WrappedID3D11Device *device)
       : WrappedResource11(real, device)
   {
-    SCOPED_LOCK(m_pDevice->D3DLock());
+    if(RenderDoc::Inst().IsReplayApp())
+    {
+      SCOPED_LOCK(m_pDevice->D3DLock());
 
-    RDCASSERT(m_BufferList.find(GetResourceID()) == m_BufferList.end());
-    m_BufferList[GetResourceID()] = BufferEntry(this, byteLength);
+      RDCASSERT(m_BufferList.find(GetResourceID()) == m_BufferList.end());
+      m_BufferList[GetResourceID()] = BufferEntry(this, byteLength);
+    }
   }
 
   virtual ~WrappedID3D11Buffer()
   {
     SCOPED_LOCK(m_pDevice->D3DLock());
 
-    if(m_BufferList.find(GetResourceID()) != m_BufferList.end())
-      m_BufferList.erase(GetResourceID());
+    if(RenderDoc::Inst().IsReplayApp())
+    {
+      if(m_BufferList.find(GetResourceID()) != m_BufferList.end())
+        m_BufferList.erase(GetResourceID());
+    }
 
     Shutdown();
   }
@@ -492,10 +498,13 @@ public:
   {
     if(type != TEXDISPLAY_UNKNOWN)
     {
-      SCOPED_LOCK(m_pDevice->D3DLock());
+      if(RenderDoc::Inst().IsReplayApp())
+      {
+        SCOPED_LOCK(m_pDevice->D3DLock());
 
-      RDCASSERT(m_TextureList.find(GetResourceID()) == m_TextureList.end());
-      m_TextureList[GetResourceID()] = TextureEntry(this, type);
+        RDCASSERT(m_TextureList.find(GetResourceID()) == m_TextureList.end());
+        m_TextureList[GetResourceID()] = TextureEntry(this, type);
+      }
     }
   }
 
@@ -503,8 +512,11 @@ public:
   {
     SCOPED_LOCK(m_pDevice->D3DLock());
 
-    if(m_TextureList.find(GetResourceID()) != m_TextureList.end())
-      m_TextureList.erase(GetResourceID());
+    if(RenderDoc::Inst().IsReplayApp())
+    {
+      if(m_TextureList.find(GetResourceID()) != m_TextureList.end())
+        m_TextureList.erase(GetResourceID());
+    }
 
     Shutdown();
   }
