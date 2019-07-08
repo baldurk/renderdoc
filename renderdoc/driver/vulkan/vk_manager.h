@@ -441,6 +441,7 @@ public:
   ImgRefs *FindImgRefs(ResourceId img);
 
   inline bool OptimizeInitialState() { return m_OptimizeInitialState; }
+  inline InitPolicy GetInitPolicy() { return m_InitPolicy; }
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
@@ -457,4 +458,5 @@ private:
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
   std::map<ResourceId, ImgRefs> m_ImgFrameRefs;
   bool m_OptimizeInitialState = false;
+  InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };

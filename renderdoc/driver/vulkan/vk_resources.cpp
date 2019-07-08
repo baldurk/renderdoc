@@ -2964,7 +2964,7 @@ int ImgRefs::SubresourceIndex(int aspectIndex, int level, int layer) const
 }
 
 std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::SubresourceRangeInitReqs(
-    VkImageSubresourceRange range) const
+    VkImageSubresourceRange range, InitPolicy policy, bool initialized) const
 {
   VkImageSubresourceRange out(range);
   std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > res;
@@ -3004,7 +3004,8 @@ std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::Subresource
       for(int layer = range.baseArrayLayer; layer < splitLayerCount; ++layer)
       {
         out.baseArrayLayer = layer;
-        res.push_back(make_rdcpair(out, SubresourceInitReq(aspectIndex, level, layer)));
+        res.push_back(
+            make_rdcpair(out, SubresourceInitReq(aspectIndex, level, layer, policy, initialized)));
       }
     }
   }
