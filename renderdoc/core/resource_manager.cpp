@@ -69,9 +69,6 @@ rdcstr DoStringise(const FrameRefType &el)
 
 FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
 {
-  RDCASSERT(eFrameRef_Minimum <= first && first <= eFrameRef_Maximum);
-  RDCASSERT(eFrameRef_Minimum <= second && second <= eFrameRef_Maximum);
-
   switch(first)
   {
     case eFrameRef_None:
@@ -114,30 +111,43 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
 
 FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second)
 {
-  RDCASSERT(eFrameRef_Minimum <= first && first <= eFrameRef_Maximum);
-  RDCASSERT(eFrameRef_Minimum <= second && second <= eFrameRef_Maximum);
-
-  if(first == eFrameRef_Read &&
-     (second == eFrameRef_PartialWrite || second == eFrameRef_CompleteWrite))
-    // The resource is referenced both read and write/clear;
-    // We don't know whether the read or write/clear occurs first;
-    // if the write happens first, the final state would be Read or Clear;
-    // if the read happens first, the final state would be ReadBeforeWrite.
-    // We conservatively return ReadBeforeWrite, because this will force the
-    // resource to be reset before each frame when replaying.
+  if((IncludesRead(first) && IncludesWrite(second)) || (IncludesRead(second) && IncludesWrite(first)))
+    // There is a way to order these references so that the resource is read
+    // and then written. Since read-before-write is the worst case in terms of
+    // reset requirements, we conservatively assume this is the case.
     return eFrameRef_ReadBeforeWrite;
-
-  // In all other cases, we just return the more conservative reference type--
-  // i.e. the reference type with the strongest (re)initialization
-  // requirements for replay. Because larger values in the `FrameRefType` have
-  // stronger (re)initialization requirements, this is simply the maximum
-  // reference type; note that `first >= second` by the earlier swap.
-  return first;
+  else
+    // Otherwise either:
+    // - first and second are each Read or None, or
+    // - first and second are each CompleteWrite, PartialWrite or None.
+    // In either case, Compose(first,second) = Compose(second,first) = max(first,second).
+    return RDCMAX(first, second);
 }
 
 FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y)
 {
   return RDCMAX(x, y);
+}
+
+bool IncludesRead(FrameRefType refType)
+{
+  switch(refType)
+  {
+    case eFrameRef_Read:
+    case eFrameRef_ReadBeforeWrite: return true;
+    default: return false;
+  }
+}
+
+bool IncludesWrite(FrameRefType refType)
+{
+  switch(refType)
+  {
+    case eFrameRef_PartialWrite:
+    case eFrameRef_CompleteWrite:
+    case eFrameRef_ReadBeforeWrite: return true;
+    default: return false;
+  }
 }
 
 bool IsDirtyFrameRef(FrameRefType refType)
