@@ -40,29 +40,33 @@
 // command, modifying the state). This state machine is illustrated below,
 // with states represented in caps, and transitions in lower case.
 //
-//        +------------ NONE -------------+
-//        |              |                |
-//       read          write            clear
-//        |              |                |
-//        V              V                V
-//      READ <--read-- WRITE --clear--> CLEAR
-//        |
-//   write/clear
-//        |
-//        V
-//  READBEFOREWRITE
+//         +------------------ NONE -----------------------------+
+//         |                    |                                |
+//        read            partialWrite                     completeWrite
+//         |                    |                                |
+//         V                    V                                V
+//       READ             PARTIAL_WRITE --completeWrite--> COMPLETE_WRITE
+//         |                    |
+//         |                  read
+//       write                  |
+//         |                    V
+//         |            WRITE_BEFORE_READ
+//         V                    |
+//  READ_BEFORE_WRITE <--write--+
 //
 // Note:
 //  * All resources begin implicitly in the None state.
+//  * The transitions labeled "write" correspond to either PartialWrite or
+//    CompleteWrite (e.g. in the READ state, either a PartialWrite or a
+//    CompleteWrite moves to the READ_BEFORE_WRITE state).
 //  * The state transitions for ReadBeforeWrite are simply the composition of
 //    the transition for read, followed by the transition for write (e.g.
-//    ReadBeforeWrite moves from NONE state to READBEFOREWRITE state).
-//  * All other transitions (excluding ReadBeforeWrite) that are not explicitly
-//    shown leave the state unchanged (e.g. a read in the CLEAR state remains
-//    in the CLEAR state).
-//
-// The enum values are ordered so that larger values correspond to greater
-// requirements for (re)initialization of the resource during replay.
+//    ReadBeforeWrite moves from NONE state to READBEFOREWRITE state);
+//    similarly, the state transitions for WriteBeforeRead are the composition
+//    of the transition for write, followed by the transition for read.
+//  * All other transitions (excluding ReadBeforeWrite and WriteBeforeRead)
+//    that are not explicitly shown leave the state unchanged (e.g. a read in
+//    the COMPLETE_WRITE state remains in the COMPLETE_WRITE state).
 enum FrameRefType
 {
   // Initial state, no reads or writes
@@ -92,6 +96,13 @@ enum FrameRefType
   // initial contents; therefore, the initial contents will need to be reset
   // before each time we replay the frame.
   eFrameRef_ReadBeforeWrite = 4,
+
+  // Partial write followed by read;
+  // For the purpose of correct replay, this is equivalent to `Read`. However,
+  // if this resource is inspected by the user before the write, the future
+  // read could, incorrectly, be observed. This is because read-only resources
+  // are not reset, so the write from the previous replay may still be present.
+  eFrameRef_WriteBeforeRead = 5,
 };
 
 bool IncludesRead(FrameRefType refType);
@@ -99,7 +110,7 @@ bool IncludesRead(FrameRefType refType);
 bool IncludesWrite(FrameRefType refType);
 
 const FrameRefType eFrameRef_Minimum = eFrameRef_None;
-const FrameRefType eFrameRef_Maximum = eFrameRef_ReadBeforeWrite;
+const FrameRefType eFrameRef_Maximum = eFrameRef_WriteBeforeRead;
 
 DECLARE_REFLECTION_ENUM(FrameRefType);
 
