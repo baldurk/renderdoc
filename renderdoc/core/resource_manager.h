@@ -111,6 +111,11 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second);
 // reset for replay.
 FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second);
 
+// Compose frame refs for disjoint subresources.
+// This is used to compute the overall frame ref for images/memory from the
+// frame refs of their subresources.
+FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y);
+
 bool IsDirtyFrameRef(FrameRefType refType);
 
 // Captures the possible initialization/reset requirements for resources.

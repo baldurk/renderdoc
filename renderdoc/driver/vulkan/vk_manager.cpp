@@ -781,8 +781,7 @@ void VulkanResourceManager::MarkImageFrameReferenced(ResourceId img, const Image
                                                      const ImageRange &range, FrameRefType refType)
 {
   FrameRefType maxRef = MarkImageReferenced(m_ImgFrameRefs, img, imageInfo, range, refType);
-  MarkResourceFrameReferenced(
-      img, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+  MarkResourceFrameReferenced(img, maxRef, ComposeFrameRefsDisjoint);
 }
 
 void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
@@ -791,8 +790,7 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
   SCOPED_LOCK(m_Lock);
 
   FrameRefType maxRef = MarkMemoryReferenced(m_MemFrameRefs, mem, offset, size, refType);
-  MarkResourceFrameReferenced(
-      mem, maxRef, [](FrameRefType x, FrameRefType y) -> FrameRefType { return std::max(x, y); });
+  MarkResourceFrameReferenced(mem, maxRef, ComposeFrameRefsDisjoint);
 }
 
 void VulkanResourceManager::MergeReferencedImages(std::map<ResourceId, ImgRefs> &imgRefs)

@@ -117,12 +117,6 @@ FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second)
   RDCASSERT(eFrameRef_Minimum <= first && first <= eFrameRef_Maximum);
   RDCASSERT(eFrameRef_Minimum <= second && second <= eFrameRef_Maximum);
 
-  // The order of the reference types is irrelevant, so put them in a
-  // consistent order (`first >= second`) to reduce the number of cases to
-  // consider.
-  if(first < second)
-    std::swap(first, second);
-
   if(first == eFrameRef_Read &&
      (second == eFrameRef_PartialWrite || second == eFrameRef_CompleteWrite))
     // The resource is referenced both read and write/clear;
@@ -139,6 +133,11 @@ FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second)
   // stronger (re)initialization requirements, this is simply the maximum
   // reference type; note that `first >= second` by the earlier swap.
   return first;
+}
+
+FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y)
+{
+  return RDCMAX(x, y);
 }
 
 bool IsDirtyFrameRef(FrameRefType refType)
