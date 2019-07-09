@@ -487,8 +487,8 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
         process->waitForFinished(300);
 
         // when the process exits, delete
-        QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
-                         [process](int exitCode) { process->deleteLater(); });
+        QObject::connect(process, OverloadedSlot<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                         [process](int exitCode, QProcess::ExitStatus) { process->deleteLater(); });
       }
     }
 

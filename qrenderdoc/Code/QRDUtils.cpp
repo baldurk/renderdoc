@@ -1814,7 +1814,7 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
     process->start(sudo, sudoParams);
 
     // when the process exits, call the callback and delete
-    QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
+    QObject::connect(process, OverloadedSlot<int, QProcess::ExitStatus>::of(&QProcess::finished),
                      [parent, process, finishedCallback](int exitCode) {
                        process->deleteLater();
                        GUIInvoke::call(parent, finishedCallback);
@@ -1851,7 +1851,7 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
     process->start(term, termParams);
 
     // when the process exits, call the callback and delete
-    QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
+    QObject::connect(process, OverloadedSlot<int, QProcess::ExitStatus>::of(&QProcess::finished),
                      [parent, process, finishedCallback](int exitCode) {
                        process->deleteLater();
                        GUIInvoke::call(parent, finishedCallback);
