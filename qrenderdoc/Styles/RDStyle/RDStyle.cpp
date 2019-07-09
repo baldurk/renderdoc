@@ -363,7 +363,7 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
         ret.setHeight(labelHeight);
       }
 
-      ret.setWidth(group->fontMetrics.width(group->text));
+      ret.setWidth(group->fontMetrics.boundingRect(group->text).width());
 
       return ret;
     }
