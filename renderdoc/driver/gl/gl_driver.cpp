@@ -210,8 +210,8 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_packed_depth_stencil");
   m_GLExtensions.push_back("GL_EXT_packed_float");
   m_GLExtensions.push_back("GL_EXT_pixel_buffer_object");
-  m_GLExtensions.push_back("GL_EXT_pixel_buffer_object");
   m_GLExtensions.push_back("GL_EXT_point_parameters");
+  m_GLExtensions.push_back("GL_EXT_polygon_offset");
   m_GLExtensions.push_back("GL_EXT_polygon_offset_clamp");
   m_GLExtensions.push_back("GL_EXT_post_depth_coverage");
   m_GLExtensions.push_back("GL_EXT_provoking_vertex");
