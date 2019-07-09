@@ -40,6 +40,48 @@ void WrappedOpenGL::BindIndirectBuffer(GLsizeiptr bufLength)
   GL.glBufferData(eGL_DRAW_INDIRECT_BUFFER, bufLength, NULL, eGL_DYNAMIC_DRAW);
 }
 
+enum GLdrawmode
+{
+  points = eGL_POINTS,
+  line_strip = eGL_LINE_STRIP,
+  line_loop = eGL_LINE_LOOP,
+  lines = eGL_LINES,
+  line_strip_adjacency = eGL_LINE_STRIP_ADJACENCY,
+  lines_adjacency = eGL_LINES_ADJACENCY,
+  triangle_strip = eGL_TRIANGLE_STRIP,
+  triangle_fan = eGL_TRIANGLE_FAN,
+  triangles = eGL_TRIANGLES,
+  triangle_strip_adjacency = eGL_TRIANGLE_STRIP_ADJACENCY,
+  triangles_adjacency = eGL_TRIANGLES_ADJACENCY,
+  patches = eGL_PATCHES,
+};
+
+DECLARE_REFLECTION_ENUM(GLdrawmode);
+
+template <>
+rdcstr DoStringise(const GLdrawmode &el)
+{
+  RDCCOMPILE_ASSERT(sizeof(GLdrawmode) == sizeof(GLenum) && sizeof(GLdrawmode) == sizeof(uint32_t),
+                    "Fake bitfield enum must be uint32_t sized");
+
+  BEGIN_ENUM_STRINGISE(GLdrawmode);
+  {
+    STRINGISE_ENUM_NAMED(points, "GL_POINTS");
+    STRINGISE_ENUM_NAMED(line_strip, "GL_LINE_STRIP");
+    STRINGISE_ENUM_NAMED(line_loop, "GL_LINE_LOOP");
+    STRINGISE_ENUM_NAMED(lines, "GL_LINES");
+    STRINGISE_ENUM_NAMED(line_strip_adjacency, "GL_LINE_STRIP_ADJACENCY");
+    STRINGISE_ENUM_NAMED(lines_adjacency, "GL_LINES_ADJACENCY");
+    STRINGISE_ENUM_NAMED(triangle_strip, "GL_TRIANGLE_STRIP");
+    STRINGISE_ENUM_NAMED(triangle_fan, "GL_TRIANGLE_FAN");
+    STRINGISE_ENUM_NAMED(triangles, "GL_TRIANGLES");
+    STRINGISE_ENUM_NAMED(triangle_strip_adjacency, "GL_TRIANGLE_STRIP_ADJACENCY");
+    STRINGISE_ENUM_NAMED(triangles_adjacency, "GL_TRIANGLES_ADJACENCY");
+    STRINGISE_ENUM_NAMED(patches, "GL_PATCHES");
+  }
+  END_ENUM_STRINGISE();
+}
+
 enum GLbarrierbitfield
 {
 };
@@ -575,7 +617,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawTransformFeedback(SerialiserType &ser, GLenum mode,
                                                       GLuint xfbHandle)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
 
   Serialise_DebugMessages(ser);
@@ -644,7 +686,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
                                                                GLuint xfbHandle,
                                                                GLsizei instancecount)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
   SERIALISE_ELEMENT(instancecount);
 
@@ -713,7 +755,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(SerialiserType &ser, GLenum mode,
                                                             GLuint xfbHandle, GLuint stream)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
   SERIALISE_ELEMENT(stream);
 
@@ -783,7 +825,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
                                                                      GLuint xfbHandle, GLuint stream,
                                                                      GLsizei instancecount)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
   SERIALISE_ELEMENT(stream);
   SERIALISE_ELEMENT(instancecount);
@@ -856,7 +898,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLint first,
                                            GLsizei count)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(first);
   SERIALISE_ELEMENT(count);
 
@@ -1091,7 +1133,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum mode,
                                                    const void *indirect)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
 
   Serialise_DebugMessages(ser);
@@ -1168,7 +1210,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum mode, GLint first,
                                                     GLsizei count, GLsizei instancecount)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(first);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(instancecount);
@@ -1244,7 +1286,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
                                                                 GLsizei instancecount,
                                                                 GLuint baseinstance)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(first);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(instancecount);
@@ -1320,7 +1362,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, GLsizei count,
                                              GLenum type, const void *indicesPtr)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
@@ -1395,7 +1437,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum mode, GLenum type,
                                                      const void *indirect)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
 
@@ -1479,7 +1521,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
                                                   GLuint end, GLsizei count, GLenum type,
                                                   const void *indicesPtr)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(start);
   SERIALISE_ELEMENT(end);
   SERIALISE_ELEMENT(count);
@@ -1559,7 +1601,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
                                                             GLenum type, const void *indicesPtr,
                                                             GLint basevertex)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(start);
   SERIALISE_ELEMENT(end);
   SERIALISE_ELEMENT(count);
@@ -1642,7 +1684,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
                                                        GLsizei count, GLenum type,
                                                        const void *indicesPtr, GLint basevertex)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
@@ -1720,7 +1762,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
                                                       GLsizei count, GLenum type,
                                                       const void *indicesPtr, GLsizei instancecount)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
@@ -1800,7 +1842,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
                                                                   GLsizei instancecount,
                                                                   GLuint baseinstance)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
@@ -1885,7 +1927,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
                                                                 GLsizei instancecount,
                                                                 GLint basevertex)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
@@ -1968,7 +2010,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
     SerialiserType &ser, GLenum mode, GLsizei count, GLenum type, const void *indicesPtr,
     GLsizei instancecount, GLint basevertex, GLuint baseinstance)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
@@ -2053,7 +2095,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode, const GLint *first,
                                                 const GLsizei *count, GLsizei drawcount)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_ARRAY(first, drawcount);
   SERIALISE_ELEMENT_ARRAY(count, drawcount);
   SERIALISE_ELEMENT(drawcount);
@@ -2201,7 +2243,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
       indices.push_back((uint64_t)indicesPtr[i]);
   }
 
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_ARRAY(count, drawcount);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(indices);
@@ -2367,7 +2409,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
       indices.push_back((uint64_t)indicesPtr[i]);
   }
 
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_ARRAY(count, drawcount);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(indices);
@@ -2526,7 +2568,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
                                                         const void *indirect, GLsizei drawcount,
                                                         GLsizei stride)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
   SERIALISE_ELEMENT(drawcount);
   SERIALISE_ELEMENT(stride);
@@ -2739,7 +2781,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
                                                           GLenum type, const void *indirect,
                                                           GLsizei drawcount, GLsizei stride)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
   SERIALISE_ELEMENT(drawcount);
@@ -2963,7 +3005,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
                                                              GLintptr drawcountPtr,
                                                              GLsizei maxdrawcount, GLsizei stride)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
   SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr);
   SERIALISE_ELEMENT(maxdrawcount);
@@ -3188,7 +3230,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
                                                                GLintptr drawcountPtr,
                                                                GLsizei maxdrawcount, GLsizei stride)
 {
-  SERIALISE_ELEMENT(mode);
+  SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
   SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr);
