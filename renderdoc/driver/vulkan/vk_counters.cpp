@@ -638,7 +638,7 @@ std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCoun
         case GPUCounter::TCSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 8]; break;
         case GPUCounter::TESInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
         case GPUCounter::GSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 3]; break;
-        case GPUCounter::PSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
+        case GPUCounter::PSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 7]; break;
         case GPUCounter::CSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 10]; break;
         default: break;
       }
