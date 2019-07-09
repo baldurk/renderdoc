@@ -283,10 +283,21 @@ void WrappedOpenGL::BuildGLExtensions()
   * GL_KHR_texture_compression_astc_hdr <- without support for astc textures on PC hardware this
   * GL_KHR_texture_compression_astc_ldr <- could be difficult. Maybe falls into the category of
   'only
-                                           support if it's supported on replaying driver'?
+                                           support if it's supported on replaying driver'
+  * GL_KHR_texture_compression_astc_sliced_3d
   * GL_ARB_gpu_shader_int64
   * GL_ARB_sample_locations
   * GL_ARB_texture_filter_minmax
+  * GL_EXT_EGL_image_storage
+  * GL_EXT_external_buffer
+  * GL_EXT_window_rectangles
+  * GL_EXT_texture_sRGB_R8
+  * GL_EXT_texture_shadow_lod
+  * GL_EXT_shader_framebuffer_fetch
+  * GL_EXT_shader_framebuffer_fetch_non_coherent
+  * GL_EXT_multiview_timer_query
+  * GL_EXT_multiview_texture_multisample
+  * GL_EXT_multiview_tessellation_geometry_shader
 
   ************************************************************************/
 
@@ -312,7 +323,6 @@ void WrappedOpenGL::BuildGLExtensions()
   * GL_ARB_texture_env_dot3
   * GL_ARB_transpose_matrix
   * GL_ARB_vertex_blend
-  * GL_ARB_vertex_program
   * GL_ARB_vertex_shader
   * GL_ARB_window_pos
   * GL_ATI_draw_buffers
@@ -322,7 +332,6 @@ void WrappedOpenGL::BuildGLExtensions()
   * GL_EXT_abgr
   * GL_EXT_bindable_uniform
   * GL_EXT_blend_logic_op
-  * GL_EXT_Cg_shader
   * GL_EXT_clip_volume_hint
   * GL_EXT_cmyka
   * GL_EXT_color_subtable
@@ -505,6 +514,93 @@ void WrappedOpenGL::BuildGLESExtensions()
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
   std::sort(m_GLESExtensions.begin(), m_GLESExtensions.end());
+
+  /***********************************************************************
+
+  Unsorted GLES extensions that are not yet supported. Nothing here says whether it's
+  possible to support, will never be supported, or unlikely, etc.
+
+  As above - only OES, KHR, and EXT extensions listed
+
+  * GL_EXT_blend_func_extended
+  * GL_EXT_clear_texture
+  * GL_EXT_clip_control
+  * GL_EXT_compressed_ETC1_RGB8_sub_texture
+  * GL_EXT_conservative_depth
+  * GL_EXT_depth_clamp
+  * GL_EXT_draw_transform_feedback
+  * GL_EXT_EGL_image_array
+  * GL_EXT_EGL_image_external_wrap_modes
+  * GL_EXT_EGL_image_storage
+  * GL_EXT_external_buffer
+  * GL_EXT_float_blend
+  * GL_EXT_frag_depth
+  * GL_EXT_instanced_arrays
+  * GL_EXT_map_buffer_range
+  * GL_EXT_multi_draw_indirect
+  * GL_EXT_multisample_compatibility
+  * GL_EXT_multisampled_render_to_texture2
+  * GL_EXT_multiview_draw_buffers
+  * GL_EXT_multiview_tessellation_geometry_shader
+  * GL_EXT_multiview_texture_multisample
+  * GL_EXT_multiview_timer_query
+  * GL_EXT_occlusion_query_boolean
+  * GL_EXT_protected_textures
+  * GL_EXT_read_format_bgra
+  * GL_EXT_render_snorm
+  * GL_EXT_shader_framebuffer_fetch_non_coherent
+  * GL_EXT_shader_pixel_local_storage
+  * GL_EXT_shader_pixel_local_storage2
+  * GL_EXT_sparse_texture
+  * GL_EXT_sparse_texture2
+  * GL_EXT_tessellation_point_size
+  * GL_EXT_texture_compression_astc_decode_mode_rgb9e5
+  * GL_EXT_texture_format_sRGB_override
+  * GL_EXT_texture_mirror_clamp_to_edge
+  * GL_EXT_texture_query_lod
+  * GL_EXT_texture_shadow_lod
+  * GL_EXT_unpack_subimage
+  * GL_EXT_window_rectangles
+  * GL_EXT_YUV_target
+  * GL_OES_blend_equation_separate
+  * GL_OES_blend_func_separate
+  * GL_OES_blend_subtract
+  * GL_OES_byte_coordinates
+  * GL_OES_compressed_paletted_texture
+  * GL_OES_draw_texture
+  * GL_OES_EGL_image
+  * GL_OES_EGL_image_external
+  * GL_OES_EGL_image_external_essl3
+  * GL_OES_EGL_sync
+  * GL_OES_element_index_uint
+  * GL_OES_extended_matrix_palette
+  * GL_OES_fixed_point
+  * GL_OES_fragment_precision_high
+  * GL_OES_framebuffer_object
+  * GL_OES_get_program_binary
+  * GL_OES_matrix_get
+  * GL_OES_matrix_palette
+  * GL_OES_point_size_array
+  * GL_OES_point_sprite
+  * GL_OES_query_matrix
+  * GL_OES_read_format
+  * GL_OES_required_internalformat
+  * GL_OES_sample_variables
+  * GL_OES_shader_image_atomic
+  * GL_OES_shader_io_blocks
+  * GL_OES_shader_multisample_interpolation
+  * GL_OES_single_precision
+  * GL_OES_stencil_wrap
+  * GL_OES_stencil1
+  * GL_OES_stencil4
+  * GL_OES_stencil8
+  * GL_OES_surfaceless_context
+  * GL_OES_texture_cube_map
+  * GL_OES_texture_env_crossbar
+  * GL_OES_texture_mirrored_repeat
+  * GL_OES_vertex_type_10_10_10_2
+
+  ************************************************************************/
 }
 
 WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
