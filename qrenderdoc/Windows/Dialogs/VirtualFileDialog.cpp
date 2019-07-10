@@ -327,7 +327,7 @@ public:
             {
               if(node->file.lastmod == 0)
                 return QVariant();
-              return QDateTime::fromSecsSinceEpoch(node->file.lastmod);
+              return QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0), Qt::UTC).addSecs(node->file.lastmod);
             }
             default: break;
           }
