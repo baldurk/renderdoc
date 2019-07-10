@@ -32,9 +32,6 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include
 # Disable conversions to/from const char * in QString
 DEFINES += QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII
 
-# Only count deprecated things from before 5.9, since that's our min spec
-DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900
-
 # Different output folders per platform
 win32 {
 
