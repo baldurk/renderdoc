@@ -949,29 +949,36 @@ void TextureViewer::UI_UpdateStatusText()
     }
     else
     {
+      // Restrict the number of components displayed to the component count of the resource format
       if(uintTex)
       {
-        statusText += QFormatStr("%1, %2, %3, %4")
-                          .arg(Formatter::Format(val.uintValue[0]))
-                          .arg(Formatter::Format(val.uintValue[1]))
-                          .arg(Formatter::Format(val.uintValue[2]))
-                          .arg(Formatter::Format(val.uintValue[3]));
+        statusText += QFormatStr("%1").arg(Formatter::Format(val.uintValue[0]));
+        if(tex.format.compCount > 1)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[1]));
+        if(tex.format.compCount > 2)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[2]));
+        if(tex.format.compCount > 3)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[3]));
       }
       else if(sintTex)
       {
-        statusText += QFormatStr("%1, %2, %3, %4")
-                          .arg(Formatter::Format(val.intValue[0]))
-                          .arg(Formatter::Format(val.intValue[1]))
-                          .arg(Formatter::Format(val.intValue[2]))
-                          .arg(Formatter::Format(val.intValue[3]));
+        statusText += QFormatStr("%1").arg(Formatter::Format(val.intValue[0]));
+        if(tex.format.compCount > 1)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[1]));
+        if(tex.format.compCount > 2)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[2]));
+        if(tex.format.compCount > 3)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[3]));
       }
       else
       {
-        statusText += QFormatStr("%1, %2, %3, %4")
-                          .arg(Formatter::Format(val.floatValue[0]))
-                          .arg(Formatter::Format(val.floatValue[1]))
-                          .arg(Formatter::Format(val.floatValue[2]))
-                          .arg(Formatter::Format(val.floatValue[3]));
+        statusText += QFormatStr("%1").arg(Formatter::Format(val.floatValue[0]));
+        if(tex.format.compCount > 1)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[1]));
+        if(tex.format.compCount > 2)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[2]));
+        if(tex.format.compCount > 3)
+          statusText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[3]));
       }
     }
 
