@@ -32,6 +32,7 @@
 #include <QLabel>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QScreen>
 #include <QSslSocket>
 #include <QString>
 #include <QUrlQuery>
@@ -207,7 +208,7 @@ void CrashDialog::resizeEvent(QResizeEvent *)
 }
 void CrashDialog::recentre()
 {
-  QRect scr = QApplication::desktop()->screenGeometry();
+  QRect scr = QApplication::primaryScreen()->geometry();
   move(scr.center() - rect().center());
 
   // when we're first shown, on this stage, move the cursor
