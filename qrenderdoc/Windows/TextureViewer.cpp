@@ -3277,6 +3277,10 @@ void TextureViewer::AutoFitRange()
       {
         fmt.compType = CompType::Float;
       }
+      if(fmt.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::UInt)
+        fmt.compType = CompType::UInt;
+      if(fmt.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::SInt)
+        fmt.compType = CompType::SInt;
 
       for(int i = 0; i < 4; i++)
       {
