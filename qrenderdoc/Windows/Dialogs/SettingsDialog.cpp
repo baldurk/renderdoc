@@ -64,7 +64,7 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   }
 
   ui->pages->clearSelection();
-  ui->pages->setItemSelected(ui->pages->item(0), true);
+  ui->pages->item(0)->setSelected(true);
   ui->tabWidget->setCurrentIndex(0);
 
   ui->pages->setMinimumWidth(ui->pages->sizeHintForColumn(0));
@@ -218,7 +218,7 @@ void SettingsDialog::on_pages_itemSelectionChanged()
 
   if(sel.empty())
   {
-    ui->pages->setItemSelected(ui->pages->item(ui->tabWidget->currentIndex()), true);
+    ui->pages->item(ui->tabWidget->currentIndex())->setSelected(true);
   }
   else
   {

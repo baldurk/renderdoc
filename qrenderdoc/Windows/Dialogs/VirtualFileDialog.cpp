@@ -496,7 +496,7 @@ public:
     return qMin(maxColCount, sourceModel()->columnCount(parent));
   }
 
-  void refresh() { QSortFilterProxyModel::filterChanged(); }
+  void refresh() { QSortFilterProxyModel::invalidateFilter(); }
   int maxColCount = INT_MAX;
   bool showFiles = true;
   bool showDirs = true;
