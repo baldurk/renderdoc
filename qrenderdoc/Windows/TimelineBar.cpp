@@ -227,7 +227,7 @@ void TimelineBar::layout()
   // the area of everything
   m_area = QRectF(viewport()->rect()).marginsRemoved(uniformMargins(borderWidth + margin));
 
-  m_titleWidth = fm.width(eidAxisTitle) + fm.height();
+  m_titleWidth = fm.boundingRect(eidAxisTitle).width() + fm.height();
 
   m_dataArea = m_area;
   m_dataArea.setLeft(m_dataArea.left() + m_titleWidth);
@@ -249,7 +249,7 @@ void TimelineBar::layout()
   int stepSize = 1;
   int stepMagnitude = 1;
 
-  m_eidAxisLabelTextWidth = fm.width(QString::number(maxEID));
+  m_eidAxisLabelTextWidth = fm.boundingRect(QString::number(maxEID)).width();
   m_eidAxisLabelWidth = m_eidAxisLabelTextWidth + fm.height();
   m_eidAxisLabelStep = stepSize * stepMagnitude;
 
@@ -655,7 +655,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     if(!m_HistoryTarget.isEmpty())
       text = tr("Pixel history for %1").arg(m_HistoryTarget);
     else
-      text = tr("Usage for %1:").arg(m_UsageTarget);
+      text = tr("Usage for %1: ").arg(m_UsageTarget);
 
     p.drawText(highlightLabel, text, to);
 
@@ -706,11 +706,11 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     if(m_HistoryTarget.isEmpty())
     {
       // advance past the first text to draw the key
-      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+      highlightLabel.setLeft(highlightLabel.left() + fm.boundingRect(text).width());
 
       text = lit(" Reads ( ");
       p.drawText(highlightLabel, text, to);
-      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+      highlightLabel.setLeft(highlightLabel.left() + fm.boundingRect(text).width());
 
       QPainterPath path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
       p.fillPath(path, colors[ReadUsage]);
@@ -719,7 +719,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
       text = lit(" ), Writes ( ");
       p.drawText(highlightLabel, text, to);
-      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+      highlightLabel.setLeft(highlightLabel.left() + fm.boundingRect(text).width());
 
       path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
       p.fillPath(path, colors[WriteUsage]);
@@ -728,7 +728,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
       text = lit(" ), Read/Write ( ");
       p.drawText(highlightLabel, text, to);
-      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+      highlightLabel.setLeft(highlightLabel.left() + fm.boundingRect(text).width());
 
       path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
       p.fillPath(path, colors[ReadWriteUsage]);
@@ -739,7 +739,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       {
         text = lit(" ) Barriers ( ");
         p.drawText(highlightLabel, text, to);
-        highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+        highlightLabel.setLeft(highlightLabel.left() + fm.boundingRect(text).width());
 
         path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
         p.fillPath(path, colors[BarrierUsage]);
@@ -749,7 +749,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
       text = lit(" ), and Clears ( ");
       p.drawText(highlightLabel, text, to);
-      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+      highlightLabel.setLeft(highlightLabel.left() + fm.boundingRect(text).width());
 
       path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
       p.fillPath(path, colors[ClearUsage]);
@@ -920,7 +920,7 @@ void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
 
     r.setLeft(r.left() + margin);
 
-    int plusWidth = fm.width(QLatin1Char('+'));
+    int plusWidth = fm.boundingRect(QLatin1Char('+')).width();
     if(r.width() > plusWidth)
     {
       QRectF plusRect = r;
