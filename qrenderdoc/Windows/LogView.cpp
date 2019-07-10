@@ -333,7 +333,7 @@ void LogView::messages_keyPress(QKeyEvent *event)
         rows.push_back(idx.row());
     }
 
-    qSort(rows);
+    std::sort(rows.begin(), rows.end());
 
     int columns = m_ItemModel->columnCount();
 

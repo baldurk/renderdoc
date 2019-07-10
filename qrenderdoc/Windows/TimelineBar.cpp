@@ -143,7 +143,7 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
     GUIInvoke::call(this, [this, usage]() {
       for(const EventUsage &u : usage)
         m_UsageEvents << u;
-      qSort(m_UsageEvents);
+      std::sort(m_UsageEvents.begin(), m_UsageEvents.end());
       viewport()->update();
     });
   });
@@ -163,7 +163,7 @@ void TimelineBar::HighlightHistory(ResourceId id, const rdcarray<PixelModificati
 
     for(const PixelModification &mod : history)
       m_HistoryEvents << mod;
-    qSort(m_HistoryEvents);
+    std::sort(m_HistoryEvents.begin(), m_HistoryEvents.end());
   }
 
   viewport()->update();
