@@ -196,6 +196,11 @@ void main() {
       ShaderBindpointMapping mapping;
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
+      if(testType == ShaderType::eShaderGLSPIRV)
+        CHECK(refl.encoding == ShaderEncoding::SPIRV);
+      else
+        CHECK(refl.encoding == ShaderEncoding::GLSL);
+
       REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
       {
         CHECK(refl.constantBlocks[0].name == "$Globals");
@@ -307,6 +312,8 @@ void main() {
       ShaderReflection refl;
       ShaderBindpointMapping mapping;
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+      CHECK(refl.encoding == ShaderEncoding::SPIRV);
 
       REQUIRE_ARRAY_SIZE(refl.samplers.size(), 1);
       {
@@ -525,6 +532,61 @@ void main() {
   {
     RDCFATAL("Unexpected test type");
   }
+
+  SECTION("Debug information")
+  {
+    std::string source = R"(
+#version 450 core
+
+layout(location = 3) in vec2 a_input;
+layout(location = 6) flat in uvec3 z_input;
+
+layout(location = 0) out vec4 a_output;
+layout(location = 1) out vec3 z_output;
+layout(location = 2) out int b_output;
+
+void main() {
+  a_output = vec4(a_input.y + gl_FragCoord.x, 0, 0, 1);
+  z_output = vec3(a_output.xy, a_output.z);
+  b_output = int(z_input.x);
+  gl_FragDepth = float(z_output.y);
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+    CHECK(refl.entryPoint == "main");
+    CHECK(refl.stage == ShaderStage::Fragment);
+
+    CHECK(refl.debugInfo.encoding == ShaderEncoding::GLSL);
+
+    REQUIRE(refl.debugInfo.files.size() == 1);
+
+    CHECK(refl.debugInfo.files[0].contents == source);
+
+    if(testType == eShaderGLSL)
+    {
+      CHECK(refl.debugInfo.files[0].filename == "main.glsl");
+    }
+    else
+    {
+      CHECK(refl.debugInfo.files[0].filename == "source0.glsl");
+
+      REQUIRE(refl.debugInfo.compileFlags.flags.size() == 1);
+
+      CHECK(refl.debugInfo.compileFlags.flags[0].name == "@cmdline");
+
+      if(testType == eShaderGLSPIRV)
+        CHECK(refl.debugInfo.compileFlags.flags[0].value ==
+              " --client opengl100 --target-env opengl --entry-point main");
+      else
+        CHECK(refl.debugInfo.compileFlags.flags[0].value ==
+              " --client vulkan100 --target-env vulkan1.0 --entry-point main");
+    }
+  };
 
   SECTION("Input and output signatures")
   {

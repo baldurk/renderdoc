@@ -41,9 +41,16 @@ std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
   std::string errors = "";
 
   const char **strs = new const char *[sources.size()];
+  const char **names = new const char *[sources.size()];
+  std::vector<std::string> names_str;
+  names_str.resize(sources.size());
 
   for(size_t i = 0; i < sources.size(); i++)
+  {
     strs[i] = sources[i].c_str();
+    names_str[i] = StringFormat::Fmt("source%d.glsl", i);
+    names[i] = names_str[i].c_str();
+  }
 
   RDCCOMPILE_ASSERT((int)EShLangVertex == (int)rdcspv::ShaderStage::Vertex &&
                         (int)EShLangTessControl == (int)rdcspv::ShaderStage::TessControl &&
@@ -58,7 +65,7 @@ std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
 
     glslang::TShader *shader = new glslang::TShader(lang);
 
-    shader->setStrings(strs, (int)sources.size());
+    shader->setStringsWithLengthsAndNames(strs, NULL, names, (int)sources.size());
 
     if(!settings.entryPoint.empty())
       shader->setEntryPoint(settings.entryPoint.c_str());
@@ -69,6 +76,9 @@ std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
       flags = EShMessages(flags | EShMsgVulkanRules);
     if(settings.lang == rdcspv::InputLanguage::VulkanHLSL)
       flags = EShMessages(flags | EShMsgVulkanRules | EShMsgReadHlsl);
+
+    if(settings.debugInfo)
+      flags = EShMessages(flags | EShMsgDebugInfo);
 
     bool success = shader->parse(GetDefaultResources(), 110, false, flags);
 
@@ -101,7 +111,11 @@ std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
         // if we successfully compiled and linked, we must have the stage we started with
         RDCASSERT(intermediate);
 
-        glslang::GlslangToSpv(*intermediate, spirv);
+        glslang::SpvOptions opts;
+        if(settings.debugInfo)
+          opts.generateDebugInfo = true;
+
+        glslang::GlslangToSpv(*intermediate, spirv, &opts);
       }
 
       delete program;
@@ -111,6 +125,7 @@ std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
   }
 
   delete[] strs;
+  delete[] names;
 
   return errors;
 }

@@ -1103,6 +1103,11 @@ static void AddSigParameter(std::vector<SigParameter> &sigs, uint32_t &regIndex,
 void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &refl,
                           const FixedFunctionVertexOutputs &outputUsage)
 {
+  refl.stage = MakeShaderStage(shadType);
+  refl.entryPoint = "main";
+  refl.encoding = ShaderEncoding::GLSL;
+  refl.debugInfo.encoding = ShaderEncoding::GLSL;
+
   if(shadType == eGL_COMPUTE_SHADER)
   {
     GL.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.dispatchThreadsDimension);

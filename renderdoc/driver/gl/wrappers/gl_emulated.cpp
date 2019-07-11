@@ -3469,6 +3469,10 @@ void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
 
   MakeShaderReflection(ShaderEnum((size_t)stage), fakeProg, refl, outputUsage);
 
+  refl.debugInfo.files.resize(1);
+  refl.debugInfo.files[0].filename = "main.glsl";
+  refl.debugInfo.files[0].contents = source;
+
   // implement some stubs for testing
   GL.glGetUniformLocation = &_testStub_GetUniformLocation;
   GL.glGetUniformiv = &_testStub_GetUniformiv;
@@ -3488,8 +3492,6 @@ void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
 // helper function that uses the replay proxy system to compile and reflect the shader using the
 // current driver. Unused by default but you can change the unit test below to call this function
 // instead of MakeOfflineShaderReflection.
-//
-// Note that we can't fill out ShaderBindpointMapping easily on the actual driver
 void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
                                 const std::string &entryPoint, ShaderReflection &refl,
                                 ShaderBindpointMapping &mapping)
@@ -3525,6 +3527,10 @@ void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
   }
 
   refl = *driver->GetShader(id, ShaderEntryPoint("main", ShaderStage::Fragment));
+
+  // Note that we can't fill out ShaderBindpointMapping easily on the actual driver through the
+  // replay interface
+  WARN("Using online reflection - all checks with ShaderBindpointMapping will fail");
 
   driver->FreeCustomShader(id);
 

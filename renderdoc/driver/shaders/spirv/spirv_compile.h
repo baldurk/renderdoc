@@ -55,6 +55,7 @@ struct CompilationSettings
 
   ShaderStage stage = ShaderStage::Invalid;
   InputLanguage lang = InputLanguage::Unknown;
+  bool debugInfo = false;
   std::string entryPoint;
 };
 

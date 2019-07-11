@@ -4209,6 +4209,7 @@ void SPVModule::MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage,
   // VKTODOLOW filter to only functions/resources used by entryPoint
   reflection.entryPoint = entryPoint;
   reflection.stage = stage;
+  reflection.encoding = ShaderEncoding::SPIRV;
 
   // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())

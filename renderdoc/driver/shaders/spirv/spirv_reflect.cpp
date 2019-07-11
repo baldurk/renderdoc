@@ -218,6 +218,7 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
                                              ? rdcspv::InputLanguage::VulkanGLSL
                                              : rdcspv::InputLanguage::OpenGLGLSL,
                                          rdcspv::ShaderStage(stage));
+    settings.debugInfo = true;
     std::string errors = rdcspv::Compile(settings, {source}, spirv);
 
     INFO("SPIR-V compile output: " << errors);
