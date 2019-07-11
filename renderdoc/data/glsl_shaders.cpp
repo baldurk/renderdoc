@@ -416,6 +416,8 @@ void main() {
               CHECK(member.type.descriptor.rows == 1);
               CHECK(member.type.descriptor.columns == 1);
               CHECK(member.type.descriptor.name == "int");
+              CHECK(member.byteOffset == 17);
+
               CHECK(member.defaultValue == 12);
             }
 
@@ -429,6 +431,11 @@ void main() {
               CHECK(member.type.descriptor.rows == 1);
               CHECK(member.type.descriptor.columns == 1);
               CHECK(member.type.descriptor.name == "float");
+              CHECK(member.byteOffset == 19);
+
+              float defaultValueFloat;
+              memcpy(&defaultValueFloat, &member.defaultValue, sizeof(float));
+              CHECK(defaultValueFloat == 0.5f);
             }
           }
         }
