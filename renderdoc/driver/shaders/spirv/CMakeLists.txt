@@ -100,6 +100,8 @@ set(sources
     spirv_compile.h
     spirv_reflect.cpp
     spirv_reflect.h
+    spirv_processor.cpp
+    spirv_processor.h
     spirv_disassemble.cpp
     spirv_stringise.cpp
     ${glslang_sources})

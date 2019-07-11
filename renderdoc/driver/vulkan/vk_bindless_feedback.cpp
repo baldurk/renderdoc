@@ -41,6 +41,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 {
   rdcspv::Editor editor(modSpirv);
 
+  editor.Prepare();
+
   const bool useBufferAddress = (addr != 0);
 
   rdcspv::Id uint32ID = editor.DeclareType(rdcspv::scalar<uint32_t>());
@@ -84,16 +86,16 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
   // iterate over all variables. We do this here because in the absence of the buffer address
   // extension we might declare our own below and patch bindings - so we need to look these up now
-  for(const rdcspv::OpVariable &var : editor.GetVariables())
+  for(const rdcspv::Variable &var : editor.GetGlobals())
   {
     // skip variables without one of these storage classes, as they are not descriptors
-    if(var.storageClass != rdcspv::StorageClass::UniformConstant &&
-       var.storageClass != rdcspv::StorageClass::Uniform &&
-       var.storageClass != rdcspv::StorageClass::StorageBuffer)
+    if(var.storage != rdcspv::StorageClass::UniformConstant &&
+       var.storage != rdcspv::StorageClass::Uniform &&
+       var.storage != rdcspv::StorageClass::StorageBuffer)
       continue;
 
     // get this variable's binding info
-    rdcspv::Binding bind = editor.GetBinding(var.result);
+    rdcspv::Binding bind = editor.GetBinding(var.id);
 
     // if this is one of the bindings we care about
     auto it = offsetMap.find(bind);
@@ -102,8 +104,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       // store the offset for this variable so we watch for access chains and know where to store to
       if(useBufferAddress)
       {
-        rdcspv::Id id = varLookup[var.result] =
-            editor.AddConstantImmediate<uint64_t>(it->second.offset);
+        rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint64_t>(it->second.offset);
 
         editor.SetName(
             id, StringFormat::Fmt("__feedbackOffset_set%u_bind%u", it->first.set, it->first.binding)
@@ -114,8 +115,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
         // check that the offset fits in 32-bit word, convert byte offset to uint32 index
         uint64_t index = it->second.offset / 4;
         RDCASSERT(index < 0xFFFFFFFFULL, bind.set, bind.binding, it->second.offset);
-        rdcspv::Id id = varLookup[var.result] =
-            editor.AddConstantImmediate<uint32_t>(uint32_t(index));
+        rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint32_t>(uint32_t(index));
 
         editor.SetName(
             id, StringFormat::Fmt("__feedbackIndex_set%u_bind%u", it->first.set, it->first.binding)
@@ -209,16 +209,16 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       intTypeLookup[scalarType.second] = scalarType.first;
 
   rdcspv::Id entryID;
-  for(const rdcspv::OpEntryPoint &entry : editor.GetEntries())
+  for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
     if(entry.name == entryName)
     {
-      entryID = entry.entryPoint;
+      entryID = entry.id;
       break;
     }
   }
 
-  rdcspv::TypeIds<rdcspv::Function> funcTypes = editor.GetTypes<rdcspv::Function>();
+  rdcspv::TypeToIds<rdcspv::FunctionType> funcTypes = editor.GetTypes<rdcspv::FunctionType>();
 
   // functions that have been patched with annotation & extra function parameters if needed
   std::set<rdcspv::Id> patchedFunctions;
@@ -254,11 +254,11 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       rdcspv::OpFunction func(it);
 
       // find the function's type declaration, add the necessary arguments, redeclare and patch it
-      for(const rdcspv::TypeId<rdcspv::Function> &funcType : funcTypes)
+      for(const rdcspv::TypeToId<rdcspv::FunctionType> &funcType : funcTypes)
       {
         if(funcType.second == func.functionType)
         {
-          rdcspv::Function patchedFuncType = funcType.first;
+          rdcspv::FunctionType patchedFuncType = funcType.first;
           for(size_t i = 0; i < patchArgIndices.size(); i++)
             patchedFuncType.argumentIds.push_back(funcParamType);
 

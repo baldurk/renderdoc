@@ -33,6 +33,7 @@
 #include "common/common.h"
 #include "spirv_common.h"
 #include "spirv_op_helpers.h"
+#include "spirv_processor.h"
 
 namespace rdcspv
 {
@@ -56,241 +57,19 @@ struct Binding
   bool operator==(const Binding &o) const { return set == o.set && binding == o.binding; }
 };
 
-struct Scalar
-{
-  Scalar() : type(Op::Max), width(0), signedness(false) {}
-  constexpr Scalar(Op t, uint32_t w, bool s) : type(t), width(w), signedness(s) {}
-  Scalar(Iter op);
+template <typename SPIRVType>
+using TypeToId = std::pair<SPIRVType, Id>;
 
-  Op type;
-  uint32_t width;
-  bool signedness;
+template <typename SPIRVType>
+using TypeToIds = std::vector<TypeToId<SPIRVType>>;
 
-  bool operator<(const Scalar &o) const
-  {
-    if(type != o.type)
-      return type < o.type;
-    if(signedness != o.signedness)
-      return signedness < o.signedness;
-    return width < o.width;
-  }
-
-  bool operator!=(const Scalar &o) const { return !operator==(o); }
-  bool operator==(const Scalar &o) const
-  {
-    return type == o.type && width == o.width && signedness == o.signedness;
-  }
-
-  Operation decl(Editor &editor) const
-  {
-    if(type == Op::TypeVoid)
-      return OpTypeVoid(Id());
-    else if(type == Op::TypeBool)
-      return OpTypeBool(Id());
-    else if(type == Op::TypeFloat)
-      return OpTypeFloat(Id(), width);
-    else if(type == Op::TypeInt)
-      return OpTypeInt(Id(), width, signedness ? 1U : 0U);
-    else
-      return OpNop();
-  }
-};
-
-// helper to create Scalar objects for known types
-template <typename T>
-inline constexpr Scalar scalar();
-
-#define SCALAR_TYPE(ctype, op, width, sign) \
-  template <>                               \
-  inline constexpr Scalar scalar<ctype>()   \
-  {                                         \
-    return Scalar(op, width, sign);         \
-  }
-
-SCALAR_TYPE(void, Op::TypeVoid, 0, false);
-SCALAR_TYPE(bool, Op::TypeBool, 0, false);
-SCALAR_TYPE(uint8_t, Op::TypeInt, 8, false);
-SCALAR_TYPE(uint16_t, Op::TypeInt, 16, false);
-SCALAR_TYPE(uint32_t, Op::TypeInt, 32, false);
-SCALAR_TYPE(uint64_t, Op::TypeInt, 64, false);
-SCALAR_TYPE(int8_t, Op::TypeInt, 8, true);
-SCALAR_TYPE(int16_t, Op::TypeInt, 16, true);
-SCALAR_TYPE(int32_t, Op::TypeInt, 32, true);
-SCALAR_TYPE(int64_t, Op::TypeInt, 64, true);
-SCALAR_TYPE(float, Op::TypeFloat, 32, false);
-SCALAR_TYPE(double, Op::TypeFloat, 64, false);
-
-struct Vector
-{
-  Vector(const Scalar &s, uint32_t c) : scalar(s), count(c) {}
-  Scalar scalar;
-  uint32_t count;
-
-  bool operator<(const Vector &o) const
-  {
-    if(scalar != o.scalar)
-      return scalar < o.scalar;
-    return count < o.count;
-  }
-
-  bool operator!=(const Vector &o) const { return !operator==(o); }
-  bool operator==(const Vector &o) const { return scalar == o.scalar && count == o.count; }
-  Operation decl(Editor &editor) const;
-};
-
-struct Matrix
-{
-  Matrix(const Vector &v, uint32_t c) : vector(v), count(c) {}
-  Vector vector;
-  uint32_t count;
-
-  bool operator<(const Matrix &o) const
-  {
-    if(vector != o.vector)
-      return vector < o.vector;
-    return count < o.count;
-  }
-
-  bool operator!=(const Matrix &o) const { return !operator==(o); }
-  bool operator==(const Matrix &o) const { return vector == o.vector && count == o.count; }
-  Operation decl(Editor &editor) const;
-};
-
-struct Pointer
-{
-  Pointer(Id b, StorageClass s) : baseId(b), storage(s) {}
-  Id baseId;
-  StorageClass storage;
-
-  bool operator<(const Pointer &o) const
-  {
-    if(baseId != o.baseId)
-      return baseId < o.baseId;
-    return storage < o.storage;
-  }
-
-  bool operator!=(const Pointer &o) const { return !operator==(o); }
-  bool operator==(const Pointer &o) const { return baseId == o.baseId && storage == o.storage; }
-  Operation decl(Editor &editor) const;
-};
-
-struct Image
-{
-  Image(Scalar ret, Dim d, uint32_t dp, uint32_t ar, uint32_t m, uint32_t samp, ImageFormat f)
-      : retType(ret), dim(d), depth(dp), arrayed(ar), ms(m), sampled(samp), format(f)
-  {
-  }
-
-  Scalar retType;
-  Dim dim;
-  uint32_t depth;
-  uint32_t arrayed;
-  uint32_t ms;
-  uint32_t sampled;
-  ImageFormat format;
-
-  bool operator<(const Image &o) const
-  {
-    if(retType != o.retType)
-      return retType < o.retType;
-    if(dim != o.dim)
-      return dim < o.dim;
-    if(depth != o.depth)
-      return depth < o.depth;
-    if(arrayed != o.arrayed)
-      return arrayed < o.arrayed;
-    if(ms != o.ms)
-      return ms < o.ms;
-    if(sampled != o.sampled)
-      return sampled < o.sampled;
-    return format < o.format;
-  }
-  bool operator!=(const Image &o) const { return !operator==(o); }
-  bool operator==(const Image &o) const
-  {
-    return retType == o.retType && dim == o.dim && depth == o.depth && arrayed == o.arrayed &&
-           ms == o.ms && sampled == o.sampled && format == o.format;
-  }
-  Operation decl(Editor &editor) const;
-};
-
-struct Sampler
-{
-  // no properties, all sampler types are equal
-  bool operator<(const Sampler &o) const { return false; }
-  bool operator!=(const Sampler &o) const { return false; }
-  bool operator==(const Sampler &o) const { return true; }
-  Operation decl(Editor &editor) const;
-};
-
-struct SampledImage
-{
-  SampledImage(Id b) : baseId(b) {}
-  Id baseId;
-
-  bool operator<(const SampledImage &o) const { return baseId < o.baseId; }
-  bool operator!=(const SampledImage &o) const { return !operator==(o); }
-  bool operator==(const SampledImage &o) const { return baseId == o.baseId; }
-  Operation decl(Editor &editor) const;
-};
-
-struct Function
-{
-  Function(Id ret, const rdcarray<Id> &args) : returnId(ret), argumentIds(args) {}
-  Id returnId;
-  rdcarray<Id> argumentIds;
-
-  bool operator<(const Function &o) const
-  {
-    if(returnId != o.returnId)
-      return returnId < o.returnId;
-    return argumentIds < o.argumentIds;
-  }
-
-  bool operator!=(const Function &o) const { return !operator==(o); }
-  bool operator==(const Function &o) const
-  {
-    return returnId == o.returnId && argumentIds == o.argumentIds;
-  }
-  Operation decl(Editor &editor) const;
-};
-
-template <typename Type>
-using TypeId = std::pair<Type, Id>;
-
-template <typename Type>
-using TypeIds = std::vector<TypeId<Type>>;
-
-// hack around enum class being useless for array indices :(
-struct Section
-{
-  enum Type
-  {
-    Capabilities,
-    First = Capabilities,
-    Extensions,
-    ExtInst,
-    MemoryModel,
-    EntryPoints,
-    ExecutionMode,
-    Debug,
-    Annotations,
-    TypesVariablesConstants,
-    // handy aliases
-    Types = TypesVariablesConstants,
-    Variables = TypesVariablesConstants,
-    Constants = TypesVariablesConstants,
-    Functions,
-    Count,
-  };
-};
-
-class Editor
+class Editor : public Processor
 {
 public:
   Editor(std::vector<uint32_t> &spirvWords);
-  ~Editor() { StripNops(); }
-  void StripNops();
+  ~Editor();
+
+  void Prepare();
 
   Id MakeId();
 
@@ -325,33 +104,33 @@ public:
   // the entry point has 'two' opcodes, the entrypoint declaration and the function.
   // This returns the first, GetID returns the second.
   Iter GetEntry(Id id);
-  Iter Begin(Section::Type section) { return Iter(spirv, sections[section].startOffset); }
-  Iter End(Section::Type section) { return Iter(spirv, sections[section].endOffset); }
+  Iter Begin(Section::Type section) { return Iter(m_SPIRV, m_Sections[section].startOffset); }
+  Iter End(Section::Type section) { return Iter(m_SPIRV, m_Sections[section].endOffset); }
   // fetches the id of this type. If it exists already the old ID will be returned, otherwise it
   // will be declared and the new ID returned
-  template <typename Type>
-  Id DeclareType(const Type &t)
+  template <typename SPIRVType>
+  Id DeclareType(const SPIRVType &t)
   {
-    std::map<Type, Id> &table = GetTable<Type>();
+    std::map<SPIRVType, Id> &table = GetTable<SPIRVType>();
 
     auto it = table.lower_bound(t);
     if(it != table.end() && it->first == t)
       return it->second;
 
-    Operation decl = t.decl(*this);
+    Operation decl = MakeDeclaration(t);
     Id id = MakeId();
     decl[1] = id.value();
     AddType(decl);
 
-    table.insert(it, std::pair<Type, Id>(t, id));
+    table.insert(it, std::pair<SPIRVType, Id>(t, id));
 
     return id;
   }
 
-  template <typename Type>
-  Id GetType(const Type &t)
+  template <typename SPIRVType>
+  Id GetType(const SPIRVType &t)
   {
-    std::map<Type, Id> &table = GetTable<Type>();
+    std::map<SPIRVType, Id> &table = GetTable<SPIRVType>();
 
     auto it = table.find(t);
     if(it != table.end())
@@ -360,12 +139,12 @@ public:
     return Id();
   }
 
-  template <typename Type>
-  TypeIds<Type> GetTypes()
+  template <typename SPIRVType>
+  TypeToIds<SPIRVType> GetTypes()
   {
-    std::map<Type, Id> &table = GetTable<Type>();
+    std::map<SPIRVType, Id> &table = GetTable<SPIRVType>();
 
-    TypeIds<Type> ret;
+    TypeToIds<SPIRVType> ret;
 
     for(auto it = table.begin(); it != table.end(); ++it)
       ret.push_back(*it);
@@ -373,10 +152,10 @@ public:
     return ret;
   }
 
-  template <typename Type>
-  const std::map<Type, Id> &GetTypeInfo() const
+  template <typename SPIRVType>
+  const std::map<SPIRVType, Id> &GetTypeInfo() const
   {
-    return GetTable<Type>();
+    return GetTable<SPIRVType>();
   }
 
   Binding GetBinding(Id id) const
@@ -386,7 +165,7 @@ public:
       return Binding();
     return it->second;
   }
-  const std::set<Id> &GetStructTypes() const { return structTypes; }
+
   Id DeclareStructType(const std::vector<Id> &members);
 
   // helper for AddConstant
@@ -403,62 +182,41 @@ public:
     return AddConstant(Operation(Op::Constant, words));
   }
 
-  // accessors to structs/vectors of data
-  const std::vector<OpEntryPoint> &GetEntries() { return entries; }
-  const std::vector<OpVariable> &GetVariables() { return variables; }
-  const std::vector<Id> &GetFunctions() { return functions; }
-  Id GetIDType(Id id) { return idTypes[id.value()]; }
 private:
+  using Processor::Parse;
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
   void addWords(size_t offs, int32_t num);
 
-  void RegisterOp(Iter iter);
-  void UnregisterOp(Iter iter);
+  Operation MakeDeclaration(const Scalar &s);
+  Operation MakeDeclaration(const Vector &v);
+  Operation MakeDeclaration(const Matrix &m);
+  Operation MakeDeclaration(const Pointer &p);
+  Operation MakeDeclaration(const Image &i);
+  Operation MakeDeclaration(const Sampler &s);
+  Operation MakeDeclaration(const SampledImage &s);
+  Operation MakeDeclaration(const FunctionType &f);
 
-  struct LogicalSection
-  {
-    size_t startOffset = 0;
-    size_t endOffset = 0;
-  };
-
-  LogicalSection sections[Section::Count];
-
-  AddressingModel addressmodel;
-  MemoryModel memorymodel;
-
-  std::vector<OpDecorate> decorations;
+  virtual void RegisterOp(Iter iter);
+  virtual void UnregisterOp(Iter iter);
 
   std::map<Id, Binding> bindings;
 
-  std::vector<size_t> idOffsets;
-  std::vector<Id> idTypes;
+  std::map<Scalar, Id> scalarTypeToId;
+  std::map<Vector, Id> vectorTypeToId;
+  std::map<Matrix, Id> matrixTypeToId;
+  std::map<Pointer, Id> pointerTypeToId;
+  std::map<Image, Id> imageTypeToId;
+  std::map<Sampler, Id> samplerTypeToId;
+  std::map<SampledImage, Id> sampledImageTypeToId;
+  std::map<FunctionType, Id> functionTypeToId;
 
-  std::vector<OpEntryPoint> entries;
-  std::vector<OpVariable> variables;
-  std::vector<Id> functions;
-  std::set<rdcstr> extensions;
-  std::set<Capability> capabilities;
+  template <typename SPIRVType>
+  std::map<SPIRVType, Id> &GetTable();
 
-  std::map<rdcstr, Id> extSets;
+  template <typename SPIRVType>
+  const std::map<SPIRVType, Id> &GetTable() const;
 
-  std::map<Scalar, Id> scalarTypes;
-  std::map<Vector, Id> vectorTypes;
-  std::map<Matrix, Id> matrixTypes;
-  std::map<Pointer, Id> pointerTypes;
-  std::map<Image, Id> imageTypes;
-  std::map<Sampler, Id> samplerTypes;
-  std::map<SampledImage, Id> sampledImageTypes;
-  std::map<Function, Id> functionTypes;
-
-  std::set<Id> structTypes;
-
-  template <typename Type>
-  std::map<Type, Id> &GetTable();
-
-  template <typename Type>
-  const std::map<Type, Id> &GetTable() const;
-
-  std::vector<uint32_t> &spirv;
+  std::vector<uint32_t> &m_ExternalSPIRV;
 };
 
 inline bool operator<(const OpDecorate &a, const OpDecorate &b)

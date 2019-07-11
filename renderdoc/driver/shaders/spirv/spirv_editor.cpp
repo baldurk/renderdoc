@@ -54,153 +54,16 @@ Scalar::Scalar(Iter it)
   }
 }
 
-Operation Vector::decl(Editor &editor) const
+Editor::Editor(std::vector<uint32_t> &spirvWords) : m_ExternalSPIRV(spirvWords)
 {
-  return OpTypeVector(Id(), editor.DeclareType(scalar), count);
 }
 
-Operation Matrix::decl(Editor &editor) const
+void Editor::Prepare()
 {
-  return OpTypeMatrix(Id(), editor.DeclareType(vector), count);
-}
+  Processor::Parse(m_ExternalSPIRV);
 
-Operation Pointer::decl(Editor &editor) const
-{
-  return OpTypePointer(Id(), storage, baseId);
-}
-
-Operation Image::decl(Editor &editor) const
-{
-  return OpTypeImage(Id(), editor.DeclareType(retType), dim, depth, arrayed, ms, sampled, format);
-}
-
-Operation Sampler::decl(Editor &editor) const
-{
-  return OpTypeSampler(Id());
-}
-
-Operation SampledImage::decl(Editor &editor) const
-{
-  return OpTypeSampledImage(Id(), baseId);
-}
-
-Operation Function::decl(Editor &editor) const
-{
-  return OpTypeFunction(Id(), returnId, argumentIds);
-}
-
-Editor::Editor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
-{
-  if(spirv.size() < FirstRealWord || spirv[0] != MagicNumber)
-  {
-    RDCERR("Empty or invalid SPIR-V module");
+  if(m_SPIRV.empty())
     return;
-  }
-
-  idOffsets.resize(spirv[3]);
-  idTypes.resize(spirv[3]);
-
-  // [4] is reserved
-  RDCASSERT(spirv[4] == 0);
-
-  // simple state machine to track which section we're in.
-  // Note that a couple of sections are optional and could be skipped over, at which point we insert
-  // a dummy OpNop so they're not empty (which will be stripped later) and record them as in
-  // between.
-  //
-  // We only handle single-shader modules at the moment, so some things are required by virtue of
-  // being required in a shader - e.g. at least the Shader capability, at least one entry point, etc
-  //
-  // Capabilities: REQUIRED (we assume - must declare Shader capability)
-  // Extensions: OPTIONAL
-  // ExtInst: OPTIONAL
-  // MemoryModel: REQUIRED (required by spec)
-  // EntryPoints: REQUIRED (we assume)
-  // ExecutionMode: OPTIONAL
-  // Debug: OPTIONAL
-  // Annotations: OPTIONAL (in theory - would require empty shader)
-  // TypesVariables: REQUIRED (must at least have the entry point function type)
-  // Functions: REQUIRED (must have the entry point)
-
-  // set the book-ends: start of the first section and end of the last
-  sections[Section::Count - 1].endOffset = spirvWords.size();
-
-#define START_SECTION(section)           \
-  if(sections[section].startOffset == 0) \
-    sections[section].startOffset = it.offs();
-
-  for(Iter it(spirv, FirstRealWord); it; it++)
-  {
-    Op opcode = it.opcode();
-
-    if(opcode == Op::Capability)
-    {
-      START_SECTION(Section::Capabilities);
-    }
-    else if(opcode == Op::Extension)
-    {
-      START_SECTION(Section::Extensions);
-    }
-    else if(opcode == Op::ExtInstImport)
-    {
-      START_SECTION(Section::ExtInst);
-    }
-    else if(opcode == Op::MemoryModel)
-    {
-      START_SECTION(Section::MemoryModel);
-    }
-    else if(opcode == Op::EntryPoint)
-    {
-      START_SECTION(Section::EntryPoints);
-    }
-    else if(opcode == Op::ExecutionMode || opcode == Op::ExecutionModeId)
-    {
-      START_SECTION(Section::ExecutionMode);
-    }
-    else if(opcode == Op::String || opcode == Op::Source || opcode == Op::SourceContinued ||
-            opcode == Op::SourceExtension || opcode == Op::Name || opcode == Op::MemberName ||
-            opcode == Op::ModuleProcessed)
-    {
-      START_SECTION(Section::Debug);
-    }
-    else if(opcode == Op::Decorate || opcode == Op::MemberDecorate || opcode == Op::GroupDecorate ||
-            opcode == Op::GroupMemberDecorate || opcode == Op::DecorationGroup ||
-            opcode == Op::DecorateStringGOOGLE || opcode == Op::MemberDecorateStringGOOGLE)
-    {
-      START_SECTION(Section::Annotations);
-    }
-    else if(opcode == Op::Function)
-    {
-      START_SECTION(Section::Functions);
-    }
-    else
-    {
-      // if we've reached another instruction, check if we've reached the function section yet. If
-      // we have then assume it's an instruction inside a function and ignore. If we haven't, assume
-      // it's a type/variable/constant type instruction
-      if(sections[Section::Functions].startOffset == 0)
-      {
-        START_SECTION(Section::TypesVariablesConstants);
-      }
-    }
-
-    RegisterOp(it);
-  }
-
-#undef START_SECTION
-
-  // ensure we got everything right. First section should start at the beginning
-  RDCASSERTEQUAL(sections[Section::First].startOffset, FirstRealWord);
-
-  // we now set the endOffset of each section to the start of the next. Any empty sections
-  // temporarily have startOffset set to endOffset, we'll pad them with a nop below.
-  for(int s = Section::Count - 1; s > 0; s--)
-  {
-    RDCASSERTEQUAL(sections[s - 1].endOffset, 0);
-    sections[s - 1].endOffset = sections[s].startOffset;
-    if(sections[s - 1].startOffset == 0)
-      sections[s - 1].startOffset = sections[s - 1].endOffset;
-  }
 
   // find any empty sections and insert a nop into the stream there. We need to fixup later section
   // offsets by hand as addWords doesn't handle empty sections properly (it thinks we're inserting
@@ -208,20 +71,20 @@ Editor::Editor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   // padding nops in the first place!
   for(uint32_t s = 0; s < Section::Count; s++)
   {
-    if(sections[s].startOffset == sections[s].endOffset)
+    if(m_Sections[s].startOffset == m_Sections[s].endOffset)
     {
-      spirv.insert(spirv.begin() + sections[s].startOffset, OpNopWord);
-      sections[s].endOffset++;
+      m_SPIRV.insert(m_SPIRV.begin() + m_Sections[s].startOffset, OpNopWord);
+      m_Sections[s].endOffset++;
 
       for(uint32_t t = s + 1; t < Section::Count; t++)
       {
-        sections[t].startOffset++;
-        sections[t].endOffset++;
+        m_Sections[t].startOffset++;
+        m_Sections[t].endOffset++;
       }
 
       // look through every id, and update its offset
       for(size_t &o : idOffsets)
-        if(o >= sections[s].startOffset)
+        if(o >= m_Sections[s].startOffset)
           o++;
     }
   }
@@ -229,31 +92,31 @@ Editor::Editor(std::vector<uint32_t> &spirvWords) : spirv(spirvWords)
   // each section should now precisely match each other end-to-end and not be empty
   for(uint32_t s = Section::First; s < Section::Count; s++)
   {
-    RDCASSERTNOTEQUAL(sections[s].startOffset, 0);
-    RDCASSERTNOTEQUAL(sections[s].endOffset, 0);
+    RDCASSERTNOTEQUAL(m_Sections[s].startOffset, 0);
+    RDCASSERTNOTEQUAL(m_Sections[s].endOffset, 0);
 
-    RDCASSERT(sections[s].endOffset - sections[s].startOffset > 0, sections[s].startOffset,
-              sections[s].endOffset);
+    RDCASSERT(m_Sections[s].endOffset - m_Sections[s].startOffset > 0, m_Sections[s].startOffset,
+              m_Sections[s].endOffset);
 
     if(s != 0)
-      RDCASSERTEQUAL(sections[s - 1].endOffset, sections[s].startOffset);
+      RDCASSERTEQUAL(m_Sections[s - 1].endOffset, m_Sections[s].startOffset);
 
     if(s + 1 < Section::Count)
-      RDCASSERTEQUAL(sections[s].endOffset, sections[s + 1].startOffset);
+      RDCASSERTEQUAL(m_Sections[s].endOffset, m_Sections[s + 1].startOffset);
   }
 }
 
-void Editor::StripNops()
+Editor::~Editor()
 {
-  for(size_t i = FirstRealWord; i < spirv.size();)
+  for(size_t i = FirstRealWord; i < m_SPIRV.size();)
   {
-    while(spirv[i] == OpNopWord)
+    while(m_SPIRV[i] == OpNopWord)
     {
-      spirv.erase(spirv.begin() + i);
+      m_SPIRV.erase(m_SPIRV.begin() + i);
       addWords(i, -1);
     }
 
-    uint32_t len = spirv[i] >> WordCountShift;
+    uint32_t len = m_SPIRV[i] >> WordCountShift;
 
     if(len == 0)
     {
@@ -263,14 +126,15 @@ void Editor::StripNops()
 
     i += len;
   }
+
+  m_ExternalSPIRV.swap(m_SPIRV);
 }
 
 Id Editor::MakeId()
 {
-  uint32_t ret = spirv[3];
-  spirv[3]++;
-  idOffsets.resize(spirv[3]);
-  idTypes.resize(spirv[3]);
+  uint32_t ret = m_SPIRV[3];
+  m_SPIRV[3]++;
+  Processor::PreParse(m_SPIRV[3]);
   return Id::fromWord(ret);
 }
 
@@ -293,16 +157,16 @@ void Editor::SetName(Id id, const char *name)
       break;
   }
 
-  op.insertInto(spirv, it.offs());
-  RegisterOp(Iter(spirv, it.offs()));
+  op.insertInto(m_SPIRV, it.offs());
+  RegisterOp(Iter(m_SPIRV, it.offs()));
   addWords(it.offs(), op.size());
 }
 
 void Editor::AddDecoration(const Operation &op)
 {
-  size_t offset = sections[Section::Annotations].endOffset;
-  op.insertInto(spirv, offset);
-  RegisterOp(Iter(spirv, offset));
+  size_t offset = m_Sections[Section::Annotations].endOffset;
+  op.insertInto(m_SPIRV, offset);
+  RegisterOp(Iter(m_SPIRV, offset));
   addWords(offset, op.size());
 }
 
@@ -314,8 +178,8 @@ void Editor::AddCapability(Capability cap)
 
   // insert the operation at the very start
   Operation op(Op::Capability, {(uint32_t)cap});
-  op.insertInto(spirv, FirstRealWord);
-  RegisterOp(Iter(spirv, FirstRealWord));
+  op.insertInto(m_SPIRV, FirstRealWord);
+  RegisterOp(Iter(m_SPIRV, FirstRealWord));
   addWords(FirstRealWord, op.size());
 }
 
@@ -326,7 +190,7 @@ void Editor::AddExtension(const rdcstr &extension)
     return;
 
   // start at the beginning
-  Iter it(spirv, FirstRealWord);
+  Iter it(m_SPIRV, FirstRealWord);
 
   // skip past any capabilities
   while(it.opcode() == Op::Capability)
@@ -338,17 +202,17 @@ void Editor::AddExtension(const rdcstr &extension)
   memcpy(&uintName[0], extension.c_str(), sz);
 
   Operation op(Op::Extension, uintName);
-  op.insertInto(spirv, it.offs());
+  op.insertInto(m_SPIRV, it.offs());
   RegisterOp(it);
   addWords(it.offs(), op.size());
 }
 
 void Editor::AddExecutionMode(const Operation &mode)
 {
-  size_t offset = sections[Section::ExecutionMode].endOffset;
+  size_t offset = m_Sections[Section::ExecutionMode].endOffset;
 
-  mode.insertInto(spirv, offset);
-  RegisterOp(Iter(spirv, offset));
+  mode.insertInto(m_SPIRV, offset);
+  RegisterOp(Iter(m_SPIRV, offset));
   addWords(offset, mode.size());
 }
 
@@ -360,7 +224,7 @@ Id Editor::ImportExtInst(const char *setname)
     return ret;
 
   // start at the beginning
-  Iter it(spirv, FirstRealWord);
+  Iter it(m_SPIRV, FirstRealWord);
 
   // skip past any capabilities and extensions
   while(it.opcode() == Op::Capability || it.opcode() == Op::Extension)
@@ -376,7 +240,7 @@ Id Editor::ImportExtInst(const char *setname)
   uintName.insert(uintName.begin(), ret.value());
 
   Operation op(Op::ExtInstImport, uintName);
-  op.insertInto(spirv, it.offs());
+  op.insertInto(m_SPIRV, it.offs());
   RegisterOp(it);
   addWords(it.offs(), op.size());
 
@@ -387,48 +251,45 @@ Id Editor::ImportExtInst(const char *setname)
 
 Id Editor::AddType(const Operation &op)
 {
-  size_t offset = sections[Section::Types].endOffset;
+  size_t offset = m_Sections[Section::Types].endOffset;
 
   Id id = Id::fromWord(op[1]);
-  idOffsets[id.value()] = offset;
-  op.insertInto(spirv, offset);
-  RegisterOp(Iter(spirv, offset));
+  op.insertInto(m_SPIRV, offset);
+  RegisterOp(Iter(m_SPIRV, offset));
   addWords(offset, op.size());
   return id;
 }
 
 Id Editor::AddVariable(const Operation &op)
 {
-  size_t offset = sections[Section::Variables].endOffset;
+  size_t offset = m_Sections[Section::Variables].endOffset;
 
   Id id = Id::fromWord(op[2]);
-  idOffsets[id.value()] = offset;
-  op.insertInto(spirv, offset);
-  RegisterOp(Iter(spirv, offset));
+  op.insertInto(m_SPIRV, offset);
+  RegisterOp(Iter(m_SPIRV, offset));
   addWords(offset, op.size());
   return id;
 }
 
 Id Editor::AddConstant(const Operation &op)
 {
-  size_t offset = sections[Section::Constants].endOffset;
+  size_t offset = m_Sections[Section::Constants].endOffset;
 
   Id id = Id::fromWord(op[2]);
-  idOffsets[id.value()] = offset;
-  op.insertInto(spirv, offset);
-  RegisterOp(Iter(spirv, offset));
+  op.insertInto(m_SPIRV, offset);
+  RegisterOp(Iter(m_SPIRV, offset));
   addWords(offset, op.size());
   return id;
 }
 
 void Editor::AddFunction(const Operation *ops, size_t count)
 {
-  idOffsets[ops[0][2]] = spirv.size();
+  size_t offset = m_SPIRV.size();
 
   for(size_t i = 0; i < count; i++)
-    ops[i].appendTo(spirv);
+    ops[i].appendTo(m_SPIRV);
 
-  RegisterOp(Iter(spirv, idOffsets[ops[0][2]]));
+  RegisterOp(Iter(m_SPIRV, offset));
 }
 
 Iter Editor::GetID(Id id)
@@ -436,15 +297,15 @@ Iter Editor::GetID(Id id)
   size_t offs = idOffsets[id.value()];
 
   if(offs)
-    return Iter(spirv, offs);
+    return Iter(m_SPIRV, offs);
 
   return Iter();
 }
 
 Iter Editor::GetEntry(Id id)
 {
-  Iter it(spirv, sections[Section::EntryPoints].startOffset);
-  Iter end(spirv, sections[Section::EntryPoints].endOffset);
+  Iter it(m_SPIRV, m_Sections[Section::EntryPoints].startOffset);
+  Iter end(m_SPIRV, m_Sections[Section::EntryPoints].endOffset);
 
   while(it && it < end)
   {
@@ -471,7 +332,7 @@ void Editor::AddOperation(Iter iter, const Operation &op)
     return;
 
   // add op
-  op.insertInto(spirv, iter.offs());
+  op.insertInto(m_SPIRV, iter.offs());
 
   // update offsets
   addWords(iter.offs(), op.size());
@@ -479,300 +340,118 @@ void Editor::AddOperation(Iter iter, const Operation &op)
 
 void Editor::RegisterOp(Iter it)
 {
-  Op opcode = it.opcode();
+  Processor::RegisterOp(it);
 
   OpDecoder opdata(it);
-  if(opdata.result != Id() && opdata.resultType != Id())
-  {
-    RDCASSERT(opdata.result.value() < idTypes.size());
-    idTypes[opdata.result.value()] = opdata.resultType;
-  }
 
-  if(opdata.result != Id())
-    idOffsets[opdata.result.value()] = it.offs();
-
-  if(opcode == Op::EntryPoint)
+  if(opdata.op == Op::TypeVoid || opdata.op == Op::TypeBool || opdata.op == Op::TypeInt ||
+     opdata.op == Op::TypeFloat)
   {
-    entries.push_back(OpEntryPoint(it));
+    Scalar scalar(it);
+    scalarTypeToId[scalar] = opdata.result;
   }
-  else if(opcode == Op::MemoryModel)
+  else if(opdata.op == Op::TypeVector)
   {
-    OpMemoryModel decoded(it);
-    addressmodel = decoded.addressingModel;
-    memorymodel = decoded.memoryModel;
+    OpTypeVector decoded(it);
+    vectorTypeToId[Vector(scalarTypes[decoded.componentType], decoded.componentCount)] =
+        decoded.result;
   }
-  else if(opcode == Op::Capability)
+  else if(opdata.op == Op::TypeMatrix)
   {
-    OpCapability decoded(it);
-    capabilities.insert(decoded.capability);
+    OpTypeMatrix decoded(it);
+    matrixTypeToId[Matrix(vectorTypes[decoded.columnType], decoded.columnCount)] = decoded.result;
   }
-  else if(opcode == Op::Extension)
+  else if(opdata.op == Op::TypeImage)
   {
-    OpExtension decoded(it);
-    extensions.insert(decoded.name);
+    OpTypeImage decoded(it);
+    imageTypeToId[Image(scalarTypes[decoded.sampledType], decoded.dim, decoded.depth, decoded.arrayed,
+                        decoded.mS, decoded.sampled, decoded.imageFormat)] = decoded.result;
   }
-  else if(opcode == Op::ExtInstImport)
+  else if(opdata.op == Op::TypeSampler)
   {
-    OpExtInstImport decoded(it);
-    extSets[decoded.name] = decoded.result;
+    samplerTypeToId[Sampler()] = opdata.result;
   }
-  else if(opcode == Op::Function)
+  else if(opdata.op == Op::TypeSampledImage)
   {
-    functions.push_back(opdata.result);
+    OpTypeSampledImage decoded(it);
+    sampledImageTypeToId[SampledImage(decoded.imageType)] = decoded.result;
   }
-  else if(opcode == Op::Variable)
+  else if(opdata.op == Op::TypePointer)
   {
-    variables.push_back(OpVariable(it));
+    OpTypePointer decoded(it);
+    pointerTypeToId[Pointer(decoded.type, decoded.storageClass)] = decoded.result;
   }
-  else if(opcode == Op::Decorate)
+  else if(opdata.op == Op::TypeFunction)
+  {
+    OpTypeFunction decoded(it);
+    functionTypeToId[FunctionType(decoded.returnType, decoded.parameters)] = decoded.result;
+  }
+  else if(opdata.op == Op::Decorate)
   {
     OpDecorate decorate(it);
-
-    auto it = std::lower_bound(decorations.begin(), decorations.end(), decorate,
-                               [](const OpDecorate &a, const OpDecorate &b) { return a < b; });
-    decorations.insert(it, decorate);
 
     if(decorate.decoration == Decoration::DescriptorSet)
       bindings[decorate.target].set = decorate.decoration.descriptorSet;
     if(decorate.decoration == Decoration::Binding)
       bindings[decorate.target].binding = decorate.decoration.binding;
   }
-  else if(opcode == Op::TypeVoid || opcode == Op::TypeBool || opcode == Op::TypeInt ||
-          opcode == Op::TypeFloat)
-  {
-    Scalar scalar(it);
-    scalarTypes[scalar] = opdata.result;
-  }
-  else if(opcode == Op::TypeVector)
-  {
-    OpTypeVector decoded(it);
-
-    Iter scalarIt = GetID(decoded.componentType);
-
-    if(!scalarIt)
-    {
-      RDCERR("Vector type declared with unknown scalar component type %u", decoded.componentType);
-      return;
-    }
-
-    vectorTypes[Vector(scalarIt, decoded.componentCount)] = decoded.result;
-  }
-  else if(opcode == Op::TypeMatrix)
-  {
-    OpTypeMatrix decodedMatrix(it);
-
-    Iter vectorIt = GetID(decodedMatrix.columnType);
-
-    if(!vectorIt)
-    {
-      RDCERR("Matrix type declared with unknown vector component type %u", decodedMatrix.columnType);
-      return;
-    }
-
-    OpTypeVector decodedVector(vectorIt);
-
-    Iter scalarIt = GetID(decodedVector.componentType);
-
-    matrixTypes[Matrix(Vector(scalarIt, decodedVector.componentCount), decodedMatrix.columnCount)] =
-        decodedMatrix.result;
-  }
-  else if(opcode == Op::TypeImage)
-  {
-    OpTypeImage decoded(it);
-
-    Iter scalarIt = GetID(decoded.sampledType);
-
-    if(!scalarIt)
-    {
-      RDCERR("Image type declared with unknown scalar component type %u", decoded.sampledType);
-      return;
-    }
-
-    imageTypes[Image(scalarIt, decoded.dim, decoded.depth, decoded.arrayed, decoded.mS,
-                     decoded.sampled, decoded.imageFormat)] = decoded.result;
-  }
-  else if(opcode == Op::TypeSampler)
-  {
-    samplerTypes[Sampler()] = opdata.result;
-  }
-  else if(opcode == Op::TypeSampledImage)
-  {
-    OpTypeSampledImage decoded(it);
-
-    sampledImageTypes[SampledImage(decoded.imageType)] = decoded.result;
-  }
-  else if(opcode == Op::TypePointer)
-  {
-    OpTypePointer decoded(it);
-
-    pointerTypes[Pointer(decoded.type, decoded.storageClass)] = decoded.result;
-  }
-  else if(opcode == Op::TypeStruct)
-  {
-    structTypes.insert(opdata.result);
-  }
-  else if(opcode == Op::TypeFunction)
-  {
-    OpTypeFunction decoded(it);
-
-    functionTypes[Function(decoded.returnType, decoded.parameters)] = decoded.result;
-  }
 }
 
 void Editor::UnregisterOp(Iter it)
 {
-  Op opcode = it.opcode();
+  Processor::UnregisterOp(it);
 
   OpDecoder opdata(it);
-  if(opdata.result != Id() && opdata.resultType != Id())
-    idTypes[opdata.result.value()] = Id();
 
-  if(opdata.result != Id())
-    idOffsets[opdata.result.value()] = 0;
-
-  if(opcode == Op::EntryPoint)
+  if(opdata.op == Op::TypeVoid || opdata.op == Op::TypeBool || opdata.op == Op::TypeInt ||
+     opdata.op == Op::TypeFloat)
   {
-    OpEntryPoint decoded(it);
-
-    for(auto entryIt = entries.begin(); entryIt != entries.end(); ++entryIt)
-    {
-      if(entryIt->entryPoint == decoded.entryPoint)
-      {
-        entries.erase(entryIt);
-        break;
-      }
-    }
+    Scalar scalar(it);
+    scalarTypeToId.erase(scalar);
   }
-  else if(opcode == Op::Function)
+  else if(opdata.op == Op::TypeVector)
   {
-    for(auto funcIt = functions.begin(); funcIt != functions.end(); ++funcIt)
-    {
-      if(*funcIt == opdata.result)
-      {
-        functions.erase(funcIt);
-        break;
-      }
-    }
+    OpTypeVector decoded(it);
+    vectorTypeToId.erase(Vector(scalarTypes[decoded.componentType], decoded.componentCount));
   }
-  else if(opcode == Op::Variable)
+  else if(opdata.op == Op::TypeMatrix)
   {
-    for(auto varIt = variables.begin(); varIt != variables.end(); ++varIt)
-    {
-      if(varIt->result == opdata.result)
-      {
-        variables.erase(varIt);
-        break;
-      }
-    }
+    OpTypeMatrix decoded(it);
+    matrixTypeToId.erase(Matrix(vectorTypes[decoded.columnType], decoded.columnCount));
   }
-  else if(opcode == Op::Decorate)
+  else if(opdata.op == Op::TypeImage)
+  {
+    OpTypeImage decoded(it);
+    imageTypeToId.erase(Image(scalarTypes[decoded.sampledType], decoded.dim, decoded.depth,
+                              decoded.arrayed, decoded.mS, decoded.sampled, decoded.imageFormat));
+  }
+  else if(opdata.op == Op::TypeSampler)
+  {
+    samplerTypeToId.erase(Sampler());
+  }
+  else if(opdata.op == Op::TypeSampledImage)
+  {
+    OpTypeSampledImage decoded(it);
+    sampledImageTypeToId.erase(SampledImage(decoded.imageType));
+  }
+  else if(opdata.op == Op::TypePointer)
+  {
+    OpTypePointer decoded(it);
+    pointerTypeToId.erase(Pointer(decoded.type, decoded.storageClass));
+  }
+  else if(opdata.op == Op::TypeFunction)
+  {
+    OpTypeFunction decoded(it);
+    functionTypeToId.erase(FunctionType(decoded.returnType, decoded.parameters));
+  }
+  else if(opdata.op == Op::Decorate)
   {
     OpDecorate decorate(it);
-
-    auto it = std::lower_bound(decorations.begin(), decorations.end(), decorate,
-                               [](const OpDecorate &a, const OpDecorate &b) { return a < b; });
-    if(it != decorations.end() && *it == decorate)
-      decorations.erase(it);
 
     if(decorate.decoration == Decoration::DescriptorSet)
       bindings[decorate.target].set = Binding().set;
     if(decorate.decoration == Decoration::Binding)
       bindings[decorate.target].binding = Binding().binding;
-  }
-  else if(opcode == Op::Capability)
-  {
-    OpCapability decoded(it);
-    capabilities.erase(decoded.capability);
-  }
-  else if(opcode == Op::Extension)
-  {
-    OpExtension decoded(it);
-    extensions.erase(decoded.name);
-  }
-  else if(opcode == Op::ExtInstImport)
-  {
-    OpExtInstImport decoded(it);
-    extSets.erase(decoded.name);
-  }
-  else if(opcode == Op::TypeVoid || opcode == Op::TypeBool || opcode == Op::TypeInt ||
-          opcode == Op::TypeFloat)
-  {
-    Scalar scalar(it);
-    scalarTypes.erase(scalar);
-  }
-  else if(opcode == Op::TypeVector)
-  {
-    OpTypeVector decoded(it);
-
-    Iter scalarIt = GetID(decoded.componentType);
-
-    if(!scalarIt)
-    {
-      RDCERR("Vector type declared with unknown scalar component type %u", decoded.componentType);
-      return;
-    }
-
-    vectorTypes.erase(Vector(scalarIt, decoded.componentCount));
-  }
-  else if(opcode == Op::TypeMatrix)
-  {
-    OpTypeMatrix decodedMatrix(it);
-
-    Iter vectorIt = GetID(decodedMatrix.columnType);
-
-    if(!vectorIt)
-    {
-      RDCERR("Matrix type declared with unknown vector component type %u", decodedMatrix.columnType);
-      return;
-    }
-
-    OpTypeVector decodedVector(vectorIt);
-
-    Iter scalarIt = GetID(decodedVector.componentType);
-
-    matrixTypes.erase(
-        Matrix(Vector(scalarIt, decodedVector.componentCount), decodedMatrix.columnCount));
-  }
-  else if(opcode == Op::TypeImage)
-  {
-    OpTypeImage decoded(it);
-
-    Iter scalarIt = GetID(decoded.sampledType);
-
-    if(!scalarIt)
-    {
-      RDCERR("Image type declared with unknown scalar component type %u", decoded.sampledType);
-      return;
-    }
-
-    imageTypes.erase(Image(scalarIt, decoded.dim, decoded.depth, decoded.arrayed, decoded.mS,
-                           decoded.sampled, decoded.imageFormat));
-  }
-  else if(opcode == Op::TypeSampler)
-  {
-    samplerTypes.erase(Sampler());
-  }
-  else if(opcode == Op::TypeSampledImage)
-  {
-    OpTypeSampledImage decoded(it);
-
-    sampledImageTypes.erase(SampledImage(decoded.imageType));
-  }
-  else if(opcode == Op::TypePointer)
-  {
-    OpTypePointer decoded(it);
-
-    pointerTypes.erase(Pointer(decoded.type, decoded.storageClass));
-  }
-  else if(opcode == Op::TypeStruct)
-  {
-    structTypes.erase(opdata.result);
-  }
-  else if(opcode == Op::TypeFunction)
-  {
-    OpTypeFunction decoded(it);
-
-    functionTypes.erase(Function(decoded.returnType, decoded.parameters));
   }
 }
 
@@ -781,7 +460,7 @@ void Editor::addWords(size_t offs, int32_t num)
   // look through every section, any that are >= this point, adjust the offsets
   // note that if we're removing words then any offsets pointing directly to the removed words
   // will go backwards - but they no longer have anywhere valid to point.
-  for(LogicalSection &section : sections)
+  for(LogicalSection &section : m_Sections)
   {
     // we have three cases to consider: either the offset matches start, is within (up to and
     // including end) or is outside the section.
@@ -817,6 +496,56 @@ void Editor::addWords(size_t offs, int32_t num)
       o += num;
 }
 
+Operation Editor::MakeDeclaration(const Scalar &s)
+{
+  if(s.type == Op::TypeVoid)
+    return OpTypeVoid(Id());
+  else if(s.type == Op::TypeBool)
+    return OpTypeBool(Id());
+  else if(s.type == Op::TypeFloat)
+    return OpTypeFloat(Id(), s.width);
+  else if(s.type == Op::TypeInt)
+    return OpTypeInt(Id(), s.width, s.signedness ? 1U : 0U);
+  else
+    return OpNop();
+}
+
+Operation Editor::MakeDeclaration(const Vector &v)
+{
+  return OpTypeVector(Id(), DeclareType(v.scalar), v.count);
+}
+
+Operation Editor::MakeDeclaration(const Matrix &m)
+{
+  return OpTypeMatrix(Id(), DeclareType(m.vector), m.count);
+}
+
+Operation Editor::MakeDeclaration(const Pointer &p)
+{
+  return OpTypePointer(Id(), p.storage, p.baseId);
+}
+
+Operation Editor::MakeDeclaration(const Image &i)
+{
+  return OpTypeImage(Id(), DeclareType(i.retType), i.dim, i.depth, i.arrayed, i.ms, i.sampled,
+                     i.format);
+}
+
+Operation Editor::MakeDeclaration(const Sampler &s)
+{
+  return OpTypeSampler(Id());
+}
+
+Operation Editor::MakeDeclaration(const SampledImage &s)
+{
+  return OpTypeSampledImage(Id(), s.baseId);
+}
+
+Operation Editor::MakeDeclaration(const FunctionType &f)
+{
+  return OpTypeFunction(Id(), f.returnId, f.argumentIds);
+}
+
 #define TYPETABLE(StructType, variable)                                \
   template <>                                                          \
   std::map<StructType, Id> &Editor::GetTable<StructType>()             \
@@ -829,14 +558,14 @@ void Editor::addWords(size_t offs, int32_t num)
     return variable;                                                   \
   }
 
-TYPETABLE(Scalar, scalarTypes);
-TYPETABLE(Vector, vectorTypes);
-TYPETABLE(Matrix, matrixTypes);
-TYPETABLE(Pointer, pointerTypes);
-TYPETABLE(Image, imageTypes);
-TYPETABLE(Sampler, samplerTypes);
-TYPETABLE(SampledImage, sampledImageTypes);
-TYPETABLE(Function, functionTypes);
+TYPETABLE(Scalar, scalarTypeToId);
+TYPETABLE(Vector, vectorTypeToId);
+TYPETABLE(Matrix, matrixTypeToId);
+TYPETABLE(Pointer, pointerTypeToId);
+TYPETABLE(Image, imageTypeToId);
+TYPETABLE(Sampler, samplerTypeToId);
+TYPETABLE(SampledImage, sampledImageTypeToId);
+TYPETABLE(FunctionType, functionTypeToId);
 
 };    // namespace rdcspv
 
@@ -851,6 +580,8 @@ static void RemoveSection(std::vector<uint32_t> &spirv, size_t offsets[rdcspv::S
                           rdcspv::Section::Type section)
 {
   rdcspv::Editor ed(spirv);
+
+  ed.Prepare();
 
   for(rdcspv::Iter it = ed.Begin(section), end = ed.End(section); it < end; it++)
     ed.Remove(it);
@@ -883,7 +614,7 @@ static void CheckSPIRV(rdcspv::Editor &ed, size_t offsets[rdcspv::Section::Count
   // should only be one entry point
   REQUIRE(ed.GetEntries().size() == 1);
 
-  rdcspv::Id entryId = ed.GetEntries()[0].entryPoint;
+  rdcspv::Id entryId = ed.GetEntries()[0].id;
 
   // check that the iterator places us precisely at the start of the functions section
   CHECK(ed.GetID(entryId).offs() == ed.Begin(rdcspv::Section::Functions).offs());
@@ -956,6 +687,8 @@ void main() {
   {
     rdcspv::Editor ed(spirv);
 
+    ed.Prepare();
+
     CheckSPIRV(ed, offsets);
   }
 
@@ -967,6 +700,8 @@ void main() {
   {
     rdcspv::Editor ed(spirv);
 
+    ed.Prepare();
+
     CheckSPIRV(ed, offsets);
   }
 
@@ -975,6 +710,8 @@ void main() {
   SECTION("Check with debug removed")
   {
     rdcspv::Editor ed(spirv);
+
+    ed.Prepare();
 
     CheckSPIRV(ed, offsets);
   }
@@ -985,6 +722,8 @@ void main() {
   {
     rdcspv::Editor ed(spirv);
 
+    ed.Prepare();
+
     CheckSPIRV(ed, offsets);
   }
 
@@ -994,6 +733,8 @@ void main() {
   {
     rdcspv::Editor ed(spirv);
 
+    ed.Prepare();
+
     CheckSPIRV(ed, offsets);
   }
 
@@ -1002,6 +743,8 @@ void main() {
   SECTION("Check with annotations removed")
   {
     rdcspv::Editor ed(spirv);
+
+    ed.Prepare();
 
     CheckSPIRV(ed, offsets);
   }

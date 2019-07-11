@@ -59,15 +59,17 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
 {
   rdcspv::Editor editor(modSpirv);
 
+  editor.Prepare();
+
   rdcarray<SigParameter> outsig = refl.outputSignature;
   std::vector<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
 
   rdcspv::Id entryid;
-  for(const rdcspv::OpEntryPoint &entry : editor.GetEntries())
+  for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
     if(entry.name == entryName)
     {
-      entryid = entry.entryPoint;
+      entryid = entry.id;
       break;
     }
   }

@@ -56,6 +56,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 {
   rdcspv::Editor editor(modSpirv);
 
+  editor.Prepare();
+
   uint32_t numInputs = (uint32_t)refl.inputSignature.size();
 
   uint32_t numOutputs = (uint32_t)refl.outputSignature.size();
@@ -348,12 +350,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   std::set<rdcspv::Id> entries;
 
-  for(const rdcspv::OpEntryPoint &entry : editor.GetEntries())
+  for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
     if(entry.name == entryName)
-      entryID = entry.entryPoint;
+      entryID = entry.id;
 
-    entries.insert(entry.entryPoint);
+    entries.insert(entry.id);
   }
 
   RDCASSERT(entryID);
@@ -740,7 +742,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     std::vector<rdcspv::Operation> ops;
 
     rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
-    rdcspv::Id funcType = editor.DeclareType(rdcspv::Function(voidType, {}));
+    rdcspv::Id funcType = editor.DeclareType(rdcspv::FunctionType(voidType, {}));
 
     ops.push_back(rdcspv::OpFunction(voidType, wrapperEntry, rdcspv::FunctionControl::None, funcType));
 
