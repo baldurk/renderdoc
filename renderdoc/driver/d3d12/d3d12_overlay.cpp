@@ -267,8 +267,9 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   D3D12RenderState m_PrevState;
 };
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventId, const std::vector<uint32_t> &passEvents)
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+                                      DebugOverlay overlay, uint32_t eventId,
+                                      const std::vector<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
 
@@ -738,7 +739,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
         if(desc.GetResResourceId() != ResourceId())
           Unwrap(list)->ClearRenderTargetView(Unwrap(GetDebugManager()->GetTempDescriptor(desc)),
-                                              black, 0, NULL);
+                                              &clearCol.x, 0, NULL);
       }
 
       list->Close();

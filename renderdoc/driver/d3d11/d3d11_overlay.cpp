@@ -39,8 +39,9 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                      uint32_t eventId, const std::vector<uint32_t> &passEvents)
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+                                      DebugOverlay overlay, uint32_t eventId,
+                                      const std::vector<uint32_t> &passEvents)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
 
@@ -607,7 +608,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 
       for(size_t i = 0; i < ARRAY_COUNT(state.OM.RenderTargets); i++)
         if(state.OM.RenderTargets[i])
-          m_pImmediateContext->ClearRenderTargetView(state.OM.RenderTargets[i], black);
+          m_pImmediateContext->ClearRenderTargetView(state.OM.RenderTargets[i], &clearCol.x);
 
       for(size_t i = 0; i < events.size(); i++)
       {

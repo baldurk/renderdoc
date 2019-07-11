@@ -228,8 +228,9 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                           uint32_t eventId, const std::vector<uint32_t> &passEvents)
+  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+                           DebugOverlay overlay, uint32_t eventId,
+                           const std::vector<uint32_t> &passEvents)
   {
     return ResourceId();
   }

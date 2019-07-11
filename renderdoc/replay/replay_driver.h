@@ -163,8 +163,9 @@ public:
   virtual ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                        const uint32_t threadid[3]) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                   uint32_t eventId, const std::vector<uint32_t> &passEvents) = 0;
+  virtual ResourceId RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+                                   DebugOverlay overlay, uint32_t eventId,
+                                   const std::vector<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;
 

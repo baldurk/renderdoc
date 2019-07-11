@@ -43,6 +43,7 @@ struct FloatVector
   {
     return x == o.x && y == o.y && z == o.z && w == o.w;
   }
+  bool operator!=(const FloatVector &o) const { return !(*this == o); }
   bool operator<(const FloatVector &o) const
   {
     if(!(x == o.x))

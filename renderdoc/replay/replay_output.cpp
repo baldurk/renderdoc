@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "common/common.h"
+#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "strings/string_utils.h"
 #include "replay_controller.h"
@@ -164,11 +165,13 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
   CHECK_REPLAY_THREAD();
 
+  bool wasClearBeforeDraw = (m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforeDraw ||
+                             m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass);
+
   if(o.overlay != m_RenderData.texDisplay.overlay || o.typeHint != m_RenderData.texDisplay.typeHint ||
      o.resourceId != m_RenderData.texDisplay.resourceId)
   {
-    if(m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforeDraw ||
-       m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass)
+    if(wasClearBeforeDraw)
     {
       // by necessity these overlays modify the actual texture, not an
       // independent overlay texture. So if we disable them, we must
@@ -177,6 +180,8 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
     }
     m_OverlayDirty = true;
   }
+  if(wasClearBeforeDraw && o.backgroundColor != m_RenderData.texDisplay.backgroundColor)
+    m_OverlayDirty = true;
   m_RenderData.texDisplay = o;
   m_MainOutput.dirty = true;
 }
@@ -252,9 +257,15 @@ void ReplayOutput::RefreshOverlay()
   {
     if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.resourceId))
     {
+      FloatVector f = m_RenderData.texDisplay.backgroundColor;
+
+      f.x = ConvertLinearToSRGB(f.x);
+      f.y = ConvertLinearToSRGB(f.y);
+      f.z = ConvertLinearToSRGB(f.z);
+
       m_OverlayResourceId = m_pDevice->RenderOverlay(
-          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId),
-          m_RenderData.texDisplay.typeHint, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
+          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId), m_RenderData.texDisplay.typeHint,
+          f, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_OverlayDirty = false;
     }
     else

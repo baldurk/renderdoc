@@ -228,8 +228,9 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   return HasSPIRVShaders;
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                   uint32_t eventId, const std::vector<uint32_t> &passEvents)
+ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+                                   DebugOverlay overlay, uint32_t eventId,
+                                   const std::vector<uint32_t> &passEvents)
 {
   WrappedOpenGL &drv = *m_pDriver;
 
@@ -933,9 +934,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         rs.ApplyState(&drv);
       }
 
-      float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
       for(int i = 0; i < 8; i++)
-        drv.glClearBufferfv(eGL_COLOR, i, black);
+        drv.glClearBufferfv(eGL_COLOR, i, &clearCol.x);
 
       for(size_t i = 0; i < events.size(); i++)
       {

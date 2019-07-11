@@ -391,8 +391,9 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   indexCount = (uint32_t)patchedIndices.size();
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
-                                       uint32_t eventId, const std::vector<uint32_t> &passEvents)
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+                                       DebugOverlay overlay, uint32_t eventId,
+                                       const std::vector<uint32_t> &passEvents)
 {
   const VkDevDispatchTable *vt = ObjDisp(m_Device);
 
@@ -648,7 +649,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
   else if(overlay == DebugOverlay::Drawcall || overlay == DebugOverlay::Wireframe)
   {
     float highlightCol[] = {0.8f, 0.1f, 0.8f, 1.0f};
-    float clearCol[] = {0.0f, 0.0f, 0.0f, 0.5f};
+    float bgclearCol[] = {0.0f, 0.0f, 0.0f, 0.5f};
 
     if(overlay == DebugOverlay::Wireframe)
     {
@@ -656,10 +657,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       highlightCol[1] = 1.0f;
       highlightCol[2] = 0.0f;
 
-      clearCol[0] = 200 / 255.0f;
-      clearCol[1] = 1.0f;
-      clearCol[2] = 0.0f;
-      clearCol[3] = 0.0f;
+      bgclearCol[0] = 200 / 255.0f;
+      bgclearCol[1] = 1.0f;
+      bgclearCol[2] = 0.0f;
+      bgclearCol[3] = 0.0f;
     }
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -676,7 +677,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)clearCol, 1, &subresourceRange);
+                           (VkClearColorValue *)bgclearCol, 1, &subresourceRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -1589,7 +1590,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
 
       m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
 
-      VkClearAttachment blackclear = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
+      VkClearAttachment clearatt = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
+      memcpy(clearatt.clearValue.color.float32, &clearCol.x,
+             sizeof(clearatt.clearValue.color.float32));
       std::vector<VkClearAttachment> atts;
 
       VulkanCreationInfo::Framebuffer &fb =
@@ -1600,8 +1603,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Debu
       for(size_t i = 0; i < rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments.size();
           i++)
       {
-        blackclear.colorAttachment = (uint32_t)i;
-        atts.push_back(blackclear);
+        clearatt.colorAttachment = (uint32_t)i;
+        atts.push_back(clearatt);
       }
 
       VkClearRect rect = {

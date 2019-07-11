@@ -351,8 +351,9 @@ public:
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId cfg, CompType typeHint, DebugOverlay overlay,
-                           uint32_t eventId, const std::vector<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId cfg, CompType typeHint, FloatVector clearCol,
+                           DebugOverlay overlay, uint32_t eventId,
+                           const std::vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 

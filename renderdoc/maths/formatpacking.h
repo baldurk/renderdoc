@@ -183,6 +183,19 @@ inline Vec4f ConvertSRGBToLinear(Vec4f srgbF)
                ConvertSRGBToLinear(srgbF.z), srgbF.w);
 }
 
+inline float ConvertLinearToSRGB(float linear)
+{
+  if(linear <= 0.0031308f)
+    return 12.92f * linear;
+
+  if(linear < 0.0f)
+    linear = 0.0f;
+  else if(linear > 1.0f)
+    linear = 1.0f;
+
+  return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
+}
+
 struct ResourceFormat;
 float ConvertComponent(const ResourceFormat &fmt, const byte *data);
 
