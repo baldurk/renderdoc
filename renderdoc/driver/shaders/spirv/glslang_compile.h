@@ -34,7 +34,7 @@ class TShader;
 class TProgram;
 };
 
-glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
+glslang::TShader *CompileShaderForReflection(rdcspv::ShaderStage stage,
                                              const std::vector<std::string> &sources);
 glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *> &shaders);
 

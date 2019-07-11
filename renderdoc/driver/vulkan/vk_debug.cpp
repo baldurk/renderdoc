@@ -2475,9 +2475,9 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
   for(size_t i = 0; i < ARRAY_COUNT(m_HistogramDescSet); i++)
     CREATE_OBJECT(m_HistogramDescSet[i], descriptorPool, m_HistogramDescSetLayout);
 
-  SPIRVCompilationSettings compileSettings;
-  compileSettings.lang = SPIRVSourceLanguage::VulkanGLSL;
-  compileSettings.stage = SPIRVShaderStage::Compute;
+  rdcspv::CompilationSettings compileSettings;
+  compileSettings.lang = rdcspv::InputLanguage::VulkanGLSL;
+  compileSettings.stage = rdcspv::ShaderStage::Compute;
 
   // type max is one higher than the last RESTYPE, and RESTYPES are 1-indexed
   RDCCOMPILE_ASSERT(RESTYPE_TEXTYPEMAX == ARRAY_COUNT(m_MinMaxTilePipe),

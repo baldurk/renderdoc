@@ -46,8 +46,6 @@ struct MeshDisplayPipelines
   VkPipeline pipes[ePipe_Count] = {};
 };
 
-struct SPIRVCompilationSettings;
-
 struct CopyPixelParams;
 
 struct PixelHistoryResources;

@@ -3434,8 +3434,8 @@ void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
                                  const std::string &entryPoint, ShaderReflection &refl,
                                  ShaderBindpointMapping &mapping)
 {
-  InitSPIRVCompiler();
-  RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+  rdcspv::Init();
+  RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
   RDCASSERT(entryPoint == "main");
 
@@ -3451,7 +3451,7 @@ void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
   GL = GLDispatchTable();
   GL.EmulateRequiredExtensions();
 
-  glslang::TShader *sh = CompileShaderForReflection(SPIRVShaderStage(stage), {source});
+  glslang::TShader *sh = CompileShaderForReflection(rdcspv::ShaderStage(stage), {source});
 
   REQUIRE(sh);
 
@@ -3575,8 +3575,8 @@ void main() {
 
 )";
 
-    InitSPIRVCompiler();
-    RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+    rdcspv::Init();
+    RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
     // as a hack, create a local 'driver' and just populate m_Programs with what we want.
     GLDummyPlatform dummy;
@@ -3589,8 +3589,8 @@ void main() {
     GL.EmulateRequiredExtensions();
 
     glslang::TProgram *prog = LinkProgramForReflection(
-        {CompileShaderForReflection(SPIRVShaderStage::Vertex, {vssource}),
-         CompileShaderForReflection(SPIRVShaderStage::Fragment, {fssource})});
+        {CompileShaderForReflection(rdcspv::ShaderStage::Vertex, {vssource}),
+         CompileShaderForReflection(rdcspv::ShaderStage::Fragment, {fssource})});
 
     REQUIRE(prog);
 

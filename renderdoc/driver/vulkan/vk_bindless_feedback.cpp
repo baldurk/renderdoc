@@ -36,15 +36,15 @@ struct feedbackData
 };
 
 void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
-                    const std::map<SPIRVBinding, feedbackData> &offsetMap, VkDeviceAddress addr,
+                    const std::map<rdcspv::Binding, feedbackData> &offsetMap, VkDeviceAddress addr,
                     std::vector<uint32_t> &modSpirv)
 {
-  SPIRVEditor editor(modSpirv);
+  rdcspv::Editor editor(modSpirv);
 
   const bool useBufferAddress = (addr != 0);
 
-  rdcspv::Id uint32ID = editor.DeclareType(scalar<uint32_t>());
-  rdcspv::Id int32ID = editor.DeclareType(scalar<int32_t>());
+  rdcspv::Id uint32ID = editor.DeclareType(rdcspv::scalar<uint32_t>());
+  rdcspv::Id int32ID = editor.DeclareType(rdcspv::scalar<int32_t>());
   rdcspv::Id uint64ID, int64ID;
   rdcspv::Id uint32StructID;
   rdcspv::Id funcParamType;
@@ -52,8 +52,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   if(useBufferAddress)
   {
     // declare the int64 types we'll need
-    uint64ID = editor.DeclareType(scalar<uint64_t>());
-    int64ID = editor.DeclareType(scalar<int64_t>());
+    uint64ID = editor.DeclareType(rdcspv::scalar<uint64_t>());
+    int64ID = editor.DeclareType(rdcspv::scalar<int64_t>());
 
     uint32StructID = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {uint32ID}));
 
@@ -93,7 +93,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       continue;
 
     // get this variable's binding info
-    SPIRVBinding bind = editor.GetBinding(var.result);
+    rdcspv::Binding bind = editor.GetBinding(var.result);
 
     // if this is one of the bindings we care about
     auto it = offsetMap.find(bind);
@@ -132,7 +132,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     editor.AddExtension("SPV_EXT_physical_storage_buffer");
 
     // change the memory model to physical storage buffer 64
-    rdcspv::Iter it = editor.Begin(SPIRVSection::MemoryModel);
+    rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
     rdcspv::OpMemoryModel model(it);
     model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64EXT;
     it = model;
@@ -144,7 +144,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     // declare the address constants and make our pointers physical storage buffer pointers
     bufferAddressConst = editor.AddConstantImmediate<uint64_t>(addr);
     uint32ptrtype =
-        editor.DeclareType(SPIRVPointer(uint32ID, rdcspv::StorageClass::PhysicalStorageBufferEXT));
+        editor.DeclareType(rdcspv::Pointer(uint32ID, rdcspv::StorageClass::PhysicalStorageBufferEXT));
 
     editor.SetName(bufferAddressConst, "__rd_feedbackAddress");
 
@@ -155,12 +155,12 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   {
     // the pointers are uniform pointers
     rdcspv::Id bufptrtype =
-        editor.DeclareType(SPIRVPointer(uint32StructID, rdcspv::StorageClass::Uniform));
-    uint32ptrtype = editor.DeclareType(SPIRVPointer(uint32ID, rdcspv::StorageClass::Uniform));
+        editor.DeclareType(rdcspv::Pointer(uint32StructID, rdcspv::StorageClass::Uniform));
+    uint32ptrtype = editor.DeclareType(rdcspv::Pointer(uint32ID, rdcspv::StorageClass::Uniform));
 
     // patch all bindings up by 1
-    for(rdcspv::Iter it = editor.Begin(SPIRVSection::Annotations),
-                     end = editor.End(SPIRVSection::Annotations);
+    for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                     end = editor.End(rdcspv::Section::Annotations);
         it < end; ++it)
     {
       // we will use descriptor set 0 for our own purposes if we don't have a buffer address.
@@ -202,9 +202,9 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   rdcspv::Id semantics = editor.AddConstantImmediate<uint32_t>(0U);
   rdcspv::Id uint32shift = editor.AddConstantImmediate<uint32_t>(2U);
 
-  std::map<rdcspv::Id, SPIRVScalar> intTypeLookup;
+  std::map<rdcspv::Id, rdcspv::Scalar> intTypeLookup;
 
-  for(auto scalarType : editor.GetTypeInfo<SPIRVScalar>())
+  for(auto scalarType : editor.GetTypeInfo<rdcspv::Scalar>())
     if(scalarType.first.type == rdcspv::Op::TypeInt)
       intTypeLookup[scalarType.second] = scalarType.first;
 
@@ -218,7 +218,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     }
   }
 
-  SPIRVTypeIds<SPIRVFunction> funcTypes = editor.GetTypes<SPIRVFunction>();
+  rdcspv::TypeIds<rdcspv::Function> funcTypes = editor.GetTypes<rdcspv::Function>();
 
   // functions that have been patched with annotation & extra function parameters if needed
   std::set<rdcspv::Id> patchedFunctions;
@@ -254,11 +254,11 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       rdcspv::OpFunction func(it);
 
       // find the function's type declaration, add the necessary arguments, redeclare and patch it
-      for(const SPIRVTypeId<SPIRVFunction> &funcType : funcTypes)
+      for(const rdcspv::TypeId<rdcspv::Function> &funcType : funcTypes)
       {
         if(funcType.second == func.functionType)
         {
-          SPIRVFunction patchedFuncType = funcType.first;
+          rdcspv::Function patchedFuncType = funcType.first;
           for(size_t i = 0; i < patchArgIndices.size(); i++)
             patchedFuncType.argumentIds.push_back(funcParamType);
 
@@ -412,7 +412,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
               indexType = uint32ID;
             }
 
-            SPIRVScalar indexTypeData = scalar<uint32_t>();
+            rdcspv::Scalar indexTypeData = rdcspv::scalar<uint32_t>();
             auto indexTypeIt = intTypeLookup.find(indexType);
 
             if(indexTypeIt != intTypeLookup.end())
@@ -441,7 +441,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             if(indexTypeData.width != targetIndexWidth)
             {
               rdcspv::Id extendedtype =
-                  editor.DeclareType(SPIRVScalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
+                  editor.DeclareType(rdcspv::Scalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
               rdcspv::Id extendedindex = editor.MakeId();
               editor.AddOperation(it, rdcspv::OpUConvert(extendedtype, extendedindex, index));
               it++;
@@ -548,13 +548,13 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   VkDeviceSize feedbackStorageSize = 0;
 
-  std::map<SPIRVBinding, feedbackData> offsetMap;
+  std::map<rdcspv::Binding, feedbackData> offsetMap;
 
   {
     const std::vector<ResourceId> &descSetLayoutIds =
         creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
 
-    SPIRVBinding key;
+    rdcspv::Binding key;
 
     for(size_t set = 0; set < descSetLayoutIds.size(); set++)
     {

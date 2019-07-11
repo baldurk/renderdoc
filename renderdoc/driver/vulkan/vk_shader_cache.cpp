@@ -41,48 +41,48 @@ struct BuiltinShaderConfig
 {
   BuiltinShader builtin;
   EmbeddedResourceType resource;
-  SPIRVShaderStage stage;
+  rdcspv::ShaderStage stage;
   FeatureCheck checks;
   bool uniforms;
 };
 
 static const BuiltinShaderConfig builtinShaders[] = {
-    {BuiltinShader::BlitVS, EmbeddedResource(glsl_blit_vert), SPIRVShaderStage::Vertex,
+    {BuiltinShader::BlitVS, EmbeddedResource(glsl_blit_vert), rdcspv::ShaderStage::Vertex,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::CheckerboardFS, EmbeddedResource(glsl_checkerboard_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::NoCheck, true},
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
     {BuiltinShader::TexDisplayFS, EmbeddedResource(glsl_texdisplay_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::FixedColFS, EmbeddedResource(glsl_fixedcol_frag), SPIRVShaderStage::Fragment,
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
+    {BuiltinShader::FixedColFS, EmbeddedResource(glsl_fixedcol_frag), rdcspv::ShaderStage::Fragment,
      FeatureCheck::NoCheck, false},
-    {BuiltinShader::TextVS, EmbeddedResource(glsl_vktext_vert), SPIRVShaderStage::Vertex,
+    {BuiltinShader::TextVS, EmbeddedResource(glsl_vktext_vert), rdcspv::ShaderStage::Vertex,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::TextFS, EmbeddedResource(glsl_vktext_frag), SPIRVShaderStage::Fragment,
+    {BuiltinShader::TextFS, EmbeddedResource(glsl_vktext_frag), rdcspv::ShaderStage::Fragment,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshVS, EmbeddedResource(glsl_mesh_vert), SPIRVShaderStage::Vertex,
+    {BuiltinShader::MeshVS, EmbeddedResource(glsl_mesh_vert), rdcspv::ShaderStage::Vertex,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshGS, EmbeddedResource(glsl_mesh_geom), SPIRVShaderStage::Geometry,
+    {BuiltinShader::MeshGS, EmbeddedResource(glsl_mesh_geom), rdcspv::ShaderStage::Geometry,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshFS, EmbeddedResource(glsl_mesh_frag), SPIRVShaderStage::Fragment,
+    {BuiltinShader::MeshFS, EmbeddedResource(glsl_mesh_frag), rdcspv::ShaderStage::Fragment,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshCS, EmbeddedResource(glsl_mesh_comp), SPIRVShaderStage::Compute,
+    {BuiltinShader::MeshCS, EmbeddedResource(glsl_mesh_comp), rdcspv::ShaderStage::Compute,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::QuadResolveFS, EmbeddedResource(glsl_quadresolve_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::FragmentStores, true},
-    {BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag), SPIRVShaderStage::Fragment,
+     rdcspv::ShaderStage::Fragment, FeatureCheck::FragmentStores, true},
+    {BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag), rdcspv::ShaderStage::Fragment,
      FeatureCheck::FragmentStores | FeatureCheck::NonMetalBackend, false},
-    {BuiltinShader::TrisizeGS, EmbeddedResource(glsl_trisize_geom), SPIRVShaderStage::Geometry,
+    {BuiltinShader::TrisizeGS, EmbeddedResource(glsl_trisize_geom), rdcspv::ShaderStage::Geometry,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), SPIRVShaderStage::Fragment,
+    {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), rdcspv::ShaderStage::Fragment,
      FeatureCheck::NoCheck, true},
-    {BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp), SPIRVShaderStage::Compute,
+    {BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp), rdcspv::ShaderStage::Compute,
      FeatureCheck::ShaderMSAAStorage | FeatureCheck::NonMetalBackend, true},
-    {BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp), SPIRVShaderStage::Compute,
+    {BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp), rdcspv::ShaderStage::Compute,
      FeatureCheck::ShaderMSAAStorage | FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
-     SPIRVShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
@@ -134,8 +134,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     m_GlobalDefines += "#define METAL_BACKEND\n";
 
   std::string src;
-  SPIRVCompilationSettings compileSettings;
-  compileSettings.lang = SPIRVSourceLanguage::VulkanGLSL;
+  rdcspv::CompilationSettings compileSettings;
+  compileSettings.lang = rdcspv::InputLanguage::VulkanGLSL;
 
   for(auto i : indices<BuiltinShader>())
   {
@@ -166,7 +166,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
         continue;
     }
 
-    if(config.stage == SPIRVShaderStage::Geometry && !features.geometryShader)
+    if(config.stage == rdcspv::ShaderStage::Geometry && !features.geometryShader)
       continue;
 
     src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430,
@@ -217,7 +217,7 @@ VulkanShaderCache::~VulkanShaderCache()
     m_pDriver->vkDestroyShaderModule(m_Device, m_BuiltinShaderModules[i], NULL);
 }
 
-std::string VulkanShaderCache::GetSPIRVBlob(const SPIRVCompilationSettings &settings,
+std::string VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settings,
                                             const std::string &src, SPIRVBlob &outBlob)
 {
   RDCASSERT(!src.empty());
@@ -236,7 +236,7 @@ std::string VulkanShaderCache::GetSPIRVBlob(const SPIRVCompilationSettings &sett
   }
 
   SPIRVBlob spirv = new std::vector<uint32_t>();
-  std::string errors = CompileSPIRV(settings, {src}, *spirv);
+  std::string errors = rdcspv::Compile(settings, {src}, *spirv);
 
   if(!errors.empty())
   {

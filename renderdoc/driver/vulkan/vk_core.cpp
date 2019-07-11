@@ -111,8 +111,8 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
 
   m_SectionVersion = VkInitParams::CurrentVersion;
 
-  InitSPIRVCompiler();
-  RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+  rdcspv::Init();
+  RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
   m_Replay.SetDriver(this);
 

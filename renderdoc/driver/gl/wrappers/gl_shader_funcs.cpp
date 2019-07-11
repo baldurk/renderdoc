@@ -196,7 +196,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   // if we don't have program_interface_query, need to compile the shader with glslang to be able
   // to reflect with. This is needed on capture or replay
   if(!HasExt[ARB_program_interface_query] && status == 1)
-    glslangShader = CompileShaderForReflection(SPIRVShaderStage(ShaderIdx(type)), sources);
+    glslangShader = CompileShaderForReflection(rdcspv::ShaderStage(ShaderIdx(type)), sources);
 
   if(IsReplayMode(drv.GetState()) && !drv.IsInternalShader())
   {
@@ -262,10 +262,10 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
       {
         std::vector<uint32_t> spirvwords;
 
-        SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
-                                          SPIRVShaderStage(ShaderIdx(type)));
+        rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
+                                             rdcspv::ShaderStage(ShaderIdx(type)));
 
-        std::string s = CompileSPIRV(settings, sources, spirvwords);
+        std::string s = rdcspv::Compile(settings, sources, spirvwords);
         if(!spirvwords.empty())
           ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
         else

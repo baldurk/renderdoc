@@ -27,7 +27,9 @@
 #include <string>
 #include <vector>
 
-enum class SPIRVShaderStage
+namespace rdcspv
+{
+enum class ShaderStage
 {
   Vertex,
   TessControl,
@@ -38,7 +40,7 @@ enum class SPIRVShaderStage
   Invalid,
 };
 
-enum class SPIRVSourceLanguage
+enum class InputLanguage
 {
   Unknown,
   OpenGLGLSL,
@@ -46,18 +48,20 @@ enum class SPIRVSourceLanguage
   VulkanHLSL,
 };
 
-struct SPIRVCompilationSettings
+struct CompilationSettings
 {
-  SPIRVCompilationSettings(SPIRVSourceLanguage l, SPIRVShaderStage s) : stage(s), lang(l) {}
-  SPIRVCompilationSettings() = default;
+  CompilationSettings(InputLanguage l, ShaderStage s) : stage(s), lang(l) {}
+  CompilationSettings() = default;
 
-  SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
-  SPIRVSourceLanguage lang = SPIRVSourceLanguage::Unknown;
+  ShaderStage stage = ShaderStage::Invalid;
+  InputLanguage lang = InputLanguage::Unknown;
   std::string entryPoint;
 };
 
-void InitSPIRVCompiler();
-void ShutdownSPIRVCompiler();
+void Init();
+void Shutdown();
 
-std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
-                         const std::vector<std::string> &sources, std::vector<uint32_t> &spirv);
+std::string Compile(const CompilationSettings &settings, const std::vector<std::string> &sources,
+                    std::vector<uint32_t> &spirv);
+
+};    // namespace rdcspv

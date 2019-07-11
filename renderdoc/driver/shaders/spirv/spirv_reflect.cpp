@@ -57,7 +57,7 @@ void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
 void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
                        const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride)
 {
-  SPIRVEditor editor(modSpirv);
+  rdcspv::Editor editor(modSpirv);
 
   rdcarray<SigParameter> outsig = refl.outputSignature;
   std::vector<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
@@ -74,8 +74,8 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
 
   bool hasXFB = false;
 
-  for(rdcspv::Iter it = editor.Begin(SPIRVSection::ExecutionMode);
-      it < editor.End(SPIRVSection::ExecutionMode); ++it)
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::ExecutionMode);
+      it < editor.End(rdcspv::Section::ExecutionMode); ++it)
   {
     rdcspv::OpExecutionMode execMode(it);
 
@@ -88,8 +88,8 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
 
   if(hasXFB)
   {
-    for(rdcspv::Iter it = editor.Begin(SPIRVSection::Annotations);
-        it < editor.End(SPIRVSection::Annotations); ++it)
+    for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations);
+        it < editor.End(rdcspv::Section::Annotations); ++it)
     {
       // remove any existing xfb decorations
       if(it.opcode() == rdcspv::Op::Decorate)
@@ -208,15 +208,15 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
   auto compiler = [&type](ShaderStage stage, const std::string &source, const std::string &entryPoint,
                           ShaderReflection &refl, ShaderBindpointMapping &mapping) {
 
-    InitSPIRVCompiler();
-    RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+    rdcspv::Init();
+    RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
     std::vector<uint32_t> spirv;
-    SPIRVCompilationSettings settings(type == ShaderType::eShaderVulkan
-                                          ? SPIRVSourceLanguage::VulkanGLSL
-                                          : SPIRVSourceLanguage::OpenGLGLSL,
-                                      SPIRVShaderStage(stage));
-    std::string errors = CompileSPIRV(settings, {source}, spirv);
+    rdcspv::CompilationSettings settings(type == ShaderType::eShaderVulkan
+                                             ? rdcspv::InputLanguage::VulkanGLSL
+                                             : rdcspv::InputLanguage::OpenGLGLSL,
+                                         rdcspv::ShaderStage(stage));
+    std::string errors = rdcspv::Compile(settings, {source}, spirv);
 
     INFO("SPIR-V compile output: " << errors);
 

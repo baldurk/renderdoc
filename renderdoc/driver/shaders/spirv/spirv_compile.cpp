@@ -32,10 +32,10 @@
 #include "3rdparty/glslang/SPIRV/GlslangToSpv.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
-std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
-                         const std::vector<std::string> &sources, std::vector<uint32_t> &spirv)
+std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
+                            const std::vector<std::string> &sources, std::vector<uint32_t> &spirv)
 {
-  if(settings.stage == SPIRVShaderStage::Invalid)
+  if(settings.stage == rdcspv::ShaderStage::Invalid)
     return "Invalid shader stage specified";
 
   std::string errors = "";
@@ -45,11 +45,11 @@ std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
   for(size_t i = 0; i < sources.size(); i++)
     strs[i] = sources[i].c_str();
 
-  RDCCOMPILE_ASSERT((int)EShLangVertex == (int)SPIRVShaderStage::Vertex &&
-                        (int)EShLangTessControl == (int)SPIRVShaderStage::TessControl &&
-                        (int)EShLangTessEvaluation == (int)SPIRVShaderStage::TessEvaluation &&
-                        (int)EShLangGeometry == (int)SPIRVShaderStage::Geometry &&
-                        (int)EShLangCompute == (int)SPIRVShaderStage::Compute,
+  RDCCOMPILE_ASSERT((int)EShLangVertex == (int)rdcspv::ShaderStage::Vertex &&
+                        (int)EShLangTessControl == (int)rdcspv::ShaderStage::TessControl &&
+                        (int)EShLangTessEvaluation == (int)rdcspv::ShaderStage::TessEvaluation &&
+                        (int)EShLangGeometry == (int)rdcspv::ShaderStage::Geometry &&
+                        (int)EShLangCompute == (int)rdcspv::ShaderStage::Compute,
                     "Shader language enums don't match");
 
   {
@@ -65,9 +65,9 @@ std::string CompileSPIRV(const SPIRVCompilationSettings &settings,
 
     EShMessages flags = EShMsgSpvRules;
 
-    if(settings.lang == SPIRVSourceLanguage::VulkanGLSL)
+    if(settings.lang == rdcspv::InputLanguage::VulkanGLSL)
       flags = EShMessages(flags | EShMsgVulkanRules);
-    if(settings.lang == SPIRVSourceLanguage::VulkanHLSL)
+    if(settings.lang == rdcspv::InputLanguage::VulkanHLSL)
       flags = EShMessages(flags | EShMsgVulkanRules | EShMsgReadHlsl);
 
     bool success = shader->parse(GetDefaultResources(), 110, false, flags);

@@ -699,8 +699,8 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     ResourceIDGen::SetReplayResourceIDs();
   }
 
-  InitSPIRVCompiler();
-  RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+  rdcspv::Init();
+  RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
   m_CurrentDefaultFBO = 0;
 

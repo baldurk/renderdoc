@@ -63,7 +63,7 @@ public:
   VulkanShaderCache(WrappedVulkan *driver);
   ~VulkanShaderCache();
 
-  std::string GetSPIRVBlob(const SPIRVCompilationSettings &settings, const std::string &src,
+  std::string GetSPIRVBlob(const rdcspv::CompilationSettings &settings, const std::string &src,
                            SPIRVBlob &outBlob);
 
   SPIRVBlob GetBuiltinBlob(BuiltinShader builtin) { return m_BuiltinShaderBlobs[(size_t)builtin]; }

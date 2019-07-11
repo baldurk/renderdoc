@@ -148,7 +148,7 @@ TBuiltInResource *GetDefaultResources()
   return &DefaultResources;
 }
 
-void InitSPIRVCompiler()
+void rdcspv::Init()
 {
   if(!glslang_inited)
   {
@@ -160,7 +160,7 @@ void InitSPIRVCompiler()
   }
 }
 
-void ShutdownSPIRVCompiler()
+void rdcspv::Shutdown()
 {
   if(glslang_inited)
   {
@@ -181,7 +181,7 @@ void ShutdownSPIRVCompiler()
   }
 }
 
-glslang::TShader *CompileShaderForReflection(SPIRVShaderStage stage,
+glslang::TShader *CompileShaderForReflection(rdcspv::ShaderStage stage,
                                              const std::vector<std::string> &sources)
 {
   EShLanguage lang = EShLanguage(stage);

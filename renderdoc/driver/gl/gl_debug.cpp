@@ -69,11 +69,11 @@ GLuint GLReplay::CreateSPIRVShader(GLenum shaderType, const std::string &src)
     return 0;
   }
 
-  SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
-                                    SPIRVShaderStage(ShaderIdx(shaderType)));
+  rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
+                                       rdcspv::ShaderStage(ShaderIdx(shaderType)));
 
   std::vector<uint32_t> spirv;
-  std::string s = CompileSPIRV(settings, {src}, spirv);
+  std::string s = rdcspv::Compile(settings, {src}, spirv);
 
   if(spirv.empty())
   {

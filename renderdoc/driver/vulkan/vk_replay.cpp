@@ -3760,16 +3760,16 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
 
   if(sourceEncoding == ShaderEncoding::GLSL)
   {
-    SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
+    rdcspv::ShaderStage stage = rdcspv::ShaderStage::Invalid;
 
     switch(type)
     {
-      case ShaderStage::Vertex: stage = SPIRVShaderStage::Vertex; break;
-      case ShaderStage::Hull: stage = SPIRVShaderStage::TessControl; break;
-      case ShaderStage::Domain: stage = SPIRVShaderStage::TessEvaluation; break;
-      case ShaderStage::Geometry: stage = SPIRVShaderStage::Geometry; break;
-      case ShaderStage::Pixel: stage = SPIRVShaderStage::Fragment; break;
-      case ShaderStage::Compute: stage = SPIRVShaderStage::Compute; break;
+      case ShaderStage::Vertex: stage = rdcspv::ShaderStage::Vertex; break;
+      case ShaderStage::Hull: stage = rdcspv::ShaderStage::TessControl; break;
+      case ShaderStage::Domain: stage = rdcspv::ShaderStage::TessEvaluation; break;
+      case ShaderStage::Geometry: stage = rdcspv::ShaderStage::Geometry; break;
+      case ShaderStage::Pixel: stage = rdcspv::ShaderStage::Fragment; break;
+      case ShaderStage::Compute: stage = rdcspv::ShaderStage::Compute; break;
       default:
         RDCERR("Unexpected type in BuildShader!");
         *id = ResourceId();
@@ -3779,9 +3779,9 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
     std::vector<std::string> sources;
     sources.push_back(std::string((char *)source.begin(), (char *)source.end()));
 
-    SPIRVCompilationSettings settings(SPIRVSourceLanguage::VulkanGLSL, stage);
+    rdcspv::CompilationSettings settings(rdcspv::InputLanguage::VulkanGLSL, stage);
 
-    std::string output = CompileSPIRV(settings, sources, spirv);
+    std::string output = rdcspv::Compile(settings, sources, spirv);
 
     if(spirv.empty())
     {
