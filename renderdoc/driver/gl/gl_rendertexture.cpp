@@ -368,8 +368,11 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   ubo->MipLevel = (int)cfg.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
   {
-    uint32_t numSlices =
-        RDCMAX((uint32_t)texDetails.depth, 1U) * RDCMAX((uint32_t)texDetails.samples, 1U);
+    uint32_t depth = RDCMAX((uint32_t)texDetails.depth, 1U);
+    if(texDetails.curType == eGL_TEXTURE_CUBE_MAP)
+      depth *= 6;
+
+    uint32_t numSlices = depth * RDCMAX((uint32_t)texDetails.samples, 1U);
 
     uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, numSlices - 1);
     ubo->Slice = (float)sliceFace + 0.001f;
