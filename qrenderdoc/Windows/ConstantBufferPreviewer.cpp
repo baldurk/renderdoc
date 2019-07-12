@@ -82,17 +82,22 @@ ConstantBufferPreviewer *ConstantBufferPreviewer::has(ShaderStage stage, uint32_
 
 void ConstantBufferPreviewer::OnCaptureLoaded()
 {
-  OnCaptureClosed();
+  Reset();
 }
 
 void ConstantBufferPreviewer::OnCaptureClosed()
+{
+  Reset();
+
+  ToolWindowManager::closeToolWindow(this);
+}
+
+void ConstantBufferPreviewer::Reset()
 {
   ui->variables->clear();
   ui->variables->clearInternalExpansions();
 
   ui->saveCSV->setEnabled(false);
-
-  ToolWindowManager::closeToolWindow(this);
 }
 
 void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)

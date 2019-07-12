@@ -52,6 +52,7 @@ public:
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
+
   void OnSelectedEventChanged(uint32_t eventId) override {}
   void OnEventChanged(uint32_t eventId) override;
 
@@ -65,6 +66,8 @@ private slots:
   void processFormat(const QString &format);
 
 private:
+  void Reset();
+
   Ui::ConstantBufferPreviewer *ui;
   ICaptureContext &m_Ctx;
 
