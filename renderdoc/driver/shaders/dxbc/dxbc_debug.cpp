@@ -48,6 +48,22 @@ static float round_ne(float x)
   return x - rem;
 }
 
+static float flush_denorm(const float f)
+{
+  uint32_t x;
+  memcpy(&x, &f, sizeof(f));
+
+  // if any bit is set in the exponent, it's not denormal
+  if(x & 0x7F800000)
+    return f;
+
+  // keep only the sign bit
+  x &= 0x80000000;
+  float ret;
+  memcpy(&ret, &x, sizeof(ret));
+  return ret;
+}
+
 VarType State::OperationType(const OpcodeType &op) const
 {
   switch(op)
@@ -222,6 +238,204 @@ VarType State::OperationType(const OpcodeType &op) const
 
     default: RDCERR("Unhandled operation %d in shader debugging", op); return VarType::Float;
   }
+}
+
+bool State::OperationFlushing(const DXBC::OpcodeType &op) const
+{
+  switch(op)
+  {
+    // float mathematical operations all flush denorms
+    case OPCODE_ADD:
+    case OPCODE_MUL:
+    case OPCODE_DIV:
+    case OPCODE_MAX:
+    case OPCODE_MIN:
+    case OPCODE_MAD:
+    case OPCODE_DP2:
+    case OPCODE_DP3:
+    case OPCODE_DP4:
+    case OPCODE_SINCOS:
+    case OPCODE_F16TOF32:
+    case OPCODE_F32TOF16:
+    case OPCODE_FRC:
+    case OPCODE_ROUND_PI:
+    case OPCODE_ROUND_Z:
+    case OPCODE_ROUND_NE:
+    case OPCODE_ROUND_NI:
+    case OPCODE_RCP:
+    case OPCODE_RSQ:
+    case OPCODE_SQRT:
+    case OPCODE_LOG:
+    case OPCODE_EXP:
+    case OPCODE_LT:
+    case OPCODE_GE:
+    case OPCODE_EQ:
+    case OPCODE_NE:
+      return true;
+
+    // can't generate denorms, or denorm inputs are implicitly rounded to 0, so don't bother
+    // flushing
+    case OPCODE_ITOF:
+    case OPCODE_UTOF:
+    case OPCODE_FTOI:
+    case OPCODE_FTOU:
+      return false;
+
+    // implementation defined if this should flush or not, we choose not.
+    case OPCODE_DTOF:
+    case OPCODE_FTOD:
+      return false;
+
+    // any I/O or data movement operation that does not manipulate the data, such as using the
+    // ld(22.4.6) instruction to access Resource data, or executing mov instruction or conditional
+    // move/swap instruction (excluding min or max instructions), must not alter data at all (so a
+    // denorm remains denorm).
+    case OPCODE_MOV:
+    case OPCODE_MOVC:
+    case OPCODE_LD:
+    case OPCODE_LD_MS:
+      return false;
+
+    // sample operations flush denorms
+    case OPCODE_SAMPLE:
+    case OPCODE_SAMPLE_L:
+    case OPCODE_SAMPLE_B:
+    case OPCODE_SAMPLE_C:
+    case OPCODE_SAMPLE_C_LZ:
+    case OPCODE_SAMPLE_D:
+    case OPCODE_GATHER4:
+    case OPCODE_GATHER4_C:
+    case OPCODE_GATHER4_PO:
+    case OPCODE_GATHER4_PO_C:
+      return true;
+
+    // unclear if these flush and it's unlikely denorms will come up, so conservatively flush
+    case OPCODE_RESINFO:
+    case OPCODE_BUFINFO:
+    case OPCODE_SAMPLE_INFO:
+    case OPCODE_SAMPLE_POS:
+    case OPCODE_EVAL_CENTROID:
+    case OPCODE_EVAL_SAMPLE_INDEX:
+    case OPCODE_EVAL_SNAPPED:
+    case OPCODE_LOD:
+    case OPCODE_DERIV_RTX:
+    case OPCODE_DERIV_RTX_COARSE:
+    case OPCODE_DERIV_RTX_FINE:
+    case OPCODE_DERIV_RTY:
+    case OPCODE_DERIV_RTY_COARSE:
+    case OPCODE_DERIV_RTY_FINE:
+      return true;
+
+    // operations that don't work on floats don't flush
+    case OPCODE_LOOP:
+    case OPCODE_CONTINUE:
+    case OPCODE_CONTINUEC:
+    case OPCODE_ENDLOOP:
+    case OPCODE_SWITCH:
+    case OPCODE_CASE:
+    case OPCODE_DEFAULT:
+    case OPCODE_ENDSWITCH:
+    case OPCODE_ELSE:
+    case OPCODE_ENDIF:
+    case OPCODE_RET:
+    case OPCODE_RETC:
+    case OPCODE_DISCARD:
+    case OPCODE_NOP:
+    case OPCODE_CUSTOMDATA:
+    case OPCODE_SYNC:
+    case OPCODE_STORE_UAV_TYPED:
+    case OPCODE_STORE_RAW:
+    case OPCODE_STORE_STRUCTURED:
+      return false;
+
+    // integer operations don't flush
+    case OPCODE_AND:
+    case OPCODE_OR:
+    case OPCODE_IADD:
+    case OPCODE_IMUL:
+    case OPCODE_IMAD:
+    case OPCODE_ISHL:
+    case OPCODE_IGE:
+    case OPCODE_IEQ:
+    case OPCODE_ILT:
+    case OPCODE_ISHR:
+    case OPCODE_IBFE:
+    case OPCODE_INE:
+    case OPCODE_INEG:
+    case OPCODE_IMAX:
+    case OPCODE_IMIN:
+    case OPCODE_SWAPC:
+    case OPCODE_BREAK:
+    case OPCODE_BREAKC:
+    case OPCODE_IF:
+    case OPCODE_DTOI:
+    case OPCODE_ATOMIC_IADD:
+    case OPCODE_ATOMIC_IMAX:
+    case OPCODE_ATOMIC_IMIN:
+    case OPCODE_IMM_ATOMIC_IADD:
+    case OPCODE_IMM_ATOMIC_IMAX:
+    case OPCODE_IMM_ATOMIC_IMIN:
+    case OPCODE_ATOMIC_AND:
+    case OPCODE_ATOMIC_OR:
+    case OPCODE_ATOMIC_XOR:
+    case OPCODE_ATOMIC_CMP_STORE:
+    case OPCODE_ATOMIC_UMAX:
+    case OPCODE_ATOMIC_UMIN:
+    case OPCODE_IMM_ATOMIC_AND:
+    case OPCODE_IMM_ATOMIC_OR:
+    case OPCODE_IMM_ATOMIC_XOR:
+    case OPCODE_IMM_ATOMIC_EXCH:
+    case OPCODE_IMM_ATOMIC_CMP_EXCH:
+    case OPCODE_IMM_ATOMIC_UMAX:
+    case OPCODE_IMM_ATOMIC_UMIN:
+    case OPCODE_BFREV:
+    case OPCODE_COUNTBITS:
+    case OPCODE_FIRSTBIT_HI:
+    case OPCODE_FIRSTBIT_LO:
+    case OPCODE_FIRSTBIT_SHI:
+    case OPCODE_UADDC:
+    case OPCODE_USUBB:
+    case OPCODE_UMAD:
+    case OPCODE_UMUL:
+    case OPCODE_UMIN:
+    case OPCODE_IMM_ATOMIC_ALLOC:
+    case OPCODE_IMM_ATOMIC_CONSUME:
+    case OPCODE_UMAX:
+    case OPCODE_UDIV:
+    case OPCODE_USHR:
+    case OPCODE_ULT:
+    case OPCODE_UGE:
+    case OPCODE_BFI:
+    case OPCODE_UBFE:
+    case OPCODE_NOT:
+    case OPCODE_XOR:
+    case OPCODE_LD_RAW:
+    case OPCODE_LD_UAV_TYPED:
+    case OPCODE_LD_STRUCTURED:
+    case OPCODE_DTOU:
+      return false;
+
+    // doubles do not flush
+    case OPCODE_DADD:
+    case OPCODE_DMAX:
+    case OPCODE_DMIN:
+    case OPCODE_DMUL:
+    case OPCODE_DEQ:
+    case OPCODE_DNE:
+    case OPCODE_DGE:
+    case OPCODE_DLT:
+    case OPCODE_DMOV:
+    case OPCODE_DMOVC:
+    case OPCODE_DDIV:
+    case OPCODE_DFMA:
+    case OPCODE_DRCP:
+    case OPCODE_ITOD:
+    case OPCODE_UTOD: return false;
+
+    default: RDCERR("Unhandled operation %d in shader debugging", op); break;
+  }
+
+  return false;
 }
 
 void DoubleSet(ShaderVariable &var, const double in[2])
@@ -650,7 +864,7 @@ bool State::Finished() const
 }
 
 bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
-                        uint32_t srcIndex)
+                        uint32_t srcIndex, bool flushDenorm)
 {
   if(src.type == VarType::Float)
   {
@@ -668,6 +882,9 @@ bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVari
   bool ret = (dst.value.uv[dstIndex] != src.value.uv[srcIndex]);
 
   dst.value.uv[dstIndex] = src.value.uv[srcIndex];
+
+  if(flushDenorm && src.type == VarType::Float)
+    dst.value.fv[dstIndex] = flush_denorm(dst.value.fv[dstIndex]);
 
   return ret;
 }
@@ -829,6 +1046,8 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     RDCASSERT(v->rows == 1 && right.rows == 1);
     RDCASSERT(right.columns <= 4);
 
+    bool flushDenorm = OperationFlushing(op.operation);
+
     // behaviour for scalar and vector masks are slightly different.
     // in a scalar operation like r0.z = r4.x + r6.y
     // then when doing the set to dest we must write into the .z
@@ -844,7 +1063,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCASSERT(dstoper.comps[0] != 0xff);
 
-      bool changed = AssignValue(*v, dstoper.comps[0], right, 0);
+      bool changed = AssignValue(*v, dstoper.comps[0], right, 0, flushDenorm);
 
       if(changed && range.type != RegisterType::Undefined)
       {
@@ -861,7 +1080,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         if(dstoper.comps[i] != 0xff)
         {
           RDCASSERT(dstoper.comps[i] < v->columns);
-          bool changed = AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i]);
+          bool changed = AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i], flushDenorm);
           compsWritten++;
 
           if(changed && range.type != RegisterType::Undefined)
@@ -874,7 +1093,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 
       if(compsWritten == 0)
       {
-        bool changed = AssignValue(*v, 0, right, 0);
+        bool changed = AssignValue(*v, 0, right, 0, flushDenorm);
 
         if(changed && range.type != RegisterType::Undefined)
         {
@@ -1231,6 +1450,12 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
   if(oper.modifier == OPERAND_MODIFIER_NEG || oper.modifier == OPERAND_MODIFIER_ABSNEG)
   {
     v = neg(v, OperationType(op.operation));
+  }
+
+  if(OperationFlushing(op.operation))
+  {
+    for(int i = 0; i < 4; i++)
+      v.value.fv[i] = flush_denorm(v.value.fv[i]);
   }
 
   return v;
@@ -4962,6 +5187,37 @@ TEST_CASE("DXBC debugging helpers", "[dxbc]")
     CHECK(_isnan(v2.value.f.y));
     CHECK(v2.value.f.z == posinf);
     CHECK(v2.value.f.w == posinf);
+  };
+
+  SECTION("test denorm flushing")
+  {
+    float foo = 3.141f;
+
+    // check normal values
+    CHECK(flush_denorm(0.0f) == 0.0f);
+    CHECK(flush_denorm(foo) == foo);
+    CHECK(flush_denorm(-foo) == -foo);
+
+    // check NaN/inf values
+    CHECK(_isnan(flush_denorm(nan)));
+    CHECK(flush_denorm(neginf) == neginf);
+    CHECK(flush_denorm(posinf) == posinf);
+
+    // check zero sign bit - bit more complex
+    uint32_t negzero = 0x80000000U;
+    float negzerof;
+    memcpy(&negzerof, &negzero, sizeof(negzero));
+
+    float flushed = flush_denorm(negzerof);
+    CHECK(memcmp(&flushed, &negzerof, sizeof(negzerof)) == 0);
+
+    // check that denormal values are flushed, preserving sign
+    foo = 1.12104e-44f;
+    CHECK(flush_denorm(foo) != foo);
+    CHECK(flush_denorm(-foo) != -foo);
+    CHECK(flush_denorm(foo) == 0.0f);
+    flushed = flush_denorm(-foo);
+    CHECK(memcmp(&flushed, &negzerof, sizeof(negzerof)) == 0);
   };
 };
 

@@ -202,7 +202,7 @@ private:
 
   // validates assignment for generation of non-normal values
   bool AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
-                   uint32_t srcIndex);
+                   uint32_t srcIndex, bool flushDenorm);
   // sets the destination operand by looking up in the register
   // file and applying any masking or swizzling
   void SetDst(const DXBC::ASMOperand &dstoper, const DXBC::ASMOperation &op,
@@ -219,6 +219,7 @@ private:
                      const DXBC::ASMOperation &op) const;
 
   VarType OperationType(const DXBC::OpcodeType &op) const;
+  bool OperationFlushing(const DXBC::OpcodeType &op) const;
 
   DXBC::DXBCFile *dxbc;
   const ShaderDebugTrace *trace;
