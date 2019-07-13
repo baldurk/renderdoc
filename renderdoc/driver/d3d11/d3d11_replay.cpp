@@ -1682,7 +1682,7 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   int srvOffset = 0;
   int intIdx = 0;
 
-  DXGI_FORMAT fmt = GetTypedFormat(details.texFmt);
+  DXGI_FORMAT fmt = GetTypedFormat(details.texFmt, typeHint);
 
   if(IsUIntFormat(fmt))
   {
