@@ -57,11 +57,11 @@ def unpackData(fmt, data):
 	# If the format needs post-processing such as normalisation, do that now
 	if fmt.compType == rd.CompType.UNorm:
 		divisor = float((1 << fmt.compByteWidth) - 1)
-		value = tuple(float(value[i]) / divisor for i in value)
+		value = tuple(float(i) / divisor for i in value)
 	elif fmt.compType == rd.CompType.SNorm:
 		maxNeg = -(1 << (fmt.compByteWidth - 1))
 		divisor = float(-(maxNeg-1))
-		value = tuple((float(value[i]) if (value[i] == maxNeg) else (float(value[i]) / divisor)) for i in value)
+		value = tuple((float(i) if (i == maxNeg) else (float(i) / divisor)) for i in value)
 
 	# If the format is BGRA, swap the two components
 	if fmt.BGRAOrder():
