@@ -48,6 +48,10 @@ struct MeshDisplayPipelines
 
 struct SPIRVCompilationSettings;
 
+struct CopyPixelParams;
+
+struct PixelHistoryResources;
+
 class VulkanResourceManager;
 
 class VulkanDebugManager
@@ -78,6 +82,16 @@ public:
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
   void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
+
+  bool PixelHistorySetupResources(PixelHistoryResources &resources, VkExtent3D extent, VkFormat format,
+                      uint32_t numEvents);
+  bool PixelHistoryDestroyResources(const PixelHistoryResources &resources);
+
+  void PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, int32_t x);
+
+  VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlags aspect, uint32_t mip);
+
+  VulkanCreationInfo::Image GetImageInfo(ResourceId img);
 
 private:
   // GetBufferData

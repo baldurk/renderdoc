@@ -1423,6 +1423,13 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
   return ret;
 }
 
+VulkanCreationInfo::Image VulkanDebugManager::GetImageInfo(ResourceId img)
+{
+  auto it = m_pDriver->m_CreationInfo.m_Image.find(img);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_Image.end());
+  return it->second;
+}
+
 void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)
 {
   VkDevice dev = m_pDriver->GetDev();

@@ -3705,15 +3705,6 @@ void VulkanReplay::RemoveReplacement(ResourceId id)
   ClearFeedbackCache();
 }
 
-std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
-                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                          uint32_t slice, uint32_t mip,
-                                                          uint32_t sampleIdx, CompType typeHint)
-{
-  VULKANNOTIMP("PixelHistory");
-  return std::vector<PixelModification>();
-}
-
 ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                            uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
