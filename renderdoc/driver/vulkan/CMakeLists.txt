@@ -29,6 +29,7 @@ set(sources
     vk_manager.cpp
     vk_manager.h
     vk_memory.cpp
+    vk_pixelhistory.cpp
     vk_replay.cpp
     vk_replay.h
     vk_resources.cpp
