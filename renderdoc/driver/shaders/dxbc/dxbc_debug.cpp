@@ -29,6 +29,7 @@
 #include <algorithm>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
+#include "common/threading.h"
 #include "driver/d3d11/d3d11_device.h"
 #include "driver/d3d11/d3d11_shader_cache.h"
 #include "maths/formatpacking.h"
@@ -1505,6 +1506,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
   for(size_t i = 1; i < numOperands; i++)
     srcOpers.push_back(GetSrc(op.operands[i], op));
 
+  static Threading::CriticalSection atomicCS;
+  static Threading::CriticalSection immediateContextCS;
+
   switch(op.operation)
   {
     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2109,16 +2113,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           device->GetShaderCache()->MakeCShader(csProgram.c_str(), "main", "cs_5_0");
 
       ID3D11DeviceContext *context = NULL;
+      ID3D11DeviceContext *immediateContext = NULL;
 
-      device->GetImmediateContext(&context);
-
-      // back up CB/UAV on CS slot 0
-
-      ID3D11Buffer *prevCB = NULL;
-      ID3D11UnorderedAccessView *prevUAV = NULL;
-
-      context->CSGetConstantBuffers(0, 1, &prevCB);
-      context->CSGetUnorderedAccessViews(0, 1, &prevUAV);
+      device->CreateDeferredContext(0, &context);
+      device->GetImmediateContext(&immediateContext);
 
       ID3D11Buffer *constBuf = NULL;
 
@@ -2208,25 +2206,71 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       context->CopyResource(copyBuf, uavBuf);
 
-      D3D11_MAPPED_SUBRESOURCE mapped;
-      hr = context->Map(copyBuf, 0, D3D11_MAP_READ, 0, &mapped);
+      D3D11_QUERY_DESC queryDesc = {};
+      queryDesc.Query = D3D11_QUERY_EVENT;
+      queryDesc.MiscFlags = 0;
+      ID3D11Query *query = NULL;
+      device->CreateQuery(&queryDesc, &query);
 
-      if(FAILED(hr))
+      context->End(query);
+
+      ID3D11CommandList *commandList = NULL;
+      context->FinishCommandList(FALSE, &commandList);
+
+      void *p = NULL;
+      HANDLE hEvent = NULL;
+      ID3D11DeviceContext3 *immediateContext3 = NULL;
+      if(SUCCEEDED(immediateContext->QueryInterface(IID_ID3D11DeviceContext3, &p)))
       {
-        RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
-        return s;
+        immediateContext3 = static_cast<ID3D11DeviceContext3 *>(p);
+        hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
       }
 
       ShaderVariable calcResultA("calcA", 0.0f, 0.0f, 0.0f, 0.0f);
       ShaderVariable calcResultB("calcB", 0.0f, 0.0f, 0.0f, 0.0f);
+      {
+        SCOPED_LOCK(immediateContextCS);
+        immediateContext->ExecuteCommandList(commandList, TRUE);
+        if(immediateContext3)
+          immediateContext3->Flush1(D3D11_CONTEXT_TYPE_ALL, hEvent);
+        else
+          immediateContext->Flush();
+        for(;;)
+        {
+          if(immediateContext->GetData(query, NULL, 0, D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK)
+          {
+            D3D11_MAPPED_SUBRESOURCE mapped;
+            hr = immediateContext->Map(copyBuf, 0, D3D11_MAP_READ, 0, &mapped);
 
-      uint32_t *resA = (uint32_t *)mapped.pData;
-      uint32_t *resB = resA + 4;
+            if(FAILED(hr))
+            {
+              RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
+              return s;
+            }
 
-      memcpy(calcResultA.value.uv, resA, sizeof(uint32_t) * 4);
-      memcpy(calcResultB.value.uv, resB, sizeof(uint32_t) * 4);
+            uint32_t *resA = (uint32_t *)mapped.pData;
+            uint32_t *resB = resA + 4;
 
-      context->Unmap(copyBuf, 0);
+            memcpy(calcResultA.value.uv, resA, sizeof(uint32_t) * 4);
+            memcpy(calcResultB.value.uv, resB, sizeof(uint32_t) * 4);
+
+            immediateContext->Unmap(copyBuf, 0);
+            break;
+          }
+          immediateContextCS.Unlock();
+          if(hEvent)
+            WaitForSingleObject(hEvent, INFINITE);
+          else
+            Threading::Sleep(1);
+          immediateContextCS.Lock();
+        }
+      }
+
+      CloseHandle(hEvent);
+      SAFE_RELEASE(immediateContext3);
+
+      SAFE_RELEASE(commandList);
+      SAFE_RELEASE(query);
 
       SAFE_RELEASE(constBuf);
       SAFE_RELEASE(uavBuf);
@@ -2234,16 +2278,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       SAFE_RELEASE(uav);
       SAFE_RELEASE(cs);
 
-      // restore whatever was on CS slot 0 before we messed with it
-
-      UINT append[] = {~0U};
-      context->CSSetConstantBuffers(0, 1, &prevCB);
-      context->CSSetUnorderedAccessViews(0, 1, &prevUAV, append);
-
+      SAFE_RELEASE(immediateContext);
       SAFE_RELEASE(context);
-
-      SAFE_RELEASE(prevCB);
-      SAFE_RELEASE(prevUAV);
 
       if(op.operation == OPCODE_SINCOS)
       {
@@ -2539,6 +2575,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
     case OPCODE_IMM_ATOMIC_ALLOC:
     {
+      SCOPED_LOCK(atomicCS);
       uint32_t count = global.uavs[srcOpers[0].value.u.x].hiddenCounter++;
       s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
@@ -2546,6 +2583,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
     case OPCODE_IMM_ATOMIC_CONSUME:
     {
+      SCOPED_LOCK(atomicCS);
       uint32_t count = --global.uavs[srcOpers[0].value.u.x].hiddenCounter;
       s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
@@ -2710,6 +2748,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       // Also helper/inactive pixels are not allowed to modify UAVs
       if(data && offset + dstAddress->value.u.x < numElems && !Finished())
       {
+        SCOPED_LOCK(atomicCS);
+
         uint32_t *udst = (uint32_t *)data;
         int32_t *idst = (int32_t *)data;
 
@@ -3100,8 +3140,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       {
         ID3D11RenderTargetView *rtv[8] = {};
         ID3D11DepthStencilView *dsv = NULL;
-
-        context->OMGetRenderTargets(8, rtv, &dsv);
+        {
+          SCOPED_LOCK(immediateContextCS);
+          context->OMGetRenderTargets(8, rtv, &dsv);
+        }
 
         // try depth first - both should match sample count though to be valid
         if(dsv)
@@ -3141,18 +3183,21 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         UINT slot = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
 
         ID3D11ShaderResourceView *srv = NULL;
-        if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
-          context->VSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
-          context->HSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
-          context->DSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
-          context->GSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
-          context->PSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-          context->CSGetShaderResources(slot, 1, &srv);
+        {
+          SCOPED_LOCK(immediateContextCS);
+          if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
+            context->VSGetShaderResources(slot, 1, &srv);
+          else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
+            context->HSGetShaderResources(slot, 1, &srv);
+          else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
+            context->DSGetShaderResources(slot, 1, &srv);
+          else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
+            context->GSGetShaderResources(slot, 1, &srv);
+          else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
+            context->PSGetShaderResources(slot, 1, &srv);
+          else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
+            context->CSGetShaderResources(slot, 1, &srv);
+        }
 
         if(srv)
         {
@@ -3368,10 +3413,13 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         if(op.operands[1].type == TYPE_UNORDERED_ACCESS_VIEW)
         {
           ID3D11UnorderedAccessView *uav = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-            context->CSGetUnorderedAccessViews(slot, 1, &uav);
-          else
-            context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
+          {
+            SCOPED_LOCK(immediateContextCS);
+            if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
+              context->CSGetUnorderedAccessViews(slot, 1, &uav);
+            else
+              context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
+          }
 
           if(uav)
           {
@@ -3409,18 +3457,21 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         else
         {
           ID3D11ShaderResourceView *srv = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
-            context->VSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
-            context->HSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
-            context->DSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
-            context->GSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
-            context->PSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-            context->CSGetShaderResources(slot, 1, &srv);
+          {
+            SCOPED_LOCK(immediateContextCS);
+            if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
+              context->VSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
+              context->HSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
+              context->DSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
+              context->GSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
+              context->PSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
+              context->CSGetShaderResources(slot, 1, &srv);
+          }
 
           if(srv)
           {
@@ -3515,18 +3566,21 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         if(op.operands[2].type != TYPE_UNORDERED_ACCESS_VIEW)
         {
           ID3D11ShaderResourceView *srv = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
-            context->VSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
-            context->HSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
-            context->DSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
-            context->GSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
-            context->PSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-            context->CSGetShaderResources(slot, 1, &srv);
+          {
+            SCOPED_LOCK(immediateContextCS);
+            if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
+              context->VSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
+              context->HSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
+              context->DSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
+              context->GSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
+              context->PSGetShaderResources(slot, 1, &srv);
+            else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
+              context->CSGetShaderResources(slot, 1, &srv);
+          }
 
           if(srv)
           {
@@ -3691,13 +3745,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           ID3D11UnorderedAccessView *uav = NULL;
           if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
           {
+            SCOPED_LOCK(immediateContextCS);
             context->CSGetUnorderedAccessViews(slot, 1, &uav);
           }
           else
           {
             ID3D11RenderTargetView *rtvs[8] = {0};
             ID3D11DepthStencilView *dsv = NULL;
-            context->OMGetRenderTargetsAndUnorderedAccessViews(0, rtvs, &dsv, slot, 1, &uav);
+            {
+              SCOPED_LOCK(immediateContextCS);
+              context->OMGetRenderTargetsAndUnorderedAccessViews(0, rtvs, &dsv, slot, 1, &uav);
+            }
 
             for(int i = 0; i < 8; i++)
               SAFE_RELEASE(rtvs[i]);
@@ -4644,48 +4702,45 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           device->GetShaderCache()->MakePShader(sampleProgram.c_str(), "main", "ps_5_0");
 
       ID3D11DeviceContext *context = NULL;
+      ID3D11DeviceContext *immediateContext = NULL;
 
-      device->GetImmediateContext(&context);
-
-      // back up SRV/sampler on PS slot 0
-
-      ID3D11ShaderResourceView *prevSRV = NULL;
-      ID3D11SamplerState *prevSamp = NULL;
-
-      context->PSGetShaderResources(0, 1, &prevSRV);
-      context->PSGetSamplers(0, 1, &prevSamp);
+      device->CreateDeferredContext(0, &context);
+      device->GetImmediateContext(&immediateContext);
 
       ID3D11ShaderResourceView *usedSRV = NULL;
       ID3D11SamplerState *usedSamp = NULL;
+      {
+        SCOPED_LOCK(immediateContextCS);
 
-      // fetch SRV and sampler from the shader stage we're debugging that this opcode wants to
-      // load from
+        // fetch SRV and sampler from the shader stage we're debugging that this opcode wants to
+        // load from
 
-      if(dxbc->m_Type == D3D11_ShaderType_Vertex)
-        context->VSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Hull)
-        context->HSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Domain)
-        context->DSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
-        context->GSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
-        context->PSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Compute)
-        context->CSGetShaderResources(texSlot, 1, &usedSRV);
+        if(dxbc->m_Type == D3D11_ShaderType_Vertex)
+          immediateContext->VSGetShaderResources(texSlot, 1, &usedSRV);
+        else if(dxbc->m_Type == D3D11_ShaderType_Hull)
+          immediateContext->HSGetShaderResources(texSlot, 1, &usedSRV);
+        else if(dxbc->m_Type == D3D11_ShaderType_Domain)
+          immediateContext->DSGetShaderResources(texSlot, 1, &usedSRV);
+        else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
+          immediateContext->GSGetShaderResources(texSlot, 1, &usedSRV);
+        else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
+          immediateContext->PSGetShaderResources(texSlot, 1, &usedSRV);
+        else if(dxbc->m_Type == D3D11_ShaderType_Compute)
+          immediateContext->CSGetShaderResources(texSlot, 1, &usedSRV);
 
-      if(dxbc->m_Type == D3D11_ShaderType_Vertex)
-        context->VSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Hull)
-        context->HSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Domain)
-        context->DSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
-        context->GSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
-        context->PSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Compute)
-        context->CSGetSamplers(sampSlot, 1, &usedSamp);
+        if(dxbc->m_Type == D3D11_ShaderType_Vertex)
+          immediateContext->VSGetSamplers(sampSlot, 1, &usedSamp);
+        else if(dxbc->m_Type == D3D11_ShaderType_Hull)
+          immediateContext->HSGetSamplers(sampSlot, 1, &usedSamp);
+        else if(dxbc->m_Type == D3D11_ShaderType_Domain)
+          immediateContext->DSGetSamplers(sampSlot, 1, &usedSamp);
+        else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
+          immediateContext->GSGetSamplers(sampSlot, 1, &usedSamp);
+        else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
+          immediateContext->PSGetSamplers(sampSlot, 1, &usedSamp);
+        else if(dxbc->m_Type == D3D11_ShaderType_Compute)
+          immediateContext->CSGetSamplers(sampSlot, 1, &usedSamp);
+      }
 
       // set onto PS while we perform the sample
       context->PSSetShaderResources(0, 1, &usedSRV);
@@ -4701,8 +4756,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       if(op.operation == OPCODE_SAMPLE_B)
       {
         ID3D11SamplerState *samp = NULL;
-
-        context->PSGetSamplers((UINT)srcOpers[2].value.u.x, 1, &samp);
+        {
+          SCOPED_LOCK(immediateContextCS);
+          immediateContext->PSGetSamplers((UINT)srcOpers[2].value.u.x, 1, &samp);
+        }
 
         RDCASSERT(samp);
 
@@ -4806,20 +4863,66 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       context->CopyResource(copyTex, rtTex);
 
-      D3D11_MAPPED_SUBRESOURCE mapped;
-      hr = context->Map(copyTex, 0, D3D11_MAP_READ, 0, &mapped);
+      D3D11_QUERY_DESC queryDesc = {};
+      queryDesc.Query = D3D11_QUERY_EVENT;
+      queryDesc.MiscFlags = 0;
+      ID3D11Query *query = NULL;
+      device->CreateQuery(&queryDesc, &query);
 
-      if(FAILED(hr))
+      context->End(query);
+
+      ID3D11CommandList *commandList = NULL;
+      context->FinishCommandList(FALSE, &commandList);
+
+      void *p = NULL;
+      HANDLE hEvent = NULL;
+      ID3D11DeviceContext3 *immediateContext3 = NULL;
+      if(SUCCEEDED(immediateContext->QueryInterface(IID_ID3D11DeviceContext3, &p)))
       {
-        RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
-        return s;
+        immediateContext3 = static_cast<ID3D11DeviceContext3 *>(p);
+        hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
       }
 
       ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
+      {
+        SCOPED_LOCK(immediateContextCS);
+        immediateContext->ExecuteCommandList(commandList, TRUE);
+        if(immediateContext3)
+          immediateContext3->Flush1(D3D11_CONTEXT_TYPE_ALL, hEvent);
+        else
+          immediateContext->Flush();
+        for(;;)
+        {
+          if(immediateContext->GetData(query, NULL, 0, D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK)
+          {
+            D3D11_MAPPED_SUBRESOURCE mapped;
+            hr = immediateContext->Map(copyTex, 0, D3D11_MAP_READ, 0, &mapped);
 
-      memcpy(lookupResult.value.iv, mapped.pData, sizeof(uint32_t) * 4);
+            if(FAILED(hr))
+            {
+              RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
+              return s;
+            }
 
-      context->Unmap(copyTex, 0);
+            memcpy(lookupResult.value.iv, mapped.pData, sizeof(uint32_t) * 4);
+
+            immediateContext->Unmap(copyTex, 0);
+            break;
+          }
+          immediateContextCS.Unlock();
+          if(hEvent)
+            WaitForSingleObject(hEvent, INFINITE);
+          else
+            Threading::Sleep(1);
+          immediateContextCS.Lock();
+        }
+      }
+
+      CloseHandle(hEvent);
+      SAFE_RELEASE(immediateContext3);
+
+      SAFE_RELEASE(commandList);
+      SAFE_RELEASE(query);
 
       SAFE_RELEASE(rtTex);
       SAFE_RELEASE(copyTex);
@@ -4827,15 +4930,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       SAFE_RELEASE(vs);
       SAFE_RELEASE(ps);
 
-      // restore whatever was on PS slot 0 before we messed with it
-
-      context->PSSetShaderResources(0, 1, &prevSRV);
-      context->PSSetSamplers(0, 1, &prevSamp);
-
+      SAFE_RELEASE(immediateContext);
       SAFE_RELEASE(context);
-
-      SAFE_RELEASE(prevSRV);
-      SAFE_RELEASE(prevSamp);
 
       SAFE_RELEASE(usedSRV);
       SAFE_RELEASE(usedSamp);

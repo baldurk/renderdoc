@@ -125,6 +125,26 @@ static MaskedElement<bool, 0x00000008> Sync_UAV_Global;
 static MaskedElement<bool, 0x00800000> HasOrderPreservingCounter;
 };    // Opcode
 
+bool Sync_UAV_Global(uint32_t syncFlags)
+{
+  return Opcode::Sync_UAV_Global.Get(syncFlags);
+}
+
+bool Sync_UAV_Group(uint32_t syncFlags)
+{
+  return Opcode::Sync_UAV_Group.Get(syncFlags);
+}
+
+bool Sync_TGSM(uint32_t syncFlags)
+{
+  return Opcode::Sync_TGSM.Get(syncFlags);
+}
+
+bool Sync_Threads(uint32_t syncFlags)
+{
+  return Opcode::Sync_Threads.Get(syncFlags);
+}
+
 // Declarations are Opcode tokens, but with their own particular definitions
 // of most of the bits (aside from the generice type/length/extended bits above)
 namespace Declaration

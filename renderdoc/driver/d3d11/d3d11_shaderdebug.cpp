@@ -23,6 +23,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
@@ -2469,32 +2473,194 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     initialState.semantics.ThreadID[i] = threadid[i];
   }
 
-  std::vector<ShaderDebugState> states;
-
   if(dxbc->m_DebugInfo)
     dxbc->m_DebugInfo->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
 
-  states.push_back((State)initialState);
+  std::vector<ShaderDebugState> states(1, initialState);
 
-  for(int cycleCounter = 0;; cycleCounter++)
+  // find the first instruction after the
+  // last blocking sync instruction that
+  // is not inside a loop
+  size_t loopCount = 0;
+  size_t loopNumInstructions = 0;
+  size_t groupNumInstructions = 0;
+  for(size_t instructionIndex = dxbc->GetNumInstructions(); instructionIndex;)
   {
-    if(initialState.Finished())
-      break;
-
-    initialState = initialState.GetNext(global, NULL);
-
-    if(dxbc->m_DebugInfo)
+    const ASMOperation &op = dxbc->GetInstruction(--instructionIndex);
+    if(op.operation == OPCODE_SYNC && DXBC::Sync_Threads(op.syncFlags))
     {
-      const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
-      dxbc->m_DebugInfo->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
+      groupNumInstructions = loopCount ? loopNumInstructions : 1 + instructionIndex;
+      break;
+    }
+    switch(op.operation)
+    {
+      case OPCODE_ENDLOOP:
+        if(!loopCount++)
+          loopNumInstructions = 1 + instructionIndex;
+        break;
+      case OPCODE_LOOP: --loopCount; break;
+      default: break;
+    }
+  }
+
+  // if there aren't any blocking syncs,
+  // assume other threads have no effect on this thread
+  // and only simulate this thread
+  size_t destIdx = 0;
+  size_t cycleCounter = 0;
+  std::atomic_bool cancel = false;
+  std::vector<State> group;
+  if(!groupNumInstructions)
+    group.push_back(initialState);
+  else
+  {
+    // prepare state for all threads in the group
+    group.resize(dxbc->DispatchThreadsDimension[0] * dxbc->DispatchThreadsDimension[1] *
+                     dxbc->DispatchThreadsDimension[2],
+                 initialState);
+    for(size_t i = 0, z = 0; z < dxbc->DispatchThreadsDimension[2]; z++)
+    {
+      for(size_t y = 0; y < dxbc->DispatchThreadsDimension[1]; y++)
+      {
+        for(size_t x = 0; x < dxbc->DispatchThreadsDimension[0]; x++, i++)
+        {
+          State &state = group[i];
+          state.semantics.ThreadID[0] = uint32_t(x);
+          state.semantics.ThreadID[1] = uint32_t(y);
+          state.semantics.ThreadID[2] = uint32_t(z);
+        }
+      }
+    }
+    destIdx = (threadid[2] * dxbc->DispatchThreadsDimension[1] + threadid[1]) *
+                  dxbc->DispatchThreadsDimension[0] +
+              threadid[0];
+
+    // allocate threads to "waves" based on the number of hardware contexts available
+    std::mutex mutex;
+    std::condition_variable condition;
+    size_t waveCount = RDCMIN(group.size(), size_t(std::thread::hardware_concurrency()));
+    size_t waveSync = 0, syncIndex = 0;
+    std::vector<std::thread> waves;
+    waves.reserve(waveCount);
+    for(size_t waveIndex = 0; waveIndex != waveCount; ++waveIndex)
+    {
+      waves.push_back(std::thread([&, waveIndex]() {
+        // find the threads for this wave
+        size_t threadEnd = group.size();
+        size_t threadCount = (threadEnd + waveCount - 1) / waveCount;
+        size_t threadBegin = waveIndex * threadCount;
+        if(waveIndex + 1 != waveCount)
+          threadEnd = threadBegin + threadCount;
+        else
+          threadCount = threadEnd - threadBegin;
+
+        // simulate all threads up to the last group instruction, or until the user cancels
+        bool finished = false, synced = true;
+        while(!finished && !cancel)
+        {
+          finished = true;
+          size_t threadSync = 0;
+          for(size_t threadIndex = threadBegin; threadIndex != threadEnd; ++threadIndex)
+          {
+            State &state = group[threadIndex];
+            if(!state.Finished() && state.nextInstruction < groupNumInstructions)
+            {
+              finished = false;
+
+              // don't allow any thread to pass a blocking sync until all the threads have reached
+              // it
+              const ASMOperation &op = dxbc->GetInstruction(size_t(state.nextInstruction));
+              if(!synced && op.operation == OPCODE_SYNC && DXBC::Sync_Threads(op.syncFlags))
+                ++threadSync;
+              else
+                state = state.GetNext(global, NULL);
+            }
+          }
+          synced = threadSync == threadCount;
+
+          if(synced)
+          {
+            // all the threads in this wave have reached the next blocking sync
+            std::unique_lock<std::mutex> lock(mutex);
+            if(++waveSync != waveCount)
+            {
+              // block until the sync index changes
+              condition.wait(lock, [&, currentSyncIndex = syncIndex ]() {
+                return currentSyncIndex != syncIndex;
+              });
+            }
+            else
+            {
+              // advance the sync index and wake all the waves
+              ++syncIndex;
+              waveSync = 0;
+              lock.unlock();
+              condition.notify_all();
+            }
+          }
+
+          if(threadBegin <= destIdx && destIdx < threadEnd)
+          {
+            // add the target thread's history
+            State &state = group[destIdx];
+            if(!state.Finished() && state.nextInstruction < groupNumInstructions)
+            {
+              const ASMOperation &op = dxbc->GetInstruction(size_t(state.nextInstruction));
+              if(synced || op.operation != OPCODE_SYNC || !DXBC::Sync_Threads(op.syncFlags))
+              {
+                if(dxbc->m_DebugInfo)
+                  dxbc->m_DebugInfo->GetLocals(state.nextInstruction, op.offset, state.locals);
+                states.push_back(state);
+              }
+            }
+
+            if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+            {
+              if(PromptDebugTimeout(DXBC::TYPE_COMPUTE, uint32_t(cycleCounter)))
+                cancel = true;
+            }
+            ++cycleCounter;
+          }
+        }
+      }));
     }
 
-    states.push_back((State)initialState);
+    // block until all waves are done
+    for(std::thread &wave : waves)
+      wave.join();
 
-    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+    if(!cancel)
     {
-      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
-        break;
+      State &state = group[destIdx];
+      if(dxbc->m_DebugInfo)
+      {
+        const ASMOperation &op = dxbc->GetInstruction(size_t(state.nextInstruction));
+        dxbc->m_DebugInfo->GetLocals(state.nextInstruction, op.offset, state.locals);
+      }
+      states.push_back(state);
+    }
+  }
+
+  if(!cancel)
+  {
+    // finish the target thread, if necessary
+    State &state = group[destIdx];
+    while(!state.Finished())
+    {
+      state = state.GetNext(global, NULL);
+      if(dxbc->m_DebugInfo)
+      {
+        const ASMOperation &op = dxbc->GetInstruction(size_t(state.nextInstruction));
+        dxbc->m_DebugInfo->GetLocals(state.nextInstruction, op.offset, state.locals);
+      }
+      states.push_back(state);
+
+      if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+      {
+        if(PromptDebugTimeout(DXBC::TYPE_COMPUTE, uint32_t(cycleCounter)))
+          break;
+      }
+      ++cycleCounter;
     }
   }
 

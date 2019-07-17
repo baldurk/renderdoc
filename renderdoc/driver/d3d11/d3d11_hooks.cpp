@@ -200,6 +200,9 @@ private:
     else
       Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
 
+    // deferred contexts are needed for debugging
+    Flags &= ~D3D11_CREATE_DEVICE_SINGLETHREADED;
+
     DXGI_SWAP_CHAIN_DESC swapDesc;
     DXGI_SWAP_CHAIN_DESC *pUsedSwapDesc = NULL;
 

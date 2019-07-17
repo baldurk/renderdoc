@@ -219,7 +219,8 @@ struct ShaderStatistics
   uint32_t hsOutputPrim;
   uint32_t hsPartitioning;
   uint32_t tessellatorDomain;
-  uint32_t unknown_g[3];
+  uint32_t barrierInstructions;
+  uint32_t unknown_g[2];
 
   enum Version
   {

@@ -989,4 +989,9 @@ struct ASMOperation
   std::vector<ASMOperand> operands;
 };
 
+bool Sync_UAV_Global(uint32_t syncFlags);
+bool Sync_UAV_Group(uint32_t syncFlags);
+bool Sync_TGSM(uint32_t syncFlags);
+bool Sync_Threads(uint32_t syncFlags);
+
 };    // DXBC

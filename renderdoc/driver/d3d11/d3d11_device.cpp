@@ -2230,7 +2230,6 @@ void WrappedID3D11Device::AddDeferredContext(WrappedID3D11DeviceContext *defctx)
 
 void WrappedID3D11Device::RemoveDeferredContext(WrappedID3D11DeviceContext *defctx)
 {
-  RDCASSERT(m_DeferredContexts.find(defctx) != m_DeferredContexts.end());
   m_DeferredContexts.erase(defctx);
 }
 
