@@ -108,6 +108,29 @@ public:
 
 } eglhook;
 
+// On linux if a user doesn't link to libEGL or try to dlopen it, but just calls dlsym with
+// RTLD_NEXT it might successfully one of our functions without anything ever loading libEGL. Then
+// our attempts to call onwards will fail. When any of our functions are called we check to see if
+// DEFAULT_HANDLE is RTLD_NEXT and if so we manually load the library. This will trigger our hook
+// callback and we'll get a specific library handle.
+//
+// On other platforms this is not needed because we know the real library will be loaded before any
+// of our hooks can be called
+static void EnsureRealLibraryLoaded()
+{
+#if ENABLED(RDOC_LINUX)
+  if(eglhook.handle == DEFAULT_HANDLE)
+  {
+    RDCLOG("Loading libEGL at the last second");
+
+    void *handle = Process::LoadModule("libEGL.so");
+
+    if(!handle)
+      handle = Process::LoadModule("libEGL.so.1");
+  }
+#endif
+}
+
 HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDisplayType display)
 {
   if(RenderDoc::Inst().IsReplayApp())
@@ -117,6 +140,8 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDispl
 
     return EGL.GetDisplay(display);
   }
+
+  EnsureRealLibraryLoaded();
 
 #if ENABLED(RDOC_LINUX)
   Keyboard::CloneDisplay(display);
@@ -134,6 +159,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglBindAPI_renderdoc_hooked(EGLenum api)
 
     return EGL.BindAPI(api);
   }
+
+  EnsureRealLibraryLoaded();
 
   EGLBoolean ret = EGL.BindAPI(api);
 
@@ -155,6 +182,8 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
 
     return EGL.CreateContext(display, config, shareContext, attribList);
   }
+
+  EnsureRealLibraryLoaded();
 
   LibraryHooks::Refresh();
 
@@ -274,6 +303,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext_renderdoc_hooked(EGLDisplay
     return EGL.DestroyContext(dpy, ctx);
   }
 
+  EnsureRealLibraryLoaded();
+
   eglhook.driver.SetDriverType(eglhook.activeAPI);
   {
     SCOPED_LOCK(glLock);
@@ -296,6 +327,8 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface_renderdoc_hooked(EGLDi
 
     return EGL.CreateWindowSurface(dpy, config, win, attrib_list);
   }
+
+  EnsureRealLibraryLoaded();
 
   EGLSurface ret = EGL.CreateWindowSurface(dpy, config, win, attrib_list);
 
@@ -320,6 +353,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
 
     return EGL.MakeCurrent(display, draw, read, ctx);
   }
+
+  EnsureRealLibraryLoaded();
 
   EGLBoolean ret = EGL.MakeCurrent(display, draw, read, ctx);
 
@@ -377,6 +412,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
     return EGL.SwapBuffers(dpy, surface);
   }
 
+  EnsureRealLibraryLoaded();
+
   SCOPED_LOCK(glLock);
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
@@ -413,6 +450,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDispla
     return EGL.PostSubBufferNV(dpy, surface, x, y, width, height);
   }
 
+  EnsureRealLibraryLoaded();
+
   SCOPED_LOCK(glLock);
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
@@ -439,6 +478,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageEXT_renderdoc_hooked(
 
     return EGL.SwapBuffersWithDamageEXT(dpy, surface, rects, n_rects);
   }
+
+  EnsureRealLibraryLoaded();
 
   SCOPED_LOCK(glLock);
 
@@ -467,6 +508,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageKHR_renderdoc_hooked(
     return EGL.SwapBuffersWithDamageKHR(dpy, surface, rects, n_rects);
   }
 
+  EnsureRealLibraryLoaded();
+
   SCOPED_LOCK(glLock);
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
@@ -491,6 +534,8 @@ eglGetProcAddress_renderdoc_hooked(const char *func)
 
     return EGL.GetProcAddress(func);
   }
+
+  EnsureRealLibraryLoaded();
 
   __eglMustCastToProperFunctionPointerType realFunc = NULL;
   {
@@ -593,6 +638,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
   typedef ret (*CONCAT(function, _hooktype))();                                           \
   HOOK_EXPORT ret EGLAPIENTRY function()                                                  \
   {                                                                                       \
+    EnsureRealLibraryLoaded();                                                            \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
                                                                     STRINGIZE(function)); \
@@ -603,6 +649,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
   typedef ret (*CONCAT(function, _hooktype))(t1);                                         \
   HOOK_EXPORT ret EGLAPIENTRY function(t1 p1)                                             \
   {                                                                                       \
+    EnsureRealLibraryLoaded();                                                            \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
                                                                     STRINGIZE(function)); \
@@ -613,6 +660,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                                     \
   HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2)                                      \
   {                                                                                       \
+    EnsureRealLibraryLoaded();                                                            \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
                                                                     STRINGIZE(function)); \
@@ -623,6 +671,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                                 \
   HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2, t3 p3)                               \
   {                                                                                       \
+    EnsureRealLibraryLoaded();                                                            \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
                                                                     STRINGIZE(function)); \
@@ -633,6 +682,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                             \
   HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2, t3 p3, t4 p4)                        \
   {                                                                                       \
+    EnsureRealLibraryLoaded();                                                            \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
                                                                     STRINGIZE(function)); \
@@ -643,6 +693,7 @@ HOOK_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddre
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                         \
   HOOK_EXPORT ret EGLAPIENTRY function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                 \
   {                                                                                       \
+    EnsureRealLibraryLoaded();                                                            \
     CONCAT(function, _hooktype)                                                           \
     real = (CONCAT(function, _hooktype))Process::GetFunctionAddress(eglhook.handle,       \
                                                                     STRINGIZE(function)); \

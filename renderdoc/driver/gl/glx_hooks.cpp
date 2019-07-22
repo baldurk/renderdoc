@@ -58,6 +58,25 @@ public:
   std::set<GLXContext> contexts;
 } glxhook;
 
+// On linux if a user doesn't link to libGL/libGLX or try to dlopen it, but just calls dlsym with
+// RTLD_NEXT it might successfully one of our functions without anything ever loading libEGL. Then
+// our attempts to call onwards will fail. When any of our functions are called we check to see if
+// DEFAULT_HANDLE is RTLD_NEXT and if so we manually load the library. This will trigger our hook
+// callback and we'll get a specific library handle.
+static void EnsureRealLibraryLoaded()
+{
+  if(glxhook.handle == RTLD_NEXT)
+  {
+    RDCLOG("Loading libGL at the last second");
+
+    void *handle = Process::LoadModule("libGL.so.1");
+    if(!handle)
+      handle = Process::LoadModule("libGL.so");
+    if(!handle)
+      handle = Process::LoadModule("libGLX.so.0");
+  }
+}
+
 HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualInfo *vis,
                                                          GLXContext shareList, Bool direct)
 {
@@ -68,6 +87,8 @@ HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualIn
 
     return GLX.glXCreateContext(dpy, vis, shareList, direct);
   }
+
+  EnsureRealLibraryLoaded();
 
   GLXContext ret = GLX.glXCreateContext(dpy, vis, shareList, direct);
 
@@ -121,6 +142,8 @@ HOOK_EXPORT void glXDestroyContext_renderdoc_hooked(Display *dpy, GLXContext ctx
     return GLX.glXDestroyContext(dpy, ctx);
   }
 
+  EnsureRealLibraryLoaded();
+
   {
     SCOPED_LOCK(glLock);
     glxhook.driver.DeleteContext(ctx);
@@ -141,6 +164,8 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB_renderdoc_hooked(Display *dpy,
 
     return GLX.glXCreateContextAttribsARB(dpy, config, shareList, direct, attribList);
   }
+
+  EnsureRealLibraryLoaded();
 
   int defaultAttribList[] = {0};
 
@@ -264,6 +289,8 @@ HOOK_EXPORT Bool glXMakeCurrent_renderdoc_hooked(Display *dpy, GLXDrawable drawa
     return GLX.glXMakeCurrent(dpy, drawable, ctx);
   }
 
+  EnsureRealLibraryLoaded();
+
   Bool ret = GLX.glXMakeCurrent(dpy, drawable, ctx);
 
   if(ret)
@@ -332,6 +359,8 @@ HOOK_EXPORT Bool glXMakeContextCurrent_renderdoc_hooked(Display *dpy, GLXDrawabl
     return GLX.glXMakeContextCurrent(dpy, draw, read, ctx);
   }
 
+  EnsureRealLibraryLoaded();
+
   Bool ret = GLX.glXMakeContextCurrent(dpy, draw, read, ctx);
 
   if(ret)
@@ -398,6 +427,8 @@ HOOK_EXPORT void glXSwapBuffers_renderdoc_hooked(Display *dpy, GLXDrawable drawa
     return GLX.glXSwapBuffers(dpy, drawable);
   }
 
+  EnsureRealLibraryLoaded();
+
   SCOPED_LOCK(glLock);
 
   {
@@ -424,6 +455,8 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress_renderdoc_hooked(const GLubyte *f)
 
     return GLX.glXGetProcAddress(f);
   }
+
+  EnsureRealLibraryLoaded();
 
   const char *func = (const char *)f;
 
@@ -527,6 +560,7 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
   typedef ret (*CONCAT(function, _hooktype))();                                     \
   extern "C" __attribute__((visibility("default"))) ret function()                  \
   {                                                                                 \
+    EnsureRealLibraryLoaded();                                                      \
     CONCAT(function, _hooktype)                                                     \
     real = (CONCAT(function, _hooktype))dlsym(glxhook.handle, STRINGIZE(function)); \
     return real();                                                                  \
@@ -536,6 +570,7 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
   typedef ret (*CONCAT(function, _hooktype))(t1);                                   \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1)             \
   {                                                                                 \
+    EnsureRealLibraryLoaded();                                                      \
     CONCAT(function, _hooktype)                                                     \
     real = (CONCAT(function, _hooktype))dlsym(glxhook.handle, STRINGIZE(function)); \
     return real(p1);                                                                \
@@ -545,6 +580,7 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                               \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2)      \
   {                                                                                 \
+    EnsureRealLibraryLoaded();                                                      \
     CONCAT(function, _hooktype)                                                     \
     real = (CONCAT(function, _hooktype))dlsym(glxhook.handle, STRINGIZE(function)); \
     return real(p1, p2);                                                            \
@@ -554,6 +590,7 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                             \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3) \
   {                                                                                   \
+    EnsureRealLibraryLoaded();                                                        \
     CONCAT(function, _hooktype)                                                       \
     real = (CONCAT(function, _hooktype))dlsym(glxhook.handle, STRINGIZE(function));   \
     return real(p1, p2, p3);                                                          \
@@ -563,6 +600,7 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
   {                                                                                          \
+    EnsureRealLibraryLoaded();                                                               \
     CONCAT(function, _hooktype)                                                              \
     real = (CONCAT(function, _hooktype))dlsym(glxhook.handle, STRINGIZE(function));          \
     return real(p1, p2, p3, p4);                                                             \
@@ -572,6 +610,7 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   {                                                                                                 \
+    EnsureRealLibraryLoaded();                                                                      \
     CONCAT(function, _hooktype)                                                                     \
     real = (CONCAT(function, _hooktype))dlsym(glxhook.handle, STRINGIZE(function));                 \
     return real(p1, p2, p3, p4, p5);                                                                \
