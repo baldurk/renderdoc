@@ -162,8 +162,7 @@ if(ANDROID)
 
     set(APK_FILE ${CMAKE_BINARY_DIR}/bin/${RENDERDOC_ANDROID_PACKAGE_NAME}.apk)
     add_custom_target(apk ALL
-                      DEPENDS ${APK_FILE}
-                      DEPENDS ${KEYSTORE})
+                      DEPENDS ${APK_FILE})
 
     # Copy in android package files, replacing the package name with the architecture-specific package name
     configure_file(android/Loader.java ${CMAKE_CURRENT_BINARY_DIR}/src/org/renderdoc/renderdoccmd/Loader.java)
@@ -173,6 +172,7 @@ if(ANDROID)
     add_custom_command(OUTPUT ${APK_FILE}
                        DEPENDS renderdoc
                        DEPENDS renderdoccmd
+                       DEPENDS ${KEYSTORE}
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                        COMMAND ${CMAKE_COMMAND} -E make_directory libs/lib/${ANDROID_ABI}
                        COMMAND ${CMAKE_COMMAND} -E make_directory obj
