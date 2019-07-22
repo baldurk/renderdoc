@@ -3204,9 +3204,13 @@ a remote server.
 
 .. data:: AndroidAPKFolderNotFound
 
-  Couldn't find the build-android folder which contains the Android remote server APK.
+  Couldn't find the folder which contains the Android remote server APK.
 
 .. data:: AndroidAPKInstallFailed
+
+  Failed to install Android remote server for unknown reasons.
+
+.. data:: AndroidAPKVerifyFailed
 
   Failed to install Android remote server.
 )");
@@ -3235,7 +3239,8 @@ enum class ReplayStatus : uint32_t
   AndroidGrantPermissionsFailed,
   AndroidABINotFound,
   AndroidAPKFolderNotFound,
-  AndroidAPKInstallFailed
+  AndroidAPKInstallFailed,
+  AndroidAPKVerifyFailed,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayStatus);

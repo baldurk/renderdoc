@@ -2878,31 +2878,38 @@ bool MainWindow::LoadLayout(int layout)
 
 void MainWindow::showLaunchError(ReplayStatus status)
 {
-  QString title;
   QString message;
   switch(status)
   {
     case ReplayStatus::AndroidGrantPermissionsFailed:
-      title = tr("Permission is required");
-      message = tr("Enable RenderDocCmd to access storage on your device.");
+      message =
+          tr("Failed to automatically grant Android permissions to installed server.\n\n"
+             "Please manually allow the RenderDocCmd program storage permissions on your device "
+             "to ensure correct functionality.");
       break;
     case ReplayStatus::AndroidABINotFound:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("Couldn't determine supported ABIs.");
+      message =
+          tr("Couldn't determine supported ABIs for your device, please check device connection "
+             "and status.");
       break;
     case ReplayStatus::AndroidAPKFolderNotFound:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("APK folder missing.");
+      message = tr("Couldn't find APK folder, please check that your installation is complete.");
       break;
     case ReplayStatus::AndroidAPKInstallFailed:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("Couldn't find any installed APKs.");
-    default:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("Unknown error.");
+      message =
+          tr("Couldn't install APK, please check that your device is connected and accessible to "
+             "adb.");
+    case ReplayStatus::AndroidAPKVerifyFailed:
+      message =
+          tr("Couldn't correctly verify installed APK version.\n\n"
+             "Please check your installation is not corrupted, or if this is a custom build check "
+             "that all ABIs are built at the same version as this program.");
       break;
+    default: message = tr("Unexpected error: %1.").arg(ToQStr(status)); break;
   }
-  GUIInvoke::call(this, [this, title, message]() { RDDialog::warning(this, title, message); });
+  GUIInvoke::call(this, [this, message]() {
+    RDDialog::warning(this, tr("Problems installing RenderDoc server"), message);
+  });
 }
 
 bool MainWindow::isCapturableAppRunningOnAndroid()

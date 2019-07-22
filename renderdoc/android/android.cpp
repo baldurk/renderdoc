@@ -480,11 +480,25 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
 
     if(!success)
     {
-      status = ReplayStatus::AndroidGrantPermissionsFailed;
       RDCLOG("Failed to install APK. stdout: %s, stderr: %s", trim(adbInstall.strStdout).c_str(),
              trim(adbInstall.strStderror).c_str());
       RDCLOG("Retrying...");
       adbExecCommand(deviceID, "install -r \"" + apk + "\"");
+
+      success = CheckAndroidServerVersion(deviceID, abi);
+
+      if(success)
+      {
+        // if it succeeded this time, then it was the permission grant that failed
+        status = ReplayStatus::AndroidGrantPermissionsFailed;
+      }
+      else
+      {
+        // otherwise something went wrong with verifying. If the install failed completely we'll
+        // return AndroidAPKInstallFailed below, otherwise return a code indicating we couldn't
+        // verify the install properly.
+        status = ReplayStatus::AndroidAPKVerifyFailed;
+      }
     }
   }
 
@@ -653,7 +667,8 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteS
 
     // If server is not detected or has been removed due to incompatibility, install it
     status = Android::InstallRenderDocServer(deviceID);
-    if(status != ReplayStatus::Succeeded && status != ReplayStatus::AndroidGrantPermissionsFailed)
+    if(status != ReplayStatus::Succeeded && status != ReplayStatus::AndroidGrantPermissionsFailed &&
+       status != ReplayStatus::AndroidAPKVerifyFailed)
     {
       RDCERR("Failed to install RenderDoc server app");
       return status;
