@@ -1094,8 +1094,13 @@ void GLPushPopState::Pop(bool modern)
   if(modern)
   {
     for(size_t i = 0; i < ARRAY_COUNT(idxubo); i++)
-      GL.glBindBufferRange(eGL_UNIFORM_BUFFER, (GLuint)i, idxubo[i].buf, (GLintptr)idxubo[i].offs,
-                           (GLsizeiptr)idxubo[i].size);
+    {
+      if(idxubo[i].offs == 0 && idxubo[i].size == 0)
+        GL.glBindBufferBase(eGL_UNIFORM_BUFFER, (GLuint)i, idxubo[i].buf);
+      else
+        GL.glBindBufferRange(eGL_UNIFORM_BUFFER, (GLuint)i, idxubo[i].buf, (GLintptr)idxubo[i].offs,
+                             (GLsizeiptr)idxubo[i].size);
+    }
 
     GL.glBindBuffer(eGL_UNIFORM_BUFFER, ubo);
 
