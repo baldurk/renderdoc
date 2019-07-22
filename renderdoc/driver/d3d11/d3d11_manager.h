@@ -297,6 +297,7 @@ public:
   }
 
   void SetInternalResource(ID3D11DeviceChild *res);
+  void FreeCaptureData();
 
 private:
   ResourceId GetID(ID3D11DeviceChild *res);

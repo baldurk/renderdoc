@@ -290,7 +290,7 @@ public:
   void Present(UINT SyncInterval, UINT Flags);
 
   void CleanupCapture();
-  void FreeCaptureData();
+  bool ShadowStorageInUse(D3D11ResourceRecord *record);
 
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {

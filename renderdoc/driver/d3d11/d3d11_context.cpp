@@ -554,33 +554,15 @@ void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
   m_ContextRecord->AddChunk(scope.Get());
 }
 
-void WrappedID3D11DeviceContext::FreeCaptureData()
+bool WrappedID3D11DeviceContext::ShadowStorageInUse(D3D11ResourceRecord *record)
 {
-  SCOPED_LOCK(m_pDevice->D3DLock());
+  ResourceId id = record->GetResourceID();
 
-  for(auto it = WrappedID3D11Buffer::m_BufferList.begin();
-      it != WrappedID3D11Buffer::m_BufferList.end(); ++it)
-  {
-    D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(it->first);
+  for(auto mapit = m_OpenMaps.begin(); mapit != m_OpenMaps.end(); ++mapit)
+    if(mapit->first.resource == id)
+      return true;
 
-    if(record == NULL)
-      continue;
-
-    bool inuse = false;
-    for(auto mapit = m_OpenMaps.begin(); mapit != m_OpenMaps.end(); ++mapit)
-    {
-      if(mapit->first.resource == it->first)
-      {
-        inuse = true;
-        break;
-      }
-    }
-
-    if(inuse)
-      continue;
-
-    record->FreeShadowStorage();
-  }
+  return false;
 }
 
 void WrappedID3D11DeviceContext::CleanupCapture()

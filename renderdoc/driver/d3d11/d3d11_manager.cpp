@@ -59,6 +59,19 @@ void D3D11ResourceManager::SetInternalResource(ID3D11DeviceChild *res)
   }
 }
 
+void D3D11ResourceManager::FreeCaptureData()
+{
+  for(auto it = m_ResourceRecords.begin(); it != m_ResourceRecords.end(); ++it)
+  {
+    D3D11ResourceRecord *record = it->second;
+
+    if(record == NULL || m_Device->GetImmediateContext()->ShadowStorageInUse(record))
+      continue;
+
+    record->FreeShadowStorage();
+  }
+}
+
 ResourceId D3D11ResourceManager::GetID(ID3D11DeviceChild *res)
 {
   return GetIDForResource(res);
