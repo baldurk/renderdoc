@@ -80,7 +80,7 @@ This is not supported on Linux or Android due to the differing methods of hookin
     :return: None
 
 
-.. cpp:function:: void SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
+.. cpp:function:: int SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
 
     Set one of the options for tweaking some behaviours of capturing. Note that each option only takes effect from after it is set - so it is advised to set these options as early as possible, ideally before any graphics API has been initialised.
 
@@ -88,7 +88,7 @@ This is not supported on Linux or Android due to the differing methods of hookin
     :param uint32_t val: the unsigned integer value to set for the above option.
     :return: The function returns 1 if the option is valid, and the value set on the option is within valid ranges. The function returns 0 if the option is not a :cpp:enum:`RENDERDOC_CaptureOption` enum, or the value is not valid for the option.
 
-.. cpp:function:: void SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
+.. cpp:function:: int SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
 
     Set one of the options for tweaking some behaviours of capturing. Note that each option only takes effect from after it is set - so it is advised to set these options as early as possible, ideally before any graphics API has been initialised..
 
@@ -402,12 +402,14 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
 
     :return: Returns ``1`` if the frame is currently capturing, or ``0`` otherwise.
 
-.. cpp:function:: void EndFrameCapture(RENDERDOC_DevicePointer device, RENDERDOC_WindowHandle wndHandle)
+.. cpp:function:: uint32_t EndFrameCapture(RENDERDOC_DevicePointer device, RENDERDOC_WindowHandle wndHandle)
 
     This function will immediately end an active capture for the specified device/window combination.
 
     :param RENDERDOC_DevicePointer device: is a handle to the API 'device' object that will be set active. May be NULL to wildcard match.
     :param RENDERDOC_WindowHandle wndHandle: is a handle to the platform window handle that will be set active. May be NULL to wildcard match.
+
+    :return: Returns ``1`` if the capture succeeded, and 0 if there was an error capturing.
 
 .. note::
 
@@ -418,12 +420,14 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
 
     There will be undefined results if there is not an active frame capture for the device/window combination.
 
-.. cpp:function:: void DiscardFrameCapture(RENDERDOC_DevicePointer device, RENDERDOC_WindowHandle wndHandle)
+.. cpp:function:: uint32_t DiscardFrameCapture(RENDERDOC_DevicePointer device, RENDERDOC_WindowHandle wndHandle)
 
     This function is similar to :cpp:func:`EndFrameCapture` but the capture contents will be discarded immediately, and not processed and written to disk. This will be more efficient than :cpp:func:`EndFrameCapture` if the frame capture is not needed.
 
     :param RENDERDOC_DevicePointer device: is a handle to the API 'device' object that will be set active. May be NULL to wildcard match.
     :param RENDERDOC_WindowHandle wndHandle: is a handle to the platform window handle that will be set active. May be NULL to wildcard match.
+
+    :return: Returns ``1`` if the capture was discarded, and 0 if there was an error or no capture was in progress.
 
 .. note::
 
