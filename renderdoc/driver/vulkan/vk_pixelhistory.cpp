@@ -42,12 +42,16 @@ struct PixelHistoryResources
   VkDeviceMemory gpuMem;
 };
 
+struct PixelHistoryValue
+{
+  uint8_t color[16];
+  uint8_t depth[8];
+};
+
 struct EventInfo
 {
-  uint8_t premod[16];
-  uint8_t premod_depth[8];
-  uint8_t postmod[16];
-  uint8_t postmod_depth[8];
+  PixelHistoryValue premod;
+  PixelHistoryValue postmod;
   uint8_t shadout[16];
   uint8_t fixed_stencil[8];
   uint8_t original_stencil[8];
@@ -66,7 +70,6 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
         m_Image(image),
         m_Format(format),
         m_DstBuffer(dstBuffer),
-        m_EventIndex(0),
         m_SampleMask(sampleMask),
         m_OcclusionPool(occlusionPool),
         m_ColorImageView(colorImageView),
@@ -80,7 +83,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
       m_Events.insert(std::make_pair(events[i].eventId, events[i]));
   }
   ~VulkanPixelHistoryCallback() { m_pDriver->SetDrawcallCB(NULL); }
-  void CopyPixel(uint32_t eid, VkCommandBuffer cmd, uint32_t offset)
+  void CopyPixel(uint32_t eid, VkCommandBuffer cmd, size_t offset)
   {
     CopyPixelParams colourCopyParams = {};
     colourCopyParams.multisampled = false;    // TODO: multisampled
@@ -105,7 +108,8 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
           (VkImage)m_pDriver->GetResourceManager()->GetCurrentResource(depthImage);
       depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       depthCopyParams.srcImageFormat = imginfo.format;
-      m_pDriver->GetDebugManager()->PixelHistoryCopyPixel(cmd, depthCopyParams, offset + 16);
+      m_pDriver->GetDebugManager()->PixelHistoryCopyPixel(
+          cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
     }
   }
 
@@ -117,14 +121,14 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     EventUsage event = it->second;
     m_PrevState = m_pDriver->GetRenderState();
 
+    // TODO: handle secondary command buffers.
     m_pDriver->GetRenderState().EndRenderPass(cmd);
     // Get pre-modification values
-    uint32_t storeOffset = m_EventIndex * sizeof(EventInfo);
+    size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset);
 
     // TODO: add all logic for draw calls.
 
-    m_pDriver->GetRenderState() = m_PrevState;
     if(m_PrevState.graphics.pipeline != ResourceId())
       m_pDriver->GetRenderState().BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
   }
@@ -136,13 +140,13 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
 
     m_pDriver->GetRenderState().EndRenderPass(cmd);
 
-    uint32_t storeOffset = m_EventIndex * sizeof(EventInfo);
+    size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod));
 
     m_pDriver->GetRenderState().BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
 
     // Get post-modification values
-    m_EventIndex++;
+    m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
     return false;
   }
 
@@ -156,7 +160,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     if(m_Events.find(eid) == m_Events.end())
       return;
 
-    uint32_t storeOffset = m_EventIndex * sizeof(EventInfo);
+    size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset);
   }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd)
@@ -164,9 +168,9 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     if(m_Events.find(eid) == m_Events.end())
       return false;
 
-    uint32_t storeOffset = m_EventIndex * sizeof(EventInfo);
+    size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod));
-    m_EventIndex++;
+    m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
     return false;
   }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
@@ -175,7 +179,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     if(m_Events.find(eid) == m_Events.end())
       return;
 
-    uint32_t storeOffset = m_EventIndex * sizeof(EventInfo);
+    size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset);
   }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd)
@@ -183,9 +187,9 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     if(m_Events.find(eid) == m_Events.end())
       return false;
 
-    uint32_t storeOffset = m_EventIndex * sizeof(EventInfo);
+    size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod));
-    m_EventIndex++;
+    m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
     return false;
   }
 
@@ -193,14 +197,14 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
-    // don't care
+    // TODO: handled aliased events.
   }
 
   WrappedVulkan *m_pDriver;
   VkImage m_Image;
   VkFormat m_Format;
   std::map<uint32_t, EventUsage> m_Events;
-  uint32_t m_EventIndex;
+  std::map<uint32_t, size_t> m_EventIndices;
   VkBuffer m_DstBuffer;
   uint32_t m_X, m_Y;
 
@@ -214,8 +218,9 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
   VulkanRenderState m_PrevState;
 };
 
-bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resources, VkExtent3D extent,
-                                        VkFormat format, uint32_t numEvents)
+bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resources,
+                                                    VkExtent3D extent, VkFormat format,
+                                                    uint32_t numEvents)
 {
   VkImage colorImage;
   VkImageView colorImageView;
@@ -380,13 +385,13 @@ bool VulkanDebugManager::PixelHistoryDestroyResources(const PixelHistoryResource
   return true;
 }
 
-void VulkanDebugManager::PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, int32_t offset)
+void VulkanDebugManager::PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset)
 {
   std::vector<VkBufferImageCopy> regions;
   // Check if depth image includes depth and stencil
   VkImageAspectFlags aspectFlags = 0;
   VkBufferImageCopy region = {};
-  region.bufferOffset = offset;
+  region.bufferOffset = (uint64_t)offset;
   region.bufferRowLength = 0;
   region.bufferImageHeight = 0;
   region.imageOffset = p.imageOffset;
@@ -506,11 +511,6 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
   if(sampleIdx == ~0U || !multisampled)
     sampleIdx = 0;
 
-  // Replay up to (and not including) the first event.
-  m_pDriver->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
-
   RDCASSERT(m_pDriver->GetDeviceFeatures().occlusionQueryPrecise);
   VkPhysicalDeviceProperties props = m_pDriver->GetDeviceProps();
   VkPhysicalDeviceFeatures features = m_pDriver->GetDeviceFeatures();
@@ -520,13 +520,13 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
 
   PixelHistoryResources resources = {};
   GetDebugManager()->PixelHistorySetupResources(resources, imginfo.extent, imginfo.format,
-                                    (uint32_t)events.size());
+                                                (uint32_t)events.size());
 
   VulkanPixelHistoryCallback cb(
       m_pDriver, x, y, (VkImage)GetResourceManager()->GetCurrentResource(target), imginfo.format,
       sampleMask, occlusionPool, resources.colorImageView, resources.stencilImageView,
       resources.colorImage, resources.stencilImage, resources.dstBuffer, events);
-  m_pDriver->ReplayLog(events.front().eventId, events.back().eventId, eReplay_Full);
+  m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
@@ -552,7 +552,6 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
       mod.directShaderWrite = uavWrite;
       mod.unboundPS = false;
 
-      mod.preMod.col.uintValue[0] = (uint32_t)ev;
       if(!clear && !uavWrite)
       {
         // TODO: fill in flags for the modification.
@@ -572,27 +571,25 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
   for(size_t h = 0; h < history.size(); h++)
   {
     PixelModification &mod = history[h];
-    uint32_t pre = mod.preMod.col.uintValue[0];
-
-    mod.preMod.col.uintValue[0] = 0;
 
     ModificationValue preMod, postMod, shadout;
-    preMod.col.floatValue[0] = (float)(eventsInfo[pre].premod[2] / 255.0);
-    preMod.col.floatValue[1] = (float)(eventsInfo[pre].premod[1] / 255.0);
-    preMod.col.floatValue[2] = (float)(eventsInfo[pre].premod[0] / 255.0);
-    preMod.col.floatValue[3] = (float)(eventsInfo[pre].premod[3] / 255.0);
-    postMod.col.floatValue[0] = (float)(eventsInfo[pre].postmod[2] / 255.0);
-    postMod.col.floatValue[1] = (float)(eventsInfo[pre].postmod[1] / 255.0);
-    postMod.col.floatValue[2] = (float)(eventsInfo[pre].postmod[0] / 255.0);
-    postMod.col.floatValue[3] = (float)(eventsInfo[pre].shadout[3] / 255.0);
-    shadout.col.floatValue[0] = (float)(eventsInfo[pre].shadout[2] / 255.0);
-    shadout.col.floatValue[1] = (float)(eventsInfo[pre].shadout[1] / 255.0);
-    shadout.col.floatValue[2] = (float)(eventsInfo[pre].shadout[0] / 255.0);
-    shadout.col.floatValue[3] = (float)(eventsInfo[pre].shadout[3] / 255.0);
-    preMod.depth = *((float *)eventsInfo[pre].premod_depth);
-    preMod.stencil = eventsInfo[pre].premod_depth[4];
-    postMod.depth = *((float *)eventsInfo[pre].postmod_depth);
-    postMod.stencil = eventsInfo[pre].postmod_depth[4];
+    const EventInfo &ei = eventsInfo[cb.m_EventIndices[mod.eventId]];
+    preMod.col.floatValue[0] = (float)(ei.premod.color[2] / 255.0);
+    preMod.col.floatValue[1] = (float)(ei.premod.color[1] / 255.0);
+    preMod.col.floatValue[2] = (float)(ei.premod.color[0] / 255.0);
+    preMod.col.floatValue[3] = (float)(ei.premod.color[3] / 255.0);
+    postMod.col.floatValue[0] = (float)(ei.postmod.color[2] / 255.0);
+    postMod.col.floatValue[1] = (float)(ei.postmod.color[1] / 255.0);
+    postMod.col.floatValue[2] = (float)(ei.postmod.color[0] / 255.0);
+    postMod.col.floatValue[3] = (float)(ei.shadout[3] / 255.0);
+    shadout.col.floatValue[0] = (float)(ei.shadout[2] / 255.0);
+    shadout.col.floatValue[1] = (float)(ei.shadout[1] / 255.0);
+    shadout.col.floatValue[2] = (float)(ei.shadout[0] / 255.0);
+    shadout.col.floatValue[3] = (float)(ei.shadout[3] / 255.0);
+    preMod.depth = *((float *)ei.premod.depth);
+    preMod.stencil = ei.premod.depth[4];
+    postMod.depth = *((float *)ei.postmod.depth);
+    postMod.stencil = ei.postmod.depth[4];
 
     mod.preMod = preMod;
     mod.shaderOut = shadout;

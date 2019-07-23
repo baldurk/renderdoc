@@ -83,11 +83,11 @@ public:
   void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
 
-  bool PixelHistorySetupResources(PixelHistoryResources &resources, VkExtent3D extent, VkFormat format,
-                      uint32_t numEvents);
+  bool PixelHistorySetupResources(PixelHistoryResources &resources, VkExtent3D extent,
+                                  VkFormat format, uint32_t numEvents);
   bool PixelHistoryDestroyResources(const PixelHistoryResources &resources);
 
-  void PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, int32_t x);
+  void PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset);
 
   VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlags aspect, uint32_t mip);
 
