@@ -24,8 +24,6 @@
  ******************************************************************************/
 
 #include "driver/dxgi/dxgi_wrapped.h"
-#include <stddef.h>
-#include <stdio.h>
 #include "core/core.h"
 #include "serialise/serialiser.h"
 
