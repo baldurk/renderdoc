@@ -2537,6 +2537,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
     modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
     modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
+    modQueues[createInfo.queueCreateInfoCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    modQueues[createInfo.queueCreateInfoCount].pNext = NULL;
+    modQueues[createInfo.queueCreateInfoCount].flags = 0;
 
     createInfo.pQueueCreateInfos = modQueues;
     createInfo.queueCreateInfoCount++;
