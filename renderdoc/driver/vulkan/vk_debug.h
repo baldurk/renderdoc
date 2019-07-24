@@ -91,7 +91,7 @@ public:
 
   VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlags aspect, uint32_t mip);
 
-  VulkanCreationInfo::Image GetImageInfo(ResourceId img);
+  const VulkanCreationInfo::Image &GetImageInfo(ResourceId img);
 
 private:
   // GetBufferData

@@ -1,11 +1,33 @@
-#include <stdio.h>
-#include <sys/types.h>
+/******************************************************************************
+* The MIT License (MIT)
+*
+* Copyright (c) 2016-2019 Baldur Karlsson
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+******************************************************************************/
+
 #include <vector>
 #include "driver/vulkan/vk_debug.h"
 #include "driver/vulkan/vk_replay.h"
 #include "vk_shader_cache.h"
 
-bool isUsageUAV(ResourceUsage usage)
+bool isDirectWrite(ResourceUsage usage)
 {
   return ((usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource) ||
           usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
@@ -57,6 +79,19 @@ struct EventInfo
   uint8_t original_stencil[8];
 };
 
+#if 1
+
+std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
+                                                          ResourceId target, uint32_t x, uint32_t y,
+                                                          uint32_t slice, uint32_t mip,
+                                                          uint32_t sampleIdx, CompType typeHint)
+{
+  VULKANNOTIMP("PixelHistory");
+  return std::vector<PixelModification>();
+}
+
+#else
+
 struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
 {
   VulkanPixelHistoryCallback(WrappedVulkan *vk, uint32_t x, uint32_t y, VkImage image,
@@ -91,7 +126,9 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     colourCopyParams.srcImageLayout =
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;    // TODO: image layout
     colourCopyParams.srcImageFormat = m_Format;
-    colourCopyParams.imageOffset = VkOffset3D{int32_t(m_X), int32_t(m_Y), 0};
+    colourCopyParams.imageOffset.x = int32_t(m_X);
+    colourCopyParams.imageOffset.y = int32_t(m_Y);
+    colourCopyParams.imageOffset.z = 0;
     colourCopyParams.dstBuffer = m_DstBuffer;
 
     m_pDriver->GetDebugManager()->PixelHistoryCopyPixel(cmd, colourCopyParams, offset);
@@ -101,11 +138,12 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     {
       // The draw call had a depth image attachment.
       ResourceId depthImage = m_pDriver->GetResourceManager()->GetLiveID(draw->depthOut);
-      VulkanCreationInfo::Image imginfo = m_pDriver->GetDebugManager()->GetImageInfo(depthImage);
+      const VulkanCreationInfo::Image &imginfo =
+          m_pDriver->GetDebugManager()->GetImageInfo(depthImage);
       CopyPixelParams depthCopyParams = colourCopyParams;
       depthCopyParams.depthcopy = true;
       depthCopyParams.srcImage =
-          (VkImage)m_pDriver->GetResourceManager()->GetCurrentResource(depthImage);
+          m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthImage);
       depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       depthCopyParams.srcImageFormat = imginfo.format;
       m_pDriver->GetDebugManager()->PixelHistoryCopyPixel(
@@ -395,7 +433,9 @@ void VulkanDebugManager::PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelPar
   region.bufferRowLength = 0;
   region.bufferImageHeight = 0;
   region.imageOffset = p.imageOffset;
-  region.imageExtent = VkExtent3D{1U, 1U, 1U};
+  region.imageExtent.width = 1U;
+  region.imageExtent.height = 1U;
+  region.imageExtent.depth = 1U;
   if(!p.depthcopy)
   {
     region.imageSubresource = VkImageSubresourceLayers{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
@@ -462,7 +502,7 @@ VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspect
 {
   VkImageLayout imgLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   const ImageLayouts &imgLayouts = m_pDriver->m_ImageLayouts[image];
-  for(const auto &resState : imgLayouts.subresourceStates)
+  for(const ImageRegionState &resState : imgLayouts.subresourceStates)
   {
     VkImageSubresourceRange range = resState.subresourceRange;
 
@@ -488,7 +528,7 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
   if(events.empty())
     return history;
 
-  VulkanCreationInfo::Image imginfo = GetDebugManager()->GetImageInfo(target);
+  const VulkanCreationInfo::Image &imginfo = GetDebugManager()->GetImageInfo(target);
   if(imginfo.format == VK_FORMAT_UNDEFINED)
     return history;
 
@@ -523,7 +563,7 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
                                                 (uint32_t)events.size());
 
   VulkanPixelHistoryCallback cb(
-      m_pDriver, x, y, (VkImage)GetResourceManager()->GetCurrentResource(target), imginfo.format,
+      m_pDriver, x, y, GetResourceManager()->GetCurrentHandle<VkImage>(target), imginfo.format,
       sampleMask, occlusionPool, resources.colorImageView, resources.stencilImageView,
       resources.colorImage, resources.stencilImage, resources.dstBuffer, events);
   m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
@@ -534,7 +574,7 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
   {
     const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[ev].eventId);
     bool clear = bool(draw->flags & DrawFlags::Clear);
-    bool uavWrite = isUsageUAV(events[ev].usage);
+    bool directWrite = isDirectWrite(events[ev].usage);
     // TODO: actually do occlusion query.
     uint64_t occlData = 1;
 
@@ -543,16 +583,16 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
       // TODO
     }
 
-    if(occlData > 0 || clear || uavWrite)
+    if(occlData > 0 || clear || directWrite)
     {
       PixelModification mod;
       RDCEraseEl(mod);
 
       mod.eventId = events[ev].eventId;
-      mod.directShaderWrite = uavWrite;
+      mod.directShaderWrite = directWrite;
       mod.unboundPS = false;
 
-      if(!clear && !uavWrite)
+      if(!clear && !directWrite)
       {
         // TODO: fill in flags for the modification.
       }
@@ -602,3 +642,5 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
 
   return history;
 }
+
+#endif
