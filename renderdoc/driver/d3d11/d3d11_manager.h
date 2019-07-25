@@ -264,7 +264,10 @@ struct D3D11InitialContents
       : resourceType(t), tag(UAVCount), resource(NULL), resource2(NULL), uavCount(c)
   {
   }
-  D3D11InitialContents() : resourceType(Resource_Unknown), tag(Copy), resource(NULL), uavCount(0) {}
+  D3D11InitialContents()
+      : resourceType(Resource_Unknown), tag(Copy), resource(NULL), resource2(NULL), uavCount(0)
+  {
+  }
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
