@@ -181,9 +181,9 @@ class Iter_Test(rdtest.TestCase):
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
 
         actions = {
-            'Image Save': {'chance': 0.25, 'func': self.image_save},
-            'Vertex Debug': {'chance': 1.0, 'func': self.vert_debug},
-            'Pixel History & Debug': {'chance': 1.0, 'func': self.pixel_debug},
+            'Image Save': {'chance': do_image_save, 'func': self.image_save},
+            'Vertex Debug': {'chance': do_vert_debug, 'func': self.vert_debug},
+            'Pixel History & Debug': {'chance': do_pixel_debug, 'func': self.pixel_debug},
         }
 
         # To choose an action, if we're going to do one, we take random in range(0, choice_max) then check each action
