@@ -1435,21 +1435,6 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   GetResourceManager()->ClearReferencedResources();
   GetResourceManager()->ClearReferencedMemory();
 
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
-
-  std::map<ResourceId, FrameRefType> forced = GetForcedReferences();
-
-  // Note we force read-before-write because this resource is implicitly untracked so we have no
-  // way of knowing how it's used
-  for(auto it = forced.begin(); it != forced.end(); ++it)
-  {
-    GetResourceManager()->MarkResourceFrameReferenced(it->first, eFrameRef_Read);
-    if(it->second != eFrameRef_Read)
-      GetResourceManager()->MarkResourceFrameReferenced(it->first, it->second);
-  }
-
   // need to do all this atomically so that no other commands
   // will check to see if they need to markdirty or markpendingdirty
   // and go into the frame record.
@@ -1505,6 +1490,21 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     }
 
     m_State = CaptureState::ActiveCapturing;
+  }
+
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
+
+  std::map<ResourceId, FrameRefType> forced = GetForcedReferences();
+
+  // Note we force read-before-write because this resource is implicitly untracked so we have no
+  // way of knowing how it's used
+  for(auto it = forced.begin(); it != forced.end(); ++it)
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(it->first, eFrameRef_Read);
+    if(it->second != eFrameRef_Read)
+      GetResourceManager()->MarkResourceFrameReferenced(it->first, it->second);
   }
 
   RDCLOG("Starting capture, frame %u", m_FrameCounter);

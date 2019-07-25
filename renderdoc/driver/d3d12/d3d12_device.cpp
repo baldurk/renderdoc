@@ -1511,8 +1511,6 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->ClearReferencedResources();
 
-  GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
-
   // need to do all this atomically so that no other commands
   // will check to see if they need to markdirty or markpendingdirty
   // and go into the frame record.
@@ -1556,6 +1554,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
     m_State = CaptureState::ActiveCapturing;
   }
+
+  GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
 
   RDCLOG("Starting capture, frame %u", m_FrameCounter);
 }
