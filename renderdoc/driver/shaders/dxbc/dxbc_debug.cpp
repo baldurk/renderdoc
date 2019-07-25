@@ -1178,6 +1178,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     }
   }
 
+  // is this type a flushable input (for float operations)
+  bool flushable = true;
+
   switch(oper.type)
   {
     case TYPE_TEMP:
@@ -1247,6 +1250,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
       // should be handled specially by instructions that expect these types of
       // argument but let's be sane and include the index
       v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
+      flushable = false;
       break;
     }
     case TYPE_IMMEDIATE32:
@@ -1452,7 +1456,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     v = neg(v, OperationType(op.operation));
   }
 
-  if(OperationFlushing(op.operation))
+  if(OperationFlushing(op.operation) && flushable)
   {
     for(int i = 0; i < 4; i++)
       v.value.fv[i] = flush_denorm(v.value.fv[i]);
