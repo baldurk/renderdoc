@@ -1337,9 +1337,6 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
                   (dxbc->m_InputSig[i].regChannelMask & 0x4 ? 1 : 0) +
                   (dxbc->m_InputSig[i].regChannelMask & 0x8 ? 1 : 0);
 
-    if(included)
-      structureStride += 4 * numCols;
-
     std::string name = dxbc->m_InputSig[i].semanticIdxName;
 
     // arrays of interpolators are handled really weirdly. They use cbuffer
@@ -1396,6 +1393,12 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       if(arrayLength > 0)
         arrays.push_back(make_rdcpair(dxbc->m_InputSig[i].semanticName,
                                       make_rdcpair(dxbc->m_InputSig[i].semanticIndex, nextIdx - 1)));
+    }
+
+    if(included)
+    {
+      // in UAV structs, arrays are packed tightly, so just multiply by arrayLength
+      structureStride += 4 * numCols * RDCMAX(1, arrayLength);
     }
 
     // as another side effect of the above, an element declared as a 1-length array won't be
