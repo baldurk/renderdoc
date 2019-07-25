@@ -132,7 +132,7 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Fetching history for %d,%d on target %s" % (x, y, str(target)))
 
-        history = self.controller.PixelHistory(target, x, y, 0, 0, 0xffffffff, rd.CompType.Typeless)
+        history = self.controller.PixelHistory(target, x, y, 0, 0, 0, rd.CompType.Typeless)
 
         rdtest.log.success("Pixel %d,%d has %d history events" % (x, y, len(history)))
 
@@ -153,16 +153,32 @@ class Iter_Test(rdtest.TestCase):
 
             if mod.sampleMasked or mod.backfaceCulled or mod.depthClipped or mod.viewClipped or mod.scissorClipped or mod.depthTestFailed or mod.stencilTestFailed:
                 rdtest.log.print("This hit failed, looking for one that passed....")
+                lastmod = None
                 continue
 
             break
 
         if lastmod is not None:
-            rdtest.log.print("Debugging pixel {},{} @ {}".format(x, y, lastmod.eventId))
+            rdtest.log.print("Debugging pixel {},{} @ {}, primitve {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
             self.controller.SetFrameEvent(lastmod.eventId, True)
-            trace = self.controller.DebugPixel(x, y, 0xffffffff, 0xffffffff)
 
-            rdtest.log.success('Successfully debugged pixel in {} cycles'.format(len(trace.states)))
+            trace = self.controller.DebugPixel(x, y, 0, lastmod.primitiveID)
+
+            if draw.outputs[0] == rd.ResourceId.Null():
+                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(len(trace.states)))
+            elif draw.numInstances == 1:
+                lastState: rd.ShaderDebugState = trace.states[-1]
+
+                debugged: rd.ShaderVariable = lastState.outputs[0]
+
+                debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
+
+                if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]):
+                    raise rdtest.TestFailureException("Debugged value {} doesn't match picked value {}".format(debuggedValue, lastmod.shaderOut.col.floatValue))
+
+                rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(len(trace.states)))
+            else:
+                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to instancing'.format(len(trace.states)))
 
             self.controller.SetFrameEvent(draw.eventId, True)
 
