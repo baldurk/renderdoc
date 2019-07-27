@@ -147,6 +147,55 @@ public:
   std::map<SampleEvalCacheKey, ShaderVariable> sampleEvalCache;
 };
 
+struct SampleGatherResourceData
+{
+  DXBC::ResourceDimension dim;
+  DXBC::ResourceRetType retType;
+  int sampleCount;
+  UINT slot;
+};
+
+struct SampleGatherSamplerData
+{
+  DXBC::SamplerMode mode;
+  UINT slot;
+  float bias;
+};
+
+enum class GatherChannel : uint8_t
+{
+  Red = 0,
+  Green = 1,
+  Blue = 2,
+  Alpha = 3,
+};
+
+class DebugAPIWrapper
+{
+public:
+  virtual void SetCurrentInstruction(uint32_t instruction) = 0;
+  virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
+                               std::string d) = 0;
+
+  virtual bool CalculateMathIntrinsic(DXBC::OpcodeType opcode, const ShaderVariable &input,
+                                      ShaderVariable &output1, ShaderVariable &output2) = 0;
+
+  virtual ShaderVariable GetSampleInfo(DXBC::OperandType type, bool isAbsoluteResource, UINT slot,
+                                       const char *opString) = 0;
+
+  virtual ShaderVariable GetBufferInfo(DXBC::OperandType type, UINT slot, const char *opString) = 0;
+  virtual ShaderVariable GetResourceInfo(DXBC::OperandType type, UINT slot, uint32_t mipLevel,
+                                         int &dim) = 0;
+
+  virtual bool CalculateSampleGather(DXBC::OpcodeType opcode, SampleGatherResourceData resourceData,
+                                     SampleGatherSamplerData samplerData, ShaderVariable uv,
+                                     ShaderVariable ddxCalc, ShaderVariable ddyCalc,
+                                     const int texelOffsets[3], int multisampleIndex,
+                                     float lodOrCompareValue, const uint8_t swizzle[4],
+                                     GatherChannel gatherChannel, const char *opString,
+                                     ShaderVariable &output) = 0;
+};
+
 class State : public ShaderDebugState
 {
 public:
@@ -158,10 +207,9 @@ public:
     done = false;
     trace = NULL;
     dxbc = NULL;
-    device = NULL;
     RDCEraseEl(semantics);
   }
-  State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCFile *f, WrappedID3D11Device *d)
+  State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCFile *f)
   {
     quadIndex = quadIdx;
     nextInstruction = 0;
@@ -169,7 +217,6 @@ public:
     done = false;
     trace = t;
     dxbc = f;
-    device = d;
     RDCEraseEl(semantics);
   }
 
@@ -192,7 +239,7 @@ public:
   void Init();
   bool Finished() const;
 
-  State GetNext(GlobalState &global, State quad[4]) const;
+  State GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State quad[4]) const;
 
 private:
   // index in the pixel quad
@@ -223,7 +270,6 @@ private:
 
   DXBC::DXBCFile *dxbc;
   const ShaderDebugTrace *trace;
-  WrappedID3D11Device *device;
 };
 
 };    // namespace ShaderDebug
