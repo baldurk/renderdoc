@@ -4520,7 +4520,8 @@ void WrappedVulkan::vkCmdBindTransformFeedbackBuffersEXT(VkCommandBuffer command
       {
         size = pSizes[i];
       }
-      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], size, eFrameRef_Read);
+      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], size,
+                                        eFrameRef_PartialWrite);
     }
   }
 }
@@ -4609,6 +4610,15 @@ void WrappedVulkan::vkCmdBeginTransformFeedbackEXT(VkCommandBuffer commandBuffer
                                              pCounterBuffers, pCounterBufferOffsets);
 
     record->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < bufferCount; i++)
+    {
+      if(pCounterBuffers && pCounterBuffers[i] != VK_NULL_HANDLE)
+      {
+        VkDeviceSize offset = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
+        record->MarkBufferFrameReferenced(GetRecord(pCounterBuffers[i]), offset, 4,
+                                          eFrameRef_ReadBeforeWrite);
+      }
+    }
   }
 }
 
@@ -4689,6 +4699,15 @@ void WrappedVulkan::vkCmdEndTransformFeedbackEXT(VkCommandBuffer commandBuffer,
                                            pCounterBuffers, pCounterBufferOffsets);
 
     record->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < bufferCount; i++)
+    {
+      if(pCounterBuffers && pCounterBuffers[i] != VK_NULL_HANDLE)
+      {
+        VkDeviceSize offset = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
+        record->MarkBufferFrameReferenced(GetRecord(pCounterBuffers[i]), offset, 4,
+                                          eFrameRef_ReadBeforeWrite);
+      }
+    }
   }
 }
 
