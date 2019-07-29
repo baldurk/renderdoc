@@ -708,16 +708,23 @@ void GLReplay::InitDebugData()
   drv.glGenFramebuffers(1, &DebugData.pickPixelFBO);
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.pickPixelFBO);
 
-  drv.glGenBuffers(1, &DebugData.dummyTexBufferStore);
-  drv.glBindBuffer(eGL_TEXTURE_BUFFER, DebugData.dummyTexBufferStore);
-  drv.glNamedBufferDataEXT(DebugData.dummyTexBufferStore, 32, NULL, eGL_STATIC_DRAW);
-  drv.glBindBuffer(eGL_TEXTURE_BUFFER, 0);
+  if(HasExt[ARB_texture_buffer_object])
+  {
+    drv.glGenBuffers(1, &DebugData.dummyTexBufferStore);
+    drv.glBindBuffer(eGL_TEXTURE_BUFFER, DebugData.dummyTexBufferStore);
+    drv.glNamedBufferDataEXT(DebugData.dummyTexBufferStore, 32, NULL, eGL_STATIC_DRAW);
+    drv.glBindBuffer(eGL_TEXTURE_BUFFER, 0);
 
-  drv.glGenTextures(1, &DebugData.dummyTexBuffer);
-  drv.glBindTexture(eGL_TEXTURE_BUFFER, DebugData.dummyTexBuffer);
-  drv.glTextureBufferEXT(DebugData.dummyTexBuffer, eGL_TEXTURE_BUFFER, eGL_RGBA32F,
-                         DebugData.dummyTexBufferStore);
-  drv.glBindTexture(eGL_TEXTURE_BUFFER, 0);
+    drv.glGenTextures(1, &DebugData.dummyTexBuffer);
+    drv.glBindTexture(eGL_TEXTURE_BUFFER, DebugData.dummyTexBuffer);
+    drv.glTextureBufferEXT(DebugData.dummyTexBuffer, eGL_TEXTURE_BUFFER, eGL_RGBA32F,
+                           DebugData.dummyTexBufferStore);
+    drv.glBindTexture(eGL_TEXTURE_BUFFER, 0);
+  }
+  else
+  {
+    DebugData.dummyTexBuffer = DebugData.dummyTexBufferStore = 0;
+  }
 
   drv.glGenTextures(1, &DebugData.pickPixelTex);
   drv.glBindTexture(eGL_TEXTURE_2D, DebugData.pickPixelTex);
