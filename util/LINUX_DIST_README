@@ -2,9 +2,7 @@ About:
 ------
 
 RenderDoc is a debugger for graphics APIs, currently supporting OpenGL
-and Vulkan. This package contains the headless utility tool
-'renderdoccmd' which can be used to capture applications, as well as a
-work-in-progress version of the Qt UI 'qrenderdoc'.
+and Vulkan.
 
 The directory structure in the package matches how it should be
 installed, most commonly under /usr but this is up to you.
