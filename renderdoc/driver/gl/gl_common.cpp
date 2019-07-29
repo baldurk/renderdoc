@@ -480,12 +480,13 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 {
   const char *vendor = "";
   const char *renderer = "";
+  const char *version = "";
 
   if(GL.glGetString)
   {
     vendor = (const char *)GL.glGetString(eGL_VENDOR);
     renderer = (const char *)GL.glGetString(eGL_RENDERER);
-    const char *version = (const char *)GL.glGetString(eGL_VERSION);
+    version = (const char *)GL.glGetString(eGL_VERSION);
 
     RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
   }
@@ -776,9 +777,32 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   if(strstr(vendor, "Qualcomm") || strstr(vendor, "Adreno") || strstr(renderer, "Qualcomm") ||
      strstr(vendor, "Adreno"))
   {
-    RDCWARN("Using hack to avoid glCopyImageSubData on Qualcomm");
+    bool broken = true;
 
-    VendorCheck[VendorCheck_Qualcomm_avoid_glCopyImageSubData] = true;
+    // the bug should be fixed in version 325 and above
+    const char *qualcommver = strstr(version, "V@");
+    uint32_t ver = 0;
+
+    if(qualcommver)
+    {
+      qualcommver += 2;
+
+      while(*qualcommver >= '0' && *qualcommver <= '9')
+      {
+        ver *= 10;
+        ver += int((*qualcommver) - '0');
+        qualcommver++;
+      }
+
+      if(ver >= 325)
+        broken = false;
+    }
+
+    if(broken)
+    {
+      RDCWARN("Detected Qualcomm driver version %u, Using hack to avoid glCopyImageSubData", ver);
+      VendorCheck[VendorCheck_Qualcomm_avoid_glCopyImageSubData] = true;
+    }
   }
 
   if(IsGLES)
