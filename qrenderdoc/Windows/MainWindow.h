@@ -256,5 +256,5 @@ private:
 
   void showLaunchError(ReplayStatus status);
 
-  bool isCapturableAppRunningOnAndroid();
+  bool isUnshareableDeviceInUse();
 };

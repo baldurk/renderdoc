@@ -93,6 +93,9 @@ public:
 )");
   void SetLastCapturePath(const rdcstr &path);
 
+  DOCUMENT(
+      "The :class:`DeviceProtocolController` for this host, or ``None`` if no protocol is in use");
+  IDeviceProtocolController *Protocol() const { return m_protocol; }
   DOCUMENT(R"(
 Returns the name to display for this host in the UI, either :meth:`FriendlyName` if it is valid, or
 :meth:`Hostname` if not.
@@ -102,12 +105,6 @@ Returns the name to display for this host in the UI, either :meth:`FriendlyName`
     rdcstr friendlyName = FriendlyName();
     return !friendlyName.isEmpty() ? friendlyName : m_hostname;
   }
-  DOCUMENT("Returns ``True`` if this host represents a connected ADB (Android) device.");
-  bool IsADB() const
-  {
-    return m_hostname.count() > 4 && m_hostname[0] == 'a' && m_hostname[1] == 'd' &&
-           m_hostname[2] == 'b' && m_hostname[3] == ':';
-  }
   DOCUMENT("Returns ``True`` if this host represents the special localhost device.");
   bool IsLocalhost() const { return m_hostname == "localhost"; }
   DOCUMENT("Returns ``True`` if this host represents a valid remote host.");
@@ -116,6 +113,8 @@ private:
   // this is immutable and is used as a key to look up data, it's always valid as RemoteHost objects
   // are created with it
   rdcstr m_hostname;
+
+  IDeviceProtocolController *m_protocol = NULL;
 
   // self-deleting shared and locked data store
   RemoteHostData *m_data = NULL;

@@ -20,8 +20,13 @@ Remote Servers
 --------------
 
 .. autofunction:: renderdoc.CreateRemoteServerConnection
-.. autofunction:: renderdoc.GetDefaultRemoteServerPort
 .. autofunction:: renderdoc.BecomeRemoteServer
+
+Device Protocols
+----------------
+
+.. autofunction:: renderdoc.GetSupportedDeviceProtocols
+.. autofunction:: renderdoc.GetDeviceProtocolController
 
 Local Execution & Injection
 ---------------------------

@@ -461,8 +461,6 @@ struct RemoteServerCommand : public Command
     parser.add("daemon", 'd', "Go into the background.");
     parser.add<std::string>(
         "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
-    parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
-                         RENDERDOC_GetDefaultRemoteServerPort());
     parser.add("preview", 'v', "Display a preview window when a replay is active.");
   }
   virtual const char *Description()
@@ -474,12 +472,11 @@ struct RemoteServerCommand : public Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
     std::string host = parser.get<std::string>("host");
-    uint32_t port = parser.get<uint32_t>("port");
 
     RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
 
-    std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << ":"
-              << port << "..." << std::endl;
+    std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << "..."
+              << std::endl;
 
     if(parser.exist("daemon"))
     {
@@ -500,8 +497,8 @@ struct RemoteServerCommand : public Command
     if(DisplayRemoteServerPreview(false, {}).system != WindowingSystem::Unknown)
       previewWindow = &DisplayRemoteServerPreview;
 
-    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), port,
-                                 []() { return killSignal; }, previewWindow);
+    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), []() { return killSignal; },
+                                 previewWindow);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 
@@ -522,8 +519,6 @@ struct ReplayCommand : public Command
     parser.add<std::string>("remote-host", 0,
                             "Instead of replaying locally, replay on this host over the network.",
                             false);
-    parser.add<uint32_t>("remote-port", 0, "If --remote-host is set, use this port.", false,
-                         RENDERDOC_GetDefaultRemoteServerPort());
   }
   virtual const char *Description()
   {
@@ -551,18 +546,16 @@ struct ReplayCommand : public Command
     if(parser.exist("remote-host"))
     {
       std::cout << "Replaying '" << filename << "' on " << parser.get<std::string>("remote-host")
-                << ":" << parser.get<uint32_t>("remote-port") << "." << std::endl;
+                << "." << std::endl;
 
       IRemoteServer *remote = NULL;
-      ReplayStatus status =
-          RENDERDOC_CreateRemoteServerConnection(parser.get<std::string>("remote-host").c_str(),
-                                                 parser.get<uint32_t>("remote-port"), &remote);
+      ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(
+          parser.get<std::string>("remote-host").c_str(), &remote);
 
       if(remote == NULL || status != ReplayStatus::Succeeded)
       {
         std::cerr << "Error: " << ToStr(status) << " - Couldn't connect to "
-                  << parser.get<std::string>("remote-host") << ":"
-                  << parser.get<uint32_t>("remote-port") << "." << std::endl;
+                  << parser.get<std::string>("remote-host") << "." << std::endl;
         std::cerr << "       Have you run renderdoccmd remoteserver on '"
                   << parser.get<std::string>("remote-host") << "'?" << std::endl;
         return 1;

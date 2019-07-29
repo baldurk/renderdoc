@@ -188,6 +188,7 @@
     <ClInclude Include="core\intervals.h" />
     <ClInclude Include="core\plugins.h" />
     <ClInclude Include="core\precompiled.h" />
+    <ClInclude Include="core\remote_server.h" />
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="data\embedded_files.h" />

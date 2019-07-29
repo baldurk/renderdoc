@@ -60,6 +60,8 @@ RemoteHost::RemoteHost(const QVariant &var)
     m_data->m_runCommand = map[lit("runCommand")].toString();
   if(map.contains(lit("lastCapturePath")))
     m_data->m_lastCapturePath = map[lit("lastCapturePath")].toString();
+
+  m_protocol = RENDERDOC_GetDeviceProtocolController(m_hostname);
 }
 
 RemoteHost::RemoteHost()
@@ -72,6 +74,8 @@ RemoteHost::RemoteHost(const rdcstr &host)
   // create a new host
   m_hostname = host;
   m_data = new RemoteHostData();
+
+  m_protocol = RENDERDOC_GetDeviceProtocolController(m_hostname);
 }
 
 RemoteHost::RemoteHost(const RemoteHost &o)
@@ -82,6 +86,7 @@ RemoteHost::RemoteHost(const RemoteHost &o)
 RemoteHost &RemoteHost::operator=(const RemoteHost &o)
 {
   m_hostname = o.m_hostname;
+  m_protocol = o.m_protocol;
 
   // deref old data
   if(m_data)
@@ -123,7 +128,7 @@ void RemoteHost::CheckStatus()
   // to avoid doing complex work while holding the remote host lock, we check the status here then
   // call into the internal function that will propagate that data to the proper storage if needed.
   IRemoteServer *rend = NULL;
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(m_hostname.c_str(), 0, &rend);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(m_hostname.c_str(), &rend);
 
   if(rend)
     rend->ShutdownConnection();
@@ -187,12 +192,10 @@ ReplayStatus RemoteHost::Launch()
 {
   ReplayStatus status = ReplayStatus::Succeeded;
 
-  int WAIT_TIME = 2000;
-
-  if(IsADB())
+  if(m_protocol)
   {
-    status = RENDERDOC_StartAndroidRemoteServer(m_hostname.c_str());
-    QThread::msleep(WAIT_TIME);
+    // this is blocking
+    status = m_protocol->StartRemoteServer(m_hostname);
     return status;
   }
 
@@ -205,7 +208,7 @@ ReplayStatus RemoteHost::Launch()
 
   RDProcess process;
   process.start(run);
-  process.waitForFinished(WAIT_TIME);
+  process.waitForFinished(2000);
   process.detach();
 
   return status;

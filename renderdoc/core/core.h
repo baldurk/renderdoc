@@ -58,6 +58,24 @@ struct IFrameCapturer
   virtual bool DiscardFrameCapture(void *dev, void *wnd) = 0;
 };
 
+// for protocols, we extend the public interface a bit to add callbacks for remapping connection
+// ports (typically to some port forwarded on localhost)
+struct IDeviceProtocolHandler : public IDeviceProtocolController
+{
+  virtual rdcstr GetDeviceID(const rdcstr &URL)
+  {
+    rdcstr ret = URL;
+    int offs = ret.find("://");
+    if(offs > 0)
+      ret.erase(0, offs + 3);
+    return ret;
+  }
+
+  virtual rdcstr RemapHostname(const rdcstr &deviceID) = 0;
+  virtual uint16_t RemapPort(const rdcstr &deviceID, uint16_t srcPort) = 0;
+  virtual IRemoteServer *CreateRemoteServer(Network::Socket *sock, const rdcstr &deviceID) = 0;
+};
+
 // In most cases you don't need to check these individually, use the utility functions below
 // to determine if you're in a capture or replay state. There are utility functions for each
 // state as well.
@@ -155,7 +173,7 @@ enum class SystemChunk : uint32_t
 
 DECLARE_REFLECTION_ENUM(SystemChunk);
 
-enum class RDCDriver
+enum class RDCDriver : uint32_t
 {
   Unknown = 0,
   D3D11 = 1,
@@ -328,6 +346,7 @@ typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &read
 typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
                                         const SDFile &structData,
                                         RENDERDOC_ProgressCallback progress);
+typedef IDeviceProtocolHandler *(*ProtocolHandler)();
 
 typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                  std::vector<std::string> &otherJSONs);
@@ -406,6 +425,7 @@ public:
   const GlobalEnvironment GetGlobalEnvironment() { return m_GlobalEnv; }
   void ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args);
 
+  int32_t GetForwardedPortSlot() { return Atomic::Inc32(&m_PortSlot); }
   void RegisterShutdownFunction(ShutdownFunction func) { m_ShutdownFunctions.insert(func); }
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
@@ -465,11 +485,15 @@ public:
   void RegisterCaptureExporter(CaptureExporter exporter, CaptureFileFormat description);
   void RegisterCaptureImportExporter(CaptureImporter importer, CaptureExporter exporter,
                                      CaptureFileFormat description);
+  void RegisterDeviceProtocol(const rdcstr &protocol, ProtocolHandler handler);
 
   StructuredProcessor GetStructuredProcessor(RDCDriver driver);
 
   CaptureExporter GetCaptureExporter(const char *filetype);
   CaptureImporter GetCaptureImporter(const char *filetype);
+
+  rdcarray<rdcstr> GetSupportedDeviceProtocols();
+  IDeviceProtocolHandler *GetDeviceProtocol(const rdcstr &protocol);
 
   std::vector<CaptureFileFormat> GetCaptureFileFormats();
 
@@ -590,6 +614,8 @@ private:
 
   GlobalEnvironment m_GlobalEnv;
 
+  int32_t m_PortSlot = 0;
+
   FrameTimer m_FrameTimer;
 
   std::string m_LoggingFilename;
@@ -627,6 +653,8 @@ private:
   std::vector<CaptureFileFormat> m_ImportExportFormats;
   std::map<std::string, CaptureImporter> m_Importers;
   std::map<std::string, CaptureExporter> m_Exporters;
+
+  std::map<rdcstr, ProtocolHandler> m_Protocols;
 
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
@@ -724,5 +752,13 @@ struct ConversionRegistration
   ConversionRegistration(CaptureExporter exporter, CaptureFileFormat description)
   {
     RenderDoc::Inst().RegisterCaptureExporter(exporter, description);
+  }
+};
+
+struct DeviceProtocolRegistration
+{
+  DeviceProtocolRegistration(const rdcstr &protocol, ProtocolHandler handler)
+  {
+    RenderDoc::Inst().RegisterDeviceProtocol(protocol, handler);
   }
 };

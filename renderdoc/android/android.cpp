@@ -26,21 +26,24 @@
 #include <sstream>
 #include "api/replay/version.h"
 #include "core/core.h"
+#include "core/remote_server.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"
 
 namespace Android
 {
-void adbForwardPorts(int index, const std::string &deviceID, uint16_t jdwpPort, int pid, bool silent)
+void adbForwardPorts(uint16_t portbase, const std::string &deviceID, uint16_t jdwpPort, int pid,
+                     bool silent)
 {
   const char *forwardCommand = "forward tcp:%i localabstract:renderdoc_%i";
-  int offs = RenderDoc_AndroidPortOffset * (index + 1);
 
-  adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_RemoteServerPort + offs,
-                                             RenderDoc_RemoteServerPort),
+  adbExecCommand(deviceID,
+                 StringFormat::Fmt(forwardCommand, portbase + RenderDoc_ForwardRemoteServerOffset,
+                                   RenderDoc_RemoteServerPort),
                  ".", silent);
-  adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_FirstTargetControlPort + offs,
-                                             RenderDoc_FirstTargetControlPort),
+  adbExecCommand(deviceID,
+                 StringFormat::Fmt(forwardCommand, portbase + RenderDoc_ForwardTargetControlOffset,
+                                   RenderDoc_FirstTargetControlPort),
                  ".", silent);
 
   if(jdwpPort && pid)
@@ -51,12 +54,12 @@ uint16_t GetJdwpPort()
 {
   // we loop over a number of ports to try and avoid previous failed attempts from leaving sockets
   // open and messing with subsequent attempts
-  const uint16_t portBase = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * 2;
+  const uint16_t portBase = 39500;
 
   static uint16_t portIndex = 0;
 
   portIndex++;
-  portIndex %= RenderDoc_AndroidPortOffset;
+  portIndex %= 100;
 
   return portBase + portIndex;
 }
@@ -174,159 +177,6 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   }
 
   return 0;
-}
-
-ExecuteResult StartAndroidPackageForCapture(const char *host, const char *packageAndActivity,
-                                            const char *intentArgs, const CaptureOptions &opts)
-{
-  int index = 0;
-  std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(host, index, deviceID);
-
-  ExecuteResult ret;
-  ret.status = ReplayStatus::UnknownError;
-  ret.ident = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
-
-  std::string packageName = GetPackageName(packageAndActivity);    // Remove leading '/' if any
-
-  // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
-  std::string activityName = GetActivityName(packageAndActivity);
-
-  // if the activity name isn't specified, get the default one
-  if(activityName.empty() || activityName == "#DefaultActivity")
-    activityName = GetDefaultActivityForPackage(deviceID, packageName);
-
-  uint16_t jdwpPort = GetJdwpPort();
-
-  // remove any previous jdwp port forward on this port
-  adbExecCommand(deviceID, StringFormat::Fmt("forward --remove tcp:%i", jdwpPort));
-  // force stop the package if it was running before
-  adbExecCommand(deviceID, "shell am force-stop " + packageName);
-  // enable the vulkan layer (will only be used by vulkan programs)
-  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
-  // if in VR mode, enable frame delimiter markers
-  adbExecCommand(deviceID, "shell setprop debug.vr.profiler 1");
-  // create the data directory we will use for storing, in case the application doesn't
-  adbExecCommand(deviceID, "shell mkdir -p /sdcard/Android/data/" + packageName);
-  // set our property with the capture options encoded, to be picked up by the library on the device
-  adbExecCommand(deviceID, StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPOPTS %s",
-                                             opts.EncodeAsString().c_str()));
-
-  std::string installedPath = GetPathForPackage(deviceID, packageName);
-
-  std::string RDCLib = trim(
-      adbExecCommand(deviceID, "shell ls " + installedPath + "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
-          .strStdout);
-
-  // some versions of adb/android return the error message on stdout, so try to detect those and
-  // clear the output.
-  if(RDCLib.size() < installedPath.size() || RDCLib.substr(0, installedPath.size()) != installedPath)
-    RDCLib.clear();
-
-  // some versions of adb/android also don't print any error message at all! Look to see if the
-  // wildcard glob is still present.
-  if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) != std::string::npos)
-    RDCLib.clear();
-
-  bool injectLibraries = true;
-
-  if(RDCLib.empty())
-  {
-    RDCLOG("No library found in %s/lib/*/" RENDERDOC_ANDROID_LIBRARY
-           " for %s - assuming injection is required.",
-           installedPath.c_str(), packageName.c_str());
-  }
-  else
-  {
-    injectLibraries = false;
-    RDCLOG("Library found, no injection required: %s", RDCLib.c_str());
-  }
-
-  int pid = 0;
-
-  RDCLOG("Launching package '%s' with activity '%s'", packageName.c_str(), activityName.c_str());
-
-  if(injectLibraries)
-  {
-    RDCLOG("Setting up to launch the application as a debugger to inject.");
-
-    // start the activity in this package with debugging enabled and force-stop after starting
-    adbExecCommand(deviceID,
-                   StringFormat::Fmt("shell am start -S -D -n %s/%s %s", packageName.c_str(),
-                                     activityName.c_str(), intentArgs));
-
-    // adb shell ps | grep $PACKAGE | awk '{print $2}')
-    pid = GetCurrentPID(deviceID, packageName);
-
-    if(pid == 0)
-      RDCERR("Couldn't get PID when launching %s with activity %s", packageName.c_str(),
-             activityName.c_str());
-  }
-  else
-  {
-    RDCLOG("Not doing any injection - assuming APK is pre-loaded with RenderDoc capture library.");
-
-    // start the activity in this package with debugging enabled and force-stop after starting
-    adbExecCommand(deviceID, StringFormat::Fmt("shell am start -n %s/%s %s", packageName.c_str(),
-                                               activityName.c_str(), intentArgs));
-
-    // don't connect JDWP
-    jdwpPort = 0;
-  }
-
-  adbForwardPorts(index, deviceID, jdwpPort, pid, false);
-
-  // sleep a little to let the ports initialise
-  Threading::Sleep(500);
-
-  if(jdwpPort)
-  {
-    // use a JDWP connection to inject our libraries
-    bool injected = InjectWithJDWP(deviceID, jdwpPort);
-    if(!injected)
-    {
-      RDCERR("Failed to inject using JDWP");
-      ret.status = ReplayStatus::JDWPFailure;
-      ret.ident = 0;
-      return ret;
-    }
-  }
-
-  ret.status = ReplayStatus::InjectionFailed;
-
-  uint32_t elapsed = 0,
-           timeout = 1000 *
-                     RDCMAX(5, atoi(RenderDoc::Inst().GetConfigSetting("MaxConnectTimeout").c_str()));
-  while(elapsed < timeout)
-  {
-    // Check if the target app has started yet and we can connect to it.
-    ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret.ident, "testConnection", false);
-    if(control)
-    {
-      control->Shutdown();
-      ret.status = ReplayStatus::Succeeded;
-      break;
-    }
-
-    // check to see if the PID is still there. If it was before and isn't now, the APK has exited
-    // without ever opening a connection.
-    int curpid = GetCurrentPID(deviceID, packageName);
-
-    if(pid != 0 && curpid == 0)
-    {
-      RDCERR("APK has crashed or never opened target control connection before closing.");
-      break;
-    }
-
-    Threading::Sleep(1000);
-    elapsed += 1000;
-  }
-
-  // we leave the setprop in case the application later initialises a vulkan device. It's impossible
-  // to tell if it will or not, since many applications will init and present from GLES and then
-  // later use vulkan.
-
-  return ret;
 }
 
 bool CheckAndroidServerVersion(const std::string &deviceID, ABI abi)
@@ -554,37 +404,12 @@ void ResetCaptureSettings(const std::string &deviceID)
 {
   Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :", ".", true);
 }
-};    // namespace Android
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
-                                                                            rdcstr &friendly)
+rdcarray<rdcstr> EnumerateDevices()
 {
-  if(!Android::IsHostADB(device.c_str()))
-  {
-    RDCERR("Calling RENDERDOC_GetAndroidFriendlyName with non-android device: %s", device.c_str());
-    return;
-  }
+  rdcarray<rdcstr> ret;
 
-  int index = 0;
-  std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(device.c_str(), index, deviceID);
-
-  if(deviceID.empty())
-  {
-    RDCERR("Failed to get android device and index from: %s", device.c_str());
-    return;
-  }
-
-  friendly = Android::GetFriendlyName(deviceID);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr &deviceList)
-{
   std::string adbStdout = Android::adbExecCommand("", "devices", ".", true).strStdout;
-
-  int idx = 0;
-
-  std::string ret;
 
   std::vector<std::string> lines;
   split(adbStdout, lines, '\n');
@@ -593,102 +418,690 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
     std::vector<std::string> tokens;
     split(line, tokens, '\t');
     if(tokens.size() == 2 && trim(tokens[1]) == "device")
-    {
-      if(ret.length())
-        ret += ",";
-
-      ret += StringFormat::Fmt("adb:%d:%s", idx, tokens[0].c_str());
-
-      // Forward the ports so we can see if a remoteserver/captured app is already running.
-      Android::adbForwardPorts(idx, tokens[0], 0, 0, true);
-
-      idx++;
-    }
+      ret.push_back(tokens[0]);
   }
 
-  deviceList = ret;
+  return ret;
 }
+};    // namespace Android
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidInitialise()
+struct AndroidRemoteServer : public RemoteServer
 {
-  Android::initAdb();
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidShutdown()
-{
-  Android::shutdownAdb();
-}
-
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsAndroidSupported(const char *device)
-{
-  int index = 0;
-  std::string deviceID;
-
-  Android::ExtractDeviceIDAndIndex(device, index, deviceID);
-
-  return Android::IsSupported(deviceID);
-}
-
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
-{
-  ReplayStatus status = ReplayStatus::Succeeded;
-  int index = 0;
-  std::string deviceID;
-
-  Android::ExtractDeviceIDAndIndex(device, index, deviceID);
-
-  std::string packagesOutput = trim(
-      Android::adbExecCommand(deviceID, "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
-          .strStdout);
-
-  std::vector<std::string> packages;
-  split(packagesOutput, packages, '\n');
-
-  std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
-
-  RDCLOG("Starting RenderDoc server, supported ABIs:");
-  for(Android::ABI abi : abis)
-    RDCLOG("  - %s", ToStr(abi).c_str());
-
-  if(abis.empty())
-    return ReplayStatus::UnknownError;
-
-  // assume all servers are updated at the same rate. Only check first ABI's version
-  if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID, abis[0]))
+  AndroidRemoteServer(Network::Socket *sock, const rdcstr &deviceID, uint16_t portbase)
+      : RemoteServer(sock, deviceID), m_portbase(portbase)
   {
-    // if there was any existing package, remove it
-    if(!packages.empty())
-    {
-      if(Android::RemoveRenderDocAndroidServer(deviceID))
-        RDCLOG("Uninstall of old server succeeded");
-      else
-        RDCERR("Uninstall of old server failed");
-    }
+  }
 
-    // If server is not detected or has been removed due to incompatibility, install it
-    status = Android::InstallRenderDocServer(deviceID);
-    if(status != ReplayStatus::Succeeded && status != ReplayStatus::AndroidGrantPermissionsFailed &&
-       status != ReplayStatus::AndroidAPKVerifyFailed)
+  virtual ~AndroidRemoteServer()
+  {
+    if(m_LogcatThread)
+      m_LogcatThread->Finish();
+  }
+
+  virtual void ShutdownConnection() override
+  {
+    ResetAndroidSettings();
+    RemoteServer::ShutdownConnection();
+  }
+
+  virtual void ShutdownServerAndConnection() override
+  {
+    ResetAndroidSettings();
+    RemoteServer::ShutdownServerAndConnection();
+  }
+
+  virtual bool Ping() override
+  {
+    if(!Connected())
+      return false;
+
+    LazilyStartLogcatThread();
+
+    return RemoteServer::Ping();
+  }
+
+  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
+      uint32_t proxyid, const char *filename, RENDERDOC_ProgressCallback progress) override
+  {
+    ResetAndroidSettings();
+
+    LazilyStartLogcatThread();
+
+    return RemoteServer::OpenCapture(proxyid, filename, progress);
+  }
+
+  virtual rdcstr GetHomeFolder() override { return ""; }
+  virtual rdcarray<PathEntry> ListFolder(const char *path) override
+  {
+    if(path[0] == 0 || (path[0] == '/' && path[1] == 0))
     {
-      RDCERR("Failed to install RenderDoc server app");
-      return status;
+      SCOPED_TIMER("Fetching android packages and activities");
+
+      std::string adbStdout =
+          Android::adbExecCommand(m_deviceID, "shell pm list packages -3").strStdout;
+
+      std::vector<std::string> lines;
+      split(adbStdout, lines, '\n');
+
+      std::vector<PathEntry> packages;
+      for(const std::string &line : lines)
+      {
+        // hide our own internal packages
+        if(strstr(line.c_str(), "package:org.renderdoc."))
+          continue;
+
+        if(!strncmp(line.c_str(), "package:", 8))
+        {
+          PathEntry pkg;
+          pkg.filename = trim(line.substr(8));
+          pkg.size = 0;
+          pkg.lastmod = 0;
+          pkg.flags = PathProperty::Directory;
+
+          packages.push_back(pkg);
+        }
+      }
+
+      adbStdout = Android::adbExecCommand(m_deviceID, "shell dumpsys package").strStdout;
+
+      split(adbStdout, lines, '\n');
+
+      for(const std::string &line : lines)
+      {
+        // quick check, look for a /
+        if(line.find('/') == std::string::npos)
+          continue;
+
+        // line should be something like: '    78f9sba com.package.name/.NameOfActivity .....'
+
+        const char *c = line.c_str();
+
+        // expect whitespace
+        while(*c && isspace(*c))
+          c++;
+
+        // expect hex
+        while(*c && ((*c >= '0' && *c <= '9') || (*c >= 'a' && *c <= 'f')))
+          c++;
+
+        // expect space
+        if(*c != ' ')
+          continue;
+
+        c++;
+
+        // expect the package now. Search to see if it's one of the ones we listed above
+        std::string package;
+
+        for(const PathEntry &p : packages)
+          if(!strncmp(c, p.filename.c_str(), p.filename.size()))
+            package = p.filename;
+
+        // didn't find a matching package
+        if(package.empty())
+          continue;
+
+        c += package.size();
+
+        // expect a /
+        if(*c != '/')
+          continue;
+
+        c++;
+
+        const char *end = strchr(c, ' ');
+
+        if(end == NULL)
+          end = c + strlen(c);
+
+        while(isspace(*(end - 1)))
+          end--;
+
+        m_AndroidActivities.insert({package, rdcstr(c, end - c)});
+      }
+
+      return packages;
+    }
+    else
+    {
+      rdcstr package = path;
+
+      if(!package.empty() && package[0] == '/')
+        package.erase(0);
+
+      std::vector<PathEntry> activities;
+
+      for(const Activity &act : m_AndroidActivities)
+      {
+        if(act.package == package)
+        {
+          PathEntry activity;
+          if(act.activity[0] == '.')
+            activity.filename = package + act.activity;
+          else
+            activity.filename = act.activity;
+          activity.size = 0;
+          activity.lastmod = 0;
+          activity.flags = PathProperty::Executable;
+          activities.push_back(activity);
+        }
+      }
+
+      PathEntry defaultActivity;
+      defaultActivity.filename = "#DefaultActivity";
+      defaultActivity.size = 0;
+      defaultActivity.lastmod = 0;
+      defaultActivity.flags = PathProperty::Executable;
+
+      // if there's only one activity listed, assume it's the default and don't add a virtual
+      // entry
+      if(activities.size() != 1)
+        activities.push_back(defaultActivity);
+
+      return activities;
     }
   }
 
-  // stop all servers of any ABI
-  for(Android::ABI abi : abis)
-    Android::adbExecCommand(deviceID, "shell am force-stop " + GetRenderDocPackageForABI(abi));
+  virtual ExecuteResult ExecuteAndInject(const char *a, const char *w, const char *c,
+                                         const rdcarray<EnvironmentModification> &env,
+                                         const CaptureOptions &opts) override;
 
-  if(abis.empty())
-    return ReplayStatus::AndroidABINotFound;
+private:
+  void ResetAndroidSettings() { Android::ResetCaptureSettings(m_deviceID); }
+  void LazilyStartLogcatThread()
+  {
+    if(m_LogcatThread)
+      return;
 
-  Android::adbForwardPorts(index, deviceID, 0, 0, false);
-  Android::ResetCaptureSettings(deviceID);
+    m_LogcatThread = Android::ProcessLogcat(m_deviceID);
+  }
 
-  // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
-  // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
-  // 32-bit remote server.
-  Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis.back()) +
-                                        "/.Loader -e renderdoccmd remoteserver");
-  return status;
+  uint16_t m_portbase = 0;
+  Android::LogcatThread *m_LogcatThread = NULL;
+
+  struct Activity
+  {
+    rdcstr package;
+    rdcstr activity;
+
+    bool operator<(const Activity &o) const
+    {
+      if(package != o.package)
+        return package < o.package;
+      return activity < o.activity;
+    }
+  };
+
+  std::set<Activity> m_AndroidActivities;
+};
+
+struct AndroidController : public IDeviceProtocolHandler
+{
+  void Start()
+  {
+    SCOPED_LOCK(lock);
+    if(running == 0)
+    {
+      Atomic::Inc32(&running);
+
+      Android::initAdb();
+
+      thread = Threading::CreateThread([]() { m_Inst.ThreadEntry(); });
+      RenderDoc::Inst().RegisterShutdownFunction([]() { m_Inst.Shutdown(); });
+    }
+  }
+
+  void Shutdown()
+  {
+    SCOPED_LOCK(lock);
+    Atomic::Dec32(&running);
+    Threading::JoinThread(thread);
+    Threading::CloseThread(thread);
+    thread = 0;
+
+    Android::shutdownAdb();
+  }
+
+  struct Command
+  {
+    std::function<void()> meth;
+    int32_t done = 0;
+  };
+
+  rdcarray<Command *> cmdqueue;
+
+  void ThreadEntry()
+  {
+    while(Atomic::CmpExch32(&running, 1, 1) == 1)
+    {
+      Threading::Sleep(5);
+      Command *cmd = NULL;
+
+      {
+        SCOPED_LOCK(lock);
+        if(cmdqueue.empty())
+          continue;
+
+        cmd = cmdqueue[0];
+        cmdqueue.erase(0);
+      }
+
+      cmd->meth();
+
+      Atomic::Inc32(&cmd->done);
+    }
+  }
+
+  void Invoke(std::function<void()> method)
+  {
+    Command cmd;
+    cmd.meth = method;
+
+    {
+      SCOPED_LOCK(lock);
+      cmdqueue.push_back(&cmd);
+    }
+
+    while(Atomic::CmpExch32(&cmd.done, 0, 0) == 0)
+      Threading::Sleep(5);
+  }
+
+  rdcstr GetProtocolName() override { return "adb"; }
+  rdcarray<rdcstr> GetDevices() override
+  {
+    rdcarray<rdcstr> ret;
+
+    Invoke([this, &ret]() {
+      rdcarray<rdcstr> activedevices = Android::EnumerateDevices();
+
+      // reset all devices to inactive
+      for(auto it = devices.begin(); it != devices.end(); ++it)
+        it->second.active = false;
+
+      // process the list of active devices, find matches and activate them, or add a new entry
+      for(const rdcstr &d : activedevices)
+      {
+        auto it = devices.find(d);
+        if(it != devices.end())
+        {
+          it->second.active = true;
+
+          // silently forward the ports now. These may be refreshed but this will allow us to
+          // connect
+          Android::adbForwardPorts(it->second.portbase, d, 0, 0, true);
+          continue;
+        }
+
+        // not found - add a new device
+        Device dev;
+        dev.active = true;
+        dev.name = Android::GetFriendlyName(d);
+        dev.portbase =
+            uint16_t(RenderDoc_ForwardPortBase +
+                     RenderDoc::Inst().GetForwardedPortSlot() * RenderDoc_ForwardPortStride);
+
+        // silently forward the ports now. These may be refreshed but this will allow us to connect
+        Android::adbForwardPorts(dev.portbase, d, 0, 0, true);
+
+        devices[d] = dev;
+      }
+
+      for(auto it = devices.begin(); it != devices.end(); ++it)
+      {
+        if(it->second.active)
+          ret.push_back(it->first);
+      }
+    });
+
+    return ret;
+  }
+
+  rdcstr GetFriendlyName(const rdcstr &URL) override
+  {
+    rdcstr ret;
+
+    {
+      SCOPED_LOCK(lock);
+      ret = devices[GetDeviceID(URL)].name;
+    }
+
+    return ret;
+  }
+
+  bool SupportsMultiplePrograms(const rdcstr &URL) override { return false; }
+  bool IsSupported(const rdcstr &URL) override
+  {
+    bool ret = false;
+
+    {
+      SCOPED_LOCK(lock);
+      ret = Android::IsSupported(GetDeviceID(URL));
+    }
+
+    return ret;
+  }
+
+  ReplayStatus StartRemoteServer(const rdcstr &URL) override
+  {
+    ReplayStatus status = ReplayStatus::Succeeded;
+
+    Invoke([this, &status, URL]() {
+
+      rdcstr deviceID = GetDeviceID(URL);
+
+      Device &dev = devices[deviceID];
+
+      if(!dev.active)
+      {
+        status = ReplayStatus::InternalError;
+        return;
+      }
+
+      std::string packagesOutput =
+          trim(Android::adbExecCommand(deviceID,
+                                       "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
+                   .strStdout);
+
+      std::vector<std::string> packages;
+      split(packagesOutput, packages, '\n');
+
+      std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
+
+      RDCLOG("Starting RenderDoc server, supported ABIs:");
+      for(Android::ABI abi : abis)
+        RDCLOG("  - %s", ToStr(abi).c_str());
+
+      if(abis.empty())
+      {
+        status = ReplayStatus::AndroidABINotFound;
+        return;
+      }
+
+      // assume all servers are updated at the same rate. Only check first ABI's version
+      if(packages.size() != abis.size() || !Android::CheckAndroidServerVersion(deviceID, abis[0]))
+      {
+        // if there was any existing package, remove it
+        if(!packages.empty())
+        {
+          if(Android::RemoveRenderDocAndroidServer(deviceID))
+            RDCLOG("Uninstall of old server succeeded");
+          else
+            RDCERR("Uninstall of old server failed");
+        }
+
+        // If server is not detected or has been removed due to incompatibility, install it
+        status = Android::InstallRenderDocServer(deviceID);
+        if(status != ReplayStatus::Succeeded &&
+           status != ReplayStatus::AndroidGrantPermissionsFailed &&
+           status != ReplayStatus::AndroidAPKVerifyFailed)
+        {
+          RDCERR("Failed to install RenderDoc server app");
+          return;
+        }
+      }
+
+      // stop all servers of any ABI
+      for(Android::ABI abi : abis)
+        Android::adbExecCommand(deviceID, "shell am force-stop " + GetRenderDocPackageForABI(abi));
+
+      Android::adbForwardPorts(dev.portbase, deviceID, 0, 0, false);
+      Android::ResetCaptureSettings(deviceID);
+
+      // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
+      // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
+      // 32-bit remote server.
+      Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis.back()) +
+                                            "/.Loader -e renderdoccmd remoteserver");
+    });
+
+    // allow the package to start and begin listening before we return
+    Threading::Sleep(500);
+
+    return status;
+  }
+
+  rdcstr RemapHostname(const rdcstr &deviceID) override
+  {
+    // we always connect to localhost
+    return "127.0.0.1";
+  }
+
+  uint16_t RemapPort(const rdcstr &deviceID, uint16_t srcPort) override
+  {
+    uint16_t portbase = 0;
+
+    {
+      SCOPED_LOCK(lock);
+      portbase = devices[deviceID].portbase;
+    }
+
+    if(portbase == 0)
+      return 0;
+
+    if(srcPort == RenderDoc_RemoteServerPort)
+      return portbase + RenderDoc_ForwardRemoteServerOffset;
+    // we only support a single target control connection on android
+    else if(srcPort == RenderDoc_FirstTargetControlPort)
+      return portbase + RenderDoc_ForwardTargetControlOffset;
+
+    return 0;
+  }
+
+  IRemoteServer *CreateRemoteServer(Network::Socket *sock, const rdcstr &deviceID) override
+  {
+    uint16_t portbase = 0;
+
+    {
+      SCOPED_LOCK(lock);
+      portbase = devices[deviceID].portbase;
+    }
+
+    return new AndroidRemoteServer(sock, deviceID, portbase);
+  }
+
+  int32_t running = 0;
+  struct Device
+  {
+    rdcstr name;
+    uint16_t portbase;
+    bool active;
+  };
+  std::map<rdcstr, Device> devices;
+  Threading::CriticalSection lock;
+  Threading::ThreadHandle thread;
+  static AndroidController m_Inst;
+
+  static IDeviceProtocolHandler *Get()
+  {
+    m_Inst.Start();
+    return &m_Inst;
+  };
+};
+ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w, const char *c,
+                                                    const rdcarray<EnvironmentModification> &env,
+                                                    const CaptureOptions &opts)
+{
+  LazilyStartLogcatThread();
+
+  std::string packageAndActivity = a && a[0] ? a : "";
+  std::string intentArgs = c && c[0] ? c : "";
+
+  // we spin up a thread to Ping() every second, since StartAndroidPackageForCapture can block
+  // for a long time.
+  volatile int32_t done = 0;
+  Threading::ThreadHandle pingThread = Threading::CreateThread([&done, this]() {
+    bool ok = true;
+    while(ok && Atomic::CmpExch32(&done, 0, 0) == 0)
+      ok = Ping();
+  });
+
+  ExecuteResult ret;
+
+  AndroidController::m_Inst.Invoke([this, &ret, packageAndActivity, intentArgs, opts]() {
+    ret.status = ReplayStatus::UnknownError;
+    ret.ident = RenderDoc_FirstTargetControlPort;
+
+    std::string packageName =
+        Android::GetPackageName(packageAndActivity);    // Remove leading '/' if any
+
+    // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
+    std::string activityName = Android::GetActivityName(packageAndActivity);
+
+    // if the activity name isn't specified, get the default one
+    if(activityName.empty() || activityName == "#DefaultActivity")
+      activityName = Android::GetDefaultActivityForPackage(m_deviceID, packageName);
+
+    uint16_t jdwpPort = Android::GetJdwpPort();
+
+    // remove any previous jdwp port forward on this port
+    Android::adbExecCommand(m_deviceID, StringFormat::Fmt("forward --remove tcp:%i", jdwpPort));
+    // force stop the package if it was running before
+    Android::adbExecCommand(m_deviceID, "shell am force-stop " + packageName);
+    // enable the vulkan layer (will only be used by vulkan programs)
+    Android::adbExecCommand(m_deviceID,
+                            "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
+    // if in VR mode, enable frame delimiter markers
+    Android::adbExecCommand(m_deviceID, "shell setprop debug.vr.profiler 1");
+    // create the data directory we will use for storing, in case the application doesn't
+    Android::adbExecCommand(m_deviceID, "shell mkdir -p /sdcard/Android/data/" + packageName);
+    // set our property with the capture options encoded, to be picked up by the library on the
+    // device
+    Android::adbExecCommand(m_deviceID,
+                            StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPOPTS %s",
+                                              opts.EncodeAsString().c_str()));
+
+    std::string installedPath = Android::GetPathForPackage(m_deviceID, packageName);
+
+    std::string RDCLib =
+        trim(Android::adbExecCommand(
+                 m_deviceID, "shell ls " + installedPath + "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
+                 .strStdout);
+
+    // some versions of adb/android return the error message on stdout, so try to detect those and
+    // clear the output.
+    if(RDCLib.size() < installedPath.size() || RDCLib.substr(0, installedPath.size()) != installedPath)
+      RDCLib.clear();
+
+    // some versions of adb/android also don't print any error message at all! Look to see if the
+    // wildcard glob is still present.
+    if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) != std::string::npos)
+      RDCLib.clear();
+
+    bool injectLibraries = true;
+
+    if(RDCLib.empty())
+    {
+      RDCLOG("No library found in %s/lib/*/" RENDERDOC_ANDROID_LIBRARY
+             " for %s - assuming injection is required.",
+             installedPath.c_str(), packageName.c_str());
+    }
+    else
+    {
+      injectLibraries = false;
+      RDCLOG("Library found, no injection required: %s", RDCLib.c_str());
+    }
+
+    int pid = 0;
+
+    RDCLOG("Launching package '%s' with activity '%s'", packageName.c_str(), activityName.c_str());
+
+    if(injectLibraries)
+    {
+      RDCLOG("Setting up to launch the application as a debugger to inject.");
+
+      // start the activity in this package with debugging enabled and force-stop after starting
+      Android::adbExecCommand(
+          m_deviceID, StringFormat::Fmt("shell am start -S -D -n %s/%s %s", packageName.c_str(),
+                                        activityName.c_str(), intentArgs.c_str()));
+
+      // adb shell ps | grep $PACKAGE | awk '{print $2}')
+      pid = Android::GetCurrentPID(m_deviceID, packageName);
+
+      if(pid == 0)
+        RDCERR("Couldn't get PID when launching %s with activity %s", packageName.c_str(),
+               activityName.c_str());
+    }
+    else
+    {
+      RDCLOG(
+          "Not doing any injection - assuming APK is pre-loaded with RenderDoc capture library.");
+
+      // start the activity in this package with debugging enabled and force-stop after starting
+      Android::adbExecCommand(m_deviceID,
+                              StringFormat::Fmt("shell am start -n %s/%s %s", packageName.c_str(),
+                                                activityName.c_str(), intentArgs.c_str()));
+
+      // don't connect JDWP
+      jdwpPort = 0;
+    }
+
+    Android::adbForwardPorts(m_portbase, m_deviceID, jdwpPort, pid, false);
+
+    // sleep a little to let the ports initialise
+    Threading::Sleep(500);
+
+    if(jdwpPort)
+    {
+      // use a JDWP connection to inject our libraries
+      bool injected = Android::InjectWithJDWP(m_deviceID, jdwpPort);
+      if(!injected)
+      {
+        RDCERR("Failed to inject using JDWP");
+        ret.status = ReplayStatus::JDWPFailure;
+        ret.ident = 0;
+        return;
+      }
+    }
+
+    ret.status = ReplayStatus::InjectionFailed;
+
+    uint32_t elapsed = 0,
+             timeout =
+                 1000 *
+                 RDCMAX(5, atoi(RenderDoc::Inst().GetConfigSetting("MaxConnectTimeout").c_str()));
+    while(elapsed < timeout)
+    {
+      // Check if the target app has started yet and we can connect to it.
+      ITargetControl *control = RENDERDOC_CreateTargetControl(
+          (AndroidController::m_Inst.GetProtocolName() + "://" + m_deviceID).c_str(), ret.ident,
+          "testConnection", false);
+      if(control)
+      {
+        control->Shutdown();
+        ret.status = ReplayStatus::Succeeded;
+        break;
+      }
+
+      // check to see if the PID is still there. If it was before and isn't now, the APK has
+      // exited
+      // without ever opening a connection.
+      int curpid = Android::GetCurrentPID(m_deviceID, packageName);
+
+      if(pid != 0 && curpid == 0)
+      {
+        RDCERR("APK has crashed or never opened target control connection before closing.");
+        break;
+      }
+
+      Threading::Sleep(1000);
+      elapsed += 1000;
+    }
+
+    // we leave the setprop in case the application later initialises a vulkan device. It's
+    // impossible to tell if it will or not, since many applications will init and present from GLES
+    // and then later use vulkan.
+
+    return;
+  });
+
+  Atomic::Inc32(&done);
+
+  Threading::JoinThread(pingThread);
+  Threading::CloseThread(pingThread);
+
+  return ret;
 }
+
+AndroidController AndroidController::m_Inst;
+
+DeviceProtocolRegistration androidProtocol("adb", &AndroidController::Get);

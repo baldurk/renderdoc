@@ -678,7 +678,8 @@ void CaptureDialog::on_exePathBrowse_clicked()
   {
     SetExecutableFilename(filename);
 
-    if(m_Ctx.Replay().CurrentRemote().IsADB())
+    if(m_Ctx.Replay().CurrentRemote().Protocol() &&
+       m_Ctx.Replay().CurrentRemote().Protocol()->GetProtocolName() == "adb")
     {
       CheckAndroidSetup(filename);
     }
@@ -1122,7 +1123,8 @@ void CaptureDialog::UpdateGlobalHook()
 
 void CaptureDialog::UpdateRemoteHost()
 {
-  if(m_Ctx.Replay().CurrentRemote().IsADB())
+  if(m_Ctx.Replay().CurrentRemote().Protocol() &&
+     m_Ctx.Replay().CurrentRemote().Protocol()->GetProtocolName() == "adb")
     ui->cmdLineLabel->setText(tr("Intent Arguments"));
   else
     ui->cmdLineLabel->setText(tr("Command-line Arguments"));

@@ -32,3 +32,4 @@ In order to help with this, the examples are organised such that most code is wr
     save_texture
     decode_mesh
     display_window
+    remote_capture

@@ -105,8 +105,6 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
   vertical->addWidget(lookupsProgressFlow);
   vertical->addWidget(ui->bottomLayout->parentWidget());
 
-  m_Ctx.Config().AddAndroidHosts();
-
   for(RemoteHost h : m_Ctx.Config().GetRemoteHosts())
     addHost(h);
 
@@ -446,9 +444,9 @@ void RemoteManager::on_hosts_itemSelectionChanged()
 
     ui->addUpdateHost->setText(tr("Update"));
 
-    if(host.IsLocalhost() || host.IsADB())
+    if(host.IsLocalhost() || host.Protocol())
     {
-      // localhost and android hosts cannot be updated or have their run command changed
+      // localhost and protocol-configured hosts cannot be updated or have their run command changed
       ui->addUpdateHost->setEnabled(false);
       ui->runCommand->setEnabled(false);
     }
@@ -601,7 +599,7 @@ void RemoteManager::on_connect_clicked()
       {
         IRemoteServer *server = NULL;
         ReplayStatus status =
-            RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), 0, &server);
+            RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), &server);
         if(server)
           server->ShutdownServerAndConnection();
         setRemoteServerLive(node, false, false);

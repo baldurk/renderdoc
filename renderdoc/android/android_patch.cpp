@@ -513,12 +513,12 @@ bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
 }
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
-    const char *hostname, const char *packageAndActivity, AndroidFlags *flags)
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, AndroidFlags *flags)
 {
-  int index = 0;
-  std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(hostname, index, deviceID);
+  IDeviceProtocolHandler *adb = RenderDoc::Inst().GetDeviceProtocol("adb");
+
+  rdcstr deviceID = adb->GetDeviceID(URL);
 
   // Reset the flags each time we check
   *flags = AndroidFlags::NoFlags;
@@ -542,15 +542,15 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
 }
 
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
-    const char *hostname, const char *packageAndActivity, RENDERDOC_ProgressCallback progress)
+    const char *URL, const char *packageAndActivity, RENDERDOC_ProgressCallback progress)
 {
   std::string package = Android::GetPackageName(packageAndActivity);
 
   Process::ProcessResult result = {};
 
-  int index = 0;
-  std::string deviceID;
-  Android::ExtractDeviceIDAndIndex(hostname, index, deviceID);
+  IDeviceProtocolHandler *adb = RenderDoc::Inst().GetDeviceProtocol("adb");
+
+  rdcstr deviceID = adb->GetDeviceID(URL);
 
   // make sure progress is valid so we don't have to check it everywhere
   if(!progress)

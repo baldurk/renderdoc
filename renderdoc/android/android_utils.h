@@ -50,7 +50,7 @@ bool toolExists(const std::string &path);
 std::string GetFirstMatchingLine(const std::string &haystack, const std::string &needle);
 
 bool IsSupported(std::string deviceID);
-std::string GetFriendlyName(std::string deviceID);
+rdcstr GetFriendlyName(const rdcstr &deviceID);
 
 // supported ABIs
 enum class ABI

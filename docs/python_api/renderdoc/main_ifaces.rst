@@ -33,6 +33,13 @@ RemoteServer
   :members:
   :undoc-members:
 
+DeviceProtocolController
+------------------------
+
+.. autoclass:: renderdoc.DeviceProtocolController
+  :members:
+  :undoc-members:
+
 CaptureFile
 -----------
 

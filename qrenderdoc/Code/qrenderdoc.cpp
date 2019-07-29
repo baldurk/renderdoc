@@ -474,8 +474,6 @@ int main(int argc, char *argv[])
       config.Save();
     }
 
-    RENDERDOC_AndroidShutdown();
-
     PythonContext::GlobalShutdown();
 
     Formatter::shutdown();

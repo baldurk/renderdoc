@@ -136,7 +136,11 @@ enum
   RenderDoc_FirstTargetControlPort = 38920,
   RenderDoc_LastTargetControlPort = RenderDoc_FirstTargetControlPort + 7,
   RenderDoc_RemoteServerPort = 39920,
-  RenderDoc_AndroidPortOffset = 50,
+
+  RenderDoc_ForwardPortBase = 38950,
+  RenderDoc_ForwardTargetControlOffset = 0,
+  RenderDoc_ForwardRemoteServerOffset = 9,
+  RenderDoc_ForwardPortStride = 10,
 };
 
 #define RENDERDOC_VULKAN_LAYER_NAME "VK_LAYER_RENDERDOC_Capture"

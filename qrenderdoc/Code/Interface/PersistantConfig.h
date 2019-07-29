@@ -791,8 +791,8 @@ R)");
 :param RemoteHost host: The remote host to remove.
 R)");
   void RemoveRemoteHost(RemoteHost host);
-  DOCUMENT("If configured, queries ``adb`` to add android hosts to :data:`RemoteHosts`.");
-  void AddAndroidHosts();
+  DOCUMENT("If configured, queries available device protocols to update auto-configured hosts.");
+  void UpdateEnumeratedProtocolDevices();
 
   DOCUMENT("");
   CONFIG_SETTINGS()

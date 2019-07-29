@@ -27,8 +27,6 @@
 #include "core/core.h"
 #include "strings/string_utils.h"
 
-static std::map<std::string, std::string> friendlyNameCache;
-
 namespace Android
 {
 bool IsHostADB(const char *hostname)
@@ -185,12 +183,8 @@ bool IsSupported(std::string deviceID)
   return true;
 }
 
-std::string GetFriendlyName(std::string deviceID)
+rdcstr GetFriendlyName(const rdcstr &deviceID)
 {
-  auto it = friendlyNameCache.find(deviceID);
-  if(it != friendlyNameCache.end())
-    return it->second;
-
   // run adb root now, so we hit any disconnection that we're going to before trying to connect.
   // If we can't be root, this is cheap, if we're already root, this is cheap, if we can be root
   // and this changes us it will block only the first time - and we expect this function to be
@@ -205,7 +199,7 @@ std::string GetFriendlyName(std::string deviceID)
   std::string model =
       trim(Android::adbExecCommand(deviceID, "shell getprop ro.product.model").strStdout);
 
-  std::string &combined = friendlyNameCache[deviceID];
+  std::string combined;
 
   if(manuf.empty() && model.empty())
     combined = "";

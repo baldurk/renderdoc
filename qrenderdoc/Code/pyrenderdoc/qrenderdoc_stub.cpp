@@ -143,7 +143,7 @@ void PersistantConfig::RemoveRemoteHost(RemoteHost host)
 {
 }
 
-void PersistantConfig::AddAndroidHosts()
+void PersistantConfig::UpdateEnumeratedProtocolDevices()
 {
 }
 

@@ -1038,6 +1038,16 @@ void RenderDoc::RegisterCaptureImportExporter(CaptureImporter importer, CaptureE
   m_Exporters[filetype] = exporter;
 }
 
+void RenderDoc::RegisterDeviceProtocol(const rdcstr &protocol, ProtocolHandler handler)
+{
+  if(m_Protocols[protocol] != NULL)
+  {
+    RDCERR("Duplicate protocol registration: %s", protocol.c_str());
+    return;
+  }
+  m_Protocols[protocol] = handler;
+}
+
 StructuredProcessor RenderDoc::GetStructuredProcessor(RDCDriver driver)
 {
   auto it = m_StructProcesssors.find(driver);
@@ -1072,6 +1082,33 @@ CaptureImporter RenderDoc::GetCaptureImporter(const char *filetype)
     return NULL;
 
   return it->second;
+}
+
+rdcarray<rdcstr> RenderDoc::GetSupportedDeviceProtocols()
+{
+  rdcarray<rdcstr> ret;
+
+  for(auto it = m_Protocols.begin(); it != m_Protocols.end(); ++it)
+    ret.push_back(it->first);
+
+  return ret;
+}
+
+IDeviceProtocolHandler *RenderDoc::GetDeviceProtocol(const rdcstr &protocol)
+{
+  rdcstr p = protocol;
+
+  // allow passing in an URL with ://
+  int32_t offs = p.find("://");
+  if(offs >= 0)
+    p.erase(offs, p.size() - offs);
+
+  auto it = m_Protocols.find(p);
+
+  if(it != m_Protocols.end())
+    return it->second();
+
+  return NULL;
 }
 
 std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()

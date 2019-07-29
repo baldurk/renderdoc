@@ -160,11 +160,15 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   m_RemoteProbeSemaphore.release();
   m_RemoteProbe = new LambdaThread([this]() {
-    RENDERDOC_AndroidInitialise();
+    // fetch all device protocols to start them processing
+    rdcarray<rdcstr> protocols;
+    RENDERDOC_GetSupportedDeviceProtocols(&protocols);
+    for(const rdcstr &p : protocols)
+      RENDERDOC_GetDeviceProtocolController(p);
 
     while(m_RemoteProbeSemaphore.available())
     {
-      // do a remoteProbe immediately to populate the android hosts list on startup.
+      // do a remoteProbe immediately to populate the device list on startup.
       remoteProbe();
 
       // do several small sleeps so we can respond quicker when we need to shut down
@@ -510,7 +514,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
 
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
 
-    if(isCapturableAppRunningOnAndroid())
+    if(isUnshareableDeviceInUse())
     {
       RDDialog::warning(this, tr("RenderDoc is already capturing an app on this device"),
                         tr("A running app on this device is already being captured with RenderDoc. "
@@ -1583,25 +1587,10 @@ void MainWindow::remoteProbe()
 {
   if(!m_Ctx.IsCaptureLoaded() && !m_Ctx.IsCaptureLoading())
   {
-    GUIInvoke::call(this, [this] {
-      m_Ctx.Config().AddAndroidHosts();
-
-      // update the latest list by copy. Note this lock only protects m_ProbeRemoteHosts, not the
-      // actual RemoteHosts list itself - that is only accessed on the UI thread so is not locked.
-      {
-        QMutexLocker lock(&m_ProbeRemoteHostsLock);
-        m_ProbeRemoteHosts.clear();
-        for(RemoteHost host : m_Ctx.Config().GetRemoteHosts())
-          m_ProbeRemoteHosts.push_back(host);
-      }
-    });
+    m_Ctx.Config().UpdateEnumeratedProtocolDevices();
 
     // fetch the latest list
-    rdcarray<RemoteHost> hosts;
-    {
-      QMutexLocker lock(&m_ProbeRemoteHostsLock);
-      hosts = m_ProbeRemoteHosts;
-    }
+    rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
 
     for(RemoteHost &host : hosts)
     {
@@ -1832,23 +1821,64 @@ void MainWindow::setRemoteHost(int hostIdx)
       RemoteHost host = h;
       host.CheckStatus();
 
-      if(host.IsADB() && !RENDERDOC_IsAndroidSupported(host.Hostname().c_str()))
+      if(host.Protocol() && !host.Protocol()->IsSupported(host.Hostname()))
       {
         // check to see if we should warn the user about this unsupported android version.
-        GUIInvoke::call(this, [this]() {
+        GUIInvoke::call(this, [this, host]() {
           QDateTime today = QDateTime::currentDateTimeUtc();
           QDateTime compare = today.addDays(-21);
 
-          if(compare > m_Ctx.Config().UnsupportedAndroid_LastUpdate)
+          if(host.Protocol()->GetProtocolName() == "adb")
+          {
+            if(compare > m_Ctx.Config().UnsupportedAndroid_LastUpdate)
+            {
+              RDDialog::critical(
+                  this, tr("Unsupported Device Android Version"),
+                  tr("This device is older than Android 6.0, the minimum required version for "
+                     "RenderDoc.\n\nThis may break or cause unknown problems - use at your own "
+                     "risk."));
+            }
+
+            m_Ctx.Config().UnsupportedAndroid_LastUpdate = today;
+          }
+          else
           {
             RDDialog::critical(
-                this, tr("Unsupported Device Android Version"),
-                tr("This device is older than Android 6.0, the minimum required version for "
-                   "RenderDoc.\n\nThis may break or cause unknown problems - use at your own "
-                   "risk."));
+                this, tr("Unsupported Device"),
+                tr("This device is not able to support RenderDoc. Please consult the documentation "
+                   "for this type of device to see what the problem may be."));
           }
+        });
+      }
 
-          m_Ctx.Config().UnsupportedAndroid_LastUpdate = today;
+      if(host.Protocol() && host.IsVersionMismatch())
+      {
+        GUIInvoke::blockcall(this, [this, &host]() {
+
+          QMessageBox::StandardButton res =
+              RDDialog::question(this, tr("Unsupported version"),
+                                 tr("Remote server on %1 has an incompatible version.\n"
+                                    "Would you like to try to reinstall the version %2?")
+                                     .arg(host.Name())
+                                     .arg(lit(FULL_VERSION_STRING)),
+                                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+          if(res == QMessageBox::Yes)
+          {
+            LambdaThread *launchthread = new LambdaThread([this, &host]() {
+              // since we have a protocol, try to force-launch which should attempt to reinstall.
+              host.Launch();
+
+              // update status
+              host.CheckStatus();
+            });
+            launchthread->start();
+
+            ShowProgressDialog(this, tr("Attempting to update remote server, please wait..."),
+                               [launchthread]() { return !launchthread->isRunning(); });
+
+            launchthread->deleteLater();
+          }
         });
       }
 
@@ -2539,11 +2569,25 @@ void MainWindow::on_action_Manage_Extensions_triggered()
 
 void MainWindow::on_action_Manage_Remote_Servers_triggered()
 {
-  RemoteManager *rm = new RemoteManager(m_Ctx, this);
-  RDDialog::show(rm);
-  // now that we're done with it, the manager deletes itself when all lookups terminate (or
-  // immediately if there are no lookups ongoing).
-  rm->closeWhenFinished();
+  LambdaThread *th = new LambdaThread([this]() {
+    m_Ctx.Config().UpdateEnumeratedProtocolDevices();
+
+    GUIInvoke::call(this, [this]() {
+      RemoteManager *rm = new RemoteManager(m_Ctx, this);
+      RDDialog::show(rm);
+      // now that we're done with it, the manager deletes itself when all lookups terminate (or
+      // immediately if there are no lookups ongoing).
+      rm->closeWhenFinished();
+    });
+  });
+  th->start();
+  th->wait(500);
+  if(th->isRunning())
+  {
+    ShowProgressDialog(this, tr("Updating available devices, please wait..."),
+                       [th]() { return !th->isRunning(); });
+  }
+  th->deleteLater();
 }
 
 void MainWindow::on_action_Settings_triggered()
@@ -2895,12 +2939,16 @@ void MainWindow::showLaunchError(ReplayStatus status)
   });
 }
 
-bool MainWindow::isCapturableAppRunningOnAndroid()
+bool MainWindow::isUnshareableDeviceInUse()
 {
-  if(!m_Ctx.Replay().CurrentRemote().IsADB())
+  if(!m_Ctx.Replay().CurrentRemote().Protocol())
     return false;
 
   rdcstr host = m_Ctx.Replay().CurrentRemote().Hostname();
+
+  if(m_Ctx.Replay().CurrentRemote().Protocol()->SupportsMultiplePrograms(host))
+    return false;
+
   uint32_t ident = RENDERDOC_EnumerateRemoteTargets(host.c_str(), 0);
   return ident != 0;
 }

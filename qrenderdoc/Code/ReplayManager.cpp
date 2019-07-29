@@ -307,9 +307,9 @@ void ReplayManager::CloseThread()
 
 ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost host)
 {
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), 0, &m_Remote);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), &m_Remote);
 
-  if(host.IsADB())
+  if(host.Protocol() && host.Protocol()->GetProtocolName() == "adb")
   {
     ANALYTIC_SET(UIFeatures.AndroidRemoteReplay, true);
   }

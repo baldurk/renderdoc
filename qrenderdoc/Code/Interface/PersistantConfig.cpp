@@ -259,15 +259,8 @@ void PersistantConfig::RemoveRemoteHost(RemoteHost host)
   }
 }
 
-void PersistantConfig::AddAndroidHosts()
+void PersistantConfig::UpdateEnumeratedProtocolDevices()
 {
-  QMutexLocker autolock(&RemoteHostLock);
-
-  QMap<rdcstr, RemoteHost> oldHosts;
-  for(int i = RemoteHostList.count() - 1; i >= 0; i--)
-    if(RemoteHostList[i].IsADB())
-      oldHosts[RemoteHostList[i].Hostname()] = RemoteHostList.takeAt(i);
-
   QString androidSDKPath = (!Android_SDKPath.isEmpty() && QFile::exists(Android_SDKPath))
                                ? QString(Android_SDKPath)
                                : QString();
@@ -282,19 +275,39 @@ void PersistantConfig::AddAndroidHosts()
 
   SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
 
-  rdcstr androidHosts;
-  RENDERDOC_EnumerateAndroidDevices(androidHosts);
-  for(const QString &hostName :
-      QString(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
+  rdcarray<RemoteHost> enumeratedDevices;
+
+  rdcarray<rdcstr> protocols;
+  RENDERDOC_GetSupportedDeviceProtocols(&protocols);
+
+  for(const rdcstr &p : protocols)
   {
-    RemoteHost host((rdcstr)hostName);
+    IDeviceProtocolController *protocol = RENDERDOC_GetDeviceProtocolController(p);
 
-    if(oldHosts.contains(hostName))
-      host = oldHosts.take(hostName);
+    rdcarray<rdcstr> devices = protocol->GetDevices();
 
-    rdcstr friendly;
-    RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
-    host.SetFriendlyName(friendly);
+    for(const rdcstr &d : devices)
+    {
+      RemoteHost newhost(protocol->GetProtocolName() + "://" + d);
+      enumeratedDevices.push_back(newhost);
+    }
+  }
+
+  QMutexLocker autolock(&RemoteHostLock);
+
+  QMap<rdcstr, RemoteHost> oldHosts;
+
+  for(int i = RemoteHostList.count() - 1; i >= 0; i--)
+    if(RemoteHostList[i].Protocol())
+      oldHosts[RemoteHostList[i].Hostname()] = RemoteHostList.takeAt(i);
+
+  for(RemoteHost host : enumeratedDevices)
+  {
+    // if we already had this host, use that one.
+    if(oldHosts.contains(host.Hostname()))
+      host = oldHosts.take(host.Hostname());
+
+    host.SetFriendlyName(host.Protocol()->GetFriendlyName(host.Hostname()));
     // Just a command to display in the GUI and allow Launch() to be called.
     host.SetRunCommand("Automatically handled");
     RemoteHostList.push_back(host);
@@ -361,6 +374,10 @@ bool PersistantConfig::Load(const rdcstr &filename)
     {
       // skip invalid hosts
       if(!host.IsValid())
+        continue;
+
+      // backwards compatibility - skip old adb hosts that were adb:
+      if(host.Hostname().find("adb:") > 0 && host.Protocol() == NULL)
         continue;
 
       RemoteHostList.push_back(host);
