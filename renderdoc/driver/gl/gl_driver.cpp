@@ -743,11 +743,27 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   GLenum colfmt = eGL_RGBA8;
 
   if(params.colorBits == 32)
+  {
     colfmt = params.isSRGB ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
+  }
   else if(params.colorBits == 24)
+  {
     colfmt = params.isSRGB ? eGL_SRGB8 : eGL_RGB8;
+  }
+  else if(params.colorBits == 16)
+  {
+    RDCASSERT(!params.isSRGB);
+    // 5:6:5 is almost certainly not used in desktop GL as a backbuffer format, and is only required
+    // to be supported from 4.2 onwards, so only replicate it on a GLES capture.
+    if(IsGLES)
+      colfmt = eGL_RGB565;
+    else
+      colfmt = eGL_RGB8;
+  }
   else
+  {
     RDCERR("Unexpected # colour bits: %d", params.colorBits);
+  }
 
   GLenum target = eGL_TEXTURE_2D;
   if(params.multiSamples > 1)
