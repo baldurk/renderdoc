@@ -68,7 +68,7 @@ public:
 
   void CloseThread();
 
-  ReplayStatus ConnectToRemoteServer(RemoteHost *host);
+  ReplayStatus ConnectToRemoteServer(RemoteHost host);
   void DisconnectFromRemoteServer();
   void ShutdownServer();
   void PingRemote();
@@ -86,7 +86,7 @@ public:
   // work whether local or remote.
   ICaptureFile *GetCaptureFile() { return m_CaptureFile; }
   void ReopenCaptureFile(const QString &path);
-  RemoteHost *CurrentRemote() { return m_RemoteHost; }
+  RemoteHost CurrentRemote() { return m_RemoteHost; }
   ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
                                  const rdcarray<EnvironmentModification> &env,
                                  const rdcstr &capturefile, CaptureOptions opts);
@@ -128,7 +128,7 @@ private:
   void PushInvoke(InvokeHandle *cmd);
 
   QMutex m_RemoteLock;
-  RemoteHost *m_RemoteHost = NULL;
+  RemoteHost m_RemoteHost;
   IRemoteServer *m_Remote = NULL;
 
   volatile bool m_Running;

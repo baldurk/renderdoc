@@ -125,17 +125,21 @@ void PersistantConfig::Close()
 {
 }
 
-int PersistantConfig::RemoteHostCount()
+rdcarray<RemoteHost> PersistantConfig::GetRemoteHosts()
 {
-  return 0;
+  return {};
 }
 
-RemoteHost *PersistantConfig::GetRemoteHost(int index)
+RemoteHost PersistantConfig::GetRemoteHost(const rdcstr &)
 {
-  return NULL;
+  return RemoteHost();
 }
 
 void PersistantConfig::AddRemoteHost(RemoteHost host)
+{
+}
+
+void PersistantConfig::RemoveRemoteHost(RemoteHost host)
 {
 }
 
@@ -166,7 +170,23 @@ rdcstr PersistantConfig::GetConfigSetting(const rdcstr &name)
 
 RemoteHost::RemoteHost()
 {
-  serverRunning = connected = busy = versionMismatch = false;
+}
+
+RemoteHost::RemoteHost(const rdcstr &host)
+{
+}
+
+RemoteHost::RemoteHost(const RemoteHost &o)
+{
+}
+
+RemoteHost &RemoteHost::operator=(const RemoteHost &o)
+{
+  return *this;
+}
+
+RemoteHost::~RemoteHost()
+{
 }
 
 void RemoteHost::CheckStatus()
@@ -176,4 +196,59 @@ void RemoteHost::CheckStatus()
 ReplayStatus RemoteHost::Launch()
 {
   return ReplayStatus::Succeeded;
+}
+
+bool RemoteHost::IsServerRunning() const
+{
+  return false;
+}
+
+bool RemoteHost::IsConnected() const
+{
+  return false;
+}
+
+bool RemoteHost::IsBusy() const
+{
+  return false;
+}
+
+bool RemoteHost::IsVersionMismatch() const
+{
+  return false;
+}
+
+rdcstr RemoteHost::FriendlyName() const
+{
+  return rdcstr();
+}
+
+void RemoteHost::SetFriendlyName(const rdcstr &name)
+{
+}
+
+rdcstr RemoteHost::RunCommand() const
+{
+  return rdcstr();
+}
+
+void RemoteHost::SetRunCommand(const rdcstr &cmd)
+{
+}
+
+rdcstr RemoteHost::LastCapturePath() const
+{
+  return rdcstr();
+}
+
+void RemoteHost::SetLastCapturePath(const rdcstr &path)
+{
+}
+
+void RemoteHost::SetConnected(bool connected)
+{
+}
+
+void RemoteHost::SetShutdown()
+{
 }

@@ -705,9 +705,7 @@ bool LiveCapture::checkAllowClose()
     // we either have to save or delete the capture. Make sure that if it's remote that we are able
     // to by having an active connection or replay context on that host.
     if(suppressRemoteWarning == false && (!m_Connection || !m_Connection->Connected()) &&
-       !cap->local && (!m_Ctx.Replay().CurrentRemote() ||
-                       QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
-                       !m_Ctx.Replay().CurrentRemote()->connected))
+       !cap->local && m_Ctx.Replay().CurrentRemote().Hostname() != rdcstr(m_Hostname))
     {
       QMessageBox::StandardButton res2 = RDDialog::question(
           this, tr("No active replay context"),
@@ -752,9 +750,7 @@ void LiveCapture::openCapture(Capture *cap)
 {
   cap->opened = true;
 
-  if(!cap->local && (!m_Ctx.Replay().CurrentRemote() ||
-                     QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
-                     !m_Ctx.Replay().CurrentRemote()->connected))
+  if(!cap->local && m_Ctx.Replay().CurrentRemote().Hostname() != rdcstr(m_Hostname))
   {
     RDDialog::critical(
         this, tr("No active replay context"),
@@ -821,9 +817,7 @@ bool LiveCapture::saveCapture(Capture *cap, QString path)
   }
   else
   {
-    if(!m_Ctx.Replay().CurrentRemote() ||
-       QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
-       !m_Ctx.Replay().CurrentRemote()->connected)
+    if(m_Ctx.Replay().CurrentRemote().Hostname() != rdcstr(m_Hostname))
     {
       RDDialog::critical(this, tr("No active replay context"),
                          tr("This capture is on remote host %1 and there is no active replay "
@@ -1054,9 +1048,7 @@ void LiveCapture::connectionClosed()
       // to this machine as a remote context
       if(!cap->local)
       {
-        if(!m_Ctx.Replay().CurrentRemote() ||
-           QString(m_Ctx.Replay().CurrentRemote()->hostname) != m_Hostname ||
-           !m_Ctx.Replay().CurrentRemote()->connected)
+        if(m_Ctx.Replay().CurrentRemote().Hostname() != rdcstr(m_Hostname))
           return;
       }
 

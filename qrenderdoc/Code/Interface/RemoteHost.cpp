@@ -22,79 +22,157 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <QAtomicInt>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QProcess>
 #include <QThread>
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
-RemoteHost::RemoteHost()
+struct RemoteHostData
 {
-  serverRunning = connected = busy = versionMismatch = false;
-}
+  QAtomicInt refcount;
+  QMutex mutex;
+
+  void ref() { refcount.ref(); }
+  void deref()
+  {
+    if(!refcount.deref())
+      delete this;
+  }
+
+  RemoteHostData() : refcount(1) {}
+  rdcstr m_friendlyName, m_runCommand, m_lastCapturePath;
+  bool m_serverRunning = false, m_connected = false, m_busy = false, m_versionMismatch = false;
+};
 
 RemoteHost::RemoteHost(const QVariant &var)
 {
+  m_data = new RemoteHostData();
+
   QVariantMap map = var.toMap();
   if(map.contains(lit("hostname")))
-    hostname = map[lit("hostname")].toString();
+    m_hostname = map[lit("hostname")].toString();
   if(map.contains(lit("friendlyName")))
-    friendlyName = map[lit("friendlyName")].toString();
+    m_data->m_friendlyName = map[lit("friendlyName")].toString();
   if(map.contains(lit("runCommand")))
-    runCommand = map[lit("runCommand")].toString();
+    m_data->m_runCommand = map[lit("runCommand")].toString();
   if(map.contains(lit("lastCapturePath")))
-    lastCapturePath = map[lit("lastCapturePath")].toString();
+    m_data->m_lastCapturePath = map[lit("lastCapturePath")].toString();
+}
 
-  serverRunning = connected = busy = versionMismatch = false;
+RemoteHost::RemoteHost()
+{
+  m_data = new RemoteHostData();
+}
+
+RemoteHost::RemoteHost(const rdcstr &host)
+{
+  // create a new host
+  m_hostname = host;
+  m_data = new RemoteHostData();
+}
+
+RemoteHost::RemoteHost(const RemoteHost &o)
+{
+  *this = o;
+}
+
+RemoteHost &RemoteHost::operator=(const RemoteHost &o)
+{
+  m_hostname = o.m_hostname;
+
+  // deref old data
+  if(m_data)
+    m_data->deref();
+  // point to new data
+  m_data = o.m_data;
+  // get a ref on it
+  m_data->ref();
+  return *this;
+}
+
+RemoteHost::~RemoteHost()
+{
+  m_data->deref();
 }
 
 RemoteHost::operator QVariant() const
 {
   QVariantMap map;
-  map[lit("hostname")] = hostname;
-  map[lit("friendlyName")] = friendlyName;
-  map[lit("runCommand")] = runCommand;
-  map[lit("lastCapturePath")] = lastCapturePath;
+  m_data->mutex.lock();
+  map[lit("hostname")] = m_hostname;
+  map[lit("friendlyName")] = m_data->m_friendlyName;
+  map[lit("runCommand")] = m_data->m_runCommand;
+  map[lit("lastCapturePath")] = m_data->m_lastCapturePath;
+  m_data->mutex.unlock();
   return map;
 }
 
 void RemoteHost::CheckStatus()
 {
   // special case - this is the local context
-  if(hostname == "localhost")
+  if(m_hostname == "localhost")
   {
-    serverRunning = false;
-    versionMismatch = busy = false;
+    QMutexLocker autolock(&m_data->mutex);
+    m_data->m_serverRunning = m_data->m_versionMismatch = m_data->m_busy = false;
     return;
   }
 
+  // to avoid doing complex work while holding the remote host lock, we check the status here then
+  // call into the internal function that will propagate that data to the proper storage if needed.
   IRemoteServer *rend = NULL;
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(hostname.c_str(), 0, &rend);
-
-  if(status == ReplayStatus::Succeeded)
-  {
-    serverRunning = true;
-    versionMismatch = busy = false;
-  }
-  else if(status == ReplayStatus::NetworkRemoteBusy)
-  {
-    serverRunning = true;
-    busy = true;
-    versionMismatch = false;
-  }
-  else if(status == ReplayStatus::NetworkVersionMismatch)
-  {
-    serverRunning = true;
-    busy = true;
-    versionMismatch = true;
-  }
-  else
-  {
-    serverRunning = false;
-    versionMismatch = busy = false;
-  }
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(m_hostname.c_str(), 0, &rend);
 
   if(rend)
     rend->ShutdownConnection();
+
+  UpdateStatus(status);
+}
+
+void RemoteHost::SetConnected(bool connected)
+{
+  QMutexLocker autolock(&m_data->mutex);
+  m_data->m_connected = connected;
+}
+
+void RemoteHost::SetShutdown()
+{
+  QMutexLocker autolock(&m_data->mutex);
+  m_data->m_connected = false;
+  m_data->m_serverRunning = false;
+  m_data->m_busy = false;
+}
+
+void RemoteHost::UpdateStatus(ReplayStatus status)
+{
+  {
+    QMutexLocker autolock(&m_data->mutex);
+
+    if(status == ReplayStatus::Succeeded)
+    {
+      m_data->m_serverRunning = true;
+      m_data->m_versionMismatch = m_data->m_busy = false;
+    }
+    else if(status == ReplayStatus::NetworkRemoteBusy)
+    {
+      m_data->m_serverRunning = true;
+      m_data->m_busy = true;
+      m_data->m_versionMismatch = false;
+    }
+    else if(status == ReplayStatus::NetworkVersionMismatch)
+    {
+      m_data->m_serverRunning = true;
+      m_data->m_busy = true;
+      m_data->m_versionMismatch = true;
+    }
+    else
+    {
+      m_data->m_serverRunning = false;
+      m_data->m_versionMismatch = m_data->m_busy = false;
+    }
+  }
 
   // since we can only have one active client at once on a remote server, we need
   // to avoid DDOS'ing by doing multiple CheckStatus() one after the other so fast
@@ -113,15 +191,82 @@ ReplayStatus RemoteHost::Launch()
 
   if(IsADB())
   {
-    status = RENDERDOC_StartAndroidRemoteServer(hostname.c_str());
+    status = RENDERDOC_StartAndroidRemoteServer(m_hostname.c_str());
     QThread::msleep(WAIT_TIME);
     return status;
   }
 
+  rdcstr run;
+
+  {
+    QMutexLocker autolock(&m_data->mutex);
+    run = RunCommand();
+  }
+
   RDProcess process;
-  process.start(runCommand);
+  process.start(run);
   process.waitForFinished(WAIT_TIME);
   process.detach();
 
   return status;
+}
+
+bool RemoteHost::IsServerRunning() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_serverRunning;
+}
+
+bool RemoteHost::IsConnected() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_connected;
+}
+
+bool RemoteHost::IsBusy() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_busy;
+}
+
+bool RemoteHost::IsVersionMismatch() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_versionMismatch;
+}
+
+rdcstr RemoteHost::FriendlyName() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_friendlyName;
+}
+
+void RemoteHost::SetFriendlyName(const rdcstr &name)
+{
+  QMutexLocker autolock(&m_data->mutex);
+  m_data->m_friendlyName = name;
+}
+
+rdcstr RemoteHost::RunCommand() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_runCommand;
+}
+
+void RemoteHost::SetRunCommand(const rdcstr &cmd)
+{
+  QMutexLocker autolock(&m_data->mutex);
+  m_data->m_runCommand = cmd;
+}
+
+rdcstr RemoteHost::LastCapturePath() const
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return m_data->m_lastCapturePath;
+}
+
+void RemoteHost::SetLastCapturePath(const rdcstr &path)
+{
+  QMutexLocker autolock(&m_data->mutex);
+  m_data->m_lastCapturePath = path;
 }

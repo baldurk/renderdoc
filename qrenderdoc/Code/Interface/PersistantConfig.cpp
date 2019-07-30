@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QDir>
+#include <QMutexLocker>
 #include <QStandardPaths>
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
@@ -194,34 +195,78 @@ void PersistantConfig::applyValues(const QVariantMap &values)
   RENAMED_SETTING(QVariantList, SPIRVDisassemblers, ShaderProcessors);
 }
 
-int PersistantConfig::RemoteHostCount()
+static QMutex RemoteHostLock;
+
+rdcarray<RemoteHost> PersistantConfig::GetRemoteHosts()
 {
-  return RemoteHosts.count();
+  QMutexLocker autolock(&RemoteHostLock);
+  return RemoteHostList;
 }
 
-RemoteHost *PersistantConfig::GetRemoteHost(int index)
+RemoteHost PersistantConfig::GetRemoteHost(const rdcstr &hostname)
 {
-  if(index < 0 || index >= RemoteHostCount())
-    return NULL;
-  return RemoteHosts[index];
+  RemoteHost ret;
+
+  {
+    QMutexLocker autolock(&RemoteHostLock);
+    for(size_t i = 0; i < RemoteHostList.size(); i++)
+    {
+      if(RemoteHostList[i].Hostname() == hostname)
+      {
+        ret = RemoteHostList[i];
+        break;
+      }
+    }
+  }
+
+  return ret;
 }
 
 void PersistantConfig::AddRemoteHost(RemoteHost host)
 {
-  RemoteHosts.push_back(new RemoteHost(host));
+  if(!host.IsValid())
+    return;
+
+  QMutexLocker autolock(&RemoteHostLock);
+
+  // don't add duplicates
+  for(size_t i = 0; i < RemoteHostList.size(); i++)
+  {
+    if(RemoteHostList[i] == host)
+    {
+      RemoteHostList[i] = host;
+      return;
+    }
+  }
+
+  RemoteHostList.push_back(host);
+}
+
+void PersistantConfig::RemoveRemoteHost(RemoteHost host)
+{
+  if(!host.IsValid())
+    return;
+
+  QMutexLocker autolock(&RemoteHostLock);
+
+  for(size_t i = 0; i < RemoteHostList.size(); i++)
+  {
+    if(RemoteHostList[i] == host)
+    {
+      RemoteHostList.takeAt(i);
+      break;
+    }
+  }
 }
 
 void PersistantConfig::AddAndroidHosts()
 {
-  QMap<rdcstr, RemoteHost *> oldHosts;
-  for(int i = RemoteHosts.count() - 1; i >= 0; i--)
-  {
-    if(RemoteHosts[i]->IsADB())
-    {
-      RemoteHost *host = RemoteHosts.takeAt(i);
-      oldHosts[host->hostname] = host;
-    }
-  }
+  QMutexLocker autolock(&RemoteHostLock);
+
+  QMap<rdcstr, RemoteHost> oldHosts;
+  for(int i = RemoteHostList.count() - 1; i >= 0; i--)
+    if(RemoteHostList[i].IsADB())
+      oldHosts[RemoteHostList[i].Hostname()] = RemoteHostList.takeAt(i);
 
   QString androidSDKPath = (!Android_SDKPath.isEmpty() && QFile::exists(Android_SDKPath))
                                ? QString(Android_SDKPath)
@@ -242,28 +287,25 @@ void PersistantConfig::AddAndroidHosts()
   for(const QString &hostName :
       QString(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
   {
-    RemoteHost *host = NULL;
+    RemoteHost host((rdcstr)hostName);
 
     if(oldHosts.contains(hostName))
       host = oldHosts.take(hostName);
-    else
-      host = new RemoteHost();
 
-    host->hostname = hostName;
     rdcstr friendly;
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
-    host->friendlyName = friendly;
+    host.SetFriendlyName(friendly);
     // Just a command to display in the GUI and allow Launch() to be called.
-    host->runCommand = lit("Automatically handled");
-    RemoteHosts.push_back(host);
+    host.SetRunCommand("Automatically handled");
+    RemoteHostList.push_back(host);
   }
 
   // delete any leftovers
-  QMapIterator<rdcstr, RemoteHost *> i(oldHosts);
+  QMutableMapIterator<rdcstr, RemoteHost> i(oldHosts);
   while(i.hasNext())
   {
     i.next();
-    delete i.value();
+    i.value().SetShutdown();
   }
 }
 
@@ -288,8 +330,6 @@ bool PersistantConfig::SetStyle()
 
 PersistantConfig::~PersistantConfig()
 {
-  for(RemoteHost *h : RemoteHosts)
-    delete h;
 }
 
 bool PersistantConfig::Load(const rdcstr &filename)
@@ -309,24 +349,32 @@ bool PersistantConfig::Load(const rdcstr &filename)
   RDDialog::DefaultBrowsePath = LastFileBrowsePath;
 
   // localhost should always be available as a remote host
-  bool foundLocalhost = false;
-
-  for(RemoteHost host : RemoteHostList)
   {
-    if(host.hostname.isEmpty())
-      continue;
+    QMutexLocker autolock(&RemoteHostLock);
 
-    RemoteHosts.push_back(new RemoteHost(host));
+    bool foundLocalhost = false;
 
-    if(host.IsLocalhost())
-      foundLocalhost = true;
-  }
+    rdcarray<RemoteHost> hosts;
+    hosts.swap(RemoteHostList);
 
-  if(!foundLocalhost)
-  {
-    RemoteHost *host = new RemoteHost();
-    host->hostname = "localhost";
-    RemoteHosts.insert(0, host);
+    for(RemoteHost host : hosts)
+    {
+      // skip invalid hosts
+      if(!host.IsValid())
+        continue;
+
+      RemoteHostList.push_back(host);
+
+      if(host.IsLocalhost())
+        foundLocalhost = true;
+    }
+
+    if(!foundLocalhost)
+    {
+      RemoteHost host;
+      host.m_hostname = "localhost";
+      RemoteHostList.insert(0, host);
+    }
   }
 
   bool tools[arraydim<KnownShaderTool>()] = {};
@@ -426,11 +474,6 @@ bool PersistantConfig::Save()
 {
   if(m_Filename.isEmpty())
     return true;
-
-  // update serialize list
-  RemoteHostList.clear();
-  for(RemoteHost *host : RemoteHosts)
-    RemoteHostList.push_back(*host);
 
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
   RENDERDOC_SetConfigSetting("ExternalTool_RGPIntegration", ExternalTool_RGPIntegration ? "1" : "0");

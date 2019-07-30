@@ -28,6 +28,8 @@
 #include "QRDInterface.h"
 #include "RemoteHost.h"
 
+class QMutex;
+
 DOCUMENT(R"(Identifies a particular known tool used for shader processing.
 
 .. data:: Unknown
@@ -766,38 +768,29 @@ For more information about some of these settings that are user-facing see
 class PersistantConfig
 {
 public:
-// don't allow SWIG direct access to the RemoteHosts since they're an array of references and our
-// bindings can't handle that properly
-#if !defined(SWIG)
-  // Runtime list of dynamically allocated hosts.
-  // Saved to/from private RemoteHostList in CONFIG_SETTINGS()
-  // This is documented above in the docstring, similar to the values in CONFIG_SETTINGS()
-  // This must only be accessed on the UI thread to prevent races. For access on other threads (e.g.
-  // a background/asynchronous update), take a copy on the UI thread, update it in the background,
-  // then apply the updates.
-  DOCUMENT("");
-  rdcarray<RemoteHost *> RemoteHosts;
-#endif
+  DOCUMENT(R"(Returns a list of all remote hosts.
 
-  DOCUMENT(R"(Returns the number of remote hosts currently registered.
-
-:return: The number of remote hosts.
-:rtype: ``int``
+:return: The remote host list
+:rtype: ``list`` of ``RemoteHost``
 )");
-  int RemoteHostCount();
-  DOCUMENT(R"(Returns a given remote host at an index.
+  rdcarray<RemoteHost> GetRemoteHosts();
+  DOCUMENT(R"(Look up a remote host by hostname.
 
-:param int index: The index of the remote host to retrieve
-:return: The remote host specified, or ``None`` if an invalid index was passed
+:return: The remote host for the given hostname, or an invalid ``RemoteHost`` if no such exists.
 :rtype: ``RemoteHost``
 )");
-  RemoteHost *GetRemoteHost(int index);
+  RemoteHost GetRemoteHost(const rdcstr &hostname);
 
   DOCUMENT(R"(Adds a new remote host.
 
 :param RemoteHost host: The remote host to add.
 R)");
   void AddRemoteHost(RemoteHost host);
+  DOCUMENT(R"(Removes an existing remote host.
+
+:param RemoteHost host: The remote host to remove.
+R)");
+  void RemoveRemoteHost(RemoteHost host);
   DOCUMENT("If configured, queries ``adb`` to add android hosts to :data:`RemoteHosts`.");
   void AddAndroidHosts();
 

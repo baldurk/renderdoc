@@ -305,11 +305,11 @@ void ReplayManager::CloseThread()
   m_Thread = NULL;
 }
 
-ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
+ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost host)
 {
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host->hostname.c_str(), 0, &m_Remote);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), 0, &m_Remote);
 
-  if(host->IsADB())
+  if(host.IsADB())
   {
     ANALYTIC_SET(UIFeatures.AndroidRemoteReplay, true);
   }
@@ -322,7 +322,7 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 
   if(status == ReplayStatus::Succeeded)
   {
-    m_RemoteHost->connected = true;
+    m_RemoteHost.SetConnected(true);
     return status;
   }
 
@@ -331,8 +331,7 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 
 void ReplayManager::DisconnectFromRemoteServer()
 {
-  if(m_RemoteHost)
-    m_RemoteHost->connected = false;
+  m_RemoteHost.SetConnected(false);
 
   if(m_Remote)
   {
@@ -340,12 +339,14 @@ void ReplayManager::DisconnectFromRemoteServer()
     m_Remote->ShutdownConnection();
   }
 
-  m_RemoteHost = NULL;
+  m_RemoteHost = RemoteHost();
   m_Remote = NULL;
 }
 
 void ReplayManager::ShutdownServer()
 {
+  m_RemoteHost.SetShutdown();
+
   if(m_Remote)
   {
     QMutexLocker autolock(&m_RemoteLock);
@@ -365,7 +366,7 @@ void ReplayManager::PingRemote()
     if(!IsRunning() || m_Thread->isCurrentThread())
     {
       if(!m_Remote->Ping())
-        m_RemoteHost->serverRunning = false;
+        m_RemoteHost.SetShutdown();
     }
     m_RemoteLock.unlock();
   }
