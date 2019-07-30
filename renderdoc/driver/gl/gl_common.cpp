@@ -775,7 +775,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   // crashes or corrupted data. We force the initial state copies to happen via our emulation which
   // uses framebuffer blits.
   if(strstr(vendor, "Qualcomm") || strstr(vendor, "Adreno") || strstr(renderer, "Qualcomm") ||
-     strstr(vendor, "Adreno"))
+     strstr(renderer, "Adreno"))
   {
     bool broken = true;
 
