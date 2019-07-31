@@ -249,8 +249,6 @@ bool State::OperationFlushing(const DXBC::OpcodeType &op) const
     case OPCODE_DP3:
     case OPCODE_DP4:
     case OPCODE_SINCOS:
-    case OPCODE_F16TOF32:
-    case OPCODE_F32TOF16:
     case OPCODE_FRC:
     case OPCODE_ROUND_PI:
     case OPCODE_ROUND_Z:
@@ -273,6 +271,11 @@ bool State::OperationFlushing(const DXBC::OpcodeType &op) const
     case OPCODE_UTOF:
     case OPCODE_FTOI:
     case OPCODE_FTOU:
+      return false;
+
+    // we have to flush this manually since the input is halves encoded in uints
+    case OPCODE_F16TOF32:
+    case OPCODE_F32TOF16:
       return false;
 
     // implementation defined if this should flush or not, we choose not.
@@ -1744,18 +1747,20 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
     }
     case OPCODE_F16TOF32:
     {
-      s.SetDst(op.operands[0], op, ShaderVariable("", ConvertFromHalf(srcOpers[0].value.u.x & 0xffff),
-                                                  ConvertFromHalf(srcOpers[0].value.u.y & 0xffff),
-                                                  ConvertFromHalf(srcOpers[0].value.u.z & 0xffff),
-                                                  ConvertFromHalf(srcOpers[0].value.u.w & 0xffff)));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", flush_denorm(ConvertFromHalf(srcOpers[0].value.u.x & 0xffff)),
+                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.y & 0xffff)),
+                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.z & 0xffff)),
+                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.w & 0xffff))));
       break;
     }
     case OPCODE_F32TOF16:
     {
-      s.SetDst(op.operands[0], op, ShaderVariable("", (uint32_t)ConvertToHalf(srcOpers[0].value.f.x),
-                                                  (uint32_t)ConvertToHalf(srcOpers[0].value.f.y),
-                                                  (uint32_t)ConvertToHalf(srcOpers[0].value.f.z),
-                                                  (uint32_t)ConvertToHalf(srcOpers[0].value.f.w)));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.x)),
+                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.y)),
+                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.z)),
+                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.w))));
       break;
     }
     case OPCODE_FRC:
