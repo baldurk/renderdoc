@@ -1865,7 +1865,7 @@ void MainWindow::setRemoteHost(int hostIdx)
 
           if(res == QMessageBox::Yes)
           {
-            LambdaThread *launchthread = new LambdaThread([this, &host]() {
+            LambdaThread *launchthread = new LambdaThread([&host]() {
               // since we have a protocol, try to force-launch which should attempt to reinstall.
               host.Launch();
 
