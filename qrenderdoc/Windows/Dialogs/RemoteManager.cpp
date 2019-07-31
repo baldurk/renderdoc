@@ -610,7 +610,7 @@ void RemoteManager::on_connect_clicked()
       }
 
       // kick off a thread to check the status
-      LambdaThread *th = new LambdaThread([ this, h = host ]() {
+      LambdaThread *th = new LambdaThread([h = host]() {
         RemoteHost host = h;
         host.CheckStatus();
       });
