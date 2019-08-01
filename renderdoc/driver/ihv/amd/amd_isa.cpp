@@ -109,17 +109,10 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
 
   if(IsSupported(primary) || IsSupported(secondary))
   {
-    // OpenGL doesn't support AMDIL
-    if(api != GraphicsAPI::OpenGL)
-      targets.push_back("AMDIL");
-
-    int apiBitmask = 1 << (int)api;
+    targets.push_back("AMDIL");
 
     for(int i = 0; i < asicCount; i++)
-    {
-      if(asicInfo[i].apiBitmask & apiBitmask)
-        targets.push_back(asicInfo[i].name);
-    }
+      targets.push_back(asicInfo[i].name);
   }
   else
   {
@@ -296,6 +289,7 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   std::string outPath = StringFormat::Fmt("%sout.txt", tempPath.c_str());
   std::string binPath = StringFormat::Fmt("%sout.bin", tempPath.c_str());
   std::string statsPath = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
+  std::string ilPath = StringFormat::Fmt("%sil.txt", tempPath.c_str());
 
   std::string cmdLine = "\"";
 
@@ -332,6 +326,13 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
     }
   }
 
+  // dummy values
+  if(!found)
+  {
+    const asic &a = asicInfo[0];
+    cmdLine += StringFormat::Fmt("%d;%d;", a.chipFamily, a.chipRevision);
+  }
+
   // input files
   for(int i = 0; i < 6; i++)
   {
@@ -341,10 +342,25 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
     cmdLine += ';';
   }
 
+  cmdLine += ";\"";
+
+  // amdil files
+  for(int i = 0; i < 6; i++)
+  {
+    if(i == stageIndex)
+      cmdLine += ilPath;
+
+    cmdLine += ';';
+  }
+
+  if(!found && target == "AMDIL")
+  {
+    outPath = ilPath;
+    found = true;
+  }
+
   if(!found)
     return "; Invalid ISA Target specified";
-
-  cmdLine += ";\"";
 
   FileIO::dump(inPath.c_str(), shaderBytes.data(), shaderBytes.size());
 
@@ -370,6 +386,9 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
     std::vector<byte> data;
     FileIO::slurp(outPath.c_str(), data);
     ret = std::string(data.data(), data.data() + data.size());
+
+    while(ret.back() == '\0')
+      ret.pop_back();
 
     if(FileIO::exists(statsPath.c_str()))
     {
