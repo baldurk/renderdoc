@@ -3986,8 +3986,8 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id, uint32_
     while(type->type == SPVTypeData::eArray)
       type = type->baseType;
 
-    // if this is a root array in the geometry shader, don't reflect it as an array
-    if(stage == ShaderStage::Geometry && structID == 0)
+    // if this is a root array input in the geometry shader, don't reflect it as an array
+    if(stage == ShaderStage::Geometry && structID == 0 && isInput)
     {
       arraySize = 1;
       isArray = false;
