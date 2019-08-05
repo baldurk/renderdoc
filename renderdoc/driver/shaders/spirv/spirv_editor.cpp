@@ -218,10 +218,11 @@ void Editor::AddExecutionMode(const Operation &mode)
 
 Id Editor::ImportExtInst(const char *setname)
 {
-  Id ret = extSets[setname];
-
-  if(ret)
-    return ret;
+  for(auto it = extSets.begin(); it != extSets.end(); ++it)
+  {
+    if(it->second == setname)
+      return it->first;
+  }
 
   // start at the beginning
   Iter it(m_SPIRV, FirstRealWord);
@@ -231,7 +232,7 @@ Id Editor::ImportExtInst(const char *setname)
     it++;
 
   // insert the import instruction
-  ret = MakeId();
+  Id ret = MakeId();
 
   size_t sz = strlen(setname);
   std::vector<uint32_t> uintName((sz / 4) + 1);
@@ -244,7 +245,7 @@ Id Editor::ImportExtInst(const char *setname)
   RegisterOp(it);
   addWords(it.offs(), op.size());
 
-  extSets[setname] = ret;
+  extSets[ret] = setname;
 
   return ret;
 }

@@ -517,15 +517,48 @@ void Reflector::PostParse()
 
     if(type.name.empty())
     {
-      if(type.scalar().type == Op::TypeVoid)
+      if(type.type == DataType::UnknownType)
+      {
+        // ignore
+      }
+      else if(type.scalar().type == Op::TypeVoid)
       {
         type.name = "void";
       }
-      if(type.scalar().type == Op::TypeBool)
+      else if(type.scalar().type == Op::TypeBool)
       {
         type.name = "bool";
       }
-      else
+      else if(type.type == DataType::StructType)
+      {
+        type.name = StringFormat::Fmt("struct%u", type.id);
+      }
+      else if(type.type == DataType::PointerType)
+      {
+        type.name = StringFormat::Fmt("%s*", dataTypes[type.InnerType()].name.c_str());
+      }
+      else if(type.type == DataType::ArrayType)
+      {
+        // prefer the name
+        rdcstr lengthName;
+
+        if(type.length != Id())
+        {
+          lengthName = strings[type.length];
+
+          // if not, use the constant value
+          if(lengthName.empty())
+            lengthName = StringiseConstant(type.length);
+
+          // if not, it might be a spec constant, use the fallback
+          if(lengthName.empty())
+            lengthName = StringFormat::Fmt("_%u", type.length);
+        }
+
+        type.name = StringFormat::Fmt("%s[%s]", dataTypes[type.InnerType()].name.c_str(),
+                                      lengthName.c_str());
+      }
+      else if(type.type < DataType::StructType)
       {
         type.name = ToStr(type.scalar().Type());
 
@@ -537,6 +570,46 @@ void Reflector::PostParse()
         {
           type.name += StringFormat::Fmt("%ux%u", type.matrix().count, type.vector().count);
         }
+      }
+      else if(type.type == DataType::ImageType)
+      {
+        const Image &img = imageTypes[type.id];
+
+        rdcstr name;
+
+        switch(img.dim)
+        {
+          case Dim::_1D: name = "1D"; break;
+          case Dim::_2D: name = "2D"; break;
+          case Dim::_3D: name = "3D"; break;
+          case Dim::Cube: name = "Cube"; break;
+          case Dim::Rect: name = "Rect"; break;
+          case Dim::SubpassData: name = "Subpass"; break;
+          case Dim::Buffer: name = "Buffer"; break;
+          case Dim::Invalid:
+          case Dim::Max: name = "Invalid"; break;
+        }
+
+        name = ToStr(img.retType.Type()) + name;
+
+        if(img.sampled == 2)
+          name = "Storage" + name;
+
+        if(img.ms)
+          name += "MS";
+        if(img.arrayed)
+          name += "Array";
+
+        type.name = StringFormat::Fmt("Image<%s>", name.c_str());
+      }
+      else if(type.type == DataType::SamplerType)
+      {
+        type.name = StringFormat::Fmt("sampler", type.id);
+      }
+      else if(type.type == DataType::SampledImageType)
+      {
+        type.name = StringFormat::Fmt("Sampled%s",
+                                      dataTypes[sampledImageTypes[type.id].baseId].name.c_str());
       }
     }
   }
@@ -561,11 +634,6 @@ ShaderStage Reflector::StageForEntry(const std::string &entryPoint) const
     if(entryPoint == e.name)
       return MakeShaderStage(e.executionModel);
   return ShaderStage::Count;
-}
-
-std::string Reflector::Disassemble(const std::string &entryPoint)
-{
-  return "Not implemented";
 }
 
 void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage,

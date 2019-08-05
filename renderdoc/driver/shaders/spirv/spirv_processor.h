@@ -539,7 +539,7 @@ protected:
   SparseIdMap<SampledImage> sampledImageTypes;
   SparseIdMap<FunctionType> functionTypes;
 
-  std::map<rdcstr, Id> extSets;
+  std::map<Id, rdcstr> extSets;
 
   struct LogicalSection
   {

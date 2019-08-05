@@ -6713,3 +6713,1455 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
   std::sort(module.globals.begin(), module.globals.end(), SortByVarClass());
 }
+
+#include "spirv_op_helpers.h"
+
+struct StructuredCFG
+{
+  enum
+  {
+    Loop,
+    If,
+    Switch,
+  } type;
+
+  // the Id of the header block
+  rdcspv::Id headerBlock;
+
+  // the merge target is basically the block after the construct.
+  // branching to it exits the construct and all branches must go via the merge target
+  rdcspv::Id mergeTarget;
+
+  // only valid for ifs. The target of the else - we reverse the condition when printing if
+  // necessary so that the false condition is second
+  rdcspv::Id elseTarget;
+
+  // only valid for loops
+  rdcspv::Id continueTarget;
+
+  // only valid for switches
+  rdcarray<rdcspv::PairLiteralIntegerIdRef> caseTargets;
+  rdcspv::Id defaultTarget;
+};
+
+static rdcstr StringiseBinaryOperation(const std::function<rdcstr(rdcspv::Id)> &idName,
+                                       rdcspv::Op op, rdcspv::Id operand1, rdcspv::Id operand2)
+{
+  rdcstr ret;
+
+  ret += idName(operand1);
+  ret += " ";
+  switch(op)
+  {
+    case rdcspv::Op::IAdd:
+    case rdcspv::Op::FAdd: ret += "+"; break;
+    case rdcspv::Op::ISub:
+    case rdcspv::Op::FSub: ret += "+"; break;
+    case rdcspv::Op::IMul:
+    case rdcspv::Op::FMul:
+    case rdcspv::Op::VectorTimesMatrix:
+    case rdcspv::Op::VectorTimesScalar:
+    case rdcspv::Op::MatrixTimesMatrix:
+    case rdcspv::Op::MatrixTimesVector:
+    case rdcspv::Op::MatrixTimesScalar: ret += "*"; break;
+    case rdcspv::Op::UDiv:
+    case rdcspv::Op::SDiv:
+    case rdcspv::Op::FDiv: ret += "/"; break;
+    case rdcspv::Op::ShiftLeftLogical: ret += "<<"; break;
+    case rdcspv::Op::BitwiseAnd: ret += "&"; break;
+    case rdcspv::Op::BitwiseOr: ret += "|"; break;
+    case rdcspv::Op::BitwiseXor: ret += "^"; break;
+    case rdcspv::Op::LogicalEqual:
+    case rdcspv::Op::IEqual:
+    case rdcspv::Op::FOrdEqual:
+    case rdcspv::Op::FUnordEqual: ret += "=="; break;
+    case rdcspv::Op::LogicalNotEqual:
+    case rdcspv::Op::INotEqual:
+    case rdcspv::Op::FOrdNotEqual:
+    case rdcspv::Op::FUnordNotEqual: ret += "!="; break;
+    case rdcspv::Op::LogicalOr: ret += "||"; break;
+    case rdcspv::Op::LogicalAnd: ret += "&&"; break;
+    case rdcspv::Op::UGreaterThan:
+    case rdcspv::Op::SGreaterThan:
+    case rdcspv::Op::FOrdGreaterThan:
+    case rdcspv::Op::FUnordGreaterThan: ret += ">"; break;
+    case rdcspv::Op::UGreaterThanEqual:
+    case rdcspv::Op::SGreaterThanEqual:
+    case rdcspv::Op::FOrdGreaterThanEqual:
+    case rdcspv::Op::FUnordGreaterThanEqual: ret += ">="; break;
+    case rdcspv::Op::ULessThan:
+    case rdcspv::Op::SLessThan:
+    case rdcspv::Op::FOrdLessThan:
+    case rdcspv::Op::FUnordLessThan: ret += "<"; break;
+    case rdcspv::Op::ULessThanEqual:
+    case rdcspv::Op::SLessThanEqual:
+    case rdcspv::Op::FOrdLessThanEqual:
+    case rdcspv::Op::FUnordLessThanEqual: ret += "<="; break;
+    default: break;
+  }
+
+  ret += " ";
+  ret += idName(operand2);
+
+  return ret;
+}
+
+namespace rdcspv
+{
+std::string Reflector::Disassemble(const std::string &entryPoint) const
+{
+  std::set<rdcstr> usedNames;
+  std::map<Id, rdcstr> dynamicNames;
+
+  auto idName = [this, &dynamicNames](Id id) -> rdcstr {
+    // see if we have a dynamic name assigned (to disambiguate), if so use that
+    auto it = dynamicNames.find(id);
+    if(it != dynamicNames.end())
+      return it->second;
+
+    // otherwise try the string
+    rdcstr ret = strings[id];
+    if(!ret.empty())
+      return ret;
+
+    // for non specialised constants, see if we can stringise them directly if they're unnamed
+    ret = StringiseConstant(id);
+    if(!ret.empty())
+      return ret;
+
+    // if we *still* have nothing, just stringise the id itself
+    return StringFormat::Fmt("_%u", id);
+  };
+  auto constIntVal = [this](Id id) { return EvaluateConstant(id, {}).value.u.x; };
+  auto declName = [this, &idName, &usedNames, &dynamicNames](Id typeId, Id id) -> rdcstr {
+    if(typeId == Id())
+      return idName(id);
+
+    rdcstr ret = dataTypes[typeId].name;
+    if(ret.empty())
+      ret = StringFormat::Fmt("type%u", typeId);
+
+    if(id == Id())
+      return ret;
+
+    rdcstr basename = strings[id];
+    if(basename.empty())
+    {
+      return ret + " " + StringFormat::Fmt("_%u", id);
+    }
+
+    rdcstr name = basename;
+
+    int alias = 2;
+    while(usedNames.find(name) != usedNames.end())
+    {
+      name = basename + "_" + ToStr(alias);
+      alias++;
+    }
+
+    usedNames.insert(name);
+    dynamicNames[id] = name;
+
+    return ret + " " + name;
+  };
+  auto getDecorationString = [&idName](const Decorations &dec) -> rdcstr {
+    if(!dec.HasDecorations())
+      return rdcstr();
+
+    rdcstr ret;
+
+    ret += " : [[";
+
+    if(dec.flags & Decorations::Block)
+      ret += "Block, ";
+    if(dec.flags & Decorations::BufferBlock)
+      ret += "BufferBlock, ";
+    if(dec.flags & Decorations::RowMajor)
+      ret += "RowMajor, ";
+    if(dec.flags & Decorations::ColMajor)
+      ret += "ColMajor, ";
+
+    if(dec.flags & Decorations::HasDescriptorSet)
+      ret += StringFormat::Fmt("DescriptorSet(%u), ", dec.set);
+    if(dec.flags & Decorations::HasBinding)
+      ret += StringFormat::Fmt("Binding(%u), ", dec.binding);
+    if(dec.flags & Decorations::HasBuiltIn)
+      ret += StringFormat::Fmt("BuiltIn(%s), ", ToStr(dec.builtIn).c_str());
+    if(dec.flags & Decorations::HasLocation)
+      ret += StringFormat::Fmt("Location(%u), ", dec.location);
+    if(dec.flags & Decorations::HasArrayStride)
+      ret += StringFormat::Fmt("ArrayStride(%u), ", dec.arrayStride);
+    if(dec.flags & Decorations::HasMatrixStride)
+      ret += StringFormat::Fmt("MatrixStride(%u), ", dec.matrixStride);
+    if(dec.flags & Decorations::HasOffset)
+      ret += StringFormat::Fmt("Offset(%u), ", dec.offset);
+    if(dec.flags & Decorations::HasSpecId)
+      ret += StringFormat::Fmt("SpecId(%u), ", dec.specID);
+
+    for(const DecorationAndParamData &d : dec.others)
+      ret += ParamToStr(idName, d) + ", ";
+
+    ret.pop_back();
+    ret.pop_back();
+
+    ret += "]]";
+
+    return ret;
+  };
+  auto accessor = [](const DataType *baseType, uint32_t idx, rdcstr idxname) -> rdcstr {
+    if(baseType->type == DataType::ArrayType || baseType->type == DataType::MatrixType ||
+       (baseType->type == DataType::VectorType && !idxname.empty()))
+    {
+      if(idxname.empty())
+        idxname = ToStr(idx);
+      return StringFormat::Fmt("[%s]", idxname.c_str());
+    }
+
+    if(baseType->type == DataType::VectorType)
+    {
+      if(idx >= 4)
+      {
+        if(idxname.empty())
+          idxname = ToStr(idx);
+        return StringFormat::Fmt("[%s]", idxname.c_str());
+      }
+
+      rdcstr ret = ".";
+      const char comps[5] = "xyzw";
+      ret.push_back(comps[idx]);
+      return ret;
+    }
+
+    RDCASSERT(baseType->type == DataType::StructType && idx < baseType->children.size());
+    if(!baseType->children[idx].name.empty())
+      return "." + baseType->children[idx].name;
+
+    return StringFormat::Fmt("._child%u", idx);
+  };
+
+  std::string ret;
+  std::string indent;
+
+  // stack of structured CFG constructs
+  std::vector<StructuredCFG> cfgStack;
+
+  // set of labels that must be printed because we have gotos for them
+  std::set<Id> printLabels;
+
+  Id currentBlock;
+
+  ret = StringFormat::Fmt(
+      "SPIR-V %u.%u module, <id> bound of %u\n\nGenerator: %s\nGenerator Version: %u\n\n",
+      m_MajorVersion, m_MinorVersion, m_SPIRV[3], ToStr(m_Generator).c_str(), m_GeneratorVersion);
+
+  for(size_t sec = 0; sec < Section::Count; sec++)
+  {
+    ConstIter it(m_SPIRV, m_Sections[sec].startOffset);
+    ConstIter end(m_SPIRV, m_Sections[sec].endOffset);
+
+    for(; it < end; it++)
+    {
+      // special case some opcodes for more readable disassembly, but generally pass to the
+      // auto-generated disassembler
+      switch(it.opcode())
+      {
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // global instructions
+        ////////////////////////////////////////////////////////////////////////////////////////
+
+        // don't print the full source
+        case Op::Source:
+        {
+          OpSource decoded(it);
+          ret += StringFormat::Fmt("Source(%s, %u", ToStr(decoded.sourceLanguage).c_str(),
+                                   decoded.version);
+          if(decoded.file != Id())
+            ret += ", file: " + idName(decoded.file);
+          ret += ")";
+          break;
+        }
+
+        // ignore these operations entirely
+        case Op::SourceContinued:
+        case Op::Line:
+        case Op::String:
+        case Op::Name:
+        case Op::MemberName:
+        case Op::ExtInstImport:
+          continue;
+
+        // ignore decorations too, we already have these cached
+        case Op::Decorate:
+        case Op::DecorateId:
+        case Op::DecorateString:
+        case Op::MemberDecorate:
+        case Op::MemberDecorateString:
+        case Op::DecorationGroup:
+        case Op::GroupDecorate:
+        case Op::GroupMemberDecorate:
+          continue;
+
+        // suppress almost all types
+        case Op::TypeVoid:
+        case Op::TypeBool:
+        case Op::TypeInt:
+        case Op::TypeFloat:
+        case Op::TypeVector:
+        case Op::TypeMatrix:
+        case Op::TypePointer:
+        case Op::TypeArray:
+        case Op::TypeImage:
+        case Op::TypeSampler:
+        case Op::TypeSampledImage:
+        case Op::TypeFunction:
+        case Op::TypeRuntimeArray:
+          continue;
+
+        // structs we print out
+        case Op::TypeStruct:
+        {
+          OpTypeStruct decoded(it);
+
+          const DataType &type = dataTypes[decoded.result];
+
+          ret += "struct " + idName(decoded.result) +
+                 getDecorationString(decorations[decoded.result]) + " {\n";
+          for(size_t i = 0; i < type.children.size(); i++)
+          {
+            ret += "  " + declName(type.children[i].type, Id());
+            ret += " ";
+            if(!type.children[i].name.empty())
+              ret += type.children[i].name;
+            else
+              ret += StringFormat::Fmt("_child%zu", i);
+            ret += getDecorationString(type.children[i].decorations);
+            ret += getDecorationString(decorations[type.children[i].type]);
+            ret += ";\n";
+          }
+          ret += "}\n";
+          continue;
+        }
+
+        // scalar and vector constants are inlined when they're unnamed and not specialised, so only
+        // declare others.
+        case Op::ConstantTrue:
+        case Op::ConstantFalse: continue;
+        case Op::SpecConstant:
+        case Op::Constant:
+        {
+          OpDecoder decoded(it);
+
+          const DataType &type = dataTypes[decoded.resultType];
+
+          RDCASSERT(type.type == DataType::ScalarType);
+
+          // if it's not specialised, not decorated, and not named, don't declare it at all.
+          if(it.opcode() == Op::Constant &&
+             specConstants.find(decoded.result) == specConstants.end() &&
+             strings[decoded.result].empty() && !decorations[decoded.result].HasDecorations())
+          {
+            continue;
+          }
+
+          ret += indent;
+          ret +=
+              StringFormat::Fmt("const %s = ", declName(decoded.resultType, decoded.result).c_str());
+
+          // evalute the value with no specialisation
+          ShaderValue value = EvaluateConstant(decoded.result, {}).value;
+
+          switch(type.scalar().Type())
+          {
+            case VarType::Unknown:
+            case VarType::Float:
+            case VarType::Half: ret += ToStr(value.f.x); break;
+            case VarType::Double: ret += ToStr(value.d.x); break;
+            case VarType::SInt:
+            case VarType::SShort:
+            case VarType::SByte: ret += ToStr(value.i.x); break;
+            case VarType::UInt:
+            case VarType::UShort:
+            case VarType::UByte: ret += ToStr(value.u.x); break;
+            case VarType::SLong: ret += ToStr(value.s64v[0]); break;
+            case VarType::ULong: ret += ToStr(value.u64v[0]); break;
+          }
+
+          ret += getDecorationString(decorations[decoded.result]);
+
+          break;
+        }
+        case Op::SpecConstantComposite:
+        case Op::ConstantComposite:
+        {
+          OpConstantComposite decoded(it);
+
+          const DataType &type = dataTypes[decoded.resultType];
+
+          // if it's a vector, not specialised, not decorated, and not named, don't declare it at
+          // all.
+          if(it.opcode() == Op::ConstantComposite && type.type == DataType::VectorType &&
+             specConstants.find(decoded.result) == specConstants.end() &&
+             strings[decoded.result].empty() && !decorations[decoded.result].HasDecorations())
+          {
+            continue;
+          }
+
+          ret += indent;
+          ret += StringFormat::Fmt("const %s = {",
+                                   declName(decoded.resultType, decoded.result).c_str());
+
+          for(size_t i = 0; i < decoded.constituents.size(); i++)
+          {
+            ret += idName(decoded.constituents[i]);
+            if(i + 1 < decoded.constituents.size())
+              ret += ", ";
+          }
+          ret += "}";
+
+          ret += getDecorationString(decorations[decoded.result]);
+
+          break;
+        }
+        case Op::SpecConstantOp:
+        {
+          OpDecoder decoded(it);
+
+          Op op = (Op)it.word(3);
+
+          ret += indent;
+          ret +=
+              StringFormat::Fmt("const %s = ", declName(decoded.resultType, decoded.result).c_str());
+
+          bool binary = false;
+
+          switch(op)
+          {
+            case Op::IAdd:
+            case Op::ISub:
+            case Op::IMul:
+            case Op::UDiv:
+            case Op::SDiv:
+            case Op::UMod:
+            case Op::SRem:
+            case Op::SMod:
+            case Op::ShiftRightLogical:
+            case Op::ShiftRightArithmetic:
+            case Op::ShiftLeftLogical:
+            case Op::BitwiseOr:
+            case Op::BitwiseXor:
+            case Op::BitwiseAnd:
+            case Op::LogicalOr:
+            case Op::LogicalAnd:
+            case Op::LogicalEqual:
+            case Op::LogicalNotEqual:
+            case Op::IEqual:
+            case Op::INotEqual:
+            case Op::ULessThan:
+            case Op::SLessThan:
+            case Op::UGreaterThan:
+            case Op::SGreaterThan:
+            case Op::ULessThanEqual:
+            case Op::SLessThanEqual:
+            case Op::UGreaterThanEqual:
+            case Op::SGreaterThanEqual:
+              RDCASSERT(it.size() == 6);
+              binary = true;
+              ret += StringiseBinaryOperation(idName, op, Id::fromWord(it.word(4)),
+                                              Id::fromWord(it.word(5)));
+            default: break;
+          }
+
+          if(!binary)
+          {
+            ret += StringFormat::Fmt("%s(", declName(decoded.resultType, decoded.result).c_str(),
+                                     ToStr(op).c_str());
+
+            // interpret params as Ids, except for CompositeExtract and CompositeInsert
+            size_t limit = it.size();
+            if(op == Op::CompositeExtract)
+              limit = 5;
+            else if(op == Op::CompositeInsert)
+              limit = 6;
+
+            for(size_t w = 4; w < limit; w++)
+            {
+              ret += idName(Id::fromWord(it.word(w)));
+
+              if(w + 1 < limit)
+                ret += ", ";
+            }
+
+            // if we have trailing literals, print them
+            if(limit < it.size())
+            {
+              for(size_t w = limit; w < it.size(); w++)
+              {
+                ret += ToStr(it.word(w));
+
+                if(w + 1 < it.size())
+                  ret += ", ";
+              }
+            }
+
+            ret += ")";
+          }
+
+          break;
+        }
+
+        // declare variables by hand with optional initialiser
+        case Op::Variable:
+        {
+          OpVariable decoded(it);
+          ret += indent;
+          if(decoded.storageClass != StorageClass::Function)
+            ret += ToStr(decoded.storageClass) + " ";
+          ret += declName(decoded.resultType, decoded.result);
+          if(decoded.HasInitializer())
+            ret += " = " + idName(decoded.initializer);
+          ret += getDecorationString(decorations[decoded.result]);
+          break;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // control flow and scope indentation
+        ////////////////////////////////////////////////////////////////////////////////////////
+
+        // indent around functions
+        case Op::Function:
+        {
+          OpFunction decoded(it);
+          rdcstr name = declName(decoded.resultType, decoded.result);
+
+          // glslang outputs encoded type information in the OpName of functions, strip it
+          {
+            int32_t offs = name.indexOf('(');
+            if(offs > 0)
+              name.erase(offs, name.size() - offs);
+          }
+
+          ret += StringFormat::Fmt("%s(", name.c_str());
+
+          // peek ahead and consume any function parameters
+          {
+            it++;
+
+            const bool added_params = (it.opcode() == Op::FunctionParameter);
+
+            while(it.opcode() == Op::FunctionParameter)
+            {
+              OpFunctionParameter param(it);
+              ret += declName(param.resultType, param.result) + ", ";
+              it++;
+            }
+
+            // remove trailing ", "
+            if(added_params)
+            {
+              ret.pop_back();
+              ret.pop_back();
+            }
+          }
+
+          ret += ")";
+
+          if(decoded.functionControl != FunctionControl::None)
+            ret += " [[" + ToStr(decoded.functionControl) + "]]";
+
+          ret += getDecorationString(decorations[decoded.result]);
+
+          // if we reached the end, it's a declaration not a definition
+          if(it.opcode() == Op::FunctionEnd)
+            ret += ";";
+          else
+            ret += " {";
+
+          // it points to the FunctionEnd (for declarations) or first Label (for definitions).
+          // the next it++ will skip that but it's fine, because we have processed them
+          ret += "\n";
+
+          indent += "  ";
+          continue;
+        }
+        case Op::FunctionEnd:
+        {
+          ret += "}\n\n";
+          indent.resize(indent.size() - 2);
+          continue;
+        }
+        // indent around control flow
+        case Op::SelectionMerge:
+        {
+          OpSelectionMerge decoded(it);
+          ret += indent;
+          if(decoded.selectionControl != SelectionControl::None)
+            ret += StringFormat::Fmt("[[%s]]", ToStr(decoded.selectionControl).c_str());
+
+          ret += "\n";
+
+          StructuredCFG cfg;
+          cfg.headerBlock = currentBlock;
+          cfg.mergeTarget = decoded.mergeBlock;
+
+          it++;
+
+          // the Switch or BranchConditional operation declares the structured CFG
+          if(it.opcode() == Op::Switch)
+          {
+            cfg.type = StructuredCFG::Switch;
+
+            OpSwitch decodedswitch(it);
+
+            cfg.caseTargets = decodedswitch.target;
+            cfg.defaultTarget = decodedswitch.def;
+
+            ret += indent;
+            ret += StringFormat::Fmt("switch(%s) {\n", idName(decodedswitch.selector).c_str());
+
+            // add another level - each case label will be un-intended.
+            indent += "  ";
+          }
+          else
+          {
+            cfg.type = StructuredCFG::If;
+
+            OpBranchConditional decodedbranch(it);
+
+            ConstIter nextit = it;
+            nextit++;
+
+            // if we got here we're a simple if() without an else - SelectionMerge/LoopMerge
+            // consumes any branch
+
+            // next opcode *must* be a label because this is the end of a block
+            RDCASSERTEQUAL(nextit.opcode(), Op::Label);
+            OpLabel decodedlabel(nextit);
+
+            if(decodedbranch.trueLabel == decodedlabel.result ||
+               decodedbranch.falseLabel == decodedlabel.result)
+            {
+              const char *negate = (decodedbranch.falseLabel == decodedlabel.result) ? "!" : "";
+              ret += indent;
+              ret += StringFormat::Fmt("if(%s%s) {", negate, idName(decodedbranch.condition).c_str());
+
+              if(decodedbranch.branchweights.size() == 2)
+                ret += StringFormat::Fmt(" [[true: %u, false: %u]]", decodedbranch.branchweights[0],
+                                         decodedbranch.branchweights[1]);
+
+              ret += "\n";
+
+              cfg.elseTarget = (decodedbranch.trueLabel == decodedlabel.result)
+                                   ? decodedbranch.falseLabel
+                                   : decodedbranch.trueLabel;
+            }
+            else
+            {
+              RDCWARN(
+                  "Unexpected SPIR-V formulation - OpBranchConditional not followed by either true "
+                  "or false block");
+
+              // this is legal. We just have to emit an if with gotos
+              ret += indent;
+              ret += StringFormat::Fmt(
+                  "if(%s) { goto %s; } else { goto %s; }\n", idName(decodedbranch.condition).c_str(),
+                  idName(decodedbranch.trueLabel).c_str(), idName(decodedbranch.falseLabel).c_str());
+
+              // need to print these labels now
+              printLabels.insert(decodedbranch.trueLabel);
+              printLabels.insert(decodedbranch.falseLabel);
+
+              continue;
+            }
+          }
+
+          cfgStack.push_back(cfg);
+          indent += "  ";
+
+          continue;
+        }
+        case Op::LoopMerge:
+        {
+          OpLoopMerge decoded(it);
+          ret += indent;
+          if(decoded.loopControl != LoopControl::None)
+            ret += StringFormat::Fmt("[[%s]]", ParamToStr(idName, decoded.loopControl).c_str());
+
+          ret += "\n";
+
+          it++;
+          if(it.opcode() == Op::Branch)
+          {
+            OpBranch decodedbranch(it);
+            ret += indent;
+            ret += "while(true) {\n";
+
+            ConstIter nextit = it;
+            nextit++;
+
+            // we can now ignore everything between us and the label of this branch, which is almost
+            // always going to be the very next label.
+            //
+            // The reasoning is this:
+            // - assume the next block is not the one we are jumping to
+            // - all blocks inside the loop must only ever branch backwards to the header block
+            // (that's this one) so the block can't be jumped to from within the loop
+            // - it's also illegal to jump into a structured control flow construct from outside, so
+            //   it can't be jumped to from outside the loop
+            // - that means it is completely inaccessible from everywhere, so we can skip it
+
+            while(nextit.opcode() != Op::Label || OpLabel(nextit).result != decodedbranch.targetLabel)
+            {
+              nextit++;
+              it++;
+            }
+          }
+          else
+          {
+            RDCASSERTEQUAL(it.opcode(), Op::BranchConditional);
+            OpBranchConditional decodedbranch(it);
+
+            // we assume one of the targets of this is the merge block. Then we can express this as
+            // a while(condition) loop, potentially by negating the condition.
+            // If it isn't, then we have to do an infinite loop with a branchy if at the top
+
+            if(decodedbranch.trueLabel == decoded.mergeBlock ||
+               decodedbranch.falseLabel == decoded.mergeBlock)
+            {
+              const char *negate = (decodedbranch.trueLabel == decoded.mergeBlock) ? "!" : "";
+              ret += indent;
+              ret += StringFormat::Fmt("while(%s%s) {", negate,
+                                       idName(decodedbranch.condition).c_str());
+
+              if(decodedbranch.branchweights.size() == 2)
+                ret += StringFormat::Fmt(" [[true: %u, false: %u]]", decodedbranch.branchweights[0],
+                                         decodedbranch.branchweights[1]);
+
+              ret += "\n";
+            }
+            else
+            {
+              RDCWARN(
+                  "Unexpected SPIR-V construct - loop with conditional branch both pointing inside "
+                  "the loop");
+              ret += indent;
+              ret += "while(true) {\n";
+
+              ret += indent;
+              ret += StringFormat::Fmt("  if(%s) { goto %s; } else { goto %s; }\n",
+                                       idName(decodedbranch.condition).c_str(),
+                                       idName(decodedbranch.trueLabel).c_str(),
+                                       idName(decodedbranch.falseLabel).c_str());
+
+              // need to print these labels now
+              printLabels.insert(decodedbranch.trueLabel);
+              printLabels.insert(decodedbranch.falseLabel);
+            }
+          }
+
+          StructuredCFG cfg = {StructuredCFG::Loop};
+          cfg.headerBlock = currentBlock;
+          cfg.mergeTarget = decoded.mergeBlock;
+          cfg.continueTarget = decoded.continueTarget;
+          cfgStack.push_back(cfg);
+          indent += "  ";
+
+          continue;
+        }
+        case Op::Label:
+        {
+          OpLabel decoded(it);
+
+          currentBlock = decoded.result;
+
+          if(!cfgStack.empty() && decoded.result == cfgStack.back().mergeTarget)
+          {
+            // if this is the latest merge block print a closing brace and reduce the indent
+            indent.resize(indent.size() - 2);
+
+            // if this is a switch, remove another level
+            if(cfgStack.back().type == StructuredCFG::Switch)
+              indent.resize(indent.size() - 2);
+
+            ret += indent;
+            ret += "}\n\n";
+
+            cfgStack.pop_back();
+          }
+          else if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::If &&
+                  decoded.result == cfgStack.back().elseTarget)
+          {
+            // if this is the current if's else{} then print it
+            ret += indent.substr(0, indent.size() - 2);
+            ret += "} else {\n";
+          }
+          else if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch &&
+                  decoded.result == cfgStack.back().defaultTarget)
+          {
+            // if this is the current switch's default: then print it
+            ret += indent.substr(0, indent.size() - 2);
+            ret += "default:\n";
+          }
+
+          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
+          {
+            for(const PairLiteralIntegerIdRef &caseTarget : cfgStack.back().caseTargets)
+            {
+              if(caseTarget.second == decoded.result)
+              {
+                // if this is the current switch's default: then print it
+                ret += indent.substr(0, indent.size() - 2);
+                ret += StringFormat::Fmt("case %u:\n", caseTarget.first);
+                break;
+              }
+            }
+          }
+
+          // print the label if we decided it was needed
+          if(printLabels.find(decoded.result) != printLabels.end())
+            ret += idName(decoded.result) + ":\n";
+          continue;
+        }
+        case Op::Branch:
+        {
+          OpBranch decoded(it);
+
+          ConstIter nextit = it;
+          nextit++;
+
+          // next opcode *must* be a label because this is the end of a block
+          RDCASSERTEQUAL(nextit.opcode(), Op::Label);
+          OpLabel decodedlabel(nextit);
+
+          // always skip redundant gotos
+          if(decodedlabel.result == decoded.targetLabel)
+          {
+            // however if we're in a switch we might want to print a clarifying fallthrough comment
+            // or end-of-case break
+
+            if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
+            {
+              // add a break even for the final branch to the merge block
+              if(cfgStack.back().mergeTarget == decoded.targetLabel)
+              {
+                ret += indent + "break;\n";
+                continue;
+              }
+
+              // if we're falling through to the next case, print a comment
+              for(const PairLiteralIntegerIdRef &caseTarget : cfgStack.back().caseTargets)
+              {
+                if(caseTarget.second == decoded.targetLabel)
+                {
+                  ret += indent;
+                  ret +=
+                      StringFormat::Fmt("// deliberate fallthrough to case %u\n", caseTarget.first);
+                  break;
+                }
+              }
+            }
+
+            continue;
+          }
+
+          // if we're in a loop, skip branches from the continue block to the loop header
+          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Loop &&
+             cfgStack.back().continueTarget == currentBlock &&
+             cfgStack.back().headerBlock == decoded.targetLabel)
+            continue;
+
+          // if we're in an if, skip branches to the merge block if the next block is the 'else'
+          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::If &&
+             cfgStack.back().elseTarget == decodedlabel.result &&
+             cfgStack.back().mergeTarget == decoded.targetLabel)
+            continue;
+
+          // if we're in a switch, branches to the merge block are printed as 'break'
+          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch &&
+             cfgStack.back().mergeTarget == decoded.targetLabel)
+          {
+            ret += indent + "break;\n";
+            continue;
+          }
+
+          // if we're in a switch and we're about to print a goto, see if it's a case label and
+          // print a 'nicer' goto. Fallthrough to the next case would be handled above as a
+          // redundant goto
+          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
+          {
+            bool printed = false;
+
+            for(const PairLiteralIntegerIdRef &caseTarget : cfgStack.back().caseTargets)
+            {
+              if(caseTarget.second == decoded.targetLabel)
+              {
+                ret += StringFormat::Fmt("goto case %u;\n", caseTarget.first);
+                printed = true;
+                break;
+              }
+            }
+
+            if(printed)
+              continue;
+          }
+
+          ret += indent;
+          ret += "goto " + idName(decoded.targetLabel) + ";\n";
+
+          // we must print this label because we've created a goto for it
+          printLabels.insert(decoded.targetLabel);
+
+          continue;
+        }
+        case Op::BranchConditional:
+        {
+          OpBranchConditional decoded(it);
+
+          ConstIter nextit = it;
+          nextit++;
+
+          // if we got here we're a simple if() without an else - SelectionMerge/LoopMerge
+          // consumes any branch.
+          //
+          // we must be careful because this kind of branch can conditionally branch out of a loop,
+          // so we need to look to see if either 'other' branch is to the continue or merge blocks
+          // of the current loop
+
+          // next opcode *must* be a label because this is the end of a block
+          RDCASSERTEQUAL(nextit.opcode(), Op::Label);
+          OpLabel decodedlabel(nextit);
+
+          if(decoded.trueLabel == decodedlabel.result || decoded.falseLabel == decodedlabel.result)
+          {
+            Id otherLabel =
+                (decoded.trueLabel == decodedlabel.result) ? decoded.falseLabel : decoded.trueLabel;
+
+            if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Loop &&
+               (otherLabel == cfgStack.back().mergeTarget ||
+                otherLabel == cfgStack.back().continueTarget))
+            {
+              const char *negate = (decoded.falseLabel == cfgStack.back().mergeTarget) ? "!" : "";
+
+              ret += indent;
+
+              if(otherLabel == cfgStack.back().mergeTarget)
+              {
+                ret +=
+                    StringFormat::Fmt("if(%s%s) break;", negate, idName(decoded.condition).c_str());
+              }
+              else
+              {
+                if(strings[otherLabel].empty())
+                  dynamicNames[otherLabel] = StringFormat::Fmt("_continue%u", otherLabel);
+                ret += StringFormat::Fmt("if(%s%s) goto %s;", negate,
+                                         idName(decoded.condition).c_str(),
+                                         idName(otherLabel).c_str());
+
+                printLabels.insert(otherLabel);
+              }
+
+              if(decoded.branchweights.size() == 2)
+                ret += StringFormat::Fmt(" [[true: %u, false: %u]]", decoded.branchweights[0],
+                                         decoded.branchweights[1]);
+
+              ret += "\n";
+            }
+            else
+            {
+              const char *negate = (decoded.falseLabel == decodedlabel.result) ? "!" : "";
+
+              ret += indent;
+              ret += StringFormat::Fmt("if(%s%s) {", negate, idName(decoded.condition).c_str());
+
+              if(decoded.branchweights.size() == 2)
+                ret += StringFormat::Fmt(" [[true: %u, false: %u]]", decoded.branchweights[0],
+                                         decoded.branchweights[1]);
+
+              ret += "\n";
+
+              // this isn't technically structured but it's easier to pretend that it is
+              // no else, the merge target is where we exit the 'if'
+              StructuredCFG cfg = {StructuredCFG::If};
+              cfg.headerBlock = currentBlock;
+              cfg.mergeTarget = otherLabel;
+              cfg.elseTarget = rdcspv::Id();
+              cfgStack.push_back(cfg);
+
+              indent += "  ";
+            }
+          }
+          else
+          {
+            RDCWARN(
+                "Unexpected SPIR-V formulation - OpBranchConditional not followed by either true "
+                "or false block");
+
+            // this is legal. We just have to emit an if with gotos
+            ret += indent;
+            ret += StringFormat::Fmt(
+                "if(%s) { goto %s; } else { goto %s; }\n", idName(decoded.condition).c_str(),
+                idName(decoded.trueLabel).c_str(), idName(decoded.falseLabel).c_str());
+
+            // need to print these labels now
+            printLabels.insert(decoded.trueLabel);
+            printLabels.insert(decoded.falseLabel);
+          }
+
+          continue;
+        }
+
+        // since we're eliding a lot of labels, simplify display of OpPhi
+        case Op::Phi:
+        {
+          OpPhi decoded(it);
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = Phi(";
+          for(size_t i = 0; i < decoded.parents.size(); i++)
+          {
+            ret += idName(decoded.parents[i].first);
+            if(i + 1 < decoded.parents.size())
+              ret += ", ";
+          }
+          ret += ")";
+          break;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // pretty printing unary instructions
+        ////////////////////////////////////////////////////////////////////////////////////////
+
+        case Op::SNegate:
+        case Op::FNegate:
+        case Op::Not:
+        case Op::LogicalNot:
+        {
+          rdcstr opstr;
+          switch(it.opcode())
+          {
+            case Op::SNegate:
+            case Op::FNegate: opstr = "-"; break;
+            case Op::Not: opstr = "~"; break;
+            case Op::LogicalNot: opstr = "!"; break;
+            default: break;
+          }
+
+          // all of these operations share the same encoding
+          OpNot decoded(it);
+
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = ";
+          ret += opstr;
+          ret += idName(decoded.operand);
+          break;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // pretty printing binary instructions
+        ////////////////////////////////////////////////////////////////////////////////////////
+
+        case Op::IAdd:
+        case Op::FAdd:
+        case Op::ISub:
+        case Op::FSub:
+        case Op::IMul:
+        case Op::FMul:
+        case Op::UDiv:
+        case Op::SDiv:
+        case Op::FDiv:
+        case Op::VectorTimesMatrix:
+        case Op::VectorTimesScalar:
+        case Op::MatrixTimesMatrix:
+        case Op::MatrixTimesVector:
+        case Op::MatrixTimesScalar:
+        case Op::ShiftLeftLogical:
+        case Op::BitwiseAnd:
+        case Op::BitwiseOr:
+        case Op::BitwiseXor:
+        case Op::LogicalEqual:
+        case Op::LogicalNotEqual:
+        case Op::LogicalOr:
+        case Op::LogicalAnd:
+        case Op::IEqual:
+        case Op::INotEqual:
+        case Op::UGreaterThan:
+        case Op::SGreaterThan:
+        case Op::UGreaterThanEqual:
+        case Op::SGreaterThanEqual:
+        case Op::ULessThan:
+        case Op::SLessThan:
+        case Op::ULessThanEqual:
+        case Op::SLessThanEqual:
+        case Op::FOrdEqual:
+        case Op::FUnordEqual:
+        case Op::FOrdNotEqual:
+        case Op::FUnordNotEqual:
+        case Op::FOrdGreaterThan:
+        case Op::FUnordGreaterThan:
+        case Op::FOrdGreaterThanEqual:
+        case Op::FUnordGreaterThanEqual:
+        case Op::FOrdLessThan:
+        case Op::FUnordLessThan:
+        case Op::FOrdLessThanEqual:
+        case Op::FUnordLessThanEqual:
+        {
+          // all of these operations share the same encoding
+          OpIMul decoded(it);
+
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = ";
+          ret += StringiseBinaryOperation(idName, it.opcode(), decoded.operand1, decoded.operand2);
+          break;
+        }
+
+        // right shifts must be done as a particular type
+        case Op::ShiftRightLogical:
+        case Op::ShiftRightArithmetic:
+        {
+          // these operations share the same encoding
+          OpShiftRightLogical decoded(it);
+
+          bool signedOp = (it.opcode() == Op::ShiftRightArithmetic);
+
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = ";
+
+          if(signedOp != dataTypes[idTypes[decoded.base]].scalar().signedness)
+          {
+            ret += signedOp ? "signed(" : "unsigned(";
+            ret += idName(decoded.base);
+            ret += ")";
+          }
+          else
+          {
+            ret += idName(decoded.base);
+          }
+
+          ret += " >> ";
+
+          if(signedOp != dataTypes[idTypes[decoded.shift]].scalar().signedness)
+          {
+            ret += signedOp ? "signed(" : "unsigned(";
+            ret += idName(decoded.shift);
+            ret += ")";
+          }
+          else
+          {
+            ret += idName(decoded.shift);
+          }
+
+          break;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // pretty printing misc instructions
+        ////////////////////////////////////////////////////////////////////////////////////////
+
+        // write loads and stores as assignment via pointer
+        case Op::Load:
+        {
+          OpLoad decoded(it);
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = *" + idName(decoded.pointer);
+          if(decoded.memoryAccess != MemoryAccess::None)
+            ret += " [" + ParamToStr(idName, decoded.memoryAccess) + "]";
+          ret += getDecorationString(decorations[decoded.result]);
+          break;
+        }
+        case Op::Store:
+        {
+          OpStore decoded(it);
+          ret += indent;
+          ret += StringFormat::Fmt("*%s = %s", idName(decoded.pointer).c_str(),
+                                   idName(decoded.object).c_str());
+          if(decoded.memoryAccess != MemoryAccess::None)
+            ret += " [" + ParamToStr(idName, decoded.memoryAccess) + "]";
+          break;
+        }
+
+        // returns as a conventional return
+        case Op::Return:
+        {
+          ret += indent + "return";
+          break;
+        }
+        case Op::ReturnValue:
+        {
+          OpReturnValue decoded(it);
+          ret += indent + StringFormat::Fmt("return %s", idName(decoded.value).c_str());
+          break;
+        }
+
+        case Op::FunctionCall:
+        {
+          OpFunctionCall decoded(it);
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = ";
+
+          rdcstr name = idName(decoded.function);
+
+          // glslang outputs encoded type information in the OpName of functions, strip it
+          {
+            int32_t offs = name.indexOf('(');
+            if(offs > 0)
+              name.erase(offs, name.size() - offs);
+          }
+
+          ret += name + "(";
+          for(size_t i = 0; i < decoded.arguments.size(); i++)
+          {
+            ret += idName(decoded.arguments[i]);
+            if(i + 1 < decoded.arguments.size())
+              ret += ", ";
+          }
+          ret += ")";
+
+          break;
+        }
+
+        // decode OpCompositeExtract and OpAccesschain as best as possible
+        case Op::CompositeExtract:
+        {
+          OpCompositeExtract decoded(it);
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = " + idName(decoded.composite);
+
+          const DataType *type = &dataTypes[idTypes[decoded.composite]];
+          for(size_t i = 0; i < decoded.indexes.size(); i++)
+          {
+            uint32_t idx = decoded.indexes[i];
+            ret += accessor(type, idx, rdcstr());
+
+            if(type->type == DataType::ArrayType || type->type == DataType::MatrixType ||
+               type->type == DataType::VectorType)
+            {
+              type = &dataTypes[type->InnerType()];
+            }
+            else if(type->type == DataType::StructType)
+            {
+              RDCASSERT(idx < type->children.size());
+              type = &dataTypes[type->children[idx].type];
+            }
+          }
+
+          ret += getDecorationString(decorations[decoded.result]);
+          break;
+        }
+        case Op::AccessChain:
+        {
+          OpAccessChain decoded(it);
+          ret += indent;
+          ret += declName(decoded.resultType, decoded.result);
+          ret += " = &" + idName(decoded.base);
+
+          const DataType *type = &dataTypes[idTypes[decoded.base]];
+
+          // base should be a pointer
+          RDCASSERT(type->type == DataType::PointerType);
+          type = &dataTypes[type->InnerType()];
+
+          size_t i = 0;
+          for(; i < decoded.indexes.size(); i++)
+          {
+            int32_t idx = -1;
+
+            // if it's a non-specialised constant, get its value
+            if(constants.find(decoded.indexes[i]) != constants.end() &&
+               specConstants.find(decoded.indexes[i]) == specConstants.end())
+              idx = EvaluateConstant(decoded.indexes[i], {}).value.i.x;
+
+            // if it's a struct we must have an OpConstant to use, if it's a vector and we did get a
+            // constant then do better than a basic array index syntax.
+            if(type->type == DataType::StructType || (type->type == DataType::VectorType && idx >= 0))
+            {
+              // index must be an OpConstant when indexing into a structure
+              RDCASSERT(idx >= 0);
+              ret += accessor(type, idx, rdcstr());
+            }
+            else
+            {
+              RDCASSERT(type->type == DataType::ArrayType || type->type == DataType::MatrixType ||
+                            type->type == DataType::VectorType,
+                        (uint32_t)type->type);
+              ret += StringFormat::Fmt("[%s]", idName(decoded.indexes[i]).c_str());
+            }
+
+            if(type->type == DataType::ArrayType || type->type == DataType::MatrixType ||
+               type->type == DataType::VectorType)
+            {
+              type = &dataTypes[type->InnerType()];
+            }
+            else if(type->type == DataType::StructType)
+            {
+              RDCASSERT((size_t)idx < type->children.size());
+              type = &dataTypes[type->children[idx].type];
+            }
+          }
+
+          ret += getDecorationString(decorations[decoded.result]);
+          break;
+        }
+
+        // handle vector shuffle
+        case Op::VectorShuffle:
+        {
+          OpVectorShuffle decoded(it);
+          ret += indent;
+          ret += StringFormat::Fmt("%s = ", declName(decoded.resultType, decoded.result).c_str());
+
+          // it's common to only swizzle from the first vector, detect that case
+          bool allFirst = true;
+
+          for(uint32_t c : decoded.components)
+            if(c >= 4)
+              allFirst = false;
+
+          const char comps[] = "xyzw";
+
+          if(allFirst)
+          {
+            ret += idName(decoded.vector1) + ".";
+
+            for(uint32_t c : decoded.components)
+              ret.push_back(comps[c]);
+          }
+          else
+          {
+            ret += declName(decoded.resultType, Id()) + "(";
+            for(size_t i = 0; i < decoded.components.size(); i++)
+            {
+              uint32_t c = decoded.components[i];
+
+              ret += idName(c < 4 ? decoded.vector1 : decoded.vector2) + ".";
+              ret.push_back(comps[c % 4]);
+
+              if(i + 1 < decoded.components.size())
+                ret += ", ";
+            }
+            ret += ")";
+          }
+
+          break;
+        }
+
+        // need to handle this by hand anyway
+        case Op::ExtInst:
+        {
+          OpDecoder decoded(it);
+          ret += indent;
+          ret += StringFormat::Fmt("%s = ", declName(decoded.resultType, decoded.result).c_str());
+
+          rdcstr setname = extSets.find(Id::fromWord(it.word(3)))->second;
+          uint32_t inst = it.word(4);
+
+          const bool IsGLSL450 = (setname == "GLSL.std.450");
+
+          if(IsGLSL450)
+            ret += StringFormat::Fmt("%s::%s(", setname.c_str(), ToStr(GLSLstd450(inst)).c_str());
+
+          for(size_t i = 5; i < it.size(); i++)
+          {
+            // GLSL.std.450 all parameters are Ids
+            // TODO could generate this from the instruction set grammar.
+            ret += IsGLSL450 ? idName(Id::fromWord(it.word(i))) : ToStr(it.word(i));
+
+            if(i + 1 < it.size())
+              ret += ", ";
+          }
+
+          ret += ")";
+          break;
+        }
+
+        default:
+        {
+          ret += indent;
+          ret += OpDecoder::Disassemble(it, declName, idName, constIntVal);
+
+          OpDecoder decoded(it);
+
+          if(decoded.result != Id())
+            ret += getDecorationString(decorations[decoded.result]);
+        }
+      }
+
+      ret += ";\n";
+    }
+
+    ret += "\n";
+  }
+
+  return ret;
+}
+
+rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
+{
+  // only stringise constants
+  auto cit = constants.find(id);
+  if(cit == constants.end())
+    return rdcstr();
+
+  // don't stringise spec constants either
+  if(specConstants.find(id) != specConstants.end())
+    return rdcstr();
+
+  const DataType &type = dataTypes[cit->second.type];
+  const ShaderVariable &value = cit->second.value;
+
+  if(type.type == DataType::ScalarType)
+  {
+    if(type.scalar().type == Op::TypeBool)
+      return value.value.u.x ? "true" : "false";
+
+    switch(value.type)
+    {
+      case VarType::Unknown:
+      case VarType::Float:
+      case VarType::Half: return ToStr(value.value.f.x);
+      case VarType::Double: return ToStr(value.value.d.x);
+      case VarType::SInt:
+      case VarType::SShort:
+      case VarType::SByte: return ToStr(value.value.i.x);
+      case VarType::UInt:
+      case VarType::UShort:
+      case VarType::UByte: return ToStr(value.value.u.x);
+      case VarType::SLong: return ToStr(value.value.s64v[0]);
+      case VarType::ULong: return ToStr(value.value.u64v[0]);
+    }
+  }
+  else if(type.type == DataType::VectorType)
+  {
+    rdcstr ret = "{";
+    for(size_t i = 0; i < value.columns; i++)
+    {
+      switch(value.type)
+      {
+        case VarType::Unknown:
+        case VarType::Float:
+        case VarType::Half: ret += ToStr(value.value.fv[i]); break;
+        case VarType::Double: ret += ToStr(value.value.dv[i]); break;
+        case VarType::SInt:
+        case VarType::SShort:
+        case VarType::SByte: ret += ToStr(value.value.iv[i]); break;
+        case VarType::UInt:
+        case VarType::UShort:
+        case VarType::UByte: ret += ToStr(value.value.uv[i]); break;
+        case VarType::SLong: ret += ToStr(value.value.s64v[i]); break;
+        case VarType::ULong: ret += ToStr(value.value.u64v[i]); break;
+      }
+      if(i + 1 < value.columns)
+        ret += ", ";
+    }
+    ret += "}";
+    return ret;
+  }
+
+  return rdcstr();
+}
+
+};    // namespace rdcspv

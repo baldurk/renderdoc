@@ -478,7 +478,7 @@ void Processor::RegisterOp(Iter it)
   else if(opdata.op == Op::ExtInstImport)
   {
     OpExtInstImport decoded(it);
-    extSets[decoded.name] = decoded.result;
+    extSets[decoded.result] = decoded.name;
   }
   else if(opdata.op == Op::EntryPoint)
   {
@@ -772,7 +772,7 @@ void Processor::UnregisterOp(Iter it)
   else if(opdata.op == Op::ExtInstImport)
   {
     OpExtInstImport decoded(it);
-    extSets.erase(decoded.name);
+    extSets.erase(decoded.result);
   }
   else if(opdata.op == Op::EntryPoint)
   {

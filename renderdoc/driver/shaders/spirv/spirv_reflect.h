@@ -166,7 +166,7 @@ public:
   Reflector();
   virtual void Parse(const std::vector<uint32_t> &spirvWords);
 
-  std::string Disassemble(const std::string &entryPoint);
+  std::string Disassemble(const std::string &entryPoint) const;
 
   std::vector<std::string> EntryPoints() const;
   ShaderStage StageForEntry(const std::string &entryPoint) const;
@@ -183,6 +183,7 @@ private:
   virtual void UnregisterOp(Iter iter);
 
   ShaderVariable EvaluateConstant(Id constID, const std::vector<SpecConstant> &specInfo) const;
+  rdcstr StringiseConstant(rdcspv::Id id) const;
 
   void MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
                                   uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
