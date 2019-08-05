@@ -702,7 +702,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     const VulkanCreationInfo::ShaderModule &moduleInfo =
         creationInfo.m_ShaderModule[pipeInfo.shaders[5].module];
 
-    std::vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
+    std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
     AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, bufferAddress, modSpirv);
 
@@ -726,7 +726,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       const VulkanCreationInfo::ShaderModule &moduleInfo =
           creationInfo.m_ShaderModule[pipeInfo.shaders[idx].module];
 
-      std::vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
+      std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
       AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, bufferAddress,
                      modSpirv);

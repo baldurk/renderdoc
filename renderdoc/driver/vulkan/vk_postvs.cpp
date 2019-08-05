@@ -393,7 +393,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // constant for this index
     io.constID = editor.AddConstantImmediate(i);
 
-    io.variableID = rdcspv::Id::fromWord(patchData.outputs[i].ID);
+    io.variableID = patchData.outputs[i].ID;
 
     // base type - either a scalar or a vector, since matrix outputs are decayed to vectors
     {
@@ -436,7 +436,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // constant for this index
     io.constID = editor.AddConstantImmediate(i);
 
-    io.variableID = rdcspv::Id::fromWord(patchData.inputs[i].ID);
+    io.variableID = patchData.inputs[i].ID;
 
     rdcspv::Scalar scalarType = rdcspv::scalar<uint32_t>();
 
@@ -1082,7 +1082,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             }
 
             ops.push_back(rdcspv::OpAccessChain(ins[i].privatePtrID, subElement,
-                                                rdcspv::Id::fromWord(patchData.inputs[i].ID), chain));
+                                                patchData.inputs[i].ID, chain));
 
             ops.push_back(rdcspv::OpStore(subElement, result));
           }
@@ -1103,8 +1103,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         {
           loaded = editor.MakeId();
           // type loaded = *globalvar;
-          ops.push_back(rdcspv::OpLoad(outs[o].basetypeID, loaded,
-                                       rdcspv::Id::fromWord(patchData.outputs[o].ID)));
+          ops.push_back(rdcspv::OpLoad(outs[o].basetypeID, loaded, patchData.outputs[o].ID));
         }
         else
         {
@@ -1123,8 +1122,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           }
 
           // type *readPtr = globalvar.globalsub...;
-          ops.push_back(rdcspv::OpAccessChain(
-              outs[o].privatePtrID, readPtr, rdcspv::Id::fromWord(patchData.outputs[o].ID), chain));
+          ops.push_back(
+              rdcspv::OpAccessChain(outs[o].privatePtrID, readPtr, patchData.outputs[o].ID, chain));
           // type loaded = *readPtr;
           ops.push_back(rdcspv::OpLoad(outs[o].basetypeID, loaded, readPtr));
         }
@@ -1870,7 +1869,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   }
 
   uint32_t bufStride = 0;
-  std::vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
+  std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
   struct CompactedAttrBuffer
   {
@@ -2698,7 +2697,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   const VulkanCreationInfo::ShaderModule &moduleInfo =
       creationInfo.m_ShaderModule[pipeInfo.shaders[stageIndex].module];
 
-  std::vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
+  std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
   uint32_t xfbStride = 0;
 

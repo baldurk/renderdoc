@@ -170,12 +170,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 
       VkDevice dev = m_pDriver->GetDev();
 
-      vkr = ObjDisp(dev)->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &module);
+      vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &module);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), module);
-
-      m_pDriver->GetResourceManager()->AddLiveResource(GetResID(module), module);
 
       bool found = false;
       for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
@@ -210,8 +206,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
                                                  &pipe.second);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      ObjDisp(dev)->DestroyShaderModule(Unwrap(dev), Unwrap(module), NULL);
-      m_pDriver->GetResourceManager()->ReleaseWrappedResource(module);
+      m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 
       pipe.first = descSet;
 

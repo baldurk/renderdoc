@@ -32,8 +32,6 @@ namespace DXBC
 class DXBCFile;
 };
 
-struct SPVModule;
-
 namespace GCNISA
 {
 void GetTargets(GraphicsAPI api, std::vector<std::string> &targets);

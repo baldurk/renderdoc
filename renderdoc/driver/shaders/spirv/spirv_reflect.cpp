@@ -112,17 +112,21 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
       {
         for(size_t i = 0; i < outsig.size(); i++)
         {
-          if(outpatch[i].structID)
+          if(outpatch[i].structID && it.opcode() == rdcspv::Op::MemberDecorate)
           {
-            if(it.opcode() == rdcspv::Op::MemberDecorate && it.word(1) == outpatch[i].structID &&
-               it.word(2) == outpatch[i].structMemberIndex)
+            rdcspv::OpMemberDecorate decoded(it);
+
+            if(decoded.structureType == outpatch[i].structID &&
+               decoded.member == outpatch[i].structMemberIndex)
             {
               editor.Remove(it);
             }
           }
-          else
+          else if(!outpatch[i].structID && it.opcode() == rdcspv::Op::Decorate)
           {
-            if(it.opcode() == rdcspv::Op::Decorate && rdcspv::OpDecorate(it).target == outpatch[i].ID)
+            rdcspv::OpDecorate decoded(it);
+
+            if(decoded.target == outpatch[i].ID)
             {
               editor.Remove(it);
             }
@@ -160,15 +164,14 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
     }
     else if(outpatch[i].structID && !outpatch[i].accessChain.empty())
     {
-      editor.AddDecoration(rdcspv::OpMemberDecorate(
-          rdcspv::Id::fromWord(outpatch[i].structID), outpatch[i].structMemberIndex,
-          rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
+      editor.AddDecoration(
+          rdcspv::OpMemberDecorate(outpatch[i].structID, outpatch[i].structMemberIndex,
+                                   rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
     }
     else if(outpatch[i].ID)
     {
-      editor.AddDecoration(
-          rdcspv::OpDecorate(rdcspv::Id::fromWord(outpatch[i].ID),
-                             rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
+      editor.AddDecoration(rdcspv::OpDecorate(
+          outpatch[i].ID, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
     }
 
     uint32_t compByteSize = 4;
@@ -179,19 +182,17 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
     xfbStride += outsig[i].compCount * compByteSize;
   }
 
-  std::set<uint32_t> vars;
+  std::set<rdcspv::Id> vars;
 
   for(size_t i = 0; i < outpatch.size(); i++)
   {
     if(outpatch[i].ID && !outpatch[i].isArraySubsequentElement &&
        vars.find(outpatch[i].ID) == vars.end())
     {
-      editor.AddDecoration(
-          rdcspv::OpDecorate(rdcspv::Id::fromWord(outpatch[i].ID),
-                             rdcspv::DecorationParam<rdcspv::Decoration::XfbBuffer>(0)));
-      editor.AddDecoration(
-          rdcspv::OpDecorate(rdcspv::Id::fromWord(outpatch[i].ID),
-                             rdcspv::DecorationParam<rdcspv::Decoration::XfbStride>(xfbStride)));
+      editor.AddDecoration(rdcspv::OpDecorate(
+          outpatch[i].ID, rdcspv::DecorationParam<rdcspv::Decoration::XfbBuffer>(0)));
+      editor.AddDecoration(rdcspv::OpDecorate(
+          outpatch[i].ID, rdcspv::DecorationParam<rdcspv::Decoration::XfbStride>(xfbStride)));
       vars.insert(outpatch[i].ID);
     }
   }
@@ -1984,8 +1985,8 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
   SPIRVPatchData::InterfaceAccess patch;
   patch.accessChain = parentPatch.accessChain;
-  patch.ID = globalID.value();
-  patch.structID = parentStructID.value();
+  patch.ID = globalID;
+  patch.structID = parentStructID;
   patch.isArraySubsequentElement = parentPatch.isArraySubsequentElement;
   if(parentStructID)
     patch.structMemberIndex = patch.accessChain.back();
@@ -2130,7 +2131,6 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     {
       // use an extra access chain to get each vector out of the matrix.
       patch.accessChain.push_back(0);
-      patch.isMatrix = true;
 
       for(uint32_t m = 0; m < varType->matrix().count; m++)
       {
@@ -2153,7 +2153,6 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
       }
 
       // pop the matrix column access chain
-      patch.isMatrix = false;
       patch.accessChain.pop_back();
     }
 
@@ -2178,10 +2177,8 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
 {
   ShaderType type = ShaderType::eShaderVulkan;
-  bool newRefl = false;
-  auto compiler = [&type, &newRefl](ShaderStage stage, const std::string &source,
-                                    const std::string &entryPoint, ShaderReflection &refl,
-                                    ShaderBindpointMapping &mapping) {
+  auto compiler = [&type](ShaderStage stage, const std::string &source, const std::string &entryPoint,
+                          ShaderReflection &refl, ShaderBindpointMapping &mapping) {
 
     rdcspv::Init();
     RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
@@ -2198,37 +2195,17 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
 
     REQUIRE(!spirv.empty());
 
-    if(newRefl)
-    {
-      rdcspv::Reflector spv;
-      spv.Parse(spirv);
+    rdcspv::Reflector spv;
+    spv.Parse(spirv);
 
-      SPIRVPatchData patchData;
-      spv.MakeReflection(type == ShaderType::eShaderVulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,
-                         stage, entryPoint, {}, refl, mapping, patchData);
-    }
-    else
-    {
-      SPVModule spv;
-      ParseSPIRV(spirv.data(), spirv.size(), spv);
-
-      SPIRVPatchData patchData;
-      spv.MakeReflection(type == ShaderType::eShaderVulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,
-                         stage, entryPoint, refl, mapping, patchData);
-    }
+    SPIRVPatchData patchData;
+    spv.MakeReflection(type == ShaderType::eShaderVulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,
+                       stage, entryPoint, {}, refl, mapping, patchData);
   };
 
   // test both Vulkan and GL SPIR-V reflection
-  SECTION("Old Vulkan GLSL reflection")
+  SECTION("Vulkan GLSL reflection")
   {
-    newRefl = false;
-    type = ShaderType::eShaderVulkan;
-    TestGLSLReflection(type, compiler);
-  };
-
-  SECTION("New Vulkan GLSL reflection")
-  {
-    newRefl = true;
     type = ShaderType::eShaderVulkan;
     TestGLSLReflection(type, compiler);
   };
@@ -2236,14 +2213,6 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
   SECTION("OpenGL GLSL reflection")
   {
     type = ShaderType::eShaderGLSPIRV;
-    newRefl = false;
-    TestGLSLReflection(type, compiler);
-  };
-
-  SECTION("New OpenGL GLSL reflection")
-  {
-    type = ShaderType::eShaderGLSPIRV;
-    newRefl = true;
     TestGLSLReflection(type, compiler);
   };
 }

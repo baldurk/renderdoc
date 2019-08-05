@@ -498,6 +498,7 @@ public:
   const std::vector<EntryPoint> &GetEntries() { return entries; }
   const std::vector<Variable> &GetGlobals() { return globals; }
   Id GetIDType(Id id) { return idTypes[id]; }
+  std::vector<uint32_t> GetSPIRV() const { return m_SPIRV; }
 protected:
   virtual void Parse(const std::vector<uint32_t> &spirvWords);
 

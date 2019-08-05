@@ -62,13 +62,15 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
                                                         const GLuint *pConstantValue)
 {
   reflection.resourceId = id;
-  reflection.entryPoint = pEntryPoint;
-  reflection.stage = MakeShaderStage(type);
-  reflection.encoding = ShaderEncoding::SPIRV;
-  reflection.rawBytes.assign((byte *)spirv.spirv.data(), spirv.spirv.size() * sizeof(uint32_t));
 
-  spirv.MakeReflection(GraphicsAPI::OpenGL, ShaderStage(ShaderIdx(type)), pEntryPoint, reflection,
-                       mapping, patchData);
+  std::vector<SpecConstant> specInfo;
+  for(size_t i = 0; i < specInfo.size(); i++)
+  {
+    specInfo.push_back(SpecConstant(pConstantIndex[i], pConstantValue[i], 4));
+  }
+
+  spirv.MakeReflection(GraphicsAPI::OpenGL, ShaderStage(ShaderIdx(type)), pEntryPoint, specInfo,
+                       reflection, mapping, patchData);
 
   version = 460;
 
@@ -267,7 +269,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
         std::string s = rdcspv::Compile(settings, sources, spirvwords);
         if(!spirvwords.empty())
-          ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+          spirv.Parse(spirvwords);
         else
           disassembly = s;
 
@@ -396,7 +398,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     // so people who do that should be moderately ashamed.
     if(m_Shaders[liveId].reflection.resourceId != ResourceId())
     {
-      m_Shaders[liveId].spirv = SPVModule();
+      m_Shaders[liveId].spirv = rdcspv::Reflector();
       m_Shaders[liveId].reflection = ShaderReflection();
     }
 
@@ -1941,8 +1943,7 @@ bool WrappedOpenGL::Serialise_glSpecializeShader(SerialiserType &ser, GLuint sha
     GL.glSpecializeShader(shader.name, pEntryPoint, numSpecializationConstants, pConstantIndex,
                           pConstantValue);
 
-    ParseSPIRV(m_Shaders[liveId].spirvWords.data(), m_Shaders[liveId].spirvWords.size(),
-               m_Shaders[liveId].spirv);
+    m_Shaders[liveId].spirv.Parse(m_Shaders[liveId].spirvWords);
 
     m_Shaders[liveId].ProcessSPIRVCompilation(*this, GetResourceManager()->GetOriginalID(liveId),
                                               shader.name, pEntryPoint, numSpecializationConstants,
@@ -1977,8 +1978,7 @@ void WrappedOpenGL::glSpecializeShader(GLuint shader, const GLchar *pEntryPoint,
 
       ResourceId id = record->GetResourceID();
 
-      ParseSPIRV(m_Shaders[id].spirvWords.data(), m_Shaders[id].spirvWords.size(),
-                 m_Shaders[id].spirv);
+      m_Shaders[id].spirv.Parse(m_Shaders[id].spirvWords);
 
       m_Shaders[id].ProcessSPIRVCompilation(
           *this, id, shader, pEntryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
@@ -1988,8 +1988,7 @@ void WrappedOpenGL::glSpecializeShader(GLuint shader, const GLchar *pEntryPoint,
   {
     ResourceId liveId = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
 
-    ParseSPIRV(m_Shaders[liveId].spirvWords.data(), m_Shaders[liveId].spirvWords.size(),
-               m_Shaders[liveId].spirv);
+    m_Shaders[liveId].spirv.Parse(m_Shaders[liveId].spirvWords);
 
     m_Shaders[liveId].ProcessSPIRVCompilation(*this, liveId, shader, pEntryPoint,
                                               numSpecializationConstants, pConstantIndex,

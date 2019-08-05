@@ -469,7 +469,7 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkShaderModuleCreateInfo *pCreateInfo);
 
-    SPVModule spirv;
+    rdcspv::Reflector spirv;
 
     std::string unstrippedPath;
 
@@ -482,7 +482,7 @@ struct VulkanCreationInfo
       ShaderBindpointMapping mapping;
       SPIRVPatchData patchData;
 
-      void Init(VulkanResourceManager *resourceMan, ResourceId id, const SPVModule &spv,
+      void Init(VulkanResourceManager *resourceMan, ResourceId id, const rdcspv::Reflector &spv,
                 const std::string &entry, VkShaderStageFlagBits stage);
     };
     std::map<std::string, Reflection> m_Reflections;

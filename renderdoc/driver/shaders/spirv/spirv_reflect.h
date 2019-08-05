@@ -26,8 +26,8 @@
 
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
-
-struct SPVInstruction;
+#include "spirv_common.h"
+#include "spirv_processor.h"
 
 enum class GraphicsAPI : uint32_t;
 enum class ShaderStage : uint32_t;
@@ -42,19 +42,16 @@ struct SPIRVPatchData
   struct InterfaceAccess
   {
     // ID of the base variable
-    uint32_t ID = 0;
+    rdcspv::Id ID;
 
     // ID of the struct parent of this variable
-    uint32_t structID = 0;
+    rdcspv::Id structID;
 
     // member in the parent struct of this variable (for MemberDecorate)
     uint32_t structMemberIndex = 0;
 
     // the access chain of indices
     std::vector<uint32_t> accessChain;
-
-    // is this input/output part of a matrix
-    bool isMatrix = false;
 
     // this is an element of an array that's been exploded after [0].
     // i.e. this is false for non-arrays, and false for element [0] in an array, then true for
@@ -71,65 +68,6 @@ struct SPIRVPatchData
   Topology outTopo = Topology::Unknown;
 };
 
-#ifndef spirv_HPP
-namespace spv
-{
-using SourceLanguage = uint32_t;
-using Capability = uint32_t;
-};
-#endif
-
-struct SPVModule
-{
-  SPVModule();
-  ~SPVModule();
-
-  std::vector<uint32_t> spirv;
-
-  struct
-  {
-    uint8_t major, minor;
-  } moduleVersion;
-  uint32_t generator;
-
-  spv::SourceLanguage sourceLang;
-  uint32_t sourceVer;
-
-  std::string cmdline;
-  std::vector<rdcpair<std::string, std::string>> sourceFiles;
-
-  std::vector<std::string> extensions;
-
-  std::vector<spv::Capability> capabilities;
-
-  std::vector<SPVInstruction *>
-      operations;    // all operations (including those that don't generate an ID)
-
-  std::vector<SPVInstruction *> ids;    // pointers indexed by ID
-
-  std::vector<SPVInstruction *> sourceexts;       // source extensions
-  std::vector<SPVInstruction *> entries;          // entry points
-  std::vector<SPVInstruction *> globals;          // global variables
-  std::vector<SPVInstruction *> specConstants;    // specialization constants
-  std::vector<SPVInstruction *> funcs;            // functions
-  std::vector<SPVInstruction *> structs;          // struct types
-
-  SPVInstruction *GetByID(uint32_t id);
-  std::string Disassemble(const std::string &entryPoint);
-
-  std::vector<std::string> EntryPoints() const;
-  ShaderStage StageForEntry(const std::string &entryPoint) const;
-
-  void MakeReflection(GraphicsAPI sourceAPI, ShaderStage stage, const std::string &entryPoint,
-                      ShaderReflection &reflection, ShaderBindpointMapping &mapping,
-                      SPIRVPatchData &patchData) const;
-};
-
-static const uint32_t SpecializationConstantBindSet = 1234567;
-static const uint32_t PushConstantBindSet = 1234568;
-
-void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
-
 struct SpecConstant
 {
   SpecConstant() = default;
@@ -138,18 +76,6 @@ struct SpecConstant
   uint64_t value = 0;
   size_t dataSize = 0;
 };
-
-void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
-                               rdcarray<ShaderVariable> &outvars,
-                               const std::vector<SpecConstant> &specInfo);
-
-// common function used by any API that utilises SPIR-V
-void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                       const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride);
-
-// new reflection interface
-
-#include "spirv_processor.h"
 
 namespace rdcspv
 {
@@ -213,3 +139,14 @@ private:
   rdcarray<MemberName> memberNames;
 };
 };
+
+static const uint32_t SpecializationConstantBindSet = 1234567;
+static const uint32_t PushConstantBindSet = 1234568;
+
+void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
+                               rdcarray<ShaderVariable> &outvars,
+                               const std::vector<SpecConstant> &specInfo);
+
+// common function used by any API that utilises SPIR-V
+void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
+                       const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride);

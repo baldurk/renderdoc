@@ -611,7 +611,7 @@ public:
     GLenum type;
     std::vector<std::string> sources;
     std::vector<std::string> includepaths;
-    SPVModule spirv;
+    rdcspv::Reflector spirv;
     std::string disassembly;
     ShaderReflection reflection;
     int version;
