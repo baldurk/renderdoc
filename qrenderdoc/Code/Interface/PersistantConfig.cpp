@@ -377,7 +377,7 @@ bool PersistantConfig::Load(const rdcstr &filename)
         continue;
 
       // backwards compatibility - skip old adb hosts that were adb:
-      if(host.Hostname().find("adb:") > 0 && host.Protocol() == NULL)
+      if(host.Hostname().find("adb:") >= 0 && host.Protocol() == NULL)
         continue;
 
       RemoteHostList.push_back(host);
