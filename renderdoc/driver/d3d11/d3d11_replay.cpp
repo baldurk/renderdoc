@@ -3407,8 +3407,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data,
-                           GetByteSize(desc.Width, 1, 1, desc.Format, mip),
+    ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data, GetRowPitch(desc.Width, desc.Format, mip),
                            GetByteSize(desc.Width, 1, 1, desc.Format, mip));
   }
   else if(WrappedID3D11Texture2D1::m_TextureList.find(texid) !=
@@ -3452,7 +3451,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
       m_pDevice->GetReal()->CreateTexture2D(&uploadDesc, NULL, &uploadTex);
 
       ctx->UpdateSubresource(uploadTex, arrayIdx, NULL, data,
-                             GetByteSize(desc.Width, 1, 1, desc.Format, mip),
+                             GetRowPitch(desc.Width, desc.Format, mip),
                              GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
 
       // copy that slice into MSAA sample
@@ -3465,7 +3464,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
       uint32_t sub = arrayIdx * mips + mip;
 
       ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data,
-                             GetByteSize(desc.Width, 1, 1, desc.Format, mip),
+                             GetRowPitch(desc.Width, desc.Format, mip),
                              GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
     }
   }
@@ -3493,8 +3492,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), mip, NULL, data,
-                           GetByteSize(desc.Width, 1, 1, desc.Format, mip),
+    ctx->UpdateSubresource(tex->GetReal(), mip, NULL, data, GetRowPitch(desc.Width, desc.Format, mip),
                            GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
   }
   else
