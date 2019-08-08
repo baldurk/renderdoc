@@ -27,6 +27,11 @@
 
 namespace Network
 {
+void SocketPostSend()
+{
+  // only needed for awful hack on Android
+}
+
 uint32_t Socket::GetRemoteIP() const
 {
   return GetIPFromTCPSocket((int)socket);

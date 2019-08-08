@@ -70,6 +70,8 @@ static std::string errno_string(int err)
 
 namespace Network
 {
+void SocketPostSend();
+
 void Init()
 {
 }
@@ -189,6 +191,9 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
   setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
 
   RDCASSERT(sent == length);
+
+  // incredibly ugly hack necessary for android
+  SocketPostSend();
 
   return true;
 }
