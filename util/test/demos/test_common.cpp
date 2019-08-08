@@ -183,6 +183,20 @@ void LoadXPM(const char **XPM, Texture &tex)
 #define HAVE_SHADERC 0
 #endif
 
+// on VS2015 define __std_reverse_trivially_swappable_8 so we can link against shaderc_combined.lib
+// built on newer VS
+#if defined(_MSC_VER) && _MSC_VER <= 1900
+extern "C" __declspec(noalias) void __cdecl __std_reverse_trivially_swappable_8(void *a,
+                                                                                void *b) noexcept
+{
+  unsigned long long temp;
+  static_assert(sizeof(temp) == 8, "wrong basic type");
+  memcpy(&temp, a, sizeof(temp));
+  memcpy(a, b, sizeof(temp));
+  memcpy(b, &temp, sizeof(temp));
+}
+#endif
+
 // this define toggles on/off using the linked shaderc. This can be useful if e.g. on windows the
 // shaderc in VULKAN_SDK is broken.
 #define USE_LINKED_SHADERC (1 && HAVE_SHADERC)
