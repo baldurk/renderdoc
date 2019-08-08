@@ -506,8 +506,27 @@ struct AndroidRemoteServer : public RemoteServer
 
       split(adbStdout, lines, '\n');
 
+      // not everything that looks like it's an activity is actually an activity, because of course
+      // nothing is ever simple on Android. Watch out for the activity sections and only parse
+      // activities found within them.
+
+      bool activitySection = false;
+
       for(const std::string &line : lines)
       {
+        // the activity section ends when we reach a line that starts at column 0, which is the
+        // start of a section. Reset the flag to false
+        if(!isspace(line[0]))
+          activitySection = false;
+
+        // if this is the start of the activity section, set the flag to true
+        if(line.find("Activity Resolver Table:") != std::string::npos)
+          activitySection = true;
+
+        // if the flag is false, skip
+        if(!activitySection)
+          continue;
+
         // quick check, look for a /
         if(line.find('/') == std::string::npos)
           continue;
