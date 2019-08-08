@@ -792,7 +792,7 @@ size_t GetNextPatchSize(const void *pNext)
 
       case VK_STRUCTURE_TYPE_RANGE_SIZE:
       case VK_STRUCTURE_TYPE_MAX_ENUM:
-        RDCERR("Invalid value %x in pNext chain", next->sType);
+        RDCERR("Invalid value %u in pNext chain", next->sType);
         break;
     }
 
