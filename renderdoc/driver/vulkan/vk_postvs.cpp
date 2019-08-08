@@ -2567,13 +2567,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
   m_pDriver->vkFreeDescriptorSets(dev, descpool, (uint32_t)descSets.size(), descSets.data());
 
+  // delete pipeline layout
+  m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
+
   m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
 
   for(VkDescriptorSetLayout layout : setLayouts)
     m_pDriver->vkDestroyDescriptorSetLayout(dev, layout, NULL);
-
-  // delete pipeline layout
-  m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
 
   // delete pipeline
   m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
