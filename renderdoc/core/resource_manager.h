@@ -1344,7 +1344,11 @@ void ResourceManager<Configuration>::ClearReferencedResources()
     RecordType *record = GetResourceRecord(it->first);
 
     if(record)
+    {
+      if(IncludesWrite(it->second))
+        MarkDirtyResource(it->first);
       record->Delete(this);
+    }
   }
 
   m_FrameReferencedResources.clear();
