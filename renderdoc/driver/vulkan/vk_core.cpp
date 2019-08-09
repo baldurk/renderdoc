@@ -3375,9 +3375,16 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
     if(category == MessageCategory::Performance)
       return false;
 
-    // Non-linear image is aliased with linear buffer
+    // "Non-linear image is aliased with linear buffer"
     // Not an error, the validation layers complain at our whole-mem bufs
     if(strstr(pMessageId, "InvalidAliasing") || strstr(pMessage, "InvalidAliasing"))
+      return false;
+
+    // "vkCreateSwapchainKHR() called with imageExtent, which is outside the bounds returned by
+    // vkGetPhysicalDeviceSurfaceCapabilitiesKHR(): currentExtent"
+    // This is quite racey, the currentExtent can change in between us checking it and the valiation
+    // layers checking it. We handle out of date, so this is likely fine.
+    if(strstr(pMessageId, "VUID-VkSwapchainCreateInfoKHR-imageExtent"))
       return false;
 
     RDCWARN("[%s] %s", pMessageId, pMessage);
