@@ -596,6 +596,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
     srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
     srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+
+    SanitiseNewImageLayout(srcimBarrier.newLayout);
+
     DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
     if(extQCmd != VK_NULL_HANDLE)
