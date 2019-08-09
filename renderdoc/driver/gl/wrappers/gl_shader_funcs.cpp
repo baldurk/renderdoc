@@ -1475,16 +1475,6 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
                                                         eFrameRef_Read);
     }
 
-    if(IsBackgroundCapturing(m_State) && program)
-    {
-      GLResourceRecord *progrecord =
-          GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-      RDCASSERT(progrecord);
-
-      if(progrecord)
-        record->AddParent(progrecord);
-    }
-
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        IsBackgroundCapturing(m_State))
       return;
@@ -1703,6 +1693,19 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
     GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(ProgramPipeRes(GetCtx(), pipeline),
                                                       eFrameRef_Read);
+    // mark all the sub programs referenced
+    GLenum programBinds[] = {
+        eGL_VERTEX_SHADER,       eGL_FRAGMENT_SHADER,        eGL_GEOMETRY_SHADER,
+        eGL_TESS_CONTROL_SHADER, eGL_TESS_EVALUATION_SHADER, eGL_COMPUTE_SHADER,
+    };
+
+    for(GLenum progbind : programBinds)
+    {
+      GLuint prog = 0;
+      GL.glGetProgramPipelineiv(pipeline, progbind, (GLint *)&prog);
+      if(prog)
+        GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), prog), eFrameRef_Read);
+    }
   }
 }
 
