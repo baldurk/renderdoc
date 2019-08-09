@@ -40,6 +40,13 @@ HMODULE d3dcompiler = NULL;
 IDXGIFactoryPtr factory;
 IDXGIAdapterPtr adapter;
 bool warp = false;
+
+pD3DCompile dyn_D3DCompile = NULL;
+pD3DStripShader dyn_D3DStripShader = NULL;
+pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
+
+PFN_D3D11_CREATE_DEVICE dyn_D3D11CreateDevice = NULL;
+PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN dyn_D3D11CreateDeviceAndSwapChain = NULL;
 };
 
 void D3D11GraphicsTest::Prepare(int argc, char **argv)
@@ -64,39 +71,71 @@ void D3D11GraphicsTest::Prepare(int argc, char **argv)
     if(!d3dcompiler)
       d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
 
-    PFN_CREATE_DXGI_FACTORY createFactory =
-        (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory");
+    PFN_CREATE_DXGI_FACTORY createFactory = NULL;
+
+    if(dxgi)
+      createFactory = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory");
+
+    if(d3d11 && d3dcompiler)
+    {
+      dyn_D3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(d3d11, "D3D11CreateDevice");
+      dyn_D3D11CreateDeviceAndSwapChain = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
+          d3d11, "D3D11CreateDeviceAndSwapChain");
+
+      dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
+      dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
+      dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
+    }
 
     HRESULT hr = S_OK;
 
-    hr = createFactory(__uuidof(IDXGIFactory), (void **)&factory);
+    if(createFactory)
+    {
+      hr = createFactory(__uuidof(IDXGIFactory), (void **)&factory);
 
-    if(SUCCEEDED(hr))
-      adapter = ChooseD3DAdapter(factory, argc, argv, warp);
+      if(SUCCEEDED(hr))
+        adapter = ChooseD3DAdapter(factory, argc, argv, warp);
+    }
+
+    if(!d3d11)
+      Avail = "d3d11.dll is not available";
+    else if(!dxgi)
+      Avail = "dxgi.dll is not available";
+    else if(!d3dcompiler)
+      Avail = "d3dcompiler_XX.dll is not available";
+    else if(!factory)
+      Avail = "Couldn't create DXGI factory";
+    else if(!dyn_D3D11CreateDevice || !dyn_D3D11CreateDeviceAndSwapChain || !dyn_D3DCompile ||
+            !dyn_D3DStripShader || !dyn_D3DSetBlobPart)
+      Avail = "Missing required entry point";
+
+    if(dyn_D3D11CreateDevice)
+    {
+      ID3D11DevicePtr tempDev;
+
+      D3D_FEATURE_LEVEL features[] = {D3D_FEATURE_LEVEL_11_0};
+      hr = dyn_D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, features, 1,
+                                 D3D11_SDK_VERSION, &tempDev, NULL, NULL);
+
+      if(SUCCEEDED(hr))
+      {
+        tempDev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &opts, sizeof(opts));
+
+        ID3D11Device1Ptr tempDev1;
+
+        tempDev1 = tempDev;
+        memset(&opts1, 0, sizeof(opts1));
+        if(tempDev1)
+          tempDev1->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &opts1, sizeof(opts1));
+      }
+    }
   }
-
-  if(!d3d11)
-    Avail = "d3d11.dll is not available";
-  else if(!dxgi)
-    Avail = "dxgi.dll is not available";
-  else if(!d3dcompiler)
-    Avail = "d3dcompiler_XX.dll is not available";
-  else if(!factory)
-    Avail = "Couldn't create DXGI factory";
 }
 
 bool D3D11GraphicsTest::Init()
 {
   if(!GraphicsTest::Init())
     return false;
-
-  dyn_D3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(d3d11, "D3D11CreateDevice");
-  dyn_D3D11CreateDeviceAndSwapChain = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
-      d3d11, "D3D11CreateDeviceAndSwapChain");
-
-  dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
-  dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
-  dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
 
   D3D_FEATURE_LEVEL features[] = {D3D_FEATURE_LEVEL_11_0};
   D3D_DRIVER_TYPE driver = D3D_DRIVER_TYPE_HARDWARE;
@@ -260,12 +299,6 @@ void D3D11GraphicsTest::PostDeviceCreate()
   }
 
   ctx->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void **)&annot);
-
-  dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &opts, sizeof(opts));
-
-  memset(&opts1, 0, sizeof(opts1));
-  if(dev1)
-    dev1->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &opts1, sizeof(opts1));
 }
 
 void D3D11GraphicsTest::Shutdown()

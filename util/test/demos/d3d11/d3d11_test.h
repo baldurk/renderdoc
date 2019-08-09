@@ -162,13 +162,6 @@ struct D3D11GraphicsTest : public GraphicsTest
 
   ID3D11DepthStencilStatePtr depthState;
 
-  pD3DCompile dyn_D3DCompile = NULL;
-  pD3DStripShader dyn_D3DStripShader = NULL;
-  pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
-
-  PFN_D3D11_CREATE_DEVICE dyn_D3D11CreateDevice = NULL;
-  PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN dyn_D3D11CreateDeviceAndSwapChain = NULL;
-
   GraphicsWindow *mainWindow = NULL;
 
   IDXGISwapChainPtr swap;

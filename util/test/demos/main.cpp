@@ -253,7 +253,7 @@ Usage: %s Test_Name [test_options]
 
   --help                        Print this help message.
   --list                        Lists all tests, with name, API, description, availability.
-  --list-available              Lists the available test names only, one per line.
+  --list-raw                    Lists the available test names only, one per line.
   --validate
   --debug                       Run the demo with API validation enabled.
   --gpu [identifier]            Try to select the corresponding GPU where available and possible
