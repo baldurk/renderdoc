@@ -35,8 +35,6 @@ VulkanReplay::OutputWindow::OutputWindow()
 
   WINDOW_HANDLE_INIT;
 
-  fresh = true;
-
   hasDepth = false;
 
   failures = recreatePause = 0;
@@ -802,6 +800,14 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
       outw.Create(m_pDriver, m_pDriver->GetDev(), outw.hasDepth);
     else
       outw.recreatePause--;
+
+    return true;
+  }
+
+  if(outw.outofdate)
+  {
+    outw.outofdate = false;
+    return true;
   }
 
   return false;
@@ -1156,22 +1162,15 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
   VkResult retvkr = vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
 
+  m_pDriver->FlushQ();
+
   if(retvkr == VK_ERROR_OUT_OF_DATE_KHR)
   {
-    // force a swapchain recreate.
-    outw.width = 0;
-    outw.height = 0;
+    // this will check the current extent and use that if possible
+    outw.Create(m_pDriver, m_pDriver->GetDev(), outw.hasDepth);
 
-    CheckResizeOutputWindow(id);
-
-    // skip this present
-    retvkr = vkr = VK_SUCCESS;
+    outw.outofdate = true;
   }
-
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-  RDCASSERTEQUAL(retvkr, VK_SUCCESS);
-
-  m_pDriver->FlushQ();
 }
 
 void VulkanReplay::DestroyOutputWindow(uint64_t id)
