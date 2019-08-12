@@ -498,6 +498,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
           VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
           if(fmt.indexByteStride == 4)
             idxtype = VK_INDEX_TYPE_UINT32;
+          else if(fmt.indexByteStride == 1)
+            idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
           if(fmt.indexResourceId != ResourceId())
           {
@@ -624,6 +626,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
       VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
       if(cfg.position.indexByteStride == 4)
         idxtype = VK_INDEX_TYPE_UINT32;
+      else if(cfg.position.indexByteStride == 1)
+        idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
       if(cfg.position.indexResourceId != ResourceId())
       {
@@ -671,6 +675,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
       VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
       if(cfg.position.indexByteStride == 4)
         idxtype = VK_INDEX_TYPE_UINT32;
+      else if(cfg.position.indexByteStride == 1)
+        idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
       if(cfg.position.indexResourceId != ResourceId())
       {

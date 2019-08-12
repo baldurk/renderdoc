@@ -332,6 +332,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
 
   bytebuf indices;
 
+  uint8_t *idx8 = NULL;
   uint16_t *idx16 = NULL;
   uint32_t *idx32 = NULL;
 
@@ -341,16 +342,18 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
                   rs.ibuffer.offs + uint64_t(draw->indexOffset) * draw->indexByteWidth,
                   uint64_t(draw->numIndices) * draw->indexByteWidth, indices);
 
-    if(rs.ibuffer.bytewidth == 2)
-      idx16 = (uint16_t *)indices.data();
-    else
+    if(rs.ibuffer.bytewidth == 4)
       idx32 = (uint32_t *)indices.data();
+    else if(rs.ibuffer.bytewidth == 1)
+      idx8 = (uint8_t *)indices.data();
+    else
+      idx16 = (uint16_t *)indices.data();
   }
 
   // we just patch up to 32-bit since we'll be adding more indices and we might overflow 16-bit.
   std::vector<uint32_t> patchedIndices;
 
-  ::PatchLineStripIndexBuffer(draw, NULL, idx16, idx32, patchedIndices);
+  ::PatchLineStripIndexBuffer(draw, idx8, idx16, idx32, patchedIndices);
 
   indexBuffer.Create(m_pDriver, m_Device, patchedIndices.size() * sizeof(uint32_t), 1,
                      GPUBuffer::eGPUBufferIBuffer);
@@ -2271,6 +2274,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
               VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
               if(fmt.indexByteStride == 4)
                 idxtype = VK_INDEX_TYPE_UINT32;
+              else if(fmt.indexByteStride == 1)
+                idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
               if(fmt.indexResourceId != ResourceId())
               {

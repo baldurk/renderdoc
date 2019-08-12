@@ -2248,15 +2248,25 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
         {
           m_RenderState.ibuffer.buf = GetResID(buffer);
           m_RenderState.ibuffer.offs = offset;
-          m_RenderState.ibuffer.bytewidth = indexType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+
+          if(indexType == VK_INDEX_TYPE_UINT32)
+            m_RenderState.ibuffer.bytewidth = 4;
+          else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
+            m_RenderState.ibuffer.bytewidth = 1;
+          else
+            m_RenderState.ibuffer.bytewidth = 2;
         }
       }
     }
     else
     {
       // track while reading, as we need to bind current topology & index byte width in AddDrawcall
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth =
-          (indexType == VK_INDEX_TYPE_UINT32 ? 4 : 2);
+      if(indexType == VK_INDEX_TYPE_UINT32)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 4;
+      else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 1;
+      else
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 2;
 
       // track while reading, as we need to track resource usage
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer = GetResID(buffer);
