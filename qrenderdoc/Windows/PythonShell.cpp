@@ -669,7 +669,9 @@ void PythonShell::on_saveScript_clicked()
       QFile f(filename);
       if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
       {
-        f.write(scriptEditor->getText(scriptEditor->textLength() + 1));
+        QString text = QString::fromUtf8(scriptEditor->getText(scriptEditor->textLength() + 1));
+        text.remove(QLatin1Char('\r'));
+        f.write(text.toUtf8());
       }
       else
       {
