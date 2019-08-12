@@ -484,12 +484,22 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
   manager->MarkResourceFrameReferenced(Program, initial ? eFrameRef_None : eFrameRef_Read);
   manager->MarkResourceFrameReferenced(Pipeline, initial ? eFrameRef_None : eFrameRef_Read);
 
-  // the pipeline correctly has program parents, but we must also mark the programs as frame
-  // referenced so that their
-  // initial contents will be serialised.
-  GLResourceRecord *record = manager->GetResourceRecord(Pipeline);
-  if(record)
-    record->MarkParentsReferenced(manager, initial ? eFrameRef_None : eFrameRef_Read);
+  {
+    // mark all the sub programs referenced
+    GLenum programBinds[] = {
+        eGL_VERTEX_SHADER,       eGL_FRAGMENT_SHADER,        eGL_GEOMETRY_SHADER,
+        eGL_TESS_CONTROL_SHADER, eGL_TESS_EVALUATION_SHADER, eGL_COMPUTE_SHADER,
+    };
+
+    for(GLenum progbind : programBinds)
+    {
+      GLuint prog = 0;
+      GL.glGetProgramPipelineiv(Pipeline.name, progbind, (GLint *)&prog);
+      if(prog)
+        manager->MarkResourceFrameReferenced(ProgramRes(driver->GetCtx(), prog),
+                                             initial ? eFrameRef_None : eFrameRef_Read);
+    }
+  }
 
   for(size_t i = 0; i < ARRAY_COUNT(BufferBindings); i++)
     manager->MarkResourceFrameReferenced(BufferBindings[i],
