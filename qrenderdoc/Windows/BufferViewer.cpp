@@ -1425,10 +1425,10 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
       for(size_t i = 0; i < idata.size() && (uint32_t)i < draw->numIndices; i++)
       {
-        if(primRestart && idata[i] == primRestart)
+        indices[i] = (uint32_t)idata[i];
+        if(primRestart && indices[i] == primRestart)
           continue;
 
-        indices[i] = (uint32_t)idata[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
@@ -1439,10 +1439,10 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
       uint16_t *src = (uint16_t *)idata.data();
       for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
       {
-        if(primRestart && idata[i] == primRestart)
+        indices[i] = (uint32_t)src[i];
+        if(primRestart && indices[i] == primRestart)
           continue;
 
-        indices[i] = (uint32_t)src[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
@@ -1454,7 +1454,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
       for(uint32_t i = 0; i < draw->numIndices; i++)
       {
-        if(primRestart && idata[i] == primRestart)
+        if(primRestart && indices[i] == primRestart)
           continue;
 
         maxIndex = qMax(maxIndex, indices[i]);
@@ -2090,6 +2090,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     float vpWidth = qAbs(vp.width);
     float vpHeight = qAbs(vp.height);
+
+    m_Config.position.allowRestart = m_Ctx.CurPipelineState().IsStripRestartEnabled();
+    m_Config.position.restartIndex = m_Ctx.CurPipelineState().GetStripRestartIndex();
 
     m_Config.fov = ui->fovGuess->value();
     m_Config.aspect = (vpWidth > 0.0f && vpHeight > 0.0f) ? (vpWidth / vpHeight) : 1.0f;

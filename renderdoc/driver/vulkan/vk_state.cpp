@@ -282,9 +282,17 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
     }
 
     if(ibuffer.buf != ResourceId())
+    {
+      VkIndexType type = VK_INDEX_TYPE_UINT16;
+      if(ibuffer.bytewidth == 4)
+        type = VK_INDEX_TYPE_UINT32;
+      else if(ibuffer.bytewidth == 1)
+        type = VK_INDEX_TYPE_UINT8_EXT;
+
       ObjDisp(cmd)->CmdBindIndexBuffer(
           Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
-          ibuffer.offs, ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
+          ibuffer.offs, type);
+    }
 
     for(size_t i = 0; i < vbuffers.size(); i++)
     {

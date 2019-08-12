@@ -133,6 +133,7 @@
     <ClCompile Include="vk_debug.cpp" />
     <ClCompile Include="vk_info.cpp" />
     <ClCompile Include="vk_manager.cpp" />
+    <ClCompile Include="vk_pixelhistory.cpp" />
     <ClCompile Include="vk_replay.cpp" />
     <ClCompile Include="vk_win32.cpp" />
     <ClCompile Include="vk_posix.cpp">

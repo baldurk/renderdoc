@@ -86,7 +86,7 @@ DECL_VKFLAG(VkImageViewCreate);
 DECL_VKFLAG_EMPTY(VkInstanceCreate);
 DECL_VKFLAG(VkFenceCreate);
 DECL_VKFLAG(VkFenceImport);
-DECL_VKFLAG_EMPTY(VkFramebufferCreate);
+DECL_VKFLAG(VkFramebufferCreate);
 DECL_VKFLAG(VkMemoryAllocate);
 DECL_VKFLAG(VkMemoryHeap);
 DECL_VKFLAG_EMPTY(VkMemoryMap);
@@ -101,7 +101,7 @@ DECL_VKFLAG_EMPTY(VkPipelineInputAssemblyStateCreate);
 DECL_VKFLAG_EMPTY(VkPipelineLayoutCreate);
 DECL_VKFLAG_EMPTY(VkPipelineMultisampleStateCreate);
 DECL_VKFLAG_EMPTY(VkPipelineRasterizationStateCreate);
-DECL_VKFLAG_EMPTY(VkPipelineShaderStageCreate);
+DECL_VKFLAG(VkPipelineShaderStageCreate);
 DECL_VKFLAG(VkPipelineStage);
 DECL_VKFLAG_EMPTY(VkPipelineTessellationStateCreate);
 DECL_VKFLAG_EMPTY(VkPipelineVertexInputStateCreate);
@@ -111,12 +111,12 @@ DECL_VKFLAG(VkQueryPipelineStatistic);
 DECL_VKFLAG_EMPTY(VkQueryPoolCreate);
 DECL_VKFLAG(VkQueryResult);
 DECL_VKFLAG(VkQueue);
-DECL_VKFLAG_EMPTY(VkRenderPassCreate);
+DECL_VKFLAG(VkRenderPassCreate);
 DECL_VKFLAG(VkSamplerCreate);
 DECL_VKFLAG(VkSampleCount);
 DECL_VKFLAG_EMPTY(VkSemaphoreCreate);
 DECL_VKFLAG(VkSemaphoreImport);
-DECL_VKFLAG_EMPTY(VkShaderModuleCreate);
+DECL_VKFLAG(VkShaderModuleCreate);
 DECL_VKFLAG(VkShaderStage);
 DECL_VKFLAG(VkSparseImageFormat);
 DECL_VKFLAG(VkSparseMemoryBind);
@@ -243,7 +243,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
       {
         // It can be OK for a resource to have no live equivalent if the capture decided its not
         // needed, which some APIs do fairly often.
-        RDCWARN("Capture may be missing reference to %s resource (%llu).", TypeName<type>(), id);
+        RDCWARN("Capture may be missing reference to %s resource (%llu).", TypeName<type>().c_str(),
+                id);
       }
     }
   }
@@ -537,6 +538,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT,                        \
                VkPhysicalDeviceHostQueryResetFeaturesEXT)                                              \
                                                                                                        \
+  /* VK_EXT_index_type_uint8 */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,                        \
+               VkPhysicalDeviceIndexTypeUint8FeaturesEXT)                                              \
+                                                                                                       \
   /* VK_EXT_memory_budget */                                                                           \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,                         \
                VkPhysicalDeviceMemoryBudgetPropertiesEXT)                                              \
@@ -807,8 +812,8 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceShaderAtomicInt64FeaturesKHR)                                           \
                                                                                                        \
   /* VK_KHR_shader_float16_int8 */                                                                     \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR,                            \
-               VkPhysicalDeviceFloat16Int8FeaturesKHR)                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR,                     \
+               VkPhysicalDeviceShaderFloat16Int8FeaturesKHR)                                           \
                                                                                                        \
   /* VK_KHR_shader_float_controls */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR,                        \
@@ -876,8 +881,14 @@ SERIALISE_VK_HANDLES();
   /* VK_AMD_memory_overallocation_behavior */                                                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD)                    \
                                                                                                        \
+  /* VK_AMD_pipeline_compiler_control */                                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_COMPILER_CONTROL_CREATE_INFO_AMD)                       \
+                                                                                                       \
   /* VK_AMD_rasterization_order */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD)            \
+                                                                                                       \
+  /* VK_AMD_shader_core_properties2 */                                                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_2_AMD)                    \
                                                                                                        \
   /* VK_ANDROID_external_memory_android_hardware_buffer */                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID)                           \
@@ -918,6 +929,19 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT)                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT)             \
                                                                                                        \
+  /* VK_EXT_line_rasterization */                                                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT)                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT)               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_PROPERTIES_EXT)               \
+                                                                                                       \
+  /* VK_EXT_subgroup_size_control */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES_EXT)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES_EXT)            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO_EXT)    \
+                                                                                                       \
+  /* VK_EXT_texture_compression_astc_hdr */                                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
+                                                                                                       \
   /* VK_GOOGLE_display_timing */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                       \
                                                                                                        \
@@ -930,7 +954,21 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_CONFIGURATION_ACQUIRE_INFO_INTEL)                    \
                                                                                                        \
   /* VK_INTEL_shader_integer_functions2 */                                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS2_FEATURES_INTEL)        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL)       \
+                                                                                                       \
+  /* VK_KHR_imageless_framebuffer */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES_KHR)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR)                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR)                           \
+                                                                                                       \
+  /* VK_KHR_pipeline_executable_properties */                                                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR)     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR)                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR)                              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR)                                    \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR)                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR)                 \
                                                                                                        \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
@@ -1081,7 +1119,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
     }
 
     if(!handled)
-      RDCERR("Invalid next structure sType: %x", *nextType);
+      RDCERR("Invalid next structure sType: %u", *nextType);
 
     // delete the type itself. Any pNext we serialised is saved in the pNext pointer and will be
     // deleted in DeserialiseNext()
@@ -1133,7 +1171,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
       }
 
       if(!handled)
-        RDCERR("Invalid pNext structure sType: %x", next->sType);
+        RDCERR("Invalid pNext structure sType: %u", next->sType);
 
       // walk to the next item if we didn't serialise the current one
       next = (VkBaseInStructure *)next->pNext;
@@ -5849,6 +5887,22 @@ void Deserialise(const VkPhysicalDeviceMemoryBudgetPropertiesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceIndexTypeUint8FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(indexTypeUint8);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceIndexTypeUint8FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMemoryPriorityFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -5994,10 +6048,10 @@ void Deserialise(const VkPhysicalDeviceScalarBlockLayoutFeaturesEXT &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFloat16Int8FeaturesKHR &el)
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderFloat16Int8FeaturesKHR &el)
 {
   RDCASSERT(ser.IsReading() ||
-            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR);
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(shaderFloat16);
@@ -6005,7 +6059,7 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFloat16Int8FeaturesKHR &el
 }
 
 template <>
-void Deserialise(const VkPhysicalDeviceFloat16Int8FeaturesKHR &el)
+void Deserialise(const VkPhysicalDeviceShaderFloat16Int8FeaturesKHR &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -6017,8 +6071,8 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFloatControlsPropertiesKHR
             el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(separateDenormSettings);
-  SERIALISE_MEMBER(separateRoundingModeSettings);
+  SERIALISE_MEMBER(denormBehaviorIndependence);
+  SERIALISE_MEMBER(roundingModeIndependence);
   SERIALISE_MEMBER(shaderSignedZeroInfNanPreserveFloat16);
   SERIALISE_MEMBER(shaderSignedZeroInfNanPreserveFloat32);
   SERIALISE_MEMBER(shaderSignedZeroInfNanPreserveFloat64);
@@ -6950,6 +7004,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMaintenance3Properties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryBudgetPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryPriorityFeaturesEXT);

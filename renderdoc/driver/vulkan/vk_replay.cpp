@@ -2037,6 +2037,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   {
     srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
     srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+    SanitiseOldImageLayout(srcimBarrier.oldLayout);
     DoPipelineBarrier(cmd, 1, &srcimBarrier);
   }
 
@@ -2063,6 +2064,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
     srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
     srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+    SanitiseNewImageLayout(srcimBarrier.newLayout);
     DoPipelineBarrier(cmd, 1, &srcimBarrier);
   }
 
@@ -2368,6 +2370,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   {
     srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
     srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+    SanitiseOldImageLayout(srcimBarrier.oldLayout);
     DoPipelineBarrier(cmd, 1, &srcimBarrier);
   }
 
@@ -2397,6 +2400,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
     srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
     srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
     srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+    SanitiseNewImageLayout(srcimBarrier.newLayout);
     DoPipelineBarrier(cmd, 1, &srcimBarrier);
   }
 
@@ -2848,6 +2852,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+      SanitiseOldImageLayout(srcimBarrier.oldLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -2887,6 +2892,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
+      SanitiseNewImageLayout(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -3007,6 +3013,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+      SanitiseOldImageLayout(srcimBarrier.oldLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -3059,6 +3066,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
       srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+      SanitiseNewImageLayout(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -3133,6 +3141,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+      SanitiseOldImageLayout(srcimBarrier.oldLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -3281,6 +3290,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
       srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+      SanitiseNewImageLayout(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
       if(extQCmd != VK_NULL_HANDLE)
@@ -3703,15 +3713,6 @@ void VulkanReplay::RemoveReplacement(ResourceId id)
 
   ClearPostVSCache();
   ClearFeedbackCache();
-}
-
-std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
-                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                          uint32_t slice, uint32_t mip,
-                                                          uint32_t sampleIdx, CompType typeHint)
-{
-  VULKANNOTIMP("PixelHistory");
-  return std::vector<PixelModification>();
 }
 
 ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,

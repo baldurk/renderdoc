@@ -240,7 +240,7 @@ def zip_compare(test_file: str, ref_file: str):
 FLT_EPSILON = 2.0*1.19209290E-07
 
 
-def value_compare(ref, data):
+def value_compare(ref, data, eps=FLT_EPSILON):
     if type(ref) == float:
         if type(data) != float:
             return False
@@ -259,7 +259,7 @@ def value_compare(ref, data):
 
         # Floats are equal if the absolute difference is less than epsilon times the largest.
         largest = max(abs(ref), abs(data))
-        eps = largest * FLT_EPSILON if largest > 1.0 else FLT_EPSILON
+        eps = largest * eps if largest > 1.0 else eps
         return abs(ref-data) < eps
     elif type(ref) == list or type(ref) == tuple:
         # tuples and lists can be treated interchangeably
@@ -271,7 +271,7 @@ def value_compare(ref, data):
             return False
 
         for i in range(len(ref)):
-            if not value_compare(ref[i], data[i]):
+            if not value_compare(ref[i], data[i], eps):
                 return False
 
         return True
@@ -285,7 +285,7 @@ def value_compare(ref, data):
             return False
 
         for i in ref.keys():
-            if not value_compare(ref[i], data[i]):
+            if not value_compare(ref[i], data[i], eps):
                 return False
 
         return True

@@ -110,6 +110,7 @@ set(sources
     core/crash_handler.h
     core/target_control.cpp
     core/remote_server.cpp
+    core/remote_server.h
     core/replay_proxy.cpp
     core/replay_proxy.h
     core/intervals.h

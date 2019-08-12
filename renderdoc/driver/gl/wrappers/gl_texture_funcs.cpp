@@ -252,7 +252,10 @@ bool WrappedOpenGL::Serialise_glBindTexture(SerialiserType &ser, GLenum target, 
       TextureData &tex = m_Textures[GetResourceManager()->GetID(texture)];
       // only set texture type if we don't have one. Otherwise refuse to re-type.
       if(tex.curType == eGL_NONE)
+      {
         tex.curType = TextureTarget(target);
+        AddResourceInitChunk(texture);
+      }
       tex.creationFlags |= TextureCategory::ShaderRead;
     }
   }
@@ -581,6 +584,12 @@ bool WrappedOpenGL::Serialise_glBindImageTexture(SerialiserType &ser, GLuint uni
 void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered,
                                        GLint layer, GLenum access, GLenum format)
 {
+  if(IsCaptureMode(m_State))
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
+                                                      eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glBindImageTexture(unit, texture, level, layered, layer, access, format));
 
   if(IsActiveCapturing(m_State))
@@ -596,8 +605,6 @@ void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level,
     }
 
     GetContextRecord()->AddChunk(chunk);
-    GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
-                                                      eFrameRef_ReadBeforeWrite);
   }
 }
 
@@ -644,6 +651,14 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(SerialiserType &ser, GLuint fi
 
 void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
 {
+  if(IsCaptureMode(m_State))
+  {
+    for(GLsizei i = 0; i < count; i++)
+      if(textures != NULL && textures[i] != 0)
+        GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
+                                                          eFrameRef_ReadBeforeWrite);
+  }
+
   SERIALISE_TIME_CALL(GL.glBindImageTextures(first, count, textures));
 
   if(IsActiveCapturing(m_State))
@@ -653,11 +668,6 @@ void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuin
     Serialise_glBindImageTextures(ser, first, count, textures);
 
     GetContextRecord()->AddChunk(scope.Get());
-
-    for(GLsizei i = 0; i < count; i++)
-      if(textures != NULL && textures[i] != 0)
-        GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
-                                                          eFrameRef_ReadBeforeWrite);
   }
 }
 
@@ -851,6 +861,9 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 
 void WrappedOpenGL::glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glGenerateTextureMipmapEXT(texture, target));
 
   if(IsCaptureMode(m_State))
@@ -860,6 +873,9 @@ void WrappedOpenGL::glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
 
 void WrappedOpenGL::glGenerateTextureMipmap(GLuint texture)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glGenerateTextureMipmap(texture));
 
   if(IsCaptureMode(m_State))
@@ -869,6 +885,8 @@ void WrappedOpenGL::glGenerateTextureMipmap(GLuint texture)
 
 void WrappedOpenGL::glGenerateMipmap(GLenum target)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glGenerateMipmap(target));
 
   if(IsCaptureMode(m_State))
@@ -877,6 +895,9 @@ void WrappedOpenGL::glGenerateMipmap(GLenum target)
 
 void WrappedOpenGL::glGenerateMultiTexMipmapEXT(GLenum texunit, GLenum target)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glGenerateMultiTexMipmapEXT(texunit, target));
 
   if(IsCaptureMode(m_State))
@@ -972,6 +993,15 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
                                        GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
 {
   CoherentMapImplicitBarrier();
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    GLResourceRecord *dstrecord =
+        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
+
+    GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
+                                                      eFrameRef_CompleteWrite);
+  }
 
   SERIALISE_TIME_CALL(GL.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName,
                                             dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth,
@@ -1106,6 +1136,9 @@ void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, 
 void WrappedOpenGL::glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
                                                GLint xoffset, GLint x, GLint y, GLsizei width)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTextureSubImage1DEXT(texture, target, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
@@ -1117,6 +1150,9 @@ void WrappedOpenGL::glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GL
 void WrappedOpenGL::glCopyTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLint x,
                                             GLint y, GLsizei width)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTextureSubImage1D(texture, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
@@ -1128,6 +1164,9 @@ void WrappedOpenGL::glCopyTextureSubImage1D(GLuint texture, GLint level, GLint x
 void WrappedOpenGL::glCopyMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint level,
                                                 GLint xoffset, GLint x, GLint y, GLsizei width)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyMultiTexSubImage1DEXT(texunit, target, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
@@ -1138,6 +1177,8 @@ void WrappedOpenGL::glCopyMultiTexSubImage1DEXT(GLenum texunit, GLenum target, G
 void WrappedOpenGL::glCopyTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLint x, GLint y,
                                         GLsizei width)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTexSubImage1D(target, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
@@ -1212,6 +1253,9 @@ void WrappedOpenGL::glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GL
                                                GLint xoffset, GLint yoffset, GLint x, GLint y,
                                                GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCopyTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, x, y, width, height));
 
@@ -1224,6 +1268,9 @@ void WrappedOpenGL::glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GL
 void WrappedOpenGL::glCopyTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
                                             GLint x, GLint y, GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCopyTextureSubImage2D(texture, level, xoffset, yoffset, x, y, width, height));
 
@@ -1237,6 +1284,9 @@ void WrappedOpenGL::glCopyMultiTexSubImage2DEXT(GLenum texunit, GLenum target, G
                                                 GLint xoffset, GLint yoffset, GLint x, GLint y,
                                                 GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, x, y,
                                                      width, height));
 
@@ -1248,6 +1298,8 @@ void WrappedOpenGL::glCopyMultiTexSubImage2DEXT(GLenum texunit, GLenum target, G
 void WrappedOpenGL::glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                                         GLint x, GLint y, GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height));
 
   if(IsCaptureMode(m_State))
@@ -1324,6 +1376,9 @@ void WrappedOpenGL::glCopyTextureSubImage3DEXT(GLuint texture, GLenum target, GL
                                                GLint xoffset, GLint yoffset, GLint zoffset, GLint x,
                                                GLint y, GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTextureSubImage3DEXT(texture, target, level, xoffset, yoffset,
                                                     zoffset, x, y, width, height));
 
@@ -1337,6 +1392,9 @@ void WrappedOpenGL::glCopyTextureSubImage3D(GLuint texture, GLint level, GLint x
                                             GLint yoffset, GLint zoffset, GLint x, GLint y,
                                             GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCopyTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, x, y, width, height));
 
@@ -1350,6 +1408,9 @@ void WrappedOpenGL::glCopyMultiTexSubImage3DEXT(GLenum texunit, GLenum target, G
                                                 GLint xoffset, GLint yoffset, GLint zoffset,
                                                 GLint x, GLint y, GLsizei width, GLsizei height)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset,
                                                      zoffset, x, y, width, height));
 
@@ -1362,6 +1423,8 @@ void WrappedOpenGL::glCopyTexSubImage3D(GLenum target, GLint level, GLint xoffse
                                         GLint zoffset, GLint x, GLint y, GLsizei width,
                                         GLsizei height)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height));
 
@@ -1454,6 +1517,9 @@ void WrappedOpenGL::Common_glTextureParameteriEXT(GLResourceRecord *record, GLen
 
 void WrappedOpenGL::glTextureParameteri(GLuint texture, GLenum pname, GLint param)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameteri(texture, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1464,6 +1530,9 @@ void WrappedOpenGL::glTextureParameteri(GLuint texture, GLenum pname, GLint para
 
 void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameteriEXT(texture, target, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1473,6 +1542,8 @@ void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum
 
 void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTexParameteri(target, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1481,6 +1552,9 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 
 void WrappedOpenGL::glMultiTexParameteriEXT(GLenum texunit, GLenum target, GLenum pname, GLint param)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexParameteriEXT(texunit, target, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1560,6 +1634,9 @@ void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLe
 void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname,
                                             const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterivEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1570,6 +1647,9 @@ void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenu
 
 void WrappedOpenGL::glTextureParameteriv(GLuint texture, GLenum pname, const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameteriv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1580,6 +1660,8 @@ void WrappedOpenGL::glTextureParameteriv(GLuint texture, GLenum pname, const GLi
 
 void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTexParameteriv(target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1589,6 +1671,9 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 void WrappedOpenGL::glMultiTexParameterivEXT(GLenum texunit, GLenum target, GLenum pname,
                                              const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexParameterivEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1668,6 +1753,9 @@ void WrappedOpenGL::Common_glTextureParameterIivEXT(GLResourceRecord *record, GL
 void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname,
                                              const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterIivEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1678,6 +1766,9 @@ void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLen
 
 void WrappedOpenGL::glTextureParameterIiv(GLuint texture, GLenum pname, const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterIiv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1688,6 +1779,8 @@ void WrappedOpenGL::glTextureParameterIiv(GLuint texture, GLenum pname, const GL
 
 void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTexParameterIiv(target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1697,6 +1790,9 @@ void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *
 void WrappedOpenGL::glMultiTexParameterIivEXT(GLenum texunit, GLenum target, GLenum pname,
                                               const GLint *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexParameterIivEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1776,6 +1872,9 @@ void WrappedOpenGL::Common_glTextureParameterIuivEXT(GLResourceRecord *record, G
 void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname,
                                               const GLuint *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterIuivEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1786,6 +1885,9 @@ void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLe
 
 void WrappedOpenGL::glTextureParameterIuiv(GLuint texture, GLenum pname, const GLuint *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterIuiv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1796,6 +1898,8 @@ void WrappedOpenGL::glTextureParameterIuiv(GLuint texture, GLenum pname, const G
 
 void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTexParameterIuiv(target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1805,6 +1909,9 @@ void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint
 void WrappedOpenGL::glMultiTexParameterIuivEXT(GLenum texunit, GLenum target, GLenum pname,
                                                const GLuint *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexParameterIuivEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1881,6 +1988,9 @@ void WrappedOpenGL::Common_glTextureParameterfEXT(GLResourceRecord *record, GLen
 
 void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterfEXT(texture, target, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1890,6 +2000,9 @@ void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum
 
 void WrappedOpenGL::glTextureParameterf(GLuint texture, GLenum pname, GLfloat param)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterf(texture, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1900,6 +2013,8 @@ void WrappedOpenGL::glTextureParameterf(GLuint texture, GLenum pname, GLfloat pa
 
 void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTexParameterf(target, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1908,6 +2023,9 @@ void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 
 void WrappedOpenGL::glMultiTexParameterfEXT(GLenum texunit, GLenum target, GLenum pname, GLfloat param)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexParameterfEXT(texunit, target, pname, param));
 
   if(IsCaptureMode(m_State))
@@ -1987,6 +2105,9 @@ void WrappedOpenGL::Common_glTextureParameterfvEXT(GLResourceRecord *record, GLe
 void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname,
                                             const GLfloat *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterfvEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -1997,6 +2118,9 @@ void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenu
 
 void WrappedOpenGL::glTextureParameterfv(GLuint texture, GLenum pname, const GLfloat *params)
 {
+  MarkReferencedWhileCapturing(GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureParameterfv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -2007,6 +2131,8 @@ void WrappedOpenGL::glTextureParameterfv(GLuint texture, GLenum pname, const GLf
 
 void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glTexParameterfv(target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -2016,6 +2142,9 @@ void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat 
 void WrappedOpenGL::glMultiTexParameterfvEXT(GLenum texunit, GLenum target, GLenum pname,
                                              const GLfloat *params)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_ReadBeforeWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexParameterfvEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
@@ -2280,6 +2409,8 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 {
   internalformat = RemapGenericCompressedFormat(internalformat);
 
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glTexImage1D(target, level, internalformat, width, border, format, type, pixels));
 
@@ -2525,6 +2656,8 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 {
   internalformat = RemapGenericCompressedFormat(internalformat);
 
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels));
 
@@ -2752,6 +2885,8 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
                                  GLenum type, const GLvoid *pixels)
 {
   internalformat = RemapGenericCompressedFormat(internalformat);
+
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
 
   SERIALISE_TIME_CALL(GL.glTexImage3D(target, level, internalformat, width, height, depth, border,
                                       format, type, pixels));
@@ -3723,6 +3858,9 @@ void WrappedOpenGL::glCopyTextureImage1DEXT(GLuint texture, GLenum target, GLint
                                             GLenum internalformat, GLint x, GLint y, GLsizei width,
                                             GLint border)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCopyTextureImage1DEXT(texture, target, level, internalformat, x, y, width, border));
 
@@ -3735,6 +3873,9 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
                                              GLenum internalformat, GLint x, GLint y, GLsizei width,
                                              GLint border)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCopyMultiTexImage1DEXT(texunit, target, level, internalformat, x, y, width, border));
 
@@ -3750,6 +3891,8 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
 void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internalformat, GLint x,
                                      GLint y, GLsizei width, GLint border)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTexImage1D(target, level, internalformat, x, y, width, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -3877,6 +4020,9 @@ void WrappedOpenGL::glCopyTextureImage2DEXT(GLuint texture, GLenum target, GLint
                                             GLenum internalformat, GLint x, GLint y, GLsizei width,
                                             GLsizei height, GLint border)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTextureImage2DEXT(texture, target, level, internalformat, x, y,
                                                  width, height, border));
 
@@ -3889,6 +4035,9 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
                                              GLenum internalformat, GLint x, GLint y, GLsizei width,
                                              GLsizei height, GLint border)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyMultiTexImage2DEXT(texunit, target, level, internalformat, x, y,
                                                   width, height, border));
 
@@ -3904,6 +4053,8 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
 void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x,
                                      GLint y, GLsizei width, GLsizei height, GLint border)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
@@ -4456,6 +4607,8 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
                                             GLsizei width, GLsizei height,
                                             GLboolean fixedsamplelocations)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTexImage2DMultisample(target, samples, internalformat, width, height,
                                                  fixedsamplelocations));
 
@@ -4634,6 +4787,8 @@ void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLen
                                             GLsizei width, GLsizei height, GLsizei depth,
                                             GLboolean fixedsamplelocations)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTexImage3DMultisample(target, samples, internalformat, width, height,
                                                  depth, fixedsamplelocations));
 
@@ -4829,6 +4984,9 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
                                            GLint xoffset, GLsizei width, GLenum format, GLenum type,
                                            const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels));
 
@@ -4841,6 +4999,9 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 void WrappedOpenGL::glTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLsizei width,
                                         GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureSubImage1D(texture, level, xoffset, width, format, type, pixels));
 
   if(IsCaptureMode(m_State))
@@ -4852,6 +5013,8 @@ void WrappedOpenGL::glTextureSubImage1D(GLuint texture, GLint level, GLint xoffs
 void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width,
                                     GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTexSubImage1D(target, level, xoffset, width, format, type, pixels));
 
   if(IsCaptureMode(m_State))
@@ -4863,6 +5026,9 @@ void WrappedOpenGL::glMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint
                                             GLint xoffset, GLsizei width, GLenum format,
                                             GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glMultiTexSubImage1DEXT(texunit, target, level, xoffset, width, format, type, pixels));
 
@@ -5042,6 +5208,9 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
                                            GLint yoffset, GLsizei width, GLsizei height,
                                            GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width,
                                                 height, format, type, pixels));
 
@@ -5055,6 +5224,9 @@ void WrappedOpenGL::glTextureSubImage2D(GLuint texture, GLint level, GLint xoffs
                                         GLsizei width, GLsizei height, GLenum format, GLenum type,
                                         const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureSubImage2D(texture, level, xoffset, yoffset, width, height,
                                              format, type, pixels));
 
@@ -5068,6 +5240,8 @@ void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, G
                                     GLsizei width, GLsizei height, GLenum format, GLenum type,
                                     const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels));
 
@@ -5080,6 +5254,9 @@ void WrappedOpenGL::glMultiTexSubImage2DEXT(GLenum texunit, GLenum target, GLint
                                             GLint yoffset, GLsizei width, GLsizei height,
                                             GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, width,
                                                  height, format, type, pixels));
 
@@ -5264,6 +5441,9 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
                                            GLsizei width, GLsizei height, GLsizei depth,
                                            GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset,
                                                 width, height, depth, format, type, pixels));
 
@@ -5277,6 +5457,9 @@ void WrappedOpenGL::glTextureSubImage3D(GLuint texture, GLint level, GLint xoffs
                                         GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
                                         GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width,
                                              height, depth, format, type, pixels));
 
@@ -5290,6 +5473,8 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
                                     GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
                                     GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height,
                                          depth, format, type, pixels));
 
@@ -5303,6 +5488,9 @@ void WrappedOpenGL::glMultiTexSubImage3DEXT(GLenum texunit, GLenum target, GLint
                                             GLsizei width, GLsizei height, GLsizei depth,
                                             GLenum format, GLenum type, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset, zoffset,
                                                  width, height, depth, format, type, pixels));
 
@@ -5465,6 +5653,9 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
                                                      GLint xoffset, GLsizei width, GLenum format,
                                                      GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width,
                                                           format, imageSize, pixels));
 
@@ -5478,6 +5669,9 @@ void WrappedOpenGL::glCompressedTextureSubImage1D(GLuint texture, GLint level, G
                                                   GLsizei width, GLenum format, GLsizei imageSize,
                                                   const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCompressedTextureSubImage1D(texture, level, xoffset, width, format, imageSize, pixels));
 
@@ -5491,6 +5685,8 @@ void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint 
                                               GLsizei width, GLenum format, GLsizei imageSize,
                                               const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(
       GL.glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels));
 
@@ -5503,6 +5699,9 @@ void WrappedOpenGL::glCompressedMultiTexSubImage1DEXT(GLenum texunit, GLenum tar
                                                       GLint xoffset, GLsizei width, GLenum format,
                                                       GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedMultiTexSubImage1DEXT(texunit, target, level, xoffset, width,
                                                            format, imageSize, pixels));
 
@@ -5680,6 +5879,9 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
                                                      GLsizei height, GLenum format,
                                                      GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTextureSubImage2DEXT(
       texture, target, level, xoffset, yoffset, width, height, format, imageSize, pixels));
 
@@ -5694,6 +5896,9 @@ void WrappedOpenGL::glCompressedTextureSubImage2D(GLuint texture, GLint level, G
                                                   GLenum format, GLsizei imageSize,
                                                   const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTextureSubImage2D(texture, level, xoffset, yoffset, width,
                                                        height, format, imageSize, pixels));
 
@@ -5707,6 +5912,8 @@ void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint 
                                               GLint yoffset, GLsizei width, GLsizei height,
                                               GLenum format, GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height,
                                                    format, imageSize, pixels));
 
@@ -5721,6 +5928,9 @@ void WrappedOpenGL::glCompressedMultiTexSubImage2DEXT(GLenum texunit, GLenum tar
                                                       GLsizei height, GLenum format,
                                                       GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedMultiTexSubImage2DEXT(
       texunit, target, level, xoffset, yoffset, width, height, format, imageSize, pixels));
 
@@ -5901,6 +6111,9 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
                                                      GLenum format, GLsizei imageSize,
                                                      const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset,
                                                           zoffset, width, height, depth, format,
                                                           imageSize, pixels));
@@ -5916,6 +6129,9 @@ void WrappedOpenGL::glCompressedTextureSubImage3D(GLuint texture, GLint level, G
                                                   GLsizei height, GLsizei depth, GLenum format,
                                                   GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(
+      GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTextureSubImage3D(
       texture, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels));
 
@@ -5930,6 +6146,8 @@ void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint 
                                               GLsizei height, GLsizei depth, GLenum format,
                                               GLsizei imageSize, const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetActiveTexRecord(target), eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width,
                                                    height, depth, format, imageSize, pixels));
 
@@ -5945,6 +6163,9 @@ void WrappedOpenGL::glCompressedMultiTexSubImage3DEXT(GLenum texunit, GLenum tar
                                                       GLenum format, GLsizei imageSize,
                                                       const void *pixels)
 {
+  MarkReferencedWhileCapturing(GetCtxData().GetTexUnitRecord(target, texunit),
+                               eFrameRef_PartialWrite);
+
   SERIALISE_TIME_CALL(GL.glCompressedMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset,
                                                            zoffset, width, height, depth, format,
                                                            imageSize, pixels));

@@ -1616,9 +1616,11 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
   if(drawcall->flags & DrawFlags::Indexed)
   {
-    bool index16 = (idxsize == 2);
+    const bool restart =
+        pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable && IsStrip(drawcall->topology);
     bytebuf idxdata;
     std::vector<uint32_t> indices;
+    uint8_t *idx8 = NULL;
     uint16_t *idx16 = NULL;
     uint32_t *idx32 = NULL;
 
@@ -1666,12 +1668,15 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
     // do ibuffer rebasing/remapping
 
-    idx16 = (uint16_t *)&idxdata[0];
-    idx32 = (uint32_t *)&idxdata[0];
+    if(idxsize == 4)
+      idx32 = (uint32_t *)&idxdata[0];
+    else if(idxsize == 1)
+      idx8 = (uint8_t *)&idxdata[0];
+    else
+      idx16 = (uint16_t *)&idxdata[0];
 
     // only read as many indices as were available in the buffer
-    uint32_t numIndices =
-        RDCMIN(uint32_t(index16 ? idxdata.size() / 2 : idxdata.size() / 4), drawcall->numIndices);
+    uint32_t numIndices = RDCMIN(uint32_t(idxdata.size() / idxsize), drawcall->numIndices);
 
     uint32_t idxclamp = 0;
     if(drawcall->baseVertex < 0)
@@ -1680,7 +1685,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     // grab all unique vertex indices referenced
     for(uint32_t i = 0; i < numIndices; i++)
     {
-      uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+      uint32_t i32 = 0;
+      if(idx32)
+        i32 = idx32[i];
+      else if(idx16)
+        i32 = uint32_t(idx16[i]);
+      else if(idx8)
+        i32 = uint32_t(idx8[i]);
 
       // apply baseVertex but clamp to 0 (don't allow index to become negative)
       if(i32 < idxclamp)
@@ -1798,10 +1809,16 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     // vertex buffer
     for(uint32_t i = 0; i < numIndices; i++)
     {
-      uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+      uint32_t i32 = 0;
+      if(idx32)
+        i32 = idx32[i];
+      else if(idx16)
+        i32 = uint32_t(idx16[i]);
+      else if(idx8)
+        i32 = uint32_t(idx8[i]);
 
       // preserve primitive restart indices
-      if(i32 == (index16 ? 0xffff : 0xffffffff))
+      if(restart && i32 == (0xffffffff >> ((4 - idxsize) * 8)))
         continue;
 
       // apply baseVertex but clamp to 0 (don't allow index to become negative)
@@ -1812,10 +1829,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
       else if(drawcall->baseVertex > 0)
         i32 += drawcall->baseVertex;
 
-      if(index16)
-        idx16[i] = uint16_t(indexRemap[i32]);
-      else
+      if(idx32)
         idx32[i] = uint32_t(indexRemap[i32]);
+      else if(idx16)
+        idx16[i] = uint16_t(indexRemap[i32]);
+      else if(idx8)
+        idx8[i] = uint8_t(indexRemap[i32]);
     }
 
     bufInfo.size = RDCMAX((VkDeviceSize)64, (VkDeviceSize)idxdata.size());
@@ -2555,9 +2574,15 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
   if(m_PostVS.Data[eventId].vsout.useIndices && state.ibuffer.buf != ResourceId())
   {
+    VkIndexType type = VK_INDEX_TYPE_UINT16;
+    if(idxsize == 4)
+      type = VK_INDEX_TYPE_UINT32;
+    else if(idxsize == 1)
+      type = VK_INDEX_TYPE_UINT8_EXT;
+
     m_PostVS.Data[eventId].vsout.idxbuf = rebasedIdxBuf;
     m_PostVS.Data[eventId].vsout.idxbufmem = rebasedIdxBufMem;
-    m_PostVS.Data[eventId].vsout.idxFmt = idxsize == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+    m_PostVS.Data[eventId].vsout.idxFmt = type;
   }
 
   m_PostVS.Data[eventId].vsout.hasPosOut =
@@ -2567,13 +2592,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
   m_pDriver->vkFreeDescriptorSets(dev, descpool, (uint32_t)descSets.size(), descSets.data());
 
+  // delete pipeline layout
+  m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
+
   m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
 
   for(VkDescriptorSetLayout layout : setLayouts)
     m_pDriver->vkDestroyDescriptorSetLayout(dev, layout, NULL);
-
-  // delete pipeline layout
-  m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
 
   // delete pipeline
   m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
@@ -3251,7 +3276,12 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
   if(s.useIndices && s.idxbuf != VK_NULL_HANDLE)
   {
     ret.indexResourceId = GetResID(s.idxbuf);
-    ret.indexByteStride = s.idxFmt == VK_INDEX_TYPE_UINT16 ? 2 : 4;
+    if(s.idxFmt == VK_INDEX_TYPE_UINT32)
+      ret.indexByteStride = 4;
+    else if(s.idxFmt == VK_INDEX_TYPE_UINT8_EXT)
+      ret.indexByteStride = 1;
+    else
+      ret.indexByteStride = 2;
   }
   else
   {

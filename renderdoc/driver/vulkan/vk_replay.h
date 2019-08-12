@@ -423,7 +423,8 @@ private:
 
     WINDOW_HANDLE_DECL;
 
-    bool fresh;
+    bool fresh = true;
+    bool outofdate = false;
 
     uint32_t width, height;
 

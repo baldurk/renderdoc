@@ -735,7 +735,7 @@ struct IReplayManager
 :return: Whether or not the connection was successful.
 :rtype: ~renderdoc.ReplayStatus
 )");
-  virtual ReplayStatus ConnectToRemoteServer(RemoteHost *host) = 0;
+  virtual ReplayStatus ConnectToRemoteServer(RemoteHost host) = 0;
 
   DOCUMENT("Disconnect from the server the manager is currently connected to.");
   virtual void DisconnectFromRemoteServer() = 0;
@@ -751,10 +751,10 @@ struct IReplayManager
 
   DOCUMENT(R"(Retrieves the host that the manager is currently connected to.
 
-:return: The host connected to, or ``None`` if no connection is active.
+:return: The host connected to, or an invalid RemoteHost if no connection is active.
 :rtype: RemoteHost
 )");
-  virtual RemoteHost *CurrentRemote() = 0;
+  virtual RemoteHost CurrentRemote() = 0;
 
   DOCUMENT(R"(Retrieves the capture file handle for the currently open file.
 

@@ -3,7 +3,7 @@ Quick Start
 
 This document serves as a brief introduction to how to use RenderDoc to capture and analyse your application. It doesn't go into much detail about exactly what functionality is available for digging into things, as this can be found elsewhere. Instead it focuses on just the workflow from start to finish and roughly where to look for different things.
 
-For this tutorial we will be using the `debugmarker <https://github.com/SaschaWillems/Vulkan#vk_ext_debug_marker>`_. sample from `Sascha Willems' Vulkan samples repository <https://github.com/SaschaWillems/Vulkan>`_..
+For this tutorial we will be using the ``debugmarker`` sample from `Sascha Willems' Vulkan samples repository <https://github.com/SaschaWillems/Vulkan>`_..
 
 Capturing a frame
 -----------------

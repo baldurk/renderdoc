@@ -23,7 +23,7 @@ The currently selected block is outlined with red, and the page in view reflects
 Pipeline Section Display
 ------------------------
 
-The pipeline state viewer always displays the state of the pipeline _after_ the execution of the drawcall, as with the other viewers in RenderDoc.
+The pipeline state viewer always displays the state of the pipeline *after* the execution of the drawcall, as with the other viewers in RenderDoc.
 
 Any resources that are bound to the pipeline can be opened in more detailed viewers, such as vertex buffers, constant buffers and textures. More details of this process can be found in the page :doc:`../how/how_object_details`.
 
@@ -34,13 +34,23 @@ The pipeline view attempts to only show what is relevant, and not all possible s
 
 On some APIs like Vulkan it may be common to use 'bindless' approaches where a large number of resources are bound and only a small number are accessed at any time. In these cases RenderDoc uses dynamic feedback to try to determine the set of resources accessed and only displays them. This can similarly be overridden with the Show Unused Items |page_white_delete| button.
 
-Likewise it will omit any slots which are completely empty (and also unused), and this behaviour can be overridden with the Show Empty Items |page_white_database| button.
+When showing disabled/unused bindings, they will be listed in *italics*.
 
 In some cases whole sections will be omitted unless there is anything set there - this is primarily for unused or rarely used features like shader subroutines/class linkage, and Read/Write bindings (Image load store or UAVs).
 
-Sections can be expanded and collapsed by clicking on the title text above them to toggle them in and out of the collapsed state. This can be used to temporarily close down some sections that you don't need to make room for more vertical space in sections you do need.
+.. figure:: ../imgs/Screenshots/PipelineDetails.png
 
-When showing disabled or empty entries, they will either be in *italics* or on a dark red background respectively.
+	Pipeline: Pictured here, texture bindings in a D3D11 pixel shader.
+
+When a binding is empty, it will be displayed with a red background. By default as above only bindings that could be referenced by the shader are displayed, so empty bindings indicate that the shader may be reading from an unbound resource. With the Show Unused Items |page_white_delete| button above, unused but empty bindings are still omitted for readability. To override this you can use the Show Empty Items |page_white_database| button which will show empty bindings.
+
+If a binding is listed with a blue/green background this indicates that the binding has special parameters over and above the underlying resource. This could be for example an image with many mips or slices where not all of them are bound to the pipeline in the image view, or the view casts the image to a different compatible format.
+
+.. figure:: ../imgs/Screenshots/PipelineCollapsed.png
+
+	Pipeline: The above pipeline section, collapsed to save space.
+
+Sections can be expanded and collapsed by clicking on the title text above them to toggle them in and out of the collapsed state. This can be used to temporarily close down some sections that you don't need to make room for more vertical space in sections you do need.
 
 .. |save| image:: ../imgs/icons/save.png
 

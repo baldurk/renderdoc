@@ -941,7 +941,11 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
       LoadNotes(QString::fromUtf8((const char *)buf.data(), buf.count()));
     }
     QString driver = access->DriverName();
-    if(!driver.isEmpty())
+    if(driver == lit("Image"))
+    {
+      ANALYTIC_SET(UIFeatures.ImageViewer, true);
+    }
+    else if(!driver.isEmpty())
     {
       ANALYTIC_ADDUNIQ(APIs, driver);
     }

@@ -138,10 +138,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLay
       false,
   };
 
-  if(IsStrip(primary.topology))
-  {
-    ia.primitiveRestartEnable = true;
-  }
+  ia.primitiveRestartEnable = primary.allowRestart;
 
   VkRect2D scissor = {{0, 0}, {16384, 16384}};
 
@@ -501,6 +498,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
           VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
           if(fmt.indexByteStride == 4)
             idxtype = VK_INDEX_TYPE_UINT32;
+          else if(fmt.indexByteStride == 1)
+            idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
           if(fmt.indexResourceId != ResourceId())
           {
@@ -550,7 +549,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
 
     // we source all data from the first instanced value in the instanced case, so make sure we
     // offset correctly here.
-    if(cfg.position.instanced)
+    if(cfg.position.instanced && cfg.position.instStepRate)
       offs += cfg.position.vertexByteStride * (cfg.curInstance / cfg.position.instStepRate);
 
     vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
@@ -571,7 +570,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
 
     // we source all data from the first instanced value in the instanced case, so make sure we
     // offset correctly here.
-    if(cfg.second.instanced)
+    if(cfg.second.instanced && cfg.second.instStepRate)
       offs += cfg.second.vertexByteStride * (cfg.curInstance / cfg.second.instStepRate);
 
     vt->CmdBindVertexBuffers(Unwrap(cmd), 1, 1, UnwrapPtr(vb), &offs);
@@ -627,6 +626,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
       VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
       if(cfg.position.indexByteStride == 4)
         idxtype = VK_INDEX_TYPE_UINT32;
+      else if(cfg.position.indexByteStride == 1)
+        idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
       if(cfg.position.indexResourceId != ResourceId())
       {
@@ -674,6 +675,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &s
       VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
       if(cfg.position.indexByteStride == 4)
         idxtype = VK_INDEX_TYPE_UINT32;
+      else if(cfg.position.indexByteStride == 1)
+        idxtype = VK_INDEX_TYPE_UINT8_EXT;
 
       if(cfg.position.indexResourceId != ResourceId())
       {

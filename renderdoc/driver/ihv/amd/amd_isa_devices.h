@@ -32,10 +32,10 @@ struct asic
   const char *gfxIpString;
   int chipFamily;
   int chipRevision;
-  int apiBitmask;
+  const char *targetName;
 };
 
-const int asicCount = 23;
+const int asicCount = 25;
 extern const asic asicInfo[];
 
 };    // namespace GCNISA

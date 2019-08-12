@@ -85,6 +85,29 @@
   $result = SWIG_NewPointerObj($1, $descriptor(struct CaptureOptions*), SWIG_POINTER_OWN);
 }
 
+// same for RENDERDOC_GetSupportedDeviceProtocols
+%typemap(in, numinputs=0) rdcarray<rdcstr> *supportedProtocols { $1 = new rdcarray<rdcstr>; }
+%typemap(argout) rdcarray<rdcstr> *supportedProtocols {
+  $result = ConvertToPy(*$1);
+  delete $1;
+}
+%typemap(freearg) rdcarray<rdcstr> *supportedProtocols { }
+
+// same for RENDERDOC_CreateRemoteServerConnection
+%typemap(in, numinputs=0) IRemoteServer **rend (IRemoteServer *outRenderer) {
+  outRenderer = NULL;
+  $1 = &outRenderer;
+}
+%typemap(argout) IRemoteServer **rend {
+  PyObject *retVal = $result;
+  $result = PyTuple_New(2);
+  if($result)
+  {
+    PyTuple_SetItem($result, 0, retVal);
+    PyTuple_SetItem($result, 1, SWIG_NewPointerObj(SWIG_as_voidptr(outRenderer$argnum), SWIGTYPE_p_IRemoteServer, 0));
+  }
+}
+
 // ignore some operators SWIG doesn't have to worry about
 %ignore SDType::operator=;
 %ignore StructuredObjectList::swap;

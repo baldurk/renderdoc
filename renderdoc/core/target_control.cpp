@@ -861,24 +861,28 @@ private:
 };
 
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
-    const char *host, uint32_t ident, const char *clientName, bool forceConnection)
+    const char *URL, uint32_t ident, const char *clientName, bool forceConnection)
 {
-  std::string s = "localhost";
-  if(host != NULL && host[0] != '\0')
-    s = host;
+  rdcstr host = "localhost";
+  if(URL != NULL && URL[0] != '\0')
+    host = URL;
 
-  bool android = false;
+  rdcstr deviceID = host;
+  uint16_t port = ident & 0xffff;
 
-  if(host != NULL && Android::IsHostADB(host))
+  IDeviceProtocolHandler *protocol = RenderDoc::Inst().GetDeviceProtocol(deviceID);
+
+  if(protocol)
   {
-    android = true;
-    s = "127.0.0.1";
+    deviceID = protocol->GetDeviceID(deviceID);
+    host = protocol->RemapHostname(deviceID);
+    if(host.empty())
+      return NULL;
 
-    // we don't need the index or device ID here, because the port is already the right one
-    // forwarded to the right device.
+    port = protocol->RemapPort(deviceID, port);
   }
 
-  Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident & 0xffff, 750);
+  Network::Socket *sock = Network::CreateClientSocket(host.c_str(), port, 750);
 
   if(sock == NULL)
     return NULL;

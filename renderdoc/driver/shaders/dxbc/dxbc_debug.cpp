@@ -23,14 +23,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// TODO remove me
 #include "dxbc_debug.h"
-#include <math.h>
 #include <algorithm>
-#include "api/replay/renderdoc_replay.h"
-#include "common/common.h"
-#include "driver/d3d11/d3d11_device.h"
-#include "driver/d3d11/d3d11_shader_cache.h"
 #include "maths/formatpacking.h"
 #include "dxbc_inspect.h"
 
@@ -255,8 +249,6 @@ bool State::OperationFlushing(const DXBC::OpcodeType &op) const
     case OPCODE_DP3:
     case OPCODE_DP4:
     case OPCODE_SINCOS:
-    case OPCODE_F16TOF32:
-    case OPCODE_F32TOF16:
     case OPCODE_FRC:
     case OPCODE_ROUND_PI:
     case OPCODE_ROUND_Z:
@@ -279,6 +271,11 @@ bool State::OperationFlushing(const DXBC::OpcodeType &op) const
     case OPCODE_UTOF:
     case OPCODE_FTOI:
     case OPCODE_FTOU:
+      return false;
+
+    // we have to flush this manually since the input is halves encoded in uints
+    case OPCODE_F16TOF32:
+    case OPCODE_F32TOF16:
       return false;
 
     // implementation defined if this should flush or not, we choose not.
@@ -1178,6 +1175,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     }
   }
 
+  // is this type a flushable input (for float operations)
+  bool flushable = true;
+
   switch(oper.type)
   {
     case TYPE_TEMP:
@@ -1247,6 +1247,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
       // should be handled specially by instructions that expect these types of
       // argument but let's be sane and include the index
       v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
+      flushable = false;
       break;
     }
     case TYPE_IMMEDIATE32:
@@ -1452,7 +1453,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     v = neg(v, OperationType(op.operation));
   }
 
-  if(OperationFlushing(op.operation))
+  if(OperationFlushing(op.operation) && flushable)
   {
     for(int i = 0; i < 4; i++)
       v.value.fv[i] = flush_denorm(v.value.fv[i]);
@@ -1480,7 +1481,7 @@ static uint32_t PopCount(uint32_t x)
   return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
-State State::GetNext(GlobalState &global, State quad[4]) const
+State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State quad[4]) const
 {
   State s = *this;
 
@@ -1491,6 +1492,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
   const ASMOperation &op = s.dxbc->GetInstruction((size_t)s.nextInstruction);
 
+  apiWrapper->SetCurrentInstruction(s.nextInstruction);
   s.nextInstruction++;
   s.flags = ShaderEvents::NoEvent;
 
@@ -1745,18 +1747,20 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     }
     case OPCODE_F16TOF32:
     {
-      s.SetDst(op.operands[0], op, ShaderVariable("", ConvertFromHalf(srcOpers[0].value.u.x & 0xffff),
-                                                  ConvertFromHalf(srcOpers[0].value.u.y & 0xffff),
-                                                  ConvertFromHalf(srcOpers[0].value.u.z & 0xffff),
-                                                  ConvertFromHalf(srcOpers[0].value.u.w & 0xffff)));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", flush_denorm(ConvertFromHalf(srcOpers[0].value.u.x & 0xffff)),
+                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.y & 0xffff)),
+                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.z & 0xffff)),
+                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.w & 0xffff))));
       break;
     }
     case OPCODE_F32TOF16:
     {
-      s.SetDst(op.operands[0], op, ShaderVariable("", (uint32_t)ConvertToHalf(srcOpers[0].value.f.x),
-                                                  (uint32_t)ConvertToHalf(srcOpers[0].value.f.y),
-                                                  (uint32_t)ConvertToHalf(srcOpers[0].value.f.z),
-                                                  (uint32_t)ConvertToHalf(srcOpers[0].value.f.w)));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.x)),
+                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.y)),
+                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.z)),
+                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.w))));
       break;
     }
     case OPCODE_FRC:
@@ -2086,166 +2090,24 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_RSQ:
     case OPCODE_EXP:
     case OPCODE_LOG:
-    case OPCODE_SINCOS:
     {
-      std::string csProgram =
-          "RWBuffer<float4> outval : register(u0);\n"
-          "cbuffer srcOper : register(b0) { float4 inval; };\n"
-          "[numthreads(1, 1, 1)]\n"
-          "void main() {\n";
-
-      switch(op.operation)
-      {
-        case OPCODE_RCP: csProgram += "outval[0] = rcp(inval);\n"; break;
-        case OPCODE_RSQ: csProgram += "outval[0] = rsqrt(inval);\n"; break;
-        case OPCODE_EXP: csProgram += "outval[0] = exp2(inval);\n"; break;
-        case OPCODE_LOG: csProgram += "outval[0] = log2(inval);\n"; break;
-        case OPCODE_SINCOS: csProgram += "sincos(inval, outval[0], outval[1]);\n"; break;
-      }
-
-      csProgram += "}\n";
-
-      ID3D11ComputeShader *cs =
-          device->GetShaderCache()->MakeCShader(csProgram.c_str(), "main", "cs_5_0");
-
-      ID3D11DeviceContext *context = NULL;
-
-      device->GetImmediateContext(&context);
-
-      // back up CB/UAV on CS slot 0
-
-      ID3D11Buffer *prevCB = NULL;
-      ID3D11UnorderedAccessView *prevUAV = NULL;
-
-      context->CSGetConstantBuffers(0, 1, &prevCB);
-      context->CSGetUnorderedAccessViews(0, 1, &prevUAV);
-
-      ID3D11Buffer *constBuf = NULL;
-
-      D3D11_BUFFER_DESC cdesc;
-
-      cdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-      cdesc.CPUAccessFlags = 0;
-      cdesc.MiscFlags = 0;
-      cdesc.StructureByteStride = sizeof(Vec4f);
-      cdesc.ByteWidth = sizeof(Vec4f);
-      cdesc.Usage = D3D11_USAGE_DEFAULT;
-
-      D3D11_SUBRESOURCE_DATA operData = {};
-      operData.pSysMem = &srcOpers[0].value.uv[0];
-      operData.SysMemPitch = sizeof(Vec4f);
-      operData.SysMemSlicePitch = sizeof(Vec4f);
-
-      if(op.operation == OPCODE_SINCOS)
-        operData.pSysMem = &srcOpers[1].value.uv[0];
-
-      HRESULT hr = S_OK;
-
-      hr = device->CreateBuffer(&cdesc, &operData, &constBuf);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create constant buf HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      context->CSSetConstantBuffers(0, 1, &constBuf);
-
-      context->CSSetShader(cs, NULL, 0);
-
-      ID3D11UnorderedAccessView *uav = NULL;
-
-      ID3D11Buffer *uavBuf = NULL;
-      ID3D11Buffer *copyBuf = NULL;
-
-      D3D11_BUFFER_DESC bdesc;
-
-      bdesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
-      bdesc.CPUAccessFlags = 0;
-      bdesc.MiscFlags = 0;
-      bdesc.StructureByteStride = sizeof(Vec4f);
-      bdesc.ByteWidth = sizeof(Vec4f) * 2;
-      bdesc.Usage = D3D11_USAGE_DEFAULT;
-
-      hr = device->CreateBuffer(&bdesc, NULL, &uavBuf);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create UAV buf HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      bdesc.BindFlags = 0;
-      bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-      bdesc.Usage = D3D11_USAGE_STAGING;
-
-      hr = device->CreateBuffer(&bdesc, NULL, &copyBuf);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create copy buf HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-
-      uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-      uavDesc.Buffer.FirstElement = 0;
-      uavDesc.Buffer.NumElements = 2;
-      uavDesc.Buffer.Flags = 0;
-
-      hr = device->CreateUnorderedAccessView(uavBuf, &uavDesc, &uav);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create uav HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      context->CSSetUnorderedAccessViews(0, 1, &uav, NULL);
-      context->Dispatch(1, 1, 1);
-
-      context->CopyResource(copyBuf, uavBuf);
-
-      D3D11_MAPPED_SUBRESOURCE mapped;
-      hr = context->Map(copyBuf, 0, D3D11_MAP_READ, 0, &mapped);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
       ShaderVariable calcResultA("calcA", 0.0f, 0.0f, 0.0f, 0.0f);
       ShaderVariable calcResultB("calcB", 0.0f, 0.0f, 0.0f, 0.0f);
-
-      uint32_t *resA = (uint32_t *)mapped.pData;
-      uint32_t *resB = resA + 4;
-
-      memcpy(calcResultA.value.uv, resA, sizeof(uint32_t) * 4);
-      memcpy(calcResultB.value.uv, resB, sizeof(uint32_t) * 4);
-
-      context->Unmap(copyBuf, 0);
-
-      SAFE_RELEASE(constBuf);
-      SAFE_RELEASE(uavBuf);
-      SAFE_RELEASE(copyBuf);
-      SAFE_RELEASE(uav);
-      SAFE_RELEASE(cs);
-
-      // restore whatever was on CS slot 0 before we messed with it
-
-      UINT append[] = {~0U};
-      context->CSSetConstantBuffers(0, 1, &prevCB);
-      context->CSSetUnorderedAccessViews(0, 1, &prevUAV, append);
-
-      SAFE_RELEASE(context);
-
-      SAFE_RELEASE(prevCB);
-      SAFE_RELEASE(prevUAV);
-
-      if(op.operation == OPCODE_SINCOS)
+      if(apiWrapper->CalculateMathIntrinsic(op.operation, srcOpers[0], calcResultA, calcResultB))
+      {
+        s.SetDst(op.operands[0], op, calcResultA);
+      }
+      else
+      {
+        return s;
+      }
+      break;
+    }
+    case OPCODE_SINCOS:
+    {
+      ShaderVariable calcResultA("calcA", 0.0f, 0.0f, 0.0f, 0.0f);
+      ShaderVariable calcResultB("calcB", 0.0f, 0.0f, 0.0f, 0.0f);
+      if(apiWrapper->CalculateMathIntrinsic(OPCODE_SINCOS, srcOpers[1], calcResultA, calcResultB))
       {
         if(op.operands[0].type != TYPE_NULL)
           s.SetDst(op.operands[0], op, calcResultA);
@@ -2254,9 +2116,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       }
       else
       {
-        s.SetDst(op.operands[0], op, calcResultA);
+        return s;
       }
-
       break;
     }
 
@@ -2898,7 +2759,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(load && !srv && !gsm && (fmt.numComps != 1 || fmt.byteWidth != 4))
       {
-        device->AddDebugMessage(
+        apiWrapper->AddDebugMessage(
             MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
             StringFormat::Fmt(
                 "Shader debugging %d: %s\n"
@@ -3072,7 +2933,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
         if(!global.sampleEvalCache.empty())
         {
-          device->AddDebugMessage(
+          apiWrapper->AddDebugMessage(
               MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
               StringFormat::Fmt(
                   "Shader debugging %d: %s\n"
@@ -3089,126 +2950,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_SAMPLE_INFO:
     case OPCODE_SAMPLE_POS:
     {
-      ID3D11DeviceContext *context = NULL;
-      device->GetImmediateContext(&context);
-
-      ShaderVariable result("", 0U, 0U, 0U, 0U);
-
-      ID3D11Resource *res = NULL;
-
-      if(op.operands[1].type == TYPE_RASTERIZER)
-      {
-        ID3D11RenderTargetView *rtv[8] = {};
-        ID3D11DepthStencilView *dsv = NULL;
-
-        context->OMGetRenderTargets(8, rtv, &dsv);
-
-        // try depth first - both should match sample count though to be valid
-        if(dsv)
-        {
-          dsv->GetResource(&res);
-        }
-        else
-        {
-          for(size_t i = 0; i < ARRAY_COUNT(rtv); i++)
-          {
-            if(rtv[i])
-            {
-              rtv[i]->GetResource(&res);
-              break;
-            }
-          }
-        }
-
-        if(!res)
-        {
-          RDCWARN("No targets bound for output when calling sampleinfo on rasterizer");
-
-          device->AddDebugMessage(
-              MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-              StringFormat::Fmt("Shader debugging %d: %s\n"
-                                "No targets bound for output when calling sampleinfo on rasterizer",
-                                s.nextInstruction - 1, op.str.c_str()));
-        }
-
-        for(size_t i = 0; i < ARRAY_COUNT(rtv); i++)
-          SAFE_RELEASE(rtv[i]);
-        SAFE_RELEASE(dsv);
-      }
-      else if(op.operands[1].type == TYPE_RESOURCE && op.operands[1].indices.size() == 1 &&
-              op.operands[1].indices[0].absolute && !op.operands[1].indices[0].relative)
-      {
-        UINT slot = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
-
-        ID3D11ShaderResourceView *srv = NULL;
-        if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
-          context->VSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
-          context->HSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
-          context->DSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
-          context->GSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
-          context->PSGetShaderResources(slot, 1, &srv);
-        else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-          context->CSGetShaderResources(slot, 1, &srv);
-
-        if(srv)
-        {
-          srv->GetResource(&res);
-        }
-        else
-        {
-          RDCWARN("SRV is NULL being queried by sampleinfo");
-
-          device->AddDebugMessage(
-              MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-              StringFormat::Fmt("Shader debugging %d: %s\nSRV is NULL being queried by sampleinfo",
-                                s.nextInstruction - 1, op.str.c_str()));
-        }
-
-        SAFE_RELEASE(srv);
-      }
-      else
-      {
-        RDCWARN("unexpected operand type to sample_info");
-      }
-
-      if(res)
-      {
-        D3D11_RESOURCE_DIMENSION dim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
-        res->GetType(&dim);
-
-        if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
-        {
-          D3D11_TEXTURE2D_DESC desc;
-          ((ID3D11Texture2D *)res)->GetDesc(&desc);
-
-          // returns 1 for non-multisampled resources
-          result.value.u.x = RDCMAX(1U, desc.SampleDesc.Count);
-        }
-        else
-        {
-          if(op.operands[1].type == TYPE_RASTERIZER)
-          {
-            // special behaviour for non-2D (i.e. by definition non-multisampled) textures when
-            // querying the rasterizer, just return 1.
-            result.value.u.x = 1;
-          }
-          else
-          {
-            device->AddDebugMessage(
-                MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-                StringFormat::Fmt("Shader debugging %d: %s\nResource specified is not a 2D texture",
-                                  s.nextInstruction - 1, op.str.c_str()));
-
-            result.value.u.x = 0;
-          }
-        }
-
-        SAFE_RELEASE(res);
-      }
+      bool isAbsoluteResource =
+          (op.operands[1].indices.size() == 1 && op.operands[1].indices[0].absolute &&
+           !op.operands[1].indices[0].relative);
+      UINT slot = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
+      ShaderVariable result =
+          apiWrapper->GetSampleInfo(op.operands[1].type, isAbsoluteResource, slot, op.str.c_str());
 
       // "If there is no resource bound to the specified slot, 0 is returned."
 
@@ -3238,7 +2985,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           {
             RDCWARN("Non-multisampled texture being passed to sample_pos");
 
-            device->AddDebugMessage(
+            apiWrapper->AddDebugMessage(
                 MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
                 StringFormat::Fmt(
                     "Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos",
@@ -3348,118 +3095,16 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       s.SetDst(op.operands[0], op, result);
 
-      SAFE_RELEASE(context);
-
       break;
     }
 
     case OPCODE_BUFINFO:
     {
-      ID3D11DeviceContext *context = NULL;
-      device->GetImmediateContext(&context);
-
       if(op.operands[1].indices.size() == 1 && op.operands[1].indices[0].absolute &&
          !op.operands[1].indices[0].relative)
       {
         UINT slot = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
-
-        ShaderVariable result("", 0U, 0U, 0U, 0U);
-
-        if(op.operands[1].type == TYPE_UNORDERED_ACCESS_VIEW)
-        {
-          ID3D11UnorderedAccessView *uav = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-            context->CSGetUnorderedAccessViews(slot, 1, &uav);
-          else
-            context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
-
-          if(uav)
-          {
-            D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
-            uav->GetDesc(&uavDesc);
-
-            if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
-            {
-              result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
-                  uavDesc.Buffer.NumElements;
-            }
-            else
-            {
-              RDCWARN("Unexpected UAV dimension %d passed to bufinfo", uavDesc.ViewDimension);
-
-              device->AddDebugMessage(
-                  MessageCategory::Shaders, MessageSeverity::High, MessageSource::RuntimeWarning,
-                  StringFormat::Fmt(
-                      "Shader debugging %d: %s\nUAV being queried by bufinfo is not a buffer",
-                      s.nextInstruction - 1, op.str.c_str()));
-            }
-          }
-          else
-          {
-            RDCWARN("UAV is NULL being queried by bufinfo");
-
-            device->AddDebugMessage(
-                MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-                StringFormat::Fmt("Shader debugging %d: %s\nUAV being queried by bufinfo is NULL",
-                                  s.nextInstruction - 1, op.str.c_str()));
-          }
-
-          SAFE_RELEASE(uav);
-        }
-        else
-        {
-          ID3D11ShaderResourceView *srv = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
-            context->VSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
-            context->HSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
-            context->DSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
-            context->GSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
-            context->PSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-            context->CSGetShaderResources(slot, 1, &srv);
-
-          if(srv)
-          {
-            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-            srv->GetDesc(&srvDesc);
-
-            if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
-            {
-              result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
-                  srvDesc.Buffer.NumElements;
-            }
-            else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_BUFFEREX)
-            {
-              result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
-                  srvDesc.BufferEx.NumElements;
-            }
-            else
-            {
-              RDCWARN("Unexpected SRV dimension %d passed to bufinfo", srvDesc.ViewDimension);
-
-              device->AddDebugMessage(
-                  MessageCategory::Shaders, MessageSeverity::High, MessageSource::RuntimeWarning,
-                  StringFormat::Fmt(
-                      "Shader debugging %d: %s\nSRV being queried by bufinfo is not a buffer",
-                      s.nextInstruction - 1, op.str.c_str()));
-            }
-          }
-          else
-          {
-            RDCWARN("SRV is NULL being queried by bufinfo");
-
-            device->AddDebugMessage(
-                MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-                StringFormat::Fmt("Shader debugging %d: %s\nSRV being queried by bufinfo is NULL",
-                                  s.nextInstruction - 1, op.str.c_str()));
-          }
-
-          SAFE_RELEASE(srv);
-        }
+        ShaderVariable result = apiWrapper->GetBufferInfo(op.operands[1].type, slot, op.str.c_str());
 
         // apply swizzle
         ShaderVariable swizzled("", 0.0f, 0.0f, 0.0f, 0.0f);
@@ -3490,8 +3135,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         s.SetDst(op.operands[0], op, ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f));
       }
 
-      SAFE_RELEASE(context);
-
       break;
     }
 
@@ -3500,325 +3143,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       // spec says "srcMipLevel is read as an unsigned integer scalar"
       uint32_t mipLevel = srcOpers[0].value.u.x;
 
-      ID3D11DeviceContext *context = NULL;
-      device->GetImmediateContext(&context);
-
       if(op.operands[2].indices.size() == 1 && op.operands[2].indices[0].absolute &&
          !op.operands[2].indices[0].relative)
       {
-        UINT slot = (UINT)(op.operands[2].indices[0].index & 0xffffffff);
-
-        ShaderVariable result("", 0.0f, 0.0f, 0.0f, 0.0f);
-
         int dim = 0;
-
-        if(op.operands[2].type != TYPE_UNORDERED_ACCESS_VIEW)
-        {
-          ID3D11ShaderResourceView *srv = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
-            context->VSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
-            context->HSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
-            context->DSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
-            context->GSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
-            context->PSGetShaderResources(slot, 1, &srv);
-          else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-            context->CSGetShaderResources(slot, 1, &srv);
-
-          if(srv)
-          {
-            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-            srv->GetDesc(&srvDesc);
-
-            switch(srvDesc.ViewDimension)
-            {
-              case D3D11_SRV_DIMENSION_BUFFER:
-              {
-                dim = 1;
-
-                result.value.u.x = srvDesc.Buffer.NumElements;
-                result.value.u.y = 0;
-                result.value.u.z = 0;
-                result.value.u.w = 0;
-                break;
-              }
-              case D3D11_SRV_DIMENSION_BUFFEREX:
-              {
-                dim = 1;
-
-                result.value.u.x = srvDesc.BufferEx.NumElements;
-                result.value.u.y = 0;
-                result.value.u.z = 0;
-                result.value.u.w = 0;
-                break;
-              }
-              case D3D11_SRV_DIMENSION_TEXTURE1D:
-              case D3D11_SRV_DIMENSION_TEXTURE1DARRAY:
-              {
-                ID3D11Texture1D *tex = NULL;
-                srv->GetResource((ID3D11Resource **)&tex);
-
-                dim = 1;
-
-                if(tex)
-                {
-                  bool isarray = srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1DARRAY;
-
-                  D3D11_TEXTURE1D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = isarray ? srvDesc.Texture1DArray.ArraySize : 0;
-                  result.value.u.z = 0;
-                  result.value.u.w =
-                      isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-              case D3D11_SRV_DIMENSION_TEXTURE2D:
-              case D3D11_SRV_DIMENSION_TEXTURE2DARRAY:
-              case D3D11_SRV_DIMENSION_TEXTURE2DMS:
-              case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY:
-              {
-                ID3D11Texture2D *tex = NULL;
-                srv->GetResource((ID3D11Resource **)&tex);
-
-                dim = 2;
-
-                if(tex)
-                {
-                  D3D11_TEXTURE2D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-
-                  if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2D)
-                  {
-                    result.value.u.z = 0;
-                    result.value.u.w = srvDesc.Texture2D.MipLevels;
-                  }
-                  else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DARRAY)
-                  {
-                    result.value.u.z = srvDesc.Texture2DArray.ArraySize;
-                    result.value.u.w = srvDesc.Texture2DArray.MipLevels;
-                  }
-                  else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMS)
-                  {
-                    result.value.u.z = 0;
-                    result.value.u.w = 1;
-                  }
-                  else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY)
-                  {
-                    result.value.u.z = srvDesc.Texture2DMSArray.ArraySize;
-                    result.value.u.w = 1;
-                  }
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = result.value.u.z = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-              case D3D11_SRV_DIMENSION_TEXTURE3D:
-              {
-                ID3D11Texture3D *tex = NULL;
-                srv->GetResource((ID3D11Resource **)&tex);
-
-                dim = 3;
-
-                if(tex)
-                {
-                  D3D11_TEXTURE3D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-                  result.value.u.z = RDCMAX(1U, desc.Depth >> mipLevel);
-                  result.value.u.w = srvDesc.Texture3D.MipLevels;
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = result.value.u.z = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-              case D3D11_SRV_DIMENSION_TEXTURECUBE:
-              case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY:
-              {
-                ID3D11Texture2D *tex = NULL;
-                srv->GetResource((ID3D11Resource **)&tex);
-
-                dim = 2;
-
-                if(tex)
-                {
-                  bool isarray = srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1DARRAY;
-
-                  D3D11_TEXTURE2D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-
-                  // the spec says "If srcResource is a TextureCubeArray, [...]. dest.z is set to an
-                  // undefined value."
-                  // but that's stupid, and implementations seem to return the number of cubes
-                  result.value.u.z = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
-                  result.value.u.w =
-                      isarray ? srvDesc.TextureCubeArray.MipLevels : srvDesc.TextureCube.MipLevels;
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = result.value.u.z = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-            }
-
-            SAFE_RELEASE(srv);
-          }
-        }
-        else
-        {
-          ID3D11UnorderedAccessView *uav = NULL;
-          if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
-          {
-            context->CSGetUnorderedAccessViews(slot, 1, &uav);
-          }
-          else
-          {
-            ID3D11RenderTargetView *rtvs[8] = {0};
-            ID3D11DepthStencilView *dsv = NULL;
-            context->OMGetRenderTargetsAndUnorderedAccessViews(0, rtvs, &dsv, slot, 1, &uav);
-
-            for(int i = 0; i < 8; i++)
-              SAFE_RELEASE(rtvs[i]);
-            SAFE_RELEASE(dsv);
-          }
-
-          if(uav)
-          {
-            D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
-            uav->GetDesc(&uavDesc);
-
-            switch(uavDesc.ViewDimension)
-            {
-              case D3D11_UAV_DIMENSION_BUFFER:
-              {
-                ID3D11Buffer *buf = NULL;
-                uav->GetResource((ID3D11Resource **)&buf);
-
-                dim = 1;
-
-                if(buf)
-                {
-                  D3D11_BUFFER_DESC desc;
-                  buf->GetDesc(&desc);
-                  result.value.u.x = desc.ByteWidth;
-                  result.value.u.y = 0;
-                  result.value.u.z = 0;
-                  result.value.u.w = 0;
-
-                  SAFE_RELEASE(buf);
-                }
-                break;
-              }
-              case D3D11_UAV_DIMENSION_TEXTURE1D:
-              case D3D11_UAV_DIMENSION_TEXTURE1DARRAY:
-              {
-                ID3D11Texture1D *tex = NULL;
-                uav->GetResource((ID3D11Resource **)&tex);
-
-                dim = 1;
-
-                if(tex)
-                {
-                  bool isarray = uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY;
-
-                  D3D11_TEXTURE1D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
-                  result.value.u.z = 0;
-
-                  // spec says "For UAVs (u#), the number of mip levels is always 1."
-                  result.value.u.w = 1;
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-              case D3D11_UAV_DIMENSION_TEXTURE2D:
-              case D3D11_UAV_DIMENSION_TEXTURE2DARRAY:
-              {
-                ID3D11Texture2D *tex = NULL;
-                uav->GetResource((ID3D11Resource **)&tex);
-
-                dim = 2;
-
-                if(tex)
-                {
-                  D3D11_TEXTURE2D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-
-                  if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
-                    result.value.u.z = 0;
-                  else if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
-                    result.value.u.z = uavDesc.Texture2DArray.ArraySize;
-
-                  // spec says "For UAVs (u#), the number of mip levels is always 1."
-                  result.value.u.w = 1;
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = result.value.u.z = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-              case D3D11_UAV_DIMENSION_TEXTURE3D:
-              {
-                ID3D11Texture3D *tex = NULL;
-                uav->GetResource((ID3D11Resource **)&tex);
-
-                dim = 3;
-
-                if(tex)
-                {
-                  D3D11_TEXTURE3D_DESC desc;
-                  tex->GetDesc(&desc);
-                  result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-                  result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-                  result.value.u.z = RDCMAX(1U, desc.Depth >> mipLevel);
-
-                  // spec says "For UAVs (u#), the number of mip levels is always 1."
-                  result.value.u.w = 1;
-
-                  if(mipLevel >= result.value.u.w)
-                    result.value.u.x = result.value.u.y = result.value.u.z = 0;
-
-                  SAFE_RELEASE(tex);
-                }
-                break;
-              }
-            }
-
-            SAFE_RELEASE(uav);
-          }
-        }
+        UINT slot = (UINT)(op.operands[2].indices[0].index & 0xffffffff);
+        ShaderVariable result = apiWrapper->GetResourceInfo(op.operands[2].type, slot, mipLevel, dim);
 
         // need a valid dimension even if the resource was unbound, so
         // search for the declaration
@@ -3826,7 +3156,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         {
           for(size_t i = 0; i < s.dxbc->GetNumDeclarations(); i++)
           {
-            const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+            const DXBC::ASMDecl &decl = s.dxbc->GetDeclaration(i);
 
             if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
                decl.operand.indices.size() == 1 &&
@@ -3915,8 +3245,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         s.SetDst(op.operands[0], op, ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f));
       }
 
-      SAFE_RELEASE(context);
-
       break;
     }
     case OPCODE_SAMPLE:
@@ -3933,43 +3261,22 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_GATHER4_PO_C:
     case OPCODE_LOD:
     {
-      std::string sampler = "";
-      std::string texture = "";
-      std::string funcRet = "";
-      DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
-
       if(op.operation != OPCODE_LOD)
-      {
         s.flags = ShaderEvents::SampleLoadGather;
-      }
 
-      if(op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_SAMPLE_C_LZ ||
-         op.operation == OPCODE_GATHER4_C || op.operation == OPCODE_GATHER4_PO_C ||
-         op.operation == OPCODE_LOD)
+      SamplerMode samplerMode = NUM_SAMPLERS;
+      ResourceDimension resourceDim = RESOURCE_DIMENSION_UNKNOWN;
+      ResourceRetType resourceRetType = RETURN_TYPE_UNKNOWN;
+      int sampleCount = 0;
+
+      for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
       {
-        retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
-        funcRet = "float4";
-      }
-
-      bool useOffsets = true;
-      int texdim = 2;
-      int offsdim = 2;    // ddN and offset dimension
-
-      DXBC::ResourceDimension resourceDim = DXBC::RESOURCE_DIMENSION_UNKNOWN;
-
-      for(size_t i = 0; i < s.dxbc->GetNumDeclarations(); i++)
-      {
-        const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+        const ASMDecl &decl = dxbc->GetDeclaration(i);
 
         if(decl.declaration == OPCODE_DCL_SAMPLER && op.operands.size() > 3 &&
            decl.operand.indices == op.operands[3].indices)
         {
-          if(decl.samplerMode == SAMPLER_MODE_DEFAULT)
-            sampler = "SamplerState s";
-          else if(decl.samplerMode == SAMPLER_MODE_COMPARISON)
-            sampler = "SamplerComparisonState s";
-          else
-            RDCERR("Unsupported sampler type %d in sample operation", decl.samplerMode);
+          samplerMode = decl.samplerMode;
         }
         if(decl.dim == RESOURCE_DIMENSION_BUFFER && op.operation == OPCODE_LD &&
            decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
@@ -3979,7 +3286,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
           uint32_t resIndex = (uint32_t)decl.operand.indices[0].index;
 
-          byte *data = &global.srvs[resIndex].data[0];
+          const byte *data = &global.srvs[resIndex].data[0];
           uint32_t offset = global.srvs[resIndex].firstElement;
           uint32_t numElems = global.srvs[resIndex].numElements;
 
@@ -3994,11 +3301,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
             if(srcOpers[0].value.uv[0] < numElems)
             {
-              byte *d = data + srcOpers[0].value.uv[0] * fmt.Stride();
+              const byte *d = data + srcOpers[0].value.uv[0] * fmt.Stride();
 
               if(fmt.byteWidth == 10)
               {
-                uint32_t u = *((uint32_t *)d);
+                const uint32_t u = *((const uint32_t *)d);
 
                 if(fmt.fmt == CompType::UInt)
                 {
@@ -4022,7 +3329,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
               }
               else if(fmt.byteWidth == 11)
               {
-                uint32_t *u = (uint32_t *)d;
+                const uint32_t *u = (const uint32_t *)d;
 
                 Vec3f res = ConvertFromR11G11B10(*u);
                 result.value.f.x = res.x;
@@ -4032,7 +3339,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
               }
               else if(fmt.byteWidth == 4)
               {
-                uint32_t *u = (uint32_t *)d;
+                const uint32_t *u = (const uint32_t *)d;
 
                 for(int c = 0; c < fmt.numComps; c++)
                   result.value.uv[c] = u[c];
@@ -4041,35 +3348,35 @@ State State::GetNext(GlobalState &global, State quad[4]) const
               {
                 if(fmt.fmt == CompType::Float)
                 {
-                  uint16_t *u = (uint16_t *)d;
+                  const uint16_t *u = (const uint16_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.fv[c] = ConvertFromHalf(u[c]);
                 }
                 else if(fmt.fmt == CompType::UInt)
                 {
-                  uint16_t *u = (uint16_t *)d;
+                  const uint16_t *u = (const uint16_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.uv[c] = u[c];
                 }
                 else if(fmt.fmt == CompType::SInt)
                 {
-                  int16_t *in = (int16_t *)d;
+                  const int16_t *in = (const int16_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.iv[c] = in[c];
                 }
                 else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
                 {
-                  uint16_t *u = (uint16_t *)d;
+                  const uint16_t *u = (const uint16_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.fv[c] = float(u[c]) / float(0xffff);
                 }
                 else if(fmt.fmt == CompType::SNorm)
                 {
-                  int16_t *in = (int16_t *)d;
+                  const int16_t *in = (const int16_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                   {
@@ -4089,28 +3396,28 @@ State State::GetNext(GlobalState &global, State quad[4]) const
               {
                 if(fmt.fmt == CompType::UInt)
                 {
-                  uint8_t *u = (uint8_t *)d;
+                  const uint8_t *u = (const uint8_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.uv[c] = u[c];
                 }
                 else if(fmt.fmt == CompType::SInt)
                 {
-                  int8_t *in = (int8_t *)d;
+                  const int8_t *in = (const int8_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.iv[c] = in[c];
                 }
                 else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
                 {
-                  uint8_t *u = (uint8_t *)d;
+                  const uint8_t *u = (const uint8_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                     result.value.fv[c] = float(u[c]) / float(0xff);
                 }
                 else if(fmt.fmt == CompType::SNorm)
                 {
-                  int8_t *in = (int8_t *)d;
+                  const int8_t *in = (const int8_t *)d;
 
                   for(int c = 0; c < fmt.numComps; c++)
                   {
@@ -4159,67 +3466,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
            decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
         {
           resourceDim = decl.dim;
-
-          if(decl.dim == RESOURCE_DIMENSION_TEXTURE1D)
-          {
-            texture = "Texture1D";
-            texdim = 1;
-            offsdim = 1;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURE2D)
-          {
-            texture = "Texture2D";
-            texdim = 2;
-            offsdim = 2;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS)
-          {
-            texture = "Texture2DMS";
-            texdim = 2;
-            offsdim = 2;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURE3D)
-          {
-            texture = "Texture3D";
-            texdim = 3;
-            offsdim = 3;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURECUBE)
-          {
-            texture = "TextureCube";
-            texdim = 3;
-            offsdim = 3;
-            useOffsets = false;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURE1DARRAY)
-          {
-            texture = "Texture1DArray";
-            texdim = 2;
-            offsdim = 1;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY)
-          {
-            texture = "Texture2DArray";
-            texdim = 3;
-            offsdim = 2;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
-          {
-            texture = "Texture2DMSArray";
-            texdim = 3;
-            offsdim = 2;
-          }
-          else if(decl.dim == RESOURCE_DIMENSION_TEXTURECUBEARRAY)
-          {
-            texture = "TextureCubeArray";
-            texdim = 4;
-            offsdim = 3;
-            useOffsets = false;
-          }
-          else
-          {
-            RDCERR("Unsupported resource type %d in sample operation", decl.dim);
-          }
+          resourceRetType = decl.resType[0];
+          sampleCount = decl.sampleCount;
 
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
@@ -4229,60 +3477,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           RDCASSERT(decl.resType[0] != RETURN_TYPE_CONTINUED &&
                     decl.resType[0] != RETURN_TYPE_UNUSED && decl.resType[0] != RETURN_TYPE_MIXED &&
                     decl.resType[0] >= 0 && decl.resType[0] < NUM_RETURN_TYPES);
-
-          char *typeStr[NUM_RETURN_TYPES] = {
-              "",    // enum starts at ==1
-              "unorm float",
-              "snorm float",
-              "int",
-              "uint",
-              "float",
-              "__",    // RETURN_TYPE_MIXED
-              "double",
-              "__",    // RETURN_TYPE_CONTINUED
-              "__",    // RETURN_TYPE_UNUSED
-          };
-
-          // obviously these may be overly optimistic in some cases
-          // but since we don't know at debug time what the source texture format is
-          // we just use the fattest one necessary. There's no harm in retrieving at
-          // higher precision
-          DXGI_FORMAT fmts[NUM_RETURN_TYPES] = {
-              DXGI_FORMAT_UNKNOWN,    // enum starts at ==1
-              DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT,
-              DXGI_FORMAT_R32G32B32A32_SINT, DXGI_FORMAT_R32G32B32A32_UINT,
-              DXGI_FORMAT_R32G32B32A32_FLOAT,
-              DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_MIXED
-
-              // should maybe be double, but there is no double texture format anyway!
-              // spec is unclear but I presume reads are done at most at float
-              // precision anyway since that's the source, and converted to doubles.
-              DXGI_FORMAT_R32G32B32A32_FLOAT,
-
-              DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_CONTINUED
-              DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_UNUSED
-          };
-
-          char buf[64] = {0};
-          StringFormat::snprintf(buf, 63, "%s4", typeStr[decl.resType[0]]);
-
-          if(retFmt == DXGI_FORMAT_UNKNOWN)
-          {
-            funcRet = buf;
-
-            retFmt = fmts[decl.resType[0]];
-          }
-
-          if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
-             decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
-          {
-            if(decl.sampleCount > 0)
-              StringFormat::snprintf(buf, 63, "%s4, %d", typeStr[decl.resType[0]], decl.sampleCount);
-          }
-
-          texture += "<";
-          texture += buf;
-          texture += "> t";
         }
       }
 
@@ -4299,12 +3493,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         break;
       }
 
-      std::string sampleProgram;
-
-      char buf[256] = {0};
-      char buf2[256] = {0};
-      char buf3[256] = {0};
-
+      ShaderVariable uv = srcOpers[0];
       ShaderVariable ddxCalc;
       ShaderVariable ddyCalc;
 
@@ -4331,520 +3520,72 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         ddyCalc = srcOpers[4];
       }
 
-      // serious printf abuse below!
-
-      char *formats[4][2] = {
-          {"float(%.10f)", "int(%d)"},
-          {"float2(%.10f, %.10f)", "int2(%d, %d)"},
-          {"float3(%.10f, %.10f, %.10f)", "int3(%d, %d, %d)"},
-          {"float4(%.10f, %.10f, %.10f, %.10f)", "int4(%d, %d, %d, %d)"},
-      };
-
-      int texcoordType = 0;
-      int ddxType = 0;
-      int ddyType = 0;
-
-      int texdimOffs = 0;
-
-      if(op.operation == OPCODE_SAMPLE || op.operation == OPCODE_SAMPLE_L ||
-         op.operation == OPCODE_SAMPLE_B || op.operation == OPCODE_SAMPLE_D ||
-         op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_SAMPLE_C_LZ ||
-         op.operation == OPCODE_GATHER4 || op.operation == OPCODE_GATHER4_C ||
-         op.operation == OPCODE_GATHER4_PO || op.operation == OPCODE_GATHER4_PO_C ||
-         op.operation == OPCODE_LOD)
-      {
-        // all floats
-        texcoordType = ddxType = ddyType = 0;
-      }
-      else if(op.operation == OPCODE_LD)
-      {
-        // int address, one larger than texdim (to account for mip/slice parameter)
-        texdimOffs = 1;
-        texcoordType = 1;
-
-        if(texdim == 4)
-        {
-          RDCERR("Unexpectedly large texture in load operation");
-        }
-      }
-      else if(op.operation == OPCODE_LD_MS)
-      {
-        texcoordType = 1;
-
-        if(texdim == 4)
-        {
-          RDCERR("Unexpectedly large texture in load operation");
-        }
-      }
-
-      ShaderVariable uv = srcOpers[0];
-
-      for(uint32_t i = 0; i < ddxCalc.columns; i++)
-      {
-        if(ddxType == 0 && (_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i])))
-        {
-          RDCWARN("NaN or Inf in texlookup");
-          ddxCalc.value.fv[i] = 0.0f;
-
-          device->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                  MessageSource::RuntimeWarning,
-                                  StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
-                                                    "texture lookup ddx - using 0.0 instead",
-                                                    s.nextInstruction - 1, op.str.c_str()));
-        }
-        if(ddyType == 0 && (_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i])))
-        {
-          RDCWARN("NaN or Inf in texlookup");
-          ddyCalc.value.fv[i] = 0.0f;
-
-          device->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                  MessageSource::RuntimeWarning,
-                                  StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
-                                                    "texture lookup ddy - using 0.0 instead",
-                                                    s.nextInstruction - 1, op.str.c_str()));
-        }
-      }
-
-      for(uint32_t i = 0; i < uv.columns; i++)
-      {
-        if(texcoordType == 0 && (_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i])))
-        {
-          RDCWARN("NaN or Inf in texlookup");
-          uv.value.fv[i] = 0.0f;
-
-          device->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                  MessageSource::RuntimeWarning,
-                                  StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
-                                                    "texture lookup uv - using 0.0 instead",
-                                                    s.nextInstruction - 1, op.str.c_str()));
-        }
-      }
-
-      // because of unions in .value we can pass the float versions and printf will interpret it as
-      // the right type according to formats
-      if(texcoordType == 0)
-        StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-                               uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
-      else
-        StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-                               uv.value.i.x, uv.value.i.y, uv.value.i.z, uv.value.i.w);
-
-      if(ddxType == 0)
-        StringFormat::snprintf(buf2, 255, formats[offsdim + texdimOffs - 1][ddxType],
-                               ddxCalc.value.f.x, ddxCalc.value.f.y, ddxCalc.value.f.z,
-                               ddxCalc.value.f.w);
-      else
-        StringFormat::snprintf(buf2, 255, formats[offsdim + texdimOffs - 1][ddxType],
-                               ddxCalc.value.i.x, ddxCalc.value.i.y, ddxCalc.value.i.z,
-                               ddxCalc.value.i.w);
-
-      if(ddyType == 0)
-        StringFormat::snprintf(buf3, 255, formats[offsdim + texdimOffs - 1][ddyType],
-                               ddyCalc.value.f.x, ddyCalc.value.f.y, ddyCalc.value.f.z,
-                               ddyCalc.value.f.w);
-      else
-        StringFormat::snprintf(buf3, 255, formats[offsdim + texdimOffs - 1][ddyType],
-                               ddyCalc.value.i.x, ddyCalc.value.i.y, ddyCalc.value.i.z,
-                               ddyCalc.value.i.w);
-
-      std::string texcoords = buf;
-      std::string ddx = buf2;
-      std::string ddy = buf3;
-
-      if(op.operation == OPCODE_LD_MS)
-      {
-        StringFormat::snprintf(buf, 255, formats[0][1], srcOpers[2].value.i.x);
-      }
-
-      std::string sampleIdx = buf;
-
-      std::string offsets = "";
-
-      if(useOffsets)
-      {
-        if(offsdim == 1)
-          StringFormat::snprintf(buf, 255, ", int(%d)", op.texelOffset[0]);
-        if(offsdim == 2)
-          StringFormat::snprintf(buf, 255, ", int2(%d, %d)", op.texelOffset[0], op.texelOffset[1]);
-        if(offsdim == 3)
-          StringFormat::snprintf(buf, 255, ", int3(%d, %d, %d)", op.texelOffset[0],
-                                 op.texelOffset[1], op.texelOffset[2]);
-        // texdim == 4 is cube arrays, no offset supported
-
-        offsets = buf;
-      }
-
-      std::string swizzle = ".";
-
-      char elems[] = "xyzw";
-
-      for(int i = 0; i < 4; i++)
-      {
-        if(op.operands[2].comps[i] == 0xff)
-          swizzle += "x";
-        else
-          swizzle += elems[op.operands[2].comps[i]];
-      }
-
-      const char *channel = "";
-      if(op.operation == OPCODE_GATHER4 || op.operation == OPCODE_GATHER4_C ||
-         op.operation == OPCODE_GATHER4_PO || op.operation == OPCODE_GATHER4_PO_C)
-      {
-        switch(op.operands[3].comps[0])
-        {
-          case 0: channel = "Red"; break;
-          case 1: channel = "Green"; break;
-          case 2: channel = "Blue"; break;
-          case 3: channel = "Alpha"; break;
-        }
-      }
-
-      std::string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
-      vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
-      vsProgram += "}";
-
       UINT texSlot = (UINT)op.operands[2].indices[0].index;
-      UINT sampSlot = 0;
+      UINT samplerSlot = 0;
 
       for(size_t i = 0; i < op.operands.size(); i++)
       {
         const ASMOperand &operand = op.operands[i];
         if(operand.type == OperandType::TYPE_SAMPLER)
-          sampSlot = (UINT)operand.indices[0].index;
+          samplerSlot = (UINT)operand.indices[0].index;
       }
 
-      if(op.operation == OPCODE_SAMPLE || op.operation == OPCODE_SAMPLE_B ||
-         op.operation == OPCODE_SAMPLE_D)
+      int multisampleIndex = srcOpers[2].value.i.x;
+      float lodOrCompareValue = srcOpers[3].value.f.x;
+      if(op.operation == OPCODE_GATHER4_PO_C)
+        lodOrCompareValue = srcOpers[4].value.f.x;
+
+      uint8_t swizzle[4] = {0};
+      for(int i = 0; i < 4; i++)
       {
-        sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram +=
-            "t.SampleGrad(s, " + texcoords + ", " + ddx + ", " + ddy + offsets + ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
+        if(op.operands[2].comps[i] == 0xff)
+          swizzle[i] = 0;
+        else
+          swizzle[i] = op.operands[2].comps[i];
       }
-      else if(op.operation == OPCODE_SAMPLE_L)
+
+      GatherChannel gatherChannel = GatherChannel::Red;
+      if(op.operation == OPCODE_GATHER4 || op.operation == OPCODE_GATHER4_C ||
+         op.operation == OPCODE_GATHER4_PO || op.operation == OPCODE_GATHER4_PO_C)
       {
-        // lod selection
-        StringFormat::snprintf(buf, 255, "%.10f", srcOpers[3].value.f.x);
-
-        sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram +=
-            "t.SampleLevel(s, " + texcoords + ", " + buf + offsets + ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
+        gatherChannel = (GatherChannel)op.operands[3].comps[0];
       }
-      else if(op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_LOD)
-      {
-        // these operations need derivatives but have no hlsl function to call to provide them, so
-        // we fake it in the vertex shader
-
-        std::string uvDim = "1";
-        uvDim[0] += char(texdim + texdimOffs - 1);
-
-        vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" +
-                    uvDim + " uv : uvs) {\n";
-
-        StringFormat::snprintf(
-            buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-            uv.value.f.x + ddyCalc.value.f.x * 2.0f, uv.value.f.y + ddyCalc.value.f.y * 2.0f,
-            uv.value.f.z + ddyCalc.value.f.z * 2.0f, uv.value.f.w + ddyCalc.value.f.w * 2.0f);
-
-        vsProgram += "if(id == 0) uv = " + std::string(buf) + ";\n";
-
-        StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-                               uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
-
-        vsProgram += "if(id == 1) uv = " + std::string(buf) + ";\n";
-
-        StringFormat::snprintf(
-            buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-            uv.value.f.x + ddxCalc.value.f.x * 2.0f, uv.value.f.y + ddxCalc.value.f.y * 2.0f,
-            uv.value.f.z + ddxCalc.value.f.z * 2.0f, uv.value.f.w + ddxCalc.value.f.w * 2.0f);
-
-        vsProgram += "if(id == 2) uv = " + std::string(buf) + ";\n";
-
-        vsProgram +=
-            "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
-        vsProgram += "}";
-
-        if(op.operation == OPCODE_SAMPLE_C)
-        {
-          // comparison value
-          StringFormat::snprintf(buf, 255, "%.10f", srcOpers[3].value.f.x);
-
-          sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-          sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
-                           " uv : uvs) : SV_Target0\n{\n";
-          sampleProgram +=
-              "return t.SampleCmpLevelZero(s, uv, " + std::string(buf) + offsets + ").xxxx;";
-          sampleProgram += "\n}\n";
-        }
-        else if(op.operation == OPCODE_LOD)
-        {
-          sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-          sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
-                           " uv : uvs) : SV_Target0\n{\n";
-          sampleProgram +=
-              "return float4(t.CalculateLevelOfDetail(s, uv), t.CalculateLevelOfDetailUnclamped(s, "
-              "uv), 0.0f, 0.0f);";
-          sampleProgram += "\n}\n";
-        }
-      }
-      else if(op.operation == OPCODE_SAMPLE_C_LZ)
-      {
-        // comparison value
-        StringFormat::snprintf(buf, 255, "%.10f", srcOpers[3].value.f.x);
-
-        sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram +=
-            "t.SampleCmpLevelZero(s, " + texcoords + ", " + buf + offsets + ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
-      }
-      else if(op.operation == OPCODE_LD)
-      {
-        sampleProgram = texture + " : register(t0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram += "t.Load(" + texcoords + offsets + ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
-      }
-      else if(op.operation == OPCODE_LD_MS)
-      {
-        sampleProgram = texture + " : register(t0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram += "t.Load(" + texcoords + ", " + sampleIdx + offsets + ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
-      }
-      else if(op.operation == OPCODE_GATHER4 || op.operation == OPCODE_GATHER4_PO)
-      {
-        sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram +=
-            "t.Gather" + std::string(channel) + "(s, " + texcoords + offsets + ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
-      }
-      else if(op.operation == OPCODE_GATHER4_C || op.operation == OPCODE_GATHER4_PO_C)
-      {
-        // comparison value
-        if(op.operation == OPCODE_GATHER4_C)
-          StringFormat::snprintf(buf, 255, ", %.10f", srcOpers[3].value.f.x);
-        else if(op.operation == OPCODE_GATHER4_PO_C)
-          StringFormat::snprintf(buf, 255, ", %.10f", srcOpers[4].value.f.x);
-
-        sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-        sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-        sampleProgram += "t.GatherCmp" + std::string(channel) + "(s, " + texcoords + buf + offsets +
-                         ")" + swizzle + ";";
-        sampleProgram += "\n}\n";
-      }
-
-      ID3D11VertexShader *vs =
-          device->GetShaderCache()->MakeVShader(vsProgram.c_str(), "main", "vs_5_0");
-      ID3D11PixelShader *ps =
-          device->GetShaderCache()->MakePShader(sampleProgram.c_str(), "main", "ps_5_0");
-
-      ID3D11DeviceContext *context = NULL;
-
-      device->GetImmediateContext(&context);
-
-      // back up SRV/sampler on PS slot 0
-
-      ID3D11ShaderResourceView *prevSRV = NULL;
-      ID3D11SamplerState *prevSamp = NULL;
-
-      context->PSGetShaderResources(0, 1, &prevSRV);
-      context->PSGetSamplers(0, 1, &prevSamp);
-
-      ID3D11ShaderResourceView *usedSRV = NULL;
-      ID3D11SamplerState *usedSamp = NULL;
-
-      // fetch SRV and sampler from the shader stage we're debugging that this opcode wants to
-      // load from
-
-      if(dxbc->m_Type == D3D11_ShaderType_Vertex)
-        context->VSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Hull)
-        context->HSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Domain)
-        context->DSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
-        context->GSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
-        context->PSGetShaderResources(texSlot, 1, &usedSRV);
-      else if(dxbc->m_Type == D3D11_ShaderType_Compute)
-        context->CSGetShaderResources(texSlot, 1, &usedSRV);
-
-      if(dxbc->m_Type == D3D11_ShaderType_Vertex)
-        context->VSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Hull)
-        context->HSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Domain)
-        context->DSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
-        context->GSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
-        context->PSGetSamplers(sampSlot, 1, &usedSamp);
-      else if(dxbc->m_Type == D3D11_ShaderType_Compute)
-        context->CSGetSamplers(sampSlot, 1, &usedSamp);
-
-      // set onto PS while we perform the sample
-      context->PSSetShaderResources(0, 1, &usedSRV);
-      context->PSSetSamplers(0, 1, &usedSamp);
-
-      context->IASetInputLayout(NULL);
-      context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-      context->VSSetShader(vs, NULL, 0);
-      context->PSSetShader(ps, NULL, 0);
 
       // for bias instruction we can't do a SampleGradBias, so add the bias into the sampler state.
+      float samplerBias = 0.0f;
       if(op.operation == OPCODE_SAMPLE_B)
       {
-        ID3D11SamplerState *samp = NULL;
-
-        context->PSGetSamplers((UINT)srcOpers[2].value.u.x, 1, &samp);
-
-        RDCASSERT(samp);
-
-        D3D11_SAMPLER_DESC desc;
-
-        samp->GetDesc(&desc);
-
-        SAFE_RELEASE(samp);
-
-        desc.MipLODBias = RDCCLAMP(desc.MipLODBias + srcOpers[3].value.f.x, -15.99f, 15.99f);
-
-        ID3D11SamplerState *replacementSamp = NULL;
-
-        HRESULT hr = device->CreateSamplerState(&desc, &replacementSamp);
-
-        if(FAILED(hr))
-        {
-          RDCERR("Failed to create new sampler state in debugging HRESULT: %s", ToStr(hr).c_str());
-        }
-        else
-        {
-          context->PSSetSamplers(0, 1, &replacementSamp);
-
-          SAFE_RELEASE(replacementSamp);
-        }
+        samplerSlot = (UINT)srcOpers[2].value.u.x;
+        samplerBias = srcOpers[3].value.f.x;
       }
 
-      D3D11_VIEWPORT view = {0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
-      context->RSSetViewports(1, &view);
+      SampleGatherResourceData resourceData;
+      resourceData.dim = resourceDim;
+      resourceData.retType = resourceRetType;
+      resourceData.sampleCount = sampleCount;
+      resourceData.slot = texSlot;
 
-      context->GSSetShader(NULL, NULL, 0);
-      context->DSSetShader(NULL, NULL, 0);
-      context->HSSetShader(NULL, NULL, 0);
-      context->CSSetShader(NULL, NULL, 0);
-
-      context->SOSetTargets(0, NULL, NULL);
-
-      context->RSSetState(NULL);
-      context->OMSetBlendState(NULL, NULL, (UINT)~0);
-      context->OMSetDepthStencilState(NULL, 0);
-
-      ID3D11RenderTargetView *rtv = NULL;
-
-      ID3D11Texture2D *rtTex = NULL;
-      ID3D11Texture2D *copyTex = NULL;
-
-      D3D11_TEXTURE2D_DESC tdesc;
-
-      RDCASSERT(retFmt != DXGI_FORMAT_UNKNOWN);
-
-      tdesc.ArraySize = 1;
-      tdesc.BindFlags = D3D11_BIND_RENDER_TARGET;
-      tdesc.CPUAccessFlags = 0;
-      tdesc.Format = retFmt;
-      tdesc.Width = 1;
-      tdesc.Height = 1;
-      tdesc.MipLevels = 0;
-      tdesc.MiscFlags = 0;
-      tdesc.SampleDesc.Count = 1;
-      tdesc.SampleDesc.Quality = 0;
-      tdesc.Usage = D3D11_USAGE_DEFAULT;
-
-      HRESULT hr = S_OK;
-
-      hr = device->CreateTexture2D(&tdesc, NULL, &rtTex);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create RT tex HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      tdesc.BindFlags = 0;
-      tdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-      tdesc.Usage = D3D11_USAGE_STAGING;
-
-      hr = device->CreateTexture2D(&tdesc, NULL, &copyTex);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create copy tex HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      D3D11_RENDER_TARGET_VIEW_DESC rtDesc;
-
-      rtDesc.Format = retFmt;
-      rtDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-      rtDesc.Texture2D.MipSlice = 0;
-
-      hr = device->CreateRenderTargetView(rtTex, &rtDesc, &rtv);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create rt rtv HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
-
-      context->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, NULL, 0, 0, NULL, NULL);
-      context->Draw(3, 0);
-
-      context->CopyResource(copyTex, rtTex);
-
-      D3D11_MAPPED_SUBRESOURCE mapped;
-      hr = context->Map(copyTex, 0, D3D11_MAP_READ, 0, &mapped);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
-        return s;
-      }
+      SampleGatherSamplerData samplerData;
+      samplerData.mode = samplerMode;
+      samplerData.slot = samplerSlot;
+      samplerData.bias = samplerBias;
 
       ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
+      if(apiWrapper->CalculateSampleGather(op.operation, resourceData, samplerData, uv, ddxCalc,
+                                           ddyCalc, op.texelOffset, multisampleIndex,
+                                           lodOrCompareValue, swizzle, gatherChannel,
+                                           op.str.c_str(), lookupResult))
+      {
+        // should be a better way of doing this
+        if(op.operands[0].comps[1] == 0xff)
+          lookupResult.value.iv[0] = lookupResult.value.iv[op.operands[0].comps[0]];
 
-      memcpy(lookupResult.value.iv, mapped.pData, sizeof(uint32_t) * 4);
-
-      context->Unmap(copyTex, 0);
-
-      SAFE_RELEASE(rtTex);
-      SAFE_RELEASE(copyTex);
-      SAFE_RELEASE(rtv);
-      SAFE_RELEASE(vs);
-      SAFE_RELEASE(ps);
-
-      // restore whatever was on PS slot 0 before we messed with it
-
-      context->PSSetShaderResources(0, 1, &prevSRV);
-      context->PSSetSamplers(0, 1, &prevSamp);
-
-      SAFE_RELEASE(context);
-
-      SAFE_RELEASE(prevSRV);
-      SAFE_RELEASE(prevSamp);
-
-      SAFE_RELEASE(usedSRV);
-      SAFE_RELEASE(usedSamp);
-
-      // should be a better way of doing this
-      if(op.operands[0].comps[1] == 0xff)
-        lookupResult.value.iv[0] = lookupResult.value.iv[op.operands[0].comps[0]];
-
-      s.SetDst(op.operands[0], op, lookupResult);
+        s.SetDst(op.operands[0], op, lookupResult);
+      }
+      else
+      {
+        return s;
+      }
       break;
     }
 

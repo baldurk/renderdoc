@@ -312,10 +312,11 @@ int main(int argc, char *argv[])
     int replayHostIndex = -1;
     if(parser.isSet(replayhost))
     {
-      QString replayHost = parser.value(replayhost);
-      for(int i = 0; i < config.RemoteHosts.count(); i++)
+      rdcstr replayHost = parser.value(replayhost);
+      rdcarray<RemoteHost> hosts = config.GetRemoteHosts();
+      for(int i = 0; i < hosts.count(); i++)
       {
-        if(QString(config.RemoteHosts[i]->hostname) == replayHost)
+        if(hosts[i].Hostname() == replayHost)
         {
           replayHostIndex = i;
           break;
@@ -472,8 +473,6 @@ int main(int argc, char *argv[])
 
       config.Save();
     }
-
-    RENDERDOC_AndroidShutdown();
 
     PythonContext::GlobalShutdown();
 

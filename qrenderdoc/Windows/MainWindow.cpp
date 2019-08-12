@@ -160,11 +160,15 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   m_RemoteProbeSemaphore.release();
   m_RemoteProbe = new LambdaThread([this]() {
-    RENDERDOC_AndroidInitialise();
+    // fetch all device protocols to start them processing
+    rdcarray<rdcstr> protocols;
+    RENDERDOC_GetSupportedDeviceProtocols(&protocols);
+    for(const rdcstr &p : protocols)
+      RENDERDOC_GetDeviceProtocolController(p);
 
     while(m_RemoteProbeSemaphore.available())
     {
-      // do a remoteProbe immediately to populate the android hosts list on startup.
+      // do a remoteProbe immediately to populate the device list on startup.
       remoteProbe();
 
       // do several small sleeps so we can respond quicker when we need to shut down
@@ -510,7 +514,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
 
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
 
-    if(isCapturableAppRunningOnAndroid())
+    if(isUnshareableDeviceInUse())
     {
       RDDialog::warning(this, tr("RenderDoc is already capturing an app on this device"),
                         tr("A running app on this device is already being captured with RenderDoc. "
@@ -552,9 +556,10 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       }
 
       LiveCapture *live = new LiveCapture(
-          m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->hostname : "",
-          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : "", ret.ident,
-          this, this);
+          m_Ctx,
+          m_Ctx.Replay().CurrentRemote().IsValid() ? m_Ctx.Replay().CurrentRemote().Hostname() : "",
+          m_Ctx.Replay().CurrentRemote().IsValid() ? m_Ctx.Replay().CurrentRemote().Name() : "",
+          ret.ident, this, this);
       ShowLiveCapture(live);
       callback(live);
     });
@@ -639,8 +644,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
     QString machineIdent;
     ReplaySupport support = ReplaySupport::Unsupported;
 
-    bool remoteReplay =
-        !local || (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->connected);
+    bool remoteReplay = !local || m_Ctx.Replay().CurrentRemote().IsConnected();
 
     if(local)
     {
@@ -701,8 +705,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
                                [this]() { return contextChooser->isEnabled(); });
           }
 
-          remoteReplay =
-              (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->connected);
+          remoteReplay = m_Ctx.Replay().CurrentRemote().IsConnected();
 
           if(!remoteReplay)
           {
@@ -753,7 +756,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
         QString remoteMessage =
             tr("This capture was captured with %1 and cannot be replayed on %2.\n\n")
                 .arg(driver)
-                .arg(m_Ctx.Replay().CurrentRemote()->Name());
+                .arg(m_Ctx.Replay().CurrentRemote().Name());
 
         remoteMessage += tr("Try selecting a different remote context in the status bar.");
 
@@ -1005,8 +1008,8 @@ void MainWindow::SetTitle(const QString &filename)
     prefix += lit(" - ");
   }
 
-  if(m_Ctx.Replay().CurrentRemote())
-    prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote()->Name());
+  if(m_Ctx.Replay().CurrentRemote().IsValid())
+    prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote().Name());
 
   QString text = prefix + lit("RenderDoc ");
 
@@ -1584,61 +1587,25 @@ void MainWindow::remoteProbe()
 {
   if(!m_Ctx.IsCaptureLoaded() && !m_Ctx.IsCaptureLoading())
   {
-    GUIInvoke::call(this, [this] {
-      m_Ctx.Config().AddAndroidHosts();
-
-      // update the latest list by copy. Note this lock only protects m_ProbeRemoteHosts, not the
-      // actual RemoteHosts list itself - that is only accessed on the UI thread so is not locked.
-      {
-        QMutexLocker lock(&m_ProbeRemoteHostsLock);
-        m_ProbeRemoteHosts.clear();
-        for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
-          m_ProbeRemoteHosts.push_back(*host);
-      }
-    });
+    m_Ctx.Config().UpdateEnumeratedProtocolDevices();
 
     // fetch the latest list
-    rdcarray<RemoteHost> hosts;
-    {
-      QMutexLocker lock(&m_ProbeRemoteHostsLock);
-      hosts = m_ProbeRemoteHosts;
-    }
-
-    QList<QPair<RemoteHost, RemoteHost>> updates;
+    rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
 
     for(RemoteHost &host : hosts)
     {
       // don't mess with a host we're connected to - this is handled anyway
-      if(host.connected)
+      if(host.IsConnected())
         continue;
 
-      RemoteHost updated = host;
-
-      updated.CheckStatus();
+      // this will do the bulk of the status checking on this thread without holding any lock, then
+      // grab the remote host lock and update the config's host (if it's still there)
+      host.CheckStatus();
 
       // bail as soon as we notice that we're done
       if(!m_RemoteProbeSemaphore.available())
         return;
-
-      if(updated != host)
-        updates.push_back(qMakePair(host, updated));
     }
-
-    GUIInvoke::call(this, [this, updates] {
-      // this is a bit naive - it suffers from the A-B-A problem where the host could be updated
-      // then restored to its original state before we notice. In this case though we don't care
-      // about that, we just don't want to trash some important changes like the connected status
-      // changing or something.
-
-      for(const QPair<RemoteHost, RemoteHost> &u : updates)
-      {
-        for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
-        {
-          if(*host == u.first)
-            *host = u.second;
-        }
-      }
-    });
   }
 }
 
@@ -1661,13 +1628,13 @@ void MainWindow::messageCheck()
 
       bool disconnected = false;
 
-      if(m_Ctx.Replay().CurrentRemote())
+      if(m_Ctx.Replay().CurrentRemote().IsValid())
       {
-        bool wasRunning = m_Ctx.Replay().CurrentRemote()->serverRunning;
+        bool wasRunning = m_Ctx.Replay().CurrentRemote().IsServerRunning();
 
         m_Ctx.Replay().PingRemote();
 
-        if(wasRunning != m_Ctx.Replay().CurrentRemote()->serverRunning)
+        if(wasRunning != m_Ctx.Replay().CurrentRemote().IsServerRunning())
         {
           qCritical() << "Remote server disconnected";
           disconnected = true;
@@ -1692,7 +1659,8 @@ void MainWindow::messageCheck()
                                 "RenderDoc to reconnect and load the capture again"));
         }
 
-        if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
+        if(m_Ctx.Replay().CurrentRemote().IsValid() &&
+           !m_Ctx.Replay().CurrentRemote().IsServerRunning())
           contextChooser->setIcon(Icons::cross());
 
         if(!msgs.empty())
@@ -1711,11 +1679,11 @@ void MainWindow::messageCheck()
   }
   else if(!m_Ctx.IsCaptureLoaded() && !m_Ctx.IsCaptureLoading())
   {
-    if(m_Ctx.Replay().CurrentRemote())
+    if(m_Ctx.Replay().CurrentRemote().IsValid())
       m_Ctx.Replay().PingRemote();
 
     GUIInvoke::call(this, [this]() {
-      if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
+      if(m_Ctx.Replay().CurrentRemote().IsValid() && !m_Ctx.Replay().CurrentRemote().IsServerRunning())
       {
         contextChooser->setIcon(Icons::cross());
         contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
@@ -1735,32 +1703,35 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 {
   menu->clear();
 
-  for(int i = 0; i < m_Ctx.Config().RemoteHosts.count(); i++)
-  {
-    RemoteHost *host = m_Ctx.Config().RemoteHosts[i];
+  rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
 
-    // add localhost at the end
-    if(host->IsLocalhost())
+  for(int i = 0; i < hosts.count(); i++)
+  {
+    RemoteHost host = hosts[i];
+
+    // add localhost at the end, skip invalid hosts
+    if(host.IsLocalhost() || !host.IsValid())
       continue;
 
     QAction *action = new QAction(menu);
 
-    action->setIcon(host->serverRunning && !host->versionMismatch ? Icons::tick() : Icons::cross());
-    if(host->connected)
-      action->setText(tr("%1 (Connected)").arg(host->Name()));
-    else if(host->serverRunning && host->versionMismatch)
-      action->setText(tr("%1 (Bad Version)").arg(host->Name()));
-    else if(host->serverRunning && host->busy)
-      action->setText(tr("%1 (Busy)").arg(host->Name()));
-    else if(host->serverRunning)
-      action->setText(tr("%1 (Online)").arg(host->Name()));
+    action->setIcon(host.IsServerRunning() && !host.IsVersionMismatch() ? Icons::tick()
+                                                                        : Icons::cross());
+    if(host.IsConnected())
+      action->setText(tr("%1 (Connected)").arg(host.Name()));
+    else if(host.IsServerRunning() && host.IsVersionMismatch())
+      action->setText(tr("%1 (Bad Version)").arg(host.Name()));
+    else if(host.IsServerRunning() && host.IsBusy())
+      action->setText(tr("%1 (Busy)").arg(host.Name()));
+    else if(host.IsServerRunning())
+      action->setText(tr("%1 (Online)").arg(host.Name()));
     else
-      action->setText(tr("%1 (Offline)").arg(host->Name()));
+      action->setText(tr("%1 (Offline)").arg(host.Name()));
     QObject::connect(action, &QAction::triggered, this, &MainWindow::switchContext);
     action->setData(i);
 
     // don't allow switching to the connected host
-    if(host->connected)
+    if(host.IsConnected())
       action->setEnabled(false);
 
     menu->addAction(action);
@@ -1782,18 +1753,18 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 
 void MainWindow::setRemoteHost(int hostIdx)
 {
-  RemoteHost *host = NULL;
-  if(hostIdx >= 0 && hostIdx < m_Ctx.Config().RemoteHosts.count())
-  {
-    host = m_Ctx.Config().RemoteHosts[hostIdx];
-  }
+  rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
+
+  RemoteHost host;
+  if(hostIdx >= 0 && hostIdx < hosts.count())
+    host = hosts[hostIdx];
 
   for(LiveCapture *live : m_LiveCaptures)
   {
     // allow live captures to this host to stay open, that way
     // we can connect to a live capture, then switch into that
     // context
-    if(host && live->hostname() == host->hostname)
+    if(host.IsValid() && live->hostname() == host.Hostname())
       continue;
 
     if(!live->checkAllowClose())
@@ -1808,7 +1779,7 @@ void MainWindow::setRemoteHost(int hostIdx)
     // allow live captures to this host to stay open, that way
     // we can connect to a live capture, then switch into that
     // context
-    if(host && live->hostname() == host->hostname)
+    if(host.IsValid() && live->hostname() == host.Hostname())
       continue;
 
     live->cleanItems();
@@ -1817,7 +1788,7 @@ void MainWindow::setRemoteHost(int hostIdx)
 
   m_Ctx.Replay().DisconnectFromRemoteServer();
 
-  if(!host)
+  if(!host.IsValid())
   {
     contextChooser->setIcon(Icons::house());
     contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
@@ -1833,8 +1804,8 @@ void MainWindow::setRemoteHost(int hostIdx)
   }
   else
   {
-    contextChooser->setText(tr("Replay Context: %1").arg(host->Name()));
-    contextChooser->setIcon(host->serverRunning ? Icons::connect() : Icons::disconnect());
+    contextChooser->setText(tr("Replay Context: %1").arg(host.Name()));
+    contextChooser->setIcon(host.IsServerRunning() ? Icons::connect() : Icons::disconnect());
 
     // disable until checking is done
     contextChooser->setEnabled(false);
@@ -1845,31 +1816,73 @@ void MainWindow::setRemoteHost(int hostIdx)
 
     statusText->setText(tr("Checking remote server status..."));
 
-    LambdaThread *th = new LambdaThread([this, host]() {
-      // see if the server is up
-      host->CheckStatus();
+    LambdaThread *th = new LambdaThread([ this, h = host ]() {
+      // make a mutable copy and see if the server is up
+      RemoteHost host = h;
+      host.CheckStatus();
 
-      if(host->IsADB() && !RENDERDOC_IsAndroidSupported(host->hostname.c_str()))
+      if(host.Protocol() && !host.Protocol()->IsSupported(host.Hostname()))
       {
         // check to see if we should warn the user about this unsupported android version.
-        GUIInvoke::call(this, [this]() {
+        GUIInvoke::call(this, [this, host]() {
           QDateTime today = QDateTime::currentDateTimeUtc();
           QDateTime compare = today.addDays(-21);
 
-          if(compare > m_Ctx.Config().UnsupportedAndroid_LastUpdate)
+          if(host.Protocol()->GetProtocolName() == "adb")
+          {
+            if(compare > m_Ctx.Config().UnsupportedAndroid_LastUpdate)
+            {
+              RDDialog::critical(
+                  this, tr("Unsupported Device Android Version"),
+                  tr("This device is older than Android 6.0, the minimum required version for "
+                     "RenderDoc.\n\nThis may break or cause unknown problems - use at your own "
+                     "risk."));
+            }
+
+            m_Ctx.Config().UnsupportedAndroid_LastUpdate = today;
+          }
+          else
           {
             RDDialog::critical(
-                this, tr("Unsupported Device Android Version"),
-                tr("This device is older than Android 6.0, the minimum required version for "
-                   "RenderDoc.\n\nThis may break or cause unknown problems - use at your own "
-                   "risk."));
+                this, tr("Unsupported Device"),
+                tr("This device is not able to support RenderDoc. Please consult the documentation "
+                   "for this type of device to see what the problem may be."));
           }
-
-          m_Ctx.Config().UnsupportedAndroid_LastUpdate = today;
         });
       }
 
-      if(!host->serverRunning && !host->runCommand.isEmpty())
+      if(host.Protocol() && host.IsVersionMismatch())
+      {
+        GUIInvoke::blockcall(this, [this, &host]() {
+
+          QMessageBox::StandardButton res =
+              RDDialog::question(this, tr("Unsupported version"),
+                                 tr("Remote server on %1 has an incompatible version.\n"
+                                    "Would you like to try to reinstall the version %2?")
+                                     .arg(host.Name())
+                                     .arg(lit(FULL_VERSION_STRING)),
+                                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+          if(res == QMessageBox::Yes)
+          {
+            LambdaThread *launchthread = new LambdaThread([&host]() {
+              // since we have a protocol, try to force-launch which should attempt to reinstall.
+              host.Launch();
+
+              // update status
+              host.CheckStatus();
+            });
+            launchthread->start();
+
+            ShowProgressDialog(this, tr("Attempting to update remote server, please wait..."),
+                               [launchthread]() { return !launchthread->isRunning(); });
+
+            launchthread->deleteLater();
+          }
+        });
+      }
+
+      if(!host.IsServerRunning() && !host.RunCommand().isEmpty())
       {
         GUIInvoke::call(this, [this]() {
           statusText->setText(tr("Running remote server command..."));
@@ -1877,28 +1890,28 @@ void MainWindow::setRemoteHost(int hostIdx)
           statusProgress->setMaximum(0);
         });
 
-        ReplayStatus launchStatus = host->Launch();
+        ReplayStatus launchStatus = host.Launch();
         if(launchStatus != ReplayStatus::Succeeded)
         {
           showLaunchError(launchStatus);
         }
 
         // check if it's running now
-        host->CheckStatus();
+        host.CheckStatus();
 
         GUIInvoke::call(this, [this]() { statusProgress->setVisible(false); });
       }
 
       ReplayStatus status = ReplayStatus::Succeeded;
 
-      if(host->serverRunning && !host->busy)
+      if(host.IsServerRunning() && !host.IsBusy())
       {
         status = m_Ctx.Replay().ConnectToRemoteServer(host);
       }
 
       GUIInvoke::call(this, [this, host, status]() {
-        contextChooser->setIcon(host->serverRunning && !host->busy ? Icons::connect()
-                                                                   : Icons::disconnect());
+        contextChooser->setIcon(host.IsServerRunning() && !host.IsBusy() ? Icons::connect()
+                                                                         : Icons::disconnect());
 
         if(status != ReplayStatus::Succeeded)
         {
@@ -1906,22 +1919,22 @@ void MainWindow::setRemoteHost(int hostIdx)
           contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
           statusText->setText(tr("Connection failed: %1").arg(ToQStr(status)));
         }
-        else if(host->versionMismatch)
+        else if(host.IsVersionMismatch())
         {
           statusText->setText(
               tr("Remote server is not running RenderDoc %1").arg(lit(FULL_VERSION_STRING)));
         }
-        else if(host->busy)
+        else if(host.IsBusy())
         {
           statusText->setText(tr("Remote server in use elsewhere"));
         }
-        else if(host->serverRunning)
+        else if(host.IsServerRunning())
         {
           statusText->setText(tr("Remote server ready"));
         }
         else
         {
-          if(!host->runCommand.isEmpty())
+          if(!host.RunCommand().isEmpty())
             statusText->setText(tr("Remote server not running or failed to start"));
           else
             statusText->setText(tr("Remote server not running - no start command configured"));
@@ -2030,7 +2043,7 @@ void MainWindow::OnCaptureClosed()
   SetTitle();
 
   // if the remote sever disconnected during capture replay, resort back to a 'disconnected' state
-  if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->serverRunning)
+  if(m_Ctx.Replay().CurrentRemote().IsValid() && !m_Ctx.Replay().CurrentRemote().IsServerRunning())
   {
     statusText->setText(
         tr("Remote server disconnected. To attempt to reconnect please select it again."));
@@ -2556,11 +2569,25 @@ void MainWindow::on_action_Manage_Extensions_triggered()
 
 void MainWindow::on_action_Manage_Remote_Servers_triggered()
 {
-  RemoteManager *rm = new RemoteManager(m_Ctx, this);
-  RDDialog::show(rm);
-  // now that we're done with it, the manager deletes itself when all lookups terminate (or
-  // immediately if there are no lookups ongoing).
-  rm->closeWhenFinished();
+  LambdaThread *th = new LambdaThread([this]() {
+    m_Ctx.Config().UpdateEnumeratedProtocolDevices();
+
+    GUIInvoke::call(this, [this]() {
+      RemoteManager *rm = new RemoteManager(m_Ctx, this);
+      RDDialog::show(rm);
+      // now that we're done with it, the manager deletes itself when all lookups terminate (or
+      // immediately if there are no lookups ongoing).
+      rm->closeWhenFinished();
+    });
+  });
+  th->start();
+  th->wait(500);
+  if(th->isRunning())
+  {
+    ShowProgressDialog(this, tr("Updating available devices, please wait..."),
+                       [th]() { return !th->isRunning(); });
+  }
+  th->deleteLater();
 }
 
 void MainWindow::on_action_Settings_triggered()
@@ -2878,39 +2905,50 @@ bool MainWindow::LoadLayout(int layout)
 
 void MainWindow::showLaunchError(ReplayStatus status)
 {
-  QString title;
   QString message;
   switch(status)
   {
     case ReplayStatus::AndroidGrantPermissionsFailed:
-      title = tr("Permission is required");
-      message = tr("Enable RenderDocCmd to access storage on your device.");
+      message =
+          tr("Failed to automatically grant Android permissions to installed server.\n\n"
+             "Please manually allow the RenderDocCmd program storage permissions on your device "
+             "to ensure correct functionality.");
       break;
     case ReplayStatus::AndroidABINotFound:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("Couldn't determine supported ABIs.");
+      message =
+          tr("Couldn't determine supported ABIs for your device, please check device connection "
+             "and status.");
       break;
     case ReplayStatus::AndroidAPKFolderNotFound:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("APK folder missing.");
+      message = tr("Couldn't find APK folder, please check that your installation is complete.");
       break;
     case ReplayStatus::AndroidAPKInstallFailed:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("Couldn't find any installed APKs.");
-    default:
-      title = tr("Failed to install RenderDoc server");
-      message = tr("Unknown error.");
+      message =
+          tr("Couldn't install APK, please check that your device is connected and accessible to "
+             "adb.");
+    case ReplayStatus::AndroidAPKVerifyFailed:
+      message =
+          tr("Couldn't correctly verify installed APK version.\n\n"
+             "Please check your installation is not corrupted, or if this is a custom build check "
+             "that all ABIs are built at the same version as this program.");
       break;
+    default: message = tr("Unexpected error: %1.").arg(ToQStr(status)); break;
   }
-  GUIInvoke::call(this, [this, title, message]() { RDDialog::warning(this, title, message); });
+  GUIInvoke::call(this, [this, message]() {
+    RDDialog::warning(this, tr("Problems installing RenderDoc server"), message);
+  });
 }
 
-bool MainWindow::isCapturableAppRunningOnAndroid()
+bool MainWindow::isUnshareableDeviceInUse()
 {
-  if(!m_Ctx.Replay().CurrentRemote() || !m_Ctx.Replay().CurrentRemote()->IsADB())
+  if(!m_Ctx.Replay().CurrentRemote().Protocol())
     return false;
 
-  rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
+  rdcstr host = m_Ctx.Replay().CurrentRemote().Hostname();
+
+  if(m_Ctx.Replay().CurrentRemote().Protocol()->SupportsMultiplePrograms(host))
+    return false;
+
   uint32_t ident = RENDERDOC_EnumerateRemoteTargets(host.c_str(), 0);
   return ident != 0;
 }

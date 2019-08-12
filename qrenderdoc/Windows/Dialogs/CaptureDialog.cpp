@@ -300,7 +300,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
   {
     QString path = dir.absolutePath();
 
-    if(!m_Ctx.Replay().CurrentRemote())
+    if(!m_Ctx.Replay().CurrentRemote().IsValid())
       path = QDir::toNativeSeparators(path);
 
     // match the path separators from the path
@@ -503,7 +503,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
 
   LambdaThread *scan = new LambdaThread([this, filename]() {
 
-    rdcstr host = m_Ctx.Replay().CurrentRemote()->hostname;
+    rdcstr host = m_Ctx.Replay().CurrentRemote().Hostname();
     RENDERDOC_CheckAndroidPackage(host.c_str(), filename.toUtf8().data(), &m_AndroidFlags);
 
     const bool debuggable = bool(m_AndroidFlags & AndroidFlags::Debuggable);
@@ -535,9 +535,9 @@ void CaptureDialog::androidWarn_mouseClick()
 {
   QString exe = ui->exePath->text();
 
-  const RemoteHost *remote = m_Ctx.Replay().CurrentRemote();
+  RemoteHost remote = m_Ctx.Replay().CurrentRemote();
 
-  if(!remote)
+  if(!remote.IsValid())
   {
     RDDialog::critical(this, tr("Android server disconnected"),
                        tr("You've been disconnected from the android server.\n\n"
@@ -545,7 +545,7 @@ void CaptureDialog::androidWarn_mouseClick()
     return;
   }
 
-  rdcstr host = remote->hostname;
+  rdcstr host = remote.Hostname();
 
   QString caption = tr("Application is not debuggable");
 
@@ -650,9 +650,9 @@ void CaptureDialog::on_exePathBrowse_clicked()
     initDir = dir.absolutePath();
     initExe = f.fileName();
   }
-  else if(m_Ctx.Replay().CurrentRemote())
+  else if(m_Ctx.Replay().CurrentRemote().IsValid())
   {
-    initDir = m_Ctx.Replay().CurrentRemote()->lastCapturePath;
+    initDir = m_Ctx.Replay().CurrentRemote().LastCapturePath();
   }
   else if(!m_Ctx.Config().LastCapturePath.isEmpty())
   {
@@ -663,7 +663,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
 
   QString filename;
 
-  if(m_Ctx.Replay().CurrentRemote())
+  if(m_Ctx.Replay().CurrentRemote().IsValid())
   {
     VirtualFileDialog vfd(m_Ctx, initDir, this);
     RDDialog::show(&vfd);
@@ -678,7 +678,8 @@ void CaptureDialog::on_exePathBrowse_clicked()
   {
     SetExecutableFilename(filename);
 
-    if(m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->IsADB())
+    if(m_Ctx.Replay().CurrentRemote().Protocol() &&
+       m_Ctx.Replay().CurrentRemote().Protocol()->GetProtocolName() == "adb")
     {
       CheckAndroidSetup(filename);
     }
@@ -691,9 +692,9 @@ void CaptureDialog::on_workDirBrowse_clicked()
 
   if(initDir.isEmpty())
   {
-    if(m_Ctx.Replay().CurrentRemote())
+    if(m_Ctx.Replay().CurrentRemote().IsValid())
     {
-      initDir = m_Ctx.Replay().CurrentRemote()->lastCapturePath;
+      initDir = m_Ctx.Replay().CurrentRemote().LastCapturePath();
     }
     else if(!QDir(initDir).exists())
     {
@@ -709,7 +710,7 @@ void CaptureDialog::on_workDirBrowse_clicked()
 
   QString dir;
 
-  if(m_Ctx.Replay().CurrentRemote())
+  if(m_Ctx.Replay().CurrentRemote().IsValid())
   {
     VirtualFileDialog vfd(m_Ctx, initDir, this);
     vfd.setDirBrowse();
@@ -1021,12 +1022,12 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
 {
   QString fn = filename;
 
-  if(!m_Ctx.Replay().CurrentRemote())
+  if(!m_Ctx.Replay().CurrentRemote().IsValid())
     fn = QDir::toNativeSeparators(QFileInfo(fn).absoluteFilePath());
 
   ui->exePath->setText(fn);
 
-  if(m_Ctx.Replay().CurrentRemote())
+  if(m_Ctx.Replay().CurrentRemote().IsValid())
   {
     // remove the filename itself before setting the last capture path. Try /, then \ as path
     // separator. If no separators are found, there is no path to set.
@@ -1045,7 +1046,7 @@ void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
         fn = QString();
     }
 
-    m_Ctx.Replay().CurrentRemote()->lastCapturePath = fn;
+    m_Ctx.Replay().CurrentRemote().SetLastCapturePath(fn);
   }
   else
   {
@@ -1122,9 +1123,8 @@ void CaptureDialog::UpdateGlobalHook()
 
 void CaptureDialog::UpdateRemoteHost()
 {
-  const RemoteHost *host = m_Ctx.Replay().CurrentRemote();
-
-  if(host && host->IsADB())
+  if(m_Ctx.Replay().CurrentRemote().Protocol() &&
+     m_Ctx.Replay().CurrentRemote().Protocol()->GetProtocolName() == "adb")
     ui->cmdLineLabel->setText(tr("Intent Arguments"));
   else
     ui->cmdLineLabel->setText(tr("Command-line Arguments"));
@@ -1188,7 +1188,7 @@ void CaptureDialog::TriggerCapture()
     }
 
     // for non-remote captures, check the executable locally
-    if(!m_Ctx.Replay().CurrentRemote())
+    if(!m_Ctx.Replay().CurrentRemote().IsValid())
     {
       if(!QFileInfo::exists(exe))
       {
@@ -1201,7 +1201,7 @@ void CaptureDialog::TriggerCapture()
     QString workingDir;
 
     // for non-remote captures, check the directory locally
-    if(m_Ctx.Replay().CurrentRemote())
+    if(m_Ctx.Replay().CurrentRemote().IsValid())
     {
       workingDir = ui->workDirPath->text();
     }

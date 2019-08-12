@@ -264,7 +264,10 @@ struct D3D11InitialContents
       : resourceType(t), tag(UAVCount), resource(NULL), resource2(NULL), uavCount(c)
   {
   }
-  D3D11InitialContents() : resourceType(Resource_Unknown), tag(Copy), resource(NULL), uavCount(0) {}
+  D3D11InitialContents()
+      : resourceType(Resource_Unknown), tag(Copy), resource(NULL), resource2(NULL), uavCount(0)
+  {
+  }
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
@@ -289,7 +292,10 @@ struct D3D11ResourceManagerConfiguration
 class D3D11ResourceManager : public ResourceManager<D3D11ResourceManagerConfiguration>
 {
 public:
-  D3D11ResourceManager(WrappedID3D11Device *dev) : m_Device(dev) {}
+  D3D11ResourceManager(CaptureState &state, WrappedID3D11Device *dev)
+      : ResourceManager(state), m_Device(dev)
+  {
+  }
   ID3D11DeviceChild *UnwrapResource(ID3D11DeviceChild *res);
   ID3D11Resource *UnwrapResource(ID3D11Resource *res)
   {
@@ -297,6 +303,7 @@ public:
   }
 
   void SetInternalResource(ID3D11DeviceChild *res);
+  void FreeCaptureData();
 
 private:
   ResourceId GetID(ID3D11DeviceChild *res);

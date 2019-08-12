@@ -68,6 +68,20 @@ void GLReplay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secon
   if(HasExt[EXT_framebuffer_sRGB])
     drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
+  if(cfg.position.allowRestart)
+  {
+    if(IsGLES)
+    {
+      drv.glEnable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
+    }
+    else
+    {
+      drv.glEnable(eGL_PRIMITIVE_RESTART);
+      drv.glPrimitiveRestartIndex(cfg.position.restartIndex &
+                                  (0xFFFFFFFFU >> ((4 - cfg.position.indexByteStride) * 8)));
+    }
+  }
+
   drv.glDisable(eGL_CULL_FACE);
 
   if(cfg.position.unproject)

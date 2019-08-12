@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "LogView.h"
+#include <QAbstractProxyModel>
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QFontDatabase>
@@ -142,10 +143,10 @@ private:
   LogView *m_Viewer;
 };
 
-class LogFilterModel : public QSortFilterProxyModel
+class LogFilterModel : public QAbstractProxyModel
 {
 public:
-  LogFilterModel(LogView *view) : QSortFilterProxyModel(view), m_Viewer(view) {}
+  LogFilterModel(LogView *view) : QAbstractProxyModel(view), m_Viewer(view) {}
   bool m_UseRegexp = false;
   bool m_IncludeTextMatches = true;
   QString m_FilterText;
@@ -153,12 +154,74 @@ public:
   QSet<uint32_t> m_HiddenPIDs;
   QSet<uint32_t> m_HiddenTypes;
 
-  void refresh() { invalidateFilter(); }
-protected:
-  bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override
+  void refresh()
   {
-    return isVisibleRow(sourceRow);
+    emit beginResetModel();
+
+    int numRows = sourceModel()->rowCount();
+
+    m_VisibleRows.clear();
+    m_VisibleRows.reserve(numRows);
+
+    for(int i = 0; i < numRows; i++)
+      if(isVisibleRow(i))
+        m_VisibleRows.push_back(i);
+
+    emit endResetModel();
   }
+
+  virtual QModelIndex mapFromSource(const QModelIndex &sourceIndex) const override
+  {
+    auto it = std::lower_bound(m_VisibleRows.begin(), m_VisibleRows.end(), sourceIndex.row());
+
+    int row = -1;
+
+    if(it != m_VisibleRows.end() && *it == sourceIndex.row())
+      row = it - m_VisibleRows.begin();
+
+    return createIndex(row, sourceIndex.column(), sourceIndex.internalId());
+  }
+
+  virtual QModelIndex mapToSource(const QModelIndex &proxyIndex) const override
+  {
+    int row = -1;
+    if(proxyIndex.row() >= 0 && proxyIndex.row() < m_VisibleRows.count())
+      row = m_VisibleRows[proxyIndex.row()];
+
+    return sourceModel()->index(row, proxyIndex.column(), proxyIndex.parent());
+  }
+
+  virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override
+  {
+    return m_VisibleRows.count();
+  }
+  virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override
+  {
+    return sourceModel()->columnCount(parent);
+  }
+  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
+  {
+    return createIndex(row, column);
+  }
+  QModelIndex parent(const QModelIndex &index) const override
+  {
+    return sourceModel()->parent(index);
+  }
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const override
+  {
+    if(orientation == Qt::Horizontal)
+    {
+      return sourceModel()->headerData(section, orientation, role);
+    }
+    else if(section >= 0 && section < m_VisibleRows.count())
+    {
+      return sourceModel()->headerData(m_VisibleRows[section], orientation, role);
+    }
+    return QVariant();
+  }
+
+protected:
+  QVector<int> m_VisibleRows;
 
   bool isVisibleRow(int sourceRow) const
   {
@@ -444,7 +507,10 @@ void LogView::messages_refresh()
   }
 
   if(!lines.isEmpty())
+  {
     m_ItemModel->refresh();
+    m_FilterModel->refresh();
+  }
 
   if(ui->followNew->isChecked())
     ui->messages->scrollToBottom();

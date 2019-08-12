@@ -59,6 +59,20 @@ static HMODULE GetAMDModule()
   return module;
 }
 
+void SafelyCompile(PfnAmdDxGsaCompileShader compileShader, AmdDxGsaCompileShaderInput &in,
+                   AmdDxGsaCompileShaderOutput &out)
+{
+  __try
+  {
+    compileShader(&in, &out);
+  }
+  __except(EXCEPTION_EXECUTE_HANDLER)
+  {
+    out.pShaderBinary = NULL;
+    out.shaderBinarySize = 0;
+  }
+}
+
 std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target)
 {
   HMODULE mod = GetAMDModule();
@@ -175,7 +189,7 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
 
   out.size = sizeof(out);
 
-  compileShader(&in, &out);
+  SafelyCompile(compileShader, in, out);
 
   if(out.pShaderBinary == NULL || out.shaderBinarySize < 16)
     return "; Failed to disassemble shader";

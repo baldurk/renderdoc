@@ -127,7 +127,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_State = CaptureState::BackgroundCapturing;
   }
 
-  m_ResourceManager = new D3D11ResourceManager(this);
+  m_ResourceManager = new D3D11ResourceManager(m_State, this);
 
   m_ShaderCache = new D3D11ShaderCache(this);
 
@@ -1495,7 +1495,7 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_PartialWrite);
 
-  m_pImmediateContext->FreeCaptureData();
+  GetResourceManager()->FreeCaptureData();
 
   m_pImmediateContext->AttemptCapture();
   m_pImmediateContext->BeginCaptureFrame();
@@ -1794,7 +1794,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     m_pImmediateContext->CleanupCapture();
 
-    m_pImmediateContext->FreeCaptureData();
+    GetResourceManager()->FreeCaptureData();
 
     for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
     {
@@ -1890,7 +1890,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
         }
       }
 
-      m_pImmediateContext->FreeCaptureData();
+      GetResourceManager()->FreeCaptureData();
 
       m_FailedFrame = m_FrameCounter;
       m_FailedReason = reason;
@@ -1982,7 +1982,7 @@ bool WrappedID3D11Device::DiscardFrameCapture(void *dev, void *wnd)
     }
   }
 
-  m_pImmediateContext->FreeCaptureData();
+  GetResourceManager()->FreeCaptureData();
 
   m_State = CaptureState::BackgroundCapturing;
 

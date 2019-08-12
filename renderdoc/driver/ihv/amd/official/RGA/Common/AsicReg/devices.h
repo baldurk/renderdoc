@@ -108,10 +108,15 @@ enum {
 };
 
 enum {
-    AI_GD_P0 = 1,
-    AI_GD_P1 = 2,
+    NV_NAVI10_P_A0 = 1
+};
 
-    AI_UNKNOWN = 0xFF
+enum {
+    AI_GD_P0       = 1,
+    AI_GD_P1       = 2,
+    AI_VEGA12_P_A0 = 20,
+    AI_VEGA20_P_A0 = 40,
+    AI_UNKNOWN     = 0xFF
 };
 
 #ifndef _ATIID_H
@@ -136,6 +141,8 @@ enum {
 #define FAMILY_PI                      140
 
 #define FAMILY_AI                      141
+
+#define FAMILY_NV                      143
 
 #define ATI_VENDOR_ID                   0x1002
 

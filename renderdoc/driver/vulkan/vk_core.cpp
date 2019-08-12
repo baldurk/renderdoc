@@ -706,6 +706,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME, VK_EXT_HOST_QUERY_RESET_SPEC_VERSION,
     },
     {
+        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME, VK_EXT_INDEX_TYPE_UINT8_SPEC_VERSION,
+    },
+    {
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_BUDGET_SPEC_VERSION,
     },
     {
@@ -1309,7 +1312,7 @@ void WrappedVulkan::FirstFrame()
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
-    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+    RenderDoc::Inst().StartFrameCapture(m_Instance, NULL);
 
     m_AppControlledCapture = false;
   }
@@ -1435,21 +1438,6 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   GetResourceManager()->ClearReferencedResources();
   GetResourceManager()->ClearReferencedMemory();
 
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
-  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
-
-  std::map<ResourceId, FrameRefType> forced = GetForcedReferences();
-
-  // Note we force read-before-write because this resource is implicitly untracked so we have no
-  // way of knowing how it's used
-  for(auto it = forced.begin(); it != forced.end(); ++it)
-  {
-    GetResourceManager()->MarkResourceFrameReferenced(it->first, eFrameRef_Read);
-    if(it->second != eFrameRef_Read)
-      GetResourceManager()->MarkResourceFrameReferenced(it->first, it->second);
-  }
-
   // need to do all this atomically so that no other commands
   // will check to see if they need to markdirty or markpendingdirty
   // and go into the frame record.
@@ -1505,6 +1493,21 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     }
 
     m_State = CaptureState::ActiveCapturing;
+  }
+
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
+
+  std::map<ResourceId, FrameRefType> forced = GetForcedReferences();
+
+  // Note we force read-before-write because this resource is implicitly untracked so we have no
+  // way of knowing how it's used
+  for(auto it = forced.begin(); it != forced.end(); ++it)
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(it->first, eFrameRef_Read);
+    if(it->second != eFrameRef_Read)
+      GetResourceManager()->MarkResourceFrameReferenced(it->first, it->second);
   }
 
   RDCLOG("Starting capture, frame %u", m_FrameCounter);
@@ -3375,9 +3378,16 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
     if(category == MessageCategory::Performance)
       return false;
 
-    // Non-linear image is aliased with linear buffer
+    // "Non-linear image is aliased with linear buffer"
     // Not an error, the validation layers complain at our whole-mem bufs
     if(strstr(pMessageId, "InvalidAliasing") || strstr(pMessage, "InvalidAliasing"))
+      return false;
+
+    // "vkCreateSwapchainKHR() called with imageExtent, which is outside the bounds returned by
+    // vkGetPhysicalDeviceSurfaceCapabilitiesKHR(): currentExtent"
+    // This is quite racey, the currentExtent can change in between us checking it and the valiation
+    // layers checking it. We handle out of date, so this is likely fine.
+    if(strstr(pMessageId, "VUID-VkSwapchainCreateInfoKHR-imageExtent"))
       return false;
 
     RDCWARN("[%s] %s", pMessageId, pMessage);

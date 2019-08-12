@@ -501,6 +501,11 @@ struct VkDevDispatchTable
   PFN_vkCmdDrawIndirectCountKHR CmdDrawIndirectCountKHR;
   PFN_vkCmdDrawIndexedIndirectCountKHR CmdDrawIndexedIndirectCountKHR;
 
+  // VK_KHR_pipeline_executable_properties
+  PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
+  PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;
+  PFN_vkGetPipelineExecutableInternalRepresentationsKHR GetPipelineExecutableInternalRepresentationsKHR;
+
   // VK_EXT_debug_marker
   PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
   PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectNameEXT;
@@ -655,6 +660,9 @@ struct VkDevDispatchTable
   PFN_vkReleaseFullScreenExclusiveModeEXT ReleaseFullScreenExclusiveModeEXT;
   PFN_vkGetDeviceGroupSurfacePresentModes2EXT GetDeviceGroupSurfacePresentModes2EXT;
 #endif // VK_USE_PLATFORM_WIN32_KHR
+
+  // VK_EXT_line_rasterization
+  PFN_vkCmdSetLineStippleEXT CmdSetLineStippleEXT;
 
   // VK_EXT_host_query_reset
   PFN_vkResetQueryPoolEXT ResetQueryPoolEXT;

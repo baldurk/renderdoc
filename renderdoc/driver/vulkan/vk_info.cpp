@@ -46,6 +46,7 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicViewportCoarseSampleOrderNV:
       return VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV;
     case VkDynamicExclusiveScissorNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
+    case VkDynamicLineStippleEXT: return VK_DYNAMIC_STATE_LINE_STIPPLE_EXT;
     case VkDynamicCount: break;
   }
 
@@ -75,6 +76,7 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV:
       return VkDynamicViewportCoarseSampleOrderNV;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
+    case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return VkDynamicLineStippleEXT;
     case VK_DYNAMIC_STATE_RANGE_SIZE:
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }

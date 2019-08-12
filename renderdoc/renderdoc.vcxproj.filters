@@ -486,6 +486,9 @@
     <ClInclude Include="core\bit_flag_iterator.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="core\remote_server.h">
+      <Filter>Core\networking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

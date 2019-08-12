@@ -48,6 +48,7 @@ enum VulkanDynamicStateIndex
   VkDynamicViewportShadingRatePaletteNV,
   VkDynamicViewportCoarseSampleOrderNV,
   VkDynamicExclusiveScissorNV,
+  VkDynamicLineStippleEXT,
   VkDynamicCount,
 };
 

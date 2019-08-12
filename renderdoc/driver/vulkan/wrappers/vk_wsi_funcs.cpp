@@ -498,7 +498,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
       m_SwapLookup[swapInfo.wndHandle] = *pSwapChain;
     }
 
-    RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), swapInfo.wndHandle, this);
+    RenderDoc::Inst().AddFrameCapturer(m_Instance, swapInfo.wndHandle, this);
 
     swapInfo.format = pCreateInfo->imageFormat;
     swapInfo.extent = pCreateInfo->imageExtent;
@@ -714,7 +714,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow(LayerDisp(m_Instance), swapInfo.wndHandle);
+  bool activeWindow = RenderDoc::Inst().IsActiveWindow(m_Instance, swapInfo.wndHandle);
 
   // need to record which image was last flipped so we can get the correct backbuffer
   // for a thumbnail in EndFrameCapture
@@ -832,7 +832,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   VkResult vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo);
 
-  Present(LayerDisp(m_Instance), swapInfo.wndHandle);
+  Present(m_Instance, swapInfo.wndHandle);
 
   return vkr;
 }

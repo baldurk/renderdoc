@@ -680,7 +680,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   InitInstanceExtensionTables(m_Instance, record->instDevInfo);
 
-  RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
+  RenderDoc::Inst().AddDeviceFrameCapturer(m_Instance, this);
 
   m_DbgReportCallback = VK_NULL_HANDLE;
   m_DbgUtilsCallback = VK_NULL_HANDLE;
@@ -846,7 +846,7 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   // application is well behaved. If not, we just leak.
 
   ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance), NULL);
-  RenderDoc::Inst().RemoveDeviceFrameCapturer(LayerDisp(m_Instance));
+  RenderDoc::Inst().RemoveDeviceFrameCapturer(m_Instance);
 
   GetResourceManager()->ReleaseWrappedResource(m_Instance);
   m_Instance = VK_NULL_HANDLE;
@@ -2105,6 +2105,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(texelBufferAlignment);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(indexTypeUint8);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -2537,6 +2544,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
     modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
     modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
+    modQueues[createInfo.queueCreateInfoCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    modQueues[createInfo.queueCreateInfoCount].pNext = NULL;
+    modQueues[createInfo.queueCreateInfoCount].flags = 0;
 
     createInfo.pQueueCreateInfos = modQueues;
     createInfo.queueCreateInfoCount++;

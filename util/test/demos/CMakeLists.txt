@@ -14,6 +14,7 @@ set(VULKAN_SRC
         vk/vk_draw_zoo.cpp
         vk/vk_image_layouts.cpp
         vk/vk_indirect.cpp
+        vk/vk_int8_ibuffer.cpp
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
         vk/vk_resource_lifetimes.cpp

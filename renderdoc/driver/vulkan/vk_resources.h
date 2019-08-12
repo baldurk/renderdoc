@@ -1480,12 +1480,7 @@ public:
       p.first++;
     }
 
-    ImageRange imgRange;
-    imgRange.aspectMask = view->viewRange.aspectMask;
-    imgRange.baseMipLevel = view->viewRange.baseMipLevel;
-    imgRange.levelCount = view->viewRange.levelCount;
-    imgRange.baseArrayLayer = view->viewRange.baseArrayLayer;
-    imgRange.layerCount = view->viewRange.layerCount;
+    ImageRange imgRange = ImageRange((VkImageSubresourceRange)view->viewRange);
     imgRange.viewType = view->viewRange.viewType();
 
     FrameRefType maxRef = MarkImageReferenced(descInfo->bindImgRefs, view->baseResource,

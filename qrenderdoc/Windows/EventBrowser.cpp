@@ -270,6 +270,8 @@ void EventBrowser::OnCaptureClosed()
 {
   clearBookmarks();
 
+  on_HideFindJump();
+
   ui->events->clear();
 
   ui->find->setEnabled(false);

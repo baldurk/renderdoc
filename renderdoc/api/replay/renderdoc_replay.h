@@ -2054,7 +2054,8 @@ DOCUMENT(R"(Creates a :class:`TargetControl` connection to a given hostname and 
 
 This function will block until the control connection is ready, or an error occurs.
 
-:param str host: The hostname to connect to. If blank, the local machine is used.
+:param str URL: The URL to connect to. If blank, the local machine is used. If no protocol is
+  specified then default TCP enumeration happens.
 :param int ident: The ident for the particular target to connect to on that machine.
 :param str clientName: The client name to use when connecting. See
   :meth:`TargetControl.GetBusyClient`.
@@ -2064,7 +2065,7 @@ This function will block until the control connection is ready, or an error occu
 :rtype: TargetControl
 )");
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
-    const char *host, uint32_t ident, const char *clientName, bool forceConnection);
+    const char *URL, uint32_t ident, const char *clientName, bool forceConnection);
 
 DOCUMENT(R"(Repeatedly query to enumerate which targets are active on a given machine and their
 idents.
@@ -2075,38 +2076,29 @@ more targets.
 
 This function will block for a variable timeout depending on how many targets are scanned.
 
-:param str host: The hostname to connect to. If blank, the local machine is used.
+:param str URL: The URL to connect to. If blank, the local machine is used. If no protocol is
+  specified then default TCP enumeration happens.
 :param int nextIdent: The next ident to scan.
 :return: The ident of the next active target, or ``0`` if no other targets exist.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *URL,
                                                                                 uint32_t nextIdent);
 
 //////////////////////////////////////////////////////////////////////////
 // Remote server
 //////////////////////////////////////////////////////////////////////////
 
-DOCUMENT(R"(Retrieves the default ports where remote servers listen.
-
-:return: The port where remote servers listen by default.
-:rtype: ``int``
-)");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort();
-
 DOCUMENT(R"(Create a connection to a remote server running on given hostname and port.
 
-This function will block until the capture is fully loaded and ready.
-
-:param str host: The hostname to connect to, if blank then localhost is used.
-:param int port: The port to connect to, or the default port if 0.
-:param RemoteServer rend: A reference to a :class:`RemoteServer` where the connection handle will be
-  stored.
-:return: The status of opening the capture, whether success or failure.
-:rtype: ReplayStatus
+:param str URL: The hostname to connect to, if blank then localhost is used. If no protocol is
+  specified then default TCP enumeration happens.
+:return: The status of opening the capture, whether success or failure, and a :class:`RemoteServer`
+  instance if it were successful
+:rtype: ``pair`` of ReplayStatus and RemoteServer
 )");
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteServer **rend);
+RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend);
 
 DOCUMENT(R"(This launches a remote server which will continually run in a loop to server requests
 from external sources.
@@ -2115,15 +2107,14 @@ This function will block until a remote connection tells the server to shut down
 ``killReplay`` callback returns ``True``.
 
 :param str host: The name of the interface to listen on.
-:param int port: The port to listen on, or the default port if 0.
 :param KillCallback killReplay: A callback that returns a ``bool`` indicating if the server should
   be shut down or not.
 :param PreviewWindowCallback previewWindow: A callback that returns information for a preview window
   when the server wants to display some preview of the ongoing replay.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
-    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay,
-    RENDERDOC_PreviewWindowCallback previewWindow);
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_BecomeRemoteServer(const char *listenhost, RENDERDOC_KillCallback killReplay,
+                             RENDERDOC_PreviewWindowCallback previewWindow);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.
@@ -2349,33 +2340,108 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkC
                                                                FloatVector lightChecker,
                                                                bool darkTheme);
 
-DOCUMENT("Internal function for fetching friendly android names.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
-                                                                            rdcstr &friendly);
-
-DOCUMENT("Internal function for enumerating android devices.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr &deviceList);
-
-DOCUMENT("Internal function for initialising android use.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidInitialise();
-
-DOCUMENT("Internal function for shutting down android use.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_AndroidShutdown();
-
-DOCUMENT("Internal function for checking android support.");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsAndroidSupported(const char *device);
-
-DOCUMENT("Internal function for starting an android remote server.");
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_StartAndroidRemoteServer(const char *device);
-
 DOCUMENT("Internal function for checking remote Android package for requirements");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
-    const char *hostname, const char *packageAndActivity, AndroidFlags *flags);
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, AndroidFlags *flags);
 
 DOCUMENT("Internal function that attempts to modify APK contents, adding debuggable flag.");
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
-    const char *hostname, const char *packageAndActivity, RENDERDOC_ProgressCallback progress);
+    const char *URL, const char *packageAndActivity, RENDERDOC_ProgressCallback progress);
+
+DOCUMENT("An interface for enumerating and controlling remote devices.");
+struct IDeviceProtocolController
+{
+  DOCUMENT(R"(Retrieves the name of this protocol as passed to :func:`GetDeviceProtocolController`.
+
+:return: A string identifying the protocol.
+:rtype: ``str``
+)");
+  virtual rdcstr GetProtocolName() = 0;
+
+  DOCUMENT(R"(Returns a list of devices currently available through the given protocol.
+
+Until a device is enumerated through this function it may not be available for connection through
+other methods such as target control or remote server access, even if the device is physically
+connected, due to initialisation happening only when enumerated.
+
+The returned string is the hostname of the device, which can be connected via
+``protocol://hostname`` with interfaces that take a hostname.
+
+:return: A list of the devices currently available.
+:rtype: ``list`` of ``str``
+)");
+  virtual rdcarray<rdcstr> GetDevices() = 0;
+
+  DOCUMENT(R"(Retrieves the user friendly name of the given device. This may be easier for a user to
+correlate to a device than the hostname which may be only a programmatic identifier.
+
+:param str URL: The URL of the device in the form ``protocol://host``, with protocol as returned by
+  :func:`GetProtocolName` and host as returned by :func:`GetDevices`.
+:return: A string identifying the device.
+:rtype: ``str``
+)");
+  virtual rdcstr GetFriendlyName(const rdcstr &URL) = 0;
+
+  DOCUMENT(R"(Query if the device supports multiple programs running and being captured. If not, the
+user can be prompted to close an existing program before a new one is launched.
+
+:param str URL: The URL of the device in the form ``protocol://host``, with protocol as returned by
+  :func:`GetProtocolName` and host as returned by :func:`GetDevices`.
+:return: ``True`` if the device supports multiple programs, ``False`` otherwise.
+:rtype: ``bool``
+)");
+  virtual bool SupportsMultiplePrograms(const rdcstr &URL) = 0;
+
+  DOCUMENT(R"(Query if the device supports RenderDoc capture and replay.
+
+:param str URL: The URL of the device in the form ``protocol://host``, with protocol as returned by
+  :func:`GetProtocolName` and host as returned by :func:`GetDevices`.
+:return: ``True`` if any the device is supported, ``False`` otherwise.
+:rtype: ``bool``
+)");
+  virtual bool IsSupported(const rdcstr &URL) = 0;
+
+  DOCUMENT(R"(Start the remote server running on the given device.
+
+:param str URL: The URL of the device in the form ``protocol://host``, with protocol as returned by
+  :func:`GetProtocolName` and host as returned by :func:`GetDevices`.
+:return: The status of starting the server, whether success or failure.
+:rtype: ReplayStatus
+)");
+  virtual ReplayStatus StartRemoteServer(const rdcstr &URL) = 0;
+
+protected:
+  IDeviceProtocolController() = default;
+  ~IDeviceProtocolController() = default;
+};
+
+DOCUMENT(R"(Retrieve the set of device protocols supported (see :func:`GetDeviceProtocolController`).
+
+:return: The supported device protocols.
+:rtype: ``list`` of ``str``
+)");
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_GetSupportedDeviceProtocols(rdcarray<rdcstr> *supportedProtocols);
+
+DOCUMENT(R"(Creates a :class:`DeviceProtocolController` that provides device-specific controls.
+
+This interface is intended to allow closer integration with remote devices.
+
+.. note::
+  Note that the use of scripting with Android is explicitly **not supported** due to the inherent
+  fragility and unreliability of the Android platform. This interface is designed primarily for
+  internal use and no support will be provided for Android-specific problems encountered using this.
+
+This function will not block, however the protocol may still be initialising when it is returned so
+immediate use of it may block.
+
+:param str protocol: The protocol to fetch a controller for.
+:return: A handle to the protocol controller, or ``None`` if something went wrong such as an
+  unsupported protocol being specified.
+:rtype: DeviceProtocolController
+)");
+extern "C" RENDERDOC_API IDeviceProtocolController *RENDERDOC_CC
+RENDERDOC_GetDeviceProtocolController(const rdcstr &protocol);
 
 DOCUMENT("Internal function that runs unit tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,

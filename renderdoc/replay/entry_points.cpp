@@ -376,12 +376,14 @@ extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
   return malloc((size_t)sz);
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *URL,
                                                                                 uint32_t nextIdent)
 {
-  std::string s = "localhost";
-  if(host != NULL && host[0] != '\0')
-    s = host;
+  rdcstr host = "localhost";
+  if(URL != NULL && URL[0] != '\0')
+    host = URL;
+
+  rdcstr deviceID = host;
 
   // initial case is we're called with 0, start with the first port.
   // otherwise we're called with the last successful ident, so increment
@@ -391,32 +393,30 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   else
     nextIdent++;
 
-  bool isAndroid = false;
-  uint32_t lastIdent = RenderDoc_LastTargetControlPort;
-  if(host != NULL && Android::IsHostADB(host))
+  IDeviceProtocolHandler *protocol = RenderDoc::Inst().GetDeviceProtocol(deviceID);
+
+  if(protocol)
   {
-    int index = 0;
-    std::string deviceID;
-    Android::ExtractDeviceIDAndIndex(host, index, deviceID);
-
-    isAndroid = true;
-
-    // each subsequent device gets a new range of ports. The deviceID isn't needed since we already
-    // forwarded the ports to the right devices.
-    if(nextIdent == RenderDoc_FirstTargetControlPort)
-      nextIdent += RenderDoc_AndroidPortOffset * (index + 1);
-    lastIdent += RenderDoc_AndroidPortOffset * (index + 1);
-
-    s = "127.0.0.1";
+    deviceID = protocol->GetDeviceID(deviceID);
+    host = protocol->RemapHostname(deviceID);
+    if(host.empty())
+      return 0;
   }
 
-  for(; nextIdent <= lastIdent; nextIdent++)
+  for(; nextIdent <= RenderDoc_LastTargetControlPort; nextIdent++)
   {
-    Network::Socket *sock = Network::CreateClientSocket(s.c_str(), (uint16_t)nextIdent, 250);
+    uint16_t port = (uint16_t)nextIdent;
+    if(protocol)
+      port = protocol->RemapPort(deviceID, port);
+
+    if(port == 0)
+      return 0;
+
+    Network::Socket *sock = Network::CreateClientSocket(host.c_str(), port, 250);
 
     if(sock)
     {
-      if(isAndroid)
+      if(protocol)
       {
         Threading::Sleep(100);
         (void)sock->IsRecvDataWaiting();
@@ -436,14 +436,21 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   return 0;
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort()
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_GetSupportedDeviceProtocols(rdcarray<rdcstr> *supportedProtocols)
 {
-  return RenderDoc_RemoteServerPort;
+  *supportedProtocols = RenderDoc::Inst().GetSupportedDeviceProtocols();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
-    const char *listenhost, uint32_t port, RENDERDOC_KillCallback killReplay,
-    RENDERDOC_PreviewWindowCallback previewWindow)
+extern "C" RENDERDOC_API IDeviceProtocolController *RENDERDOC_CC
+RENDERDOC_GetDeviceProtocolController(const rdcstr &protocol)
+{
+  return RenderDoc::Inst().GetDeviceProtocol(protocol);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_BecomeRemoteServer(const char *listenhost, RENDERDOC_KillCallback killReplay,
+                             RENDERDOC_PreviewWindowCallback previewWindow)
 {
   if(listenhost == NULL || listenhost[0] == 0)
     listenhost = "0.0.0.0";
@@ -459,10 +466,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
       return ret;
     };
 
-  if(port == 0)
-    port = RENDERDOC_GetDefaultRemoteServerPort();
-
-  RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, killReplay, previewWindow);
+  RenderDoc::Inst().BecomeRemoteServer(listenhost, RenderDoc_RemoteServerPort, killReplay,
+                                       previewWindow);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname)

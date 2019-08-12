@@ -359,7 +359,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &se
 
     // we source all data from the first instanced value in the instanced case, so make sure we
     // offset correctly here.
-    if(cfg.position.instanced)
+    if(cfg.position.instanced && cfg.position.instStepRate)
       offs += cfg.position.vertexByteStride * (cfg.curInstance / cfg.position.instStepRate);
 
     D3D12_VERTEX_BUFFER_VIEW view;
@@ -392,7 +392,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &se
 
     // we source all data from the first instanced value in the instanced case, so make sure we
     // offset correctly here.
-    if(cfg.second.instanced)
+    if(cfg.second.instanced && cfg.second.instStepRate)
       offs += cfg.second.vertexByteStride * (cfg.curInstance / cfg.second.instStepRate);
 
     D3D12_VERTEX_BUFFER_VIEW view;

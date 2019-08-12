@@ -2248,15 +2248,25 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
         {
           m_RenderState.ibuffer.buf = GetResID(buffer);
           m_RenderState.ibuffer.offs = offset;
-          m_RenderState.ibuffer.bytewidth = indexType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+
+          if(indexType == VK_INDEX_TYPE_UINT32)
+            m_RenderState.ibuffer.bytewidth = 4;
+          else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
+            m_RenderState.ibuffer.bytewidth = 1;
+          else
+            m_RenderState.ibuffer.bytewidth = 2;
         }
       }
     }
     else
     {
       // track while reading, as we need to bind current topology & index byte width in AddDrawcall
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth =
-          (indexType == VK_INDEX_TYPE_UINT32 ? 4 : 2);
+      if(indexType == VK_INDEX_TYPE_UINT32)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 4;
+      else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 1;
+      else
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 2;
 
       // track while reading, as we need to track resource usage
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer = GetResID(buffer);
@@ -4520,7 +4530,8 @@ void WrappedVulkan::vkCmdBindTransformFeedbackBuffersEXT(VkCommandBuffer command
       {
         size = pSizes[i];
       }
-      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], size, eFrameRef_Read);
+      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], size,
+                                        eFrameRef_PartialWrite);
     }
   }
 }
@@ -4609,6 +4620,15 @@ void WrappedVulkan::vkCmdBeginTransformFeedbackEXT(VkCommandBuffer commandBuffer
                                              pCounterBuffers, pCounterBufferOffsets);
 
     record->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < bufferCount; i++)
+    {
+      if(pCounterBuffers && pCounterBuffers[i] != VK_NULL_HANDLE)
+      {
+        VkDeviceSize offset = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
+        record->MarkBufferFrameReferenced(GetRecord(pCounterBuffers[i]), offset, 4,
+                                          eFrameRef_ReadBeforeWrite);
+      }
+    }
   }
 }
 
@@ -4689,6 +4709,15 @@ void WrappedVulkan::vkCmdEndTransformFeedbackEXT(VkCommandBuffer commandBuffer,
                                            pCounterBuffers, pCounterBufferOffsets);
 
     record->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < bufferCount; i++)
+    {
+      if(pCounterBuffers && pCounterBuffers[i] != VK_NULL_HANDLE)
+      {
+        VkDeviceSize offset = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
+        record->MarkBufferFrameReferenced(GetRecord(pCounterBuffers[i]), offset, 4,
+                                          eFrameRef_ReadBeforeWrite);
+      }
+    }
   }
 }
 

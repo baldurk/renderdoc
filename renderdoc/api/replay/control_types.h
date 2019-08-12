@@ -47,6 +47,8 @@ struct MeshFormat
     unproject = false;
     instanced = false;
     nearPlane = farPlane = 0.0f;
+    allowRestart = true;
+    restartIndex = 0xffffffff;
   }
   MeshFormat(const MeshFormat &o) = default;
 
@@ -80,6 +82,8 @@ struct MeshFormat
   uint32_t numIndices;
   DOCUMENT("The number of instances to render with the same value. See :data:`instanced`.");
   uint32_t instStepRate;
+  DOCUMENT("The primitive restart index to use, if possible. See :data:`allowRestart`.");
+  uint32_t restartIndex;
 
   DOCUMENT("The near plane for the projection matrix.");
   float nearPlane;
@@ -93,6 +97,9 @@ struct MeshFormat
 
   DOCUMENT("``True`` if the alpha component of this element should be used.");
   bool showAlpha;
+
+  DOCUMENT("``True`` if the primitive restart index feature should be used.");
+  bool allowRestart;
 };
 
 DECLARE_REFLECTION_STRUCT(MeshFormat);
