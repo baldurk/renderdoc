@@ -2091,6 +2091,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     float vpWidth = qAbs(vp.width);
     float vpHeight = qAbs(vp.height);
 
+    m_Config.position.allowRestart = m_Ctx.CurPipelineState().IsStripRestartEnabled();
+    m_Config.position.restartIndex = m_Ctx.CurPipelineState().GetStripRestartIndex();
+
     m_Config.fov = ui->fovGuess->value();
     m_Config.aspect = (vpWidth > 0.0f && vpHeight > 0.0f) ? (vpWidth / vpHeight) : 1.0f;
     m_Config.highlightVert = 0;
