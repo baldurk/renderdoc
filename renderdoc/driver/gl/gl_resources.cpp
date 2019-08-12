@@ -533,6 +533,7 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_R3_G3_B2: return eGL_UNSIGNED_BYTE_3_3_2;
     case eGL_RGB4:
     case eGL_RGBA4: return eGL_UNSIGNED_SHORT_4_4_4_4;
+    case eGL_RGBA2: return eGL_UNSIGNED_BYTE;
     case eGL_RGB5_A1: return eGL_UNSIGNED_SHORT_5_5_5_1;
     case eGL_RGB565:
     case eGL_RGB5: return eGL_UNSIGNED_SHORT_5_6_5;

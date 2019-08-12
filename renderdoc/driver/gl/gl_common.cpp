@@ -1782,6 +1782,14 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
     ret.compType = CompType::UNorm;
     return ret;
   }
+  else if(fmt == eGL_RGBA2)
+  {
+    // pretend it's RGBA8 and hope for the best
+    ret.compByteWidth = 1;
+    ret.compCount = 4;
+    ret.compType = CompType::UNorm;
+    return ret;
+  }
 
   if(IsCompressedFormat(fmt))
   {
