@@ -2572,6 +2572,10 @@ void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderRefl
     }
   }
 
+  for(size_t i = 0; i < mapping.inputAttributes.size(); i++)
+    if(mapping.inputAttributes[i] < 0)
+      mapping.inputAttributes[i] = -1;
+
 #if ENABLED(RDOC_DEVEL)
   for(size_t i = 1; i < ARRAY_COUNT(dummyReadback); i++)
     if(dummyReadback[i] != 0x6c7b8a9d)
