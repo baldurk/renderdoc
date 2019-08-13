@@ -372,7 +372,8 @@ void Editor::RegisterOp(Iter it)
   }
   else if(opdata.op == Op::TypeSampler)
   {
-    samplerTypeToId[Sampler()] = opdata.result;
+    Sampler s;
+    samplerTypeToId[s] = opdata.result;
   }
   else if(opdata.op == Op::TypeSampledImage)
   {

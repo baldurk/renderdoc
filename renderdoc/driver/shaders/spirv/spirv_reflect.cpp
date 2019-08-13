@@ -1911,9 +1911,9 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataTy
       outConst.type.descriptor.arrayByteStride = decorations[curType->id].arrayStride;
 
     if(varDecorations.matrixStride != ~0U)
-      outConst.type.descriptor.matrixByteStride = varDecorations.matrixStride;
+      outConst.type.descriptor.matrixByteStride = varDecorations.matrixStride & 0xff;
     else if(decorations[curType->id].matrixStride != ~0U)
-      outConst.type.descriptor.matrixByteStride = decorations[curType->id].matrixStride;
+      outConst.type.descriptor.matrixByteStride = decorations[curType->id].matrixStride & 0xff;
 
     curType = &dataTypes[curType->InnerType()];
   }
@@ -1926,7 +1926,7 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataTy
         (curType->type == DataType::VectorType || varDecorations.flags & Decorations::RowMajor);
 
     if(varDecorations.matrixStride != ~0U)
-      outConst.type.descriptor.matrixByteStride = varDecorations.matrixStride;
+      outConst.type.descriptor.matrixByteStride = varDecorations.matrixStride & 0xff;
 
     if(curType->type == DataType::MatrixType)
     {

@@ -161,11 +161,36 @@
       <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="spirv_editor.cpp" />
-    <ClCompile Include="spirv_processor.cpp" />
-    <ClCompile Include="spirv_reflect.cpp" />
-    <ClCompile Include="spirv_gen.cpp" />
-    <ClCompile Include="spirv_stringise.cpp" />
+    <ClCompile Include="spirv_editor.cpp">
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="spirv_processor.cpp">
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="spirv_reflect.cpp">
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="spirv_gen.cpp">
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="spirv_stringise.cpp">
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\arrays.h" />
