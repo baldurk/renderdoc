@@ -14,8 +14,8 @@ class VK_Indirect(rdtest.TestCase):
 
         out.SetTextureDisplay(tex)
 
-        overlay_path = rdtest.get_tmp_path(str(eventId) + '_draw.png')
-        ref_path = self.get_ref_path(str(eventId) + '_draw.png')
+        overlay_path = rdtest.get_tmp_path(str(self.overlay_idx) + '_draw.png')
+        ref_path = self.get_ref_path(str(self.overlay_idx) + '_draw.png')
 
         save_data.resourceId = out.GetDebugOverlayTexID()
 
@@ -25,8 +25,12 @@ class VK_Indirect(rdtest.TestCase):
             raise rdtest.TestFailureException("Reference and output image differ @ EID {}".format(str(eventId)),
                                               ref_path, overlay_path)
 
+        self.overlay_idx = self.overlay_idx + 1
+
     def check_capture(self):
         self.check_final_backbuffer()
+
+        self.overlay_idx = 1
 
         for level in ["Primary", "Secondary"]:
             rdtest.log.print("Checking {} indirect calls".format(level))
