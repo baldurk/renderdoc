@@ -274,6 +274,9 @@ void main()
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
+    if(!Avail.empty())
+      return;
+
     if(physProperties.limits.maxVertexOutputComponents < 128)
       Avail = "Not enough vertex output components to run test";
   }

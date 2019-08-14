@@ -55,6 +55,9 @@ float4 main() : SV_Target0
   {
     D3D11GraphicsTest::Prepare(argc, argv);
 
+    if(!Avail.empty())
+      return;
+
     if(!opts.MapNoOverwriteOnDynamicBufferSRV)
       Avail = "Requires mappable buffer SRVs";
   }
