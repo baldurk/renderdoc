@@ -155,7 +155,7 @@ GraphicsPipelineCreateInfo::GraphicsPipelineCreateInfo()
 
   rasterizationState = VkPipelineRasterizationStateCreateInfo();
   rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  rasterizationState.depthClampEnable = VK_TRUE;
+  rasterizationState.depthClampEnable = VK_FALSE;
   rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizationState.cullMode = VK_CULL_MODE_NONE;
   rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;

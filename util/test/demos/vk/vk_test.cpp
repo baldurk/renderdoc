@@ -56,7 +56,6 @@ static VkBool32 VKAPI_PTR vulkanCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
 
 VulkanGraphicsTest::VulkanGraphicsTest()
 {
-  features.depthClamp = true;
 }
 
 namespace
