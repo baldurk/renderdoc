@@ -1134,8 +1134,9 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
   {
     VkDescriptorUpdateTemplate templ = VK_NULL_HANDLE;
 
+    VkDescriptorUpdateTemplateCreateInfo unwrapped = UnwrapInfo(&CreateInfo);
     VkResult ret =
-        ObjDisp(device)->CreateDescriptorUpdateTemplate(Unwrap(device), &CreateInfo, NULL, &templ);
+        ObjDisp(device)->CreateDescriptorUpdateTemplate(Unwrap(device), &unwrapped, NULL, &templ);
 
     if(ret != VK_SUCCESS)
     {
