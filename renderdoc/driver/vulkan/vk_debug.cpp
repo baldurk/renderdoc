@@ -696,6 +696,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     m_pDriver->vkDestroyRenderPass(dev, depthMS2ArrayRP, NULL);
 
+    if(!m_pDriver->GetDeviceFeatures().sampleRateShading)
+    {
+      RDCDEBUG("No depth Array -> MSAA copies can be supported without sample rate shading");
+      continue;
+    }
+
     for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
     {
       // if this sample count isn't supported, don't create it
