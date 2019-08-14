@@ -747,6 +747,10 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   if(physProps.vendorID == VK_VENDOR_ID_VSI)
     m_Vendor = GPUVendor::Verisilicon;
 
+  // Swiftshader
+  if(physProps.vendorID == 0x1AE0 && physProps.deviceID == 0xC0DE)
+    m_Vendor = GPUVendor::Software;
+
   m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
   m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
   m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
