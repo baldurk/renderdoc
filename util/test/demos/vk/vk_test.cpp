@@ -22,6 +22,7 @@
 * THE SOFTWARE.
 ******************************************************************************/
 
+#include <map>
 #include "../test_common.h"
 
 #define VMA_IMPLEMENTATION
@@ -1049,12 +1050,19 @@ void VulkanWindow::Present(VkQueue queue)
   }
 
   std::set<VkFence> doneFences;
+  std::map<VkFence, VkResult> fenceStatus;
+
+  // only test each fence once so we avoid the problem of testing a fence once, finding it's not
+  // ready, then testing it again in a second use and finding that it's now ready, and deleting
+  // it
+  for(VkFence f : fences)
+    fenceStatus[f] = vkGetFenceStatus(m_Test->device, f);
 
   for(int level = 0; level < VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE; level++)
   {
     for(auto it = pendingCommandBuffers[level].begin(); it != pendingCommandBuffers[level].end();)
     {
-      if(vkGetFenceStatus(m_Test->device, it->second) == VK_SUCCESS)
+      if(fenceStatus[it->second] == VK_SUCCESS)
       {
         freeCommandBuffers[level].push_back(it->first);
         doneFences.insert(it->second);
