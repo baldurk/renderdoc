@@ -134,6 +134,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, VkFenceCreateInfo);                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT,                 \
               VkFilterCubicImageViewImageFormatPropertiesEXT);                                       \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR,                             \
+              VkFramebufferAttachmentsCreateInfoKHR)                                                 \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR,                               \
+              VkFramebufferAttachmentImageInfoKHR)                                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, VkImageCreateInfo);                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR, VkImageFormatListCreateInfoKHR);  \
@@ -202,6 +206,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceImageFormatInfo2);                                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT,                    \
               VkPhysicalDeviceImageViewImageFormatInfoEXT);                                          \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES_KHR,                  \
+              VkPhysicalDeviceImagelessFramebufferFeaturesKHR)                                       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,                       \
               VkPhysicalDeviceIndexTypeUint8FeaturesEXT);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,                            \
@@ -483,8 +489,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT:                           \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT:                      \
   case VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID:                                      \
-  case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR:                      \
-  case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR:                        \
   case VK_STRUCTURE_TYPE_FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV:                     \
   case VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV:                                             \
   case VK_STRUCTURE_TYPE_GEOMETRY_NV:                                                  \
@@ -518,7 +522,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV:      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES:                             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:           \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES_KHR:           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT:            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT:          \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT:              \
@@ -562,7 +565,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV:                        \
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV:                          \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV:                      \
-  case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR:                        \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT:               \
   case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT:                       \
   case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT:                 \
@@ -686,6 +688,14 @@ size_t GetNextPatchSize(const void *pNext)
         VkPresentInfoKHR *info = (VkPresentInfoKHR *)next;
         memSize += info->waitSemaphoreCount * sizeof(VkSemaphore);
         memSize += info->swapchainCount * sizeof(VkSwapchainKHR);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR:
+      {
+        memSize += sizeof(VkRenderPassAttachmentBeginInfoKHR);
+
+        VkRenderPassAttachmentBeginInfoKHR *info = (VkRenderPassAttachmentBeginInfoKHR *)next;
+        memSize += info->attachmentCount * sizeof(VkImageView);
         break;
       }
       case VK_STRUCTURE_TYPE_SUBMIT_INFO:
@@ -1079,9 +1089,12 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         *out = *in;
         UnwrapInPlace(out->renderPass);
 
-        out->pAttachments = outAttachments;
-        for(uint32_t i = 0; i < in->attachmentCount; i++)
-          outAttachments[i] = Unwrap(in->pAttachments[i]);
+        if((out->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR) == 0)
+        {
+          out->pAttachments = outAttachments;
+          for(uint32_t i = 0; i < in->attachmentCount; i++)
+            outAttachments[i] = Unwrap(in->pAttachments[i]);
+        }
 
         break;
       }
@@ -1166,6 +1179,27 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
           outSwapchains[i] = Unwrap(in->pSwapchains[i]);
         for(uint32_t i = 0; i < in->waitSemaphoreCount; i++)
           outWaitSemaphores[i] = Unwrap(in->pWaitSemaphores[i]);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR:
+      {
+        const VkRenderPassAttachmentBeginInfoKHR *in =
+            (const VkRenderPassAttachmentBeginInfoKHR *)nextInput;
+        VkRenderPassAttachmentBeginInfoKHR *out = (VkRenderPassAttachmentBeginInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkImageView *outAttachments = (VkImageView *)tempMem;
+        tempMem += sizeof(VkImageView) * in->attachmentCount;
+
+        *out = *in;
+
+        out->pAttachments = outAttachments;
+        for(uint32_t i = 0; i < in->attachmentCount; i++)
+          outAttachments[i] = Unwrap(in->pAttachments[i]);
 
         break;
       }

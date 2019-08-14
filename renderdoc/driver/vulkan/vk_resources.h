@@ -983,6 +983,11 @@ struct CmdBufferRecordingInfo
   // submit with latest binding refs.
   std::set<VkDescriptorSet> boundDescSets;
 
+  // barriers to apply when the current render pass ends. Calculated at begin time in case the
+  // framebuffer is imageless and we need to use the image views passed in at begin time to
+  // construct the proper barriers.
+  std::vector<VkImageMemoryBarrier> rpbarriers;
+
   std::vector<VkResourceRecord *> subcmds;
 
   std::map<ResourceId, ImgRefs> imgFrameRefs;

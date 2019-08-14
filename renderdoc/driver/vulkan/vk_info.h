@@ -345,10 +345,11 @@ struct VulkanCreationInfo
 
     struct Attachment
     {
-      ResourceId view;
-      VkFormat format;
+      ResourceId createdView;
+      bool hasStencil;
     };
     std::vector<Attachment> attachments;
+    bool imageless;
 
     uint32_t width, height, layers;
 

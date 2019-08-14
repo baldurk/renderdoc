@@ -801,11 +801,38 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan,
   height = pCreateInfo->height;
   layers = pCreateInfo->layers;
 
+  imageless = false;
+
   attachments.resize(pCreateInfo->attachmentCount);
-  for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+  if(pCreateInfo->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR)
   {
-    attachments[i].view = GetResID(pCreateInfo->pAttachments[i]);
-    attachments[i].format = info.m_ImageView[attachments[i].view].format;
+    imageless = true;
+
+    // VK_KHR_imageless_framebuffer
+    const VkFramebufferAttachmentsCreateInfoKHR *attachmentsInfo =
+        (const VkFramebufferAttachmentsCreateInfoKHR *)FindNextStruct(
+            pCreateInfo, VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR);
+
+    RDCASSERTEQUAL(pCreateInfo->attachmentCount, attachmentsInfo->attachmentImageInfoCount);
+
+    for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+    {
+      attachments[i].createdView = ResourceId();
+      // there must be at least one format in the list so we can safely look at [0].
+      // also all entries must be compatible, so if [0] doesn't have stencil then none of them do,
+      // and vice-versa.
+      attachments[i].hasStencil =
+          IsStencilFormat(attachmentsInfo->pAttachmentImageInfos[i].pViewFormats[0]);
+    }
+  }
+  else
+  {
+    for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+    {
+      attachments[i].createdView = GetResID(pCreateInfo->pAttachments[i]);
+      attachments[i].hasStencil =
+          IsStencilFormat(info.m_ImageView[attachments[i].createdView].format);
+    }
   }
 }
 

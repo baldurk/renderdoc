@@ -2775,7 +2775,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   state.graphics.pipeline = GetResID(pipe);
-  state.framebuffer = GetResID(fb);
+  state.SetFramebuffer(GetResID(fb));
   state.renderPass = GetResID(rp);
   state.subpass = 0;
   state.renderArea.offset.x = 0;

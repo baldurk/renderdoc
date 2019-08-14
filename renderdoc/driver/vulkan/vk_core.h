@@ -544,6 +544,7 @@ private:
 
       ResourceId renderPass;
       ResourceId framebuffer;
+      std::vector<ResourceId> fbattachments;
       uint32_t subpass = 0;
 
       struct ConditionalRendering
@@ -877,9 +878,11 @@ private:
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, std::vector<DebugMessage> &debugMessages);
   void AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
-                           ResourceId framebuffer, uint32_t subpass);
+                           ResourceId framebuffer, uint32_t subpass,
+                           const std::vector<ResourceId> &fbattachments);
   void AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
-                                      ResourceId framebuffer, uint32_t subpass);
+                                      ResourceId framebuffer, uint32_t subpass,
+                                      const std::vector<ResourceId> &fbattachments);
 
   // no copy semantics
   WrappedVulkan(const WrappedVulkan &);

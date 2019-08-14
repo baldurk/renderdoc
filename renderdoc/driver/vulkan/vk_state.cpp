@@ -68,15 +68,35 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
 
   RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo->m_RenderPass[renderPass].attachments.size());
 
+  VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo->m_Framebuffer[framebuffer];
+
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
       Unwrap(m_CreationInfo->m_RenderPass[renderPass].loadRPs[subpass]),
-      Unwrap(m_CreationInfo->m_Framebuffer[framebuffer].loadFBs[subpass]),
+      Unwrap(fbinfo.loadFBs[subpass]),
       renderArea,
       (uint32_t)m_CreationInfo->m_RenderPass[renderPass].attachments.size(),
       empty,
   };
+
+  VkRenderPassAttachmentBeginInfoKHR imagelessAttachments = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR,
+  };
+  std::vector<VkImageView> imagelessViews;
+
+  if(fbinfo.imageless)
+  {
+    rpbegin.pNext = &imagelessAttachments;
+    imagelessAttachments.attachmentCount = (uint32_t)fbattachments.size();
+
+    for(size_t i = 0; i < fbattachments.size(); i++)
+      imagelessViews.push_back(
+          Unwrap(GetResourceManager()->GetCurrentHandle<VkImageView>(fbattachments[i])));
+
+    imagelessAttachments.pAttachments = imagelessViews.data();
+  }
+
   ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
   BindPipeline(cmd, binding, true);
@@ -537,6 +557,27 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
       delete[] a;
     for(VkBufferView *a : allocBufViewWrites)
       delete[] a;
+  }
+}
+
+void VulkanRenderState::SetFramebuffer(ResourceId fb,
+                                       const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo)
+{
+  framebuffer = fb;
+
+  VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo->m_Framebuffer[fb];
+
+  fbattachments.resize(fbinfo.attachments.size());
+
+  if(!fbinfo.imageless)
+  {
+    for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+      fbattachments[i] = fbinfo.attachments[i].createdView;
+  }
+  else
+  {
+    for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+      fbattachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
   }
 }
 

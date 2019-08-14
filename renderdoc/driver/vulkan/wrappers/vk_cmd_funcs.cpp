@@ -48,16 +48,19 @@ static std::string ToHumanStr(const VkAttachmentStoreOp &el)
 std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint32_t subpass)
 {
   ResourceId rp, fb;
+  std::vector<ResourceId> fbattachments;
 
   if(m_LastCmdBufferID == ResourceId())
   {
     rp = m_RenderState.renderPass;
-    fb = m_RenderState.framebuffer;
+    fb = m_RenderState.GetFramebuffer();
+    fbattachments = m_RenderState.GetFramebufferAttachments();
   }
   else
   {
     rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
     fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer;
+    fbattachments = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
   }
 
   std::vector<VkImageMemoryBarrier> ret;
@@ -138,7 +141,7 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
 
-    ResourceId view = fbinfo.attachments[idx].view;
+    ResourceId view = fbattachments[idx];
 
     barrier.subresourceRange = m_CreationInfo.m_ImageView[view].range;
     barrier.image = Unwrap(
@@ -252,7 +255,7 @@ std::string WrappedVulkan::MakeRenderPassOpString(bool store)
     // component and if the subpass is depth only (no other attachments)
     if(dsAttach >= 0)
     {
-      hasStencil = !IsDepthOnlyFormat(fbinfo.attachments[dsAttach].format);
+      hasStencil = fbinfo.attachments[dsAttach].hasStencil;
       depthonly = info.subpasses[subpass].colorAttachments.size() == 0;
     }
 
@@ -1158,8 +1161,34 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass =
             GetResID(RenderPassBegin.renderPass);
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer =
-            GetResID(RenderPassBegin.framebuffer);
+
+        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
+
+        const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
+            (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
+                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+
+        // set framebuffer attachments - by default from the ones used to create it, but if it is
+        // imageless then look for the attachments in our pNext chain
+        {
+          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(
+              fbinfo.attachments.size());
+
+          if(!fbinfo.imageless)
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                  fbinfo.attachments[i].createdView;
+          }
+          else
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                  GetResID(attachmentsInfo->pAttachments[i]);
+          }
+        }
 
         // only if we're partially recording do we update this state
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
@@ -1169,7 +1198,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           m_RenderState.subpass = 0;
 
           m_RenderState.renderPass = GetResID(RenderPassBegin.renderPass);
-          m_RenderState.framebuffer = GetResID(RenderPassBegin.framebuffer);
+          m_RenderState.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachmentsInfo);
           m_RenderState.renderArea = RenderPassBegin.renderArea;
         }
 
@@ -1189,8 +1218,33 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResID(RenderPassBegin.renderPass);
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer =
-          GetResID(RenderPassBegin.framebuffer);
+
+      ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
+
+      // set framebuffer attachments - by default from the ones used to create it, but if it is
+      // imageless then look for the attachments in our pNext chain
+      {
+        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(fbinfo.attachments.size());
+
+        if(!fbinfo.imageless)
+        {
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                fbinfo.attachments[i].createdView;
+        }
+        else
+        {
+          const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
+              (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
+                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                GetResID(attachmentsInfo->pAttachments[i]);
+        }
+      }
 
       std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -1243,13 +1297,49 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
     VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
-    for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
-    {
-      VkResourceRecord *att = fb->imageAttachments[i].record;
-      if(att == NULL)
-        break;
 
-      record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+    std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
+
+    barriers.clear();
+
+    if(fb->imageAttachments[0].barrier.sType && fb->imageAttachments[0].record)
+    {
+      for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
+      {
+        VkResourceRecord *att = fb->imageAttachments[i].record;
+        if(att == NULL)
+          break;
+
+        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+
+        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
+          barriers.push_back(fb->imageAttachments[i].barrier);
+      }
+    }
+    else if(fb->imageAttachments[0].barrier.sType)
+    {
+      // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
+      // for the image records now
+
+      const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
+          (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
+              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+
+      for(uint32_t i = 0; i < attachmentsInfo->attachmentCount; i++)
+      {
+        VkResourceRecord *att = GetRecord(attachmentsInfo->pAttachments[i]);
+        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+
+        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
+        {
+          VkImageMemoryBarrier barrier = fb->imageAttachments[i].barrier;
+
+          barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
+          barrier.subresourceRange = att->viewRange;
+
+          barriers.push_back(barrier);
+        }
+      }
     }
 
     record->cmdInfo->framebuffer = fb;
@@ -1363,6 +1453,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
         // always track this, for WrappedVulkan::IsDrawInRenderPass()
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.clear();
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
@@ -1404,6 +1495,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       // but only AFTER the above AddDrawcall (we want it grouped together)
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.clear();
     }
   }
 
@@ -1427,17 +1519,7 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
 
     record->AddChunk(scope.Get());
 
-    VkResourceRecord *fb = record->cmdInfo->framebuffer;
-
-    std::vector<VkImageMemoryBarrier> barriers;
-
-    for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
-    {
-      if(fb->imageAttachments[i].barrier.oldLayout == fb->imageAttachments[i].barrier.newLayout)
-        continue;
-
-      barriers.push_back(fb->imageAttachments[i].barrier);
-    }
+    const std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     // apply the implicit layout transitions here
     {
@@ -1490,8 +1572,34 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass =
             GetResID(RenderPassBegin.renderPass);
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer =
-            GetResID(RenderPassBegin.framebuffer);
+
+        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
+
+        const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
+            (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
+                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+
+        // set framebuffer attachments - by default from the ones used to create it, but if it is
+        // imageless then look for the attachments in our pNext chain
+        {
+          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(
+              fbinfo.attachments.size());
+
+          if(!fbinfo.imageless)
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                  fbinfo.attachments[i].createdView;
+          }
+          else
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                  GetResID(attachmentsInfo->pAttachments[i]);
+          }
+        }
 
         // only if we're partially recording do we update this state
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
@@ -1501,7 +1609,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
           m_RenderState.subpass = 0;
 
           m_RenderState.renderPass = GetResID(RenderPassBegin.renderPass);
-          m_RenderState.framebuffer = GetResID(RenderPassBegin.framebuffer);
+          m_RenderState.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachmentsInfo);
           m_RenderState.renderArea = RenderPassBegin.renderArea;
         }
 
@@ -1523,8 +1631,33 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResID(RenderPassBegin.renderPass);
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer =
-          GetResID(RenderPassBegin.framebuffer);
+
+      ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
+
+      // set framebuffer attachments - by default from the ones used to create it, but if it is
+      // imageless then look for the attachments in our pNext chain
+      {
+        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(fbinfo.attachments.size());
+
+        if(!fbinfo.imageless)
+        {
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                fbinfo.attachments[i].createdView;
+        }
+        else
+        {
+          const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
+              (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
+                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
+                GetResID(attachmentsInfo->pAttachments[i]);
+        }
+      }
 
       std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -1583,18 +1716,49 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
     VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
-    for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
-    {
-      VkResourceRecord *att = fb->imageAttachments[i].record;
-      if(att == NULL)
-        break;
 
-      record->MarkResourceFrameReferenced(att->baseResource, eFrameRef_ReadBeforeWrite);
-      if(att->baseResourceMem != ResourceId())
-        record->MarkResourceFrameReferenced(att->baseResourceMem, eFrameRef_Read);
-      if(att->resInfo && att->resInfo->IsSparse())
-        record->cmdInfo->sparse.insert(att->resInfo);
-      record->cmdInfo->dirtied.insert(att->baseResource);
+    std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
+
+    barriers.clear();
+
+    if(fb->imageAttachments[0].barrier.sType && fb->imageAttachments[0].record)
+    {
+      for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
+      {
+        VkResourceRecord *att = fb->imageAttachments[i].record;
+        if(att == NULL)
+          break;
+
+        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+
+        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
+          barriers.push_back(fb->imageAttachments[i].barrier);
+      }
+    }
+    else
+    {
+      // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
+      // for the image records now
+
+      const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
+          (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
+              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+
+      for(uint32_t i = 0; i < attachmentsInfo->attachmentCount; i++)
+      {
+        VkResourceRecord *att = GetRecord(attachmentsInfo->pAttachments[i]);
+        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+
+        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
+        {
+          VkImageMemoryBarrier barrier = fb->imageAttachments[i].barrier;
+
+          barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
+          barrier.subresourceRange = att->viewRange;
+
+          barriers.push_back(barrier);
+        }
+      }
     }
 
     record->cmdInfo->framebuffer = fb;
@@ -1811,17 +1975,7 @@ void WrappedVulkan::vkCmdEndRenderPass2KHR(VkCommandBuffer commandBuffer,
 
     record->AddChunk(scope.Get());
 
-    VkResourceRecord *fb = record->cmdInfo->framebuffer;
-
-    std::vector<VkImageMemoryBarrier> barriers;
-
-    for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
-    {
-      if(fb->imageAttachments[i].barrier.oldLayout == fb->imageAttachments[i].barrier.newLayout)
-        continue;
-
-      barriers.push_back(fb->imageAttachments[i].barrier);
-    }
+    const std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     // apply the implicit layout transitions here
     {
@@ -3079,10 +3233,10 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           // primary command buffer's state
           for(size_t i = 0; i < numChildren; i++)
           {
-            AddFramebufferUsageAllChildren(parentCmdBufInfo.draw->children[total - numChildren + i],
-                                           parentCmdBufInfo.state.renderPass,
-                                           parentCmdBufInfo.state.framebuffer,
-                                           parentCmdBufInfo.state.subpass);
+            AddFramebufferUsageAllChildren(
+                parentCmdBufInfo.draw->children[total - numChildren + i],
+                parentCmdBufInfo.state.renderPass, parentCmdBufInfo.state.framebuffer,
+                parentCmdBufInfo.state.subpass, parentCmdBufInfo.state.fbattachments);
           }
         }
 
@@ -3150,6 +3304,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           m_BakedCmdBufferInfo[cmd].state.renderPass = parentCmdBufInfo.state.renderPass;
           m_BakedCmdBufferInfo[cmd].state.subpass = parentCmdBufInfo.state.subpass;
           m_BakedCmdBufferInfo[cmd].state.framebuffer = parentCmdBufInfo.state.framebuffer;
+          m_BakedCmdBufferInfo[cmd].state.fbattachments = parentCmdBufInfo.state.fbattachments;
 
           // propagate conditional rendering
           if(m_BakedCmdBufferInfo[cmd].inheritConditionalRendering &&

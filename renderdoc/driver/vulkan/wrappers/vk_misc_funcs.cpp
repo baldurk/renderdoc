@@ -75,12 +75,15 @@ VkFramebufferCreateInfo WrappedVulkan::UnwrapInfo(const VkFramebufferCreateInfo 
 {
   VkFramebufferCreateInfo ret = *info;
 
-  VkImageView *unwrapped = GetTempArray<VkImageView>(info->attachmentCount);
-  for(uint32_t i = 0; i < info->attachmentCount; i++)
-    unwrapped[i] = Unwrap(info->pAttachments[i]);
+  if((ret.flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR) == 0)
+  {
+    VkImageView *unwrapped = GetTempArray<VkImageView>(info->attachmentCount);
+    for(uint32_t i = 0; i < info->attachmentCount; i++)
+      unwrapped[i] = Unwrap(info->pAttachments[i]);
+    ret.pAttachments = unwrapped;
+  }
 
   ret.renderPass = Unwrap(ret.renderPass);
-  ret.pAttachments = unwrapped;
 
   return ret;
 }
@@ -677,14 +680,18 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
 
       for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
       {
-        VkResourceRecord *attRecord = GetRecord(pCreateInfo->pAttachments[i]);
-        record->AddParent(attRecord);
-
-        record->imageAttachments[i].record = attRecord;
         record->imageAttachments[i].barrier = rpRecord->imageAttachments[i].barrier;
-        record->imageAttachments[i].barrier.image =
-            GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
-        record->imageAttachments[i].barrier.subresourceRange = attRecord->viewRange;
+
+        if((pCreateInfo->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR) == 0)
+        {
+          VkResourceRecord *attRecord = GetRecord(pCreateInfo->pAttachments[i]);
+          record->AddParent(attRecord);
+
+          record->imageAttachments[i].record = attRecord;
+          record->imageAttachments[i].barrier.image =
+              GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
+          record->imageAttachments[i].barrier.subresourceRange = attRecord->viewRange;
+        }
       }
     }
     else

@@ -2334,7 +2334,6 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
         if(state.renderPass != ResourceId() && state.framebuffer != ResourceId())
         {
           VulkanCreationInfo::RenderPass &rp = m_CreationInfo.m_RenderPass[state.renderPass];
-          VulkanCreationInfo::Framebuffer &fb = m_CreationInfo.m_Framebuffer[state.framebuffer];
 
           RDCASSERT(state.subpass < rp.subpasses.size());
 
@@ -2348,9 +2347,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               {
                 att = rp.subpasses[state.subpass].colorAttachments[att];
                 drawNode.resourceUsage.push_back(
-                    make_rdcpair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+                    make_rdcpair(m_CreationInfo.m_ImageView[state.fbattachments[att]].image,
                                  EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
-                                            fb.attachments[att].view)));
+                                            state.fbattachments[att])));
               }
             }
             else if(pAttachments[a].aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
@@ -2359,9 +2358,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               {
                 att = (uint32_t)rp.subpasses[state.subpass].depthstencilAttachment;
                 drawNode.resourceUsage.push_back(
-                    make_rdcpair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+                    make_rdcpair(m_CreationInfo.m_ImageView[state.fbattachments[att]].image,
                                  EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
-                                            fb.attachments[att].view)));
+                                            state.fbattachments[att])));
               }
             }
           }

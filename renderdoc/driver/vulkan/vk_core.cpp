@@ -916,6 +916,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME, VK_KHR_IMAGE_FORMAT_LIST_SPEC_VERSION,
     },
     {
+        VK_KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME, VK_KHR_IMAGELESS_FRAMEBUFFER_SPEC_VERSION,
+    },
+    {
         VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME, VK_KHR_INCREMENTAL_PRESENT_SPEC_VERSION,
     },
     {
@@ -3589,8 +3592,7 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
     if(fb != ResourceId() && rp != ResourceId())
     {
-      std::vector<VulkanCreationInfo::Framebuffer::Attachment> &atts =
-          m_CreationInfo.m_Framebuffer[fb].attachments;
+      std::vector<ResourceId> &atts = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
 
       RDCASSERT(sp < m_CreationInfo.m_RenderPass[rp].subpasses.size());
 
@@ -3605,15 +3607,15 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
           continue;
 
         RDCASSERT(colAtt[i] < atts.size());
-        draw.outputs[i] = GetResourceManager()->GetOriginalID(
-            m_CreationInfo.m_ImageView[atts[colAtt[i]].view].image);
+        draw.outputs[i] =
+            GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[colAtt[i]]].image);
       }
 
       if(dsAtt != -1)
       {
         RDCASSERT(dsAtt < (int32_t)atts.size());
         draw.depthOut =
-            GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[dsAtt].view].image);
+            GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[dsAtt]].image);
       }
     }
   }
@@ -3837,11 +3839,13 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
   //////////////////////////////
   // Framebuffer/renderpass
 
-  AddFramebufferUsage(drawNode, state.renderPass, state.framebuffer, state.subpass);
+  AddFramebufferUsage(drawNode, state.renderPass, state.framebuffer, state.subpass,
+                      state.fbattachments);
 }
 
 void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
-                                        ResourceId framebuffer, uint32_t subpass)
+                                        ResourceId framebuffer, uint32_t subpass,
+                                        const std::vector<ResourceId> &fbattachments)
 {
   VulkanCreationInfo &c = m_CreationInfo;
   uint32_t e = drawNode.draw.eventId;
@@ -3849,7 +3853,6 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
   if(renderPass != ResourceId() && framebuffer != ResourceId())
   {
     const VulkanCreationInfo::RenderPass &rp = c.m_RenderPass[renderPass];
-    const VulkanCreationInfo::Framebuffer &fb = c.m_Framebuffer[framebuffer];
 
     if(subpass >= rp.subpasses.size())
     {
@@ -3866,8 +3869,8 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
         drawNode.resourceUsage.push_back(
-            make_rdcpair(c.m_ImageView[fb.attachments[att].view].image,
-                         EventUsage(e, ResourceUsage::InputTarget, fb.attachments[att].view)));
+            make_rdcpair(c.m_ImageView[fbattachments[att]].image,
+                         EventUsage(e, ResourceUsage::InputTarget, fbattachments[att])));
       }
 
       for(size_t i = 0; i < sub.colorAttachments.size(); i++)
@@ -3876,16 +3879,16 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
         drawNode.resourceUsage.push_back(
-            make_rdcpair(c.m_ImageView[fb.attachments[att].view].image,
-                         EventUsage(e, ResourceUsage::ColorTarget, fb.attachments[att].view)));
+            make_rdcpair(c.m_ImageView[fbattachments[att]].image,
+                         EventUsage(e, ResourceUsage::ColorTarget, fbattachments[att])));
       }
 
       if(sub.depthstencilAttachment >= 0)
       {
         int32_t att = sub.depthstencilAttachment;
-        drawNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[fb.attachments[att].view].image,
-            EventUsage(e, ResourceUsage::DepthStencilTarget, fb.attachments[att].view)));
+        drawNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[fbattachments[att]].image,
+                         EventUsage(e, ResourceUsage::DepthStencilTarget, fbattachments[att])));
       }
     }
   }
@@ -3893,12 +3896,13 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
 
 void WrappedVulkan::AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode,
                                                    ResourceId renderPass, ResourceId framebuffer,
-                                                   uint32_t subpass)
+                                                   uint32_t subpass,
+                                                   const std::vector<ResourceId> &fbattachments)
 {
   for(VulkanDrawcallTreeNode &c : drawNode.children)
-    AddFramebufferUsageAllChildren(c, renderPass, framebuffer, subpass);
+    AddFramebufferUsageAllChildren(c, renderPass, framebuffer, subpass, fbattachments);
 
-  AddFramebufferUsage(drawNode, renderPass, framebuffer, subpass);
+  AddFramebufferUsage(drawNode, renderPass, framebuffer, subpass, fbattachments);
 }
 
 void WrappedVulkan::AddEvent()

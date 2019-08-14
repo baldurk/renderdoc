@@ -13,6 +13,7 @@ set(VULKAN_SRC
         vk/vk_discard_rects.cpp
         vk/vk_draw_zoo.cpp
         vk/vk_image_layouts.cpp
+        vk/vk_imageless_framebuffer.cpp
         vk/vk_indirect.cpp
         vk/vk_int8_ibuffer.cpp
         vk/vk_multi_thread_windows.cpp

@@ -409,7 +409,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
   // refreshed before the UI layer can update the current texture.
   {
     const VulkanCreationInfo::Framebuffer &fb =
-        m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.framebuffer];
+        m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.GetFramebuffer()];
 
     if(fb.width != iminfo.extent.width || fb.height != iminfo.extent.height)
       return GetResID(m_Overlay.Image);
@@ -833,7 +833,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
     // modify state
     m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
+    m_pDriver->m_RenderState.SetFramebuffer(GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe);
 
@@ -1167,7 +1167,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
     // modify state
     m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
+    m_pDriver->m_RenderState.SetFramebuffer(GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
 
@@ -1242,7 +1242,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
 
     // make a renderpass and framebuffer for rendering to overlay color and using
     // depth buffer from the orignial render
-    if(dsIdx >= 0 && dsIdx < (int32_t)createinfo.m_Framebuffer[state.framebuffer].attachments.size())
+    if(dsIdx >= 0 &&
+       dsIdx < (int32_t)createinfo.m_Framebuffer[state.GetFramebuffer()].attachments.size())
     {
       VkAttachmentDescription attDescs[] = {
           {0, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -1255,7 +1256,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL},
       };
 
-      ResourceId depthView = createinfo.m_Framebuffer[state.framebuffer].attachments[dsIdx].view;
+      ResourceId depthView = state.GetFramebufferAttachments()[dsIdx];
       VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthView];
 
       ResourceId depthIm = depthViewInfo.image;
@@ -1465,7 +1466,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
     // modify state
     m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.framebuffer = GetResID(m_Overlay.NoDepthFB);
+    m_pDriver->m_RenderState.SetFramebuffer(GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(failpipe);
 
@@ -1487,7 +1488,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
     if(depthRP != VK_NULL_HANDLE)
     {
       m_pDriver->m_RenderState.renderPass = GetResID(depthRP);
-      m_pDriver->m_RenderState.framebuffer = GetResID(depthFB);
+      m_pDriver->m_RenderState.SetFramebuffer(GetResID(depthFB));
     }
 
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
@@ -1599,7 +1600,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
       std::vector<VkClearAttachment> atts;
 
       VulkanCreationInfo::Framebuffer &fb =
-          m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.framebuffer];
+          m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.GetFramebuffer()];
       VulkanCreationInfo::RenderPass &rp =
           m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
 
@@ -1997,7 +1998,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
 
       // make a renderpass and framebuffer for rendering to overlay color and using
       // depth buffer from the orignial render
-      if(dsIdx >= 0 && dsIdx < (int32_t)createinfo.m_Framebuffer[state.framebuffer].attachments.size())
+      if(dsIdx >= 0 &&
+         dsIdx < (int32_t)createinfo.m_Framebuffer[state.GetFramebuffer()].attachments.size())
       {
         depthUsed = true;
 
@@ -2012,7 +2014,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL},
         };
 
-        ResourceId depthView = createinfo.m_Framebuffer[state.framebuffer].attachments[dsIdx].view;
+        ResourceId depthView = state.GetFramebufferAttachments()[dsIdx];
         VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthView];
 
         ResourceId depthIm = depthViewInfo.image;

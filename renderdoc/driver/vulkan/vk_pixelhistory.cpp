@@ -370,7 +370,8 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     VulkanRenderState &pipestate = m_pDriver->GetRenderState();
     ResourceId prevState = pipestate.graphics.pipeline;
     ResourceId prevRenderpass = pipestate.renderPass;
-    ResourceId prevFramebuffer = pipestate.framebuffer;
+    ResourceId prevFramebuffer = pipestate.GetFramebuffer();
+    std::vector<ResourceId> prevFBattachments = pipestate.GetFramebufferAttachments();
     uint32_t prevSubpass = pipestate.subpass;
 
     {
@@ -395,7 +396,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
         for(uint32_t i = 0; i < pipestate.views.size(); i++)
           UpdateScissor(pipestate.views[i], pipestate.scissors[i]);
 
-      pipestate.framebuffer = GetResID(m_OffscreenFB);
+      pipestate.SetFramebuffer(GetResID(m_OffscreenFB));
       pipestate.renderPass = GetResID(m_RenderPass);
       pipestate.subpass = 0;
       pipestate.graphics.pipeline = GetResID(replacements.occlusion);
@@ -410,7 +411,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
 
     // Restore the state.
     m_pDriver->GetRenderState() = m_PrevState;
-    pipestate.framebuffer = prevFramebuffer;
+    pipestate.SetFramebuffer(prevFramebuffer, prevFBattachments);
     pipestate.renderPass = prevRenderpass;
     pipestate.subpass = prevSubpass;
 

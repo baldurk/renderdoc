@@ -100,7 +100,19 @@ struct VulkanRenderState
   ResourceId renderPass;
   uint32_t subpass;
 
-  ResourceId framebuffer;
+  // framebuffer accessors - to allow for imageless framebuffers and prevent accidentally changing
+  // only the framebuffer without updating the attachments
+  void SetFramebuffer(ResourceId fb,
+                      const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo = NULL);
+  void SetFramebuffer(ResourceId fb, const std::vector<ResourceId> &dynamicAttachments)
+  {
+    framebuffer = fb;
+    fbattachments = dynamicAttachments;
+  }
+  ResourceId GetFramebuffer() const { return framebuffer; }
+  const std::vector<ResourceId> &GetFramebufferAttachments() const { return fbattachments; }
+  //
+
   VkRect2D renderArea;
 
   VulkanStatePipeline compute, graphics;
@@ -147,4 +159,8 @@ struct VulkanRenderState
   VulkanResourceManager *GetResourceManager();
   VulkanCreationInfo *m_CreationInfo;
   WrappedVulkan *m_pDriver;
+
+private:
+  ResourceId framebuffer;
+  std::vector<ResourceId> fbattachments;
 };

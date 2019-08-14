@@ -1272,21 +1272,21 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews;
     }
 
-    m_VulkanPipelineState.currentPass.framebuffer.resourceId = rm->GetOriginalID(state.framebuffer);
+    ResourceId fb = state.GetFramebuffer();
 
-    if(state.framebuffer != ResourceId())
+    m_VulkanPipelineState.currentPass.framebuffer.resourceId = rm->GetOriginalID(fb);
+
+    if(fb != ResourceId())
     {
-      m_VulkanPipelineState.currentPass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;
-      m_VulkanPipelineState.currentPass.framebuffer.height =
-          c.m_Framebuffer[state.framebuffer].height;
-      m_VulkanPipelineState.currentPass.framebuffer.layers =
-          c.m_Framebuffer[state.framebuffer].layers;
+      m_VulkanPipelineState.currentPass.framebuffer.width = c.m_Framebuffer[fb].width;
+      m_VulkanPipelineState.currentPass.framebuffer.height = c.m_Framebuffer[fb].height;
+      m_VulkanPipelineState.currentPass.framebuffer.layers = c.m_Framebuffer[fb].layers;
 
       m_VulkanPipelineState.currentPass.framebuffer.attachments.resize(
-          c.m_Framebuffer[state.framebuffer].attachments.size());
-      for(size_t i = 0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
+          c.m_Framebuffer[fb].attachments.size());
+      for(size_t i = 0; i < c.m_Framebuffer[fb].attachments.size(); i++)
       {
-        ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
+        ResourceId viewid = state.GetFramebufferAttachments()[i];
 
         if(viewid != ResourceId())
         {

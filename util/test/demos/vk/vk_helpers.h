@@ -657,17 +657,23 @@ struct AttachmentDescription : public VkAttachmentDescription
 struct FramebufferCreateInfo : public VkFramebufferCreateInfo
 {
   FramebufferCreateInfo(VkRenderPass renderPass, const std::vector<VkImageView> &attachments,
-                        VkExtent2D extent, uint32_t layers = 1)
+                        VkExtent2D extent, uint32_t layers = 1, VkFramebufferCreateFlags flags = 0)
   {
     sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     pNext = NULL;
-    this->flags = 0;
+    this->flags = flags;
     this->renderPass = renderPass;
     this->attachmentCount = (uint32_t)attachments.size();
     this->pAttachments = attachments.data();
     this->width = extent.width;
     this->height = extent.height;
     this->layers = layers;
+  }
+
+  FramebufferCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
   }
 
   operator const VkFramebufferCreateInfo *() const { return this; }
