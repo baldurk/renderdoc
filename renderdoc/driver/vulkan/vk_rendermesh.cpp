@@ -291,6 +291,20 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLay
   rs.lineWidth = 1.0f;
   ds.depthTestEnable = false;
 
+  // to be friendlier to implementations that don't support LINE polygon mode, when the topology is
+  // already lines, we can just use fill. This is most commonly used for the helpers
+  if(primary.topology == Topology::LineList)
+    rs.polygonMode = VK_POLYGON_MODE_FILL;
+
+  // if the device doesn't support non-solid fill mode, fall back to fill. We don't try to patch
+  // index buffers for mesh render since it's not worth the trouble - mesh rendering happens locally
+  // and typically the local machine is capable enough to do line raster.
+  if(!m_pDriver->GetDeviceFeatures().fillModeNonSolid)
+  {
+    RDCWARN("Can't render mesh wireframes without non-solid fill mode support");
+    rs.polygonMode = VK_POLYGON_MODE_FILL;
+  }
+
   vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                     &cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
