@@ -71,16 +71,21 @@ struct VulkanRenderState
   // dynamic state
   std::vector<VkViewport> views;
   std::vector<VkRect2D> scissors;
-  float lineWidth;
+  float lineWidth = 1.0f;
   struct
   {
-    float depth, biasclamp, slope;
+    float depth = 0.0f;
+    float biasclamp = 0.0f;
+    float slope = 0.0f;
   } bias;
-  float blendConst[4];
-  float mindepth, maxdepth;
+  float blendConst[4] = {};
+  float mindepth = 0.0f;
+  float maxdepth = 1.0f;
   struct
   {
-    uint32_t compare, write, ref;
+    uint32_t compare = 0;
+    uint32_t write = 0;
+    uint32_t ref = 0;
   } front, back;
 
   struct
@@ -93,12 +98,12 @@ struct VulkanRenderState
   std::vector<VkRect2D> discardRectangles;
 
   // this should be big enough for any implementation
-  byte pushconsts[1024];
+  byte pushconsts[1024] = {};
   // the actual number of bytes that have been uploaded
   uint32_t pushConstSize = 0;
 
   ResourceId renderPass;
-  uint32_t subpass;
+  uint32_t subpass = 0;
 
   // framebuffer accessors - to allow for imageless framebuffers and prevent accidentally changing
   // only the framebuffer without updating the attachments
@@ -113,36 +118,36 @@ struct VulkanRenderState
   const std::vector<ResourceId> &GetFramebufferAttachments() const { return fbattachments; }
   //
 
-  VkRect2D renderArea;
+  VkRect2D renderArea = {};
 
   VulkanStatePipeline compute, graphics;
 
   struct IdxBuffer
   {
     ResourceId buf;
-    VkDeviceSize offs;
-    int bytewidth;
+    VkDeviceSize offs = 0;
+    int bytewidth = 0;
   } ibuffer;
 
   struct VertBuffer
   {
     ResourceId buf;
-    VkDeviceSize offs;
+    VkDeviceSize offs = 0;
   };
   std::vector<VertBuffer> vbuffers;
 
   struct XFBBuffer
   {
     ResourceId buf;
-    VkDeviceSize offs;
-    VkDeviceSize size;
+    VkDeviceSize offs = 0;
+    VkDeviceSize size = 0;
   };
   std::vector<XFBBuffer> xfbbuffers;
 
   struct XFBCounter
   {
     ResourceId buf;
-    VkDeviceSize offs;
+    VkDeviceSize offs = 0;
   };
   uint32_t firstxfbcounter = 0;
   std::vector<XFBCounter> xfbcounters;
@@ -150,10 +155,10 @@ struct VulkanRenderState
   struct ConditionalRendering
   {
     ResourceId buffer;
-    VkDeviceSize offset;
-    VkConditionalRenderingFlagsEXT flags;
+    VkDeviceSize offset = 0;
+    VkConditionalRenderingFlagsEXT flags = 0;
 
-    bool forceDisable;
+    bool forceDisable = false;
   } conditionalRendering;
 
   VulkanResourceManager *GetResourceManager();

@@ -30,30 +30,7 @@
 VulkanRenderState::VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo)
     : m_CreationInfo(createInfo), m_pDriver(driver)
 {
-  compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
-  compute.descSets.clear();
-  graphics.descSets.clear();
-
-  views.clear();
-  scissors.clear();
-  lineWidth = 1.0f;
-  RDCEraseEl(bias);
-  RDCEraseEl(blendConst);
-  mindepth = 0.0f;
-  maxdepth = 1.0f;
-  RDCEraseEl(front);
-  RDCEraseEl(back);
-  RDCEraseEl(pushconsts);
-
-  renderPass = ResourceId();
-  subpass = 0;
-
-  RDCEraseEl(renderArea);
-
   RDCEraseEl(ibuffer);
-  vbuffers.clear();
-
-  RDCEraseEl(conditionalRendering);
 }
 
 void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding)
