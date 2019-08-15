@@ -387,7 +387,8 @@
   DeclExt(EXT_buffer_device_address);           \
   DeclExt(EXT_full_screen_exclusive);           \
   DeclExt(EXT_hdr_metadata);                    \
-  DeclExt(AMD_display_native_hdr);
+  DeclExt(AMD_display_native_hdr);              \
+  DeclExt(KHR_pipeline_executable_properties);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -465,7 +466,8 @@
   CheckExt(EXT_host_query_reset, VKXX);           \
   CheckExt(EXT_buffer_device_address, VKXX);      \
   CheckExt(EXT_hdr_metadata, VKXX);               \
-  CheckExt(AMD_display_native_hdr, VKXX);
+  CheckExt(AMD_display_native_hdr, VKXX);         \
+  CheckExt(KHR_pipeline_executable_properties, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -604,6 +606,10 @@
   HookInitExtension(EXT_buffer_device_address, GetBufferDeviceAddressEXT);                         \
   HookInitExtension(EXT_hdr_metadata, SetHdrMetadataEXT);                                          \
   HookInitExtension(AMD_display_native_hdr, SetLocalDimmingAMD);                                   \
+  HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutablePropertiesKHR);       \
+  HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutableStatisticsKHR);       \
+  HookInitExtension(KHR_pipeline_executable_properties,                                            \
+                    GetPipelineExecutableInternalRepresentationsKHR);                              \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1183,4 +1189,14 @@
   HookDefine4(VkResult, vkCreateHeadlessSurfaceEXT, VkInstance, instance,                            \
               const VkHeadlessSurfaceCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *,    \
               pAllocator, VkSurfaceKHR *, pSurface);                                                 \
+  HookDefine4(VkResult, vkGetPipelineExecutablePropertiesKHR, VkDevice, device,                      \
+              const VkPipelineInfoKHR *, pPipelineInfo, uint32_t *, pExecutableCount,                \
+              VkPipelineExecutablePropertiesKHR *, pProperties);                                     \
+  HookDefine4(VkResult, vkGetPipelineExecutableStatisticsKHR, VkDevice, device,                      \
+              const VkPipelineExecutableInfoKHR *, pExecutableInfo, uint32_t *, pStatisticCount,     \
+              VkPipelineExecutableStatisticKHR *, pStatistics);                                      \
+  HookDefine4(VkResult, vkGetPipelineExecutableInternalRepresentationsKHR, VkDevice, device,         \
+              const VkPipelineExecutableInfoKHR *, pExecutableInfo, uint32_t *,                      \
+              pInternalRepresentationCount, VkPipelineExecutableInternalRepresentationKHR *,         \
+              pInternalRepresentations);                                                             \
   HookDefine_PlatformSpecific()

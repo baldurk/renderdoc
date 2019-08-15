@@ -224,6 +224,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceMultiviewProperties);                                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,                         \
               VkPhysicalDevicePCIBusInfoPropertiesEXT);                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,         \
+              VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR)                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES,                           \
               VkPhysicalDevicePointClippingProperties);                                              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, VkPhysicalDeviceProperties2);          \
@@ -292,6 +294,11 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPipelineDiscardRectangleStateCreateInfoEXT);                                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,                                  \
               VkPipelineDynamicStateCreateInfo);                                                     \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR,                                  \
+              VkPipelineExecutablePropertiesKHR)                                                     \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR, VkPipelineExecutableStatisticKHR) \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR,                     \
+              VkPipelineExecutableInternalRepresentationKHR)                                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,                           \
               VkPipelineInputAssemblyStateCreateInfo);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,                              \
@@ -427,6 +434,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->memory));                                                         \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO, VkMemoryDedicatedAllocateInfo,     \
                 UnwrapInPlace(out->buffer), UnwrapInPlace(out->image));                              \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, VkPipelineInfoKHR,                              \
+                UnwrapInPlace(out->pipeline));                                                       \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR, VkPipelineExecutableInfoKHR,         \
+                UnwrapInPlace(out->pipeline));                                                       \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, VkRenderPassBeginInfo,                     \
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo,       \
@@ -535,7 +546,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_ATTRIBUTES_PROPERTIES_NVX: \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR:  \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV:     \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_2_AMD:                 \
@@ -550,11 +560,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV:            \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_REDUCTION_STATE_CREATE_INFO_NV:             \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV:              \
-  case VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR:                                 \
-  case VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR:              \
-  case VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR:                           \
-  case VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR:                            \
-  case VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR:                                            \
   case VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT:            \
   case VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD:         \
   case VK_STRUCTURE_TYPE_PIPELINE_REPRESENTATIVE_FRAGMENT_TEST_STATE_CREATE_INFO_NV:   \

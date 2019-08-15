@@ -40,7 +40,8 @@
 #include "data/glsl/glsl_ubos_cpp.h"
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
-static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
+static const char *AMDShaderInfoTarget = "AMD_shader_info disassembly";
+static const char *KHRExecutablePropertiesTarget = "KHR_pipeline_executable_properties";
 
 VulkanReplay::VulkanReplay()
 {
@@ -350,11 +351,11 @@ std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
 {
   std::vector<std::string> ret;
 
-  VkDevice dev = m_pDriver->GetDev();
-  const VkDevDispatchTable *vt = ObjDisp(dev);
+  if(m_pDriver->GetExtensions(NULL).ext_AMD_shader_info)
+    ret.push_back(AMDShaderInfoTarget);
 
-  if(vt->GetShaderInfoAMD)
-    ret.push_back(LiveDriverDisassemblyTarget);
+  if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
+    ret.push_back(KHRExecutablePropertiesTarget);
 
   // default is always first
   ret.insert(ret.begin(), SPIRVDisassemblyTarget);
@@ -363,6 +364,79 @@ std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
   // Ditto for SPIRV-cross (to glsl/hlsl)
 
   return ret;
+}
+
+void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
+{
+  auto it = m_PipelineExecutables.insert({pipeline, rdcarray<PipelineExecutables>()});
+
+  if(!it.second)
+    return;
+
+  rdcarray<PipelineExecutables> &data = it.first->second;
+
+  VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
+
+  VkPipelineInfoKHR pipeInfo = {
+      VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, NULL, Unwrap(pipe),
+  };
+
+  VkDevice dev = m_pDriver->GetDev();
+  const VkDevDispatchTable *vt = ObjDisp(dev);
+
+  uint32_t execCount = 0;
+  vt->GetPipelineExecutablePropertiesKHR(Unwrap(dev), &pipeInfo, &execCount, NULL);
+
+  rdcarray<VkPipelineExecutablePropertiesKHR> executables;
+  executables.resize(execCount);
+  data.resize(execCount);
+  vt->GetPipelineExecutablePropertiesKHR(Unwrap(dev), &pipeInfo, &execCount, executables.data());
+
+  for(uint32_t i = 0; i < execCount; i++)
+  {
+    const VkPipelineExecutablePropertiesKHR &exec = executables[i];
+    PipelineExecutables &out = data[i];
+    out.name = exec.name;
+    out.description = exec.description;
+    out.stages = exec.stages;
+    out.subgroupSize = exec.subgroupSize;
+    rdcarray<VkPipelineExecutableStatisticKHR> &stats = out.statistics;
+    rdcarray<VkPipelineExecutableInternalRepresentationKHR> &irs = out.representations;
+
+    VkPipelineExecutableInfoKHR pipeExecInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, NULL, Unwrap(pipe), i,
+    };
+
+    // enumerate statistics
+    uint32_t statCount = 0;
+    vt->GetPipelineExecutableStatisticsKHR(Unwrap(dev), &pipeExecInfo, &statCount, NULL);
+
+    stats.resize(statCount);
+    for(uint32_t s = 0; s < statCount; s++)
+      stats[s].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR;
+    vt->GetPipelineExecutableStatisticsKHR(Unwrap(dev), &pipeExecInfo, &statCount, stats.data());
+
+    // enumerate internal representations
+    uint32_t irCount = 0;
+    vt->GetPipelineExecutableInternalRepresentationsKHR(Unwrap(dev), &pipeExecInfo, &irCount, NULL);
+
+    irs.resize(irCount);
+    for(uint32_t ir = 0; ir < irCount; ir++)
+      irs[ir].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR;
+    vt->GetPipelineExecutableInternalRepresentationsKHR(Unwrap(dev), &pipeExecInfo, &irCount,
+                                                        irs.data());
+
+    // need to now allocate space, and try again
+    out.irbytes.resize(irCount);
+    for(uint32_t ir = 0; ir < irCount; ir++)
+    {
+      out.irbytes[ir].resize(irs[ir].dataSize);
+      irs[ir].pData = out.irbytes[ir].data();
+    }
+
+    vt->GetPipelineExecutableInternalRepresentationsKHR(Unwrap(dev), &pipeExecInfo, &irCount,
+                                                        irs.data());
+  }
 }
 
 std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
@@ -387,12 +461,12 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
   VkDevice dev = m_pDriver->GetDev();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
-  if(target == LiveDriverDisassemblyTarget && vt->GetShaderInfoAMD)
+  if(target == AMDShaderInfoTarget && vt->GetShaderInfoAMD)
   {
     if(pipeline == ResourceId())
     {
-      return "; No pipeline specified, live driver disassembly is not available\n"
-             "; Shader must be disassembled with a specific pipeline to get live driver assembly.";
+      return "; No pipeline specified, VK_AMD_shader_info disassembly is not available\n"
+             "; Shader must be disassembled with a specific pipeline.";
     }
 
     VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
@@ -408,6 +482,139 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
     disasm.resize(size);
     vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
                          &size, (void *)disasm.data());
+
+    return disasm;
+  }
+
+  if(target == KHRExecutablePropertiesTarget && vt->GetPipelineExecutablePropertiesKHR)
+  {
+    if(pipeline == ResourceId())
+    {
+      return "; No pipeline specified, VK_KHR_pipeline_executable_properties disassembly is not "
+             "available\n"
+             "; Shader must be disassembled with a specific pipeline.";
+    }
+
+    CachePipelineExecutables(pipeline);
+
+    VkShaderStageFlagBits stageBit =
+        VkShaderStageFlagBits(1 << it->second.m_Reflections[refl->entryPoint.c_str()].stageIndex);
+
+    const rdcarray<PipelineExecutables> &executables = m_PipelineExecutables[pipeline];
+
+    std::string disasm;
+
+    for(const PipelineExecutables &exec : executables)
+    {
+      // if this executable is associated with our stage, definitely include it. If this executable
+      // is associated with *no* stages, then also include it (since we don't know what it
+      // corresponds to)
+      if((exec.stages & stageBit) || exec.stages == 0)
+      {
+        disasm += "======== " + exec.name + " ========\n\n";
+        disasm += exec.description + "\n\n";
+
+        // statistics first
+        disasm += StringFormat::Fmt(
+            "==== Statistics ====\n\n"
+            "Subgroup Size: %u"
+            "      // the subgroup size with which this executable is dispatched.\n",
+            exec.subgroupSize);
+
+        for(const VkPipelineExecutableStatisticKHR &stat : exec.statistics)
+        {
+          std::string value;
+
+          switch(stat.format)
+          {
+            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
+              value = stat.value.b32 ? "true" : "false";
+              break;
+            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR:
+              value = ToStr(stat.value.i64);
+              break;
+            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR:
+              value = ToStr(stat.value.u64);
+              break;
+            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
+              value = ToStr(stat.value.f64);
+              break;
+            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_RANGE_SIZE_KHR:
+            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_MAX_ENUM_KHR: value = "???"; break;
+          }
+
+          disasm +=
+              StringFormat::Fmt("%s: %s      // %s\n", stat.name, value.c_str(), stat.description);
+        }
+
+        // then IRs
+
+        if(!exec.representations.empty())
+          disasm += "\n\n==== Internal Representations ====\n\n";
+
+        for(const VkPipelineExecutableInternalRepresentationKHR &ir : exec.representations)
+        {
+          disasm += "---- " + std::string(ir.name) + " ----\n\n";
+          disasm += "; " + std::string(ir.description) + "\n\n";
+          if(ir.isText)
+          {
+            char *str = (char *)ir.pData;
+            // should already be NULL terminated but let's be sure
+            str[ir.dataSize - 1] = 0;
+            disasm += str;
+          }
+          else
+          {
+            // canonical hexdump display
+            size_t bytesRemaining = ir.dataSize;
+            size_t offset = 0;
+            const byte *src = (const byte *)ir.pData;
+            while(bytesRemaining > 0)
+            {
+              uint8_t row[16];
+              const size_t copySize = RDCMIN(sizeof(row), bytesRemaining);
+
+              memcpy(row, src + offset, copySize);
+
+              disasm += StringFormat::Fmt("%08zx ", offset);
+              for(size_t b = 0; b < 16; b++)
+              {
+                if(b < bytesRemaining)
+                  disasm += StringFormat::Fmt("%02hhx ", row[b]);
+                else
+                  disasm += "   ";
+
+                if(b == 7 || b == 15)
+                  disasm += " ";
+              }
+
+              disasm += "|";
+
+              for(size_t b = 0; b < 16; b++)
+              {
+                if(b < bytesRemaining)
+                {
+                  char c = (char)row[b];
+                  if(isprint(c))
+                    disasm.push_back(c);
+                  else
+                    disasm.push_back('.');
+                }
+              }
+
+              disasm += "|";
+
+              disasm += "\n";
+
+              offset += copySize;
+              bytesRemaining -= copySize;
+            }
+
+            disasm += StringFormat::Fmt("%08zx", offset);
+          }
+        }
+      }
+    }
 
     return disasm;
   }
@@ -3633,6 +3840,13 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
             sh.module = dstShaderModule;
         }
 
+        // if we have pipeline executable properties, capture the data
+        if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
+        {
+          pipeCreateInfo.flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
+                                   VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+        }
+
         // create the new graphics pipeline
         VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                             NULL, &pipe);
@@ -3647,6 +3861,13 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
         VkPipelineShaderStageCreateInfo &sh = pipeCreateInfo.stage;
         RDCASSERT(sh.module == srcShaderModule);
         sh.module = dstShaderModule;
+
+        // if we have pipeline executable properties, capture the data
+        if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
+        {
+          pipeCreateInfo.flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
+                                   VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+        }
 
         // create the new compute pipeline
         VkResult vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo,

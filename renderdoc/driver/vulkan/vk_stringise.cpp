@@ -2573,6 +2573,19 @@ rdcstr DoStringise(const VkShaderFloatControlsIndependenceKHR &el)
 }
 
 template <>
+rdcstr DoStringise(const VkPipelineExecutableStatisticFormatKHR &el)
+{
+  BEGIN_ENUM_STRINGISE(VkPipelineExecutableStatisticFormatKHR);
+  {
+    STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR);
+    STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR);
+    STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR);
+    STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const VkExtent3D &el)
 {
   return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);

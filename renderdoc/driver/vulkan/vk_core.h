@@ -2104,8 +2104,25 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkReleaseFullScreenExclusiveModeEXT, VkDevice device,
                                 VkSwapchainKHR swapchain);
 
+  // VK_EXT_headless_surface
+
   VkResult vkCreateHeadlessSurfaceEXT(VkInstance instance,
                                       const VkHeadlessSurfaceCreateInfoEXT *pCreateInfo,
                                       const VkAllocationCallbacks *pAllocator,
                                       VkSurfaceKHR *pSurface);
+
+  // VK_KHR_pipeline_executable_properties
+
+  VkResult vkGetPipelineExecutablePropertiesKHR(VkDevice device,
+                                                const VkPipelineInfoKHR *pPipelineInfo,
+                                                uint32_t *pExecutableCount,
+                                                VkPipelineExecutablePropertiesKHR *pProperties);
+  VkResult vkGetPipelineExecutableStatisticsKHR(VkDevice device,
+                                                const VkPipelineExecutableInfoKHR *pExecutableInfo,
+                                                uint32_t *pStatisticCount,
+                                                VkPipelineExecutableStatisticKHR *pStatistics);
+  VkResult vkGetPipelineExecutableInternalRepresentationsKHR(
+      VkDevice device, const VkPipelineExecutableInfoKHR *pExecutableInfo,
+      uint32_t *pInternalRepresentationCount,
+      VkPipelineExecutableInternalRepresentationKHR *pInternalRepresentations);
 };

@@ -729,3 +729,34 @@ VkDeviceAddress WrappedVulkan::vkGetBufferDeviceAddressEXT(VkDevice device,
   unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
   return ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &unwrappedInfo);
 }
+
+VkResult WrappedVulkan::vkGetPipelineExecutablePropertiesKHR(
+    VkDevice device, const VkPipelineInfoKHR *pPipelineInfo, uint32_t *pExecutableCount,
+    VkPipelineExecutablePropertiesKHR *pProperties)
+{
+  VkPipelineInfoKHR unwrappedInfo = *pPipelineInfo;
+  unwrappedInfo.pipeline = Unwrap(unwrappedInfo.pipeline);
+  return ObjDisp(device)->GetPipelineExecutablePropertiesKHR(Unwrap(device), &unwrappedInfo,
+                                                             pExecutableCount, pProperties);
+}
+
+VkResult WrappedVulkan::vkGetPipelineExecutableStatisticsKHR(
+    VkDevice device, const VkPipelineExecutableInfoKHR *pExecutableInfo, uint32_t *pStatisticCount,
+    VkPipelineExecutableStatisticKHR *pStatistics)
+{
+  VkPipelineExecutableInfoKHR unwrappedInfo = *pExecutableInfo;
+  unwrappedInfo.pipeline = Unwrap(unwrappedInfo.pipeline);
+  return ObjDisp(device)->GetPipelineExecutableStatisticsKHR(Unwrap(device), &unwrappedInfo,
+                                                             pStatisticCount, pStatistics);
+}
+
+VkResult WrappedVulkan::vkGetPipelineExecutableInternalRepresentationsKHR(
+    VkDevice device, const VkPipelineExecutableInfoKHR *pExecutableInfo,
+    uint32_t *pInternalRepresentationCount,
+    VkPipelineExecutableInternalRepresentationKHR *pInternalRepresentations)
+{
+  VkPipelineExecutableInfoKHR unwrappedInfo = *pExecutableInfo;
+  unwrappedInfo.pipeline = Unwrap(unwrappedInfo.pipeline);
+  return ObjDisp(device)->GetPipelineExecutableInternalRepresentationsKHR(
+      Unwrap(device), &unwrappedInfo, pInternalRepresentationCount, pInternalRepresentations);
+}

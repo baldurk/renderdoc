@@ -676,6 +676,22 @@ private:
 
   DriverInformation m_DriverInfo;
 
+  struct PipelineExecutables
+  {
+    VkShaderStageFlags stages;
+    rdcstr name, description;
+    uint32_t subgroupSize;
+    rdcarray<VkPipelineExecutableStatisticKHR> statistics;
+    rdcarray<VkPipelineExecutableInternalRepresentationKHR> representations;
+
+    // internal data, pointed to from representations above
+    rdcarray<bytebuf> irbytes;
+  };
+
+  std::map<ResourceId, rdcarray<PipelineExecutables>> m_PipelineExecutables;
+
+  void CachePipelineExecutables(ResourceId pipeline);
+
   void CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
                           CompType typeHint, TextureDisplayViews &views);
 

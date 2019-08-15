@@ -809,6 +809,17 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES,                                 \
                VkPhysicalDeviceMultiviewProperties)                                                    \
                                                                                                        \
+  /* VK_KHR_pipeline_executable_properties */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,          \
+               VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR)                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, VkPipelineInfoKHR)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR,                                   \
+               VkPipelineExecutablePropertiesKHR)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR, VkPipelineExecutableInfoKHR)            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR, VkPipelineExecutableStatisticKHR)  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR,                      \
+               VkPipelineExecutableInternalRepresentationKHR)                                          \
+                                                                                                       \
   /* VK_KHR_push_descriptor */                                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR,                       \
                VkPhysicalDevicePushDescriptorPropertiesKHR)                                            \
@@ -968,14 +979,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_INTEL_shader_integer_functions2 */                                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL)       \
-                                                                                                       \
-  /* VK_KHR_pipeline_executable_properties */                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR)     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR)                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR)                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR)                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR)                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR)                 \
                                                                                                        \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
@@ -4203,6 +4206,126 @@ void Deserialise(const VkPhysicalDeviceMultiviewProperties &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(pipelineExecutableInfo);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(pipeline);
+}
+
+template <>
+void Deserialise(const VkPipelineInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineExecutablePropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkShaderStageFlags, stages);
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(description);
+  SERIALISE_MEMBER(subgroupSize);
+}
+
+template <>
+void Deserialise(const VkPipelineExecutablePropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineExecutableInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(pipeline);
+  SERIALISE_MEMBER(executableIndex);
+}
+
+template <>
+void Deserialise(const VkPipelineExecutableInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineExecutableStatisticValueKHR &el)
+{
+  SERIALISE_MEMBER(b32);
+  SERIALISE_MEMBER(i64);
+  SERIALISE_MEMBER(u64);
+  SERIALISE_MEMBER(f64);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineExecutableStatisticKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(description);
+  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(value);
+}
+
+template <>
+void Deserialise(const VkPipelineExecutableStatisticKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineExecutableInternalRepresentationKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(description);
+  SERIALISE_MEMBER(isText);
+
+  // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
+  {
+    uint64_t dataSize = el.dataSize;
+    ser.Serialise("dataSize"_lit, dataSize);
+    if(ser.IsReading())
+      el.dataSize = (size_t)dataSize;
+  }
+
+  SERIALISE_MEMBER_ARRAY(pData, dataSize);
+}
+
+template <>
+void Deserialise(const VkPipelineExecutableInternalRepresentationKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDevicePushDescriptorPropertiesKHR &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -7148,6 +7271,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePointClippingProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryFeatures);
@@ -7182,6 +7306,11 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineCreationFeedbackCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineDepthStencilStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineDiscardRectangleStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineDynamicStateCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableInternalRepresentationKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutablePropertiesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableStatisticKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineInputAssemblyStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineLayoutCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineMultisampleStateCreateInfo);
@@ -7289,8 +7418,9 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceLimits);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseProperties);
-INSTANTIATE_SERIALISE_TYPE(VkPipelineCreationFeedbackEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineColorBlendAttachmentState);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineCreationFeedbackEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableStatisticValueKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPresentRegionKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPushConstantRange);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties);

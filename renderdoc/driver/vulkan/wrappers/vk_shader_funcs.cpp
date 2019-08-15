@@ -421,6 +421,13 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     // don't use pipeline caches on replay
     pipelineCache = VK_NULL_HANDLE;
 
+    // if we have pipeline executable properties, capture the data
+    if(GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
+    {
+      CreateInfo.flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
+                           VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+    }
+
     VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
     VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
                                                             1, unwrapped, NULL, &pipe);
@@ -613,6 +620,13 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
 
     // don't use pipeline caches on replay
     pipelineCache = VK_NULL_HANDLE;
+
+    // if we have pipeline executable properties, capture the data
+    if(GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
+    {
+      CreateInfo.flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
+                           VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+    }
 
     VkComputePipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
     VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), 1,

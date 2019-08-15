@@ -1427,6 +1427,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_KHR_driver_properties");
     }
 
+    bool pipeExec = false;
+
+    // enable VK_KHR_pipeline_executable_properties if it's available, to fetch disassembly and
+    // statistics
+    if(supportedExtensions.find(VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME) !=
+       supportedExtensions.end())
+    {
+      pipeExec = true;
+      Extensions.push_back(VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
+      RDCLOG("Enabling VK_KHR_pipeline_executable_properties");
+    }
+
     bool xfb = false;
 
     // enable VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME if it's available, to fetch mesh output in
@@ -2127,6 +2139,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(computeFullSubgroups);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(pipelineExecutableInfo);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -2242,6 +2262,51 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Ext %u: %s (%u)", i, exts[i].extensionName, exts[i].specVersion);
 
     SAFE_DELETE_ARRAY(exts);
+
+    VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR pipeExecFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,
+    };
+
+    if(pipeExec)
+    {
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      availBase.pNext = &pipeExecFeatures;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
+
+      if(pipeExecFeatures.pipelineExecutableInfo)
+      {
+        // see if there's an existing struct
+        VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR *existing =
+            (VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR *)FindNextStruct(
+                &createInfo,
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR);
+
+        if(existing)
+        {
+          // if so, make sure the feature is enabled
+          existing->pipelineExecutableInfo = VK_TRUE;
+        }
+        else
+        {
+          // otherwise, add our own, and push it onto the pNext array
+          pipeExecFeatures.pipelineExecutableInfo = VK_TRUE;
+
+          pipeExecFeatures.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &pipeExecFeatures;
+        }
+      }
+      else
+      {
+        RDCWARN(
+            "VK_KHR_pipeline_executable_properties is available, but the physical device feature "
+            "is not. Disabling");
+
+        auto it = std::find(Extensions.begin(), Extensions.end(),
+                            VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
+        RDCASSERT(it != Extensions.end());
+        Extensions.erase(it);
+      }
+    }
 
     VkPhysicalDeviceTransformFeedbackFeaturesEXT xfbFeatures = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,
