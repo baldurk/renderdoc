@@ -65,6 +65,9 @@ public:
 // callback and we'll get a specific library handle.
 static void EnsureRealLibraryLoaded()
 {
+  if(RenderDoc::Inst().IsReplayApp())
+    return;
+
   if(glxhook.handle == RTLD_NEXT)
   {
     RDCLOG("Loading libGL at the last second");
