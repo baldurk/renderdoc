@@ -390,7 +390,8 @@
   DeclExt(AMD_display_native_hdr);              \
   DeclExt(EXT_depth_clip_enable);               \
   DeclExt(KHR_pipeline_executable_properties);  \
-  DeclExt(AMD_negative_viewport_height);
+  DeclExt(AMD_negative_viewport_height);        \
+  DeclExt(EXT_line_rasterization);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -471,7 +472,8 @@
   CheckExt(AMD_display_native_hdr, VKXX);             \
   CheckExt(EXT_depth_clip_enable, VKXX);              \
   CheckExt(KHR_pipeline_executable_properties, VKXX); \
-  CheckExt(AMD_negative_viewport_height, VKXX);
+  CheckExt(AMD_negative_viewport_height, VKXX);       \
+  CheckExt(EXT_line_rasterization, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -614,6 +616,7 @@
   HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutableStatisticsKHR);       \
   HookInitExtension(KHR_pipeline_executable_properties,                                            \
                     GetPipelineExecutableInternalRepresentationsKHR);                              \
+  HookInitExtension(EXT_line_rasterization, CmdSetLineStippleEXT);                                 \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1203,4 +1206,6 @@
               const VkPipelineExecutableInfoKHR *, pExecutableInfo, uint32_t *,                      \
               pInternalRepresentationCount, VkPipelineExecutableInternalRepresentationKHR *,         \
               pInternalRepresentations);                                                             \
+  HookDefine3(void, vkCmdSetLineStippleEXT, VkCommandBuffer, commandBuffer, uint32_t,                \
+              lineStippleFactor, uint16_t, lineStipplePattern);                                      \
   HookDefine_PlatformSpecific()

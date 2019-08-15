@@ -715,6 +715,13 @@ See :data:`conservativeRasterizationMode`
   float slopeScaledDepthBias = 0.0f;
   DOCUMENT("The fixed line width in pixels.");
   float lineWidth = 0.0f;
+
+  DOCUMENT("The line rasterization mode.");
+  LineRaster lineRasterMode = LineRaster::Default;
+  DOCUMENT("The line stipple factor, or 0 if line stipple is disabled.");
+  uint32_t lineStippleFactor = 0;
+  DOCUMENT("The line stipple bit-pattern.");
+  uint16_t lineStipplePattern = 0;
 };
 
 DOCUMENT("Describes state of custom sample locations in the pipeline.");

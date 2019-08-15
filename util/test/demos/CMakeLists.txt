@@ -16,6 +16,7 @@ set(VULKAN_SRC
         vk/vk_imageless_framebuffer.cpp
         vk/vk_indirect.cpp
         vk/vk_int8_ibuffer.cpp
+        vk/vk_line_raster.cpp
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
         vk/vk_resource_lifetimes.cpp

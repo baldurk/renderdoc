@@ -709,6 +709,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME, VK_EXT_INDEX_TYPE_UINT8_SPEC_VERSION,
     },
     {
+        VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME, VK_EXT_LINE_RASTERIZATION_SPEC_VERSION,
+    },
+    {
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_BUDGET_SPEC_VERSION,
     },
     {
@@ -2945,6 +2948,9 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     }
     case VulkanChunk::vkResetQueryPoolEXT:
       return Serialise_vkResetQueryPoolEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+      break;
+    case VulkanChunk::vkCmdSetLineStippleEXT:
+      return Serialise_vkCmdSetLineStippleEXT(ser, VK_NULL_HANDLE, 0, 0);
       break;
     case VulkanChunk::ImageRefs:
     {

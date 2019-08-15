@@ -2439,6 +2439,34 @@ enum class ConservativeRaster : uint32_t
 
 DECLARE_REFLECTION_ENUM(ConservativeRaster);
 
+DOCUMENT(R"(The line rasterization mode.
+
+.. data:: Default
+
+  Default line rasterization mode as defined by the API specification.
+
+.. data:: Rectangular
+
+  Lines are rasterized as rectangles extruded from the line.
+
+.. data:: Bresenham
+
+  Lines are rasterized according to the bresenham line algorithm.
+
+.. data:: RectangularSmooth
+
+  Lines are rasterized as rectangles extruded from the line with coverage falloff.
+)");
+enum class LineRaster : uint32_t
+{
+  Default = 0,
+  Rectangular,
+  Bresenham,
+  RectangularSmooth,
+};
+
+DECLARE_REFLECTION_ENUM(LineRaster);
+
 DOCUMENT(R"(The texture filtering mode for a given direction (minification, magnification, or
 between mips).
 

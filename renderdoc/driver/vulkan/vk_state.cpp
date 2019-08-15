@@ -200,6 +200,9 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
       ObjDisp(cmd)->CmdSetDiscardRectangleEXT(Unwrap(cmd), 0, (uint32_t)discardRectangles.size(),
                                               &discardRectangles[0]);
 
+    if(dynamicStates[VkDynamicLineStippleEXT])
+      ObjDisp(cmd)->CmdSetLineStippleEXT(Unwrap(cmd), stippleFactor, stipplePattern);
+
     // only set push constant ranges that the layout uses
     for(size_t i = 0; i < pushRanges.size(); i++)
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,

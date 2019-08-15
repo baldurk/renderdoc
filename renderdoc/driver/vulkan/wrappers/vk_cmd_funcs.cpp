@@ -2078,6 +2078,11 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
             {
               m_RenderState.discardRectangles = m_CreationInfo.m_Pipeline[liveid].discardRectangles;
             }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicLineStippleEXT])
+            {
+              m_RenderState.stippleFactor = m_CreationInfo.m_Pipeline[liveid].stippleFactor;
+              m_RenderState.stipplePattern = m_CreationInfo.m_Pipeline[liveid].stipplePattern;
+            }
           }
         }
       }

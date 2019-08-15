@@ -727,6 +727,16 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
       rs->depthClampEnable = true;
     }
 
+    // disable line stipple
+    VkPipelineRasterizationLineStateCreateInfoEXT *lineRasterState =
+        (VkPipelineRasterizationLineStateCreateInfoEXT *)FindNextStruct(
+            rs, VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT);
+
+    if(lineRasterState)
+    {
+      lineRasterState->stippledLineEnable = VK_FALSE;
+    }
+
     uint32_t patchedIndexCount = 0;
     GPUBuffer patchedIB;
 

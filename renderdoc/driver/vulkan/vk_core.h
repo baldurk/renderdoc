@@ -2124,4 +2124,9 @@ public:
       VkDevice device, const VkPipelineExecutableInfoKHR *pExecutableInfo,
       uint32_t *pInternalRepresentationCount,
       VkPipelineExecutableInternalRepresentationKHR *pInternalRepresentations);
+
+  // VK_EXT_line_rasterization
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
+                                uint32_t lineStippleFactor, uint16_t lineStipplePattern);
 };

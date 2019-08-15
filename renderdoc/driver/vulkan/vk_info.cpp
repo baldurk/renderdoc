@@ -404,6 +404,26 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     extraPrimitiveOverestimationSize = conservRast->extraPrimitiveOverestimationSize;
   }
 
+  // VkPipelineRasterizationLineStateCreateInfoEXT
+  lineRasterMode = VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT;
+  stippleEnabled = false;
+  stippleFactor = stipplePattern = 0;
+
+  const VkPipelineRasterizationLineStateCreateInfoEXT *lineRasterState =
+      (const VkPipelineRasterizationLineStateCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pRasterizationState,
+          VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT);
+  if(lineRasterState)
+  {
+    lineRasterMode = lineRasterState->lineRasterizationMode;
+    stippleEnabled = lineRasterState->stippledLineEnable ? true : false;
+    if(lineRasterState->stippledLineEnable)
+    {
+      stippleFactor = lineRasterState->lineStippleFactor;
+      stipplePattern = lineRasterState->lineStipplePattern;
+    }
+  }
+
   // VkPipelineMultisampleStateCreateInfo
   if(pCreateInfo->pMultisampleState)
   {

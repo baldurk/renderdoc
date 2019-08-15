@@ -585,6 +585,7 @@ enum class VulkanChunk : uint32_t
   DeviceMemoryRefs,
   vkResetQueryPoolEXT,
   ImageRefs,
+  vkCmdSetLineStippleEXT,
   Max,
 };
 
@@ -777,6 +778,8 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceIDProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImagelessFramebufferFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLineRasterizationFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLineRasterizationPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance3Properties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryBudgetPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryPriorityFeaturesEXT);
@@ -831,6 +834,7 @@ DECLARE_REFLECTION_STRUCT(VkPipelineLayoutCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkPipelineMultisampleStateCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationConservativeStateCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationDepthClipStateCreateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationLineStateCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationStateCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationStateStreamCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkPipelineSampleLocationsStateCreateInfoEXT);
@@ -1029,6 +1033,8 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceLineRasterizationFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceLineRasterizationPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance3Properties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryBudgetPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryPriorityFeaturesEXT);
@@ -1083,6 +1089,7 @@ DECLARE_DESERIALISE_TYPE(VkPipelineLayoutCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineMultisampleStateCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationConservativeStateCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationDepthClipStateCreateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationLineStateCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationStateCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkPipelineRasterizationStateStreamCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPipelineSampleLocationsStateCreateInfoEXT);
@@ -1329,6 +1336,7 @@ DECLARE_REFLECTION_ENUM(VkImageUsageFlagBits);
 DECLARE_REFLECTION_ENUM(VkImageViewCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkImageViewType);
 DECLARE_REFLECTION_ENUM(VkIndexType);
+DECLARE_REFLECTION_ENUM(VkLineRasterizationModeEXT);
 DECLARE_REFLECTION_ENUM(VkLogicOp);
 DECLARE_REFLECTION_ENUM(VkMemoryAllocateFlagBits);
 DECLARE_REFLECTION_ENUM(VkMemoryHeapFlagBits);

@@ -1307,6 +1307,30 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       default: break;
     }
 
+    m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Default;
+
+    // "VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT is equivalent to
+    // VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT if VkPhysicalDeviceLimits::strictLines is VK_TRUE"
+    if(m_pDriver->GetDeviceProps().limits.strictLines)
+      m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Rectangular;
+
+    switch(p.lineRasterMode)
+    {
+      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT:
+        m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Rectangular;
+        break;
+      case VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT:
+        m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Bresenham;
+        break;
+      case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT:
+        m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::RectangularSmooth;
+        break;
+      default: break;
+    }
+
+    m_VulkanPipelineState.rasterizer.lineStippleFactor = state.stippleFactor;
+    m_VulkanPipelineState.rasterizer.lineStipplePattern = state.stipplePattern;
+
     m_VulkanPipelineState.rasterizer.extraPrimitiveOverestimationSize =
         p.extraPrimitiveOverestimationSize;
 

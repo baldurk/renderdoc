@@ -697,6 +697,11 @@ void VulkanPipelineStateViewer::clearState()
   ui->overestimationSize->setText(lit("0.0"));
   ui->multiview->setText(tr("Disabled"));
 
+  ui->stippleFactor->setText(QString());
+  ui->stippleFactor->setPixmap(cross);
+  ui->stipplePattern->setText(QString());
+  ui->stipplePattern->setPixmap(cross);
+
   ui->sampleCount->setText(lit("1"));
   ui->sampleShading->setPixmap(tick);
   ui->minSampleShading->setText(lit("0.0"));
@@ -2137,6 +2142,21 @@ void VulkanPipelineStateViewer::setState()
   ui->conservativeRaster->setText(ToQStr(state.rasterizer.conservativeRasterization));
   ui->overestimationSize->setText(
       Formatter::Format(state.rasterizer.extraPrimitiveOverestimationSize));
+
+  if(state.rasterizer.lineStippleFactor == 0)
+  {
+    ui->stippleFactor->setText(QString());
+    ui->stippleFactor->setPixmap(cross);
+    ui->stipplePattern->setText(QString());
+    ui->stipplePattern->setPixmap(cross);
+  }
+  else
+  {
+    ui->stippleFactor->setPixmap(QPixmap());
+    ui->stippleFactor->setText(ToQStr(state.rasterizer.lineStippleFactor));
+    ui->stipplePattern->setPixmap(QPixmap());
+    ui->stipplePattern->setText(QString::number(state.rasterizer.lineStipplePattern, 2));
+  }
 
   if(state.currentPass.renderpass.multiviews.isEmpty())
   {

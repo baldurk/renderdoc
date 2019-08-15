@@ -2131,6 +2131,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(pipelineExecutableInfo);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceLineRasterizationFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(rectangularLines);
+        CHECK_PHYS_EXT_FEATURE(bresenhamLines);
+        CHECK_PHYS_EXT_FEATURE(smoothLines);
+        CHECK_PHYS_EXT_FEATURE(stippledRectangularLines);
+        CHECK_PHYS_EXT_FEATURE(stippledBresenhamLines);
+        CHECK_PHYS_EXT_FEATURE(stippledSmoothLines);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

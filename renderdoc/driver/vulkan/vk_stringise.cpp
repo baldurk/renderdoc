@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1135, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1136, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -167,6 +167,7 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS_NAMED(DeviceMemoryRefs, "Internal: Device Memory References")
     STRINGISE_ENUM_CLASS(vkResetQueryPoolEXT);
     STRINGISE_ENUM_CLASS_NAMED(ImageRefs, "Image References")
+    STRINGISE_ENUM_CLASS(vkCmdSetLineStippleEXT);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -2581,6 +2582,19 @@ rdcstr DoStringise(const VkPipelineExecutableStatisticFormatKHR &el)
     STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR);
     STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR);
     STRINGISE_ENUM(VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const VkLineRasterizationModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkLineRasterizationModeEXT);
+  {
+    STRINGISE_ENUM(VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT);
+    STRINGISE_ENUM(VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT);
+    STRINGISE_ENUM(VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT);
+    STRINGISE_ENUM(VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT);
   }
   END_ENUM_STRINGISE();
 }

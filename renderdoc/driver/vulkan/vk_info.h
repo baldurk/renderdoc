@@ -225,6 +225,12 @@ struct VulkanCreationInfo
     VkConservativeRasterizationModeEXT conservativeRasterizationMode;
     float extraPrimitiveOverestimationSize;
 
+    // VkPipelineRasterizationLineStateCreateInfoEXT
+    VkLineRasterizationModeEXT lineRasterMode;
+    bool stippleEnabled;
+    uint32_t stippleFactor;
+    uint16_t stipplePattern;
+
     // VkPipelineMultisampleStateCreateInfo
     VkSampleCountFlagBits rasterizationSamples;
     bool sampleShadingEnable;

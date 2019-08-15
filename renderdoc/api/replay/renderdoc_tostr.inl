@@ -286,6 +286,19 @@ rdcstr DoStringise(const ConservativeRaster &el)
 }
 
 template <>
+rdcstr DoStringise(const LineRaster &el)
+{
+  BEGIN_ENUM_STRINGISE(LineRaster)
+  {
+    STRINGISE_ENUM_CLASS(Default);
+    STRINGISE_ENUM_CLASS(Rectangular);
+    STRINGISE_ENUM_CLASS(Bresenham);
+    STRINGISE_ENUM_CLASS(RectangularSmooth);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const FilterMode &el)
 {
   BEGIN_ENUM_STRINGISE(FilterMode)

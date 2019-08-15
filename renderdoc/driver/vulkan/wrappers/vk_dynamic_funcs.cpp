@@ -742,6 +742,72 @@ void WrappedVulkan::vkCmdSetDiscardRectangleEXT(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetLineStippleEXT(SerialiserType &ser,
+                                                     VkCommandBuffer commandBuffer,
+                                                     uint32_t lineStippleFactor,
+                                                     uint16_t lineStipplePattern)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(lineStippleFactor);
+  SERIALISE_ELEMENT(lineStipplePattern);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        if(ShouldUpdateRenderState(m_LastCmdBufferID))
+        {
+          m_RenderState.stippleFactor = lineStippleFactor;
+          m_RenderState.stipplePattern = lineStipplePattern;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdSetLineStippleEXT(Unwrap(commandBuffer), lineStippleFactor, lineStipplePattern);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
+                                           uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetLineStippleEXT(Unwrap(commandBuffer), lineStippleFactor, lineStipplePattern));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetLineStippleEXT);
+    Serialise_vkCmdSetLineStippleEXT(ser, commandBuffer, lineStippleFactor, lineStipplePattern);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -778,3 +844,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetSampleLocationsEXT, VkCommandBuffe
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuffer commandBuffer,
                                 uint32_t firstDiscardRectangle, uint32_t discardRectangleCount,
                                 const VkRect2D *pDiscardRectangles);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
+                                uint32_t lineStippleFactor, uint16_t lineStipplePattern);

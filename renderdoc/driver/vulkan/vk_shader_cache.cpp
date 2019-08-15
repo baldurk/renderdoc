@@ -484,6 +484,21 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     rs.pNext = &depthClipState;
   }
 
+  static VkPipelineRasterizationLineStateCreateInfoEXT lineRasterState = {
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_line_rasterization)
+  {
+    lineRasterState.lineRasterizationMode = pipeInfo.lineRasterMode;
+    lineRasterState.stippledLineEnable = pipeInfo.stippleEnabled;
+    lineRasterState.lineStippleFactor = pipeInfo.stippleFactor;
+    lineRasterState.lineStipplePattern = pipeInfo.stipplePattern;
+
+    lineRasterState.pNext = rs.pNext;
+    rs.pNext = &lineRasterState;
+  }
+
   static VkPipelineMultisampleStateCreateInfo msaa = {
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
   };

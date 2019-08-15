@@ -97,6 +97,9 @@ struct VulkanRenderState
 
   std::vector<VkRect2D> discardRectangles;
 
+  uint32_t stippleFactor = 0;
+  uint16_t stipplePattern = 0;
+
   // this should be big enough for any implementation
   byte pushconsts[1024] = {};
   // the actual number of bytes that have been uploaded
