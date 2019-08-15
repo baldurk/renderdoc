@@ -216,7 +216,7 @@ This returns ``None`` if no shader is bound.
 
 :param ShaderStage stage: The shader stage to fetch.
 :return: The reflection data for the given shader.
-:rtype: :class:`ShaderBindpointMapping` or ``None``
+:rtype: :class:`ShaderReflection` or ``None``
 )");
   const ShaderReflection *GetShaderReflection(ShaderStage stage) const;
 
