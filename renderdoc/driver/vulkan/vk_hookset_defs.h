@@ -388,6 +388,7 @@
   DeclExt(EXT_full_screen_exclusive);           \
   DeclExt(EXT_hdr_metadata);                    \
   DeclExt(AMD_display_native_hdr);              \
+  DeclExt(EXT_depth_clip_enable);               \
   DeclExt(KHR_pipeline_executable_properties);  \
   DeclExt(AMD_negative_viewport_height);
 
@@ -468,6 +469,7 @@
   CheckExt(EXT_buffer_device_address, VKXX);          \
   CheckExt(EXT_hdr_metadata, VKXX);                   \
   CheckExt(AMD_display_native_hdr, VKXX);             \
+  CheckExt(EXT_depth_clip_enable, VKXX);              \
   CheckExt(KHR_pipeline_executable_properties, VKXX); \
   CheckExt(AMD_negative_viewport_height, VKXX);
 

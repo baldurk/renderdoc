@@ -378,7 +378,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   if(rastStream)
     rasterizationStream = rastStream->rasterizationStream;
 
-  // VkPipelineRasterizationStateStreamCreateInfoEXT
+  // VkPipelineRasterizationDepthClipStateCreateInfoEXT
 
   // default to the opposite of depthClampEnable
   depthClipEnable = !depthClampEnable;

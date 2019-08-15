@@ -718,6 +718,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
     rs->cullMode = VK_CULL_MODE_NONE;
     rs->rasterizerDiscardEnable = false;
 
+    // disable all discard rectangles
+    RemoveNextStruct(&pipeCreateInfo,
+                     VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT);
+
     if(m_pDriver->GetDeviceFeatures().depthClamp)
     {
       rs->depthClampEnable = true;

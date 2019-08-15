@@ -333,7 +333,10 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   }
 
   static VkPipelineVertexInputStateCreateInfo vi = {
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+  };
+
+  vi.pNext = NULL;
 
   static VkVertexInputAttributeDescription viattr[128] = {};
   static VkVertexInputBindingDescription vibind[128] = {};
@@ -376,6 +379,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       vibindDivisors[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
     }
 
+    vertexDivisor.pNext = vi.pNext;
     vi.pNext = &vertexDivisor;
   }
 
@@ -391,7 +395,21 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   static VkPipelineTessellationStateCreateInfo tess = {
       VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO};
 
+  tess.pNext = NULL;
+
   tess.patchControlPoints = pipeInfo.patchControlPoints;
+
+  static VkPipelineTessellationDomainOriginStateCreateInfo tessDomain = {
+      VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_maintenance2)
+  {
+    tessDomain.domainOrigin = pipeInfo.tessellationDomainOrigin;
+
+    tessDomain.pNext = tess.pNext;
+    tess.pNext = &tessDomain;
+  }
 
   static VkPipelineViewportStateCreateInfo vp = {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
@@ -416,6 +434,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
   };
 
+  rs.pNext = NULL;
+
   rs.depthClampEnable = pipeInfo.depthClampEnable;
   rs.rasterizerDiscardEnable = pipeInfo.rasterizerDiscardEnable,
   rs.polygonMode = pipeInfo.polygonMode;
@@ -435,11 +455,40 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   {
     conservRast.conservativeRasterizationMode = pipeInfo.conservativeRasterizationMode;
     conservRast.extraPrimitiveOverestimationSize = pipeInfo.extraPrimitiveOverestimationSize;
+
+    conservRast.pNext = rs.pNext;
     rs.pNext = &conservRast;
   }
 
+  static VkPipelineRasterizationStateStreamCreateInfoEXT rastStream = {
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_transform_feedback)
+  {
+    rastStream.rasterizationStream = pipeInfo.rasterizationStream;
+
+    rastStream.pNext = rs.pNext;
+    rs.pNext = &rastStream;
+  }
+
+  static VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipState = {
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_depth_clip_enable)
+  {
+    depthClipState.depthClipEnable = pipeInfo.depthClipEnable;
+
+    depthClipState.pNext = rs.pNext;
+    rs.pNext = &depthClipState;
+  }
+
   static VkPipelineMultisampleStateCreateInfo msaa = {
-      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+  };
+
+  msaa.pNext = NULL;
 
   msaa.rasterizationSamples = pipeInfo.rasterizationSamples;
   msaa.sampleShadingEnable = pipeInfo.sampleShadingEnable;
@@ -447,6 +496,23 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   msaa.pSampleMask = &pipeInfo.sampleMask;
   msaa.alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
   msaa.alphaToOneEnable = pipeInfo.alphaToOneEnable;
+
+  static VkPipelineSampleLocationsStateCreateInfoEXT sampleLoc = {
+      VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_sample_locations)
+  {
+    sampleLoc.sampleLocationsEnable = pipeInfo.sampleLocations.enabled;
+    sampleLoc.sampleLocationsInfo.sampleLocationGridSize = pipeInfo.sampleLocations.gridSize;
+    sampleLoc.sampleLocationsInfo.sampleLocationsPerPixel = pipeInfo.rasterizationSamples;
+    sampleLoc.sampleLocationsInfo.sampleLocationsCount =
+        (uint32_t)pipeInfo.sampleLocations.locations.size();
+    sampleLoc.sampleLocationsInfo.pSampleLocations = pipeInfo.sampleLocations.locations.data();
+
+    sampleLoc.pNext = msaa.pNext;
+    msaa.pNext = &sampleLoc;
+  }
 
   static VkPipelineDepthStencilStateCreateInfo ds = {
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
@@ -521,6 +587,20 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };
+
+  static VkPipelineDiscardRectangleStateCreateInfoEXT discardRects = {
+      VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT,
+  };
+
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_discard_rectangles)
+  {
+    discardRects.discardRectangleMode = pipeInfo.discardMode;
+    discardRects.discardRectangleCount = (uint32_t)pipeInfo.discardRectangles.size();
+    discardRects.pDiscardRectangles = pipeInfo.discardRectangles.data();
+
+    discardRects.pNext = ret.pNext;
+    ret.pNext = &discardRects;
+  }
 
   // never create derivatives
   ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
