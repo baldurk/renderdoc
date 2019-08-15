@@ -972,7 +972,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
 
       if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport] ||
          m_pDriver->m_ExtensionsEnabled[VkCheckExt_KHR_maintenance1])
+      {
         ubo->RectSize.y = fabs(viewport.height);
+
+        // VK_KHR_maintenance1 requires the position to be adjusted as well
+        if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_KHR_maintenance1] && viewport.height < 0.0f)
+          ubo->RectPosition.y += viewport.height;
+      }
 
       m_Overlay.m_CheckerUBO.Unmap();
 
