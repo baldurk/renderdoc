@@ -253,15 +253,6 @@ private:
 
 enum
 {
-  VkCheckExt_AMD_neg_viewport,
-  VkCheckExt_EXT_conserv_rast,
-  VkCheckExt_EXT_vertex_divisor,
-  VkCheckExt_KHR_maintenance1,
-  VkCheckExt_Max,
-};
-
-enum
-{
   VkCheckLayer_unique_objects,
   VkCheckLayer_Max,
 };

@@ -388,7 +388,8 @@
   DeclExt(EXT_full_screen_exclusive);           \
   DeclExt(EXT_hdr_metadata);                    \
   DeclExt(AMD_display_native_hdr);              \
-  DeclExt(KHR_pipeline_executable_properties);
+  DeclExt(KHR_pipeline_executable_properties);  \
+  DeclExt(AMD_negative_viewport_height);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -420,54 +421,55 @@
   CheckExt(EXT_full_screen_exclusive, VKXX);           \
   CheckExt(EXT_headless_surface, VKXX);
 
-#define CheckDeviceExts()                         \
-  CheckExt(EXT_debug_marker, VKXX);               \
-  CheckExt(GGP_frame_token, VKXX);                \
-  CheckExt(KHR_swapchain, VKXX);                  \
-  CheckExt(KHR_display_swapchain, VKXX);          \
-  CheckExt(NV_external_memory, VKXX);             \
-  CheckExt(NV_external_memory_win32, VKXX);       \
-  CheckExt(NV_win32_keyed_mutex, VKXX);           \
-  CheckExt(KHR_maintenance1, VK11);               \
-  CheckExt(KHR_maintenance2, VK11);               \
-  CheckExt(KHR_maintenance3, VK11);               \
-  CheckExt(EXT_display_control, VKXX);            \
-  CheckExt(KHR_external_memory, VK11);            \
-  CheckExt(KHR_external_memory_win32, VKXX);      \
-  CheckExt(KHR_external_memory_fd, VKXX);         \
-  CheckExt(KHR_external_semaphore, VK11);         \
-  CheckExt(KHR_external_semaphore_win32, VKXX);   \
-  CheckExt(KHR_external_semaphore_fd, VKXX);      \
-  CheckExt(KHR_external_fence, VK11);             \
-  CheckExt(KHR_external_fence_win32, VKXX);       \
-  CheckExt(KHR_external_fence_fd, VKXX);          \
-  CheckExt(KHR_get_memory_requirements2, VK11);   \
-  CheckExt(AMD_shader_info, VKXX);                \
-  CheckExt(KHR_push_descriptor, VKXX);            \
-  CheckExt(KHR_descriptor_update_template, VK11); \
-  CheckExt(KHR_bind_memory2, VK11);               \
-  CheckExt(EXT_conservative_rasterization, VKXX); \
-  CheckExt(EXT_global_priority, VKXX);            \
-  CheckExt(AMD_buffer_marker, VKXX);              \
-  CheckExt(EXT_vertex_attribute_divisor, VKXX);   \
-  CheckExt(EXT_sampler_filter_minmax, VKXX);      \
-  CheckExt(KHR_sampler_ycbcr_conversion, VK11);   \
-  CheckExt(KHR_device_group, VK11);               \
-  CheckExt(MVK_moltenvk, VKXX);                   \
-  CheckExt(KHR_draw_indirect_count, VKXX);        \
-  CheckExt(EXT_validation_cache, VKXX);           \
-  CheckExt(KHR_shared_presentable_image, VKXX);   \
-  CheckExt(KHR_create_renderpass2, VKXX);         \
-  CheckExt(EXT_transform_feedback, VKXX);         \
-  CheckExt(EXT_conditional_rendering, VKXX);      \
-  CheckExt(EXT_sample_locations, VKXX);           \
-  CheckExt(EXT_discard_rectangles, VKXX);         \
-  CheckExt(EXT_calibrated_timestamps, VKXX);      \
-  CheckExt(EXT_host_query_reset, VKXX);           \
-  CheckExt(EXT_buffer_device_address, VKXX);      \
-  CheckExt(EXT_hdr_metadata, VKXX);               \
-  CheckExt(AMD_display_native_hdr, VKXX);         \
-  CheckExt(KHR_pipeline_executable_properties, VKXX);
+#define CheckDeviceExts()                             \
+  CheckExt(EXT_debug_marker, VKXX);                   \
+  CheckExt(GGP_frame_token, VKXX);                    \
+  CheckExt(KHR_swapchain, VKXX);                      \
+  CheckExt(KHR_display_swapchain, VKXX);              \
+  CheckExt(NV_external_memory, VKXX);                 \
+  CheckExt(NV_external_memory_win32, VKXX);           \
+  CheckExt(NV_win32_keyed_mutex, VKXX);               \
+  CheckExt(KHR_maintenance1, VK11);                   \
+  CheckExt(KHR_maintenance2, VK11);                   \
+  CheckExt(KHR_maintenance3, VK11);                   \
+  CheckExt(EXT_display_control, VKXX);                \
+  CheckExt(KHR_external_memory, VK11);                \
+  CheckExt(KHR_external_memory_win32, VKXX);          \
+  CheckExt(KHR_external_memory_fd, VKXX);             \
+  CheckExt(KHR_external_semaphore, VK11);             \
+  CheckExt(KHR_external_semaphore_win32, VKXX);       \
+  CheckExt(KHR_external_semaphore_fd, VKXX);          \
+  CheckExt(KHR_external_fence, VK11);                 \
+  CheckExt(KHR_external_fence_win32, VKXX);           \
+  CheckExt(KHR_external_fence_fd, VKXX);              \
+  CheckExt(KHR_get_memory_requirements2, VK11);       \
+  CheckExt(AMD_shader_info, VKXX);                    \
+  CheckExt(KHR_push_descriptor, VKXX);                \
+  CheckExt(KHR_descriptor_update_template, VK11);     \
+  CheckExt(KHR_bind_memory2, VK11);                   \
+  CheckExt(EXT_conservative_rasterization, VKXX);     \
+  CheckExt(EXT_global_priority, VKXX);                \
+  CheckExt(AMD_buffer_marker, VKXX);                  \
+  CheckExt(EXT_vertex_attribute_divisor, VKXX);       \
+  CheckExt(EXT_sampler_filter_minmax, VKXX);          \
+  CheckExt(KHR_sampler_ycbcr_conversion, VK11);       \
+  CheckExt(KHR_device_group, VK11);                   \
+  CheckExt(MVK_moltenvk, VKXX);                       \
+  CheckExt(KHR_draw_indirect_count, VKXX);            \
+  CheckExt(EXT_validation_cache, VKXX);               \
+  CheckExt(KHR_shared_presentable_image, VKXX);       \
+  CheckExt(KHR_create_renderpass2, VKXX);             \
+  CheckExt(EXT_transform_feedback, VKXX);             \
+  CheckExt(EXT_conditional_rendering, VKXX);          \
+  CheckExt(EXT_sample_locations, VKXX);               \
+  CheckExt(EXT_discard_rectangles, VKXX);             \
+  CheckExt(EXT_calibrated_timestamps, VKXX);          \
+  CheckExt(EXT_host_query_reset, VKXX);               \
+  CheckExt(EXT_buffer_device_address, VKXX);          \
+  CheckExt(EXT_hdr_metadata, VKXX);                   \
+  CheckExt(AMD_display_native_hdr, VKXX);             \
+  CheckExt(KHR_pipeline_executable_properties, VKXX); \
+  CheckExt(AMD_negative_viewport_height, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \

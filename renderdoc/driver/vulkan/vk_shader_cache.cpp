@@ -365,7 +365,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   };
   static VkVertexInputBindingDivisorDescriptionEXT vibindDivisors[128] = {};
 
-  if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_EXT_vertex_divisor])
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_vertex_attribute_divisor)
   {
     vertexDivisor.pVertexBindingDivisors = vibindDivisors;
     vertexDivisor.vertexBindingDivisorCount = vi.vertexBindingDescriptionCount;
@@ -431,7 +431,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,
   };
 
-  if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_EXT_conserv_rast])
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_conservative_rasterization)
   {
     conservRast.conservativeRasterizationMode = pipeInfo.conservativeRasterizationMode;
     conservRast.extraPrimitiveOverestimationSize = pipeInfo.extraPrimitiveOverestimationSize;

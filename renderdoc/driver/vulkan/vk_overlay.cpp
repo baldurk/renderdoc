@@ -970,13 +970,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
       ubo->RectPosition = Vec2f(viewport.x, viewport.y);
       ubo->RectSize = Vec2f(viewport.width, viewport.height);
 
-      if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport] ||
-         m_pDriver->m_ExtensionsEnabled[VkCheckExt_KHR_maintenance1])
+      if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_AMD_negative_viewport_height ||
+         m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_maintenance1)
       {
         ubo->RectSize.y = fabs(viewport.height);
 
         // VK_KHR_maintenance1 requires the position to be adjusted as well
-        if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_KHR_maintenance1] && viewport.height < 0.0f)
+        if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_maintenance1 &&
+           viewport.height < 0.0f)
           ubo->RectPosition.y += viewport.height;
       }
 
