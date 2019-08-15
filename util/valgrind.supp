@@ -109,7 +109,7 @@
    fun:_ZN7QThread8finishedENS_14QPrivateSignalE
 }
 
-# Python
+# Python 3.6
 {
   PythonLeak
   Memcheck:Leak
@@ -134,6 +134,32 @@
   Memcheck:Cond
   ...
   obj:*libpython3.6m.so*
+}
+# Python 3.7
+{
+  PythonLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libpython3.7m.so*
+}
+{
+  PythonRead
+  Memcheck:Addr4
+  ...
+  obj:*libpython3.7m.so*
+}
+{
+  PythonRead
+  Memcheck:Value8
+  ...
+  obj:*libpython3.7m.so*
+}
+{
+  PythonRead
+  Memcheck:Cond
+  ...
+  obj:*libpython3.7m.so*
 }
 
 # Unknown cause but not important leak
