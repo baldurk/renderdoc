@@ -490,9 +490,9 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(std::vector<CounterResult>, FetchCounters,
                              const std::vector<GPUCounter> &counterID);
 
-  IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId shader, std::string entryPoint,
-                             uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                             const bytebuf &data);
+  IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId pipeline, ResourceId shader,
+                             std::string entryPoint, uint32_t cbufSlot,
+                             rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, GetBufferData, ResourceId buff, uint64_t offset, uint64_t len,
                              bytebuf &retData);
@@ -509,7 +509,7 @@ public:
                              const std::vector<uint32_t> &passEvents);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
-  IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId shader,
+  IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId pipeline, ResourceId,
                              ShaderEntryPoint entry);
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<std::string>, GetDisassemblyTargets);
@@ -638,17 +638,23 @@ private:
   struct ShaderReflKey
   {
     ShaderReflKey() {}
-    ShaderReflKey(uint32_t eid, ResourceId i, ShaderEntryPoint e) : eventId(eid), id(i), entry(e) {}
+    ShaderReflKey(uint32_t eid, ResourceId p, ResourceId s, ShaderEntryPoint e)
+        : eventId(eid), pipeline(p), shader(s), entry(e)
+    {
+    }
     uint32_t eventId;
-    ResourceId id;
+    ResourceId pipeline, shader;
     ShaderEntryPoint entry;
     bool operator<(const ShaderReflKey &o) const
     {
       if(eventId != o.eventId)
         return eventId < o.eventId;
 
-      if(id != o.id)
-        return id < o.id;
+      if(pipeline != o.pipeline)
+        return pipeline < o.pipeline;
+
+      if(shader != o.shader)
+        return shader < o.shader;
 
       return entry < o.entry;
     }

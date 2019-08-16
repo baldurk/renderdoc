@@ -103,7 +103,8 @@ public:
   virtual std::vector<DebugMessage> GetDebugMessages() = 0;
 
   virtual rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) = 0;
-  virtual ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) = 0;
+  virtual ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
+                                      ShaderEntryPoint entry) = 0;
 
   virtual std::vector<std::string> GetDisassemblyTargets() = 0;
   virtual std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
@@ -149,8 +150,9 @@ public:
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
   virtual std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counterID) = 0;
 
-  virtual void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
-                                    rdcarray<ShaderVariable> &outvars, const bytebuf &data) = 0;
+  virtual void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+                                    uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                                    const bytebuf &data) = 0;
 
   virtual std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events,
                                                       ResourceId target, uint32_t x, uint32_t y,

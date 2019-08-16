@@ -103,7 +103,7 @@ public:
   TextureDescription GetTexture(ResourceId id);
 
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
-  ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry);
+  ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
   std::vector<std::string> GetDisassemblyTargets();
   std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
@@ -194,8 +194,9 @@ public:
 
   void RenderHighlightBox(float w, float h, float scale);
 
-  void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
-                            rdcarray<ShaderVariable> &outvars, const bytebuf &data);
+  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+                            uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                            const bytebuf &data);
 
   std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
                                               uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,

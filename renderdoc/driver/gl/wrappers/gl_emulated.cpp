@@ -3526,7 +3526,7 @@ void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
     return;
   }
 
-  refl = *driver->GetShader(id, ShaderEntryPoint("main", ShaderStage::Fragment));
+  refl = *driver->GetShader(ResourceId(), id, ShaderEntryPoint("main", ShaderStage::Fragment));
 
   // Note that we can't fill out ShaderBindpointMapping easily on the actual driver through the
   // replay interface

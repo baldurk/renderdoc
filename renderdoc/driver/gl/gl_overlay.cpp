@@ -123,7 +123,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
           }
 
           if(i == 0)
-            vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
+            vsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[i], ShaderEntryPoint());
         }
       }
     }
@@ -151,7 +151,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
           HasGLSLShaders = true;
 
         if(i == 0)
-          vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
+          vsRefl = GetShader(ResourceId(), progDetails.stageShaders[0], ShaderEntryPoint());
       }
     }
   }

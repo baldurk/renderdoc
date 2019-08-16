@@ -593,11 +593,12 @@ rdcarray<ShaderEntryPoint> ReplayController::GetShaderEntryPoints(ResourceId sha
   return m_pDevice->GetShaderEntryPoints(m_pDevice->GetLiveID(shader));
 }
 
-ShaderReflection *ReplayController::GetShader(ResourceId shader, ShaderEntryPoint entry)
+ShaderReflection *ReplayController::GetShader(ResourceId pipeline, ResourceId shader,
+                                              ShaderEntryPoint entry)
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetShader(m_pDevice->GetLiveID(shader), entry);
+  return m_pDevice->GetShader(m_pDevice->GetLiveID(pipeline), m_pDevice->GetLiveID(shader), entry);
 }
 
 rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)
@@ -1704,7 +1705,8 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 }
 
 rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
-    ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs)
+    ResourceId pipeline, ResourceId shader, const char *entryPoint, uint32_t cbufslot,
+    ResourceId buffer, uint64_t offs)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1718,10 +1720,11 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
 
   rdcarray<ShaderVariable> v;
 
+  pipeline = m_pDevice->GetLiveID(pipeline);
   shader = m_pDevice->GetLiveID(shader);
 
   if(shader != ResourceId())
-    m_pDevice->FillCBufferVariables(shader, entryPoint, cbufslot, v, data);
+    m_pDevice->FillCBufferVariables(pipeline, shader, entryPoint, cbufslot, v, data);
 
   return v;
 }

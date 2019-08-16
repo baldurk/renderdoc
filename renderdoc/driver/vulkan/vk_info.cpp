@@ -204,7 +204,8 @@ bool DescSetLayout::operator==(const DescSetLayout &other) const
   return true;
 }
 
-void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
+                                        VulkanCreationInfo &info, ResourceId id,
                                         const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
   flags = pCreateInfo->flags;
@@ -223,23 +224,22 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   // VkPipelineShaderStageCreateInfo
   for(uint32_t i = 0; i < pCreateInfo->stageCount; i++)
   {
-    ResourceId id = GetResID(pCreateInfo->pStages[i].module);
+    ResourceId shadid = GetResID(pCreateInfo->pStages[i].module);
 
     // convert shader bit to shader index
     int stageIndex = StageIndex(pCreateInfo->pStages[i].stage);
 
     Shader &shad = shaders[stageIndex];
 
-    shad.module = id;
+    shad.module = shadid;
     shad.entryPoint = pCreateInfo->pStages[i].pName;
 
-    ShaderModule::Reflection &reflData = info.m_ShaderModule[id].m_Reflections[shad.entryPoint];
-
-    reflData.Init(resourceMan, id, info.m_ShaderModule[id].spirv, shad.entryPoint,
-                  pCreateInfo->pStages[i].stage);
+    ShaderModuleReflectionKey key(shad.entryPoint, ResourceId());
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
     {
+      key = ShaderModuleReflectionKey(shad.entryPoint, id);
+
       const byte *data = (const byte *)pCreateInfo->pStages[i].pSpecializationInfo->pData;
 
       const VkSpecializationMapEntry *maps = pCreateInfo->pStages[i].pSpecializationInfo->pMapEntries;
@@ -252,6 +252,11 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
         shad.specialization.push_back(spec);
       }
     }
+
+    ShaderModuleReflection &reflData = info.m_ShaderModule[shadid].m_Reflections[key];
+
+    reflData.Init(resourceMan, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
+                  pCreateInfo->pStages[i].stage, shad.specialization);
 
     shad.refl = &reflData.refl;
     shad.mapping = &reflData.mapping;
@@ -544,7 +549,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-                                        const VkComputePipelineCreateInfo *pCreateInfo)
+                                        ResourceId id, const VkComputePipelineCreateInfo *pCreateInfo)
 {
   flags = pCreateInfo->flags;
 
@@ -554,19 +559,18 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
   // VkPipelineShaderStageCreateInfo
   {
-    ResourceId id = GetResID(pCreateInfo->stage.module);
+    ResourceId shadid = GetResID(pCreateInfo->stage.module);
     Shader &shad = shaders[5];    // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
 
-    shad.module = id;
+    shad.module = shadid;
     shad.entryPoint = pCreateInfo->stage.pName;
 
-    ShaderModule::Reflection &reflData = info.m_ShaderModule[id].m_Reflections[shad.entryPoint];
-
-    reflData.Init(resourceMan, id, info.m_ShaderModule[id].spirv, shad.entryPoint,
-                  pCreateInfo->stage.stage);
+    ShaderModuleReflectionKey key(shad.entryPoint, ResourceId());
 
     if(pCreateInfo->stage.pSpecializationInfo)
     {
+      key = ShaderModuleReflectionKey(shad.entryPoint, id);
+
       const byte *data = (const byte *)pCreateInfo->stage.pSpecializationInfo->pData;
 
       const VkSpecializationMapEntry *maps = pCreateInfo->stage.pSpecializationInfo->pMapEntries;
@@ -579,6 +583,11 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
         shad.specialization.push_back(spec);
       }
     }
+
+    ShaderModuleReflection &reflData = info.m_ShaderModule[shadid].m_Reflections[key];
+
+    reflData.Init(resourceMan, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
+                  pCreateInfo->stage.stage, shad.specialization);
 
     shad.refl = &reflData.refl;
     shad.mapping = &reflData.mapping;
@@ -1044,18 +1053,19 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
   }
 }
 
-void VulkanCreationInfo::ShaderModule::Reflection::Init(VulkanResourceManager *resourceMan,
-                                                        ResourceId id, const rdcspv::Reflector &spv,
-                                                        const std::string &entry,
-                                                        VkShaderStageFlagBits stage)
+void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *resourceMan,
+                                                      ResourceId id, const rdcspv::Reflector &spv,
+                                                      const std::string &entry,
+                                                      VkShaderStageFlagBits stage,
+                                                      const std::vector<SpecConstant> &specInfo)
 {
   if(entryPoint.empty())
   {
     entryPoint = entry;
     stageIndex = StageIndex(stage);
 
-    spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, {}, refl, mapping,
-                       patchData);
+    spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, specInfo, refl,
+                       mapping, patchData);
 
     refl.resourceId = resourceMan->GetOriginalID(id);
   }

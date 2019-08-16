@@ -109,6 +109,8 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
 
   ResourceId prevShader = m_shader;
 
+  m_pipe = m_stage == ShaderStage::Compute ? m_Ctx.CurPipelineState().GetComputePipelineObject()
+                                           : m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
   m_shader = m_Ctx.CurPipelineState().GetShader(m_stage);
   QString entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_stage);
   const ShaderReflection *reflection = m_Ctx.CurPipelineState().GetShaderReflection(m_stage);
@@ -153,7 +155,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   {
     m_Ctx.Replay().AsyncInvoke([this, prevShader, entryPoint, offs, wasEmpty](IReplayController *r) {
       rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
-          m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
+          m_pipe, m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
       GUIInvoke::call(this, [this, prevShader, vars, wasEmpty] {
 
         RDTreeViewExpansionState &prevShaderExpansionState =

@@ -478,10 +478,12 @@ void ResourceInspector::on_viewContents_clicked()
       // TODO need to let the user choose the entry point
     }
 
+    // TODO allow choosing parent pipeline?
+    ResourceId pipeid;
     ResourceId id = m_Resource;
     ICaptureContext *ctx = &m_Ctx;
-    m_Ctx.Replay().AsyncInvoke([this, ctx, id, entry](IReplayController *r) {
-      ShaderReflection *refl = r->GetShader(id, entry);
+    m_Ctx.Replay().AsyncInvoke([this, ctx, pipeid, id, entry](IReplayController *r) {
+      ShaderReflection *refl = r->GetShader(pipeid, id, entry);
 
       if(!refl)
         return;

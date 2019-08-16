@@ -135,11 +135,42 @@ struct DescUpdateTemplate
 
 struct VulkanCreationInfo
 {
+  struct ShaderModuleReflectionKey
+  {
+    ShaderModuleReflectionKey(const rdcstr &e, ResourceId p) : entryPoint(e), specialisingPipe(p) {}
+    bool operator<(const ShaderModuleReflectionKey &o) const
+    {
+      if(entryPoint != o.entryPoint)
+        return entryPoint < o.entryPoint;
+
+      return specialisingPipe < o.specialisingPipe;
+    }
+
+    // name of the entry point
+    rdcstr entryPoint;
+    // ID of the pipeline ONLY if it contains specialisation constant data
+    ResourceId specialisingPipe;
+  };
+
+  struct ShaderModuleReflection
+  {
+    uint32_t stageIndex;
+    std::string entryPoint;
+    std::string disassembly;
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    SPIRVPatchData patchData;
+
+    void Init(VulkanResourceManager *resourceMan, ResourceId id, const rdcspv::Reflector &spv,
+              const std::string &entry, VkShaderStageFlagBits stage,
+              const std::vector<SpecConstant> &specInfo);
+  };
+
   struct Pipeline
   {
-    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
               const VkGraphicsPipelineCreateInfo *pCreateInfo);
-    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
               const VkComputePipelineCreateInfo *pCreateInfo);
 
     ResourceId layout;
@@ -469,23 +500,22 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkShaderModuleCreateInfo *pCreateInfo);
 
+    ShaderModuleReflection &GetReflection(const rdcstr &entry, ResourceId pipe)
+    {
+      // look for one from this pipeline specifically, if it was specialised
+      auto it = m_Reflections.find({entry, pipe});
+      if(it != m_Reflections.end())
+        return it->second;
+
+      // if not, just return the non-specialised version
+      return m_Reflections[{entry, ResourceId()}];
+    }
+
     rdcspv::Reflector spirv;
 
     std::string unstrippedPath;
 
-    struct Reflection
-    {
-      uint32_t stageIndex;
-      std::string entryPoint;
-      std::string disassembly;
-      ShaderReflection refl;
-      ShaderBindpointMapping mapping;
-      SPIRVPatchData patchData;
-
-      void Init(VulkanResourceManager *resourceMan, ResourceId id, const rdcspv::Reflector &spv,
-                const std::string &entry, VkShaderStageFlagBits stage);
-    };
-    std::map<std::string, Reflection> m_Reflections;
+    std::map<ShaderModuleReflectionKey, ShaderModuleReflection> m_Reflections;
   };
   std::map<ResourceId, ShaderModule> m_ShaderModule;
 

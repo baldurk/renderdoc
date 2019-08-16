@@ -734,15 +734,16 @@ CounterDescription ReplayProxy::DescribeCounter(GPUCounter counterID)
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                               ResourceId shader, std::string entryPoint,
-                                               uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                                               const bytebuf &data)
+                                               ResourceId pipeline, ResourceId shader,
+                                               std::string entryPoint, uint32_t cbufSlot,
+                                               rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_FillCBufferVariables;
   ReplayProxyPacket packet = eReplayProxy_FillCBufferVariables;
 
   {
     BEGIN_PARAMS();
+    SERIALISE_ELEMENT(pipeline);
     SERIALISE_ELEMENT(shader);
     SERIALISE_ELEMENT(entryPoint);
     SERIALISE_ELEMENT(cbufSlot);
@@ -753,16 +754,17 @@ void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, Return
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      m_Remote->FillCBufferVariables(shader, entryPoint, cbufSlot, outvars, data);
+      m_Remote->FillCBufferVariables(pipeline, shader, entryPoint, cbufSlot, outvars, data);
   }
 
   SERIALISE_RETURN(outvars);
 }
 
-void ReplayProxy::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
+void ReplayProxy::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
+                                       std::string entryPoint, uint32_t cbufSlot,
                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
-  PROXY_FUNCTION(FillCBufferVariables, shader, entryPoint, cbufSlot, outvars, data);
+  PROXY_FUNCTION(FillCBufferVariables, pipeline, shader, entryPoint, cbufSlot, outvars, data);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -1084,22 +1086,24 @@ rdcarray<ShaderEntryPoint> ReplayProxy::GetShaderEntryPoints(ResourceId id)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                 ResourceId id, ShaderEntryPoint entry)
+ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser,
+                                                 ReturnSerialiser &retser, ResourceId pipeline,
+                                                 ResourceId shader, ShaderEntryPoint entry)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetShader;
   ReplayProxyPacket packet = eReplayProxy_GetShader;
   ShaderReflection *ret = NULL;
 
   // only consider eventID part of the key on APIs where shaders are mutable
-  ShaderReflKey key(m_APIProps.shadersMutable ? m_EventID : 0, id, entry);
+  ShaderReflKey key(m_APIProps.shadersMutable ? m_EventID : 0, pipeline, shader, entry);
 
   if(retser.IsReading() && m_ShaderReflectionCache.find(key) != m_ShaderReflectionCache.end())
     return m_ShaderReflectionCache[key];
 
   {
     BEGIN_PARAMS();
-    SERIALISE_ELEMENT(id);
+    SERIALISE_ELEMENT(pipeline);
+    SERIALISE_ELEMENT(shader);
     SERIALISE_ELEMENT(entry);
     END_PARAMS();
   }
@@ -1107,7 +1111,7 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->GetShader(id, entry);
+      ret = m_Remote->GetShader(pipeline, shader, entry);
   }
 
   {
@@ -1131,9 +1135,10 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
   return m_ShaderReflectionCache[key];
 }
 
-ShaderReflection *ReplayProxy::GetShader(ResourceId id, ShaderEntryPoint entry)
+ShaderReflection *ReplayProxy::GetShader(ResourceId pipeline, ResourceId shader,
+                                         ShaderEntryPoint entry)
 {
-  PROXY_FUNCTION(GetShader, id, entry);
+  PROXY_FUNCTION(GetShader, pipeline, shader, entry);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -1166,7 +1171,7 @@ std::string ReplayProxy::Proxied_DisassembleShader(ParamSerialiser &paramser,
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
   {
-    refl = m_Remote->GetShader(m_Remote->GetLiveID(Shader), EntryPoint);
+    refl = m_Remote->GetShader(pipeline, m_Remote->GetLiveID(Shader), EntryPoint);
     ret = m_Remote->DisassembleShader(pipeline, refl, target);
   }
 
@@ -1591,11 +1596,13 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
 
         for(int i = 0; i < 6; i++)
           if(stages[i]->resourceId != ResourceId())
-            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
+            stages[i]->reflection =
+                GetShader(ResourceId(), GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
 
         if(m_D3D11PipelineState.inputAssembly.resourceId != ResourceId())
-          m_D3D11PipelineState.inputAssembly.bytecode = GetShader(
-              GetLiveID(m_D3D11PipelineState.inputAssembly.resourceId), ShaderEntryPoint());
+          m_D3D11PipelineState.inputAssembly.bytecode =
+              GetShader(ResourceId(), GetLiveID(m_D3D11PipelineState.inputAssembly.resourceId),
+                        ShaderEntryPoint());
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
       {
@@ -1605,9 +1612,12 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             &m_D3D12PipelineState.pixelShader,  &m_D3D12PipelineState.computeShader,
         };
 
+        ResourceId pipe = GetLiveID(m_D3D12PipelineState.pipelineResourceId);
+
         for(int i = 0; i < 6; i++)
           if(stages[i]->resourceId != ResourceId())
-            stages[i]->reflection = GetShader(GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
+            stages[i]->reflection =
+                GetShader(pipe, GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
       {
@@ -1620,7 +1630,7 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
         for(int i = 0; i < 6; i++)
           if(stages[i]->shaderResourceId != ResourceId())
             stages[i]->reflection =
-                GetShader(GetLiveID(stages[i]->shaderResourceId), ShaderEntryPoint());
+                GetShader(ResourceId(), GetLiveID(stages[i]->shaderResourceId), ShaderEntryPoint());
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
       {
@@ -1630,11 +1640,18 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             &m_VulkanPipelineState.fragmentShader, &m_VulkanPipelineState.computeShader,
         };
 
+        ResourceId pipe = GetLiveID(m_VulkanPipelineState.graphics.pipelineResourceId);
+
         for(int i = 0; i < 6; i++)
+        {
+          if(i == 5)
+            pipe = GetLiveID(m_VulkanPipelineState.compute.pipelineResourceId);
+
           if(stages[i]->resourceId != ResourceId())
             stages[i]->reflection =
-                GetShader(GetLiveID(stages[i]->resourceId),
+                GetShader(pipe, GetLiveID(stages[i]->resourceId),
                           ShaderEntryPoint(stages[i]->entryPoint, stages[i]->stage));
+        }
       }
     }
   }
@@ -2573,7 +2590,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetBuffers: GetBuffers(); break;
     case eReplayProxy_GetBuffer: GetBuffer(ResourceId()); break;
     case eReplayProxy_GetShaderEntryPoints: GetShaderEntryPoints(ResourceId()); break;
-    case eReplayProxy_GetShader: GetShader(ResourceId(), ShaderEntryPoint()); break;
+    case eReplayProxy_GetShader: GetShader(ResourceId(), ResourceId(), ShaderEntryPoint()); break;
     case eReplayProxy_GetDebugMessages: GetDebugMessages(); break;
     case eReplayProxy_GetBufferData:
     {
@@ -2606,7 +2623,7 @@ bool ReplayProxy::Tick(int type)
     {
       rdcarray<ShaderVariable> vars;
       bytebuf data;
-      FillCBufferVariables(ResourceId(), "", 0, vars, data);
+      FillCBufferVariables(ResourceId(), ResourceId(), "", 0, vars, data);
       break;
     }
     case eReplayProxy_InitPostVS: InitPostVSBuffers(0); break;

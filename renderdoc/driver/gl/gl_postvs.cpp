@@ -125,18 +125,18 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         {
           if(i == 0)
           {
-            vsRefl = GetShader(pipeDetails.stageShaders[i], ShaderEntryPoint());
+            vsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[i], ShaderEntryPoint());
             glslVer = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].version;
             vsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].patchData;
           }
           else if(i == 2)
           {
-            tesRefl = GetShader(pipeDetails.stageShaders[2], ShaderEntryPoint());
+            tesRefl = GetShader(ResourceId(), pipeDetails.stageShaders[2], ShaderEntryPoint());
             tesPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[2]].patchData;
           }
           else if(i == 3)
           {
-            gsRefl = GetShader(pipeDetails.stageShaders[3], ShaderEntryPoint());
+            gsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[3], ShaderEntryPoint());
             gsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[3]].patchData;
           }
 
@@ -202,18 +202,18 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         if(i == 0)
         {
-          vsRefl = GetShader(progDetails.stageShaders[0], ShaderEntryPoint());
+          vsRefl = GetShader(ResourceId(), progDetails.stageShaders[0], ShaderEntryPoint());
           glslVer = m_pDriver->m_Shaders[progDetails.stageShaders[0]].version;
           vsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[0]].patchData;
         }
         else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
-          tesRefl = GetShader(progDetails.stageShaders[2], ShaderEntryPoint());
+          tesRefl = GetShader(ResourceId(), progDetails.stageShaders[2], ShaderEntryPoint());
           tesPatch = m_pDriver->m_Shaders[progDetails.stageShaders[2]].patchData;
         }
         else if(i == 3 && progDetails.stageShaders[3] != ResourceId())
         {
-          gsRefl = GetShader(progDetails.stageShaders[3], ShaderEntryPoint());
+          gsRefl = GetShader(ResourceId(), progDetails.stageShaders[3], ShaderEntryPoint());
           gsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[3]].patchData;
         }
 

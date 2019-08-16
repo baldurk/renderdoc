@@ -215,8 +215,8 @@ public:
   {
     return std::vector<CounterResult>();
   }
-  void FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
-                            rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+                            uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars, const bytebuf &data)
   {
   }
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}
@@ -235,7 +235,10 @@ public:
     return ResourceId();
   }
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) { return {}; }
-  ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) { return NULL; }
+  ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry)
+  {
+    return NULL;
+  }
   std::vector<std::string> GetDisassemblyTargets() { return {"N/A"}; }
   std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                 const std::string &target)

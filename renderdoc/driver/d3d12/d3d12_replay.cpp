@@ -409,7 +409,8 @@ rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
   return {{"main", ret.stage}};
 }
 
-ShaderReflection *D3D12Replay::GetShader(ResourceId shader, ShaderEntryPoint entry)
+ShaderReflection *D3D12Replay::GetShader(ResourceId pipeline, ResourceId shader,
+                                         ShaderEntryPoint entry)
 {
   WrappedID3D12Shader *sh =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(shader);
@@ -2652,7 +2653,8 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
   GetDebugManager()->GetBufferData(buffer, offset, length, retData);
 }
 
-void D3D12Replay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
+void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
+                                       std::string entryPoint, uint32_t cbufSlot,
                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   if(shader == ResourceId())

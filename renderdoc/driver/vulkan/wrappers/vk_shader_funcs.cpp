@@ -459,7 +459,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 
         VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[live];
 
-        pipeInfo.Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+        pipeInfo.Init(GetResourceManager(), m_CreationInfo, live, &CreateInfo);
 
         ResourceId renderPassID = GetResID(CreateInfo.renderPass);
 
@@ -588,7 +588,8 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
       {
         GetResourceManager()->AddLiveResource(id, pPipelines[i]);
 
-        m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), m_CreationInfo, &pCreateInfos[i]);
+        m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), m_CreationInfo, id,
+                                           &pCreateInfos[i]);
       }
     }
   }
@@ -657,7 +658,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
         live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
         GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
-        m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+        m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, live, &CreateInfo);
       }
     }
 
@@ -758,7 +759,8 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
       {
         GetResourceManager()->AddLiveResource(id, pPipelines[i]);
 
-        m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), m_CreationInfo, &pCreateInfos[i]);
+        m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), m_CreationInfo, id,
+                                           &pCreateInfos[i]);
       }
     }
   }

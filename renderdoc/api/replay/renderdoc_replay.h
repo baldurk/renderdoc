@@ -1178,13 +1178,15 @@ only ever have one result (only one entry point per shader).
 
   DOCUMENT(R"(Retrieve the information about the frame contained in the capture.
 
+:param ResourceId pipeline: The pipeline state object, if applicable, that this shader is bound to.
 :param ResourceId shader: The shader to get reflection data for.
 :param ShaderEntryPoint entry: The entry point within the shader to reflect. May be ignored on some
   APIs
 :return: The frame information.
 :rtype: ShaderReflection
 )");
-  virtual ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) = 0;
+  virtual ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
+                                      ShaderEntryPoint entry) = 0;
 
   DOCUMENT(R"(Retrieve the history of modifications to the selected pixel on the selected texture.
 
@@ -1270,6 +1272,7 @@ only ever have one result (only one entry point per shader).
   DOCUMENT(R"(Retrieve the contents of a constant block by reading from memory or their source
 otherwise.
 
+:param ResourceId pipeline: The pipeline state object, if applicable, that this shader is bound to.
 :param ResourceId shader: The id of the shader to use for metadata.
 :param str entryPoint: The entry point of the shader being used. In some APIs, this is ignored.
 :param int cbufslot: The index in the :data:`ShaderReflection.constantBlocks` list to look up.
@@ -1279,7 +1282,7 @@ otherwise.
 :return: The shader variables with their contents.
 :rtype: ``list`` of :class:`ShaderVariable`
 )");
-  virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId shader,
+  virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
                                                               const char *entryPoint,
                                                               uint32_t cbufslot, ResourceId buffer,
                                                               uint64_t offs) = 0;

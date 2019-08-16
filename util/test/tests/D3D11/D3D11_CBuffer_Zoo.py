@@ -23,7 +23,8 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
         cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
 
         var_check = rdtest.ConstantBufferChecker(
-            self.controller.GetCBufferVariableContents(pipe.GetShader(stage),
+            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
+                                                       pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 0,
                                                        cbuf.resourceId, cbuf.byteOffset))
 

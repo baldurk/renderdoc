@@ -23,6 +23,7 @@ set(VULKAN_SRC
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_simple_triangle.cpp
+        vk/vk_spec_constants.cpp
         vk/vk_structured_buffer_nested.cpp
         vk/vk_vertex_attr_zoo.cpp
         vk/vk_video_textures.cpp

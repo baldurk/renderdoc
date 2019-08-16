@@ -726,7 +726,7 @@ rdcarray<ShaderEntryPoint> GLReplay::GetShaderEntryPoints(ResourceId shader)
   return {{shaderDetails.reflection.entryPoint, shaderDetails.reflection.stage}};
 }
 
-ShaderReflection *GLReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
+ShaderReflection *GLReplay::GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry)
 {
   auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
@@ -2150,8 +2150,9 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
   }
 }
 
-void GLReplay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
-                                    rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+                                    uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                                    const bytebuf &data)
 {
   WrappedOpenGL &drv = *m_pDriver;
 

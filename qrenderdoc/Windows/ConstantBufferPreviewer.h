@@ -72,6 +72,7 @@ private:
   ICaptureContext &m_Ctx;
 
   ResourceId m_cbuffer;
+  ResourceId m_pipe;
   ResourceId m_shader;
   ShaderStage m_stage = ShaderStage::Vertex;
   uint32_t m_slot = 0;

@@ -438,7 +438,8 @@ rdcarray<ShaderEntryPoint> D3D11Replay::GetShaderEntryPoints(ResourceId shader)
   return {{"main", ret.stage}};
 }
 
-ShaderReflection *D3D11Replay::GetShader(ResourceId shader, ShaderEntryPoint entry)
+ShaderReflection *D3D11Replay::GetShader(ResourceId pipeline, ResourceId shader,
+                                         ShaderEntryPoint entry)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);
 
@@ -659,7 +660,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     ResourceId layoutId = GetIDForResource(rs->IA.Layout);
 
     ret.inputAssembly.resourceId = rm->GetOriginalID(layoutId);
-    ret.inputAssembly.bytecode = GetShader(layoutId, ShaderEntryPoint());
+    ret.inputAssembly.bytecode = GetShader(ResourceId(), layoutId, ShaderEntryPoint());
 
     ret.inputAssembly.layouts.resize(vec.size());
     for(size_t i = 0; i < vec.size(); i++)
@@ -2592,7 +2593,8 @@ void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
   }
 }
 
-void D3D11Replay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
+void D3D11Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
+                                       std::string entryPoint, uint32_t cbufSlot,
                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);

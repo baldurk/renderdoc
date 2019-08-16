@@ -330,7 +330,8 @@ rdcarray<ShaderEntryPoint> VulkanReplay::GetShaderEntryPoints(ResourceId shader)
   return ret;
 }
 
-ShaderReflection *VulkanReplay::GetShader(ResourceId shader, ShaderEntryPoint entry)
+ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId shader,
+                                          ShaderEntryPoint entry)
 {
   auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
 
@@ -340,11 +341,13 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, ShaderEntryPoint en
     return NULL;
   }
 
-  shad->second.m_Reflections[entry.name].Init(GetResourceManager(), shader, shad->second.spirv,
-                                              entry.name,
-                                              VkShaderStageFlagBits(1 << uint32_t(entry.stage)));
+  // if this shader was never used in a pipeline the reflection won't be prepared. Do that now -
+  // this will be ignored if it was already prepared.
+  shad->second.GetReflection(entry.name, pipeline)
+      .Init(GetResourceManager(), shader, shad->second.spirv, entry.name,
+            VkShaderStageFlagBits(1 << uint32_t(entry.stage)), {});
 
-  return &shad->second.m_Reflections[entry.name].refl;
+  return &shad->second.GetReflection(entry.name, pipeline).refl;
 }
 
 std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
@@ -450,7 +453,7 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
 
   if(target == SPIRVDisassemblyTarget || target.empty())
   {
-    std::string &disasm = it->second.m_Reflections[refl->entryPoint.c_str()].disassembly;
+    std::string &disasm = it->second.GetReflection(refl->entryPoint, pipeline).disassembly;
 
     if(disasm.empty())
       disasm = it->second.spirv.Disassemble(refl->entryPoint.c_str());
@@ -472,7 +475,7 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
     VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
 
     VkShaderStageFlagBits stageBit =
-        VkShaderStageFlagBits(1 << it->second.m_Reflections[refl->entryPoint.c_str()].stageIndex);
+        VkShaderStageFlagBits(1 << it->second.GetReflection(refl->entryPoint, pipeline).stageIndex);
 
     size_t size;
     vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
@@ -498,7 +501,7 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
     CachePipelineExecutables(pipeline);
 
     VkShaderStageFlagBits stageBit =
-        VkShaderStageFlagBits(1 << it->second.m_Reflections[refl->entryPoint.c_str()].stageIndex);
+        VkShaderStageFlagBits(1 << it->second.GetReflection(refl->entryPoint, pipeline).stageIndex);
 
     const rdcarray<PipelineExecutables> &executables = m_PipelineExecutables[pipeline];
 
@@ -1956,13 +1959,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
 }
 
-void VulkanReplay::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
+void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
+                                        std::string entryPoint, uint32_t cbufSlot,
                                         rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
-  // Correct SPIR-V will ultimately need to set explicit layout information for each type.
-  // For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and
-  // structures)
-
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
 
   if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
@@ -1971,8 +1971,8 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, std::string entryPoin
     return;
   }
 
-  ShaderReflection &refl = it->second.m_Reflections[entryPoint].refl;
-  ShaderBindpointMapping &mapping = it->second.m_Reflections[entryPoint].mapping;
+  ShaderReflection &refl = it->second.GetReflection(entryPoint, pipeline).refl;
+  ShaderBindpointMapping &mapping = it->second.GetReflection(entryPoint, pipeline).mapping;
 
   if(cbufSlot >= (uint32_t)refl.constantBlocks.count())
   {
@@ -1991,21 +1991,14 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, std::string entryPoin
     // specialised path to display specialization constants
     if(mapping.constantBlocks[c.bindPoint].bindset == SpecializationConstantBindSet)
     {
-      // TODO we shouldn't be looking up the pipeline here, this query should work regardless.
-      ResourceId pipeline = refl.stage == ShaderStage::Compute
-                                ? m_pDriver->m_RenderState.compute.pipeline
-                                : m_pDriver->m_RenderState.graphics.pipeline;
-      if(pipeline != ResourceId())
+      auto pipeIt = m_pDriver->m_CreationInfo.m_Pipeline.find(pipeline);
+
+      if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
       {
-        auto pipeIt = m_pDriver->m_CreationInfo.m_Pipeline.find(pipeline);
+        auto specInfo =
+            pipeIt->second.shaders[it->second.GetReflection(entryPoint, pipeline).stageIndex].specialization;
 
-        if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
-        {
-          auto specInfo =
-              pipeIt->second.shaders[it->second.m_Reflections[entryPoint].stageIndex].specialization;
-
-          FillSpecConstantVariables(c.variables, outvars, specInfo);
-        }
+        FillSpecConstantVariables(c.variables, outvars, specInfo);
       }
     }
     else
