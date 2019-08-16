@@ -244,7 +244,7 @@ void main() {
       REQUIRE_ARRAY_SIZE(mapping.constantBlocks.size(), 1);
       {
         // $Globals
-        CHECK(mapping.constantBlocks[1].used);
+        CHECK(mapping.constantBlocks[0].used);
       }
     };
 
