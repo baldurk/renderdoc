@@ -228,6 +228,15 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     SAFE_DELETE_ARRAY(props);
   }
 
+  {
+    size_t i = 0;
+    for(const std::string &ext : supportedExtensions)
+    {
+      RDCLOG("Inst Ext %u: %s", i, ext.c_str());
+      i++;
+    }
+  }
+
   AddRequiredExtensions(true, params.Extensions, supportedExtensions);
 
   // after 1.0, VK_KHR_get_physical_device_properties2 is promoted to core, but enable it if it's
@@ -2255,7 +2264,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     for(uint32_t i = 0; i < numExts; i++)
-      RDCLOG("Ext %u: %s (%u)", i, exts[i].extensionName, exts[i].specVersion);
+      RDCLOG("Dev Ext %u: %s (%u)", i, exts[i].extensionName, exts[i].specVersion);
 
     SAFE_DELETE_ARRAY(exts);
 
