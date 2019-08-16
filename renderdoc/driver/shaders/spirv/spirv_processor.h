@@ -384,7 +384,7 @@ struct ExecutionModes
     DepthNormal,
     DepthGreater,
     DepthLess,
-  } depthMode;
+  } depthMode = DepthNormal;
 
   struct
   {
