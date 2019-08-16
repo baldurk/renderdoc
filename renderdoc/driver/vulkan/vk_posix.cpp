@@ -54,7 +54,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
 
 #if(defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(VK_USE_PLATFORM_XCB_KHR) || \
     defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_MACOS_MVK) ||  \
-    defined(VK_USE_PLATFORM_GGP))
+    defined(VK_USE_PLATFORM_METAL_EXT) || defined(VK_USE_PLATFORM_GGP))
 
 #undef EXPECT_WSI
 #define EXPECT_WSI 1
@@ -98,18 +98,37 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     }
 #endif
 
-#if defined(VK_USE_PLATFORM_MACOS_MVK)
-    // must be supported
-    RDCASSERT(supportedExtensions.find(VK_MVK_MACOS_SURFACE_EXTENSION_NAME) !=
-              supportedExtensions.end());
-
-    m_SupportedWindowSystems.push_back(WindowingSystem::MacOS);
-
-    // don't add duplicates, application will have added this but just be sure
-    if(std::find(extensionList.begin(), extensionList.end(), VK_MVK_MACOS_SURFACE_EXTENSION_NAME) ==
-       extensionList.end())
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+    // check if supported
+    if(supportedExtensions.find(VK_EXT_METAL_SURFACE_EXTENSION_NAME) != supportedExtensions.end())
     {
-      extensionList.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+      m_SupportedWindowSystems.push_back(WindowingSystem::MacOS);
+
+      RDCLOG("Will create surfaces using " VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+
+      // don't add duplicates, application will have added this but just be sure
+      if(std::find(extensionList.begin(), extensionList.end(),
+                   VK_EXT_METAL_SURFACE_EXTENSION_NAME) == extensionList.end())
+      {
+        extensionList.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+      }
+    }
+#endif
+
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+    // check if supported
+    if(supportedExtensions.find(VK_MVK_MACOS_SURFACE_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      m_SupportedWindowSystems.push_back(WindowingSystem::MacOS);
+
+      RDCLOG("Will create surfaces using " VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+
+      // don't add duplicates, application will have added this but just be sure
+      if(std::find(extensionList.begin(), extensionList.end(),
+                   VK_MVK_MACOS_SURFACE_EXTENSION_NAME) == extensionList.end())
+      {
+        extensionList.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+      }
     }
 #endif
 
@@ -161,9 +180,17 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     {
       RDCWARN("No WSI support - only headless replay allowed.");
 
-#if defined(VK_USE_PLATFORM_MACOS_MVK)
+#if defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_USE_PLATFORM_METAL_EXT)
+      RDCWARN("macOS Output requires the '%s' or '%s' extensions to be present",
+              VK_MVK_MACOS_SURFACE_EXTENSION_NAME, VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)
       RDCWARN("macOS Output requires the '%s' extension to be present",
-              VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+              VK_MVK_MACOS_SURFACE_EXTENSION_NAME
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+              VK_EXT_METAL_SURFACE_EXTENSION_NAME
+#endif
+              );
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)

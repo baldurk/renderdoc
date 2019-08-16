@@ -32,6 +32,8 @@
 extern "C" int getMetalLayerWidth(void *handle);
 extern "C" int getMetalLayerHeight(void *handle);
 
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+
 VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
                                                 const VkMacOSSurfaceCreateInfoMVK *pCreateInfo,
                                                 const VkAllocationCallbacks *pAllocator,
@@ -57,23 +59,82 @@ VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
   return ret;
 }
 
+#endif
+
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+
+VkResult WrappedVulkan::vkCreateMetalSurfaceEXT(VkInstance instance,
+                                                const VkMetalSurfaceCreateInfoEXT *pCreateInfo,
+                                                const VkAllocationCallbacks *pAllocator,
+                                                VkSurfaceKHR *pSurface)
+{
+  // should not come in here at all on replay
+  RDCASSERT(IsCaptureMode(m_State));
+
+  VkResult ret =
+      ObjDisp(instance)->CreateMetalSurfaceEXT(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+
+  if(ret == VK_SUCCESS)
+  {
+    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+    // since there's no point in allocating a full resource record and storing the window
+    // handle under there somewhere, we just cast. We won't use the resource record for anything
+    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->pLayer;
+  }
+
+  return ret;
+}
+
+#endif
+
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
 {
   RDCASSERT(window.system == WindowingSystem::MacOS, window.system);
   wnd = window.macOS.layer;
 }
 
-void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
+void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
-  VkMacOSSurfaceCreateInfoMVK createInfo;
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+  if(driver->GetExtensions(GetRecord(inst)).ext_EXT_metal_surface)
+  {
+    VkMetalSurfaceCreateInfoEXT createInfo;
 
-  createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-  createInfo.pNext = NULL;
-  createInfo.flags = 0;
-  createInfo.pView = wnd;
+    createInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.pLayer = wnd;
 
-  VkResult vkr = ObjDisp(inst)->CreateMacOSSurfaceMVK(Unwrap(inst), &createInfo, NULL, &surface);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    RDCDEBUG("Creating macOS surface with EXT_metal_surface");
+
+    VkResult vkr = ObjDisp(inst)->CreateMetalSurfaceEXT(Unwrap(inst), &createInfo, NULL, &surface);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    return;
+  }
+#endif
+
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+  if(driver->GetExtensions(GetRecord(inst)).ext_MVK_macos_surface)
+  {
+    VkMacOSSurfaceCreateInfoMVK createInfo;
+
+    createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.pView = wnd;
+
+    RDCDEBUG("Creating macOS surface with MVK_macos_surface");
+
+    VkResult vkr = ObjDisp(inst)->CreateMacOSSurfaceMVK(Unwrap(inst), &createInfo, NULL, &surface);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    return;
+  }
+#endif
+
+  RDCERR("No enabled macOS surface extension");
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

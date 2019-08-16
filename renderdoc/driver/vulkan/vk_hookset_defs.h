@@ -81,17 +81,51 @@
   HookDefine2(VkResult, vkReleaseFullScreenExclusiveModeEXT, VkDevice, device, VkSwapchainKHR,   \
               swapchain);
 
-#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+#elif defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)
 
-#define HookInitInstance_PlatformSpecific() \
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+
+#define HookInitInstance_PlatformSpecific_MVK() \
   HookInitExtension(VK_MVK_macos_surface, CreateMacOSSurfaceMVK);
 
-#define HookInitDevice_PlatformSpecific()
-
-#define HookDefine_PlatformSpecific()                                                          \
+#define HookDefine_PlatformSpecific_MVK()                                                      \
   HookDefine4(VkResult, vkCreateMacOSSurfaceMVK, VkInstance, instance,                         \
               const VkMacOSSurfaceCreateInfoMVK *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);
+
+#else
+
+#define HookInitInstance_PlatformSpecific_MVK()
+#define HookDefine_PlatformSpecific_MVK()
+
+#endif
+
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+
+#define HookInitInstance_PlatformSpecific_EXT() \
+  HookInitExtension(VK_EXT_metal_surface, CreateMetalSurfaceEXT);
+
+#define HookDefine_PlatformSpecific_EXT()                                                      \
+  HookDefine4(VkResult, vkCreateMetalSurfaceEXT, VkInstance, instance,                         \
+              const VkMetalSurfaceCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *, \
+              pAllocator, VkSurfaceKHR *, pSurface);
+
+#else
+
+#define HookInitInstance_PlatformSpecific_MVK()
+#define HookDefine_PlatformSpecific_EXT()
+
+#endif
+
+#define HookInitInstance_PlatformSpecific() \
+  HookInitInstance_PlatformSpecific_MVK();  \
+  HookInitInstance_PlatformSpecific_EXT();
+
+#define HookDefine_PlatformSpecific() \
+  HookDefine_PlatformSpecific_MVK();  \
+  HookDefine_PlatformSpecific_EXT();
+
+#define HookInitDevice_PlatformSpecific()
 
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 
@@ -340,6 +374,7 @@
   DeclExt(KHR_get_surface_capabilities2);       \
   DeclExt(KHR_get_display_properties2);         \
   DeclExt(EXT_headless_surface);                \
+  DeclExt(EXT_metal_surface);                   \
   /* device extensions */                       \
   DeclExt(EXT_debug_marker);                    \
   DeclExt(GGP_frame_token);                     \
@@ -421,7 +456,8 @@
   CheckExt(EXT_sample_locations, VKXX);                \
   CheckExt(EXT_calibrated_timestamps, VKXX);           \
   CheckExt(EXT_full_screen_exclusive, VKXX);           \
-  CheckExt(EXT_headless_surface, VKXX);
+  CheckExt(EXT_headless_surface, VKXX);                \
+  CheckExt(EXT_metal_surface, VKXX);
 
 #define CheckDeviceExts()                             \
   CheckExt(EXT_debug_marker, VKXX);                   \

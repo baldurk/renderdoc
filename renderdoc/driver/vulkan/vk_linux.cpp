@@ -155,7 +155,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   RDCERR("Unrecognised/unsupported window system %d", window.system);
 }
 
-void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
+void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
 #if ENABLED(RDOC_XLIB)
   if(m_WindowSystem == WindowingSystem::Xlib)

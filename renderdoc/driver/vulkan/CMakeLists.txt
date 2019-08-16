@@ -87,7 +87,7 @@ if(ANDROID)
 elseif(APPLE)
     list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple.mm)
 
-    add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
+    add_definitions(-DVK_USE_PLATFORM_MACOS_MVK -DVK_USE_PLATFORM_METAL_EXT)
 elseif(ENABLE_GGP)
     list(APPEND sources vk_posix.cpp vk_ggp.cpp)
     add_definitions(-DVK_USE_PLATFORM_GGP)

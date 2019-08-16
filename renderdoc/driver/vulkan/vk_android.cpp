@@ -57,7 +57,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   wnd = window.android.window;
 }
 
-void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
+void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
   VkAndroidSurfaceCreateInfoKHR createInfo;
 

@@ -54,7 +54,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   return;    // there are no OS specific handles to save.
 }
 
-void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
+void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
   VkStreamDescriptorSurfaceCreateInfoGGP createInfo;
 

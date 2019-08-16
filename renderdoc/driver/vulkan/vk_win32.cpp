@@ -36,7 +36,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   wnd = window.win32.window;
 }
 
-void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
+void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
   VkWin32SurfaceCreateInfoKHR createInfo;
 

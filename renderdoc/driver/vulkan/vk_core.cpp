@@ -717,6 +717,11 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_SPEC_VERSION,
     },
+#ifdef VK_EXT_metal_surface
+    {
+        VK_EXT_METAL_SURFACE_EXTENSION_NAME, VK_EXT_METAL_SURFACE_SPEC_VERSION,
+    },
+#endif
     {
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME, VK_EXT_PCI_BUS_INFO_SPEC_VERSION,
     },

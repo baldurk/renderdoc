@@ -189,7 +189,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
   if(surface == VK_NULL_HANDLE && m_WindowSystem != WindowingSystem::Headless)
   {
-    CreateSurface(inst);
+    CreateSurface(driver, inst);
 
     GetResourceManager()->WrapResource(Unwrap(inst), surface);
   }

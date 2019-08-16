@@ -416,7 +416,7 @@ private:
     void Destroy(WrappedVulkan *driver, VkDevice device);
 
     // implemented in vk_replay_platform.cpp
-    void CreateSurface(VkInstance inst);
+    void CreateSurface(WrappedVulkan *driver, VkInstance inst);
     void SetWindowHandle(WindowingData window);
 
     WindowingSystem m_WindowSystem;
