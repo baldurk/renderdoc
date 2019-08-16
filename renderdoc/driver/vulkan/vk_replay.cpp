@@ -1118,8 +1118,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stage.specialization.resize(p.shaders[i].specialization.size());
       for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
       {
-        stage.specialization[s].specializationId = p.shaders[i].specialization[s].specID;
-        stage.specialization[s].data = p.shaders[i].specialization[s].data;
+        const SpecConstant &spec = p.shaders[i].specialization[s];
+        stage.specialization[s].specializationId = spec.specID;
+        stage.specialization[s].data.resize(spec.dataSize);
+        memcpy(stage.specialization[s].data.data(), &spec.value, spec.dataSize);
       }
     }
   }
@@ -1194,8 +1196,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stages[i]->specialization.resize(p.shaders[i].specialization.size());
       for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
       {
-        stages[i]->specialization[s].specializationId = p.shaders[i].specialization[s].specID;
-        stages[i]->specialization[s].data = p.shaders[i].specialization[s].data;
+        const SpecConstant &spec = p.shaders[i].specialization[s];
+        stages[i]->specialization[s].specializationId = spec.specID;
+        stages[i]->specialization[s].data.resize(spec.dataSize);
+        memcpy(stages[i]->specialization[s].data.data(), &spec.value, spec.dataSize);
       }
     }
 

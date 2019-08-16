@@ -132,8 +132,11 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
 
 struct SpecConstant
 {
-  uint32_t specID;
-  std::vector<byte> data;
+  SpecConstant() = default;
+  SpecConstant(uint32_t id, uint64_t val, size_t size) : specID(id), value(val), dataSize(size) {}
+  uint32_t specID = 0;
+  uint64_t value = 0;
+  size_t dataSize = 0;
 };
 
 void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,

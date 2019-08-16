@@ -47,8 +47,7 @@ void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
     {
       if(specInfo[i].specID == invars[v].byteOffset)
       {
-        memcpy(outvars[v].value.uv, specInfo[i].data.data(),
-               RDCMIN(specInfo[i].data.size(), sizeof(outvars[v].value.uv)));
+        outvars[v].value.u64v[0] = specInfo[i].value;
       }
     }
   }

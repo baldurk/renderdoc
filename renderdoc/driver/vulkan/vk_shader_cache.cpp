@@ -272,25 +272,23 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   static VkPipelineShaderStageCreateInfo stages[6];
   static VkSpecializationInfo specInfo[6];
   static std::vector<VkSpecializationMapEntry> specMapEntries;
-  static std::vector<byte> specdata;
+
+  // the specialization constants can't use more than a uint64_t, so we just over-allocate
+  static std::vector<uint64_t> specdata;
 
   size_t specEntries = 0;
-  size_t specSize = 0;
 
   for(uint32_t i = 0; i < 6; i++)
-  {
     specEntries += pipeInfo.shaders[i].specialization.size();
-    for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
-      specSize += pipeInfo.shaders[i].specialization[s].data.size();
-  }
 
   specMapEntries.resize(specEntries);
-  specdata.resize(specSize);
+  specdata.resize(specEntries);
 
   VkSpecializationMapEntry *entry = specMapEntries.data();
+  uint64_t *data = specdata.data();
 
   uint32_t stageCount = 0;
-  specSize = 0;
+  uint32_t dataOffset = 0;
 
   // reserve space for spec constants
   for(uint32_t i = 0; i < 6; i++)
@@ -313,16 +311,15 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
         for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
         {
           entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
-          entry[s].size = pipeInfo.shaders[i].specialization[s].data.size();
-          entry[s].offset = (uint32_t)specSize;
+          entry[s].size = pipeInfo.shaders[i].specialization[s].dataSize;
+          entry[s].offset = dataOffset * sizeof(uint64_t);
 
-          specSize += entry[s].size;
+          data[dataOffset] = pipeInfo.shaders[i].specialization[s].value;
 
-          memcpy(&specdata[0] + entry[s].offset, pipeInfo.shaders[i].specialization[s].data.data(),
-                 entry[s].size);
+          dataOffset++;
         }
 
-        specInfo[i].dataSize = specdata.size();
+        specInfo[i].dataSize = specdata.size() * sizeof(uint64_t);
         specInfo[i].pData = specdata.data();
 
         entry += specInfo[i].mapEntryCount;
@@ -633,18 +630,16 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   VkPipelineShaderStageCreateInfo stage;    // Returned by value
   static VkSpecializationInfo specInfo;
   static std::vector<VkSpecializationMapEntry> specMapEntries;
-  static std::vector<byte> specdata;
+
+  // the specialization constants can't use more than a uint64_t, so we just over-allocate
+  static std::vector<uint64_t> specdata;
 
   const uint32_t i = 5;    // Compute stage
   RDCASSERT(pipeInfo.shaders[i].module != ResourceId());
 
   size_t specEntries = pipeInfo.shaders[i].specialization.size();
-  size_t specSize = 0;
-  for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
-    specSize += pipeInfo.shaders[i].specialization[s].data.size();
 
-  specdata.resize(specSize);
-
+  specdata.resize(specEntries);
   specMapEntries.resize(specEntries);
   VkSpecializationMapEntry *entry = &specMapEntries[0];
 
@@ -656,7 +651,7 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   stage.pSpecializationInfo = NULL;
   stage.flags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-  specSize = 0;
+  uint32_t dataOffset = 0;
 
   if(!pipeInfo.shaders[i].specialization.empty())
   {
@@ -667,13 +662,12 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
     for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
     {
       entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
-      entry[s].size = pipeInfo.shaders[i].specialization[s].data.size();
-      entry[s].offset = (uint32_t)specSize;
+      entry[s].size = pipeInfo.shaders[i].specialization[s].dataSize;
+      entry[s].offset = dataOffset;
 
-      specSize += entry[s].size;
+      specdata[dataOffset] = pipeInfo.shaders[i].specialization[s].value;
 
-      memcpy(&specdata[0] + entry[s].offset, pipeInfo.shaders[i].specialization[s].data.data(),
-             entry[s].size);
+      dataOffset++;
     }
 
     specInfo.dataSize = specdata.size();

@@ -2207,8 +2207,8 @@ void GLReplay::FillCBufferVariables(ResourceId shader, std::string entryPoint, u
       {
         SpecConstant spec;
         spec.specID = shaderDetails.specIDs[i];
-        spec.data.resize(sizeof(shaderDetails.specValues[i]));
-        memcpy(&spec.data[0], &shaderDetails.specValues[i], spec.data.size());
+        spec.value = shaderDetails.specValues[i];
+        spec.dataSize = 4;
         specconsts.push_back(spec);
       }
 

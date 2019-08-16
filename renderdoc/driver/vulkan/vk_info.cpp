@@ -247,8 +247,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       {
         SpecConstant spec;
         spec.specID = maps[s].constantID;
-        spec.data.assign(data + maps[s].offset, data + maps[s].offset + maps[s].size);
-        // ignore maps[s].size, assume it's enough for the type
+        memcpy(&spec.value, data + maps[s].offset, maps[s].size);
+        spec.dataSize = maps[s].size;
         shad.specialization.push_back(spec);
       }
     }
@@ -574,8 +574,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       {
         SpecConstant spec;
         spec.specID = maps[s].constantID;
-        spec.data.assign(data + maps[s].offset, data + maps[s].offset + maps[s].size);
-        // ignore maps[s].size, assume it's enough for the type
+        memcpy(&spec.value, data + maps[s].offset, maps[s].size);
+        spec.dataSize = maps[s].size;
         shad.specialization.push_back(spec);
       }
     }
