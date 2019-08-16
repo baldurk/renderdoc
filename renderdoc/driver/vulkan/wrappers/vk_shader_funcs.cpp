@@ -662,7 +662,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
       }
     }
 
-    AddResource(Pipeline, ResourceType::PipelineState, "Graphics Pipeline");
+    AddResource(Pipeline, ResourceType::PipelineState, "Compute Pipeline");
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
