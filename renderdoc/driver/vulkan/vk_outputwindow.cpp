@@ -214,7 +214,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
     RDCASSERT(capabilities.minImageCount <= 8 &&
-              (8 <= capabilities.maxImageCount || capabilities.maxImageCount == 0));
+                  (capabilities.maxImageCount <= 8 || capabilities.maxImageCount == 0),
+              capabilities.minImageCount, capabilities.maxImageCount);
 
     // check format and present mode from driver
     {
