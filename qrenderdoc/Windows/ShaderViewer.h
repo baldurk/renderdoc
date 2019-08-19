@@ -206,8 +206,8 @@ private:
   ScintillaEdit *m_FindResults = NULL;
   QList<ScintillaEdit *> m_Scintillas;
 
-  // a map per file, from line number to instruction index
-  QVector<QMap<int32_t, size_t>> m_Line2Inst;
+  // a map per file, from line number to instruction indices
+  QVector<QMap<int32_t, QVector<size_t>>> m_Line2Insts;
 
   ScintillaEdit *m_CurInstructionScintilla = NULL;
   QList<ScintillaEdit *> m_FileScintillas;
@@ -270,7 +270,8 @@ private:
 
   void find(bool down);
 
-  void runTo(int runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
+  void runTo(QVector<size_t> runToInstructions, bool forward,
+             ShaderEvents condition = ShaderEvents::NoEvent);
 
   QString stringRep(const ShaderVariable &var, bool useType);
   RDTreeWidgetItem *makeResourceRegister(const Bindpoint &bind, uint32_t idx,

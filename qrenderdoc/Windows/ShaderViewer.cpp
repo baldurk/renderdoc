@@ -546,17 +546,17 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ui->locals->hide();
     }
 
-    m_Line2Inst.resize(m_ShaderDetails->debugInfo.files.count());
+    m_Line2Insts.resize(m_ShaderDetails->debugInfo.files.count());
 
     for(size_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
     {
       const LineColumnInfo &line = m_Trace->lineInfo[inst];
 
-      if(line.fileIndex < 0 || line.fileIndex >= m_Line2Inst.count())
+      if(line.fileIndex < 0 || line.fileIndex >= m_Line2Insts.count())
         continue;
 
       for(uint32_t lineNum = line.lineStart; lineNum <= line.lineEnd; lineNum++)
-        m_Line2Inst[line.fileIndex][lineNum] = inst;
+        m_Line2Insts[line.fileIndex][lineNum].push_back(inst);
     }
 
     QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
@@ -1386,14 +1386,14 @@ void ShaderViewer::runToCursor()
 
     sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
 
-    QMap<int32_t, size_t> &fileMap = m_Line2Inst[scintillaIndex];
+    QMap<int32_t, QVector<size_t>> &fileMap = m_Line2Insts[scintillaIndex];
 
     // find the next line that maps to an instruction
     for(; i < cur->lineCount(); i++)
     {
       if(fileMap.contains(i))
       {
-        runTo((int)fileMap[i], true);
+        runTo(fileMap[i], true);
         return;
       }
     }
@@ -1410,7 +1410,7 @@ void ShaderViewer::runToCursor()
       int line = instructionForLine(i);
       if(line >= 0)
       {
-        runTo(line, true);
+        runTo({(size_t)line}, true);
         break;
       }
     }
@@ -1439,25 +1439,25 @@ int ShaderViewer::instructionForLine(sptr_t line)
 
 void ShaderViewer::runToSample()
 {
-  runTo(-1, true, ShaderEvents::SampleLoadGather);
+  runTo({}, true, ShaderEvents::SampleLoadGather);
 }
 
 void ShaderViewer::runToNanOrInf()
 {
-  runTo(-1, true, ShaderEvents::GeneratedNanOrInf);
+  runTo({}, true, ShaderEvents::GeneratedNanOrInf);
 }
 
 void ShaderViewer::runBack()
 {
-  runTo(-1, false);
+  runTo({}, false);
 }
 
 void ShaderViewer::run()
 {
-  runTo(-1, true);
+  runTo({}, true);
 }
 
-void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condition)
+void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderEvents condition)
 {
   if(!m_Trace)
     return;
@@ -1470,7 +1470,7 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
 
   while(step < m_Trace->states.count())
   {
-    if(runToInstruction >= 0 && m_Trace->states[step].nextInstruction == (uint32_t)runToInstruction)
+    if(runToInstruction.contains(m_Trace->states[step].nextInstruction))
       break;
 
     if(!firstStep && (step + inc >= 0) && (step + inc < m_Trace->states.count()) &&
@@ -2492,15 +2492,17 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
       // add one to go from scintilla line numbers (0-based) to ours (1-based)
       sptr_t i = cur->lineFromPosition(cur->currentPos()) + 1;
 
-      QMap<int32_t, size_t> &fileMap = m_Line2Inst[scintillaIndex];
+      QMap<int32_t, QVector<size_t>> &fileMap = m_Line2Insts[scintillaIndex];
 
       // find the next line that maps to an instruction
       for(; i < cur->lineCount(); i++)
       {
         if(fileMap.contains(i))
         {
-          instruction = (int)fileMap[i];
-          break;
+          for(size_t inst : fileMap[i])
+            ToggleBreakpoint((int)inst);
+
+          return;
         }
       }
     }
