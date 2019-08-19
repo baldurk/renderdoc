@@ -154,7 +154,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 119</type>
+#define <name>VK_HEADER_VERSION</name> 120</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -5040,12 +5040,11 @@ typedef void <name>CAMetalLayer</name>;
     <enums name="VkValidationCheckEXT" type="enum">
         <enum value="0"     name="VK_VALIDATION_CHECK_ALL_EXT"/>
         <enum value="1"     name="VK_VALIDATION_CHECK_SHADERS_EXT"/>
-            <comment>Placeholder for validation enums to be defined for VK_EXT_Validation_flags extension</comment>
     </enums>
     <enums name="VkValidationFeatureEnableEXT" type="enum">
         <enum value="0"     name="VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT"/>
         <enum value="1"     name="VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT"/>
-            <comment>Placeholder for validation feature enable enums to be defined for VK_EXT_validation_features extension</comment>
+        <enum value="2"     name="VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT"/>
     </enums>
     <enums name="VkValidationFeatureDisableEXT" type="enum">
         <enum value="0"     name="VK_VALIDATION_FEATURE_DISABLE_ALL_EXT"/>
@@ -5055,7 +5054,6 @@ typedef void <name>CAMetalLayer</name>;
         <enum value="4"     name="VK_VALIDATION_FEATURE_DISABLE_OBJECT_LIFETIMES_EXT"/>
         <enum value="5"     name="VK_VALIDATION_FEATURE_DISABLE_CORE_CHECKS_EXT"/>
         <enum value="6"     name="VK_VALIDATION_FEATURE_DISABLE_UNIQUE_HANDLES_EXT"/>
-            <comment>Placeholder for validation feature disable enums to be defined for VK_EXT_validation_features extension</comment>
     </enums>
     <enums name="VkSubgroupFeatureFlagBits" type="bitmask">
         <enum bitpos="0"    name="VK_SUBGROUP_FEATURE_BASIC_BIT"              comment="Basic subgroup operations"/>
@@ -10412,6 +10410,7 @@ typedef void <name>CAMetalLayer</name>;
                 <enum offset="0" extends="VkObjectType"                  name="VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV"/>
                 <enum offset="0" extends="VkDebugReportObjectTypeEXT"    name="VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT"/>
                 <enum offset="0" extends="VkIndexType"                   name="VK_INDEX_TYPE_NONE_NV"/>
+                <type name="VkAccelerationStructureTypeNV"/>
                 <type name="VkRayTracingShaderGroupCreateInfoNV"/>
                 <type name="VkRayTracingShaderGroupTypeNV"/>
                 <type name="VkRayTracingPipelineCreateInfoNV"/>
@@ -11156,7 +11155,7 @@ typedef void <name>CAMetalLayer</name>;
         </extension>
         <extension name="VK_EXT_validation_features" number="248" type="instance" author="LUNARG" contact="Karl Schultz @karl-lunarg" supported="vulkan">
             <require>
-                <enum value="1"                                             name="VK_EXT_VALIDATION_FEATURES_SPEC_VERSION"/>
+                <enum value="2"                                             name="VK_EXT_VALIDATION_FEATURES_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_validation_features&quot;"        name="VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT"/>
                 <type name="VkValidationFeaturesEXT"/>
