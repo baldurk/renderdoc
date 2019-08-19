@@ -448,6 +448,281 @@ void DoubleGet(const ShaderVariable &var, double out[2])
   out[1] = var.value.d.y;
 }
 
+void TypedUAVStore(GlobalState::ViewFmt &fmt, byte *d, ShaderVariable var)
+{
+  if(fmt.byteWidth == 10)
+  {
+    uint32_t u = 0;
+
+    if(fmt.fmt == CompType::UInt)
+    {
+      u |= (var.value.u.x & 0x3ff) << 0;
+      u |= (var.value.u.y & 0x3ff) << 10;
+      u |= (var.value.u.z & 0x3ff) << 20;
+      u |= (var.value.u.w & 0x3) << 30;
+    }
+    else if(fmt.fmt == CompType::UNorm)
+    {
+      u = ConvertToR10G10B10A2(Vec4f(var.value.f.x, var.value.f.y, var.value.f.z, var.value.f.w));
+    }
+    else
+    {
+      RDCERR("Unexpected format type on buffer resource");
+    }
+    memcpy(d, &u, sizeof(uint32_t));
+  }
+  else if(fmt.byteWidth == 11)
+  {
+    uint32_t u = 0;
+    RDCERR("Unimplemented: storing to R11G11B10 format");
+    memcpy(d, &u, sizeof(uint32_t));
+  }
+  else if(fmt.byteWidth == 4)
+  {
+    uint32_t *u = (uint32_t *)d;
+
+    for(int c = 0; c < fmt.numComps; c++)
+      u[c] = var.value.uv[c];
+  }
+  else if(fmt.byteWidth == 2)
+  {
+    if(fmt.fmt == CompType::Float)
+    {
+      uint16_t *u = (uint16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        u[c] = ConvertToHalf(var.value.fv[c]);
+    }
+    else if(fmt.fmt == CompType::UInt)
+    {
+      uint16_t *u = (uint16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        u[c] = var.value.uv[c] & 0xffff;
+    }
+    else if(fmt.fmt == CompType::SInt)
+    {
+      int16_t *i = (int16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        i[c] = (int16_t)RDCCLAMP(var.value.iv[c], (int32_t)INT16_MIN, (int32_t)INT16_MAX);
+    }
+    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+    {
+      uint16_t *u = (uint16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+      {
+        float f = RDCCLAMP(var.value.fv[c], 0.0f, 1.0f) * float(0xffff) + 0.5f;
+        u[c] = uint16_t(f);
+      }
+    }
+    else if(fmt.fmt == CompType::SNorm)
+    {
+      int16_t *i = (int16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+      {
+        float f = RDCCLAMP(var.value.fv[c], -1.0f, 1.0f) * 0x7fff;
+
+        if(f < 0.0f)
+          i[c] = int16_t(f - 0.5f);
+        else
+          i[c] = int16_t(f + 0.5f);
+      }
+    }
+    else
+    {
+      RDCERR("Unexpected format type on buffer resource");
+    }
+  }
+  else if(fmt.byteWidth == 1)
+  {
+    if(fmt.fmt == CompType::UInt)
+    {
+      uint8_t *u = (uint8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        u[c] = var.value.uv[c] & 0xff;
+    }
+    else if(fmt.fmt == CompType::SInt)
+    {
+      int8_t *i = (int8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        i[c] = (int8_t)RDCCLAMP(var.value.iv[c], (int32_t)INT8_MIN, (int32_t)INT8_MAX);
+    }
+    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+    {
+      uint8_t *u = (uint8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+      {
+        float f = RDCCLAMP(var.value.fv[c], 0.0f, 1.0f) * float(0xff) + 0.5f;
+        u[c] = uint8_t(f);
+      }
+    }
+    else if(fmt.fmt == CompType::SNorm)
+    {
+      int8_t *i = (int8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+      {
+        float f = RDCCLAMP(var.value.fv[c], -1.0f, 1.0f) * 0x7f;
+
+        if(f < 0.0f)
+          i[c] = int8_t(f - 0.5f);
+        else
+          i[c] = int8_t(f + 0.5f);
+      }
+    }
+    else
+    {
+      RDCERR("Unexpected format type on buffer resource");
+    }
+  }
+}
+
+ShaderVariable TypedUAVLoad(GlobalState::ViewFmt &fmt, const byte *d)
+{
+  ShaderVariable result("", 0.0f, 0.0f, 0.0f, 0.0f);
+
+  if(fmt.byteWidth == 10)
+  {
+    uint32_t u;
+    memcpy(&u, d, sizeof(uint32_t));
+
+    if(fmt.fmt == CompType::UInt)
+    {
+      result.value.u.x = (u >> 0) & 0x3ff;
+      result.value.u.y = (u >> 10) & 0x3ff;
+      result.value.u.z = (u >> 20) & 0x3ff;
+      result.value.u.w = (u >> 30) & 0x003;
+    }
+    else if(fmt.fmt == CompType::UNorm)
+    {
+      Vec4f res = ConvertFromR10G10B10A2(u);
+      result.value.f.x = res.x;
+      result.value.f.y = res.y;
+      result.value.f.z = res.z;
+      result.value.f.w = res.w;
+    }
+    else
+    {
+      RDCERR("Unexpected format type on buffer resource");
+    }
+  }
+  else if(fmt.byteWidth == 11)
+  {
+    uint32_t u;
+    memcpy(&u, d, sizeof(uint32_t));
+
+    Vec3f res = ConvertFromR11G11B10(u);
+    result.value.f.x = res.x;
+    result.value.f.y = res.y;
+    result.value.f.z = res.z;
+    result.value.f.w = 1.0f;
+  }
+  else if(fmt.byteWidth == 4)
+  {
+    const uint32_t *u = (const uint32_t *)d;
+
+    for(int c = 0; c < fmt.numComps; c++)
+      result.value.uv[c] = u[c];
+  }
+  else if(fmt.byteWidth == 2)
+  {
+    if(fmt.fmt == CompType::Float)
+    {
+      const uint16_t *u = (const uint16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.fv[c] = ConvertFromHalf(u[c]);
+    }
+    else if(fmt.fmt == CompType::UInt)
+    {
+      const uint16_t *u = (const uint16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.uv[c] = u[c];
+    }
+    else if(fmt.fmt == CompType::SInt)
+    {
+      const int16_t *in = (const int16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.iv[c] = in[c];
+    }
+    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+    {
+      const uint16_t *u = (const uint16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.fv[c] = float(u[c]) / float(0xffff);
+    }
+    else if(fmt.fmt == CompType::SNorm)
+    {
+      const int16_t *in = (const int16_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+      {
+        // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
+        if(in[c] == -32768)
+          result.value.fv[c] = -1.0f;
+        else
+          result.value.fv[c] = float(in[c]) / 32767.0f;
+      }
+    }
+    else
+    {
+      RDCERR("Unexpected format type on buffer resource");
+    }
+  }
+  else if(fmt.byteWidth == 1)
+  {
+    if(fmt.fmt == CompType::UInt)
+    {
+      const uint8_t *u = (const uint8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.uv[c] = u[c];
+    }
+    else if(fmt.fmt == CompType::SInt)
+    {
+      const int8_t *in = (const int8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.iv[c] = in[c];
+    }
+    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+    {
+      const uint8_t *u = (const uint8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+        result.value.fv[c] = float(u[c]) / float(0xff);
+    }
+    else if(fmt.fmt == CompType::SNorm)
+    {
+      const int8_t *in = (const int8_t *)d;
+
+      for(int c = 0; c < fmt.numComps; c++)
+      {
+        // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
+        if(in[c] == -128)
+          result.value.fv[c] = -1.0f;
+        else
+          result.value.fv[c] = float(in[c]) / 127.0f;
+      }
+    }
+    else
+    {
+      RDCERR("Unexpected format type on buffer resource");
+    }
+  }
+
+  return result;
+}
+
 // "NaN has special handling. If one source operand is NaN, then the other source operand is
 // returned and the choice is made per-component. If both are NaN, any NaN representation is
 // returned."
@@ -2745,27 +3020,17 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       GlobalState::ViewFmt fmt = srv ? global.srvs[resIndex].format : global.uavs[resIndex].format;
 
       // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
-      // units. Multiply up by bytesize
+      // units. Multiply up by stride
       if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
       {
-        offset *= fmt.byteWidth;
-        numElems *= fmt.byteWidth;
+        offset *= RDCMIN(4, fmt.byteWidth);
+        numElems *= RDCMIN(4, fmt.byteWidth);
       }
 
       byte *data = srv ? &global.srvs[resIndex].data[0] : &global.uavs[resIndex].data[0];
       bool texData = srv ? false : global.uavs[resIndex].tex;
       uint32_t rowPitch = srv ? 0 : global.uavs[resIndex].rowPitch;
       uint32_t depthPitch = srv ? 0 : global.uavs[resIndex].depthPitch;
-
-      if(load && !srv && !gsm && (fmt.numComps != 1 || fmt.byteWidth != 4))
-      {
-        apiWrapper->AddDebugMessage(
-            MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-            StringFormat::Fmt(
-                "Shader debugging %d: %s\n"
-                "UAV loads aren't supported from anything but 32-bit single channel resources",
-                s.nextInstruction - 1, op.str.c_str()));
-      }
 
       if(gsm)
       {
@@ -2784,7 +3049,6 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           fmt.fmt = CompType::UInt;
           fmt.byteWidth = 4;
           fmt.numComps = global.groupshared[resIndex].bytestride / 4;
-          fmt.reversed = false;
           fmt.stride = 0;
         }
         texData = false;
@@ -2819,8 +3083,6 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           data += texOffset;
         }
 
-        uint32_t *datau32 = (uint32_t *)data;
-
         int maxIndex = fmt.numComps;
 
         uint32_t srcIdx = 1;
@@ -2837,16 +3099,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
         if(load)
         {
-          ShaderVariable fetch("", 0U, 0U, 0U, 0U);
-
-          for(int i = 0; i < 4; i++)
-          {
-            uint8_t comp = op.operands[srcIdx + 1].comps[i];
-            if(op.operands[srcIdx + 1].comps[i] == 0xff || comp >= maxIndex)
-              comp = 0;
-
-            fetch.value.uv[i] = datau32[comp];
-          }
+          ShaderVariable fetch = TypedUAVLoad(fmt, data);
 
           // if we are assigning into a scalar, SetDst expects the result to be in .x (as normally
           // we are assigning FROM a scalar also).
@@ -2866,7 +3119,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
             if(comp == 0xff || comp >= maxIndex)
               break;
 
-            datau32[i] = srcOpers[srcIdx].value.uv[i];
+            TypedUAVStore(fmt, data, srcOpers[srcIdx]);
           }
         }
       }
@@ -3300,144 +3553,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
             result = ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f);
 
             if(srcOpers[0].value.uv[0] < numElems)
-            {
-              const byte *d = data + srcOpers[0].value.uv[0] * fmt.Stride();
-
-              if(fmt.byteWidth == 10)
-              {
-                const uint32_t u = *((const uint32_t *)d);
-
-                if(fmt.fmt == CompType::UInt)
-                {
-                  result.value.u.x = (u >> 0) & 0x3ff;
-                  result.value.u.y = (u >> 10) & 0x3ff;
-                  result.value.u.z = (u >> 20) & 0x3ff;
-                  result.value.u.w = (u >> 30) & 0x003;
-                }
-                else if(fmt.fmt == CompType::UNorm)
-                {
-                  Vec4f res = ConvertFromR10G10B10A2(u);
-                  result.value.f.x = res.x;
-                  result.value.f.y = res.y;
-                  result.value.f.z = res.z;
-                  result.value.f.w = res.w;
-                }
-                else
-                {
-                  RDCERR("Unexpected format type on buffer resource");
-                }
-              }
-              else if(fmt.byteWidth == 11)
-              {
-                const uint32_t *u = (const uint32_t *)d;
-
-                Vec3f res = ConvertFromR11G11B10(*u);
-                result.value.f.x = res.x;
-                result.value.f.y = res.y;
-                result.value.f.z = res.z;
-                result.value.f.w = 1.0f;
-              }
-              else if(fmt.byteWidth == 4)
-              {
-                const uint32_t *u = (const uint32_t *)d;
-
-                for(int c = 0; c < fmt.numComps; c++)
-                  result.value.uv[c] = u[c];
-              }
-              else if(fmt.byteWidth == 2)
-              {
-                if(fmt.fmt == CompType::Float)
-                {
-                  const uint16_t *u = (const uint16_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.fv[c] = ConvertFromHalf(u[c]);
-                }
-                else if(fmt.fmt == CompType::UInt)
-                {
-                  const uint16_t *u = (const uint16_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.uv[c] = u[c];
-                }
-                else if(fmt.fmt == CompType::SInt)
-                {
-                  const int16_t *in = (const int16_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.iv[c] = in[c];
-                }
-                else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-                {
-                  const uint16_t *u = (const uint16_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.fv[c] = float(u[c]) / float(0xffff);
-                }
-                else if(fmt.fmt == CompType::SNorm)
-                {
-                  const int16_t *in = (const int16_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                  {
-                    // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
-                    if(in[c] == -32768)
-                      result.value.fv[c] = -1.0f;
-                    else
-                      result.value.fv[c] = float(in[c]) / 32767.0f;
-                  }
-                }
-                else
-                {
-                  RDCERR("Unexpected format type on buffer resource");
-                }
-              }
-              else if(fmt.byteWidth == 1)
-              {
-                if(fmt.fmt == CompType::UInt)
-                {
-                  const uint8_t *u = (const uint8_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.uv[c] = u[c];
-                }
-                else if(fmt.fmt == CompType::SInt)
-                {
-                  const int8_t *in = (const int8_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.iv[c] = in[c];
-                }
-                else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-                {
-                  const uint8_t *u = (const uint8_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                    result.value.fv[c] = float(u[c]) / float(0xff);
-                }
-                else if(fmt.fmt == CompType::SNorm)
-                {
-                  const int8_t *in = (const int8_t *)d;
-
-                  for(int c = 0; c < fmt.numComps; c++)
-                  {
-                    // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
-                    if(in[c] == -128)
-                      result.value.fv[c] = -1.0f;
-                    else
-                      result.value.fv[c] = float(in[c]) / 127.0f;
-                  }
-                }
-                else
-                {
-                  RDCERR("Unexpected format type on buffer resource");
-                }
-              }
-
-              if(fmt.reversed)
-                result = ShaderVariable("", result.value.uv[0], result.value.uv[1],
-                                        result.value.uv[2], result.value.uv[3]);
-            }
+              result = TypedUAVLoad(fmt, data + srcOpers[0].value.uv[0] * fmt.Stride());
           }
 
           ShaderVariable fetch("", 0U, 0U, 0U, 0U);

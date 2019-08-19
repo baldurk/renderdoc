@@ -59,7 +59,6 @@ public:
   {
     int byteWidth = 0;
     int numComps = 0;
-    bool reversed = false;
     CompType fmt = CompType::Typeless;
     int stride = 0;
 
