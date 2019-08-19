@@ -1943,58 +1943,6 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     }
   }
 
-  drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-  MeshPickUBOData *cdata =
-      (MeshPickUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshPickUBOData),
-                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-
-  cdata->rayPos = rayPos;
-  cdata->rayDir = rayDir;
-  cdata->use_indices = cfg.position.indexByteStride ? 1U : 0U;
-  cdata->numVerts = cfg.position.numIndices;
-  bool isTriangleMesh = true;
-  switch(cfg.position.topology)
-  {
-    case Topology::TriangleList:
-    {
-      cdata->meshMode = MESH_TRIANGLE_LIST;
-      break;
-    }
-    case Topology::TriangleStrip:
-    {
-      cdata->meshMode = MESH_TRIANGLE_STRIP;
-      break;
-    }
-    case Topology::TriangleFan:
-    {
-      cdata->meshMode = MESH_TRIANGLE_FAN;
-      break;
-    }
-    case Topology::TriangleList_Adj:
-    {
-      cdata->meshMode = MESH_TRIANGLE_LIST_ADJ;
-      break;
-    }
-    case Topology::TriangleStrip_Adj:
-    {
-      cdata->meshMode = MESH_TRIANGLE_STRIP_ADJ;
-      break;
-    }
-    default:    // points, lines, patchlists, unknown
-    {
-      cdata->meshMode = MESH_OTHER;
-      isTriangleMesh = false;
-    }
-  }
-
-  // line/point data
-  cdata->unproject = cfg.position.unproject;
-  cdata->mvp = cfg.position.unproject ? pickMVPProj : pickMVP;
-  cdata->coords = Vec2f((float)x, (float)y);
-  cdata->viewport = Vec2f((float)width, (float)height);
-
-  drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-
   GLuint ib = 0;
 
   uint32_t minIndex = 0;
@@ -2007,29 +1955,45 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
   if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
     ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
 
+  const bool fandecode =
+      (cfg.position.topology == Topology::TriangleFan && cfg.position.allowRestart);
+  uint32_t numIndices = cfg.position.numIndices;
+
   // We copy into our own buffers to promote to the target type (uint32) that the shader expects.
   // Most IBs will be 16-bit indices, most VBs will not be float4. We also apply baseVertex here
 
   if(ib)
   {
+    std::vector<uint32_t> idxtmp;
+
+    // if it's a triangle fan that allows restart, we'll have to unpack it.
+    // Allocate enough space for the list on the GPU, and enough temporary space to upcast into
+    // first
+    if(fandecode)
+    {
+      idxtmp.resize(numIndices);
+
+      numIndices *= 3;
+    }
+
     // resize up on demand
-    if(DebugData.pickIBBuf == 0 || DebugData.pickIBSize < cfg.position.numIndices * sizeof(uint32_t))
+    if(DebugData.pickIBBuf == 0 || DebugData.pickIBSize < numIndices * sizeof(uint32_t))
     {
       drv.glDeleteBuffers(1, &DebugData.pickIBBuf);
 
       drv.glGenBuffers(1, &DebugData.pickIBBuf);
       drv.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
-      drv.glNamedBufferDataEXT(DebugData.pickIBBuf, cfg.position.numIndices * sizeof(uint32_t),
-                               NULL, eGL_STREAM_DRAW);
+      drv.glNamedBufferDataEXT(DebugData.pickIBBuf, numIndices * sizeof(uint32_t), NULL,
+                               eGL_STREAM_DRAW);
 
-      DebugData.pickIBSize = cfg.position.numIndices * sizeof(uint32_t);
+      DebugData.pickIBSize = numIndices * sizeof(uint32_t);
     }
 
-    byte *idxs = new byte[cfg.position.numIndices * cfg.position.indexByteStride];
-    memset(idxs, 0, cfg.position.numIndices * cfg.position.indexByteStride);
+    byte *idxs = new byte[numIndices * cfg.position.indexByteStride];
+    memset(idxs, 0, numIndices * cfg.position.indexByteStride);
 
     std::vector<uint32_t> outidxs;
-    outidxs.resize(cfg.position.numIndices);
+    outidxs.resize(numIndices);
 
     drv.glBindBuffer(eGL_COPY_READ_BUFFER, ib);
 
@@ -2044,6 +2008,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     uint8_t *idxs8 = (uint8_t *)idxs;
     uint16_t *idxs16 = (uint16_t *)idxs;
     uint32_t *idxs32 = (uint32_t *)idxs;
+
+    size_t idxcount = 0;
 
     if(cfg.position.indexByteStride == 1)
     {
@@ -2069,11 +2035,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
         }
 
         outidxs[i] = idx;
+        idxcount++;
       }
-
-      drv.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
-      drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(uint32_t),
-                          outidxs.data());
     }
     else if(cfg.position.indexByteStride == 2)
     {
@@ -2099,11 +2062,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
         }
 
         outidxs[i] = idx;
+        idxcount++;
       }
-
-      drv.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
-      drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(uint32_t),
-                          outidxs.data());
     }
     else
     {
@@ -2129,12 +2089,30 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
         }
 
         outidxs[i] = idx;
+        idxcount++;
+      }
+    }
+
+    // if it's a triangle fan that allows restart, unpack it
+    if(cfg.position.topology == Topology::TriangleFan && cfg.position.allowRestart)
+    {
+      // resize to how many indices were actually read
+      outidxs.resize(idxcount);
+
+      // patch the index buffer
+      PatchTriangleFanRestartIndexBufer(outidxs, cfg.position.restartIndex);
+
+      for(uint32_t &idx : idxtmp)
+      {
+        if(idx == cfg.position.restartIndex)
+          idx = 0;
       }
 
-      drv.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
-      drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, cfg.position.numIndices * sizeof(uint32_t),
-                          outidxs.data());
+      numIndices = (uint32_t)outidxs.size();
     }
+
+    drv.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
+    drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, numIndices * sizeof(uint32_t), outidxs.data());
   }
 
   // unpack and linearise the data
@@ -2177,6 +2155,61 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, (maxIndex + 1) * sizeof(Vec4f), vbData.data());
   }
 
+  drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+  MeshPickUBOData *cdata =
+      (MeshPickUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshPickUBOData),
+                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  cdata->rayPos = rayPos;
+  cdata->rayDir = rayDir;
+  cdata->use_indices = cfg.position.indexByteStride ? 1U : 0U;
+  cdata->numVerts = numIndices;
+  bool isTriangleMesh = true;
+  switch(cfg.position.topology)
+  {
+    case Topology::TriangleList:
+    {
+      cdata->meshMode = MESH_TRIANGLE_LIST;
+      break;
+    }
+    case Topology::TriangleStrip:
+    {
+      cdata->meshMode = MESH_TRIANGLE_STRIP;
+      break;
+    }
+    case Topology::TriangleFan:
+    {
+      if(fandecode)
+        cdata->meshMode = MESH_TRIANGLE_LIST;
+      else
+        cdata->meshMode = MESH_TRIANGLE_FAN;
+      break;
+    }
+    case Topology::TriangleList_Adj:
+    {
+      cdata->meshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    }
+    case Topology::TriangleStrip_Adj:
+    {
+      cdata->meshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    }
+    default:    // points, lines, patchlists, unknown
+    {
+      cdata->meshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    }
+  }
+
+  // line/point data
+  cdata->unproject = cfg.position.unproject;
+  cdata->mvp = cfg.position.unproject ? pickMVPProj : pickMVP;
+  cdata->coords = Vec2f((float)x, (float)y);
+  cdata->viewport = Vec2f((float)width, (float)height);
+
+  drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
   uint32_t reset[4] = {};
   drv.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.pickResultBuf);
   drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, sizeof(uint32_t) * 4, &reset);
@@ -2193,6 +2226,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
   drv.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.pickResultBuf);
   drv.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t), &numResults);
+
+  uint32_t ret = ~0U;
 
   if(numResults > 0)
   {
@@ -2226,7 +2261,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
       drv.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
 
-      return closest->vertid;
+      ret = closest->vertid;
     }
     else
     {
@@ -2265,11 +2300,18 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
       drv.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
 
-      return closest->vertid;
+      ret = closest->vertid;
     }
   }
 
-  return ~0U;
+  if(fandecode)
+  {
+    // undo the triangle list expansion
+    if(ret > 2)
+      ret = (ret + 3) / 3 + 1;
+  }
+
+  return ret;
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,

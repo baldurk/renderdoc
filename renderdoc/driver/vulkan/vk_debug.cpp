@@ -1049,55 +1049,10 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
     }
   }
 
-  MeshPickUBOData *ubo = (MeshPickUBOData *)m_VertexPick.UBO.Map();
+  const bool fandecode =
+      (cfg.position.topology == Topology::TriangleFan && cfg.position.allowRestart);
 
-  ubo->rayPos = rayPos;
-  ubo->rayDir = rayDir;
-  ubo->use_indices = cfg.position.indexByteStride ? 1U : 0U;
-  ubo->numVerts = cfg.position.numIndices;
-  bool isTriangleMesh = true;
-
-  switch(cfg.position.topology)
-  {
-    case Topology::TriangleList:
-    {
-      ubo->meshMode = MESH_TRIANGLE_LIST;
-      break;
-    };
-    case Topology::TriangleStrip:
-    {
-      ubo->meshMode = MESH_TRIANGLE_STRIP;
-      break;
-    };
-    case Topology::TriangleFan:
-    {
-      ubo->meshMode = MESH_TRIANGLE_FAN;
-      break;
-    };
-    case Topology::TriangleList_Adj:
-    {
-      ubo->meshMode = MESH_TRIANGLE_LIST_ADJ;
-      break;
-    };
-    case Topology::TriangleStrip_Adj:
-    {
-      ubo->meshMode = MESH_TRIANGLE_STRIP_ADJ;
-      break;
-    };
-    default:    // points, lines, patchlists, unknown
-    {
-      ubo->meshMode = MESH_OTHER;
-      isTriangleMesh = false;
-    };
-  }
-
-  // line/point data
-  ubo->unproject = cfg.position.unproject;
-  ubo->mvp = cfg.position.unproject ? pickMVPProj : pickMVP;
-  ubo->coords = Vec2f((float)x, (float)y);
-  ubo->viewport = Vec2f((float)w, (float)h);
-
-  m_VertexPick.UBO.Unmap();
+  uint32_t numIndices = cfg.position.numIndices;
 
   bytebuf idxs;
 
@@ -1116,8 +1071,20 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 
   if(!idxs.empty())
   {
+    std::vector<uint32_t> idxtmp;
+
+    // if it's a triangle fan that allows restart, we'll have to unpack it.
+    // Allocate enough space for the list on the GPU, and enough temporary space to upcast into
+    // first
+    if(fandecode)
+    {
+      idxtmp.resize(numIndices);
+
+      numIndices *= 3;
+    }
+
     // resize up on demand
-    if(m_VertexPick.IBSize < cfg.position.numIndices * sizeof(uint32_t))
+    if(m_VertexPick.IBSize < numIndices * sizeof(uint32_t))
     {
       if(m_VertexPick.IBSize > 0)
       {
@@ -1125,7 +1092,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
         m_VertexPick.IBUpload.Destroy();
       }
 
-      m_VertexPick.IBSize = cfg.position.numIndices * sizeof(uint32_t);
+      m_VertexPick.IBSize = numIndices * sizeof(uint32_t);
 
       m_VertexPick.IB.Create(m_pDriver, dev, m_VertexPick.IBSize, 1,
                              GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
@@ -1133,11 +1100,18 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
     }
 
     uint32_t *outidxs = (uint32_t *)m_VertexPick.IBUpload.Map();
+    uint32_t *mappedPtr = outidxs;
 
     memset(outidxs, 0, m_VertexPick.IBSize);
 
+    // if we're decoding a fan, we write into our temporary vector first
+    if(fandecode)
+      outidxs = idxtmp.data();
+
     uint16_t *idxs16 = (uint16_t *)&idxs[0];
     uint32_t *idxs32 = (uint32_t *)&idxs[0];
+
+    size_t idxcount = 0;
 
     if(cfg.position.indexByteStride == 2)
     {
@@ -1165,6 +1139,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
         }
 
         outidxs[i] = idx;
+        idxcount++;
       }
     }
     else
@@ -1188,7 +1163,29 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
         maxIndex = RDCMAX(idx, maxIndex);
 
         outidxs[i] = idx;
+        idxcount++;
       }
+    }
+
+    // if it's a triangle fan that allows restart, unpack it
+    if(cfg.position.topology == Topology::TriangleFan && cfg.position.allowRestart)
+    {
+      // resize to how many indices were actually read
+      idxtmp.resize(idxcount);
+
+      // patch the index buffer
+      PatchTriangleFanRestartIndexBufer(idxtmp, cfg.position.restartIndex);
+
+      for(uint32_t &idx : idxtmp)
+      {
+        if(idx == cfg.position.restartIndex)
+          idx = 0;
+      }
+
+      numIndices = (uint32_t)idxtmp.size();
+
+      // now copy the decoded list to the GPU
+      memcpy(mappedPtr, idxtmp.data(), idxtmp.size() * sizeof(uint32_t));
     }
 
     m_VertexPick.IBUpload.Unmap();
@@ -1234,6 +1231,59 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 
     m_VertexPick.VBUpload.Unmap();
   }
+
+  MeshPickUBOData *ubo = (MeshPickUBOData *)m_VertexPick.UBO.Map();
+
+  ubo->rayPos = rayPos;
+  ubo->rayDir = rayDir;
+  ubo->use_indices = cfg.position.indexByteStride ? 1U : 0U;
+  ubo->numVerts = numIndices;
+  bool isTriangleMesh = true;
+
+  switch(cfg.position.topology)
+  {
+    case Topology::TriangleList:
+    {
+      ubo->meshMode = MESH_TRIANGLE_LIST;
+      break;
+    };
+    case Topology::TriangleStrip:
+    {
+      ubo->meshMode = MESH_TRIANGLE_STRIP;
+      break;
+    };
+    case Topology::TriangleFan:
+    {
+      if(fandecode)
+        ubo->meshMode = MESH_TRIANGLE_LIST;
+      else
+        ubo->meshMode = MESH_TRIANGLE_FAN;
+      break;
+    };
+    case Topology::TriangleList_Adj:
+    {
+      ubo->meshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    };
+    case Topology::TriangleStrip_Adj:
+    {
+      ubo->meshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    };
+    default:    // points, lines, patchlists, unknown
+    {
+      ubo->meshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    };
+  }
+
+  // line/point data
+  ubo->unproject = cfg.position.unproject;
+  ubo->mvp = cfg.position.unproject ? pickMVPProj : pickMVP;
+  ubo->coords = Vec2f((float)x, (float)y);
+  ubo->viewport = Vec2f((float)w, (float)h);
+
+  m_VertexPick.UBO.Unmap();
 
   VkDescriptorBufferInfo ibInfo = {};
   VkDescriptorBufferInfo vbInfo = {};
@@ -1424,6 +1474,13 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
   VkMarkerRegion::Set(StringFormat::Fmt("Result is %u", ret));
 
   VkMarkerRegion::End();
+
+  if(fandecode)
+  {
+    // undo the triangle list expansion
+    if(ret > 2)
+      ret = (ret + 3) / 3 + 1;
+  }
 
   return ret;
 }

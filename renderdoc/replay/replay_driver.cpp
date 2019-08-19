@@ -259,6 +259,86 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 #undef IDX_VALUE
 }
 
+void PatchTriangleFanRestartIndexBufer(std::vector<uint32_t> &patchedIndices, uint32_t restartIndex)
+{
+  if(patchedIndices.empty())
+    return;
+
+  std::vector<uint32_t> newIndices;
+
+  uint32_t firstIndex = patchedIndices[0];
+
+  size_t i = 1;
+  // while we have at least two indices left
+  while(i + 1 < patchedIndices.size())
+  {
+    uint32_t a = patchedIndices[i];
+    uint32_t b = patchedIndices[i + 1];
+
+    if(a != restartIndex && b != restartIndex)
+    {
+      // no restart, add primitive
+      newIndices.push_back(firstIndex);
+      newIndices.push_back(a);
+      newIndices.push_back(b);
+
+      i++;
+      continue;
+    }
+    else if(b == restartIndex)
+    {
+      // we've already added the last triangle before the restart in the previous iteration, just
+      // continue so we hit the a == restartIndex case below
+      i++;
+    }
+    else if(a == restartIndex)
+    {
+      // new first index is b
+      firstIndex = b;
+      // skip both the restartIndex value and the first index, and begin at the next real index (if
+      // it exists)
+      i += 2;
+
+      uint32_t next[2] = {b, b};
+
+      // if this is the last vertex, the triangle will be degenerate
+      if(i < patchedIndices.size())
+        next[0] = patchedIndices[i];
+      if(i + 1 < patchedIndices.size())
+        next[1] = patchedIndices[i + 1];
+
+      // output 3 dummy degenerate triangles so vertex ID mapping is easy
+      // we rotate the triangles so the important vertex is last in each.
+      newIndices.push_back(restartIndex);
+      newIndices.push_back(restartIndex);
+      newIndices.push_back(restartIndex);
+
+      if(1)
+      {
+        newIndices.push_back(restartIndex);
+        newIndices.push_back(restartIndex);
+        newIndices.push_back(restartIndex);
+
+        newIndices.push_back(restartIndex);
+        newIndices.push_back(restartIndex);
+        newIndices.push_back(restartIndex);
+      }
+      else
+      {
+        newIndices.push_back(next[0]);
+        newIndices.push_back(next[1]);
+        newIndices.push_back(firstIndex);
+
+        newIndices.push_back(next[1]);
+        newIndices.push_back(firstIndex);
+        newIndices.push_back(next[0]);
+      }
+    }
+  }
+
+  newIndices.swap(patchedIndices);
+}
+
 void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
                                  uint32_t matStride)
 {
@@ -509,7 +589,8 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, con
 
     vert = indices[vert];
 
-    if(IsStrip(cfg.position.topology))
+    if(SupportsRestart(cfg.position.topology) && cfg.position.topology != Topology::TriangleFan &&
+       cfg.position.allowRestart)
     {
       if((cfg.position.indexByteStride == 1 && vert == 0xff) ||
          (cfg.position.indexByteStride == 2 && vert == 0xffff) ||
@@ -625,6 +706,8 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
   newKey = inthash(cfg.position.vertexByteStride, newKey);
   newKey = inthash(cfg.position.indexResourceId, newKey);
   newKey = inthash(cfg.position.vertexResourceId, newKey);
+  newKey = inthash((uint64_t)cfg.position.allowRestart, newKey);
+  newKey = inthash((uint64_t)cfg.position.restartIndex, newKey);
 
   if(cacheKey != newKey)
   {
@@ -687,7 +770,7 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
         maxIndex += add;
 
       uint32_t primRestart = 0;
-      if(IsStrip(cfg.position.topology))
+      if(SupportsRestart(cfg.position.topology) && cfg.position.allowRestart)
       {
         if(cfg.position.indexByteStride == 1)
           primRestart = 0xff;
@@ -719,6 +802,13 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
 
     driver->GetBufferData(cfg.position.vertexResourceId, cfg.position.vertexByteOffset,
                           (maxIndex + 1) * cfg.position.vertexByteStride, vertexData);
+
+    // if it's a fan AND it uses primitive restart, decompose it into a triangle list because the
+    // restart changes the central vertex
+    if(cfg.position.topology == Topology::TriangleFan && cfg.position.allowRestart)
+    {
+      PatchTriangleFanRestartIndexBufer(indices, cfg.position.restartIndex);
+    }
   }
 }
 
@@ -735,10 +825,20 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
   uint32_t idx = cfg.highlightVert;
   Topology meshtopo = cfg.position.topology;
 
+  // if it's a fan AND it uses primitive restart, it was decomposed into a triangle list
+  if(meshtopo == Topology::TriangleFan && cfg.position.allowRestart)
+  {
+    meshtopo = Topology::TriangleList;
+
+    // due to triangle fan expansion the index we need to look up is adjusted
+    if(idx > 2)
+      idx = (idx - 1) * 3 - 1;
+  }
+
   activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
 
   uint32_t primRestart = 0;
-  if(IsStrip(meshtopo))
+  if(SupportsRestart(meshtopo) && cfg.position.allowRestart)
   {
     if(cfg.position.indexByteStride == 1)
       primRestart = 0xff;
@@ -831,6 +931,19 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
         v++;
     }
 
+    activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
+    activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
+  }
+  else if(meshtopo == Topology::TriangleFan)
+  {
+    // find first vert in primitive. In fans a vert isn't
+    // in only one primitive, so we pick the first primitive
+    // it's in. This means the first N points are in the first
+    // primitive, and thereafter each point is in the next primitive
+    uint32_t v = RDCMAX(idx, 2U) - 1;
+
+    // first vert in the whole fan
+    activePrim.push_back(InterpretVertex(data, 0, cfg, dataEnd, true, valid));
     activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
     activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
   }
@@ -1029,7 +1142,7 @@ bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector
   }
   else if(meshtopo >= Topology::PatchList)
   {
-    uint32_t dim = PatchList_Count(cfg.position.topology);
+    uint32_t dim = PatchList_Count(meshtopo);
 
     uint32_t v0 = uint32_t(idx / dim) * dim;
 

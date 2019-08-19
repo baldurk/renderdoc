@@ -730,7 +730,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     uint32_t stripRestartValue32 = 0;
 
-    if(IsStrip(drawcall->topology) && rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart])
+    if(SupportsRestart(drawcall->topology) && rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart])
     {
       stripRestartValue32 = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
                                 ? ~0U

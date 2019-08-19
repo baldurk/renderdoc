@@ -25,6 +25,7 @@ set(VULKAN_SRC
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp
         vk/vk_structured_buffer_nested.cpp
+        vk/vk_triangle_fan.cpp
         vk/vk_vertex_attr_zoo.cpp
         vk/vk_video_textures.cpp
         vk/vk_vs_max_desc_set.cpp)

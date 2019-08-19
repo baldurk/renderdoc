@@ -62,6 +62,7 @@ Maths & Utilities
 .. autofunction:: renderdoc.VertexOffset
 .. autofunction:: renderdoc.PatchList_Count
 .. autofunction:: renderdoc.PatchList_Topology
+.. autofunction:: renderdoc.SupportsRestart
 .. autofunction:: renderdoc.IsStrip
 .. autofunction:: renderdoc.IsD3D
 .. autofunction:: renderdoc.MaskForStage

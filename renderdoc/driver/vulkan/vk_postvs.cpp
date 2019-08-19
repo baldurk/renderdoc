@@ -1608,8 +1608,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
   if(drawcall->flags & DrawFlags::Indexed)
   {
-    const bool restart =
-        pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable && IsStrip(drawcall->topology);
+    const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable &&
+                         SupportsRestart(drawcall->topology);
     bytebuf idxdata;
     std::vector<uint32_t> indices;
     uint8_t *idx8 = NULL;

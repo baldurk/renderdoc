@@ -244,6 +244,8 @@ void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
 void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
                                uint32_t *idx32, std::vector<uint32_t> &patchedIndices);
 
+void PatchTriangleFanRestartIndexBufer(std::vector<uint32_t> &patchedIndices, uint32_t restartIndex);
+
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput);
 
 void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,

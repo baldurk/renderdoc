@@ -80,6 +80,10 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
     key |= 1ULL << bit;
   bit++;
 
+  if(primary.allowRestart)
+    key |= 1ULL << bit;
+  bit++;
+
   // only 64 bits, make sure they all fit
   RDCASSERT(bit < 64);
 
@@ -100,6 +104,15 @@ MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(const MeshForm
   pipeDesc.SampleMask = 0xFFFFFFFF;
   pipeDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
   pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+
+  if(primary.allowRestart)
+  {
+    if(primary.indexByteStride == 2)
+      pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+    else
+      pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF;
+  }
+
   D3D_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(primary.topology);
 
   if(topo == D3D_PRIMITIVE_TOPOLOGY_POINTLIST ||

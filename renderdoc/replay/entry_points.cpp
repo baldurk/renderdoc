@@ -143,13 +143,13 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_VertexOffset(Topology t
     case Topology::LineLoop:
     case Topology::TriangleStrip:
     case Topology::LineStrip_Adj:
+    case Topology::TriangleFan:
       // for strips, each new vertex creates a new primitive
       return primitive;
     case Topology::TriangleStrip_Adj:
       // triangle strip with adjacency is a special case as every other
       // vert is purely for adjacency so it's doubled
       return primitive * 2;
-    case Topology::TriangleFan: RDCERR("Cannot get VertexOffset for triangle fan!"); break;
   }
 
   return primitive * RENDERDOC_NumVerticesPerPrimitive(topology);

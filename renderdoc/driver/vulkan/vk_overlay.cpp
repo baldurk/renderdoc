@@ -2114,7 +2114,21 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, Floa
 
       VkPipelineInputAssemblyStateCreateInfo ia = {
           VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+
+      // most topologies are decomposed into triangle lists on output
       ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+      if(pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+        ia.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+      else if(pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_LINE_LIST ||
+              pipeCreateInfo.pInputAssemblyState->topology ==
+                  VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY ||
+              pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_LINE_STRIP ||
+              pipeCreateInfo.pInputAssemblyState->topology ==
+                  VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY)
+        ia.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+      else if(pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN)
+        ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 
       VkVertexInputBindingDescription binds[] = {
           // primary

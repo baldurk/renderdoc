@@ -83,6 +83,10 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLay
     key |= 1ULL << bit;
   bit++;
 
+  if(primary.allowRestart)
+    key |= 1ULL << bit;
+  bit++;
+
   // only 64 bits, make sure they all fit
   RDCASSERT(bit < 64);
 
@@ -138,7 +142,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineLay
       false,
   };
 
-  ia.primitiveRestartEnable = primary.allowRestart && IsStrip(primary.topology);
+  ia.primitiveRestartEnable = primary.allowRestart && SupportsRestart(primary.topology);
 
   VkRect2D scissor = {{0, 0}, {16384, 16384}};
 

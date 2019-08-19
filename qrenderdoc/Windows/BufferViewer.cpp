@@ -2071,7 +2071,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     ClearModels();
 
     if(m_Ctx.CurPipelineState().IsStripRestartEnabled() && draw &&
-       (draw->flags & DrawFlags::Indexed) && IsStrip(draw->topology))
+       (draw->flags & DrawFlags::Indexed) && SupportsRestart(draw->topology))
     {
       bufdata->vsinConfig.primRestart = m_Ctx.CurPipelineState().GetStripRestartIndex();
 
@@ -2090,9 +2090,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     float vpWidth = qAbs(vp.width);
     float vpHeight = qAbs(vp.height);
-
-    m_Config.position.allowRestart = m_Ctx.CurPipelineState().IsStripRestartEnabled();
-    m_Config.position.restartIndex = m_Ctx.CurPipelineState().GetStripRestartIndex();
 
     m_Config.fov = ui->fovGuess->value();
     m_Config.aspect = (vpWidth > 0.0f && vpHeight > 0.0f) ? (vpWidth / vpHeight) : 1.0f;
@@ -2526,6 +2523,11 @@ void BufferViewer::UI_CalculateMeshFormats()
     m_VSInPosition = MeshFormat();
     m_VSInSecondary = MeshFormat();
 
+    m_VSInPosition.allowRestart = m_Ctx.CurPipelineState().IsStripRestartEnabled() &&
+                                  (draw->flags & DrawFlags::Indexed) &&
+                                  SupportsRestart(draw->topology);
+    m_VSInPosition.restartIndex = m_Ctx.CurPipelineState().GetStripRestartIndex();
+
     const BufferConfiguration &vsinConfig = m_ModelVSIn->getConfig();
 
     if(!vsinConfig.columns.empty())
@@ -2629,6 +2631,9 @@ void BufferViewer::UI_CalculateMeshFormats()
       }
     }
 
+    m_PostVSPosition.allowRestart = m_VSInPosition.allowRestart;
+    m_PostVSPosition.restartIndex = m_VSInPosition.restartIndex;
+
     const BufferConfiguration &gsoutConfig = m_ModelGSOut->getConfig();
 
     m_PostGSPosition = MeshFormat();
@@ -2653,6 +2658,8 @@ void BufferViewer::UI_CalculateMeshFormats()
         m_PostGSSecondary.showAlpha = m_ModelGSOut->secondaryAlpha();
       }
     }
+
+    m_PostGSPosition.allowRestart = false;
 
     m_PostGSPosition.indexByteStride = 0;
 

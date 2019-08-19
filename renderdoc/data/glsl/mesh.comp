@@ -65,6 +65,9 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C, vec3 RayPosition, vec3 RayDire
 {
   bool Result = false;
 
+  if(A == B || A == C || B == C)
+    return false;
+
   vec3 v0v1 = B - A;
   vec3 v0v2 = C - A;
   vec3 pvec = cross(RayDirection, v0v2);
@@ -161,23 +164,21 @@ void trianglePath(uint threadID)
   bool hit;
   if(meshpick.unproject == 1u)
   {
-    hit = TriangleRayIntersect(pos0.xyz / pos0.w, pos1.xyz / pos1.w, pos2.xyz / pos2.w,
-                               meshpick.rayPos, meshpick.rayDir,
-                               /*out*/ hitPosition);
+    pos0.xyz /= pos0.w;
+    pos1.xyz /= pos1.w;
+    pos2.xyz /= pos2.w;
   }
-  else
-  {
-    hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz, meshpick.rayPos, meshpick.rayDir,
-                               /*out*/ hitPosition);
-  }
+
+  hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz, meshpick.rayPos, meshpick.rayDir,
+                             /*out*/ hitPosition);
 
   // ray hit a triangle, so return the vertex that was closest
   // to the triangle/ray intersection point
   if(hit)
   {
-    float dist0 = distance(pos0.xyz / pos0.w, hitPosition);
-    float dist1 = distance(pos1.xyz / pos1.w, hitPosition);
-    float dist2 = distance(pos2.xyz / pos2.w, hitPosition);
+    float dist0 = distance(pos0.xyz, hitPosition);
+    float dist1 = distance(pos1.xyz, hitPosition);
+    float dist2 = distance(pos2.xyz, hitPosition);
 
     uint result_idx = atomicAdd(pickresult.counter, 1u);
 
