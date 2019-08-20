@@ -387,7 +387,7 @@ static uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variabl
 static bool HasCommandLineInModuleProcessed(rdcspv::Generator gen)
 {
   return (gen == rdcspv::Generator::GlslangReferenceFrontEnd ||
-          gen == rdcspv::Generator::ShadercoverGlslang || gen == rdcspv::Generator::spiregg);
+          gen == rdcspv::Generator::ShadercoverGlslang);
 }
 
 namespace rdcspv
@@ -447,7 +447,7 @@ void Reflector::RegisterOp(Iter it)
   {
     OpSource source(it);
 
-    // glslang based tools and DXC output fake OpModuleProcessed comments at the start of pre-1.3
+    // glslang based tools output fake OpModuleProcessed comments at the start of pre-1.3
     // shaders source before OpModuleProcessed existed (in SPIR-V 1.1)
     if(m_MajorVersion == 1 && m_MinorVersion < 1 && HasCommandLineInModuleProcessed(m_Generator))
     {
