@@ -1040,7 +1040,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           else
             constant.type.descriptor.elements = 0;
 
-          constant.byteOffset = decorations[global.id].offset;
+          constant.byteOffset = decorations[global.id].location;
 
           globalsblock.variables.push_back(constant);
         }
