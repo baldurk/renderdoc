@@ -408,8 +408,8 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 }
 
 // layer interface negotation (new interface)
-VK_LAYER_EXPORT VKAPI_ATTR VkResult VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion(
-    VkNegotiateLayerInterface *pVersionStruct)
+VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
+VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion(VkNegotiateLayerInterface *pVersionStruct)
 {
   if(pVersionStruct->sType != LAYER_NEGOTIATE_INTERFACE_STRUCT)
     return VK_ERROR_INITIALIZATION_FAILED;
