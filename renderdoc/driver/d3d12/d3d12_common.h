@@ -28,6 +28,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
+#include "driver/dx/official/D3D12Downlevel.h"
 #include "driver/dx/official/d3d12.h"
 #include "driver/dx/official/dxgi1_4.h"
 #include "driver/shaders/dxbc/dxbc_compile.h"
@@ -53,6 +54,7 @@ struct D3D12MarkerRegion
 };
 
 bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface = NULL);
+HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAdapter);
 
 inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
 {

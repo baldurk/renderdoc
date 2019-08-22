@@ -268,6 +268,23 @@ struct DummyID3D12DebugDevice : public ID3D12DebugDevice2, public ID3D12DebugDev
   }
 };
 
+struct WrappedDownlevelDevice : public ID3D12DeviceDownlevel
+{
+  WrappedID3D12Device &m_pDevice;
+
+  WrappedDownlevelDevice(WrappedID3D12Device &dev) : m_pDevice(dev) {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+  //////////////////////////////
+  // implement ID3D12DeviceDownlevel
+  virtual HRESULT STDMETHODCALLTYPE
+  QueryVideoMemoryInfo(UINT NodeIndex, DXGI_MEMORY_SEGMENT_GROUP MemorySegmentGroup,
+                       _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo);
+};
+
 class WrappedID3D12CommandQueue;
 
 #define IMPLEMENT_FUNCTION_THREAD_SERIALISED(ret, func, ...) \
@@ -284,6 +301,7 @@ private:
   ID3D12Device3 *m_pDevice3;
   ID3D12Device4 *m_pDevice4;
   ID3D12Device5 *m_pDevice5;
+  ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
   std::vector<WrappedID3D12CommandQueue *> m_Queues;
@@ -298,6 +316,8 @@ private:
   ID3D12Fence *m_GPUSyncFence;
   HANDLE m_GPUSyncHandle;
   UINT64 m_GPUSyncCounter;
+
+  WrappedDownlevelDevice m_WrappedDownlevel;
 
   std::vector<ID3D12CommandAllocator *> m_CommandAllocators;
 
@@ -405,14 +425,12 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
 
     WrappedID3D12CommandQueue *queue;
-
-    int32_t lastPresentedBuffer;
   };
 
-  std::map<WrappedIDXGISwapChain4 *, SwapPresentInfo> m_SwapChains;
+  std::map<IDXGISwapper *, SwapPresentInfo> m_SwapChains;
   std::map<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
-  WrappedIDXGISwapChain4 *m_LastSwap;
+  IDXGISwapper *m_LastSwap;
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS m_D3D12Opts;
   D3D12_FEATURE_DATA_D3D12_OPTIONS1 m_D3D12Opts1;
@@ -460,7 +478,7 @@ public:
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
-  void FirstFrame(WrappedIDXGISwapChain4 *swap);
+  void FirstFrame(IDXGISwapper *swapper);
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
@@ -551,6 +569,7 @@ public:
 
   void ExecuteList(ID3D12GraphicsCommandList4 *list, WrappedID3D12CommandQueue *queue = NULL,
                    bool InFrameCaptureBoundary = false);
+  void MarkListExecuted(ID3D12GraphicsCommandList4 *list);
   void ExecuteLists(WrappedID3D12CommandQueue *queue = NULL, bool InFrameCaptureBoundary = false);
   void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
 
@@ -611,13 +630,17 @@ public:
     return NULL;
   }
   // Swap Chain
-  IMPLEMENT_FUNCTION_THREAD_SERIALISED(IUnknown *, WrapSwapchainBuffer,
-                                       WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *desc,
-                                       UINT buffer, IUnknown *realSurface);
-  HRESULT Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags);
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(IUnknown *, WrapSwapchainBuffer, IDXGISwapper *swapper,
+                                       DXGI_FORMAT bufferFormat, UINT buffer, IUnknown *realSurface);
+  HRESULT Present(ID3D12GraphicsCommandList *pOverlayCommandList, IDXGISwapper *swapper,
+                  UINT SyncInterval, UINT Flags);
+  HRESULT Present(IDXGISwapper *swapper, UINT SyncInterval, UINT Flags)
+  {
+    return Present(NULL, swapper, SyncInterval, Flags);
+  }
 
   void NewSwapchainBuffer(IUnknown *backbuffer);
-  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+  void ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                  IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
   void Map(ID3D12Resource *Resource, UINT Subresource);
@@ -1015,4 +1038,10 @@ public:
   virtual D3D12_DRIVER_MATCHING_IDENTIFIER_STATUS STDMETHODCALLTYPE CheckDriverMatchingIdentifier(
       _In_ D3D12_SERIALIZED_DATA_TYPE SerializedDataType,
       _In_ const D3D12_SERIALIZED_DATA_DRIVER_MATCHING_IDENTIFIER *pIdentifierToCheck);
+
+  //////////////////////////////
+  // implement ID3D12DeviceDownlevel
+  virtual HRESULT STDMETHODCALLTYPE
+  QueryVideoMemoryInfo(UINT NodeIndex, DXGI_MEMORY_SEGMENT_GROUP MemorySegmentGroup,
+                       _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo);
 };

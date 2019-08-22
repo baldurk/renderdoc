@@ -140,12 +140,48 @@ bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface)
 
     return true;
   }
+  else if(hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
+  {
+    RDCWARN("Debug layer not available: DXGI_ERROR_SDK_COMPONENT_MISSING");
+  }
   else
   {
     RDCERR("Couldn't enable debug layer: %x", hr);
   }
 
   return false;
+}
+
+HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAdapter)
+{
+  HRESULT hr = S_OK;
+
+  *pAdapter = NULL;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapter *adapter = NULL;
+    hr = factory->EnumAdapters(i, &adapter);
+    if(hr == S_OK && adapter)
+    {
+      DXGI_ADAPTER_DESC desc;
+      adapter->GetDesc(&desc);
+
+      if(desc.AdapterLuid.LowPart == luid.LowPart && desc.AdapterLuid.HighPart == luid.HighPart)
+      {
+        *pAdapter = adapter;
+        return S_OK;
+      }
+
+      adapter->Release();
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return E_FAIL;
 }
 
 D3D12InitParams::D3D12InitParams()

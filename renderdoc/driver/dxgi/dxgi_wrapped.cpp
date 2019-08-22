@@ -473,7 +473,7 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
     {
       DXGI_SWAP_CHAIN_DESC desc;
       GetDesc(&desc);
-      tex = m_pDevice->WrapSwapchainBuffer(this, &desc, Buffer, realSurface);
+      tex = m_pDevice->WrapSwapchainBuffer(this, desc.BufferDesc.Format, Buffer, realSurface);
     }
 
     // if the original UUID was IDXGISurface, fixup for the expected interface being returned
@@ -534,6 +534,7 @@ HRESULT WrappedIDXGISwapChain4::Present(
     SyncInterval = 0;
   }
 
+  TickLastPresentedBuffer();
   m_pDevice->Present(this, SyncInterval, Flags);
 
   return m_pReal->Present(SyncInterval, Flags);
@@ -547,6 +548,7 @@ HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
     SyncInterval = 0;
   }
 
+  TickLastPresentedBuffer();
   m_pDevice->Present(this, SyncInterval, Flags);
 
   return m_pReal1->Present1(SyncInterval, Flags, pPresentParameters);

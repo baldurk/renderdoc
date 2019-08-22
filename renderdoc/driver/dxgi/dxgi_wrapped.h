@@ -155,7 +155,19 @@ public:
     return RefCountDXGIObject::GetParent(riid, ppvObject);                                 \
   }
 
-class WrappedIDXGISwapChain4;
+struct ID3DDevice;
+
+struct IDXGISwapper
+{
+  virtual ID3DDevice *GetD3DDevice() = 0;
+  virtual int GetNumBackbuffers() = 0;
+  virtual IUnknown **GetBackbuffers() = 0;
+  virtual int GetLastPresentedBuffer() = 0;
+  virtual UINT GetWidth() = 0;
+  virtual UINT GetHeight() = 0;
+  virtual DXGI_FORMAT GetFormat() = 0;
+  virtual HWND GetHWND() = 0;
+};
 
 struct ID3DDevice
 {
@@ -171,16 +183,16 @@ struct ID3DDevice
   virtual bool IsDeviceUUID(REFIID guid) = 0;
   virtual IUnknown *GetDeviceInterface(REFIID guid) = 0;
 
-  virtual void FirstFrame(WrappedIDXGISwapChain4 *swapChain) = 0;
+  virtual void FirstFrame(IDXGISwapper *swapper) = 0;
 
   virtual void NewSwapchainBuffer(IUnknown *backbuffer) = 0;
-  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain, UINT QueueCount,
+  virtual void ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                          IUnknown *const *ppPresentQueue,
                                          IUnknown **unwrappedQueues) = 0;
-  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
+  virtual IUnknown *WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_FORMAT bufferFormat,
                                         UINT buffer, IUnknown *realSurface) = 0;
 
-  virtual HRESULT Present(WrappedIDXGISwapChain4 *swapChain, UINT SyncInterval, UINT Flags) = 0;
+  virtual HRESULT Present(IDXGISwapper *swapper, UINT SyncInterval, UINT Flags) = 0;
 };
 
 typedef ID3DDevice *(*D3DDeviceCallback)(IUnknown *dev);
@@ -545,7 +557,7 @@ public:
   }
 };
 
-class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject
+class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject, public IDXGISwapper
 {
   IDXGISwapChain *m_pReal;
   IDXGISwapChain1 *m_pReal1;
@@ -561,10 +573,30 @@ class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject
   static const int MAX_NUM_BACKBUFFERS = 8;
 
   IUnknown *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
+  int32_t m_LastPresentedBuffer = -1;
 
   void ReleaseBuffersForResize(UINT QueueCount, IUnknown *const *ppPresentQueue,
                                IUnknown **unwrappedQueues);
   void WrapBuffersAfterResize();
+
+  void TickLastPresentedBuffer()
+  {
+    DXGI_SWAP_CHAIN_DESC desc = {};
+
+    m_pReal->GetDesc(&desc);
+
+    if(desc.SwapEffect == DXGI_SWAP_EFFECT_DISCARD)
+    {
+      // discard always presents from 0
+      m_LastPresentedBuffer = 0;
+    }
+    else
+    {
+      // other modes use each buffer in turn
+      m_LastPresentedBuffer++;
+      m_LastPresentedBuffer %= desc.BufferCount;
+    }
+  }
 
 public:
   WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, ID3DDevice *device);
@@ -591,19 +623,47 @@ public:
   ID3DDevice *GetD3DDevice() { return m_pDevice; }
   int GetNumBackbuffers() { return MAX_NUM_BACKBUFFERS; }
   IUnknown **GetBackbuffers() { return m_pBackBuffers; }
+  int GetLastPresentedBuffer() { return RDCMAX(m_LastPresentedBuffer, 0); }
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
-  DXGI_SWAP_CHAIN_DESC GetDescWithHWND()
+  HWND GetHWND()
   {
-    DXGI_SWAP_CHAIN_DESC ret = {};
+    DXGI_SWAP_CHAIN_DESC desc = {};
 
-    m_pReal->GetDesc(&ret);
+    m_pReal->GetDesc(&desc);
 
-    if(ret.OutputWindow == NULL)
-      ret.OutputWindow = m_Wnd;
+    if(desc.OutputWindow != NULL)
+      return desc.OutputWindow;
 
-    return ret;
+    return m_Wnd;
+  }
+
+  UINT GetWidth()
+  {
+    DXGI_SWAP_CHAIN_DESC desc = {};
+
+    m_pReal->GetDesc(&desc);
+
+    return desc.BufferDesc.Width;
+  }
+
+  UINT GetHeight()
+  {
+    DXGI_SWAP_CHAIN_DESC desc = {};
+
+    m_pReal->GetDesc(&desc);
+
+    return desc.BufferDesc.Height;
+  }
+
+  DXGI_FORMAT GetFormat()
+  {
+    DXGI_SWAP_CHAIN_DESC desc = {};
+
+    m_pReal->GetDesc(&desc);
+
+    return desc.BufferDesc.Format;
   }
 
   //////////////////////////////

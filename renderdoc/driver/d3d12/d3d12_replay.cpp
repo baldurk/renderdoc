@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_replay.h"
+#include "core/plugins.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/amd_counters.h"
@@ -108,7 +109,7 @@ void D3D12Replay::Initialise()
   PFN_CREATE_DXGI_FACTORY createFunc =
       (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
 
-  HRESULT hr = createFunc(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+  HRESULT hr = createFunc(__uuidof(IDXGIFactory1), (void **)&m_pFactory);
 
   if(FAILED(hr))
   {
@@ -119,12 +120,12 @@ void D3D12Replay::Initialise()
 
   if(m_pFactory)
   {
-    RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
+    RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory1), (void **)&m_pFactory);
 
     LUID luid = m_pDevice->GetAdapterLuid();
 
-    IDXGIAdapter *pDXGIAdapter;
-    hr = m_pFactory->EnumAdapterByLuid(luid, __uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+    IDXGIAdapter *pDXGIAdapter = NULL;
+    hr = EnumAdapterByLuid(m_pFactory, luid, &pDXGIAdapter);
 
     if(FAILED(hr))
     {
@@ -3586,12 +3587,47 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
+  bool d3d12on7 = false;
+
   HMODULE lib = NULL;
   lib = LoadLibraryA("d3d12.dll");
   if(lib == NULL)
   {
-    RDCERR("Failed to load d3d12.dll");
-    return ReplayStatus::APIInitFailed;
+    // if it fails try to find D3D12On7 DLLs
+    d3d12on7 = true;
+
+    // if it fails, try in the plugin directory
+    lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll").c_str());
+
+    // if that succeeded, also load dxilconv7.dll from there
+    if(lib)
+    {
+      HMODULE dxilconv =
+          (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxilconv7.dll").c_str());
+
+      if(!dxilconv)
+      {
+        RDCERR("Found d3d12.dll in plugin path, but couldn't load dxilconv7.dll");
+        return ReplayStatus::APIInitFailed;
+      }
+    }
+    else
+    {
+      // if it failed, try one more time in MS's subfolder convention
+      lib = LoadLibraryA("12on7/d3d12.dll");
+
+      if(lib)
+      {
+        RDCWARN(
+            "Loaded d3d12.dll from 12on7 subfolder."
+            "Please use RenderDoc's plugins/d3d12/ subfolder instead");
+      }
+      else
+      {
+        RDCERR("Failed to load d3d12.dll");
+        return ReplayStatus::APIInitFailed;
+      }
+    }
   }
 
   PFN_D3D12_CREATE_DEVICE createDevice =
@@ -3693,6 +3729,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   RDCLOG("Created device.");
   D3D12Replay *replay = wrappedDev->GetReplay();
 
+  replay->Set12On7(d3d12on7);
   replay->SetProxy(rdc == NULL);
   replay->SetRGP(rgp);
 

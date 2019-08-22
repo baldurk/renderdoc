@@ -134,12 +134,35 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
   return m_pDebug->QueryInterface(riid, ppvObject);
 }
 
+HRESULT STDMETHODCALLTYPE WrappedDownlevelDevice::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedDownlevelDevice::AddRef()
+{
+  return m_pDevice.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedDownlevelDevice::Release()
+{
+  return m_pDevice.Release();
+}
+
+HRESULT STDMETHODCALLTYPE WrappedDownlevelDevice::QueryVideoMemoryInfo(
+    UINT NodeIndex, DXGI_MEMORY_SEGMENT_GROUP MemorySegmentGroup,
+    _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo)
+{
+  return m_pDevice.QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
+}
+
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params,
                                          bool enabledDebugLayer)
     : m_RefCounter(realDevice, false),
       m_SoftRefCounter(NULL, false),
       m_pDevice(realDevice),
-      m_debugLayerEnabled(enabledDebugLayer)
+      m_debugLayerEnabled(enabledDebugLayer),
+      m_WrappedDownlevel(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
@@ -158,6 +181,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_pDevice3 = NULL;
   m_pDevice4 = NULL;
   m_pDevice5 = NULL;
+  m_pDownlevel = NULL;
   if(m_pDevice)
   {
     m_pDevice->QueryInterface(__uuidof(ID3D12Device1), (void **)&m_pDevice1);
@@ -165,6 +189,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12Device3), (void **)&m_pDevice3);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device4), (void **)&m_pDevice4);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device5), (void **)&m_pDevice5);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DeviceDownlevel), (void **)&m_pDownlevel);
 
     for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
       m_DescriptorIncrements[i] =
@@ -235,8 +260,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(
           GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
 
-      IDXGIFactory4 *tmpFactory = NULL;
-      HRESULT hr = createFunc(__uuidof(IDXGIFactory4), (void **)&tmpFactory);
+      IDXGIFactory1 *tmpFactory = NULL;
+      HRESULT hr = createFunc(__uuidof(IDXGIFactory1), (void **)&tmpFactory);
 
       if(FAILED(hr))
       {
@@ -246,8 +271,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       if(tmpFactory)
       {
         IDXGIAdapter *pDXGIAdapter = NULL;
-        hr = tmpFactory->EnumAdapterByLuid(m_pDevice->GetAdapterLuid(), __uuidof(IDXGIAdapter),
-                                           (void **)&pDXGIAdapter);
+        hr = EnumAdapterByLuid(tmpFactory, m_pDevice->GetAdapterLuid(), &pDXGIAdapter);
 
         if(FAILED(hr))
         {
@@ -432,6 +456,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_DELETE(m_ResourceManager);
 
+  SAFE_RELEASE(m_pDownlevel);
   SAFE_RELEASE(m_pDevice5);
   SAFE_RELEASE(m_pDevice4);
   SAFE_RELEASE(m_pDevice3);
@@ -614,6 +639,19 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12DeviceDownlevel))
+  {
+    if(m_pDownlevel)
+    {
+      *ppvObject = &m_WrappedDownlevel;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else if(riid == __uuidof(ID3D12InfoQueue))
   {
     RDCWARN(
@@ -783,17 +821,12 @@ void WrappedID3D12Device::CheckForDeath()
   }
 }
 
-void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain4 *swap)
+void WrappedID3D12Device::FirstFrame(IDXGISwapper *swapper)
 {
-  DXGI_SWAP_CHAIN_DESC swapdesc = {};
-
-  if(swap)
-    swapdesc = swap->GetDescWithHWND();
-
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
-    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
+    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapper->GetHWND());
 
     m_AppControlledCapture = false;
   }
@@ -805,7 +838,7 @@ void WrappedID3D12Device::ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &bar
   GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
 }
 
-void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+void WrappedID3D12Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                                     IUnknown *const *ppPresentQueue,
                                                     IUnknown **unwrappedQueues)
 {
@@ -820,9 +853,9 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
     }
   }
 
-  for(int i = 0; i < swap->GetNumBackbuffers(); i++)
+  for(int i = 0; i < swapper->GetNumBackbuffers(); i++)
   {
-    ID3D12Resource *res = (ID3D12Resource *)swap->GetBackbuffers()[i];
+    ID3D12Resource *res = (ID3D12Resource *)swapper->GetBackbuffers()[i];
 
     if(!res)
       continue;
@@ -832,19 +865,19 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
     SAFE_RELEASE(wrapped);
   }
 
-  if(swap)
+  HWND wnd = swapper->GetHWND();
+
+  if(wnd)
   {
-    DXGI_SWAP_CHAIN_DESC desc = swap->GetDescWithHWND();
+    Keyboard::RemoveInputWindow(wnd);
 
-    Keyboard::RemoveInputWindow(desc.OutputWindow);
-
-    RenderDoc::Inst().RemoveFrameCapturer((ID3D12Device *)this, desc.OutputWindow);
+    RenderDoc::Inst().RemoveFrameCapturer((ID3D12Device *)this, wnd);
   }
 
-  auto it = m_SwapChains.find(swap);
+  auto it = m_SwapChains.find(swapper);
   if(it != m_SwapChains.end())
   {
-    for(int i = 0; i < swap->GetNumBackbuffers(); i++)
+    for(int i = 0; i < swapper->GetNumBackbuffers(); i++)
       FreeRTV(it->second.rtvs[i]);
 
     m_SwapChains.erase(it);
@@ -863,9 +896,8 @@ void WrappedID3D12Device::NewSwapchainBuffer(IUnknown *backbuffer)
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
-                                                        WrappedIDXGISwapChain4 *swap,
-                                                        DXGI_SWAP_CHAIN_DESC *swapDesc, UINT Buffer,
+bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDXGISwapper *swapper,
+                                                        DXGI_FORMAT bufferFormat, UINT Buffer,
                                                         IUnknown *realSurface)
 {
   WrappedID3D12Resource1 *pRes = (WrappedID3D12Resource1 *)realSurface;
@@ -928,60 +960,70 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
   return true;
 }
 
-IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
-                                                   DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
-                                                   IUnknown *realSurface)
+IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_FORMAT bufferFormat,
+                                                   UINT buffer, IUnknown *realSurface)
 {
-  if(GetResourceManager()->HasWrapper((ID3D12DeviceChild *)realSurface))
+  ID3D12Resource *pRes = NULL;
+
+  ID3D12Resource *query = NULL;
+  realSurface->QueryInterface(__uuidof(ID3D12Resource), (void **)&query);
+  if(query)
+    query->Release();
+
+  if(GetResourceManager()->HasWrapper(query))
   {
-    ID3D12Resource *tex =
-        (ID3D12Resource *)GetResourceManager()->GetWrapper((ID3D12DeviceChild *)realSurface);
-    tex->AddRef();
+    pRes = (ID3D12Resource *)GetResourceManager()->GetWrapper(query);
+    pRes->AddRef();
 
     realSurface->Release();
-
-    return tex;
   }
-
-  ID3D12Resource *pRes = new WrappedID3D12Resource1((ID3D12Resource *)realSurface, this);
-
-  ResourceId id = GetResID(pRes);
-
-  // there shouldn't be a resource record for this texture as it wasn't created via
-  // Create*Resource
-  RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
-
-  if(IsCaptureMode(m_State))
+  else if(WrappedID3D12Resource1::IsAlloc(query))
   {
-    D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-    record->type = Resource_Resource;
-    record->DataInSerialiser = false;
-    record->Length = 0;
+    // this could be possible if we're doing downlevel presenting
+    pRes = query;
+  }
+  else
+  {
+    pRes = new WrappedID3D12Resource1((ID3D12Resource *)realSurface, this);
 
-    WrappedID3D12Resource1 *wrapped = (WrappedID3D12Resource1 *)pRes;
+    ResourceId id = GetResID(pRes);
 
-    wrapped->SetResourceRecord(record);
+    // there shouldn't be a resource record for this texture as it wasn't created via
+    // Create*Resource
+    RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
 
-    WriteSerialiser &ser = GetThreadSerialiser();
-
-    SCOPED_SERIALISE_CHUNK(D3D12Chunk::CreateSwapBuffer);
-
-    Serialise_WrapSwapchainBuffer(ser, swap, swapDesc, buffer, pRes);
-
-    record->AddChunk(scope.Get());
-
+    if(IsCaptureMode(m_State))
     {
-      SCOPED_LOCK(m_ResourceStatesLock);
-      SubresourceStateVector &states = m_ResourceStates[id];
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->type = Resource_Resource;
+      record->DataInSerialiser = false;
+      record->Length = 0;
 
-      states.resize(1, D3D12_RESOURCE_STATE_PRESENT);
+      WrappedID3D12Resource1 *wrapped = (WrappedID3D12Resource1 *)pRes;
+
+      wrapped->SetResourceRecord(record);
+
+      WriteSerialiser &ser = GetThreadSerialiser();
+
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::CreateSwapBuffer);
+
+      Serialise_WrapSwapchainBuffer(ser, swapper, bufferFormat, buffer, pRes);
+
+      record->AddChunk(scope.Get());
+
+      {
+        SCOPED_LOCK(m_ResourceStatesLock);
+        SubresourceStateVector &states = m_ResourceStates[id];
+
+        states.resize(1, D3D12_RESOURCE_STATE_PRESENT);
+      }
     }
   }
 
   if(IsCaptureMode(m_State))
   {
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
-    rtvDesc.Format = GetSRGBFormat(swapDesc->BufferDesc.Format);
+    rtvDesc.Format = GetSRGBFormat(bufferFormat);
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     rtvDesc.Texture2D.MipSlice = 0;
     rtvDesc.Texture2D.PlaneSlice = 0;
@@ -991,23 +1033,20 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
     if(rtv.ptr != 0)
       CreateRenderTargetView(pRes, NULL, rtv);
 
-    m_SwapChains[swap].rtvs[buffer] = rtv;
+    m_SwapChains[swapper].rtvs[buffer] = rtv;
 
-    ID3DDevice *swapQ = swap->GetD3DDevice();
+    ID3DDevice *swapQ = swapper->GetD3DDevice();
     RDCASSERT(WrappedID3D12CommandQueue::IsAlloc(swapQ));
-    m_SwapChains[swap].queue = (WrappedID3D12CommandQueue *)swapQ;
-
-    // start at -1 so that we know we've never presented before
-    m_SwapChains[swap].lastPresentedBuffer = -1;
+    m_SwapChains[swapper].queue = (WrappedID3D12CommandQueue *)swapQ;
   }
 
-  if(swap)
+  HWND wnd = swapper->GetHWND();
+
+  if(wnd)
   {
-    DXGI_SWAP_CHAIN_DESC sdesc = swap->GetDescWithHWND();
+    Keyboard::AddInputWindow(wnd);
 
-    Keyboard::AddInputWindow(sdesc.OutputWindow);
-
-    RenderDoc::Inst().AddFrameCapturer((ID3D12Device *)this, sdesc.OutputWindow, this);
+    RenderDoc::Inst().AddFrameCapturer((ID3D12Device *)this, wnd, this);
   }
 
   return pRes;
@@ -1330,7 +1369,8 @@ void WrappedID3D12Device::WriteToSubresource(ID3D12Resource *Resource, UINT Subr
   }
 }
 
-HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags)
+HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandList,
+                                     IDXGISwapper *swapper, UINT SyncInterval, UINT Flags)
 {
   if((Flags & DXGI_PRESENT_TEST) != 0)
     return S_OK;
@@ -1340,22 +1380,9 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
 
-  DXGI_SWAP_CHAIN_DESC swapdesc = swap->GetDescWithHWND();
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D12Device *)this, swapdesc.OutputWindow);
+  bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D12Device *)this, swapper->GetHWND());
 
-  m_LastSwap = swap;
-
-  if(swapdesc.SwapEffect == DXGI_SWAP_EFFECT_DISCARD)
-  {
-    // discard always presents from 0
-    m_SwapChains[swap].lastPresentedBuffer = 0;
-  }
-  else
-  {
-    // other modes use each buffer in turn
-    m_SwapChains[swap].lastPresentedBuffer++;
-    m_SwapChains[swap].lastPresentedBuffer %= swapdesc.BufferCount;
-  }
+  m_LastSwap = swapper;
 
   if(IsBackgroundCapturing(m_State))
   {
@@ -1363,20 +1390,27 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
     {
-      SwapPresentInfo &swapInfo = m_SwapChains[swap];
-      D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapInfo.rtvs[swapInfo.lastPresentedBuffer];
+      SwapPresentInfo &swapInfo = m_SwapChains[swapper];
+      D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapInfo.rtvs[swapper->GetLastPresentedBuffer()];
 
       if(rtv.ptr)
       {
-        m_TextRenderer->SetOutputDimensions(swapdesc.BufferDesc.Width, swapdesc.BufferDesc.Height,
-                                            swapdesc.BufferDesc.Format);
+        m_TextRenderer->SetOutputDimensions(swapper->GetWidth(), swapper->GetHeight(),
+                                            swapper->GetFormat());
 
-        ID3D12GraphicsCommandList *list = GetNewList();
+        ID3D12GraphicsCommandList *list = pOverlayCommandList;
+        bool submitlist = false;
+
+        if(!list)
+        {
+          list = GetNewList();
+          submitlist = true;
+        }
 
         // buffer will be in common for presentation, transition to render target
         D3D12_RESOURCE_BARRIER barrier = {};
         barrier.Transition.pResource =
-            (ID3D12Resource *)swap->GetBackbuffers()[swapInfo.lastPresentedBuffer];
+            (ID3D12Resource *)swapper->GetBackbuffers()[swapper->GetLastPresentedBuffer()];
         barrier.Transition.Subresource = 0;
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -1399,10 +1433,13 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
         std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
         list->ResourceBarrier(1, &barrier);
 
-        list->Close();
+        if(submitlist)
+        {
+          list->Close();
 
-        ExecuteLists(swapInfo.queue);
-        FlushLists(false, swapInfo.queue);
+          ExecuteLists(swapInfo.queue);
+          FlushLists(false, swapInfo.queue);
+        }
       }
     }
   }
@@ -1418,11 +1455,11 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
-    RenderDoc::Inst().EndFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
+    RenderDoc::Inst().EndFrameCapture((ID3D12Device *)this, swapper->GetHWND());
 
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter))
   {
-    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
+    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapper->GetHWND());
 
     m_AppControlledCapture = false;
   }
@@ -1565,24 +1602,22 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   if(!IsActiveCapturing(m_State))
     return true;
 
-  WrappedIDXGISwapChain4 *swap = NULL;
+  IDXGISwapper *swapper = NULL;
   SwapPresentInfo swapInfo = {};
 
   if(wnd)
   {
     for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     {
-      DXGI_SWAP_CHAIN_DESC swapDesc = it->first->GetDescWithHWND();
-
-      if(swapDesc.OutputWindow == wnd)
+      if(it->first->GetHWND() == wnd)
       {
-        swap = it->first;
+        swapper = it->first;
         swapInfo = it->second;
         break;
       }
     }
 
-    if(swap == NULL)
+    if(swapper == NULL)
     {
       RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
       return false;
@@ -1593,14 +1628,14 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   ID3D12Resource *backbuffer = NULL;
 
-  if(swap == NULL)
+  if(swapper == NULL)
   {
-    swap = m_LastSwap;
-    swapInfo = m_SwapChains[swap];
+    swapper = m_LastSwap;
+    swapInfo = m_SwapChains[swapper];
   }
 
-  if(swap != NULL)
-    backbuffer = (ID3D12Resource *)swap->GetBackbuffers()[swapInfo.lastPresentedBuffer];
+  if(swapper != NULL)
+    backbuffer = (ID3D12Resource *)swapper->GetBackbuffers()[swapper->GetLastPresentedBuffer()];
 
   std::vector<WrappedID3D12CommandQueue *> queues;
   RDCFile *rdc = NULL;
@@ -2266,6 +2301,13 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
   }
 }
 
+HRESULT STDMETHODCALLTYPE WrappedID3D12Device::QueryVideoMemoryInfo(
+    UINT NodeIndex, DXGI_MEMORY_SEGMENT_GROUP MemorySegmentGroup,
+    _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo)
+{
+  return m_pDownlevel->QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
+}
+
 byte *WrappedID3D12Device::GetTempMemory(size_t s)
 {
   TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
@@ -2577,8 +2619,13 @@ void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList4 *list,
     queue = GetQueue();
 
   ID3D12CommandList *l = list;
-  queue->ExecuteCommandListsInternal(1, &l, InFrameCaptureBoundary);
+  queue->ExecuteCommandListsInternal(1, &l, InFrameCaptureBoundary, false);
 
+  MarkListExecuted(list);
+}
+
+void WrappedID3D12Device::MarkListExecuted(ID3D12GraphicsCommandList4 *list)
+{
   for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
   {
     if(list == *it)
@@ -2605,7 +2652,7 @@ void WrappedID3D12Device::ExecuteLists(WrappedID3D12CommandQueue *queue, bool In
   if(queue == NULL)
     queue = GetQueue();
 
-  queue->ExecuteCommandListsInternal((UINT)cmds.size(), &cmds[0], InFrameCaptureBoundary);
+  queue->ExecuteCommandListsInternal((UINT)cmds.size(), &cmds[0], InFrameCaptureBoundary, false);
 
   m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(),
                                       m_InternalCmds.pendingcmds.begin(),
@@ -2693,7 +2740,7 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       return Serialise_SetShaderDebugPath(ser, NULL, NULL);
       break;
     case D3D12Chunk::CreateSwapBuffer:
-      return Serialise_WrapSwapchainBuffer(ser, NULL, NULL, 0, NULL);
+      return Serialise_WrapSwapchainBuffer(ser, NULL, DXGI_FORMAT_UNKNOWN, 0, NULL);
       break;
     case D3D12Chunk::Device_CreatePipelineState:
       return Serialise_CreatePipelineState(ser, NULL, IID(), NULL);

@@ -256,17 +256,43 @@ ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandList::Release()
   return 1;
 }
 
+HRESULT STDMETHODCALLTYPE WrappedDownlevelQueue::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pQueue.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedDownlevelQueue::AddRef()
+{
+  return m_pQueue.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedDownlevelQueue::Release()
+{
+  return m_pQueue.Release();
+}
+
+HRESULT STDMETHODCALLTYPE WrappedDownlevelQueue::Present(ID3D12GraphicsCommandList *pOpenCommandList,
+                                                         ID3D12Resource *pSourceTex2D, HWND hWindow,
+                                                         D3D12_DOWNLEVEL_PRESENT_FLAGS Flags)
+{
+  return m_pQueue.Present(pOpenCommandList, pSourceTex2D, hWindow, Flags);
+}
+
 WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
                                                      WrappedID3D12Device *device, CaptureState &state)
-    : RefCounter12(real), m_pDevice(device), m_State(state)
+    : RefCounter12(real), m_pDevice(device), m_State(state), m_WrappedDownlevel(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D12CommandQueue));
 
   m_WrappedDebug.m_pReal = NULL;
+  m_pDownlevel = NULL;
   if(m_pReal)
+  {
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
+    m_pReal->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&m_pDownlevel);
+  }
 
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -304,6 +330,8 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
     m_QueueRecord->Delete(m_pDevice->GetResourceManager());
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
   m_pDevice->RemoveQueue(this);
+
+  SAFE_RELEASE(m_pDownlevel);
 
   for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
     SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
@@ -356,6 +384,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
     *ppvObject = (ID3D12DeviceChild *)this;
     AddRef();
     return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12CommandQueueDownlevel))
+  {
+    if(m_pDownlevel)
+    {
+      *ppvObject = &m_WrappedDownlevel;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else
   {

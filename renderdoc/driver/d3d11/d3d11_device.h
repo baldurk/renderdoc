@@ -371,7 +371,7 @@ private:
 
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
-  std::map<WrappedIDXGISwapChain4 *, ID3D11RenderTargetView *> m_SwapChains;
+  std::map<IDXGISwapper *, ID3D11RenderTargetView *> m_SwapChains;
 
   uint32_t m_FrameCounter;
   uint32_t m_FailedFrame;
@@ -440,7 +440,7 @@ public:
   void UnlockForChunkRemoval();
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
-  void FirstFrame(WrappedIDXGISwapChain4 *swapChain);
+  void FirstFrame(IDXGISwapper *swapper);
 
   std::vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
@@ -519,8 +519,8 @@ public:
                                 const char *Path);
 
   // Swap Chain
-  IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer, WrappedIDXGISwapChain4 *swap,
-                                DXGI_SWAP_CHAIN_DESC *desc, UINT buffer, IUnknown *realSurface);
+  IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer, IDXGISwapper *swapper,
+                                DXGI_FORMAT bufferFormat, UINT buffer, IUnknown *realSurface);
 
 // this is defined as a macro so that we can re-use it to explicitly instantiate these functions as
 // templates in the wrapper definition file.
@@ -536,11 +536,11 @@ public:
 
   SERIALISED_ID3D11DEVICE_FAKE_FUNCTIONS();
 
-  HRESULT Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags);
+  HRESULT Present(IDXGISwapper *swapper, UINT SyncInterval, UINT Flags);
 
   void NewSwapchainBuffer(IUnknown *backbuffer);
 
-  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+  void ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                  IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
   ResourceId GetBackbufferResourceID() { return m_BBID; }

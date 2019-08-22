@@ -324,12 +324,13 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 void WrappedID3D12CommandQueue::ExecuteCommandLists(UINT NumCommandLists,
                                                     ID3D12CommandList *const *ppCommandLists)
 {
-  ExecuteCommandListsInternal(NumCommandLists, ppCommandLists, false);
+  ExecuteCommandListsInternal(NumCommandLists, ppCommandLists, false, false);
 }
 
 void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists,
                                                             ID3D12CommandList *const *ppCommandLists,
-                                                            bool InFrameCaptureBoundary)
+                                                            bool InFrameCaptureBoundary,
+                                                            bool SkipRealExecute)
 {
   ID3D12CommandList **unwrapped = m_pDevice->GetTempArray<ID3D12CommandList *>(NumCommandLists);
   for(UINT i = 0; i < NumCommandLists; i++)
@@ -344,7 +345,10 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
   if(IsActiveCapturing(m_State))
     m_pDevice->AddCaptureSubmission();
 
-  SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
+  if(!SkipRealExecute)
+  {
+    SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
+  }
 
   if(IsCaptureMode(m_State))
   {
@@ -764,6 +768,65 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::GetClockCalibration(UINT64 
                                                                          UINT64 *pCpuTimestamp)
 {
   return m_pReal->GetClockCalibration(pGpuTimestamp, pCpuTimestamp);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
+    _In_ ID3D12GraphicsCommandList *pOpenCommandList, _In_ ID3D12Resource *pSourceTex2D,
+    _In_ HWND hWindow, D3D12_DOWNLEVEL_PRESENT_FLAGS Flags)
+{
+  // D3D12 on windows 7
+  if(!RenderDoc::Inst().GetCaptureOptions().allowVSync)
+  {
+    Flags = D3D12_DOWNLEVEL_PRESENT_FLAG_NONE;
+  }
+
+  // store the timestamp, thread ID etc. Don't store the duration
+  SERIALISE_TIME_CALL();
+
+  if(IsCaptureMode(m_State))
+  {
+    WrappedID3D12GraphicsCommandList *list = (WrappedID3D12GraphicsCommandList *)pOpenCommandList;
+
+    // add a marker
+    const char str[] = "ID3D12CommandQueueDownlevel::Present()";
+    list->SetMarker(PIX_EVENT_ANSI_VERSION, str, sizeof(str));
+
+    // the list is implicitly closed, serialise that
+    D3D12ResourceRecord *listRecord = GetRecord(list);
+
+    {
+      CACHE_THREAD_SERIALISER();
+      ser.SetDrawChunk();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_Close);
+      list->Serialise_Close(ser);
+
+      listRecord->AddChunk(scope.Get());
+    }
+
+    listRecord->Bake();
+
+    // this queue implicitly submits the list, serialise that
+    ID3D12CommandList *submitlist = list;
+    ExecuteCommandListsInternal(1, &submitlist, false, true);
+  }
+
+  if(m_pPresentHWND != NULL)
+  {
+    // don't let the device actually release any refs on the resource, just make it release internal
+    // resources
+    m_pPresentSource->AddRef();
+    m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);
+  }
+
+  m_pPresentSource = pSourceTex2D;
+  m_pPresentHWND = hWindow;
+
+  m_pDevice->WrapSwapchainBuffer(this, GetFormat(), 0, m_pPresentSource);
+
+  m_pDevice->Present(pOpenCommandList, this,
+                     Flags == D3D12_DOWNLEVEL_PRESENT_FLAG_WAIT_FOR_VBLANK ? 1 : 0, 0);
+
+  return m_pDownlevel->Present(Unwrap(pOpenCommandList), Unwrap(pSourceTex2D), hWindow, Flags);
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(

@@ -137,6 +137,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\dx\official\D3D11On12On7.h" />
+    <ClInclude Include="..\dx\official\D3D12Downlevel.h" />
     <ClInclude Include="d3d12_commands.h" />
     <ClInclude Include="d3d12_command_list.h" />
     <ClInclude Include="d3d12_command_queue.h" />

@@ -69,6 +69,12 @@
     <ClInclude Include="d3d12_rendertext.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="..\dx\official\D3D12Downlevel.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\D3D11On12On7.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d12_common.cpp">

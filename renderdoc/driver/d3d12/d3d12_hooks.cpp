@@ -28,6 +28,8 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
+#include "driver/dx/official/D3D11On12On7.h"
+
 #if ENABLED(RDOC_X64)
 
 #define BIT_SPECIFIC_DLL(dll32, dll64) dll64
@@ -51,6 +53,60 @@ ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 
   return NULL;
 }
+
+class WrappedD3D11On12On7 : public RefCounter12<ID3D11On12On7>
+{
+public:
+  WrappedD3D11On12On7(ID3D11On12On7 *real) : RefCounter12(real) {}
+  virtual ~WrappedD3D11On12On7() {}
+  //////////////////////////////
+  // Implement IUnknown
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(IUnknown))
+    {
+      *ppvObject = (IUnknown *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  //////////////////////////////
+  // Implement ID3D11On12On7
+
+  // Enables usage similar to D3D11On12CreateDevice.
+  void STDMETHODCALLTYPE SetThreadDeviceCreationParams(ID3D12Device *pDevice,
+                                                       ID3D12CommandQueue *pGraphicsQueue)
+  {
+    RDCASSERT(WrappedID3D12Device::IsAlloc(pDevice));
+    m_pReal->SetThreadDeviceCreationParams(((WrappedID3D12Device *)pDevice)->GetReal(),
+                                           Unwrap(pGraphicsQueue));
+  }
+
+  // Enables usage similar to ID3D11On12Device::CreateWrappedResource.
+  // Note that the D3D11 resource creation parameters should be similar to the D3D12 resource,
+  // or else unexpected/undefined behavior may occur.
+  void STDMETHODCALLTYPE SetThreadResourceCreationParams(ID3D12Resource *pResource)
+  {
+    m_pReal->SetThreadResourceCreationParams(Unwrap(pResource));
+  }
+
+  ID3D11On12On7Device *STDMETHODCALLTYPE GetThreadLastCreatedDevice()
+  {
+    // don't need to wrap/unwrap, it only deals with ID3D11On12On7Resource
+    return m_pReal->GetThreadLastCreatedDevice();
+  }
+
+  ID3D11On12On7Resource *STDMETHODCALLTYPE GetThreadLastCreatedResource()
+  {
+    // don't need to wrap/unwrap
+    return m_pReal->GetThreadLastCreatedResource();
+  }
+};
 
 // dummy class to present to the user, while we maintain control
 //
@@ -145,6 +201,8 @@ public:
     GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
     EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
                                         D3D12EnableExperimentalFeatures_hook);
+    GetD3D11On12On7.Register("d3d11on12.dll", "GetD3D11On12On7Interface",
+                             GetD3D11On12On7Interface_hook);
   }
 
 private:
@@ -165,6 +223,7 @@ private:
   HookedFunction<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
   HookedFunction<PFN_D3D12_CREATE_DEVICE> CreateDevice;
   HookedFunction<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
+  HookedFunction<PFNGetD3D11On12On7Interface> GetD3D11On12On7;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate = false;
@@ -323,6 +382,14 @@ private:
     // header says "The call returns E_NOINTERFACE if an unrecognized feature is passed in or
     // Windows Developer mode is not on." so this is the most appropriate error.
     return E_NOINTERFACE;
+  }
+
+  static HRESULT WINAPI GetD3D11On12On7Interface_hook(ID3D11On12On7 **ppIface)
+  {
+    ID3D11On12On7 *real = NULL;
+    d3d12hooks.GetD3D11On12On7()(&real);
+    *ppIface = (ID3D11On12On7 *)(new WrappedD3D11On12On7(real));
+    return S_OK;
   }
 
   static HRESULT WINAPI D3D12GetDebugInterface_hook(REFIID riid, void **ppvDebug)

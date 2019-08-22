@@ -33,9 +33,9 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
 
   D3D12_RESOURCE_DESC texDesc = {};
 
-  if(bb[0])
+  if(bbDesc.Width)
   {
-    texDesc = bb[0]->GetDesc();
+    texDesc = bbDesc;
 
     texDesc.SampleDesc.Count = msaa ? D3D12_MSAA_SAMPLECOUNT : 1;
 
@@ -46,15 +46,16 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
     texDesc.DepthOrArraySize = 1;
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    texDesc.Height = height;
     texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     texDesc.MipLevels = 1;
     texDesc.SampleDesc.Count = 1;
     texDesc.SampleDesc.Quality = 0;
-    texDesc.Width = width;
 
     multisampled = false;
   }
+
+  texDesc.Height = height;
+  texDesc.Width = width;
 
   texDesc.Alignment = 0;
   texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -191,7 +192,15 @@ uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
 
     HRESULT hr = S_OK;
 
-    hr = m_pFactory->CreateSwapChain(m_pDevice->GetQueue(), &swapDesc, &outw.swap);
+    // on 12On7 just skip creating the swapchain
+    if(m_D3D12On7)
+    {
+      outw.swap = NULL;
+    }
+    else
+    {
+      hr = m_pFactory->CreateSwapChain(m_pDevice->GetQueue(), &swapDesc, &outw.swap);
+    }
 
     if(FAILED(hr))
     {
@@ -199,8 +208,27 @@ uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
       return 0;
     }
 
-    outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
-    outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+    if(outw.swap)
+    {
+      outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
+      outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+      outw.bbDesc = outw.bb[0]->GetDesc();
+    }
+    else
+    {
+      outw.bbDesc.DepthOrArraySize = 1;
+      outw.bbDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+      outw.bbDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+      outw.bbDesc.Height = outw.height;
+      outw.bbDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+      outw.bbDesc.MipLevels = 1;
+      outw.bbDesc.SampleDesc.Count = 1;
+      outw.bbDesc.SampleDesc.Quality = 0;
+      outw.bbDesc.Width = outw.width;
+      outw.bbDesc.Alignment = 0;
+      outw.bbDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+      outw.bbDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    }
   }
   else
   {
@@ -262,7 +290,7 @@ bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(outw.wnd == NULL || outw.swap == NULL)
+  if(outw.wnd == NULL || (outw.swap == NULL && !m_D3D12On7))
     return false;
 
   RECT rect;
@@ -283,20 +311,23 @@ bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
       SAFE_RELEASE(outw.bb[0]);
       SAFE_RELEASE(outw.bb[1]);
 
-      DXGI_SWAP_CHAIN_DESC desc;
-      outw.swap->GetDesc(&desc);
-
-      HRESULT hr = outw.swap->ResizeBuffers(desc.BufferCount, outw.width, outw.height,
-                                            desc.BufferDesc.Format, desc.Flags);
-
-      if(FAILED(hr))
+      if(outw.swap)
       {
-        RDCERR("Failed to resize swap chain, HRESULT: %s", ToStr(hr).c_str());
-        return true;
-      }
+        DXGI_SWAP_CHAIN_DESC desc;
+        outw.swap->GetDesc(&desc);
 
-      outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
-      outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+        HRESULT hr = outw.swap->ResizeBuffers(desc.BufferCount, outw.width, outw.height,
+                                              desc.BufferDesc.Format, desc.Flags);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Failed to resize swap chain, HRESULT: %s", ToStr(hr).c_str());
+          return true;
+        }
+
+        outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
+        outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+      }
 
       outw.bbIdx = 0;
 
@@ -524,24 +555,26 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(m_OutputWindows[id].bb[0] == NULL || m_OutputWindows[id].swap == NULL)
+  if(!m_D3D12On7 && (m_OutputWindows[id].bb[0] == NULL || m_OutputWindows[id].swap == NULL))
     return;
 
-  D3D12_RESOURCE_BARRIER barriers[3];
-  RDCEraseEl(barriers);
+  if(m_OutputWindows[id].col == NULL)
+    return;
 
-  barriers[0].Transition.pResource = outw.col;
-  barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-  barriers[0].Transition.StateAfter =
+  D3D12_RESOURCE_BARRIER colbarrier = {}, bbbarrier = {}, resolvebarrier = {};
+
+  colbarrier.Transition.pResource = outw.col;
+  colbarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  colbarrier.Transition.StateAfter =
       outw.multisampled ? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-  barriers[1].Transition.pResource = outw.bb[outw.bbIdx];
-  barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-  barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+  bbbarrier.Transition.pResource = outw.bb[outw.bbIdx];
+  bbbarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+  bbbarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
-  barriers[2].Transition.pResource = outw.colResolve;
-  barriers[2].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-  barriers[2].Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+  resolvebarrier.Transition.pResource = outw.colResolve;
+  resolvebarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+  resolvebarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
@@ -549,39 +582,77 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   if(outw.multisampled)
   {
     // transition colour to resolve source, resolve target to resolve dest, backbuffer to copy dest
-    list->ResourceBarrier(3, barriers);
+    list->ResourceBarrier(1, &colbarrier);
+    list->ResourceBarrier(1, &resolvebarrier);
+
+    if(bbbarrier.Transition.pResource)
+      list->ResourceBarrier(1, &bbbarrier);
 
     // resolve then copy, as the resolve can't go from SRGB to non-SRGB target
-    list->ResolveSubresource(barriers[2].Transition.pResource, 0, barriers[0].Transition.pResource,
-                             0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+    list->ResolveSubresource(outw.colResolve, 0, outw.col, 0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 
-    std::swap(barriers[2].Transition.StateBefore, barriers[2].Transition.StateAfter);
+    std::swap(resolvebarrier.Transition.StateBefore, resolvebarrier.Transition.StateAfter);
 
     // now move the resolve target into copy source
-    list->ResourceBarrier(1, &barriers[2]);
+    list->ResourceBarrier(1, &resolvebarrier);
 
-    list->CopyResource(barriers[1].Transition.pResource, barriers[2].Transition.pResource);
+    if(bbbarrier.Transition.pResource)
+      list->CopyResource(bbbarrier.Transition.pResource, resolvebarrier.Transition.pResource);
   }
   else
   {
     // transition colour to copy source, backbuffer to copy dest
-    list->ResourceBarrier(2, barriers);
+    list->ResourceBarrier(1, &colbarrier);
 
-    list->CopyResource(barriers[1].Transition.pResource, barriers[0].Transition.pResource);
+    if(bbbarrier.Transition.pResource)
+      list->ResourceBarrier(1, &bbbarrier);
+
+    if(bbbarrier.Transition.pResource)
+      list->CopyResource(bbbarrier.Transition.pResource, colbarrier.Transition.pResource);
   }
 
-  std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
-  std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
+  std::swap(colbarrier.Transition.StateBefore, colbarrier.Transition.StateAfter);
+  std::swap(bbbarrier.Transition.StateBefore, bbbarrier.Transition.StateAfter);
 
   // transition colour back to render target, and backbuffer back to present
-  list->ResourceBarrier(2, barriers);
+  list->ResourceBarrier(1, &colbarrier);
+
+  if(bbbarrier.Transition.pResource)
+    list->ResourceBarrier(1, &bbbarrier);
+
+  if(m_D3D12On7)
+  {
+    ID3D12Resource *res = outw.multisampled ? outw.colResolve : outw.col;
+
+    D3D12_RESOURCE_BARRIER toPresent = {};
+
+    toPresent.Transition.pResource = res;
+    toPresent.Transition.StateBefore =
+        outw.multisampled ? D3D12_RESOURCE_STATE_COPY_SOURCE : D3D12_RESOURCE_STATE_RENDER_TARGET;
+    toPresent.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+
+    list->ResourceBarrier(1, &toPresent);
+
+    ID3D12CommandQueueDownlevel *downlevel = NULL;
+    m_pDevice->GetQueue()->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&downlevel);
+    downlevel->Present(list, res, outw.wnd, D3D12_DOWNLEVEL_PRESENT_FLAG_NONE);
+    SAFE_RELEASE(downlevel);
+    m_pDevice->MarkListExecuted((ID3D12GraphicsCommandList4 *)list);
+
+    list = m_pDevice->GetNewList();
+
+    std::swap(toPresent.Transition.StateBefore, toPresent.Transition.StateAfter);
+
+    list->ResourceBarrier(1, &toPresent);
+  }
 
   list->Close();
 
   m_pDevice->ExecuteLists();
   m_pDevice->FlushLists();
 
-  outw.swap->Present(0, 0);
+  if(outw.swap)
+    outw.swap->Present(0, 0);
 
   outw.bbIdx++;
   outw.bbIdx %= 2;

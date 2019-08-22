@@ -55,6 +55,7 @@ public:
 
   D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
   void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }
+  void Set12On7(bool d3d12on7) { m_D3D12On7 = d3d12on7; }
   void SetProxy(bool proxy) { m_Proxy = proxy; }
   bool IsRemoteProxy() { return m_Proxy; }
   void Initialise();
@@ -288,7 +289,7 @@ private:
   ID3D12Resource *m_SOPatchedIndexBuffer = NULL;
   ID3D12QueryHeap *m_SOQueryHeap = NULL;
 
-  bool m_Proxy;
+  bool m_Proxy, m_D3D12On7;
 
   std::vector<ID3D12Resource *> m_ProxyResources;
 
@@ -303,6 +304,7 @@ private:
     ID3D12Resource *depth;
     D3D12_CPU_DESCRIPTOR_HANDLE rtv;
     D3D12_CPU_DESCRIPTOR_HANDLE dsv;
+    D3D12_RESOURCE_DESC bbDesc;
 
     WrappedID3D12Device *dev;
 
@@ -419,7 +421,7 @@ private:
 
   D3D12DebugManager *m_DebugManager = NULL;
 
-  IDXGIFactory4 *m_pFactory = NULL;
+  IDXGIFactory1 *m_pFactory = NULL;
 
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
