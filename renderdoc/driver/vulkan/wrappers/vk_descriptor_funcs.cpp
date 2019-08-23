@@ -578,6 +578,10 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
   if(!valid)
     return;
 
+  // ignore empty writes, for some reason this is valid with descriptor update templates.
+  if(writeDesc.descriptorCount == 0)
+    return;
+
   const DescSetLayout &layout =
       m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[GetResID(writeDesc.dstSet)].layout];
 
