@@ -3053,15 +3053,20 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           if(bind.type == BindType::ImageSampler)
             setname = slotname = QString();
 
+          QString samplerName = m_Ctx.GetResourceName(descriptorBind.samplerResourceId);
+
+          if(descriptorBind.samplerResourceId == ResourceId())
+            samplerName = tr("Empty");
+
           QVariantList sampDetails = makeSampler(QString(), QString(), descriptorBind);
-          rows.push_back({setname, slotname, name, ToQStr(bind.type), QString(), QString(),
+          rows.push_back({setname, slotname, samplerName, ToQStr(bind.type), QString(), QString(),
                           QString(), QString(), sampDetails[5], sampDetails[6]});
         }
       }
     }
 
     m_Common.exportHTMLTable(
-        xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
+        xml, {tr("Set"), tr("Bind"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
               tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
         rows);
   }
@@ -3157,7 +3162,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     }
 
     m_Common.exportHTMLTable(
-        xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
+        xml, {tr("Set"), tr("Bind"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
               tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
         rows);
   }
