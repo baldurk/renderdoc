@@ -1118,6 +1118,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
           case eGL_DOUBLE_VEC2: GL.glProgramUniform2dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC3: GL.glProgramUniform3dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC4: GL.glProgramUniform4dv(progDst, dstLocation, 1, dv); break;
+          case eGL_INT: GL.glProgramUniform1iv(progDst, dstLocation, 1, iv); break;
           case eGL_INT_VEC2: GL.glProgramUniform2iv(progDst, dstLocation, 1, iv); break;
           case eGL_INT_VEC3: GL.glProgramUniform3iv(progDst, dstLocation, 1, iv); break;
           case eGL_INT_VEC4: GL.glProgramUniform4iv(progDst, dstLocation, 1, iv); break;
@@ -1208,7 +1209,6 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
           case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
           case eGL_UNSIGNED_INT_SAMPLER_BUFFER:
           case eGL_UNSIGNED_INT_SAMPLER_2D_RECT:
-          case eGL_INT:
             if(!IsDstProgramSPIRV)    // SPIR-V shaders treat samplers as immutable
               GL.glProgramUniform1iv(progDst, dstLocation, 1, iv);
             break;
