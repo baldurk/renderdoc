@@ -283,12 +283,40 @@ void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface
         break;
       case ReflectionProperty::BufferBinding:
       {
+        rdcstr name;
         if(programInterface == ReflectionInterface::UniformBlock)
+        {
           params[i] = program->getUniformBlock(index).getBinding();
+          name = program->getUniformBlock(index).name;
+        }
         else if(programInterface == ReflectionInterface::ShaderStorageBlock)
+        {
           params[i] = program->getBufferBlock(index).getBinding();
+          name = program->getBufferBlock(index).name;
+        }
         else
+        {
           RDCERR("Unsupported interface for BufferBinding query");
+        }
+
+        // add on the array index, if it exists, to the retrieved binding which is only for the base
+        // variable
+        int offs = name.indexOf('[');
+        if(offs > 0)
+        {
+          char *nm = &name[offs + 1];
+
+          int32_t arrayIdx = 0;
+          while(*nm >= '0' && *nm <= '9')
+          {
+            arrayIdx *= 10;
+            arrayIdx += int(*nm) - int('0');
+            nm++;
+          }
+
+          params[i] += arrayIdx;
+        }
+
         break;
       }
       case ReflectionProperty::BlockIndex:

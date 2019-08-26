@@ -1613,6 +1613,22 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           usedBindsData = usage.used.data();
           usedBindsSize = usage.used.size();
         }
+
+        const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+        if(drawcall)
+        {
+          bool isDispatch = bool(drawcall->flags & DrawFlags::Dispatch);
+
+          // ifor compute stage on draws, and non-compute stages on dispatches, pretend all
+          // resources are dynamically unused, to prevent the lack of data from causing large arrays
+          // to be force-expanded
+          if((curCompute && !isDispatch) || (!curCompute && isDispatch))
+          {
+            hasUsedBinds = true;
+            usedBindsData = NULL;
+            usedBindsSize = 0;
+          }
+        }
       }
 
       BindIdx curBind;

@@ -201,6 +201,10 @@ void main() {
       else
         CHECK(refl.encoding == ShaderEncoding::GLSL);
 
+      REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+
       REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
       {
         CHECK(refl.constantBlocks[0].name == "$Globals");
@@ -265,6 +269,10 @@ void main() {
       ShaderBindpointMapping mapping;
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
+      REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+
       REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 1);
       {
         CHECK(refl.readWriteResources[0].name == "atom");
@@ -314,6 +322,9 @@ void main() {
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
       CHECK(refl.encoding == ShaderEncoding::SPIRV);
+
+      REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
 
       REQUIRE_ARRAY_SIZE(refl.samplers.size(), 1);
       {
@@ -393,6 +404,10 @@ void main() {
       ShaderBindpointMapping mapping;
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
+      REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+
       REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
       {
         CHECK(refl.constantBlocks[0].name == "Specialization Constants");
@@ -471,6 +486,10 @@ void main() {
       ShaderReflection refl;
       ShaderBindpointMapping mapping;
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+      REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+      REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
 
       REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
       {
@@ -565,6 +584,11 @@ void main() {
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+
     CHECK(refl.entryPoint == "main");
     CHECK(refl.stage == ShaderStage::Fragment);
 
@@ -619,6 +643,11 @@ void main() {
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
 
     REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 3);
     {
@@ -761,6 +790,10 @@ void main() {
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
 
     REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
     {
@@ -953,6 +986,9 @@ void main() {
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+
     REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 3);
     {
       CHECK(refl.readOnlyResources[0].name == "tex2D");
@@ -1057,6 +1093,10 @@ void main() {
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
 
     REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 2);
     {
@@ -1173,6 +1213,7 @@ void main() {
 
             CHECK(member.byteOffset == 0);
             CHECK(member.type.descriptor.arrayByteStride == 48);
+            CHECK(member.type.descriptor.elements == ~0U);
 
             REQUIRE_ARRAY_SIZE(member.type.members.size(), 2);
             {
@@ -1312,6 +1353,11 @@ void main() {
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Vertex, source, "main", refl, mapping);
 
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+
     REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 1);
     {
       CHECK(refl.outputSignature[0].varName.contains("gl_Position"));
@@ -1341,6 +1387,11 @@ void main() {
     refl = ShaderReflection();
     mapping = ShaderBindpointMapping();
     compile(ShaderStage::Vertex, source2, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
 
     REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 2);
     {
@@ -1397,6 +1448,11 @@ void main()
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Vertex, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
 
     REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 10);
     {
@@ -1584,6 +1640,11 @@ void main()
     ShaderBindpointMapping mapping;
     compile(ShaderStage::Geometry, source, "main", refl, mapping);
 
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+
     REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 2);
     {
       // blocks get different reflected names in SPIR-V
@@ -1645,6 +1706,149 @@ void main()
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
+      }
+    }
+  };
+
+  SECTION("Arrays of opaque resources")
+  {
+    std::string source = R"(
+#version 450 core
+
+layout(binding = 2, std430) buffer ssbo
+{
+  float a;
+  int b;
+} ssbo_root[];
+
+layout(binding = 3) uniform sampler2D tex2D[];
+
+void main() {
+  ssbo_root[4].b = 4;
+  gl_FragDepth = ssbo_root[4].a + textureLod(tex2D[6], gl_FragCoord.xy, gl_FragCoord.z).z;
+}
+
+)";
+
+#define REQUIRE_ARRAY_SIZE(size, min) \
+  REQUIRE(size >= min);               \
+  CHECK(size == min);
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    compile(ShaderStage::Fragment, source, "main", refl, mapping);
+
+    // GLSL 'expands' these arrays
+    size_t countRO = (testType == ShaderType::eShaderGLSL ? 7 : 1);
+    size_t arraySizeRO = (testType == ShaderType::eShaderGLSL ? 1 : 7);
+
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), countRO);
+    {
+      for(size_t i = 0; i < countRO; i++)
+      {
+        const rdcstr ro_name =
+            (testType == ShaderType::eShaderGLSL ? StringFormat::Fmt("tex2D[%zu]", i) : "tex2D");
+
+        CHECK(refl.readOnlyResources[i].name == ro_name);
+        {
+          const ShaderResource &res = refl.readOnlyResources[i];
+          INFO("read-only resource: " << res.name.c_str());
+
+          CHECK(res.bindPoint == i);
+          CHECK(res.resType == TextureType::Texture2D);
+          CHECK(res.variableType.members.empty());
+          CHECK(res.variableType.descriptor.type == VarType::Float);
+        }
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(mapping.readOnlyResources.size(), countRO);
+    {
+      for(size_t i = 0; i < countRO; i++)
+      {
+        CHECK(mapping.readOnlyResources[i].bindset == 0);
+        CHECK(mapping.readOnlyResources[i].bind == 3 + i);
+        CHECK(mapping.readOnlyResources[i].arraySize == arraySizeRO);
+        CHECK(mapping.readOnlyResources[i].used);
+      }
+    }
+
+    size_t countRW = (testType == ShaderType::eShaderGLSL ? 5 : 1);
+    size_t arraySizeRW = (testType == ShaderType::eShaderGLSL ? 1 : 5);
+
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), countRW);
+    {
+      for(size_t i = 0; i < countRW; i++)
+      {
+        // blocks get different reflected names in SPIR-V
+        const rdcstr ssbo_name =
+            (testType == ShaderType::eShaderGLSL ? StringFormat::Fmt("ssbo[%zu]", i) : "ssbo_root");
+
+        CHECK(refl.readWriteResources[i].name == ssbo_name);
+        {
+          const ShaderResource &res = refl.readWriteResources[i];
+          INFO("read-write resource: " << res.name.c_str());
+
+          CHECK(res.bindPoint == i);
+          CHECK(res.resType == TextureType::Buffer);
+
+          // due to a bug in glslang the reflection is broken for these SSBOs. So we can still run
+          // this test on GLSL we do a little hack here, which can get removed when we update
+          // glslang with the fix
+          const ShaderVariableType *varType = &res.variableType;
+
+          if(testType == ShaderType::eShaderGLSL && res.variableType.members.size() != 2)
+          {
+            REQUIRE(varType->members.size() == 1);
+            REQUIRE(varType->members[0].name == "a");
+
+            varType = &res.variableType.members[0].type;
+
+            RDCWARN("Working around glslang reflection bug");
+          }
+
+          REQUIRE_ARRAY_SIZE(varType->members.size(), 2);
+          {
+            CHECK(varType->members[0].name == "a");
+            {
+              const ShaderConstant &member = varType->members[0];
+              INFO("SSBO member: " << member.name.c_str());
+
+              CHECK(member.byteOffset == 0);
+              CHECK(member.type.members.empty());
+              CHECK(member.type.descriptor.type == VarType::Float);
+              CHECK(member.type.descriptor.rows == 1);
+              CHECK(member.type.descriptor.columns == 1);
+              CHECK(member.type.descriptor.name == "float");
+            }
+
+            CHECK(varType->members[1].name == "b");
+            {
+              const ShaderConstant &member = varType->members[1];
+              INFO("SSBO member: " << member.name.c_str());
+
+              CHECK(member.byteOffset == 4);
+              CHECK(member.type.members.empty());
+              CHECK(member.type.descriptor.type == VarType::SInt);
+              CHECK(member.type.descriptor.rows == 1);
+              CHECK(member.type.descriptor.columns == 1);
+              CHECK(member.type.descriptor.name == "int");
+            }
+          }
+        }
+      }
+    }
+
+    REQUIRE_ARRAY_SIZE(mapping.readWriteResources.size(), countRW);
+    {
+      for(size_t i = 0; i < countRW; i++)
+      {
+        CHECK(mapping.readWriteResources[i].bindset == 0);
+        CHECK(mapping.readWriteResources[i].bind == 2 + i);
+        CHECK(mapping.readWriteResources[i].arraySize == arraySizeRW);
+        CHECK(mapping.readWriteResources[i].used);
       }
     }
   };

@@ -1016,8 +1016,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     if(arrayLength > 1)
     {
       RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({QString(), setname, slotname, tr("Array[%1]").arg(arrayLength),
+          new RDTreeWidgetItem({QString(), setname, slotname,
+                                arrayLength == ~0U ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
                                 QString(), QString(), QString(), QString()});
+
+      if(arrayLength == ~0U)
+        arrayLength = 0;
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1385,8 +1389,13 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     // for arrays, add a parent element that we add the real cbuffers below
     if(arrayLength > 1)
     {
-      RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {QString(), setname, slotname, tr("Array[%1]").arg(arrayLength), QString(), QString()});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({QString(), setname, slotname,
+                                arrayLength == ~0U ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
+                                QString(), QString()});
+
+      if(arrayLength == ~0U)
+        arrayLength = 0;
 
       if(!filledSlot)
         setEmptyRow(node);

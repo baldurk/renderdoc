@@ -873,6 +873,10 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.arrayByteStride = topLevelStride;
     parentVar.type.descriptor.matrixByteStride = 0;
 
+    // consider all block-level SSBO structs to have infinite elements if they are an array at all
+    if(blockLevel && topLevelStride && isarray)
+      parentVar.type.descriptor.elements = ~0U;
+
     if(!blockLevel)
       topLevelStride = 0;
 
@@ -1701,9 +1705,27 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       GL.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL,
                                 (GLint *)&numMembers);
 
+      char *arr = strchr(nm, '[');
+      const bool isArray = (arr != NULL);
+
+      uint32_t arrayIdx = 0;
+      if(isArray)
+      {
+        arr++;
+        while(*arr >= '0' && *arr <= '9')
+        {
+          arrayIdx *= 10;
+          arrayIdx += int(*arr) - int('0');
+          arr++;
+        }
+      }
+
       rwresources.push_back(res);
       ssbos.push_back(res.bindPoint);
-      ssboMembers += numMembers;
+
+      // only count members from the first array index
+      if(!isArray || arrayIdx == 0)
+        ssboMembers += numMembers;
 
       delete[] nm;
     }
@@ -1717,11 +1739,49 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       ReconstructVarTree(eGL_BUFFER_VARIABLE, sepProg, i, (GLint)ssbos.size(), members, NULL);
     }
 
+    // if we have members in an array ssbo, broadcast this to any ssbo with the same basename
+    // without members, since the variables will only be reported as belonging to one block
+    for(size_t ssbo = 0; ssbo < ssbos.size(); ssbo++)
+    {
+      rdcstr basename = rwresources[ssbos[ssbo]].name;
+      int arrOffs = basename.indexOf('[');
+      if(arrOffs > 0)
+      {
+        basename.erase(arrOffs, basename.size());
+
+        if(!members[ssbo].empty())
+        {
+          for(size_t ssbo2 = 0; ssbo2 < ssbos.size(); ssbo2++)
+          {
+            if(!members[ssbo2].empty())
+              continue;
+
+            rdcstr basename2 = rwresources[ssbos[ssbo2]].name;
+            arrOffs = basename2.indexOf('[');
+            if(arrOffs > 0)
+            {
+              basename2.erase(arrOffs, basename2.size());
+
+              if(basename == basename2)
+              {
+                members[ssbo2] = members[ssbo];
+              }
+            }
+          }
+        }
+      }
+    }
+
     for(size_t ssbo = 0; ssbo < ssbos.size(); ssbo++)
     {
       sort(members[ssbo]);
 
-      if(!members[ssbo].empty() && rwresources[ssbos[ssbo]].name == members[ssbo][0].name)
+      rdcstr basename = rwresources[ssbos[ssbo]].name;
+      int arrOffs = basename.indexOf('[');
+      if(arrOffs > 0)
+        basename.erase(arrOffs, basename.size());
+
+      if(!members[ssbo].empty() && basename == members[ssbo][0].name)
         std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo][0].type.members);
       else
         std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo]);

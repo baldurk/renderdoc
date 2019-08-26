@@ -3324,16 +3324,49 @@ GLint APIENTRY _testStub_GetUniformLocation(GLuint program, const GLchar *name)
 {
   // use existing ARB_program_interface_query to get value
   GLuint index = GL.glGetProgramResourceIndex(program, eGL_UNIFORM, name);
+
+  uint32_t arrayIdx = 0;
+
+  // if we're querying for an array index like tex2D[1] then query for the base and add 1000000 *
+  // arrayIdx.
+  // This should only then be used in GetUniformiv below where we 'decode' the arrayIdx from the
+  // location and then add it onto the returned value.
+  if(index == GL_INVALID_INDEX && strchr(name, '['))
+  {
+    rdcstr nm = name;
+    int offs = nm.indexOf('[');
+    offs++;
+
+    while(nm[offs] >= '0' && nm[offs] <= '9')
+    {
+      arrayIdx *= 10;
+      arrayIdx += int(nm[offs]) - int('0');
+      offs++;
+    }
+
+    nm.erase(nm.indexOf('['), nm.size());
+    nm += "[0]";
+    index = GL.glGetProgramResourceIndex(program, eGL_UNIFORM, nm.c_str());
+  }
+
   RDCASSERT(index != GL_INVALID_INDEX);
 
-  return index;
+  // safe to add this on in all other cases because arrayIdx is 0 by default
+  return index + 1000000 * arrayIdx;
 }
 
 void APIENTRY _testStub_GetUniformiv(GLuint program, GLint location, GLint *params)
 {
+  uint32_t arrayIdx = location / 1000000;
+
+  if(arrayIdx > 0)
+    location -= arrayIdx * 1000000;
+
   // abuse this query which returns the right value for uniform bindings also
   GLenum prop = eGL_UNIFORM;
   GL.glGetProgramResourceiv(program, eGL_UNIFORM, location, 1, &prop, 1, NULL, params);
+
+  *params += arrayIdx;
 }
 
 void APIENTRY _testStub_GetIntegerv(GLenum pname, GLint *params)

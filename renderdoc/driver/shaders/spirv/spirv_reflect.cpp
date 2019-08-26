@@ -896,13 +896,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
       const DataType *varType = &dataTypes[dataTypes[global.type].InnerType()];
 
-      // new SSBOs are in the storage buffer class, previously they were in uniform with BufferBlock
-      // decoration
-      const bool ssbo = (global.storage == StorageClass::StorageBuffer) ||
-                        (decorations[varType->id].flags & Decorations::BufferBlock);
-      const bool pushConst = (global.storage == StorageClass::PushConstant);
-      const bool atomicCounter = (global.storage == StorageClass::AtomicCounter);
-
       // if the outer type is an array, get the length and peel it off.
       bool isArray = false;
       uint32_t arraySize = 1;
@@ -912,8 +905,17 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         // runtime arrays have no length
         if(varType->length != Id())
           arraySize = EvaluateConstant(varType->length, specInfo).value.u.x;
+        else
+          arraySize = ~0U;
         varType = &dataTypes[varType->InnerType()];
       }
+
+      // new SSBOs are in the storage buffer class, previously they were in uniform with BufferBlock
+      // decoration
+      const bool ssbo = (global.storage == StorageClass::StorageBuffer) ||
+                        (decorations[varType->id].flags & Decorations::BufferBlock);
+      const bool pushConst = (global.storage == StorageClass::PushConstant);
+      const bool atomicCounter = (global.storage == StorageClass::AtomicCounter);
 
       Bindpoint bindmap;
       // set something crazy so this doesn't overlap with a real buffer binding
@@ -1898,12 +1900,8 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataTy
   // if the type is an array, set array size and strides then unpeel the array
   if(curType->type == DataType::ArrayType)
   {
-    uint32_t arraySize =
+    outConst.type.descriptor.elements =
         curType->length != Id() ? EvaluateConstant(curType->length, specInfo).value.u.x : ~0U;
-    if(arraySize == ~0U)
-      outConst.type.descriptor.elements = 1;    // TODO need to handle 'array of undefined size'
-    else
-      outConst.type.descriptor.elements = arraySize;
 
     if(varDecorations.arrayStride != ~0U)
       outConst.type.descriptor.arrayByteStride = varDecorations.arrayStride;
