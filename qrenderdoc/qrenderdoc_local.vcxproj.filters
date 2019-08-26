@@ -723,6 +723,12 @@
     <ClCompile Include="$(IntDir)generated\moc_LogView.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\ReplayOptionsSelector.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ReplayOptionsSelector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1077,6 +1083,9 @@
       <Filter>Code\Interface</Filter>
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_LogView.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ReplayOptionsSelector.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1466,6 +1475,10 @@
     <CustomBuild Include="Windows\LogView.h">
       <Filter>Windows</Filter>
     </CustomBuild>
+    <CustomBuild Include="Widgets\ReplayOptionsSelector.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ReplayOptionsSelector.ui" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\action.png">

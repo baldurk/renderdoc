@@ -102,6 +102,7 @@
     <addaction name="action_Inject_into_Process"/>
     <addaction name="separator"/>
     <addaction name="action_Open_Capture"/>
+    <addaction name="action_Open_Capture_with_Options"/>
     <addaction name="action_Save_Capture_Inplace"/>
     <addaction name="action_Save_Capture_As"/>
     <addaction name="action_Close_Capture"/>
@@ -504,6 +505,14 @@
   <action name="action_Diagnostic_Log">
    <property name="text">
     <string>Dia&amp;gnostic Log</string>
+   </property>
+  </action>
+  <action name="action_Open_Capture_with_Options">
+   <property name="text">
+    <string>Open Capture with Options</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
    </property>
   </action>
  </widget>

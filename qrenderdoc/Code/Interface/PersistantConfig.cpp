@@ -666,3 +666,32 @@ BugReport::operator QVariant() const
 
   return map;
 }
+
+ReplayOptions::ReplayOptions(const QVariant &var)
+{
+  QVariantMap map = var.toMap();
+
+  if(map.contains(lit("apiValidation")))
+    apiValidation = map[lit("apiValidation")].toBool();
+  if(map.contains(lit("forceGPUVendor")))
+    forceGPUVendor = (GPUVendor)map[lit("forceGPUVendor")].toUInt();
+  if(map.contains(lit("forceGPUDeviceID")))
+    forceGPUDeviceID = map[lit("forceGPUDeviceID")].toUInt();
+  if(map.contains(lit("forceGPUDriverName")))
+    forceGPUDriverName = map[lit("forceGPUDriverName")].toString();
+  if(map.contains(lit("optimisation")))
+    optimisation = (ReplayOptimisationLevel)map[lit("optimisation")].toUInt();
+}
+
+ReplayOptions::operator QVariant() const
+{
+  QVariantMap map;
+
+  map[lit("apiValidation")] = apiValidation;
+  map[lit("forceGPUVendor")] = (uint32_t)forceGPUVendor;
+  map[lit("forceGPUDeviceID")] = forceGPUDeviceID;
+  map[lit("forceGPUDriverName")] = forceGPUDriverName;
+  map[lit("optimisation")] = (uint32_t)optimisation;
+
+  return map;
+}

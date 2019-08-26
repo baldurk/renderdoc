@@ -39,6 +39,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDLabel.h"
+#include "Widgets/ReplayOptionsSelector.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/CrashDialog.h"
@@ -445,6 +446,42 @@ void MainWindow::on_action_Open_Capture_triggered()
     LoadFromFilename(filename, false);
 }
 
+void MainWindow::on_action_Open_Capture_with_Options_triggered()
+{
+  if(!PromptCloseCapture())
+    return;
+
+  ReplayOptionsSelector *replayOptions = new ReplayOptionsSelector(m_Ctx, true, this);
+
+  QDialog openWithOptions;
+  openWithOptions.setWindowFlags(openWithOptions.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+  openWithOptions.setWindowIcon(windowIcon());
+  openWithOptions.setWindowTitle(tr("Open Capture with Options"));
+  openWithOptions.setSizeGripEnabled(false);
+  openWithOptions.setModal(true);
+
+  QVBoxLayout l;
+  l.addWidget(replayOptions);
+  l.setMargin(3);
+  l.setSizeConstraint(QLayout::SetFixedSize);
+
+  openWithOptions.setLayout(&l);
+
+  QObject::connect(replayOptions, &ReplayOptionsSelector::canceled, &openWithOptions,
+                   &QDialog::reject);
+  QObject::connect(replayOptions, &ReplayOptionsSelector::opened, &openWithOptions, &QDialog::accept);
+
+  if(RDDialog::show(&openWithOptions) != QDialog::Accepted)
+    return;
+
+  QString filename = replayOptions->filename();
+
+  if(filename.isEmpty())
+    return;
+
+  LoadCapture(filename, replayOptions->options(), false, true);
+}
+
 void MainWindow::importCapture(const CaptureFileFormat &fmt)
 {
   if(!PromptCloseCapture())
@@ -487,7 +524,7 @@ void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
 
   if(ext == lit("rdc"))
   {
-    LoadCapture(filename, ReplayOptions(), temporary, true);
+    LoadCapture(filename, m_Ctx.Config().DefaultReplayOptions, temporary, true);
   }
   else if(ext == lit("cap"))
   {
@@ -500,7 +537,7 @@ void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
   else
   {
     // not a recognised filetype, see if we can load it anyway
-    LoadCapture(filename, ReplayOptions(), temporary, true);
+    LoadCapture(filename, m_Ctx.Config().DefaultReplayOptions, temporary, true);
   }
 }
 
@@ -1507,7 +1544,7 @@ void MainWindow::recentCaptureFile(const QString &filename)
 {
   if(QFileInfo::exists(filename))
   {
-    LoadCapture(filename, ReplayOptions(), false, true);
+    LoadCapture(filename, m_Ctx.Config().DefaultReplayOptions, false, true);
   }
   else
   {

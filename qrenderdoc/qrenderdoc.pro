@@ -196,6 +196,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/CustomPaintWidget.cpp \
     Widgets/ResourcePreview.cpp \
     Widgets/ThumbnailStrip.cpp \
+    Widgets/ReplayOptionsSelector.cpp \
     Widgets/TextureGoto.cpp \
     Widgets/RangeHistogram.cpp \
     Widgets/CollapseGroupBox.cpp \
@@ -273,6 +274,7 @@ HEADERS += Code/CaptureContext.h \
     Widgets/CustomPaintWidget.h \
     Widgets/ResourcePreview.h \
     Widgets/ThumbnailStrip.h \
+    Widgets/ReplayOptionsSelector.h \
     Widgets/TextureGoto.h \
     Widgets/RangeHistogram.h \
     Widgets/CollapseGroupBox.h \
@@ -324,6 +326,7 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/TextureViewer.ui \
     Widgets/ResourcePreview.ui \
     Widgets/ThumbnailStrip.ui \
+    Widgets/ReplayOptionsSelector.ui \
     Windows/Dialogs/TextureSaveDialog.ui \
     Windows/Dialogs/CaptureDialog.ui \
     Windows/Dialogs/LiveCapture.ui \

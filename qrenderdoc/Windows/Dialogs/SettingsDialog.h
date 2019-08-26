@@ -34,6 +34,7 @@ class SettingsDialog;
 class QTableWidgetItem;
 class QListWidgetItem;
 struct ShaderProcessingTool;
+class ReplayOptionsSelector;
 
 struct ICaptureContext;
 
@@ -118,6 +119,8 @@ private:
 
   void addProcessor(const ShaderProcessingTool &disasm);
   bool editTool(int existing, ShaderProcessingTool &disasm);
+
+  ReplayOptionsSelector *m_ReplayOptions;
 
   ICaptureContext &m_Ctx;
   bool m_Init = false;

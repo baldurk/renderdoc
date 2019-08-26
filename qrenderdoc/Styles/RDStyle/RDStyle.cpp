@@ -717,6 +717,10 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
 
+    // add more room for items with shortcuts
+    if(menuitem->text.contains(QLatin1Char('\t')))
+      ret.setWidth(ret.width() + 4 * Constants::MenuBarMargin);
+
     // add room for an icon
     if(menuitem->maxIconWidth)
       ret.setWidth(ret.width() + Constants::MenuBarMargin + menuitem->maxIconWidth);

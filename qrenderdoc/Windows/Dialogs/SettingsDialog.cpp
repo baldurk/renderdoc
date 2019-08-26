@@ -30,6 +30,7 @@
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
 #include "Widgets/OrderedListEditor.h"
+#include "Widgets/ReplayOptionsSelector.h"
 #include "CaptureDialog.h"
 #include "ui_SettingsDialog.h"
 
@@ -37,6 +38,10 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     : QDialog(parent), ui(new Ui::SettingsDialog), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  m_ReplayOptions = new ReplayOptionsSelector(m_Ctx, false, this);
+
+  ui->replayOptionsLayout->insertWidget(0, m_ReplayOptions);
 
   QString styleChooseTooltip = ui->UIStyle->toolTip();
 
@@ -192,6 +197,9 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
 SettingsDialog::~SettingsDialog()
 {
+  m_Ctx.Config().DefaultReplayOptions = m_ReplayOptions->options();
+  m_Ctx.Config().Save();
+
   delete ui;
 }
 

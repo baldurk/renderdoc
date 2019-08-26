@@ -117,6 +117,7 @@ private slots:
   void on_action_Exit_triggered();
   void on_action_About_triggered();
   void on_action_Open_Capture_triggered();
+  void on_action_Open_Capture_with_Options_triggered();
   void on_action_Save_Capture_Inplace_triggered();
   void on_action_Save_Capture_As_triggered();
   void on_action_Close_Capture_triggered();

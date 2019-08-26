@@ -551,6 +551,35 @@ After interop is enabled you will need to reload any capture.</string>
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="replayTab">
+      <attribute name="title">
+       <string>Replay</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QGroupBox" name="groupBox_10">
+         <property name="title">
+          <string>Default Replay Options</string>
+         </property>
+         <layout class="QVBoxLayout" name="replayOptionsLayout">
+          <item>
+           <spacer name="verticalSpacer_8">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>414</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="textureTab">
       <attribute name="title">
        <string>Texture Viewer</string>

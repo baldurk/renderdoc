@@ -294,6 +294,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, DefaultCaptureSaveDirectory, "")             \
                                                                                            \
+  CONFIG_SETTING(public, QVariant, ReplayOptions, DefaultReplayOptions)                    \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                  \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexSettings, true)               \
@@ -490,6 +492,11 @@ For more information about some of these settings that are user-facing see
 .. data:: DefaultCaptureSaveDirectory
 
   The default path to save captures in, when browsing to save a temporary capture somewhere.
+
+.. data:: DefaultReplayOptions
+
+  A :class:`ReplayOptions` containing the configured default replay options to use in most scenarios
+  when no specific options are given.
 
 .. data:: TextureViewer_ResetRange
 
