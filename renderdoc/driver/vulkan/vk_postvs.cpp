@@ -1356,7 +1356,10 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         write.dstSet = descSets[i];
 
-        for(size_t b = 0; b < origLayout.bindings.size(); b++)
+        // Only write bindings that actually exist in the current descriptor
+        // set. If there are bindings that aren't set, assume the app knows
+        // what it's doing and the remaining bindings are unused.
+        for(size_t b = 0; b < setInfo.currentBindings.size(); b++)
         {
           const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
