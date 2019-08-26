@@ -1010,17 +1010,17 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     if(slotBinds != NULL)
       arrayLength = slotBinds->count();
     else
-      arrayLength = (int)bindMap->arraySize;
+      arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
 
     // for arrays, add a parent element that we add the real cbuffers below
     if(arrayLength > 1)
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname,
-                                arrayLength == ~0U ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
+                                arrayLength < 0 ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
                                 QString(), QString(), QString(), QString()});
 
-      if(arrayLength == ~0U)
+      if(arrayLength < 0)
         arrayLength = 0;
 
       if(!filledSlot)
@@ -1384,17 +1384,17 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     if(slotBinds != NULL)
       arrayLength = slotBinds->count();
     else
-      arrayLength = (int)bindMap->arraySize;
+      arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
 
     // for arrays, add a parent element that we add the real cbuffers below
     if(arrayLength > 1)
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname,
-                                arrayLength == ~0U ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
+                                arrayLength < 0 ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
                                 QString(), QString()});
 
-      if(arrayLength == ~0U)
+      if(arrayLength < 0)
         arrayLength = 0;
 
       if(!filledSlot)
