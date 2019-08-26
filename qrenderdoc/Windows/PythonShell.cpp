@@ -173,10 +173,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<WindowingData>(&ICaptureContext::CreateWindowingData, window);
   }
-  virtual void LoadCapture(const rdcstr &capture, const rdcstr &origFilename, bool temporary,
-                           bool local) override
+  virtual void LoadCapture(const rdcstr &capture, const ReplayOptions &opts,
+                           const rdcstr &origFilename, bool temporary, bool local) override
   {
-    InvokeVoidFunction(&ICaptureContext::LoadCapture, capture, origFilename, temporary, local);
+    InvokeVoidFunction(&ICaptureContext::LoadCapture, capture, opts, origFilename, temporary, local);
   }
   virtual bool SaveCaptureTo(const rdcstr &capture) override
   {

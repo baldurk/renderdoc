@@ -1083,13 +1083,14 @@ data.
   DOCUMENT(R"(Open a capture file for replay.
 
 :param str captureFile: The actual path to the capture file.
+:param ReplayOptions opts: The options controlling how the capture should be replayed.
 :param str origFilename: The original filename, if the capture was copied remotely for replay.
 :param bool temporary: ``True`` if this is a temporary capture which should prompt the user for
   either save or delete on close.
 :param bool local: ``True`` if ``captureFile`` refers to a file on the local machine.
 )");
-  virtual void LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename, bool temporary,
-                           bool local) = 0;
+  virtual void LoadCapture(const rdcstr &captureFile, const ReplayOptions &opts,
+                           const rdcstr &origFilename, bool temporary, bool local) = 0;
 
   DOCUMENT(R"(Saves the current capture file to a given path.
 

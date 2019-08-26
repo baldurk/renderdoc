@@ -461,13 +461,14 @@ struct AndroidRemoteServer : public RemoteServer
   }
 
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
-      uint32_t proxyid, const char *filename, RENDERDOC_ProgressCallback progress) override
+      uint32_t proxyid, const char *filename, const ReplayOptions &opts,
+      RENDERDOC_ProgressCallback progress) override
   {
     ResetAndroidSettings();
 
     LazilyStartLogcatThread();
 
-    return RemoteServer::OpenCapture(proxyid, filename, progress);
+    return RemoteServer::OpenCapture(proxyid, filename, opts, progress);
   }
 
   virtual rdcstr GetHomeFolder() override { return ""; }

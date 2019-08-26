@@ -698,3 +698,74 @@ struct GPUDevice
 };
 
 DECLARE_REFLECTION_STRUCT(GPUDevice);
+
+DOCUMENT("The options controlling how replay of a capture should be performed");
+struct ReplayOptions
+{
+  DOCUMENT("");
+  ReplayOptions() = default;
+  ReplayOptions(const ReplayOptions &) = default;
+
+  DOCUMENT(R"(Replay with API validation enabled and use debug messages from there, ignoring any
+that may be contained in the capture.
+
+The default is not to do any validation.
+
+.. note:: RenderDoc does not handle invalid API use in the general case so validation should still
+  be performed at runtime in your program for ground truth results.
+)");
+  bool apiValidation = false;
+
+  DOCUMENT(R"(Force the selection of a GPU by vendor ID. This allows overriding which GPU is used to
+replay on, even if a different GPU would be the best match for the capture.
+
+When set to :data:`GPUVendor.Unknown`, specifies no particular vendor.
+
+See also :data:`forceGPUDeviceID` and :data:`forceGPUDriverName`. Available GPUs can be enumerated
+using :meth:`CaptureAccess.GetAvailableGPUs`.
+
+The default is not to do any override. The capture contains information about what GPU was used, and
+the closest matching GPU is used on replay.
+
+.. note::
+  If a GPU is forced that is not available or not supported for a given capture, such as when GPUs
+  are only available for some APIs and not others, the default GPU selection will be used. If a GPU
+  is available for a capture but fails to open however then there is no fallback to a default GPU.
+
+  OpenGL does not support GPU selection so the default method (which effectively does nothing) will
+  always be used.
+)");
+  GPUVendor forceGPUVendor = GPUVendor::Unknown;
+
+  DOCUMENT(R"(Force the selection of a GPU by device ID. This allows overriding which GPU is used to
+replay on.
+
+When set to 0, specifies no particular device.
+
+See :data:`forceGPUDeviceID` for a full explanation of GPU selection override.
+)");
+  uint32_t forceGPUDeviceID = 0;
+
+  DOCUMENT(R"(Force the selection of a GPU by driver name. This allows overriding which GPU is used
+to replay on.
+
+When set to an empty string, specifies no particular driver.
+
+See :data:`forceGPUDeviceID` for a full explanation of GPU selection override.
+)");
+  rdcstr forceGPUDriverName;
+
+  DOCUMENT(R"(How much optimisation should be done, potentially at the cost of correctness.
+
+The default is :data:`ReplayOptimisationLevel.Balanced`.
+)");
+  ReplayOptimisationLevel optimisation = ReplayOptimisationLevel::Balanced;
+
+// helpers for Qt, define constructor and cast. These will be defined in Qt code
+#if defined(RENDERDOC_QT_COMPAT)
+  ReplayOptions(const QVariant &var);
+  operator QVariant() const;
+#endif
+};
+
+DECLARE_REFLECTION_STRUCT(ReplayOptions);

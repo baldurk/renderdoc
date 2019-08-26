@@ -681,8 +681,8 @@ void CaptureContext::CleanMenu(QAction *action)
     delete menu;
 }
 
-void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename,
-                                 bool temporary, bool local)
+void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions &opts,
+                                 const rdcstr &origFilename, bool temporary, bool local)
 {
   CloseCapture();
 
@@ -696,9 +696,10 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
 
   bool newCapture = (!temporary && !Config().RecentCaptureFiles.contains(origFilename));
 
-  LambdaThread *thread = new LambdaThread([this, captureFile, origFilename, temporary, local]() {
-    LoadCaptureThreaded(captureFile, origFilename, temporary, local);
-  });
+  LambdaThread *thread =
+      new LambdaThread([this, captureFile, opts, origFilename, temporary, local]() {
+        LoadCaptureThreaded(captureFile, opts, origFilename, temporary, local);
+      });
   thread->selfDelete(true);
   thread->start();
 
@@ -775,8 +776,8 @@ float CaptureContext::UpdateLoadProgress()
   return val;
 }
 
-void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QString &origFilename,
-                                         bool temporary, bool local)
+void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const ReplayOptions &opts,
+                                         const QString &origFilename, bool temporary, bool local)
 {
   m_CaptureFile = origFilename;
 
@@ -788,7 +789,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
   m_PostloadProgress = 0.0f;
 
   // this function call will block until the capture is either loaded, or there's some failure
-  m_Replay.OpenCapture(captureFile, [this](float p) { m_LoadProgress = p; });
+  m_Replay.OpenCapture(captureFile, opts, [this](float p) { m_LoadProgress = p; });
 
   // if the renderer isn't running, we hit a failure case so display an error message
   if(!m_Replay.IsRunning())

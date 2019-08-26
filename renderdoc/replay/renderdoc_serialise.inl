@@ -891,6 +891,18 @@ void DoSerialise(SerialiserType &ser, GPUDevice &el)
   SIZE_CHECK(80);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ReplayOptions &el)
+{
+  SERIALISE_MEMBER(apiValidation);
+  SERIALISE_MEMBER(forceGPUVendor);
+  SERIALISE_MEMBER(forceGPUDeviceID);
+  SERIALISE_MEMBER(forceGPUDriverName);
+  SERIALISE_MEMBER(optimisation);
+
+  SIZE_CHECK(48);
+}
+
 #pragma region Common pipeline state
 
 template <typename SerialiserType>
@@ -2256,6 +2268,7 @@ INSTANTIATE_SERIALISE_TYPE(EventUsage)
 INSTANTIATE_SERIALISE_TYPE(CounterResult)
 INSTANTIATE_SERIALISE_TYPE(CounterValue)
 INSTANTIATE_SERIALISE_TYPE(GPUDevice)
+INSTANTIATE_SERIALISE_TYPE(ReplayOptions)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Layout)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::InputAssembly)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::View)

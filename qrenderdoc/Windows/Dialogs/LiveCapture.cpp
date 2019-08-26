@@ -760,7 +760,7 @@ void LiveCapture::openCapture(Capture *cap)
     return;
   }
 
-  m_Main->LoadCapture(cap->path, !cap->saved, cap->local);
+  m_Main->LoadCapture(cap->path, ReplayOptions(), !cap->saved, cap->local);
 }
 
 bool LiveCapture::saveCapture(Capture *cap, QString path)

@@ -102,8 +102,8 @@ public:
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
 
-  void LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename, bool temporary,
-                   bool local) override;
+  void LoadCapture(const rdcstr &captureFile, const ReplayOptions &opts, const rdcstr &origFilename,
+                   bool temporary, bool local) override;
   bool SaveCaptureTo(const rdcstr &captureFile) override;
   void RecompressCapture() override;
   void CloseCapture() override;
@@ -305,8 +305,8 @@ private:
   float m_PostloadProgress = 0.0f;
   float UpdateLoadProgress();
 
-  void LoadCaptureThreaded(const QString &captureFile, const QString &origFilename, bool temporary,
-                           bool local);
+  void LoadCaptureThreaded(const QString &captureFile, const ReplayOptions &opts,
+                           const QString &origFilename, bool temporary, bool local);
 
   void AddSortedMenuItem(QMenu *menu, bool rootMenu, const rdcarray<rdcstr> &items,
                          std::function<void()> callback);

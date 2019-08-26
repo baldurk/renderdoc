@@ -122,7 +122,8 @@ public:
   ReplaySupport LocalReplaySupport() { return m_Support; }
   rdcstr DriverName() { return m_DriverName; }
   const char *RecordedMachineIdent() { return m_Ident.c_str(); }
-  rdcpair<ReplayStatus, IReplayController *> OpenCapture(RENDERDOC_ProgressCallback progress);
+  rdcpair<ReplayStatus, IReplayController *> OpenCapture(const ReplayOptions &opts,
+                                                         RENDERDOC_ProgressCallback progress);
 
   void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
                    uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData);
@@ -353,7 +354,8 @@ void CaptureFile::InitStructuredData(RENDERDOC_ProgressCallback progress /*= REN
   }
 }
 
-rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(RENDERDOC_ProgressCallback progress)
+rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(const ReplayOptions &opts,
+                                                                    RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC || m_RDC->ErrorCode() != ContainerError::NoError)
     return rdcpair<ReplayStatus, IReplayController *>(ReplayStatus::InternalError, NULL);
@@ -361,9 +363,11 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(RENDERDOC_Pr
   ReplayController *render = new ReplayController();
   ReplayStatus ret;
 
+  LogReplayOptions(opts);
+
   RenderDoc::Inst().SetProgressCallback<LoadProgress>(progress);
 
-  ret = render->CreateDevice(m_RDC);
+  ret = render->CreateDevice(m_RDC, opts);
 
   RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 

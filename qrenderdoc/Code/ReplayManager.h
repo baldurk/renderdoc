@@ -48,7 +48,8 @@ public:
   ReplayManager();
   ~ReplayManager();
 
-  void OpenCapture(const QString &capturefile, RENDERDOC_ProgressCallback progress);
+  void OpenCapture(const QString &capturefile, const ReplayOptions &opts,
+                   RENDERDOC_ProgressCallback progress);
   void DeleteCapture(const rdcstr &capturefile, bool local);
 
   bool IsRunning();
@@ -113,7 +114,8 @@ private:
     bool selfdelete;
   };
 
-  void run(int proxyRenderer, const QString &capturefile, RENDERDOC_ProgressCallback progress);
+  void run(int proxyRenderer, const QString &capturefile, const ReplayOptions &opts,
+           RENDERDOC_ProgressCallback progress);
 
   QMutex m_TimerLock;
   QElapsedTimer m_CommandTimer;

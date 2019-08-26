@@ -42,7 +42,8 @@ ReplayManager::~ReplayManager()
   RENDERDOC_UnregisterMemoryRegion(this);
 }
 
-void ReplayManager::OpenCapture(const QString &capturefile, RENDERDOC_ProgressCallback progress)
+void ReplayManager::OpenCapture(const QString &capturefile, const ReplayOptions &opts,
+                                RENDERDOC_ProgressCallback progress)
 {
   if(m_Running)
     return;
@@ -50,8 +51,8 @@ void ReplayManager::OpenCapture(const QString &capturefile, RENDERDOC_ProgressCa
   // TODO maybe we could expose this choice to the user?
   int proxyRenderer = -1;
 
-  m_Thread = new LambdaThread([this, proxyRenderer, capturefile, progress]() {
-    run(proxyRenderer, capturefile, progress);
+  m_Thread = new LambdaThread([this, proxyRenderer, capturefile, opts, progress]() {
+    run(proxyRenderer, capturefile, opts, progress);
   });
   m_Thread->start(QThread::HighestPriority);
 
@@ -416,7 +417,7 @@ void ReplayManager::PushInvoke(ReplayManager::InvokeHandle *cmd)
   m_RenderCondition.wakeAll();
 }
 
-void ReplayManager::run(int proxyRenderer, const QString &capturefile,
+void ReplayManager::run(int proxyRenderer, const QString &capturefile, const ReplayOptions &opts,
                         RENDERDOC_ProgressCallback progress)
 {
   m_Renderer = NULL;
@@ -424,7 +425,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile,
   if(m_Remote)
   {
     rdctie(m_CreateStatus, m_Renderer) =
-        m_Remote->OpenCapture(proxyRenderer, capturefile.toUtf8().data(), progress);
+        m_Remote->OpenCapture(proxyRenderer, capturefile.toUtf8().data(), opts, progress);
   }
   else
   {
@@ -433,7 +434,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile,
     m_CreateStatus = m_CaptureFile->OpenFile(capturefile.toUtf8().data(), "rdc", NULL);
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
-      rdctie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(progress);
+      rdctie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(opts, progress);
   }
 
   if(m_Renderer == NULL)

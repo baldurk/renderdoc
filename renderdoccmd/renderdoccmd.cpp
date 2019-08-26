@@ -566,7 +566,7 @@ struct ReplayCommand : public Command
       rdcstr remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
 
       IReplayController *renderer = NULL;
-      rdctie(status, renderer) = remote->OpenCapture(~0U, remotePath.c_str(), NULL);
+      rdctie(status, renderer) = remote->OpenCapture(~0U, remotePath.c_str(), ReplayOptions(), NULL);
 
       if(status == ReplayStatus::Succeeded)
       {
@@ -596,7 +596,7 @@ struct ReplayCommand : public Command
 
       IReplayController *renderer = NULL;
       ReplayStatus status = ReplayStatus::InternalError;
-      rdctie(status, renderer) = file->OpenCapture(NULL);
+      rdctie(status, renderer) = file->OpenCapture(ReplayOptions(), NULL);
 
       file->Shutdown();
 

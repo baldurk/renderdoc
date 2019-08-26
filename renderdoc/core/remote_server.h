@@ -71,6 +71,7 @@ public:
 
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
                                                                  const char *filename,
+                                                                 const ReplayOptions &opts,
                                                                  RENDERDOC_ProgressCallback progress);
 
   virtual void CloseCapture(IReplayController *rend);

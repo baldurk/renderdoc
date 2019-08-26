@@ -43,6 +43,25 @@
 
 #include "replay/renderdoc_serialise.inl"
 
+void LogReplayOptions(const ReplayOptions &opts)
+{
+  RDCLOG("%s API validation during replay", (opts.apiValidation ? "Enabling" : "Not enabling"));
+
+  if(opts.forceGPUVendor == GPUVendor::Unknown && opts.forceGPUDeviceID == 0 &&
+     opts.forceGPUDriverName.empty())
+  {
+    RDCLOG("Using default GPU replay selection algorithm");
+  }
+  else
+  {
+    RDCLOG("Overriding GPU replay selection:");
+    RDCLOG("  Vendor %s, device %u, driver \"%s\"", ToStr(opts.forceGPUVendor).c_str(),
+           opts.forceGPUDeviceID, opts.forceGPUDriverName.c_str());
+  }
+
+  RDCLOG("Replay optimisation level: %s", ToStr(opts.optimisation).c_str());
+}
+
 // this one is done by hand as we format it
 template <>
 rdcstr DoStringise(const ResourceId &el)
@@ -1260,17 +1279,18 @@ ReplayStatus RenderDoc::CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDr
   if(proxyDriver == RDCDriver::Unknown)
   {
     if(!m_ReplayDriverProviders.empty())
-      return m_ReplayDriverProviders.begin()->second(NULL, driver);
+      return m_ReplayDriverProviders.begin()->second(NULL, ReplayOptions(), driver);
   }
 
   if(m_ReplayDriverProviders.find(proxyDriver) != m_ReplayDriverProviders.end())
-    return m_ReplayDriverProviders[proxyDriver](NULL, driver);
+    return m_ReplayDriverProviders[proxyDriver](NULL, ReplayOptions(), driver);
 
   RDCERR("Unsupported replay driver requested: %s", ToStr(proxyDriver).c_str());
   return ReplayStatus::APIUnsupported;
 }
 
-ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver)
+ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, const ReplayOptions &opts,
+                                           IReplayDriver **driver)
 {
   if(driver == NULL)
     return ReplayStatus::InternalError;
@@ -1279,7 +1299,7 @@ ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver)
   if(rdc == NULL)
   {
     if(!m_ReplayDriverProviders.empty())
-      return m_ReplayDriverProviders.begin()->second(NULL, driver);
+      return m_ReplayDriverProviders.begin()->second(NULL, opts, driver);
 
     RDCERR("Request for proxy replay device, but no replay providers are available.");
     return ReplayStatus::InternalError;
@@ -1292,13 +1312,14 @@ ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver)
     return IMG_CreateReplayDevice(rdc, driver);
 
   if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
-    return m_ReplayDriverProviders[driverType](rdc, driver);
+    return m_ReplayDriverProviders[driverType](rdc, opts, driver);
 
   RDCERR("Unsupported replay driver requested: %s", ToStr(driverType).c_str());
   return ReplayStatus::APIUnsupported;
 }
 
-ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver)
+ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &opts,
+                                           IRemoteDriver **driver)
 {
   if(rdc == NULL || driver == NULL)
     return ReplayStatus::InternalError;
@@ -1306,13 +1327,13 @@ ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver)
   RDCDriver driverType = rdc->GetDriver();
 
   if(m_RemoteDriverProviders.find(driverType) != m_RemoteDriverProviders.end())
-    return m_RemoteDriverProviders[driverType](rdc, driver);
+    return m_RemoteDriverProviders[driverType](rdc, opts, driver);
 
   // replay drivers are remote drivers, fall back and try them
   if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
   {
     IReplayDriver *dr = NULL;
-    ReplayStatus status = m_ReplayDriverProviders[driverType](rdc, &dr);
+    ReplayStatus status = m_ReplayDriverProviders[driverType](rdc, opts, &dr);
 
     if(status == ReplayStatus::Succeeded)
       *driver = (IRemoteDriver *)dr;

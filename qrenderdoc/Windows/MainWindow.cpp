@@ -487,7 +487,7 @@ void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
 
   if(ext == lit("rdc"))
   {
-    LoadCapture(filename, temporary, true);
+    LoadCapture(filename, ReplayOptions(), temporary, true);
   }
   else if(ext == lit("cap"))
   {
@@ -500,7 +500,7 @@ void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
   else
   {
     // not a recognised filetype, see if we can load it anyway
-    LoadCapture(filename, temporary, true);
+    LoadCapture(filename, ReplayOptions(), temporary, true);
   }
 }
 
@@ -633,7 +633,8 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
   th->deleteLater();
 }
 
-void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local)
+void MainWindow::LoadCapture(const QString &filename, const ReplayOptions &opts, bool temporary,
+                             bool local)
 {
   if(PromptCloseCapture())
   {
@@ -800,7 +801,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
         ANALYTIC_SET(UIFeatures.ImageViewer, true);
       }
 
-      m_Ctx.LoadCapture(fileToLoad, origFilename, temporary, local);
+      m_Ctx.LoadCapture(fileToLoad, opts, origFilename, temporary, local);
     }
 
     if(local && !temporary)
@@ -1506,7 +1507,7 @@ void MainWindow::recentCaptureFile(const QString &filename)
 {
   if(QFileInfo::exists(filename))
   {
-    LoadCapture(filename, false, true);
+    LoadCapture(filename, ReplayOptions(), false, true);
   }
   else
   {

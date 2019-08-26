@@ -949,6 +949,19 @@ rdcstr DoStringise(const SectionType &el)
 }
 
 template <>
+rdcstr DoStringise(const ReplayOptimisationLevel &el)
+{
+  BEGIN_ENUM_STRINGISE(ReplayOptimisationLevel);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(NoOptimisation, "No Optimisation");
+    STRINGISE_ENUM_CLASS(Conservative);
+    STRINGISE_ENUM_CLASS(Balanced);
+    STRINGISE_ENUM_CLASS(Fastest);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const D3DBufferViewFlags &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3DBufferViewFlags);

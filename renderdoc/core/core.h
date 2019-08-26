@@ -43,6 +43,7 @@ struct RDCThumb;
 
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f);
+void LogReplayOptions(const ReplayOptions &opts);
 
 struct ICrashHandler
 {
@@ -336,8 +337,10 @@ class IReplayDriver;
 class StreamReader;
 class RDCFile;
 
-typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, IRemoteDriver **driver);
-typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **driver);
+typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
+                                             IRemoteDriver **driver);
+typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
+                                             IReplayDriver **driver);
 
 typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
 
@@ -522,8 +525,8 @@ public:
   bool IsDarkTheme() { return m_DarkTheme; }
   void SetDarkTheme(bool dark) { m_DarkTheme = dark; }
   ReplayStatus CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver);
-  ReplayStatus CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver);
-  ReplayStatus CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver);
+  ReplayStatus CreateReplayDriver(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver);
+  ReplayStatus CreateRemoteDriver(RDCFile *rdc, const ReplayOptions &opts, IRemoteDriver **driver);
 
   bool HasReplaySupport(RDCDriver driverType);
 

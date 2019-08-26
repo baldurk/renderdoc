@@ -2032,12 +2032,12 @@ void ReplayController::RemoveReplacement(ResourceId id)
       m_Outputs[i]->Display();
 }
 
-ReplayStatus ReplayController::CreateDevice(RDCFile *rdc)
+ReplayStatus ReplayController::CreateDevice(RDCFile *rdc, const ReplayOptions &opts)
 {
   CHECK_REPLAY_THREAD();
 
   IReplayDriver *driver = NULL;
-  ReplayStatus status = RenderDoc::Inst().CreateReplayDriver(rdc, &driver);
+  ReplayStatus status = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &driver);
 
   if(driver && status == ReplayStatus::Succeeded)
   {

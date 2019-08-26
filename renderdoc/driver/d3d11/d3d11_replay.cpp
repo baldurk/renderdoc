@@ -3625,7 +3625,7 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev);
 
-ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D11 replay device");
 

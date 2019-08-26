@@ -397,10 +397,12 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     else if(type == eRemoteServer_OpenLog)
     {
       std::string path;
+      ReplayOptions opts;
 
       {
         READ_DATA_SCOPE();
         SERIALISE_ELEMENT(path);
+        SERIALISE_ELEMENT(opts);
       }
 
       reader.EndChunk();
@@ -450,13 +452,13 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
           // if we have a replay driver, try to create it so we can display a local preview e.g.
           if(RenderDoc::Inst().HasReplayDriver(rdc->GetDriver()))
           {
-            status = RenderDoc::Inst().CreateReplayDriver(rdc, &replayDriver);
+            status = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &replayDriver);
             if(replayDriver)
               remoteDriver = replayDriver;
           }
           else
           {
-            status = RenderDoc::Inst().CreateRemoteDriver(rdc, &remoteDriver);
+            status = RenderDoc::Inst().CreateRemoteDriver(rdc, opts, &remoteDriver);
           }
 
           if(status != ReplayStatus::Succeeded || remoteDriver == NULL)
@@ -1434,7 +1436,8 @@ void RemoteServer::TakeOwnershipCapture(const char *filename)
 }
 
 rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
-    uint32_t proxyid, const char *filename, RENDERDOC_ProgressCallback progress)
+    uint32_t proxyid, const char *filename, const ReplayOptions &opts,
+    RENDERDOC_ProgressCallback progress)
 {
   rdcpair<ReplayStatus, IReplayController *> ret;
   ret.first = ReplayStatus::InternalError;
@@ -1449,6 +1452,8 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
 
   RDCLOG("Opening capture remotely");
 
+  LogReplayOptions(opts);
+
   // if the proxy id is ~0U, then we just don't care so let RenderDoc pick the most
   // appropriate supported proxy for the current platform.
   RDCDriver proxydrivertype = proxyid == ~0U ? RDCDriver::Unknown : m_Proxies[proxyid].first;
@@ -1457,6 +1462,7 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(eRemoteServer_OpenLog);
     SERIALISE_ELEMENT(filename);
+    SERIALISE_ELEMENT(opts);
   }
 
   RemoteServerPacket type = eRemoteServer_Noop;

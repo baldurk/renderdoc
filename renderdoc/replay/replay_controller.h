@@ -137,7 +137,7 @@ public:
 
   APIProperties GetAPIProperties();
 
-  ReplayStatus CreateDevice(RDCFile *rdc);
+  ReplayStatus CreateDevice(RDCFile *rdc, const ReplayOptions &opts);
   ReplayStatus SetDevice(IReplayDriver *device);
 
   void FileChanged();

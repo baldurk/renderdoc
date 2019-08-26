@@ -1690,6 +1690,7 @@ or an error has occurred.
   or :data:`NoPreference` to indicate no preference for any proxy.
 :param str logfile: The path on the remote system where the file is. If the file is only available
   locally you can use :meth:`CopyCaptureToRemote` to transfer it over the remote connection.
+:param ReplayOptions opts: The options controlling how the capture should be replayed.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the opening. Can be ``None`` if no progress is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
@@ -1697,7 +1698,8 @@ or an error has occurred.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`
 )");
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
-      uint32_t proxyid, const char *logfile, RENDERDOC_ProgressCallback progress) = 0;
+      uint32_t proxyid, const char *logfile, const ReplayOptions &opts,
+      RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Close a capture analysis handle previously opened by :meth:`OpenCapture`.
 
@@ -1854,13 +1856,15 @@ This function will block until the capture is fully loaded and ready.
 Once the replay is created, this :class:`CaptureFile` can be shut down, there is no dependency on it
 by the :class:`ReplayController`.
 
+:param ReplayOptions opts: The options controlling how the capture should be replayed.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the opening. Can be ``None`` if no progress is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
   resulting :class:`ReplayController` handle if successful.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`.
 )");
-  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(RENDERDOC_ProgressCallback progress) = 0;
+  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
+      const ReplayOptions &opts, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the structured data for this capture.
 

@@ -3617,7 +3617,7 @@ void D3D12Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 
 #pragma endregion
 
-ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
+ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D12 replay device");
 
