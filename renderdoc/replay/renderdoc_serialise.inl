@@ -879,6 +879,18 @@ void DoSerialise(SerialiserType &ser, CounterValue &el)
   SIZE_CHECK(8);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, GPUDevice &el)
+{
+  SERIALISE_MEMBER(vendor);
+  SERIALISE_MEMBER(deviceID);
+  SERIALISE_MEMBER(driver);
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(apis);
+
+  SIZE_CHECK(80);
+}
+
 #pragma region Common pipeline state
 
 template <typename SerialiserType>
@@ -2243,6 +2255,7 @@ INSTANTIATE_SERIALISE_TYPE(PixelModification)
 INSTANTIATE_SERIALISE_TYPE(EventUsage)
 INSTANTIATE_SERIALISE_TYPE(CounterResult)
 INSTANTIATE_SERIALISE_TYPE(CounterValue)
+INSTANTIATE_SERIALISE_TYPE(GPUDevice)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Layout)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::InputAssembly)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::View)

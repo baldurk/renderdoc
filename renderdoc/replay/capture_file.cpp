@@ -135,6 +135,7 @@ public:
     return RenderDoc::Inst().GetCaptureFileFormats();
   }
 
+  rdcarray<GPUDevice> GetAvailableGPUs() { return RenderDoc::Inst().GetAvailableGPUs(); }
   const SDFile &GetStructuredData()
   {
     // decompile to structured data on demand.

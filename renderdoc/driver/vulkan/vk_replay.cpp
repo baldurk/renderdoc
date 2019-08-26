@@ -80,6 +80,108 @@ void VulkanReplay::Shutdown()
   delete m_pDriver;
 }
 
+rdcarray<GPUDevice> VulkanReplay::GetAvailableGPUs()
+{
+  rdcarray<GPUDevice> ret;
+
+  // do a manual enumerate to avoid any possible remapping
+  VkInstance instance = m_pDriver->GetInstance();
+
+  uint32_t count = 0;
+  VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, NULL);
+
+  if(vkr != VK_SUCCESS)
+    return ret;
+
+  VkPhysicalDevice *devices = new VkPhysicalDevice[count];
+
+  vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  for(uint32_t p = 0; p < count; p++)
+  {
+    VkPhysicalDeviceProperties props = {};
+    ObjDisp(instance)->GetPhysicalDeviceProperties(devices[p], &props);
+
+    VkPhysicalDeviceDriverPropertiesKHR driverProps = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+    };
+
+    VkPhysicalDeviceProperties2 physProps2 = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, &driverProps,
+    };
+
+    // get driver properties if available
+    if(m_pDriver->GetExtensions(GetRecord(instance)).ext_KHR_get_physical_device_properties2)
+    {
+      uint32_t extCount = 0;
+      ObjDisp(instance)->EnumerateDeviceExtensionProperties(devices[p], NULL, &extCount, NULL);
+
+      VkExtensionProperties *extProps = new VkExtensionProperties[extCount];
+      ObjDisp(instance)->EnumerateDeviceExtensionProperties(devices[p], NULL, &extCount, extProps);
+
+      for(uint32_t e = 0; e < extCount; e++)
+      {
+        if(!strcmp(extProps[e].extensionName, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+        {
+          ObjDisp(instance)->GetPhysicalDeviceProperties2(devices[p], &physProps2);
+          break;
+        }
+      }
+
+      SAFE_DELETE_ARRAY(extProps);
+    }
+
+    GPUDevice dev;
+    dev.vendor = GPUVendorFromPCIVendor(props.vendorID);
+    dev.deviceID = props.deviceID;
+    dev.name = props.deviceName;
+    dev.apis = {GraphicsAPI::Vulkan};
+
+    // only set the driver name when it's useful to disambiguate
+    switch(driverProps.driverID)
+    {
+      default: dev.driver = "";
+      case VK_DRIVER_ID_AMD_PROPRIETARY_KHR: dev.driver = "AMD Propriertary"; break;
+      case VK_DRIVER_ID_AMD_OPEN_SOURCE_KHR: dev.driver = "AMD Open-source"; break;
+      case VK_DRIVER_ID_MESA_RADV_KHR: dev.driver = "AMD RADV"; break;
+      case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS_KHR: dev.driver = "Intel Propriertary"; break;
+      case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA_KHR: dev.driver = "Intel Open-source"; break;
+    }
+
+    // don't add duplicate devices even if they get enumerated.
+    if(ret.indexOf(dev) == -1)
+      ret.push_back(dev);
+  }
+
+  // loop over devices and remove the driver string unless it's needed to disambiguate from another
+  // identical device.
+  for(size_t i = 0; i < ret.size(); i++)
+  {
+    bool needDriver = false;
+
+    for(size_t j = 0; j < ret.size(); j++)
+    {
+      if(i == j)
+        continue;
+
+      if(ret[i].vendor == ret[j].vendor && ret[i].deviceID == ret[j].deviceID)
+      {
+        RDCASSERT(ret[i].driver != ret[j].driver);
+        needDriver = true;
+        break;
+      }
+    }
+
+    if(!needDriver)
+      ret[i].driver = rdcstr();
+  }
+
+  SAFE_DELETE_ARRAY(devices);
+
+  return ret;
+}
+
 APIProperties VulkanReplay::GetAPIProperties()
 {
   APIProperties ret = m_pDriver->APIProps;

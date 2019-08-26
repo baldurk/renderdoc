@@ -1451,6 +1451,14 @@ and construction of files.
 )");
 struct ICaptureAccess
 {
+  DOCUMENT(R"(Returns the list of available GPUs, that can be used in combination with
+:class:`ReplayOptions` to force replay on a particular GPU.
+
+:return: The list of GPUs available.
+:rtype: ``list`` of :class:`GPUDevice`
+)");
+  virtual rdcarray<GPUDevice> GetAvailableGPUs() = 0;
+
   DOCUMENT(R"(Retrieve the total number of available sections.
 
 :return: The number of sections in the capture

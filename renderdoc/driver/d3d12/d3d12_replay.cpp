@@ -214,6 +214,52 @@ ReplayStatus D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructur
   return m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
+rdcarray<GPUDevice> D3D12Replay::GetAvailableGPUs()
+{
+  rdcarray<GPUDevice> ret;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapter *adapter = NULL;
+
+    HRESULT hr = m_pFactory->EnumAdapters(i, &adapter);
+
+    if(SUCCEEDED(hr) && adapter)
+    {
+      DXGI_ADAPTER_DESC desc;
+      adapter->GetDesc(&desc);
+
+      GPUDevice dev;
+      dev.vendor = GPUVendorFromPCIVendor(desc.VendorId);
+      dev.deviceID = desc.DeviceId;
+      dev.driver = "";    // D3D doesn't have multiple drivers per API
+      dev.name = StringFormat::Wide2UTF8(desc.Description);
+      dev.apis = {GraphicsAPI::D3D12};
+
+      // don't add duplicate devices even if they get enumerated. Don't add WARP, we'll do that
+      // manually since it's inconsistently enumerated
+      if(ret.indexOf(dev) == -1 && dev.vendor != GPUVendor::Software)
+        ret.push_back(dev);
+    }
+
+    SAFE_RELEASE(adapter);
+  }
+
+  // add WARP as long as we're not 12On7 (where we can't use WARP)
+  if(!m_D3D12On7)
+  {
+    GPUDevice dev;
+    dev.vendor = GPUVendor::Software;
+    dev.deviceID = 0;
+    dev.driver = "";    // D3D doesn't have multiple drivers per API
+    dev.name = "WARP Rasterizer";
+    dev.apis = {GraphicsAPI::D3D12};
+    ret.push_back(dev);
+  }
+
+  return ret;
+}
+
 APIProperties D3D12Replay::GetAPIProperties()
 {
   APIProperties ret = m_pDevice->APIProps;

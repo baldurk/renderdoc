@@ -65,6 +65,7 @@ public:
   void CreateResources();
   void DestroyResources();
   DriverInformation GetDriverInfo() { return m_DriverInfo; }
+  rdcarray<GPUDevice> GetAvailableGPUs();
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);

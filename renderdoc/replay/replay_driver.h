@@ -176,6 +176,8 @@ public:
   virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
 
   virtual DriverInformation GetDriverInfo() = 0;
+
+  virtual rdcarray<GPUDevice> GetAvailableGPUs() = 0;
 };
 
 class IReplayDriver : public IRemoteDriver

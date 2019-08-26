@@ -660,3 +660,41 @@ structured data.
 };
 
 DECLARE_REFLECTION_STRUCT(CaptureFileFormat);
+
+DOCUMENT("Describes a single GPU at replay time.");
+struct GPUDevice
+{
+  DOCUMENT("");
+  GPUDevice() = default;
+  GPUDevice(const GPUDevice &) = default;
+
+  bool operator==(const GPUDevice &o) const
+  {
+    // deliberately don't compare name or APIs - only this triple counts for equality
+    return vendor == o.vendor && deviceID == o.deviceID && driver == o.driver;
+  }
+  bool operator<(const GPUDevice &o) const
+  {
+    if(!(vendor == o.vendor))
+      return vendor < o.vendor;
+    if(!(deviceID == o.deviceID))
+      return deviceID < o.deviceID;
+    if(!(driver == o.driver))
+      return driver < o.driver;
+    return false;
+  }
+  DOCUMENT("The :class:`GPUVendor` of this GPU.");
+  GPUVendor vendor = GPUVendor::Unknown;
+  DOCUMENT("The PCI deviceID of this GPU.");
+  uint32_t deviceID = 0;
+  DOCUMENT("The name of the driver of this GPU, if multiple drivers are available for it.");
+  rdcstr driver;
+
+  DOCUMENT("The human-readable name of this GPU.");
+  rdcstr name;
+
+  DOCUMENT("The list of APIs that this device supports.");
+  rdcarray<GraphicsAPI> apis;
+};
+
+DECLARE_REFLECTION_STRUCT(GPUDevice);

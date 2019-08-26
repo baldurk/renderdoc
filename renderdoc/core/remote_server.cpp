@@ -71,6 +71,7 @@ enum RemoteServerPacket
   eRemoteServer_GetSectionProperties,
   eRemoteServer_GetSectionContents,
   eRemoteServer_WriteSection,
+  eRemoteServer_GetAvailableGPUs,
   eRemoteServer_RemoteServerCount,
 };
 
@@ -366,6 +367,18 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       RDCLOG("Taking ownership of '%s'.", path.c_str());
 
       tempFiles.push_back(path);
+    }
+    else if(type == eRemoteServer_GetAvailableGPUs)
+    {
+      reader.EndChunk();
+
+      rdcarray<GPUDevice> gpus = RenderDoc::Inst().GetAvailableGPUs();
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_GetAvailableGPUs);
+        SERIALISE_ELEMENT(gpus);
+      }
     }
     else if(type == eRemoteServer_ShutdownServer)
     {
@@ -1566,6 +1579,37 @@ rdcstr RemoteServer::DriverName()
   }
 
   return driverName;
+}
+
+rdcarray<GPUDevice> RemoteServer::GetAvailableGPUs()
+{
+  if(!Connected())
+    return {};
+
+  {
+    WRITE_DATA_SCOPE();
+    SCOPED_SERIALISE_CHUNK(eRemoteServer_GetAvailableGPUs);
+  }
+
+  rdcarray<GPUDevice> gpus;
+
+  {
+    READ_DATA_SCOPE();
+    RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+    if(type == eRemoteServer_GetAvailableGPUs)
+    {
+      SERIALISE_ELEMENT(gpus);
+    }
+    else
+    {
+      RDCERR("Unexpected response to GetAvailableGPUs");
+    }
+
+    ser.EndChunk();
+  }
+
+  return gpus;
 }
 
 int RemoteServer::GetSectionCount()

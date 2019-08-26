@@ -77,6 +77,8 @@ public:
 
   virtual rdcstr DriverName();
 
+  virtual rdcarray<GPUDevice> GetAvailableGPUs();
+
   virtual int GetSectionCount();
 
   virtual int FindSectionByName(const char *name);

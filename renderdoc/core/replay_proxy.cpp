@@ -325,6 +325,35 @@ DriverInformation ReplayProxy::GetDriverInfo()
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<GPUDevice> ReplayProxy::Proxied_GetAvailableGPUs(ParamSerialiser &paramser,
+                                                          ReturnSerialiser &retser)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetAvailableGPUs;
+  ReplayProxyPacket packet = eReplayProxy_GetAvailableGPUs;
+  rdcarray<GPUDevice> ret = {};
+
+  {
+    BEGIN_PARAMS();
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->GetAvailableGPUs();
+  }
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+rdcarray<GPUDevice> ReplayProxy::GetAvailableGPUs()
+{
+  PROXY_FUNCTION(GetAvailableGPUs);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 std::vector<DebugMessage> ReplayProxy::Proxied_GetDebugMessages(ParamSerialiser &paramser,
                                                                 ReturnSerialiser &retser)
 {
@@ -2663,6 +2692,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;
     case eReplayProxy_GetTargetShaderEncodings: GetTargetShaderEncodings(); break;
     case eReplayProxy_GetDriverInfo: GetDriverInfo(); break;
+    case eReplayProxy_GetAvailableGPUs: GetAvailableGPUs(); break;
     default: RDCERR("Unexpected command %u", type); return false;
   }
 

@@ -167,6 +167,12 @@ ResourceId GLReplay::GetLiveID(ResourceId id)
   return m_pDriver->GetResourceManager()->GetLiveID(id);
 }
 
+rdcarray<GPUDevice> GLReplay::GetAvailableGPUs()
+{
+  // GL doesn't support multiple GPUs, return an empty list
+  return {};
+}
+
 APIProperties GLReplay::GetAPIProperties()
 {
   APIProperties ret = m_pDriver->APIProps;

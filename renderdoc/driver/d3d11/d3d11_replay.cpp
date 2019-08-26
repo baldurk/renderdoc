@@ -515,6 +515,50 @@ std::vector<DebugMessage> D3D11Replay::GetDebugMessages()
   return m_pDevice->GetDebugMessages();
 }
 
+rdcarray<GPUDevice> D3D11Replay::GetAvailableGPUs()
+{
+  rdcarray<GPUDevice> ret;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapter *adapter = NULL;
+
+    HRESULT hr = m_pFactory->EnumAdapters(i, &adapter);
+
+    if(SUCCEEDED(hr) && adapter)
+    {
+      DXGI_ADAPTER_DESC desc;
+      adapter->GetDesc(&desc);
+
+      GPUDevice dev;
+      dev.vendor = GPUVendorFromPCIVendor(desc.VendorId);
+      dev.deviceID = desc.DeviceId;
+      dev.driver = "";    // D3D doesn't have multiple drivers per API
+      dev.name = StringFormat::Wide2UTF8(desc.Description);
+      dev.apis = {GraphicsAPI::D3D11};
+
+      // don't add duplicate devices even if they get enumerated. Don't add WARP, we'll do that
+      // manually since it's inconsistently enumerated
+      if(ret.indexOf(dev) == -1 && dev.vendor != GPUVendor::Software)
+        ret.push_back(dev);
+    }
+
+    SAFE_RELEASE(adapter);
+  }
+
+  {
+    GPUDevice dev;
+    dev.vendor = GPUVendor::Software;
+    dev.deviceID = 0;
+    dev.driver = "";    // D3D doesn't have multiple drivers per API
+    dev.name = "WARP Rasterizer";
+    dev.apis = {GraphicsAPI::D3D11};
+    ret.push_back(dev);
+  }
+
+  return ret;
+}
+
 APIProperties D3D11Replay::GetAPIProperties()
 {
   APIProperties ret = m_pDevice->APIProps;

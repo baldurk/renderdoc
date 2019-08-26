@@ -496,6 +496,7 @@ public:
   IDeviceProtocolHandler *GetDeviceProtocol(const rdcstr &protocol);
 
   std::vector<CaptureFileFormat> GetCaptureFileFormats();
+  rdcarray<GPUDevice> GetAvailableGPUs();
 
   void SetVulkanLayerCheck(VulkanLayerCheck callback) { m_VulkanCheck = callback; }
   void SetVulkanLayerInstall(VulkanLayerInstall callback) { m_VulkanInstall = callback; }
@@ -634,6 +635,8 @@ private:
   int32_t m_MarkerIndentLevel;
   Threading::CriticalSection m_DriverLock;
   std::map<RDCDriver, uint64_t> m_ActiveDrivers;
+
+  rdcarray<GPUDevice> m_AvailableGPUs;
 
   std::map<rdcstr, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
 

@@ -196,6 +196,7 @@ public:
     DriverInformation ret = {};
     return ret;
   }
+  rdcarray<GPUDevice> GetAvailableGPUs() { return {}; }
   const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
   const GLPipe::State *GetGLPipelineState() { return NULL; }
   const VKPipe::State *GetVulkanPipelineState() { return NULL; }

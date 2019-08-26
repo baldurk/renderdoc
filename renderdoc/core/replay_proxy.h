@@ -99,6 +99,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetTargetShaderEncodings,
 
   eReplayProxy_GetDriverInfo,
+  eReplayProxy_GetAvailableGPUs,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -470,6 +471,7 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(APIProperties, GetAPIProperties);
   IMPLEMENT_FUNCTION_PROXIED(DriverInformation, GetDriverInfo);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<GPUDevice>, GetAvailableGPUs);
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<DebugMessage>, GetDebugMessages);
 

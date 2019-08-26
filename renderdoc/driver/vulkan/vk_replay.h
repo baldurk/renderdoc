@@ -231,6 +231,7 @@ public:
 
   void SetDriver(WrappedVulkan *d) { m_pDriver = d; }
   DriverInformation GetDriverInfo() { return m_DriverInfo; }
+  rdcarray<GPUDevice> GetAvailableGPUs();
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
