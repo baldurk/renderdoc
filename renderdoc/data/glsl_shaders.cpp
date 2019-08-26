@@ -1756,7 +1756,7 @@ void main() {
           const ShaderResource &res = refl.readOnlyResources[i];
           INFO("read-only resource: " << res.name.c_str());
 
-          CHECK(res.bindPoint == i);
+          CHECK(res.bindPoint == (int32_t)i);
           CHECK(res.resType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
           CHECK(res.variableType.descriptor.type == VarType::Float);
@@ -1769,7 +1769,7 @@ void main() {
       for(size_t i = 0; i < countRO; i++)
       {
         CHECK(mapping.readOnlyResources[i].bindset == 0);
-        CHECK(mapping.readOnlyResources[i].bind == 3 + i);
+        CHECK(mapping.readOnlyResources[i].bind == 3 + (int32_t)i);
         CHECK(mapping.readOnlyResources[i].arraySize == arraySizeRO);
         CHECK(mapping.readOnlyResources[i].used);
       }
@@ -1791,7 +1791,7 @@ void main() {
           const ShaderResource &res = refl.readWriteResources[i];
           INFO("read-write resource: " << res.name.c_str());
 
-          CHECK(res.bindPoint == i);
+          CHECK(res.bindPoint == (int32_t)i);
           CHECK(res.resType == TextureType::Buffer);
 
           // due to a bug in glslang the reflection is broken for these SSBOs. So we can still run
@@ -1846,7 +1846,7 @@ void main() {
       for(size_t i = 0; i < countRW; i++)
       {
         CHECK(mapping.readWriteResources[i].bindset == 0);
-        CHECK(mapping.readWriteResources[i].bind == 2 + i);
+        CHECK(mapping.readWriteResources[i].bind == 2 + (int32_t)i);
         CHECK(mapping.readWriteResources[i].arraySize == arraySizeRW);
         CHECK(mapping.readWriteResources[i].used);
       }
