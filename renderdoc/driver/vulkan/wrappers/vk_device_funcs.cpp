@@ -380,6 +380,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     AddResource(params.InstanceID, ResourceType::Device, "Instance");
     GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
   }
+  else
+  {
+    GetResourceManager()->AddLiveResource(GetResID(m_Instance), m_Instance);
+  }
 
   InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
 
