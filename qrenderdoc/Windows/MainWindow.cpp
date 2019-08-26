@@ -803,7 +803,7 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
       m_Ctx.LoadCapture(fileToLoad, origFilename, temporary, local);
     }
 
-    if(!remoteReplay)
+    if(local && !temporary)
     {
       m_Ctx.Config().LastCaptureFilePath = QFileInfo(filename).absolutePath();
     }
