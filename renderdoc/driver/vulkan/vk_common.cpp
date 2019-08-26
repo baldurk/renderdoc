@@ -575,7 +575,7 @@ FilterMode MakeFilterMode(VkFilter f)
   {
     case VK_FILTER_NEAREST: return FilterMode::Point;
     case VK_FILTER_LINEAR: return FilterMode::Linear;
-    case VK_FILTER_CUBIC_IMG: return FilterMode::Cubic;
+    case VK_FILTER_CUBIC_EXT: return FilterMode::Cubic;
     default: break;
   }
 

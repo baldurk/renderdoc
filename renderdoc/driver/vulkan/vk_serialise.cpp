@@ -515,6 +515,12 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_display_surface_counter */                                                                 \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT)                \
                                                                                                        \
+  /* VK_EXT_filter_cubic */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT,                     \
+               VkPhysicalDeviceImageViewImageFormatInfoEXT)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT,                  \
+               VkFilterCubicImageViewImageFormatPropertiesEXT)                                         \
+                                                                                                       \
   /* VK_EXT_fragment_density_map */                                                                    \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT,                    \
                VkPhysicalDeviceFragmentDensityMapFeaturesEXT)                                          \
@@ -961,10 +967,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT)             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT)                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT)            \
-                                                                                                       \
-  /* VK_EXT_filter_cubic */                                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT)                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT)             \
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
@@ -4103,6 +4105,39 @@ void Deserialise(const VkRenderPassSampleLocationsBeginInfoEXT &el)
   for(uint32_t j = 0; el.pPostSubpassSampleLocations && j < el.postSubpassSampleLocationsCount; j++)
     Deserialise(el.pPostSubpassSampleLocations[j]);
   delete[] el.pPostSubpassSampleLocations;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceImageViewImageFormatInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(imageViewType);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceImageViewImageFormatInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkFilterCubicImageViewImageFormatPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(filterCubic);
+  SERIALISE_MEMBER(filterCubicMinmax);
+}
+
+template <>
+void Deserialise(const VkFilterCubicImageViewImageFormatPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
@@ -7262,6 +7297,7 @@ INSTANTIATE_SERIALISE_TYPE(VkExternalMemoryImageCreateInfoNV);
 INSTANTIATE_SERIALISE_TYPE(VkExternalSemaphoreProperties);
 INSTANTIATE_SERIALISE_TYPE(VkFenceCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFenceGetFdInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkFilterCubicImageViewImageFormatPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkFormatProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentImageInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentsCreateInfoKHR);
@@ -7322,6 +7358,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageViewImageFormatInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceLineRasterizationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceLineRasterizationPropertiesEXT);
