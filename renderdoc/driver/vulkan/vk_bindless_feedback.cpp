@@ -184,7 +184,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
     // add our SSBO variable, at set 0 binding 0
     ssboVar = editor.MakeId();
-    editor.AddDecoration(rdcspv::OpVariable(bufptrtype, ssboVar, rdcspv::StorageClass::Uniform));
+    editor.AddVariable(rdcspv::OpVariable(bufptrtype, ssboVar, rdcspv::StorageClass::Uniform));
     editor.AddDecoration(
         rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0)));
     editor.AddDecoration(
@@ -394,7 +394,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
           // be longer than 5 words (1 index). Think of the case of a uniform buffer where the first
           // index goes into the descriptor array, and further indices go inside the uniform buffer
           // members.
-          RDCASSERT(chain.indexes.size() > 1, chain.indexes.size());
+          RDCASSERT(chain.indexes.size() >= 1, chain.indexes.size());
 
           rdcspv::Id index = chain.indexes[0];
 
