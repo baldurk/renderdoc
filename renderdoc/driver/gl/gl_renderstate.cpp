@@ -484,6 +484,7 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
   manager->MarkResourceFrameReferenced(Program, initial ? eFrameRef_None : eFrameRef_Read);
   manager->MarkResourceFrameReferenced(Pipeline, initial ? eFrameRef_None : eFrameRef_Read);
 
+  if(Pipeline.name)
   {
     // mark all the sub programs referenced
     GLenum programBinds[] = {
