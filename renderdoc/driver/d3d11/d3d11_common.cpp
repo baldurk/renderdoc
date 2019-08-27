@@ -472,6 +472,10 @@ bool D3D11InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x0F)
     return true;
 
+  // 0x10 -> 0x11 - added serialisation of adapter descriptor in D3D11InitParams
+  if(ver == 0x10)
+    return true;
+
   return false;
 }
 
@@ -483,6 +487,14 @@ void DoSerialise(SerialiserType &ser, D3D11InitParams &el)
   SERIALISE_MEMBER(SDKVersion);
   SERIALISE_MEMBER(NumFeatureLevels);
   SERIALISE_MEMBER(FeatureLevels);
+  if(ser.VersionAtLeast(0x11))
+  {
+    SERIALISE_MEMBER(AdapterDesc);
+  }
+  else
+  {
+    RDCEraseEl(el.AdapterDesc);
+  }
 }
 
 INSTANTIATE_SERIALISE_TYPE(D3D11InitParams);

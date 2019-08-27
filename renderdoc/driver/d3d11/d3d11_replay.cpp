@@ -80,8 +80,12 @@ void D3D11Replay::SetDevice(WrappedID3D11Device *d)
   m_pImmediateContext = d->GetImmediateContext();
 }
 
-void D3D11Replay::CreateResources()
+void D3D11Replay::CreateResources(IDXGIFactory *factory)
 {
+  bool wrapped = RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory), (void **)&factory);
+  RDCASSERT(wrapped);
+  m_pFactory = factory;
+
   HRESULT hr = S_OK;
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
@@ -120,8 +124,6 @@ void D3D11Replay::CreateResources()
 
       if(m_WARP)
         m_DriverInfo.vendor = GPUVendor::Software;
-
-      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&m_pFactory);
 
       SAFE_RELEASE(pDXGIDevice);
       SAFE_RELEASE(pDXGIAdapter);
@@ -3643,6 +3645,8 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     ReadSerialiser ser(reader, Ownership::Stream);
 
+    ser.SetVersion(ver);
+
     SystemChunk chunk = ser.ReadChunk<SystemChunk>();
 
     if(chunk != SystemChunk::DriverInit)
@@ -3658,10 +3662,70 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       RDCERR("Failed reading driver init params.");
       return ReplayStatus::FileIOFailed;
     }
+
+    if(initParams.AdapterDesc.Description[0])
+      RDCLOG("Capture was created on %s / %ls",
+             ToStr(GPUVendorFromPCIVendor(initParams.AdapterDesc.VendorId)).c_str(),
+             initParams.AdapterDesc.Description);
   }
 
-  ID3D11Device *device = NULL;
+  IDXGIFactory *factory = NULL;
 
+  // first try to use DXGI 1.1 as MSDN has vague warnings about trying to 'mix' DXGI 1.0 and 1.1
+  {
+    typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
+    PFN_CREATE_DXGI_FACTORY createFunc =
+        (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+
+    if(createFunc)
+    {
+      IDXGIFactory1 *tmpFactory = NULL;
+      HRESULT hr = createFunc(__uuidof(IDXGIFactory1), (void **)&tmpFactory);
+
+      if(SUCCEEDED(hr) && tmpFactory)
+      {
+        factory = tmpFactory;
+      }
+      else
+      {
+        RDCERR("Error creating IDXGIFactory1: %s", ToStr(hr).c_str());
+      }
+    }
+    else
+    {
+      RDCWARN("Couldn't get CreateDXGIFactory1");
+    }
+  }
+
+  if(!factory)
+  {
+    RDCWARN("Couldn't create IDXGIFactory1, falling back to CreateDXGIFactory");
+
+    typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
+    PFN_CREATE_DXGI_FACTORY createFunc =
+        (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory");
+
+    if(createFunc)
+    {
+      HRESULT hr = createFunc(__uuidof(IDXGIFactory), (void **)&factory);
+
+      if(FAILED(hr) || !factory)
+      {
+        SAFE_RELEASE(factory);
+        RDCERR("Couldn't create IDXGIFactory: %s", ToStr(hr).c_str());
+        return ReplayStatus::APIInitFailed;
+      }
+    }
+    else
+    {
+      RDCERR("Couldn't get CreateDXGIFactory");
+      return ReplayStatus::APIInitFailed;
+    }
+  }
+
+  // we won't use the SDKVersion from the init params, so warn if it's different.
   if(initParams.SDKVersion != D3D11_SDK_VERSION)
   {
     RDCWARN(
@@ -3670,122 +3734,170 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
         initParams.SDKVersion, D3D11_SDK_VERSION);
   }
 
-  if(initParams.DriverType == D3D_DRIVER_TYPE_UNKNOWN)
-    initParams.DriverType = D3D_DRIVER_TYPE_HARDWARE;
-
-  int i = -2;
-
-  // force using our feature levels as we require >= 11_0 for analysis
-  D3D_FEATURE_LEVEL featureLevelArray11_1[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0};
-  UINT numFeatureLevels11_1 = ARRAY_COUNT(featureLevelArray11_1);
-
-  D3D_FEATURE_LEVEL featureLevelArray11_0[] = {D3D_FEATURE_LEVEL_11_0};
-  UINT numFeatureLevels11_0 = ARRAY_COUNT(featureLevelArray11_0);
-
-  D3D_DRIVER_TYPE driverTypes[] = {D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP,
-                                   D3D_DRIVER_TYPE_REFERENCE};
-  int numDrivers = ARRAY_COUNT(driverTypes);
-
-  D3D_FEATURE_LEVEL *featureLevelArray = featureLevelArray11_1;
-  UINT numFeatureLevels = numFeatureLevels11_1;
-  D3D_DRIVER_TYPE driverType = initParams.DriverType;
-  UINT flags = initParams.Flags;
-
+  IDXGIAdapter *adapter = NULL;
+  ID3D11Device *device = NULL;
   HRESULT hr = E_FAIL;
 
+  // This says whether we're using warp at all
+  bool useWarp = false;
+  // This says if we've fallen back to warp after failing to find anything better (hence degraded
+  // support because using warp was not deliberate)
+  bool warpFallback = false;
+
+  ChooseBestMatchingAdapter(GraphicsAPI::D3D11, factory, initParams.AdapterDesc, &useWarp, &adapter);
+
+  if(useWarp)
+    SAFE_RELEASE(adapter);
+
+  DXGI_ADAPTER_DESC chosenAdapter = {};
+  if(adapter)
+    adapter->GetDesc(&chosenAdapter);
+
+  // check that the adapter supports at least feature level 11_0
   D3D_FEATURE_LEVEL maxFeatureLevel = D3D_FEATURE_LEVEL_9_1;
 
   // check for feature level 11 support - passing NULL feature level array implicitly checks for
   // 11_0 before others
-  ID3D11Device *dev = NULL;
-  hr = CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION,
-                                NULL, NULL, &dev, &maxFeatureLevel, NULL);
-  SAFE_RELEASE(dev);
-
-  bool warpFallback = false;
-
-  if(SUCCEEDED(hr) && maxFeatureLevel < D3D_FEATURE_LEVEL_11_0)
   {
-    RDCWARN(
-        "Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 "
-        "availability - falling back to WARP rasterizer");
-    driverTypes[0] = driverType = D3D_DRIVER_TYPE_WARP;
-    warpFallback = true;
-  }
+    D3D_DRIVER_TYPE type = adapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE;
 
-  hr = E_FAIL;
-  for(;;)
-  {
-#if ENABLED(RDOC_DEVEL)
-    // in development builds, always enable debug layer during replay
-    flags |= D3D11_CREATE_DEVICE_DEBUG;
-#else
-    // in release builds, never enable it
-    flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-#endif
+    if(useWarp)
+      type = D3D_DRIVER_TYPE_WARP;
 
-    RDCLOG(
-        "Creating D3D11 replay device, driver type %s, flags %x, %d feature levels (first %s)",
-        ToStr(driverType).c_str(), flags, numFeatureLevels,
-        (numFeatureLevels > 0 && featureLevelArray) ? ToStr(featureLevelArray[0]).c_str() : "NULL");
+    ID3D11Device *dev = NULL;
+    hr = CreateDeviceAndSwapChain(adapter, type, NULL, 0, NULL, 0, D3D11_SDK_VERSION, NULL, NULL,
+                                  &dev, &maxFeatureLevel, NULL);
+    SAFE_RELEASE(dev);
 
-    hr = CreateDeviceAndSwapChain(
-        /*pAdapter=*/NULL, driverType, /*Software=*/NULL, flags,
-        /*pFeatureLevels=*/featureLevelArray, /*nFeatureLevels=*/numFeatureLevels, D3D11_SDK_VERSION,
-        /*pSwapChainDesc=*/NULL, (IDXGISwapChain **)NULL, (ID3D11Device **)&device,
-        (D3D_FEATURE_LEVEL *)NULL, (ID3D11DeviceContext **)NULL);
-
-    if(SUCCEEDED(hr))
+    // if the device doesn't support 11_0, we can't use it.
+    if(SUCCEEDED(hr) && maxFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     {
-      WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
-      wrappedDev->SetInitParams(initParams, ver);
-
-      RDCLOG("Created device.");
-      D3D11Replay *replay = wrappedDev->GetReplay();
-
-      replay->SetProxy(rdc == NULL, warpFallback);
-      replay->CreateResources();
-      if(warpFallback)
+      // If we were using a specific adapter try falling back to default selection in case the
+      // adapter chosen isn't the default one in the system
+      if(adapter)
       {
-        wrappedDev->AddDebugMessage(
-            MessageCategory::Initialization, MessageSeverity::High, MessageSource::RuntimeWarning,
-            "Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 "
-            "availability - falling back to WARP rasterizer.\n"
-            "Performance and usability will be significantly degraded.");
+        RDCWARN(
+            "Selected %ls for replay, but it does not support D3D_FEATURE_LEVEL_11_0. "
+            "Falling back to NULL adapter",
+            chosenAdapter.Description);
+
+        SAFE_RELEASE(adapter);
+
+        hr = CreateDeviceAndSwapChain(adapter, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0,
+                                      D3D11_SDK_VERSION, NULL, NULL, &dev, &maxFeatureLevel, NULL);
+        SAFE_RELEASE(dev);
       }
 
-      *driver = (IReplayDriver *)replay;
-      return ReplayStatus::Succeeded;
-    }
-
-    RDCLOG("Device creation failed, %s", ToStr(hr).c_str());
-
-    if(i == -1)
-    {
-      RDCWARN("Couldn't create device with similar settings to capture.");
-    }
-
-    SAFE_RELEASE(device);
-
-    i++;
-
-    if(i >= numDrivers * 2)
-      break;
-
-    if(i >= 0)
-      driverType = driverTypes[i / 2];
-
-    if(i % 2 == 0)
-    {
-      featureLevelArray = featureLevelArray11_1;
-      numFeatureLevels = numFeatureLevels11_1;
-    }
-    else
-    {
-      featureLevelArray = featureLevelArray11_0;
-      numFeatureLevels = numFeatureLevels11_0;
+      // if it's still not 11_0, assume there is no 11_0 GPU and fall back to WARP.
+      if(SUCCEEDED(hr) && maxFeatureLevel < D3D_FEATURE_LEVEL_11_0)
+      {
+        RDCWARN(
+            "Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 "
+            "availability - falling back to WARP rasterizer");
+        useWarp = warpFallback = true;
+      }
     }
   }
+
+  UINT flags = initParams.Flags;
+
+#if ENABLED(RDOC_DEVEL)
+  // in development builds, always enable debug layer during replay
+  flags |= D3D11_CREATE_DEVICE_DEBUG;
+#else
+  // in release builds, never enable it
+  flags &= ~D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+  // we should now be set up to try creating feature level 11 devices either with a selected
+  // adapter, a NULL (any) adapter, or WARP.
+
+  // The retry paths are like this:
+  //
+  // try first with the adapter, then if we were using a specific adapter try without, then last try
+  // with WARP
+  //      within that, try to create a device at descending feature levels
+
+  for(int adapterPass = 0; adapterPass < 3; adapterPass++)
+  {
+    // if we don't have an adapter we're trying, just skip straight to pass 1
+    if(adapterPass == 0 && adapter == NULL)
+      continue;
+
+    // if we're already falling back (or deliberately using) WARP, skip to pass 2
+    if(adapterPass == 1 && useWarp)
+      continue;
+
+    // don't use the adapter except in the first pass
+    if(adapterPass > 0)
+      SAFE_RELEASE(adapter);
+
+    D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_UNKNOWN;
+
+    // if we're on the WARP pass, use the WARP driver type, otherwise use the driver type implied by
+    // whether or not we have an adapter specified
+    if(adapterPass == 2)
+      driverType = D3D_DRIVER_TYPE_WARP;
+    else
+      driverType = adapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE;
+
+    D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0};
+
+    // try first to create with the whole array, then with all but the top, then all but the next
+    // top, etc
+    for(int featureLevelPass = 0; featureLevelPass < ARRAY_COUNT(featureLevels); featureLevelPass++)
+    {
+      D3D_FEATURE_LEVEL *featureLevelSubset = featureLevels + featureLevelPass;
+      UINT numFeatureLevels = ARRAY_COUNT(featureLevels) - featureLevelPass;
+
+      RDCLOG(
+          "Creating D3D11 replay device, %ls adapter, driver type %s, flags %x, %d feature levels "
+          "(first %s)",
+          adapter ? chosenAdapter.Description : L"NULL", ToStr(driverType).c_str(), flags,
+          numFeatureLevels, ToStr(featureLevelSubset[0]).c_str());
+
+      hr = CreateDeviceAndSwapChain(adapter, driverType, NULL, flags, featureLevelSubset,
+                                    numFeatureLevels, D3D11_SDK_VERSION, NULL, NULL, &device, NULL,
+                                    NULL);
+
+      if(SUCCEEDED(hr) && device)
+        break;
+
+      RDCLOG("Device creation failed, %s", ToStr(hr).c_str());
+
+      SAFE_RELEASE(device);
+    }
+
+    if(SUCCEEDED(hr) && device)
+      break;
+  }
+
+  SAFE_RELEASE(adapter);
+
+  if(SUCCEEDED(hr) && device)
+  {
+    WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
+    wrappedDev->SetInitParams(initParams, ver);
+
+    RDCLOG("Created device.");
+    D3D11Replay *replay = wrappedDev->GetReplay();
+
+    replay->SetProxy(rdc == NULL, warpFallback);
+    replay->CreateResources(factory);
+    if(warpFallback)
+    {
+      wrappedDev->AddDebugMessage(
+          MessageCategory::Initialization, MessageSeverity::High, MessageSource::RuntimeWarning,
+          "Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 "
+          "availability - falling back to WARP rasterizer.\n"
+          "Performance and usability will be significantly degraded.");
+    }
+
+    *driver = (IReplayDriver *)replay;
+    return ReplayStatus::Succeeded;
+  }
+
+  SAFE_RELEASE(factory);
 
   RDCERR("Couldn't create any compatible d3d11 device.");
 

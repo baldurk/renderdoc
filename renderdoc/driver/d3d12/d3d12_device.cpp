@@ -241,6 +241,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   initStateCurBatch = 0;
   initStateCurList = NULL;
 
+  m_InitParams = params;
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = CaptureState::LoadingReplaying;
@@ -251,8 +253,13 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_FrameCaptureRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
+  }
+  else
+  {
+    m_State = CaptureState::BackgroundCapturing;
 
-    // create temporary factory to print the driver version info
+    WrappedID3D12Resource1::m_List = NULL;
+
     if(m_pDevice)
     {
       typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
@@ -282,6 +289,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
           DXGI_ADAPTER_DESC desc = {};
           pDXGIAdapter->GetDesc(&desc);
 
+          m_InitParams.AdapterDesc = desc;
+
           GPUVendor vendor = GPUVendorFromPCIVendor(desc.VendorId);
           std::string descString = GetDriverVersion(desc);
 
@@ -293,12 +302,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
       SAFE_RELEASE(tmpFactory);
     }
-  }
-  else
-  {
-    m_State = CaptureState::BackgroundCapturing;
-
-    WrappedID3D12Resource1::m_List = NULL;
   }
 
   m_ResourceManager = new D3D12ResourceManager(m_State, this);
@@ -402,8 +405,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   {
     RDCDEBUG("Couldn't get ID3D12InfoQueue.");
   }
-
-  m_InitParams = params;
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()

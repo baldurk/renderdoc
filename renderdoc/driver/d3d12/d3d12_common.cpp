@@ -194,9 +194,9 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
-  // 0x6 -> 0x7 - Fixed serialisation of D3D12_WRITEBUFFERIMMEDIATE_PARAMETER to properly replay the
-  //              GPU address
-  if(ver == 0x6)
+  // 0x4 -> 0x5 - CPU_DESCRIPTOR_HANDLE serialised inline as D3D12Descriptor in appropriate
+  //              list-recording functions
+  if(ver == 0x4)
     return true;
 
   // 0x5 -> 0x6 - Multiply by number of planes in format when serialising initial states -
@@ -204,9 +204,13 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x5)
     return true;
 
-  // 0x4 -> 0x5 - CPU_DESCRIPTOR_HANDLE serialised inline as D3D12Descriptor in appropriate
-  //              list-recording functions
-  if(ver == 0x4)
+  // 0x6 -> 0x7 - Fixed serialisation of D3D12_WRITEBUFFERIMMEDIATE_PARAMETER to properly replay the
+  //              GPU address
+  if(ver == 0x6)
+    return true;
+
+  // 0x7 -> 0x8 - Added serialisation of adapter descriptor in D3D12InitParams
+  if(ver == 0x7)
     return true;
 
   return false;
@@ -216,6 +220,15 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
 {
   SERIALISE_MEMBER(MinimumFeatureLevel);
+
+  if(ser.VersionAtLeast(0x8))
+  {
+    SERIALISE_MEMBER(AdapterDesc);
+  }
+  else
+  {
+    RDCEraseEl(el.AdapterDesc);
+  }
 }
 
 INSTANTIATE_SERIALISE_TYPE(D3D12InitParams);

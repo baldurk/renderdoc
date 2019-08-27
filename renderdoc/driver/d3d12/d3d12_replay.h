@@ -58,7 +58,7 @@ public:
   void Set12On7(bool d3d12on7) { m_D3D12On7 = d3d12on7; }
   void SetProxy(bool proxy) { m_Proxy = proxy; }
   bool IsRemoteProxy() { return m_Proxy; }
-  void Initialise();
+  void Initialise(IDXGIFactory1 *factory);
   void Shutdown();
 
   void SetDevice(WrappedID3D12Device *d) { m_pDevice = d; }

@@ -62,8 +62,10 @@ struct D3D11InitParams
   UINT NumFeatureLevels;
   D3D_FEATURE_LEVEL FeatureLevels[16];
 
+  DXGI_ADAPTER_DESC AdapterDesc;
+
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x10;
+  static const uint64_t CurrentVersion = 0x11;
   static bool IsSupportedVersion(uint64_t ver);
 };
 

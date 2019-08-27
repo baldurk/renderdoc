@@ -101,7 +101,7 @@ public:
   void Shutdown();
 
   void SetDevice(WrappedID3D11Device *d);
-  void CreateResources();
+  void CreateResources(IDXGIFactory *factory);
   void DestroyResources();
 
   DriverInformation GetDriverInfo() { return m_DriverInfo; }

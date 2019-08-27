@@ -3401,6 +3401,10 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, GLPlatform &p
       RDCERR("Failed reading driver init params.");
       return ReplayStatus::FileIOFailed;
     }
+
+    if(!initParams.renderer.empty())
+      RDCLOG("Capture was created on %s / %s", initParams.renderer.c_str(),
+             initParams.version.c_str());
   }
 
   GLWindowingData data = {};

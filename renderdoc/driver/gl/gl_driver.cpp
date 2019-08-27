@@ -2133,9 +2133,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
         // we no longer use this one, but for ease of compatibility we still serialise it here. This
         // will be immediately overridden by the actual parameters by a
         // GLChunk::ContextConfiguration chunk
-        GLInitParams dummy;
+        GLInitParams init;
 
-        SERIALISE_ELEMENT(dummy);
+        // store renderer and version, though we can't do any meaningful device selection
+        init.renderer = (const char *)GL.glGetString(eGL_RENDERER);
+        init.version = (const char *)GL.glGetString(eGL_VERSION);
+
+        SERIALISE_ELEMENT(init);
       }
 
       {

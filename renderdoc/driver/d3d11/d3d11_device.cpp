@@ -138,6 +138,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_DeviceRecord = NULL;
 
+  m_InitParams = params;
+
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
@@ -167,6 +169,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
         {
           DXGI_ADAPTER_DESC desc = {};
           pDXGIAdapter->GetDesc(&desc);
+
+          m_InitParams.AdapterDesc = desc;
 
           GPUVendor vendor = GPUVendorFromPCIVendor(desc.VendorId);
           std::string descString = GetDriverVersion(desc);
@@ -238,8 +242,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   }
 
   m_Replay.SetDevice(this);
-
-  m_InitParams = params;
 
   if(realDevice)
     m_DebugManager = new D3D11DebugManager(this);

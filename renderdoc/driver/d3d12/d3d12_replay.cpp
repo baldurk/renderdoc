@@ -102,19 +102,9 @@ void D3D12Replay::Shutdown()
   m_pDevice->Release();
 }
 
-void D3D12Replay::Initialise()
+void D3D12Replay::Initialise(IDXGIFactory1 *factory)
 {
-  typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
-
-  PFN_CREATE_DXGI_FACTORY createFunc =
-      (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
-
-  HRESULT hr = createFunc(__uuidof(IDXGIFactory1), (void **)&m_pFactory);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
-  }
+  m_pFactory = factory;
 
   RDCEraseEl(m_DriverInfo);
 
@@ -125,7 +115,7 @@ void D3D12Replay::Initialise()
     LUID luid = m_pDevice->GetAdapterLuid();
 
     IDXGIAdapter *pDXGIAdapter = NULL;
-    hr = EnumAdapterByLuid(m_pFactory, luid, &pDXGIAdapter);
+    HRESULT hr = EnumAdapterByLuid(m_pFactory, luid, &pDXGIAdapter);
 
     if(FAILED(hr))
     {
@@ -3673,6 +3663,8 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     ReadSerialiser ser(reader, Ownership::Stream);
 
+    ser.SetVersion(ver);
+
     SystemChunk chunk = ser.ReadChunk<SystemChunk>();
 
     if(chunk != SystemChunk::DriverInit)
@@ -3688,6 +3680,11 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       RDCERR("Failed reading driver init params.");
       return ReplayStatus::FileIOFailed;
     }
+
+    if(initParams.AdapterDesc.DeviceId != 0)
+      RDCLOG("Capture was created on %s / %ls",
+             ToStr(GPUVendorFromPCIVendor(initParams.AdapterDesc.VendorId)).c_str(),
+             initParams.AdapterDesc.Description);
   }
 
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
@@ -3697,6 +3694,21 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if(!rgp->Initialised())
     SAFE_DELETE(rgp);
+
+  typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+
+  PFN_CREATE_DXGI_FACTORY createFunc =
+      (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+
+  IDXGIFactory1 *factory = NULL;
+  HRESULT hr = createFunc(__uuidof(IDXGIFactory1), (void **)&factory);
+
+  if(FAILED(hr))
+    RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
+
+  IDXGIAdapter *adapter = NULL;
+
+  ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, NULL, &adapter);
 
   bool EnableDebugLayer = false;
 
@@ -3713,8 +3725,19 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 #endif
 
   ID3D12Device *dev = NULL;
-  HRESULT hr =
-      createDevice(NULL, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
+  hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
+
+  if((FAILED(hr) || !dev) && adapter)
+  {
+    SAFE_RELEASE(dev);
+
+    RDCWARN("Couldn't replay on selected adapter, falling back to default adapter");
+
+    SAFE_RELEASE(adapter);
+    hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
+  }
+
+  SAFE_RELEASE(adapter);
 
   if(FAILED(hr))
   {
@@ -3735,7 +3758,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   replay->SetProxy(rdc == NULL);
   replay->SetRGP(rgp);
 
-  replay->Initialise();
+  replay->Initialise(factory);
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;

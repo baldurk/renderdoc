@@ -1736,6 +1736,116 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
   return device + " " + driverVersion;
 }
 
+void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
+                               const DXGI_ADAPTER_DESC &AdapterDesc, bool *useWarp,
+                               IDXGIAdapter **adapter)
+{
+  bool retWarp = false;
+  IDXGIAdapter *ret = NULL;
+  DXGI_ADAPTER_DESC retDesc = {};
+
+  GPUVendor vendor = GPUVendorFromPCIVendor(AdapterDesc.VendorId);
+
+  // D3D11 WARP doesn't provide a VendorId, need to look for the name
+  if(!wcscmp(AdapterDesc.Description, L"Software Adapter"))
+    vendor = GPUVendor::Software;
+
+  // if the vendor is software we should try to use WARP
+  if(vendor == GPUVendor::Software)
+  {
+    retWarp = true;
+
+    // D3D11 WARP is always available, we assume.
+    if(api == GraphicsAPI::D3D11)
+    {
+      ret = NULL;
+    }
+    else
+    {
+      // on D3D12 we don't have WARP when we're on 12On7. The easy way to check this is to try and
+      // fetch a IDXGIFactory4, which we want to do anyway to get the warp adapter.
+      IDXGIFactory4 *factory4 = NULL;
+      HRESULT hr = factory->QueryInterface(__uuidof(IDXGIFactory4), (void **)&factory4);
+      if(SUCCEEDED(hr) && factory4)
+      {
+        hr = factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&ret);
+
+        if(FAILED(hr) || !ret)
+        {
+          RDCWARN("Couldn't enumerate WARP adapter from IDXGIFactory4");
+          retWarp = false;
+          ret = NULL;
+        }
+      }
+      else
+      {
+        // if WARP isn't available, fall back
+        RDCWARN(
+            "WARP is the best matching adapter, but is not available. Falling back to default "
+            "adapter selection.");
+
+        retWarp = false;
+        ret = NULL;
+      }
+    }
+  }
+
+  // we're not using WARP, don't have an adapter yet, and have something to search on (old captures
+  // have nothing to match against so we just return the default NULL). Try to find the closest
+  // matching adapter
+  if(retWarp == false && ret == NULL && AdapterDesc.Description[0])
+  {
+    for(UINT i = 0; i < 10; i++)
+    {
+      IDXGIAdapter *ad = NULL;
+      HRESULT hr = factory->EnumAdapters(i, &ad);
+      if(hr == S_OK && ad)
+      {
+        DXGI_ADAPTER_DESC desc;
+        ad->GetDesc(&desc);
+
+        // if it's a better vendor match than the adapter we have, choose it
+        if(desc.VendorId == AdapterDesc.VendorId && retDesc.VendorId != AdapterDesc.VendorId)
+        {
+          ret = ad;
+          retDesc = desc;
+          continue;
+        }
+        else if(desc.VendorId != AdapterDesc.VendorId)
+        {
+          ad->Release();
+          continue;
+        }
+
+        // if they're the same vendor but this is a better device match, choose it
+        if(desc.DeviceId == AdapterDesc.DeviceId && retDesc.DeviceId != AdapterDesc.DeviceId)
+        {
+          ret = ad;
+          retDesc = desc;
+          continue;
+        }
+
+        ad->Release();
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    if(ret == NULL)
+      RDCLOG("Couldn't find similar adapter to replay on, using default adapter");
+    else
+      RDCLOG("Selected %s / %ls adapter for replay",
+             ToStr(GPUVendorFromPCIVendor(retDesc.VendorId)).c_str(), retDesc.Description);
+  }
+
+  if(useWarp)
+    *useWarp = retWarp;
+  if(adapter)
+    *adapter = ret;
+}
+
 Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo)
 {
   switch(Topo)
@@ -2562,6 +2672,62 @@ void DoSerialise(SerialiserType &ser, DXGI_SAMPLE_DESC &el)
 }
 
 INSTANTIATE_SERIALISE_TYPE(DXGI_SAMPLE_DESC);
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, LUID &el)
+{
+  RDCCOMPILE_ASSERT(sizeof(uint32_t) == sizeof(el.LowPart), "LowPart is unexpected size");
+  RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(el.HighPart), "HighPart is unexpected size");
+
+  SERIALISE_MEMBER_TYPED(uint32_t, LowPart);
+  SERIALISE_MEMBER_TYPED(int32_t, HighPart);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, DXGI_ADAPTER_DESC &el)
+{
+  // serialise the string as UTF-8
+  {
+    rdcstr Description = StringFormat::Wide2UTF8(el.Description);
+
+    ser.Serialise("Description"_lit, Description);
+
+    if(ser.IsReading())
+    {
+      std::wstring wdesc = StringFormat::UTF82Wide(Description);
+      RDCEraseEl(el.Description);
+      memcpy(el.Description, wdesc.data(),
+             RDCMIN(wdesc.size(), ARRAY_COUNT(el.Description) - 1) * sizeof(WCHAR));
+    }
+  }
+
+  SERIALISE_MEMBER(VendorId);
+  SERIALISE_MEMBER(DeviceId);
+  SERIALISE_MEMBER(SubSysId);
+  SERIALISE_MEMBER(Revision);
+
+  // don't serialise SIZE_T, cast to uint64_t
+  {
+    uint64_t DedicatedVideoMemory = el.DedicatedSystemMemory;
+    uint64_t DedicatedSystemMemory = el.DedicatedSystemMemory;
+    uint64_t SharedSystemMemory = el.SharedSystemMemory;
+
+    ser.Serialise("DedicatedVideoMemory"_lit, DedicatedVideoMemory);
+    ser.Serialise("DedicatedSystemMemory"_lit, DedicatedSystemMemory);
+    ser.Serialise("SharedSystemMemory"_lit, SharedSystemMemory);
+
+    if(ser.IsReading())
+    {
+      el.DedicatedSystemMemory = (SIZE_T)DedicatedVideoMemory;
+      el.DedicatedSystemMemory = (SIZE_T)DedicatedSystemMemory;
+      el.SharedSystemMemory = (SIZE_T)SharedSystemMemory;
+    }
+  }
+
+  SERIALISE_MEMBER(AdapterLuid);
+}
+
+INSTANTIATE_SERIALISE_TYPE(DXGI_ADAPTER_DESC);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 #include "3rdparty/catch/catch.hpp"

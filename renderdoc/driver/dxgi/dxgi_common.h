@@ -69,9 +69,14 @@ D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo);
 void WarnUnknownGUID(const char *name, REFIID riid);
 
 std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc);
+void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
+                               const DXGI_ADAPTER_DESC &AdapterDesc, bool *useWarp,
+                               IDXGIAdapter **adapter);
 
 DECLARE_REFLECTION_STRUCT(DXGI_SAMPLE_DESC);
+DECLARE_REFLECTION_STRUCT(DXGI_ADAPTER_DESC);
 DECLARE_REFLECTION_STRUCT(IID);
+DECLARE_REFLECTION_STRUCT(LUID);
 DECLARE_REFLECTION_ENUM(DXGI_FORMAT);
 DECLARE_REFLECTION_ENUM(D3D_FEATURE_LEVEL);
 DECLARE_REFLECTION_ENUM(D3D_DRIVER_TYPE);

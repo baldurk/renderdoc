@@ -4075,6 +4075,8 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     ReadSerialiser ser(reader, Ownership::Stream);
 
+    ser.SetVersion(ver);
+
     SystemChunk chunk = ser.ReadChunk<SystemChunk>();
 
     if(chunk != SystemChunk::DriverInit)

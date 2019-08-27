@@ -1181,6 +1181,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x1E)
     return true;
 
+  // 0x1F -> 0x20 - added renderer and version in GLInitParams
+  if(ver == 0x1F)
+    return true;
+
   return false;
 }
 
@@ -1196,6 +1200,11 @@ void DoSerialise(SerialiserType &ser, GLInitParams &el)
   SERIALISE_MEMBER(height);
   if(ser.VersionAtLeast(0x1D))
     SERIALISE_MEMBER(isYFlipped);
+  if(ser.VersionAtLeast(0x20))
+  {
+    SERIALISE_MEMBER(renderer);
+    SERIALISE_MEMBER(version);
+  }
 }
 
 INSTANTIATE_SERIALISE_TYPE(GLInitParams);
