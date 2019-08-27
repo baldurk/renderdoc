@@ -1500,14 +1500,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       {
         VkFormat format = m_ImageLayouts[id].imageInfo.format;
 
+        // can't clear these, so leave them alone.
         if(IsBlockFormat(format) || IsYUVFormat(format))
-        {
-          RDCWARN(
-              "Trying to clear a compressed/YUV image %llu with format %s - should have initial "
-              "states or be stripped.",
-              id, ToStr(format).c_str());
           return;
-        }
 
         VkCommandBuffer cmd = GetNextCmd();
 
