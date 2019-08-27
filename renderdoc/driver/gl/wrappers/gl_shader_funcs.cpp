@@ -271,7 +271,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         if(!spirvwords.empty())
           spirv.Parse(spirvwords);
         else
-          disassembly = s;
+          disassembly = "Disassembly to SPIR-V failed:\n\n" + s;
 
         reflection.resourceId = id;
 
