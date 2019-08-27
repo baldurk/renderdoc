@@ -152,6 +152,7 @@ struct RichResourceText
 
     doc.setDocumentMargin(0);
     doc.setHtml(html);
+    doc.setDefaultFont(widget->font());
 
     if(doc.blockCount() != fragmentIndexFromBlockIndex.count())
     {
