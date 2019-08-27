@@ -219,6 +219,12 @@ public:
     }
     return QVariant();
   }
+  void itemChanged(const QModelIndex &idx, const QVector<int> &roles)
+  {
+    QModelIndex topLeft = index(idx.row(), 0);
+    QModelIndex bottomRight = index(idx.row(), columnCount() - 1);
+    emit dataChanged(topLeft, bottomRight, roles);
+  }
 
 protected:
   QVector<int> m_VisibleRows;
@@ -267,6 +273,13 @@ LogView::LogView(ICaptureContext &ctx, QWidget *parent)
 
   m_FilterModel->setSourceModel(m_ItemModel);
   ui->messages->setModel(m_FilterModel);
+
+  ui->messages->viewport()->installEventFilter(this);
+
+  m_delegate = new RichTextViewDelegate(ui->messages);
+  ui->messages->setItemDelegate(m_delegate);
+
+  ui->messages->setMouseTracking(true);
 
   ui->messages->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
@@ -431,6 +444,28 @@ void LogView::typeFilter_changed(QStandardItem *item)
   m_FilterModel->refresh();
 
   ui->typeFilter->setCurrentIndex(0);
+}
+
+bool LogView::eventFilter(QObject *watched, QEvent *event)
+{
+  if(watched == ui->messages->viewport() && event->type() == QEvent::MouseMove)
+  {
+    bool ret = QObject::eventFilter(watched, event);
+
+    if(m_delegate->linkHover((QMouseEvent *)event, font(), ui->messages->currentHoverIndex()))
+    {
+      m_FilterModel->itemChanged(ui->messages->currentHoverIndex(), {Qt::DecorationRole});
+      ui->messages->setCursor(QCursor(Qt::PointingHandCursor));
+    }
+    else
+    {
+      ui->messages->unsetCursor();
+    }
+
+    return ret;
+  }
+
+  return QObject::eventFilter(watched, event);
 }
 
 void LogView::pidFilter_changed(QStandardItem *item)

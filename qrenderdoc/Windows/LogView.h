@@ -39,6 +39,7 @@ class QAction;
 class QMenu;
 class LogItemModel;
 class LogFilterModel;
+class RichTextViewDelegate;
 
 struct LogMessage
 {
@@ -75,6 +76,8 @@ private slots:
   void typeFilter_changed(QStandardItem *item);
 
 private:
+  bool eventFilter(QObject *watched, QEvent *event) override;
+
   Ui::LogView *ui;
   ICaptureContext &m_Ctx;
 
@@ -83,6 +86,8 @@ private:
   QVector<LogMessage> m_Messages;
 
   QList<uint32_t> m_PIDs;
+
+  RichTextViewDelegate *m_delegate = NULL;
 
   LogItemModel *m_ItemModel = NULL;
   LogFilterModel *m_FilterModel = NULL;

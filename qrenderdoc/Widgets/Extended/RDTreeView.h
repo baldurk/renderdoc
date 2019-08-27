@@ -87,6 +87,7 @@ public:
   int verticalItemMargin() { return m_VertMargin; }
   void setIgnoreIconSize(bool ignore) { m_IgnoreIconSize = ignore; }
   bool ignoreIconSize() { return m_IgnoreIconSize; }
+  QModelIndex currentHoverIndex() const { return m_currentHoverIndex; }
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
