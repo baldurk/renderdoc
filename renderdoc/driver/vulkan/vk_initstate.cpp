@@ -1477,17 +1477,14 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     ResourceId orig = GetResourceManager()->GetOriginalID(id);
-    ImgRefs *imgRefs = NULL;
+    ImgRefs *imgRefs = GetResourceManager()->FindImgRefs(orig);
     bool initialized = false;
     InitPolicy policy = GetResourceManager()->GetInitPolicy();
-    if(GetResourceManager()->OptimizeInitialState())
+
+    if(imgRefs)
     {
-      imgRefs = GetResourceManager()->FindImgRefs(orig);
-      if(imgRefs)
-      {
-        initialized = imgRefs->initializedLiveRes == live;
-        imgRefs->initializedLiveRes = live;
-      }
+      initialized = imgRefs->initializedLiveRes == live;
+      imgRefs->initializedLiveRes = live;
     }
 
     if(initial.tag == VkInitialContents::Sparse)
@@ -2096,9 +2093,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
   {
     Intervals<InitReqType> resetReq;
     ResourceId orig = GetResourceManager()->GetOriginalID(id);
-    MemRefs *memRefs = NULL;
-    if(GetResourceManager()->OptimizeInitialState())
-      memRefs = GetResourceManager()->FindMemRefs(orig);
+    MemRefs *memRefs = GetResourceManager()->FindMemRefs(orig);
+
     if(!memRefs)
     {
       // No information about the memory usage in the frame.

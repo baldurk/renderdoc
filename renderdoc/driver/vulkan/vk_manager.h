@@ -440,8 +440,22 @@ public:
   MemRefs *FindMemRefs(ResourceId mem);
   ImgRefs *FindImgRefs(ResourceId img);
 
-  inline bool OptimizeInitialState() { return m_OptimizeInitialState; }
   inline InitPolicy GetInitPolicy() { return m_InitPolicy; }
+  void SetOptimisationLevel(ReplayOptimisationLevel level)
+  {
+    switch(level)
+    {
+      case ReplayOptimisationLevel::Count:
+        RDCERR("Invalid optimisation level specified");
+        m_InitPolicy = eInitPolicy_NoOpt;
+        break;
+      case ReplayOptimisationLevel::NoOptimisation: m_InitPolicy = eInitPolicy_NoOpt; break;
+      case ReplayOptimisationLevel::Conservative: m_InitPolicy = eInitPolicy_CopyAll; break;
+      case ReplayOptimisationLevel::Balanced: m_InitPolicy = eInitPolicy_ClearUnread; break;
+      case ReplayOptimisationLevel::Fastest: m_InitPolicy = eInitPolicy_Fastest; break;
+    }
+  }
+
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 
@@ -456,6 +470,5 @@ private:
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
   std::map<ResourceId, ImgRefs> m_ImgFrameRefs;
-  bool m_OptimizeInitialState = false;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };
