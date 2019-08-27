@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "ReplayOptionsSelector.h"
+#include <QKeyEvent>
 #include "Code/QRDUtils.h"
 #include "ui_ReplayOptionsSelector.h"
 
