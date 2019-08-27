@@ -320,6 +320,7 @@ private:
 
   D3D11InitParams m_InitParams;
   uint64_t m_SectionVersion;
+  ReplayOptions m_ReplayOptions;
 
   ResourceId m_BBID;
 
@@ -394,10 +395,11 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device, AllocPoolCount);
 
   WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params);
-  void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion)
+  void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion, const ReplayOptions &opts)
   {
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
+    m_ReplayOptions = opts;
   }
   uint64_t GetLogVersion() { return m_SectionVersion; }
   virtual ~WrappedID3D11Device();

@@ -170,10 +170,12 @@ static void StripUnwantedExtensions(std::vector<std::string> &Extensions)
   }
 }
 
-ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion)
+ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion,
+                                       const ReplayOptions &opts)
 {
   m_InitParams = params;
   m_SectionVersion = sectionVersion;
+  m_ReplayOptions = opts;
 
   StripUnwantedLayers(params.Layers);
   StripUnwantedExtensions(params.Extensions);
@@ -988,12 +990,20 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
     };
 
+    rdcarray<VkPhysicalDeviceProperties> compPhysPropsArray;
+    rdcarray<VkPhysicalDeviceDriverPropertiesKHR> compDriverPropsArray;
+
+    compPhysPropsArray.resize(m_ReplayPhysicalDevices.size());
+    compDriverPropsArray.resize(m_ReplayPhysicalDevices.size());
+
+    // first cache all the physical device data to compare against
     for(uint32_t i = 0; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
     {
-      VkPhysicalDeviceProperties compPhysProps = {};
-      VkPhysicalDeviceDriverPropertiesKHR compDriverProps = {
-          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
-      };
+      VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
+      RDCEraseEl(compPhysProps);
+      VkPhysicalDeviceDriverPropertiesKHR &compDriverProps = compDriverPropsArray[i];
+      RDCEraseEl(compDriverProps);
+      compDriverProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR;
 
       pd = m_ReplayPhysicalDevices[i];
 
@@ -1043,84 +1053,167 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
               compDriverProps.conformanceVersion.subminor, compDriverProps.conformanceVersion.patch);
         }
       }
+    }
 
-      // the first is the best at the start
-      if(i == 0)
+    // if we're forcing use of a GPU, try to find that one
+    bool forced = false;
+    if(m_ReplayOptions.forceGPUVendor != GPUVendor::Unknown)
+    {
+      for(uint32_t i = 0; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
       {
-        bestPhysProps = compPhysProps;
-        bestDriverProps = compDriverProps;
-        continue;
-      }
+        const VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
+        const VkPhysicalDeviceDriverPropertiesKHR &compDriverProps = compDriverPropsArray[i];
 
-      // an exact vendorID match is a better match than not
-      if(compPhysProps.vendorID == physProps.vendorID && bestPhysProps.vendorID != physProps.vendorID)
-      {
-        bestIdx = i;
-        bestPhysProps = compPhysProps;
-        bestDriverProps = compDriverProps;
-        continue;
-      }
-      else if(compPhysProps.vendorID != physProps.vendorID)
-      {
-        continue;
-      }
+        VkDriverInfo bestInfo(bestPhysProps);
+        VkDriverInfo compInfo(compPhysProps);
 
-      // ditto deviceID
-      if(compPhysProps.deviceID == physProps.deviceID && bestPhysProps.deviceID != physProps.deviceID)
-      {
-        bestIdx = i;
-        bestPhysProps = compPhysProps;
-        bestDriverProps = compDriverProps;
-        continue;
-      }
-      else if(compPhysProps.deviceID != physProps.deviceID)
-      {
-        continue;
-      }
+        // an exact vendorID match is a better match than not
+        if(compInfo.Vendor() == m_ReplayOptions.forceGPUVendor &&
+           bestInfo.Vendor() != m_ReplayOptions.forceGPUVendor)
+        {
+          bestIdx = i;
+          bestPhysProps = compPhysProps;
+          bestDriverProps = compDriverProps;
+          forced = true;
+          continue;
+        }
+        else if(compInfo.Vendor() != m_ReplayOptions.forceGPUVendor)
+        {
+          continue;
+        }
 
-      // driver matching. Only do this if both capture and replay gave us valid driver info to
-      // compare
-      if(compDriverProps.driverID && driverProps.driverID)
+        // ditto deviceID
+        if(compPhysProps.deviceID == m_ReplayOptions.forceGPUDeviceID &&
+           bestPhysProps.deviceID != m_ReplayOptions.forceGPUDeviceID)
+        {
+          bestIdx = i;
+          bestPhysProps = compPhysProps;
+          bestDriverProps = compDriverProps;
+          forced = true;
+          continue;
+        }
+        else if(compPhysProps.deviceID != m_ReplayOptions.forceGPUDeviceID)
+        {
+          continue;
+        }
+
+        // driver matching. Only do this if we have a driver name to look at
+        if(compDriverProps.driverID && !m_ReplayOptions.forceGPUDriverName.empty())
+        {
+          rdcstr compHumanDriverName = HumanDriverName(compDriverProps.driverID);
+          rdcstr bestHumanDriverName = HumanDriverName(bestDriverProps.driverID);
+
+          // check for a better driverID match
+          if(compHumanDriverName == m_ReplayOptions.forceGPUDriverName &&
+             bestHumanDriverName != m_ReplayOptions.forceGPUDriverName)
+          {
+            bestIdx = i;
+            bestPhysProps = compPhysProps;
+            bestDriverProps = compDriverProps;
+            forced = true;
+            continue;
+          }
+        }
+      }
+    }
+
+    if(forced)
+    {
+      RDCLOG("Forcing use of physical device");
+    }
+    else
+    {
+      bestIdx = 0;
+      RDCEraseEl(bestPhysProps);
+      RDCEraseEl(bestDriverProps);
+
+      for(uint32_t i = 0; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
       {
-        // check for a better driverID match
-        if(compDriverProps.driverID == driverProps.driverID &&
-           bestDriverProps.driverID != driverProps.driverID)
+        const VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
+        const VkPhysicalDeviceDriverPropertiesKHR &compDriverProps = compDriverPropsArray[i];
+
+        pd = m_ReplayPhysicalDevices[i];
+
+        // the first is the best at the start
+        if(i == 0)
+        {
+          bestPhysProps = compPhysProps;
+          bestDriverProps = compDriverProps;
+          continue;
+        }
+
+        // an exact vendorID match is a better match than not
+        if(compPhysProps.vendorID == physProps.vendorID &&
+           bestPhysProps.vendorID != physProps.vendorID)
         {
           bestIdx = i;
           bestPhysProps = compPhysProps;
           bestDriverProps = compDriverProps;
           continue;
         }
-        else if(compDriverProps.driverID != driverProps.driverID)
+        else if(compPhysProps.vendorID != physProps.vendorID)
         {
           continue;
         }
-      }
 
-      // if we have an exact driver version match, prefer that
-      if(compPhysProps.driverVersion == physProps.driverVersion &&
-         bestPhysProps.driverVersion != physProps.driverVersion)
-      {
-        bestIdx = i;
-        bestPhysProps = compPhysProps;
-        bestDriverProps = compDriverProps;
-        continue;
-      }
-      else if(compPhysProps.driverVersion != physProps.driverVersion)
-      {
-        continue;
-      }
+        // ditto deviceID
+        if(compPhysProps.deviceID == physProps.deviceID &&
+           bestPhysProps.deviceID != physProps.deviceID)
+        {
+          bestIdx = i;
+          bestPhysProps = compPhysProps;
+          bestDriverProps = compDriverProps;
+          continue;
+        }
+        else if(compPhysProps.deviceID != physProps.deviceID)
+        {
+          continue;
+        }
 
-      // if we have multiple identical devices, which isn't uncommon, favour the one
-      // that hasn't been assigned
-      if(m_ReplayPhysicalDevicesUsed[bestIdx] && !m_ReplayPhysicalDevicesUsed[i])
-      {
-        bestIdx = i;
-        bestPhysProps = compPhysProps;
-        continue;
-      }
+        // driver matching. Only do this if both capture and replay gave us valid driver info to
+        // compare
+        if(compDriverProps.driverID && driverProps.driverID)
+        {
+          // check for a better driverID match
+          if(compDriverProps.driverID == driverProps.driverID &&
+             bestDriverProps.driverID != driverProps.driverID)
+          {
+            bestIdx = i;
+            bestPhysProps = compPhysProps;
+            bestDriverProps = compDriverProps;
+            continue;
+          }
+          else if(compDriverProps.driverID != driverProps.driverID)
+          {
+            continue;
+          }
+        }
 
-      // this device isn't any better, ignore it
+        // if we have an exact driver version match, prefer that
+        if(compPhysProps.driverVersion == physProps.driverVersion &&
+           bestPhysProps.driverVersion != physProps.driverVersion)
+        {
+          bestIdx = i;
+          bestPhysProps = compPhysProps;
+          bestDriverProps = compDriverProps;
+          continue;
+        }
+        else if(compPhysProps.driverVersion != physProps.driverVersion)
+        {
+          continue;
+        }
+
+        // if we have multiple identical devices, which isn't uncommon, favour the one
+        // that hasn't been assigned
+        if(m_ReplayPhysicalDevicesUsed[bestIdx] && !m_ReplayPhysicalDevicesUsed[i])
+        {
+          bestIdx = i;
+          bestPhysProps = compPhysProps;
+          continue;
+        }
+
+        // this device isn't any better, ignore it
+      }
     }
 
     {
@@ -1139,7 +1232,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
                driverProps.conformanceVersion.patch);
       }
 
-      RDCLOG("Mapping during replay to best-match physical device %u", bestIdx);
+      RDCLOG("Mapping during replay to %s physical device %u", forced ? "forced" : "best-match",
+             bestIdx);
     }
 
     pd = m_ReplayPhysicalDevices[bestIdx];

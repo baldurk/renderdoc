@@ -272,6 +272,7 @@ private:
   std::vector<TempMem *> m_ThreadTempMem;
 
   VulkanReplay m_Replay;
+  ReplayOptions m_ReplayOptions;
 
   VkInitParams m_InitParams;
   uint64_t m_SectionVersion;
@@ -932,7 +933,7 @@ public:
   uint32_t GetQueueFamilyIndex() { return m_QueueFamilyIdx; }
   bool ReleaseResource(WrappedVkRes *res);
 
-  ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion);
+  ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion, const ReplayOptions &opts);
   uint64_t GetLogVersion() { return m_SectionVersion; }
   void SetStructuredExport(uint64_t sectionVersion)
   {

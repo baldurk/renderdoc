@@ -394,6 +394,7 @@ private:
 
   D3D12InitParams m_InitParams;
   uint64_t m_SectionVersion;
+  ReplayOptions m_ReplayOptions;
   ID3D12InfoQueue *m_pInfoQueue;
 
   D3D12ResourceRecord *m_FrameCaptureRecord;
@@ -506,10 +507,11 @@ public:
   }
   const std::map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
-  void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion)
+  void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion, const ReplayOptions &opts)
   {
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
+    m_ReplayOptions = opts;
   }
   uint64_t GetLogVersion() { return m_SectionVersion; }
   CaptureState GetState() { return m_State; }

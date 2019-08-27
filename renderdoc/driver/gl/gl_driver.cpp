@@ -710,10 +710,12 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   m_CurCtxDataTLS = Threading::AllocateTLSSlot();
 }
 
-void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
+void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion,
+                               const ReplayOptions &opts)
 {
   m_SectionVersion = sectionVersion;
   m_GlobalInitParams = params;
+  m_ReplayOptions = opts;
 }
 
 void WrappedOpenGL::MarkReferencedWhileCapturing(GLResourceRecord *record, FrameRefType refType)

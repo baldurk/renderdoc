@@ -139,15 +139,7 @@ rdcarray<GPUDevice> VulkanReplay::GetAvailableGPUs()
     dev.apis = {GraphicsAPI::Vulkan};
 
     // only set the driver name when it's useful to disambiguate
-    switch(driverProps.driverID)
-    {
-      default: dev.driver = "";
-      case VK_DRIVER_ID_AMD_PROPRIETARY_KHR: dev.driver = "AMD Propriertary"; break;
-      case VK_DRIVER_ID_AMD_OPEN_SOURCE_KHR: dev.driver = "AMD Open-source"; break;
-      case VK_DRIVER_ID_MESA_RADV_KHR: dev.driver = "AMD RADV"; break;
-      case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS_KHR: dev.driver = "Intel Propriertary"; break;
-      case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA_KHR: dev.driver = "Intel Open-source"; break;
-    }
+    dev.driver = HumanDriverName(driverProps.driverID);
 
     // don't add duplicate devices even if they get enumerated.
     if(ret.indexOf(dev) == -1)
@@ -4204,7 +4196,7 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
     SAFE_DELETE(rgp);
 
   WrappedVulkan *vk = new WrappedVulkan();
-  ReplayStatus status = vk->Initialise(initParams, ver);
+  ReplayStatus status = vk->Initialise(initParams, ver, opts);
 
   if(status != ReplayStatus::Succeeded)
   {

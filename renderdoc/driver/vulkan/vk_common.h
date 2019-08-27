@@ -99,6 +99,7 @@ LogicOperation MakeLogicOp(VkLogicOp op);
 BlendMultiplier MakeBlendMultiplier(VkBlendFactor blend);
 BlendOperation MakeBlendOp(VkBlendOp op);
 StencilOperation MakeStencilOp(VkStencilOp op);
+rdcstr HumanDriverName(VkDriverIdKHR driverId);
 
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);

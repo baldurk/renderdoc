@@ -720,6 +720,21 @@ StencilOperation MakeStencilOp(VkStencilOp op)
   return StencilOperation::Keep;
 }
 
+rdcstr HumanDriverName(VkDriverIdKHR driverId)
+{
+  switch(driverId)
+  {
+    case VK_DRIVER_ID_AMD_PROPRIETARY_KHR: return "AMD Propriertary";
+    case VK_DRIVER_ID_AMD_OPEN_SOURCE_KHR: return "AMD Open-source";
+    case VK_DRIVER_ID_MESA_RADV_KHR: return "AMD RADV";
+    case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS_KHR: return "Intel Propriertary";
+    case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA_KHR: return "Intel Open-source";
+    default: break;
+  }
+
+  return "";
+}
+
 BASIC_TYPE_SERIALISE_STRINGIFY(VkPackedVersion, (uint32_t &)el, SDBasic::UnsignedInteger, 4);
 
 INSTANTIATE_SERIALISE_TYPE(VkPackedVersion);

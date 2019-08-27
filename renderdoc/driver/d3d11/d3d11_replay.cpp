@@ -3788,7 +3788,8 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   // support because using warp was not deliberate)
   bool warpFallback = false;
 
-  ChooseBestMatchingAdapter(GraphicsAPI::D3D11, factory, initParams.AdapterDesc, &useWarp, &adapter);
+  ChooseBestMatchingAdapter(GraphicsAPI::D3D11, factory, initParams.AdapterDesc, opts, &useWarp,
+                            &adapter);
 
   if(useWarp)
     SAFE_RELEASE(adapter);
@@ -3921,7 +3922,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   if(SUCCEEDED(hr) && device)
   {
     WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
-    wrappedDev->SetInitParams(initParams, ver);
+    wrappedDev->SetInitParams(initParams, ver, opts);
 
     RDCLOG("Created device.");
     D3D11Replay *replay = wrappedDev->GetReplay();

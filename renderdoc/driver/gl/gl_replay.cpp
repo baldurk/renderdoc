@@ -3465,7 +3465,7 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
   replay->SetProxy(rdc == NULL);
   replay->SetReplayData(data);
 
-  gldriver->Initialise(initParams, ver);
+  gldriver->Initialise(initParams, ver, opts);
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;

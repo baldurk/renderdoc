@@ -130,6 +130,7 @@ private:
 
   uint64_t m_SectionVersion;
   GLInitParams m_GlobalInitParams;
+  ReplayOptions m_ReplayOptions;
 
   WriteSerialiser m_ScratchSerialiser;
   std::set<std::string> m_StringDB;
@@ -569,7 +570,7 @@ public:
 
   bool IsUnsafeDraw(uint32_t eventId) { return m_UnsafeDraws.find(eventId) != m_UnsafeDraws.end(); }
   // replay interface
-  void Initialise(GLInitParams &params, uint64_t sectionVersion);
+  void Initialise(GLInitParams &params, uint64_t sectionVersion, const ReplayOptions &opts);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 

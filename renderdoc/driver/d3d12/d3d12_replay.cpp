@@ -3754,7 +3754,8 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   IDXGIAdapter *adapter = NULL;
 
-  ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, NULL, &adapter);
+  ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, opts, NULL,
+                            &adapter);
 
   bool EnableDebugLayer = false;
 
@@ -3795,7 +3796,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, EnableDebugLayer);
-  wrappedDev->SetInitParams(initParams, ver);
+  wrappedDev->SetInitParams(initParams, ver, opts);
 
   RDCLOG("Created device.");
   D3D12Replay *replay = wrappedDev->GetReplay();

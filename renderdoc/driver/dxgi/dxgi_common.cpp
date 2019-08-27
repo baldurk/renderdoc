@@ -1736,13 +1736,132 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
   return device + " " + driverVersion;
 }
 
+IDXGIAdapter *EnumBestAdapter(IDXGIFactory *factory, GPUVendor vendor, uint32_t deviceId)
+{
+  IDXGIAdapter *ret = NULL;
+  DXGI_ADAPTER_DESC retDesc = {};
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapter *ad = NULL;
+    HRESULT hr = factory->EnumAdapters(i, &ad);
+    if(hr == S_OK && ad)
+    {
+      DXGI_ADAPTER_DESC desc;
+      ad->GetDesc(&desc);
+
+      // if it's a better vendor match than the adapter we have, choose it
+      GPUVendor adVendor = GPUVendorFromPCIVendor(desc.VendorId);
+      if(adVendor == vendor && GPUVendorFromPCIVendor(retDesc.VendorId) != vendor)
+      {
+        ret = ad;
+        retDesc = desc;
+        continue;
+      }
+      else if(adVendor != vendor)
+      {
+        ad->Release();
+        continue;
+      }
+
+      // if they're the same vendor but this is a better device match, choose it
+      if(desc.DeviceId == deviceId && retDesc.DeviceId != deviceId)
+      {
+        ret = ad;
+        retDesc = desc;
+        continue;
+      }
+
+      ad->Release();
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return ret;
+}
+
 void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
-                               const DXGI_ADAPTER_DESC &AdapterDesc, bool *useWarp,
-                               IDXGIAdapter **adapter)
+                               const DXGI_ADAPTER_DESC &AdapterDesc, const ReplayOptions &opts,
+                               bool *useWarp, IDXGIAdapter **adapter)
 {
   bool retWarp = false;
   IDXGIAdapter *ret = NULL;
-  DXGI_ADAPTER_DESC retDesc = {};
+
+  bool warpAvailable = false;
+  IDXGIAdapter *warpAdapter = NULL;
+
+  if(api == GraphicsAPI::D3D11)
+  {
+    // D3D11 WARP is always available, we assume.
+    warpAvailable = true;
+  }
+  else
+  {
+    // on D3D12 we don't have WARP when we're on 12On7. The easy way to check this is to try and
+    // fetch a IDXGIFactory4, which we want to do anyway to get the warp adapter.
+    IDXGIFactory4 *factory4 = NULL;
+    HRESULT hr = factory->QueryInterface(__uuidof(IDXGIFactory4), (void **)&factory4);
+    if(SUCCEEDED(hr) && factory4)
+    {
+      hr = factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&warpAdapter);
+
+      if(FAILED(hr) || !warpAdapter)
+      {
+        RDCWARN("Couldn't enumerate WARP adapter from IDXGIFactory4");
+      }
+    }
+
+    warpAvailable = warpAdapter != NULL;
+
+    SAFE_RELEASE(factory4);
+  }
+
+  // if we're forcing WARP, try that first
+  if(opts.forceGPUVendor == GPUVendor::Software)
+  {
+    if(warpAvailable)
+    {
+      if(useWarp)
+        *useWarp = true;
+      if(adapter)
+        *adapter = warpAdapter;
+      return;
+    }
+    else
+    {
+      RDCWARN("WARP is not available to replay on. Falling back to default adapter selection.");
+    }
+  }
+  else if(opts.forceGPUVendor != GPUVendor::Unknown)
+  {
+    // otherwise we're trying to force a device, see if we can get it
+    ret = EnumBestAdapter(factory, opts.forceGPUVendor, opts.forceGPUDeviceID);
+
+    if(ret == NULL)
+    {
+      RDCLOG(
+          "Couldn't find specified adapter to replay on, falling back to default adapter "
+          "selection");
+    }
+    else
+    {
+      DXGI_ADAPTER_DESC retDesc = {};
+      ret->GetDesc(&retDesc);
+      RDCLOG("Forcing use of %s / %ls adapter for replay",
+             ToStr(GPUVendorFromPCIVendor(retDesc.VendorId)).c_str(), retDesc.Description);
+
+      if(useWarp)
+        *useWarp = false;
+      if(adapter)
+        *adapter = ret;
+      return;
+    }
+  }
+
+  // default selection algorithm
 
   GPUVendor vendor = GPUVendorFromPCIVendor(AdapterDesc.VendorId);
 
@@ -1750,43 +1869,23 @@ void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
   if(!wcscmp(AdapterDesc.Description, L"Software Adapter"))
     vendor = GPUVendor::Software;
 
-  // if the vendor is software we should try to use WARP
+  // if we're forcing WARP, try that first we should try to use WARP
   if(vendor == GPUVendor::Software)
   {
-    retWarp = true;
-
-    // D3D11 WARP is always available, we assume.
-    if(api == GraphicsAPI::D3D11)
+    if(warpAvailable)
     {
-      ret = NULL;
+      ret = warpAdapter;
+      warpAdapter = NULL;
+      retWarp = true;
     }
     else
     {
-      // on D3D12 we don't have WARP when we're on 12On7. The easy way to check this is to try and
-      // fetch a IDXGIFactory4, which we want to do anyway to get the warp adapter.
-      IDXGIFactory4 *factory4 = NULL;
-      HRESULT hr = factory->QueryInterface(__uuidof(IDXGIFactory4), (void **)&factory4);
-      if(SUCCEEDED(hr) && factory4)
-      {
-        hr = factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&ret);
+      RDCWARN(
+          "WARP would be the selected adapter, but is not available. Falling back to default "
+          "adapter selection.");
 
-        if(FAILED(hr) || !ret)
-        {
-          RDCWARN("Couldn't enumerate WARP adapter from IDXGIFactory4");
-          retWarp = false;
-          ret = NULL;
-        }
-      }
-      else
-      {
-        // if WARP isn't available, fall back
-        RDCWARN(
-            "WARP is the best matching adapter, but is not available. Falling back to default "
-            "adapter selection.");
-
-        retWarp = false;
-        ret = NULL;
-      }
+      retWarp = false;
+      ret = NULL;
     }
   }
 
@@ -1795,50 +1894,23 @@ void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
   // matching adapter
   if(retWarp == false && ret == NULL && AdapterDesc.Description[0])
   {
-    for(UINT i = 0; i < 10; i++)
-    {
-      IDXGIAdapter *ad = NULL;
-      HRESULT hr = factory->EnumAdapters(i, &ad);
-      if(hr == S_OK && ad)
-      {
-        DXGI_ADAPTER_DESC desc;
-        ad->GetDesc(&desc);
-
-        // if it's a better vendor match than the adapter we have, choose it
-        if(desc.VendorId == AdapterDesc.VendorId && retDesc.VendorId != AdapterDesc.VendorId)
-        {
-          ret = ad;
-          retDesc = desc;
-          continue;
-        }
-        else if(desc.VendorId != AdapterDesc.VendorId)
-        {
-          ad->Release();
-          continue;
-        }
-
-        // if they're the same vendor but this is a better device match, choose it
-        if(desc.DeviceId == AdapterDesc.DeviceId && retDesc.DeviceId != AdapterDesc.DeviceId)
-        {
-          ret = ad;
-          retDesc = desc;
-          continue;
-        }
-
-        ad->Release();
-      }
-      else
-      {
-        break;
-      }
-    }
+    ret =
+        EnumBestAdapter(factory, GPUVendorFromPCIVendor(AdapterDesc.VendorId), AdapterDesc.DeviceId);
 
     if(ret == NULL)
+    {
       RDCLOG("Couldn't find similar adapter to replay on, using default adapter");
+    }
     else
+    {
+      DXGI_ADAPTER_DESC retDesc = {};
+      ret->GetDesc(&retDesc);
       RDCLOG("Selected %s / %ls adapter for replay",
              ToStr(GPUVendorFromPCIVendor(retDesc.VendorId)).c_str(), retDesc.Description);
+    }
   }
+
+  SAFE_RELEASE(warpAdapter);
 
   if(useWarp)
     *useWarp = retWarp;
