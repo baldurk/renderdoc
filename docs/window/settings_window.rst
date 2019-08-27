@@ -169,6 +169,13 @@ Here you can choose where ``RadeonGPUProfiler`` executable is, for use with the 
 
 For more information you can see :doc:`../how/how_rgp_profile`.
 
+Replay options
+--------------
+
+In this panel you can configure the default options used for replaying captures.
+
+The specific options are documented along with the explanation of how replay options affect the capture in :doc:`../how/how_control_replay`.
+
 Texture Viewer options
 ----------------------
 

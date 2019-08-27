@@ -244,3 +244,12 @@ API validation layers are controlled by RenderDoc when it's active. This means t
 .. note::
 
     On D3D11 if you know what you are doing you can access the underlying ``ID3D11InfoQueue`` using the separate UUID ``{3FC4E618-3F70-452A-8B8F-A73ACCB58E3D}``. Be aware that accessing this interface is done at your own risk and may break the RenderDoc capture. If you need to use the API validation directly it's recommended that you do so without RenderDoc active.
+
+If I have multiple GPUs available, which one is used by RenderDoc? Can I change that?
+-------------------------------------------------------------------------------------
+
+By default RenderDoc will try to use the closest matching GPU to the one used on capture, which is controlled by the application. For example if a system has both Nvidia and AMD GPUs, then if the capture was made on an AMD GPU then the AMD GPU will be used on replay.
+
+If a compatible GPU cannot be found - e.g. if the capture was made on an Intel GPU then the default - then the system default will be used.
+
+This selection process can be overridden using :ref:`the GPU selection replay option <gpu-selection-override>` on a per-capture or global basis.

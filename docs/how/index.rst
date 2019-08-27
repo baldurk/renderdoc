@@ -17,3 +17,4 @@ How do I ...?
 	how_import_export
 	how_rgp_profile
 	how_python_extension
+	how_control_replay
