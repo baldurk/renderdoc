@@ -213,10 +213,6 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     // your drivers!
     RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-    RDCASSERT(capabilities.minImageCount <= 8 &&
-                  (capabilities.maxImageCount <= 8 || capabilities.maxImageCount == 0),
-              capabilities.minImageCount, capabilities.maxImageCount);
-
     // check format and present mode from driver
     {
       uint32_t numFormats = 0;
@@ -365,6 +361,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
     vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    RDCASSERT(numImgs <= 8, numImgs);
 
     VkImage *imgs = new VkImage[numImgs];
     vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, imgs);
