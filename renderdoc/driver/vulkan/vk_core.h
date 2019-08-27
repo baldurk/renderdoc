@@ -246,6 +246,9 @@ private:
   std::vector<DebugMessage> m_DebugMessages;
   template <typename SerialiserType>
   void Serialise_DebugMessages(SerialiserType &ser);
+
+  void ProcessDebugMessage(DebugMessage &DebugMessages);
+
   std::vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);

@@ -1415,6 +1415,11 @@ void D3D12CommandData::AddEvent()
 
   apievent.callstack = m_ChunkMetadata.callstack;
 
+  // if we're using replay-time debug messages, fetch them now since we can do better to correlate
+  // to events on replay
+  if(m_pDevice->GetReplayOptions().apiValidation)
+    m_EventMessages = m_pDevice->GetDebugMessages();
+
   for(size_t i = 0; i < m_EventMessages.size(); i++)
     m_EventMessages[i].eventId = apievent.eventId;
 

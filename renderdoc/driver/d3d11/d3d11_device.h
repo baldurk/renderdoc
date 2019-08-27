@@ -401,6 +401,7 @@ public:
     m_SectionVersion = sectionVersion;
     m_ReplayOptions = opts;
   }
+  const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }
   virtual ~WrappedID3D11Device();
 

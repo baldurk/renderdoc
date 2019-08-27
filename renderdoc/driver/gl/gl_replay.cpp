@@ -3415,7 +3415,7 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
 
   GLWindowingData data = {};
 
-  ReplayStatus status = platform.InitialiseAPI(data, rdcdriver);
+  ReplayStatus status = platform.InitialiseAPI(data, rdcdriver, opts.apiValidation);
 
   // any errors will be already printed, just pass the error up
   if(status != ReplayStatus::Succeeded)

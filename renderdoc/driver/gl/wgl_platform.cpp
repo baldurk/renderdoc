@@ -291,8 +291,13 @@ class WGLPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return WGL.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
+// force debug in development builds
+#if ENABLED(RDOC_DEVEL)
+    debug = true;
+#endif
+
     RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
 
     bool success = RegisterClass();
@@ -370,11 +375,7 @@ class WGLPlatform : public GLPlatform
     int &minor = attribs[i];
     attribs[i++] = 0;
     attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
-#if ENABLED(RDOC_DEVEL)
-    attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
-#else
-    attribs[i++] = 0;
-#endif
+    attribs[i++] = debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
     attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
     attribs[i++] = api == RDCDriver::OpenGLES ? WGL_CONTEXT_ES2_PROFILE_BIT_EXT
                                               : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;

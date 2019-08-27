@@ -786,13 +786,26 @@ std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 {
   std::vector<DebugMessage> ret;
 
-  // if reading, m_DebugMessages will contain all the messages (we
-  // don't try and fetch anything from the API). If writing,
-  // m_DebugMessages will contain any manually-added messages.
-  ret.swap(m_DebugMessages);
+  if(IsActiveReplaying(m_State))
+  {
+    // once we're active replaying, m_DebugMessages will contain all the messages from loading
+    // (either from the captured serialised messages, or from ourselves during replay).
+    ret.swap(m_DebugMessages);
 
-  if(IsReplayMode(m_State))
     return ret;
+  }
+
+  if(IsCaptureMode(m_State))
+  {
+    // add any manually-added messages before fetching those from the API
+    ret.swap(m_DebugMessages);
+  }
+
+  // during loading only try and fetch messages if we're doing that deliberately during replay
+  if(IsLoading(m_State) && !m_ReplayOptions.apiValidation)
+    return ret;
+
+  // during capture, and during loading if the option is enabled, we fetch messages from the API
 
   if(!m_pInfoQueue)
     return ret;
@@ -1158,7 +1171,18 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
       m_pImmediateContext->SetFrameReader(new StreamReader(reader, frameDataSize));
 
       if(!IsStructuredExporting(m_State))
+      {
+        std::vector<DebugMessage> savedDebugMessages;
+
+        // save any debug messages we built up
+        savedDebugMessages.swap(m_DebugMessages);
+
         GetResourceManager()->ApplyInitialContents();
+
+        // restore saved messages - which implicitly discards any generated while applying initial
+        // contents
+        savedDebugMessages.swap(m_DebugMessages);
+      }
 
       ReplayStatus status = m_pImmediateContext->ReplayLog(m_State, 0, 0, false);
 

@@ -2087,6 +2087,10 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   uint64_t frameDataSize = 0;
 
+  ScopedDebugMessageSink *sink = NULL;
+  if(m_ReplayOptions.apiValidation)
+    sink = new ScopedDebugMessageSink(this);
+
   for(;;)
   {
     PerformanceTimer timer;
@@ -2144,6 +2148,8 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     if((SystemChunk)context == SystemChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
+
+  SAFE_DELETE(sink);
 
 #if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
@@ -2236,10 +2242,16 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   // (not undefined)
   if(IsLoading(m_State))
   {
+    // temporarily disable the debug message sink, to ignore messages from initial contents apply
+    ScopedDebugMessageSink *sink = GetDebugMessageSink();
+    SetDebugMessageSink(NULL);
+
     ApplyInitialContents();
 
     SubmitCmds();
     FlushQ();
+
+    SetDebugMessageSink(sink);
   }
 
   m_RootEvents.clear();
@@ -2470,28 +2482,7 @@ bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 {
   m_AddedDrawcall = false;
 
-  bool success = false;
-
-#if ENABLED(DISPLAY_RUNTIME_DEBUG_MESSAGES)
-  // see the definition of DISPLAY_RUNTIME_DEBUG_MESSAGES for more information. During replay, add a
-  // debug sink to catch any replay-time messages
-  {
-    ScopedDebugMessageSink sink(this);
-
-    success = ProcessChunk(ser, chunk);
-
-    if(IsActiveReplaying(m_State))
-    {
-      std::vector<DebugMessage> DebugMessages;
-      DebugMessages.swap(sink.msgs);
-
-      for(const DebugMessage &msg : DebugMessages)
-        AddDebugMessage(msg);
-    }
-  }
-#else
-  success = ProcessChunk(ser, chunk);
-#endif
+  bool success = ProcessChunk(ser, chunk);
 
   if(!success)
     return false;
@@ -3223,97 +3214,15 @@ void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
     if(sink)
       DebugMessages.swap(sink->msgs);
 
-    // if we have the unique objects layer we can assume all objects have a unique ID, and replace
-    // any text that looks like an object reference (0xHEX[NAME]).
-    if(m_LayersEnabled[VkCheckLayer_unique_objects])
-    {
-      for(DebugMessage &msg : DebugMessages)
-      {
-        if(strstr(msg.description.c_str(), "0x"))
-        {
-          std::string desc = msg.description;
-
-          size_t offs = desc.find("0x");
-          while(offs != std::string::npos)
-          {
-            // if we're on a word boundary
-            if(offs == 0 || !isalnum(desc[offs - 1]))
-            {
-              size_t end = offs + 2;
-
-              uint64_t val = 0;
-
-              // consume all hex chars
-              while(end < desc.length())
-              {
-                if(desc[end] >= '0' && desc[end] <= '9')
-                {
-                  val <<= 4;
-                  val += (desc[end] - '0');
-                  end++;
-                }
-                else if(desc[end] >= 'A' && desc[end] <= 'F')
-                {
-                  val <<= 4;
-                  val += (desc[end] - 'A') + 0xA;
-                  end++;
-                }
-                else if(desc[end] >= 'a' && desc[end] <= 'f')
-                {
-                  val <<= 4;
-                  val += (desc[end] - 'a') + 0xA;
-                  end++;
-                }
-                else
-                {
-                  break;
-                }
-              }
-
-              // we now expect a [NAME]. Look for matched set of []s
-              if(desc[end] == '[')
-              {
-                int depth = 1;
-                end++;
-
-                while(end < desc.length() && depth)
-                {
-                  if(desc[end] == '[')
-                    depth++;
-                  else if(desc[end] == ']')
-                    depth--;
-
-                  end++;
-                }
-
-                // unique objects layer implies this is a unique search so we don't have to worry
-                // about type aliases
-                ResourceId id = GetResourceManager()->GetFirstIDForHandle(val);
-
-                if(id != ResourceId())
-                {
-                  std::string idstr = ToStr(id);
-
-                  desc.erase(offs, end - offs);
-
-                  desc.insert(offs, idstr.c_str());
-
-                  offs = desc.find("0x", offs + idstr.length());
-                  continue;
-                }
-              }
-            }
-
-            offs = desc.find("0x", offs + 1);
-          }
-
-          msg.description = desc;
-        }
-      }
-    }
+    for(DebugMessage &msg : DebugMessages)
+      ProcessDebugMessage(msg);
   }
 
   SERIALISE_ELEMENT(DebugMessages);
+
+  // if we're using debug messages from replay, discard any from the capture
+  if(ser.IsReading() && IsLoading(m_State) && m_ReplayOptions.apiValidation)
+    DebugMessages.clear();
 
   // hide empty sets of messages.
   if(ser.IsReading() && DebugMessages.empty())
@@ -3328,6 +3237,95 @@ void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
 
 template void WrappedVulkan::Serialise_DebugMessages(WriteSerialiser &ser);
 template void WrappedVulkan::Serialise_DebugMessages(ReadSerialiser &ser);
+
+void WrappedVulkan::ProcessDebugMessage(DebugMessage &msg)
+{
+  // if we have the unique objects layer we can assume all objects have a unique ID, and replace
+  // any text that looks like an object reference (0xHEX[NAME]).
+  if(m_LayersEnabled[VkCheckLayer_unique_objects])
+  {
+    if(strstr(msg.description.c_str(), "0x"))
+    {
+      std::string desc = msg.description;
+
+      size_t offs = desc.find("0x");
+      while(offs != std::string::npos)
+      {
+        // if we're on a word boundary
+        if(offs == 0 || !isalnum(desc[offs - 1]))
+        {
+          size_t end = offs + 2;
+
+          uint64_t val = 0;
+
+          // consume all hex chars
+          while(end < desc.length())
+          {
+            if(desc[end] >= '0' && desc[end] <= '9')
+            {
+              val <<= 4;
+              val += (desc[end] - '0');
+              end++;
+            }
+            else if(desc[end] >= 'A' && desc[end] <= 'F')
+            {
+              val <<= 4;
+              val += (desc[end] - 'A') + 0xA;
+              end++;
+            }
+            else if(desc[end] >= 'a' && desc[end] <= 'f')
+            {
+              val <<= 4;
+              val += (desc[end] - 'a') + 0xA;
+              end++;
+            }
+            else
+            {
+              break;
+            }
+          }
+
+          // we now expect a [NAME]. Look for matched set of []s
+          if(desc[end] == '[')
+          {
+            int depth = 1;
+            end++;
+
+            while(end < desc.length() && depth)
+            {
+              if(desc[end] == '[')
+                depth++;
+              else if(desc[end] == ']')
+                depth--;
+
+              end++;
+            }
+
+            // unique objects layer implies this is a unique search so we don't have to worry
+            // about type aliases
+            ResourceId id = GetResourceManager()->GetFirstIDForHandle(val);
+
+            if(id != ResourceId())
+            {
+              std::string idstr = ToStr(id);
+
+              desc.erase(offs, end - offs);
+
+              desc.insert(offs, idstr.c_str());
+
+              offs = desc.find("0x", offs + idstr.length());
+              continue;
+            }
+          }
+        }
+
+        offs = desc.find("0x", offs + 1);
+      }
+
+      msg.description = desc;
+    }
+  }
+}
 
 std::vector<DebugMessage> WrappedVulkan::GetDebugMessages()
 {
@@ -3396,7 +3394,18 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
           msg.eventId = it->eventId;
       }
 
-      sink->msgs.push_back(msg);
+      // function calls are replayed after the call to Serialise_DebugMessages() so we don't have a
+      // sync point to gather together all the messages from the sink. But instead we can just push
+      // them directly into the list since we're linearised
+      if(IsReplayMode(m_State))
+      {
+        ProcessDebugMessage(msg);
+        AddDebugMessage(msg);
+      }
+      else
+      {
+        sink->msgs.push_back(msg);
+      }
     }
   }
 

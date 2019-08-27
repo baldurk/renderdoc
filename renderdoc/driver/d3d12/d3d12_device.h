@@ -513,6 +513,7 @@ public:
     m_SectionVersion = sectionVersion;
     m_ReplayOptions = opts;
   }
+  const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }
   CaptureState GetState() { return m_State; }
   D3D12Replay *GetReplay() { return &m_Replay; }

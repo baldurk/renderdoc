@@ -289,7 +289,7 @@ struct GLPlatform
   // for initialisation at replay time
   virtual bool CanCreateGLESContext() = 0;
   virtual bool PopulateForReplay() = 0;
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api) = 0;
+  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug) = 0;
   virtual void *GetReplayFunction(const char *funcname) = 0;
 };
 
@@ -313,7 +313,7 @@ class GLDummyPlatform : public GLPlatform
   // for initialisation at replay time
   virtual bool CanCreateGLESContext() { return true; }
   virtual bool PopulateForReplay() { return true; }
-  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     return ReplayStatus::Succeeded;
   }

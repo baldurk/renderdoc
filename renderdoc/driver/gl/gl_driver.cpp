@@ -2629,7 +2629,15 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
 
   if(IsReplayingAndReading())
   {
+    std::vector<DebugMessage> savedDebugMessages;
+
+    // save any debug messages we built up
+    savedDebugMessages.swap(m_DebugMessages);
+
     state.ApplyState(this);
+
+    // restore saved messages - which implicitly discards any generated while applying state
+    savedDebugMessages.swap(m_DebugMessages);
   }
 
   return true;
@@ -2702,6 +2710,14 @@ void WrappedOpenGL::Serialise_DebugMessages(SerialiserType &ser)
 
   SERIALISE_ELEMENT(DebugMessages);
 
+  // if we're using replay-time API validation, fetch messages at replay time and ignore any
+  // serialised ones
+  if(ser.IsReading() && IsLoading(m_State) && m_ReplayOptions.apiValidation)
+  {
+    DebugMessages = m_DebugMessages;
+    m_DebugMessages.clear();
+  }
+
   // hide empty sets of messages.
   if(ser.IsReading() && DebugMessages.empty())
     ser.Hidden();
@@ -2767,7 +2783,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
         RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
     }
 
-    if(IsActiveCapturing(m_State))
+    if(IsActiveCapturing(m_State) || (IsLoading(m_State) && m_ReplayOptions.apiValidation))
     {
       DebugMessage msg;
 
@@ -2955,7 +2971,16 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
       m_FrameReader = new StreamReader(reader, frameDataSize);
 
+      std::vector<DebugMessage> savedDebugMessages;
+
+      // save any debug messages we built up
+      savedDebugMessages.swap(m_DebugMessages);
+
       GetResourceManager()->ApplyInitialContents();
+
+      // restore saved messages - which implicitly discards any generated while applying initial
+      // contents
+      savedDebugMessages.swap(m_DebugMessages);
 
       ReplayStatus status = ContextReplayLog(m_State, 0, 0, false);
 

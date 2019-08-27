@@ -212,7 +212,7 @@ class CGLPlatform : public GLPlatform
     return ret;
   }
 
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     RDCASSERT(api == RDCDriver::OpenGL);
 

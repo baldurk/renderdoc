@@ -92,6 +92,10 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
     if(ser.IsReading() && IsLoading(m_State))
     {
+      // if we're using replay-time API validation, ignore messages from capture time
+      if(m_pDevice->GetReplayOptions().apiValidation)
+        DebugMessages.clear();
+
       for(const DebugMessage &msg : DebugMessages)
         m_Cmd.m_EventMessages.push_back(msg);
     }

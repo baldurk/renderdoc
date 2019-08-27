@@ -747,9 +747,9 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
 
 ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
 {
-  for(auto it = m_ResourceRecords.begin(); it != m_ResourceRecords.end(); ++it)
+  for(auto it = m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
   {
-    WrappedVkRes *res = it->second->Resource;
+    WrappedVkRes *res = it->second;
 
     if(!res)
       continue;
@@ -758,13 +758,13 @@ ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
     {
       WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
       if(disp->real.handle == handle)
-        return disp->id;
+        return IsReplayMode(m_State) ? GetOriginalID(disp->id) : disp->id;
     }
     else
     {
       WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
       if(nondisp->real.handle == handle)
-        return nondisp->id;
+        return IsReplayMode(m_State) ? GetOriginalID(nondisp->id) : nondisp->id;
     }
   }
 

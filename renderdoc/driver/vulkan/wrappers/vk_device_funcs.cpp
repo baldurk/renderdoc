@@ -180,10 +180,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   StripUnwantedLayers(params.Layers);
   StripUnwantedExtensions(params.Extensions);
 
-#if ENABLED(FORCE_VALIDATION_LAYERS) && DISABLED(RDOC_ANDROID)
-  params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
-#endif
-
   std::set<std::string> supportedLayers;
 
   {
@@ -197,6 +193,29 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
       supportedLayers.insert(props[e].layerName);
 
     SAFE_DELETE_ARRAY(props);
+  }
+
+  if(m_ReplayOptions.apiValidation)
+  {
+    const char KhronosValidation[] = "VK_LAYER_KHRONOS_validation";
+    const char LunarGValidation[] = "VK_LAYER_LUNARG_standard_validation";
+
+    if(supportedLayers.find(KhronosValidation) != supportedLayers.end())
+    {
+      RDCLOG("Enabling %s layer for API validation", KhronosValidation);
+      params.Layers.push_back(KhronosValidation);
+      m_LayersEnabled[VkCheckLayer_unique_objects] = true;
+    }
+    else if(supportedLayers.find(LunarGValidation) != supportedLayers.end())
+    {
+      RDCLOG("Enabling %s layer for API validation", LunarGValidation);
+      params.Layers.push_back(LunarGValidation);
+      m_LayersEnabled[VkCheckLayer_unique_objects] = true;
+    }
+    else
+    {
+      RDCLOG("API validation layers are not available, check you have the Vulkan SDK installed");
+    }
   }
 
   // complain about any missing layers, but remove them from the list and continue
@@ -614,6 +633,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
   {
     if(!strcmp(modifiedCreateInfo.ppEnabledLayerNames[i], "VK_LAYER_LUNARG_standard_validation") ||
+       !strcmp(modifiedCreateInfo.ppEnabledLayerNames[i], "VK_LAYER_KHRONOS_validation") ||
        !strcmp(modifiedCreateInfo.ppEnabledLayerNames[i], "VK_LAYER_GOOGLE_unique_objects"))
     {
       m_LayersEnabled[VkCheckLayer_unique_objects] = true;
@@ -2603,11 +2623,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     APIProps.vendor = GetDriverInfo().Vendor();
 
+    // temporarily disable the debug message sink, to ignore any false positive messages from our
+    // init
+    ScopedDebugMessageSink *sink = GetDebugMessageSink();
+    SetDebugMessageSink(NULL);
+
     m_ShaderCache = new VulkanShaderCache(this);
 
     m_DebugManager = new VulkanDebugManager(this);
 
     m_Replay.CreateResources();
+
+    SetDebugMessageSink(sink);
   }
 
   return true;

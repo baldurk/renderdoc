@@ -3846,12 +3846,18 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   UINT flags = initParams.Flags;
 
+  // we control the debug flag ourselves
+  flags &= ~D3D11_CREATE_DEVICE_DEBUG;
+
 #if ENABLED(RDOC_DEVEL)
   // in development builds, always enable debug layer during replay
   flags |= D3D11_CREATE_DEVICE_DEBUG;
 #else
-  // in release builds, never enable it
-  flags &= ~D3D11_CREATE_DEVICE_DEBUG;
+  // in release builds, only enable it if forced by replay options
+  if(opts.apiValidation)
+    flags |= D3D11_CREATE_DEVICE_DEBUG;
+  else
+    flags &= ~D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
   // we should now be set up to try creating feature level 11 devices either with a selected
@@ -3862,6 +3868,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   // try first with the adapter, then if we were using a specific adapter try without, then last try
   // with WARP
   //      within that, try to create a device at descending feature levels
+  //           for each attempt, if the debug layer is enabled try without it
 
   for(int adapterPass = 0; adapterPass < 3; adapterPass++)
   {
@@ -3908,9 +3915,32 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       if(SUCCEEDED(hr) && device)
         break;
 
-      RDCLOG("Device creation failed, %s", ToStr(hr).c_str());
-
       SAFE_RELEASE(device);
+
+// in release try to fall back to a non-debug device
+#if ENABLED(RDOC_RELEASE)
+      if(flags & D3D11_CREATE_DEVICE_DEBUG)
+      {
+        UINT noDebugFlags = flags & ~D3D11_CREATE_DEVICE_DEBUG;
+
+        HRESULT hr2 = CreateDeviceAndSwapChain(adapter, driverType, NULL, noDebugFlags,
+                                               featureLevelSubset, numFeatureLevels,
+                                               D3D11_SDK_VERSION, NULL, NULL, &device, NULL, NULL);
+
+        // if we can manage to create it without debug active, do that since it's extremely unlikely
+        // that any other configuration will have better luck with debug active.
+        if(SUCCEEDED(hr2) && device)
+        {
+          RDCLOG(
+              "Device creation failed with validation active - check that you have the "
+              "SDK installed or Windows feature enabled to get the D3D debug layers.");
+
+          break;
+        }
+      }
+#endif
+
+      RDCLOG("Device creation failed, %s", ToStr(hr).c_str());
     }
 
     if(SUCCEEDED(hr) && device)

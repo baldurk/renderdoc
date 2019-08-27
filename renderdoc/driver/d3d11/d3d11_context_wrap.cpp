@@ -3762,6 +3762,16 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages(SerialiserType &ser)
 
   SERIALISE_ELEMENT(DebugMessages);
 
+  // if we're using replay-time API validation, fetch messages at replay time and ignore any
+  // serialised ones
+  if(ser.IsReading() && IsLoading(m_State) && m_pDevice->GetReplayOptions().apiValidation)
+  {
+    if(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+      DebugMessages = m_pDevice->GetDebugMessages();
+    else
+      DebugMessages.clear();
+  }
+
   // hide empty sets of messages.
   if(ser.IsReading() && DebugMessages.empty())
     ser.Hidden();

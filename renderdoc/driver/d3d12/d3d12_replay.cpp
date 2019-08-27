@@ -3757,19 +3757,29 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, opts, NULL,
                             &adapter);
 
-  bool EnableDebugLayer = false;
+  bool debugLayerEnabled = false;
 
   RDCLOG("Creating D3D12 replay device, minimum feature level %s",
          ToStr(initParams.MinimumFeatureLevel).c_str());
 
-#if ENABLED(RDOC_DEVEL)
-  // in development builds, always enable debug layer during replay
-  EnableDebugLayer = EnableD3D12DebugLayer();
+  bool shouldEnableDebugLayer = opts.apiValidation;
 
-  RDCLOG(
-      "Development RenderDoc builds require D3D debug layers available, "
-      "ensure you have the windows SDK or windows feature needed.");
+// in development builds, always enable debug layer during replay
+#if ENABLED(RDOC_DEVEL)
+  shouldEnableDebugLayer = true;
 #endif
+
+  if(shouldEnableDebugLayer)
+  {
+    debugLayerEnabled = EnableD3D12DebugLayer();
+
+    if(!debugLayerEnabled)
+    {
+      RDCLOG(
+          "Enabling the D3D debug layers failed, "
+          "ensure you have the windows SDK or windows feature needed.");
+    }
+  }
 
   ID3D12Device *dev = NULL;
   hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
@@ -3795,7 +3805,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     return ReplayStatus::APIHardwareUnsupported;
   }
 
-  WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, EnableDebugLayer);
+  WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, debugLayerEnabled);
   wrappedDev->SetInitParams(initParams, ver, opts);
 
   RDCLOG("Created device.");

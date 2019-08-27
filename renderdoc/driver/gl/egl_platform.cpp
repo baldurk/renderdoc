@@ -134,12 +134,16 @@ class EGLPlatform : public GLPlatform
     EGLDisplay eglDisplay = EGL.GetDisplay(EGL_DEFAULT_DISPLAY);
     RDCASSERT(eglDisplay);
 
-    return CreateWindowingData(eglDisplay, share_context.ctx, win);
+    return CreateWindowingData(eglDisplay, share_context.ctx, win, false);
   }
 
   GLWindowingData CreateWindowingData(EGLDisplay eglDisplay, EGLContext share_ctx,
-                                      EGLNativeWindowType window)
+                                      EGLNativeWindowType window, bool debug)
   {
+#if ENABLED(RDOC_DEVEL)
+    debug = true;
+#endif
+
     GLWindowingData ret;
     ret.egl_dpy = eglDisplay;
     ret.egl_ctx = NULL;
@@ -176,6 +180,9 @@ class EGLPlatform : public GLPlatform
     // first we try with the debug bit set, then if that fails we try without debug
     for(int debugPass = 0; debugPass < 2; debugPass++)
     {
+      if(!debug && debugPass == 0)
+        continue;
+
       // don't change this ar ray without changing indices in the loop below
       EGLint verAttribs[] = {
           EGL_CONTEXT_MAJOR_VERSION_KHR,
@@ -271,7 +278,7 @@ class EGLPlatform : public GLPlatform
   }
 
   bool PopulateForReplay() { return EGL.PopulateForReplay(); }
-  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api)
+  ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
     // we only support replaying GLES through EGL
     RDCASSERT(api == RDCDriver::OpenGLES);
@@ -288,7 +295,7 @@ class EGLPlatform : public GLPlatform
     int major, minor;
     EGL.Initialize(eglDisplay, &major, &minor);
 
-    replayContext = CreateWindowingData(eglDisplay, EGL_NO_CONTEXT, 0);
+    replayContext = CreateWindowingData(eglDisplay, EGL_NO_CONTEXT, 0, debug);
 
     if(!replayContext.ctx)
     {
