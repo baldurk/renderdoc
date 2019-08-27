@@ -7,6 +7,8 @@ The Android device must be running at least Android 6.0.
 
 Android support is still quite new, so if you run into any rough spots please `open an issue on GitHub <https://github.com/baldurk/renderdoc/issues/new>`_ or `email me <mailto:baldurk@baldurk.org?subject=RenderDoc%20on%20Android>`_.
 
+RenderDoc requires some tools from the Android SDK to function. On windows these usually ship with the RenderDoc package, but if you are on Linux or you have trouble please see below in the Troubleshooting section about configuring your Android SDK.
+
 .. caution::
 
   For RenderDoc's android support, your package must be installed and it **must be debuggable**.
@@ -23,6 +25,8 @@ By default when you start up, this is set to "Local" which means all capture and
 .. note::
 
   If you don't see your android device listed, try waiting a few seconds as available devices are scanned every so often.
+
+  If it still doesn't appear after 10 seconds, check that you have your SDK configured correctly - see below in the Troubleshooting section.
 
 .. |cross| image:: ../imgs/icons/cross.png
 
@@ -56,7 +60,7 @@ RenderDoc assumes your device is already configured for debugging. Check that it
 
 If you have Android Studio open, it will interfere with RenderDoc's debugging by attaching to the package itself. Either close it or disable adb integration in "Tools → Android → Enable ADB integration".
 
-RenderDoc does its best to locate or provide necessary android tools. On windows, these tools are shipped with the distributions and all that's required is java - either in your ``PATH`` or via the ``JAVA_HOME`` environment variable. If these tools aren't present then RenderDoc searches through ``PATH`` and other variables like ``ANDROID_HOME`` or ``ANDROID_SDK_ROOT`` to find the SDK. If you don't have those variables set, you can browse to the SDK and JDK folders in the :doc:`settings window <../window/settings_window>` under the :guilabel:`Android` section.
+RenderDoc does its best to locate or provide necessary Android tools from the Android SDK. On Windows, these tools are shipped with the distributions and all that's required is java - either in your ``PATH`` or via the ``JAVA_HOME`` environment variable. If these tools aren't present then RenderDoc searches through ``PATH`` and other variables like ``ANDROID_HOME`` or ``ANDROID_SDK_ROOT`` to find the SDK. If you don't have those environment variables set, you can browse to the SDK and JDK folders in the :doc:`settings window <../window/settings_window>` under the :guilabel:`Android` section.
 
 If something goes wrong with these steps, please `open an issue on GitHub <https://github.com/baldurk/renderdoc/issues/new>`__! The process should be as smooth as possible given Android's platform limitations, so if you encounter problems then it may well be fixable.
 
