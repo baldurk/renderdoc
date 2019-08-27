@@ -3587,7 +3587,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
-  bool d3d12on7 = false;
+  // this needs to be static, because we don't unload d3d12.dll so the plain LoadLibraryA will
+  // succeed on subsequent capture loads.
+  static bool d3d12on7 = false;
 
   HMODULE lib = NULL;
   lib = LoadLibraryA("d3d12.dll");
