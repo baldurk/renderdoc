@@ -875,7 +875,7 @@ struct AndroidController : public IDeviceProtocolHandler
     });
 
     // allow the package to start and begin listening before we return
-    Threading::Sleep(500);
+    Threading::Sleep(1500);
 
     return status;
   }
