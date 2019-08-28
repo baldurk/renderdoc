@@ -248,7 +248,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         func.result = typeReplacements[func.result];
       }
 
-      for(size_t i = 0; i < func.parameters.size(); it++)
+      for(size_t i = 0; i < func.parameters.size(); i++)
       {
         replIt = typeReplacements.find(func.parameters[i]);
         if(replIt != typeReplacements.end())
