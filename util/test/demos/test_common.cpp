@@ -317,6 +317,9 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     case ShaderStage::comp: command_line += " -fshader-stage=comp"; break;
   }
 
+  if(target == SPIRVTarget::opengl)
+    command_line += " --target-env=opengl";
+
   char infile[MAX_PATH] = {};
   char outfile[MAX_PATH] = {};
   get_tmpnam(infile);
