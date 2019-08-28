@@ -353,9 +353,10 @@ void WrappedVulkan::FlushQ()
   }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
+  if(m_Device != VK_NULL_HANDLE)
   {
-    ObjDisp(m_Queue)->DeviceWaitIdle(Unwrap(m_Device));
-    VkResult vkr = ObjDisp(m_Queue)->DeviceWaitIdle(Unwrap(m_Device));
+    ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
+    VkResult vkr = ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 #endif
