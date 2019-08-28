@@ -218,6 +218,28 @@ void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
       *params = (GLint)GetCtxData().glExts.size();
     return;
   }
+#if ENABLED(RDOC_ANDROID)
+  else if(pname == eGL_NUM_PROGRAM_BINARY_FORMATS)
+  {
+    // This is not spec-compliant. The spec is written in a convoluted way but has a self-consistent
+    // loop requiring this to be non-zero:
+    //
+    // - The program binary format list must include the binaryFormat returned by glGetProgramBinary
+    // - glGetProgramBinary is always valid to call on a linked program.
+    // - The original extension says that calling glGetProgramBinary is illegal when
+    //   GL_NUM_PROGRAM_BINARY_FORMATS is 0, which would potentially allow a weird but valid reading
+    // where either the list could be empty because "the binaryFormat returned by
+    // glGetProgramBinary" does not exist because there's no valid way to call the function.
+    //
+    // The short answer is that doing this is invalid and so we only do it on Android where the
+    // OPERATING SYSTEM ships a buggy library where this is the only feasible workaround, short of
+    // implementing our own program binary format that contains the original source and
+    // reconstructing shaders out of it.
+    if(params)
+      *params = 0;
+    return;
+  }
+#endif
   else if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
   {
     if(params)
