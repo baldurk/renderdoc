@@ -2130,8 +2130,6 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       ser.SetUserData(GetResourceManager());
 
       {
-        SCOPED_SERIALISE_CHUNK(SystemChunk::DriverInit, sizeof(GLInitParams) + 16);
-
         // we no longer use this one, but for ease of compatibility we still serialise it here. This
         // will be immediately overridden by the actual parameters by a
         // GLChunk::ContextConfiguration chunk
@@ -2140,6 +2138,10 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
         // store renderer and version, though we can't do any meaningful device selection
         init.renderer = (const char *)GL.glGetString(eGL_RENDERER);
         init.version = (const char *)GL.glGetString(eGL_VERSION);
+
+        SCOPED_SERIALISE_CHUNK(
+            SystemChunk::DriverInit,
+            sizeof(GLInitParams) + 16 + init.renderer.size() + init.version.size());
 
         SERIALISE_ELEMENT(init);
       }
