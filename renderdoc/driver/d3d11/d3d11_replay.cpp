@@ -135,6 +135,8 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
     }
   }
 
+  m_pDevice->GetShaderCache()->SetCaching(true);
+
   InitStreamOut();
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.1f);
@@ -170,6 +172,8 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
   m_PixelHistory.Init(m_pDevice);
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
+
+  m_pDevice->GetShaderCache()->SetCaching(false);
 
   AMDCounters *countersAMD = NULL;
   NVCounters *countersNV = NULL;
