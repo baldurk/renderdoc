@@ -29,6 +29,99 @@
 #include "gl_driver.h"
 #include "gl_replay.h"
 #include "gl_resources.h"
+#include "gl_shader_refl.h"
+
+static void MakeVaryingsFromShaderReflection(ShaderReflection &refl,
+                                             std::vector<const char *> &varyings, uint32_t &stride,
+                                             ShaderReflection *trimRefl = NULL)
+{
+  static std::vector<std::string> tmpStrings;
+  tmpStrings.reserve(refl.outputSignature.size());
+  tmpStrings.clear();
+
+  varyings.clear();
+
+  int32_t posidx = -1;
+  stride = 0;
+
+  for(const SigParameter &sig : refl.outputSignature)
+  {
+    const char *name = sig.varName.c_str();
+    size_t len = sig.varName.size();
+
+    bool excludeMatrixRow = false;
+    bool excludeTrimmedRefl = false;
+
+    if(trimRefl)
+    {
+      // search through the trimmed output signature to see if it's there too. If not, we exclude it
+      excludeTrimmedRefl = true;
+
+      for(const SigParameter &sig2 : trimRefl->outputSignature)
+      {
+        if(sig.varName == sig2.varName)
+        {
+          excludeTrimmedRefl = false;
+          break;
+        }
+      }
+
+      if(excludeTrimmedRefl)
+        RDCLOG("Trimming %s from output signature", name);
+    }
+
+    // for matrices with names including :row1, :row2 etc we only include :row0
+    // as a varying (but increment the stride for all rows to account for the space)
+    // and modify the name to remove the :row0 part
+    const char *colon = strchr(name, ':');
+    if(colon)
+    {
+      if(name[len - 1] != '0')
+      {
+        excludeMatrixRow = true;
+      }
+      else
+      {
+        tmpStrings.push_back(std::string(name, colon));
+        name = tmpStrings.back().c_str();
+      }
+    }
+
+    if(!excludeMatrixRow && !excludeTrimmedRefl)
+      varyings.push_back(name);
+
+    if(sig.systemValue == ShaderBuiltin::Position)
+      posidx = int32_t(varyings.size()) - 1;
+
+    uint32_t outputComponents = (sig.compType == CompType::Double ? 2 : 1) * sig.compCount;
+
+    stride += sizeof(float) * outputComponents;
+
+    // if it was trimmed, we need to leave space so that everything else lines up
+    if(excludeTrimmedRefl)
+    {
+      const char *skipComponents[] = {
+          "gl_SkipComponents1", "gl_SkipComponents2", "gl_SkipComponents3", "gl_SkipComponents4",
+      };
+
+      while(outputComponents > 0)
+      {
+        // skip 1, 2, 3 or 4 components at a time
+        varyings.push_back(skipComponents[RDCMIN(4U, outputComponents) - 1]);
+        outputComponents -= RDCMIN(4U, outputComponents);
+      }
+    }
+  }
+
+  // shift position attribute up to first, keeping order otherwise
+  // the same
+  if(posidx > 0)
+  {
+    const char *pos = varyings[posidx];
+    varyings.erase(varyings.begin() + posidx);
+    varyings.insert(varyings.begin(), pos);
+  }
+}
 
 void GLReplay::ClearPostVSCache()
 {
@@ -106,6 +199,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   }
 
   uint32_t glslVer = 0;
+  FixedFunctionVertexOutputs outputUsage = {};
 
   if(rs.Program.name == 0)
   {
@@ -128,6 +222,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
             vsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[i], ShaderEntryPoint());
             glslVer = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].version;
             vsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].patchData;
+
+            CheckVertexOutputUses(m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].sources,
+                                  outputUsage);
           }
           else if(i == 2)
           {
@@ -205,6 +302,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           vsRefl = GetShader(ResourceId(), progDetails.stageShaders[0], ShaderEntryPoint());
           glslVer = m_pDriver->m_Shaders[progDetails.stageShaders[0]].version;
           vsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[0]].patchData;
+
+          CheckVertexOutputUses(m_pDriver->m_Shaders[progDetails.stageShaders[0]].sources,
+                                outputUsage);
         }
         else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
@@ -283,7 +383,16 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   uint32_t stride = 0;
   GLuint vsOrigShader = 0;
 
-  int32_t posidx = -1;
+  bool hasPosition = false;
+
+  for(const SigParameter &sig : vsRefl->outputSignature)
+  {
+    if(sig.systemValue == ShaderBuiltin::Position)
+    {
+      hasPosition = true;
+      break;
+    }
+  }
 
   if(vsRefl->encoding == ShaderEncoding::SPIRV)
   {
@@ -291,15 +400,6 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     vsOrigShader = stageShaders[0];
 
     stageShaders[0] = tmpShaders[0] = drv.glCreateShader(eGL_VERTEX_SHADER);
-
-    for(const SigParameter &sig : vsRefl->outputSignature)
-    {
-      if(sig.systemValue == ShaderBuiltin::Position)
-      {
-        posidx = 0;
-        break;
-      }
-    }
 
     std::vector<uint32_t> spirv;
     spirv.resize(vsRefl->rawBytes.size() / sizeof(uint32_t));
@@ -350,55 +450,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     if(dummyFrag)
       drv.glAttachShader(feedbackProg, dummyFrag);
 
-    std::list<std::string> matrixVaryings;
-    std::vector<const char *> varyings;
-
     CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);
 
-    for(const SigParameter &sig : vsRefl->outputSignature)
-    {
-      const char *name = sig.varName.c_str();
-      size_t len = sig.varName.size();
-
-      bool include = true;
-
-      // for matrices with names including :row1, :row2 etc we only include :row0
-      // as a varying (but increment the stride for all rows to account for the space)
-      // and modify the name to remove the :row0 part
-      const char *colon = strchr(name, ':');
-      if(colon)
-      {
-        if(name[len - 1] != '0')
-        {
-          include = false;
-        }
-        else
-        {
-          matrixVaryings.push_back(std::string(name, colon));
-          name = matrixVaryings.back().c_str();
-        }
-      }
-
-      if(include)
-        varyings.push_back(name);
-
-      if(sig.systemValue == ShaderBuiltin::Position)
-        posidx = int32_t(varyings.size()) - 1;
-
-      if(sig.compType == CompType::Double)
-        stride += sizeof(double) * sig.compCount;
-      else
-        stride += sizeof(float) * sig.compCount;
-    }
-
-    // shift position attribute up to first, keeping order otherwise
-    // the same
-    if(posidx > 0)
-    {
-      const char *pos = varyings[posidx];
-      varyings.erase(varyings.begin() + posidx);
-      varyings.insert(varyings.begin(), pos);
-    }
+    std::vector<const char *> varyings;
+    MakeVaryingsFromShaderReflection(*vsRefl, varyings, stride);
 
     // this is REALLY ugly, but I've seen problems with varying specification, so we try and
     // do some fixup by removing prefixes from the results we got from PROGRAM_OUTPUT.
@@ -446,10 +501,16 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     bool finished = false;
     for(;;)
     {
+      // don't print debug messages from these links - we know some might fail but as long as we
+      // eventually get one to work that's fine.
+      drv.SuppressDebugMessages(true);
+
       // specify current varyings & relink
       drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
                                       eGL_INTERLEAVED_ATTRIBS);
       drv.glLinkProgram(feedbackProg);
+
+      drv.SuppressDebugMessages(false);
 
       drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
 
@@ -457,10 +518,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(status == 1)
         break;
 
+      RDCWARN("Failed to link postvs program with varyings");
+
       // if finished is true, this was our last attempt - there are no
       // more fixups possible
       if(finished)
+      {
+        RDCWARN("No fixups possible");
         break;
+      }
+
+      RDCLOG("Attempting fixup...");
 
       char buffer[1025] = {0};
       drv.glGetProgramInfoLog(feedbackProg, 1024, NULL, buffer);
@@ -506,6 +574,46 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           }
         }
       }
+    }
+
+    if(status == 0)
+    {
+      // if we STILL can't link then something is really messy. Some drivers like AMD reflect out
+      // unused variables when reflecting a separable program, then complain when they are passed in
+      // as varyings. We remove all the varyings, link the program, then reflect it as-is and try to
+      // use the output signature from that as the varyings.
+      RDCWARN("Failed to generate XFB varyings from normal reflection - making one final attempt.");
+      RDCWARN(
+          "This is often caused by sensitive drivers and output variables declared but never "
+          "written to.");
+
+      drv.SuppressDebugMessages(true);
+
+      drv.glTransformFeedbackVaryings(feedbackProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+      drv.glLinkProgram(feedbackProg);
+
+      drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+
+      if(status == 1)
+      {
+        ShaderReflection tempRefl;
+        MakeShaderReflection(eGL_VERTEX_SHADER, feedbackProg, tempRefl, outputUsage);
+
+        // remake the varyings with tempRefl to 'trim' the output signature
+        MakeVaryingsFromShaderReflection(*vsRefl, varyings, stride, &tempRefl);
+
+        drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
+                                        eGL_INTERLEAVED_ATTRIBS);
+        drv.glLinkProgram(feedbackProg);
+
+        drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+      }
+      else
+      {
+        RDCWARN("Can't link program with no varyings!");
+      }
+
+      drv.SuppressDebugMessages(false);
     }
 
     if(status == 0)
@@ -865,7 +973,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   bool found = false;
 
-  for(GLuint i = 1; posidx != -1 && i < primsWritten; i++)
+  for(GLuint i = 1; hasPosition && i < primsWritten; i++)
   {
     //////////////////////////////////////////////////////////////////////////////////
     // derive near/far, assuming a standard perspective matrix
@@ -940,7 +1048,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     m_PostVSData[eventId].vsout.idxBuf = idxBuf;
   }
 
-  m_PostVSData[eventId].vsout.hasPosOut = posidx >= 0;
+  m_PostVSData[eventId].vsout.hasPosOut = hasPosition;
 
   m_PostVSData[eventId].vsout.topo = drawcall->topology;
 
@@ -985,21 +1093,21 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     GLint status = 0;
 
+    hasPosition = false;
+
+    for(const SigParameter &sig : lastRefl->outputSignature)
+    {
+      if(sig.systemValue == ShaderBuiltin::Position)
+      {
+        hasPosition = true;
+        break;
+      }
+    }
+
     if(lastSPIRV)
     {
       // SPIR-V path
       stageShaders[lastIndex] = tmpShaders[lastIndex] = drv.glCreateShader(ShaderEnum(lastIndex));
-
-      posidx = -1;
-
-      for(const SigParameter &sig : lastRefl->outputSignature)
-      {
-        if(sig.systemValue == ShaderBuiltin::Position)
-        {
-          posidx = 0;
-          break;
-        }
-      }
 
       std::vector<uint32_t> spirv;
       spirv.resize(lastRefl->rawBytes.size() / sizeof(uint32_t));
@@ -1037,67 +1145,25 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
     else
     {
-      std::list<std::string> matrixVaryings;
       std::vector<const char *> varyings;
 
-      stride = 0;
-      posidx = -1;
-
-      for(const SigParameter &sig : lastRefl->outputSignature)
-      {
-        const char *name = sig.varName.c_str();
-        size_t len = sig.varName.size();
-
-        bool include = true;
-
-        // for matrices with names including :row1, :row2 etc we only include :row0
-        // as a varying (but increment the stride for all rows to account for the space)
-        // and modify the name to remove the :row0 part
-        const char *colon = strchr(name, ':');
-        if(colon)
-        {
-          if(name[len - 1] != '0')
-          {
-            include = false;
-          }
-          else
-          {
-            matrixVaryings.push_back(std::string(name, colon));
-            name = matrixVaryings.back().c_str();
-          }
-        }
-
-        if(include)
-          varyings.push_back(name);
-
-        if(sig.systemValue == ShaderBuiltin::Position)
-          posidx = int32_t(varyings.size()) - 1;
-
-        uint32_t elemSize = sig.compType == CompType::Double ? sizeof(double) : sizeof(float);
-
-        stride += elemSize * sig.compCount;
-      }
-
-      // shift position attribute up to first, keeping order otherwise
-      // the same
-      if(posidx > 0)
-      {
-        const char *pos = varyings[posidx];
-        varyings.erase(varyings.begin() + posidx);
-        varyings.insert(varyings.begin(), pos);
-      }
+      MakeVaryingsFromShaderReflection(*lastRefl, varyings, stride);
 
       // see above for the justification/explanation of this monstrosity.
 
       bool finished = false;
       for(;;)
       {
+        drv.SuppressDebugMessages(true);
+
         // specify current varyings & relink
         drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
                                         eGL_INTERLEAVED_ATTRIBS);
         drv.glLinkProgram(feedbackProg);
 
         drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+
+        drv.SuppressDebugMessages(false);
 
         // all good! Hopefully we'll mostly hit this
         if(status == 1)
@@ -1153,6 +1219,48 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
             }
           }
         }
+      }
+
+      if(status == 0)
+      {
+        // if we STILL can't link then something is really messy. Some drivers like AMD reflect out
+        // unused variables when reflecting a separable program, then complain when they are passed
+        // in as varyings. We remove all the varyings, link the program, then reflect it as-is and
+        // try to use the output signature from that as the varyings.
+        RDCWARN(
+            "Failed to generate XFB varyings from normal reflection - making one final attempt.");
+        RDCWARN(
+            "This is often caused by sensitive drivers and output variables declared but never "
+            "written to.");
+
+        drv.SuppressDebugMessages(true);
+
+        drv.glTransformFeedbackVaryings(feedbackProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+        drv.glLinkProgram(feedbackProg);
+
+        drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+
+        if(status == 1)
+        {
+          ShaderReflection tempRefl;
+          MakeShaderReflection(ShaderEnum((size_t)lastRefl->stage), feedbackProg, tempRefl,
+                               outputUsage);
+
+          // remake the varyings with tempRefl to 'trim' the output signature
+          MakeVaryingsFromShaderReflection(*lastRefl, varyings, stride, &tempRefl);
+
+          drv.glTransformFeedbackVaryings(feedbackProg, (GLsizei)varyings.size(), &varyings[0],
+                                          eGL_INTERLEAVED_ATTRIBS);
+          drv.glLinkProgram(feedbackProg);
+
+          drv.glGetProgramiv(feedbackProg, eGL_LINK_STATUS, &status);
+        }
+        else
+        {
+          RDCWARN("Can't link program with no varyings!");
+        }
+
+        drv.SuppressDebugMessages(false);
       }
     }
 
@@ -1595,7 +1703,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       found = false;
 
-      for(uint32_t i = 1; posidx != -1 && i < m_PostVSData[eventId].gsout.numVerts; i++)
+      for(uint32_t i = 1; hasPosition && i < m_PostVSData[eventId].gsout.numVerts; i++)
       {
         //////////////////////////////////////////////////////////////////////////////////
         // derive near/far, assuming a standard perspective matrix
@@ -1662,7 +1770,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       m_PostVSData[eventId].gsout.useIndices = false;
 
-      m_PostVSData[eventId].gsout.hasPosOut = posidx >= 0;
+      m_PostVSData[eventId].gsout.hasPosOut = hasPosition;
 
       m_PostVSData[eventId].gsout.idxBuf = 0;
       m_PostVSData[eventId].gsout.idxByteWidth = 0;
