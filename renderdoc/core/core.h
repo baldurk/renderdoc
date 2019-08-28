@@ -607,6 +607,8 @@ private:
   RenderDoc();
   ~RenderDoc();
 
+  void SyncAvailableGPUThread();
+
   static RenderDoc *m_Inst;
 
   bool m_Replay;
@@ -639,6 +641,7 @@ private:
   Threading::CriticalSection m_DriverLock;
   std::map<RDCDriver, uint64_t> m_ActiveDrivers;
 
+  Threading::ThreadHandle m_AvailableGPUThread = 0;
   rdcarray<GPUDevice> m_AvailableGPUs;
 
   std::map<rdcstr, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
