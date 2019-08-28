@@ -190,6 +190,8 @@ void WGLHook::ProcessSwapBuffers(HDC dc)
 
 static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 {
+  SCOPED_LOCK(glLock);
+
   if(wglhook.createRecurse || wglhook.eglDisabled)
     return WGL.wglCreateContext(dc);
 
@@ -222,6 +224,8 @@ static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 
 static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
 {
+  SCOPED_LOCK(glLock);
+
   if(wglhook.haveContextCreation && !wglhook.eglDisabled)
   {
     SCOPED_LOCK(glLock);
@@ -236,6 +240,8 @@ static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
 
 static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
 {
+  SCOPED_LOCK(glLock);
+
   if(wglhook.createRecurse || wglhook.eglDisabled)
     return WGL.wglCreateLayerContext(dc, iLayerPlane);
 
@@ -271,6 +277,8 @@ static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
 static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContext,
                                                       const int *attribList)
 {
+  SCOPED_LOCK(glLock);
+
   // don't recurse
   if(wglhook.createRecurse || wglhook.eglDisabled)
     return WGL.wglCreateContextAttribsARB(dc, hShareContext, attribList);
@@ -376,6 +384,8 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
 
 static BOOL WINAPI wglShareLists_hooked(HGLRC oldContext, HGLRC newContext)
 {
+  SCOPED_LOCK(glLock);
+
   bool ret = WGL.wglShareLists(oldContext, newContext) == TRUE;
 
   DWORD err = GetLastError();
@@ -394,6 +404,8 @@ static BOOL WINAPI wglShareLists_hooked(HGLRC oldContext, HGLRC newContext)
 
 static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
 {
+  SCOPED_LOCK(glLock);
+
   BOOL ret = WGL.wglMakeCurrent(dc, rc);
 
   DWORD err = GetLastError();
@@ -473,6 +485,8 @@ static BOOL WINAPI wglSwapLayerBuffers_hooked(HDC dc, UINT planes)
 
 static BOOL WINAPI wglSwapMultipleBuffers_hooked(UINT numSwaps, CONST WGLSWAP *pSwaps)
 {
+  SCOPED_LOCK(glLock);
+
   for(UINT i = 0; pSwaps && i < numSwaps; i++)
     wglhook.ProcessSwapBuffers(pSwaps[i].hdc);
 
@@ -530,6 +544,8 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 
     return WGL.wglGetProcAddress(func);
   }
+
+  SCOPED_LOCK(glLock);
 
   PROC realFunc = NULL;
   {
