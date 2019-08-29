@@ -30,6 +30,7 @@
 #include "../renderdoc_app.h"
 #include "../win32/win32_window.h"
 
+typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY1)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
 
 namespace
@@ -37,8 +38,39 @@ namespace
 HMODULE d3d12 = NULL;
 HMODULE dxgi = NULL;
 HMODULE d3dcompiler = NULL;
-IDXGIFactory4Ptr factory;
+IDXGIFactory1Ptr factory;
 IDXGIAdapterPtr adapter;
+bool d3d12on7 = false;
+
+HRESULT EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter)
+{
+  HRESULT hr = S_OK;
+
+  pAdapter = NULL;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapterPtr ad;
+    hr = factory->EnumAdapters(i, &ad);
+    if(hr == S_OK && ad)
+    {
+      DXGI_ADAPTER_DESC desc;
+      ad->GetDesc(&desc);
+
+      if(desc.AdapterLuid.LowPart == luid.LowPart && desc.AdapterLuid.HighPart == luid.HighPart)
+      {
+        pAdapter = ad;
+        return S_OK;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return E_FAIL;
+}
 };
 
 void D3D12GraphicsTest::Prepare(int argc, char **argv)
@@ -63,24 +95,38 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
     if(!d3dcompiler)
       d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
 
+    if(!d3d12)
+    {
+      d3d12 = LoadLibraryA("12on7/d3d12.dll");
+      d3d12on7 = (d3d12 != NULL);
+    }
+
     if(d3d12)
     {
+      PFN_CREATE_DXGI_FACTORY1 createFactory1 =
+          (PFN_CREATE_DXGI_FACTORY1)GetProcAddress(dxgi, "CreateDXGIFactory1");
       PFN_CREATE_DXGI_FACTORY2 createFactory2 =
           (PFN_CREATE_DXGI_FACTORY2)GetProcAddress(dxgi, "CreateDXGIFactory2");
 
+      HRESULT hr = E_FAIL;
+
       if(createFactory2)
+        hr = createFactory2(debugDevice ? DXGI_CREATE_FACTORY_DEBUG : 0, __uuidof(IDXGIFactory1),
+                            (void **)&factory);
+      else if(createFactory1)
+        hr = createFactory1(__uuidof(IDXGIFactory1), (void **)&factory);
+
+      if(SUCCEEDED(hr))
       {
-        HRESULT hr = createFactory2(debugDevice ? DXGI_CREATE_FACTORY_DEBUG : 0,
-                                    __uuidof(IDXGIFactory4), (void **)&factory);
+        bool warp = false;
 
-        if(SUCCEEDED(hr))
+        adapter = ChooseD3DAdapter(factory, argc, argv, warp);
+
+        if(warp && d3d12on7)
         {
-          bool warp = false;
-
-          adapter = ChooseD3DAdapter(factory, argc, argv, warp);
-
-          if(warp)
-            factory->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&adapter);
+          IDXGIFactory4Ptr factory4 = factory;
+          if(factory4)
+            factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&adapter);
         }
       }
     }
@@ -165,7 +211,7 @@ bool D3D12GraphicsTest::Init()
     LUID luid = dev->GetAdapterLuid();
 
     IDXGIAdapterPtr pDXGIAdapter;
-    HRESULT hr = m_Factory->EnumAdapterByLuid(luid, __uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+    HRESULT hr = EnumAdapterByLuid(dev->GetAdapterLuid(), pDXGIAdapter);
 
     if(FAILED(hr))
     {
@@ -207,10 +253,44 @@ bool D3D12GraphicsTest::Init()
     swapDesc.Stereo = FALSE;
     swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    CHECK_HR(m_Factory->CreateSwapChainForHwnd(queue, win->wnd, &swapDesc, NULL, NULL, &swap));
+    if(!d3d12on7)
+    {
+      IDXGIFactory4Ptr factory4 = m_Factory;
 
-    CHECK_HR(swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&bbTex[0]));
-    CHECK_HR(swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&bbTex[1]));
+      CHECK_HR(factory4->CreateSwapChainForHwnd(queue, win->wnd, &swapDesc, NULL, NULL, &swap));
+
+      CHECK_HR(swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&bbTex[0]));
+      CHECK_HR(swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&bbTex[1]));
+    }
+    else
+    {
+      D3D12_RESOURCE_DESC bbDesc;
+      bbDesc.Alignment = 0;
+      bbDesc.DepthOrArraySize = 1;
+      bbDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+      bbDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+      bbDesc.Format = backbufferFmt;
+      bbDesc.Height = screenHeight;
+      bbDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+      bbDesc.MipLevels = 1;
+      bbDesc.SampleDesc.Count = 1;
+      bbDesc.SampleDesc.Quality = 0;
+      bbDesc.Width = screenWidth;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      CHECK_HR(dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bbDesc,
+                                            D3D12_RESOURCE_STATE_PRESENT, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&bbTex[0]));
+      CHECK_HR(dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bbDesc,
+                                            D3D12_RESOURCE_STATE_PRESENT, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&bbTex[1]));
+    }
   }
 
   dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
@@ -421,7 +501,25 @@ void D3D12GraphicsTest::GPUSync()
 
 void D3D12GraphicsTest::Present()
 {
-  swap->Present(0, 0);
+  if(swap)
+  {
+    swap->Present(0, 0);
+  }
+  else
+  {
+    ID3D12CommandQueueDownlevelPtr downlevel = queue;
+
+    ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+    Reset(cmd);
+
+    downlevel->Present(cmd, bbTex[1 - texIdx], ((Win32Window *)mainWindow)->wnd,
+                       D3D12_DOWNLEVEL_PRESENT_FLAG_NONE);
+
+    m_GPUSyncCounter++;
+    queue->Signal(m_GPUSyncFence, m_GPUSyncCounter);
+
+    pendingCommandBuffers.push_back(std::make_pair(cmd, m_GPUSyncFence));
+  }
 
   for(auto it = pendingCommandBuffers.begin(); it != pendingCommandBuffers.end();)
   {

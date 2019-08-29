@@ -181,7 +181,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12ResourcePtr bbTex[2];
   uint32_t texIdx = 0;
 
-  IDXGIFactory4Ptr m_Factory;
+  IDXGIFactory1Ptr m_Factory;
 
   ID3D12DebugPtr d3d12Debug;
   ID3D12InfoQueuePtr infoqueue;

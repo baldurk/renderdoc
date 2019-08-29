@@ -26,6 +26,7 @@
 
 #include <comdef.h>
 #include "dx/d3d_helpers.h"
+#include "dx/official/D3D12Downlevel.h"
 #include "dx/official/d3d12.h"
 
 COM_SMARTPTR(ID3DBlob);
@@ -53,6 +54,8 @@ COM_SMARTPTR(ID3D12Resource);
 COM_SMARTPTR(ID3D12DescriptorHeap);
 
 COM_SMARTPTR(ID3D12InfoQueue);
+
+COM_SMARTPTR(ID3D12CommandQueueDownlevel);
 
 struct D3D12GraphicsTest;
 
