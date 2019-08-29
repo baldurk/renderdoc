@@ -42,6 +42,8 @@ static void *GetEGLHandle()
 
 class EGLPlatform : public GLPlatform
 {
+  RDCDriver m_API = RDCDriver::OpenGLES;
+
   bool MakeContextCurrent(GLWindowingData data)
   {
     if(EGL.MakeCurrent)
@@ -113,6 +115,7 @@ class EGLPlatform : public GLPlatform
   bool IsOutputWindowVisible(GLWindowingData context) { return true; }
   GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)
   {
+    EGLNativeDisplayType display = EGL_DEFAULT_DISPLAY;
     EGLNativeWindowType win = 0;
 
     switch(window.system)
@@ -122,7 +125,32 @@ class EGLPlatform : public GLPlatform
 #elif ENABLED(RDOC_ANDROID)
       case WindowingSystem::Android: win = window.android.window; break;
 #elif ENABLED(RDOC_LINUX)
-      case WindowingSystem::Xlib: win = window.xlib.window; break;
+      case WindowingSystem::Xlib:
+      {
+        Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
+
+        display = (EGLNativeDisplayType)window.xlib.display;
+        win = (EGLNativeWindowType)window.xlib.window;
+
+        // ensure we're using the same display as the share context, and the same as our global
+        // display that we used at init time to create the share context's display
+        RDCASSERT((void *)display == (void *)xlibDisplay && display != NULL, (void *)display,
+                  (void *)xlibDisplay);
+        break;
+      }
+      case WindowingSystem::Wayland:
+      {
+        wl_display *waylandDisplay = RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay;
+
+        display = (EGLNativeDisplayType)window.wayland.display;
+        win = (EGLNativeWindowType)window.wayland.window;
+
+        // ensure we're using the same display as the share context, and the same as our global
+        // display
+        RDCASSERT((void *)display == (void *)waylandDisplay && display != NULL, (void *)display,
+                  (void *)waylandDisplay);
+        break;
+      }
 #endif
       case WindowingSystem::Unknown:
       case WindowingSystem::Headless:
@@ -131,8 +159,17 @@ class EGLPlatform : public GLPlatform
       default: RDCERR("Unexpected window system %u", window.system); break;
     }
 
-    EGLDisplay eglDisplay = EGL.GetDisplay(EGL_DEFAULT_DISPLAY);
+    EGLDisplay eglDisplay = NULL;
+
+    if(share_context.egl_dpy)
+      eglDisplay = share_context.egl_dpy;
+    else
+      eglDisplay = EGL.GetDisplay(display);
+
     RDCASSERT(eglDisplay);
+
+    int major, minor;
+    EGL.Initialize(eglDisplay, &major, &minor);
 
     return CreateWindowingData(eglDisplay, share_context.ctx, win, false);
   }
@@ -150,24 +187,27 @@ class EGLPlatform : public GLPlatform
     ret.egl_wnd = NULL;
 
     EGLint surfaceType = (window == 0) ? EGL_PBUFFER_BIT : EGL_WINDOW_BIT;
-    const EGLint configAttribs[] = {EGL_RED_SIZE,
-                                    8,
-                                    EGL_GREEN_SIZE,
-                                    8,
-                                    EGL_BLUE_SIZE,
-                                    8,
-                                    EGL_RENDERABLE_TYPE,
-                                    EGL_OPENGL_ES3_BIT,
-                                    EGL_CONFORMANT,
-                                    EGL_OPENGL_ES3_BIT,
-                                    EGL_SURFACE_TYPE,
-                                    surfaceType,
-                                    EGL_COLOR_BUFFER_TYPE,
-                                    EGL_RGB_BUFFER,
-                                    EGL_NONE};
+    const EGLint configAttribs[] = {
+        EGL_RED_SIZE,
+        8,
+        EGL_GREEN_SIZE,
+        8,
+        EGL_BLUE_SIZE,
+        8,
+        EGL_RENDERABLE_TYPE,
+        m_API == RDCDriver::OpenGLES ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_BIT,
+        EGL_CONFORMANT,
+        m_API == RDCDriver::OpenGLES ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_BIT,
+        EGL_SURFACE_TYPE,
+        surfaceType,
+        EGL_COLOR_BUFFER_TYPE,
+        EGL_RGB_BUFFER,
+        EGL_NONE,
+    };
 
-    EGLint numConfigs;
-    if(!EGL.ChooseConfig(eglDisplay, configAttribs, &ret.egl_cfg, 1, &numConfigs))
+    EGLint numConfigs = 0;
+    EGLBoolean success = EGL.ChooseConfig(eglDisplay, configAttribs, &ret.egl_cfg, 1, &numConfigs);
+    if(!success || numConfigs == 0)
     {
       RDCERR("Couldn't find a suitable EGL config");
       return ret;
@@ -280,12 +320,26 @@ class EGLPlatform : public GLPlatform
   bool PopulateForReplay() { return EGL.PopulateForReplay(); }
   ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
-    // we only support replaying GLES through EGL
-    RDCASSERT(api == RDCDriver::OpenGLES);
+    Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
+    wl_display *waylandDisplay = RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay;
 
-    EGL.BindAPI(EGL_OPENGL_ES_API);
+    // we only support replaying GLES through EGL, except if Wayland is enabled
+    RDCASSERT(api == RDCDriver::OpenGLES || waylandDisplay);
 
-    EGLDisplay eglDisplay = EGL.GetDisplay(EGL_DEFAULT_DISPLAY);
+    m_API = api;
+
+    if(api == RDCDriver::OpenGLES)
+      EGL.BindAPI(EGL_OPENGL_ES_API);
+    else
+      EGL.BindAPI(EGL_OPENGL_API);
+
+    EGLNativeDisplayType display = EGL_DEFAULT_DISPLAY;
+    if(waylandDisplay)
+      display = (EGLNativeDisplayType)waylandDisplay;
+    else if(xlibDisplay)
+      display = (EGLNativeDisplayType)xlibDisplay;
+
+    EGLDisplay eglDisplay = EGL.GetDisplay(display);
     if(!eglDisplay)
     {
       RDCERR("Couldn't open default EGL display");

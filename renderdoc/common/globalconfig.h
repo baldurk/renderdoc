@@ -129,6 +129,12 @@
 #define RDOC_XCB OPTION_OFF
 #endif
 
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+#define RDOC_WAYLAND OPTION_ON
+#else
+#define RDOC_WAYLAND OPTION_OFF
+#endif
+
 /////////////////////////////////////////////////
 // Global constants
 enum

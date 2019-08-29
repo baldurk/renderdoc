@@ -491,7 +491,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
     SwapchainInfo &swapInfo = *record->swapInfo;
 
     // sneaky casting of window handle into record
-    swapInfo.wndHandle = (RENDERDOC_WindowHandle)GetRecord(pCreateInfo->surface);
+    swapInfo.wndHandle = ((PackedWindowHandle *)GetRecord(pCreateInfo->surface))->handle;
 
     {
       SCOPED_LOCK(m_SwapLookupLock);
@@ -846,7 +846,11 @@ void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surfac
 
   // record pointer has window handle packed in
   if(wrapper->record)
-    Keyboard::RemoveInputWindow((void *)wrapper->record);
+  {
+    PackedWindowHandle *wnd = (PackedWindowHandle *)wrapper->record;
+    Keyboard::RemoveInputWindow(wnd->system, wnd->handle);
+    delete wnd;
+  }
 
   // now set record pointer back to NULL so no-one tries to delete it
   wrapper->record = NULL;

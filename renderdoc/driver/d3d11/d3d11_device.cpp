@@ -1323,7 +1323,7 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
 
   if(wnd)
   {
-    Keyboard::RemoveInputWindow(wnd);
+    Keyboard::RemoveInputWindow(WindowingSystem::Win32, wnd);
 
     RenderDoc::Inst().RemoveFrameCapturer((ID3D11Device *)this, wnd);
   }
@@ -1460,7 +1460,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
 
   if(wnd)
   {
-    Keyboard::AddInputWindow(wnd);
+    Keyboard::AddInputWindow(WindowingSystem::Win32, wnd);
 
     RenderDoc::Inst().AddFrameCapturer((ID3D11Device *)this, wnd, this);
   }

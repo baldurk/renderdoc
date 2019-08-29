@@ -51,7 +51,16 @@ static uint64_t GetHandle(WindowingData window)
 #endif
   }
 
-  RDCERR("Unrecognised window system %d", system);
+  if(window.system == WindowingSystem::Wayland)
+  {
+#if ENABLED(RDOC_WAYLAND)
+    return (uint64_t)window.wayland.window;
+#else
+    RDCERR("Wayland windowing system data passed in, but support is not compiled in");
+#endif
+  }
+
+  RDCERR("Unrecognised window system %s", ToStr(window.system).c_str());
 
   return 0;
 

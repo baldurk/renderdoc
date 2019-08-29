@@ -234,6 +234,7 @@ public:
   void SetReplayData(GLWindowingData data);
 
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
+  bool HasDebugContext() { return m_DebugCtx != NULL; }
 private:
   void OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::string prefix,
                                   const rdcarray<ShaderConstant> &variables,

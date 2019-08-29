@@ -293,7 +293,7 @@ void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 {
   if(strstr(buf, "vr-marker,frame_end,type,application") != NULL)
   {
-    SwapBuffers((void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
+    SwapBuffers(WindowingSystem::Headless, (void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
     m_UsesVRMarkers = true;
 
     if(IsActiveCapturing(m_State))
@@ -401,7 +401,7 @@ void WrappedOpenGL::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 
 void WrappedOpenGL::glFrameTerminatorGREMEDY()
 {
-  SwapBuffers((void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
+  SwapBuffers(WindowingSystem::Headless, (void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
 }
 
 void WrappedOpenGL::glStringMarkerGREMEDY(GLsizei len, const void *string)

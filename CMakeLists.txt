@@ -166,6 +166,7 @@ option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
+option(ENABLE_WAYLAND "Enable experimental wayland windowing support" OFF)
 option(ENABLE_GGP "Enable GGP support" OFF)
 
 option(ENABLE_ASAN "Enable address sanitizer" OFF)
@@ -180,6 +181,21 @@ endif()
 if(ENABLE_TSAN)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
     message(STATUS "Enabling thread sanitizer - may cause issues if capturing, only recommended for use with replay only")
+endif()
+
+if(ENABLE_WAYLAND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(PKG_WAYLAND QUIET wayland-client)
+
+    if(PKG_WAYLAND_FOUND)
+        if(NOT ENABLE_GLES)
+            message(WARNING "On Wayland GLES support is required for EGL, disabling GL support")
+            set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+        endif()
+    else()
+        message(WARNING "Wayland not found - disabling support")
+        set(ENABLE_WAYLAND OFF CACHE BOOL "" FORCE)
+    endif()
 endif()
 
 if(WIN32)
@@ -328,6 +344,10 @@ elseif(UNIX)
     if(ENABLE_XCB)
         add_definitions(-DRENDERDOC_WINDOWING_XCB)
     endif()
+
+    if(ENABLE_WAYLAND)
+        add_definitions(-DRENDERDOC_WINDOWING_WAYLAND)
+    endif()
 endif()
 
 add_subdirectory(renderdoc)
@@ -378,6 +398,10 @@ if(UNIX AND NOT ANDROID AND NOT APPLE AND NOT ENABLE_GGP)
 
     if(ENABLE_XCB)
         message(STATUS "  - XCB")
+    endif()
+
+    if(ENABLE_WAYLAND)
+        message(STATUS "  - Wayland")
     endif()
 endif()
 

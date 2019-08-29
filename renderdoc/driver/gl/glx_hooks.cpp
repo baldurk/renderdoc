@@ -29,7 +29,7 @@
 
 namespace Keyboard
 {
-void CloneDisplay(Display *dpy);
+void UseXlibDisplay(Display *dpy);
 }
 
 class GLXHook : LibraryHook
@@ -65,18 +65,18 @@ public:
 // callback and we'll get a specific library handle.
 static void EnsureRealLibraryLoaded()
 {
-  if(RenderDoc::Inst().IsReplayApp())
-    return;
-
   if(glxhook.handle == RTLD_NEXT)
   {
-    RDCLOG("Loading libGL at the last second");
+    if(!RenderDoc::Inst().IsReplayApp())
+      RDCLOG("Loading libGL at the last second");
 
     void *handle = Process::LoadModule("libGL.so.1");
     if(!handle)
       handle = Process::LoadModule("libGL.so");
     if(!handle)
       handle = Process::LoadModule("libGLX.so.0");
+
+    glxhook.handle = handle;
   }
 }
 
@@ -106,7 +106,7 @@ HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualIn
 
   int value = 0;
 
-  Keyboard::CloneDisplay(dpy);
+  Keyboard::UseXlibDisplay(dpy);
 
   GLX.glXGetConfig(dpy, vis, GLX_BUFFER_SIZE, &value);
   init.colorBits = value;
@@ -251,7 +251,7 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB_renderdoc_hooked(Display *dpy,
 
   int value = 0;
 
-  Keyboard::CloneDisplay(dpy);
+  Keyboard::UseXlibDisplay(dpy);
 
   GLX.glXGetConfig(dpy, vis, GLX_BUFFER_SIZE, &value);
   init.colorBits = value;
@@ -444,7 +444,7 @@ HOOK_EXPORT void glXSwapBuffers_renderdoc_hooked(Display *dpy, GLXDrawable drawa
     glxhook.UpdateWindowSize(data, dpy, drawable);
   }
 
-  glxhook.driver.SwapBuffers((void *)drawable);
+  glxhook.driver.SwapBuffers(WindowingSystem::Xlib, (void *)drawable);
 
   GLX.glXSwapBuffers(dpy, drawable);
 }

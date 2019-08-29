@@ -45,11 +45,11 @@ bool PlatformHasKeyInput()
   return false;
 }
 
-void AddInputWindow(void *wnd)
+void AddInputWindow(WindowingSystem windowSystem, void *wnd)
 {
 }
 
-void RemoveInputWindow(void *wnd)
+void RemoveInputWindow(WindowingSystem windowSystem, void *wnd)
 {
 }
 

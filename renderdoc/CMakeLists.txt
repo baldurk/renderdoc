@@ -70,6 +70,16 @@ elseif(UNIX)
         list(APPEND RDOC_LIBRARIES
             PRIVATE -l${XCB_LIBRARIES})
     endif()
+
+    if(ENABLE_WAYLAND)
+        pkg_check_modules(PKG_WAYLAND QUIET wayland-client)
+
+        list(APPEND RDOC_INCLUDES
+            PRIVATE ${PKG_WAYLAND_INCLUDE_DIRS})
+
+        list(APPEND RDOC_LIBRARIES
+            PRIVATE -l${PKG_WAYLAND_LIBRARIES})
+    endif()
 endif()
 
 if(NOT "x${CMAKE_THREAD_LIBS_INIT}" STREQUAL "x")

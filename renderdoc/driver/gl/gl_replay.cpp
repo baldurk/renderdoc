@@ -140,12 +140,24 @@ std::vector<WindowingSystem> GLReplay::GetSupportedWindowSystems()
   std::vector<WindowingSystem> ret;
 
 #if ENABLED(RDOC_LINUX)
-  // only Xlib supported for GLX. We can't report XCB here since we need
-  // the Display, and that can't be obtained from XCB. The application is
-  // free to use XCB internally but it would have to create a hybrid and
-  // initialise XCB out of Xlib, to be able to provide the display and
-  // drawable to us.
-  ret.push_back(WindowingSystem::Xlib);
+
+#if ENABLED(RDOC_WAYLAND)
+  // if wayland is supported and a display is configured, we *must* get wayland surfaces to render
+  // on
+  if(RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay)
+  {
+    ret.push_back(WindowingSystem::Wayland);
+  }
+  else
+#endif
+  {
+    // only Xlib supported for GLX. We can't report XCB here since we need the Display, and that
+    // can't be obtained from XCB. The application is free to use XCB internally but it would have
+    // to create a hybrid and initialise XCB out of Xlib, to be able to provide the display and
+    // drawable to us.
+    ret.push_back(WindowingSystem::Xlib);
+  }
+
 #elif ENABLED(RDOC_ANDROID)
   ret.push_back(WindowingSystem::Android);
 #elif ENABLED(RDOC_APPLE)
@@ -249,6 +261,9 @@ void GLReplay::SetReplayData(GLWindowingData data)
     m_pDriver->RegisterReplayContext(m_ReplayCtx, NULL, true, true);
 
   InitDebugData();
+
+  if(!HasDebugContext())
+    return;
 
   AMDCounters *countersAMD = NULL;
   IntelGlCounters *countersIntel = NULL;
@@ -3465,6 +3480,12 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
   replay->SetProxy(rdc == NULL);
   replay->SetReplayData(data);
 
+  if(!replay->HasDebugContext())
+  {
+    platform.DeleteReplayContext(data);
+    return ReplayStatus::APIHardwareUnsupported;
+  }
+
   gldriver->Initialise(initParams, ver, opts);
 
   *driver = (IReplayDriver *)replay;
@@ -3509,28 +3530,6 @@ std::vector<GLVersion> GetReplayVersions(RDCDriver api)
     };
   }
 }
-
-#if defined(RENDERDOC_SUPPORT_GL)
-
-ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
-{
-  RDCDEBUG("Creating an OpenGL replay device");
-
-  bool load_ok = GetGLPlatform().PopulateForReplay();
-
-  if(!load_ok)
-  {
-    RDCERR("Couldn't find required platform GL function addresses");
-    return ReplayStatus::APIInitFailed;
-  }
-
-  return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGL, rdc, opts, GetGLPlatform(),
-                            driver);
-}
-
-static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateReplayDevice);
-
-#endif
 
 #if defined(RENDERDOC_SUPPORT_GLES)
 
@@ -3585,5 +3584,38 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IR
 }
 
 static DriverRegistration GLESDriverRegistration(RDCDriver::OpenGLES, &GLES_CreateReplayDevice);
+
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GL)
+
+ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
+{
+  if(RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay)
+  {
+#if defined(RENDERDOC_SUPPORT_GLES)
+    RDCLOG("Forcing EGL device creation for wayland");
+    return GLES_CreateReplayDevice(rdc, opts, driver);
+#else
+    RDCERR("GLES support must be enabled at build time when using Wayland");
+    return ReplayStatus::InternalError;
+#endif
+  }
+
+  RDCDEBUG("Creating an OpenGL replay device");
+
+  bool load_ok = GetGLPlatform().PopulateForReplay();
+
+  if(!load_ok)
+  {
+    RDCERR("Couldn't find required platform GL function addresses");
+    return ReplayStatus::APIInitFailed;
+  }
+
+  return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGL, rdc, opts, GetGLPlatform(),
+                            driver);
+}
+
+static DriverRegistration GLDriverRegistration(RDCDriver::OpenGL, &GL_CreateReplayDevice);
 
 #endif

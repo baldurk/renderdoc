@@ -28,6 +28,8 @@
 
 typedef EGLBoolean(EGLAPIENTRY *PFN_eglBindAPI)(EGLenum api);
 typedef EGLDisplay(EGLAPIENTRY *PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
+typedef EGLDisplay(EGLAPIENTRY *PFN_eglGetPlatformDisplay)(EGLenum platform, void *native_display,
+                                                           const EGLAttrib *attrib_list);
 typedef EGLContext(EGLAPIENTRY *PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config,
                                                       EGLContext share_context,
                                                       const EGLint *attrib_list);
@@ -43,6 +45,9 @@ typedef EGLSurface(EGLAPIENTRY *PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGL
 typedef EGLSurface(EGLAPIENTRY *PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
                                                             EGLNativeWindowType win,
                                                             const EGLint *attrib_list);
+typedef EGLSurface(EGLAPIENTRY *PFN_eglCreatePlatformWindowSurface)(EGLDisplay dpy, EGLConfig config,
+                                                                    void *native_window,
+                                                                    const EGLAttrib *attrib_list);
 typedef EGLBoolean(EGLAPIENTRY *PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list,
                                                      EGLConfig *configs, EGLint config_size,
                                                      EGLint *num_config);
@@ -60,17 +65,19 @@ typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 typedef PFNEGLSWAPBUFFERSWITHDAMAGEEXTPROC PFN_eglSwapBuffersWithDamageEXT;
 typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
 
-#define EGL_HOOKED_SYMBOLS(FUNC)        \
-  FUNC(BindAPI, false);                 \
-  FUNC(GetProcAddress, false);          \
-  FUNC(GetDisplay, false);              \
-  FUNC(CreateContext, false);           \
-  FUNC(DestroyContext, false);          \
-  FUNC(CreateWindowSurface, false);     \
-  FUNC(MakeCurrent, false);             \
-  FUNC(SwapBuffers, false);             \
-  FUNC(PostSubBufferNV, true);          \
-  FUNC(SwapBuffersWithDamageEXT, true); \
+#define EGL_HOOKED_SYMBOLS(FUNC)            \
+  FUNC(BindAPI, false);                     \
+  FUNC(GetProcAddress, false);              \
+  FUNC(GetDisplay, false);                  \
+  FUNC(GetPlatformDisplay, false);          \
+  FUNC(CreateContext, false);               \
+  FUNC(DestroyContext, false);              \
+  FUNC(CreateWindowSurface, false);         \
+  FUNC(CreatePlatformWindowSurface, false); \
+  FUNC(MakeCurrent, false);                 \
+  FUNC(SwapBuffers, false);                 \
+  FUNC(PostSubBufferNV, true);              \
+  FUNC(SwapBuffersWithDamageEXT, true);     \
   FUNC(SwapBuffersWithDamageKHR, true);
 
 #define EGL_NONHOOKED_SYMBOLS(FUNC)  \

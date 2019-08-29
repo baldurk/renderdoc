@@ -1061,29 +1061,38 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
     void *wndHandle = it->first;
     it++;
 
-    ctxdata.UnassociateWindow(wndHandle);
+    ctxdata.UnassociateWindow(this, wndHandle);
   }
 
   m_ContextData.erase(contextHandle);
 }
 
-void WrappedOpenGL::ContextData::UnassociateWindow(void *wndHandle)
+void WrappedOpenGL::ContextData::UnassociateWindow(WrappedOpenGL *driver, void *wndHandle)
 {
   auto it = windows.find(wndHandle);
   if(it != windows.end())
   {
+    if(it->second.first != WindowingSystem::Headless && IsCaptureMode(driver->GetState()))
+      Keyboard::RemoveInputWindow(it->second.first, wndHandle);
+
     windows.erase(wndHandle);
     RenderDoc::Inst().RemoveFrameCapturer(ctx, wndHandle);
   }
 }
 
-void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *driver, void *wndHandle)
+void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *driver, WindowingSystem winSystem,
+                                                 void *wndHandle)
 {
   auto it = windows.find(wndHandle);
   if(it == windows.end())
+  {
     RenderDoc::Inst().AddFrameCapturer(ctx, wndHandle, driver);
 
-  windows[wndHandle] = Timing::GetUnixTimestamp();
+    if(winSystem != WindowingSystem::Headless && IsCaptureMode(driver->GetState()))
+      Keyboard::AddInputWindow(winSystem, wndHandle);
+  }
+
+  windows[wndHandle] = {winSystem, Timing::GetUnixTimestamp()};
 }
 
 void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *driver, void *suppliedCtx)
@@ -1244,9 +1253,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     if(m_LastContexts.size() > 10)
       m_LastContexts.erase(m_LastContexts.begin());
   }
-
-  // TODO: support multiple GL contexts more explicitly
-  Keyboard::AddInputWindow((void *)winData.wnd);
 
   if(winData.ctx)
   {
@@ -1802,7 +1808,7 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
   }
 }
 
-void WrappedOpenGL::SwapBuffers(void *windowHandle)
+void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 {
   if(IsBackgroundCapturing(m_State))
     RenderDoc::Inst().Tick();
@@ -1840,9 +1846,9 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   {
     for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
       if(it->first != ctxdata.ctx)
-        it->second.UnassociateWindow(windowHandle);
+        it->second.UnassociateWindow(this, windowHandle);
 
-    ctxdata.AssociateWindow(this, windowHandle);
+    ctxdata.AssociateWindow(this, winSystem, windowHandle);
   }
 
   // we used to do this here so it was as late as possible to avoid creating objects on contexts
@@ -1863,14 +1869,12 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   {
     for(auto wit = cit->second.windows.begin(); wit != cit->second.windows.end();)
     {
-      if(wit->second < ref)
+      if(wit->second.second < ref)
       {
         auto remove = wit;
         ++wit;
 
-        RenderDoc::Inst().RemoveFrameCapturer(cit->first, remove->first);
-
-        cit->second.windows.erase(remove);
+        cit->second.UnassociateWindow(this, remove->first);
       }
       else
       {

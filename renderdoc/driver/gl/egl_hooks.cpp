@@ -38,9 +38,22 @@
 #if ENABLED(RDOC_LINUX)
 namespace Keyboard
 {
-void CloneDisplay(Display *dpy);
+void UseXlibDisplay(Display *dpy);
+WindowingSystem UseUnknownDisplay(void *disp);
+void UseWaylandDisplay(wl_display *disp);
 }
 #endif
+
+struct SurfaceConfig
+{
+  WindowingSystem system;
+  void *wnd;
+};
+
+struct DisplayConfig
+{
+  WindowingSystem system;
+};
 
 class EGLHook : LibraryHook
 {
@@ -54,7 +67,8 @@ public:
   WrappedOpenGL driver;
   std::set<EGLContext> contexts;
   std::map<EGLContext, EGLConfig> configs;
-  std::map<EGLSurface, EGLNativeWindowType> windows;
+  std::map<EGLSurface, SurfaceConfig> windows;
+  std::map<EGLDisplay, DisplayConfig> displays;
 
   // indicates we're in a swap function, so don't process the swap any further if we recurse - could
   // happen due to driver implementation of one function calling another
@@ -121,12 +135,15 @@ static void EnsureRealLibraryLoaded()
 #if ENABLED(RDOC_LINUX)
   if(eglhook.handle == DEFAULT_HANDLE)
   {
-    RDCLOG("Loading libEGL at the last second");
+    if(!RenderDoc::Inst().IsReplayApp())
+      RDCLOG("Loading libEGL at the last second");
 
     void *handle = Process::LoadModule("libEGL.so");
 
     if(!handle)
       handle = Process::LoadModule("libEGL.so.1");
+
+    eglhook.handle = handle;
   }
 #endif
 }
@@ -144,10 +161,36 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDispl
   EnsureRealLibraryLoaded();
 
 #if ENABLED(RDOC_LINUX)
-  Keyboard::CloneDisplay(display);
+  Keyboard::UseUnknownDisplay((void *)display);
 #endif
 
   return EGL.GetDisplay(display);
+}
+
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetPlatformDisplay_renderdoc_hooked(EGLenum platform,
+                                                                          void *native_display,
+                                                                          const EGLAttrib *attrib_list)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.GetDisplay)
+      EGL.PopulateForReplay();
+
+    return EGL.GetPlatformDisplay(platform, native_display, attrib_list);
+  }
+
+  EnsureRealLibraryLoaded();
+
+#if ENABLED(RDOC_LINUX)
+  if(platform == EGL_PLATFORM_X11_KHR)
+    Keyboard::UseXlibDisplay((Display *)native_display);
+  else if(platform == EGL_PLATFORM_WAYLAND_KHR)
+    Keyboard::UseWaylandDisplay((wl_display *)native_display);
+  else
+    RDCWARN("Unknown platform %x in eglGetPlatformDisplay", platform);
+#endif
+
+  return EGL.GetPlatformDisplay(platform, native_display, attrib_list);
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglBindAPI_renderdoc_hooked(EGLenum api)
@@ -336,7 +379,35 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface_renderdoc_hooked(EGLDi
   {
     SCOPED_LOCK(glLock);
 
-    eglhook.windows[ret] = win;
+    // spec says it's implementation dependent what happens, so we assume that we're using the same
+    // window system as the display
+    eglhook.windows[ret] = {eglhook.displays[dpy].system, (void *)win};
+  }
+
+  return ret;
+}
+
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hooked(
+    EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.CreatePlatformWindowSurface)
+      EGL.PopulateForReplay();
+
+    return EGL.CreatePlatformWindowSurface(dpy, config, native_window, attrib_list);
+  }
+
+  EnsureRealLibraryLoaded();
+
+  EGLSurface ret = EGL.CreatePlatformWindowSurface(dpy, config, native_window, attrib_list);
+
+  if(ret)
+  {
+    SCOPED_LOCK(glLock);
+
+    // spec guarantees that we're using the same window system as the display
+    eglhook.windows[ret] = {eglhook.displays[dpy].system, native_window};
   }
 
   return ret;
@@ -376,17 +447,20 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay di
       GL.DriverForEmulation(&eglhook.driver);
     }
 
+    SurfaceConfig cfg = eglhook.windows[draw];
+
     GLWindowingData data;
     data.egl_dpy = display;
     data.egl_wnd = draw;
     data.egl_ctx = ctx;
-    data.wnd = (decltype(data.wnd))eglhook.windows[draw];
+    data.wnd = (decltype(data.wnd))cfg.wnd;
 
     if(!data.wnd)
     {
       // could be a pbuffer surface or other offscreen rendering. We want a valid wnd, so set it to
       // a dummy value
       data.wnd = (decltype(data.wnd))(void *)(uintptr_t(0xdeadbeef) + uintptr_t(draw));
+      cfg.system = WindowingSystem::Headless;
     }
 
     // we could query this out technically but it's easier to keep a map
@@ -426,7 +500,9 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
 
     eglhook.RefreshWindowParameters(data);
 
-    eglhook.driver.SwapBuffers(surface);
+    SurfaceConfig cfg = eglhook.windows[surface];
+
+    eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
   }
 
   {
@@ -456,7 +532,11 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDispla
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
   if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
-    eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
+  {
+    SurfaceConfig cfg = eglhook.windows[surface];
+
+    eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
+  }
 
   {
     eglhook.swapping = true;
@@ -485,7 +565,11 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageEXT_renderdoc_hooked(
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
   if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
-    eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
+  {
+    SurfaceConfig cfg = eglhook.windows[surface];
+
+    eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
+  }
 
   {
     eglhook.swapping = true;
@@ -514,7 +598,11 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageKHR_renderdoc_hooked(
 
   eglhook.driver.SetDriverType(eglhook.activeAPI);
   if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
-    eglhook.driver.SwapBuffers((void *)eglhook.windows[surface]);
+  {
+    SurfaceConfig cfg = eglhook.windows[surface];
+
+    eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
+  }
 
   {
     eglhook.swapping = true;
@@ -549,9 +637,9 @@ eglGetProcAddress_renderdoc_hooked(const char *func)
     return realFunc;
 
 // return our egl hooks
-#define GPA_FUNCTION(name)                                                                          \
-  if(!strcmp(func, "egl" STRINGIZE(name)))                                                          \
-    return (__eglMustCastToProperFunctionPointerType)&CONCAT(egl, CONCAT(name, _renderdoc_hooked)); \
+#define GPA_FUNCTION(name, isext)          \
+  if(!strcmp(func, "egl" STRINGIZE(name))) \
+    return (__eglMustCastToProperFunctionPointerType)&CONCAT(egl, CONCAT(name, _renderdoc_hooked));
   EGL_HOOKED_SYMBOLS(GPA_FUNCTION)
 #undef GPA_FUNCTION
 
@@ -578,6 +666,12 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display)
   return eglGetDisplay_renderdoc_hooked(display);
 }
 
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetPlatformDisplay(EGLenum platform, void *native_display,
+                                                         const EGLAttrib *attrib_list)
+{
+  return eglGetPlatformDisplay_renderdoc_hooked(platform, native_display, attrib_list);
+}
+
 HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay display, EGLConfig config,
                                                     EGLContext shareContext, EGLint const *attribList)
 {
@@ -594,6 +688,13 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLCon
                                                           const EGLint *attrib_list)
 {
   return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
+}
+
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface(EGLDisplay dpy, EGLConfig config,
+                                                                  void *native_window,
+                                                                  const EGLAttrib *attrib_list)
+{
+  return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface draw,
@@ -757,10 +858,6 @@ EGL_PASSTHRU_4(EGLBoolean, eglGetSyncAttrib, EGLDisplay, dpy, EGLSync, sync, EGL
 EGL_PASSTHRU_5(EGLImage, eglCreateImage, EGLDisplay, dpy, EGLContext, ctx, EGLenum, target,
                EGLClientBuffer, buffer, const EGLAttrib *, attrib_list)
 EGL_PASSTHRU_2(EGLBoolean, eglDestroyImage, EGLDisplay, dpy, EGLImage, image)
-EGL_PASSTHRU_3(EGLDisplay, eglGetPlatformDisplay, EGLenum, platform, void *, native_display,
-               const EGLAttrib *, attrib_list)
-EGL_PASSTHRU_4(EGLSurface, eglCreatePlatformWindowSurface, EGLDisplay, dpy, EGLConfig, config,
-               void *, native_window, const EGLAttrib *, attrib_list)
 EGL_PASSTHRU_4(EGLSurface, eglCreatePlatformPixmapSurface, EGLDisplay, dpy, EGLConfig, config,
                void *, native_pixmap, const EGLAttrib *, attrib_list)
 EGL_PASSTHRU_3(EGLBoolean, eglWaitSync, EGLDisplay, dpy, EGLSync, sync, EGLint, flags)

@@ -43,9 +43,8 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
+    wrapped->record =
+        PackWindowHandleInRecord(WindowingSystem::Android, (void *)(uintptr_t)pCreateInfo->window);
   }
 
   return ret;

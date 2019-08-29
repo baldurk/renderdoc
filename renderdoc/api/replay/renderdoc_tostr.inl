@@ -60,11 +60,14 @@ rdcstr DoStringise(const WindowingSystem &el)
   BEGIN_ENUM_STRINGISE(WindowingSystem)
   {
     STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(Headless);
     STRINGISE_ENUM_CLASS(Win32);
     STRINGISE_ENUM_CLASS(Xlib);
     STRINGISE_ENUM_CLASS(XCB);
     STRINGISE_ENUM_CLASS(Android);
     STRINGISE_ENUM_CLASS(MacOS);
+    STRINGISE_ENUM_CLASS(GGP);
+    STRINGISE_ENUM_CLASS(Wayland);
   }
   END_ENUM_STRINGISE();
 }

@@ -174,6 +174,26 @@
 
 #endif
 
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+
+#define HookInitInstance_PlatformSpecific_Wayland()                   \
+  HookInitExtension(VK_KHR_wayland_surface, CreateWaylandSurfaceKHR); \
+  HookInitExtension(VK_KHR_wayland_surface, GetPhysicalDeviceWaylandPresentationSupportKHR);
+
+#define HookDefine_PlatformSpecific_Wayland()                                                    \
+  HookDefine4(VkResult, vkCreateWaylandSurfaceKHR, VkInstance, instance,                         \
+              const VkWaylandSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
+              pAllocator, VkSurfaceKHR *, pSurface);                                             \
+  HookDefine3(VkBool32, vkGetPhysicalDeviceWaylandPresentationSupportKHR, VkPhysicalDevice,      \
+              physicalDevice, uint32_t, queueFamilyIndex, struct wl_display *, display);
+
+#else
+
+#define HookInitInstance_PlatformSpecific_Wayland()
+#define HookDefine_PlatformSpecific_Wayland()
+
+#endif
+
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 
 #define HookInitInstance_PlatformSpecific_Xlib()                                       \
@@ -200,11 +220,14 @@
 
 #endif
 
-#define HookInitInstance_PlatformSpecific() \
-  HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib()
+#define HookInitInstance_PlatformSpecific()                                        \
+  HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib() \
+      HookInitInstance_PlatformSpecific_Wayland()
 #define HookInitDevice_PlatformSpecific()
-#define HookDefine_PlatformSpecific() \
-  HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib()
+
+#define HookDefine_PlatformSpecific()                                  \
+  HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib() \
+      HookDefine_PlatformSpecific_Wayland()
 
 #endif
 
@@ -375,6 +398,7 @@
   DeclExt(KHR_get_display_properties2);         \
   DeclExt(EXT_headless_surface);                \
   DeclExt(EXT_metal_surface);                   \
+  DeclExt(KHR_wayland_surface);                 \
   /* device extensions */                       \
   DeclExt(EXT_debug_marker);                    \
   DeclExt(GGP_frame_token);                     \
@@ -457,7 +481,8 @@
   CheckExt(EXT_calibrated_timestamps, VKXX);           \
   CheckExt(EXT_full_screen_exclusive, VKXX);           \
   CheckExt(EXT_headless_surface, VKXX);                \
-  CheckExt(EXT_metal_surface, VKXX);
+  CheckExt(EXT_metal_surface, VKXX);                   \
+  CheckExt(KHR_wayland_surface, VKXX);
 
 #define CheckDeviceExts()                             \
   CheckExt(EXT_debug_marker, VKXX);                   \

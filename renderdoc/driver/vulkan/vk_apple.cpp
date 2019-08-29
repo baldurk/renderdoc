@@ -51,9 +51,8 @@ VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->pView;
+    wrapped->record =
+        PackWindowHandleInRecord(WindowingSystem::MacOS, (void *)(uintptr_t)pCreateInfo->pView);
   }
 
   return ret;
@@ -80,9 +79,8 @@ VkResult WrappedVulkan::vkCreateMetalSurfaceEXT(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->pLayer;
+    wrapped->record =
+        PackWindowHandleInRecord(WindowingSystem::MacOS, (void *)(uintptr_t)pCreateInfo->pLayer);
   }
 
   return ret;

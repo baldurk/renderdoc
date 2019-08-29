@@ -101,6 +101,20 @@ int SampleCount(VkSampleCountFlagBits countFlag);
 int SampleIndex(VkSampleCountFlagBits countFlag);
 int StageIndex(VkShaderStageFlagBits stageFlag);
 
+struct PackedWindowHandle
+{
+  PackedWindowHandle(WindowingSystem s, void *h) : system(s), handle(h) {}
+  WindowingSystem system;
+  void *handle;
+};
+
+struct VkResourceRecord;
+
+inline VkResourceRecord *PackWindowHandleInRecord(WindowingSystem system, void *handle)
+{
+  return (VkResourceRecord *)new PackedWindowHandle(system, handle);
+}
+
 class WrappedVulkan;
 
 struct VkPackedVersion

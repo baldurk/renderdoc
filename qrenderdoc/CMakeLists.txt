@@ -168,6 +168,13 @@ if(CMAKE_COMPILER_IS_GNUCXX)
         "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation\n")
 endif()
 
+if(ENABLE_WAYLAND)
+    message(WARNING "!!!! Using the Wayland Qt platform in qrenderdoc is NOT SUPPORTED !!!!")
+    file(APPEND
+        ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+        "DEFINES+=RENDERDOC_WINDOWING_WAYLAND\n")
+endif()
+
 # propagate build version info. Lots of escaping needed here to pass ""s into the define value
 if(BUILD_VERSION_STABLE)
     file(APPEND

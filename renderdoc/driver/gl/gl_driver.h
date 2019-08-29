@@ -359,17 +359,17 @@ private:
 
     GLInitParams initParams;
 
-    // map from window handle void* to uint64_t unix timestamp with
-    // the last time a window was seen/associated with this context.
-    // Decays after a few seconds since there's no good explicit
-    // 'remove' type call for GL, only wglCreateContext/wglMakeCurrent
-    std::map<void *, uint64_t> windows;
+    // map from window handle void* to the windowing system used and the uint64_t unix timestamp of
+    // the last time a window was seen/associated with this context. Decays after a few seconds
+    // since there's no good explicit 'remove' type call for GL, only
+    // wglCreateContext/wglMakeCurrent
+    std::map<void *, rdcpair<WindowingSystem, uint64_t>> windows;
 
     // a window is only associated with one context at once, so any
     // time we associate a window, it broadcasts to all other
     // contexts to let them know to remove it
-    void UnassociateWindow(void *wndHandle);
-    void AssociateWindow(WrappedOpenGL *driver, void *wndHandle);
+    void UnassociateWindow(WrappedOpenGL *driver, void *wndHandle);
+    void AssociateWindow(WrappedOpenGL *driver, WindowingSystem winSystem, void *wndHandle);
 
     void CreateDebugData();
 
@@ -595,7 +595,7 @@ public:
   }
   void ActivateContext(GLWindowingData winData);
   bool ForceSharedObjects(void *oldContext, void *newContext);
-  void SwapBuffers(void *windowHandle);
+  void SwapBuffers(WindowingSystem winSystem, void *windowHandle);
   void HandleVRFrameMarkers(const GLchar *buf, GLsizei length);
   bool UsesVRFrameMarkers() { return m_UsesVRMarkers; }
   void FirstFrame(void *ctx, void *wndHandle);

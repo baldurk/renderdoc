@@ -111,6 +111,10 @@ elseif(UNIX)
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     endif()
 
+    if(ENABLE_WAYLAND)
+        add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
+    endif()
+
     set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)

@@ -75,6 +75,7 @@
 
 %typemap(in) Display* = HWND;
 %typemap(in) xcb_connection_t* = HWND;
+%typemap(in) wl_surface* = HWND;
 
 // completely ignore rdcdatetime, we custom convert to/from a native python datetime
 %ignore rdcdatetime;

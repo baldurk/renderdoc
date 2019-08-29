@@ -537,6 +537,11 @@ int main(int argc, char *argv[])
     count++;
 #endif
 
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+    support += "Wayland (CAPTURE ONLY), ";
+    count++;
+#endif
+
 #if defined(RENDERDOC_SUPPORT_VULKAN)
     support += "Vulkan KHR_display, ";
     count++;

@@ -356,8 +356,8 @@ inline bool slurp(const char *filename, std::vector<unsigned char> &buffer)
 namespace Keyboard
 {
 void Init();
-void AddInputWindow(void *wnd);
-void RemoveInputWindow(void *wnd);
+void AddInputWindow(WindowingSystem windowSystem, void *wnd);
+void RemoveInputWindow(WindowingSystem windowSystem, void *wnd);
 bool GetKeyState(int key);
 bool PlatformHasKeyInput();
 };

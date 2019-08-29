@@ -609,3 +609,5 @@ bool IsDarkTheme();
 
 float getLuminance(const QColor &col);
 QColor contrastingColor(const QColor &col, const QColor &defaultCol);
+
+void *AccessWaylandPlatformInterface(const QByteArray &resource, QWindow *window);

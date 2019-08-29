@@ -181,7 +181,7 @@ void WGLHook::ProcessSwapBuffers(HDC dc)
 
     {
       SCOPED_LOCK(glLock);
-      driver.SwapBuffers(w);
+      driver.SwapBuffers(WindowingSystem::Win32, w);
     }
 
     SetLastError(0);

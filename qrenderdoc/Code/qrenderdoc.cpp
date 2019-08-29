@@ -358,6 +358,20 @@ int main(int argc, char *argv[])
       GlobalEnvironment env;
 #if defined(RENDERDOC_PLATFORM_LINUX)
       env.xlibDisplay = QX11Info::display();
+      if(QGuiApplication::platformName() == lit("wayland"))
+      {
+        env.waylandDisplay = (wl_display *)AccessWaylandPlatformInterface("display", NULL);
+
+        QString warning =
+            tr("Running directly on Wayland is NOT SUPPORTED and is likely to crash, hang, or "
+               "fail to render.");
+
+        qInfo() << "------ !!!! WARNING !!!! ------";
+        qInfo() << warning;
+        qInfo() << "------ !!!! WARNING !!!! ------";
+
+        RDDialog::critical(NULL, tr("Wayland Qt platform not supported"), warning);
+      }
 #endif
       rdcarray<rdcstr> coreargs;
       if(!crashReportPath.isEmpty())

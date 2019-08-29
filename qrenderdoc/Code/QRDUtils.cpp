@@ -2156,3 +2156,28 @@ QColor contrastingColor(const QColor &col, const QColor &defaultCol)
   else
     return QColor(Qt::black);
 }
+
+// we declare this partial class to get the accessors. THIS IS DANGEROUS as the ABI is unstable and
+// this is a private class. The first few functions have been stable for a while so we hope that it
+// will remain so. If a stable interface is added in future like QX11Info we should definitely use
+// it instead.
+//
+// Unfortunately we need this for Wayland, so we only ever use it when we are absolutely forced to
+// because we're running under the Wayland Qt platform.
+class QOpenGLContext;
+
+class Q_GUI_EXPORT QPlatformNativeInterface : public QObject
+{
+  Q_OBJECT
+public:
+  virtual void *nativeResourceForIntegration(const QByteArray &resource);
+  virtual void *nativeResourceForContext(const QByteArray &resource, QOpenGLContext *context);
+  virtual void *nativeResourceForScreen(const QByteArray &resource, QScreen *screen);
+  virtual void *nativeResourceForWindow(const QByteArray &resource, QWindow *window);
+};
+
+void *AccessWaylandPlatformInterface(const QByteArray &resource, QWindow *window)
+{
+  QPlatformNativeInterface *native = QGuiApplication::platformNativeInterface();
+  return native->nativeResourceForWindow(resource, window);
+}

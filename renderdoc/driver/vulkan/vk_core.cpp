@@ -1010,6 +1010,11 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME, VK_KHR_VULKAN_MEMORY_MODEL_SPEC_VERSION,
     },
+#ifdef VK_KHR_wayland_surface
+    {
+        VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_SPEC_VERSION,
+    },
+#endif
 #ifdef VK_KHR_win32_keyed_mutex
     {
         VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME, VK_KHR_WIN32_KEYED_MUTEX_SPEC_VERSION,

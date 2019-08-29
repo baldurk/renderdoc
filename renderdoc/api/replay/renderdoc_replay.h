@@ -330,6 +330,10 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
   The windowing data refers to an XCB window. See :func:`CreateXCBWindowingData`.
 
+.. data:: Wayland
+
+  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
+
 .. data:: Android
 
   The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
@@ -349,6 +353,7 @@ enum class WindowingSystem : uint32_t
   Android,
   MacOS,
   GGP,
+  Wayland,
 };
 
 DECLARE_REFLECTION_ENUM(WindowingSystem);
@@ -367,6 +372,10 @@ typedef unsigned long Drawable;
 // xcb
 struct xcb_connection_t;
 typedef uint32_t xcb_window_t;
+
+// wayland
+struct wl_display;
+struct wl_surface;
 
 // android
 struct ANativeWindow;
@@ -408,6 +417,12 @@ struct WindowingData
       xcb_connection_t *connection;
       xcb_window_t window;
     } xcb;
+
+    struct
+    {
+      wl_display *display;
+      wl_surface *window;
+    } wayland;
 
     struct
     {
@@ -498,6 +513,24 @@ inline const WindowingData CreateXCBWindowingData(xcb_connection_t *connection, 
   return ret;
 }
 
+DOCUMENT(R"(Create a :class:`WindowingData` for an Wayland ``wl_surface`` handle.
+
+:param wl_display display: The ``wl_display`` connection used for this window.
+:param wl_surface window: The native ``wl_surface`` handle for this window.
+:return: A :class:`WindowingData` corresponding to the given window.
+:rtype: WindowingData
+)");
+inline const WindowingData CreateWaylandWindowingData(wl_display *display, wl_surface *window)
+{
+  WindowingData ret = {};
+
+  ret.system = WindowingSystem::Wayland;
+  ret.wayland.display = display;
+  ret.wayland.window = window;
+
+  return ret;
+}
+
 DOCUMENT(R"(Create a :class:`WindowingData` for a GGP application.
 
 :return: A :class:`WindowingData` corresponding to the given system.
@@ -571,6 +604,10 @@ struct GlobalEnvironment
 
   DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
   Display *xlibDisplay = NULL;
+
+  DOCUMENT(
+      "The handle to the X display to use internally. If left ``NULL``, wayland cannot be used.");
+  wl_display *waylandDisplay = NULL;
 };
 
 DOCUMENT("The result of executing or injecting into a program.")

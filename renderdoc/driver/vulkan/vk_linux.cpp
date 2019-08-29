@@ -41,7 +41,7 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalD
 
 namespace Keyboard
 {
-void UseConnection(xcb_connection_t *conn);
+void UseXcbConnection(xcb_connection_t *conn);
 }
 
 VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
@@ -61,11 +61,57 @@ VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
+    wrapped->record =
+        PackWindowHandleInRecord(WindowingSystem::XCB, (void *)(uintptr_t)pCreateInfo->window);
 
-    Keyboard::UseConnection(pCreateInfo->connection);
+    Keyboard::UseXcbConnection(pCreateInfo->connection);
+
+    Keyboard::AddInputWindow(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
+  }
+
+  return ret;
+}
+
+#endif
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+
+namespace Keyboard
+{
+void UseWaylandDisplay(wl_display *disp);
+}
+
+VkBool32 WrappedVulkan::vkGetPhysicalDeviceWaylandPresentationSupportKHR(
+    VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, struct wl_display *display)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceWaylandPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex,
+                                                       display);
+}
+
+VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
+                                                  const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+                                                  const VkAllocationCallbacks *pAllocator,
+                                                  VkSurfaceKHR *pSurface)
+{
+  // should not come in here at all on replay
+  RDCASSERT(IsCaptureMode(m_State));
+
+  VkResult ret = ObjDisp(instance)->CreateWaylandSurfaceKHR(Unwrap(instance), pCreateInfo,
+                                                            pAllocator, pSurface);
+
+  if(ret == VK_SUCCESS)
+  {
+    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+    wrapped->record =
+        PackWindowHandleInRecord(WindowingSystem::Wayland, (void *)(uintptr_t)pCreateInfo->surface);
+
+    Keyboard::UseWaylandDisplay(pCreateInfo->display);
+
+    Keyboard::AddInputWindow(WindowingSystem::Wayland, pCreateInfo->surface);
   }
 
   return ret;
@@ -85,7 +131,7 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXlibPresentationSupportKHR(
 
 namespace Keyboard
 {
-void CloneDisplay(Display *dpy);
+void UseXlibDisplay(Display *dpy);
 }
 
 VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
@@ -105,11 +151,12 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)pCreateInfo->window;
+    wrapped->record =
+        PackWindowHandleInRecord(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
 
-    Keyboard::CloneDisplay(pCreateInfo->dpy);
+    Keyboard::UseXlibDisplay(pCreateInfo->dpy);
+
+    Keyboard::AddInputWindow(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
   }
 
   return ret;
@@ -152,6 +199,15 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   }
 #endif
 
+#if ENABLED(RDOC_WAYLAND)
+  if(window.system == WindowingSystem::Wayland)
+  {
+    wayland.display = window.wayland.display;
+    wayland.window = window.wayland.window;
+    return;
+  }
+#endif
+
   RDCERR("Unrecognised/unsupported window system %d", window.system);
 }
 
@@ -187,6 +243,24 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     createInfo.window = xcb.window;
 
     VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    return;
+  }
+#endif
+
+#if ENABLED(RDOC_WAYLAND)
+  if(m_WindowSystem == WindowingSystem::Wayland)
+  {
+    VkWaylandSurfaceCreateInfoKHR createInfo;
+
+    createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.display = wayland.display;
+    createInfo.surface = wayland.window;
+
+    VkResult vkr = ObjDisp(inst)->CreateWaylandSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     return;
@@ -234,6 +308,17 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
     h = (int32_t)geom->height;
 
     free(geom);
+
+    return;
+  }
+#endif
+
+#if ENABLED(RDOC_WAYLAND)
+  if(outw.m_WindowSystem == WindowingSystem::Wayland)
+  {
+    RDCWARN("Need Wayland query for current surface dimensions");
+    w = RDCMAX(1U, outw.width);
+    h = RDCMAX(1U, outw.height);
 
     return;
   }

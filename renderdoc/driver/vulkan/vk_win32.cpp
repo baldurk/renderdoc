@@ -154,9 +154,9 @@ VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(VkInstance instance,
 
     // since there's no point in allocating a full resource record and storing the window
     // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = (VkResourceRecord *)pCreateInfo->hwnd;
+    wrapped->record = PackWindowHandleInRecord(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
 
-    Keyboard::AddInputWindow((void *)pCreateInfo->hwnd);
+    Keyboard::AddInputWindow(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
   }
 
   return ret;

@@ -52,9 +52,10 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
 // check if our compile-time options expect any WSI to be available, or if it's all disabled
 #define EXPECT_WSI 0
 
-#if(defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(VK_USE_PLATFORM_XCB_KHR) || \
-    defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_MACOS_MVK) ||  \
-    defined(VK_USE_PLATFORM_METAL_EXT) || defined(VK_USE_PLATFORM_GGP))
+#if(defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(VK_USE_PLATFORM_XCB_KHR) ||  \
+    defined(VK_USE_PLATFORM_WAYLAND_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR) || \
+    defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT) ||  \
+    defined(VK_USE_PLATFORM_GGP))
 
 #undef EXPECT_WSI
 #define EXPECT_WSI 1
@@ -67,6 +68,21 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SURFACE_EXTENSION_NAME) ==
        extensionList.end())
       extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    // check if supported
+    if(supportedExtensions.find(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      m_SupportedWindowSystems.push_back(WindowingSystem::Wayland);
+
+      // don't add duplicates
+      if(std::find(extensionList.begin(), extensionList.end(),
+                   VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) == extensionList.end())
+      {
+        extensionList.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+      }
+    }
+#endif
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
     // check if supported
@@ -196,6 +212,11 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
       RDCWARN("Android Output requires the '%s' extension to be present",
               VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#endif
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+      RDCWARN("Wayland Output requires the '%s' extension to be present",
+              VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)

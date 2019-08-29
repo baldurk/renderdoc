@@ -849,22 +849,48 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 #if defined(RENDERDOC_PLATFORM_WIN32)
     m_CurWinSystem = WindowingSystem::Win32;
 #elif defined(RENDERDOC_PLATFORM_LINUX)
-    m_CurWinSystem = WindowingSystem::Xlib;
+    m_CurWinSystem = WindowingSystem::Unknown;
 
-    // prefer XCB, if supported
-    for(WindowingSystem sys : m_WinSystems)
+    if(QGuiApplication::platformName() == lit("wayland"))
     {
-      if(sys == WindowingSystem::XCB)
+      // if we're using Wayland we must use wayland since we can't get any other surface type
+      for(WindowingSystem sys : m_WinSystems)
       {
-        m_CurWinSystem = WindowingSystem::XCB;
-        break;
+        if(sys == WindowingSystem::Wayland)
+        {
+          m_CurWinSystem = WindowingSystem::Wayland;
+          m_WaylandDisplay = (wl_display *)AccessWaylandPlatformInterface("display", NULL);
+          break;
+        }
+      }
+
+      if(m_CurWinSystem == WindowingSystem::Unknown)
+      {
+        RDDialog::critical(NULL, tr("No wayland support"),
+                           tr("Replay doesn't support Wayland surfaces - check you compiled this "
+                              "build of RenderDoc with Wayland support enabled."));
       }
     }
-
-    if(m_CurWinSystem == WindowingSystem::XCB)
-      m_XCBConnection = QX11Info::connection();
     else
-      m_X11Display = QX11Info::display();
+    {
+      m_CurWinSystem = WindowingSystem::Xlib;
+
+      // prefer XCB, if supported
+      for(WindowingSystem sys : m_WinSystems)
+      {
+        if(sys == WindowingSystem::XCB)
+        {
+          m_CurWinSystem = WindowingSystem::XCB;
+          break;
+        }
+      }
+
+      if(m_CurWinSystem == WindowingSystem::XCB)
+        m_XCBConnection = QX11Info::connection();
+      else
+        m_X11Display = QX11Info::display();
+    }
+
 #elif defined(RENDERDOC_PLATFORM_APPLE)
     m_CurWinSystem = WindowingSystem::MacOS;
 #endif
@@ -1777,10 +1803,26 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
-  if(m_CurWinSystem == WindowingSystem::XCB)
+  if(m_CurWinSystem == WindowingSystem::Wayland)
+  {
+    // we don't need this, we just need to force creation of a window handle
+    window->winId();
+    wl_surface *surface =
+        (wl_surface *)AccessWaylandPlatformInterface("surface", window->windowHandle());
+    return CreateWaylandWindowingData(m_WaylandDisplay, surface);
+  }
+  else if(m_CurWinSystem == WindowingSystem::XCB)
+  {
     return CreateXCBWindowingData(m_XCBConnection, (xcb_window_t)window->winId());
-  else
+  }
+  else if(m_CurWinSystem == WindowingSystem::Xlib)
+  {
     return CreateXlibWindowingData(m_X11Display, (Drawable)window->winId());
+  }
+  else
+  {
+    return CreateHeadlessWindowingData(1, 1);
+  }
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
 
