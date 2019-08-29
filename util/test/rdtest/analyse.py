@@ -40,7 +40,7 @@ def open_capture(filename="", cap: rd.CaptureFile=None):
             cap.Shutdown()
             raise RuntimeError("{} capture cannot be replayed".format(api))
 
-    status, controller = cap.OpenCapture(None)
+    status, controller = cap.OpenCapture(rd.ReplayOptions(), None)
 
     if own_cap:
         cap.Shutdown()
