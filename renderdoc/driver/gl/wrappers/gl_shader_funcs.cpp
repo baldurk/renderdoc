@@ -366,8 +366,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     sources.reserve(count);
     for(GLsizei c = 0; c < count; c++)
     {
-      sources.push_back((length && length[c] > 0) ? std::string(source[c], source[c] + length[c])
-                                                  : std::string(source[c]));
+      sources.push_back((length && length[c] >= 0) ? std::string(source[c], source[c] + length[c])
+                                                   : std::string(source[c]));
     }
   }
 
