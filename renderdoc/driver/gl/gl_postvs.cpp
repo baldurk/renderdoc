@@ -165,7 +165,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(rs.VAO.name)
     drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
 
-  drv.glBindBuffer(eGL_QUERY_BUFFER, 0);
+  if(HasExt[ARB_query_buffer_object])
+    drv.glBindBuffer(eGL_QUERY_BUFFER, 0);
 
   // reflection structures
   ShaderReflection *vsRefl = NULL;
