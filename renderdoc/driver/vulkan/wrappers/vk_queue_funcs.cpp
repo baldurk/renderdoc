@@ -1027,7 +1027,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
   if(present)
   {
     AdvanceFrame();
-    Present(m_Instance, NULL);
+    Present(LayerDisp(m_Instance), NULL);
   }
 
   return ret;
