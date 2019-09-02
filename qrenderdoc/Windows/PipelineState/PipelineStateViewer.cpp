@@ -1033,10 +1033,12 @@ IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shader
 
     ANALYTIC_SET(UIFeatures.ShaderEditing, true);
 
+    QPointer<QObject> ptr(viewer->Widget());
+
     // invoke off to the ReplayController to replace the capture's shader
     // with our edited one
     ctx->Replay().AsyncInvoke([ctx, entryFunc, shaderBytes, shaderEncoding, flags, shaderType, id,
-                               viewer](IReplayController *r) {
+                               ptr, viewer](IReplayController *r) {
       rdcstr errs;
 
       ResourceId from = id;
@@ -1045,16 +1047,19 @@ IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shader
       rdctie(to, errs) =
           r->BuildTargetShader(entryFunc.c_str(), shaderEncoding, shaderBytes, flags, shaderType);
 
-      GUIInvoke::call(viewer->Widget(), [viewer, errs]() { viewer->ShowErrors(errs); });
+      if(ptr)
+        GUIInvoke::call(ptr, [viewer, errs]() { viewer->ShowErrors(errs); });
       if(to == ResourceId())
       {
         r->RemoveReplacement(from);
-        GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
+        if(ptr)
+          GUIInvoke::call(ptr, [ctx]() { ctx->RefreshStatus(); });
       }
       else
       {
         r->ReplaceResource(from, to);
-        GUIInvoke::call(viewer->Widget(), [ctx]() { ctx->RefreshStatus(); });
+        if(ptr)
+          GUIInvoke::call(ptr, [ctx]() { ctx->RefreshStatus(); });
       }
     });
   };
