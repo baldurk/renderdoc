@@ -178,7 +178,7 @@ CGLError GL_EXPORT_NAME(CGLFlushDrawable)(CGLContextObj ctx)
 
     CGL.CGLGetSurface(ctx, &conn, &window, &surface);
 
-    cglhook.driver.SwapBuffers(WindowingSystem::macOS, (void *)(uintptr_t)window);
+    cglhook.driver.SwapBuffers(WindowingSystem::MacOS, (void *)(uintptr_t)window);
   }
 
   CGLError ret;
