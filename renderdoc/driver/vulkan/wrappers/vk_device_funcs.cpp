@@ -715,7 +715,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   InitInstanceExtensionTables(m_Instance, record->instDevInfo);
 
-  RenderDoc::Inst().AddDeviceFrameCapturer(m_Instance, this);
+  RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
 
   m_DbgReportCallback = VK_NULL_HANDLE;
   m_DbgUtilsCallback = VK_NULL_HANDLE;
@@ -881,7 +881,7 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   // application is well behaved. If not, we just leak.
 
   ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance), NULL);
-  RenderDoc::Inst().RemoveDeviceFrameCapturer(m_Instance);
+  RenderDoc::Inst().RemoveDeviceFrameCapturer(LayerDisp(m_Instance));
 
   GetResourceManager()->ReleaseWrappedResource(m_Instance);
   m_Instance = VK_NULL_HANDLE;
