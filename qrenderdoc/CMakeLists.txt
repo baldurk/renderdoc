@@ -9,7 +9,7 @@ set(QMAKE_QT5_COMMAND ${QT_QMAKE_EXECUTABLE} CACHE STRING "Command to run to inv
 set(RENDERDOC_SWIG_PACKAGE https://github.com/baldurk/swig/archive/renderdoc-modified-7.zip CACHE STRING "The location where RenderDoc's swig fork source can be found. By default points to the URL on github but can be pointed to a local file.")
 
 execute_process(
-    COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_VERSION
+    COMMAND ${QMAKE_QT5_COMMAND} -query QT_VERSION
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE QT_VERSION
     ERROR_VARIABLE QT_VERSION_STDERR
@@ -21,7 +21,7 @@ execute_process(
 if (QT_VERSION VERSION_GREATER 5.5.999)
     message(STATUS "Building using Qt ${QT_VERSION}")
 else()
-    message(FATAL_ERROR "${QT_QMAKE_EXECUTABLE} -query QT_VERSION returned: \"${QT_VERSION}\". Error output was: \"${QT_VERSION_STDERR}\". We require Qt >= 5.6 and for the qmake executable to run Qt5. Check your distribution for how to configure Qt5, you may need to set the QT_SELECT environment variable or customise the cmake variable QT_QMAKE_EXECUTABLE to qmake-qt5")
+    message(FATAL_ERROR "${QMAKE_QT5_COMMAND} -query QT_VERSION returned: \"${QT_VERSION}\". Error output was: \"${QT_VERSION_STDERR}\". We require Qt >= 5.6 and for the qmake executable to run Qt5. Check your distribution for how to configure Qt5, you may need to set the QT_SELECT environment variable or customise the cmake variable QMAKE_QT5_COMMAND to qmake-qt5")
 endif()
 
 set(QMAKE_CONFIG "debug")
