@@ -772,7 +772,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       modifiedpipe.descSets.resize(1);
 
     for(size_t i = 0; i < descSets.size(); i++)
+    {
+      modifiedpipe.descSets[i].pipeLayout = GetResID(pipeLayout);
       modifiedpipe.descSets[i].descSet = GetResID(descSets[i]);
+    }
   }
 
   {

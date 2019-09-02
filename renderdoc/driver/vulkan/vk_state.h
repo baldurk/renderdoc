@@ -38,6 +38,7 @@ struct VulkanStatePipeline
 
   struct DescriptorAndOffsets
   {
+    ResourceId pipeLayout;
     ResourceId descSet;
     std::vector<uint32_t> offsets;
   };
@@ -63,8 +64,7 @@ struct VulkanRenderState
 
   void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
   void BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
-                         VkPipelineLayout layout, VkPipelineBindPoint bindPoint, uint32_t setIndex,
-                         uint32_t *dynamicOffsets);
+                         VkPipelineBindPoint bindPoint, uint32_t setIndex, uint32_t *dynamicOffsets);
 
   bool IsConditionalRenderingEnabled();
 

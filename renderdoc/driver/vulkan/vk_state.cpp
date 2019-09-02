@@ -269,7 +269,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
           }
         }
 
-        BindDescriptorSet(descLayout, cmd, layout, VK_PIPELINE_BIND_POINT_GRAPHICS, (uint32_t)i,
+        BindDescriptorSet(descLayout, cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, (uint32_t)i,
                           dynamicOffsets);
 
         if(graphics.descSets[i].offsets.size() < descLayout.dynamicCount)
@@ -386,7 +386,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
           }
         }
 
-        BindDescriptorSet(descLayout, cmd, layout, VK_PIPELINE_BIND_POINT_COMPUTE, (uint32_t)i,
+        BindDescriptorSet(descLayout, cmd, VK_PIPELINE_BIND_POINT_COMPUTE, (uint32_t)i,
                           dynamicOffsets);
 
         if(compute.descSets[i].offsets.size() < descLayout.dynamicCount)
@@ -397,12 +397,16 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
 }
 
 void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
-                                          VkPipelineLayout layout, VkPipelineBindPoint bindPoint,
-                                          uint32_t setIndex, uint32_t *dynamicOffsets)
+                                          VkPipelineBindPoint bindPoint, uint32_t setIndex,
+                                          uint32_t *dynamicOffsets)
 {
   ResourceId descSet = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                            ? graphics.descSets[setIndex].descSet
                            : compute.descSets[setIndex].descSet;
+  ResourceId pipeLayout = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+                              ? graphics.descSets[setIndex].pipeLayout
+                              : compute.descSets[setIndex].pipeLayout;
+  VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayout);
 
   if((descLayout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
   {

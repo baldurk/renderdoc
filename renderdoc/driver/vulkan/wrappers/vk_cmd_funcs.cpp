@@ -2182,6 +2182,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
           // consume the offsets linearly along the descriptor set layouts
           for(uint32_t i = 0; i < setCount; i++)
           {
+            descsets[firstSet + i].pipeLayout = GetResID(layout);
             descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
             uint32_t dynCount =
                 m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
@@ -3804,6 +3805,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
           if(descsets.size() < set + 1)
             descsets.resize(set + 1);
 
+          descsets[set].pipeLayout = GetResID(layout);
           descsets[set].descSet = setId;
         }
 
@@ -4071,6 +4073,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
           if(descsets.size() < set + 1)
             descsets.resize(set + 1);
 
+          descsets[set].pipeLayout = GetResID(layout);
           descsets[set].descSet = setId;
         }
 
