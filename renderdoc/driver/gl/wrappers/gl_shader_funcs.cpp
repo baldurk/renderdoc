@@ -437,7 +437,7 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar *c
     m_Shaders[id].sources.reserve(count);
 
     for(GLsizei i = 0; i < count; i++)
-      m_Shaders[id].sources.push_back((length && length[i] > 0)
+      m_Shaders[id].sources.push_back((length && length[i] >= 0)
                                           ? std::string(string[i], string[i] + length[i])
                                           : std::string(string[i]));
   }
