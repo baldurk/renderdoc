@@ -480,6 +480,7 @@ void GLReplay::InitDebugData()
 
   DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
   DebugData.quadoverdrawResolveProg = 0;
+  DebugData.fixedcolFragShaderSPIRV = DebugData.quadoverdrawFragShaderSPIRV = 0;
 
   if(IsGLES)
   {
