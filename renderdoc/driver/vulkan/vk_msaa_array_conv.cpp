@@ -354,7 +354,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     {
       params.w = numStencil == 1 ? 1000 : s;    // currentStencil;
 
-      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FRONT_AND_BACK, s);
+      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, s);
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL,
                                      0, sizeof(Vec4u), &params);
       ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
@@ -717,7 +717,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
     {
       params.w = numStencil == 1 ? 1000 : s;    // currentStencil;
 
-      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FRONT_AND_BACK, s);
+      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, s);
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL,
                                      0, sizeof(Vec4u), &params);
       ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);

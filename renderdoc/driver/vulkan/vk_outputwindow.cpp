@@ -197,7 +197,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
   // sensible defaults
   VkFormat imformat = VK_FORMAT_B8G8R8A8_SRGB;
   VkPresentModeKHR presentmode = VK_PRESENT_MODE_FIFO_KHR;
-  VkColorSpaceKHR imcolspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+  VkColorSpaceKHR imcolspace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
   VkResult vkr = VK_SUCCESS;
 
@@ -233,7 +233,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
         {
           // 1 entry with undefined means no preference, just use our default
           imformat = VK_FORMAT_B8G8R8A8_SRGB;
-          imcolspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+          imcolspace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
         }
         else
         {
@@ -247,7 +247,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
             {
               imformat = formats[i].format;
               imcolspace = formats[i].colorSpace;
-              RDCASSERT(imcolspace == VK_COLORSPACE_SRGB_NONLINEAR_KHR);
+              RDCASSERT(imcolspace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR);
               break;
             }
           }
