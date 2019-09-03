@@ -929,13 +929,17 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
                                                  GLint dstY, GLint dstZ, GLsizei srcWidth,
                                                  GLsizei srcHeight, GLsizei srcDepth)
 {
-  SERIALISE_ELEMENT_LOCAL(srcName, TextureRes(GetCtx(), srcHandle));
+  SERIALISE_ELEMENT_LOCAL(srcName, srcTarget == eGL_RENDERBUFFER
+                                       ? RenderbufferRes(GetCtx(), srcHandle)
+                                       : TextureRes(GetCtx(), srcHandle));
   SERIALISE_ELEMENT(srcTarget);
   SERIALISE_ELEMENT(srcLevel);
   SERIALISE_ELEMENT(srcX);
   SERIALISE_ELEMENT(srcY);
   SERIALISE_ELEMENT(srcZ);
-  SERIALISE_ELEMENT_LOCAL(dstName, TextureRes(GetCtx(), dstHandle));
+  SERIALISE_ELEMENT_LOCAL(dstName, dstTarget == eGL_RENDERBUFFER
+                                       ? RenderbufferRes(GetCtx(), dstHandle)
+                                       : TextureRes(GetCtx(), dstHandle));
   SERIALISE_ELEMENT(dstTarget);
   SERIALISE_ELEMENT(dstLevel);
   SERIALISE_ELEMENT(dstX);
@@ -994,10 +998,14 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 {
   CoherentMapImplicitBarrier();
 
+  GLResource srcRes = srcTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), srcName)
+                                                    : TextureRes(GetCtx(), srcName);
+  GLResource dstRes = dstTarget == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), dstName)
+                                                    : TextureRes(GetCtx(), dstName);
+
   if(IsBackgroundCapturing(m_State))
   {
-    GLResourceRecord *dstrecord =
-        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
+    GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
 
     GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
                                                       eFrameRef_CompleteWrite);
@@ -1009,10 +1017,8 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 
   if(IsActiveCapturing(m_State))
   {
-    GLResourceRecord *srcrecord =
-        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
-    GLResourceRecord *dstrecord =
-        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
+    GLResourceRecord *srcrecord = GetResourceManager()->GetResourceRecord(srcRes);
+    GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
 
     RDCASSERTMSG("Couldn't identify src texture. Unbound or bad GLuint?", srcrecord, srcName);
     RDCASSERTMSG("Couldn't identify dst texture. Unbound or bad GLuint?", dstrecord, dstName);
@@ -1035,10 +1041,8 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
   }
   else if(IsBackgroundCapturing(m_State))
   {
-    GLResourceRecord *srcrecord =
-        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
-    GLResourceRecord *dstrecord =
-        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
+    GLResourceRecord *srcrecord = GetResourceManager()->GetResourceRecord(srcRes);
+    GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
 
     GetResourceManager()->MarkDirtyResource(dstrecord->GetResourceID());
 
