@@ -420,7 +420,7 @@ struct SDObject
   inline double AsDouble() const { return data.basic.d; }
   inline float AsFloat() const { return (float)data.basic.d; }
   inline char AsChar() const { return data.basic.c; }
-  inline std::string AsString() const { return data.str; }
+  inline rdcstr AsString() const { return data.str; }
   inline uint64_t AsUInt64() const { return (uint64_t)data.basic.u; }
   inline int64_t AsInt64() const { return (int64_t)data.basic.i; }
   inline uint32_t AsUInt32() const { return (uint32_t)data.basic.u; }
