@@ -1228,6 +1228,8 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     // was doing and the other sets are statically unused.
     setLayouts.resize(RDCMIN(pipe.descSets.size(), pipeDescSetLayouts.size()));
 
+    size_t boundDescs = setLayouts.size();
+
     // need at least one set, if the shader isn't using any we'll just make our own
     if(setLayouts.empty())
       setLayouts.resize(1);
@@ -1346,7 +1348,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, descSets.data());
 
     // copy the data across from the real descriptors into our adjusted bindings
-    for(size_t i = 0; i < setLayouts.size(); i++)
+    for(size_t i = 0; i < boundDescs; i++)
     {
       if(pipe.descSets[i].descSet == ResourceId())
         continue;
