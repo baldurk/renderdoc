@@ -319,14 +319,14 @@ void DebugMessageView::messages_toggled()
     else
       m_FilterModel->m_HiddenSeverities.push_back(m_ContextMessage.severity);
   }
-  else if(action == m_ToggleSeverity)
+  else if(action == m_ToggleCategory)
   {
     if(m_FilterModel->m_HiddenCategories.contains(m_ContextMessage.category))
       m_FilterModel->m_HiddenCategories.removeOne(m_ContextMessage.category);
     else
       m_FilterModel->m_HiddenCategories.push_back(m_ContextMessage.category);
   }
-  else if(action == m_ToggleSeverity)
+  else if(action == m_ToggleMessageType)
   {
     auto type = DebugMessageFilterModel::makeType(m_ContextMessage);
     if(m_FilterModel->m_HiddenTypes.contains(type))
@@ -349,6 +349,11 @@ void DebugMessageView::messages_contextMenu(const QPoint &pos)
   {
     index = m_FilterModel->mapToSource(index);
 
+    m_ToggleSource->setVisible(true);
+    m_ToggleSeverity->setVisible(true);
+    m_ToggleCategory->setVisible(true);
+    m_ToggleMessageType->setVisible(true);
+
     const DebugMessage &msg = m_Ctx.DebugMessages()[index.row()];
 
     QString hide = tr("Hide");
@@ -369,9 +374,21 @@ void DebugMessageView::messages_contextMenu(const QPoint &pos)
     m_ToggleMessageType->setText(tr("%1 Message Type").arg(hidden ? show : hide));
 
     m_ContextMessage = msg;
-
-    RDDialog::show(m_ContextMenu, ui->messages->viewport()->mapToGlobal(pos));
   }
+  else
+  {
+    m_ToggleSource->setVisible(false);
+    m_ToggleSeverity->setVisible(false);
+    m_ToggleCategory->setVisible(false);
+    m_ToggleMessageType->setVisible(false);
+  }
+
+  QString showHidden = tr("Show hidden rows");
+  QString hideHidden = tr("Stop showing hidden rows");
+
+  m_ShowHidden->setText(m_FilterModel->showHidden ? hideHidden : showHidden);
+
+  RDDialog::show(m_ContextMenu, ui->messages->viewport()->mapToGlobal(pos));
 }
 
 void DebugMessageView::paintEvent(QPaintEvent *e)
