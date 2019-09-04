@@ -223,7 +223,8 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   VkPipelineShaderStageCreateInfo CompileShaderModule(const std::string &source_text,
                                                       ShaderLang lang, ShaderStage stage,
-                                                      const char *entry_point = "main");
+                                                      const char *entry_point = "main",
+                                                      SPIRVTarget target = SPIRVTarget::vulkan);
   VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                                    VulkanWindow *window = NULL);
 

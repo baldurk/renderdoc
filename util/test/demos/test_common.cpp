@@ -264,6 +264,9 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
     if(target == SPIRVTarget::opengl)
       shaderc_compile_options_set_target_env(opts, shaderc_target_env_opengl, 0);
+    else if(target == SPIRVTarget::vulkan11)
+      shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan,
+                                             shaderc_env_version_vulkan_1_1);
 
     shaderc_compilation_result_t res = shaderc_compile_into_spv(
         shaderc, source_text.c_str(), source_text.size(), shader_kind, "inshader", entry_point, opts);
@@ -319,6 +322,8 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
   if(target == SPIRVTarget::opengl)
     command_line += " --target-env=opengl";
+  else if(target == SPIRVTarget::vulkan11)
+    command_line += " --target-env=vulkan1.1";
 
   char infile[MAX_PATH] = {};
   char outfile[MAX_PATH] = {};

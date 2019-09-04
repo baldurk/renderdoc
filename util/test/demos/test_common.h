@@ -44,7 +44,8 @@ typedef uint8_t byte;
 enum class SPIRVTarget
 {
   opengl,
-  vulkan
+  vulkan,
+  vulkan11,
 };
 enum class ShaderLang
 {
