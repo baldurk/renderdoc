@@ -100,19 +100,27 @@ void main()
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    const float val = 2.0f / 3.0f;
 
-    vb.upload(DefaultTri);
+    const DefaultA2V tri[3] = {
+        {Vec3f(-val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+    };
+
+    AllocatedBuffer vb(allocator,
+                       vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    vb.upload(tri);
 
     AllocatedBuffer copy_src(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        allocator, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    copy_src.upload(DefaultTri);
+    copy_src.upload(tri);
 
     while(Running())
     {
