@@ -154,28 +154,31 @@ void D3D12Replay::CreateResources()
     m_PixelPick.Init(m_pDevice, m_DebugManager);
     m_Histogram.Init(m_pDevice, m_DebugManager);
 
-    AMDCounters *counters = NULL;
+    if(!m_Proxy)
+    {
+      AMDCounters *counters = NULL;
 
-    if(m_DriverInfo.vendor == GPUVendor::AMD)
-    {
-      RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-      counters = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
-    }
-    else
-    {
-      RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
-    }
+      if(m_DriverInfo.vendor == GPUVendor::AMD)
+      {
+        RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+        counters = new AMDCounters(m_pDevice->IsDebugLayerEnabled());
+      }
+      else
+      {
+        RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
+      }
 
-    ID3D12Device *d3dDevice = m_pDevice->GetReal();
+      ID3D12Device *d3dDevice = m_pDevice->GetReal();
 
-    if(counters && counters->Init(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
-    {
-      m_pAMDCounters = counters;
-    }
-    else
-    {
-      delete counters;
-      m_pAMDCounters = NULL;
+      if(counters && counters->Init(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
+      {
+        m_pAMDCounters = counters;
+      }
+      else
+      {
+        delete counters;
+        m_pAMDCounters = NULL;
+      }
     }
   }
   else

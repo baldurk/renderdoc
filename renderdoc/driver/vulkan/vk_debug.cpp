@@ -1675,28 +1675,31 @@ void VulkanReplay::CreateResources()
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
-  AMDCounters *counters = NULL;
+  if(!m_pDriver->GetReplay()->IsRemoteProxy())
+  {
+    AMDCounters *counters = NULL;
 
-  GPUVendor vendor = m_pDriver->GetDriverInfo().Vendor();
+    GPUVendor vendor = m_pDriver->GetDriverInfo().Vendor();
 
-  if(vendor == GPUVendor::AMD)
-  {
-    RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-    counters = new AMDCounters();
-  }
-  else
-  {
-    RDCLOG("%s GPU detected - no counters available", ToStr(vendor).c_str());
-  }
+    if(vendor == GPUVendor::AMD)
+    {
+      RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+      counters = new AMDCounters();
+    }
+    else
+    {
+      RDCLOG("%s GPU detected - no counters available", ToStr(vendor).c_str());
+    }
 
-  if(counters && counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
-  {
-    m_pAMDCounters = counters;
-  }
-  else
-  {
-    delete counters;
-    m_pAMDCounters = NULL;
+    if(counters && counters->Init(AMDCounters::ApiType::Vk, (void *)&context))
+    {
+      m_pAMDCounters = counters;
+    }
+    else
+    {
+      delete counters;
+      m_pAMDCounters = NULL;
+    }
   }
 }
 

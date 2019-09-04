@@ -175,60 +175,63 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
 
   m_pDevice->GetShaderCache()->SetCaching(false);
 
-  AMDCounters *countersAMD = NULL;
-  NVCounters *countersNV = NULL;
-  IntelCounters *countersIntel = NULL;
+  if(!m_Proxy)
+  {
+    AMDCounters *countersAMD = NULL;
+    NVCounters *countersNV = NULL;
+    IntelCounters *countersIntel = NULL;
 
-  if(m_DriverInfo.vendor == GPUVendor::AMD)
-  {
-    RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-    countersAMD = new AMDCounters();
-  }
-  else if(m_DriverInfo.vendor == GPUVendor::nVidia)
-  {
-    RDCLOG("nVidia GPU detected - trying to initialise nVidia counters");
-    countersNV = new NVCounters();
-  }
-  else if(m_DriverInfo.vendor == GPUVendor::Intel)
-  {
-    RDCLOG("Intel GPU detected - trying to initialize Intel counters");
-    countersIntel = new IntelCounters();
-  }
-  else
-  {
-    RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
-  }
+    if(m_DriverInfo.vendor == GPUVendor::AMD)
+    {
+      RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+      countersAMD = new AMDCounters();
+    }
+    else if(m_DriverInfo.vendor == GPUVendor::nVidia)
+    {
+      RDCLOG("nVidia GPU detected - trying to initialise nVidia counters");
+      countersNV = new NVCounters();
+    }
+    else if(m_DriverInfo.vendor == GPUVendor::Intel)
+    {
+      RDCLOG("Intel GPU detected - trying to initialize Intel counters");
+      countersIntel = new IntelCounters();
+    }
+    else
+    {
+      RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
+    }
 
-  ID3D11Device *d3dDevice = m_pDevice->GetReal();
+    ID3D11Device *d3dDevice = m_pDevice->GetReal();
 
-  if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
-  {
-    m_pAMDCounters = countersAMD;
-  }
-  else
-  {
-    delete countersAMD;
-    m_pAMDCounters = NULL;
-  }
+    if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Dx11, (void *)d3dDevice))
+    {
+      m_pAMDCounters = countersAMD;
+    }
+    else
+    {
+      delete countersAMD;
+      m_pAMDCounters = NULL;
+    }
 
-  if(countersNV && countersNV->Init(d3dDevice))
-  {
-    m_pNVCounters = countersNV;
-  }
-  else
-  {
-    delete countersNV;
-    m_pNVCounters = NULL;
-  }
+    if(countersNV && countersNV->Init(d3dDevice))
+    {
+      m_pNVCounters = countersNV;
+    }
+    else
+    {
+      delete countersNV;
+      m_pNVCounters = NULL;
+    }
 
-  if(countersIntel && countersIntel->Init(d3dDevice))
-  {
-    m_pIntelCounters = countersIntel;
-  }
-  else
-  {
-    delete countersIntel;
-    m_pIntelCounters = NULL;
+    if(countersIntel && countersIntel->Init(d3dDevice))
+    {
+      m_pIntelCounters = countersIntel;
+    }
+    else
+    {
+      delete countersIntel;
+      m_pIntelCounters = NULL;
+    }
   }
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);

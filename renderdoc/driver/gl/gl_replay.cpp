@@ -265,80 +265,83 @@ void GLReplay::SetReplayData(GLWindowingData data)
   if(!HasDebugContext())
     return;
 
-  AMDCounters *countersAMD = NULL;
-  IntelGlCounters *countersIntel = NULL;
-
-  bool isMesa = false;
-
-  // try to identify mesa - don't enable any IHV counters when running mesa.
+  if(!m_Proxy)
   {
-    WrappedOpenGL &drv = *m_pDriver;
+    AMDCounters *countersAMD = NULL;
+    IntelGlCounters *countersIntel = NULL;
 
-    const char *version = (const char *)drv.glGetString(eGL_VERSION);
-    const char *vendor = (const char *)drv.glGetString(eGL_VENDOR);
-    const char *renderer = (const char *)drv.glGetString(eGL_RENDERER);
+    bool isMesa = false;
 
-    for(std::string haystack : {strlower(version), strlower(vendor), strlower(renderer)})
+    // try to identify mesa - don't enable any IHV counters when running mesa.
     {
-      haystack = " " + haystack + " ";
+      WrappedOpenGL &drv = *m_pDriver;
 
-      // the version should always contain 'mesa', but it's also commonly present in either vendor
-      // or renderer - except for nouveau which we look for separately
-      for(const char *needle : {" mesa ", "nouveau"})
+      const char *version = (const char *)drv.glGetString(eGL_VERSION);
+      const char *vendor = (const char *)drv.glGetString(eGL_VENDOR);
+      const char *renderer = (const char *)drv.glGetString(eGL_RENDERER);
+
+      for(std::string haystack : {strlower(version), strlower(vendor), strlower(renderer)})
       {
-        if(haystack.find(needle) != std::string::npos)
+        haystack = " " + haystack + " ";
+
+        // the version should always contain 'mesa', but it's also commonly present in either vendor
+        // or renderer - except for nouveau which we look for separately
+        for(const char *needle : {" mesa ", "nouveau"})
         {
-          isMesa = true;
-          break;
+          if(haystack.find(needle) != std::string::npos)
+          {
+            isMesa = true;
+            break;
+          }
         }
+
+        if(isMesa)
+          break;
       }
-
-      if(isMesa)
-        break;
     }
-  }
 
-  if(isMesa)
-  {
-    if(m_DriverInfo.vendor == GPUVendor::Intel)
+    if(isMesa)
     {
-      RDCLOG("Intel GPU detected - trying to initialise Intel GL counters");
-      countersIntel = new IntelGlCounters();
-    }
-    else
-      RDCLOG("Non Intel Mesa driver detected - skipping IHV counter initialisation");
-  }
-  else
-  {
-    if(m_DriverInfo.vendor == GPUVendor::AMD)
-    {
-      RDCLOG("AMD GPU detected - trying to initialise AMD counters");
-      countersAMD = new AMDCounters();
+      if(m_DriverInfo.vendor == GPUVendor::Intel)
+      {
+        RDCLOG("Intel GPU detected - trying to initialise Intel GL counters");
+        countersIntel = new IntelGlCounters();
+      }
+      else
+        RDCLOG("Non Intel Mesa driver detected - skipping IHV counter initialisation");
     }
     else
     {
-      RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
+      if(m_DriverInfo.vendor == GPUVendor::AMD)
+      {
+        RDCLOG("AMD GPU detected - trying to initialise AMD counters");
+        countersAMD = new AMDCounters();
+      }
+      else
+      {
+        RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
+      }
     }
-  }
 
-  if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
-  {
-    m_pAMDCounters = countersAMD;
-  }
-  else
-  {
-    delete countersAMD;
-    m_pAMDCounters = NULL;
-  }
+    if(countersAMD && countersAMD->Init(AMDCounters::ApiType::Ogl, m_ReplayCtx.ctx))
+    {
+      m_pAMDCounters = countersAMD;
+    }
+    else
+    {
+      delete countersAMD;
+      m_pAMDCounters = NULL;
+    }
 
-  if(countersIntel && countersIntel->Init())
-  {
-    m_pIntelCounters = countersIntel;
-  }
-  else
-  {
-    delete countersIntel;
-    m_pIntelCounters = NULL;
+    if(countersIntel && countersIntel->Init())
+    {
+      m_pIntelCounters = countersIntel;
+    }
+    else
+    {
+      delete countersIntel;
+      m_pIntelCounters = NULL;
+    }
   }
 }
 
