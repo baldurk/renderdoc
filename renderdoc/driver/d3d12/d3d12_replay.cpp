@@ -3739,10 +3739,17 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-  AMDRGPControl *rgp = new AMDRGPControl();
+  const bool isProxy = (rdc == NULL);
 
-  if(!rgp->Initialised())
-    SAFE_DELETE(rgp);
+  AMDRGPControl *rgp = NULL;
+
+  if(!isProxy)
+  {
+    rgp = new AMDRGPControl();
+
+    if(!rgp->Initialised())
+      SAFE_DELETE(rgp);
+  }
 
   typedef HRESULT(WINAPI * PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
 
@@ -3757,13 +3764,15 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   IDXGIAdapter *adapter = NULL;
 
-  ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, opts, NULL,
-                            &adapter);
+  if(!isProxy)
+    ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, opts, NULL,
+                              &adapter);
 
   bool debugLayerEnabled = false;
 
-  RDCLOG("Creating D3D12 replay device, minimum feature level %s",
-         ToStr(initParams.MinimumFeatureLevel).c_str());
+  if(!isProxy)
+    RDCLOG("Creating D3D12 replay device, minimum feature level %s",
+           ToStr(initParams.MinimumFeatureLevel).c_str());
 
   bool shouldEnableDebugLayer = opts.apiValidation;
 
@@ -3776,7 +3785,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   {
     debugLayerEnabled = EnableD3D12DebugLayer();
 
-    if(!debugLayerEnabled)
+    if(!debugLayerEnabled && !isProxy)
     {
       RDCLOG(
           "Enabling the D3D debug layers failed, "
@@ -3811,11 +3820,12 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, debugLayerEnabled);
   wrappedDev->SetInitParams(initParams, ver, opts);
 
-  RDCLOG("Created device.");
+  if(!isProxy)
+    RDCLOG("Created device.");
   D3D12Replay *replay = wrappedDev->GetReplay();
 
   replay->Set12On7(d3d12on7);
-  replay->SetProxy(rdc == NULL);
+  replay->SetProxy(isProxy);
   replay->SetRGP(rgp);
 
   replay->Initialise(factory);

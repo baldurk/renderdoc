@@ -4190,12 +4190,23 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
 
   InitReplayTables(module);
 
-  AMDRGPControl *rgp = new AMDRGPControl();
+  const bool isProxy = (rdc == NULL);
 
-  if(!rgp->Initialised())
-    SAFE_DELETE(rgp);
+  AMDRGPControl *rgp = NULL;
+
+  if(!isProxy)
+  {
+    rgp = new AMDRGPControl();
+
+    if(!rgp->Initialised())
+      SAFE_DELETE(rgp);
+  }
 
   WrappedVulkan *vk = new WrappedVulkan();
+
+  VulkanReplay *replay = vk->GetReplay();
+  replay->SetProxy(isProxy);
+
   ReplayStatus status = vk->Initialise(initParams, ver, opts);
 
   if(status != ReplayStatus::Succeeded)
@@ -4207,8 +4218,6 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   }
 
   RDCLOG("Created device.");
-  VulkanReplay *replay = vk->GetReplay();
-  replay->SetProxy(rdc == NULL);
   replay->SetRGP(rgp);
 
   *driver = (IReplayDriver *)replay;

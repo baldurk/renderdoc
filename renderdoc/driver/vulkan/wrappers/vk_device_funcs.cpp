@@ -249,6 +249,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     SAFE_DELETE_ARRAY(props);
   }
 
+  if(!m_Replay.IsRemoteProxy())
   {
     size_t i = 0;
     for(const std::string &ext : supportedExtensions)
@@ -303,14 +304,16 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
      std::find(params.Extensions.begin(), params.Extensions.end(),
                VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == params.Extensions.end())
   {
-    RDCLOG("Enabling VK_EXT_debug_utils");
+    if(!m_Replay.IsRemoteProxy())
+      RDCLOG("Enabling VK_EXT_debug_utils");
     params.Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
   else if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end() &&
           std::find(params.Extensions.begin(), params.Extensions.end(),
                     VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == params.Extensions.end())
   {
-    RDCLOG("Enabling VK_EXT_debug_report");
+    if(!m_Replay.IsRemoteProxy())
+      RDCLOG("Enabling VK_EXT_debug_report");
     params.Extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
   }
 
@@ -352,7 +355,8 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
      std::find(params.Extensions.begin(), params.Extensions.end(),
                VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == params.Extensions.end())
   {
-    RDCLOG("Enabling VK_EXT_validation_features");
+    if(!m_Replay.IsRemoteProxy())
+      RDCLOG("Enabling VK_EXT_validation_features");
     params.Extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
 
     instinfo.pNext = &featuresEXT;
@@ -362,7 +366,8 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
           std::find(params.Extensions.begin(), params.Extensions.end(),
                     VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) == params.Extensions.end())
   {
-    RDCLOG("Enabling VK_EXT_validation_flags");
+    if(!m_Replay.IsRemoteProxy())
+      RDCLOG("Enabling VK_EXT_validation_flags");
     params.Extensions.push_back(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME);
 
     instinfo.pNext = &flagsEXT;

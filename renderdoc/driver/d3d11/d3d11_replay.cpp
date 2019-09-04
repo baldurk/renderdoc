@@ -3789,14 +3789,17 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   ID3D11Device *device = NULL;
   HRESULT hr = E_FAIL;
 
+  const bool isProxy = (rdc == NULL);
+
   // This says whether we're using warp at all
   bool useWarp = false;
   // This says if we've fallen back to warp after failing to find anything better (hence degraded
   // support because using warp was not deliberate)
   bool warpFallback = false;
 
-  ChooseBestMatchingAdapter(GraphicsAPI::D3D11, factory, initParams.AdapterDesc, opts, &useWarp,
-                            &adapter);
+  if(!isProxy)
+    ChooseBestMatchingAdapter(GraphicsAPI::D3D11, factory, initParams.AdapterDesc, opts, &useWarp,
+                              &adapter);
 
   if(useWarp)
     SAFE_RELEASE(adapter);
@@ -3909,7 +3912,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       D3D_FEATURE_LEVEL *featureLevelSubset = featureLevels + featureLevelPass;
       UINT numFeatureLevels = ARRAY_COUNT(featureLevels) - featureLevelPass;
 
-      RDCLOG(
+      RDCDEBUG(
           "Creating D3D11 replay device, %ls adapter, driver type %s, flags %x, %d feature levels "
           "(first %s)",
           adapter ? chosenAdapter.Description : L"NULL", ToStr(driverType).c_str(), flags,
@@ -3961,10 +3964,11 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
     wrappedDev->SetInitParams(initParams, ver, opts);
 
-    RDCLOG("Created device.");
+    if(!isProxy)
+      RDCLOG("Created device.");
     D3D11Replay *replay = wrappedDev->GetReplay();
 
-    replay->SetProxy(rdc == NULL, warpFallback);
+    replay->SetProxy(isProxy, warpFallback);
     replay->CreateResources(factory);
     if(warpFallback)
     {
@@ -3983,7 +3987,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   RDCERR("Couldn't create any compatible d3d11 device.");
 
-  if(flags & D3D11_CREATE_DEVICE_DEBUG)
+  if((flags & D3D11_CREATE_DEVICE_DEBUG) && !isProxy)
     RDCLOG(
         "Development RenderDoc builds require D3D debug layers available, "
         "ensure you have the windows SDK or windows feature needed.");
