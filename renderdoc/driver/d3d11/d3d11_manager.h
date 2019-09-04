@@ -97,7 +97,7 @@ struct D3D11ResourceRecord : public ResourceRecord
       return;
     }
 
-    DeferredShadow[ctx].Alloc(size);
+    DeferredShadow[ctx - 1].Alloc(size);
   }
 
   bool VerifyShadowStorage(size_t ctx)
@@ -105,7 +105,7 @@ struct D3D11ResourceRecord : public ResourceRecord
     if(ctx == 0)
       return ImmediateShadow.Verify();
 
-    return DeferredShadow[ctx].Verify();
+    return DeferredShadow[ctx - 1].Verify();
   }
 
   void FreeShadowStorage()
