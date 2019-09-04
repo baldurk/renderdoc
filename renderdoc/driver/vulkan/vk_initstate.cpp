@@ -2145,15 +2145,18 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       if(it->start() >= initial.mem.size)
         continue;
+      VkDeviceSize start = it->start();
       VkDeviceSize finish = RDCMIN(it->finish(), initial.mem.size);
-      VkDeviceSize size = finish - it->start();
+      VkDeviceSize size = finish - start;
       switch(it->value())
       {
         case eInitReq_Clear:
-          ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(dstBuf), it->start(), size, 0);
+          if(finish >= initial.mem.size)
+            size = VK_WHOLE_SIZE;
+          ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(dstBuf), start, size, 0);
           fillCount++;
           break;
-        case eInitReq_Copy: regions.push_back({it->start(), it->start(), size}); break;
+        case eInitReq_Copy: regions.push_back({start, start, size}); break;
         default: break;
       }
     }

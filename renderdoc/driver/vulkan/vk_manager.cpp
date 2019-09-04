@@ -433,18 +433,63 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
       ResourceId mem = it_data->memory;
 
       auto res = m_MemFrameRefs.insert(std::pair<ResourceId, MemRefs>(mem, MemRefs()));
-      RDCASSERTMSG("MemRefIntervals for each memory resource must be contigous", res.second);
+      RDCASSERTMSG("MemRefIntervals for each memory resource must be contiguous", res.second);
       Intervals<FrameRefType> &rangeRefs = res.first->second.rangeRefs;
 
       auto it_ints = rangeRefs.begin();
       uint64_t last = 0;
+      FrameRefType lastRef = eFrameRef_None;
       while(it_data != data.end() && it_data->memory == mem)
       {
-        RDCASSERT("MemRefInterval starts must be strictly increasing",
-                  it_data->start > last || last == 0);
-        last = it_data->start;
-        it_ints->split(it_data->start);
+        uint64_t start = it_data->start;
+        if(start & 0x3)
+        {
+          // start is not a multiple of 4. We need to shift start to a multiple of 4 to satisfy the
+          // alignment requirements of `vkCmdFillBuffer`.
+
+          uint64_t nextDWord = AlignUp4(start);
+
+          // Compute the overall ref type for the dword, including all the ref types of intervals
+          // intersecting the dword
+          FrameRefType overlapRef = lastRef;
+          for(; it_data->start < nextDWord; ++it_data)
+            overlapRef = ComposeFrameRefsDisjoint(overlapRef, it_data->refType);
+
+          --it_data;
+          // it_data now points to the last interval intersecting the dword.
+
+          if(overlapRef == lastRef)
+          {
+            // The ref type for the overlap dword is the same as the ref type of the previous
+            // interval; move the entire overlap dword into the previous interval, which means the
+            // start of this interval moves up to the the next higher dword.
+            start = nextDWord;
+          }
+          else if(overlapRef == it_data->refType)
+          {
+            // The ref type for the overlap dword is the same as for this interval; move the entire
+            // overlap dword into this interval, which means the start of this interval moves down
+            // to the next lower dword.
+            start = nextDWord - 4;
+          }
+          else
+          {
+            // The ref type of the overlap dword matches neither the previous interval nor this
+            // interval; insert a new interval for the overlap.
+            if(last < nextDWord - 4)
+              it_ints->split(nextDWord - 4);
+            it_ints->setValue(overlapRef);
+            last = nextDWord - 4;
+            start = nextDWord;
+          }
+        }
+        RDCASSERT("MemRefInterval starts must be increasing", start >= last);
+
+        if(last < start)
+          it_ints->split(start);
         it_ints->setValue(it_data->refType);
+        last = start;
+        lastRef = it_data->refType;
         it_data++;
       }
     }
