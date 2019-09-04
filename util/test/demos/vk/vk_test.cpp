@@ -63,6 +63,7 @@ namespace
 {
 bool volk = false;
 bool spv = false;
+uint32_t vulkanVersion = 0;
 VkInstance inst = VK_NULL_HANDLE;
 VkPhysicalDevice selectedPhys = VK_NULL_HANDLE;
 std::vector<const char *> enabledInstExts;
@@ -162,8 +163,13 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
           enabledInstExts.push_back(search);
       }
 
+      vulkanVersion = volkGetInstanceVersion();
+
       vkh::ApplicationInfo app("RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0),
-                               "RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_0);
+                               "RenderDoc autotesting", VK_MAKE_VERSION(1, 0, 0), vulkanVersion);
+
+      TEST_LOG("Initialising Vulkan at VK%u.%u", VK_VERSION_MAJOR(vulkanVersion),
+               VK_VERSION_MINOR(vulkanVersion));
 
       VkResult vkr = vkCreateInstance(vkh::InstanceCreateInfo(app, enabledLayers, enabledInstExts),
                                       NULL, &inst);
@@ -318,6 +324,17 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
 
   vkGetPhysicalDeviceProperties(phys, &physProperties);
+
+  instVersion = vulkanVersion;
+  devVersion = physProperties.apiVersion;
+
+  if(std::find(enabledInstExts.begin(), enabledInstExts.end(),
+               VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) != enabledInstExts.end())
+  {
+    vkh::PhysicalDeviceProperties2KHR props2;
+    vkGetPhysicalDeviceProperties2KHR(phys, props2);
+    devVersion = props2.properties.apiVersion;
+  }
 
   for(const char *search : devExts)
   {

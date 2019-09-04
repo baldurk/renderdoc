@@ -249,6 +249,11 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   std::mutex mutex;
 
+  // instance version
+  uint32_t instVersion;
+  // device version
+  uint32_t devVersion;
+
   // requested features
   VkPhysicalDeviceFeatures features = {};
 
