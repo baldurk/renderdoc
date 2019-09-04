@@ -298,8 +298,13 @@ void PersistantConfig::UpdateEnumeratedProtocolDevices()
   QMap<rdcstr, RemoteHost> oldHosts;
 
   for(int i = RemoteHostList.count() - 1; i >= 0; i--)
+  {
     if(RemoteHostList[i].Protocol())
-      oldHosts[RemoteHostList[i].Hostname()] = RemoteHostList.takeAt(i);
+    {
+      RemoteHost host = RemoteHostList.takeAt(i);
+      oldHosts[host.Hostname()] = host;
+    }
+  }
 
   for(RemoteHost host : enumeratedDevices)
   {
