@@ -41,11 +41,9 @@ struct IAmdExtD3DFactory;
 
 struct D3D12InitParams
 {
-  D3D12InitParams();
+  D3D_FEATURE_LEVEL MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-  D3D_FEATURE_LEVEL MinimumFeatureLevel;
-
-  DXGI_ADAPTER_DESC AdapterDesc;
+  DXGI_ADAPTER_DESC AdapterDesc = {};
 
   // check if a frame capture section version is supported
   static const uint64_t CurrentVersion = 0x8;

@@ -184,11 +184,6 @@ HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAda
   return E_FAIL;
 }
 
-D3D12InitParams::D3D12InitParams()
-{
-  MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-}
-
 bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
 {
   if(ver == CurrentVersion)

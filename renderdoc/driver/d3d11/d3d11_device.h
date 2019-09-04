@@ -54,15 +54,13 @@ enum TextureDisplayType
 
 struct D3D11InitParams
 {
-  D3D11InitParams();
+  D3D_DRIVER_TYPE DriverType = D3D_DRIVER_TYPE_UNKNOWN;
+  UINT Flags = 0;
+  UINT SDKVersion = D3D11_SDK_VERSION;
+  UINT NumFeatureLevels = 0;
+  D3D_FEATURE_LEVEL FeatureLevels[16] = {};
 
-  D3D_DRIVER_TYPE DriverType;
-  UINT Flags;
-  UINT SDKVersion;
-  UINT NumFeatureLevels;
-  D3D_FEATURE_LEVEL FeatureLevels[16];
-
-  DXGI_ADAPTER_DESC AdapterDesc;
+  DXGI_ADAPTER_DESC AdapterDesc = {};
 
   // check if a frame capture section version is supported
   static const uint64_t CurrentVersion = 0x11;

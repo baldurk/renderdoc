@@ -453,15 +453,6 @@ ResourceRange::ResourceRange(ID3D11Resource *res, UINT mip, UINT slice)
   stencilReadOnly = false;
 }
 
-D3D11InitParams::D3D11InitParams()
-{
-  DriverType = D3D_DRIVER_TYPE_UNKNOWN;
-  Flags = 0;
-  SDKVersion = D3D11_SDK_VERSION;
-  NumFeatureLevels = 0;
-  RDCEraseEl(FeatureLevels);
-}
-
 bool D3D11InitParams::IsSupportedVersion(uint64_t ver)
 {
   if(ver == CurrentVersion)
