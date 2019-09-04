@@ -212,6 +212,7 @@
     <ClCompile Include="vk\vk_image_layouts.cpp" />
     <ClCompile Include="vk\vk_int8_ibuffer.cpp" />
     <ClCompile Include="vk\vk_line_raster.cpp" />
+    <ClCompile Include="vk\vk_misaligned_dirty.cpp" />
     <ClCompile Include="vk\vk_multi_thread_windows.cpp" />
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />

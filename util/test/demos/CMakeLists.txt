@@ -17,6 +17,7 @@ set(VULKAN_SRC
         vk/vk_indirect.cpp
         vk/vk_int8_ibuffer.cpp
         vk/vk_line_raster.cpp
+        vk/vk_misaligned_dirty.cpp
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
         vk/vk_resource_lifetimes.cpp
@@ -24,6 +25,7 @@ set(VULKAN_SRC
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp
+        vk/vk_spirv_13_shaders.cpp
         vk/vk_structured_buffer_nested.cpp
         vk/vk_triangle_fan.cpp
         vk/vk_vertex_attr_zoo.cpp
