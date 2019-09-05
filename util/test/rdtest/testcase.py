@@ -168,6 +168,15 @@ class TestCase:
             else:
                 raise TestFailureException('Assertion Failure: {}'.format(msg))
 
+    def get_replay_options(self):
+        """
+        Method to overload if you want to override the replay options used.
+
+        :return: The renderdoc.ReplayOptions to use.
+        """
+
+        return rd.ReplayOptions()
+
     def get_capture(self):
         """
         Method to overload if not implementing a run(), using the default run which
@@ -287,7 +296,7 @@ class TestCase:
 
         log.print("Loading capture")
 
-        self.controller = analyse.open_capture(self.capture_filename)
+        self.controller = analyse.open_capture(self.capture_filename, opts=self.get_replay_options())
 
         log.print("Checking capture")
 

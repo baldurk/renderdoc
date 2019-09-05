@@ -6,15 +6,19 @@ import renderdoc
 rd = renderdoc
 
 
-def open_capture(filename="", cap: rd.CaptureFile=None):
+def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=None):
     """
     Opens a capture file and begins a replay.
 
     :param filename: The filename to open, or empty if cap is used.
     :param cap: The capture file to use, or ``None`` if a filename is given.
+    :param opts: The replay options to use, or ``None`` to use the default options.
     :return: A replay controller for the capture
     :rtype: renderdoc.ReplayController
     """
+
+    if opts is None:
+        opts = rd.ReplayOptions()
 
     # Open a capture file handle
     own_cap = False
@@ -40,7 +44,7 @@ def open_capture(filename="", cap: rd.CaptureFile=None):
             cap.Shutdown()
             raise RuntimeError("{} capture cannot be replayed".format(api))
 
-    status, controller = cap.OpenCapture(rd.ReplayOptions(), None)
+    status, controller = cap.OpenCapture(opts, None)
 
     if own_cap:
         cap.Shutdown()
