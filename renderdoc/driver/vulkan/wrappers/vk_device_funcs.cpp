@@ -177,6 +177,8 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   m_SectionVersion = sectionVersion;
   m_ReplayOptions = opts;
 
+  m_ResourceManager->SetOptimisationLevel(m_ReplayOptions.optimisation);
+
   StripUnwantedLayers(params.Layers);
   StripUnwantedExtensions(params.Extensions);
 

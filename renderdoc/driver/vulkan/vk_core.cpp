@@ -162,8 +162,6 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
   {
     m_FrameCaptureRecord = NULL;
 
-    m_ResourceManager->SetOptimisationLevel(m_ReplayOptions.optimisation);
-
     ResourceIDGen::SetReplayResourceIDs();
   }
 }
