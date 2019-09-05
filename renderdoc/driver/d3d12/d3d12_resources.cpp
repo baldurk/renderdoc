@@ -30,6 +30,7 @@
 
 GPUAddressRangeTracker WrappedID3D12Resource1::m_Addresses;
 std::map<ResourceId, WrappedID3D12Resource1 *> *WrappedID3D12Resource1::m_List = NULL;
+std::vector<WrappedID3D12PipelineState *> *WrappedID3D12PipelineState::m_List = NULL;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12Shader *> WrappedID3D12Shader::m_Shaders;
 bool WrappedID3D12Shader::m_InternalResources = false;
 

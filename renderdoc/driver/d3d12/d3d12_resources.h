@@ -632,6 +632,9 @@ public:
     }
   }
 
+  static std::vector<WrappedID3D12PipelineState *> *m_List;
+
+  static std::vector<WrappedID3D12PipelineState *> &GetList() { return *m_List; }
   bool IsGraphics() { return graphics != NULL; }
   bool IsCompute() { return compute != NULL; }
   struct DXBCKey
@@ -724,10 +727,6 @@ public:
       else
         shader->AddRef();
 
-      if(pipeline &&
-         std::find(shader->m_Pipes.begin(), shader->m_Pipes.end(), pipeline) == shader->m_Pipes.end())
-        shader->m_Pipes.push_back(pipeline);
-
       return shader;
     }
 
@@ -779,8 +778,6 @@ public:
       return m_Mapping;
     }
 
-    std::vector<WrappedID3D12PipelineState *> m_Pipes;
-
   private:
     ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
@@ -817,9 +814,14 @@ public:
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    if(m_List)
+      m_List->push_back(this);
   }
   virtual ~WrappedID3D12PipelineState()
   {
+    if(m_List)
+      m_List->erase(std::find(m_List->begin(), m_List->end(), this));
+
     Shutdown();
 
     if(graphics)

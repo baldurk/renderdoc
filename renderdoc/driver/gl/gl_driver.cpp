@@ -1577,235 +1577,130 @@ struct ReplacementSearch
 
 void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 {
-  RemoveReplacement(from);
-
   if(GetResourceManager()->HasLiveResource(from))
   {
-    GLResource resource = GetResourceManager()->GetLiveResource(to);
-    ResourceId livefrom = GetResourceManager()->GetLiveID(from);
-
-    if(resource.Namespace == eResShader)
-    {
-      // need to replace all programs that use this shader
-      for(auto it = m_Programs.begin(); it != m_Programs.end(); ++it)
-      {
-        ResourceId progsrcid = it->first;
-        ProgramData &progdata = it->second;
-
-        PerStageReflections stages;
-        FillReflectionArray(it->first, stages);
-
-        // see if the shader is used
-        for(int i = 0; i < 6; i++)
-        {
-          if(progdata.stageShaders[i] == livefrom)
-          {
-            GLuint progsrc = GetResourceManager()->GetCurrentResource(progsrcid).name;
-
-            // make a new program
-            GLuint progdst = glCreateProgram();
-
-            ResourceId progdstid = GetResourceManager()->GetID(ProgramRes(GetCtx(), progdst));
-
-            // attach all but the i'th shader
-            for(int j = 0; j < 6; j++)
-              if(i != j && progdata.stageShaders[j] != ResourceId())
-                glAttachShader(
-                    progdst, GetResourceManager()->GetCurrentResource(progdata.stageShaders[j]).name);
-
-            // attach the new shader
-            glAttachShader(progdst, resource.name);
-
-            // mark separable if previous program was separable
-            GLint sep = 0;
-            glGetProgramiv(progsrc, eGL_PROGRAM_SEPARABLE, &sep);
-
-            if(sep)
-              glProgramParameteri(progdst, eGL_PROGRAM_SEPARABLE, GL_TRUE);
-
-            ResourceId vs = progdata.stageShaders[0];
-            ResourceId fs = progdata.stageShaders[4];
-
-            if(vs != ResourceId())
-              CopyProgramAttribBindings(progsrc, progdst, &m_Shaders[vs].reflection);
-
-            if(fs != ResourceId())
-              CopyProgramFragDataBindings(progsrc, progdst, &m_Shaders[fs].reflection);
-
-            // link new program
-            glLinkProgram(progdst);
-
-            GLint status = 0;
-            glGetProgramiv(progdst, eGL_LINK_STATUS, &status);
-
-            if(status == 0)
-            {
-              GLint len = 1024;
-              glGetProgramiv(progdst, eGL_INFO_LOG_LENGTH, &len);
-              char *buffer = new char[len + 1];
-              glGetProgramInfoLog(progdst, len, NULL, buffer);
-              buffer[len] = 0;
-
-              RDCWARN(
-                  "When making program replacement for shader, program failed to link. Skipping "
-                  "replacement:\n%s",
-                  buffer);
-
-              delete[] buffer;
-
-              glDeleteProgram(progdst);
-            }
-            else
-            {
-              PerStageReflections dstStages;
-              FillReflectionArray(progdstid, dstStages);
-
-              std::map<GLint, GLint> translate;
-
-              // copy uniforms and set up new location translation table
-              CopyProgramUniforms(stages, progsrc, dstStages, progdst, &translate);
-
-              // start with the original location translation table, to account for any
-              // capture-replay translation
-              m_Programs[progdstid].locationTranslate = m_Programs[progsrcid].locationTranslate;
-
-              // compose on the one from editing.
-              for(auto lit = m_Programs[progdstid].locationTranslate.begin();
-                  lit != m_Programs[progdstid].locationTranslate.end(); lit++)
-              {
-                auto lit2 = translate.find(lit->second);
-                if(lit2 != translate.end())
-                  lit->second = lit2->second;
-                else
-                  lit->second = -1;
-              }
-
-              ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
-
-              // recursively call to replaceresource (different type - these are programs)
-              ReplaceResource(origsrcid, progdstid);
-
-              // insert into m_DependentReplacements
-              auto insertPos =
-                  std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(),
-                                   from, ReplacementSearch());
-              m_DependentReplacements.insert(
-                  insertPos,
-                  make_rdcpair(from, Replacement(origsrcid, ProgramRes(GetCtx(), progdst))));
-            }
-
-            break;
-          }
-        }
-      }
-    }
-
-    if(resource.Namespace == eResProgram)
-    {
-      // need to replace all pipelines that use this program
-      for(auto it = m_Pipelines.begin(); it != m_Pipelines.end(); ++it)
-      {
-        ResourceId pipesrcid = it->first;
-        PipelineData &pipedata = it->second;
-
-        // see if the program is used
-        for(int i = 0; i < 6; i++)
-        {
-          if(pipedata.stagePrograms[i] == livefrom)
-          {
-            // make a new pipeline
-            GLuint pipedst = 0;
-            glGenProgramPipelines(1, &pipedst);
-
-            ResourceId pipedstid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipedst));
-
-            // attach all but the i'th program
-            for(int j = 0; j < 6; j++)
-            {
-              if(i != j && pipedata.stagePrograms[j] != ResourceId())
-              {
-                // if this stage was provided by the program we're replacing, use that instead
-                if(pipedata.stagePrograms[i] == pipedata.stagePrograms[j])
-                  glUseProgramStages(pipedst, ShaderBit(j), resource.name);
-                else
-                  glUseProgramStages(
-                      pipedst, ShaderBit(j),
-                      GetResourceManager()->GetCurrentResource(pipedata.stagePrograms[j]).name);
-              }
-            }
-
-            // attach the new program in our stage
-            glUseProgramStages(pipedst, ShaderBit(i), resource.name);
-
-            ResourceId origsrcid = GetResourceManager()->GetOriginalID(pipesrcid);
-
-            // recursively call to replaceresource (different type - these are programs)
-            ReplaceResource(origsrcid, pipedstid);
-
-            // insert into m_DependentReplacements
-            auto insertPos =
-                std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(),
-                                 from, ReplacementSearch());
-            m_DependentReplacements.insert(
-                insertPos,
-                make_rdcpair(from, Replacement(origsrcid, ProgramPipeRes(GetCtx(), pipedst))));
-          }
-        }
-      }
-    }
+    GLResource fromresource = GetResourceManager()->GetLiveResource(from);
+    GLResource toresource = GetResourceManager()->GetLiveResource(to);
 
     // do actual replacement
-    GLResource fromresource = GetResourceManager()->GetLiveResource(from);
 
-    // if they're the same type it's easy, but it could be we want to replace a shader
-    // inside a program which never had a shader (ie. glCreateShaderProgramv)
-    if(fromresource.Namespace == resource.Namespace)
+    if(fromresource.Namespace == toresource.Namespace)
     {
+      GetResourceManager()->RemoveReplacement(from);
+
+      // if they're the same type we can just replace directly
       GetResourceManager()->ReplaceResource(from, to);
     }
-    else if(fromresource.Namespace == eResProgram && resource.Namespace == eResShader)
+    else if(fromresource.Namespace == eResProgram && toresource.Namespace == eResShader)
     {
-      // if we want to replace a program with a shader, assume it's just a program with only one
-      // shader attached. This will have been handled above in the "programs dependent on this
-      // shader", so we can just skip doing anything here
+      // if we want to replace a program with a shader, this is a glCreateShaderProgramv so we need
+      // to handle it specially
+
+      ResourceId progsrcid = GetResourceManager()->GetLiveID(from);
+      const ProgramData &progdata = m_Programs[progsrcid];
+
+      // if this program has a replacement, remove it and delete the program generated for it
+      if(GetResourceManager()->HasReplacement(from))
+      {
+        glDeleteProgram(GetResourceManager()->GetLiveResource(from).name);
+        GetResourceManager()->RemoveReplacement(from);
+      }
+
+      GLuint progsrc = GetResourceManager()->GetLiveResource(from).name;
+
+      // make a new program
+      GLuint progdst = glCreateProgram();
+
+      ResourceId progdstid = GetResourceManager()->GetID(ProgramRes(GetCtx(), progdst));
+
+      // attach the shader
+      glAttachShader(progdst, GetResourceManager()->GetCurrentResource(to).name);
+
+      // mark separable
+      glProgramParameteri(progdst, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+
+      // copy VS or FS bindings as necessary
+      ResourceId vs = progdata.stageShaders[0];
+      ResourceId fs = progdata.stageShaders[4];
+
+      if(vs != ResourceId())
+        CopyProgramAttribBindings(progsrc, progdst, &m_Shaders[vs].reflection);
+
+      if(fs != ResourceId())
+        CopyProgramFragDataBindings(progsrc, progdst, &m_Shaders[fs].reflection);
+
+      // link new program
+      glLinkProgram(progdst);
+
+      GLint status = 0;
+      glGetProgramiv(progdst, eGL_LINK_STATUS, &status);
+
+      if(status == 0)
+      {
+        GLint len = 1024;
+        glGetProgramiv(progdst, eGL_INFO_LOG_LENGTH, &len);
+        char *buffer = new char[len + 1];
+        glGetProgramInfoLog(progdst, len, NULL, buffer);
+        buffer[len] = 0;
+
+        RDCWARN(
+            "When making program replacement for glCreateShaderProgramv shader, program failed "
+            "to link. Skipping replacement:\n%s",
+            buffer);
+
+        delete[] buffer;
+
+        glDeleteProgram(progdst);
+      }
+      else
+      {
+        PerStageReflections dstStages;
+        FillReflectionArray(progdstid, dstStages);
+
+        std::map<GLint, GLint> translate;
+
+        PerStageReflections stages;
+        FillReflectionArray(progsrcid, stages);
+
+        // copy uniforms and set up new location translation table
+        CopyProgramUniforms(stages, progsrc, dstStages, progdst, &translate);
+
+        // start with the original location translation table, to account for any
+        // capture-replay translation
+        m_Programs[progdstid].locationTranslate = m_Programs[progsrcid].locationTranslate;
+
+        // compose on the one from editing.
+        for(auto lit = m_Programs[progdstid].locationTranslate.begin();
+            lit != m_Programs[progdstid].locationTranslate.end(); lit++)
+        {
+          auto lit2 = translate.find(lit->second);
+          if(lit2 != translate.end())
+            lit->second = lit2->second;
+          else
+            lit->second = -1;
+        }
+
+        // replace the program
+        GetResourceManager()->ReplaceResource(from, progdstid);
+      }
     }
     else
     {
       RDCERR("Unsupported replacement type from type %d to type %d", fromresource.Namespace,
-             resource.Namespace);
+             toresource.Namespace);
     }
+
+    RefreshDerivedReplacements();
   }
 }
 
 void WrappedOpenGL::RemoveReplacement(ResourceId id)
 {
-  // do actual removal
-  GetResourceManager()->RemoveReplacement(id);
-
-  std::set<ResourceId> recurse;
-
-  // check if there are any dependent replacements, remove if so
-  auto it = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), id,
-                             ReplacementSearch());
-  for(; it != m_DependentReplacements.end();)
+  if(GetResourceManager()->HasReplacement(id))
   {
-    GetResourceManager()->RemoveReplacement(it->second.id);
-    recurse.insert(it->second.id);
+    GetResourceManager()->RemoveReplacement(id);
 
-    switch(it->second.res.Namespace)
-    {
-      case eResProgram: glDeleteProgram(it->second.res.name); break;
-      case eResProgramPipe: glDeleteProgramPipelines(1, &it->second.res.name); break;
-      default: RDCERR("Unexpected resource type to be freed"); break;
-    }
-
-    it = m_DependentReplacements.erase(it);
-  }
-
-  for(auto recurseit = recurse.begin(); recurseit != recurse.end(); ++recurseit)
-  {
-    // recursive call in case there are any dependents on this resource
-    RemoveReplacement(*recurseit);
+    RefreshDerivedReplacements();
   }
 }
 
@@ -1823,6 +1718,209 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
       default: RDCERR("Unexpected resource type to be freed"); break;
     }
   }
+}
+
+void WrappedOpenGL::RefreshDerivedReplacements()
+{
+  // we defer deletes of old replaced resources since it will invalidate elements in the vector
+  // we're iterating
+  std::vector<GLuint> deletequeue;
+
+  // first go through programs and replace any that need to be updated based on whether they have
+  // any replaced shaders
+  for(auto it = m_Programs.begin(); it != m_Programs.end(); ++it)
+  {
+    ResourceId progsrcid = it->first;
+    const ProgramData &progdata = it->second;
+
+    ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
+
+    // only look at programs from the capture, no replay-time programs.
+    if(origsrcid == progsrcid)
+      continue;
+
+    // skip glCreateShaderProgramv programs. We handled this above and we don't want to try and
+    // create a dependent program or remove the replacement
+    if(progdata.shaderProgramUnlinkable)
+      continue;
+
+    // if this program has a replacement, remove it and delete the program generated for it
+    if(GetResourceManager()->HasReplacement(origsrcid))
+    {
+      deletequeue.push_back(GetResourceManager()->GetLiveResource(origsrcid).name);
+      GetResourceManager()->RemoveReplacement(origsrcid);
+    }
+
+    bool usesReplacedShader = false;
+
+    for(int i = 0; i < 6; i++)
+    {
+      if(GetResourceManager()->HasReplacement(
+             GetResourceManager()->GetOriginalID(progdata.stageShaders[i])))
+      {
+        usesReplacedShader = true;
+        break;
+      }
+    }
+
+    // if there are replaced shaders in use, create a new program with any/all replaced shaders.
+    if(usesReplacedShader)
+    {
+      GLuint progsrc = GetResourceManager()->GetCurrentResource(progsrcid).name;
+
+      // make a new program
+      GLuint progdst = glCreateProgram();
+
+      ResourceId progdstid = GetResourceManager()->GetID(ProgramRes(GetCtx(), progdst));
+
+      // attach shaders, going via the original ID to pick up replacements
+      for(int i = 0; i < 6; i++)
+      {
+        if(progdata.stageShaders[i] != ResourceId())
+        {
+          ResourceId shaderorigid = GetResourceManager()->GetOriginalID(progdata.stageShaders[i]);
+          glAttachShader(progdst, GetResourceManager()->GetLiveResource(shaderorigid).name);
+        }
+      }
+
+      // mark separable if previous program was separable
+      GLint sep = 0;
+      glGetProgramiv(progsrc, eGL_PROGRAM_SEPARABLE, &sep);
+
+      if(sep)
+        glProgramParameteri(progdst, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+
+      ResourceId vs = progdata.stageShaders[0];
+      ResourceId fs = progdata.stageShaders[4];
+
+      if(vs != ResourceId())
+        CopyProgramAttribBindings(progsrc, progdst, &m_Shaders[vs].reflection);
+
+      if(fs != ResourceId())
+        CopyProgramFragDataBindings(progsrc, progdst, &m_Shaders[fs].reflection);
+
+      // link new program
+      glLinkProgram(progdst);
+
+      GLint status = 0;
+      glGetProgramiv(progdst, eGL_LINK_STATUS, &status);
+
+      if(status == 0)
+      {
+        GLint len = 1024;
+        glGetProgramiv(progdst, eGL_INFO_LOG_LENGTH, &len);
+        char *buffer = new char[len + 1];
+        glGetProgramInfoLog(progdst, len, NULL, buffer);
+        buffer[len] = 0;
+
+        RDCWARN(
+            "When making program replacement for shader, program failed to link. Skipping "
+            "replacement:\n%s",
+            buffer);
+
+        delete[] buffer;
+
+        glDeleteProgram(progdst);
+      }
+      else
+      {
+        PerStageReflections dstStages;
+        FillReflectionArray(progdstid, dstStages);
+
+        std::map<GLint, GLint> translate;
+
+        PerStageReflections stages;
+        FillReflectionArray(progsrcid, stages);
+
+        // copy uniforms and set up new location translation table
+        CopyProgramUniforms(stages, progsrc, dstStages, progdst, &translate);
+
+        // start with the original location translation table, to account for any
+        // capture-replay translation
+        m_Programs[progdstid].locationTranslate = m_Programs[progsrcid].locationTranslate;
+
+        // compose on the one from editing.
+        for(auto lit = m_Programs[progdstid].locationTranslate.begin();
+            lit != m_Programs[progdstid].locationTranslate.end(); lit++)
+        {
+          auto lit2 = translate.find(lit->second);
+          if(lit2 != translate.end())
+            lit->second = lit2->second;
+          else
+            lit->second = -1;
+        }
+
+        // replace the program
+        GetResourceManager()->ReplaceResource(origsrcid, progdstid);
+      }
+    }
+  }
+
+  for(GLuint prog : deletequeue)
+    glDeleteProgram(prog);
+
+  deletequeue.clear();
+
+  // then go through pipelines based on replaced programs, as above
+  for(auto it = m_Pipelines.begin(); it != m_Pipelines.end(); ++it)
+  {
+    ResourceId pipesrcid = it->first;
+    const PipelineData &pipedata = it->second;
+
+    ResourceId origsrcid = GetResourceManager()->GetOriginalID(pipesrcid);
+
+    // only look at programs from the capture, no replay-time programs.
+    if(origsrcid == pipesrcid)
+      continue;
+
+    // if this pipeline has a replacement, remove it and delete the pipeline generated for it
+    if(GetResourceManager()->HasReplacement(origsrcid))
+    {
+      deletequeue.push_back(GetResourceManager()->GetLiveResource(origsrcid).name);
+      GetResourceManager()->RemoveReplacement(origsrcid);
+    }
+
+    bool usesReplacedProgram = false;
+
+    for(int i = 0; i < 6; i++)
+    {
+      if(GetResourceManager()->HasReplacement(
+             GetResourceManager()->GetOriginalID(pipedata.stagePrograms[i])))
+      {
+        usesReplacedProgram = true;
+        break;
+      }
+    }
+
+    // if there are replaced shaders in use, create a new program with any/all replaced shaders.
+    if(usesReplacedProgram)
+    {
+      // make a new pipeline
+      GLuint pipedst = 0;
+      glGenProgramPipelines(1, &pipedst);
+
+      ResourceId pipedstid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipedst));
+
+      // attach programs, going via the original ID to pick up replacements
+      for(int i = 0; i < 6; i++)
+      {
+        if(pipedata.stagePrograms[i] != ResourceId())
+        {
+          ResourceId progorigid = GetResourceManager()->GetOriginalID(pipedata.stagePrograms[i]);
+          glUseProgramStages(pipedst, ShaderBit(i),
+                             GetResourceManager()->GetLiveResource(progorigid).name);
+        }
+      }
+
+      // replace the pipeline
+      GetResourceManager()->ReplaceResource(origsrcid, pipedstid);
+    }
+  }
+
+  for(GLuint prog : deletequeue)
+    glDeleteProgramPipelines(1, &prog);
+
+  deletequeue.clear();
 }
 
 void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)

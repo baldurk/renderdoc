@@ -264,8 +264,6 @@ private:
 
   std::map<ResourceId, BufferData> m_Buffers;
 
-  std::vector<rdcpair<ResourceId, Replacement>> m_DependentReplacements;
-
   // this object is only created on old captures where VAO0 was a single global object. In new
   // captures each context has its own VAO0.
   GLuint m_Global_VAO0 = 0;
@@ -477,6 +475,7 @@ private:
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
   void FreeTargetResource(ResourceId id);
+  void RefreshDerivedReplacements();
 
   struct QueuedResource
   {

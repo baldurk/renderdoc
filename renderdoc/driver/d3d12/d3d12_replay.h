@@ -223,6 +223,8 @@ private:
 
   bool CreateSOBuffers();
 
+  void RefreshDerivedReplacements();
+
   void BuildShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
                    const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                    std::string *errors);

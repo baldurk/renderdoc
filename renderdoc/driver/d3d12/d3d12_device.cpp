@@ -243,12 +243,18 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_InitParams = params;
 
+  WrappedID3D12Resource1::m_List = NULL;
+  WrappedID3D12PipelineState::m_List = NULL;
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = CaptureState::LoadingReplaying;
 
     if(realDevice)
+    {
       WrappedID3D12Resource1::m_List = new std::map<ResourceId, WrappedID3D12Resource1 *>();
+      WrappedID3D12PipelineState::m_List = new std::vector<WrappedID3D12PipelineState *>();
+    }
 
     m_FrameCaptureRecord = NULL;
 
@@ -257,8 +263,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   else
   {
     m_State = CaptureState::BackgroundCapturing;
-
-    WrappedID3D12Resource1::m_List = NULL;
 
     if(m_pDevice)
     {
@@ -421,7 +425,10 @@ WrappedID3D12Device::~WrappedID3D12Device()
     SAFE_RELEASE(m_InternalCmds.freecmds[i]);
 
   if(!IsStructuredExporting(m_State))
+  {
     SAFE_DELETE(WrappedID3D12Resource1::m_List);
+    SAFE_DELETE(WrappedID3D12PipelineState::m_List);
+  }
 
   for(size_t i = 0; i < m_QueueFences.size(); i++)
   {

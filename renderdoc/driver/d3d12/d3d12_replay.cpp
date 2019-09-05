@@ -2849,106 +2849,134 @@ void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sourc
 
 void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
 {
-  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+  // replace the shader module
+  m_pDevice->GetResourceManager()->ReplaceResource(from, to);
 
-  // remove any previous replacement
-  RemoveReplacement(from);
-
-  if(rm->HasLiveResource(from))
-  {
-    ID3D12DeviceChild *resource = rm->GetLiveResource(from);
-
-    if(WrappedID3D12Shader::IsAlloc(resource))
-    {
-      WrappedID3D12Shader *sh = (WrappedID3D12Shader *)resource;
-
-      for(size_t i = 0; i < sh->m_Pipes.size(); i++)
-      {
-        WrappedID3D12PipelineState *pipe = sh->m_Pipes[i];
-
-        ResourceId id = rm->GetOriginalID(pipe->GetResourceID());
-
-        ID3D12PipelineState *replpipe = NULL;
-
-        D3D12_SHADER_BYTECODE shDesc = rm->GetLiveAs<WrappedID3D12Shader>(to)->GetDesc();
-
-        if(pipe->graphics)
-        {
-          D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc = *pipe->graphics;
-
-          D3D12_SHADER_BYTECODE *shaders[] = {
-              &desc.VS, &desc.HS, &desc.DS, &desc.GS, &desc.PS,
-          };
-
-          for(size_t s = 0; s < ARRAY_COUNT(shaders); s++)
-          {
-            if(shaders[s]->BytecodeLength > 0)
-            {
-              WrappedID3D12Shader *stage = (WrappedID3D12Shader *)shaders[s]->pShaderBytecode;
-
-              if(stage->GetResourceID() == from)
-                *shaders[s] = shDesc;
-              else
-                *shaders[s] = stage->GetDesc();
-            }
-          }
-
-          m_pDevice->CreatePipeState(desc, &replpipe);
-        }
-        else
-        {
-          D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc = *pipe->compute;
-
-          // replace the shader
-          desc.CS = shDesc;
-
-          m_pDevice->CreatePipeState(desc, &replpipe);
-        }
-
-        rm->ReplaceResource(id, GetResID(replpipe));
-      }
-    }
-
-    rm->ReplaceResource(from, to);
-  }
+  // now update any derived resources
+  RefreshDerivedReplacements();
 
   ClearPostVSCache();
 }
 
 void D3D12Replay::RemoveReplacement(ResourceId id)
 {
+  if(m_pDevice->GetResourceManager()->HasReplacement(id))
+  {
+    m_pDevice->GetResourceManager()->RemoveReplacement(id);
+
+    RefreshDerivedReplacements();
+
+    ClearPostVSCache();
+  }
+}
+
+void D3D12Replay::RefreshDerivedReplacements()
+{
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  rm->RemoveReplacement(id);
+  // we defer deletes of old replaced resources since it will invalidate elements in the vector
+  // we're iterating
+  std::vector<ID3D12PipelineState *> deletequeue;
 
-  if(rm->HasLiveResource(id))
+  for(WrappedID3D12PipelineState *pipe : WrappedID3D12PipelineState::GetList())
   {
-    ID3D12DeviceChild *resource = rm->GetLiveResource(id);
+    ResourceId pipesrcid = pipe->GetResourceID();
+    ResourceId origsrcid = rm->GetOriginalID(pipesrcid);
 
-    if(WrappedID3D12Shader::IsAlloc(resource))
+    // only look at pipelines from the capture, no replay-time programs.
+    if(origsrcid == pipesrcid)
+      continue;
+
+    // if this pipeline has a replacement, remove it and delete the program generated for it
+    if(rm->HasReplacement(origsrcid))
     {
-      WrappedID3D12Shader *sh = (WrappedID3D12Shader *)resource;
+      deletequeue.push_back(rm->GetLiveAs<ID3D12PipelineState>(origsrcid));
 
-      for(size_t i = 0; i < sh->m_Pipes.size(); i++)
+      rm->RemoveReplacement(origsrcid);
+    }
+
+    bool usesReplacedShader = false;
+
+    if(pipe->IsGraphics())
+    {
+      ResourceId shaders[5];
+
+      if(pipe->VS())
+        shaders[0] = rm->GetOriginalID(pipe->VS()->GetResourceID());
+      if(pipe->HS())
+        shaders[1] = rm->GetOriginalID(pipe->HS()->GetResourceID());
+      if(pipe->DS())
+        shaders[2] = rm->GetOriginalID(pipe->DS()->GetResourceID());
+      if(pipe->GS())
+        shaders[3] = rm->GetOriginalID(pipe->GS()->GetResourceID());
+      if(pipe->PS())
+        shaders[4] = rm->GetOriginalID(pipe->PS()->GetResourceID());
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
       {
-        WrappedID3D12PipelineState *pipe = sh->m_Pipes[i];
-
-        ResourceId pipeid = rm->GetOriginalID(pipe->GetResourceID());
-
-        if(rm->HasReplacement(pipeid))
-        {
-          // if there was an active replacement, remove the dependent replaced pipelines.
-          ID3D12DeviceChild *replpipe = rm->GetLiveResource(pipeid);
-
-          rm->RemoveReplacement(pipeid);
-
-          SAFE_RELEASE(replpipe);
-        }
+        usesReplacedShader = rm->HasReplacement(shaders[i]);
+        if(usesReplacedShader)
+          break;
       }
+    }
+    else
+    {
+      if(rm->HasReplacement(rm->GetOriginalID(pipe->CS()->GetResourceID())))
+      {
+        usesReplacedShader = true;
+      }
+    }
+
+    // if there are replaced shaders in use, create a new pipeline with any/all replaced shaders.
+    if(usesReplacedShader)
+    {
+      ID3D12PipelineState *newpipe = NULL;
+
+      if(pipe->IsGraphics())
+      {
+        D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc = *pipe->graphics;
+
+        D3D12_SHADER_BYTECODE *shaders[] = {
+            &desc.VS, &desc.HS, &desc.DS, &desc.GS, &desc.PS,
+        };
+
+        for(size_t s = 0; s < ARRAY_COUNT(shaders); s++)
+        {
+          if(shaders[s]->BytecodeLength > 0)
+          {
+            WrappedID3D12Shader *stage = (WrappedID3D12Shader *)shaders[s]->pShaderBytecode;
+
+            // remap through the original ID to pick up any replacements
+            stage = rm->GetLiveAs<WrappedID3D12Shader>(rm->GetOriginalID(stage->GetResourceID()));
+
+            *shaders[s] = stage->GetDesc();
+          }
+        }
+
+        m_pDevice->CreatePipeState(desc, &newpipe);
+      }
+      else
+      {
+        D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc = *pipe->compute;
+
+        WrappedID3D12Shader *stage = pipe->CS();
+
+        // remap through the original ID to pick up any replacements
+        stage = rm->GetLiveAs<WrappedID3D12Shader>(rm->GetOriginalID(stage->GetResourceID()));
+
+        desc.CS = stage->GetDesc();
+
+        m_pDevice->CreatePipeState(desc, &newpipe);
+      }
+
+      rm->ReplaceResource(origsrcid, GetResID(newpipe));
     }
   }
 
-  ClearPostVSCache();
+  for(ID3D12PipelineState *pipe : deletequeue)
+  {
+    SAFE_RELEASE(pipe);
+  }
 }
 
 void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,

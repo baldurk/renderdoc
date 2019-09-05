@@ -3928,47 +3928,88 @@ void VulkanReplay::FreeTargetResource(ResourceId id)
 
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
+  // replace the shader module
+  m_pDriver->GetResourceManager()->ReplaceResource(from, to);
+
+  // now update any derived resources
+  RefreshDerivedReplacements();
+
+  ClearPostVSCache();
+  ClearFeedbackCache();
+}
+
+void VulkanReplay::RemoveReplacement(ResourceId id)
+{
+  if(m_pDriver->GetResourceManager()->HasReplacement(id))
+  {
+    m_pDriver->GetResourceManager()->RemoveReplacement(id);
+
+    RefreshDerivedReplacements();
+
+    ClearPostVSCache();
+    ClearFeedbackCache();
+  }
+}
+
+void VulkanReplay::RefreshDerivedReplacements()
+{
   VkDevice dev = m_pDriver->GetDev();
 
   VulkanResourceManager *rm = m_pDriver->GetResourceManager();
 
-  // we're passed in the original ID but we want the live ID for comparison
-  ResourceId liveid = rm->GetLiveID(from);
+  // we defer deletes of old replaced resources since it will invalidate elements in the vector
+  // we're iterating
+  std::vector<VkPipeline> deletequeue;
 
-  VkShaderModule srcShaderModule = rm->GetCurrentHandle<VkShaderModule>(liveid);
-  VkShaderModule dstShaderModule = rm->GetCurrentHandle<VkShaderModule>(to);
-
-  // remake and replace any pipelines that referenced this shader
+  // remake and replace any pipelines that reference a replaced shader
   for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();
       it != m_pDriver->m_CreationInfo.m_Pipeline.end(); ++it)
   {
-    bool refdShader = false;
+    ResourceId pipesrcid = it->first;
+    const VulkanCreationInfo::Pipeline &pipeInfo = it->second;
+
+    ResourceId origsrcid = rm->GetOriginalID(pipesrcid);
+
+    // only look at pipelines from the capture, no replay-time programs.
+    if(origsrcid == pipesrcid)
+      continue;
+
+    // if this pipeline has a replacement, remove it and delete the program generated for it
+    if(rm->HasReplacement(origsrcid))
+    {
+      deletequeue.push_back(rm->GetLiveHandle<VkPipeline>(origsrcid));
+
+      rm->RemoveReplacement(origsrcid);
+    }
+
+    bool usesReplacedShader = false;
     for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
     {
-      if(it->second.shaders[i].module == liveid)
+      if(rm->HasReplacement(rm->GetOriginalID(it->second.shaders[i].module)))
       {
-        refdShader = true;
+        usesReplacedShader = true;
         break;
       }
     }
 
-    if(refdShader)
+    // if there are replaced shaders in use, create a new pipeline with any/all replaced shaders.
+    if(usesReplacedShader)
     {
       VkPipeline pipe = VK_NULL_HANDLE;
-      const VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[it->first];
+
       if(pipeInfo.renderpass != ResourceId())    // check if this is a graphics or compute pipeline
       {
         VkGraphicsPipelineCreateInfo pipeCreateInfo;
         m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
 
-        // replace the relevant module
+        // replace the modules by going via the live ID to pick up any replacements
         for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
         {
           VkPipelineShaderStageCreateInfo &sh =
               (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
 
-          if(sh.module == srcShaderModule)
-            sh.module = dstShaderModule;
+          ResourceId shadOrigId = rm->GetOriginalID(GetResID(sh.module));
+          sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
         }
 
         // if we have pipeline executable properties, capture the data
@@ -3988,10 +4029,10 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
         VkComputePipelineCreateInfo pipeCreateInfo;
         m_pDriver->GetShaderCache()->MakeComputePipelineInfo(pipeCreateInfo, it->first);
 
-        // replace the relevant module
+        // replace the module by going via the live ID to pick up any replacements
         VkPipelineShaderStageCreateInfo &sh = pipeCreateInfo.stage;
-        RDCASSERT(sh.module == srcShaderModule);
-        sh.module = dstShaderModule;
+        ResourceId shadOrigId = rm->GetOriginalID(pipeInfo.shaders[5].module);
+        sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
 
         // if we have pipeline executable properties, capture the data
         if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
@@ -4007,64 +4048,12 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
       }
 
       // remove the replacements
-      rm->ReplaceResource(it->first, GetResID(pipe));
-      rm->ReplaceResource(rm->GetOriginalID(it->first), GetResID(pipe));
+      rm->ReplaceResource(origsrcid, GetResID(pipe));
     }
   }
 
-  // make the actual shader module replacements
-  rm->ReplaceResource(from, to);
-  rm->ReplaceResource(liveid, to);
-
-  ClearPostVSCache();
-  ClearFeedbackCache();
-}
-
-void VulkanReplay::RemoveReplacement(ResourceId id)
-{
-  VkDevice dev = m_pDriver->GetDev();
-
-  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
-
-  // we're passed in the original ID but we want the live ID for comparison
-  ResourceId liveid = rm->GetLiveID(id);
-
-  if(!rm->HasReplacement(id))
-    return;
-
-  // remove the actual shader module replacements
-  rm->RemoveReplacement(id);
-  rm->RemoveReplacement(liveid);
-
-  // remove any replacements on pipelines that referenced this shader
-  for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();
-      it != m_pDriver->m_CreationInfo.m_Pipeline.end(); ++it)
-  {
-    bool refdShader = false;
-    for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
-    {
-      if(it->second.shaders[i].module == liveid)
-      {
-        refdShader = true;
-        break;
-      }
-    }
-
-    if(refdShader)
-    {
-      VkPipeline pipe = rm->GetCurrentHandle<VkPipeline>(it->first);
-
-      // delete the replacement pipeline
-      m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
-
-      // remove both live and original replacements, since we will have made these above
-      rm->RemoveReplacement(it->first);
-      rm->RemoveReplacement(rm->GetOriginalID(it->first));
-    }
-  }
-
-  ClearPostVSCache();
-  ClearFeedbackCache();
+  for(VkPipeline pipe : deletequeue)
+    m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
 }
 
 ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,

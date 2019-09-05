@@ -422,6 +422,8 @@ private:
   void FetchTessGSOut(uint32_t eventId);
   void ClearPostVSCache();
 
+  void RefreshDerivedReplacements();
+
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
