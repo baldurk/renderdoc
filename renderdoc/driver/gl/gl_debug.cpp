@@ -414,6 +414,8 @@ void GLReplay::InitDebugData()
 
   vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
 
+  DebugData.fixedcolFragShaderSPIRV = DebugData.quadoverdrawFragShaderSPIRV = 0;
+
   // pre-compile SPIR-V shaders up front since this is more expensive
   if(HasExt[ARB_gl_spirv])
   {
@@ -485,7 +487,6 @@ void GLReplay::InitDebugData()
 
   DebugData.fixedcolFragShader = DebugData.quadoverdrawFragShader = 0;
   DebugData.quadoverdrawResolveProg = 0;
-  DebugData.fixedcolFragShaderSPIRV = DebugData.quadoverdrawFragShaderSPIRV = 0;
 
   if(IsGLES)
   {
