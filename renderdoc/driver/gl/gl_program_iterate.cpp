@@ -812,6 +812,9 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
             RDCWARN("Couldn't get srcLocation for %s", name.c_str());
         }
 
+        if(srcLocation == -1)
+          continue;
+
         // fetch the data into the ProgramUniformValue, with the appropriate method for its type
         double *dv = uniformVal.data.dval;
         float *fv = uniformVal.data.fval;
