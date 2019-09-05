@@ -383,11 +383,6 @@ void DebugMessageView::messages_contextMenu(const QPoint &pos)
     m_ToggleMessageType->setVisible(false);
   }
 
-  QString showHidden = tr("Show hidden rows");
-  QString hideHidden = tr("Stop showing hidden rows");
-
-  m_ShowHidden->setText(m_FilterModel->showHidden ? hideHidden : showHidden);
-
   RDDialog::show(m_ContextMenu, ui->messages->viewport()->mapToGlobal(pos));
 }
 
