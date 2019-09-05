@@ -722,8 +722,9 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
       ret.setWidth(ret.width() + 4 * Constants::MenuBarMargin);
 
     // add room for an icon
-    if(menuitem->maxIconWidth)
-      ret.setWidth(ret.width() + Constants::MenuBarMargin + menuitem->maxIconWidth);
+    if(menuitem->maxIconWidth || menuitem->menuHasCheckableItems)
+      ret.setWidth(ret.width() + Constants::MenuBarMargin +
+                   std::max(menuitem->maxIconWidth, Constants::MenuBarIconSize));
 
     if(menuitem->menuItemType == QStyleOptionMenuItem::SubMenu)
       ret.setWidth(ret.width() + Constants::MenuSubmenuWidth);
@@ -738,7 +739,7 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
     int iconSize = pixelMetric(QStyle::PM_SmallIconSize, opt, widget);
     QSize sz = menuitem->fontMetrics.size(Qt::TextShowMnemonic, menuitem->text);
 
-    if(!menuitem->icon.isNull())
+    if(!menuitem->icon.isNull() || menuitem->checkType != QStyleOptionMenuItem::NotCheckable)
     {
       sz.setWidth(sz.width() + Constants::MenuBarMargin + iconSize);
       sz = sz.expandedTo(QSize(1, iconSize));
@@ -1782,6 +1783,33 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         rect.adjust(iconSize + Constants::MenuBarMargin, 0, 0, 0);
       }
     }
+    else if(menuitem->checkType != QStyleOptionMenuItem::NotCheckable)
+    {
+      int checkSize = pixelMetric(QStyle::PM_SmallIconSize, opt, widget);
+
+      QRectF checkRect = rect.adjusted(1, 1, -1, -1);
+      checkRect.setWidth(checkSize);
+
+      // vertically align the check
+      int excess = checkRect.height() - checkRect.width();
+      if(excess > 0)
+      {
+        checkRect.setHeight(checkRect.height() - excess / 2);
+        excess -= excess / 2;
+        checkRect.setTop(checkRect.top() + excess);
+      }
+
+      QStyleOptionButton box;
+      (QStyleOption &)box = *(QStyleOption *)opt;
+      box.rect = checkRect.toRect().adjusted(1, 1, -1, -1);
+      if(menuitem->checked)
+        box.state |= State_On;
+      else
+        box.state &= ~State_On;
+      drawPrimitive(PE_IndicatorCheckBox, &box, p, widget);
+
+      rect.adjust(checkSize + Constants::MenuBarMargin, 0, 0, 0);
+    }
 
     if(menuitem->menuItemType == QStyleOptionMenuItem::Normal)
     {
@@ -1851,8 +1879,35 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
           menuitem->icon.pixmap(Constants::MenuBarIconSize, Constants::MenuBarIconSize,
                                 menuitem->state & State_Enabled ? QIcon::Normal : QIcon::Disabled));
     }
+    else if(menuitem->checkType != QStyleOptionMenuItem::NotCheckable)
+    {
+      QRectF checkRect = rect.adjusted(1, 1, -1, -1);
+      checkRect.setWidth(Constants::MenuBarIconSize);
 
-    if(menuitem->maxIconWidth)
+      // vertically align the check
+      int excess = checkRect.height() - checkRect.width();
+      if(excess > 0)
+      {
+        checkRect.setHeight(checkRect.height() - excess / 2);
+        excess -= excess / 2;
+        checkRect.setTop(checkRect.top() + excess);
+      }
+
+      QStyleOptionButton box;
+      (QStyleOption &)box = *(QStyleOption *)opt;
+      box.rect = checkRect.toRect().adjusted(1, 1, -1, -1);
+      if(menuitem->checked)
+        box.state |= State_On;
+      else
+        box.state &= ~State_On;
+      drawPrimitive(PE_IndicatorCheckBox, &box, p, widget);
+    }
+
+    if(menuitem->menuHasCheckableItems)
+      rect.adjust(
+          Constants::MenuBarMargin + std::max(Constants::MenuBarIconSize, menuitem->maxIconWidth),
+          0, 0, 0);
+    else if(menuitem->maxIconWidth)
       rect.adjust(Constants::MenuBarMargin + menuitem->maxIconWidth, 0, 0, 0);
 
     if(menuitem->menuItemType == QStyleOptionMenuItem::Normal ||
