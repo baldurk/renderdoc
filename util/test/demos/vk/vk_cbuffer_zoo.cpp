@@ -504,7 +504,8 @@ float4 main() : SV_Target0
     AllocatedImage img(
         allocator,
         vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                             VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
+                             VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView imgview = createImageView(
@@ -600,12 +601,8 @@ float4 main() : SV_Target0
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                           vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
-                           vkh::ImageSubresourceRange());
-
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+                                                         {vkh::ClearValue(0.4f, 0.5f, 0.6f, 1.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
@@ -620,6 +617,28 @@ float4 main() : SV_Target0
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL,
+                                           VK_IMAGE_LAYOUT_GENERAL, img.image),
+               });
+
+      VkImageBlit region = {};
+      region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      region.srcSubresource.layerCount = 1;
+      region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      region.dstSubresource.layerCount = 1;
+      region.srcOffsets[1].x = mainWindow->scissor.extent.width;
+      region.srcOffsets[1].y = mainWindow->scissor.extent.height;
+      region.srcOffsets[1].z = 1;
+      region.dstOffsets[1].x = mainWindow->scissor.extent.width;
+      region.dstOffsets[1].y = mainWindow->scissor.extent.height;
+      region.dstOffsets[1].z = 1;
+
+      vkCmdBlitImage(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL, swapimg, VK_IMAGE_LAYOUT_GENERAL, 1,
+                     &region, VK_FILTER_LINEAR);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

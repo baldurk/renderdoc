@@ -188,6 +188,7 @@
     <ClCompile Include="gl\gl_resource_lifetimes.cpp" />
     <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp" />
     <ClCompile Include="gl\gl_separable_geometry_shader.cpp" />
+    <ClCompile Include="gl\gl_shader_editing.cpp" />
     <ClCompile Include="gl\gl_simple_triangle.cpp" />
     <ClCompile Include="gl\gl_spirv_shader.cpp" />
     <ClCompile Include="gl\gl_structured_buffer_nested.cpp" />
@@ -214,6 +215,7 @@
     <ClCompile Include="vk\vk_line_raster.cpp" />
     <ClCompile Include="vk\vk_misaligned_dirty.cpp" />
     <ClCompile Include="vk\vk_multi_thread_windows.cpp" />
+    <ClCompile Include="vk\vk_shader_editing.cpp" />
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
     <ClCompile Include="vk\vk_triangle_fan.cpp" />

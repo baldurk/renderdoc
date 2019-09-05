@@ -23,6 +23,7 @@ set(VULKAN_SRC
         vk/vk_resource_lifetimes.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
+        vk/vk_shader_editing.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp
         vk/vk_spirv_13_shaders.cpp
@@ -51,6 +52,7 @@ set(OPENGL_SRC
         gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp
+        gl/gl_shader_editing.cpp
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
         gl/gl_unsized_ms_fbo_attachment.cpp
