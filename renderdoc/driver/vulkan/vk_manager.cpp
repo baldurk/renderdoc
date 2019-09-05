@@ -452,7 +452,8 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
           // Compute the overall ref type for the dword, including all the ref types of intervals
           // intersecting the dword
           FrameRefType overlapRef = lastRef;
-          for(; it_data->start < nextDWord; ++it_data)
+          for(; it_data != data.end() && it_data->start < nextDWord && it_data->memory == mem;
+              ++it_data)
             overlapRef = ComposeFrameRefsDisjoint(overlapRef, it_data->refType);
 
           --it_data;
