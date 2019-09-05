@@ -349,10 +349,10 @@ void DebugMessageView::messages_contextMenu(const QPoint &pos)
   {
     index = m_FilterModel->mapToSource(index);
 
-    m_ToggleSource->setVisible(true);
-    m_ToggleSeverity->setVisible(true);
-    m_ToggleCategory->setVisible(true);
-    m_ToggleMessageType->setVisible(true);
+    m_ToggleSource->setEnabled(true);
+    m_ToggleSeverity->setEnabled(true);
+    m_ToggleCategory->setEnabled(true);
+    m_ToggleMessageType->setEnabled(true);
 
     const DebugMessage &msg = m_Ctx.DebugMessages()[index.row()];
 
@@ -377,10 +377,14 @@ void DebugMessageView::messages_contextMenu(const QPoint &pos)
   }
   else
   {
-    m_ToggleSource->setVisible(false);
-    m_ToggleSeverity->setVisible(false);
-    m_ToggleCategory->setVisible(false);
-    m_ToggleMessageType->setVisible(false);
+    m_ToggleSource->setEnabled(false);
+    m_ToggleSeverity->setEnabled(false);
+    m_ToggleCategory->setEnabled(false);
+    m_ToggleMessageType->setEnabled(false);
+    m_ToggleSource->setText(tr("Toggle by Source"));
+    m_ToggleSeverity->setText(tr("Toggle by Severity"));
+    m_ToggleCategory->setText(tr("Toggle by Category"));
+    m_ToggleMessageType->setText(tr("Toggle by Message Type"));
   }
 
   RDDialog::show(m_ContextMenu, ui->messages->viewport()->mapToGlobal(pos));
