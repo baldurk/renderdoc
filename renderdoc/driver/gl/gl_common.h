@@ -849,7 +849,8 @@ struct PerStageReflections
 };
 
 void CopyProgramUniforms(const PerStageReflections &srcStages, GLuint progSrc,
-                         const PerStageReflections &dstStages, GLuint progDst);
+                         const PerStageReflections &dstStages, GLuint progDst,
+                         std::map<GLint, GLint> *locTranslate = NULL);
 template <typename SerialiserType>
 void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state,
                               const PerStageReflections &stages, GLuint prog,

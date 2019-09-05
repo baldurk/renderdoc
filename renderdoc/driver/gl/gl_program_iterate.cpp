@@ -1254,12 +1254,13 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
 }
 
 void CopyProgramUniforms(const PerStageReflections &srcStages, GLuint progSrc,
-                         const PerStageReflections &dstStages, GLuint progDst)
+                         const PerStageReflections &dstStages, GLuint progDst,
+                         std::map<GLint, GLint> *locTranslate)
 {
   const bool CopyUniforms = true;
   const bool SerialiseUniforms = false;
   ForAllProgramUniforms<CopyUniforms, SerialiseUniforms, ReadSerialiser>(
-      NULL, CaptureState::ActiveReplaying, srcStages, progSrc, dstStages, progDst, NULL);
+      NULL, CaptureState::ActiveReplaying, srcStages, progSrc, dstStages, progDst, locTranslate);
 }
 
 template <typename SerialiserType>

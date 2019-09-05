@@ -1660,8 +1660,25 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
               PerStageReflections dstStages;
               FillReflectionArray(progdstid, dstStages);
 
-              // copy uniforms
-              CopyProgramUniforms(stages, progsrc, dstStages, progdst);
+              std::map<GLint, GLint> translate;
+
+              // copy uniforms and set up new location translation table
+              CopyProgramUniforms(stages, progsrc, dstStages, progdst, &translate);
+
+              // start with the original location translation table, to account for any
+              // capture-replay translation
+              m_Programs[progdstid].locationTranslate = m_Programs[progsrcid].locationTranslate;
+
+              // compose on the one from editing.
+              for(auto lit = m_Programs[progdstid].locationTranslate.begin();
+                  lit != m_Programs[progdstid].locationTranslate.end(); lit++)
+              {
+                auto lit2 = translate.find(lit->second);
+                if(lit2 != translate.end())
+                  lit->second = lit2->second;
+                else
+                  lit->second = -1;
+              }
 
               ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
 
