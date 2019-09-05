@@ -1254,6 +1254,8 @@ void WrappedOpenGL::glDeleteProgram(GLuint program)
   GLResource res = ProgramRes(GetCtx(), program);
   if(GetResourceManager()->HasCurrentResource(res))
   {
+    m_Programs.erase(GetResourceManager()->GetID(res));
+
     if(GetResourceManager()->HasResourceRecord(res))
       GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
     GetResourceManager()->UnregisterResource(res);
@@ -1744,6 +1746,8 @@ void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
     GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
     if(GetResourceManager()->HasCurrentResource(res))
     {
+      m_Pipelines.erase(GetResourceManager()->GetID(res));
+
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
       GetResourceManager()->UnregisterResource(res);
