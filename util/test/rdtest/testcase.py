@@ -148,6 +148,7 @@ class TestCase:
         self.capture_filename = ""
         self.controller: rd.ReplayController = None
         self._variables = []
+        self.pickout: rd.ReplayOutput = None
 
     def get_ref_path(self, name: str, extra: bool = False):
         if extra:
@@ -289,6 +290,32 @@ class TestCase:
 
         log.success("Mesh data is identical to reference")
 
+    def check_pixel_value(self, tex: rd.ResourceId, x, y, value):
+        tex_details = self.get_texture(tex)
+        res_details = self.get_resource(tex)
+
+        if type(x) is float:
+            x = int(tex_details.width * x)
+        if type(y) is float:
+            y = int(tex_details.height * y)
+
+        if self.pickout is None:
+            self.pickout: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
+                                                                         rd.ReplayOutputType.Texture)
+            self.check(self.pickout is not None)
+
+        texdisplay = rd.TextureDisplay()
+        texdisplay.resourceId = tex
+        self.pickout.SetTextureDisplay(texdisplay)
+
+        picked: rd.PixelValue = self.pickout.PickPixel(tex, False, x, y, 0, 0, 0)
+
+        if not util.value_compare(picked.floatValue, value):
+            raise TestFailureException(
+                "Picked value {} at {},{} doesn't match expectation of {}".format(picked.floatValue, x, y, value))
+
+        log.success("Picked value at {},{} in {} is as expected".format(x, y, res_details.name))
+
     def run(self):
         self.capture_filename = self.get_capture()
 
@@ -303,9 +330,11 @@ class TestCase:
         self.check_capture()
 
         self.controller.Shutdown()
+        self.pickout = None
 
     def invoketest(self):
         self.run()
+        self.pickout = None
 
     def get_first_draw(self):
         first_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[0]

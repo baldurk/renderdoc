@@ -13,11 +13,6 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        # Make an output so we can pick pixels
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-
-        self.check(out is not None)
-
         ref = {
             0: {
                 'SNorm': [1.0, -1.0, 1.0, -1.0],
@@ -98,17 +93,7 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
-        out.SetTextureDisplay(tex)
-
-        texdetails = self.get_texture(tex.resourceId)
-
-        picked: rd.PixelValue = out.PickPixel(tex.resourceId, False,
-                                              int(texdetails.width / 2), int(texdetails.height / 2), 0, 0, 0)
-
-        if not rdtest.value_compare(picked.floatValue, [0.0, 1.0, 0.0, 1.0]):
-            raise rdtest.TestFailureException("Picked value {} doesn't match expectation".format(picked.floatValue))
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("Triangle picked value is as expected")
 
@@ -138,5 +123,3 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         self.check_mesh_data(ref, self.get_postvs(rd.MeshDataStage.GSOut))
 
         rdtest.log.success("Nested geometry output data is as expected")
-
-        out.Shutdown()

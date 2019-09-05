@@ -9,9 +9,6 @@ class VK_Spec_Constants(rdtest.TestCase):
         # find the first draw
         draw = self.find_draw("Draw")
 
-        # Make an output so we can pick pixels
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-
         # We should have 4 draws, with spec constant values 0, 1, 2, 3
         for num_colors in range(4):
             self.check(draw is not None)
@@ -71,26 +68,16 @@ class VK_Spec_Constants(rdtest.TestCase):
 
             rdtest.log.success("Draw with {} colors specialisation constant is as expected".format(num_colors))
 
-            tex = rd.TextureDisplay()
-            tex.resourceId = pipe.GetOutputTargets()[0].resourceId
-            out.SetTextureDisplay(tex)
-
             view = pipe.GetViewport(0)
-
-            # Sample the centre of the viewport
-            picked: rd.PixelValue = out.PickPixel(tex.resourceId, False,
-                                                  int(view.x) + int(view.width / 2), int(view.height / 2), 0, 0, 0)
 
             # the first num_colors components should be 0.6, the rest should be 0.1 (alpha is always 1.0)
             expected = [0.0, 0.0, 0.0, 1.0]
             for col in range(num_colors):
                 expected[col] += 1.0
 
-            if not rdtest.value_compare(picked.floatValue, expected):
-                raise rdtest.TestFailureException("Picked value {} doesn't match expectation {}".format(picked.floatValue, expected))
+            # Sample the centre of the viewport
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, int(view.x) + int(view.width / 2), int(view.height / 2), expected)
 
             rdtest.log.success("Draw with {} colors picked value is as expected".format(num_colors))
 
             draw = draw.next
-
-        out.Shutdown()

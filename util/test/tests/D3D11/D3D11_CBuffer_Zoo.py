@@ -12,11 +12,6 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        # Make an output so we can pick pixels
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-
-        self.check(out is not None)
-
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
@@ -312,18 +307,6 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
-        out.SetTextureDisplay(tex)
-
-        texdetails = self.get_texture(tex.resourceId)
-
-        picked: rd.PixelValue = out.PickPixel(tex.resourceId, False,
-                                              int(texdetails.width / 2), int(texdetails.height / 2), 0, 0, 0)
-
-        if not rdtest.value_compare(picked.floatValue, [440.1, 441.0, 442.0, 443.0]):
-            raise rdtest.TestFailureException("Picked value {} doesn't match expectation".format(picked.floatValue))
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [440.1, 441.0, 442.0, 443.0])
 
         rdtest.log.success("Picked value is as expected")
-
-        out.Shutdown()

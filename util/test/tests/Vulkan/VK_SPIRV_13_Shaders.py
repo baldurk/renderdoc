@@ -12,9 +12,6 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        # Make an output so we can pick pixels
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
@@ -78,18 +75,6 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         rdtest.log.success("vertex output is as expected")
 
-        tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
-        out.SetTextureDisplay(tex)
-
-        texdetails = self.get_texture(tex.resourceId)
-
-        picked: rd.PixelValue = out.PickPixel(tex.resourceId, False,
-                                              int(texdetails.width / 2), int(texdetails.height / 2), 0, 0, 0)
-
-        if not rdtest.value_compare(picked.floatValue, [0.0, 1.0, 0.0, 1.0]):
-            raise rdtest.TestFailureException("Picked value {} doesn't match expectation".format(picked.floatValue))
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("picked value is as expected")
-
-        out.Shutdown()

@@ -19,9 +19,6 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        # Make an output so we can pick pixels
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
@@ -53,12 +50,9 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         rdtest.log.success("vertex output is as expected")
 
-        tex = rd.TextureDisplay()
-        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+        tex = pipe.GetOutputTargets()[0].resourceId
 
-        out.SetTextureDisplay(tex)
-
-        texdetails = self.get_texture(tex.resourceId)
+        texdetails = self.get_texture(tex)
 
         coords = [
             [int(texdetails.width * 1 / 3) + 5, int(texdetails.height * 2 / 3) - 5],
@@ -67,12 +61,6 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
         ]
 
         for coord in coords:
-            picked: rd.PixelValue = out.PickPixel(tex.resourceId, False,
-                                                  coord[0], coord[1], 0, 0, 0)
-
-            if not rdtest.value_compare(picked.floatValue, [0.0, 1.0, 0.0, 1.0]):
-                raise rdtest.TestFailureException("Picked value {} doesn't match expectation".format(picked.floatValue))
+            self.check_pixel_value(tex, coord[0], coord[1], [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("picked values are as expected")
-
-        out.Shutdown()
