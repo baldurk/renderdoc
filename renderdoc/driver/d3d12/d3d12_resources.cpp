@@ -29,8 +29,6 @@
 #include "d3d12_command_queue.h"
 
 GPUAddressRangeTracker WrappedID3D12Resource1::m_Addresses;
-std::map<ResourceId, WrappedID3D12Resource1 *> *WrappedID3D12Resource1::m_List = NULL;
-std::vector<WrappedID3D12PipelineState *> *WrappedID3D12PipelineState::m_List = NULL;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12Shader *> WrappedID3D12Shader::m_Shaders;
 bool WrappedID3D12Shader::m_InternalResources = false;
 
@@ -305,8 +303,8 @@ WrappedID3D12Resource1::~WrappedID3D12Resource1()
     }
   }
 
-  if(m_List)
-    (*m_List).erase(GetResourceID());
+  if(IsReplayMode(m_pDevice->GetState()))
+    m_pDevice->GetResourceList().erase(GetResourceID());
 
   // assuming only valid for buffers
   if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)

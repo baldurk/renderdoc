@@ -271,7 +271,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Float
                                       DebugOverlay overlay, uint32_t eventId,
                                       const std::vector<uint32_t> &passEvents)
 {
-  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
+  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
   if(resource == NULL)
     return ResourceId();

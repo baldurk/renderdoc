@@ -243,17 +243,14 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_InitParams = params;
 
-  WrappedID3D12Resource1::m_List = NULL;
-  WrappedID3D12PipelineState::m_List = NULL;
-
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = CaptureState::LoadingReplaying;
 
     if(realDevice)
     {
-      WrappedID3D12Resource1::m_List = new std::map<ResourceId, WrappedID3D12Resource1 *>();
-      WrappedID3D12PipelineState::m_List = new std::vector<WrappedID3D12PipelineState *>();
+      m_ResourceList = new std::map<ResourceId, WrappedID3D12Resource1 *>();
+      m_PipelineList = new std::vector<WrappedID3D12PipelineState *>();
     }
 
     m_FrameCaptureRecord = NULL;
@@ -424,12 +421,6 @@ WrappedID3D12Device::~WrappedID3D12Device()
   for(size_t i = 0; i < m_InternalCmds.freecmds.size(); i++)
     SAFE_RELEASE(m_InternalCmds.freecmds[i]);
 
-  if(!IsStructuredExporting(m_State))
-  {
-    SAFE_DELETE(WrappedID3D12Resource1::m_List);
-    SAFE_DELETE(WrappedID3D12PipelineState::m_List);
-  }
-
   for(size_t i = 0; i < m_QueueFences.size(); i++)
   {
     GPUSync(m_Queues[i], m_QueueFences[i]);
@@ -485,6 +476,9 @@ WrappedID3D12Device::~WrappedID3D12Device()
     delete[] m_ThreadTempMem[i]->memory;
     delete m_ThreadTempMem[i];
   }
+
+  SAFE_DELETE(m_ResourceList);
+  SAFE_DELETE(m_PipelineList);
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -2946,6 +2940,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
       if(IsStructuredExporting(m_State))
       {
         m_Queue = new WrappedID3D12CommandQueue(NULL, this, m_State);
+        m_Queues.push_back(m_Queue);
       }
 
       m_Queue->SetFrameReader(new StreamReader(reader, frameDataSize));

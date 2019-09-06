@@ -310,8 +310,7 @@ std::vector<ResourceId> D3D12Replay::GetBuffers()
 {
   std::vector<ResourceId> ret;
 
-  for(auto it = WrappedID3D12Resource1::GetList().begin();
-      it != WrappedID3D12Resource1::GetList().end(); it++)
+  for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
     if(it->second->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
       ret.push_back(it->first);
 
@@ -322,8 +321,7 @@ std::vector<ResourceId> D3D12Replay::GetTextures()
 {
   std::vector<ResourceId> ret;
 
-  for(auto it = WrappedID3D12Resource1::GetList().begin();
-      it != WrappedID3D12Resource1::GetList().end(); it++)
+  for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
   {
     if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER &&
        m_pDevice->GetResourceManager()->GetOriginalID(it->first) != it->first)
@@ -338,9 +336,9 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
   BufferDescription ret = {};
   ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
-  auto it = WrappedID3D12Resource1::GetList().find(id);
+  auto it = m_pDevice->GetResourceList().find(id);
 
-  if(it == WrappedID3D12Resource1::GetList().end())
+  if(it == m_pDevice->GetResourceList().end())
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -379,9 +377,9 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   TextureDescription ret = {};
   ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
-  auto it = WrappedID3D12Resource1::GetList().find(id);
+  auto it = m_pDevice->GetResourceList().find(id);
 
-  if(it == WrappedID3D12Resource1::GetList().end())
+  if(it == m_pDevice->GetResourceList().end())
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -2252,7 +2250,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                             CompType typeHint, float *minval, float *maxval)
 {
-  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
+  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
   if(resource == NULL)
     return false;
@@ -2432,7 +2430,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
   if(minval >= maxval)
     return false;
 
-  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
+  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
   if(resource == NULL)
     return false;
@@ -2678,9 +2676,9 @@ bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
 
 void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
 {
-  auto it = WrappedID3D12Resource1::GetList().find(buff);
+  auto it = m_pDevice->GetResourceList().find(buff);
 
-  if(it == WrappedID3D12Resource1::GetList().end())
+  if(it == m_pDevice->GetResourceList().end())
   {
     RDCERR("Getting buffer data for unknown buffer %llu!", buff);
     return;
@@ -2878,7 +2876,7 @@ void D3D12Replay::RefreshDerivedReplacements()
   // we're iterating
   std::vector<ID3D12PipelineState *> deletequeue;
 
-  for(WrappedID3D12PipelineState *pipe : WrappedID3D12PipelineState::GetList())
+  for(WrappedID3D12PipelineState *pipe : m_pDevice->GetPipelineList())
   {
     ResourceId pipesrcid = pipe->GetResourceID();
     ResourceId origsrcid = rm->GetOriginalID(pipesrcid);
@@ -2985,7 +2983,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   bool wasms = false;
   bool resolve = params.resolve;
 
-  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[tex];
+  ID3D12Resource *resource = m_pDevice->GetResourceList()[tex];
 
   if(resource == NULL)
   {
@@ -3505,7 +3503,7 @@ void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf sourc
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
 {
-  ID3D12Resource *resource = WrappedID3D12Resource1::GetList()[texid];
+  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
   if(resource == NULL)
     return ResourceId();

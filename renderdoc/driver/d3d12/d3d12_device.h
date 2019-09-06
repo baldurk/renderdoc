@@ -55,6 +55,7 @@ DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 
 class WrappedID3D12Device;
 class WrappedID3D12Resource1;
+class WrappedID3D12PipelineState;
 
 class D3D12TextRenderer;
 class D3D12ShaderCache;
@@ -421,6 +422,10 @@ private:
 
   std::map<ResourceId, std::string> m_ResourceNames;
 
+  // only valid on replay
+  std::map<ResourceId, WrappedID3D12Resource1 *> *m_ResourceList = NULL;
+  std::vector<WrappedID3D12PipelineState *> *m_PipelineList = NULL;
+
   struct SwapPresentInfo
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
@@ -464,6 +469,9 @@ public:
   const D3D12_FEATURE_DATA_D3D12_OPTIONS3 &GetOpts3() { return m_D3D12Opts3; }
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
 
+  // only valid on replay
+  std::map<ResourceId, WrappedID3D12Resource1 *> &GetResourceList() { return *m_ResourceList; }
+  std::vector<WrappedID3D12PipelineState *> &GetPipelineList() { return *m_PipelineList; }
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
 

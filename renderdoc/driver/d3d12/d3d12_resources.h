@@ -632,9 +632,6 @@ public:
     }
   }
 
-  static std::vector<WrappedID3D12PipelineState *> *m_List;
-
-  static std::vector<WrappedID3D12PipelineState *> &GetList() { return *m_List; }
   bool IsGraphics() { return graphics != NULL; }
   bool IsCompute() { return compute != NULL; }
   struct DXBCKey
@@ -814,13 +811,14 @@ public:
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
-    if(m_List)
-      m_List->push_back(this);
+    if(IsReplayMode(m_pDevice->GetState()))
+      m_pDevice->GetPipelineList().push_back(this);
   }
   virtual ~WrappedID3D12PipelineState()
   {
-    if(m_List)
-      m_List->erase(std::find(m_List->begin(), m_List->end(), this));
+    if(IsReplayMode(m_pDevice->GetState()))
+      m_pDevice->GetPipelineList().erase(std::find(m_pDevice->GetPipelineList().begin(),
+                                                   m_pDevice->GetPipelineList().end(), this));
 
     Shutdown();
 
@@ -890,9 +888,6 @@ public:
   static const int AllocMaxByteSize = 1536 * 1024;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource1, AllocPoolCount, AllocMaxByteSize, false);
 
-  static std::map<ResourceId, WrappedID3D12Resource1 *> *m_List;
-
-  static std::map<ResourceId, WrappedID3D12Resource1 *> &GetList() { return *m_List; }
   static void RefBuffers(D3D12ResourceManager *rm);
 
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
@@ -919,8 +914,8 @@ public:
   WrappedID3D12Resource1(ID3D12Resource *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
-    if(m_List)
-      (*m_List)[GetResourceID()] = this;
+    if(IsReplayMode(device->GetState()))
+      device->GetResourceList()[GetResourceID()] = this;
 
     real->QueryInterface(__uuidof(ID3D12Resource1), (void **)&m_pReal1);
 
