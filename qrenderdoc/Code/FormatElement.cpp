@@ -905,7 +905,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       else if(format.compType == CompType::SInt)
       {
         if(format.compByteWidth == 8)
-          ret.push_back((int64_t)readObj<int64_t>(data, end, ok));
+          ret.push_back((qlonglong)readObj<int64_t>(data, end, ok));
         else if(format.compByteWidth == 4)
           ret.push_back((int)readObj<int32_t>(data, end, ok));
         else if(format.compByteWidth == 2)
@@ -916,7 +916,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       else if(format.compType == CompType::UInt)
       {
         if(format.compByteWidth == 8)
-          ret.push_back((uint64_t)readObj<uint64_t>(data, end, ok));
+          ret.push_back((qulonglong)readObj<uint64_t>(data, end, ok));
         else if(format.compByteWidth == 4)
           ret.push_back((uint32_t)readObj<uint32_t>(data, end, ok));
         else if(format.compByteWidth == 2)
