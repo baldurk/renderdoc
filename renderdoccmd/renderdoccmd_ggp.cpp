@@ -37,8 +37,7 @@ static struct
 {
   // GGP
   GgpEventQueue event_queue;
-  uint32_t stream_started_handler_id;
-  uint32_t stream_stopped_handler_id;
+  GgpEventHandle stream_state_changed_handle;
   // General
   bool quit;
 } app_data = {0};
@@ -66,24 +65,18 @@ static inline uint64_t ClockNowMicroSeconds()
   return microseconds;
 }
 
-// HandleStreamStarted(): Client connected handler
-static void HandleStreamStarted(void *user_data)
+static void HandleStreamStateChanged(const GgpStreamStateChangedEvent *event, void *user_data)
 {
-  std::cout << "GGP client connected" << std::endl;
-}
-
-// HandleStreamStopped(): Client disconnected handler
-static void HandleStreamStopped(const GgpStreamStoppedEvent *event, void *user_data)
-{
-  std::cout << "GGP client disconnected" << std::endl;
-  // Exit the application if the client disconnects to exit.
-  if(event->stream_stopped_reason == kGgpStreamStopped_Exited)
+  switch(event->new_state)
   {
-    app_data.quit = true;
-  }
-  else if(event->stream_stopped_reason == kGgpStreamStopped_Unexpected)
-  {
-    GgpSuspended();
+    case kGgpStreamStateChanged_Exited:
+      std::cout << "GGP client disconnected" << std::endl;
+      app_data.quit = true;
+      break;
+    case kGgpStreamStateChanged_Started: std::cout << "GGP client connected" << std::endl; break;
+    default:;
+      // Invalid, Starting, Suspended.
+      // Nothing to do.
   }
 }
 
@@ -100,28 +93,18 @@ static void Initialize()
   app_data.event_queue = GgpEventQueueCreate();
   std::cout << "GGP event queue created" << std::endl;
   // Add client connection handlers
-  app_data.stream_started_handler_id = GgpAddStreamStartedHandler(
-      app_data.event_queue, HandleStreamStarted, NULL, UnregisterCallback);
-  app_data.stream_stopped_handler_id = GgpAddStreamStoppedHandler(
-      app_data.event_queue, HandleStreamStopped, NULL, UnregisterCallback);
-  // Signal that the session is ready to receive events.
-  GgpHandlersRegistered();
-
-  GgpReadyToStream();
-  std::cout << "GGP ready to stream" << std::endl;
+  app_data.stream_state_changed_handle = GgpAddStreamStateChangedHandler(
+      app_data.event_queue, HandleStreamStateChanged, &app_data, UnregisterCallback, NULL);
 }
 
 // Finalize(): Clean up application resources
 static void Finalize()
 {
   // Destroy the event queue
-  GgpEventQueueDestroy(app_data.event_queue);
+  GgpEventQueueDestroy(app_data.event_queue, NULL);
   std::cout << "GGP event queue destroyed" << std::endl;
   // Remove client connection handlers.
-  GgpRemoveStreamStartedHandler(app_data.stream_started_handler_id);
-  GgpRemoveStreamStoppedHandler(app_data.stream_stopped_handler_id);
-  // Indicate that GGP should shutdown.
-  GgpShutDown();
+  GgpRemoveStreamStateChangedHandler(app_data.stream_state_changed_handle, NULL);
 }
 
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
