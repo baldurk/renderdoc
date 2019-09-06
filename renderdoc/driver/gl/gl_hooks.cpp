@@ -164,19 +164,20 @@ bool FullyImplementedFunction(const char *funcname)
       !strcmp(funcname, "glInsertEventMarkerEXT") || !strcmp(funcname, "glPushGroupMarkerEXT") ||
       !strcmp(funcname, "glPopGroupMarkerEXT") ||
       // GL_KHR_debug (Core variants)
-      !strcmp(funcname, "DebugMessageControl") || !strcmp(funcname, "DebugMessageInsert") ||
-      !strcmp(funcname, "DebugMessageCallback") || !strcmp(funcname, "GetDebugMessageLog") ||
-      !strcmp(funcname, "GetPointerv") || !strcmp(funcname, "PushDebugGroup") ||
-      !strcmp(funcname, "PopDebugGroup") || !strcmp(funcname, "ObjectLabel") ||
-      !strcmp(funcname, "GetObjectLabel") || !strcmp(funcname, "ObjectPtrLabel") ||
-      !strcmp(funcname, "GetObjectPtrLabel") ||
+      !strcmp(funcname, "glDebugMessageControl") || !strcmp(funcname, "glDebugMessageInsert") ||
+      !strcmp(funcname, "glDebugMessageCallback") || !strcmp(funcname, "glGetDebugMessageLog") ||
+      !strcmp(funcname, "glGetPointerv") || !strcmp(funcname, "glPushDebugGroup") ||
+      !strcmp(funcname, "glPopDebugGroup") || !strcmp(funcname, "glObjectLabel") ||
+      !strcmp(funcname, "glGetObjectLabel") || !strcmp(funcname, "glObjectPtrLabel") ||
+      !strcmp(funcname, "glGetObjectPtrLabel") ||
       // GL_KHR_debug (KHR variants)
-      !strcmp(funcname, "DebugMessageControlKHR") || !strcmp(funcname, "DebugMessageInsertKHR") ||
-      !strcmp(funcname, "DebugMessageCallbackKHR") || !strcmp(funcname, "GetDebugMessageLogKHR") ||
-      !strcmp(funcname, "GetPointervKHR") || !strcmp(funcname, "PushDebugGroupKHR") ||
-      !strcmp(funcname, "PopDebugGroupKHR") || !strcmp(funcname, "ObjectLabelKHR") ||
-      !strcmp(funcname, "GetObjectLabelKHR") || !strcmp(funcname, "ObjectPtrLabelKHR") ||
-      !strcmp(funcname, "GetObjectPtrLabelKHR");
+      !strcmp(funcname, "glDebugMessageControlKHR") ||
+      !strcmp(funcname, "glDebugMessageInsertKHR") ||
+      !strcmp(funcname, "glDebugMessageCallbackKHR") ||
+      !strcmp(funcname, "glGetDebugMessageLogKHR") || !strcmp(funcname, "glGetPointervKHR") ||
+      !strcmp(funcname, "glPushDebugGroupKHR") || !strcmp(funcname, "glPopDebugGroupKHR") ||
+      !strcmp(funcname, "glObjectLabelKHR") || !strcmp(funcname, "glGetObjectLabelKHR") ||
+      !strcmp(funcname, "glObjectPtrLabelKHR") || !strcmp(funcname, "glGetObjectPtrLabelKHR");
 }
 
 void *HookedGetProcAddress(const char *func, void *realFunc)
