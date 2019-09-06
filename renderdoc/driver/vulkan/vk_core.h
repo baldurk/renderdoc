@@ -2145,6 +2145,16 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
                                 uint32_t lineStippleFactor, uint16_t lineStipplePattern);
 
+  // VK_GOOGLE_display_timing
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetRefreshCycleDurationGOOGLE, VkDevice device,
+                                VkSwapchainKHR swapchain,
+                                VkRefreshCycleDurationGOOGLE *pDisplayTimingProperties);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPastPresentationTimingGOOGLE, VkDevice device,
+                                VkSwapchainKHR swapchain, uint32_t *pPresentationTimingCount,
+                                VkPastPresentationTimingGOOGLE *pPresentationTimings);
+
 #if defined(VK_USE_PLATFORM_METAL_EXT)
   // VK_EXT_metal_surface
   VkResult vkCreateMetalSurfaceEXT(VkInstance instance,

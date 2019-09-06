@@ -646,6 +646,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_IMAGE_ARRAYS_FEATURES_EXT,                      \
                VkPhysicalDeviceYcbcrImageArraysFeaturesEXT)                                            \
                                                                                                        \
+  /* VK_GOOGLE_display_timing */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE, VkPresentTimesInfoGOOGLE)                  \
+                                                                                                       \
   /* VK_KHR_8bit_storage */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,                            \
                VkPhysicalDevice8BitStorageFeaturesKHR)                                                 \
@@ -970,9 +973,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
-                                                                                                       \
-  /* VK_GOOGLE_display_timing */                                                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)                                       \
                                                                                                        \
   /* VK_INTEL_performance_query */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
@@ -4606,6 +4606,46 @@ void Deserialise(const VkPresentRegionsKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPastPresentationTimingGOOGLE &el)
+{
+  SERIALISE_MEMBER(presentID);
+  SERIALISE_MEMBER(desiredPresentTime);
+  SERIALISE_MEMBER(actualPresentTime);
+  SERIALISE_MEMBER(earliestPresentTime);
+  SERIALISE_MEMBER(presentMargin);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPresentTimesInfoGOOGLE &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(swapchainCount);
+  SERIALISE_MEMBER_ARRAY(pTimes, swapchainCount);
+}
+
+template <>
+void Deserialise(const VkPresentTimesInfoGOOGLE &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pTimes;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPresentTimeGOOGLE &el)
+{
+  SERIALISE_MEMBER(presentID);
+  SERIALISE_MEMBER(desiredPresentTime);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRefreshCycleDurationGOOGLE &el)
+{
+  SERIALISE_MEMBER(refreshDuration);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderCorePropertiesAMD &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -7333,6 +7373,7 @@ INSTANTIATE_SERIALISE_TYPE(VkMemoryGetFdInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryRequirements2);
 INSTANTIATE_SERIALISE_TYPE(VkMultisamplePropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPastPresentationTimingGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
@@ -7427,9 +7468,12 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineViewportStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPresentInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPresentRegionsKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPresentTimeGOOGLE);
+INSTANTIATE_SERIALISE_TYPE(VkPresentTimesInfoGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkQueryPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties2);
+INSTANTIATE_SERIALISE_TYPE(VkRefreshCycleDurationGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassAttachmentBeginInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassCreateInfo);
