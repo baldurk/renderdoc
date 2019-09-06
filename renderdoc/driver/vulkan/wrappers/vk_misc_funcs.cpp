@@ -2055,3 +2055,18 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevi
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkResetQueryPoolEXT, VkDevice device,
                                 VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount);
+
+VkResult WrappedVulkan::vkGetRefreshCycleDurationGOOGLE(
+    VkDevice device, VkSwapchainKHR swapchain, VkRefreshCycleDurationGOOGLE *pDisplayTimingProperties)
+{
+  return ObjDisp(device)->GetRefreshCycleDurationGOOGLE(Unwrap(device), Unwrap(swapchain),
+                                                        pDisplayTimingProperties);
+}
+
+VkResult WrappedVulkan::vkGetPastPresentationTimingGOOGLE(
+    VkDevice device, VkSwapchainKHR swapchain, uint32_t *pPresentationTimingCount,
+    VkPastPresentationTimingGOOGLE *pPresentationTimings)
+{
+  return ObjDisp(device)->GetPastPresentationTimingGOOGLE(
+      Unwrap(device), Unwrap(swapchain), pPresentationTimingCount, pPresentationTimings);
+}
