@@ -461,7 +461,8 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       }
     }
 
-    if(basetype == lit("xint") || basetype == lit("xshort") || basetype == lit("xbyte"))
+    if(basetype == lit("xlong") || basetype == lit("xint") || basetype == lit("xshort") ||
+       basetype == lit("xbyte"))
       hex = true;
 
     if(fmt.compType == CompType::Typeless)
