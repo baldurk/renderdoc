@@ -3205,9 +3205,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
         if(Check_SafeDraw(false))
-          GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
-                                       RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1),
-                                       stride);
+          GL.glMultiDrawArraysIndirect(
+              mode, (const void *)offset,
+              RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID + 1), stride);
       }
       else
       {
@@ -3442,7 +3442,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         if(Check_SafeDraw(true))
           GL.glMultiDrawElementsIndirect(
               mode, type, (const void *)offset,
-              RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1), stride);
+              RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID + 1), stride);
       }
       else
       {
