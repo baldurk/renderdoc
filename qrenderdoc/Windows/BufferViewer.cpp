@@ -1133,6 +1133,18 @@ private:
       else
         ret = Formatter::Format(i);
     }
+    else if(vt == QMetaType::ULongLong)
+    {
+      ret = Formatter::Format(v.toULongLong(), el.hex);
+    }
+    else if(vt == QMetaType::LongLong)
+    {
+      int64_t i = v.toLongLong();
+      if(i >= 0)
+        ret = lit(" ") + Formatter::Format(i);
+      else
+        ret = Formatter::Format(i);
+    }
     else
     {
       ret = v.toString();
