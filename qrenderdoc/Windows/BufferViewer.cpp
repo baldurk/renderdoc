@@ -1135,7 +1135,7 @@ private:
     }
     else if(vt == QMetaType::ULongLong)
     {
-      ret = Formatter::Format(v.toULongLong(), el.hex);
+      ret = Formatter::Format((uint64_t)v.toULongLong(), el.hex);
     }
     else if(vt == QMetaType::LongLong)
     {
