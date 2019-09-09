@@ -25,11 +25,26 @@
 #include "core/plugins.h"
 #include "driver/gl/egl_dispatch_table.h"
 #include "driver/gl/gl_common.h"
+#include "strings/string_utils.h"
 
 static void *GetEGLHandle()
 {
 #if ENABLED(RDOC_WIN32)
-  return Process::LoadModule(LocatePluginFile("gles", "libEGL.dll").c_str());
+  std::string libEGL = LocatePluginFile("gles", "libEGL.dll");
+
+  // refuse to load libEGL.dll globally, as this is too likely to pick up ANGLE from some program
+  // with poor PATH control. Instead try to explicitly load it from next to the DLL in case someone
+  // has put it there.
+  if(libEGL == "libEGL.dll")
+  {
+    std::string libpath;
+    FileIO::GetLibraryFilename(libpath);
+    libpath = get_dirname(libpath);
+
+    libEGL = libpath + "/libEGL.dll";
+  }
+
+  return Process::LoadModule(libEGL.c_str());
 #else
   void *handle = Process::LoadModule("libEGL.so");
 
