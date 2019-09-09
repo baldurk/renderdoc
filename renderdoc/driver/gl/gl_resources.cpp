@@ -341,11 +341,13 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_RGB:
     case eGL_RGB_INTEGER:
     case eGL_BGR:
-    case eGL_BGR_INTEGER: return w * h * d * elemSize * 3;
+    case eGL_BGR_INTEGER:
+    case eGL_SRGB: return w * h * d * elemSize * 3;
     case eGL_RGBA:
     case eGL_RGBA_INTEGER:
     case eGL_BGRA:
-    case eGL_BGRA_INTEGER: return w * h * d * elemSize * 4;
+    case eGL_BGRA_INTEGER:
+    case eGL_SRGB_ALPHA: return w * h * d * elemSize * 4;
     default: RDCERR("Unhandled Byte Size format %s!", ToStr(format).c_str()); break;
   }
 

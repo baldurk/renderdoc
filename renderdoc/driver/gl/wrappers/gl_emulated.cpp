@@ -957,6 +957,7 @@ static const format_data formats[] = {
     {eGL_RGB, eGL_UNSIGNED_BYTE, 3, 8, 0, 0},
     {eGL_RGBA, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
     {eGL_BGRA_EXT, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
+    {eGL_SRGB_ALPHA, eGL_UNSIGNED_NORMALIZED, 4, 8, 0, 0},
     {eGL_DEPTH_COMPONENT, eGL_NONE, 0, 0, 24, 0},
     {eGL_STENCIL_INDEX, eGL_NONE, 0, 0, 0, 8},
     {eGL_DEPTH_STENCIL, eGL_NONE, 0, 0, 24, 8},
@@ -1021,7 +1022,8 @@ void APIENTRY _glGetInternalformativ(GLenum target, GLenum internalformat, GLenu
 
   if(pname == eGL_COLOR_ENCODING)
   {
-    if(internalformat == eGL_SRGB8 || internalformat == eGL_SRGB8_ALPHA8)
+    if(internalformat == eGL_SRGB8 || internalformat == eGL_SRGB8_ALPHA8 ||
+       internalformat == eGL_SRGB_ALPHA)
       *params = eGL_SRGB;
     else
       *params = eGL_LINEAR;
