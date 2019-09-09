@@ -1244,7 +1244,8 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 
       // if the shader had no descriptor sets at all, i will be invalid, so just skip and add a set
       // with only our own bindings.
-      if(i < pipeDescSetLayouts.size() && i < pipe.descSets.size())
+      if(i < pipeDescSetLayouts.size() && i < pipe.descSets.size() &&
+         pipe.descSets[i].pipeLayout != ResourceId())
       {
         // use the descriptor set layout from when it was bound. If the pipeline layout declared a
         // descriptor set layout for this set, but it's statically unused, it may be complete
