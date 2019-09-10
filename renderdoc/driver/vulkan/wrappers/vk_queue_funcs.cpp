@@ -407,7 +407,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
           rerecordedSubmit.commandBufferCount = 1;
-          for(uint32_t i = 0; i < rerecordedSubmit.commandBufferCount; i++)
+          for(size_t i = 0; i < rerecordedCmds.size(); i++)
           {
             ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &rerecordedSubmit, VK_NULL_HANDLE);
             rerecordedSubmit.pCommandBuffers++;

@@ -727,6 +727,11 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           GetResourceManager()->WrapResource(Unwrap(device), cmd);
         }
 
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+        RDCDEBUG("vkBegin - re-recording %llu -> %llu into %llu", m_LastCmdBufferID,
+                 BakedCommandBuffer, GetResID(cmd));
+#endif
+
         // we store under both baked and non baked ID.
         // The baked ID is the 'real' entry, the non baked is simply so it
         // can be found in the subsequent serialised commands that ref the
@@ -930,8 +935,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         commandBuffer = RerecordCmdBuf(BakedCommandBuffer);
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Ending re-recorded command buffer for %llu baked to %llu", CommandBuffer,
-                 BakedCommandBuffer);
+        RDCDEBUG("Ending re-recorded command buffer for %llu baked to %llu as %llu", CommandBuffer,
+                 BakedCommandBuffer, GetResID(commandBuffer));
 #endif
 
         if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
@@ -3299,7 +3304,20 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         // account for the execute commands event
         parentCmdBufInfo.curEventID++;
 
+        bool fullRecord = false;
         uint32_t startEID = parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent;
+
+        // if we're in the re-record range and this command buffer isn't partial, we execute all
+        // command buffers because m_Partial[Primary].baseEvent above is only valid for the partial
+        // command buffer
+        if(m_Partial[Primary].partialParent != m_LastCmdBufferID)
+        {
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+          RDCDEBUG("Fully re-recording non-partial execute in command buffer %llu for %llu",
+                   GetResID(commandBuffer), m_LastCmdBufferID);
+#endif
+          fullRecord = true;
+        }
 
         // advance m_CurEventID to match the events added when reading
         for(uint32_t c = 0; c < commandBufferCount; c++)
@@ -3312,19 +3330,6 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           m_BakedCmdBufferInfo[cmd].state.framebuffer = parentCmdBufInfo.state.framebuffer;
           m_BakedCmdBufferInfo[cmd].state.fbattachments = parentCmdBufInfo.state.fbattachments;
 
-          // propagate conditional rendering
-          if(m_BakedCmdBufferInfo[cmd].inheritConditionalRendering &&
-             parentCmdBufInfo.state.conditionalRendering.buffer != ResourceId() &&
-             (startEID + m_BakedCmdBufferInfo[cmd].eventCount >= m_LastEventID))
-          {
-            m_RenderState.conditionalRendering.buffer =
-                parentCmdBufInfo.state.conditionalRendering.buffer;
-            m_RenderState.conditionalRendering.offset =
-                parentCmdBufInfo.state.conditionalRendering.offset;
-            m_RenderState.conditionalRendering.flags =
-                parentCmdBufInfo.state.conditionalRendering.flags;
-          }
-
           // 2 extra for the virtual labels around the command buffer
           parentCmdBufInfo.curEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
         }
@@ -3335,13 +3340,13 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         {
           // do nothing, don't bother with the logic below
         }
-        else if(m_FirstEventID == m_LastEventID)
+        else if(m_FirstEventID == m_LastEventID && !fullRecord)
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("ExecuteCommands no OnlyDraw %u", m_FirstEventID);
 #endif
         }
-        else if(m_LastEventID <= startEID)
+        else if(m_LastEventID <= startEID && !fullRecord)
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("ExecuteCommands no replay %u == %u", m_LastEventID, startEID);
@@ -3369,7 +3374,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             uint32_t end = eid + m_BakedCmdBufferInfo[cmdid].eventCount;
 #endif
 
-            if(eid <= m_LastEventID)
+            if(eid <= m_LastEventID || fullRecord)
             {
               VkCommandBuffer cmd = RerecordCmdBuf(cmdid);
               ResourceId rerecord = GetResID(cmd);
@@ -3394,6 +3399,10 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             // above)
             eid += 1 + m_BakedCmdBufferInfo[cmdid].eventCount;
           }
+
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+          RDCDEBUG("executing %zu commands in %llu", rerecordedCmds.size(), GetResID(commandBuffer));
+#endif
 
           if(!rerecordedCmds.empty())
             ObjDisp(commandBuffer)
@@ -5032,22 +5041,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginConditionalRenderingEXT(
           m_RenderState.conditionalRendering.flags = BeginInfo.flags;
         }
 
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.buffer =
-            GetResID(BeginInfo.buffer);
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.offset = BeginInfo.offset;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.flags = BeginInfo.flags;
-
         BeginInfo.buffer = Unwrap(BeginInfo.buffer);
         ObjDisp(commandBuffer)->CmdBeginConditionalRenderingEXT(Unwrap(commandBuffer), &BeginInfo);
       }
     }
     else
     {
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.buffer =
-          GetResID(BeginInfo.buffer);
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.offset = BeginInfo.offset;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.flags = BeginInfo.flags;
-
       BeginInfo.buffer = Unwrap(BeginInfo.buffer);
       ObjDisp(commandBuffer)->CmdBeginConditionalRenderingEXT(Unwrap(commandBuffer), &BeginInfo);
     }
@@ -5110,13 +5109,11 @@ bool WrappedVulkan::Serialise_vkCmdEndConditionalRenderingEXT(SerialiserType &se
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
           m_RenderState.conditionalRendering.buffer = ResourceId();
 
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.buffer = ResourceId();
         ObjDisp(commandBuffer)->CmdEndConditionalRenderingEXT(Unwrap(commandBuffer));
       }
     }
     else
     {
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.conditionalRendering.buffer = ResourceId();
       ObjDisp(commandBuffer)->CmdEndConditionalRenderingEXT(Unwrap(commandBuffer));
     }
   }

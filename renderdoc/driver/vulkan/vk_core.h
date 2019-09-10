@@ -550,13 +550,6 @@ private:
       ResourceId framebuffer;
       std::vector<ResourceId> fbattachments;
       uint32_t subpass = 0;
-
-      struct ConditionalRendering
-      {
-        ResourceId buffer;
-        VkDeviceSize offset;
-        VkConditionalRenderingFlagsEXT flags;
-      } conditionalRendering;
     } state;
 
     std::vector<rdcpair<ResourceId, ImageRegionState>> imgbarriers;
