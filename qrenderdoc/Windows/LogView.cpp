@@ -289,11 +289,6 @@ LogView::LogView(ICaptureContext &ctx, QWidget *parent)
 
   for(LogType type : values<LogType>())
   {
-    // don't bother allowing fatal filtering. The UI is no longer running when one of these is
-    // logged
-    if(type == LogType::Fatal)
-      continue;
-
     logTypeStrings.push_back(ToQStr(type));
 
     QStandardItem *item = new QStandardItem(ToQStr(type));
