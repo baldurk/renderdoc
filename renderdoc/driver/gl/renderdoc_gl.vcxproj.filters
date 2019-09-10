@@ -260,9 +260,6 @@
     <ClCompile Include="glx_fake_vk_hooks.cpp">
       <Filter>Platform Interfaces\Linux</Filter>
     </ClCompile>
-    <ClCompile Include="egl_layer_android.cpp">
-      <Filter>EGL</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="cgl_platform.mm">

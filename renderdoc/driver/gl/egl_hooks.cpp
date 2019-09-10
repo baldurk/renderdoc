@@ -637,8 +637,8 @@ eglGetProcAddress_renderdoc_hooked(const char *func)
     return realFunc;
 
 // return our egl hooks
-#define GPA_FUNCTION(name, isext)          \
-  if(!strcmp(func, "egl" STRINGIZE(name))) \
+#define GPA_FUNCTION(name, isext, replayrequired) \
+  if(!strcmp(func, "egl" STRINGIZE(name)))        \
     return (__eglMustCastToProperFunctionPointerType)&CONCAT(egl, CONCAT(name, _renderdoc_hooked));
   EGL_HOOKED_SYMBOLS(GPA_FUNCTION)
 #undef GPA_FUNCTION
@@ -876,7 +876,7 @@ static void EGLHooked(void *handle)
   RDCASSERT(!RenderDoc::Inst().IsReplayApp());
 
 // fetch non-hooked functions into our dispatch table
-#define EGL_FETCH(func, isext)                                                                  \
+#define EGL_FETCH(func, isext, replayrequired)                                                  \
   EGL.func = (CONCAT(PFN_egl, func))Process::GetFunctionAddress(handle, "egl" STRINGIZE(func)); \
   if(!EGL.func && CheckConstParam(isext))                                                       \
     EGL.func = (CONCAT(PFN_egl, func))EGL.GetProcAddress("egl" STRINGIZE(func));
@@ -985,7 +985,7 @@ void EGLHook::RegisterHooks()
 #endif
 
 // register EGL hooks
-#define EGL_REGISTER(func, isext)                                                 \
+#define EGL_REGISTER(func, isext, replayrequired)                                 \
   LibraryHooks::RegisterFunctionHook(                                             \
       "libEGL" LIBSUFFIX, FunctionHook("egl" STRINGIZE(func), (void **)&EGL.func, \
                                        (void *)&CONCAT(egl, CONCAT(func, _renderdoc_hooked))));
@@ -1009,7 +1009,7 @@ HOOK_EXPORT void AndroidGLESLayer_Initialize(void *layer_id,
 
 // populate EGL dispatch table with the next layer's function pointers. Fetch all 'hooked' and
 // non-hooked functions
-#define EGL_FETCH(func, isext)                                                 \
+#define EGL_FETCH(func, isext, replayrequired)                                 \
   EGL.func = (CONCAT(PFN_egl, func))next_gpa(layer_id, "egl" STRINGIZE(func)); \
   if(!EGL.func)                                                                \
     RDCWARN("Couldn't fetch function pointer for egl" STRINGIZE(func));
@@ -1026,8 +1026,8 @@ HOOK_EXPORT void *AndroidGLESLayer_GetProcAddress(const char *funcName,
                                                   __eglMustCastToProperFunctionPointerType next)
 {
 // return our egl hooks
-#define GPA_FUNCTION(name, isext)              \
-  if(!strcmp(funcName, "egl" STRINGIZE(name))) \
+#define GPA_FUNCTION(name, isext, replayrequired) \
+  if(!strcmp(funcName, "egl" STRINGIZE(name)))    \
     return (void *)&CONCAT(egl, CONCAT(name, _renderdoc_hooked));
   EGL_HOOKED_SYMBOLS(GPA_FUNCTION)
 #undef GPA_FUNCTION

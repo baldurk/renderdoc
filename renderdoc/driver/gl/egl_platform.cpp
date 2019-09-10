@@ -435,7 +435,7 @@ bool EGLDispatchTable::PopulateForReplay()
 
   bool symbols_ok = true;
 
-#define LOAD_FUNC(func, isext)                                                                      \
+#define LOAD_FUNC(func, isext, replayrequired)                                                      \
   if(!this->func)                                                                                   \
     this->func = (CONCAT(PFN_egl, func))Process::GetFunctionAddress(handle, "egl" STRINGIZE(func)); \
   if(!this->func && CheckConstParam(isext))                                                         \
@@ -443,7 +443,8 @@ bool EGLDispatchTable::PopulateForReplay()
                                                                                                     \
   if(!this->func && !CheckConstParam(isext))                                                        \
   {                                                                                                 \
-    symbols_ok = false;                                                                             \
+    if(CheckConstParam(replayrequired))                                                             \
+      symbols_ok = false;                                                                           \
     RDCWARN("Unable to load '%s'", STRINGIZE(func));                                                \
   }
 
