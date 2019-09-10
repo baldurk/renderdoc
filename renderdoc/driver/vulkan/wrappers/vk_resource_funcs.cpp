@@ -812,8 +812,14 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
       if(capframe)
       {
-        GetResourceManager()->MarkMemoryFrameReferenced(GetResID(pMemRanges[i].memory),
-                                                        pMemRanges[i].offset, pMemRanges[i].size,
+        VkDeviceSize offs = pMemRanges[i].offset;
+        VkDeviceSize size = pMemRanges[i].size;
+
+        // map VK_WHOLE_SIZE into a specific size
+        if(size == VK_WHOLE_SIZE)
+          size = state->mapOffset + state->mapSize - offs;
+
+        GetResourceManager()->MarkMemoryFrameReferenced(GetResID(pMemRanges[i].memory), offs, size,
                                                         eFrameRef_CompleteWrite);
       }
       else
