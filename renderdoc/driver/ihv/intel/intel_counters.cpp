@@ -220,16 +220,26 @@ uint32_t IntelCounters::BeginSession()
   TMetricsDeviceParams_1_2 *deviceParams = m_metricsDevice->GetParams();
   if(deviceParams->Version.MajorNumber < 1 ||
      (deviceParams->Version.MajorNumber == 1 && deviceParams->Version.MinorNumber < 2))
+  {
+    RDCERR("Bad metrics device API version %u.%u", deviceParams->Version.MajorNumber,
+           deviceParams->Version.MinorNumber);
     return 0;
+  }
 
   IOverride_1_2 *frequencyOverride = m_metricsDevice->GetOverrideByName("FrequencyOverride");
   if(!frequencyOverride)
+  {
+    RDCERR("Couldn't fetch Frequency Override");
     return 0;
+  }
 
   TTypedValue_1_0 *maxFreqSymbol =
       m_metricsDevice->GetGlobalSymbolValueByName("GpuMaxFrequencyMHz");
   if(!maxFreqSymbol)
+  {
+    RDCERR("Couldn't get global symbol GpuMaxFrequencyMHz");
     return 0;
+  }
 
   TSetFrequencyOverrideParams_1_2 params;
   params.Enable = true;
@@ -309,22 +319,32 @@ void IntelCounters::BeginSample()
       (D3D11_COUNTER)m_subscribedMetricSets[m_passIndex]->GetParams()->ApiSpecificId.D3D1XDevDependentId;
 
   if(counter_desc.Counter == 0)
+  {
+    RDCERR("Invalid D3D11 counter for sample in pass %u", m_passIndex);
     return;
+  }
 
   TCompletionCode res = m_subscribedMetricSets[m_passIndex]->Activate();
   if(res != TCompletionCode::CC_OK)
+  {
+    RDCERR("Couldn't activate subscribed metric set in pass %u", m_passIndex);
     return;
+  }
 
   HRESULT hr = m_device->CreateCounter(&counter_desc, &m_counter);
   if(FAILED(hr))
   {
+    RDCERR("Couldn't create D3D11 counter %u in pass %u", counter_desc.Counter, m_passIndex);
     m_subscribedMetricSets[m_passIndex]->Deactivate();
     return;
   }
 
   res = m_subscribedMetricSets[m_passIndex]->Deactivate();
   if(res != TCompletionCode::CC_OK)
+  {
+    RDCERR("Couldn't deactivate subscribed metric set in pass %u", m_passIndex);
     return;
+  }
 
   m_deviceContext->Begin(m_counter);
 }
@@ -332,6 +352,9 @@ void IntelCounters::BeginSample()
 void IntelCounters::EndSample()
 {
   if(!m_metricsDevice)
+    return;
+
+  if(!m_counter)
     return;
 
   m_deviceContext->End(m_counter);
@@ -349,7 +372,10 @@ void IntelCounters::EndSample()
   m_counter->Release();
 
   if(hr != S_OK)
+  {
+    RDCERR("Couldn't get counter data after %u attempts: %s", max_attempts, ToStr(hr).c_str());
     return;
+  }
 
   IMetricSet_1_1 *metricSet = m_subscribedMetricSets[m_passIndex];
   TMetricSetParams_1_0 *metricSetParams = metricSet->GetParams();
@@ -360,7 +386,10 @@ void IntelCounters::EndSample()
       (uint32_t)m_queryResult.size() * sizeof(TTypedValue_1_0), &calculatedReportCount, false);
 
   if(res != TCompletionCode::CC_OK)
+  {
+    RDCERR("Couldn't calculate metric set for sample in pass %u", m_passIndex);
     return;
+  }
 
   for(size_t i = 0; i < m_subscribedMetricsByCounterSet[m_passIndex].size(); i++)
   {
