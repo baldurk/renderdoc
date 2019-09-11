@@ -3396,7 +3396,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
         // if we're not modifying RTVs, any that are < UAVStartSlot get unbound so don't consider
         // for validity
         valid = m_CurrentPipelineState->ValidOutputMerger(
-            m_CurrentPipelineState->OM.RenderTargets, UAVStartSlot,
+            m_CurrentPipelineState->OM.RenderTargets,
+            RDCMIN((UINT)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, UAVStartSlot),
             m_CurrentPipelineState->OM.DepthView, ppUnorderedAccessViews, NumUAVs);
       }
 
@@ -3544,7 +3545,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
           m_CurrentPipelineState->ValidOutputMerger(RTs, NumRTVs, pDepthStencilView, UAVs, NumUAVs);
     else
       valid = m_CurrentPipelineState->ValidOutputMerger(
-          m_CurrentPipelineState->OM.RenderTargets, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT,
+          m_CurrentPipelineState->OM.RenderTargets,
+          RDCMIN((UINT)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, UAVStartSlot),
           m_CurrentPipelineState->OM.DepthView, UAVs, NumUAVs);
 
     if(valid)
