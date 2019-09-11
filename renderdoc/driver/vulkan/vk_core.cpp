@@ -2197,7 +2197,8 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     // create indirect draw buffer
     m_IndirectBufferSize = AlignUp(m_IndirectBufferSize + 63, (size_t)64);
 
-    m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize, 1, 0);
+    m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize, 1,
+                            GPUBuffer::eGPUBufferIndirectBuffer);
 
     m_IndirectCommandBuffer = GetNextCmd();
 
