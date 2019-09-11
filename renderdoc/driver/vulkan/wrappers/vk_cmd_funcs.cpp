@@ -3340,7 +3340,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         {
           // do nothing, don't bother with the logic below
         }
-        else if(m_FirstEventID == m_LastEventID && !fullRecord)
+        else if(m_FirstEventID == m_LastEventID)
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("ExecuteCommands no OnlyDraw %u", m_FirstEventID);
