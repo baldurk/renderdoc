@@ -35,7 +35,7 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform PRECISION usampler2DMSArray srcMS;
 // binding = 1 used as stencil read in the depth-stencil copy fragment shaders
-layout(rgba32ui, binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
+layout(binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 
 #ifdef VULKAN
 

@@ -33,6 +33,7 @@ enum class FeatureCheck
   ShaderMSAAStorage = 0x1,
   FragmentStores = 0x2,
   NonMetalBackend = 0x4,
+  FormatlessWrite = 0x8,
 };
 
 BITMASK_OPERATORS(FeatureCheck);
@@ -76,9 +77,9 @@ static const BuiltinShaderConfig builtinShaders[] = {
     {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), rdcspv::ShaderStage::Fragment,
      FeatureCheck::NoCheck, true},
     {BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp), rdcspv::ShaderStage::Compute,
-     FeatureCheck::ShaderMSAAStorage | FeatureCheck::NonMetalBackend, true},
+     FeatureCheck::FormatlessWrite | FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp), rdcspv::ShaderStage::Compute,
-     FeatureCheck::ShaderMSAAStorage | FeatureCheck::NonMetalBackend, true},
+    FeatureCheck::ShaderMSAAStorage | FeatureCheck::FormatlessWrite | FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
@@ -146,7 +147,15 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(config.checks & FeatureCheck::ShaderMSAAStorage)
     {
       if(driverVersion.TexelFetchBrokenDriver() || driverVersion.AMDStorageMSAABrokenDriver() ||
-         !features.shaderStorageImageMultisample || !features.shaderStorageImageWriteWithoutFormat)
+         !features.shaderStorageImageMultisample)
+      {
+        continue;
+      }
+    }
+
+    if(config.checks & FeatureCheck::FormatlessWrite)
+    {
+      if(!features.shaderStorageImageWriteWithoutFormat)
       {
         continue;
       }
