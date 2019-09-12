@@ -32,8 +32,7 @@
 void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
                                             uint32_t layers, uint32_t samples, VkFormat fmt)
 {
-  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample ||
-     !m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
   if(m_MS2ArrayPipe == VK_NULL_HANDLE)
@@ -311,12 +310,8 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
   VkClearValue clearval = {};
 
@@ -337,6 +332,10 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
   {
     rpbegin.framebuffer = fb[i];
 
+    VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+    ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
     ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
     ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
@@ -350,7 +349,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     params.y = i % samples;    // currentSample;
     params.z = i / samples;    // currentSlice;
 
-    for(uint32_t s = 0; s < numStencil; s++)
+    for(uint32_t s = 0; s < 256; s++)
     {
       params.w = numStencil == 1 ? 1000 : s;    // currentStencil;
 
@@ -361,9 +360,9 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     }
 
     ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
-  }
 
-  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+    ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+  }
 
   // submit cmds and wait for idle so we can readback
   m_pDriver->SubmitCmds();
