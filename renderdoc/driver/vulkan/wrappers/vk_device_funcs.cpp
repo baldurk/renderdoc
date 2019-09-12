@@ -2369,7 +2369,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       enabledFeatures.shaderStorageImageMultisample = true;
     else
       RDCWARN(
-          "shaderStorageImageMultisample = false, save/load from 2DMS textures will not be "
+          "shaderStorageImageMultisample = false, accurately replaying 2DMS textures will not be "
           "possible");
 
     if(availFeatures.fragmentStoresAndAtomics)
@@ -2883,8 +2883,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     enabledFeatures.shaderStorageImageMultisample = true;
   else
     RDCWARN(
-        "shaderStorageImageMultisample = false, save/load from 2DMS textures will not be "
-        "possible");
+        "shaderStorageImageMultisample = false, accurately replaying from 2DMS textures will not "
+        "be possible");
 
   if(availFeatures.sampleRateShading)
     enabledFeatures.sampleRateShading = true;
