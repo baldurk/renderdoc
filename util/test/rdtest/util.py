@@ -260,7 +260,7 @@ def value_compare(ref, data, eps=FLT_EPSILON):
         # Floats are equal if the absolute difference is less than epsilon times the largest.
         largest = max(abs(ref), abs(data))
         eps = largest * eps if largest > 1.0 else eps
-        return abs(ref-data) < eps
+        return abs(ref-data) <= eps
     elif type(ref) == list or type(ref) == tuple:
         # tuples and lists can be treated interchangeably
         if type(data) != list and type(data) != tuple:

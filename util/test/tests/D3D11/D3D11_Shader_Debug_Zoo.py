@@ -21,7 +21,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
             last_state: rd.ShaderDebugState = trace.states[-1]
 
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, last_state.outputs[0].value.fv[0:4])
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, last_state.outputs[0].value.fv[0:4], 0.0)
 
             rdtest.log.success("Test {} matched as expected".format(test))
 

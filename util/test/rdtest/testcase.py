@@ -299,7 +299,7 @@ class TestCase:
 
         log.success("Mesh data is identical to reference")
 
-    def check_pixel_value(self, tex: rd.ResourceId, x, y, value):
+    def check_pixel_value(self, tex: rd.ResourceId, x, y, value, eps=util.FLT_EPSILON):
         tex_details = self.get_texture(tex)
         res_details = self.get_resource(tex)
 
@@ -319,7 +319,7 @@ class TestCase:
 
         picked: rd.PixelValue = self.pickout.PickPixel(tex, False, x, y, 0, 0, 0)
 
-        if not util.value_compare(picked.floatValue, value):
+        if not util.value_compare(picked.floatValue, value, eps):
             raise TestFailureException(
                 "Picked value {} at {},{} doesn't match expectation of {}".format(picked.floatValue, x, y, value))
 

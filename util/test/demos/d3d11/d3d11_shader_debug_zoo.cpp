@@ -40,19 +40,21 @@ TEST(D3D11_Shader_Debug_Zoo, D3D11GraphicsTest)
 
 struct consts
 {
-	float3 pos : POSITION;
-	float zeroVal : ZERO;
-	float oneVal : ONE;
-	float negoneVal : NEGONE;
+  float3 pos : POSITION;
+  float zeroVal : ZERO;
+  float oneVal : ONE;
+  float negoneVal : NEGONE;
 };
 
 struct v2f
 {
-	float4 pos : SV_POSITION;
-	float2 zeroVal : ZERO;
-	float oneVal : ONE;
-	float negoneVal : NEGONE;
-	uint tri : TRIANGLE;
+  float4 pos : SV_POSITION;
+  float2 zeroVal : ZERO;
+  float tinyVal : TINY;
+  float oneVal : ONE;
+  float negoneVal : NEGONE;
+  uint tri : TRIANGLE;
+  uint intval : INTVAL;
 };
 
 )EOSHADER";
@@ -61,16 +63,18 @@ struct v2f
 
 v2f main(consts IN, uint tri : SV_InstanceID)
 {
-	v2f OUT = (v2f)0;
+  v2f OUT = (v2f)0;
 
-	OUT.pos = float4(IN.pos.x + IN.pos.z * float(tri), IN.pos.y, 0.0f, 1);
+  OUT.pos = float4(IN.pos.x + IN.pos.z * float(tri), IN.pos.y, 0.0f, 1);
 
-	OUT.zeroVal = IN.zeroVal.xx;
-	OUT.oneVal = IN.oneVal;
-	OUT.negoneVal = IN.negoneVal;
-	OUT.tri = tri;
+  OUT.zeroVal = IN.zeroVal.xx;
+  OUT.oneVal = IN.oneVal;
+  OUT.negoneVal = IN.negoneVal;
+  OUT.tri = tri;
+  OUT.tinyVal = IN.oneVal * 1.0e-30f;
+  OUT.intval = tri + 7;
 
-	return OUT;
+  return OUT;
 }
 
 )EOSHADER";
@@ -81,42 +85,45 @@ Buffer<float> test : register(t0);
 
 float4 main(v2f IN) : SV_Target0
 {
-  float	posinf = IN.oneVal/IN.zeroVal.x;
-  float	neginf = IN.negoneVal/IN.zeroVal.x;
-  float	nan = IN.zeroVal.x/IN.zeroVal.y;
+  float  posinf = IN.oneVal/IN.zeroVal.x;
+  float  neginf = IN.negoneVal/IN.zeroVal.x;
+  float  nan = IN.zeroVal.x/IN.zeroVal.y;
 
-	float negone = IN.negoneVal;
-	float posone = IN.oneVal;
-	float zero = IN.zeroVal.x;
+  float negone = IN.negoneVal;
+  float posone = IN.oneVal;
+  float zero = IN.zeroVal.x;
+  float tiny = IN.tinyVal;
 
-	if(IN.tri == 0)
-		return float4(log(negone), log(zero), log(posone), 1.0f);
-	if(IN.tri == 1)
-		return float4(log(posinf), log(neginf), log(nan), 1.0f);
-	if(IN.tri == 2)
-		return float4(exp(negone), exp(zero), exp(posone), 1.0f);
-	if(IN.tri == 3)
-		return float4(exp(posinf), exp(neginf), exp(nan), 1.0f);
-	if(IN.tri == 4)
-		return float4(sqrt(negone), sqrt(zero), sqrt(posone), 1.0f);
-	if(IN.tri == 5)
-		return float4(sqrt(posinf), sqrt(neginf), sqrt(nan), 1.0f);
-	if(IN.tri == 6)
-		return float4(rsqrt(negone), rsqrt(zero), rsqrt(posone), 1.0f);
-	if(IN.tri == 7)
-		return float4(saturate(posinf), saturate(neginf), saturate(nan), 1.0f);
-	if(IN.tri == 8)
-		return float4(min(posinf, nan), min(neginf, nan), min(nan, nan), 1.0f);
-	if(IN.tri == 9)
-		return float4(min(posinf, posinf), min(neginf, posinf), min(nan, posinf), 1.0f);
-	if(IN.tri == 10)
-		return float4(min(posinf, neginf), min(neginf, neginf), min(nan, neginf), 1.0f);
-	if(IN.tri == 11)
-		return float4(max(posinf, nan), max(neginf, nan), max(nan, nan), 1.0f);
-	if(IN.tri == 12)
-		return float4(max(posinf, posinf), max(neginf, posinf), max(nan, posinf), 1.0f);
-	if(IN.tri == 13)
-		return float4(max(posinf, neginf), max(neginf, neginf), max(nan, neginf), 1.0f);
+  int intval = IN.intval;
+
+  if(IN.tri == 0)
+    return float4(log(negone), log(zero), log(posone), 1.0f);
+  if(IN.tri == 1)
+    return float4(log(posinf), log(neginf), log(nan), 1.0f);
+  if(IN.tri == 2)
+    return float4(exp(negone), exp(zero), exp(posone), 1.0f);
+  if(IN.tri == 3)
+    return float4(exp(posinf), exp(neginf), exp(nan), 1.0f);
+  if(IN.tri == 4)
+    return float4(sqrt(negone), sqrt(zero), sqrt(posone), 1.0f);
+  if(IN.tri == 5)
+    return float4(sqrt(posinf), sqrt(neginf), sqrt(nan), 1.0f);
+  if(IN.tri == 6)
+    return float4(rsqrt(negone), rsqrt(zero), rsqrt(posone), 1.0f);
+  if(IN.tri == 7)
+    return float4(saturate(posinf), saturate(neginf), saturate(nan), 1.0f);
+  if(IN.tri == 8)
+    return float4(min(posinf, nan), min(neginf, nan), min(nan, nan), 1.0f);
+  if(IN.tri == 9)
+    return float4(min(posinf, posinf), min(neginf, posinf), min(nan, posinf), 1.0f);
+  if(IN.tri == 10)
+    return float4(min(posinf, neginf), min(neginf, neginf), min(nan, neginf), 1.0f);
+  if(IN.tri == 11)
+    return float4(max(posinf, nan), max(neginf, nan), max(nan, nan), 1.0f);
+  if(IN.tri == 12)
+    return float4(max(posinf, posinf), max(neginf, posinf), max(nan, posinf), 1.0f);
+  if(IN.tri == 13)
+    return float4(max(posinf, neginf), max(neginf, neginf), max(nan, neginf), 1.0f);
 
   // rounding tests
   float round_a = 1.7f*posone;
@@ -190,12 +197,16 @@ float4 main(v2f IN) : SV_Target0
   if(IN.tri == 33)
     return float4(-nan, abs(nan), 0.0f, 1.0f);
 
-	return float4(0.4f, 0.4f, 0.4f, 0.4f);
+  // check denorm flushing
+  if(IN.tri == 34)
+    return float4(tiny * 1.5e-8f, tiny * 1.5e-9f, asfloat(intval) == 0.0f ? 1.0f : 0.0f, 1.0f);
+
+  return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
 
 )EOSHADER";
 
-  static const uint32_t numTests = 34;
+  static const uint32_t numTests = 35;
 
   int main()
   {
