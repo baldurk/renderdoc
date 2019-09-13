@@ -75,15 +75,20 @@ void main()
 
   int main()
   {
+    optDevExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
+
+    bool KHR_maintenance1 = std::find(devExts.begin(), devExts.end(),
+                                      VK_KHR_MAINTENANCE1_EXTENSION_NAME) != devExts.end();
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
     // note that the Y position values are inverted for vulkan 1.0 viewport convention, relative to
     // all other APIs
-    const DefaultA2V VBData[] = {
+    DefaultA2V VBData[] = {
         // this triangle occludes in depth
         {Vec3f(-0.5f, 0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(-0.5f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
@@ -141,6 +146,13 @@ void main()
         {Vec3f(0.0f, -0.725f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.025f, -0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
+
+    // negate y if we're using negative viewport height
+    if(KHR_maintenance1)
+    {
+      for(DefaultA2V &v : VBData)
+        v.pos.y = -v.pos.y;
+    }
 
     AllocatedBuffer vb(allocator,
                        vkh::BufferCreateInfo(sizeof(VBData), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
@@ -241,6 +253,14 @@ void main()
       v.y += 10.0f;
       v.width -= 20.0f;
       v.height -= 20.0f;
+
+      // if we're using KHR_maintenance1, check that negative viewport height is handled
+      if(KHR_maintenance1)
+      {
+        v.y += v.height;
+        v.height = -v.height;
+      }
+
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
