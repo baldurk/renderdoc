@@ -1244,6 +1244,7 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
       write.pBufferInfo = &application.bufInfo[idx];
     }
 
-    application.writes.push_back(write);
+    if(write.descriptorCount != 0)
+      application.writes.push_back(write);
   }
 }
