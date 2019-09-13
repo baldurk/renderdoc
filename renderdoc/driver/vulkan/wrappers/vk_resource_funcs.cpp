@@ -1012,6 +1012,10 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
     // than the image.
     record->baseResource = GetResID(mem);
   }
+  else
+  {
+    m_ImageLayouts[GetResID(image)].memoryBound = true;
+  }
 
   return ret;
 }
@@ -2091,6 +2095,11 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
       // than the image.
       imgrecord->baseResource = memrecord->GetResourceID();
     }
+  }
+  else
+  {
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+      m_ImageLayouts[GetResID(pBindInfos[i].image)].memoryBound = true;
   }
 
   return ret;

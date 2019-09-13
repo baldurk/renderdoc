@@ -5,6 +5,14 @@ import renderdoc as rd
 class VK_Image_Layouts(rdtest.TestCase):
     demos_test_name = 'VK_Image_Layouts'
 
+    def get_capture_options(self):
+        opts = rd.CaptureOptions()
+
+        # Ref all resources to pull in the image with unbound data
+        opts.refAllResources = True
+
+        return opts
+
     def check_capture(self):
         self.controller.SetFrameEvent(0, False)
 

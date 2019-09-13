@@ -1372,6 +1372,9 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
       // PREINIT as if it was GENERAL.
       for(auto it = m_ImageLayouts.begin(); it != m_ImageLayouts.end(); ++it)
       {
+        if(!it->second.memoryBound)
+          continue;
+
         for(auto stit = it->second.subresourceStates.begin();
             stit != it->second.subresourceStates.end(); ++stit)
         {

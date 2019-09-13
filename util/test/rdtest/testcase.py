@@ -178,6 +178,15 @@ class TestCase:
 
         return rd.ReplayOptions()
 
+    def get_capture_options(self):
+        """
+        Method to overload if you want to override the capture options used.
+
+        :return: The renderdoc.CaptureOptions to use.
+        """
+
+        return rd.CaptureOptions()
+
     def get_capture(self):
         """
         Method to overload if not implementing a run(), using the default run which
@@ -188,7 +197,7 @@ class TestCase:
         """
 
         if self.demos_test_name != '':
-            return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name, self.demos_frame_cap)
+            return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name, self.demos_frame_cap, opts=self.get_capture_options())
 
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")

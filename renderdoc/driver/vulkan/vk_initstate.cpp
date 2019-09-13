@@ -123,6 +123,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       return true;
     }
 
+    // if the image has no memory bound, nothing is to be fetched
+    if(!layout->memoryBound)
+      return true;
+
     VkDevice d = GetDev();
     // INITSTATEBATCH
     VkCommandBuffer cmd = GetNextCmd();

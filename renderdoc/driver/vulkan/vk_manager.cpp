@@ -331,6 +331,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
 
           t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+          if(it->second.initialLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+            t.oldLayout = state.newLayout;
           state.newLayout = t.newLayout = it->second.initialLayout;
 
           t.subresourceRange = state.subresourceRange;
@@ -351,7 +353,10 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
   ApplyBarriers(VK_QUEUE_FAMILY_IGNORED, vec, states);
 
   for(size_t i = 0; i < vec.size(); i++)
-    barriers[i].oldLayout = vec[i].second.oldLayout;
+  {
+    if(barriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      barriers[i].oldLayout = vec[i].second.oldLayout;
+  }
 
   // erase any do-nothing barriers
   for(auto it = barriers.begin(); it != barriers.end();)

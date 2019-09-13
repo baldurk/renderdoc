@@ -115,6 +115,10 @@ void main()
     const VkPhysicalDeviceMemoryProperties *props = NULL;
     vmaGetMemoryProperties(allocator, &props);
 
+    VkImage unboundImg = VK_NULL_HANDLE;
+    vkCreateImage(device, preinitInfo, NULL, &unboundImg);
+    setName(unboundImg, "Unbound image");
+
     while(Running())
     {
       VkImage preinitImg = VK_NULL_HANDLE;
