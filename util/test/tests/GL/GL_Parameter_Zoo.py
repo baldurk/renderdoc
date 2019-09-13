@@ -1,0 +1,106 @@
+import struct
+import math
+import renderdoc as rd
+import rdtest
+
+
+class GL_Parameter_Zoo(rdtest.TestCase):
+    demos_test_name = 'GL_Parameter_Zoo'
+
+    def check_capture(self):
+        id = self.get_last_draw().copyDestination
+
+        tex_details = self.get_texture(id)
+
+        self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
+
+        data = self.controller.GetTextureData(id, 0, 0)
+        first_pixel = struct.unpack_from("BBBB", data, 0)
+
+        val = [int(round(v * 255)) for v in rdtest.linear_to_SRGB([0.4, 0.5, 0.6, 1.0])]
+        if not rdtest.value_compare(first_pixel, val):
+            raise rdtest.TestFailureException("First pixel should be clear color {}, not {}".format(val, first_pixel))
+
+        magic_pixel = struct.unpack_from("BBBB", data, (50 * tex_details.width + 320) * 4)
+
+        if not rdtest.value_compare(magic_pixel, [0, 0, 255, 127]):
+            raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
+
+        rdtest.log.success("Decoded pixels from texture data are correct")
+
+        img_path = rdtest.get_tmp_path('preserved_alpha.png')
+
+        self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
+
+        save_data = rd.TextureSave()
+        save_data.resourceId = id
+        save_data.destType = rd.FileType.PNG
+        save_data.alpha = rd.AlphaMapping.Discard # this should not discard the alpha
+
+        self.controller.SaveTexture(save_data, img_path)
+
+        data = rdtest.png_load_data(img_path)
+
+        magic_pixel = struct.unpack_from("BBBB", data[-1-50], 320 * 4)
+
+        if not rdtest.value_compare(magic_pixel, [0, 0, 255, 127]):
+            raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
+
+        draw = self.find_draw("Draw")
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+
+        postvs_ref = {
+            0: {
+                'vtx': 0,
+                'idx': 0,
+                'gl_Position': [-0.5, -0.5, 0.0, 1.0],
+                'v2fcol': [1.0, 0.0, 0.0, 1.0],
+            },
+            1: {
+                'vtx': 1,
+                'idx': 1,
+                'gl_Position': [0.0, 0.5, 0.0, 1.0],
+                'v2fcol': [0.0, 1.0, 0.0, 1.0],
+            },
+            2: {
+                'vtx': 2,
+                'idx': 2,
+                'gl_Position': [0.5, -0.5, 0.0, 1.0],
+                'v2fcol': [0.0, 0.0, 1.0, 1.0],
+            },
+        }
+
+        self.check_mesh_data(postvs_ref, postvs_data)
+
+        results = self.controller.FetchCounters([rd.GPUCounter.RasterizedPrimitives, rd.GPUCounter.VSInvocations, rd.GPUCounter.FSInvocations])
+
+        results = [r for r in results if r.eventId == draw.eventId]
+
+        if len(results) != 3:
+            raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))
+        
+        for r in results:
+            r: rd.CounterResult
+            val = r.value.u32
+            if r.counter == rd.GPUCounter.RasterizedPrimitives:
+                if not rdtest.value_compare(val, 1):
+                    raise rdtest.TestFailureException("RasterizedPrimitives result {} is not as expected".format(val))
+                else:
+                    rdtest.log.success("RasterizedPrimitives result is as expected")
+            elif r.counter == rd.GPUCounter.VSInvocations:
+                if not rdtest.value_compare(val, 3):
+                    raise rdtest.TestFailureException("VSInvocations result {} is not as expected".format(val))
+                else:
+                    rdtest.log.success("VSInvocations result is as expected")
+            elif r.counter == rd.GPUCounter.FSInvocations:
+                if val < int(0.1 * tex_details.width * tex_details.height):
+                    raise rdtest.TestFailureException("FSInvocations result {} is not as expected".format(val))
+                else:
+                    rdtest.log.success("FSInvocations result is as expected")
+            else:
+                raise rdtest.TestFailureException("Unexpected counter result {}".format(r.counter))
+
+        rdtest.log.success("Counter data retrieved successfully")

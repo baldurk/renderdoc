@@ -141,6 +141,15 @@ def sanitise_filename(name: str):
     return re.sub('^/', '', name)
 
 
+def linear_to_SRGB(val):
+    if type(val) == float:
+        if val <= 0.0031308:
+            return val * 12.92
+        else:
+            return 1.055 * math.pow(val, 1.0 / 2.4) - 0.055
+
+    return [linear_to_SRGB(v) for v in val]
+
 def png_save(out_path: str, rows: List[bytes], dimensions: Tuple[int, int], has_alpha: bool):
     try:
         f = open(out_path, 'wb')

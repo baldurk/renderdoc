@@ -20,6 +20,7 @@ set(VULKAN_SRC
         vk/vk_misaligned_dirty.cpp
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
+        vk/vk_parameter_zoo.cpp
         vk/vk_resource_lifetimes.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
@@ -48,6 +49,7 @@ set(OPENGL_SRC
         gl/gl_mip_gen_rt.cpp
         gl/gl_multi_window.cpp
         gl/gl_overlay_test.cpp
+        gl/gl_parameter_zoo.cpp
         gl/gl_per_type_tex_units.cpp
         gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
