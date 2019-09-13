@@ -26,7 +26,7 @@ For Ubuntu 14.04 or above you'll need:
 sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev
 ```
 
-For the base dependnecies. On Ubuntu 18.04 and above Qt is available in the default repositories:
+For the base dependencies. On Ubuntu 18.04 and above Qt is available in the default repositories:
 
 ```
 sudo apt-get install qt5-qmake libqt5svg5-dev libqt5x11extras5-dev 
