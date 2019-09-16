@@ -257,7 +257,8 @@ private:
   // retrieves the value of the operand, by looking up
   // in the register file and performing any swizzling and
   // negation/abs functions
-  ShaderVariable GetSrc(const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const;
+  ShaderVariable GetSrc(const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op,
+                        bool allowFlushing = true) const;
 
   ShaderVariable DDX(bool fine, State quad[4], const DXBC::ASMOperand &oper,
                      const DXBC::ASMOperation &op) const;

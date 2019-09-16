@@ -1178,7 +1178,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 
     if(dstoper.indices[i].relative)
     {
-      ShaderVariable idx = GetSrc(dstoper.indices[i].operand, op);
+      ShaderVariable idx = GetSrc(dstoper.indices[i].operand, op, false);
 
       indices[i] += idx.value.i.x;
     }
@@ -1427,7 +1427,7 @@ ShaderVariable State::DDY(bool fine, State quad[4], const DXBC::ASMOperand &oper
   return ret;
 }
 
-ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) const
+ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, bool allowFlushing) const
 {
   ShaderVariable v, s;
 
@@ -1444,14 +1444,14 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 
     if(oper.indices[i].relative)
     {
-      ShaderVariable idx = GetSrc(oper.indices[i].operand, op);
+      ShaderVariable idx = GetSrc(oper.indices[i].operand, op, false);
 
       indices[i] += idx.value.i.x;
     }
   }
 
   // is this type a flushable input (for float operations)
-  bool flushable = true;
+  bool flushable = allowFlushing;
 
   switch(oper.type)
   {
