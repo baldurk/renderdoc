@@ -383,18 +383,20 @@ int main(int argc, char *argv[])
 
     if(!crashReportPath.isEmpty())
     {
-      QFile f(crashReportPath);
+      QVariantMap json;
 
-      if(f.exists() && f.open(QIODevice::ReadOnly | QIODevice::Text))
       {
-        QVariantMap json = JSONToVariant(QString::fromUtf8(f.readAll()));
+        QFile f(crashReportPath);
 
-        if(json.contains(lit("report")))
-        {
-          CrashDialog dialog(config, json);
+        if(f.exists() && f.open(QIODevice::ReadOnly | QIODevice::Text))
+          json = JSONToVariant(QString::fromUtf8(f.readAll()));
+      }
 
-          RDDialog::show(&dialog);
-        }
+      if(json.contains(lit("report")))
+      {
+        CrashDialog dialog(config, json);
+
+        RDDialog::show(&dialog);
       }
     }
     else

@@ -455,8 +455,13 @@ struct CrashHandlerCommand : public Command
     GetTempPathW(MAX_PATH - 1, tempPath);
 
     std::wstring dumpFolder = tempPath;
-    dumpFolder += L"RenderDoc/dumps";
 
+    // create each parent directory separately, and use \\s
+
+    dumpFolder += L"RenderDoc";
+    CreateDirectoryW(dumpFolder.c_str(), NULL);
+
+    dumpFolder += L"\\dumps";
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 
     crashServer =
@@ -535,7 +540,31 @@ struct CrashHandlerCommand : public Command
         }
       }
 
-      rdcstr reportPath;
+      FILETIME filetime = {};
+      SYSTEMTIME systime = {};
+      GetSystemTimeAsFileTime(&filetime);
+      FileTimeToSystemTime(&filetime, &systime);
+
+      uint32_t milliseconds = 0;
+      milliseconds += systime.wHour;
+      milliseconds *= 60;
+      milliseconds += systime.wMinute;
+      milliseconds *= 60;
+      milliseconds += systime.wSecond;
+      milliseconds *= 1000;
+      milliseconds += systime.wMilliseconds;
+
+      rdcstr dumpId;
+
+      char base62[63] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      while(milliseconds > 0)
+      {
+        char c = base62[milliseconds % 63];
+        dumpId.push_back(base62[milliseconds % 62]);
+        milliseconds /= 62;
+      }
+
+      rdcstr reportPath = conv(dumpFolder) + "\\" + dumpId + ".zip";
 
       RENDERDOC_CreateBugReport(conv(wlogpath).c_str(), conv(wdump).c_str(), reportPath);
 
@@ -547,52 +576,60 @@ struct CrashHandlerCommand : public Command
       report += "}\n";
 
       {
-        std::wstring destjson = dumpFolder + L"\\report.json";
+        std::wstring destjson = dumpFolder + L"\\" + conv(dumpId) + L".json";
 
         FILE *f = NULL;
         _wfopen_s(&f, destjson.c_str(), L"w");
-        fputs(report.c_str(), f);
-        fclose(f);
-
-        wchar_t *paramsAlloc = new wchar_t[512];
-
-        ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
-
-        GetModuleFileNameW(NULL, paramsAlloc, 511);
-
-        wchar_t *lastSlash = wcsrchr(paramsAlloc, '\\');
-
-        if(lastSlash)
-          *lastSlash = 0;
-
-        std::wstring exepath = paramsAlloc;
-
-        ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
-
-        _snwprintf_s(paramsAlloc, 511, 511, L"%s/qrenderdoc.exe --crash %s", exepath.c_str(),
-                     destjson.c_str());
-
-        PROCESS_INFORMATION pi;
-        STARTUPINFOW si;
-        ZeroMemory(&pi, sizeof(pi));
-        ZeroMemory(&si, sizeof(si));
-
-        BOOL success =
-            CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL, exepath.c_str(), &si, &pi);
-
-        if(success && pi.hProcess)
+        if(!f)
         {
-          WaitForSingleObject(pi.hProcess, INFINITE);
+          OutputDebugStringA("Coudln't open report json");
         }
+        else
+        {
+          fputs(report.c_str(), f);
+          fclose(f);
 
-        if(pi.hProcess)
-          CloseHandle(pi.hProcess);
-        if(pi.hThread)
-          CloseHandle(pi.hThread);
+          wchar_t *paramsAlloc = new wchar_t[512];
 
-        std::wstring wreport = conv(std::string(report));
+          ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
 
-        DeleteFileW(wreport.c_str());
+          GetModuleFileNameW(NULL, paramsAlloc, 511);
+
+          wchar_t *lastSlash = wcsrchr(paramsAlloc, '\\');
+
+          if(lastSlash)
+            *lastSlash = 0;
+
+          std::wstring exepath = paramsAlloc;
+
+          ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
+
+          _snwprintf_s(paramsAlloc, 511, 511, L"%s/qrenderdoc.exe --crash %s", exepath.c_str(),
+                       destjson.c_str());
+
+          PROCESS_INFORMATION pi;
+          STARTUPINFOW si;
+          ZeroMemory(&pi, sizeof(pi));
+          ZeroMemory(&si, sizeof(si));
+
+          BOOL success = CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL,
+                                        exepath.c_str(), &si, &pi);
+
+          if(success && pi.hProcess)
+          {
+            WaitForSingleObject(pi.hProcess, INFINITE);
+          }
+
+          if(pi.hProcess)
+            CloseHandle(pi.hProcess);
+          if(pi.hThread)
+            CloseHandle(pi.hThread);
+
+          std::wstring wreport = conv(reportPath);
+
+          DeleteFileW(wreport.c_str());
+          DeleteFileW(destjson.c_str());
+        }
       }
     }
 

@@ -63,8 +63,11 @@ public:
     GetTempPathW(MAX_PATH - 1, tempPath);
 
     std::wstring dumpFolder = tempPath;
-    dumpFolder += L"RenderDoc/dumps";
 
+    dumpFolder += L"RenderDoc";
+    CreateDirectoryW(dumpFolder.c_str(), NULL);
+
+    dumpFolder += L"\\dumps";
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 
     MINIDUMP_TYPE dumpType = MINIDUMP_TYPE(MiniDumpNormal | MiniDumpWithIndirectlyReferencedMemory);

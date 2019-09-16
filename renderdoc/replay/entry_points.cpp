@@ -288,7 +288,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char 
   mz_zip_archive zip;
   RDCEraseEl(zip);
 
-  report = FileIO::GetTempFolderFilename() + "/renderdoc_report.zip";
+  if(report.empty())
+  {
+    char filename[128] = {};
+    StringFormat::sntimef(filename, 127, "/renderdoc_report_%H%M%S.zip");
+    report = FileIO::GetTempFolderFilename() + filename;
+  }
 
   FileIO::Delete(report.c_str());
 
