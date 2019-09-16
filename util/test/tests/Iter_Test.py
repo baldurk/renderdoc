@@ -121,7 +121,10 @@ class Iter_Test(rdtest.TestCase):
         target = rd.ResourceId.Null()
 
         if len(pipe.GetOutputTargets()) > 0:
-            target = pipe.GetOutputTargets()[0].resourceId
+            valid_targets = [o.resourceId for o in pipe.GetOutputTargets() if o.resourceId != rd.ResourceId.Null()]
+            rdtest.log.print("Valid targets at {} are {}".format(draw.eventId, valid_targets))
+            if len(valid_targets) > 0:
+                target = valid_targets[int(random.random()*len(valid_targets))]
 
         if target == rd.ResourceId.Null():
             target = pipe.GetDepthTarget().resourceId
@@ -159,7 +162,7 @@ class Iter_Test(rdtest.TestCase):
             break
 
         if lastmod is not None:
-            rdtest.log.print("Debugging pixel {},{} @ {}, primitve {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
+            rdtest.log.print("Debugging pixel {},{} @ {}, primitive {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
             self.controller.SetFrameEvent(lastmod.eventId, True)
 
             trace = self.controller.DebugPixel(x, y, 0, lastmod.primitiveID)
@@ -169,12 +172,15 @@ class Iter_Test(rdtest.TestCase):
             elif draw.numInstances == 1:
                 lastState: rd.ShaderDebugState = trace.states[-1]
 
-                debugged: rd.ShaderVariable = lastState.outputs[0]
+                output_index = [o.resourceId for o in self.controller.GetPipelineState().GetOutputTargets()].index(target)
+                rdtest.log.print("At event {} the target is index {}".format(lastmod.eventId, output_index))
+
+                debugged: rd.ShaderVariable = lastState.outputs[output_index]
 
                 debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
 
                 if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]):
-                    raise rdtest.TestFailureException("Debugged value {} doesn't match picked value {}".format(debuggedValue, lastmod.shaderOut.col.floatValue))
+                    raise rdtest.TestFailureException("Debugged value {}: {} doesn't match history shader output {}".format(debugged.name, debuggedValue, lastmod.shaderOut.col.floatValue))
 
                 rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(len(trace.states)))
             else:
