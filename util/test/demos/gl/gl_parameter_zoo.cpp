@@ -98,15 +98,9 @@ void main()
 
     GLuint program = MakeProgram();
 
-    const char *nullstr = NULL;
-    const char *garbagestr = (const char *)0x1234;
     GLint len = (int)strlen(vertex) - 5;
-    GLint zero = 0;
-    (void)len;
 
     GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &nullstr, &zero);
-    glShaderSource(vs, 1, &garbagestr, &zero);
     glShaderSource(vs, 1, &vertex, &len);
     glCompileShader(vs);
 
