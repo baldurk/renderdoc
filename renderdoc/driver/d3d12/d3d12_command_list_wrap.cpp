@@ -1071,11 +1071,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
           for(UINT i = 0; i < NumViews; i++)
           {
             WrappedID3D12Resource1::GetResIDFromAddr(
-                pViews[i].BufferLocation, m_Cmd->m_RenderState.vbuffers[StartSlot + i].buf,
+                pViews ? pViews[i].BufferLocation : 0,
+                m_Cmd->m_RenderState.vbuffers[StartSlot + i].buf,
                 m_Cmd->m_RenderState.vbuffers[StartSlot + i].offs);
 
-            m_Cmd->m_RenderState.vbuffers[StartSlot + i].stride = pViews[i].StrideInBytes;
-            m_Cmd->m_RenderState.vbuffers[StartSlot + i].size = pViews[i].SizeInBytes;
+            m_Cmd->m_RenderState.vbuffers[StartSlot + i].stride =
+                pViews ? pViews[i].StrideInBytes : 0;
+            m_Cmd->m_RenderState.vbuffers[StartSlot + i].size = pViews ? pViews[i].SizeInBytes : 0;
           }
         }
       }
@@ -1092,12 +1094,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
 
       for(UINT i = 0; i < NumViews; i++)
       {
-        WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation,
+        WrappedID3D12Resource1::GetResIDFromAddr(pViews ? pViews[i].BufferLocation : 0,
                                                  state.vbuffers[StartSlot + i].buf,
                                                  state.vbuffers[StartSlot + i].offs);
 
-        state.vbuffers[StartSlot + i].stride = pViews[i].StrideInBytes;
-        state.vbuffers[StartSlot + i].size = pViews[i].SizeInBytes;
+        state.vbuffers[StartSlot + i].stride = pViews ? pViews[i].StrideInBytes : 0;
+        state.vbuffers[StartSlot + i].size = pViews ? pViews[i].SizeInBytes : 0;
       }
     }
   }
@@ -1117,7 +1119,7 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
     Serialise_IASetVertexBuffers(ser, StartSlot, NumViews, pViews);
 
     m_ListRecord->AddChunk(scope.Get());
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; pViews && i < NumViews; i++)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation), eFrameRef_Read);
   }
@@ -1154,12 +1156,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
           {
             D3D12RenderState::StreamOut &so = m_Cmd->m_RenderState.streamouts[StartSlot + i];
 
-            WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation, so.buf, so.offs);
+            WrappedID3D12Resource1::GetResIDFromAddr(pViews ? pViews[i].BufferLocation : 0, so.buf,
+                                                     so.offs);
 
-            WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferFilledSizeLocation,
-                                                     so.countbuf, so.countoffs);
+            WrappedID3D12Resource1::GetResIDFromAddr(
+                pViews ? pViews[i].BufferFilledSizeLocation : 0, so.countbuf, so.countoffs);
 
-            so.size = pViews[i].SizeInBytes;
+            so.size = pViews ? pViews[i].SizeInBytes : 0;
           }
         }
       }
@@ -1178,12 +1181,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
       {
         D3D12RenderState::StreamOut &so = state.streamouts[StartSlot + i];
 
-        WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation, so.buf, so.offs);
+        WrappedID3D12Resource1::GetResIDFromAddr(pViews ? pViews[i].BufferLocation : 0, so.buf,
+                                                 so.offs);
 
-        WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferFilledSizeLocation, so.countbuf,
-                                                 so.countoffs);
+        WrappedID3D12Resource1::GetResIDFromAddr(pViews ? pViews[i].BufferFilledSizeLocation : 0,
+                                                 so.countbuf, so.countoffs);
 
-        so.size = pViews[i].SizeInBytes;
+        so.size = pViews ? pViews[i].SizeInBytes : 0;
       }
     }
   }
@@ -1203,7 +1207,7 @@ void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumView
     Serialise_SOSetTargets(ser, StartSlot, NumViews, pViews);
 
     m_ListRecord->AddChunk(scope.Get());
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; pViews && i < NumViews; i++)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation), eFrameRef_Read);
   }
