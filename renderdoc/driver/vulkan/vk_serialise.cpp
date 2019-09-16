@@ -421,6 +421,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,                      \
                VkPhysicalDeviceShaderDrawParametersFeatures)                                           \
                                                                                                        \
+  /* VK_AMD_device_coherent_memory */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD,                         \
+               VkPhysicalDeviceCoherentMemoryFeaturesAMD)                                              \
+                                                                                                       \
   /* VK_AMD_display_native_hdr */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD,                         \
                VkSwapchainDisplayNativeHdrCreateInfoAMD)                                               \
@@ -864,6 +868,10 @@ SERIALISE_VK_HANDLES();
   /* VK_KHR_shader_float_controls */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR,                        \
                VkPhysicalDeviceFloatControlsPropertiesKHR)                                             \
+                                                                                                       \
+  /* VK_KHR_shader_subgroup_extended_types */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR,          \
+               VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR)                                 \
                                                                                                        \
   /* VK_KHR_shared_presentable_image */                                                                \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,                              \
@@ -6292,6 +6300,22 @@ void Deserialise(const VkPhysicalDeviceLineRasterizationPropertiesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderSubgroupExtendedTypes);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMemoryPriorityFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -7254,11 +7278,28 @@ void Deserialise(const VkConditionalRenderingBeginInfoEXT &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceCoherentMemoryFeaturesAMD &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(deviceCoherentMemory);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceCoherentMemoryFeaturesAMD &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
 // pNext structs - always have deserialise for the next chain
 INSTANTIATE_SERIALISE_TYPE(VkAcquireNextImageInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkApplicationInfo);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentDescription2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentReference2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkAttachmentSampleLocationsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryDeviceGroupInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBindImageMemoryDeviceGroupInfo);
@@ -7378,6 +7419,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceCoherentMemoryFeaturesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthClipEnableFeaturesEXT);
@@ -7391,6 +7433,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalSemaphoreInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFeatures2);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFloatControlsPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
@@ -7424,6 +7467,9 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParametersFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderFloat16Int8FeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageFootprintFeaturesNV);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlFeaturesEXT);
@@ -7501,6 +7547,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSubpassDependency2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescription2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescriptionDepthStencilResolveKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassEndInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkSubpassSampleLocationsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceFormat2KHR);
@@ -7510,6 +7557,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainDisplayNativeHdrCreateInfoAMD);
 INSTANTIATE_SERIALISE_TYPE(VkTextureLODGatherFormatPropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkValidationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFlagsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSet);
 
@@ -7569,6 +7617,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPushConstantRange);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties);
 INSTANTIATE_SERIALISE_TYPE(VkRect2D);
 INSTANTIATE_SERIALISE_TYPE(VkRectLayerKHR);
+INSTANTIATE_SERIALISE_TYPE(VkSampleLocationEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSparseBufferMemoryBindInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSparseImageFormatProperties);
 INSTANTIATE_SERIALISE_TYPE(VkSparseImageMemoryBind);
