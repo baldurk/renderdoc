@@ -1562,14 +1562,18 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
           size_t count = (subend - iter) / sizeof(CodeViewInfo::InlineeSourceLine);
           for(size_t i = 0; i < count; i++, inlinee++)
           {
-            inlines[i].id = inlinee->inlinee;
-            inlines[i].fileOffs = inlinee->fileId;
-            inlines[i].baseLineNum = inlinee->sourceLineNum;
+            for(size_t in = 0; in < inlines.size(); in++)
+            {
+              if(inlinee->inlinee == inlines[in].id)
+              {
+                inlines[in].fileOffs = inlinee->fileId;
+                inlines[in].baseLineNum = inlinee->sourceLineNum;
+              }
+            }
           }
         }
         else if(sourceLineType == CV_INLINEE_SOURCE_LINE_SIGNATURE_EX)
         {
-          size_t idx = 0;
           while(iter < subend)
           {
             CodeViewInfo::InlineeSourceLineEx *inlinee = (CodeViewInfo::InlineeSourceLineEx *)iter;
@@ -1577,10 +1581,14 @@ SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
             iter += sizeof(CodeViewInfo::InlineeSourceLineEx) +
                     sizeof(CV_off32_t) * inlinee->countOfExtraFiles;
 
-            inlines[idx].id = inlinee->inlinee;
-            inlines[idx].fileOffs = inlinee->fileId;
-            inlines[idx].baseLineNum = inlinee->sourceLineNum;
-            idx++;
+            for(size_t in = 0; in < inlines.size(); in++)
+            {
+              if(inlinee->inlinee == inlines[in].id)
+              {
+                inlines[in].fileOffs = inlinee->fileId;
+                inlines[in].baseLineNum = inlinee->sourceLineNum;
+              }
+            }
           }
         }
       }
