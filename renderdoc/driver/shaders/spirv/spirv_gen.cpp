@@ -76,10 +76,10 @@ rdcstr DoStringise(const rdcspv::ImageOperands &el)
     STRINGISE_BITFIELD_CLASS_BIT(ConstOffsets);
     STRINGISE_BITFIELD_CLASS_BIT(Sample);
     STRINGISE_BITFIELD_CLASS_BIT(MinLod);
-    STRINGISE_BITFIELD_CLASS_BIT(MakeTexelAvailableKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(MakeTexelVisibleKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(NonPrivateTexelKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(VolatileTexelKHR);
+    STRINGISE_BITFIELD_CLASS_BIT(MakeTexelAvailable);
+    STRINGISE_BITFIELD_CLASS_BIT(MakeTexelVisible);
+    STRINGISE_BITFIELD_CLASS_BIT(NonPrivateTexel);
+    STRINGISE_BITFIELD_CLASS_BIT(VolatileTexel);
     STRINGISE_BITFIELD_CLASS_BIT(SignExtend);
     STRINGISE_BITFIELD_CLASS_BIT(ZeroExtend);
   }
@@ -166,9 +166,9 @@ rdcstr DoStringise(const rdcspv::MemorySemantics &el)
     STRINGISE_BITFIELD_CLASS_BIT(CrossWorkgroupMemory);
     STRINGISE_BITFIELD_CLASS_BIT(AtomicCounterMemory);
     STRINGISE_BITFIELD_CLASS_BIT(ImageMemory);
-    STRINGISE_BITFIELD_CLASS_BIT(OutputMemoryKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(MakeAvailableKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(MakeVisibleKHR);
+    STRINGISE_BITFIELD_CLASS_BIT(OutputMemory);
+    STRINGISE_BITFIELD_CLASS_BIT(MakeAvailable);
+    STRINGISE_BITFIELD_CLASS_BIT(MakeVisible);
     STRINGISE_BITFIELD_CLASS_BIT(Volatile);
   }
   END_BITFIELD_STRINGISE();
@@ -184,9 +184,9 @@ rdcstr DoStringise(const rdcspv::MemoryAccess &el)
     STRINGISE_BITFIELD_CLASS_BIT(Volatile);
     STRINGISE_BITFIELD_CLASS_BIT(Aligned);
     STRINGISE_BITFIELD_CLASS_BIT(Nontemporal);
-    STRINGISE_BITFIELD_CLASS_BIT(MakePointerAvailableKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(MakePointerVisibleKHR);
-    STRINGISE_BITFIELD_CLASS_BIT(NonPrivatePointerKHR);
+    STRINGISE_BITFIELD_CLASS_BIT(MakePointerAvailable);
+    STRINGISE_BITFIELD_CLASS_BIT(MakePointerVisible);
+    STRINGISE_BITFIELD_CLASS_BIT(NonPrivatePointer);
   }
   END_BITFIELD_STRINGISE();
 }
@@ -250,7 +250,7 @@ rdcstr DoStringise(const rdcspv::AddressingModel &el)
     STRINGISE_ENUM_CLASS(Logical);
     STRINGISE_ENUM_CLASS(Physical32);
     STRINGISE_ENUM_CLASS(Physical64);
-    STRINGISE_ENUM_CLASS(PhysicalStorageBuffer64EXT);
+    STRINGISE_ENUM_CLASS(PhysicalStorageBuffer64);
   }
   END_ENUM_STRINGISE();
 }
@@ -263,7 +263,7 @@ rdcstr DoStringise(const rdcspv::MemoryModel &el)
     STRINGISE_ENUM_CLASS(Simple);
     STRINGISE_ENUM_CLASS(GLSL450);
     STRINGISE_ENUM_CLASS(OpenCL);
-    STRINGISE_ENUM_CLASS(VulkanKHR);
+    STRINGISE_ENUM_CLASS(Vulkan);
   }
   END_ENUM_STRINGISE();
 }
@@ -357,7 +357,7 @@ rdcstr DoStringise(const rdcspv::StorageClass &el)
     STRINGISE_ENUM_CLASS(HitAttributeNV);
     STRINGISE_ENUM_CLASS(IncomingRayPayloadNV);
     STRINGISE_ENUM_CLASS(ShaderRecordBufferNV);
-    STRINGISE_ENUM_CLASS(PhysicalStorageBufferEXT);
+    STRINGISE_ENUM_CLASS(PhysicalStorageBuffer);
   }
   END_ENUM_STRINGISE();
 }
@@ -623,9 +623,9 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(PerViewNV);
     STRINGISE_ENUM_CLASS(PerTaskNV);
     STRINGISE_ENUM_CLASS(PerVertexNV);
-    STRINGISE_ENUM_CLASS(NonUniformEXT);
-    STRINGISE_ENUM_CLASS(RestrictPointerEXT);
-    STRINGISE_ENUM_CLASS(AliasedPointerEXT);
+    STRINGISE_ENUM_CLASS(NonUniform);
+    STRINGISE_ENUM_CLASS(RestrictPointer);
+    STRINGISE_ENUM_CLASS(AliasedPointer);
     STRINGISE_ENUM_CLASS(CounterBuffer);
     STRINGISE_ENUM_CLASS(UserSemantic);
     STRINGISE_ENUM_CLASS(UserTypeGOOGLE);
@@ -747,7 +747,7 @@ rdcstr DoStringise(const rdcspv::Scope &el)
     STRINGISE_ENUM_CLASS(Workgroup);
     STRINGISE_ENUM_CLASS(Subgroup);
     STRINGISE_ENUM_CLASS(Invocation);
-    STRINGISE_ENUM_CLASS(QueueFamilyKHR);
+    STRINGISE_ENUM_CLASS(QueueFamily);
   }
   END_ENUM_STRINGISE();
 }
@@ -852,6 +852,8 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(GroupNonUniformShuffleRelative);
     STRINGISE_ENUM_CLASS(GroupNonUniformClustered);
     STRINGISE_ENUM_CLASS(GroupNonUniformQuad);
+    STRINGISE_ENUM_CLASS(ShaderLayer);
+    STRINGISE_ENUM_CLASS(ShaderViewportIndex);
     STRINGISE_ENUM_CLASS(SubgroupBallotKHR);
     STRINGISE_ENUM_CLASS(DrawParameters);
     STRINGISE_ENUM_CLASS(SubgroupVoteKHR);
@@ -892,22 +894,22 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(ComputeDerivativeGroupQuadsNV);
     STRINGISE_ENUM_CLASS(FragmentDensityEXT);
     STRINGISE_ENUM_CLASS(GroupNonUniformPartitionedNV);
-    STRINGISE_ENUM_CLASS(ShaderNonUniformEXT);
-    STRINGISE_ENUM_CLASS(RuntimeDescriptorArrayEXT);
-    STRINGISE_ENUM_CLASS(InputAttachmentArrayDynamicIndexingEXT);
-    STRINGISE_ENUM_CLASS(UniformTexelBufferArrayDynamicIndexingEXT);
-    STRINGISE_ENUM_CLASS(StorageTexelBufferArrayDynamicIndexingEXT);
-    STRINGISE_ENUM_CLASS(UniformBufferArrayNonUniformIndexingEXT);
-    STRINGISE_ENUM_CLASS(SampledImageArrayNonUniformIndexingEXT);
-    STRINGISE_ENUM_CLASS(StorageBufferArrayNonUniformIndexingEXT);
-    STRINGISE_ENUM_CLASS(StorageImageArrayNonUniformIndexingEXT);
-    STRINGISE_ENUM_CLASS(InputAttachmentArrayNonUniformIndexingEXT);
-    STRINGISE_ENUM_CLASS(UniformTexelBufferArrayNonUniformIndexingEXT);
-    STRINGISE_ENUM_CLASS(StorageTexelBufferArrayNonUniformIndexingEXT);
+    STRINGISE_ENUM_CLASS(ShaderNonUniform);
+    STRINGISE_ENUM_CLASS(RuntimeDescriptorArray);
+    STRINGISE_ENUM_CLASS(InputAttachmentArrayDynamicIndexing);
+    STRINGISE_ENUM_CLASS(UniformTexelBufferArrayDynamicIndexing);
+    STRINGISE_ENUM_CLASS(StorageTexelBufferArrayDynamicIndexing);
+    STRINGISE_ENUM_CLASS(UniformBufferArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(SampledImageArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(StorageBufferArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(StorageImageArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(InputAttachmentArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(UniformTexelBufferArrayNonUniformIndexing);
+    STRINGISE_ENUM_CLASS(StorageTexelBufferArrayNonUniformIndexing);
     STRINGISE_ENUM_CLASS(RayTracingNV);
-    STRINGISE_ENUM_CLASS(VulkanMemoryModelKHR);
-    STRINGISE_ENUM_CLASS(VulkanMemoryModelDeviceScopeKHR);
-    STRINGISE_ENUM_CLASS(PhysicalStorageBufferAddressesEXT);
+    STRINGISE_ENUM_CLASS(VulkanMemoryModel);
+    STRINGISE_ENUM_CLASS(VulkanMemoryModelDeviceScope);
+    STRINGISE_ENUM_CLASS(PhysicalStorageBufferAddresses);
     STRINGISE_ENUM_CLASS(ComputeDerivativeGroupLinearNV);
     STRINGISE_ENUM_CLASS(CooperativeMatrixNV);
     STRINGISE_ENUM_CLASS(FragmentShaderSampleInterlockEXT);
@@ -1515,14 +1517,14 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
     ret += "Sample" "(" + idName(el.sample) + ")" ", ";
   if(el.flags & ImageOperands::MinLod)
     ret += "MinLod" "(" + idName(el.minLod) + ")" ", ";
-  if(el.flags & ImageOperands::MakeTexelAvailableKHR)
-    ret += "MakeTexelAvailableKHR" "(" + idName(el.makeTexelAvailableKHR) + ")" ", ";
-  if(el.flags & ImageOperands::MakeTexelVisibleKHR)
-    ret += "MakeTexelVisibleKHR" "(" + idName(el.makeTexelVisibleKHR) + ")" ", ";
-  if(el.flags & ImageOperands::NonPrivateTexelKHR)
-    ret += "NonPrivateTexelKHR" ", ";
-  if(el.flags & ImageOperands::VolatileTexelKHR)
-    ret += "VolatileTexelKHR" ", ";
+  if(el.flags & ImageOperands::MakeTexelAvailable)
+    ret += "MakeTexelAvailable" "(" + idName(el.makeTexelAvailable) + ")" ", ";
+  if(el.flags & ImageOperands::MakeTexelVisible)
+    ret += "MakeTexelVisible" "(" + idName(el.makeTexelVisible) + ")" ", ";
+  if(el.flags & ImageOperands::NonPrivateTexel)
+    ret += "NonPrivateTexel" ", ";
+  if(el.flags & ImageOperands::VolatileTexel)
+    ret += "VolatileTexel" ", ";
   if(el.flags & ImageOperands::SignExtend)
     ret += "SignExtend" ", ";
   if(el.flags & ImageOperands::ZeroExtend)
@@ -1581,12 +1583,12 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
     ret += "Aligned" "(" + ToStr(el.aligned) + ")" ", ";
   if(el.flags & MemoryAccess::Nontemporal)
     ret += "Nontemporal" ", ";
-  if(el.flags & MemoryAccess::MakePointerAvailableKHR)
-    ret += "MakePointerAvailableKHR" "(" + idName(el.makePointerAvailableKHR) + ")" ", ";
-  if(el.flags & MemoryAccess::MakePointerVisibleKHR)
-    ret += "MakePointerVisibleKHR" "(" + idName(el.makePointerVisibleKHR) + ")" ", ";
-  if(el.flags & MemoryAccess::NonPrivatePointerKHR)
-    ret += "NonPrivatePointerKHR" ", ";
+  if(el.flags & MemoryAccess::MakePointerAvailable)
+    ret += "MakePointerAvailable" "(" + idName(el.makePointerAvailable) + ")" ", ";
+  if(el.flags & MemoryAccess::MakePointerVisible)
+    ret += "MakePointerVisible" "(" + idName(el.makePointerVisible) + ")" ", ";
+  if(el.flags & MemoryAccess::NonPrivatePointer)
+    ret += "NonPrivatePointer" ", ";
 
   // remove trailing ", "
   if(ret.size() > 2)

@@ -220,14 +220,14 @@ inline ImageOperandsAndParamDatas DecodeParam(const ConstIter &it, uint32_t &wor
     ret.minLod = Id::fromWord(it.word(word));
     word += 1;
   }
-  if(ret.flags & ImageOperands::MakeTexelAvailableKHR)
+  if(ret.flags & ImageOperands::MakeTexelAvailable)
   {
-    ret.makeTexelAvailableKHR = Id::fromWord(it.word(word));
+    ret.makeTexelAvailable = Id::fromWord(it.word(word));
     word += 1;
   }
-  if(ret.flags & ImageOperands::MakeTexelVisibleKHR)
+  if(ret.flags & ImageOperands::MakeTexelVisible)
   {
-    ret.makeTexelVisibleKHR = Id::fromWord(it.word(word));
+    ret.makeTexelVisible = Id::fromWord(it.word(word));
     word += 1;
   }
   return ret;
@@ -269,13 +269,13 @@ inline void EncodeParam(std::vector<uint32_t> &words, const ImageOperandsAndPara
   {
     words.push_back(param.minLod.value());
   }
-  if(param.flags & ImageOperands::MakeTexelAvailableKHR)
+  if(param.flags & ImageOperands::MakeTexelAvailable)
   {
-    words.push_back(param.makeTexelAvailableKHR.value());
+    words.push_back(param.makeTexelAvailable.value());
   }
-  if(param.flags & ImageOperands::MakeTexelVisibleKHR)
+  if(param.flags & ImageOperands::MakeTexelVisible)
   {
-    words.push_back(param.makeTexelVisibleKHR.value());
+    words.push_back(param.makeTexelVisible.value());
   }
 }
 
@@ -291,8 +291,8 @@ inline uint16_t ExtraWordCount(const ImageOperands imageOperands)
     case ImageOperands::ConstOffsets: return 1;
     case ImageOperands::Sample: return 1;
     case ImageOperands::MinLod: return 1;
-    case ImageOperands::MakeTexelAvailableKHR: return 1;
-    case ImageOperands::MakeTexelVisibleKHR: return 1;
+    case ImageOperands::MakeTexelAvailable: return 1;
+    case ImageOperands::MakeTexelVisible: return 1;
     default: break;
   }
   return 0;
@@ -394,14 +394,14 @@ inline MemoryAccessAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word
     ret.aligned = (uint32_t)it.word(word);
     word += 1;
   }
-  if(ret.flags & MemoryAccess::MakePointerAvailableKHR)
+  if(ret.flags & MemoryAccess::MakePointerAvailable)
   {
-    ret.makePointerAvailableKHR = Id::fromWord(it.word(word));
+    ret.makePointerAvailable = Id::fromWord(it.word(word));
     word += 1;
   }
-  if(ret.flags & MemoryAccess::MakePointerVisibleKHR)
+  if(ret.flags & MemoryAccess::MakePointerVisible)
   {
-    ret.makePointerVisibleKHR = Id::fromWord(it.word(word));
+    ret.makePointerVisible = Id::fromWord(it.word(word));
     word += 1;
   }
   return ret;
@@ -414,13 +414,13 @@ inline void EncodeParam(std::vector<uint32_t> &words, const MemoryAccessAndParam
   {
     words.push_back((uint32_t)param.aligned);
   }
-  if(param.flags & MemoryAccess::MakePointerAvailableKHR)
+  if(param.flags & MemoryAccess::MakePointerAvailable)
   {
-    words.push_back(param.makePointerAvailableKHR.value());
+    words.push_back(param.makePointerAvailable.value());
   }
-  if(param.flags & MemoryAccess::MakePointerVisibleKHR)
+  if(param.flags & MemoryAccess::MakePointerVisible)
   {
-    words.push_back(param.makePointerVisibleKHR.value());
+    words.push_back(param.makePointerVisible.value());
   }
 }
 
@@ -429,8 +429,8 @@ inline uint16_t ExtraWordCount(const MemoryAccess memoryAccess)
   switch(memoryAccess)
   {
     case MemoryAccess::Aligned: return 1;
-    case MemoryAccess::MakePointerAvailableKHR: return 1;
-    case MemoryAccess::MakePointerVisibleKHR: return 1;
+    case MemoryAccess::MakePointerAvailable: return 1;
+    case MemoryAccess::MakePointerVisible: return 1;
     default: break;
   }
   return 0;

@@ -70,9 +70,9 @@ namespace rdcspv
 {
 static const uint32_t MagicNumber = 0x07230203;
 static const uint32_t VersionMajor = 1;
-static const uint32_t VersionMinor = 4;
+static const uint32_t VersionMinor = 5;
 static const uint32_t VersionRevision = 1;
-static const uint32_t VersionPacked = (1 << 16) | (4 << 8);
+static const uint32_t VersionPacked = (1 << 16) | (5 << 8);
 static const uint32_t OpCodeMask = 0xffff;
 static const uint32_t WordCountShift = 16;
 static const uint32_t FirstRealWord = 5;
@@ -123,9 +123,13 @@ enum class ImageOperands : uint32_t
   ConstOffsets = 0x0020,
   Sample = 0x0040,
   MinLod = 0x0080,
+  MakeTexelAvailable = 0x0100,
   MakeTexelAvailableKHR = 0x0100,
+  MakeTexelVisible = 0x0200,
   MakeTexelVisibleKHR = 0x0200,
+  NonPrivateTexel = 0x0400,
   NonPrivateTexelKHR = 0x0400,
+  VolatileTexel = 0x0800,
   VolatileTexelKHR = 0x0800,
   SignExtend = 0x1000,
   ZeroExtend = 0x2000,
@@ -205,8 +209,11 @@ enum class MemorySemantics : uint32_t
   CrossWorkgroupMemory = 0x0200,
   AtomicCounterMemory = 0x0400,
   ImageMemory = 0x0800,
+  OutputMemory = 0x1000,
   OutputMemoryKHR = 0x1000,
+  MakeAvailable = 0x2000,
   MakeAvailableKHR = 0x2000,
+  MakeVisible = 0x4000,
   MakeVisibleKHR = 0x4000,
   Volatile = 0x8000,
   Max,
@@ -221,8 +228,11 @@ enum class MemoryAccess : uint32_t
   Volatile = 0x0001,
   Aligned = 0x0002,
   Nontemporal = 0x0004,
+  MakePointerAvailable = 0x0008,
   MakePointerAvailableKHR = 0x0008,
+  MakePointerVisible = 0x0010,
   MakePointerVisibleKHR = 0x0010,
+  NonPrivatePointer = 0x0020,
   NonPrivatePointerKHR = 0x0020,
   Max,
   Invalid = ~0U,
@@ -278,6 +288,7 @@ enum class AddressingModel : uint32_t
   Logical = 0,
   Physical32 = 1,
   Physical64 = 2,
+  PhysicalStorageBuffer64 = 5348,
   PhysicalStorageBuffer64EXT = 5348,
   Max,
   Invalid = ~0U,
@@ -288,6 +299,7 @@ enum class MemoryModel : uint32_t
   Simple = 0,
   GLSL450 = 1,
   OpenCL = 2,
+  Vulkan = 3,
   VulkanKHR = 3,
   Max,
   Invalid = ~0U,
@@ -376,6 +388,7 @@ enum class StorageClass : uint32_t
   HitAttributeNV = 5339,
   IncomingRayPayloadNV = 5342,
   ShaderRecordBufferNV = 5343,
+  PhysicalStorageBuffer = 5349,
   PhysicalStorageBufferEXT = 5349,
   Max,
   Invalid = ~0U,
@@ -609,8 +622,11 @@ enum class Decoration : uint32_t
   PerViewNV = 5272,
   PerTaskNV = 5273,
   PerVertexNV = 5285,
+  NonUniform = 5300,
   NonUniformEXT = 5300,
+  RestrictPointer = 5355,
   RestrictPointerEXT = 5355,
+  AliasedPointer = 5356,
   AliasedPointerEXT = 5356,
   CounterBuffer = 5634,
   HlslCounterBufferGOOGLE = 5634,
@@ -736,6 +752,7 @@ enum class Scope : uint32_t
   Workgroup = 2,
   Subgroup = 3,
   Invocation = 4,
+  QueueFamily = 5,
   QueueFamilyKHR = 5,
   Max,
   Invalid = ~0U,
@@ -832,6 +849,8 @@ enum class Capability : uint32_t
   GroupNonUniformShuffleRelative = 66,
   GroupNonUniformClustered = 67,
   GroupNonUniformQuad = 68,
+  ShaderLayer = 69,
+  ShaderViewportIndex = 70,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
   SubgroupVoteKHR = 4431,
@@ -876,21 +895,36 @@ enum class Capability : uint32_t
   FragmentDensityEXT = 5291,
   ShadingRateNV = 5291,
   GroupNonUniformPartitionedNV = 5297,
+  ShaderNonUniform = 5301,
   ShaderNonUniformEXT = 5301,
+  RuntimeDescriptorArray = 5302,
   RuntimeDescriptorArrayEXT = 5302,
+  InputAttachmentArrayDynamicIndexing = 5303,
   InputAttachmentArrayDynamicIndexingEXT = 5303,
+  UniformTexelBufferArrayDynamicIndexing = 5304,
   UniformTexelBufferArrayDynamicIndexingEXT = 5304,
+  StorageTexelBufferArrayDynamicIndexing = 5305,
   StorageTexelBufferArrayDynamicIndexingEXT = 5305,
+  UniformBufferArrayNonUniformIndexing = 5306,
   UniformBufferArrayNonUniformIndexingEXT = 5306,
+  SampledImageArrayNonUniformIndexing = 5307,
   SampledImageArrayNonUniformIndexingEXT = 5307,
+  StorageBufferArrayNonUniformIndexing = 5308,
   StorageBufferArrayNonUniformIndexingEXT = 5308,
+  StorageImageArrayNonUniformIndexing = 5309,
   StorageImageArrayNonUniformIndexingEXT = 5309,
+  InputAttachmentArrayNonUniformIndexing = 5310,
   InputAttachmentArrayNonUniformIndexingEXT = 5310,
+  UniformTexelBufferArrayNonUniformIndexing = 5311,
   UniformTexelBufferArrayNonUniformIndexingEXT = 5311,
+  StorageTexelBufferArrayNonUniformIndexing = 5312,
   StorageTexelBufferArrayNonUniformIndexingEXT = 5312,
   RayTracingNV = 5340,
+  VulkanMemoryModel = 5345,
   VulkanMemoryModelKHR = 5345,
+  VulkanMemoryModelDeviceScope = 5346,
   VulkanMemoryModelDeviceScopeKHR = 5346,
+  PhysicalStorageBufferAddresses = 5347,
   PhysicalStorageBufferAddressesEXT = 5347,
   ComputeDerivativeGroupLinearNV = 5350,
   CooperativeMatrixNV = 5357,
@@ -937,7 +971,9 @@ struct ImageOperandsAndParamDatas
   Id constOffsets;
   Id sample;
   Id minLod;
+  IdScope makeTexelAvailable;
   IdScope makeTexelAvailableKHR;
+  IdScope makeTexelVisible;
   IdScope makeTexelVisibleKHR;
   
   operator ImageOperands() const { return flags; }
@@ -960,12 +996,20 @@ struct ImageOperandsAndParamDatas
   void unsetSample() { flags &= ~ImageOperands::Sample; }
   void setMinLod(Id minLodParam) { flags |= ImageOperands::MinLod; minLod = minLodParam; }
   void unsetMinLod() { flags &= ~ImageOperands::MinLod; }
+  void setMakeTexelAvailable(IdScope makeTexelAvailableParam) { flags |= ImageOperands::MakeTexelAvailable; makeTexelAvailable = makeTexelAvailableParam; }
+  void unsetMakeTexelAvailable() { flags &= ~ImageOperands::MakeTexelAvailable; }
   void setMakeTexelAvailableKHR(IdScope makeTexelAvailableKHRParam) { flags |= ImageOperands::MakeTexelAvailableKHR; makeTexelAvailableKHR = makeTexelAvailableKHRParam; }
   void unsetMakeTexelAvailableKHR() { flags &= ~ImageOperands::MakeTexelAvailableKHR; }
+  void setMakeTexelVisible(IdScope makeTexelVisibleParam) { flags |= ImageOperands::MakeTexelVisible; makeTexelVisible = makeTexelVisibleParam; }
+  void unsetMakeTexelVisible() { flags &= ~ImageOperands::MakeTexelVisible; }
   void setMakeTexelVisibleKHR(IdScope makeTexelVisibleKHRParam) { flags |= ImageOperands::MakeTexelVisibleKHR; makeTexelVisibleKHR = makeTexelVisibleKHRParam; }
   void unsetMakeTexelVisibleKHR() { flags &= ~ImageOperands::MakeTexelVisibleKHR; }
+  void setNonPrivateTexel() { flags |= ImageOperands::NonPrivateTexel; }
+  void unsetNonPrivateTexel() { flags &= ~ImageOperands::NonPrivateTexel; }
   void setNonPrivateTexelKHR() { flags |= ImageOperands::NonPrivateTexelKHR; }
   void unsetNonPrivateTexelKHR() { flags &= ~ImageOperands::NonPrivateTexelKHR; }
+  void setVolatileTexel() { flags |= ImageOperands::VolatileTexel; }
+  void unsetVolatileTexel() { flags &= ~ImageOperands::VolatileTexel; }
   void setVolatileTexelKHR() { flags |= ImageOperands::VolatileTexelKHR; }
   void unsetVolatileTexelKHR() { flags &= ~ImageOperands::VolatileTexelKHR; }
   void setSignExtend() { flags |= ImageOperands::SignExtend; }
@@ -1014,7 +1058,9 @@ struct MemoryAccessAndParamDatas
   MemoryAccessAndParamDatas(MemoryAccess f = MemoryAccess::None) : flags(f) {}
   MemoryAccess flags;
   uint32_t aligned;
+  IdScope makePointerAvailable;
   IdScope makePointerAvailableKHR;
+  IdScope makePointerVisible;
   IdScope makePointerVisibleKHR;
   
   operator MemoryAccess() const { return flags; }
@@ -1027,10 +1073,16 @@ struct MemoryAccessAndParamDatas
   void unsetAligned() { flags &= ~MemoryAccess::Aligned; }
   void setNontemporal() { flags |= MemoryAccess::Nontemporal; }
   void unsetNontemporal() { flags &= ~MemoryAccess::Nontemporal; }
+  void setMakePointerAvailable(IdScope makePointerAvailableParam) { flags |= MemoryAccess::MakePointerAvailable; makePointerAvailable = makePointerAvailableParam; }
+  void unsetMakePointerAvailable() { flags &= ~MemoryAccess::MakePointerAvailable; }
   void setMakePointerAvailableKHR(IdScope makePointerAvailableKHRParam) { flags |= MemoryAccess::MakePointerAvailableKHR; makePointerAvailableKHR = makePointerAvailableKHRParam; }
   void unsetMakePointerAvailableKHR() { flags &= ~MemoryAccess::MakePointerAvailableKHR; }
+  void setMakePointerVisible(IdScope makePointerVisibleParam) { flags |= MemoryAccess::MakePointerVisible; makePointerVisible = makePointerVisibleParam; }
+  void unsetMakePointerVisible() { flags &= ~MemoryAccess::MakePointerVisible; }
   void setMakePointerVisibleKHR(IdScope makePointerVisibleKHRParam) { flags |= MemoryAccess::MakePointerVisibleKHR; makePointerVisibleKHR = makePointerVisibleKHRParam; }
   void unsetMakePointerVisibleKHR() { flags &= ~MemoryAccess::MakePointerVisibleKHR; }
+  void setNonPrivatePointer() { flags |= MemoryAccess::NonPrivatePointer; }
+  void unsetNonPrivatePointer() { flags &= ~MemoryAccess::NonPrivatePointer; }
   void setNonPrivatePointerKHR() { flags |= MemoryAccess::NonPrivatePointerKHR; }
   void unsetNonPrivatePointerKHR() { flags &= ~MemoryAccess::NonPrivatePointerKHR; }
 };
