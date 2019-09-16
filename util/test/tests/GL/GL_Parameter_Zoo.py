@@ -17,13 +17,15 @@ class GL_Parameter_Zoo(rdtest.TestCase):
         data = self.controller.GetTextureData(id, 0, 0)
         first_pixel = struct.unpack_from("BBBB", data, 0)
 
-        val = [int(round(v * 255)) for v in rdtest.linear_to_SRGB([0.4, 0.5, 0.6, 1.0])]
+        val = [255, 0, 255, 255]
         if not rdtest.value_compare(first_pixel, val):
             raise rdtest.TestFailureException("First pixel should be clear color {}, not {}".format(val, first_pixel))
 
         magic_pixel = struct.unpack_from("BBBB", data, (50 * tex_details.width + 320) * 4)
 
-        if not rdtest.value_compare(magic_pixel, [0, 0, 255, 127]):
+        # allow 127 or 128 for alpha
+        val = [0, 0, 255, magic_pixel[3]]
+        if not rdtest.value_compare(magic_pixel, val) or magic_pixel[3] not in [127, 128]:
             raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
 
         rdtest.log.success("Decoded pixels from texture data are correct")
@@ -43,7 +45,8 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         magic_pixel = struct.unpack_from("BBBB", data[-1-50], 320 * 4)
 
-        if not rdtest.value_compare(magic_pixel, [0, 0, 255, 127]):
+        val = [0, 0, 255, magic_pixel[3]]
+        if not rdtest.value_compare(magic_pixel, val) or magic_pixel[3] not in [127, 128]:
             raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
 
         draw = self.find_draw("Draw")

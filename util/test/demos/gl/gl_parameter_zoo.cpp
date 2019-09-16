@@ -155,7 +155,7 @@ void main()
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
       glScissor(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
-      float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
+      float col[] = {1.0f, 0.0f, 1.0f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
 
       glBindVertexArray(vao);
