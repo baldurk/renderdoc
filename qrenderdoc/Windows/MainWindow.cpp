@@ -2701,6 +2701,7 @@ void MainWindow::on_action_Send_Error_Report_triggered()
   json[lit("version")] = lit(FULL_VERSION_STRING);
   json[lit("gitcommit")] = QString::fromLatin1(RENDERDOC_GetCommitHash());
   json[lit("replaycrash")] = 1;
+  json[lit("manual")] = 1;
   json[lit("report")] = (QString)report;
 
   CrashDialog crash(m_Ctx.Config(), json, this);

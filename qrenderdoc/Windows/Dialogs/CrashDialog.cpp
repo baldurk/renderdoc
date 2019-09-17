@@ -49,7 +49,9 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
   m_ReportPath = crashReportJSON[lit("report")].toString();
   m_ReportMetadata = crashReportJSON;
 
-  bool replayCrash = crashReportJSON[lit("replaycrash")].toUInt() != 0;
+  const bool replayCrash = crashReportJSON[lit("replaycrash")].toUInt() != 0;
+  const bool manualReport =
+      crashReportJSON.contains(lit("manual")) && crashReportJSON[lit("manual")].toUInt() != 0;
 
   // remove metadata we don't send directly
   m_ReportMetadata.remove(lit("report"));
@@ -119,9 +121,32 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
     ui->capturePreviewFrame->hide();
   }
 
-  QString text =
-      tr("<p>RenderDoc encountered a serious problem. Please take a moment to look over this "
-         "form and send it off so that RenderDoc can get better!</p>");
+  QString text;
+
+  if(manualReport)
+  {
+    text =
+        tr("<p>Thank you for reporting a problem! Please take a moment to look over this "
+           "form to check what is being sent.</p>");
+  }
+  else if(replayCrash)
+  {
+    text =
+        tr("<p>RenderDoc encountered a serious problem. Please take a moment to look over this "
+           "form to check what has been gathered then send it off so that RenderDoc can get "
+           "better!</p>");
+  }
+  else
+  {
+    text =
+        tr("<p>A crash happened while RenderDoc was injected into your application. It's not "
+           "feasible to tell whether the crash was in your application or in RenderDoc's capturing "
+           "code. The minidump <a href=\"%1\">in the zip</a> might show the problem.</p>"
+           "<p>If you don't think your application crashed on its own please take a moment to "
+           "look over this form to check what has been gathered then send it off so that RenderDoc "
+           "can get better!</p>")
+            .arg(QUrl::fromLocalFile(m_ReportPath).toString());
+  }
 
   if(m_Config.CheckUpdate_UpdateAvailable)
   {
