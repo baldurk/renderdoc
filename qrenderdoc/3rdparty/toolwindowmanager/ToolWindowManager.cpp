@@ -749,6 +749,37 @@ void ToolWindowManager::simplifyLayout()
       // QTimer::singleShot(1000, area, SLOT(deleteLater()));
       area->deleteLater();
     }
+    // search up the stack looking for splitters that have only one child which is a splitter
+    splitter = qobject_cast<QSplitter *>(area->parentWidget());
+    QSplitter *parentSplitter = splitter ? qobject_cast<QSplitter *>(splitter->parentWidget()) : NULL;
+    while(splitter && parentSplitter)
+    {
+      // this splitter has only one child, and its direct parent is a splitter. Move our child
+      // widget
+      // into the parent and delete.
+      if(splitter->count() == 1)
+      {
+        int idx = parentSplitter->indexOf(splitter);
+        if(idx == -1)
+        {
+          qCritical() << "Couldn't find splitter in parent widget";
+          break;
+        }
+
+        QWidget *child = splitter->widget(0);
+
+        parentSplitter->insertWidget(idx, child);
+        child->show();
+
+        splitter->setParent(NULL);
+        splitter->hide();
+        splitter->deleteLater();
+      }
+
+      // move up the stack
+      splitter = parentSplitter;
+      parentSplitter = qobject_cast<QSplitter *>(splitter->parentWidget());
+    }
   }
 }
 
