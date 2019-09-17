@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Separable_Geometry_Shaders, OpenGLGraphicsTest)
+RD_TEST(GL_Separable_Geometry_Shaders, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws using geometry shadess and separable programs created with glCreateShaderProgramv";

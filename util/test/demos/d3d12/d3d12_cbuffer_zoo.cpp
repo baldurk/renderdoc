@@ -24,7 +24,7 @@
 
 #include "d3d12_test.h"
 
-TEST(D3D12_CBuffer_Zoo, D3D12GraphicsTest)
+RD_TEST(D3D12_CBuffer_Zoo, D3D12GraphicsTest)
 {
   static constexpr const char *Description =
       "Tests every kind of constant that can be in a cbuffer to make sure it's decoded "

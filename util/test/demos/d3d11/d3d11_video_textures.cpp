@@ -52,7 +52,7 @@ COM_SMARTPTR(IMFByteStream);
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
-TEST(D3D11_Video_Textures, D3D11GraphicsTest), IMFMediaEngineNotify
+RD_TEST(D3D11_Video_Textures, D3D11GraphicsTest), IMFMediaEngineNotify
 {
   static constexpr const char *Description = "Tests of YUV textures";
 

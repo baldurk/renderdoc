@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Stream_Out, D3D11GraphicsTest)
+RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
 {
   static constexpr const char *Description = "Test using D3D11's streamout feature";
 

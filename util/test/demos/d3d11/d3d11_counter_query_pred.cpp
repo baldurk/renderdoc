@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Counter_Query_Pred, D3D11GraphicsTest)
+RD_TEST(D3D11_Counter_Query_Pred, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Tests use of D3D11 counters, queries and predication. "

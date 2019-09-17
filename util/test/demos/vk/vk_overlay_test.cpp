@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Overlay_Test, VulkanGraphicsTest)
+RD_TEST(VK_Overlay_Test, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";

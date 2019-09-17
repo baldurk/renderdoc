@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Sample_Locations, VulkanGraphicsTest)
+RD_TEST(VK_Sample_Locations, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws two triangles with different sample locations using VK_EXT_sample_locations";

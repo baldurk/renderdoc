@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Spec_Constants, VulkanGraphicsTest)
+RD_TEST(VK_Spec_Constants, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests using the same shader multiple times with specialisation constants";

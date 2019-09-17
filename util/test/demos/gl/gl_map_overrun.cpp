@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Map_Overrun, OpenGLGraphicsTest)
+RD_TEST(GL_Map_Overrun, OpenGLGraphicsTest)
 {
   static constexpr const char *Description = "Test overrunning the bounds of a Map() call";
 

@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Multi_Window, OpenGLGraphicsTest)
+RD_TEST(GL_Multi_Window, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Render to two different windows to test out different contexts and window resolutions.";

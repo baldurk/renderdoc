@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_SPIRV_13_Shaders, VulkanGraphicsTest)
+RD_TEST(VK_SPIRV_13_Shaders, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle using SPIR-V 1.3 shaders to ensure they are handled correctly.";

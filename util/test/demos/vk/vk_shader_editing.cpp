@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Shader_Editing, VulkanGraphicsTest)
+RD_TEST(VK_Shader_Editing, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Ensures that shader editing works with different combinations of shader re-use.";

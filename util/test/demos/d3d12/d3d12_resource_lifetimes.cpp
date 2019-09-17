@@ -24,7 +24,7 @@
 
 #include "d3d12_test.h"
 
-TEST(D3D12_Resource_Lifetimes, D3D12GraphicsTest)
+RD_TEST(D3D12_Resource_Lifetimes, D3D12GraphicsTest)
 {
   static constexpr const char *Description =
       "Test various edge-case resource lifetimes: a resource that is first dirtied within a frame "

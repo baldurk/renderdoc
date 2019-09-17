@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Stripped_Shaders, D3D11GraphicsTest)
+RD_TEST(D3D11_Stripped_Shaders, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Tests shaders with their debug/reflection info stripped out and stored in separate blobs";

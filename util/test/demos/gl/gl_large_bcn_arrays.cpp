@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Large_BCn_Arrays, OpenGLGraphicsTest)
+RD_TEST(GL_Large_BCn_Arrays, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test creating large texture 2D arrays of BC4, BC5, BC6, BC7 textures";

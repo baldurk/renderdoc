@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Divergent_Shader, D3D11GraphicsTest)
+RD_TEST(D3D11_Divergent_Shader, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test running a shader that diverges across a quad and then expects derivatives to "

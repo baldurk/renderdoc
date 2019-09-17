@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Mip_Gen_RT, OpenGLGraphicsTest)
+RD_TEST(GL_Mip_Gen_RT, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests rendering from one mip to another to do a downsample chain";

@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
+RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Generate a case where the initial states for a buffer end up being misaligned with what can "

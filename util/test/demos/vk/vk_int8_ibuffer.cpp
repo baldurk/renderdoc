@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Int8_IBuffer, VulkanGraphicsTest)
+RD_TEST(VK_Int8_IBuffer, VulkanGraphicsTest)
 {
   static constexpr const char *Description = "Draws a triangle strip with 8-bit width indices";
 

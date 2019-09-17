@@ -24,7 +24,7 @@
 
 #include "d3d12_test.h"
 
-TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
+RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "

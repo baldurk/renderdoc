@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Runtime_Bind_Prog_To_Pipe, OpenGLGraphicsTest)
+RD_TEST(GL_Runtime_Bind_Prog_To_Pipe, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Creates a single program pipeline and binds different programs to it mid-frame";

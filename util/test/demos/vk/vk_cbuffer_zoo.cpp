@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_CBuffer_Zoo, VulkanGraphicsTest)
+RD_TEST(VK_CBuffer_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests every kind of constant that can be in a cbuffer to make sure it's decoded correctly.";

@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Draw_Zoo, VulkanGraphicsTest)
+RD_TEST(VK_Draw_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws several variants using different vertex/index offsets.";

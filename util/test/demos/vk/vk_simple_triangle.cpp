@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Simple_Triangle, VulkanGraphicsTest)
+RD_TEST(VK_Simple_Triangle, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "

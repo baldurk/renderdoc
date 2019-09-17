@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Midframe_Context_Create, OpenGLGraphicsTest)
+RD_TEST(GL_Midframe_Context_Create, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Creates a context and activates it in the middle of rendering.";

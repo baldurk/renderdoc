@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_CBuffer_Zoo, OpenGLGraphicsTest)
+RD_TEST(GL_CBuffer_Zoo, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests every kind of constant that can be in a cbuffer to make sure it's decoded "

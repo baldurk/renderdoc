@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Midframe_Create, D3D11GraphicsTest)
+RD_TEST(D3D11_Midframe_Create, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Tests creating resources mid-frame to make sure that they and their contents are "

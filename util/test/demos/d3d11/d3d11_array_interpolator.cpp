@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Array_Interpolator, D3D11GraphicsTest)
+RD_TEST(D3D11_Array_Interpolator, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test passing an array of float2 to make sure the interpolator packing is handled by "

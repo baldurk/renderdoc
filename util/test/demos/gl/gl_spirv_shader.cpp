@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_SPIRV_Shader, OpenGLGraphicsTest)
+RD_TEST(GL_SPIRV_Shader, OpenGLGraphicsTest)
 {
   static constexpr const char *Description = "Draws using a SPIR-V shader pipeline.";
 

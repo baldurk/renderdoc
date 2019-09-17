@@ -25,7 +25,7 @@
 #include <thread>
 #include "vk_test.h"
 
-TEST(VK_Multi_Thread_Windows, VulkanGraphicsTest)
+RD_TEST(VK_Multi_Thread_Windows, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws to as many windows as it can in parallel (one queue/thread per window).";

@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Vertex_Attr_Zoo, D3D11GraphicsTest)
+RD_TEST(D3D11_Vertex_Attr_Zoo, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle but using different kinds of vertex attributes, including doubles, arrays, "

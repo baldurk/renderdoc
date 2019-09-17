@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Vertex_Attr_Zoo, VulkanGraphicsTest)
+RD_TEST(VK_Vertex_Attr_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle but using different kinds of vertex attributes, including doubles, arrays, "

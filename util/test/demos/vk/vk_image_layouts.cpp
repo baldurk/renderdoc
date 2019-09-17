@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Image_Layouts, VulkanGraphicsTest)
+RD_TEST(VK_Image_Layouts, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests edge-cases of image layout transitions, such as images being in UNDEFINED, "

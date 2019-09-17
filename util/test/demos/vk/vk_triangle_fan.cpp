@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Triangle_Fan, VulkanGraphicsTest)
+RD_TEST(VK_Triangle_Fan, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle fan with primitive restart to test different edge cases.";

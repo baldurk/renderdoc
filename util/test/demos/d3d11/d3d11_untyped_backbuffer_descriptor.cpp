@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Untyped_Backbuffer_Descriptor, D3D11GraphicsTest)
+RD_TEST(D3D11_Untyped_Backbuffer_Descriptor, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "

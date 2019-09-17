@@ -24,7 +24,7 @@
 
 #include "d3d12_test.h"
 
-TEST(D3D12_Untyped_Backbuffer_Descriptor, D3D12GraphicsTest)
+RD_TEST(D3D12_Untyped_Backbuffer_Descriptor, D3D12GraphicsTest)
 {
   static constexpr const char *Description =
       "D3D12 inherits D3D11's ability to have a mutable format on a non-typeless backbuffer "

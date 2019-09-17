@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Refcount_Check, D3D11GraphicsTest)
+RD_TEST(D3D11_Refcount_Check, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Ensures that the device etc doesn't delete itself when there are still outstanding "

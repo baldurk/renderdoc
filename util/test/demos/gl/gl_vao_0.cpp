@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_VAO_0, OpenGLGraphicsTest)
+RD_TEST(GL_VAO_0, OpenGLGraphicsTest)
 {
   static constexpr const char *Description = "Uses VAO 0 (i.e. never binds a VAO)";
 

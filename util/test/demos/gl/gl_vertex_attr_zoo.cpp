@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Vertex_Attr_Zoo, OpenGLGraphicsTest)
+RD_TEST(GL_Vertex_Attr_Zoo, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws a triangle but using different kinds of vertex attributes, including doubles, arrays, "

@@ -31,7 +31,7 @@ extern "C" __declspec(dllexport) GLenum APIENTRY InternalFunction()
 }
 #endif
 
-TEST(GL_Parameter_Zoo, OpenGLGraphicsTest)
+RD_TEST(GL_Parameter_Zoo, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "General tests of parameters known to cause problems - e.g. optional values that should be "

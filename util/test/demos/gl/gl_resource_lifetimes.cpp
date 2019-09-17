@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Resource_Lifetimes, OpenGLGraphicsTest)
+RD_TEST(GL_Resource_Lifetimes, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test various edge-case resource lifetimes: a resource that is first dirtied within a frame "

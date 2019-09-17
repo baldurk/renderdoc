@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_DepthStencil_FBO, OpenGLGraphicsTest)
+RD_TEST(GL_DepthStencil_FBO, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Creates a depth-stencil FBO and writes both depth and stencil to it";

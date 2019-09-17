@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Unsized_MS_FBO_Attachment, OpenGLGraphicsTest)
+RD_TEST(GL_Unsized_MS_FBO_Attachment, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Creates a MS FBO with one attachment created with an unsized internal format";

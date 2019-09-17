@@ -24,7 +24,7 @@
 
 #include "d3d12_test.h"
 
-TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
+RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
 {
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";

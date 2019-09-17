@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Line_Raster, VulkanGraphicsTest)
+RD_TEST(VK_Line_Raster, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Test using VK_EXT_line_rasterization to do funky rasterization of lines";

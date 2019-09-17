@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Indirect, VulkanGraphicsTest)
+RD_TEST(VK_Indirect, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Tests different indirect drawing and dispatching functions, including parameters that are "

@@ -29,7 +29,7 @@
 
 #include "3rdparty/glad/glad_wgl.h"
 
-TEST(GL_DX_Interop, OpenGLGraphicsTest)
+RD_TEST(GL_DX_Interop, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test interop between GL and DX (Create and render to a DX surface and include into "

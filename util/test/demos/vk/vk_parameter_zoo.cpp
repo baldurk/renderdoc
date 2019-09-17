@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Parameter_Zoo, VulkanGraphicsTest)
+RD_TEST(VK_Parameter_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "General tests of parameters known to cause problems - e.g. optional values that should be "

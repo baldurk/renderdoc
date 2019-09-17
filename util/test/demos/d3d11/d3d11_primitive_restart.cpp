@@ -24,7 +24,7 @@
 
 #include "d3d11_test.h"
 
-TEST(D3D11_Primitive_Restart, D3D11GraphicsTest)
+RD_TEST(D3D11_Primitive_Restart, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
       "Test of primitive restart in triangle strips with -1 index";

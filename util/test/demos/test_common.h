@@ -228,7 +228,7 @@ struct TestMetadata
 
 void RegisterTest(TestMetadata test);
 
-#define TEST(Test, Parent)                \
+#define RD_TEST(Test, Parent)             \
   struct Test;                            \
   typedef Test CurrentTest;               \
   namespace                               \

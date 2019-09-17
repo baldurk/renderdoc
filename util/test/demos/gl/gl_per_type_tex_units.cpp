@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Per_Type_Tex_Units, OpenGLGraphicsTest)
+RD_TEST(GL_Per_Type_Tex_Units, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "GL lets each type (2D, 3D, Cube) have a different binding to the same texture unit. This "

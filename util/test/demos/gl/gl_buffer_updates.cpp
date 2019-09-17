@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Buffer_Updates, OpenGLGraphicsTest)
+RD_TEST(GL_Buffer_Updates, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Test of buffer updates, both buffers that are updated regularly and get marked as "

@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Shader_Editing, OpenGLGraphicsTest)
+RD_TEST(GL_Shader_Editing, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Ensures that shader editing works with different combinations of shader re-use and handles "

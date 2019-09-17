@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-TEST(GL_Simple_Triangle, OpenGLGraphicsTest)
+RD_TEST(GL_Simple_Triangle, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Just draws a simple triangle, using normal pipeline. Basic test that can be used "

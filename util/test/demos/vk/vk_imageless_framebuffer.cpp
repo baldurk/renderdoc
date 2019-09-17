@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-TEST(VK_Imageless_Framebuffer, VulkanGraphicsTest)
+RD_TEST(VK_Imageless_Framebuffer, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
       "Test using VK_KHR_imageless_framebuffer to specify image views at the last second";
