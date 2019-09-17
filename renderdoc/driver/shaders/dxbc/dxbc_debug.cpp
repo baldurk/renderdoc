@@ -3009,7 +3009,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
         }
 
-        elemIdx = srcOpers[0].value.u.x;
+        // the index is supposed to be a multiple of 4 but the behaviour seems to be to round down
+        elemIdx = (srcOpers[0].value.u.x & ~0x3);
         stride = 1;
       }
 
@@ -3101,12 +3102,15 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           ShaderVariable fetch = TypedUAVLoad(fmt, data);
 
-          // if we are assigning into a scalar, SetDst expects the result to be in .x (as normally
-          // we are assigning FROM a scalar also).
-          // to match this expectation, propogate the component across.
-          if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff &&
-             op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
-            fetch.value.uv[0] = fetch.value.uv[op.operands[0].comps[0]];
+          if(op.operation != OPCODE_LD_RAW)
+          {
+            // if we are assigning into a scalar, SetDst expects the result to be in .x (as normally
+            // we are assigning FROM a scalar also).
+            // to match this expectation, propogate the component across.
+            if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff &&
+               op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
+              fetch.value.uv[0] = fetch.value.uv[op.operands[0].comps[0]];
+          }
 
           s.SetDst(op.operands[0], op, fetch);
         }

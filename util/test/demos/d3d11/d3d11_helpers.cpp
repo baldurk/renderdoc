@@ -760,8 +760,9 @@ D3D11ViewCreator::operator ID3D11ShaderResourceViewPtr()
 
     UINT elementStride = bufdesc.StructureByteStride;
 
-    if(bufdesc.StructureByteStride == 0 && desc.srv.Format == DXGI_FORMAT_UNKNOWN)
-      TEST_FATAL("Can't create SRV on non-structured buffer with no format");
+    if(bufdesc.StructureByteStride == 0 && desc.srv.Format == DXGI_FORMAT_UNKNOWN &&
+       (bufdesc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS) == 0)
+      TEST_FATAL("Can't create SRV on non-structured non-view buffer with no format");
 
     if(desc.srv.Format != DXGI_FORMAT_UNKNOWN)
       elementStride = formatStrides[desc.srv.Format];

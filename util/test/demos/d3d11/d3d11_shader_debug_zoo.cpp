@@ -82,6 +82,8 @@ v2f main(consts IN, uint tri : SV_InstanceID)
   std::string pixel = R"EOSHADER(
 
 Buffer<float> test : register(t0);
+ByteAddressBuffer byterotest : register(t1);
+RWByteAddressBuffer byterwtest : register(u1);
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -201,12 +203,32 @@ float4 main(v2f IN) : SV_Target0
   if(IN.tri == 34)
     return float4(tiny * 1.5e-8f, tiny * 1.5e-9f, asfloat(intval) == 0.0f ? 1.0f : 0.0f, 1.0f);
 
+  // test reading/writing byte address data
+  if(IN.tri == 35)
+  {
+    return float4(asfloat(byterotest.Load(0).x), asfloat(byterotest.Load(1).x),
+                  asfloat(byterotest.Load(3).x), float(byterotest.Load(8).x));
+  }
+
+  if(IN.tri == 36)
+  {
+    byterwtest.Store(0, asuint(5.4321f));
+    byterwtest.Store(4, asuint(9.8765f));
+    byterwtest.Store(8, 0xbeef);
+
+    // use this to ensure the compiler doesn't know we're loading from the same locations
+    uint zero = intval - IN.tri - 7;
+
+    return float4(asfloat(byterwtest.Load(zero+0).x), asfloat(byterwtest.Load(zero+1).x),
+                  asfloat(byterwtest.Load(zero+3).x), float(byterwtest.Load(zero+8).x));
+  }
+
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
 
 )EOSHADER";
 
-  static const uint32_t numTests = 35;
+  static const uint32_t numTests = 37;
 
   int main()
   {
@@ -257,15 +279,30 @@ float4 main(v2f IN) : SV_Target0
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(triangle);
 
+    union
+    {
+      float f;
+      uint32_t u;
+    } pun;
+
+    pun.u = 0xdead;
+
     float testdata[] = {
-        1.0f,  2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f,  10.0f,
-        11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 120.0f,
+        1.2345f, 2.345678f, pun.f, 4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f,  10.0f,
+        11.0f,   12.0f,     13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 120.0f,
     };
 
     ID3D11BufferPtr srvBuf = MakeBuffer().SRV().Data(testdata);
     ID3D11ShaderResourceViewPtr srv = MakeSRV(srvBuf).Format(DXGI_FORMAT_R32_FLOAT);
 
+    ID3D11BufferPtr rawBuf = MakeBuffer().SRV().ByteAddressed().Data(testdata);
+    ID3D11ShaderResourceViewPtr rawsrv = MakeSRV(rawBuf).Format(DXGI_FORMAT_R32_TYPELESS);
+
+    ID3D11BufferPtr rawBuf2 = MakeBuffer().UAV().ByteAddressed().Size(1024);
+    ID3D11UnorderedAccessViewPtr rawuav = MakeUAV(rawBuf2).Format(DXGI_FORMAT_R32_TYPELESS);
+
     ctx->PSSetShaderResources(0, 1, &srv.GetInterfacePtr());
+    ctx->PSSetShaderResources(1, 1, &rawsrv.GetInterfacePtr());
 
     while(Running())
     {
@@ -281,7 +318,10 @@ float4 main(v2f IN) : SV_Target0
 
       RSSetViewport({0.0f, 0.0f, (float)texDim, 4.0f, 0.0f, 1.0f});
 
-      ctx->OMSetRenderTargets(1, &fltRT.GetInterfacePtr(), NULL);
+      UINT zero[4] = {};
+      ctx->ClearUnorderedAccessViewUint(rawuav, zero);
+      ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 1,
+                                                     &rawuav.GetInterfacePtr(), NULL);
 
       ctx->DrawInstanced(3, numTests, 0, 0);
 
