@@ -139,21 +139,60 @@ void main()
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
-    VkPipeline pipe;
+    VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    // invalid handle - should not be used because the flag for derived pipelines is not used
-    pipeCreateInfo.basePipelineHandle = (VkPipeline)0x1234;
+    {
+      // invalid handle - should not be used because the flag for derived pipelines is not used
+      pipeCreateInfo.basePipelineHandle = (VkPipeline)0x1234;
 
-    CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipeCreateInfo, NULL, &pipe));
-    vkDestroyPipeline(device, pipe, NULL);
+      VkPipeline dummy;
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipeCreateInfo, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
 
-    pipeCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipeCreateInfo.basePipelineIndex = 3;
+      // invalid index - again should not be used
+      pipeCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+      pipeCreateInfo.basePipelineIndex = 3;
 
-    CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipeCreateInfo, NULL, &pipe));
-    vkDestroyPipeline(device, pipe, NULL);
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipeCreateInfo, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
 
-    pipe = createGraphicsPipeline(pipeCreateInfo);
+      pipeCreateInfo.basePipelineIndex = -1;
+
+      // bake the pipeline info so we can mess with the pointers it normally doesn't handle
+      VkGraphicsPipelineCreateInfo *baked =
+          (VkGraphicsPipelineCreateInfo *)(const VkGraphicsPipelineCreateInfo *)pipeCreateInfo;
+
+      // NULL should be fine, we have no tessellation shaders
+      baked->pTessellationState = NULL;
+
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, baked, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
+
+      // same with a garbage pointer
+      baked->pTessellationState = (VkPipelineTessellationStateCreateInfo *)0x1234;
+
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, baked, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
+
+      // if we disable rasterization, tons of things can be NULL/garbage
+      pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
+
+      baked->pViewportState = NULL;
+      baked->pMultisampleState = NULL;
+      baked->pDepthStencilState = NULL;
+      baked->pColorBlendState = NULL;
+
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, baked, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
+
+      baked->pViewportState = (VkPipelineViewportStateCreateInfo *)0x1234;
+      baked->pMultisampleState = (VkPipelineMultisampleStateCreateInfo *)0x1234;
+      baked->pDepthStencilState = (VkPipelineDepthStencilStateCreateInfo *)0x1234;
+      baked->pColorBlendState = (VkPipelineColorBlendStateCreateInfo *)0x1234;
+
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, baked, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
+    }
 
     AllocatedBuffer vb(
         allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |

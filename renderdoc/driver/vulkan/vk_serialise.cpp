@@ -2660,24 +2660,75 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   SERIALISE_MEMBER(stageCount);
   SERIALISE_MEMBER_ARRAY(pStages, stageCount);
 
+  bool hasTess = false;
+  for(uint32_t i = 0; i < el.stageCount; i++)
+    hasTess |= (el.pStages[i].stage & (VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT |
+                                       VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)) != 0;
+
   SERIALISE_MEMBER_OPT(pVertexInputState);
   SERIALISE_MEMBER_OPT(pInputAssemblyState);
-  SERIALISE_MEMBER_OPT(pTessellationState);
-  SERIALISE_MEMBER_OPT(pViewportState);
+
+  // if we don't have tessellation shaders, pTessellationState is ignored and may be garbage
+  if(hasTess)
+  {
+    SERIALISE_MEMBER_OPT(pTessellationState);
+  }
+  else
+  {
+    SERIALISE_MEMBER_OPT_EMPTY(pTessellationState);
+  }
+
+  // this gets messy. We need to ignore pViewportState, pMultisampleState, pDepthStencilState, and
+  // pColorBlendState if rasterization is disabled. Unfortunately... pViewportState is BEFORE the
+  // pRasterization state so we can't check it on read.
+  // Instead we rely on the fact that while writing we can check it and serialise an explicit NULL
+  // indicating that it's not present. Then on read we can just read it as if it's either NULL or
+  // present.
+
+  // this bool just means "we can use SERIALISE_MEMBER_OPT" - i.e. the struct is present, or NULL.
+  const bool hasValidRasterization =
+      ser.IsReading() || (ser.IsWriting() && el.pRasterizationState &&
+                          el.pRasterizationState->rasterizerDiscardEnable == VK_FALSE);
+
+  if(hasValidRasterization)
+  {
+    SERIALISE_MEMBER_OPT(pViewportState);
+  }
+  else
+  {
+    SERIALISE_MEMBER_OPT_EMPTY(pViewportState);
+  }
+
   SERIALISE_MEMBER_OPT(pRasterizationState);
-  SERIALISE_MEMBER_OPT(pMultisampleState);
-  SERIALISE_MEMBER_OPT(pDepthStencilState);
-  SERIALISE_MEMBER_OPT(pColorBlendState);
+
+  if(hasValidRasterization)
+  {
+    SERIALISE_MEMBER_OPT(pMultisampleState);
+    SERIALISE_MEMBER_OPT(pDepthStencilState);
+    SERIALISE_MEMBER_OPT(pColorBlendState);
+  }
+  else
+  {
+    SERIALISE_MEMBER_OPT_EMPTY(pMultisampleState);
+    SERIALISE_MEMBER_OPT_EMPTY(pDepthStencilState);
+    SERIALISE_MEMBER_OPT_EMPTY(pColorBlendState);
+  }
+
   SERIALISE_MEMBER_OPT(pDynamicState);
 
   SERIALISE_MEMBER(layout);
   SERIALISE_MEMBER(renderPass);
   SERIALISE_MEMBER(subpass);
 
+  // handle must be explicitly ignored if the flag isn't set, since it could be garbage
   if(el.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+  {
     SERIALISE_MEMBER(basePipelineHandle);
+  }
   else
+  {
     SERIALISE_MEMBER_EMPTY(basePipelineHandle);
+  }
 
   SERIALISE_MEMBER(basePipelineIndex);
 }
