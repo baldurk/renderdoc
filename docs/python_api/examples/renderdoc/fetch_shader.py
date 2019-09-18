@@ -71,7 +71,7 @@ def loadCapture(filename):
 		raise RuntimeError("Capture cannot be replayed")
 
 	# Initialise the replay
-	status,controller = cap.OpenCapture(None)
+	status,controller = cap.OpenCapture(rd.ReplayOptions(), None)
 
 	if status != rd.ReplayStatus.Succeeded:
 		raise RuntimeError("Couldn't initialise replay: " + str(status))

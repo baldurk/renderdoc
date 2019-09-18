@@ -79,7 +79,7 @@ This function call will open the capture and begin to replay it, and initialise 
 .. code:: python
 
     # Initialise the replay
-    status,controller = cap.OpenCapture(None)
+    status,controller = cap.OpenCapture(rd.ReplayOptions(), None)
 
     if status != rd.ReplayStatus.Succeeded:
         raise RuntimeError("Couldn't initialise replay: " + str(status))

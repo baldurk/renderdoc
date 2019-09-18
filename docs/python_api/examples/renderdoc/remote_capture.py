@@ -169,7 +169,7 @@ print(f"Got new capture at {cap_path} which is frame {msg.newCapture.frameNumber
 #
 # The path must be remote - if the capture isn't freshly created then you need
 # to copy it with remote.CopyCaptureToRemote()
-status,controller = remote.OpenCapture(rd.RemoteServer.NoPreference, cap_path, None)
+status,controller = remote.OpenCapture(rd.RemoteServer.NoPreference, cap_path, rd.ReplayOptions(), None)
 
 if status != rd.ReplayStatus.Succeeded:
     remote.ShutdownServerAndConnection()
