@@ -68,7 +68,7 @@ public:
         return stride;
 
       if(byteWidth == 10 || byteWidth == 11)
-        return 32;    // 10 10 10 2 or 11 11 10
+        return 4;    // 10 10 10 2 or 11 11 10
 
       return byteWidth * numComps;
     }
