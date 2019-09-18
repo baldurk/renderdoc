@@ -119,9 +119,19 @@ void CaptureDialog::PopulateMostRecent()
       fullName |= (exe.indexOf(QLatin1Char('\\')) < 0 && exe.count(QLatin1Char('/')) == 1);
 
       if(fullName)
+      {
         ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(exe));
+      }
       else
-        ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(QFileInfo(exe).fileName()));
+      {
+        int offs = exe.lastIndexOf(QLatin1Char('\\'));
+        if(offs > 0)
+          exe.remove(0, offs + 1);
+        offs = exe.lastIndexOf(QLatin1Char('/'));
+        if(offs > 0)
+          exe.remove(0, offs + 1);
+        ui->loadLastCapture->setText(tr("Load Last Settings - %1").arg(exe));
+      }
       return;
     }
   }
