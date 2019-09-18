@@ -66,8 +66,8 @@ void OpenGLGraphicsTest::Shutdown()
   for(GLuint p : managedResources.progs)
     glDeleteProgram(p);
 
-  delete mainWindow;
   DestroyContext(mainContext);
+  delete mainWindow;
 }
 
 GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc, std::string geomSrc)
