@@ -167,7 +167,13 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
     {
       int err = errno;
 
-      if(err == EWOULDBLOCK || err == EAGAIN || err == EINTR)
+      if(err == EINTR)
+      {
+        // if we hit EINTR, just try again completely. Technically this restarts the timeout but we
+        // expect EINTR to be rare so it's not a big deal.
+        continue;
+      }
+      else if(err == EWOULDBLOCK || err == EAGAIN)
       {
         RDCWARN("Timeout in send");
         Shutdown();
@@ -293,7 +299,13 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
     {
       int err = errno;
 
-      if(err == EWOULDBLOCK || err == EAGAIN || err == EINTR)
+      if(err == EINTR)
+      {
+        // if we hit EINTR, just try again completely. Technically this restarts the timeout but we
+        // expect EINTR to be rare so it's not a big deal.
+        continue;
+      }
+      else if(err == EWOULDBLOCK || err == EAGAIN)
       {
         RDCWARN("Timeout in recv");
         Shutdown();
