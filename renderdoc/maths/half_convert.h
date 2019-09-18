@@ -125,8 +125,13 @@ inline float ConvertFromHalf(uint16_t comp)
     {
       int i;
       float f;
-    } nan;
-    nan.i = 0x7F800001;
-    return nan.f;
+    } ret;
+
+    if(mantissa == 0)
+      ret.i = (sign ? 0x80000000 : 0) | 0x7F800000;
+    else
+      ret.i = 0x7F800001;
+
+    return ret.f;
   }
 }

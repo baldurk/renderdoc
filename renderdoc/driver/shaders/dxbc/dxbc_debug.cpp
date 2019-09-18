@@ -473,8 +473,7 @@ void TypedUAVStore(GlobalState::ViewFmt &fmt, byte *d, ShaderVariable var)
   }
   else if(fmt.byteWidth == 11)
   {
-    uint32_t u = 0;
-    RDCERR("Unimplemented: storing to R11G11B10 format");
+    uint32_t u = ConvertToR11G11B10(Vec3f(var.value.f.x, var.value.f.y, var.value.f.z));
     memcpy(d, &u, sizeof(uint32_t));
   }
   else if(fmt.byteWidth == 4)

@@ -866,6 +866,7 @@
     <ClCompile Include="core\bit_flag_iterator_tests.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="maths\formatpacking.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">
