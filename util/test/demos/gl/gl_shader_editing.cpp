@@ -90,8 +90,9 @@ uniform vec4 zcol;
 
 void main()
 {
+  Color = vec4(0);
 #if 1
-  Color = acol + bcol + ccol;
+  Color += acol + bcol + ccol;
 #endif
 	Color += zcol.rgba;
 }
