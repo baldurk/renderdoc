@@ -171,7 +171,7 @@ struct S16
     // size = 27, align = 2
 };
 
-layout(column_major, scalar) uniform B1
+layout(column_major, scalar, binding = 0) uniform B1
 {
     float      a;     // offset = 0
     vec2       b;     // offset = 4
