@@ -92,6 +92,17 @@ void main()
 {
   Color = vec4(0, 1.0f, 0, 1);
 
+  // ensure all values are used
+  Color.g += abs(InSNorm.x);
+  Color.g += InUNorm.x;
+  Color.g += float(InUInt.x);
+  Color.g += float(InDouble.x);
+  Color.g += float(InArray[0].x);
+  Color.g += float(InArray[1].x);
+  Color.g += float(InArray[2].x);
+  Color.g += float(InMatrix[0][0]);
+  Color.g += float(InMatrix[1][1]);
+
   // check values came through correctly
 
   // SNorm should be in [-1, 1]
