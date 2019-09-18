@@ -1216,11 +1216,20 @@ or formats that don't have equal byte-multiple sizes for each channel.
 
   Commonly used on mobile or embedded platforms.
 
+  Note that the mode added in ``EAC`` with 1 byte per pixel and full 8-bit alpha is
+  grouped as ``EAC``, with a component count of 4. See :data:`EAC`.
+
 .. data:: EAC
 
-  A block-compressed texture in ``EAC`` format (Single channel 11-bit or RGBA, 0.5 bytes per pixel)
+  A block-compressed texture in ``EAC`` format, expanded from ``ETC2``.
 
   Commonly used on mobile or embedded platforms.
+
+  The single and dual channel formats encode 11-bit data with 0.5 bytes per channel (so
+  the single channel format is 0.5 bytes per pixel total, and the dual channel format is 1 byte per
+  pixel total). The four channel format is encoded similarly to ETC2 for the base RGB data and
+  similarly to the single channel format for the alpha, giving 1 byte per pixel total.
+  See :data:`ETC2`.
 
 .. data:: ASTC
 

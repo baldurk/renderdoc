@@ -1102,6 +1102,10 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_EAC_R11_SNORM_BLOCK:
       return (typeHint == CompType::SNorm) ? VK_FORMAT_EAC_R11_SNORM_BLOCK
                                            : VK_FORMAT_EAC_R11_UNORM_BLOCK;
+    case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
+    case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
+      return (typeHint == CompType::SNorm) ? VK_FORMAT_EAC_R11G11_SNORM_BLOCK
+                                           : VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
     case VK_FORMAT_BC2_UNORM_BLOCK:
     case VK_FORMAT_BC2_SRGB_BLOCK:
       return (typeHint == CompType::UNormSRGB) ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
@@ -1118,10 +1122,6 @@ VkFormat GetViewCastedFormat(VkFormat f, CompType typeHint)
     case VK_FORMAT_BC7_UNORM_BLOCK:
     case VK_FORMAT_BC7_SRGB_BLOCK:
       return (typeHint == CompType::UNormSRGB) ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
-    case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
-    case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
-      return (typeHint == CompType::SNorm) ? VK_FORMAT_EAC_R11G11_SNORM_BLOCK
-                                           : VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
     case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
     case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
       return (typeHint == CompType::UNormSRGB) ? VK_FORMAT_ASTC_4x4_SRGB_BLOCK
@@ -1711,9 +1711,9 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
     case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
     case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
-    case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+    case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK: ret.type = ResourceFormatType::ETC2; break;
     case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
-    case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: ret.type = ResourceFormatType::ETC2; break;
+    case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
     case VK_FORMAT_EAC_R11_UNORM_BLOCK:
     case VK_FORMAT_EAC_R11_SNORM_BLOCK:
     case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
@@ -2444,8 +2444,8 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
           ret = fmt.SRGBCorrected() ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK
                                     : VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
         else
-          ret = fmt.SRGBCorrected() ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK
-                                    : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+          ret = fmt.SRGBCorrected() ? VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK
+                                    : VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
         break;
       }
       case ResourceFormatType::EAC:
@@ -2456,6 +2456,9 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         else if(fmt.compCount == 2)
           ret = fmt.compType == CompType::SNorm ? VK_FORMAT_EAC_R11G11_SNORM_BLOCK
                                                 : VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+        else
+          ret = fmt.SRGBCorrected() ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK
+                                    : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
         break;
       }
       case ResourceFormatType::R10G10B10A2:
@@ -3898,14 +3901,6 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
       else if(f == VK_FORMAT_X8_D24_UNORM_PACK32)
       {
         CHECK(reconstructed == VK_FORMAT_D24_UNORM_S8_UINT);
-      }
-      else if(f == VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK)
-      {
-        CHECK(reconstructed == VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK);
-      }
-      else if(f == VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK)
-      {
-        CHECK(reconstructed == VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK);
       }
       else
       {
