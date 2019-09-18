@@ -49,7 +49,6 @@ public:
 
   int getWidth() const { return width; }
   int getHeight() const { return height; }
-  std::array<int, 2> getSize() const { return {width, height}; }
   int getChannels() const { return channels; }
 
   const float *getData() const { return data.data(); }

@@ -41,7 +41,6 @@
 #include "strings/string_utils.h"
 #include "tinyexr/tinyexr.h"
 
-
 float ConvertComponent(const ResourceFormat &fmt, const byte *data)
 {
   if(fmt.compByteWidth == 8)
@@ -857,7 +856,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     downcast = true;
 
   // for non-HDR always downcast if we're not already RGBA8 unorm
-  
+
   if(sd.destType != FileType::DDS && sd.destType != FileType::HDR && sd.destType != FileType::PFM &&
      sd.destType != FileType::EXR && (td.format.compByteWidth != 1 || td.format.compCount != 4 ||
                                       td.format.compType != CompType::UNorm || td.format.BGRAOrder()))
