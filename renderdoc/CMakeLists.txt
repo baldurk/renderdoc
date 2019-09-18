@@ -149,6 +149,7 @@ set(sources
     maths/camera.cpp
     maths/camera.h
     maths/formatpacking.h
+    maths/formatpacking.cpp
     maths/half_convert.h
     maths/matrix.cpp
     maths/matrix.h

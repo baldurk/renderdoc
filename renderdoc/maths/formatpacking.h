@@ -135,5 +135,7 @@ inline float ConvertLinearToSRGB(float linear)
   return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
 }
 
+typedef uint8_t byte;
+
 struct ResourceFormat;
 float ConvertComponent(const ResourceFormat &fmt, const byte *data);
