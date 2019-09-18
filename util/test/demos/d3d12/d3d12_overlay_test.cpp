@@ -177,7 +177,7 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
       cmd->DrawInstanced(3, 1, 6, 0);
 
       // add a marker so we can easily locate this draw
-      cmd->SetMarker(1, "Test Begin", sizeof("Test Begin"));
+      cmd->SetMarker(1, "Test Begin", sizeof("Test Begin") - 1);
 
       cmd->SetPipelineState(pipe);
       cmd->DrawInstanced(24, 1, 9, 0);
