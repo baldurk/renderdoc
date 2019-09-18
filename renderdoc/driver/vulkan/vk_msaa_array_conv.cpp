@@ -328,13 +328,12 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
   Vec4u params;
   params.x = samples;
 
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
   for(uint32_t i = 0; i < layers * samples; i++)
   {
     rpbegin.framebuffer = fb[i];
-
-    VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-
-    ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
     ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -349,7 +348,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     params.y = i % samples;    // currentSample;
     params.z = i / samples;    // currentSlice;
 
-    for(uint32_t s = 0; s < 256; s++)
+    for(uint32_t s = 0; s < numStencil; s++)
     {
       params.w = numStencil == 1 ? 1000 : s;    // currentStencil;
 
@@ -360,9 +359,9 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     }
 
     ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
-
-    ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
   }
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
   // submit cmds and wait for idle so we can readback
   m_pDriver->SubmitCmds();
