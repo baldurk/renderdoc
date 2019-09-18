@@ -55,7 +55,10 @@ layout(binding = 0, std140) uniform constsbuf
 
 void main()
 {
-	Color = col;
+  if(col == vec4(0.0, 1.0, 0.0, 1.0))
+    Color = col;
+  else
+    Color = vec4(1.0, 0.0, 0.0, 1.0);
 }
 
 )EOSHADER";
