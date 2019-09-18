@@ -247,6 +247,8 @@ set(sources
     3rdparty/stb/stb_image_resize.h
     3rdparty/stb/stb_impl.c
     3rdparty/stb/stb_truetype.h
+    3rdparty/pfm/pfm.cpp
+    3rdparty/pfm/pfm.h
     3rdparty/tinyexr/tinyexr.cpp
     3rdparty/tinyexr/tinyexr.h
     3rdparty/tinyfiledialogs/tinyfiledialogs.c

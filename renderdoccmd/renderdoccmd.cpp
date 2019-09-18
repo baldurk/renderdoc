@@ -262,6 +262,10 @@ struct ThumbCommand : public Command
     {
       type = FileType::BMP;
     }
+    else if(format == "pfm")
+    {
+      type = FileType::PFM;
+    }
     else
     {
       const char *dot = strrchr(outfile.c_str(), '.');

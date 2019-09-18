@@ -1104,6 +1104,10 @@ DOCUMENT(R"(The format of an image file
 .. data:: RAW
 
   Raw data, just the bytes of the image tightly packed with no metadata or compression/encoding
+
+.. data:: PFM
+
+  The Portable FloatMap format, a floating point image format
 )");
 enum class FileType : uint32_t
 {
@@ -1115,6 +1119,7 @@ enum class FileType : uint32_t
   TGA,
   HDR,
   EXR,
+  PFM,
   Raw,
   Count,
 };

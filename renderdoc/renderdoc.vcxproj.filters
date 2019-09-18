@@ -569,6 +569,9 @@
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
       <Filter>3rdparty\tinyexr</Filter>
     </ClCompile>
+    <ClCompile Include="3rdparty\pfm\pfm.cpp">
+      <Filter>3rdparty\tinyexr</Filter>
+    </ClCompile>
     <ClCompile Include="os\win32\win32_libentry.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>

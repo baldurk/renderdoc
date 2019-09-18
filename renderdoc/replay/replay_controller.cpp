@@ -33,12 +33,14 @@
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
 #include "os/os_specific.h"
+#include "pfm/pfm.h"
 #include "serialise/rdcfile.h"
 #include "serialise/serialiser.h"
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 #include "strings/string_utils.h"
 #include "tinyexr/tinyexr.h"
+
 
 float ConvertComponent(const ResourceFormat &fmt, const byte *data)
 {
@@ -855,9 +857,10 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     downcast = true;
 
   // for non-HDR always downcast if we're not already RGBA8 unorm
-  if(sd.destType != FileType::DDS && sd.destType != FileType::HDR && sd.destType != FileType::EXR &&
-     (td.format.compByteWidth != 1 || td.format.compCount != 4 ||
-      td.format.compType != CompType::UNorm || td.format.BGRAOrder()))
+  
+  if(sd.destType != FileType::DDS && sd.destType != FileType::HDR && sd.destType != FileType::PFM &&
+     sd.destType != FileType::EXR && (td.format.compByteWidth != 1 || td.format.compCount != 4 ||
+                                      td.format.compType != CompType::UNorm || td.format.BGRAOrder()))
     downcast = true;
 
   // for HDR & EXR we can convert from most regular types as well as 10.10.10.2 and 11.11.10
@@ -872,7 +875,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   if(downcast)
   {
     // if the source and destination are more than 1 byte per component, remap to RGBA32
-    if(td.format.compByteWidth > 1 && (sd.destType == FileType::DDS ||
+    if(td.format.compByteWidth > 1 && (sd.destType == FileType::DDS || sd.destType == FileType::PFM ||
                                        sd.destType == FileType::HDR || sd.destType == FileType::EXR))
     {
       remap = RemapTexture::RGBA32;
@@ -1343,12 +1346,13 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       delete[] jpgdst;
     }
-    else if(sd.destType == FileType::HDR || sd.destType == FileType::EXR)
+    else if(sd.destType == FileType::HDR || sd.destType == FileType::EXR ||
+            sd.destType == FileType::PFM)
     {
       float *fldata = NULL;
       float *abgr[4] = {NULL, NULL, NULL, NULL};
 
-      if(sd.destType == FileType::HDR)
+      if(sd.destType == FileType::HDR || sd.destType == FileType::PFM)
       {
         fldata = new float[td.width * td.height * 4];
       }
@@ -1426,7 +1430,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
           if(saveFmt.BGRAOrder())
             std::swap(r, b);
 
-          // HDR can't represent negative values
+          // HDR can't represent negative values, PFM can
           if(sd.destType == FileType::HDR)
           {
             r = RDCMAX(r, 0.0f);
@@ -1480,6 +1484,14 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
         if(!success)
           RDCERR("stbi_write_hdr_to_func failed: %d", ret);
+      }
+      else if(sd.destType == FileType::PFM)
+      {
+        pfm::ImageBuffer image = pfm::ImageBuffer(td.width, td.height, 4);
+        memcpy(image.getData(), fldata, td.width * td.height * 4 * sizeof(float));
+        FileIO::fclose(f);
+        pfm::saveImage(path, image);
+        success = true;
       }
       else if(sd.destType == FileType::EXR)
       {

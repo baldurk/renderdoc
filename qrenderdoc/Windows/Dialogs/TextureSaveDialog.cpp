@@ -218,9 +218,9 @@ void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
 
   ui->jpegCompression->setEnabled(saveData.destType == FileType::JPG);
 
-  ui->alphaGroup->setVisible(saveData.destType != FileType::HDR &&
-                             saveData.destType != FileType::EXR &&
-                             saveData.destType != FileType::DDS);
+  ui->alphaGroup->setVisible(
+      saveData.destType != FileType::HDR && saveData.destType != FileType::PFM &&
+      saveData.destType != FileType::EXR && saveData.destType != FileType::DDS);
 
   bool noAlphaFormat = (saveData.destType == FileType::BMP || saveData.destType == FileType::JPG);
 
