@@ -441,7 +441,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       }
       else if(basetype == lit("unormten"))
       {
-        fmt.compType = CompType::UInt;
+        fmt.compType = CompType::UNorm;
         fmt.compCount = 4 * count;
         fmt.compByteWidth = 1;
         fmt.type = ResourceFormatType::R10G10B10A2;
