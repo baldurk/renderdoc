@@ -490,10 +490,9 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
 
   GLbitfield origflags = flags;
 
-  // if we're persistently writing, we want to be able to read as well, enable that.
-  uint32_t persistentWriteFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT;
-  if((flags & persistentWriteFlags) == persistentWriteFlags)
-    flags |= GL_MAP_READ_BIT;
+  // we always want to be able to read. This is true for persistent maps, as well as
+  // non-invalidating maps which we need to readback the current contents before the map.
+  flags |= GL_MAP_READ_BIT;
 
   SERIALISE_TIME_CALL(GL.glNamedBufferStorageEXT(buffer, size, data, flags));
 
@@ -527,10 +526,9 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
 
   GLbitfield origflags = flags;
 
-  // if we're persistently writing, we want to be able to read as well, enable that.
-  uint32_t persistentWriteFlags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT;
-  if((flags & persistentWriteFlags) == persistentWriteFlags)
-    flags |= GL_MAP_READ_BIT;
+  // we always want to be able to read. This is true for persistent maps, as well as
+  // non-invalidating maps which we need to readback the current contents before the map.
+  flags |= GL_MAP_READ_BIT;
 
   SERIALISE_TIME_CALL(GL.glBufferStorage(target, size, data, flags));
 
