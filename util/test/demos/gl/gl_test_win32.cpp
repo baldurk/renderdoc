@@ -89,6 +89,7 @@ bool OpenGLGraphicsTest::Init()
   pfd.cColorBits = 24;
   pfd.cDepthBits = 0;
   pfd.cStencilBits = 0;
+  pfd.cAlphaBits = 8;
 
   int pf = ::ChoosePixelFormat(dc, &pfd);
   ::SetPixelFormat(dc, pf, &pfd);

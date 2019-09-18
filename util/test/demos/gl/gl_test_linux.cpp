@@ -134,6 +134,8 @@ void *OpenGLGraphicsTest::MakeContext(GraphicsWindow *win, void *share)
                              8,
                              GLX_BLUE_SIZE,
                              8,
+                             GLX_ALPHA_SIZE,
+                             8,
                              GLX_DOUBLEBUFFER,
                              True,
                              GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB,
