@@ -428,7 +428,7 @@ private:
 
   struct SwapPresentInfo
   {
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8] = {};
 
     WrappedID3D12CommandQueue *queue;
   };

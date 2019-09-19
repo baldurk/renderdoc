@@ -1035,6 +1035,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
     if(rtv.ptr != 0)
       CreateRenderTargetView(pRes, NULL, rtv);
 
+    FreeRTV(m_SwapChains[swapper].rtvs[buffer]);
     m_SwapChains[swapper].rtvs[buffer] = rtv;
 
     ID3DDevice *swapQ = swapper->GetD3DDevice();
