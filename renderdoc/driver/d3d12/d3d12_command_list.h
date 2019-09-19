@@ -111,7 +111,7 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
   }
 };
 
-class WrappedID3D12GraphicsCommandList : public ID3D12GraphicsCommandList4
+class WrappedID3D12GraphicsCommandList : public ID3D12GraphicsCommandListX
 {
 private:
   ID3D12GraphicsCommandList *m_pList = NULL;
@@ -119,6 +119,7 @@ private:
   ID3D12GraphicsCommandList2 *m_pList2 = NULL;
   ID3D12GraphicsCommandList3 *m_pList3 = NULL;
   ID3D12GraphicsCommandList4 *m_pList4 = NULL;
+  ID3D12GraphicsCommandList5 *m_pList5 = NULL;
 
   RefCounter12<ID3D12GraphicsCommandList> m_RefCounter;
 
@@ -165,6 +166,7 @@ public:
   ID3D12GraphicsCommandList2 *GetReal2() { return m_pList2; }
   ID3D12GraphicsCommandList3 *GetReal3() { return m_pList3; }
   ID3D12GraphicsCommandList4 *GetReal4() { return m_pList4; }
+  ID3D12GraphicsCommandList5 *GetReal5() { return m_pList5; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
@@ -173,7 +175,8 @@ public:
   ID3D12GraphicsCommandList2 *GetCrackedList2();
   ID3D12GraphicsCommandList3 *GetCrackedList3();
   ID3D12GraphicsCommandList4 *GetCrackedList4();
-  ID3D12GraphicsCommandList4 *GetWrappedCrackedList();
+  ID3D12GraphicsCommandList5 *GetCrackedList5();
+  ID3D12GraphicsCommandListX *GetWrappedCrackedList();
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
@@ -526,6 +529,15 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, DispatchRays,
                                 _In_ const D3D12_DISPATCH_RAYS_DESC *pDesc);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList5
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, RSSetShadingRate,
+                                D3D12_SHADING_RATE baseShadingRate,
+                                const D3D12_SHADING_RATE_COMBINER *combiners);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, RSSetShadingRateImage,
+                                ID3D12Resource *shadingRateImage);
 };
 
 template <>
@@ -551,18 +563,23 @@ template <>
 ResourceId GetResID(ID3D12GraphicsCommandList3 *obj);
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList4 *obj);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList5 *obj);
 
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList2 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList3 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList4 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList5 *obj);
 
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList2 *Unwrap2(ID3D12GraphicsCommandList2 *obj);
 ID3D12GraphicsCommandList3 *Unwrap3(ID3D12GraphicsCommandList3 *obj);
 ID3D12GraphicsCommandList4 *Unwrap4(ID3D12GraphicsCommandList4 *obj);
+ID3D12GraphicsCommandList5 *Unwrap5(ID3D12GraphicsCommandList5 *obj);
 
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList1 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList2 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList3 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList4 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList5 *obj);

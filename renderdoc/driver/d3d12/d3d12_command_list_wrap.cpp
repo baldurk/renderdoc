@@ -53,7 +53,12 @@ ID3D12GraphicsCommandList4 *WrappedID3D12GraphicsCommandList::GetCrackedList4()
   return Unwrap4(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
 }
 
-ID3D12GraphicsCommandList4 *WrappedID3D12GraphicsCommandList::GetWrappedCrackedList()
+ID3D12GraphicsCommandList5 *WrappedID3D12GraphicsCommandList::GetCrackedList5()
+{
+  return Unwrap5(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
+}
+
+ID3D12GraphicsCommandListX *WrappedID3D12GraphicsCommandList::GetWrappedCrackedList()
 {
   return m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back();
 }
@@ -84,7 +89,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
     {
       if(m_Cmd->HasRerecordCmdList(BakedCommandList))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(BakedCommandList);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(BakedCommandList);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("Ending re-recorded command list for %llu baked to %llu", CommandList,
                  BakedCommandList);
@@ -261,7 +266,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         }
 
         // this is a safe upcast because it's a wrapped object
-        ID3D12GraphicsCommandList4 *list = (ID3D12GraphicsCommandList4 *)listptr;
+        ID3D12GraphicsCommandListX *list = (ID3D12GraphicsCommandListX *)listptr;
 
         // we store under both baked and non baked ID.
         // The baked ID is the 'real' entry, the non baked is simply so it
@@ -347,7 +352,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
               __uuidof(ID3D12GraphicsCommandList), (void **)&listptr);
 
           // this is a safe upcast because it's a wrapped object
-          ID3D12GraphicsCommandList4 *list = (ID3D12GraphicsCommandList4 *)listptr;
+          ID3D12GraphicsCommandListX *list = (ID3D12GraphicsCommandListX *)listptr;
 
           RDCASSERT(m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.empty());
           m_Cmd->m_BakedCmdListInfo[BakedCommandList].crackedLists.push_back(list);
@@ -972,7 +977,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         Unwrap(list)->IASetIndexBuffer(pView);
 
@@ -2806,7 +2811,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         D3D12MarkerRegion::Set(list, MarkerText);
       }
@@ -2869,7 +2874,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].markerCount++;
 
@@ -2927,7 +2932,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         int &markerCount = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].markerCount;
         markerCount = RDCMAX(0, markerCount - 1);
@@ -3009,7 +3014,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list);
 
@@ -3093,7 +3098,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list);
 
@@ -3179,7 +3184,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
 
@@ -3251,7 +3256,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
 
@@ -4163,7 +4168,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
         ReplayExecuteIndirect(Unwrap(list));
       }
@@ -4237,7 +4242,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
                                      __uuidof(ID3D12GraphicsCommandList), (void **)&listptr);
 
         // this is a safe upcast because it's a wrapped object
-        ID3D12GraphicsCommandList4 *list = (ID3D12GraphicsCommandList4 *)listptr;
+        ID3D12GraphicsCommandListX *list = (ID3D12GraphicsCommandListX *)listptr;
 
         m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.push_back(list);
 
@@ -4774,7 +4779,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
                                        NumBytes);
       }
@@ -4869,7 +4874,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->CopyTextureRegion(&unwrappedDst, DstX, DstY, DstZ, &unwrappedSrc, pSrcBox);
       }
     }
@@ -4964,7 +4969,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
       }
     }
@@ -5048,7 +5053,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        ID3D12GraphicsCommandList4 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
         Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
                                          SrcSubresource, Format);
       }

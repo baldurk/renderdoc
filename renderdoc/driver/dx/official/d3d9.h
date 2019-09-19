@@ -160,7 +160,6 @@ DEFINE_GUID(IID_IDirect3DAuthenticatedChannel9, 0xff24beee, 0xda21, 0x4beb, 0x98
 // {FA0AB799-7A9C-48ca-8C5B-237E71A54434}
 DEFINE_GUID(IID_IDirect3DCryptoSession9, 0xfa0ab799, 0x7a9c, 0x48ca, 0x8c, 0x5b, 0x23, 0x7e, 0x71, 0xa5, 0x44, 0x34);
 
-
 #endif // !D3D_DISABLE_9EX
 /* -- D3D9Ex only */
 
@@ -247,6 +246,7 @@ _COM_SMARTPTR_TYPEDEF(IDirect3D9ExOverlayExtension, __uuidof(IDirect3D9ExOverlay
 _COM_SMARTPTR_TYPEDEF(IDirect3DDevice9Video, __uuidof(IDirect3DDevice9Video));
 _COM_SMARTPTR_TYPEDEF(IDirect3DAuthenticatedChannel9, __uuidof(IDirect3DAuthenticatedChannel9));
 _COM_SMARTPTR_TYPEDEF(IDirect3DCryptoSession9, __uuidof(IDirect3DCryptoSession9));
+
 
 #endif // !D3D_DISABLE_9EX
 /* -- D3D9Ex only */

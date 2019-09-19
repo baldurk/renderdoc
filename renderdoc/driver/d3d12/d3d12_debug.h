@@ -128,7 +128,7 @@ public:
   D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
 
   ID3D12RootSignature *GetMeshRootSig() { return m_MeshRootSig; }
-  ID3D12GraphicsCommandList4 *ResetDebugList();
+  ID3D12GraphicsCommandListX *ResetDebugList();
   void ResetDebugAlloc();
 
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(CBVUAVSRVSlot slot);
@@ -197,6 +197,6 @@ private:
   ID3DBlob *m_DepthArray2MS = NULL;
 
   // Debug lists
-  ID3D12GraphicsCommandList4 *m_DebugList = NULL;
+  ID3D12GraphicsCommandListX *m_DebugList = NULL;
   ID3D12CommandAllocator *m_DebugAlloc = NULL;
 };

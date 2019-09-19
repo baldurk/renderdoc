@@ -258,7 +258,8 @@ private:
 
     if(riid != __uuidof(ID3D12Device) && riid != __uuidof(ID3D12Device1) &&
        riid != __uuidof(ID3D12Device2) && riid != __uuidof(ID3D12Device3) &&
-       riid != __uuidof(ID3D12Device4) && riid != __uuidof(ID3D12Device5))
+       riid != __uuidof(ID3D12Device4) && riid != __uuidof(ID3D12Device5) &&
+       riid != __uuidof(ID3D12Device6))
     {
       RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr(riid).c_str());
       return E_NOINTERFACE;
@@ -333,6 +334,11 @@ private:
           ID3D12Device5 *dev5 = (ID3D12Device5 *)*ppDevice;
           dev = (ID3D12Device *)dev5;
         }
+        else if(riid == __uuidof(ID3D12Device6))
+        {
+          ID3D12Device6 *dev6 = (ID3D12Device6 *)*ppDevice;
+          dev = (ID3D12Device *)dev6;
+        }
 
         WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, params, EnableDebugLayer);
 
@@ -350,6 +356,8 @@ private:
           *ppDevice = (ID3D12Device4 *)wrap;
         else if(riid == __uuidof(ID3D12Device5))
           *ppDevice = (ID3D12Device5 *)wrap;
+        else if(riid == __uuidof(ID3D12Device6))
+          *ppDevice = (ID3D12Device6 *)wrap;
       }
     }
     else if(SUCCEEDED(ret))

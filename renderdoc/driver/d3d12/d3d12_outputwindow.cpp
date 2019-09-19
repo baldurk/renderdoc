@@ -637,7 +637,7 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
     m_pDevice->GetQueue()->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&downlevel);
     downlevel->Present(list, res, outw.wnd, D3D12_DOWNLEVEL_PRESENT_FLAG_NONE);
     SAFE_RELEASE(downlevel);
-    m_pDevice->MarkListExecuted((ID3D12GraphicsCommandList4 *)list);
+    m_pDevice->MarkListExecuted((ID3D12GraphicsCommandListX *)list);
 
     list = m_pDevice->GetNewList();
 

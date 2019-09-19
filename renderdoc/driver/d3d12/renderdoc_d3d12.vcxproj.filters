@@ -179,5 +179,8 @@
     <ClCompile Include="d3d12_command_list4_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_command_list5_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

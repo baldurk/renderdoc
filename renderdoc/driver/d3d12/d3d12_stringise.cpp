@@ -28,8 +28,8 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1102, "Chunks changed without updating names");
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::List_EndRenderPass == 1101,
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1104, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::List_RSSetShadingRateImage == 1103,
                     "New chunks must be appended otherwise it breaks old captures");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
@@ -188,6 +188,10 @@ rdcstr DoStringise(const D3D12Chunk &el)
                                "ID3D12GraphicsCommandList2::WriteBufferImmediate");
     STRINGISE_ENUM_CLASS_NAMED(List_BeginRenderPass, "ID3D12GraphicsCommandList4::BeginRenderPass");
     STRINGISE_ENUM_CLASS_NAMED(List_EndRenderPass, "ID3D12GraphicsCommandList4::EndRenderPass");
+    STRINGISE_ENUM_CLASS_NAMED(List_RSSetShadingRate,
+                               "ID3D12GraphicsCommandList5::RSSetShadingRate");
+    STRINGISE_ENUM_CLASS_NAMED(List_RSSetShadingRateImage,
+                               "ID3D12GraphicsCommandList5::RSSetShadingRateImage");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -805,6 +809,36 @@ rdcstr DoStringise(const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE &el)
     STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE)
     STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
     STRINGISE_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const D3D12_SHADING_RATE &el)
+{
+  BEGIN_ENUM_STRINGISE(D3D12_SHADING_RATE);
+  {
+    STRINGISE_ENUM(D3D12_SHADING_RATE_1X1)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_1X2)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_2X1)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_2X2)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_2X4)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_4X2)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_4X4)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const D3D12_SHADING_RATE_COMBINER &el)
+{
+  BEGIN_ENUM_STRINGISE(D3D12_SHADING_RATE_COMBINER);
+  {
+    STRINGISE_ENUM(D3D12_SHADING_RATE_COMBINER_PASSTHROUGH)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_COMBINER_OVERRIDE)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_COMBINER_MIN)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_COMBINER_MAX)
+    STRINGISE_ENUM(D3D12_SHADING_RATE_COMBINER_SUM)
   }
   END_ENUM_STRINGISE();
 }

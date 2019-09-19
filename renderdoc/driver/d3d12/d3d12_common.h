@@ -34,6 +34,10 @@
 #include "driver/shaders/dxbc/dxbc_compile.h"
 #include "serialise/serialiser.h"
 
+// we need to use the most-derived native interface all over the place. To make things easier when
+// new versions come out we typedef it here when we don't need the specific interface
+using ID3D12GraphicsCommandListX = ID3D12GraphicsCommandList5;
+
 // replay only class for handling marker regions
 struct D3D12MarkerRegion
 {
@@ -371,6 +375,7 @@ struct D3D12CommandSignature
   SERIALISE_INTERFACE(ID3D12GraphicsCommandList2); \
   SERIALISE_INTERFACE(ID3D12GraphicsCommandList3); \
   SERIALISE_INTERFACE(ID3D12GraphicsCommandList4); \
+  SERIALISE_INTERFACE(ID3D12GraphicsCommandList5); \
   SERIALISE_INTERFACE(ID3D12RootSignature);        \
   SERIALISE_INTERFACE(ID3D12Resource);             \
   SERIALISE_INTERFACE(ID3D12QueryHeap);            \
@@ -609,6 +614,8 @@ DECLARE_REFLECTION_ENUM(D3D12_COMMAND_LIST_FLAGS);
 DECLARE_REFLECTION_ENUM(D3D12_RENDER_PASS_FLAGS);
 DECLARE_REFLECTION_ENUM(D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE);
 DECLARE_REFLECTION_ENUM(D3D12_RENDER_PASS_ENDING_ACCESS_TYPE);
+DECLARE_REFLECTION_ENUM(D3D12_SHADING_RATE);
+DECLARE_REFLECTION_ENUM(D3D12_SHADING_RATE_COMBINER);
 
 DECLARE_REFLECTION_STRUCT(D3D12_RESOURCE_DESC);
 DECLARE_REFLECTION_STRUCT(D3D12_COMMAND_QUEUE_DESC);
@@ -817,5 +824,7 @@ enum class D3D12Chunk : uint32_t
   Device_CreateHeap1,
   List_BeginRenderPass,
   List_EndRenderPass,
+  List_RSSetShadingRate,
+  List_RSSetShadingRateImage,
   Max,
 };

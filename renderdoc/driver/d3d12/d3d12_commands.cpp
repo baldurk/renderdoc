@@ -72,6 +72,14 @@ ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList4 *obj)
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
 }
 
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList5 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj)
 {
   if(obj == NULL)
@@ -102,6 +110,14 @@ ID3D12GraphicsCommandList4 *Unwrap4(ID3D12GraphicsCommandList4 *obj)
     return NULL;
 
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal4();
+}
+
+ID3D12GraphicsCommandList5 *Unwrap5(ID3D12GraphicsCommandList5 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal5();
 }
 
 template <>
@@ -151,6 +167,15 @@ ResourceId GetResID(ID3D12GraphicsCommandList3 *obj)
 
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList4 *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList5 *obj)
 {
   if(obj == NULL)
     return ResourceId();
@@ -228,6 +253,11 @@ WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList3 *obj)
 }
 
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList4 *obj)
+{
+  return ((WrappedID3D12GraphicsCommandList *)obj);
+}
+
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList5 *obj)
 {
   return ((WrappedID3D12GraphicsCommandList *)obj);
 }
@@ -654,6 +684,12 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       ret = m_ReplayList->Serialise_BeginRenderPass(ser, 0, NULL, NULL, D3D12_RENDER_PASS_FLAG_NONE);
       break;
     case D3D12Chunk::List_EndRenderPass: ret = m_ReplayList->Serialise_EndRenderPass(ser); break;
+    case D3D12Chunk::List_RSSetShadingRate:
+      ret = m_ReplayList->Serialise_RSSetShadingRate(ser, D3D12_SHADING_RATE_1X1, NULL);
+      break;
+    case D3D12Chunk::List_RSSetShadingRateImage:
+      ret = m_ReplayList->Serialise_RSSetShadingRateImage(ser, NULL);
+      break;
 
     case D3D12Chunk::PushMarker: ret = m_ReplayList->Serialise_BeginEvent(ser, 0, NULL, 0); break;
     case D3D12Chunk::PopMarker: ret = m_ReplayList->Serialise_EndEvent(ser); break;
@@ -905,6 +941,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   m_pList2 = NULL;
   m_pList3 = NULL;
   m_pList4 = NULL;
+  m_pList5 = NULL;
 
   m_WrappedDebug.m_pReal = NULL;
   m_WrappedDebug.m_pReal1 = NULL;
@@ -920,6 +957,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList2), (void **)&m_pList2);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList3), (void **)&m_pList3);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList4), (void **)&m_pList4);
+    m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList5), (void **)&m_pList5);
   }
 
   // create a temporary and grab its resource ID
@@ -996,6 +1034,7 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
   SAFE_RELEASE(m_WrappedDebug.m_pReal2);
+  SAFE_RELEASE(m_pList5);
   SAFE_RELEASE(m_pList4);
   SAFE_RELEASE(m_pList3);
   SAFE_RELEASE(m_pList2);
@@ -1133,6 +1172,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
     if(m_pList4)
     {
       *ppvObject = (ID3D12GraphicsCommandList4 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList5))
+  {
+    if(m_pList5)
+    {
+      *ppvObject = (ID3D12GraphicsCommandList5 *)this;
       AddRef();
       return S_OK;
     }
@@ -1288,7 +1340,7 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
   m_IndirectOffset = AlignUp16(m_IndirectOffset + size);
 }
 
-uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList4 *list, bool dispatch,
+uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, bool dispatch,
                                              uint32_t multiDrawOffset)
 {
   if(!m_DrawcallCallback)
@@ -1374,7 +1426,7 @@ bool D3D12CommandData::IsPartialCmdList(ResourceId cmdid)
   return false;
 }
 
-ID3D12GraphicsCommandList4 *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
+ID3D12GraphicsCommandListX *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
                                                               PartialReplayIndex partialType)
 {
   if(m_OutsideCmdList != NULL)

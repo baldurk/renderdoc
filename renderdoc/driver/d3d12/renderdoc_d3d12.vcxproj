@@ -104,6 +104,7 @@
     <ClCompile Include="d3d12_command_list2_wrap.cpp" />
     <ClCompile Include="d3d12_command_list3_wrap.cpp" />
     <ClCompile Include="d3d12_command_list4_wrap.cpp" />
+    <ClCompile Include="d3d12_command_list5_wrap.cpp" />
     <ClCompile Include="d3d12_command_list_wrap.cpp" />
     <ClCompile Include="d3d12_command_queue_wrap.cpp" />
     <ClCompile Include="d3d12_common.cpp" />

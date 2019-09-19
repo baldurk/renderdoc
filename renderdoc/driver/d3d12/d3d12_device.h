@@ -286,6 +286,59 @@ struct WrappedDownlevelDevice : public ID3D12DeviceDownlevel
                        _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo);
 };
 
+struct WrappedDRED : public ID3D12DeviceRemovedExtendedData
+{
+  WrappedID3D12Device &m_pDevice;
+  ID3D12DeviceRemovedExtendedData *m_pReal = NULL;
+
+  WrappedDRED(WrappedID3D12Device &dev) : m_pDevice(dev) {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D12DeviceRemovedExtendedDataSettings
+  virtual HRESULT STDMETHODCALLTYPE GetAutoBreadcrumbsOutput(D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT *pOutput)
+  {
+    return m_pReal->GetAutoBreadcrumbsOutput(pOutput);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetPageFaultAllocationOutput(D3D12_DRED_PAGE_FAULT_OUTPUT *pOutput)
+  {
+    return m_pReal->GetPageFaultAllocationOutput(pOutput);
+  }
+};
+
+struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings
+{
+  WrappedID3D12Device &m_pDevice;
+  ID3D12DeviceRemovedExtendedDataSettings *m_pReal = NULL;
+
+  WrappedDREDSettings(WrappedID3D12Device &dev) : m_pDevice(dev) {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D12DeviceRemovedExtendedDataSettings
+  virtual void STDMETHODCALLTYPE SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT setting)
+  {
+    m_pReal->SetAutoBreadcrumbsEnablement(setting);
+  }
+  virtual void STDMETHODCALLTYPE SetPageFaultEnablement(D3D12_DRED_ENABLEMENT setting)
+  {
+    m_pReal->SetPageFaultEnablement(setting);
+  }
+  virtual void STDMETHODCALLTYPE SetWatsonDumpEnablement(D3D12_DRED_ENABLEMENT setting)
+  {
+    m_pReal->SetWatsonDumpEnablement(setting);
+  }
+};
+
 class WrappedID3D12CommandQueue;
 
 #define IMPLEMENT_FUNCTION_THREAD_SERIALISED(ret, func, ...) \
@@ -293,7 +346,7 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device5
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device6
 {
 private:
   ID3D12Device *m_pDevice;
@@ -302,6 +355,7 @@ private:
   ID3D12Device3 *m_pDevice3;
   ID3D12Device4 *m_pDevice4;
   ID3D12Device5 *m_pDevice5;
+  ID3D12Device6 *m_pDevice6;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
@@ -319,6 +373,8 @@ private:
   UINT64 m_GPUSyncCounter;
 
   WrappedDownlevelDevice m_WrappedDownlevel;
+  WrappedDRED m_DRED;
+  WrappedDREDSettings m_DREDSettings;
 
   std::vector<ID3D12CommandAllocator *> m_CommandAllocators;
 
@@ -556,11 +612,11 @@ public:
       submittedcmds.clear();
     }
 
-    std::vector<ID3D12GraphicsCommandList4 *> freecmds;
+    std::vector<ID3D12GraphicsCommandListX *> freecmds;
     // -> GetNextCmd() ->
-    std::vector<ID3D12GraphicsCommandList4 *> pendingcmds;
+    std::vector<ID3D12GraphicsCommandListX *> pendingcmds;
     // -> ExecuteLists() ->
-    std::vector<ID3D12GraphicsCommandList4 *> submittedcmds;
+    std::vector<ID3D12GraphicsCommandListX *> submittedcmds;
     // -> FlushLists()--------back to freecmds--------^
   } m_InternalCmds;
 
@@ -568,19 +624,19 @@ public:
   // creating fewer temporary lists and making too bloated lists
   static const int initialStateMaxBatch = 100;
   int initStateCurBatch;
-  ID3D12GraphicsCommandList4 *initStateCurList;
+  ID3D12GraphicsCommandListX *initStateCurList;
 
-  ID3D12GraphicsCommandList4 *GetNewList();
-  ID3D12GraphicsCommandList4 *GetInitialStateList();
+  ID3D12GraphicsCommandListX *GetNewList();
+  ID3D12GraphicsCommandListX *GetInitialStateList();
   void CloseInitialStateList();
   ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
   void ApplyInitialContents();
 
   void AddCaptureSubmission();
 
-  void ExecuteList(ID3D12GraphicsCommandList4 *list, WrappedID3D12CommandQueue *queue = NULL,
+  void ExecuteList(ID3D12GraphicsCommandListX *list, WrappedID3D12CommandQueue *queue = NULL,
                    bool InFrameCaptureBoundary = false);
-  void MarkListExecuted(ID3D12GraphicsCommandList4 *list);
+  void MarkListExecuted(ID3D12GraphicsCommandListX *list);
   void ExecuteLists(WrappedID3D12CommandQueue *queue = NULL, bool InFrameCaptureBoundary = false);
   void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
 
@@ -616,7 +672,8 @@ public:
   {
     if(iid == __uuidof(ID3D12Device) || iid == __uuidof(ID3D12Device1) ||
        iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
-       iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5))
+       iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5) ||
+       iid == __uuidof(ID3D12Device5))
       return true;
 
     return false;
@@ -635,6 +692,8 @@ public:
       return (ID3D12Device4 *)this;
     else if(iid == __uuidof(ID3D12Device5))
       return (ID3D12Device5 *)this;
+    else if(iid == __uuidof(ID3D12Device6))
+      return (ID3D12Device6 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -697,6 +756,12 @@ public:
     else if(riid == __uuidof(ID3D12Device5))
     {
       *ppvDevice = (ID3D12Device5 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device6))
+    {
+      *ppvDevice = (ID3D12Device6 *)this;
       this->AddRef();
       return S_OK;
     }
@@ -1055,4 +1120,10 @@ public:
   virtual HRESULT STDMETHODCALLTYPE
   QueryVideoMemoryInfo(UINT NodeIndex, DXGI_MEMORY_SEGMENT_GROUP MemorySegmentGroup,
                        _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo);
+
+  //////////////////////////////
+  // implement ID3D12Device6
+  virtual HRESULT STDMETHODCALLTYPE SetBackgroundProcessingMode(
+      D3D12_BACKGROUND_PROCESSING_MODE Mode, D3D12_MEASUREMENTS_ACTION MeasurementsAction,
+      _In_opt_ HANDLE hEventToSignalUponCompletion, _Out_opt_ BOOL *pbFurtherMeasurementsDesired);
 };

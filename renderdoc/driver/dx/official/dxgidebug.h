@@ -74,7 +74,7 @@ extern "C"{
 
 #include "winapifamily.h"
 #pragma region Application Family
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP | WINAPI_PARTITION_GAMES)
 #define	DXGI_DEBUG_BINARY_VERSION	( 1 )
 
 typedef 
@@ -968,7 +968,7 @@ EXTERN_C const IID IID_IDXGIDebug1;
 /* interface __MIDL_itf_dxgidebug_0000_0003 */
 /* [local] */ 
 
-#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) */
+#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP | WINAPI_PARTITION_GAMES) */
 #pragma endregion
 #pragma region Desktop Family
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)

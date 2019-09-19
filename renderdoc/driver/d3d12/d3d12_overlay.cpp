@@ -52,7 +52,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
   }
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd)
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
       return;
@@ -221,7 +221,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       rs.ApplyState(m_pDevice, cmd);
   }
 
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd)
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
       return false;
@@ -235,16 +235,16 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     return true;
   }
 
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd)
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
   {
     // nothing to do
   }
 
   // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) {}
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) { return false; }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) {}
-  void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) {}
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     // don't care

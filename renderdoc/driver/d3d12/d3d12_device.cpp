@@ -88,7 +88,8 @@ HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, vo
   if(riid == __uuidof(ID3D12InfoQueue) || riid == __uuidof(ID3D12DebugDevice) ||
      riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
      riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
-     riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5))
+     riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
+     riid == __uuidof(ID3D12Device6))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -156,13 +157,45 @@ HRESULT STDMETHODCALLTYPE WrappedDownlevelDevice::QueryVideoMemoryInfo(
   return m_pDevice.QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
 }
 
+HRESULT STDMETHODCALLTYPE WrappedDRED::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedDRED::AddRef()
+{
+  return m_pDevice.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedDRED::Release()
+{
+  return m_pDevice.Release();
+}
+
+HRESULT STDMETHODCALLTYPE WrappedDREDSettings::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedDREDSettings::AddRef()
+{
+  return m_pDevice.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedDREDSettings::Release()
+{
+  return m_pDevice.Release();
+}
+
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params,
                                          bool enabledDebugLayer)
     : m_RefCounter(realDevice, false),
       m_SoftRefCounter(NULL, false),
       m_pDevice(realDevice),
       m_debugLayerEnabled(enabledDebugLayer),
-      m_WrappedDownlevel(*this)
+      m_WrappedDownlevel(*this),
+      m_DRED(*this),
+      m_DREDSettings(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
@@ -181,6 +214,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_pDevice3 = NULL;
   m_pDevice4 = NULL;
   m_pDevice5 = NULL;
+  m_pDevice6 = NULL;
   m_pDownlevel = NULL;
   if(m_pDevice)
   {
@@ -189,6 +223,10 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12Device3), (void **)&m_pDevice3);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device4), (void **)&m_pDevice4);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device5), (void **)&m_pDevice5);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device6), (void **)&m_pDevice6);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData), (void **)&m_DRED.m_pReal);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings),
+                              (void **)&m_DREDSettings.m_pReal);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceDownlevel), (void **)&m_pDownlevel);
 
     for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
@@ -455,7 +493,10 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_DELETE(m_ResourceManager);
 
+  SAFE_RELEASE(m_DRED.m_pReal);
+  SAFE_RELEASE(m_DREDSettings.m_pReal);
   SAFE_RELEASE(m_pDownlevel);
+  SAFE_RELEASE(m_pDevice6);
   SAFE_RELEASE(m_pDevice5);
   SAFE_RELEASE(m_pDevice4);
   SAFE_RELEASE(m_pDevice3);
@@ -641,6 +682,19 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12Device6))
+  {
+    if(m_pDevice6)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device6 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else if(riid == __uuidof(ID3D12DeviceDownlevel))
   {
     if(m_pDownlevel)
@@ -722,6 +776,32 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       *ppvObject = (ID3D12DebugDevice2 *)&m_DummyDebug;
       m_DummyDebug.AddRef();
       return S_OK;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DeviceRemovedExtendedData))
+  {
+    if(m_DRED.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DeviceRemovedExtendedData *)&m_DRED;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DeviceRemovedExtendedDataSettings))
+  {
+    if(m_DREDSettings.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DeviceRemovedExtendedDataSettings *)&m_DREDSettings;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
     }
   }
   else if(riid == IRenderDoc_uuid)
@@ -2327,6 +2407,14 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::QueryVideoMemoryInfo(
   return m_pDownlevel->QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
 }
 
+HRESULT STDMETHODCALLTYPE WrappedID3D12Device::SetBackgroundProcessingMode(
+    D3D12_BACKGROUND_PROCESSING_MODE Mode, D3D12_MEASUREMENTS_ACTION MeasurementsAction,
+    _In_opt_ HANDLE hEventToSignalUponCompletion, _Out_opt_ BOOL *pbFurtherMeasurementsDesired)
+{
+  return m_pDevice6->SetBackgroundProcessingMode(
+      Mode, MeasurementsAction, hEventToSignalUponCompletion, pbFurtherMeasurementsDesired);
+}
+
 byte *WrappedID3D12Device::GetTempMemory(size_t s)
 {
   TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
@@ -2561,9 +2649,9 @@ void WrappedID3D12Device::GPUSyncAllQueues()
     GPUSync(m_Queues[i], m_QueueFences[i]);
 }
 
-ID3D12GraphicsCommandList4 *WrappedID3D12Device::GetNewList()
+ID3D12GraphicsCommandListX *WrappedID3D12Device::GetNewList()
 {
-  ID3D12GraphicsCommandList4 *ret = NULL;
+  ID3D12GraphicsCommandListX *ret = NULL;
 
   if(!m_InternalCmds.freecmds.empty())
   {
@@ -2580,7 +2668,7 @@ ID3D12GraphicsCommandList4 *WrappedID3D12Device::GetNewList()
     InternalRef();
 
     // safe to upcast because this is a wrapped object.
-    ret = (ID3D12GraphicsCommandList4 *)list;
+    ret = (ID3D12GraphicsCommandListX *)list;
 
     RDCASSERTEQUAL(hr, S_OK);
 
@@ -2602,7 +2690,7 @@ ID3D12GraphicsCommandList4 *WrappedID3D12Device::GetNewList()
   return ret;
 }
 
-ID3D12GraphicsCommandList4 *WrappedID3D12Device::GetInitialStateList()
+ID3D12GraphicsCommandListX *WrappedID3D12Device::GetInitialStateList()
 {
   if(initStateCurBatch >= initialStateMaxBatch)
   {
@@ -2631,7 +2719,7 @@ void WrappedID3D12Device::CloseInitialStateList()
   initStateCurBatch = 0;
 }
 
-void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList4 *list,
+void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandListX *list,
                                       WrappedID3D12CommandQueue *queue, bool InFrameCaptureBoundary)
 {
   if(queue == NULL)
@@ -2643,7 +2731,7 @@ void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList4 *list,
   MarkListExecuted(list);
 }
 
-void WrappedID3D12Device::MarkListExecuted(ID3D12GraphicsCommandList4 *list)
+void WrappedID3D12Device::MarkListExecuted(ID3D12GraphicsCommandListX *list)
 {
   for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
   {
@@ -3099,7 +3187,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     // has chosen a subsection that lies within a command list
     if(partial)
     {
-      ID3D12GraphicsCommandList4 *list = cmd.m_OutsideCmdList = GetNewList();
+      ID3D12GraphicsCommandListX *list = cmd.m_OutsideCmdList = GetNewList();
 
       cmd.m_RenderState.ApplyState(this, list);
     }

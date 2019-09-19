@@ -352,7 +352,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       recreate = true;
     }
 
-    ID3D12GraphicsCommandList4 *list = NULL;
+    ID3D12GraphicsCommandListX *list = NULL;
 
     if(!(drawcall->flags & DrawFlags::Indexed))
     {
@@ -847,7 +847,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
 
-    ID3D12GraphicsCommandList4 *list = NULL;
+    ID3D12GraphicsCommandListX *list = NULL;
 
     view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
@@ -1341,19 +1341,19 @@ struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
   ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
-  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
       m_Replay->InitPostVSBuffers(eid);
   }
 
-  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override { return false; }
-  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override {}
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override { return false; }
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override {}
   // Dispatches don't rasterize, so do nothing
-  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override {}
-  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override { return false; }
-  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList4 *cmd) override {}
-  void PreCloseCommandList(ID3D12GraphicsCommandList4 *cmd) override {}
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override {}
+  void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) override {}
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
     if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())

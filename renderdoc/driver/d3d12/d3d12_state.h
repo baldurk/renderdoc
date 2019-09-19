@@ -46,9 +46,9 @@ struct D3D12RenderState
   D3D12RenderState() = default;
   D3D12RenderState &operator=(const D3D12RenderState &o);
 
-  void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandList4 *list) const;
-  void ApplyComputeRootElements(ID3D12GraphicsCommandList4 *cmd) const;
-  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList4 *cmd) const;
+  void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandListX *list) const;
+  void ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd) const;
+  void ApplyGraphicsRootElements(ID3D12GraphicsCommandListX *cmd) const;
 
   std::vector<D3D12_VIEWPORT> views;
   std::vector<D3D12_RECT> scissors;
@@ -60,6 +60,10 @@ struct D3D12RenderState
 
   std::vector<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
+
+  ResourceId shadingRateImage;
+  D3D12_SHADING_RATE shadingRate;
+  D3D12_SHADING_RATE_COMBINER shadingRateCombiners[2];
 
   struct SignatureElement
   {

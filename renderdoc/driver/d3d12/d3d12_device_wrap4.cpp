@@ -84,7 +84,8 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
 
   if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList) &&
      riid != __uuidof(ID3D12GraphicsCommandList1) && riid != __uuidof(ID3D12GraphicsCommandList2) &&
-     riid != __uuidof(ID3D12GraphicsCommandList3) && riid != __uuidof(ID3D12GraphicsCommandList4))
+     riid != __uuidof(ID3D12GraphicsCommandList3) && riid != __uuidof(ID3D12GraphicsCommandList4) &&
+     riid != __uuidof(ID3D12GraphicsCommandList5))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
@@ -106,6 +107,8 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
     real = (ID3D12GraphicsCommandList3 *)realptr;
   else if(riid == __uuidof(ID3D12GraphicsCommandList4))
     real = (ID3D12GraphicsCommandList4 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList5))
+    real = (ID3D12GraphicsCommandList5 *)realptr;
 
   if(SUCCEEDED(ret))
   {
@@ -152,6 +155,8 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
       *ppCommandList = (ID3D12GraphicsCommandList3 *)wrapped;
     else if(riid == __uuidof(ID3D12GraphicsCommandList4))
       *ppCommandList = (ID3D12GraphicsCommandList4 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList5))
+      *ppCommandList = (ID3D12GraphicsCommandList5 *)wrapped;
     else if(riid == __uuidof(ID3D12CommandList))
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
