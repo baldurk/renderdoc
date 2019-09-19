@@ -85,10 +85,20 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
       uint32_t numFrames = 0;
       m_Read->Read(numFrames);
 
-      m_ChunkMetadata.flags |= SDChunkFlags::HasCallstack;
+      // try to sanity check the number of frames
+      if(numFrames < 4096)
+      {
+        m_ChunkMetadata.flags |= SDChunkFlags::HasCallstack;
 
-      m_ChunkMetadata.callstack.resize((size_t)numFrames);
-      m_Read->Read(m_ChunkMetadata.callstack.data(), m_ChunkMetadata.callstack.byteSize());
+        m_ChunkMetadata.callstack.resize((size_t)numFrames);
+        m_Read->Read(m_ChunkMetadata.callstack.data(), m_ChunkMetadata.callstack.byteSize());
+      }
+      else
+      {
+        RDCERR("Read invalid number of callstack frames: %u", numFrames);
+        // still read the size that we should, even though we expect this to be broken after here
+        m_Read->Read(NULL, numFrames * sizeof(uint64_t));
+      }
     }
 
     if(c & ChunkThreadID)
