@@ -654,7 +654,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::QueryInterface(REFIID riid, void 
   }
   else if(riid == __uuidof(IDXGIOutput4))
   {
-    if(m_pReal3)
+    if(m_pReal4)
     {
       AddRef();
       *ppvObject = (IDXGIOutput4 *)this;
@@ -667,10 +667,23 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::QueryInterface(REFIID riid, void 
   }
   else if(riid == __uuidof(IDXGIOutput5))
   {
-    if(m_pReal3)
+    if(m_pReal5)
     {
       AddRef();
       *ppvObject = (IDXGIOutput5 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIOutput6))
+  {
+    if(m_pReal6)
+    {
+      AddRef();
+      *ppvObject = (IDXGIOutput6 *)this;
       return S_OK;
     }
     else
