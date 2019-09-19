@@ -352,6 +352,8 @@ HRESULT WrappedIDXGISwapChain4::ResizeBuffers(
 
   WrapBuffersAfterResize();
 
+  m_LastPresentedBuffer = -1;
+
   return ret;
 }
 
@@ -385,6 +387,8 @@ HRESULT WrappedIDXGISwapChain4::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT 
   SAFE_DELETE_ARRAY(unwrappedQueues);
 
   WrapBuffersAfterResize();
+
+  m_LastPresentedBuffer = -1;
 
   return ret;
 }
@@ -534,8 +538,11 @@ HRESULT WrappedIDXGISwapChain4::Present(
     SyncInterval = 0;
   }
 
-  TickLastPresentedBuffer();
-  m_pDevice->Present(this, SyncInterval, Flags);
+  if((Flags & DXGI_PRESENT_TEST) == 0)
+  {
+    TickLastPresentedBuffer();
+    m_pDevice->Present(this, SyncInterval, Flags);
+  }
 
   return m_pReal->Present(SyncInterval, Flags);
 }
@@ -548,8 +555,11 @@ HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
     SyncInterval = 0;
   }
 
-  TickLastPresentedBuffer();
-  m_pDevice->Present(this, SyncInterval, Flags);
+  if((Flags & DXGI_PRESENT_TEST) == 0)
+  {
+    TickLastPresentedBuffer();
+    m_pDevice->Present(this, SyncInterval, Flags);
+  }
 
   return m_pReal1->Present1(SyncInterval, Flags, pPresentParameters);
 }
