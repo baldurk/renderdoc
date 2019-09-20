@@ -153,7 +153,7 @@ std::string GetPathForPackage(const std::string &deviceID, const std::string &pa
   {
     std::vector<std::string> lines;
     split(pkgPath, lines, '\n');
-    pkgPath = lines[0];
+    pkgPath = trim(lines[0]);
   }
 
   if(pkgPath.empty() || pkgPath.find("package:") != 0 || pkgPath.find("base.apk") == std::string::npos)
