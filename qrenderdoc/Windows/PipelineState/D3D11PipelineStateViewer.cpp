@@ -1647,7 +1647,7 @@ void D3D11PipelineStateViewer::setState()
   {
     const Scissor &s = state.rasterizer.scissors[i];
 
-    if(s.enabled || ui->showEmpty->isChecked())
+    if((s.enabled && state.rasterizer.state.scissorEnable) || ui->showEmpty->isChecked())
     {
       RDTreeWidgetItem *node = new RDTreeWidgetItem({i, s.x, s.y, s.width, s.height});
 
