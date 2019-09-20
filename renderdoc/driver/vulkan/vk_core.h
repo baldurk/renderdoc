@@ -800,6 +800,7 @@ private:
   bool CheckMemoryRequirements(const char *resourceName, ResourceId memId,
                                VkDeviceSize memoryOffset, VkMemoryRequirements mrq);
 
+  void AddImplicitResolveResourceUsage(uint32_t subpass = 0);
   std::vector<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);
   std::string MakeRenderPassOpString(bool store);
 

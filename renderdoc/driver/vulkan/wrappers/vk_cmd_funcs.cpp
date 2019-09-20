@@ -45,6 +45,32 @@ static std::string ToHumanStr(const VkAttachmentStoreOp &el)
   END_ENUM_STRINGISE();
 }
 
+void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
+{
+  ResourceId rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
+  const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[rp];
+
+  // Ending a render pass instance performs any multisample operations
+  // on the final subpass. ~0U is the end of a RenderPass.
+  if(subpass == ~0U)
+    subpass = (uint32_t)rpinfo.subpasses.size() - 1;
+  else
+    subpass = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
+
+  const std::vector<ResourceId> &fbattachments =
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+  for(size_t i = 0; i < rpinfo.subpasses[subpass].resolveAttachments.size(); i++)
+  {
+    uint32_t attIdx = rpinfo.subpasses[subpass].resolveAttachments[i];
+    if(attIdx == VK_ATTACHMENT_UNUSED)
+      continue;
+    ResourceId image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+        image,
+        EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Resolve)));
+  }
+}
+
 std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint32_t subpass)
 {
   ResourceId rp, fb;
@@ -1393,6 +1419,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
     {
       ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
+      AddImplicitResolveResourceUsage();
+
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
@@ -1488,6 +1516,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
+
+      AddImplicitResolveResourceUsage(~0U);
 
       AddEvent();
       DrawcallDescription draw;
@@ -1825,6 +1855,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
     {
       ObjDisp(commandBuffer)
           ->CmdNextSubpass2KHR(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
+
+      AddImplicitResolveResourceUsage();
 
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
