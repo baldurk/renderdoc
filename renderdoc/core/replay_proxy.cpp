@@ -1813,8 +1813,6 @@ void DoSerialise(SerialiserType &ser, DeltaSection &el)
 template <typename SerialiserType>
 void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &referenceData, bytebuf &newData)
 {
-  char empty[128] = {};
-
   // we use a list so that we don't have to reserve and pushing new sections will never cause
   // previous ones to be reallocated and move around lots of data.
   std::list<DeltaSection> deltas;
@@ -1844,10 +1842,13 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
         // add any necessary padding.
         uint64_t offs = ser.GetReader()->GetOffset();
         RDCASSERT(offs <= uncompSize, offs, uncompSize);
-        RDCASSERT(uncompSize - offs < sizeof(empty), offs, uncompSize);
 
         if(offs < uncompSize)
-          ser.GetReader()->Read(empty, uncompSize - offs);
+        {
+          if(uncompSize - offs > 128)
+            RDCERR("Unexpected amount of padding: %llu", uncompSize - offs);
+          ser.GetReader()->Read(NULL, uncompSize - offs);
+        }
       }
 
       if(deltas.empty())
@@ -2027,6 +2028,8 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
                           Ownership::Stream);
 
       SERIALISE_ELEMENT(deltas);
+
+      char empty[128] = {};
 
       // add any necessary padding.
       uint64_t offs = ser.GetWriter()->GetOffset();
