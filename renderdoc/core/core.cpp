@@ -524,8 +524,8 @@ void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const std::vecto
       }
       else
       {
-        RDCERR("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
-               ToStr(status).c_str());
+        RDCWARN("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
+                ToStr(status).c_str());
       }
 
       if(driver)

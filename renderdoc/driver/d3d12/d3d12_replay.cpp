@@ -3691,7 +3691,10 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       }
       else
       {
-        RDCERR("Failed to load d3d12.dll");
+        if(rdc)
+          RDCERR("Failed to load d3d12.dll");
+        else
+          RDCWARN("Failed to load d3d12.dll");
         return ReplayStatus::APIInitFailed;
       }
     }
