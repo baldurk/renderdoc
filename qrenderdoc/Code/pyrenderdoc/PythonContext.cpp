@@ -314,6 +314,28 @@ void PythonContext::GlobalInit()
   }
 #endif
 
+#if RENDERDOC_STABLE_BUILD == 0
+  // if we're running in the git checkout and we can find the test scripts, add that location to the
+  // path
+  {
+    QDir bin = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
+
+    QString testpath = QDir::cleanPath(bin.absoluteFilePath(lit("../../util/test")));
+
+    if(QDir(testpath).exists(lit("run_tests.py")))
+    {
+      PyObject *syspath = PyObject_GetAttrString(sysobj, "path");
+
+      PyObject *str = PyUnicode_FromString(testpath.toUtf8().data());
+
+      PyList_Append(syspath, str);
+
+      Py_DecRef(str);
+      Py_DecRef(syspath);
+    }
+  }
+#endif
+
 // set up PySide
 #if PYSIDE2_ENABLED
   {

@@ -188,13 +188,7 @@ class Iter_Test(rdtest.TestCase):
 
             self.controller.SetFrameEvent(draw.eventId, True)
 
-    def iter_test(self, path):
-        try:
-            self.controller = rdtest.open_capture(path)
-        except RuntimeError as err:
-            rdtest.log.print("Skipping. Can't open {}: {}".format(path, err))
-            return
-
+    def iter_test(self):
         # Handy tweaks when running locally to disable certain things
 
         action_chance = 0.1     # Chance of doing anything at all
@@ -239,8 +233,6 @@ class Iter_Test(rdtest.TestCase):
 
             draw = draw.next
 
-        self.controller.Shutdown()
-
     def run(self):
         dir_path = self.get_ref_path('', extra=True)
 
@@ -253,8 +245,22 @@ class Iter_Test(rdtest.TestCase):
 
             rdtest.log.print('Iterating {}'.format(file.name))
 
-            self.iter_test(file.path)
+            try:
+                self.controller = rdtest.open_capture(file.path)
+            except RuntimeError as err:
+                rdtest.log.print("Skipping. Can't open {}: {}".format(file.path, err))
+                continue
+
+            self.iter_test()
+
+            self.controller.Shutdown()
 
             rdtest.log.success("Iterated {}".format(file.name))
 
         rdtest.log.success("Iterated all files")
+
+    # Useful for calling from within the UI
+    def run_external(self, controller: rd.ReplayController):
+        self.controller = controller
+
+        self.iter_test()
