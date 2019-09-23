@@ -35,9 +35,10 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform PRECISION usampler2DMSArray srcMS;
 // binding = 1 used as stencil read in the depth-stencil copy fragment shaders
-layout(binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 
 #ifdef VULKAN
+
+layout(binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 
 layout(push_constant) uniform multisamplePush
 {
@@ -54,6 +55,8 @@ mscopy;
 #define currentStencil (mscopy.currentStencil)
 
 #else
+
+layout(rgba32ui, binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 
 uniform ivec4 mscopy;
 
