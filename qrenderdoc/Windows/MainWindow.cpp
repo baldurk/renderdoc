@@ -453,28 +453,33 @@ void MainWindow::on_action_Open_Capture_with_Options_triggered()
 
   ReplayOptionsSelector *replayOptions = new ReplayOptionsSelector(m_Ctx, true, this);
 
-  QDialog openWithOptions;
-  openWithOptions.setWindowFlags(openWithOptions.windowFlags() & ~Qt::WindowContextHelpButtonHint);
-  openWithOptions.setWindowIcon(windowIcon());
-  openWithOptions.setWindowTitle(tr("Open Capture with Options"));
-  openWithOptions.setSizeGripEnabled(false);
-  openWithOptions.setModal(true);
+  QDialog *openWithOptions = new QDialog(this);
+  openWithOptions->setWindowFlags(openWithOptions->windowFlags() & ~Qt::WindowContextHelpButtonHint);
+  openWithOptions->setWindowIcon(windowIcon());
+  openWithOptions->setWindowTitle(tr("Open Capture with Options"));
+  openWithOptions->setSizeGripEnabled(false);
+  openWithOptions->setModal(true);
 
   QVBoxLayout l;
   l.addWidget(replayOptions);
   l.setMargin(3);
   l.setSizeConstraint(QLayout::SetFixedSize);
 
-  openWithOptions.setLayout(&l);
+  openWithOptions->setLayout(&l);
 
-  QObject::connect(replayOptions, &ReplayOptionsSelector::canceled, &openWithOptions,
+  QObject::connect(replayOptions, &ReplayOptionsSelector::canceled, openWithOptions,
                    &QDialog::reject);
-  QObject::connect(replayOptions, &ReplayOptionsSelector::opened, &openWithOptions, &QDialog::accept);
+  QObject::connect(replayOptions, &ReplayOptionsSelector::opened, openWithOptions, &QDialog::accept);
 
-  if(RDDialog::show(&openWithOptions) != QDialog::Accepted)
+  if(RDDialog::show(openWithOptions) != QDialog::Accepted)
+  {
+    openWithOptions->deleteLater();
     return;
+  }
 
   QString filename = replayOptions->filename();
+
+  openWithOptions->deleteLater();
 
   if(filename.isEmpty())
     return;
