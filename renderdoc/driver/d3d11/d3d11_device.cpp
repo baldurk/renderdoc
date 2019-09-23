@@ -861,9 +861,9 @@ std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
     switch(message->Severity)
     {
       case D3D11_MESSAGE_SEVERITY_CORRUPTION: msg.severity = MessageSeverity::High; break;
-      case D3D11_MESSAGE_SEVERITY_ERROR: msg.severity = MessageSeverity::Medium; break;
-      case D3D11_MESSAGE_SEVERITY_WARNING: msg.severity = MessageSeverity::Low; break;
-      case D3D11_MESSAGE_SEVERITY_INFO: msg.severity = MessageSeverity::Info; break;
+      case D3D11_MESSAGE_SEVERITY_ERROR: msg.severity = MessageSeverity::High; break;
+      case D3D11_MESSAGE_SEVERITY_WARNING: msg.severity = MessageSeverity::Medium; break;
+      case D3D11_MESSAGE_SEVERITY_INFO: msg.severity = MessageSeverity::Low; break;
       case D3D11_MESSAGE_SEVERITY_MESSAGE: msg.severity = MessageSeverity::Info; break;
       default: RDCWARN("Unexpected message severity: %d", message->Severity); break;
     }
