@@ -348,9 +348,9 @@ void rdclog_flush()
 
 void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 {
-  static Threading::CriticalSection lock;
+  static Threading::CriticalSection *lock = new Threading::CriticalSection();
 
-  SCOPED_LOCK(lock);
+  SCOPED_LOCK(*lock);
 
 #if ENABLED(OUTPUT_LOG_TO_DEBUG_OUT)
   OSUtility::WriteOutput(OSUtility::Output_DebugMon, fullMsg);
@@ -412,9 +412,9 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
       "Debug  ", "Log    ", "Warning", "Error  ", "Fatal  ",
   };
 
-  static Threading::CriticalSection lock;
+  static Threading::CriticalSection *lock = new Threading::CriticalSection();
 
-  SCOPED_LOCK(lock);
+  SCOPED_LOCK(*lock);
 
   rdclog_outputBuffer[rdclog_outBufSize] = rdclog_outputBuffer[0] = 0;
 
