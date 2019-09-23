@@ -103,6 +103,17 @@ void main()
         {10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, VK_SHADER_STAGE_VERTEX_BIT},
     }));
 
+    VkSampler invalidSampler = (VkSampler)0x1234;
+    VkSampler validSampler = VK_NULL_HANDLE;
+    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    sampInfo.magFilter = VK_FILTER_LINEAR;
+    sampInfo.minFilter = VK_FILTER_LINEAR;
+    vkCreateSampler(device, &sampInfo, NULL, &validSampler);
+
+    VkDescriptorSetLayout immutsetlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, &validSampler},
+    }));
+
     VkDescriptorSetLayout pushlayout = VK_NULL_HANDLE;
     VkPipelineLayout layout;
 
@@ -123,6 +134,9 @@ void main()
       layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
     }
 
+    VkPipelineLayout immutlayout =
+        createPipelineLayout(vkh::PipelineLayoutCreateInfo({immutsetlayout}));
+
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
@@ -140,6 +154,10 @@ void main()
     };
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.layout = immutlayout;
+
+    VkPipeline immutpipe = createGraphicsPipeline(pipeCreateInfo);
 
     {
       // invalid handle - should not be used because the flag for derived pipelines is not used
@@ -203,12 +221,7 @@ void main()
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
-    VkSampler invalidSampler = (VkSampler)0x1234;
-    VkSampler validSampler = VK_NULL_HANDLE;
-    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_LINEAR;
-    sampInfo.minFilter = VK_FILTER_LINEAR;
-    vkCreateSampler(device, &sampInfo, NULL, &validSampler);
+    VkDescriptorSet immutdescset = allocateDescriptorSet(immutsetlayout);
 
     AllocatedBuffer buf(allocator,
                         vkh::BufferCreateInfo(1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
@@ -273,6 +286,11 @@ void main()
         vkh::WriteDescriptorSet(descset, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, validBufInfos),
         vkh::WriteDescriptorSet(descset, 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, validBufInfos),
         vkh::WriteDescriptorSet(descset, 9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, validBufInfos),
+
+        vkh::WriteDescriptorSet(immutdescset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                validCombinedImgs),
+        vkh::WriteDescriptorSet(immutdescset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                validSoloImgs),
     };
 
     // do a first update
@@ -318,6 +336,9 @@ void main()
 
     writes[9].pTexelBufferView = &invalidBufView;
     writes[9].pImageInfo = &invalidImgInfo;
+
+    writes[10].pTexelBufferView = &invalidBufView;
+    writes[10].pBufferInfo = &invalidBufInfo;
 
     vkh::updateDescriptorSets(device, writes);
 
@@ -468,6 +489,12 @@ void main()
                                   validBufInfos));
       if(KHR_descriptor_update_template && KHR_push_descriptor)
         vkCmdPushDescriptorSetWithTemplateKHR(cmd, pushtempl, layout, 1, &pushdata);
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutpipe);
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutlayout, 0,
+                                 {immutdescset}, {});
+
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);

@@ -835,6 +835,31 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
     for(uint32_t i = 0; i < writeCount; i++)
     {
       unwrappedWrites[i] = pDescriptorWrites[i];
+
+      bool hasImmutable = false;
+
+      if(IsCaptureMode(m_State))
+      {
+        VkResourceRecord *record = GetRecord(unwrappedWrites[i].dstSet);
+        RDCASSERT(record->descInfo && record->descInfo->layout);
+        const DescSetLayout &layout = *record->descInfo->layout;
+
+        RDCASSERT(unwrappedWrites[i].dstBinding < record->descInfo->descBindings.size());
+        const DescSetLayout::Binding *layoutBinding = &layout.bindings[unwrappedWrites[i].dstBinding];
+
+        hasImmutable = layoutBinding->immutableSampler != NULL;
+      }
+      else
+      {
+        const DescSetLayout &layout =
+            m_CreationInfo
+                .m_DescSetLayout[m_DescriptorSetState[GetResID(unwrappedWrites[i].dstSet)].layout];
+
+        const DescSetLayout::Binding *layoutBinding = &layout.bindings[unwrappedWrites[i].dstBinding];
+
+        hasImmutable = layoutBinding->immutableSampler != NULL;
+      }
+
       unwrappedWrites[i].dstSet = Unwrap(unwrappedWrites[i].dstSet);
 
       VkDescriptorBufferInfo *bufInfos = nextDescriptors;
@@ -863,7 +888,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       {
         bool hasSampler =
             (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+            !hasImmutable;
         bool hasImage =
             (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
              pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
@@ -1049,6 +1075,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
             bind.imageInfo.imageView = VK_NULL_HANDLE;
           else if(descWrite.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            bind.imageInfo.sampler = VK_NULL_HANDLE;
+
+          if(layoutBinding->immutableSampler)
             bind.imageInfo.sampler = VK_NULL_HANDLE;
         }
         else
