@@ -4333,14 +4333,24 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 
   if(IsCaptureMode(m_State))
   {
+    ContextData &cd = GetCtxData();
+
     if(array == 0)
     {
-      GetCtxData().m_VertexArrayRecord = record = NULL;
+      cd.m_VertexArrayRecord = record = NULL;
+
+      cd.m_BufferRecord[BufferIdx(eGL_ELEMENT_ARRAY_BUFFER)] = NULL;
     }
     else
     {
-      GetCtxData().m_VertexArrayRecord = record =
+      cd.m_VertexArrayRecord = record =
           GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
+
+      GLuint buffer = 0;
+      GL.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
+
+      cd.m_BufferRecord[BufferIdx(eGL_ELEMENT_ARRAY_BUFFER)] =
+          GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
     }
   }
 
@@ -4400,6 +4410,13 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
         GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
     GLResourceRecord *bufrecord =
         GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    ContextData &cd = GetCtxData();
+
+    if(cd.m_VertexArrayRecord == varecord)
+    {
+      cd.m_BufferRecord[BufferIdx(eGL_ELEMENT_ARRAY_BUFFER)] = bufrecord;
+    }
 
     GLResourceRecord *r = IsActiveCapturing(m_State) ? GetContextRecord() : varecord;
 
