@@ -67,6 +67,7 @@ struct DebugHit
   uint32_t isFrontFace;
   uint32_t sample;
   uint32_t coverage;
+  uint32_t rtArrayIndex;
   uint32_t rawdata;    // arbitrary, depending on shader
 };
 
@@ -2498,8 +2499,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   return ret;
 }
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
+ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
+                                         uint32_t rtArrayIndex, uint32_t sample, uint32_t primitive)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -2997,6 +2998,7 @@ struct PSInitialData
   uint fface;
   uint sample;
   uint covge;
+  uint rtArrayIndex;
   float derivValid;
 
   // input values
@@ -3022,18 +3024,21 @@ struct PSInitialData
   extractHlsl += R"(
 void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID,
                      uint sample : SV_SampleIndex, uint covge : SV_Coverage,
-                     bool fface : SV_IsFrontFace)
+                     uint debug_pixelArrayIndex : SV_RenderTargetArrayIndex, bool fface : SV_IsFrontFace)
 {
 )";
   extractHlsl += "  uint idx = " + ToStr(overdrawLevels) + ";\n";
   extractHlsl += StringFormat::Fmt(
-      "  if(abs(debug_pixelPos.x - %u.5) < 0.5f && abs(debug_pixelPos.y - %u.5) < 0.5f)\n", x, y);
+      "  if(abs(debug_pixelPos.x - %u.5) < 0.5f && abs(debug_pixelPos.y - %u.5) < 0.5f && "
+      "debug_pixelArrayIndex == %u)\n",
+      x, y, rtArrayIndex);
   extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
   extractHlsl += "  idx = min(idx, " + ToStr(overdrawLevels) + ");\n\n";
   extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
   extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
   extractHlsl += "  PSInitialBuffer[idx].fface = fface;\n";
   extractHlsl += "  PSInitialBuffer[idx].covge = covge;\n";
+  extractHlsl += "  PSInitialBuffer[idx].rtArrayIndex = debug_pixelArrayIndex;\n";
   extractHlsl += "  PSInitialBuffer[idx].sample = sample;\n";
   extractHlsl += "  PSInitialBuffer[idx].IN = IN;\n";
   extractHlsl += "  PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
@@ -3124,6 +3129,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
                           + sizeof(uint32_t)     // uint fface;
                           + sizeof(uint32_t)     // uint sample;
                           + sizeof(uint32_t)     // uint covge;
+                          + sizeof(uint32_t)     // uint rtArrayIndex;
                           + sizeof(float)        // float derivValid;
                           +
                           structureStride * 5;    // PSInput IN, INddx, INddy, INddxfine, INddyfine;

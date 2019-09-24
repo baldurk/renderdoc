@@ -527,7 +527,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugVertex, uint32_t eventId, uint32_t vertid,
                              uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugPixel, uint32_t eventId, uint32_t x, uint32_t y,
-                             uint32_t sample, uint32_t primitive);
+                             uint32_t rtArrayIndex, uint32_t sample, uint32_t primitive);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugThread, uint32_t eventId,
                              const uint32_t groupid[3], const uint32_t threadid[3]);
 

@@ -1489,8 +1489,9 @@ ShaderDebugTrace ReplayProxy::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                 uint32_t eventId, uint32_t x, uint32_t y,
+ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser,
+                                                 ReturnSerialiser &retser, uint32_t eventId,
+                                                 uint32_t x, uint32_t y, uint32_t rtArrayIndex,
                                                  uint32_t sample, uint32_t primitive)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_DebugPixel;
@@ -1510,7 +1511,7 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, Retu
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->DebugPixel(eventId, x, y, sample, primitive);
+      ret = m_Remote->DebugPixel(eventId, x, y, rtArrayIndex, sample, primitive);
   }
 
   SERIALISE_RETURN(ret);
@@ -1518,10 +1519,10 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, Retu
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
+ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
+                                         uint32_t rtArrayIndex, uint32_t sample, uint32_t primitive)
 {
-  PROXY_FUNCTION(DebugPixel, eventId, x, y, sample, primitive);
+  PROXY_FUNCTION(DebugPixel, eventId, x, y, rtArrayIndex, sample, primitive);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2676,7 +2677,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;
     case eReplayProxy_DebugVertex: DebugVertex(0, 0, 0, 0, 0, 0); break;
-    case eReplayProxy_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
+    case eReplayProxy_DebugPixel: DebugPixel(0, 0, 0, 0, 0, 0); break;
     case eReplayProxy_DebugThread:
     {
       uint32_t dummy1[3] = {0};

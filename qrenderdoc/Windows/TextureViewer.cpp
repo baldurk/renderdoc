@@ -3615,6 +3615,7 @@ void TextureViewer::on_debugPixelContext_clicked()
 
   int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+  int rtArrayIndex = m_TexDisplay.sliceFace;
 
   TextureDescription *texptr = GetCurrentTexture();
 
@@ -3626,8 +3627,9 @@ void TextureViewer::on_debugPixelContext_clicked()
   bool done = false;
   ShaderDebugTrace *trace = NULL;
 
-  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y](IReplayController *r) {
-    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
+  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y, rtArrayIndex](IReplayController *r) {
+    trace =
+        r->DebugPixel((uint32_t)x, (uint32_t)y, (uint32_t)rtArrayIndex, m_TexDisplay.sampleIdx, ~0U);
 
     if(trace->states.isEmpty())
     {
@@ -3639,7 +3641,7 @@ void TextureViewer::on_debugPixelContext_clicked()
 
   });
 
-  QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
+  QString debugContext = tr("Pixel %1,%2,%3").arg(x).arg(y).arg(rtArrayIndex);
 
   // wait a short while before displaying the progress dialog (which won't show if we're already
   // done by the time we reach it)

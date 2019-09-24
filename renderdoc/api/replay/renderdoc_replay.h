@@ -1279,8 +1279,8 @@ only ever have one result (only one entry point per shader).
   :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
-  virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
-                                       uint32_t primitive) = 0;
+  virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t rtArrayIndex,
+                                       uint32_t sample, uint32_t primitive) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a compute thread.
 
