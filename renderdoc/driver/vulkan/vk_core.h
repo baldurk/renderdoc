@@ -70,6 +70,30 @@ enum class VkIndirectPatchType
   DrawIndirectByteCount,
 };
 
+enum class EventFlags : uint32_t
+{
+  NoFlags = 0x0,
+  VertexRWUsage = 1 << uint32_t(ShaderStage::Vertex),
+  TessControlRWUsage = 1 << uint32_t(ShaderStage::Tess_Control),
+  TessEvalRWUsage = 1 << uint32_t(ShaderStage::Tess_Eval),
+  GeometryRWUsage = 1 << uint32_t(ShaderStage::Geometry),
+};
+
+BITMASK_OPERATORS(EventFlags);
+
+constexpr inline EventFlags PipeStageRWEventFlags(ShaderStage stage)
+{
+  return EventFlags(1 << uint32_t(stage));
+}
+
+inline EventFlags PipeRWUsageEventFlags(ResourceUsage usage)
+{
+  if(usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::GS_RWResource)
+    return PipeStageRWEventFlags(
+        ShaderStage(uint32_t(usage) - uint32_t(ResourceUsage::VS_RWResource)));
+  return EventFlags::NoFlags;
+}
+
 struct VkIndirectRecordData
 {
   VkBufferMemoryBarrier paramsBarrier, countBarrier;
@@ -755,6 +779,7 @@ private:
   VulkanCreationInfo m_CreationInfo;
 
   std::map<ResourceId, std::vector<EventUsage>> m_ResourceUses;
+  std::map<uint32_t, EventFlags> m_EventFlags;
 
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);
@@ -956,6 +981,7 @@ public:
   uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
   uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
 
+  EventFlags GetEventFlags(uint32_t eid) { return m_EventFlags[eid]; }
   std::vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   // return the pre-selected device and queue
   VkDevice GetDev()
