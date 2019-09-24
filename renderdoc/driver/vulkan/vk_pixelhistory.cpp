@@ -24,6 +24,8 @@
 
 #include <float.h>
 #include <vector>
+#include "driver/shaders/spirv/spirv_editor.h"
+#include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "driver/vulkan/vk_debug.h"
 #include "driver/vulkan/vk_replay.h"
 #include "vk_shader_cache.h"
@@ -190,6 +192,12 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     {
       m_pDriver->vkDestroyPipeline(m_pDriver->GetDev(), it->second.occlusion, NULL);
     }
+
+    for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
+    {
+      if(it->second != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), it->second, NULL);
+    }
   }
 
   void CopyPixel(VkImage srcImage, VkFormat srcFormat, VkImage depthImage, VkFormat depthFormat,
@@ -270,10 +278,125 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     }
   }
 
+  // Returns true if the shader was modified.
+  bool StripSideEffects(const SPIRVPatchData &patchData, const char *entryName,
+                        std::vector<uint32_t> &modSpirv)
+  {
+    rdcspv::Editor editor(modSpirv);
+
+    editor.Prepare();
+
+    rdcspv::Id entryID;
+    for(const rdcspv::EntryPoint &entry : editor.GetEntries())
+    {
+      if(entry.name == entryName)
+      {
+        entryID = entry.id;
+        break;
+      }
+    }
+    bool modified = false;
+
+    std::set<rdcspv::Id> patchedFunctions;
+    std::set<rdcspv::Id> functionPatchQueue;
+    functionPatchQueue.insert(entryID);
+
+    while(!functionPatchQueue.empty())
+    {
+      rdcspv::Id funcId;
+      {
+        auto it = functionPatchQueue.begin();
+        funcId = *functionPatchQueue.begin();
+        functionPatchQueue.erase(it);
+        patchedFunctions.insert(funcId);
+      }
+
+      rdcspv::Iter it = editor.GetID(funcId);
+      RDCASSERT(it.opcode() == rdcspv::Op::Function);
+
+      it++;
+
+      for(; it; ++it)
+      {
+        rdcspv::Op opcode = it.opcode();
+        if(opcode == rdcspv::Op::FunctionEnd)
+          break;
+
+        switch(opcode)
+        {
+          case rdcspv::Op::FunctionCall:
+          {
+            rdcspv::OpFunctionCall call(it);
+            if(functionPatchQueue.find(call.function) == functionPatchQueue.end() &&
+               patchedFunctions.find(call.function) == patchedFunctions.end())
+              functionPatchQueue.insert(call.function);
+            break;
+          }
+          case rdcspv::Op::CopyMemory:
+          case rdcspv::Op::AtomicStore:
+          case rdcspv::Op::Store:
+          {
+            rdcspv::Id pointer = rdcspv::Id::fromWord(it.word(1));
+            rdcspv::Id pointerType = editor.GetIDType(pointer);
+            RDCASSERT(pointerType != rdcspv::Id());
+            rdcspv::Iter pointerTypeIt = editor.GetID(pointerType);
+            rdcspv::OpTypePointer ptr(pointerTypeIt);
+            if(ptr.storageClass == rdcspv::StorageClass::Uniform ||
+               ptr.storageClass == rdcspv::StorageClass::StorageBuffer)
+            {
+              editor.Remove(it);
+              modified = true;
+            }
+            break;
+          }
+          case rdcspv::Op::ImageWrite:
+          {
+            editor.Remove(it);
+            modified = true;
+            break;
+          }
+          case rdcspv::Op::AtomicExchange:
+          case rdcspv::Op::AtomicCompareExchange:
+          case rdcspv::Op::AtomicCompareExchangeWeak:
+          case rdcspv::Op::AtomicIIncrement:
+          case rdcspv::Op::AtomicIDecrement:
+          case rdcspv::Op::AtomicIAdd:
+          case rdcspv::Op::AtomicISub:
+          case rdcspv::Op::AtomicSMin:
+          case rdcspv::Op::AtomicUMin:
+          case rdcspv::Op::AtomicSMax:
+          case rdcspv::Op::AtomicUMax:
+          case rdcspv::Op::AtomicAnd:
+          case rdcspv::Op::AtomicOr:
+          case rdcspv::Op::AtomicXor:
+          {
+            rdcspv::IdResultType resultType = rdcspv::IdResultType::fromWord(it.word(1));
+            rdcspv::IdResult result = rdcspv::IdResult::fromWord(it.word(2));
+            rdcspv::Id pointer = rdcspv::Id::fromWord(it.word(3));
+            rdcspv::IdScope memory = rdcspv::IdScope::fromWord(it.word(4));
+            rdcspv::IdMemorySemantics semantics = rdcspv::IdMemorySemantics::fromWord(it.word(5));
+            editor.Remove(it);
+            // All of these instructions produce a result ID that is the original
+            // value stored at the pointer. Since we removed the original instruction
+            // we replace it with an OpAtomicLoad in case the result ID is used.
+            // This is currently best effort and might be incorrect in some cases
+            // (for ex. if shader invocations need to see the updated value).
+            editor.AddOperation(
+                it, rdcspv::OpAtomicLoad(resultType, result, pointer, memory, semantics));
+            modified = true;
+            break;
+          }
+          default: break;
+        }
+      }
+    }
+    return modified;
+  }
+
   // CreatePipelineForOcclusion creates a graphics VkPipeline to use for occlusion
   // queries. The pipeline uses a fixed colour shader, disables all tests, and
   // scissors to just the pixel we are interested in.
-  VkPipeline CreatePipelineForOcclusion(ResourceId pipeline)
+  VkPipeline CreatePipelineForOcclusion(ResourceId pipeline, VkShaderModule *replacementShaders)
   {
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipeline);
@@ -302,6 +425,12 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
       {
         stages[i].module = m_FixedColFS;
         stages[i].pName = "main";
+      }
+      else
+      {
+        VkShaderModule replacement = replacementShaders[StageIndex(stages[i].stage)];
+        if(replacement != VK_NULL_HANDLE)
+          stages[i].module = replacement;
       }
     }
     pipeCreateInfo.pStages = stages.data();
@@ -339,6 +468,61 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
                                                         &pipeCreateInfo, NULL, &pipe);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
     return pipe;
+  }
+
+  VkShaderModule CreateShaderReplacement(const VulkanCreationInfo::Pipeline::Shader &shader)
+  {
+    const VulkanCreationInfo::ShaderModule &moduleInfo =
+        m_pDriver->GetRenderState().m_CreationInfo->m_ShaderModule[shader.module];
+    rdcpair<ResourceId, rdcstr> shaderKey(shader.module, shader.entryPoint);
+    auto it = m_ShaderCache.find(shaderKey);
+    // Check if we processed this shader before.
+    if(it != m_ShaderCache.end())
+      return it->second;
+    std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+    bool modified = StripSideEffects(*shader.patchData, shader.entryPoint.c_str(), modSpirv);
+    // In some cases a shader might just be binding a RW resource but not writing to it.
+    // If there are no writes (shader was not modified), no need to replace the shader,
+    // just insert VK_NULL_HANDLE to indicate that this shader has been processed.
+    VkShaderModule module;
+    if(!modified)
+    {
+      module = VK_NULL_HANDLE;
+    }
+    else
+    {
+      VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+      moduleCreateInfo.pCode = modSpirv.data();
+      moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
+      VkResult vkr =
+          m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL, &module);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+    m_ShaderCache.insert(std::make_pair(shaderKey, module));
+    return module;
+  }
+
+  PipelineReplacements CreatePipelineReplacements(uint32_t eid, ResourceId pipeline)
+  {
+    const VulkanCreationInfo::Pipeline &p =
+        m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipeline];
+
+    EventFlags eventFlags = m_pDriver->GetEventFlags(eid);
+    VkShaderModule replacementShaders[4] = {};
+
+    if(m_pDriver->GetDeviceFeatures().vertexPipelineStoresAndAtomics)
+    {
+      uint32_t numberOfStages = 4;
+      for(size_t i = 0; i < numberOfStages; i++)
+      {
+        if((eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
+          replacementShaders[i] = CreateShaderReplacement(p.shaders[i]);
+      }
+    }
+
+    PipelineReplacements replacements = {};
+    replacements.occlusion = CreatePipelineForOcclusion(pipeline, replacementShaders);
+    return replacements;
   }
 
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -385,13 +569,12 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
       else
       {
         // TODO: Create other pipeline replacements
-        replacements.occlusion = CreatePipelineForOcclusion(pipestate.graphics.pipeline);
-
+        replacements = CreatePipelineReplacements(eid, pipestate.graphics.pipeline);
         m_PipelineCache.insert(std::make_pair(pipestate.graphics.pipeline, replacements));
       }
-
       const VulkanCreationInfo::Pipeline &p =
-          pipestate.m_CreationInfo->m_Pipeline[pipestate.graphics.pipeline];
+          m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipestate.graphics.pipeline];
+
       if(p.dynamicStates[VkDynamicViewport])
         for(uint32_t i = 0; i < pipestate.views.size(); i++)
           UpdateScissor(pipestate.views[i], pipestate.scissors[i]);
@@ -400,9 +583,6 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
       pipestate.renderPass = GetResID(m_RenderPass);
       pipestate.subpass = 0;
       pipestate.graphics.pipeline = GetResID(replacements.occlusion);
-      // TODO: Draws might have side-effects (writing to storage images/buffers).
-      // Consider re-writing SPIR-V for all shaders except fragment shader
-      // to remove all stores.s
       ReplayDraw(cmd, (uint32_t)m_OcclusionQueries.size(), eid, true);
 
       m_OcclusionQueries.insert(
@@ -521,6 +701,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
   VkRenderPass m_RenderPass;
   VkFramebuffer m_OffscreenFB;
   std::map<ResourceId, PipelineReplacements> m_PipelineCache;
+  std::map<rdcpair<ResourceId, rdcstr>, VkShaderModule> m_ShaderCache;
 
   VulkanRenderState m_PrevState;
 };

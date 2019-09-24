@@ -696,6 +696,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       EventUsage u = it->second;
       u.eventId += m_RootEventID;
       m_ResourceUses[it->first].push_back(u);
+      m_EventFlags[u.eventId] |= PipeRWUsageEventFlags(u.usage);
     }
 
     GetDrawcallStack().back()->children.push_back(n);
