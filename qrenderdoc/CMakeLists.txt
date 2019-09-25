@@ -165,7 +165,7 @@ file(WRITE
 if(CMAKE_COMPILER_IS_GNUCXX)
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-        "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation\n")
+        "QMAKE_CXXFLAGS+=-Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation\n")
 endif()
 
 if(ENABLE_WAYLAND)
