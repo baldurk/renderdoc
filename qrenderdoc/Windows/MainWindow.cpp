@@ -111,11 +111,14 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   QObject::connect(ui->action_Launch_Application_Window, &QAction::triggered, this,
                    &MainWindow::on_action_Launch_Application_triggered);
 
-  QObject::connect(ui->action_Clear_Capture_Files_History, &QAction::triggered, this,
-                   &MainWindow::ClearRecentCaptureFiles);
-  QObject::connect(ui->action_Clear_Capture_Settings_History, &QAction::triggered, this,
-                   &MainWindow::ClearRecentCaptureSettings);
-
+  QObject::connect(ui->action_Clear_All_Capture_Files_History, &QAction::triggered, this,
+                   &MainWindow::ClearAllRecentCaptureFiles);
+  QObject::connect(ui->action_Clear_Missing_Capture_Files_History, &QAction::triggered, this,
+                   &MainWindow::ClearMissingRecentCaptureFiles);
+  QObject::connect(ui->action_Clear_All_Capture_Settings_History, &QAction::triggered, this,
+                   &MainWindow::ClearAllRecentCaptureSettings);
+  QObject::connect(ui->action_Clear_Missing_Capture_Settings_History, &QAction::triggered, this,
+                   &MainWindow::ClearMissingRecentCaptureSettings);
   contextChooserMenu = new QMenu(this);
 
   FillRemotesMenu(contextChooserMenu, true);
@@ -1118,9 +1121,27 @@ bool MainWindow::IsVersionMismatched()
   return QString::fromLatin1(RENDERDOC_GetVersionString()) != lit(MAJOR_MINOR_VERSION_STRING);
 }
 
-void MainWindow::ClearRecentCaptureFiles()
+void MainWindow::ClearAllRecentCaptureFiles()
 {
   m_Ctx.Config().RecentCaptureFiles.clear();
+  PopulateRecentCaptureFiles();
+}
+
+void MainWindow::ClearMissingRecentCaptureFiles()
+{
+  int i = 0;
+  while(i < m_Ctx.Config().RecentCaptureFiles.count())
+  {
+    QString filename = m_Ctx.Config().RecentCaptureFiles[i];
+    if(!QFileInfo::exists(filename))
+    {
+      m_Ctx.Config().RecentCaptureFiles.removeOne(filename);
+    }
+    else
+    {
+      i++;
+    }
+  }
   PopulateRecentCaptureFiles();
 }
 
@@ -1136,20 +1157,48 @@ void MainWindow::PopulateRecentCaptureFiles()
     QString filename = m_Ctx.Config().RecentCaptureFiles[i];
     QString filenameDisplay = filename;
     filenameDisplay.replace(QLatin1Char('&'), lit("&&"));
-    ui->menu_Recent_Capture_Files->addAction(QFormatStr("&%1 %2").arg(idx).arg(filenameDisplay),
-                                             [this, filename] { recentCaptureFile(filename); });
+    bool fileExists = QFileInfo::exists(filename);
+    QAction *action =
+        ui->menu_Recent_Capture_Files->addAction(QFormatStr("&%1 %2 %3")
+                                                     .arg(idx)
+                                                     .arg(filenameDisplay)
+                                                     .arg(fileExists ? lit("") : tr("(missing)")),
+                                                 [this, filename] { recentCaptureFile(filename); });
+    if(!fileExists)
+    {
+      action->setEnabled(false);
+    }
     idx++;
 
     ui->menu_Recent_Capture_Files->setEnabled(true);
   }
 
   ui->menu_Recent_Capture_Files->addSeparator();
-  ui->menu_Recent_Capture_Files->addAction(ui->action_Clear_Capture_Files_History);
+  ui->menu_Recent_Capture_Files->addAction(ui->action_Clear_All_Capture_Files_History);
+  ui->menu_Recent_Capture_Files->addAction(ui->action_Clear_Missing_Capture_Files_History);
 }
 
-void MainWindow::ClearRecentCaptureSettings()
+void MainWindow::ClearAllRecentCaptureSettings()
 {
   m_Ctx.Config().RecentCaptureSettings.clear();
+  PopulateRecentCaptureSettings();
+}
+
+void MainWindow::ClearMissingRecentCaptureSettings()
+{
+  int i = 0;
+  while(i < m_Ctx.Config().RecentCaptureSettings.count())
+  {
+    QString filename = m_Ctx.Config().RecentCaptureSettings[i];
+    if(!QFileInfo::exists(filename))
+    {
+      m_Ctx.Config().RecentCaptureSettings.removeOne(filename);
+    }
+    else
+    {
+      i++;
+    }
+  }
   PopulateRecentCaptureSettings();
 }
 
@@ -1165,15 +1214,25 @@ void MainWindow::PopulateRecentCaptureSettings()
     QString filename = m_Ctx.Config().RecentCaptureSettings[i];
     QString filenameDisplay = filename;
     filenameDisplay.replace(QLatin1Char('&'), lit("&&"));
-    ui->menu_Recent_Capture_Settings->addAction(QFormatStr("&%1 %2").arg(idx).arg(filenameDisplay),
-                                                [this, filename] { recentCaptureSetting(filename); });
+    bool fileExists = QFileInfo::exists(filename);
+    QAction *action = ui->menu_Recent_Capture_Settings->addAction(
+        QFormatStr("&%1 %2 %3")
+            .arg(idx)
+            .arg(filenameDisplay)
+            .arg(fileExists ? lit("") : tr("(missing)")),
+        [this, filename] { recentCaptureSetting(filename); });
+    if(!fileExists)
+    {
+      action->setEnabled(false);
+    }
     idx++;
 
     ui->menu_Recent_Capture_Settings->setEnabled(true);
   }
 
   ui->menu_Recent_Capture_Settings->addSeparator();
-  ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Capture_Settings_History);
+  ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_All_Capture_Settings_History);
+  ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Missing_Capture_Settings_History);
 }
 
 void MainWindow::on_action_Clear_Reported_Bugs_triggered()

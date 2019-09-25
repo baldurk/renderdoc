@@ -164,8 +164,10 @@ private slots:
   void switchContext();
   void contextChooser_menuShowing();
 
-  void ClearRecentCaptureFiles();
-  void ClearRecentCaptureSettings();
+  void ClearAllRecentCaptureFiles();
+  void ClearMissingRecentCaptureFiles();
+  void ClearAllRecentCaptureSettings();
+  void ClearMissingRecentCaptureSettings();
 
 private:
   void closeEvent(QCloseEvent *event) override;

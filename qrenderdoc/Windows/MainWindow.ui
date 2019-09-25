@@ -72,14 +72,16 @@
       <string>&amp;Recent Captures</string>
      </property>
      <addaction name="separator"/>
-     <addaction name="action_Clear_Capture_Files_History"/>
+     <addaction name="action_Clear_All_Capture_Files_History"/>
+     <addaction name="action_Clear_Missing_Capture_Files_History"/>
     </widget>
     <widget class="QMenu" name="menu_Recent_Capture_Settings">
      <property name="title">
       <string>Recent Capture Settings</string>
      </property>
      <addaction name="separator"/>
-     <addaction name="action_Clear_Capture_Settings_History"/>
+     <addaction name="action_Clear_All_Capture_Settings_History"/>
+     <addaction name="action_Clear_Missing_Capture_Settings_History"/>
     </widget>
     <widget class="QMenu" name="menu_Export_As">
      <property name="title">
@@ -402,14 +404,24 @@
     <string>&amp;About</string>
    </property>
   </action>
-  <action name="action_Clear_Capture_Files_History">
+  <action name="action_Clear_All_Capture_Files_History">
    <property name="text">
-    <string>Clear History</string>
+    <string>Clear All</string>
    </property>
   </action>
-  <action name="action_Clear_Capture_Settings_History">
+  <action name="action_Clear_Missing_Capture_Files_History">
    <property name="text">
-    <string>Clear History</string>
+    <string>Clear Missing</string>
+   </property>
+  </action>
+  <action name="action_Clear_All_Capture_Settings_History">
+   <property name="text">
+    <string>Clear All</string>
+   </property>
+  </action>
+  <action name="action_Clear_Missing_Capture_Settings_History">
+   <property name="text">
+    <string>Clear Missing</string>
    </property>
   </action>
   <action name="action_Statistics_Viewer">
