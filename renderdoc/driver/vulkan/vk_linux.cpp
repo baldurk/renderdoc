@@ -316,9 +316,8 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 #if ENABLED(RDOC_WAYLAND)
   if(outw.m_WindowSystem == WindowingSystem::Wayland)
   {
-    RDCWARN("Need Wayland query for current surface dimensions");
-    w = RDCMAX(1U, outw.width);
-    h = RDCMAX(1U, outw.height);
+    w = 1280;
+    h = 720;
 
     return;
   }

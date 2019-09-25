@@ -38,9 +38,29 @@
 
 #if defined(RENDERDOC_WINDOWING_XLIB)
 #include <X11/Xlib-xcb.h>
+#elif defined(RENDERDOC_WINDOWING_WAYLAND)
+#include <wayland-client.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <errno.h>
 #endif
 
 #include <replay/renderdoc_replay.h>
+
+#if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
+  static Display *display = NULL;
+#elif defined(RENDERDOC_WINDOWING_WAYLAND)
+  static struct wl_display *display = NULL;
+  static struct wl_registry *registry = NULL;
+  static struct wl_compositor *compositor = NULL;
+
+  static struct wl_surface *surface = NULL;
+  static struct wl_shell *shell = NULL;
+  static struct wl_shell_surface *shell_surface = NULL;
+  static struct wl_shm *shm = NULL;
+  static struct wl_buffer *buffer = NULL;
+  static void *shm_data = NULL;
+#endif
 
 void Daemonise()
 {
@@ -195,7 +215,164 @@ void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
   add_command("vulkanregister", new VulkanRegisterCommand(env));
 }
 
-static Display *display = NULL;
+#if defined(RENDERDOC_WINDOWING_WAYLAND)
+
+static void shm_format(void *data, struct wl_shm *wl_shm, uint32_t format)
+{
+}
+
+static const struct wl_shm_listener shm_listener = {
+  shm_format,
+};
+
+static void registry_handler(void *data, struct wl_registry *registry, uint32_t id,
+         const char *interface, uint32_t version)
+{
+    if (strcmp(interface, "wl_compositor") == 0)
+    {
+      compositor = (wl_compositor *) wl_registry_bind(registry, id,
+                    &wl_compositor_interface, 1);
+    }
+    else if (strcmp(interface, "wl_shell") == 0)
+    {
+      shell = (wl_shell *) wl_registry_bind(registry, id, &wl_shell_interface, 1);
+    }
+    else if (strcmp(interface, "wl_shm") == 0)
+    {
+        shm = (wl_shm *) wl_registry_bind(registry, id, &wl_shm_interface, 1);
+        wl_shm_add_listener(shm, &shm_listener, NULL);
+    }
+}
+
+static void registry_remover(void *data, struct wl_registry *registry, uint32_t id)
+{
+    printf("Got a registry losing event for %d\n", id);
+}
+
+static const struct wl_registry_listener registry_listener = {
+  registry_handler,
+  registry_remover
+};
+
+static int set_cloexec_or_close(int fd)
+{
+  long flags;
+
+  if (fd == -1)
+    return -1;
+
+  flags = fcntl(fd, F_GETFD);
+  if (flags == -1)
+    goto err;
+
+  if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
+    goto err;
+
+  return fd;
+
+err:
+  close(fd);
+  return -1;
+}
+
+static int create_tmpfile_cloexec(char *tmpname)
+{
+  int fd;
+
+#ifdef HAVE_MKOSTEMP
+  fd = mkostemp(tmpname, O_CLOEXEC);
+  if (fd >= 0)
+    unlink(tmpname);
+#else
+  fd = mkstemp(tmpname);
+  if (fd >= 0) {
+    fd = set_cloexec_or_close(fd);
+    unlink(tmpname);
+  }
+#endif
+
+  return fd;
+}
+
+static int os_create_anonymous_file(off_t size)
+{
+  static char temp[] = "/weston-shared-XXXXXX";
+  const char *path;
+  char *name;
+  int fd;
+
+  path = getenv("XDG_RUNTIME_DIR");
+  if (!path) {
+    errno = ENOENT;
+    return -1;
+  }
+
+  name = (char *) malloc(strlen(path) + sizeof(temp));
+  if (!name)
+    return -1;
+
+  strcpy(name, path);
+  strcat(name, temp);
+
+  fd = create_tmpfile_cloexec(name);
+
+  free(name);
+
+  if (fd < 0)
+    return -1;
+
+  if (ftruncate(fd, size) < 0) {
+    close(fd);
+    return -1;
+  }
+
+  return fd;
+}
+
+static struct wl_buffer *create_buffer(uint32_t width, uint32_t height)
+{
+  struct wl_shm_pool *pool;
+  int stride = width * 4; // 4 bytes per pixel
+  int size = stride * height;
+  int fd;
+  struct wl_buffer *buff;
+
+  fd = os_create_anonymous_file(size);
+  if (fd < 0)
+  {
+    std::cerr << "Creating a buffer file for " << size << " B failed" << std::endl;
+    return NULL;
+  }
+
+  shm_data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (shm_data == MAP_FAILED)
+  {
+    std::cerr << "mmap failed" << std::endl;
+    close(fd);
+    return NULL;
+  }
+
+  pool = wl_shm_create_pool(shm, fd, size);
+  buff = wl_shm_pool_create_buffer(pool, 0, width, height,
+          stride, WL_SHM_FORMAT_XRGB8888);
+
+  wl_shm_pool_destroy(pool);
+  return buff;
+}
+
+static void create_window(uint32_t width, uint32_t height)
+{
+  buffer = create_buffer(width, height);
+  if(buffer == NULL) {
+    std::cerr << "Failed to create buffer for Wayland surface" << std::endl;
+    return;
+  }
+
+  wl_surface_attach(surface, buffer, 0, 0);
+  wl_surface_damage(surface, 0, 0, width, height);
+  wl_surface_commit(surface);
+}
+#endif
 
 WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
 {
@@ -314,6 +491,7 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height, uint32_t numLoops)
 {
+  IReplayOutput *out = NULL;
 // we only have the preview implemented for platforms that have xlib & xcb. It's unlikely
 // a meaningful platform exists with only one, and at the time of writing no other windowing
 // systems are supported on linux for the replay
@@ -386,8 +564,6 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
       xcb = true;
   }
 
-  IReplayOutput *out = NULL;
-
   // prefer xcb
   if(xcb)
   {
@@ -456,6 +632,73 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
     if(numLoops > 0 && loopCount == numLoops)
       break;
   }
+#elif defined(RENDERDOC_WINDOWING_WAYLAND)
+  // Wayland should be used only if it is the only option set at build time.
+  if(display == NULL)
+  {
+    std::cerr << "Could not open Wayland display" << std::endl;
+    return;
+  }
+
+  struct wl_registry *registry = wl_display_get_registry(display);
+  if (registry == NULL)
+  {
+    std::cerr << "Could not get Wayland registry!" <<std::endl;
+    return;
+  }
+
+  registry = wl_display_get_registry(display);
+  wl_registry_add_listener(registry, &registry_listener, NULL);
+
+  wl_display_dispatch(display);
+  wl_display_roundtrip(display);
+
+  if (!compositor || !shell)
+  {
+    std::cerr << "Could not bind Wayland protocols!" << std::endl;
+    return;
+  }
+
+  surface = wl_compositor_create_surface(compositor);
+  if(surface == NULL)
+  {
+    std::cerr << "Could not create surface for Wayland compositor" << std::endl;
+    return;
+  }
+
+  shell_surface = wl_shell_get_shell_surface(shell, surface);
+  if(shell_surface == NULL)
+  {
+    std::cerr << "Could not get shell surface for Wayland surface" << std::endl;
+    return;
+  }
+
+  wl_shell_surface_set_toplevel(shell_surface);
+
+  create_window(width, height);
+
+  out = renderer->CreateOutput(CreateWaylandWindowingData(display, surface),
+                            ReplayOutputType::Texture);
+
+  out->SetTextureDisplay(displayCfg);
+
+  uint32_t loopCount = 0;
+  bool done = false;
+  while(!done)
+  {
+    if(wl_display_dispatch(display) == -1)
+      done = true;
+
+    renderer->SetFrameEvent(10000000, true);
+    out->Display();
+
+    usleep(100000);
+
+    loopCount++;
+
+    if(numLoops > 0 && loopCount == numLoops)
+      break;
+  }
 #else
   std::cerr << "No supporting windowing systems defined at build time (xlib and xcb)" << std::endl;
 #endif
@@ -484,6 +727,8 @@ int main(int argc, char *argv[])
 
   // we don't check if display successfully opened, it's only a problem if it's needed later.
   display = env.xlibDisplay = XOpenDisplay(NULL);
+#elif defined(RENDERDOC_WINDOWING_WAYLAND)
+  display = env.waylandDisplay = wl_display_connect(NULL);
 #endif
 
 #if defined(RENDERDOC_SUPPORT_VULKAN)

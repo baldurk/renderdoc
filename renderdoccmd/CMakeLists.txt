@@ -38,6 +38,10 @@ elseif(UNIX)
         list(APPEND libraries PRIVATE -lX11-xcb)
     endif()
 
+    if(ENABLE_WAYLAND)
+        list(APPEND libraries PRIVATE -lwayland-client)
+    endif()
+
     # Make sure that for the target executable we don't throw away
     # any shared libraries.
     set(LINKER_FLAGS "-Wl,--no-as-needed")
