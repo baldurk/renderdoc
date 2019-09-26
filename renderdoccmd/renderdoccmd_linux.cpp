@@ -40,9 +40,11 @@
 #include <X11/Xlib-xcb.h>
 #elif defined(RENDERDOC_WINDOWING_WAYLAND)
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <linux/input.h>
 #endif
 
 #include <replay/renderdoc_replay.h>
@@ -57,9 +59,28 @@
   static struct wl_surface *surface = NULL;
   static struct wl_shell *shell = NULL;
   static struct wl_shell_surface *shell_surface = NULL;
+  static struct wl_seat *seat = NULL;
+
   static struct wl_shm *shm = NULL;
   static struct wl_buffer *buffer = NULL;
   static void *shm_data = NULL;
+
+  static struct wl_keyboard *keyboard = NULL;
+  static struct wl_pointer *pointer = NULL;
+
+  static struct wl_cursor_theme *cursor_theme = NULL;
+  static struct wl_cursor *default_cursor = NULL;
+  static struct wl_surface *cursor_surface =NULL;
+
+  static uint32_t base_width;
+  static uint32_t base_height;
+  static uint32_t fullscreen_width = 1920;
+  static uint32_t fullscreen_height = 1080;
+  uint32_t *global_width;
+  uint32_t *global_height;
+
+  static bool fullscreen = false;
+  static bool esc_pressed = false;
 #endif
 
 void Daemonise()
@@ -217,6 +238,8 @@ void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
 
 #if defined(RENDERDOC_WINDOWING_WAYLAND)
 
+static void create_window(uint32_t width, uint32_t height);
+
 static void shm_format(void *data, struct wl_shm *wl_shm, uint32_t format)
 {
 }
@@ -225,28 +248,181 @@ static const struct wl_shm_listener shm_listener = {
   shm_format,
 };
 
-static void registry_handler(void *data, struct wl_registry *registry, uint32_t id,
-         const char *interface, uint32_t version)
+static void pointer_handle_enter(void *data, struct wl_pointer *pointer,
+                                  uint32_t serial, struct wl_surface *surface,
+                                  wl_fixed_t sx, wl_fixed_t sy)
 {
-    if (strcmp(interface, "wl_compositor") == 0)
-    {
-      compositor = (wl_compositor *) wl_registry_bind(registry, id,
-                    &wl_compositor_interface, 1);
-    }
-    else if (strcmp(interface, "wl_shell") == 0)
-    {
-      shell = (wl_shell *) wl_registry_bind(registry, id, &wl_shell_interface, 1);
-    }
-    else if (strcmp(interface, "wl_shm") == 0)
-    {
-        shm = (wl_shm *) wl_registry_bind(registry, id, &wl_shm_interface, 1);
-        wl_shm_add_listener(shm, &shm_listener, NULL);
-    }
+  struct wl_buffer *buff;
+  struct wl_cursor_image *image;
+
+  image = default_cursor->images[0];
+  buff = wl_cursor_image_get_buffer(image);
+  wl_pointer_set_cursor(pointer, serial, cursor_surface, image->hotspot_x,
+                        image->hotspot_y);
+  wl_surface_attach(cursor_surface, buff, 0, 0);
+  wl_surface_damage(cursor_surface, 0, 0, image->width, image->height);
+  wl_surface_commit(cursor_surface);
 }
 
-static void registry_remover(void *data, struct wl_registry *registry, uint32_t id)
+static void pointer_handle_leave(void *data, struct wl_pointer *pointer,
+                                  uint32_t serial, struct wl_surface *surface)
 {
-    printf("Got a registry losing event for %d\n", id);
+}
+
+static void pointer_handle_motion(void *data, struct wl_pointer *pointer,
+                                  uint32_t time, wl_fixed_t sx, wl_fixed_t sy)
+{
+}
+
+static void pointer_handle_button(void *data, struct wl_pointer *wl_pointer,
+                                  uint32_t serial, uint32_t time,
+                                  uint32_t button, uint32_t state)
+{
+  if (button == BTN_LEFT && state == WL_POINTER_BUTTON_STATE_PRESSED)
+    wl_shell_surface_move(shell_surface, seat, serial);
+}
+
+static void pointer_handle_axis(void *data, struct wl_pointer *wl_pointer,
+                                uint32_t time, uint32_t axis, wl_fixed_t value)
+{
+}
+
+static const struct wl_pointer_listener pointer_listener = {
+  pointer_handle_enter,
+  pointer_handle_leave,
+  pointer_handle_motion,
+  pointer_handle_button,
+  pointer_handle_axis,
+};
+
+static void keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard,
+                                    uint32_t format, int fd, uint32_t size)
+{
+}
+
+static void keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
+                                  uint32_t serial, struct wl_surface *surface,
+                                  struct wl_array *keys)
+{
+}
+
+static void keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
+                                  uint32_t serial, struct wl_surface *surface)
+{
+}
+
+static void keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
+                                uint32_t serial, uint32_t time, uint32_t key,
+                                uint32_t state)
+{
+  if (key == KEY_F && state == WL_KEYBOARD_KEY_STATE_PRESSED)
+  {
+    wl_buffer_destroy(buffer);
+    if (fullscreen)
+    {
+      fullscreen = false;
+      *global_width = base_width;
+      *global_height = base_height;
+      wl_shell_surface_set_transient(shell_surface, surface, 0, 0, 0);
+      create_window(base_width, base_height);
+    }
+    else
+    {
+      fullscreen = true;
+      *global_width = fullscreen_width;
+      *global_height = fullscreen_height;
+      wl_shell_surface_set_fullscreen(shell_surface,
+                WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT,
+                0, NULL);
+      create_window(fullscreen_width, fullscreen_height);
+    }
+  }
+  else if (key ==  KEY_ESC && state == WL_KEYBOARD_KEY_STATE_PRESSED)
+  {
+    esc_pressed = true;
+  }
+}
+
+static void keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
+                                      uint32_t serial, uint32_t mods_depressed,
+                                      uint32_t mods_latched,
+                                      uint32_t mods_locked, uint32_t group)
+{
+}
+
+static const struct wl_keyboard_listener keyboard_listener = {
+  keyboard_handle_keymap,
+  keyboard_handle_enter,
+  keyboard_handle_leave,
+  keyboard_handle_key,
+  keyboard_handle_modifiers,
+};
+
+static void seat_handle_capabilities(void *data, struct wl_seat *seat,
+                                      uint32_t caps)
+{
+  if (((enum wl_seat_capability) caps & WL_SEAT_CAPABILITY_POINTER)
+      && !pointer)
+  {
+    pointer = wl_seat_get_pointer(seat);
+    wl_pointer_add_listener(pointer, &pointer_listener, NULL);
+  }
+  else if (!((enum wl_seat_capability) caps & WL_SEAT_CAPABILITY_POINTER)
+            && pointer)
+  {
+    wl_pointer_destroy(pointer);
+    pointer = NULL;
+  }
+
+  if (((enum wl_seat_capability) caps & WL_SEAT_CAPABILITY_KEYBOARD)
+      && !keyboard)
+  {
+    keyboard = wl_seat_get_keyboard(seat);
+    wl_keyboard_add_listener(keyboard, &keyboard_listener, NULL);
+  }
+  else if (!((enum wl_seat_capability) caps & WL_SEAT_CAPABILITY_KEYBOARD)
+            && keyboard)
+  {
+    wl_keyboard_destroy(keyboard);
+    keyboard = NULL;
+  }
+}
+
+static const struct wl_seat_listener seat_listener = {
+  seat_handle_capabilities,
+};
+
+static void registry_handler(void *data, struct wl_registry *registry,
+                              uint32_t id, const char *interface,
+                              uint32_t version)
+{
+  if (strcmp(interface, "wl_compositor") == 0)
+  {
+    compositor = (wl_compositor *) wl_registry_bind(registry, id,
+                  &wl_compositor_interface, 1);
+  }
+  else if (strcmp(interface, "wl_shell") == 0)
+  {
+    shell = (wl_shell *) wl_registry_bind(registry, id, &wl_shell_interface, 1);
+  }
+  else if (strcmp(interface, "wl_shm") == 0)
+  {
+    shm = (wl_shm *) wl_registry_bind(registry, id, &wl_shm_interface, 1);
+    wl_shm_add_listener(shm, &shm_listener, NULL);
+
+    cursor_theme = wl_cursor_theme_load(NULL, 32, shm);
+    default_cursor = wl_cursor_theme_get_cursor(cursor_theme, "left_ptr");
+  }
+  else if (strcmp(interface, "wl_seat") == 0)
+  {
+    seat = (wl_seat *) wl_registry_bind(registry, id, &wl_seat_interface, 1);
+    wl_seat_add_listener(seat, &seat_listener, NULL);
+  }
+}
+
+static void registry_remover(void *data, struct wl_registry *registry,
+                              uint32_t id)
+{
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -653,7 +829,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   wl_display_dispatch(display);
   wl_display_roundtrip(display);
 
-  if (!compositor || !shell)
+  if (!compositor || !shell || !seat)
   {
     std::cerr << "Could not bind Wayland protocols!" << std::endl;
     return;
@@ -675,10 +851,20 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
   wl_shell_surface_set_toplevel(shell_surface);
 
+  base_width = width;
+  base_height = height;
+  global_width = (uint32_t *) malloc(sizeof(uint32_t));
+  global_height = (uint32_t *) malloc(sizeof(uint32_t));
+  *global_width = width;
+  *global_height = height;
+
   create_window(width, height);
 
-  out = renderer->CreateOutput(CreateWaylandWindowingData(display, surface),
-                            ReplayOutputType::Texture);
+  cursor_surface = wl_compositor_create_surface(compositor);
+
+  out = renderer->CreateOutput(CreateWaylandWindowingData(display, surface,
+                  global_width, global_height),
+                  ReplayOutputType::Texture);
 
   out->SetTextureDisplay(displayCfg);
 
@@ -696,9 +882,12 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
     loopCount++;
 
-    if(numLoops > 0 && loopCount == numLoops)
+    if((numLoops > 0 && loopCount == numLoops) || esc_pressed)
       break;
   }
+
+  free(global_width);
+  free(global_height);
 #else
   std::cerr << "No supporting windowing systems defined at build time (xlib and xcb)" << std::endl;
 #endif

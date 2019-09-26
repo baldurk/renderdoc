@@ -422,6 +422,8 @@ struct WindowingData
     {
       wl_display *display;
       wl_surface *window;
+      uint32_t *width;
+      uint32_t *height;
     } wayland;
 
     struct
@@ -520,13 +522,16 @@ DOCUMENT(R"(Create a :class:`WindowingData` for an Wayland ``wl_surface`` handle
 :return: A :class:`WindowingData` corresponding to the given window.
 :rtype: WindowingData
 )");
-inline const WindowingData CreateWaylandWindowingData(wl_display *display, wl_surface *window)
+inline const WindowingData CreateWaylandWindowingData(wl_display *display, wl_surface *window,
+                            uint32_t *width, uint32_t *height)
 {
   WindowingData ret = {};
 
   ret.system = WindowingSystem::Wayland;
   ret.wayland.display = display;
   ret.wayland.window = window;
+  ret.wayland.width = width;
+  ret.wayland.height = height;
 
   return ret;
 }

@@ -86,6 +86,8 @@
   {                           \
     wl_display *display;      \
     wl_surface *window;       \
+    uint32_t *width;          \
+    uint32_t *height;         \
   } wayland;
 
 #else

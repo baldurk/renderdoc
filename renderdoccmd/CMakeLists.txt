@@ -40,6 +40,7 @@ elseif(UNIX)
 
     if(ENABLE_WAYLAND)
         list(APPEND libraries PRIVATE -lwayland-client)
+        list(APPEND libraries PRIVATE -lwayland-cursor)
     endif()
 
     # Make sure that for the target executable we don't throw away

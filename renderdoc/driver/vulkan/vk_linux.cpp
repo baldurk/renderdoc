@@ -204,6 +204,8 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
   {
     wayland.display = window.wayland.display;
     wayland.window = window.wayland.window;
+    wayland.width = window.wayland.width;
+    wayland.height = window.wayland.height;
     return;
   }
 #endif
@@ -316,8 +318,8 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 #if ENABLED(RDOC_WAYLAND)
   if(outw.m_WindowSystem == WindowingSystem::Wayland)
   {
-    w = 1280;
-    h = 720;
+    w = *(outw.wayland.width);
+    h = *(outw.wayland.height);
 
     return;
   }
