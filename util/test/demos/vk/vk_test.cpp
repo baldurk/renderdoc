@@ -683,6 +683,12 @@ void VulkanGraphicsTest::setName(VkImage obj, const std::string &name)
   setName(VK_OBJECT_TYPE_IMAGE, (uint64_t)(uintptr_t)obj, name);
 }
 
+template <>
+void VulkanGraphicsTest::setName(VkSampler obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_SAMPLER, (uint64_t)(uintptr_t)obj, name);
+}
+
 void VulkanGraphicsTest::setName(VkObjectType objType, uint64_t obj, const std::string &name)
 {
   if(vkSetDebugUtilsObjectNameEXT)
