@@ -1721,7 +1721,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     backbuffer = (ID3D12Resource *)swapper->GetBackbuffers()[swapper->GetLastPresentedBuffer()];
 
   std::vector<WrappedID3D12CommandQueue *> queues;
-  RDCFile *rdc = NULL;
 
   // transition back to IDLE and readback initial states atomically
   {
@@ -1738,138 +1737,139 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         GetWrapped(it->res)->FreeShadow();
     }
 
-    const uint32_t maxSize = 2048;
-    RenderDoc::FramePixels fp;
-
-    // gather backbuffer screenshot
-    if(backbuffer != NULL)
-    {
-      D3D12_HEAP_PROPERTIES heapProps;
-      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
-
-      D3D12_RESOURCE_DESC bufDesc;
-      bufDesc.Alignment = 0;
-      bufDesc.DepthOrArraySize = 1;
-      bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-      bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-      bufDesc.Format = DXGI_FORMAT_UNKNOWN;
-      bufDesc.Height = 1;
-      bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      bufDesc.MipLevels = 1;
-      bufDesc.SampleDesc.Count = 1;
-      bufDesc.SampleDesc.Quality = 0;
-      bufDesc.Width = 1;
-
-      D3D12_RESOURCE_DESC desc = backbuffer->GetDesc();
-
-      D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
-
-      m_pDevice->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, &bufDesc.Width);
-
-      ID3D12Resource *copyDst = NULL;
-      HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
-                                                      D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-                                                      __uuidof(ID3D12Resource), (void **)&copyDst);
-
-      if(SUCCEEDED(hr))
-      {
-        ID3D12GraphicsCommandList *list = Unwrap(GetNewList());
-
-        D3D12_RESOURCE_BARRIER barrier = {};
-
-        // we know there's only one subresource, and it will be in PRESENT state
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = Unwrap(backbuffer);
-        barrier.Transition.Subresource = 0;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-        list->ResourceBarrier(1, &barrier);
-
-        // copy to readback buffer
-        D3D12_TEXTURE_COPY_LOCATION dst, src;
-
-        src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        src.pResource = Unwrap(backbuffer);
-        src.SubresourceIndex = 0;
-
-        dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        dst.pResource = copyDst;
-        dst.PlacedFootprint = layout;
-
-        list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-
-        // transition back
-        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-        list->ResourceBarrier(1, &barrier);
-
-        list->Close();
-
-        ExecuteLists(NULL, true);
-        FlushLists();
-
-        byte *data = NULL;
-        hr = copyDst->Map(0, NULL, (void **)&data);
-
-        if(SUCCEEDED(hr) && data)
-        {
-          fp.len = (uint32_t)bufDesc.Width;
-          fp.data = new uint8_t[fp.len];
-          memcpy(fp.data, data, fp.len);
-
-          ResourceFormat fmt = MakeResourceFormat(desc.Format);
-          fp.width = (uint32_t)desc.Width;
-          fp.height = (uint32_t)desc.Height;
-          fp.pitch = layout.Footprint.RowPitch;
-          fp.stride = fmt.compByteWidth * fmt.compCount;
-          fp.bpc = fmt.compByteWidth;
-          fp.bgra = fmt.BGRAOrder();
-          fp.max_width = maxSize;
-          fp.pitch_requirement = 8;
-          switch(fmt.type)
-          {
-            case ResourceFormatType::R10G10B10A2:
-              fp.stride = 4;
-              fp.buf1010102 = true;
-              break;
-            case ResourceFormatType::R5G6B5:
-              fp.stride = 2;
-              fp.buf565 = true;
-              break;
-            case ResourceFormatType::R5G5B5A1:
-              fp.stride = 2;
-              fp.buf5551 = true;
-              break;
-            default: break;
-          }
-          copyDst->Unmap(0, NULL);
-        }
-        else
-        {
-          RDCERR("Couldn't map readback buffer: HRESULT: %s", ToStr(hr).c_str());
-        }
-
-        SAFE_RELEASE(copyDst);
-      }
-      else
-      {
-        RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
-      }
-    }
-
     queues = m_Queues;
 
     for(auto it = queues.begin(); it != queues.end(); ++it)
       if((*it)->GetResourceRecord()->ContainsExecuteIndirect)
         WrappedID3D12Resource1::RefBuffers(GetResourceManager());
-
-    rdc = RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_CapturedFrames.back().frameNumber, fp);
   }
+
+  const uint32_t maxSize = 2048;
+  RenderDoc::FramePixels fp;
+
+  // gather backbuffer screenshot
+  if(backbuffer != NULL)
+  {
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC bufDesc;
+    bufDesc.Alignment = 0;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.Height = 1;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.MipLevels = 1;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Width = 1;
+
+    D3D12_RESOURCE_DESC desc = backbuffer->GetDesc();
+
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+
+    m_pDevice->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, &bufDesc.Width);
+
+    ID3D12Resource *copyDst = NULL;
+    HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&copyDst);
+
+    if(SUCCEEDED(hr))
+    {
+      ID3D12GraphicsCommandList *list = Unwrap(GetNewList());
+
+      D3D12_RESOURCE_BARRIER barrier = {};
+
+      // we know there's only one subresource, and it will be in PRESENT state
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barrier.Transition.pResource = Unwrap(backbuffer);
+      barrier.Transition.Subresource = 0;
+      barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      list->ResourceBarrier(1, &barrier);
+
+      // copy to readback buffer
+      D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+      src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      src.pResource = Unwrap(backbuffer);
+      src.SubresourceIndex = 0;
+
+      dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      dst.pResource = copyDst;
+      dst.PlacedFootprint = layout;
+
+      list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+      // transition back
+      std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+      list->ResourceBarrier(1, &barrier);
+
+      list->Close();
+
+      ExecuteLists(NULL, true);
+      FlushLists();
+
+      byte *data = NULL;
+      hr = copyDst->Map(0, NULL, (void **)&data);
+
+      if(SUCCEEDED(hr) && data)
+      {
+        fp.len = (uint32_t)bufDesc.Width;
+        fp.data = new uint8_t[fp.len];
+        memcpy(fp.data, data, fp.len);
+
+        ResourceFormat fmt = MakeResourceFormat(desc.Format);
+        fp.width = (uint32_t)desc.Width;
+        fp.height = (uint32_t)desc.Height;
+        fp.pitch = layout.Footprint.RowPitch;
+        fp.stride = fmt.compByteWidth * fmt.compCount;
+        fp.bpc = fmt.compByteWidth;
+        fp.bgra = fmt.BGRAOrder();
+        fp.max_width = maxSize;
+        fp.pitch_requirement = 8;
+        switch(fmt.type)
+        {
+          case ResourceFormatType::R10G10B10A2:
+            fp.stride = 4;
+            fp.buf1010102 = true;
+            break;
+          case ResourceFormatType::R5G6B5:
+            fp.stride = 2;
+            fp.buf565 = true;
+            break;
+          case ResourceFormatType::R5G5B5A1:
+            fp.stride = 2;
+            fp.buf5551 = true;
+            break;
+          default: break;
+        }
+        copyDst->Unmap(0, NULL);
+      }
+      else
+      {
+        RDCERR("Couldn't map readback buffer: HRESULT: %s", ToStr(hr).c_str());
+      }
+
+      SAFE_RELEASE(copyDst);
+    }
+    else
+    {
+      RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
+    }
+  }
+
+  RDCFile *rdc =
+      RenderDoc::Inst().CreateRDC(RDCDriver::D3D12, m_CapturedFrames.back().frameNumber, fp);
 
   StreamWriter *captureWriter = NULL;
 
