@@ -1278,7 +1278,7 @@ int EventBrowser::SetFindIcons(RDTreeWidgetItem *parent, QString filter)
 
 int EventBrowser::SetFindIcons(QString filter)
 {
-  if(filter.isEmpty())
+  if(filter.isEmpty() || !m_Ctx.IsCaptureLoaded())
     return 0;
 
   return SetFindIcons(ui->events->topLevelItem(0), filter);
