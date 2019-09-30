@@ -809,6 +809,8 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
     }
   }
 
+  emit hoverItemChanged(newHover);
+
   emit mouseMove(e);
 
   RDTreeView::mouseMoveEvent(e);
@@ -837,6 +839,8 @@ void RDTreeWidget::leaveEvent(QEvent *e)
       QToolTip::hideText();
     m_model->itemChanged(item, {Qt::DecorationRole, Qt::BackgroundRole, Qt::ForegroundRole});
   }
+
+  emit hoverItemChanged(NULL);
 
   RDTreeView::leaveEvent(e);
 }

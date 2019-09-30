@@ -265,6 +265,7 @@ signals:
   void itemDoubleClicked(RDTreeWidgetItem *item, int column);
   void itemActivated(RDTreeWidgetItem *item, int column);
   void currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
+  void hoverItemChanged(RDTreeWidgetItem *item);
   void itemSelectionChanged();
 
 public slots:
