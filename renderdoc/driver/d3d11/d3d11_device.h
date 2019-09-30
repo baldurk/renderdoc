@@ -469,7 +469,7 @@ public:
   {
     if(iid == __uuidof(ID3D11Device) || iid == __uuidof(ID3D11Device1) ||
        iid == __uuidof(ID3D11Device2) || iid == __uuidof(ID3D11Device3) ||
-       iid == __uuidof(ID3D11Device4))
+       iid == __uuidof(ID3D11Device4) || iid == __uuidof(ID3D11Device5))
       return true;
 
     return false;
@@ -486,6 +486,8 @@ public:
       return (ID3D11Device3 *)this;
     else if(iid == __uuidof(ID3D11Device4))
       return (ID3D11Device4 *)this;
+    else if(iid == __uuidof(ID3D11Device5))
+      return (ID3D11Device5 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 

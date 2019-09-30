@@ -193,7 +193,7 @@ public:
        riid == __uuidof(IDXGIResource1) || riid == __uuidof(IDXGISurface2))
     {
       // ensure the real object has this interface
-      void *outObj;
+      void *outObj = NULL;
       HRESULT hr = m_pReal->QueryInterface(riid, &outObj);
 
       IUnknown *unk = (IUnknown *)outObj;
