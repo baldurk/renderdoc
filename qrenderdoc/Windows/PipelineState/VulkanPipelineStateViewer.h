@@ -39,9 +39,9 @@ class RDTreeWidget;
 class RDTreeWidgetItem;
 class PipelineStateViewer;
 
-struct SamplerData
+struct CombinedSamplerData
 {
-  SamplerData() : node(NULL) {}
+  CombinedSamplerData() : node(NULL) {}
   QList<RDTreeWidgetItem *> images;
   RDTreeWidgetItem *node;
 };
@@ -78,6 +78,7 @@ private slots:
   void shaderSave_clicked();
   void predicateBufferView_clicked();
   void resource_itemActivated(RDTreeWidgetItem *item, int column);
+  void resource_hoverItemChanged(RDTreeWidgetItem *hover);
   void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
@@ -90,7 +91,7 @@ private:
                            const VKPipe::BindingElement &descriptor);
   void addResourceRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage, int bindset,
                       int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
-                      QMap<ResourceId, SamplerData> &samplers);
+                      QMap<ResourceId, RDTreeWidgetItem *> &samplers);
   void addConstantBlockRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage,
                            int bindset, int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *ubos);
 
@@ -109,11 +110,11 @@ private:
   const VKPipe::Shader *stageForSender(QWidget *widget);
 
   template <typename viewType>
-  void setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex,
-                      bool includeSampleLocations = false);
+  bool setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex,
+                      const QString &hiddenCombinedSampler, bool includeSampleLocations = false);
 
   template <typename viewType>
-  void setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf);
+  bool setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
 

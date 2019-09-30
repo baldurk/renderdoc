@@ -34,7 +34,7 @@
 #include "PipelineStateViewer.h"
 #include "ui_VulkanPipelineStateViewer.h"
 
-Q_DECLARE_METATYPE(SamplerData);
+Q_DECLARE_METATYPE(CombinedSamplerData);
 
 struct VulkanVBIBTag
 {
@@ -167,8 +167,12 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
                    &VulkanPipelineStateViewer::resource_itemActivated);
 
   for(RDTreeWidget *res : resources)
+  {
     QObject::connect(res, &RDTreeWidget::itemActivated, this,
                      &VulkanPipelineStateViewer::resource_itemActivated);
+    QObject::connect(res, &RDTreeWidget::hoverItemChanged, this,
+                     &VulkanPipelineStateViewer::resource_hoverItemChanged);
+  }
 
   for(RDTreeWidget *ubo : ubos)
     QObject::connect(ubo, &RDTreeWidget::itemActivated, this,
@@ -399,6 +403,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
 VulkanPipelineStateViewer::~VulkanPipelineStateViewer()
 {
+  m_CombinedImageSamplers.clear();
   delete ui;
 }
 
@@ -441,11 +446,13 @@ void VulkanPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 }
 
 template <typename bindType>
-void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
-                                               TextureDescription *tex, bool includeSampleLocations)
+bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
+                                               TextureDescription *tex,
+                                               const QString &hiddenCombinedSampler,
+                                               bool includeSampleLocations)
 {
   if(tex == NULL)
-    return;
+    return false;
 
   QString text;
 
@@ -458,10 +465,14 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
     {
       if(im.resourceId == tex->resourceId)
       {
-        text += tr("Texture is in the '%1' layout\n\n").arg(im.layouts[0].name);
+        text += tr("Texture is in the '%1' layout\n").arg(im.layouts[0].name);
         break;
       }
     }
+
+    text += hiddenCombinedSampler;
+
+    text += lit("\n");
 
     if(view.viewFormat != tex->format)
     {
@@ -531,14 +542,16 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
     node->setBackgroundColor(QColor(127, 255, 212));
     node->setForegroundColor(QColor(0, 0, 0));
   }
+
+  return viewdetails;
 }
 
 template <typename bindType>
-void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
+bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
                                                BufferDescription *buf)
 {
   if(buf == NULL)
-    return;
+    return false;
 
   QString text;
 
@@ -551,12 +564,14 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
   }
   else
   {
-    return;
+    return false;
   }
 
   node->setToolTip(text);
   node->setBackgroundColor(QColor(127, 255, 212));
   node->setForegroundColor(QColor(0, 0, 0));
+
+  return true;
 }
 
 bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
@@ -646,6 +661,8 @@ void VulkanPipelineStateViewer::clearShaderState(RDLabel *shader, RDTreeWidget *
 
 void VulkanPipelineStateViewer::clearState()
 {
+  m_CombinedImageSamplers.clear();
+
   m_VBNodes.clear();
   m_BindNodes.clear();
   m_EmptyNodes.clear();
@@ -851,7 +868,7 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                                                const VKPipe::Shader &stage, int bindset, int bind,
                                                const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
-                                               QMap<ResourceId, SamplerData> &samplers)
+                                               QMap<ResourceId, RDTreeWidgetItem *> &samplers)
 {
   const ShaderResource *shaderRes = NULL;
   const ShaderSampler *shaderSamp = NULL;
@@ -1184,13 +1201,6 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
           if(!usedSlot)
             setInactiveRow(node);
-
-          SamplerData sampData;
-          sampData.node = node;
-          node->setTag(QVariant::fromValue(sampData));
-
-          if(!samplers.contains(descriptorBind->samplerResourceId))
-            samplers.insert(descriptorBind->samplerResourceId, sampData);
         }
       }
       else
@@ -1275,17 +1285,22 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                 if(!usedSlot)
                   setInactiveRow(samplerNode);
 
-                SamplerData sampData;
+                CombinedSamplerData sampData;
                 sampData.node = samplerNode;
                 samplerNode->setTag(QVariant::fromValue(sampData));
 
-                samplers.insert(descriptorBind->samplerResourceId, sampData);
+                if(node)
+                  samplers.insert(descriptorBind->samplerResourceId, samplerNode);
               }
 
-              if(node != NULL)
+              if(node)
               {
-                m_CombinedImageSamplers[node] = samplers[descriptorBind->samplerResourceId].node;
-                samplers[descriptorBind->samplerResourceId].images.push_back(node);
+                RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node] =
+                    samplers[descriptorBind->samplerResourceId];
+
+                CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
+                sampData.images.push_back(node);
+                combinedSamp->setTag(QVariant::fromValue(sampData));
               }
             }
           }
@@ -1293,9 +1308,35 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       }
 
       if(descriptorBind && tex)
-        setViewDetails(node, *descriptorBind, tex);
+      {
+        // for rows with view details we can't highlight used combined samplers, so instead we put
+        // it in the tooltip for that row and remove it from the m_CombinedImageSamplers list.
+        QString samplerString =
+            bindType == BindType::ImageSampler
+                ? tr("Image combined with sampler %1\n")
+                      .arg(m_Ctx.GetResourceName(descriptorBind->samplerResourceId))
+                : QString();
+
+        bool hasViewDetails = setViewDetails(node, *descriptorBind, tex, samplerString);
+
+        if(bindType == BindType::ImageSampler && hasViewDetails)
+        {
+          RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node];
+
+          if(combinedSamp)
+          {
+            CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
+            sampData.images.removeOne(node);
+            combinedSamp->setTag(QVariant::fromValue(sampData));
+
+            m_CombinedImageSamplers.remove(node);
+          }
+        }
+      }
       else if(descriptorBind && buf)
+      {
         setViewDetails(node, *descriptorBind, buf);
+      }
 
       parentNode->addChild(node);
 
@@ -1531,7 +1572,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   resources->beginUpdate();
   resources->clear();
 
-  QMap<ResourceId, SamplerData> samplers;
+  QMap<ResourceId, RDTreeWidgetItem *> samplers;
 
   for(int bindset = 0; bindset < pipe.descriptorSets.count(); bindset++)
   {
@@ -2342,7 +2383,7 @@ void VulkanPipelineStateViewer::setState()
           targets[i] = true;
         }
 
-        setViewDetails(node, p, tex, resIdx < 0);
+        setViewDetails(node, p, tex, QString(), resIdx < 0);
 
         ui->fbAttach->addTopLevelItem(node);
       }
@@ -2537,6 +2578,34 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
       IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, buf.size, buf.ID, format);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+    }
+  }
+}
+
+void VulkanPipelineStateViewer::resource_hoverItemChanged(RDTreeWidgetItem *hover)
+{
+  // first make all rows transparent.
+  for(RDTreeWidgetItem *item : m_CombinedImageSamplers.keys())
+  {
+    item->setBackground(QBrush());
+    m_CombinedImageSamplers[item]->setBackground(QBrush());
+  }
+
+  if(hover)
+  {
+    // try to get combined sampler data from the current row
+    CombinedSamplerData sampData = hover->tag().value<CombinedSamplerData>();
+
+    // or try to see if it's a combined image
+    if(m_CombinedImageSamplers.contains(hover))
+      sampData = m_CombinedImageSamplers[hover]->tag().value<CombinedSamplerData>();
+
+    // if we got a sampler, highlight it and all images using it
+    if(sampData.node)
+    {
+      sampData.node->setBackgroundColor(QColor(127, 212, 255, 100));
+      for(RDTreeWidgetItem *item : sampData.images)
+        item->setBackgroundColor(QColor(127, 212, 255, 100));
     }
   }
 }
