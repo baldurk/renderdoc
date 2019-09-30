@@ -1155,7 +1155,7 @@ enum class AlphaMapping : uint32_t
 ITERABLE_OPERATORS(AlphaMapping);
 DECLARE_REFLECTION_ENUM(AlphaMapping);
 
-DOCUMENT(R"(A resource format's particular type. This accounts for either block-compressed textures
+DOCUMENT2(R"(A resource format's particular type. This accounts for either block-compressed textures
 or formats that don't have equal byte-multiple sizes for each channel.
 
 .. data:: Regular
@@ -1218,7 +1218,8 @@ or formats that don't have equal byte-multiple sizes for each channel.
 
   Note that the mode added in ``EAC`` with 1 byte per pixel and full 8-bit alpha is
   grouped as ``EAC``, with a component count of 4. See :data:`EAC`.
-
+)",
+          R"(
 .. data:: EAC
 
   A block-compressed texture in ``EAC`` format, expanded from ``ETC2``.
