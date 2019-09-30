@@ -634,7 +634,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
 
       bool capframe = false;
       {
-        SCOPED_LOCK(m_CapTransitionLock);
+        SCOPED_READLOCK(m_CapTransitionLock);
         capframe = IsActiveCapturing(m_State);
 
         if(!capframe)
@@ -783,7 +783,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
   {
     bool capframe = false;
     {
-      SCOPED_LOCK(m_CapTransitionLock);
+      SCOPED_READLOCK(m_CapTransitionLock);
       capframe = IsActiveCapturing(m_State);
     }
 

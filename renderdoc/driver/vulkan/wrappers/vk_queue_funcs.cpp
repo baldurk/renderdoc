@@ -781,247 +781,249 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
   SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount,
                                                         unwrappedSubmits, Unwrap(fence)));
 
-  bool capframe = false;
   bool present = false;
 
   {
-    SCOPED_LOCK(m_CapTransitionLock);
-    capframe = IsActiveCapturing(m_State);
-  }
+    SCOPED_READLOCK(m_CapTransitionLock);
 
-  std::set<ResourceId> refdIDs;
+    bool capframe = IsActiveCapturing(m_State);
 
-  VkResourceRecord *queueRecord = GetRecord(queue);
+    std::set<ResourceId> refdIDs;
 
-  for(uint32_t s = 0; s < submitCount; s++)
-  {
-    for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
+    VkResourceRecord *queueRecord = GetRecord(queue);
+
+    for(uint32_t s = 0; s < submitCount; s++)
     {
-      ResourceId cmd = GetResID(pSubmits[s].pCommandBuffers[i]);
-
-      VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
-      present |= record->bakedCommands->cmdInfo->present;
-
+      for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
       {
-        SCOPED_LOCK(m_ImageLayoutsLock);
-        GetResourceManager()->ApplyBarriers(queueRecord->queueFamilyIndex,
-                                            record->bakedCommands->cmdInfo->imgbarriers,
-                                            m_ImageLayouts);
-      }
+        ResourceId cmd = GetResID(pSubmits[s].pCommandBuffers[i]);
 
-      for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-          it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-      {
-        if(GetResourceManager()->HasCurrentResource(*it))
-          GetResourceManager()->MarkDirtyResource(*it);
-      }
+        VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
+        present |= record->bakedCommands->cmdInfo->present;
 
-      // with EXT_descriptor_indexing a binding might have been updated after
-      // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
-      for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
-          it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
-      {
-        VkResourceRecord *setrecord = GetRecord(*it);
-
-        SCOPED_LOCK(setrecord->descInfo->refLock);
-
-        const std::map<ResourceId, rdcpair<uint32_t, FrameRefType>> &frameRefs =
-            setrecord->descInfo->bindFrameRefs;
-
-        for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
         {
-          if(refit->second.second == eFrameRef_PartialWrite ||
-             refit->second.second == eFrameRef_ReadBeforeWrite)
-          {
-            if(GetResourceManager()->HasCurrentResource(refit->first))
-              GetResourceManager()->MarkDirtyResource(refit->first);
-          }
+          SCOPED_LOCK(m_ImageLayoutsLock);
+          GetResourceManager()->ApplyBarriers(queueRecord->queueFamilyIndex,
+                                              record->bakedCommands->cmdInfo->imgbarriers,
+                                              m_ImageLayouts);
         }
-      }
 
-      if(capframe)
-      {
-        // for each bound descriptor set, mark it referenced as well as all resources currently
-        // bound to it
+        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+        {
+          if(GetResourceManager()->HasCurrentResource(*it))
+            GetResourceManager()->MarkDirtyResource(*it);
+        }
+
+        // with EXT_descriptor_indexing a binding might have been updated after
+        // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
         for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
             it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
         {
-          GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
-
           VkResourceRecord *setrecord = GetRecord(*it);
 
           SCOPED_LOCK(setrecord->descInfo->refLock);
 
-          for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
-              refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
+          const std::map<ResourceId, rdcpair<uint32_t, FrameRefType>> &frameRefs =
+              setrecord->descInfo->bindFrameRefs;
+
+          for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
           {
-            refdIDs.insert(refit->first);
-            GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
-
-            if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
+            if(refit->second.second == eFrameRef_PartialWrite ||
+               refit->second.second == eFrameRef_ReadBeforeWrite)
             {
-              VkResourceRecord *sparserecord = GetResourceManager()->GetResourceRecord(refit->first);
-
-              GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
+              if(GetResourceManager()->HasCurrentResource(refit->first))
+                GetResourceManager()->MarkDirtyResource(refit->first);
             }
           }
-          GetResourceManager()->MergeReferencedImages(setrecord->descInfo->bindImgRefs);
-          GetResourceManager()->MergeReferencedMemory(setrecord->descInfo->bindMemRefs);
         }
 
-        for(auto it = record->bakedCommands->cmdInfo->sparse.begin();
-            it != record->bakedCommands->cmdInfo->sparse.end(); ++it)
-          GetResourceManager()->MarkSparseMapReferenced(*it);
-
-        // pull in frame refs from this baked command buffer
-        record->bakedCommands->AddResourceReferences(GetResourceManager());
-        record->bakedCommands->AddReferencedIDs(refdIDs);
-
-        GetResourceManager()->MergeReferencedImages(record->bakedCommands->cmdInfo->imgFrameRefs);
-        GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
-
-        // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
-        GetResourceManager()->MarkResourceFrameReferenced(
-            record->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
-
-        for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
+        if(capframe)
         {
-          record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddResourceReferences(
-              GetResourceManager());
-          record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddReferencedIDs(refdIDs);
-          GetResourceManager()->MergeReferencedImages(
-              record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->imgFrameRefs);
-          GetResourceManager()->MergeReferencedMemory(
-              record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->memFrameRefs);
+          // for each bound descriptor set, mark it referenced as well as all resources currently
+          // bound to it
+          for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
+              it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
+          {
+            GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
+
+            VkResourceRecord *setrecord = GetRecord(*it);
+
+            SCOPED_LOCK(setrecord->descInfo->refLock);
+
+            for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
+                refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
+            {
+              refdIDs.insert(refit->first);
+              GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+
+              if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
+              {
+                VkResourceRecord *sparserecord =
+                    GetResourceManager()->GetResourceRecord(refit->first);
+
+                GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
+              }
+            }
+            GetResourceManager()->MergeReferencedImages(setrecord->descInfo->bindImgRefs);
+            GetResourceManager()->MergeReferencedMemory(setrecord->descInfo->bindMemRefs);
+          }
+
+          for(auto it = record->bakedCommands->cmdInfo->sparse.begin();
+              it != record->bakedCommands->cmdInfo->sparse.end(); ++it)
+            GetResourceManager()->MarkSparseMapReferenced(*it);
+
+          // pull in frame refs from this baked command buffer
+          record->bakedCommands->AddResourceReferences(GetResourceManager());
+          record->bakedCommands->AddReferencedIDs(refdIDs);
+
+          GetResourceManager()->MergeReferencedImages(record->bakedCommands->cmdInfo->imgFrameRefs);
+          GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
+
+          // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
           GetResourceManager()->MarkResourceFrameReferenced(
-              record->bakedCommands->cmdInfo->subcmds[sub]->cmdInfo->allocRecord->GetResourceID(),
-              eFrameRef_Read);
+              record->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
 
-          record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddRef();
-        }
-
-        {
-          SCOPED_LOCK(m_CmdBufferRecordsLock);
-          m_CmdBufferRecords.push_back(record->bakedCommands);
           for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
-            m_CmdBufferRecords.push_back(record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands);
+          {
+            record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddResourceReferences(
+                GetResourceManager());
+            record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddReferencedIDs(refdIDs);
+            GetResourceManager()->MergeReferencedImages(
+                record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->imgFrameRefs);
+            GetResourceManager()->MergeReferencedMemory(
+                record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->memFrameRefs);
+            GetResourceManager()->MarkResourceFrameReferenced(
+                record->bakedCommands->cmdInfo->subcmds[sub]->cmdInfo->allocRecord->GetResourceID(),
+                eFrameRef_Read);
+
+            record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddRef();
+          }
+
+          {
+            SCOPED_LOCK(m_CmdBufferRecordsLock);
+            m_CmdBufferRecords.push_back(record->bakedCommands);
+            for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
+              m_CmdBufferRecords.push_back(
+                  record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands);
+          }
+
+          record->bakedCommands->AddRef();
         }
 
-        record->bakedCommands->AddRef();
+        record->cmdInfo->dirtied.clear();
+      }
+    }
+
+    if(capframe)
+    {
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+
+      if(fence != VK_NULL_HANDLE)
+        GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+
+      std::vector<VkResourceRecord *> maps;
+      {
+        SCOPED_LOCK(m_CoherentMapsLock);
+        maps = m_CoherentMaps;
       }
 
-      record->cmdInfo->dirtied.clear();
-    }
-  }
-
-  if(capframe)
-  {
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-
-    if(fence != VK_NULL_HANDLE)
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
-
-    std::vector<VkResourceRecord *> maps;
-    {
-      SCOPED_LOCK(m_CoherentMapsLock);
-      maps = m_CoherentMaps;
-    }
-
-    for(auto it = maps.begin(); it != maps.end(); ++it)
-    {
-      VkResourceRecord *record = *it;
-      MemMapState &state = *record->memMapState;
-
-      // potential persistent map
-      if(state.mapCoherent && state.mappedPtr && !state.mapFlushed)
+      for(auto it = maps.begin(); it != maps.end(); ++it)
       {
-        // only need to flush memory that could affect this submitted batch of work
-        if(refdIDs.find(record->GetResourceID()) == refdIDs.end())
-        {
-          RDCDEBUG("Map of memory %llu not referenced in this queue - not flushing",
-                   record->GetResourceID());
-          continue;
-        }
+        VkResourceRecord *record = *it;
+        MemMapState &state = *record->memMapState;
 
-        size_t diffStart = 0, diffEnd = 0;
-        bool found = true;
+        // potential persistent map
+        if(state.mapCoherent && state.mappedPtr && !state.mapFlushed)
+        {
+          // only need to flush memory that could affect this submitted batch of work
+          if(refdIDs.find(record->GetResourceID()) == refdIDs.end())
+          {
+            RDCDEBUG("Map of memory %llu not referenced in this queue - not flushing",
+                     record->GetResourceID());
+            continue;
+          }
+
+          size_t diffStart = 0, diffEnd = 0;
+          bool found = true;
 
 // enabled as this is necessary for programs with very large coherent mappings
 // (> 1GB) as otherwise more than a couple of vkQueueSubmit calls leads to vast
 // memory allocation. There might still be bugs lurking in here though
 #if 1
-        // this causes vkFlushMappedMemoryRanges call to allocate and copy to refData
-        // from serialised buffer. We want to copy *precisely* the serialised data,
-        // otherwise there is a gap in time between serialising out a snapshot of
-        // the buffer and whenever we then copy into the ref data, e.g. below.
-        // during this time, data could be written to the buffer and it won't have
-        // been caught in the serialised snapshot, and if it doesn't change then
-        // it *also* won't be caught in any future FindDiffRange() calls.
-        //
-        // Likewise once refData is allocated, the call below will also update it
-        // with the data serialised out for the same reason.
-        //
-        // Note: it's still possible that data is being written to by the
-        // application while it's being serialised out in the snapshot below. That
-        // is OK, since the application is responsible for ensuring it's not writing
-        // data that would be needed by the GPU in this submit. As long as the
-        // refdata we use for future use is identical to what was serialised, we
-        // shouldn't miss anything
-        state.needRefData = true;
+          // this causes vkFlushMappedMemoryRanges call to allocate and copy to refData
+          // from serialised buffer. We want to copy *precisely* the serialised data,
+          // otherwise there is a gap in time between serialising out a snapshot of
+          // the buffer and whenever we then copy into the ref data, e.g. below.
+          // during this time, data could be written to the buffer and it won't have
+          // been caught in the serialised snapshot, and if it doesn't change then
+          // it *also* won't be caught in any future FindDiffRange() calls.
+          //
+          // Likewise once refData is allocated, the call below will also update it
+          // with the data serialised out for the same reason.
+          //
+          // Note: it's still possible that data is being written to by the
+          // application while it's being serialised out in the snapshot below. That
+          // is OK, since the application is responsible for ensuring it's not writing
+          // data that would be needed by the GPU in this submit. As long as the
+          // refdata we use for future use is identical to what was serialised, we
+          // shouldn't miss anything
+          state.needRefData = true;
 
-        // if we have a previous set of data, compare.
-        // otherwise just serialise it all
-        if(state.refData)
-          found = FindDiffRange((byte *)state.mappedPtr, state.refData, (size_t)state.mapSize,
-                                diffStart, diffEnd);
-        else
+          // if we have a previous set of data, compare.
+          // otherwise just serialise it all
+          if(state.refData)
+            found = FindDiffRange((byte *)state.mappedPtr, state.refData, (size_t)state.mapSize,
+                                  diffStart, diffEnd);
+          else
 #endif
-          diffEnd = (size_t)state.mapSize;
+            diffEnd = (size_t)state.mapSize;
 
-        if(found)
-        {
-          // MULTIDEVICE should find the device for this queue.
-          // MULTIDEVICE only want to flush maps associated with this queue
-          VkDevice dev = GetDev();
-
+          if(found)
           {
-            RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", record->GetResourceID(),
-                   (uint64_t)diffStart, (uint64_t)diffEnd);
-            VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL,
-                                         (VkDeviceMemory)(uint64_t)record->Resource,
-                                         state.mapOffset + diffStart, diffEnd - diffStart};
-            vkFlushMappedMemoryRanges(dev, 1, &range);
-            state.mapFlushed = false;
-          }
+            // MULTIDEVICE should find the device for this queue.
+            // MULTIDEVICE only want to flush maps associated with this queue
+            VkDevice dev = GetDev();
 
-          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-        }
-        else
-        {
-          RDCDEBUG("Persistent map flush not needed for %llu", record->GetResourceID());
+            {
+              RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", record->GetResourceID(),
+                     (uint64_t)diffStart, (uint64_t)diffEnd);
+              VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL,
+                                           (VkDeviceMemory)(uint64_t)record->Resource,
+                                           state.mapOffset + diffStart, diffEnd - diffStart};
+              vkFlushMappedMemoryRanges(dev, 1, &range);
+              state.mapFlushed = false;
+            }
+
+            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+          }
+          else
+          {
+            RDCDEBUG("Persistent map flush not needed for %llu", record->GetResourceID());
+          }
         }
       }
-    }
 
-    {
-      CACHE_THREAD_SERIALISER();
+      {
+        CACHE_THREAD_SERIALISER();
 
-      ser.SetDrawChunk();
-      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit);
-      Serialise_vkQueueSubmit(ser, queue, submitCount, pSubmits, fence);
+        ser.SetDrawChunk();
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit);
+        Serialise_vkQueueSubmit(ser, queue, submitCount, pSubmits, fence);
 
-      m_FrameCaptureRecord->AddChunk(scope.Get());
-    }
+        m_FrameCaptureRecord->AddChunk(scope.Get());
+      }
 
-    for(uint32_t s = 0; s < submitCount; s++)
-    {
-      for(uint32_t sem = 0; sem < pSubmits[s].waitSemaphoreCount; sem++)
-        GetResourceManager()->MarkResourceFrameReferenced(
-            GetResID(pSubmits[s].pWaitSemaphores[sem]), eFrameRef_Read);
+      for(uint32_t s = 0; s < submitCount; s++)
+      {
+        for(uint32_t sem = 0; sem < pSubmits[s].waitSemaphoreCount; sem++)
+          GetResourceManager()->MarkResourceFrameReferenced(
+              GetResID(pSubmits[s].pWaitSemaphores[sem]), eFrameRef_Read);
 
-      for(uint32_t sem = 0; sem < pSubmits[s].signalSemaphoreCount; sem++)
-        GetResourceManager()->MarkResourceFrameReferenced(
-            GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
+        for(uint32_t sem = 0; sem < pSubmits[s].signalSemaphoreCount; sem++)
+          GetResourceManager()->MarkResourceFrameReferenced(
+              GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
+      }
     }
   }
 

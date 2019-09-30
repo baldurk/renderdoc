@@ -1489,7 +1489,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   // will check to see if they need to markdirty or markpendingdirty
   // and go into the frame record.
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_WRITELOCK(m_CapTransitionLock);
 
     // wait for all work to finish and apply a memory barrier to ensure all memory is visible
     for(size_t i = 0; i < m_QueueFamilies.size(); i++)
@@ -1627,7 +1627,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
   // transition back to IDLE atomically
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_WRITELOCK(m_CapTransitionLock);
     EndCaptureFrame(backbuffer);
 
     m_State = CaptureState::BackgroundCapturing;
@@ -1969,7 +1969,7 @@ bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
 
   // transition back to IDLE atomically
   {
-    SCOPED_LOCK(m_CapTransitionLock);
+    SCOPED_WRITELOCK(m_CapTransitionLock);
 
     m_State = CaptureState::BackgroundCapturing;
 

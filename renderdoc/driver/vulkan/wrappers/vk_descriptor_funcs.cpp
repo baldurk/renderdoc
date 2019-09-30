@@ -929,68 +929,69 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies));
   }
 
-  bool capframe = false;
   {
-    SCOPED_LOCK(m_CapTransitionLock);
-    capframe = IsActiveCapturing(m_State);
-  }
+    SCOPED_READLOCK(m_CapTransitionLock);
 
-  if(capframe)
-  {
-    // don't have to mark referenced any of the resources pointed to by the descriptor set - that's
-    // handled on queue submission by marking ref'd all the current bindings of the sets referenced
-    // by the cmd buffer
-
+    if(IsActiveCapturing(m_State))
     {
-      CACHE_THREAD_SERIALISER();
+      // don't have to mark referenced any of the resources pointed to by the descriptor set -
+      // that's
+      // handled on queue submission by marking ref'd all the current bindings of the sets
+      // referenced
+      // by the cmd buffer
 
-      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSets);
-      Serialise_vkUpdateDescriptorSets(ser, device, writeCount, pDescriptorWrites, copyCount,
-                                       pDescriptorCopies);
-
-      m_FrameCaptureRecord->AddChunk(scope.Get());
-    }
-
-    // previously we would not mark descriptor set destinations as ref'd here. This is because all
-    // descriptor sets are implicitly dirty and they're only actually *needed* when bound - we can
-    // safely skip any updates of unused descriptor sets. However for consistency with template
-    // updates below, we pull them in here even if they won't technically be needed.
-
-    for(uint32_t i = 0; i < writeCount; i++)
-    {
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].dstSet),
-                                                        eFrameRef_PartialWrite);
-    }
-
-    for(uint32_t i = 0; i < copyCount; i++)
-    {
-      // At the same time as ref'ing the source set, we must ref all of its resources (via the
-      // bindFrameRefs). This is because they must be valid even if the source set is not ever bound
-      // (and so its bindings aren't pulled in).
-      //
-      // We just ref all rather than looking at only the copied sets to keep things simple.
-      // This does mean a slightly conservative ref'ing if the dest set doesn't end up getting
-      // bound, but we only do this during frame capture so it's not too bad.
-
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].dstSet),
-                                                        eFrameRef_PartialWrite);
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet),
-                                                        eFrameRef_Read);
-
-      VkResourceRecord *setrecord = GetRecord(pDescriptorCopies[i].srcSet);
-
-      SCOPED_LOCK(setrecord->descInfo->refLock);
-
-      for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
-          refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
       {
-        GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+        CACHE_THREAD_SERIALISER();
 
-        if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSets);
+        Serialise_vkUpdateDescriptorSets(ser, device, writeCount, pDescriptorWrites, copyCount,
+                                         pDescriptorCopies);
+
+        m_FrameCaptureRecord->AddChunk(scope.Get());
+      }
+
+      // previously we would not mark descriptor set destinations as ref'd here. This is because all
+      // descriptor sets are implicitly dirty and they're only actually *needed* when bound - we can
+      // safely skip any updates of unused descriptor sets. However for consistency with template
+      // updates below, we pull them in here even if they won't technically be needed.
+
+      for(uint32_t i = 0; i < writeCount; i++)
+      {
+        GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].dstSet),
+                                                          eFrameRef_PartialWrite);
+      }
+
+      for(uint32_t i = 0; i < copyCount; i++)
+      {
+        // At the same time as ref'ing the source set, we must ref all of its resources (via the
+        // bindFrameRefs). This is because they must be valid even if the source set is not ever
+        // bound
+        // (and so its bindings aren't pulled in).
+        //
+        // We just ref all rather than looking at only the copied sets to keep things simple.
+        // This does mean a slightly conservative ref'ing if the dest set doesn't end up getting
+        // bound, but we only do this during frame capture so it's not too bad.
+
+        GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].dstSet),
+                                                          eFrameRef_PartialWrite);
+        GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet),
+                                                          eFrameRef_Read);
+
+        VkResourceRecord *setrecord = GetRecord(pDescriptorCopies[i].srcSet);
+
+        SCOPED_LOCK(setrecord->descInfo->refLock);
+
+        for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
+            refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
         {
-          VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
+          GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
 
-          GetResourceManager()->MarkSparseMapReferenced(record->resInfo);
+          if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
+          {
+            VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
+
+            GetResourceManager()->MarkSparseMapReferenced(record->resInfo);
+          }
         }
       }
     }
@@ -1360,27 +1361,25 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
         Unwrap(device), Unwrap(descriptorSet), Unwrap(descriptorUpdateTemplate), memory));
   }
 
-  bool capframe = false;
   {
-    SCOPED_LOCK(m_CapTransitionLock);
-    capframe = IsActiveCapturing(m_State);
-  }
+    SCOPED_READLOCK(m_CapTransitionLock);
 
-  if(capframe)
-  {
-    CACHE_THREAD_SERIALISER();
+    if(IsActiveCapturing(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSetWithTemplate);
-    Serialise_vkUpdateDescriptorSetWithTemplate(ser, device, descriptorSet,
-                                                descriptorUpdateTemplate, pData);
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUpdateDescriptorSetWithTemplate);
+      Serialise_vkUpdateDescriptorSetWithTemplate(ser, device, descriptorSet,
+                                                  descriptorUpdateTemplate, pData);
 
-    m_FrameCaptureRecord->AddChunk(scope.Get());
+      m_FrameCaptureRecord->AddChunk(scope.Get());
 
-    // mark the destination set and template as referenced
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorSet),
-                                                      eFrameRef_PartialWrite);
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate),
-                                                      eFrameRef_Read);
+      // mark the destination set and template as referenced
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorSet),
+                                                        eFrameRef_PartialWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(descriptorUpdateTemplate),
+                                                        eFrameRef_Read);
+    }
   }
 
   // need to track descriptor set contents whether capframing or idle

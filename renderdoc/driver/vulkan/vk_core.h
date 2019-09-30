@@ -325,7 +325,7 @@ private:
   VulkanShaderCache *m_ShaderCache = NULL;
   VulkanTextRenderer *m_TextRenderer = NULL;
 
-  Threading::CriticalSection m_CapTransitionLock;
+  Threading::RWLock m_CapTransitionLock;
 
   VulkanDrawcallCallback *m_DrawcallCallback;
 
