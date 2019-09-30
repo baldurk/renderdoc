@@ -228,7 +228,7 @@ public:
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     // ensure the real object has this interface
-    void *outObj;
+    void *outObj = NULL;
     HRESULT hr = m_pWrapped->QueryInterface(riid, &outObj);
 
     IUnknown *unk = (IUnknown *)outObj;
