@@ -3026,6 +3026,16 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   if(wasms && (isDepth || isStencil))
     resolve = false;
 
+  uint32_t slice3DCopy = 0;
+
+  // arrayIdx isn't used for anything except copying the slice out at the end, so save the index we
+  // want to copy and then set arrayIdx to 0 to simplify subresource calculations
+  if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+  {
+    slice3DCopy = arrayIdx;
+    arrayIdx = 0;
+  }
+
   ID3D12Resource *srcTexture = resource;
   ID3D12Resource *tmpTexture = NULL;
 
@@ -3047,12 +3057,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       copyDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     }
 
-    // force to 1 array slice, 1 mip
-    copyDesc.DepthOrArraySize = 1;
+    // force to 1 mip
     copyDesc.MipLevels = 1;
-    // force to 2D
-    copyDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     copyDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    // Keep 3D texture depth, set array size to 1.
+    if(copyDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+      copyDesc.DepthOrArraySize = 1;
 
     copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
     copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
@@ -3073,10 +3084,34 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     else if(copyDesc.Format == DXGI_FORMAT_R32G32B32A32_FLOAT)
       flags = eTexDisplay_F32Render;
 
-    m_pDevice->CreateRenderTargetView(remapTexture, NULL,
-                                      GetDebugManager()->GetCPUHandle(GET_TEX_RTV));
+    uint32_t loopCount = 1;
 
+    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    rtvDesc.Format = copyDesc.Format;
+    if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
     {
+      rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+    }
+    else if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    {
+      rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    }
+    else if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    {
+      rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+      rtvDesc.Texture3D.WSize = 1;
+      loopCount = RDCMAX(0U, uint32_t(copyDesc.DepthOrArraySize >> mip));
+    }
+
+    // we only loop for 3D slices, other types we just do one remap for the desired mip/slice
+    for(uint32_t loop = 0; loop < loopCount; loop++)
+    {
+      if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+        rtvDesc.Texture3D.FirstWSlice = loop;
+
+      m_pDevice->CreateRenderTargetView(remapTexture, &rtvDesc,
+                                        GetDebugManager()->GetCPUHandle(GET_TEX_RTV));
+
       TextureDisplay texDisplay;
 
       texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
@@ -3098,6 +3133,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       texDisplay.rawOutput = false;
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;
+
+      if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+        texDisplay.sliceFace = loop << mip;
 
       RenderTextureInternal(GetDebugManager()->GetCPUHandle(GET_TEX_RTV), texDisplay, flags);
     }
@@ -3476,6 +3514,22 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
         byte *src = pData + layouts[0].Footprint.RowPitch * row;
         byte *dst = data.data() + dstRowPitch * row;
+
+        memcpy(dst, src, dstRowPitch);
+      }
+    }
+
+    // for 3D textures if we wanted a particular slice (slice3DCopy > 0) copy it into the beginning.
+    if(layouts[0].Footprint.Depth > 1 && slice3DCopy > 0 &&
+       (int)slice3DCopy < layouts[0].Footprint.Depth)
+    {
+      for(UINT r = 0; r < rowcounts[0]; r++)
+      {
+        UINT srcrow = r + slice3DCopy * rowcounts[0];
+        UINT dstrow = r;
+
+        byte *src = pData + layouts[0].Footprint.RowPitch * srcrow;
+        byte *dst = data.data() + dstRowPitch * dstrow;
 
         memcpy(dst, src, dstRowPitch);
       }
