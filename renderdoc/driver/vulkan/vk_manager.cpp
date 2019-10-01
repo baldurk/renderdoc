@@ -844,6 +844,16 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
   MarkResourceFrameReferenced(mem, maxRef, ComposeFrameRefsDisjoint);
 }
 
+void VulkanResourceManager::AddMemoryFrameRefs(ResourceId mem)
+{
+  m_MemFrameRefs.insert({mem, MemRefs()});
+}
+
+void VulkanResourceManager::AddImageFrameRefs(ResourceId img, const ImageInfo &imageInfo)
+{
+  m_ImgFrameRefs.insert({img, ImgRefs(imageInfo)});
+}
+
 void VulkanResourceManager::MergeReferencedImages(std::map<ResourceId, ImgRefs> &imgRefs)
 {
   for(auto j = imgRefs.begin(); j != imgRefs.end(); j++)

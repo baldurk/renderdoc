@@ -100,6 +100,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     const ResourceInfo &resInfo = *im->record->resInfo;
     const ImageInfo &imageInfo = resInfo.imageInfo;
 
+    if(!GetResourceManager()->FindImgRefs(id))
+      GetResourceManager()->AddImageFrameRefs(id, imageInfo);
+
     if(resInfo.IsSparse())
     {
       // if the image is sparse we have to do a different kind of initial state prepare,
@@ -548,6 +551,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
     VkDeviceMemory datamem = ToHandle<VkDeviceMemory>(res);
     VkDeviceSize datasize = record->Length;
+
+    if(!GetResourceManager()->FindMemRefs(id))
+      GetResourceManager()->AddMemoryFrameRefs(id);
 
     RDCASSERT(datamem != VK_NULL_HANDLE);
 

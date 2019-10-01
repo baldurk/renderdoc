@@ -432,6 +432,8 @@ public:
                                 FrameRefType refType);
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize start, VkDeviceSize end,
                                  FrameRefType refType);
+  void AddMemoryFrameRefs(ResourceId mem);
+  void AddImageFrameRefs(ResourceId img, const ImageInfo &imageInfo);
 
   void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
   void MergeReferencedImages(std::map<ResourceId, ImgRefs> &imgRefs);
