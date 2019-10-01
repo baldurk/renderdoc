@@ -296,7 +296,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
         auto stit = states.find(liveid);
 
-        if(stit == states.end() || stit->second.memoryBound)
+        if(stit == states.end() || stit->second.isMemoryBound)
         {
           barriers.push_back(t);
           vec.push_back(make_rdcpair(liveid, state));
@@ -339,7 +339,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
           auto stit = states.find(liveid);
 
-          if(stit == states.end() || stit->second.memoryBound)
+          if(stit == states.end() || stit->second.isMemoryBound)
           {
             barriers.push_back(t);
             vec.push_back(make_rdcpair(liveid, state));

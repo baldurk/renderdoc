@@ -1701,7 +1701,10 @@ struct ImageLayouts
 {
   uint32_t queueFamilyIndex = 0;
   std::vector<ImageRegionState> subresourceStates;
-  bool memoryBound = false;
+  bool isMemoryBound = false;
+  ResourceId boundMemory = ResourceId();
+  VkDeviceSize boundMemoryOffset = 0ull;
+  VkDeviceSize boundMemorySize = 0ull;
   VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   ImageInfo imageInfo;
 };

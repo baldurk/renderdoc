@@ -2172,7 +2172,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   TextureDisplayViews &texviews = m_TexRender.TextureViews[texid];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 
-  if(!layouts.memoryBound)
+  if(!layouts.isMemoryBound)
     return false;
 
   if(!IsStencilFormat(iminfo.format))
@@ -2494,7 +2494,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   TextureDisplayViews &texviews = m_TexRender.TextureViews[texid];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 
-  if(!layouts.memoryBound)
+  if(!layouts.isMemoryBound)
     return false;
 
   bool stencil = false;
@@ -2814,7 +2814,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[tex];
 
-  if(!layouts.memoryBound)
+  if(!layouts.isMemoryBound)
     return;
 
   VkImageCreateInfo imCreateInfo = {
