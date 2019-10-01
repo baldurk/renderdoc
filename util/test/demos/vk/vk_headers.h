@@ -48,6 +48,7 @@
     bool operator==(const int &other) const { return handle == other; }        \
     bool operator!=(const int &other) const { return handle != other; }        \
     operator bool() const { return handle != 0; }                              \
+    operator uint64_t() const { return handle; }                               \
     uint64_t handle;                                                           \
   };
 

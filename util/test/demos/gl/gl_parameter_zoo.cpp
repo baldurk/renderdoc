@@ -24,7 +24,7 @@
 
 #include "gl_test.h"
 
-#ifdef WIN32
+#ifdef WIN64
 extern "C" __declspec(dllexport) GLenum APIENTRY InternalFunction()
 {
   return GL_QUERY_BUFFER;
@@ -127,7 +127,7 @@ void main()
     if(GLAD_GL_ARB_query_buffer_object)
       glBindBuffer(GL_QUERY_BUFFER, trash);
 
-#ifdef WIN32
+#if defined(WIN64)
     PFNGLGETERRORPROC internalFunc =
         (PFNGLGETERRORPROC)GetProcAddress(GetModuleHandleA(NULL), "InternalFunction");
 
