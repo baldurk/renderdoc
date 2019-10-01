@@ -453,7 +453,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
       layouts.imageInfo = ImageInfo(swapinfo);
 
-      layouts.memoryBound = true;
+      layouts.isMemoryBound = true;
       layouts.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
       layouts.subresourceStates.clear();
@@ -594,7 +594,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           layout = &m_ImageLayouts[imid];
         }
         layout->imageInfo = GetRecord(images[i])->resInfo->imageInfo;
-        layout->memoryBound = true;
+        layout->isMemoryBound = true;
         layout->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         layout->subresourceStates.clear();

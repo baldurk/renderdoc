@@ -166,7 +166,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.resourceId);
   const ImageInfo &imageInfo = layouts.imageInfo;
 
-  if(!layouts.memoryBound)
+  if(!layouts.isMemoryBound)
     return false;
 
   CreateTexImageView(liveIm, iminfo, cfg.typeHint, texviews);

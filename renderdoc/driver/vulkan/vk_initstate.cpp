@@ -124,7 +124,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     // if the image has no memory bound, nothing is to be fetched
-    if(!layout->memoryBound)
+    if(!layout->isMemoryBound)
       return true;
 
     VkDevice d = GetDev();
@@ -1482,6 +1482,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     ResourceId orig = GetResourceManager()->GetOriginalID(id);
     ImgRefs *imgRefs = GetResourceManager()->FindImgRefs(orig);
+
     bool initialized = false;
     InitPolicy policy = GetResourceManager()->GetInitPolicy();
 
@@ -1489,6 +1490,44 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       initialized = imgRefs->initializedLiveRes == live;
       imgRefs->initializedLiveRes = live;
+    }
+
+    ImageLayouts &layout = m_ImageLayouts[id];
+
+    if(initialized && layout.boundMemory != ResourceId())
+    {
+      ResourceId origMem = GetResourceManager()->GetOriginalID(layout.boundMemory);
+      if(origMem != ResourceId())
+      {
+        MemRefs *memRefs = GetResourceManager()->FindMemRefs(origMem);
+        // Check whether any portion of the device memory range bound to this image is written.
+        // The memory might be written by a captured command (e.g. mapped memory), or might have
+        // initial contents.
+        if(memRefs == NULL)
+        {
+          // The device memory allocation is missing reference info, and so the memory will be reset
+          // before each frame; this means the image needs to be treated as if it is uninitialized
+          // at the beginning of each replay.
+          initialized = false;
+        }
+        else
+        {
+          for(auto it = memRefs->rangeRefs.find(layout.boundMemoryOffset);
+              it != memRefs->rangeRefs.end() &&
+              it->start() < layout.boundMemoryOffset + layout.boundMemorySize;
+              ++it)
+          {
+            if(IncludesWrite(it->value()) ||
+               InitReq(it->value(), policy, initialized) != eInitReq_None)
+            {
+              // The bound memory is written, either by a captured command or by the device memory
+              // initialization policy.
+              initialized = false;
+              break;
+            }
+          }
+        }
+      }
     }
 
     if(initial.tag == VkInitialContents::Sparse)
@@ -1502,7 +1541,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     {
       if(initial.tag == VkInitialContents::ClearColorImage)
       {
-        VkFormat format = m_ImageLayouts[id].imageInfo.format;
+        VkFormat format = layout.imageInfo.format;
 
         // can't clear these, so leave them alone.
         if(IsBlockFormat(format) || IsYUVFormat(format))
@@ -1520,7 +1559,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
             0,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            m_ImageLayouts[id].queueFamilyIndex,
+            layout.queueFamilyIndex,
             m_QueueFamilyIdx,
             ToHandle<VkImage>(live),
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
@@ -1541,10 +1580,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
         }
 
-        for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
         {
-          barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-          barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
+          barrier.oldLayout = layout.subresourceStates[si].newLayout;
 
           SanitiseOldImageLayout(barrier.oldLayout);
 
@@ -1583,10 +1622,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
         }
 
-        for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
         {
-          barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-          barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
+          barrier.newLayout = layout.subresourceStates[si].newLayout;
           barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
 
           SanitiseNewImageLayout(barrier.newLayout);
@@ -1630,7 +1669,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
             0,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            m_ImageLayouts[id].queueFamilyIndex,
+            layout.queueFamilyIndex,
             m_QueueFamilyIdx,
             ToHandle<VkImage>(live),
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
@@ -1651,10 +1690,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
         }
 
-        for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
         {
-          barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-          barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
+          barrier.oldLayout = layout.subresourceStates[si].newLayout;
 
           SanitiseOldImageLayout(barrier.oldLayout);
 
@@ -1694,10 +1733,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
         }
 
-        for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
         {
-          barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-          barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
+          barrier.newLayout = layout.subresourceStates[si].newLayout;
 
           SanitiseNewImageLayout(barrier.newLayout);
 
@@ -1761,7 +1800,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           0,
           VK_IMAGE_LAYOUT_UNDEFINED,
           VK_IMAGE_LAYOUT_GENERAL,
-          m_ImageLayouts[id].queueFamilyIndex,
+          layout.queueFamilyIndex,
           m_QueueFamilyIdx,
           ToHandle<VkImage>(live),
           {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
@@ -1781,10 +1820,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
       }
 
-      for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+      for(size_t si = 0; si < layout.subresourceStates.size(); si++)
       {
-        barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-        barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+        barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
+        barrier.oldLayout = layout.subresourceStates[si].newLayout;
 
         SanitiseOldImageLayout(barrier.oldLayout);
 
@@ -1830,10 +1869,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
       }
 
-      for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+      for(size_t si = 0; si < layout.subresourceStates.size(); si++)
       {
-        barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-        barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+        barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
+        barrier.newLayout = layout.subresourceStates[si].newLayout;
 
         SanitiseNewImageLayout(barrier.newLayout);
 

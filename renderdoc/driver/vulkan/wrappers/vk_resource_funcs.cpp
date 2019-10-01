@@ -958,7 +958,11 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 
     ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
 
-    m_ImageLayouts[GetResID(image)].memoryBound = true;
+    ImageLayouts &layout = m_ImageLayouts[GetResID(image)];
+    layout.isMemoryBound = true;
+    layout.boundMemory = GetResID(memory);
+    layout.boundMemoryOffset = memoryOffset;
+    layout.boundMemorySize = mrq.size;
 
     GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
     GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -998,7 +1002,7 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
       layout = &m_ImageLayouts[GetResID(image)];
     }
 
-    layout->memoryBound = true;
+    layout->isMemoryBound = true;
 
     // memory object bindings are immutable and must happen before creation or use,
     // so this can always go into the record, even if a resource is created and bound
@@ -1014,7 +1018,7 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
   }
   else
   {
-    m_ImageLayouts[GetResID(image)].memoryBound = true;
+    m_ImageLayouts[GetResID(image)].isMemoryBound = true;
   }
 
   return ret;
@@ -2032,7 +2036,11 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       if(!ok)
         return false;
 
-      m_ImageLayouts[GetResID(bindInfo.image)].memoryBound = true;
+      ImageLayouts &imageLayouts = m_ImageLayouts[GetResID(bindInfo.image)];
+      imageLayouts.isMemoryBound = true;
+      imageLayouts.boundMemory = GetResID(bindInfo.memory);
+      imageLayouts.boundMemoryOffset = bindInfo.memoryOffset;
+      imageLayouts.boundMemorySize = mrq.size;
 
       GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
       GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -2081,7 +2089,7 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
         layout = &m_ImageLayouts[imgrecord->GetResourceID()];
       }
 
-      layout->memoryBound = true;
+      layout->isMemoryBound = true;
 
       // memory object bindings are immutable and must happen before creation or use,
       // so this can always go into the record, even if a resource is created and bound
@@ -2099,7 +2107,7 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
   else
   {
     for(uint32_t i = 0; i < bindInfoCount; i++)
-      m_ImageLayouts[GetResID(pBindInfos[i].image)].memoryBound = true;
+      m_ImageLayouts[GetResID(pBindInfos[i].image)].isMemoryBound = true;
   }
 
   return ret;
