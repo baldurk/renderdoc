@@ -362,8 +362,8 @@ class EGLPlatform : public GLPlatform
     Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
     wl_display *waylandDisplay = RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay;
 
-    // we only support replaying GLES through EGL, except if Wayland is enabled
-    RDCASSERT(api == RDCDriver::OpenGLES || waylandDisplay);
+    // we support replaying both GLES and GL through EGL
+    RDCASSERT(api == RDCDriver::OpenGLES || api == RDCDriver::OpenGL);
 
     m_API = api;
 

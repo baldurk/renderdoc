@@ -3607,7 +3607,18 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
 #endif
   }
 
-  if(!gl_platform->CanCreateGLContext())
+  bool can_create_gl_context = gl_platform->CanCreateGLContext();
+
+#if defined(RENDERDOC_SUPPORT_EGL)
+  if(!can_create_gl_context && gl_platform == &GetGLPlatform())
+  {
+    RDCLOG("Cannot create GL context with GL platform, falling back to EGL");
+    gl_platform = &GetEGLPlatform();
+    can_create_gl_context = gl_platform->CanCreateGLContext();
+  }
+#endif
+
+  if(!can_create_gl_context)
   {
     RDCERR("Platform doesn't support GL contexts");
     return ReplayStatus::APIInitFailed;
