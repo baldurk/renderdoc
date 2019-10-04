@@ -216,6 +216,15 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
       int32_t slotIdx =
           conn.GetLocalVariable(vulkanLoaderClass, vulkanLoaderMethod, "librarySearchPath");
 
+      // Android 9 doesn't return names and changed how slots are indexed, try an offset from this
+      if(slotIdx == -1)
+      {
+        slotIdx = conn.GetLocalVariable(vulkanLoaderClass, vulkanLoaderMethod, "this");
+
+        if(slotIdx != -1)
+          slotIdx += 4;
+      }
+
       // as a default, use the 4th slot as it's the 4th argument argument (0 is this), if symbols
       // weren't available we can't identify the variable by name
       if(slotIdx == -1)
