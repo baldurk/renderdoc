@@ -516,10 +516,8 @@ public:
   methodID GetMethod(referenceTypeID type, const std::string &name,
                      const std::string &signature = "", referenceTypeID *methClass = NULL);
 
-  // get a local variable slot. If signature is empty, it's ignored for matching. Returns -1 if not
-  // found
-  int32_t GetLocalVariable(referenceTypeID type, methodID method, const std::string &name,
-                           const std::string &signature = "");
+  // get local variable slots
+  std::vector<VariableSlot> GetLocalVariables(referenceTypeID type, methodID method);
 
   // get a thread's stack frames
   std::vector<StackFrame> GetCallStack(threadID thread);

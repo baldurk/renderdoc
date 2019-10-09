@@ -267,14 +267,13 @@ methodID Connection::GetMethod(referenceTypeID type, const std::string &name,
   return {};
 }
 
-int32_t Connection::GetLocalVariable(referenceTypeID type, methodID method, const std::string &name,
-                                     const std::string &signature)
+std::vector<VariableSlot> Connection::GetLocalVariables(referenceTypeID type, methodID method)
 {
   Command cmd(CommandSet::Method, 2);
   cmd.GetData().Write(type).Write(method);
 
   if(!SendReceive(cmd))
-    return -1;
+    return {};
 
   int32_t argumentCount = 0;
   std::vector<VariableSlot> slots;
@@ -286,11 +285,7 @@ int32_t Connection::GetLocalVariable(referenceTypeID type, methodID method, cons
   });
   data.Done();
 
-  for(const VariableSlot &s : slots)
-    if(s.name == name && (signature == "" || signature == s.signature))
-      return s.slot;
-
-  return -1;
+  return slots;
 }
 
 fieldID Connection::GetField(referenceTypeID type, const std::string &name,
