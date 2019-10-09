@@ -9,6 +9,9 @@ Config
 ------
 
 .. autoclass:: qrenderdoc.PersistantConfig
+  :members:
+  :undoc-members:
+  :exclude-members: enum_constants__,properties__
 
 .. autoclass:: qrenderdoc.ShaderProcessingTool
   :members:

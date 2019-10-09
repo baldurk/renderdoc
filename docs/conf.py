@@ -357,6 +357,8 @@ def maybe_skip_member(app, what, name, obj, skip, options):
 	# as we don't have a way in SWIG to attach docstrings to constants directly.
 	if 'exclude-members' in options and 'enum_constants__' in options['exclude-members'] and isinstance(obj, int):
 		return True
+	if 'exclude-members' in options and 'properties__' in options['exclude-members'] and 'getset_desc' in str(type(obj)):
+		return True
 	# Allow arbitrary globbing as a hack to exclude or include members
 	if 'exclude-members' in options:
 		for exclude in options['exclude-members']:

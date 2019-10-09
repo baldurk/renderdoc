@@ -791,12 +791,12 @@ public:
   DOCUMENT(R"(Adds a new remote host.
 
 :param RemoteHost host: The remote host to add.
-R)");
+)");
   void AddRemoteHost(RemoteHost host);
   DOCUMENT(R"(Removes an existing remote host.
 
 :param RemoteHost host: The remote host to remove.
-R)");
+)");
   void RemoveRemoteHost(RemoteHost host);
   DOCUMENT("If configured, queries available device protocols to update auto-configured hosts.");
   void UpdateEnumeratedProtocolDevices();
