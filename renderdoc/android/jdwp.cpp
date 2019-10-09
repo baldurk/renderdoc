@@ -215,7 +215,8 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
     {
       std::vector<VariableSlot> slots = conn.GetLocalVariables(vulkanLoaderClass, vulkanLoaderMethod);
 
-      int32_t slotIdx = -1;
+      int32_t slotIdx = -1, thisSlotIdx = -1;
+      bool slot4Exists = false;
 
       for(const VariableSlot &s : slots)
       {
@@ -224,20 +225,18 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
           slotIdx = s.slot;
           break;
         }
+        else if(s.name == "this")
+        {
+          thisSlotIdx = s.slot;
+        }
+
+        if(s.slot == 4)
+          slot4Exists = true;
       }
 
-      // Android 9 doesn't return names and changed how slots are indexed, try an offset from this
-      if(slotIdx == -1)
-      {
-        for(const VariableSlot &s : slots)
-        {
-          if(s.name == "this")
-          {
-              slotIdx = s.slot + 4;
-              break;
-          }
-        }
-      }
+      // on some newer devices slots are not 0-based, try an offset from this if there is no slot 4
+      if(slotIdx == -1 && thisSlotIdx != -1 && !slot4Exists)
+        slotIdx = thisSlotIdx + 4;
 
       // as a default, use the 4th slot as it's the 4th argument argument (0 is this), if symbols
       // weren't available we can't identify the variable by name
