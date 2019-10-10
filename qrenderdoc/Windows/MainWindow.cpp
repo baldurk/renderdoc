@@ -2084,7 +2084,8 @@ void MainWindow::OnCaptureLoaded()
 
   PopulateRecentCaptureFiles();
 
-  ToolWindowManager::raiseToolWindow(m_Ctx.GetEventBrowser()->Widget());
+  if(m_Ctx.HasEventBrowser())
+    ToolWindowManager::raiseToolWindow(m_Ctx.GetEventBrowser()->Widget());
 }
 
 void MainWindow::OnCaptureClosed()

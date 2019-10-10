@@ -1246,7 +1246,7 @@ void EventBrowser::ClearFindIcons(RDTreeWidgetItem *parent)
 
 void EventBrowser::ClearFindIcons()
 {
-  if(m_Ctx.IsCaptureLoaded())
+  if(m_Ctx.IsCaptureLoaded() && ui->events->topLevelItemCount() > 0)
     ClearFindIcons(ui->events->topLevelItem(0));
 }
 
