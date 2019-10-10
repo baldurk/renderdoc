@@ -234,46 +234,36 @@ RWBuffer<uint> HistogramDest : register(u0);
   {
     for(uint x = topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
     {
-      uint bucketIdx = HGRAM_NUM_BUCKETS + 1;
+      uint4 bucketIdx = uint(HGRAM_NUM_BUCKETS + 1).xxxx;
 
 #if UINT_TEX
       {
         uint4 data = SampleTextureUInt4(texType, float2(x, y) / float2(texDim.xy), HistogramSlice,
                                         HistogramMip, HistogramSample, texDim);
 
-        float divisor = 0.0f;
-        uint sum = 0;
-        if(HistogramChannels & 0x1)
-        {
-          sum += data.x;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x2)
-        {
-          sum += data.y;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x4)
-        {
-          sum += data.z;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x8)
-        {
-          sum += data.w;
-          divisor += 1.0f;
-        }
+        if((HistogramChannels & 0x1) == 0)
+          data.x = uint(HistogramMax + 1);
+        if((HistogramChannels & 0x2) == 0)
+          data.y = uint(HistogramMax + 1);
+        if((HistogramChannels & 0x4) == 0)
+          data.z = uint(HistogramMax + 1);
+        if((HistogramChannels & 0x8) == 0)
+          data.w = uint(HistogramMax + 1);
 
-        if(divisor > 0.0f)
+        if(HistogramChannels > 0)
         {
-          float val = float(sum) / divisor;
+          float4 normalisedVal = (data - HistogramMin.xxxx) / (HistogramMax - HistogramMin).xxxx;
 
-          float normalisedVal = (val - HistogramMin) / (HistogramMax - HistogramMin);
+          if(normalisedVal.x < 0.0f)
+            normalisedVal.x = 2.0f;
+          if(normalisedVal.y < 0.0f)
+            normalisedVal.y = 2.0f;
+          if(normalisedVal.z < 0.0f)
+            normalisedVal.z = 2.0f;
+          if(normalisedVal.w < 0.0f)
+            normalisedVal.w = 2.0f;
 
-          if(normalisedVal < 0.0f)
-            normalisedVal = 2.0f;
-
-          bucketIdx = (uint)floor(normalisedVal * HGRAM_NUM_BUCKETS);
+          bucketIdx = (uint4)floor(normalisedVal * HGRAM_NUM_BUCKETS);
         }
       }
 #elif SINT_TEX
@@ -281,39 +271,29 @@ RWBuffer<uint> HistogramDest : register(u0);
         int4 data = SampleTextureInt4(texType, float2(x, y) / float2(texDim.xy), HistogramSlice,
                                       HistogramMip, HistogramSample, texDim);
 
-        float divisor = 0.0f;
-        int sum = 0;
-        if(HistogramChannels & 0x1)
-        {
-          sum += data.x;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x2)
-        {
-          sum += data.y;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x4)
-        {
-          sum += data.z;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x8)
-        {
-          sum += data.w;
-          divisor += 1.0f;
-        }
+        if((HistogramChannels & 0x1) == 0)
+          data.x = int(HistogramMax + 1);
+        if((HistogramChannels & 0x2) == 0)
+          data.y = int(HistogramMax + 1);
+        if((HistogramChannels & 0x4) == 0)
+          data.z = int(HistogramMax + 1);
+        if((HistogramChannels & 0x8) == 0)
+          data.w = int(HistogramMax + 1);
 
-        if(divisor > 0.0f)
+        if(HistogramChannels > 0)
         {
-          float val = float(sum) / divisor;
+          float4 normalisedVal = (data - HistogramMin.xxxx) / (HistogramMax - HistogramMin).xxxx;
 
-          float normalisedVal = (val - HistogramMin) / (HistogramMax - HistogramMin);
+          if(normalisedVal.x < 0.0f)
+            normalisedVal.x = 2.0f;
+          if(normalisedVal.y < 0.0f)
+            normalisedVal.y = 2.0f;
+          if(normalisedVal.z < 0.0f)
+            normalisedVal.z = 2.0f;
+          if(normalisedVal.w < 0.0f)
+            normalisedVal.w = 2.0f;
 
-          if(normalisedVal < 0.0f)
-            normalisedVal = 2.0f;
-
-          bucketIdx = (uint)floor(normalisedVal * HGRAM_NUM_BUCKETS);
+          bucketIdx = (uint4)floor(normalisedVal * HGRAM_NUM_BUCKETS);
         }
       }
 #else
@@ -322,45 +302,41 @@ RWBuffer<uint> HistogramDest : register(u0);
                                           HistogramSlice, HistogramMip, HistogramSample, texDim,
                                           HistogramYUVDownsampleRate, HistogramYUVAChannels);
 
-        float divisor = 0.0f;
-        float sum = 0.0f;
-        if(HistogramChannels & 0x1)
-        {
-          sum += data.x;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x2)
-        {
-          sum += data.y;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x4)
-        {
-          sum += data.z;
-          divisor += 1.0f;
-        }
-        if(HistogramChannels & 0x8)
-        {
-          sum += data.w;
-          divisor += 1.0f;
-        }
+        if((HistogramChannels & 0x1) == 0)
+          data.x = float(HistogramMax + 1);
+        if((HistogramChannels & 0x2) == 0)
+          data.y = float(HistogramMax + 1);
+        if((HistogramChannels & 0x4) == 0)
+          data.z = float(HistogramMax + 1);
+        if((HistogramChannels & 0x8) == 0)
+          data.w = float(HistogramMax + 1);
 
-        if(divisor > 0.0f)
+        if(HistogramChannels > 0)
         {
-          float val = sum / divisor;
+          float4 normalisedVal = (data - HistogramMin.xxxx) / (HistogramMax - HistogramMin).xxxx;
 
-          float normalisedVal = (val - HistogramMin) / (HistogramMax - HistogramMin);
+          if(normalisedVal.x < 0.0f)
+            normalisedVal.x = 2.0f;
+          if(normalisedVal.y < 0.0f)
+            normalisedVal.y = 2.0f;
+          if(normalisedVal.z < 0.0f)
+            normalisedVal.z = 2.0f;
+          if(normalisedVal.w < 0.0f)
+            normalisedVal.w = 2.0f;
 
-          if(normalisedVal < 0.0f)
-            normalisedVal = 2.0f;
-
-          bucketIdx = (uint)floor(normalisedVal * HGRAM_NUM_BUCKETS);
+          bucketIdx = (uint4)floor(normalisedVal * HGRAM_NUM_BUCKETS);
         }
       }
 #endif
 
-      if(bucketIdx >= 0 && bucketIdx < HGRAM_NUM_BUCKETS)
-        InterlockedAdd(HistogramDest[bucketIdx], 1);
+      if(bucketIdx.x < HGRAM_NUM_BUCKETS)
+        InterlockedAdd(HistogramDest[bucketIdx.x], 1);
+      if(bucketIdx.y < HGRAM_NUM_BUCKETS)
+        InterlockedAdd(HistogramDest[bucketIdx.y], 1);
+      if(bucketIdx.z < HGRAM_NUM_BUCKETS)
+        InterlockedAdd(HistogramDest[bucketIdx.z], 1);
+      if(bucketIdx.w < HGRAM_NUM_BUCKETS)
+        InterlockedAdd(HistogramDest[bucketIdx.w], 1);
     }
   }
 }

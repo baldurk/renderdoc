@@ -785,7 +785,18 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
   if(!m_Visualise || texptr == NULL || m_Output == NULL)
     return;
 
-  ResourceFormat fmt = texptr->format;
+  TextureDescription &tex = *texptr;
+
+  ResourceFormat fmt = tex.format;
+
+  bool uintTex = (tex.format.compType == CompType::UInt);
+  bool sintTex = (tex.format.compType == CompType::SInt);
+
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::UInt)
+    uintTex = true;
+
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::SInt)
+    sintTex = true;
 
   if(m_TexDisplay.customShaderId != ResourceId())
     fmt.compCount = 4;
@@ -795,6 +806,29 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
       m_TexDisplay.blue && fmt.compCount > 2, m_TexDisplay.alpha && fmt.compCount > 3,
   };
 
+  PixelValue min, max;
+  rdctie(min, max) = m_Output->GetMinMax();
+
+  // exclude any channels where the min == max, as this destroys the histogram's utility.
+  // When we do this, after we have the histogram we set the appropriate bucket to max - to still
+  // show that there was data there but it's "clamped".
+  float excludedBucket[4] = {-1.0f, -1.0f, -1.0f, -1.0f};
+  const float rangeSize = ui->rangeHistogram->rangeMax() - ui->rangeHistogram->rangeMin();
+  for(int i = 0; i < 4; i++)
+  {
+    if(min.uintValue[i] == max.uintValue[i])
+    {
+      channels[i] = false;
+
+      if(uintTex)
+        excludedBucket[i] = (float(min.uintValue[i]) - ui->rangeHistogram->rangeMin()) / rangeSize;
+      else if(sintTex)
+        excludedBucket[i] = (float(min.intValue[i]) - ui->rangeHistogram->rangeMin()) / rangeSize;
+      else
+        excludedBucket[i] = (min.floatValue[i] - ui->rangeHistogram->rangeMin()) / rangeSize;
+    }
+  }
+
   rdcarray<uint32_t> histogram = m_Output->GetHistogram(ui->rangeHistogram->rangeMin(),
                                                         ui->rangeHistogram->rangeMax(), channels);
 
@@ -803,6 +837,21 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
     QVector<uint32_t> histogramVec(histogram.count());
     if(!histogram.isEmpty())
       memcpy(histogramVec.data(), histogram.data(), histogram.byteSize());
+
+    // if the histogram is completely empty we still want to set 1 value in there.
+    uint32_t maxval = 1;
+    for(const uint32_t &v : histogramVec)
+      maxval = qMax(v, maxval);
+
+    if(!histogramVec.isEmpty())
+    {
+      for(int i = 0; i < 4; i++)
+      {
+        int bucket = excludedBucket[i] * (histogramVec.size() - 1);
+        if(bucket >= 0 && bucket < histogramVec.size())
+          histogramVec[bucket] = maxval;
+      }
+    }
 
     GUIInvoke::call(this, [this, histogramVec]() {
       ui->rangeHistogram->setHistogramRange(ui->rangeHistogram->rangeMin(),
