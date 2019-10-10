@@ -188,6 +188,13 @@ public:
     }
   }
 
+  template <class T>
+  void ClearObj(T &el)
+  {
+    if(IsReading())
+      m_Read->Clear(&el, sizeof(T));
+  }
+
   // serialise an object (either loose, or a structure member).
   template <class T>
   Serialiser &Serialise(const rdcliteral &name, T &el,
@@ -1912,9 +1919,12 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
       GET_SERIALISER, obj);                                                                  \
   GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj)
 
+// for _TYPED serialises, we need to first clear the object to 0 since the typed alias might not
+// write it all. This is mostly only when co-oercing a BOOL type to bool, where only one byte gets
+// written. We go via ClearObj() so that when StructuredSerialiser is in use and the reader is a
+// dummy, it can skip the write.
 #define SERIALISE_ELEMENT_TYPED(type, obj) \
-  if(ser.IsReading())                      \
-    obj = decltype(obj)();                 \
+  ser.ClearObj(obj);                       \
   union                                    \
   {                                        \
     type *t;                               \
@@ -1948,8 +1958,7 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
 #define SERIALISE_MEMBER(obj) ser.Serialise(STRING_LITERAL(#obj), el.obj)
 
 #define SERIALISE_MEMBER_TYPED(type, obj) \
-  if(ser.IsReading())                     \
-    el.obj = decltype(el.obj)();          \
+  ser.ClearObj(el.obj);                   \
   union                                   \
   {                                       \
     type *t;                              \
@@ -1962,8 +1971,8 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
   ser.Serialise(STRING_LITERAL(#arrayObj), el.arrayObj, el.countObj, SerialiserFlags::AllocateMemory)
 
 #define SERIALISE_MEMBER_ARRAY_TYPED(type, arrayObj, countObj)                                     \
-  if(ser.IsReading())                                                                              \
-    el.arrayObj = NULL;                                                                            \
+  RDCCOMPILE_ASSERT(sizeof(*el.arrayObj) == sizeof(type),                                          \
+                    "Array serialised co-erced type must be identically sized");                   \
   union                                                                                            \
   {                                                                                                \
     type **t;                                                                                      \

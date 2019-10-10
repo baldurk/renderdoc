@@ -130,7 +130,7 @@ void DoSerialise(SerialiserType &ser, D3D12_CPU_DESCRIPTOR_HANDLE &el)
     if(rm)
       el.ptr = (SIZE_T)DescriptorFromPortableHandle(rm, ph);
     else
-      el.ptr = 0;
+      ser.ClearObj(el.ptr);
   }
 }
 
@@ -151,7 +151,7 @@ void DoSerialise(SerialiserType &ser, D3D12_GPU_DESCRIPTOR_HANDLE &el)
     if(rm)
       el.ptr = (SIZE_T)DescriptorFromPortableHandle(rm, ph);
     else
-      el.ptr = 0;
+      ser.ClearObj(el.ptr);
   }
 }
 
@@ -207,7 +207,7 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
     if(rm && buffer != ResourceId() && rm->HasLiveResource(buffer))
       el.Location = rm->GetLiveAs<ID3D12Resource>(buffer)->GetGPUVirtualAddress() + offs;
     else
-      el.Location = 0;
+      ser.ClearObj(el.Location);
   }
 }
 

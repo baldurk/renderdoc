@@ -118,6 +118,12 @@ public:
     return true;
   }
 
+  void Clear(void *data, size_t numBytes)
+  {
+    if(!m_Dummy)
+      memset(data, 0, numBytes);
+  }
+
   bool Read(void *data, uint64_t numBytes)
   {
     if(numBytes == 0 || m_Dummy)
