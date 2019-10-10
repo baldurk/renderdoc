@@ -518,7 +518,7 @@ std::string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderRefl
     }
 
     WrappedID3D12PipelineState *pipe =
-        m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12PipelineState>(pipeline);
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeline);
 
     UINT size = 0;
     pipe->GetPrivateData(WKPDID_CommentStringW, &size, NULL);

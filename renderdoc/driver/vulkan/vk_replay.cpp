@@ -472,7 +472,7 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
 
   rdcarray<PipelineExecutables> &data = it.first->second;
 
-  VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
+  VkPipeline pipe = m_pDriver->GetResourceManager()->GetCurrentHandle<VkPipeline>(pipeline);
 
   VkPipelineInfoKHR pipeInfo = {
       VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, NULL, Unwrap(pipe),
@@ -566,7 +566,7 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
              "; Shader must be disassembled with a specific pipeline.";
     }
 
-    VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
+    VkPipeline pipe = m_pDriver->GetResourceManager()->GetCurrentHandle<VkPipeline>(pipeline);
 
     VkShaderStageFlagBits stageBit =
         VkShaderStageFlagBits(1 << it->second.GetReflection(refl->entryPoint, pipeline).stageIndex);

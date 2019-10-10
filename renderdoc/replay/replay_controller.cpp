@@ -293,7 +293,7 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
     if(t == target)
       return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
 
-  return m_pDevice->DisassembleShader(pipeline, refl, target);
+  return m_pDevice->DisassembleShader(m_pDevice->GetLiveID(pipeline), refl, target);
 }
 
 FrameDescription ReplayController::GetFrameInfo()
