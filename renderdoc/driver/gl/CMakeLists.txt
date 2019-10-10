@@ -68,10 +68,13 @@ else()
     endif()
     if(ENABLE_GLES)
         list(APPEND sources
+            official/glesext.h)
+    endif()
+    if(ENABLE_EGL)
+        list(APPEND sources
             official/egl.h
             official/eglext.h
             official/eglplatform.h
-            official/glesext.h
             egl_dispatch_table.h
             egl_platform.cpp
             egl_hooks.cpp)

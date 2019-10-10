@@ -159,6 +159,7 @@ project(RenderDoc CXX C)
 
 option(ENABLE_GL "Enable GL driver" ON)
 option(ENABLE_GLES "Enable GL ES driver" ON)
+option(ENABLE_EGL "Enable EGL" ON)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
@@ -227,6 +228,7 @@ endif()
 if(APPLE)
     message(STATUS "Disabling GLES driver on apple")
     set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
+    set(ENABLE_EGL OFF CACHE BOOL "" FORCE)
 endif()
 
 if(ANDROID)
@@ -235,6 +237,7 @@ if(ANDROID)
     endif()
     set(ENABLE_GL OFF CACHE BOOL "" FORCE)
     set(ENABLE_GLES ON CACHE BOOL "" FORCE)
+    set(ENABLE_EGL ON CACHE BOOL "" FORCE)
 
     # Android doesn't support the Qt UI for obvious reasons
     message(STATUS "Disabling qrenderdoc for android build")
@@ -252,6 +255,7 @@ if(ENABLE_GGP)
     message(STATUS "Disabling GL, GLES driver on ggp")
     set(ENABLE_GL OFF CACHE BOOL "" FORCE)
     set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
+    set(ENABLE_EGL OFF CACHE BOOL "" FORCE)
 
     # GGP doesn't support the Qt UI
     message(STATUS "Disabling qrenderdoc for ggp build")
@@ -259,6 +263,10 @@ if(ENABLE_GGP)
 
     message(STATUS "Disabling renderdoc python modules for ggp build")
     set(ENABLE_PYRENDERDOC OFF CACHE BOOL "" FORCE)
+endif()
+
+if(ENABLE_GLES AND NOT ENABLE_EGL)
+    message(FATAL_ERROR "EGL is required for GLES")
 endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
@@ -270,6 +278,10 @@ endif()
 
 if(ENABLE_GLES)
     add_definitions(-DRENDERDOC_SUPPORT_GLES)
+endif()
+
+if(ENABLE_EGL)
+    add_definitions(-DRENDERDOC_SUPPORT_EGL)
 endif()
 
 if(ENABLE_VULKAN)
@@ -378,7 +390,11 @@ install (FILES LICENSE.md DESTINATION share/doc/renderdoc)
 
 message(STATUS "Enabled APIs:")
 if(ENABLE_GL)
-    message(STATUS "  - OpenGL")
+    if(ENABLE_EGL)
+        message(STATUS "  - OpenGL (with additional EGL support)")
+    else()
+        message(STATUS "  - OpenGL")
+    endif()
 endif()
 
 if(ENABLE_GLES)
