@@ -245,6 +245,7 @@ class WGLPlatform : public GLPlatform
     return Process::GetFunctionAddress(Process::LoadModule("opengl32.dll"), funcname);
   }
 
+  bool CanCreateGLContext() { return true; }
   bool CanCreateGLESContext()
   {
     bool success = WGL.PopulateForReplay();

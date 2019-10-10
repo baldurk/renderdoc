@@ -326,6 +326,30 @@ class EGLPlatform : public GLPlatform
     return ret;
   }
 
+  bool CanCreateGLContext()
+  {
+#if ENABLED(RDOC_ANDROID)
+    // we don't trust the EGL API query to work reliably on Android, so treat
+    // it as special case
+    return false;
+#else
+    bool success = EGL.PopulateForReplay();
+
+    // if we can't populate our functions we bail now.
+    if(!success)
+      return false;
+
+    EGLenum previousAPI = EGL.QueryAPI();
+    EGLBoolean supportsGL = EGL.BindAPI(EGL_OPENGL_API);
+
+    // restore previous API
+    if(previousAPI != EGL_NONE)
+      EGL.BindAPI(previousAPI);
+
+    return supportsGL == EGL_TRUE;
+#endif
+  }
+
   bool CanCreateGLESContext()
   {
     // as long as we can get libEGL we're fine

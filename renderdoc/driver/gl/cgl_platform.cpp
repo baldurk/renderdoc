@@ -182,6 +182,7 @@ class CGLPlatform : public GLPlatform
 
     return NULL;
   }
+  bool CanCreateGLContext() { return true; }
   bool CanCreateGLESContext() { return false; }
   bool PopulateForReplay() { return CGL.PopulateForReplay(); }
   GLWindowingData MakeOutputWindow(WindowingData window, bool depth, GLWindowingData share_context)

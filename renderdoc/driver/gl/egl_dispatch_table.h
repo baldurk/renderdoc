@@ -27,6 +27,7 @@
 #include "gl_common.h"
 
 typedef EGLBoolean(EGLAPIENTRY *PFN_eglBindAPI)(EGLenum api);
+typedef EGLenum(EGLAPIENTRY *PFN_eglQueryAPI)();
 typedef EGLDisplay(EGLAPIENTRY *PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
 typedef EGLDisplay(EGLAPIENTRY *PFN_eglGetPlatformDisplay)(EGLenum platform, void *native_display,
                                                            const EGLAttrib *attrib_list);
@@ -90,6 +91,7 @@ typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
   FUNC(GetCurrentSurface, false, true);    \
   FUNC(GetError, false, true);             \
   FUNC(Initialize, false, true);           \
+  FUNC(QueryAPI, false, true);             \
   FUNC(QueryString, false, true);          \
   FUNC(QuerySurface, false, true);
 

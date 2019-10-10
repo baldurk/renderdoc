@@ -304,6 +304,13 @@ class GLXPlatform : public GLPlatform
     return ret;
   }
 
+  bool CanCreateGLContext()
+  {
+    Display *dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
+
+    return GetGLHandle() != NULL && dpy != NULL;
+  }
+
   bool CanCreateGLESContext()
   {
     bool success = GLX.PopulateForReplay();

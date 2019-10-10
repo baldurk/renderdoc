@@ -3607,6 +3607,12 @@ ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRep
 #endif
   }
 
+  if(!gl_platform->CanCreateGLContext())
+  {
+    RDCERR("Platform doesn't support GL contexts");
+    return ReplayStatus::APIInitFailed;
+  }
+
   RDCDEBUG("Creating an OpenGL replay device");
 
   bool load_ok = gl_platform->PopulateForReplay();

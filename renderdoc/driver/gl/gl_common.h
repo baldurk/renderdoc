@@ -280,6 +280,7 @@ struct GLPlatform
   virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;
 
   // for initialisation at replay time
+  virtual bool CanCreateGLContext() = 0;
   virtual bool CanCreateGLESContext() = 0;
   virtual bool PopulateForReplay() = 0;
   virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug) = 0;
@@ -304,6 +305,7 @@ class GLDummyPlatform : public GLPlatform
   virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
   virtual void *GetReplayFunction(const char *funcname) { return NULL; }
   // for initialisation at replay time
+  virtual bool CanCreateGLContext() { return true; }
   virtual bool CanCreateGLESContext() { return true; }
   virtual bool PopulateForReplay() { return true; }
   virtual ReplayStatus InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
