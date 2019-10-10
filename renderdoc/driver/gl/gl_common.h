@@ -48,6 +48,7 @@ DECLARE_REFLECTION_ENUM(RDCGLenum);
 // appropriate libEGL.dll into plugins/gles/ in your RenderDoc folder.
 #define RENDERDOC_SUPPORT_GL
 #define RENDERDOC_SUPPORT_GLES
+#define RENDERDOC_SUPPORT_EGL
 
 #else
 
@@ -126,7 +127,7 @@ struct GLWindowingData
 
 #endif
 
-#if defined(RENDERDOC_SUPPORT_GLES)
+#if defined(RENDERDOC_SUPPORT_EGL)
 
 // force include the elgplatform.h, as we want to use
 // our own because the system one could be a bit older and
@@ -144,7 +145,7 @@ struct GLWindowingData
     dpy = NULL;
     ctx = NULL;
     wnd = (GLWindowPtr)NULL;
-    egl_wnd = (GLESWindowPtr)NULL;
+    egl_wnd = (EGLSurface)NULL;
     cfg = NULL;
   }
 
@@ -160,35 +161,30 @@ struct GLWindowingData
   typedef void *GLConfigPtr;
 #endif
 
-#if defined(RENDERDOC_SUPPORT_GLES)
-  typedef EGLDisplay GLESDisplayPtr;
-  typedef EGLContext GLESContextPtr;
-  typedef EGLSurface GLESWindowPtr;
-  typedef EGLConfig GLESConfigPtr;
-#else
-  typedef void *GLESDisplayPtr;
-  typedef void *GLESContextPtr;
-  typedef void *GLESWindowPtr;
-  typedef void *GLESConfigPtr;
+#if !defined(RENDERDOC_SUPPORT_EGL)
+  typedef void *EGLDisplay;
+  typedef void *EGLContext;
+  typedef void *EGLSurface;
+  typedef void *EGLConfig;
 #endif
 
   union
   {
     GLDisplayPtr dpy;
-    GLESDisplayPtr egl_dpy;
+    EGLDisplay egl_dpy;
   };
   union
   {
     GLContextPtr ctx;
-    GLESContextPtr egl_ctx;
+    EGLContext egl_ctx;
   };
   union
   {
     GLConfigPtr cfg;
-    GLESConfigPtr egl_cfg;
+    EGLConfig egl_cfg;
   };
   GLWindowPtr wnd;
-  GLESWindowPtr egl_wnd;
+  EGLSurface egl_wnd;
 };
 
 #elif ENABLED(RDOC_APPLE)
@@ -331,7 +327,7 @@ GLPlatform &GetGLPlatform();
 
 #endif
 
-#if defined(RENDERDOC_SUPPORT_GLES)
+#if defined(RENDERDOC_SUPPORT_EGL)
 
 // using EGL. Different name since it both platform GL and EGL libraries can be available at once
 GLPlatform &GetEGLPlatform();
