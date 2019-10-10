@@ -1000,6 +1000,8 @@ void CaptureContext::RecompressCapture()
   QString destFilename = GetCaptureFilename();
   QString tempFilename;
 
+  qint64 oldSize = QFile(destFilename).size();
+
   ICaptureFile *cap = NULL;
   ICaptureFile *tempCap = NULL;
 
@@ -1141,6 +1143,15 @@ void CaptureContext::RecompressCapture()
     m_MainWindow->RemoveRecentCapture(tempFilename);
     QFile::remove(tempFilename);
   }
+
+  qint64 newSize = QFile(m_CaptureFile).size();
+
+  RDDialog::information(
+      m_MainWindow, tr("Capture recompressed"),
+      tr("Compression successful, capture is %1% of the original size: %2 MB -> %3 MB")
+          .arg(double(newSize * 100) / double(oldSize), 0, 'f', 2)
+          .arg(double(oldSize) / (1024.0 * 1024.0), 0, 'f', 1)
+          .arg(double(newSize) / (1024.0 * 1024.0), 0, 'f', 1));
 }
 
 bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
