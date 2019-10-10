@@ -501,6 +501,11 @@ struct VkDevDispatchTable
   PFN_vkCmdDrawIndirectCountKHR CmdDrawIndirectCountKHR;
   PFN_vkCmdDrawIndexedIndirectCountKHR CmdDrawIndexedIndirectCountKHR;
 
+  // VK_KHR_timeline_semaphore
+  PFN_vkGetSemaphoreCounterValueKHR GetSemaphoreCounterValueKHR;
+  PFN_vkWaitSemaphoresKHR WaitSemaphoresKHR;
+  PFN_vkSignalSemaphoreKHR SignalSemaphoreKHR;
+
   // VK_KHR_pipeline_executable_properties
   PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
   PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;

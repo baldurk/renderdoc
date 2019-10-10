@@ -253,6 +253,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceShaderAtomicInt64FeaturesKHR);                                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD,                          \
               VkPhysicalDeviceShaderCorePropertiesAMD);                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR,                           \
+              VkPhysicalDeviceShaderClockFeaturesKHR);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT,     \
               VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT);                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,                     \
@@ -273,6 +275,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT,               \
               VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,                     \
+              VkPhysicalDeviceTimelineSemaphoreFeaturesKHR);                                         \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR,                   \
+              VkPhysicalDeviceTimelineSemaphorePropertiesKHR);                                       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                     \
               VkPhysicalDeviceTransformFeedbackFeaturesEXT);                                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT,                   \
@@ -356,6 +362,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES,                    \
               VkSamplerYcbcrConversionImageFormatProperties);                                        \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, VkSemaphoreCreateInfo);                       \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR, VkSemaphoreTypeCreateInfoKHR);       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, VkShaderModuleCreateInfo);                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,                             \
               VkSharedPresentSurfaceCapabilitiesKHR);                                                \
@@ -375,6 +382,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkSurfaceProtectedCapabilitiesKHR);                                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                            \
               VkTextureLODGatherFormatPropertiesAMD);                                                \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR,                                  \
+              VkTimelineSemaphoreSubmitInfoKHR);                                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT, VkValidationCacheCreateInfoEXT);   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT, VkValidationFeaturesEXT);                   \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO,                            \
@@ -425,6 +434,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->commandPool));                                                    \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO, VkCommandBufferInheritanceInfo,   \
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT,                              \
+                VkConditionalRenderingBeginInfoEXT, UnwrapInPlace(out->buffer));                     \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, VkCopyDescriptorSet,                          \
                 UnwrapInPlace(out->srcSet), UnwrapInPlace(out->dstSet));                             \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,                      \
@@ -453,8 +464,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo,       \
                 UnwrapInPlace(out->conversion));                                                     \
-  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT,                              \
-                VkConditionalRenderingBeginInfoEXT, UnwrapInPlace(out->buffer));                     \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR, VkSemaphoreSignalInfoKHR,               \
+                UnwrapInPlace(out->semaphore));                                                      \
   UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,                          \
                              VkAcquireNextImageInfoKHR, UnwrapInPlace(out->swapchain),               \
                              UnwrapInPlace(out->semaphore), UnwrapInPlace(out->fence));              \
@@ -711,6 +722,14 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkRenderPassAttachmentBeginInfoKHR *info = (VkRenderPassAttachmentBeginInfoKHR *)next;
         memSize += info->attachmentCount * sizeof(VkImageView);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR:
+      {
+        memSize += sizeof(VkSemaphoreWaitInfoKHR);
+
+        VkSemaphoreWaitInfoKHR *info = (VkSemaphoreWaitInfoKHR *)next;
+        memSize += info->semaphoreCount * sizeof(VkSemaphore);
         break;
       }
       case VK_STRUCTURE_TYPE_SUBMIT_INFO:
@@ -1215,6 +1234,26 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         out->pAttachments = outAttachments;
         for(uint32_t i = 0; i < in->attachmentCount; i++)
           outAttachments[i] = Unwrap(in->pAttachments[i]);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR:
+      {
+        const VkSemaphoreWaitInfoKHR *in = (const VkSemaphoreWaitInfoKHR *)nextInput;
+        VkSemaphoreWaitInfoKHR *out = (VkSemaphoreWaitInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkSemaphore *outSemaphores = (VkSemaphore *)tempMem;
+        tempMem += sizeof(VkSemaphore) * in->semaphoreCount;
+
+        *out = *in;
+        out->pSemaphores = outSemaphores;
+
+        for(uint32_t i = 0; i < in->semaphoreCount; i++)
+          outSemaphores[i] = Unwrap(in->pSemaphores[i]);
 
         break;
       }

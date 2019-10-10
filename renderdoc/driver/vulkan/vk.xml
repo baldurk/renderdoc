@@ -154,7 +154,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 123</type>
+#define <name>VK_HEADER_VERSION</name> 124</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -271,6 +271,7 @@ typedef void <name>CAMetalLayer</name>;
         <type requires="VkPipelineCreationFeedbackFlagBitsEXT" category="bitmask">typedef <type>VkFlags</type> <name>VkPipelineCreationFeedbackFlagsEXT</name>;</type>
         <type requires="VkPipelineCompilerControlFlagBitsAMD" category="bitmask">typedef <type>VkFlags</type> <name>VkPipelineCompilerControlFlagsAMD</name>;</type>
         <type requires="VkShaderCorePropertiesFlagBitsAMD" category="bitmask">typedef <type>VkFlags</type> <name>VkShaderCorePropertiesFlagsAMD</name>;</type>
+        <type requires="VkSemaphoreWaitFlagBitsKHR"       category="bitmask">typedef <type>VkFlags</type> <name>VkSemaphoreWaitFlagsKHR</name>;</type>
 
             <comment>WSI extensions</comment>
         <type requires="VkCompositeAlphaFlagBitsKHR"      category="bitmask">typedef <type>VkFlags</type> <name>VkCompositeAlphaFlagsKHR</name>;</type>
@@ -493,6 +494,7 @@ typedef void <name>CAMetalLayer</name>;
         <type name="VkQueueGlobalPriorityEXT" category="enum"/>
         <type name="VkTimeDomainEXT" category="enum"/>
         <type name="VkConservativeRasterizationModeEXT" category="enum"/>
+        <type name="VkSemaphoreTypeKHR" category="enum"/>
         <type name="VkResolveModeFlagBitsKHR" category="enum"/>
         <type name="VkGeometryFlagBitsNV" category="enum"/>
         <type name="VkGeometryInstanceFlagBitsNV" category="enum"/>
@@ -506,6 +508,7 @@ typedef void <name>CAMetalLayer</name>;
         <type name="VkScopeNV" category="enum"/>
         <type name="VkComponentTypeNV" category="enum"/>
         <type name="VkPipelineCreationFeedbackFlagBitsEXT" category="enum"/>
+        <type name="VkSemaphoreWaitFlagBitsKHR" category="enum"/>
         <type name="VkPerformanceConfigurationTypeINTEL" category="enum"/>
         <type name="VkQueryPoolSamplingModeINTEL" category="enum"/>
         <type name="VkPerformanceOverrideTypeINTEL" category="enum"/>
@@ -3330,6 +3333,44 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_SUBPASS_END_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*            <name>pNext</name></member>
         </type>
+        <type category="struct" name="VkPhysicalDeviceTimelineSemaphoreFeaturesKHR" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>VkBool32</type>               <name>timelineSemaphore</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceTimelineSemaphorePropertiesKHR" structextends="VkPhysicalDeviceProperties2" returnedonly="true">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>uint64_t</type>               <name>maxTimelineSemaphoreValueDifference</name></member>
+        </type>
+        <type category="struct" name="VkSemaphoreTypeCreateInfoKHR" structextends="VkSemaphoreCreateInfo,VkPhysicalDeviceExternalSemaphoreInfo">
+            <member values="VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*            <name>pNext</name></member>
+            <member><type>VkSemaphoreTypeKHR</type>     <name>semaphoreType</name></member>
+            <member><type>uint64_t</type>               <name>initialValue</name></member>
+        </type>
+        <type category="struct" name="VkTimelineSemaphoreSubmitInfoKHR" structextends="VkSubmitInfo,VkBindSparseInfo">
+            <member values="VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*                      <name>pNext</name></member>
+            <member optional="true"><type>uint32_t</type>         <name>waitSemaphoreValueCount</name></member>
+            <member optional="true" len="waitSemaphoreValueCount">const <type>uint64_t</type>* <name>pWaitSemaphoreValues</name></member>
+            <member optional="true"><type>uint32_t</type>         <name>signalSemaphoreValueCount</name></member>
+            <member optional="true" len="signalSemaphoreValueCount">const <type>uint64_t</type>* <name>pSignalSemaphoreValues</name></member>
+        </type>
+        <type category="struct" name="VkSemaphoreWaitInfoKHR">
+            <member values="VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*            <name>pNext</name></member>
+            <member optional="true"><type>VkSemaphoreWaitFlagsKHR</type> <name>flags</name></member>
+            <member><type>uint32_t</type>               <name>semaphoreCount</name></member>
+            <member len="semaphoreCount">const <type>VkSemaphore</type>* <name>pSemaphores</name></member>
+            <member len="semaphoreCount">const <type>uint64_t</type>*    <name>pValues</name></member>
+        </type>
+        <type category="struct" name="VkSemaphoreSignalInfoKHR">
+            <member values="VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*            <name>pNext</name></member>
+            <member><type>VkSemaphore</type>            <name>semaphore</name></member>
+            <member><type>uint64_t</type>               <name>value</name></member>
+        </type>
         <type category="struct" name="VkVertexInputBindingDivisorDescriptionEXT">
             <member><type>uint32_t</type>          <name>binding</name></member>
             <member><type>uint32_t</type>          <name>divisor</name></member>
@@ -4017,6 +4058,12 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_PERFORMANCE_CONFIGURATION_ACQUIRE_INFO_INTEL"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                         <name>pNext</name></member>
             <member><type>VkPerformanceConfigurationTypeINTEL</type> <name>type</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceShaderClockFeaturesKHR" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                               <name>pNext</name></member>
+            <member><type>VkBool32</type>                            <name>shaderSubgroupClock</name></member>
+            <member><type>VkBool32</type>                            <name>shaderDeviceClock</name></member>
         </type>
         <type category="struct" name="VkPhysicalDeviceIndexTypeUint8FeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
@@ -4834,6 +4881,8 @@ typedef void <name>CAMetalLayer</name>;
     <enums name="VkFenceCreateFlagBits" type="bitmask">
         <enum bitpos="0"    name="VK_FENCE_CREATE_SIGNALED_BIT"/>
     </enums>
+    <enums name="VkSemaphoreCreateFlagBits" type="bitmask">
+    </enums>
     <enums name="VkFormatFeatureFlagBits" type="bitmask">
         <enum bitpos="0"    name="VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT"               comment="Format can be used for sampled images (SAMPLED_IMAGE and COMBINED_IMAGE_SAMPLER descriptor types)"/>
         <enum bitpos="1"    name="VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT"               comment="Format can be used for storage images (STORAGE_IMAGE descriptor type)"/>
@@ -4942,6 +4991,13 @@ typedef void <name>CAMetalLayer</name>;
     </enums>
     <enums name="VkDependencyFlagBits" type="bitmask">
         <enum bitpos="0"    name="VK_DEPENDENCY_BY_REGION_BIT"                       comment="Dependency is per pixel region "/>
+    </enums>
+    <enums name="VkSemaphoreTypeKHR" type="enum">
+        <enum value="0"     name="VK_SEMAPHORE_TYPE_BINARY_KHR"/>
+        <enum value="1"     name="VK_SEMAPHORE_TYPE_TIMELINE_KHR"/>
+    </enums>
+    <enums name="VkSemaphoreWaitFlagBitsKHR" type="bitmask">
+        <enum bitpos="0"    name="VK_SEMAPHORE_WAIT_ANY_BIT_KHR"/>
     </enums>
 
         <comment>WSI Extensions</comment>
@@ -7394,6 +7450,23 @@ typedef void <name>CAMetalLayer</name>;
             <proto><type>void</type> <name>vkCmdEndRenderPass2KHR</name></proto>
             <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
             <param>const <type>VkSubpassEndInfoKHR</type>*        <name>pSubpassEndInfo</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_DEVICE_LOST">
+            <proto><type>VkResult</type> <name>vkGetSemaphoreCounterValueKHR</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param><type>VkSemaphore</type> <name>semaphore</name></param>
+            <param><type>uint64_t</type>* <name>pValue</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS,VK_TIMEOUT" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_DEVICE_LOST">
+            <proto><type>VkResult</type> <name>vkWaitSemaphoresKHR</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkSemaphoreWaitInfoKHR</type>* <name>pWaitInfo</name></param>
+            <param><type>uint64_t</type> <name>timeout</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+            <proto><type>VkResult</type> <name>vkSignalSemaphoreKHR</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkSemaphoreSignalInfoKHR</type>* <name>pSignalInfo</name></param>
         </command>
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR">
             <proto><type>VkResult</type> <name>vkGetAndroidHardwareBufferPropertiesANDROID</name></proto>
@@ -10591,10 +10664,12 @@ typedef void <name>CAMetalLayer</name>;
                 <type name="VkPhysicalDeviceShaderAtomicInt64FeaturesKHR"/>
             </require>
         </extension>
-        <extension name="VK_AMD_extension_182" number="182" author="AMD" contact="Daniel Rakos @drakos-amd" supported="disabled">
+        <extension name="VK_KHR_shader_clock" number="182" type="device" author="KHR" requires="VK_KHR_get_physical_device_properties2" contact="Aaron Hagan @ahagan" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_KHR_EXTENSION_182_SPEC_VERSION"/>
-                <enum value="&quot;VK_AMD_extension_182&quot;"              name="VK_KHR_EXTENSION_182_EXTENSION_NAME"/>
+                <enum value="1"                                          name="VK_KHR_SHADER_CLOCK_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_shader_clock&quot;"            name="VK_KHR_SHADER_CLOCK_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"               name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR"/>
+                <type name="VkPhysicalDeviceShaderClockFeaturesKHR"/>
             </require>
         </extension>
         <extension name="VK_AMD_extension_183" number="183" author="AMD" contact="Daniel Rakos @drakos-amd" supported="disabled">
@@ -10821,10 +10896,28 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkGetQueueCheckpointDataNV"/>
             </require>
         </extension>
-        <extension name="VK_KHR_extension_208" number="208" type="device" author="KHR" contact="Daniel Rakos @drakos-arm" supported="disabled">
+        <extension name="VK_KHR_timeline_semaphore" number="208" type="device" author="KHR" requires="VK_KHR_get_physical_device_properties2" contact="Jason Ekstrand @jekstrand" supported="vulkan">
             <require>
-                <enum value="0"                                         name="VK_KHR_EXTENSION_208_SPEC_VERSION"/>
-                <enum value="&quot;VK_KHR_extension_208&quot;"          name="VK_KHR_EXTENSION_208_EXTENSION_NAME"/>
+                <enum value="2"                                         name="VK_KHR_TIMELINE_SEMAPHORE_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_timeline_semaphore&quot;"     name="VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR"/>
+                <enum offset="1" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR"/>
+                <enum offset="2" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR"/>
+                <enum offset="3" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR"/>
+                <enum offset="4" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR"/>
+                <enum offset="5" extends="VkStructureType"              name="VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR"/>
+                <type name="VkSemaphoreTypeKHR"/>
+                <type name="VkPhysicalDeviceTimelineSemaphoreFeaturesKHR"/>
+                <type name="VkPhysicalDeviceTimelineSemaphorePropertiesKHR"/>
+                <type name="VkSemaphoreTypeCreateInfoKHR"/>
+                <type name="VkTimelineSemaphoreSubmitInfoKHR"/>
+                <type name="VkSemaphoreWaitFlagBitsKHR"/>
+                <type name="VkSemaphoreWaitFlagsKHR"/>
+                <type name="VkSemaphoreWaitInfoKHR"/>
+                <type name="VkSemaphoreSignalInfoKHR"/>
+                <command name="vkGetSemaphoreCounterValueKHR"/>
+                <command name="vkWaitSemaphoresKHR"/>
+                <command name="vkSignalSemaphoreKHR"/>
             </require>
         </extension>
         <extension name="VK_KHR_extension_209" number="209" type="device" author="KHR" contact="Ian Elliott @ianelliott" supported="disabled">
@@ -11516,6 +11609,24 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="1"                                             name="VK_GOOGLE_USER_TYPE_SPEC_VERSION"/>
                 <enum value="&quot;VK_GOOGLE_user_type&quot;"               name="VK_GOOGLE_USER_TYPE_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_291" number="291" author="NV" contact="Daniel Koch @dgkoch" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_NV_EXTENSION_291_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_291&quot;"               name="VK_NV_EXTENSION_291_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_292" number="292" author="NV" contact="Daniel Koch @dgkoch" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_NV_EXTENSION_292_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_292&quot;"               name="VK_NV_EXTENSION_292_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_293" number="293" author="NV" contact="Daniel Koch @dgkoch" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_NV_EXTENSION_293_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_293&quot;"               name="VK_NV_EXTENSION_293_EXTENSION_NAME"/>
             </require>
         </extension>
     </extensions>
