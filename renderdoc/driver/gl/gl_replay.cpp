@@ -3594,28 +3594,31 @@ static DriverRegistration GLESDriverRegistration(RDCDriver::OpenGLES, &GLES_Crea
 
 ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IReplayDriver **driver)
 {
+  GLPlatform *gl_platform = &GetGLPlatform();
+
   if(RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay)
   {
-#if defined(RENDERDOC_SUPPORT_GLES)
+#if defined(RENDERDOC_SUPPORT_EGL)
     RDCLOG("Forcing EGL device creation for wayland");
-    return GLES_CreateReplayDevice(rdc, opts, driver);
+    gl_platform = &GetEGLPlatform();
 #else
-    RDCERR("GLES support must be enabled at build time when using Wayland");
+    RDCERR("EGL support must be enabled at build time when using Wayland");
     return ReplayStatus::InternalError;
 #endif
   }
 
   RDCDEBUG("Creating an OpenGL replay device");
 
-  bool load_ok = GetGLPlatform().PopulateForReplay();
+  bool load_ok = gl_platform->PopulateForReplay();
 
   if(!load_ok)
   {
-    RDCERR("Couldn't find required platform GL function addresses");
+    RDCERR("Couldn't find required platform %s function addresses",
+           gl_platform == &GetGLPlatform() ? "GL" : "EGL");
     return ReplayStatus::APIInitFailed;
   }
 
-  return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGL, rdc, opts, GetGLPlatform(),
+  return CreateReplayDevice(rdc ? rdc->GetDriver() : RDCDriver::OpenGL, rdc, opts, *gl_platform,
                             driver);
 }
 
