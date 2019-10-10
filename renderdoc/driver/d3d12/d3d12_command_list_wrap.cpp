@@ -3536,6 +3536,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
                              DrawFlags::Indirect;
             curDraw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
                                              curDraw.numIndices, curDraw.numInstances);
+            curDraw.topology = MakePrimitiveTopology(state.topo);
+            curDraw.indexByteWidth = state.ibuffer.bytewidth;
 
             fakeChunk->name = curDraw.name;
 
