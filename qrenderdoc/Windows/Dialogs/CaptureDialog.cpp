@@ -873,7 +873,7 @@ void CaptureDialog::on_saveSettings_clicked()
     if(dirinfo.exists())
     {
       SaveSettings(filename);
-      AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
+      AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename);
       m_Main->PopulateRecentCaptureSettings();
     }
   }
@@ -887,7 +887,7 @@ void CaptureDialog::on_loadSettings_clicked()
   if(!filename.isEmpty() && QFileInfo::exists(filename))
   {
     LoadSettings(filename);
-    AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
+    AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename);
   }
 }
 

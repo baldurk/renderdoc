@@ -502,7 +502,23 @@ bool PersistantConfig::Save()
 
   LastFileBrowsePath = RDDialog::DefaultBrowsePath;
 
-  return Serialize(m_Filename);
+  // truncate the lists to a maximum of 9 items, allow more to exist in memory
+  rdcarray<rdcstr> capFiles = RecentCaptureFiles;
+  rdcarray<rdcstr> capSettings = RecentCaptureSettings;
+
+  // the oldest items are first, so remove from there
+  while(RecentCaptureFiles.count() >= 10)
+    RecentCaptureFiles.erase(0);
+  while(RecentCaptureSettings.count() >= 10)
+    RecentCaptureSettings.erase(0);
+
+  bool ret = Serialize(m_Filename);
+
+  // restore lists
+  RecentCaptureFiles = capFiles;
+  RecentCaptureSettings = capSettings;
+
+  return ret;
 }
 
 void PersistantConfig::Close()
@@ -515,7 +531,12 @@ void PersistantConfig::SetupFormatting()
   Formatter::setParams(*this);
 }
 
-void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItems)
+void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
+{
+  recentList.removeOne(QDir::cleanPath(file));
+}
+
+void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
 {
   QDir dir(file);
   QString path = dir.canonicalPath();
@@ -526,17 +547,10 @@ void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItem
     return;
   }
 
-  if(!recentList.contains(path))
-  {
-    recentList.push_back(path);
-    if(recentList.count() >= maxItems)
-      recentList.erase(0);
-  }
-  else
-  {
+  if(recentList.contains(path))
     recentList.removeOne(path);
-    recentList.push_back(path);
-  }
+
+  recentList.push_back(path);
 }
 
 void PersistantConfig::SetConfigSetting(const rdcstr &name, const rdcstr &value)

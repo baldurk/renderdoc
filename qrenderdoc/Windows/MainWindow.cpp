@@ -911,7 +911,7 @@ bool MainWindow::PromptSaveCaptureAs()
     if(!success)
       return false;
 
-    AddRecentFile(m_Ctx.Config().RecentCaptureFiles, saveFilename, 10);
+    AddRecentFile(m_Ctx.Config().RecentCaptureFiles, saveFilename);
     PopulateRecentCaptureFiles();
     SetTitle(saveFilename);
 
@@ -1025,14 +1025,27 @@ bool MainWindow::PromptCloseCapture()
   CloseCapture();
 
   if(!deletepath.isEmpty())
+  {
     m_Ctx.Replay().DeleteCapture(deletepath, caplocal);
+    RemoveRecentCapture(deletepath);
+  }
 
   return true;
 }
 
 void MainWindow::CloseCapture()
 {
+  QString path = m_Ctx.GetCaptureFilename();
+  bool local = m_Ctx.IsCaptureLocal();
+
   m_Ctx.CloseCapture();
+
+  if(m_OwnTempCapture)
+  {
+    m_Ctx.Replay().DeleteCapture(path, local);
+    RemoveRecentCapture(path);
+    m_OwnTempCapture = false;
+  }
 
   ui->action_Save_Capture_Inplace->setEnabled(false);
   ui->action_Save_Capture_As->setEnabled(false);
@@ -1141,6 +1154,10 @@ void MainWindow::PopulateRecentCaptureFiles()
     idx++;
 
     ui->menu_Recent_Capture_Files->setEnabled(true);
+
+    // only populate the 9 most recent, even if more exist in memory
+    if(idx == 10)
+      break;
   }
 
   ui->menu_Recent_Capture_Files->addSeparator();
@@ -1170,6 +1187,10 @@ void MainWindow::PopulateRecentCaptureSettings()
     idx++;
 
     ui->menu_Recent_Capture_Settings->setEnabled(true);
+
+    // only populate the 9 most recent, even if more exist in memory
+    if(idx == 10)
+      break;
   }
 
   ui->menu_Recent_Capture_Settings->addSeparator();
@@ -1545,6 +1566,13 @@ void MainWindow::show()
   QMainWindow::show();
 }
 
+void MainWindow::RemoveRecentCapture(const QString &filename)
+{
+  RemoveRecentFile(m_Ctx.Config().RecentCaptureFiles, filename);
+
+  PopulateRecentCaptureFiles();
+}
+
 void MainWindow::recentCaptureFile(const QString &filename)
 {
   if(QFileInfo::exists(filename))
@@ -1559,9 +1587,7 @@ void MainWindow::recentCaptureFile(const QString &filename)
 
     if(res == QMessageBox::Yes)
     {
-      m_Ctx.Config().RecentCaptureFiles.removeOne(filename);
-
-      PopulateRecentCaptureFiles();
+      RemoveRecentCapture(filename);
     }
   }
 }

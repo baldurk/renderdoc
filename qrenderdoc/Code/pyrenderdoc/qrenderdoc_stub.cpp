@@ -151,7 +151,11 @@ void PersistantConfig::SetupFormatting()
 {
 }
 
-void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItems)
+void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
+{
+}
+
+void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
 {
 }
 

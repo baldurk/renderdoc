@@ -91,6 +91,8 @@ public:
   void ShowLiveCapture(LiveCapture *live);
   void LiveCaptureClosed(LiveCapture *live);
 
+  void RemoveRecentCapture(const QString &filename);
+
   QMenu *GetBaseMenu(WindowMenu base, rdcstr name);
   QList<QAction *> GetMenuActions();
 

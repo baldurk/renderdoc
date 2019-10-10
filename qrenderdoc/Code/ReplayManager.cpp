@@ -64,7 +64,7 @@ void ReplayManager::OpenCapture(const QString &capturefile, const ReplayOptions 
 
 void ReplayManager::DeleteCapture(const rdcstr &capture, bool local)
 {
-  if(IsRunning())
+  if(IsRunning() && !m_Thread->isCurrentThread())
   {
     AsyncInvoke([this, capture, local](IReplayController *) { DeleteCapture(capture, local); });
     return;

@@ -396,6 +396,11 @@ void LiveCapture::deleteCapture_triggered()
         {
           m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
         }
+
+        if(cap->saved || cap->local)
+        {
+          m_Main->RemoveRecentCapture(cap->path);
+        }
       }
     }
 
@@ -844,9 +849,10 @@ bool LiveCapture::saveCapture(Capture *cap, QString path)
   if(!cap->saved)
     m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
 
+  m_Main->RemoveRecentCapture(cap->path);
   cap->saved = true;
   cap->path = path;
-  AddRecentFile(m_Ctx.Config().RecentCaptureFiles, path, 10);
+  AddRecentFile(m_Ctx.Config().RecentCaptureFiles, path);
   m_Main->PopulateRecentCaptureFiles();
   return true;
 }
@@ -874,6 +880,11 @@ void LiveCapture::cleanItems()
         else
         {
           m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
+        }
+
+        if(cap->saved || cap->local)
+        {
+          m_Main->RemoveRecentCapture(cap->path);
         }
       }
     }

@@ -435,16 +435,24 @@ inline rdcstr UnitSuffix(TimeUnit unit)
 }
 
 DOCUMENT(R"(Checks if a given file is in a list. If it is, then it's shuffled to the end. If it's
-not then it's added to the end and an item is dropped from the front of the list if necessary to
-stay within a given maximum
+not then it's added to the end
 
 As the name suggests, this is used for tracking a 'recent file' list.
 
 :param list recentList: A ``list`` of ``str`` that is mutated by the function.
 :param str file: The file to add to the list.
-:param int maxItems: The maximum allowed length of the list.
 )");
-void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItems);
+void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
+
+DOCUMENT(R"(Removes a given file from the list, after normalising the path. If the path isn't
+present then the list is not modified.
+
+As the name suggests, this is used for tracking a 'recent file' list.
+
+:param list recentList: A ``list`` of ``str`` that is mutated by the function.
+:param str file: The file to remove from the list.
+)");
+void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
 
 DOCUMENT2(R"(A persistant config file that is automatically loaded and saved, which contains any
 settings and information that needs to be preserved from one run to the next.

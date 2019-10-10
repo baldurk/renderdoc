@@ -809,7 +809,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
   if(!temporary)
   {
-    AddRecentFile(Config().RecentCaptureFiles, origFilename, 10);
+    AddRecentFile(Config().RecentCaptureFiles, origFilename);
 
     Config().Save();
   }
@@ -1076,7 +1076,10 @@ void CaptureContext::RecompressCapture()
     if(tempCap)
       tempCap->Shutdown();
     if(!tempFilename.isEmpty())
+    {
+      m_MainWindow->RemoveRecentCapture(tempFilename);
       QFile::remove(tempFilename);
+    }
     return;
   }
 
@@ -1134,7 +1137,10 @@ void CaptureContext::RecompressCapture()
   if(tempCap)
     tempCap->Shutdown();
   if(!tempFilename.isEmpty())
+  {
+    m_MainWindow->RemoveRecentCapture(tempFilename);
     QFile::remove(tempFilename);
+  }
 }
 
 bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
@@ -1195,7 +1201,10 @@ bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
 
   // if it was a temporary capture, remove the old instnace
   if(m_CaptureTemporary)
+  {
+    m_MainWindow->RemoveRecentCapture(m_CaptureFile);
     QFile::remove(m_CaptureFile);
+  }
 
   // Update the filename, and mark that it's local and not temporary now.
   m_CaptureFile = captureFile;
