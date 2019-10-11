@@ -49,6 +49,8 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
   // ensure we have at least the margin on top of font size. If the style applied more, don't add to
   // it.
   int minHeight = option.fontMetrics.height();
+  if(!m_View->ignoreIconSize())
+    minHeight = qMax(option.decorationSize.height(), minHeight);
   ret.setHeight(qMax(ret.height(), minHeight + m_View->verticalItemMargin()));
 
   return ret;

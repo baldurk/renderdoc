@@ -124,7 +124,8 @@ struct RichResourceText
       if(v.userType() == qMetaTypeId<ResourceId>())
       {
         QString resname = QString(ctx.GetResourceName(v.value<ResourceId>())).toHtmlEscaped();
-        html += lit("<td><b>%1</b></td><td><img width=\"16\" src=':/link%3.png'></td>")
+        html += lit("<td valign=\"middle\"><b>%1</b></td>"
+                    "<td><img width=\"16\" src=':/link%3.png'></td>")
                     .arg(resname)
                     .arg(highdpi ? lit("@2x") : QString());
         text += resname;
@@ -135,7 +136,7 @@ struct RichResourceText
       }
       else
       {
-        html += lit("<td>%1</td>").arg(v.toString().toHtmlEscaped());
+        html += lit("<td valign=\"middle\">%1</td>").arg(v.toString().toHtmlEscaped());
         text += v.toString();
 
         // this only generates one block
@@ -340,9 +341,11 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
   int diff = rect.height() - linkedText->doc.size().height();
 
   if(diff > 0)
-    painter->translate(0, diff / 2);
+    painter->translate(1, diff / 2);
+  else
+    painter->translate(1, 0);
 
-  linkedText->doc.drawContents(painter, QRectF(0, 0, rect.width(), rect.height()));
+  linkedText->doc.drawContents(painter, QRectF(0, 0, rect.width() - 1, rect.height()));
 
   if(mouseOver)
   {
@@ -352,7 +355,9 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
     QPoint p = mousePos - rect.topLeft();
     if(diff > 0)
-      p -= QPoint(0, diff / 2);
+      p -= QPoint(1, diff / 2);
+    else
+      p -= QPoint(1, 0);
 
     int pos = layout->hitTest(p, Qt::FuzzyHit);
 
@@ -495,7 +500,9 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
   QPoint p = event->pos() - rect.topLeft();
   if(diff > 0)
-    p -= QPoint(0, diff / 2);
+    p -= QPoint(1, diff / 2);
+  else
+    p -= QPoint(1, 0);
 
   int pos = layout->hitTest(p, Qt::FuzzyHit);
 
