@@ -1850,7 +1850,10 @@ struct ScopedDeserialiseArray
 {
   typedef typename std::remove_pointer<ptrT>::type T;
 
-  ScopedDeserialiseArray(const SerialiserType &ser, T **el) : m_Ser(ser), m_El(el), count(0) {}
+  ScopedDeserialiseArray(const SerialiserType &ser, T **el, uint64_t c)
+      : m_Ser(ser), m_El(el), count(c)
+  {
+  }
   ~ScopedDeserialiseArray()
   {
     if(m_Ser.IsReading())
@@ -1860,7 +1863,6 @@ struct ScopedDeserialiseArray
       delete[] * m_El;
     }
   }
-  void setCount(uint64_t c) { count = c; }
   const SerialiserType &m_Ser;
   T **m_El;
   uint64_t count;
@@ -1869,13 +1871,12 @@ struct ScopedDeserialiseArray
 template <class SerialiserType>
 struct ScopedDeserialiseArray<SerialiserType, void *>
 {
-  ScopedDeserialiseArray(const SerialiserType &ser, void **el) : m_Ser(ser), m_El(el) {}
+  ScopedDeserialiseArray(const SerialiserType &ser, void **el, uint64_t) : m_Ser(ser), m_El(el) {}
   ~ScopedDeserialiseArray()
   {
     if(m_Ser.IsReading())
       FreeAlignedBuffer((byte *)*m_El);
   }
-  void setCount(uint64_t c) {}
   const SerialiserType &m_Ser;
   void **m_El;
 };
@@ -1883,13 +1884,15 @@ struct ScopedDeserialiseArray<SerialiserType, void *>
 template <class SerialiserType>
 struct ScopedDeserialiseArray<SerialiserType, const void *>
 {
-  ScopedDeserialiseArray(const SerialiserType &ser, const void **el) : m_Ser(ser), m_El(el) {}
+  ScopedDeserialiseArray(const SerialiserType &ser, const void **el, uint64_t)
+      : m_Ser(ser), m_El(el)
+  {
+  }
   ~ScopedDeserialiseArray()
   {
     if(m_Ser.IsReading())
       FreeAlignedBuffer((byte *)*m_El);
   }
-  void setCount(uint64_t c) {}
   const SerialiserType &m_Ser;
   const void **m_El;
 };
@@ -1897,13 +1900,12 @@ struct ScopedDeserialiseArray<SerialiserType, const void *>
 template <class SerialiserType>
 struct ScopedDeserialiseArray<SerialiserType, byte *>
 {
-  ScopedDeserialiseArray(const SerialiserType &ser, byte **el) : m_Ser(ser), m_El(el) {}
+  ScopedDeserialiseArray(const SerialiserType &ser, byte **el, uint64_t) : m_Ser(ser), m_El(el) {}
   ~ScopedDeserialiseArray()
   {
     if(m_Ser.IsReading())
       FreeAlignedBuffer(*m_El);
   }
-  void setCount(uint64_t c) {}
   const SerialiserType &m_Ser;
   byte **m_El;
 };
@@ -1937,9 +1939,8 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
   uint64_t CONCAT(dummy_array_count, __LINE__) = 0;                                               \
   (void)CONCAT(dummy_array_count, __LINE__);                                                      \
   ScopedDeserialiseArray<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
-      GET_SERIALISER, &obj);                                                                      \
-  GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj, count, SerialiserFlags::AllocateMemory);    \
-  CONCAT(deserialise_, __LINE__).setCount(count);
+      GET_SERIALISER, &obj, count);                                                               \
+  GET_SERIALISER.Serialise(STRING_LITERAL(#obj), obj, count, SerialiserFlags::AllocateMemory)
 
 #define SERIALISE_ELEMENT_OPT(obj)                                           \
   ScopedDeserialiseNullable<decltype(GET_SERIALISER), decltype(obj)> CONCAT( \

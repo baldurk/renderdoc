@@ -1213,7 +1213,8 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
   // we serialise MappedData manually, so that when we don't need it we just skip instead of
   // actually allocating and memcpy'ing the buffer.
-  ScopedDeserialiseArray<SerialiserType, byte *> deserialise_map(ser, &MappedData);
+  ScopedDeserialiseArray<SerialiserType, byte *> deserialise_map(ser, &MappedData,
+                                                                 range.End - range.Begin);
   SerialiserFlags flags = SerialiserFlags::AllocateMemory;
   if(alreadyuploaded)
   {
