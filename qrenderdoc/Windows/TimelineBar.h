@@ -85,8 +85,8 @@ private:
   const qreal margin = 2.0;
   const qreal borderWidth = 1.0;
   const QString eidAxisTitle = lit("EID:");
-  const int dataBarHeight = 18;
-  const int highlightingExtra = 12;
+  const int dataBarHeight = 16;
+  const int highlightingMargin = 2;
 
   int m_eidAxisLabelStep = 0;
   qreal m_eidAxisLabelTextWidth = 0;

@@ -25,6 +25,7 @@
 #include "PipelineFlowChart.h"
 #include <QMouseEvent>
 #include <QPainter>
+#include "Code/QRDUtils.h"
 
 PipelineFlowChart::PipelineFlowChart(QWidget *parent) : QFrame(parent)
 {
@@ -182,6 +183,8 @@ void PipelineFlowChart::paintEvent(QPaintEvent *e)
     return;
 
   QPainter p(this);
+
+  p.setFont(Formatter::PreferredFont());
 
   p.fillRect(rect(), Qt::transparent);
 

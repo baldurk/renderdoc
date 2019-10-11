@@ -239,7 +239,7 @@ void TimelineBar::layout()
   m_markerRect.setTop(m_eidAxisRect.bottom() + margin);
 
   m_highlightingRect = m_area;
-  m_highlightingRect.setHeight(qMax(fm.height(), dataBarHeight) + highlightingExtra);
+  m_highlightingRect.setHeight(qMax(fm.height(), dataBarHeight) * 2 + highlightingMargin);
   m_highlightingRect.moveTop(m_markerRect.bottom() - m_highlightingRect.height());
 
   m_markerRect.setBottom(m_highlightingRect.top());
@@ -473,8 +473,6 @@ void TimelineBar::paintEvent(QPaintEvent *e)
   to.setWrapMode(QTextOption::NoWrap);
   to.setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-  QFontMetrics fm = p.fontMetrics();
-
   {
     QRectF titleRect = m_eidAxisRect;
     titleRect.setLeft(titleRect.left() - m_titleWidth);
@@ -507,6 +505,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
   to.setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
 
   p.setFont(Formatter::PreferredFont());
+
+  QFontMetrics fm = p.fontMetrics();
 
   QRectF hoverRect = eidAxisRect;
 
