@@ -126,7 +126,7 @@ void CombineUsageEvents(
 
 class RDTreeWidgetItem;
 
-QVariant SDObject2Variant(const SDObject *obj);
+QVariant SDObject2Variant(const SDObject *obj, bool inlineImportant);
 void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj);
 
 struct PointerTypeRegistry

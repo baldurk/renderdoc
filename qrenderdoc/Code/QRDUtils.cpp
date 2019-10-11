@@ -1624,7 +1624,7 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     callback(start, end, us);
 }
 
-QVariant SDObject2Variant(const SDObject *obj)
+QVariant SDObject2Variant(const SDObject *obj, bool inlineImportant)
 {
   QVariant param;
 
@@ -1649,9 +1649,100 @@ QVariant SDObject2Variant(const SDObject *obj)
   {
     switch(obj->type.basetype)
     {
-      case SDBasic::Chunk: param = QVariant(); break;
-      case SDBasic::Struct: param = QFormatStr("%1()").arg(obj->type.name); break;
-      case SDBasic::Array: param = QFormatStr("%1[]").arg(obj->type.name); break;
+      case SDBasic::Chunk:
+      {
+        if(inlineImportant)
+        {
+          QString name = obj->name;
+
+          // don't display any "ClassName::" prefix by default here
+          int nsSep = name.indexOf(lit("::"));
+          if(nsSep > 0)
+            name.remove(0, nsSep + 2);
+
+          name += lit("(");
+
+          bool onlyImportant(obj->type.flags & SDTypeFlags::ImportantChildren);
+
+          bool first = true;
+          for(const SDObject *child : *obj)
+          {
+            // never display hidden members
+            if(child->type.flags & SDTypeFlags::Hidden)
+              continue;
+
+            if(!onlyImportant || (child->type.flags & SDTypeFlags::Important))
+            {
+              if(!first)
+                name += lit(", ");
+              name += SDObject2Variant(child, true).toString();
+              first = false;
+            }
+          }
+
+          name += lit(")");
+          param = name;
+        }
+        else
+        {
+          param = QVariant();
+        }
+        break;
+      }
+      case SDBasic::Struct:
+      case SDBasic::Array:
+      {
+        // only inline important arrays with up to 4 elements
+        if(inlineImportant && (obj->type.basetype == SDBasic::Struct || obj->NumChildren() <= 4))
+        {
+          int numImportantChildren = 0;
+
+          if(obj->NumChildren() == 0)
+          {
+            param = lit("{}");
+          }
+          else
+          {
+            bool importantChildren(obj->type.flags & SDTypeFlags::ImportantChildren);
+
+            bool first = true;
+            QString s;
+            for(size_t i = 0; i < obj->NumChildren(); i++)
+            {
+              const SDObject *child = obj->GetChild(i);
+
+              if(!importantChildren || (obj->GetChild(i)->type.flags & SDTypeFlags::Important))
+              {
+                if(!first)
+                  s += lit(", ");
+                first = false;
+                s += SDObject2Variant(child, true).toString();
+                numImportantChildren++;
+              }
+            }
+
+            // when a struct only has one important member, just display that as-if it were the
+            // struct. We rely on the underlying important flagging to not make things too
+            // confusing.
+            // This addresses case where there's a struct hierarchy but we only care about one
+            // member a level or two down - we don't end up with { { { { Resource } } } }
+            // it also helps with structs that we want to display as just a single thing - like a
+            // struct that references a resource with adjacent properties, which we want to elide to
+            // just the resource itself.
+            if(importantChildren && numImportantChildren == 1 && obj->type.basetype == SDBasic::Struct)
+              param = s;
+            else
+              param = QFormatStr("{ %1 }").arg(s);
+          }
+        }
+        else
+        {
+          param = obj->type.basetype == SDBasic::Array
+                      ? QFormatStr("%1[%2]").arg(obj->type.name).arg(obj->NumChildren())
+                      : QFormatStr("%1()").arg(obj->type.name);
+        }
+        break;
+      }
       case SDBasic::Null: param = lit("NULL"); break;
       case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;
       case SDBasic::String:
@@ -1694,7 +1785,7 @@ void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj)
 
     RDTreeWidgetItem *item = new RDTreeWidgetItem({name, QString()});
 
-    item->setText(1, SDObject2Variant(obj));
+    item->setText(1, SDObject2Variant(obj, false));
 
     if(obj->type.basetype == SDBasic::Chunk || obj->type.basetype == SDBasic::Struct ||
        obj->type.basetype == SDBasic::Array)
@@ -3333,7 +3424,12 @@ QVariant StructuredDataItemModel::data(const QModelIndex &index, int role) const
           return QFormatStr("[%1]").arg(index.row());
         else
           return obj->name;
-      case Value: return SDObject2Variant(obj);
+      case Value:
+      {
+        QVariant v = SDObject2Variant(obj, obj->GetParent() ? false : true);
+        RichResourceTextInitialise(v, NULL);
+        return v;
+      }
       case Type: return obj->type.name;
     }
   }

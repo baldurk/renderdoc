@@ -1171,6 +1171,38 @@ public:
     return *this;
   }
 
+  Serialiser &Important()
+  {
+    if(ExportStructure() && !m_StructureStack.empty())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      current.type.flags |= SDTypeFlags::ImportantChildren;
+
+      if(current.NumChildren() > 0)
+      {
+        SDObject *last = current.GetChild(current.NumChildren() - 1);
+        last->type.flags |= SDTypeFlags::Important;
+      }
+    }
+
+    return *this;
+  }
+
+  Serialiser &Unimportant()
+  {
+    if(ExportStructure() && !m_StructureStack.empty())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      // similar to Important() above but we *don't* set the important flag, we just mark the
+      // parent has
+      current.type.flags |= SDTypeFlags::ImportantChildren;
+    }
+
+    return *this;
+  }
+
   Serialiser &Named(const rdcstr &name)
   {
     if(ExportStructure() && !m_StructureStack.empty())

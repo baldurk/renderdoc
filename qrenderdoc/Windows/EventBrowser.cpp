@@ -1201,7 +1201,8 @@ private:
         {
           for(const SDObject *c : *o)
           {
-            if(RichResourceTextFormat(*ctx, SDObject2Variant(c)).contains(paramValue, Qt::CaseInsensitive))
+            if(RichResourceTextFormat(*ctx, SDObject2Variant(c, false))
+                   .contains(paramValue, Qt::CaseInsensitive))
               return true;
           }
 
@@ -1209,7 +1210,7 @@ private:
         }
         else
         {
-          return RichResourceTextFormat(*ctx, SDObject2Variant(o))
+          return RichResourceTextFormat(*ctx, SDObject2Variant(o, false))
               .contains(paramValue, Qt::CaseInsensitive);
         }
 

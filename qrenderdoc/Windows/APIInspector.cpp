@@ -253,7 +253,7 @@ void APIInspector::addEvent(const APIEvent &ev, bool primary)
 
     m_Chunks.push_back(chunk);
 
-    root->setText(1, chunk->name);
+    root->setText(1, SDObject2Variant(chunk, true));
 
     addStructuredChildren(root, *chunk);
   }
