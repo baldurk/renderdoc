@@ -1037,10 +1037,11 @@ void MainWindow::CloseCapture()
 {
   QString path = m_Ctx.GetCaptureFilename();
   bool local = m_Ctx.IsCaptureLocal();
+  bool temp = m_Ctx.IsCaptureTemporary();
 
   m_Ctx.CloseCapture();
 
-  if(m_OwnTempCapture)
+  if(m_OwnTempCapture && temp)
   {
     m_Ctx.Replay().DeleteCapture(path, local);
     RemoveRecentCapture(path);
