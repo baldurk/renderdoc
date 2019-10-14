@@ -393,7 +393,13 @@ struct UpgradeCommand : public Command
                 *wfn = L'\\';
             }
 
-            mz_zip_reader_extract_to_wfile(&zip, i, target.c_str(), 0);
+            FILE *target_file = NULL;
+            _wfopen_s(&target_file, target.c_str(), L"wb");
+            if(target_file)
+            {
+              mz_zip_reader_extract_to_cfile(&zip, i, target_file, 0);
+              fclose(target_file);
+            }
           }
         }
       }

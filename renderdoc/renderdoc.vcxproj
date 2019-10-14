@@ -275,6 +275,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="3rdparty\miniz\miniz.c">
+      <DisableSpecificWarnings>4100;4127</DisableSpecificWarnings>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
