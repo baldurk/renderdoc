@@ -44,7 +44,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 124
+#define VK_HEADER_VERSION 125
 
 
 #define VK_NULL_HANDLE 0
@@ -6467,6 +6467,11 @@ typedef struct VkPhysicalDeviceVulkanMemoryModelFeaturesKHR {
     VkBool32           vulkanMemoryModelAvailabilityVisibilityChains;
 } VkPhysicalDeviceVulkanMemoryModelFeaturesKHR;
 
+
+
+#define VK_KHR_spirv_1_4 1
+#define VK_KHR_SPIRV_1_4_SPEC_VERSION     1
+#define VK_KHR_SPIRV_1_4_EXTENSION_NAME   "VK_KHR_spirv_1_4"
 
 
 #define VK_KHR_surface_protected_capabilities 1

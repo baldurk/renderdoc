@@ -154,7 +154,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 124</type>
+#define <name>VK_HEADER_VERSION</name> 125</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -3812,7 +3812,7 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>VkExtent2D</type>                       <name>maxFragmentDensityTexelSize</name></member>
             <member><type>VkBool32</type>                         <name>fragmentDensityInvocations</name></member>
         </type>
-        <type category="struct" name="VkRenderPassFragmentDensityMapCreateInfoEXT" structextends="VkRenderPassCreateInfo">
+        <type category="struct" name="VkRenderPassFragmentDensityMapCreateInfoEXT" structextends="VkRenderPassCreateInfo,VkRenderPassCreateInfo2KHR">
             <member values="VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                      <name>pNext</name></member>
             <member><type>VkAttachmentReference</type>            <name>fragmentDensityMapAttachment</name></member>
@@ -11173,10 +11173,10 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_AMD_extension_236&quot;"              name="VK_AMD_EXTENSION_236_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_KHR_extension_237" number="237" author="KHR" contact="Jesse Hall @critsec" supported="disabled">
+        <extension name="VK_KHR_spirv_1_4" number="237" type="device" requiresCore="1.1" requires="VK_KHR_shader_float_controls" author="KHR" contact="Jesse Hall @critsec" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_KHR_EXTENSION_237_SPEC_VERSION"/>
-                <enum value="&quot;VK_KHR_extension_237&quot;"              name="VK_KHR_EXTENSION_237_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_KHR_SPIRV_1_4_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_spirv_1_4&quot;"                  name="VK_KHR_SPIRV_1_4_EXTENSION_NAME"/>
             </require>
         </extension>
         <extension name="VK_EXT_memory_budget" number="238" type="device" requires="VK_KHR_get_physical_device_properties2" author="EXT" contact="Jeff Bolz @jeffbolznv" supported="vulkan">
@@ -11627,6 +11627,12 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="0"                                             name="VK_NV_EXTENSION_293_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_293&quot;"               name="VK_NV_EXTENSION_293_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_KHR_extension_294" number="294" author="KHR" contact="Baldur Karlsson @baldurk" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_KHR_EXTENSION_294_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_294&quot;"               name="VK_KHR_EXTENSION_294_EXTENSION_NAME"/>
             </require>
         </extension>
     </extensions>
