@@ -1642,6 +1642,7 @@ void D3D12PipelineStateViewer::setState()
   ui->frontCCW->setPixmap(state.rasterizer.state.frontCCW ? tick : cross);
 
   ui->lineAA->setPixmap(state.rasterizer.state.antialiasedLines ? tick : cross);
+  ui->sampleMask->setText(Formatter::Format(state.rasterizer.sampleMask, true));
   ui->multisample->setPixmap(state.rasterizer.state.multisampleEnable ? tick : cross);
 
   ui->depthClip->setPixmap(state.rasterizer.state.depthClip ? tick : cross);
