@@ -323,8 +323,16 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
         case Op::TypeSampler:
         case Op::TypeSampledImage:
         case Op::TypeFunction:
-        case Op::TypeRuntimeArray:
+        case Op::TypeRuntimeArray: continue;
+
+        case Op::TypeForwardPointer:
+        {
+          OpTypeForwardPointer decoded(it);
+
+          ret += ToStr(decoded.storageClass) + " " + declName(decoded.pointerType, Id()) + ";\n";
+
           continue;
+        }
 
         // structs we print out
         case Op::TypeStruct:

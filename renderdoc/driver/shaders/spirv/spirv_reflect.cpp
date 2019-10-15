@@ -534,10 +534,6 @@ void Reflector::PostParse()
       {
         type.name = StringFormat::Fmt("struct%u", type.id);
       }
-      else if(type.type == DataType::PointerType)
-      {
-        type.name = StringFormat::Fmt("%s*", dataTypes[type.InnerType()].name.c_str());
-      }
       else if(type.type == DataType::ArrayType)
       {
         // prefer the name
@@ -613,6 +609,14 @@ void Reflector::PostParse()
                                       dataTypes[sampledImageTypes[type.id].baseId].name.c_str());
       }
     }
+  }
+
+  // do default names for pointer types in a second pass, because they can point forward at structs
+  // with higher IDs
+  for(auto it = dataTypes.begin(); it != dataTypes.end(); ++it)
+  {
+    if(it->second.type == DataType::PointerType && it->second.name.empty())
+      it->second.name = StringFormat::Fmt("%s*", dataTypes[it->second.InnerType()].name.c_str());
   }
 
   for(const MemberName &mem : memberNames)
