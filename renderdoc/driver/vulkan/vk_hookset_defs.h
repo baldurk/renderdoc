@@ -451,7 +451,8 @@
   DeclExt(KHR_pipeline_executable_properties);  \
   DeclExt(AMD_negative_viewport_height);        \
   DeclExt(EXT_line_rasterization);              \
-  DeclExt(GOOGLE_display_timing);
+  DeclExt(GOOGLE_display_timing);               \
+  DeclExt(KHR_timeline_semaphore);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -536,7 +537,8 @@
   CheckExt(KHR_pipeline_executable_properties, VKXX); \
   CheckExt(AMD_negative_viewport_height, VKXX);       \
   CheckExt(EXT_line_rasterization, VKXX);             \
-  CheckExt(GOOGLE_display_timing, VKXX);
+  CheckExt(GOOGLE_display_timing, VKXX);              \
+  CheckExt(KHR_timeline_semaphore, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -682,6 +684,9 @@
   HookInitExtension(EXT_line_rasterization, CmdSetLineStippleEXT);                                 \
   HookInitExtension(GOOGLE_display_timing, GetRefreshCycleDurationGOOGLE);                         \
   HookInitExtension(GOOGLE_display_timing, GetPastPresentationTimingGOOGLE);                       \
+  HookInitExtension(KHR_timeline_semaphore, GetSemaphoreCounterValueKHR);                          \
+  HookInitExtension(KHR_timeline_semaphore, WaitSemaphoresKHR);                                    \
+  HookInitExtension(KHR_timeline_semaphore, SignalSemaphoreKHR);                                   \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1278,4 +1283,10 @@
   HookDefine4(VkResult, vkGetPastPresentationTimingGOOGLE, VkDevice, device, VkSwapchainKHR,         \
               swapchain, uint32_t *, pPresentationTimingCount, VkPastPresentationTimingGOOGLE *,     \
               pPresentationTimings);                                                                 \
+  HookDefine3(VkResult, vkGetSemaphoreCounterValueKHR, VkDevice, device, VkSemaphore, semaphore,     \
+              uint64_t *, pValue);                                                                   \
+  HookDefine3(VkResult, vkWaitSemaphoresKHR, VkDevice, device, const VkSemaphoreWaitInfoKHR *,       \
+              pWaitInfo, uint64_t, timeout);                                                         \
+  HookDefine2(VkResult, vkSignalSemaphoreKHR, VkDevice, device, const VkSemaphoreSignalInfoKHR *,    \
+              pSignalInfo);                                                                          \
   HookDefine_PlatformSpecific()

@@ -2181,4 +2181,15 @@ public:
                                    const VkMetalSurfaceCreateInfoEXT *pCreateInfo,
                                    const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 #endif
+
+  // VK_KHR_timeline_semaphore
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSemaphoreCounterValueKHR, VkDevice device,
+                                VkSemaphore semaphore, uint64_t *pValue);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkWaitSemaphoresKHR, VkDevice device,
+                                const VkSemaphoreWaitInfoKHR *pWaitInfo, uint64_t timeout);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSignalSemaphoreKHR, VkDevice device,
+                                const VkSemaphoreSignalInfoKHR *pSignalInfo);
 };

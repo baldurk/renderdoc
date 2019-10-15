@@ -937,6 +937,146 @@ VkResult WrappedVulkan::vkGetFenceFdKHR(VkDevice device, const VkFenceGetFdInfoK
   return ObjDisp(device)->GetFenceFdKHR(Unwrap(device), &unwrappedInfo, pFd);
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkGetSemaphoreCounterValueKHR(SerialiserType &ser, VkDevice device,
+                                                            VkSemaphore semaphore, uint64_t *pValue)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(semaphore);
+  SERIALISE_ELEMENT_OPT(pValue);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkGetSemaphoreCounterValueKHR(VkDevice device, VkSemaphore semaphore,
+                                                      uint64_t *pValue)
+{
+  SCOPED_DBG_SINK();
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->GetSemaphoreCounterValueKHR(
+                          Unwrap(device), Unwrap(semaphore), pValue));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetSemaphoreCounterValueKHR);
+    Serialise_vkGetSemaphoreCounterValueKHR(ser, device, semaphore, pValue);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(semaphore), eFrameRef_Read);
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkWaitSemaphoresKHR(SerialiserType &ser, VkDevice device,
+                                                  const VkSemaphoreWaitInfoKHR *pWaitInfo,
+                                                  uint64_t timeout)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(WaitInfo, *pWaitInfo);
+  SERIALISE_ELEMENT(timeout);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkWaitSemaphoresKHR(VkDevice device, const VkSemaphoreWaitInfoKHR *pWaitInfo,
+                                            uint64_t timeout)
+{
+  SCOPED_DBG_SINK();
+
+  VkSemaphore *unwrappedSems = GetTempArray<VkSemaphore>(pWaitInfo->semaphoreCount);
+  for(uint32_t i = 0; i < pWaitInfo->semaphoreCount; i++)
+    unwrappedSems[i] = Unwrap(pWaitInfo->pSemaphores[i]);
+
+  VkSemaphoreWaitInfoKHR unwrapped = *pWaitInfo;
+  unwrapped.pSemaphores = unwrappedSems;
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->WaitSemaphoresKHR(Unwrap(device), &unwrapped, timeout));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkWaitSemaphoresKHR);
+    Serialise_vkWaitSemaphoresKHR(ser, device, pWaitInfo, timeout);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < pWaitInfo->semaphoreCount; i++)
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pWaitInfo->pSemaphores[i]),
+                                                        eFrameRef_Read);
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkSignalSemaphoreKHR(SerialiserType &ser, VkDevice device,
+                                                   const VkSemaphoreSignalInfoKHR *pSignalInfo)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(SignalInfo, *pSignalInfo);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkSignalSemaphoreKHR(VkDevice device,
+                                             const VkSemaphoreSignalInfoKHR *pSignalInfo)
+{
+  VkSemaphoreSignalInfoKHR unwrapped = *pSignalInfo;
+  unwrapped.semaphore = Unwrap(unwrapped.semaphore);
+
+  SCOPED_DBG_SINK();
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->SignalSemaphoreKHR(Unwrap(device), &unwrapped));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkSignalSemaphoreKHR);
+    Serialise_vkSignalSemaphoreKHR(ser, device, pSignalInfo);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pSignalInfo->semaphore),
+                                                      eFrameRef_Read);
+  }
+
+  return ret;
+}
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
 VkResult WrappedVulkan::vkImportSemaphoreWin32HandleKHR(
@@ -1015,3 +1155,12 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWaitEvents, VkCommandBuffer commandBu
                                 const VkBufferMemoryBarrier *pBufferMemoryBarriers,
                                 uint32_t imageMemoryBarrierCount,
                                 const VkImageMemoryBarrier *pImageMemoryBarriers);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkGetSemaphoreCounterValueKHR, VkDevice device,
+                                VkSemaphore semaphore, uint64_t *pValue);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkWaitSemaphoresKHR, VkDevice device,
+                                const VkSemaphoreWaitInfoKHR *pWaitInfo, uint64_t timeout);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkSignalSemaphoreKHR, VkDevice device,
+                                const VkSemaphoreSignalInfoKHR *pSignalInfo);

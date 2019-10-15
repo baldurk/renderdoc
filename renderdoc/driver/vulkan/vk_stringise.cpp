@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1136, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1139, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -168,6 +168,9 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkResetQueryPoolEXT);
     STRINGISE_ENUM_CLASS_NAMED(ImageRefs, "Image References")
     STRINGISE_ENUM_CLASS(vkCmdSetLineStippleEXT);
+    STRINGISE_ENUM_CLASS(vkGetSemaphoreCounterValueKHR);
+    STRINGISE_ENUM_CLASS(vkWaitSemaphoresKHR);
+    STRINGISE_ENUM_CLASS(vkSignalSemaphoreKHR);
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

@@ -587,6 +587,9 @@ enum class VulkanChunk : uint32_t
   vkResetQueryPoolEXT,
   ImageRefs,
   vkCmdSetLineStippleEXT,
+  vkGetSemaphoreCounterValueKHR,
+  vkWaitSemaphoresKHR,
+  vkSignalSemaphoreKHR,
   Max,
 };
 
@@ -818,6 +821,8 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSubgroupSizeControlPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSurfaceInfo2KHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceTimelineSemaphoreFeaturesKHR);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceTimelineSemaphorePropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceTransformFeedbackFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceTransformFeedbackPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);
@@ -877,6 +882,9 @@ DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionImageFormatProperties);
 DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionInfo);
 DECLARE_REFLECTION_STRUCT(VkSemaphoreCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkSemaphoreGetFdInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkSemaphoreSignalInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkSemaphoreTypeCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkSemaphoreWaitInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkShaderModuleCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkShaderModuleValidationCacheCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSharedPresentSurfaceCapabilitiesKHR);
@@ -897,6 +905,7 @@ DECLARE_REFLECTION_STRUCT(VkSwapchainCounterCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSwapchainCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkSwapchainDisplayNativeHdrCreateInfoAMD);
 DECLARE_REFLECTION_STRUCT(VkTextureLODGatherFormatPropertiesAMD);
+DECLARE_REFLECTION_STRUCT(VkTimelineSemaphoreSubmitInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkValidationCacheCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFlagsEXT);
@@ -1081,6 +1090,8 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSurfaceInfo2KHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphoreFeaturesKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphorePropertiesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);
@@ -1137,6 +1148,9 @@ DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionImageFormatProperties);
 DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionInfo);
 DECLARE_DESERIALISE_TYPE(VkSemaphoreCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkSemaphoreGetFdInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkSemaphoreSignalInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkSemaphoreTypeCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkSemaphoreWaitInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkShaderModuleCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkShaderModuleValidationCacheCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSharedPresentSurfaceCapabilitiesKHR);
@@ -1157,6 +1171,7 @@ DECLARE_DESERIALISE_TYPE(VkSwapchainCounterCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkSwapchainDisplayNativeHdrCreateInfoAMD);
 DECLARE_DESERIALISE_TYPE(VkTextureLODGatherFormatPropertiesAMD);
+DECLARE_DESERIALISE_TYPE(VkTimelineSemaphoreSubmitInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFlagsEXT);

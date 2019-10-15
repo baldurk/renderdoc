@@ -891,6 +891,17 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, VkPresentInfoKHR)                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR, VkAcquireNextImageInfoKHR)               \
                                                                                                        \
+  /* VK_KHR_timeline_semaphore */                                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,                      \
+               VkPhysicalDeviceTimelineSemaphoreFeaturesKHR)                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR,                    \
+               VkPhysicalDeviceTimelineSemaphorePropertiesKHR)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR, VkSemaphoreTypeCreateInfoKHR)         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR,                                   \
+               VkTimelineSemaphoreSubmitInfoKHR)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR, VkSemaphoreWaitInfoKHR)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR, VkSemaphoreSignalInfoKHR)                  \
+                                                                                                       \
   /* VK_KHR_uniform_buffer_standard_layout */                                                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES_KHR,          \
                VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR)                                 \
@@ -990,14 +1001,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
-                                                                                                       \
-  /* VK_KHR_timeline_semaphore */                                                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR)                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR)                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR)                                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR)                                       \
                                                                                                        \
   /* VK_INTEL_performance_query */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
@@ -3434,6 +3437,109 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceYcbcrImageArraysFeaturesEX
 
 template <>
 void Deserialise(const VkPhysicalDeviceYcbcrImageArraysFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTimelineSemaphoreFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(timelineSemaphore);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceTimelineSemaphoreFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceTimelineSemaphorePropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxTimelineSemaphoreValueDifference);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceTimelineSemaphorePropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSemaphoreTypeCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(semaphoreType);
+  SERIALISE_MEMBER(initialValue);
+}
+
+template <>
+void Deserialise(const VkSemaphoreTypeCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkTimelineSemaphoreSubmitInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(waitSemaphoreValueCount);
+  SERIALISE_MEMBER_ARRAY(pWaitSemaphoreValues, waitSemaphoreValueCount);
+  SERIALISE_MEMBER(signalSemaphoreValueCount);
+  SERIALISE_MEMBER_ARRAY(pSignalSemaphoreValues, signalSemaphoreValueCount);
+}
+
+template <>
+void Deserialise(const VkTimelineSemaphoreSubmitInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pWaitSemaphoreValues;
+  delete[] el.pSignalSemaphoreValues;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSemaphoreWaitInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(semaphoreCount);
+  SERIALISE_MEMBER_ARRAY(pSemaphores, semaphoreCount);
+  SERIALISE_MEMBER_ARRAY(pValues, semaphoreCount);
+}
+
+template <>
+void Deserialise(const VkSemaphoreWaitInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pSemaphores;
+  delete[] el.pValues;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSemaphoreSignalInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(semaphore);
+  SERIALISE_MEMBER(value);
+}
+
+template <>
+void Deserialise(const VkSemaphoreSignalInfoKHR &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -7577,6 +7683,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSurfaceInfo2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphoreFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphorePropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);
@@ -7636,6 +7744,9 @@ INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionImageFormatProperties);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreGetFdInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkSemaphoreSignalInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkSemaphoreTypeCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkSemaphoreWaitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkShaderModuleCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkShaderModuleValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSharedPresentSurfaceCapabilitiesKHR);
@@ -7656,6 +7767,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSwapchainCounterCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSwapchainDisplayNativeHdrCreateInfoAMD);
 INSTANTIATE_SERIALISE_TYPE(VkTextureLODGatherFormatPropertiesAMD);
+INSTANTIATE_SERIALISE_TYPE(VkTimelineSemaphoreSubmitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFlagsEXT);
