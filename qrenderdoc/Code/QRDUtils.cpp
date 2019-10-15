@@ -278,8 +278,9 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
   // special case handling for ResourceId
   if(var.userType() == qMetaTypeId<ResourceId>())
   {
-    QFont origfont = painter->font();
-    QFont f = origfont;
+    painter->save();
+
+    QFont f = painter->font();
     f.setBold(true);
     painter->setFont(f);
 
@@ -305,25 +306,27 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
     const QPixmap &px = Pixmaps::link(owner->devicePixelRatio());
 
-    rect.setTop(textRect.top());
-    rect.setWidth(textRect.width() + margin + px.width());
-    rect.setHeight(qMax(textRect.height(), px.height()));
+    painter->setClipRect(rect);
+
+    textRect.setLeft(rect.left());
+    textRect.setWidth(textRect.width() + margin + px.width());
+    textRect.setHeight(qMax(textRect.height(), px.height()));
 
     QPoint pos;
-    pos.setX(rect.right() - px.width() + 1);
-    pos.setY(rect.center().y() - px.height() / 2);
+    pos.setX(textRect.right() - px.width() + 1);
+    pos.setY(textRect.center().y() - px.height() / 2);
 
     painter->drawPixmap(pos, px, px.rect());
 
-    if(mouseOver && rect.contains(mousePos) && id != ResourceId())
+    if(mouseOver && textRect.contains(mousePos) && id != ResourceId())
     {
       int underline_y = textRect.bottom() + margin;
 
       painter->setPen(QPen(palette.brush(QPalette::WindowText), 1.0));
-      painter->drawLine(QPoint(rect.left(), underline_y), QPoint(rect.right(), underline_y));
+      painter->drawLine(QPoint(textRect.left(), underline_y), QPoint(textRect.right(), underline_y));
     }
 
-    painter->setFont(origfont);
+    painter->restore();
 
     return;
   }
