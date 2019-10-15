@@ -849,23 +849,42 @@ public:
 
             if(comp < list.count())
             {
-              QString ret;
-
               uint32_t rowdim = el.matrixdim;
               uint32_t coldim = el.format.compCount;
 
-              for(uint32_t r = 0; r < rowdim; r++)
+              if(rowdim == 1)
               {
-                if(r > 0)
-                  ret += lit("\n");
+                QVariant v;
 
                 if(el.rowmajor)
-                  ret += interpretVariant(list[comp + r * coldim], el);
+                  v = list[comp];
                 else
-                  ret += interpretVariant(list[r + comp * rowdim], el);
-              }
+                  v = list[comp * rowdim];
 
-              return ret;
+                RichResourceTextInitialise(v);
+
+                if(RichResourceTextCheck(v))
+                  return v;
+
+                return interpretVariant(v, el);
+              }
+              else
+              {
+                QString ret;
+
+                for(uint32_t r = 0; r < rowdim; r++)
+                {
+                  if(r > 0)
+                    ret += lit("\n");
+
+                  if(el.rowmajor)
+                    ret += interpretVariant(list[comp + r * coldim], el);
+                  else
+                    ret += interpretVariant(list[r + comp * rowdim], el);
+                }
+
+                return ret;
+              }
             }
           }
 
@@ -1796,6 +1815,13 @@ void BufferViewer::SetupRawView()
 
   ui->vsinData->setPinnedColumns(1);
   ui->vsinData->setColumnGroupRole(columnGroupRole);
+
+  m_delegate = new RichTextViewDelegate(ui->vsinData);
+  ui->vsinData->setItemDelegate(m_delegate);
+
+  ui->vsinData->viewport()->installEventFilter(this);
+
+  ui->vsinData->setMouseTracking(true);
 
   ui->formatSpecifier->setWindowTitle(tr("Buffer Format"));
   ui->dockarea->addToolWindow(ui->formatSpecifier, ToolWindowManager::AreaReference(
@@ -2915,6 +2941,26 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
     m_ObjectByteSize = tex->byteSize;
 
   processFormat(format);
+}
+
+bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
+{
+  if(!m_MeshView && watched == ui->vsinData->viewport() && event->type() == QEvent::MouseMove)
+  {
+    bool ret = QObject::eventFilter(watched, event);
+
+    QMouseEvent *mouseEvent = (QMouseEvent *)event;
+
+    if(m_delegate->linkHover(mouseEvent, font(),
+                             ui->vsinData->indexAt(mouseEvent->localPos().toPoint())))
+      ui->vsinData->setCursor(QCursor(Qt::PointingHandCursor));
+    else
+      ui->vsinData->unsetCursor();
+
+    return ret;
+  }
+
+  return QObject::eventFilter(watched, event);
 }
 
 void BufferViewer::updateWindowTitle()

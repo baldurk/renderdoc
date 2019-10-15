@@ -138,6 +138,7 @@ protected:
   void changeEvent(QEvent *event) override;
 
 private:
+  bool eventFilter(QObject *watched, QEvent *event) override;
   Ui::BufferViewer *ui;
   ICaptureContext &m_Ctx;
 
@@ -197,6 +198,8 @@ private:
   int m_IdxColWidth;
   int m_DataColWidth;
   int m_DataRowHeight;
+
+  RichTextViewDelegate *m_delegate = NULL;
 
   QMenu *m_HeaderMenu = NULL;
 
