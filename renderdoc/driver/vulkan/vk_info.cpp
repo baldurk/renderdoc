@@ -876,6 +876,14 @@ void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, Vulkan
 {
   usage = pCreateInfo->usage;
   size = pCreateInfo->size;
+
+  const VkBufferDeviceAddressCreateInfoEXT *deviceAddress =
+      (const VkBufferDeviceAddressCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT);
+  if(deviceAddress)
+    gpuAddress = deviceAddress->deviceAddress;
+  else
+    gpuAddress = 0;
 }
 
 void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,
