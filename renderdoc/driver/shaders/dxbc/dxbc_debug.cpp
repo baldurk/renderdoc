@@ -3090,6 +3090,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           srcIdx = 2;
           maxIndex = (stride - elemOffset) / sizeof(uint32_t);
+          fmt.byteWidth = 4;
+          fmt.numComps = 4;
+          if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff &&
+             op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
+            fmt.numComps = 1;
+          fmt.fmt = CompType::UInt;
         }
         // raw loads/stores can come from any component (as long as it's within range of the data!)
         if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
@@ -3101,7 +3107,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           ShaderVariable fetch = TypedUAVLoad(fmt, data);
 
-          if(op.operation != OPCODE_LD_RAW)
+          if(op.operation != OPCODE_LD_RAW && op.operation != OPCODE_LD_STRUCTURED)
           {
             // if we are assigning into a scalar, SetDst expects the result to be in .x (as normally
             // we are assigning FROM a scalar also).
