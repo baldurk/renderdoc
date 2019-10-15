@@ -25,14 +25,8 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 
-// VKTODOLOW for depth-stencil images we are only save/restoring the depth, not the stencil
-
 // VKTODOLOW there's a lot of duplicated code in this file for creating a buffer to do
 // a memory copy and saving to disk.
-// VKTODOLOW SerialiseComplexArray not having the ability to serialise into an in-memory
-// array means some redundant copies.
-// VKTODOLOW The code pattern for creating a few contiguous arrays all in one
-// AllocAlignedBuffer for the initial contents buffer is ugly.
 
 // VKTODOLOW in general we do a lot of "create buffer, use it, flush/sync then destroy".
 // I don't know what the exact cost is, but it would be nice to batch up the buffers/etc
