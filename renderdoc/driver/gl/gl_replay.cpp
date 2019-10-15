@@ -1958,7 +1958,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   pipe.hints.polySmoothingEnabled = rs.Enabled[GLRenderState::eEnabled_PolySmooth];
 }
 
-void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::string prefix,
+void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked,
+                                          std::string prefix,
                                           const rdcarray<ShaderConstant> &variables,
                                           rdcarray<ShaderVariable> &outvars,
                                           const bytebuf &bufferData)
@@ -1991,7 +1992,7 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
     {
       if(desc.elements == 0)
       {
-        OpenGLFillCBufferVariables(prog, bufferBacked, prefix + var.name.c_str() + ".",
+        OpenGLFillCBufferVariables(shader, prog, bufferBacked, prefix + var.name.c_str() + ".",
                                    variables[i].type.members, var.members, data);
         var.isStruct = true;
       }
@@ -2008,7 +2009,7 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
           arrEl.isStruct = true;
           arrEl.rowMajor = var.rowMajor;
 
-          OpenGLFillCBufferVariables(prog, bufferBacked, prefix + arrEl.name.c_str() + ".",
+          OpenGLFillCBufferVariables(shader, prog, bufferBacked, prefix + arrEl.name.c_str() + ".",
                                      variables[i].type.members, arrEl.members, data);
         }
         var.isStruct = false;
@@ -2110,7 +2111,7 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
             }
           }
 
-          StandardFillCBufferVariable(offset, data, var, matStride);
+          StandardFillCBufferVariable(shader, desc, offset, data, var, matStride);
         }
         else
         {
@@ -2155,7 +2156,7 @@ void GLReplay::OpenGLFillCBufferVariables(GLuint prog, bool bufferBacked, std::s
               }
             }
 
-            StandardFillCBufferVariable(offset, data, el, matStride);
+            StandardFillCBufferVariable(shader, desc, offset, data, el, matStride);
 
             if(bufferBacked)
               offset += desc.arrayByteStride;
@@ -2221,8 +2222,9 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, std:
 
   if(shaderDetails.spirvWords.empty())
   {
-    OpenGLFillCBufferVariables(curProg, cblock.bufferBacked ? true : false, "", cblock.variables,
-                               outvars, data);
+    OpenGLFillCBufferVariables(shaderDetails.reflection.resourceId, curProg,
+                               cblock.bufferBacked ? true : false, "", cblock.variables, outvars,
+                               data);
   }
   else
   {
@@ -2239,15 +2241,18 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, std:
         specconsts.push_back(spec);
       }
 
-      FillSpecConstantVariables(cblock.variables, outvars, specconsts);
+      FillSpecConstantVariables(shaderDetails.reflection.resourceId, cblock.variables, outvars,
+                                specconsts);
     }
     else if(!cblock.bufferBacked)
     {
-      OpenGLFillCBufferVariables(curProg, false, "", cblock.variables, outvars, data);
+      OpenGLFillCBufferVariables(shaderDetails.reflection.resourceId, curProg, false, "",
+                                 cblock.variables, outvars, data);
     }
     else
     {
-      StandardFillCBufferVariables(cblock.variables, outvars, data);
+      StandardFillCBufferVariables(shaderDetails.reflection.resourceId, cblock.variables, outvars,
+                                   data);
     }
   }
 }

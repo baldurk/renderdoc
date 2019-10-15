@@ -30,6 +30,7 @@
 struct StructFormatData
 {
   ShaderConstant structDef;
+  uint32_t pointerTypeId = 0;
   uint32_t offset = 0;
 };
 
@@ -86,6 +87,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
   QRegularExpression structUseRegex(
       lit("^"                                 // start of the line
           "([A-Za-z_][A-Za-z0-9_]*)"          // struct type name
+          "(\\*)?"                            // maybe a pointer
           "\\s+([A-Za-z@_][A-Za-z0-9@_]*)"    // variable name
           "(\\s*\\[[0-9]+\\])?"               // optional array dimension
           "$"));
@@ -119,6 +121,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         if(!tightPacking)
           cur->structDef.type.descriptor.arrayByteStride = (cur->offset + 0xFU) & (~0xFU);
 
+        cur->pointerTypeId = PointerTypeRegistry::GetTypeID(cur->structDef.type);
+
         cur = &root;
         continue;
       }
@@ -140,6 +144,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         }
 
         cur = &structelems[lastStruct];
+        cur->structDef.type.descriptor.name = lastStruct;
         continue;
       }
     }
@@ -152,34 +157,55 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     {
       StructFormatData &structContext = structelems[structMatch.captured(1)];
 
-      QString varName = structMatch.captured(2);
+      bool isPointer = !structMatch.captured(2).trimmed().isEmpty();
 
-      QString arrayDim = structMatch.captured(3).trimmed();
-      uint32_t arrayCount = 1;
-      if(!arrayDim.isEmpty())
+      QString varName = structMatch.captured(3);
+
+      if(isPointer)
       {
-        arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
-        bool ok = false;
-        arrayCount = arrayDim.toUInt(&ok);
-        if(!ok)
-          arrayCount = 1;
+        // if not tight packing, align up to pointer size
+        if(!tightPacking)
+          cur->offset = (cur->offset + 0x7) & (~0x7);
+
+        el.name = varName;
+        el.byteOffset = cur->offset;
+        el.type.descriptor.pointerTypeID = structContext.pointerTypeId;
+        el.type.descriptor.type = VarType::ULong;
+        el.type.descriptor.displayAsHex = true;
+        el.type.descriptor.arrayByteStride = 8;
+
+        cur->offset += 8;
+        cur->structDef.type.members.push_back(el);
       }
+      else
+      {
+        QString arrayDim = structMatch.captured(4).trimmed();
+        uint32_t arrayCount = 1;
+        if(!arrayDim.isEmpty())
+        {
+          arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
+          bool ok = false;
+          arrayCount = arrayDim.toUInt(&ok);
+          if(!ok)
+            arrayCount = 1;
+        }
 
-      // cbuffer packing rules, structs are always float4 base aligned
-      if(!tightPacking)
-        cur->offset = (cur->offset + 0xFU) & (~0xFU);
+        // cbuffer packing rules, structs are always float4 base aligned
+        if(!tightPacking)
+          cur->offset = (cur->offset + 0xFU) & (~0xFU);
 
-      el = structContext.structDef;
-      el.name = varName;
-      el.byteOffset = cur->offset;
-      el.type.descriptor.elements = arrayCount;
+        el = structContext.structDef;
+        el.name = varName;
+        el.byteOffset = cur->offset;
+        el.type.descriptor.elements = arrayCount;
 
-      cur->structDef.type.members.push_back(el);
+        cur->structDef.type.members.push_back(el);
 
-      // undo the padding after the last struct
-      uint32_t padding = el.type.descriptor.arrayByteStride - structContext.offset;
+        // undo the padding after the last struct
+        uint32_t padding = el.type.descriptor.arrayByteStride - structContext.offset;
 
-      cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride - padding;
+        cur->offset += el.type.descriptor.elements * el.type.descriptor.arrayByteStride - padding;
+      }
 
       continue;
     }
@@ -760,7 +786,24 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
     QString varTypeName = members[i].type.descriptor.name;
 
-    if(!members[i].type.members.isEmpty())
+    if(members[i].type.descriptor.pointerTypeID != ~0U)
+    {
+      const ShaderVariableType &pointeeType =
+          PointerTypeRegistry::GetTypeDescriptor(members[i].type.descriptor.pointerTypeID);
+
+      varTypeName = pointeeType.descriptor.name;
+
+      if(!declaredStructs.contains(varTypeName))
+      {
+        declaredStructs.push_back(varTypeName);
+        ret = DeclareStruct(declaredStructs, varTypeName, pointeeType.members,
+                            pointeeType.descriptor.arrayByteStride) +
+              lit("\n") + ret;
+      }
+
+      varTypeName += lit("*");
+    }
+    else if(!members[i].type.members.isEmpty())
     {
       // GL structs don't give us typenames (boo!) so give them unique names. This will mean some
       // structs get duplicated if they're used in multiple places, but not much we can do about
@@ -1453,6 +1496,9 @@ QString TypeString(const ShaderVariable &v)
       return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count());
   }
 
+  if(v.isPointer)
+    return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
+
   QString typeStr = ToQStr(v.type);
 
   if(v.displayAsHex)
@@ -1503,6 +1549,9 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
 {
   if(type == VarType::Unknown)
     type = v.type;
+
+  if(v.isPointer)
+    return ToQStr(v.GetPointer());
 
   if(type == VarType::Double)
     return RowValuesToString((int)v.columns, v.displayAsHex, v.value.dv[row * v.columns + 0],
@@ -1561,6 +1610,9 @@ QString RowTypeString(const ShaderVariable &v)
 
   if(v.rows == 0 && v.columns == 0)
     return lit("-");
+
+  if(v.isPointer)
+    return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
 
   QString typeStr = ToQStr(v.type);
 

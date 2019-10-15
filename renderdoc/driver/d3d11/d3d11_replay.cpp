@@ -2799,7 +2799,8 @@ void D3D11Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
     return;
   }
 
-  StandardFillCBufferVariables(refl.constantBlocks[cbufSlot].variables, outvars, data);
+  StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[cbufSlot].variables, outvars,
+                               data);
 }
 
 uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height,

@@ -484,7 +484,8 @@ struct BufferDescription
 
   bool operator==(const BufferDescription &o) const
   {
-    return resourceId == o.resourceId && creationFlags == o.creationFlags && length == o.length;
+    return resourceId == o.resourceId && creationFlags == o.creationFlags &&
+           gpuAddress == o.gpuAddress && length == o.length;
   }
   bool operator<(const BufferDescription &o) const
   {
@@ -492,6 +493,8 @@ struct BufferDescription
       return resourceId < o.resourceId;
     if(!(creationFlags == o.creationFlags))
       return creationFlags < o.creationFlags;
+    if(!(gpuAddress == o.gpuAddress))
+      return gpuAddress < o.gpuAddress;
     if(!(length == o.length))
       return length < o.length;
     return false;
@@ -500,10 +503,13 @@ struct BufferDescription
   ResourceId resourceId;
 
   DOCUMENT("The way this buffer will be used in the pipeline.");
-  BufferCategory creationFlags;
+  BufferCategory creationFlags = BufferCategory::NoFlags;
+
+  DOCUMENT("The known base GPU Address of this buffer. 0 if not applicable or available.");
+  uint64_t gpuAddress = 0;
 
   DOCUMENT("The byte length of the buffer.");
-  uint64_t length;
+  uint64_t length = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(BufferDescription);

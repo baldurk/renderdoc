@@ -686,6 +686,8 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
 {
   CloseCapture();
 
+  PointerTypeRegistry::Init();
+
   m_LoadInProgress = true;
 
   if(local)
@@ -1450,6 +1452,15 @@ void CaptureContext::SetRemoteHost(int hostIdx)
 void CaptureContext::RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude,
                                      bool updateSelectedEvent, bool updateEvent)
 {
+  // cache and assign pointer type IDs for any known pointer types in current shaders
+  for(ShaderStage stage : {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain,
+                           ShaderStage::Geometry, ShaderStage::Pixel, ShaderStage::Compute})
+  {
+    const ShaderReflection *refl = m_CurPipelineState->GetShaderReflection(stage);
+    if(refl)
+      PointerTypeRegistry::CacheShader(refl);
+  }
+
   for(ICaptureViewer *viewer : m_CaptureViewers)
   {
     if(exclude.contains(viewer))

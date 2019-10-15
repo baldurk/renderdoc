@@ -183,8 +183,9 @@ void DoSerialise(SerialiserType &ser, ShaderVariableDescriptor &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(displayAsHex);
   SERIALISE_MEMBER(displayAsRGB);
+  SERIALISE_MEMBER(pointerTypeID);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(48);
 }
 
 template <typename SerialiserType>
@@ -193,7 +194,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariableType &el)
   SERIALISE_MEMBER(descriptor);
   SERIALISE_MEMBER(members);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
@@ -204,7 +205,7 @@ void DoSerialise(SerialiserType &ser, ShaderConstant &el)
   SERIALISE_MEMBER(defaultValue);
   SERIALISE_MEMBER(type);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(112);
 }
 
 template <typename SerialiserType>
@@ -238,7 +239,7 @@ void DoSerialise(SerialiserType &ser, ShaderResource &el)
   SERIALISE_MEMBER(isTexture);
   SERIALISE_MEMBER(isReadOnly);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(112);
 }
 
 template <typename SerialiserType>
@@ -313,7 +314,9 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(interfaces);
 
-  SIZE_CHECK(312);
+  SERIALISE_MEMBER(pointerTypes);
+
+  SIZE_CHECK(336);
 }
 
 template <typename SerialiserType>
@@ -324,6 +327,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
 
+  SERIALISE_MEMBER(isPointer);
   SERIALISE_MEMBER(displayAsHex);
   SERIALISE_MEMBER(isStruct);
   SERIALISE_MEMBER(rowMajor);
@@ -332,7 +336,9 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
 
   SERIALISE_MEMBER(members);
 
-  SIZE_CHECK(200);
+  SERIALISE_MEMBER(pointerShader);
+
+  SIZE_CHECK(192);
 }
 
 template <typename SerialiserType>
@@ -449,9 +455,10 @@ void DoSerialise(SerialiserType &ser, BufferDescription &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(creationFlags);
+  SERIALISE_MEMBER(gpuAddress);
   SERIALISE_MEMBER(length);
 
-  SIZE_CHECK(24);
+  SIZE_CHECK(32);
 }
 
 template <typename SerialiserType>

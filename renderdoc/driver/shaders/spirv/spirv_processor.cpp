@@ -553,7 +553,7 @@ void Processor::RegisterOp(Iter it)
     {
       v.type = type.scalar().Type();
       v.rows = 1;
-      v.columns = type.vector().count;
+      v.columns = type.vector().count & 0xf;
 
       if(type.scalar().width == 32)
       {
@@ -569,8 +569,8 @@ void Processor::RegisterOp(Iter it)
     else if(type.type == DataType::MatrixType)
     {
       v.type = type.scalar().Type();
-      v.rows = type.vector().count;
-      v.columns = type.matrix().count;
+      v.rows = type.vector().count & 0xf;
+      v.columns = type.matrix().count & 0xf;
       // always store constants row major
       v.rowMajor = true;
 

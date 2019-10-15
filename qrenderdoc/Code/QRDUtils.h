@@ -124,6 +124,50 @@ class RDTreeWidgetItem;
 void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
                           bool parentIsArray);
 
+struct PointerTypeRegistry
+{
+public:
+  static void Init();
+
+  static void CacheShader(const ShaderReflection *reflection);
+
+  static uint32_t GetTypeID(ResourceId shader, uint32_t pointerTypeId);
+  static uint32_t GetTypeID(PointerVal val) { return GetTypeID(val.shader, val.pointerTypeID); }
+  static uint32_t GetTypeID(const ShaderVariableType &structDef);
+
+  static const ShaderVariableType &GetTypeDescriptor(uint32_t typeId);
+  static const ShaderVariableType &GetTypeDescriptor(ResourceId shader, uint32_t pointerTypeId)
+  {
+    return GetTypeDescriptor(GetTypeID(shader, pointerTypeId));
+  }
+  static const ShaderVariableType &GetTypeDescriptor(PointerVal val)
+  {
+    return GetTypeDescriptor(GetTypeID(val));
+  }
+
+private:
+  static void CacheSubTypes(const ShaderReflection *reflection, ShaderVariableType &structDef);
+
+  static QMap<QPair<ResourceId, uint32_t>, uint32_t> typeMapping;
+  static rdcarray<ShaderVariableType> typeDescriptions;
+};
+
+struct GPUAddress
+{
+  GPUAddress() = default;
+  GPUAddress(const PointerVal &v) : val(v) {}
+  PointerVal val;
+
+  // cached data
+  ResourceId base;
+  uint64_t offset = 0;
+
+  // cache the context once we've obtained it.
+  ICaptureContext *ctxptr = NULL;
+
+  void cacheAddress(const QWidget *widget);
+};
+
 // this will check the variant, and if it contains a ResourceId directly or text with ResourceId
 // identifiers then it will be converted into a RichResourceTextPtr or ResourceId in-place. The new
 // QVariant will still convert to QString so it doesn't have to be special-cased. However it must be

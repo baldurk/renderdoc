@@ -730,8 +730,10 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   }
 
   var.type.descriptor.rowMajorStorage = (values[6] > 0);
-  var.type.descriptor.arrayByteStride = values[7];
   var.type.descriptor.matrixByteStride = (uint8_t)values[8];
+
+  RDCASSERTMSG("Stride is too large for uint16_t", values[7] <= 0xffff);
+  var.type.descriptor.arrayByteStride = RDCMIN((uint32_t)values[7], 0xffffu) & 0xffff;
 
   bool bareUniform = false;
 
@@ -870,8 +872,10 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     parentVar.type.descriptor.type = var.type.descriptor.type;
     parentVar.type.descriptor.elements =
         isarray && !multiDimArray ? RDCMAX(1U, uint32_t(arrayIdx + 1)) : 0;
-    parentVar.type.descriptor.arrayByteStride = topLevelStride;
     parentVar.type.descriptor.matrixByteStride = 0;
+
+    RDCASSERTMSG("Stride is too large for uint16_t", topLevelStride <= 0xffff);
+    parentVar.type.descriptor.arrayByteStride = RDCMIN((uint32_t)topLevelStride, 0xffffu) & 0xffff;
 
     // consider all block-level SSBO structs to have infinite elements if they are an array at all
     if(blockLevel && topLevelStride && isarray)

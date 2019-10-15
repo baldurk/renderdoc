@@ -29,11 +29,11 @@
 #include "replay/replay_driver.h"
 #include "spirv_editor.h"
 
-void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
+void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
                                const std::vector<SpecConstant> &specInfo)
 {
-  StandardFillCBufferVariables(invars, outvars, bytebuf());
+  StandardFillCBufferVariables(shader, invars, outvars, bytebuf());
 
   RDCASSERTEQUAL(invars.size(), outvars.size());
 
@@ -797,6 +797,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   rdcarray<cblockpair> cblocks;
   rdcarray<shaderrespair> samplers, roresources, rwresources;
 
+  // for pointer types, mapping of inner type ID to index in list (assigned sequentially)
+  SparseIdMap<uint16_t> pointerTypes;
+
   // $Globals gathering - for GL global values
   ConstantBlock globalsblock;
 
@@ -1052,8 +1055,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
           ShaderConstant constant;
 
-          MakeConstantBlockVariable(constant, *varType, strings[global.id], decorations[global.id],
-                                    specInfo);
+          MakeConstantBlockVariable(constant, pointerTypes, *varType, strings[global.id],
+                                    decorations[global.id], specInfo);
 
           if(isArray)
             constant.type.descriptor.elements = arraySize;
@@ -1090,7 +1093,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             res.variableType.descriptor.type = VarType::Float;
             res.variableType.descriptor.name = varType->name;
 
-            MakeConstantBlockVariables(*varType, 0, 0, res.variableType.members, specInfo);
+            MakeConstantBlockVariables(*varType, 0, 0, res.variableType.members, pointerTypes,
+                                       specInfo);
 
             rwresources.push_back(shaderrespair(bindmap, res));
           }
@@ -1103,7 +1107,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
               cblock.name = StringFormat::Fmt("uniforms%u", global.id);
             cblock.bufferBacked = !pushConst;
 
-            MakeConstantBlockVariables(*varType, 0, 0, cblock.variables, specInfo);
+            MakeConstantBlockVariables(*varType, 0, 0, cblock.variables, pointerTypes, specInfo);
 
             if(!varType->children.empty())
               cblock.byteSize = CalculateMinimumByteSize(cblock.variables);
@@ -1137,7 +1141,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         name = StringFormat::Fmt("specID%u", decorations[c.id].specID);
 
       ShaderConstant spec;
-      MakeConstantBlockVariable(spec, dataTypes[c.type], name, decorations[c.id], specInfo);
+      MakeConstantBlockVariable(spec, pointerTypes, dataTypes[c.type], name, decorations[c.id],
+                                specInfo);
       spec.byteOffset = decorations[c.id].specID;
       spec.defaultValue = c.value.value.u64v[0];
       specblock.variables.push_back(spec);
@@ -1352,6 +1357,21 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       mapping.readWriteResources[i].bind = 0;
     reflection.readWriteResources[i] = rwresources[i].bindres;
     reflection.readWriteResources[i].bindPoint = (int32_t)i;
+  }
+
+  // populate the pointer types
+  reflection.pointerTypes.reserve(pointerTypes.size());
+  for(auto it = pointerTypes.begin(); it != pointerTypes.end(); ++it)
+  {
+    ShaderConstant dummy;
+
+    MakeConstantBlockVariable(dummy, pointerTypes, dataTypes[it->first], rdcstr(), Decorations(),
+                              specInfo);
+
+    if(it->second >= reflection.pointerTypes.size())
+      reflection.pointerTypes.resize(it->second + 1);
+
+    reflection.pointerTypes[it->second] = dummy.type;
   }
 }
 
@@ -1568,7 +1588,7 @@ ShaderVariable Reflector::EvaluateConstant(Id constID, const std::vector<SpecCon
         indices.push_back(specop.params[i].value());
 
       ret = ShaderVariable("derived", 0, 0, 0, 0);
-      ret.columns = (uint32_t)indices.size();
+      ret.columns = (uint8_t)indices.size();
 
       for(size_t i = 0; i < indices.size(); i++)
       {
@@ -1661,7 +1681,7 @@ ShaderVariable Reflector::EvaluateConstant(Id constID, const std::vector<SpecCon
 
     // all other operations are component-wise on vectors or scalars. Check that rows are all 1 and
     // all cols are identical
-    uint32_t cols = params[0].columns;
+    uint8_t cols = params[0].columns;
     for(size_t i = 0; i < params.size(); i++)
     {
       RDCASSERT(cols == params[i].columns, i, params[i].columns);
@@ -1872,6 +1892,7 @@ ShaderVariable Reflector::EvaluateConstant(Id constID, const std::vector<SpecCon
 
 void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
                                            uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
+                                           SparseIdMap<uint16_t> &pointerTypes,
                                            const std::vector<SpecConstant> &specInfo) const
 {
   // we get here for multi-dimensional arrays
@@ -1885,7 +1906,7 @@ void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t 
     cblock.resize(arraySize);
     for(uint32_t i = 0; i < arraySize; i++)
     {
-      MakeConstantBlockVariable(cblock[i], structType, StringFormat::Fmt("[%u]", i),
+      MakeConstantBlockVariable(cblock[i], pointerTypes, structType, StringFormat::Fmt("[%u]", i),
                                 decorations[structType.id], specInfo);
 
       cblock[i].byteOffset = relativeOffset;
@@ -1901,12 +1922,13 @@ void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t 
 
   cblock.resize(structType.children.size());
   for(size_t i = 0; i < structType.children.size(); i++)
-    MakeConstantBlockVariable(cblock[i], dataTypes[structType.children[i].type],
+    MakeConstantBlockVariable(cblock[i], pointerTypes, dataTypes[structType.children[i].type],
                               structType.children[i].name, structType.children[i].decorations,
                               specInfo);
 }
 
-void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataType &type,
+void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
+                                          SparseIdMap<uint16_t> &pointerTypes, const DataType &type,
                                           const rdcstr &name, const Decorations &varDecorations,
                                           const std::vector<SpecConstant> &specInfo) const
 {
@@ -1925,9 +1947,17 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataTy
         curType->length != Id() ? EvaluateConstant(curType->length, specInfo).value.u.x : ~0U;
 
     if(varDecorations.arrayStride != ~0U)
-      outConst.type.descriptor.arrayByteStride = varDecorations.arrayStride;
+    {
+      RDCASSERTMSG("Stride is too large for uint16_t", varDecorations.arrayStride <= 0xffff);
+      outConst.type.descriptor.arrayByteStride = RDCMIN(varDecorations.arrayStride, 0xffffu) & 0xffff;
+    }
     else if(decorations[curType->id].arrayStride != ~0U)
-      outConst.type.descriptor.arrayByteStride = decorations[curType->id].arrayStride;
+    {
+      RDCASSERTMSG("Stride is too large for uint16_t",
+                   decorations[curType->id].arrayStride <= 0xffff);
+      outConst.type.descriptor.arrayByteStride =
+          RDCMIN(decorations[curType->id].arrayStride, 0xffffu) & 0xffff;
+    }
 
     if(varDecorations.matrixStride != ~0U)
       outConst.type.descriptor.matrixByteStride = varDecorations.matrixStride & 0xff;
@@ -1968,6 +1998,23 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataTy
   }
   else
   {
+    if(curType->type == DataType::PointerType)
+    {
+      outConst.type.descriptor.type = VarType::ULong;
+      outConst.type.descriptor.rowMajorStorage = false;
+      outConst.type.descriptor.rows = 1;
+      outConst.type.descriptor.columns = 1;
+      outConst.type.descriptor.name = curType->name;
+
+      // try to insert the inner type ID into the map. If it succeeds, it gets the next available
+      // pointer type index (size of the map), if not then we just get the previously added index
+      auto it =
+          pointerTypes.insert(std::make_pair(curType->InnerType(), (uint16_t)pointerTypes.size()));
+
+      outConst.type.descriptor.pointerTypeID = it.first->second;
+      return;
+    }
+
     RDCASSERT(curType->type == DataType::StructType || curType->type == DataType::ArrayType);
 
     outConst.type.descriptor.type = VarType::Float;
@@ -1979,7 +2026,7 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst, const DataTy
 
     MakeConstantBlockVariables(*curType, outConst.type.descriptor.elements,
                                outConst.type.descriptor.arrayByteStride, outConst.type.members,
-                               specInfo);
+                               pointerTypes, specInfo);
 
     if(curType->type == DataType::ArrayType)
     {

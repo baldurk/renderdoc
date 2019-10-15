@@ -237,9 +237,10 @@ void PatchTriangleFanRestartIndexBufer(std::vector<uint32_t> &patchedIndices, ui
 
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput);
 
-void StandardFillCBufferVariable(uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
+void StandardFillCBufferVariable(ResourceId shader, const ShaderVariableDescriptor &desc,
+                                 uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
                                  uint32_t matStride);
-void StandardFillCBufferVariables(const rdcarray<ShaderConstant> &invars,
+void StandardFillCBufferVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                   rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
 // simple cache for when we need buffer data for highlighting

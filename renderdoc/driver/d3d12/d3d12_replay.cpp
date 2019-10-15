@@ -2774,7 +2774,8 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
     }
   }
 
-  StandardFillCBufferVariables(c.variables, outvars, rootData.empty() ? data : rootData);
+  StandardFillCBufferVariables(refl.resourceId, c.variables, outvars,
+                               rootData.empty() ? data : rootData);
 }
 
 std::vector<DebugMessage> D3D12Replay::GetDebugMessages()

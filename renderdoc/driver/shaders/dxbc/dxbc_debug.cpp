@@ -4185,7 +4185,7 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
     rdcarray<ShaderVariable> vars;
 
     // Fetch cbuffers into vars, which will be 'natural': structs with members, non merged vectors
-    StandardFillCBufferVariables(refl.constantBlocks[i].variables, vars,
+    StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[i].variables, vars,
                                  cbufData[dxbc->GetReflection()->CBuffers[i].reg]);
 
     FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);

@@ -62,7 +62,7 @@ void LogReplayOptions(const ReplayOptions &opts)
   RDCLOG("Replay optimisation level: %s", ToStr(opts.optimisation).c_str());
 }
 
-// this one is done by hand as we format it
+// these one is done by hand as we format it
 template <>
 rdcstr DoStringise(const ResourceId &el)
 {
@@ -105,8 +105,27 @@ rdcstr DoStringise(const ResourceId &el)
   for(size_t i = 0; i <= prefixlast; i++)
     *(c--) = PREFIX[prefixlast - i];
 
+#undef PREFIX
+
   // the loop will have stepped us to the first NULL before our string, so return c+1
   return c + 1;
+}
+
+template <>
+rdcstr DoStringise(const PointerVal &el)
+{
+  if(el.shader != ResourceId())
+  {
+    // we don't want to format as an ID, we need to encode the raw value
+    uint64_t num;
+    memcpy(&num, &el.shader, sizeof(num));
+
+    return StringFormat::Fmt("GPUAddress::%llu::%llu::%u", el.pointer, num, el.pointerTypeID);
+  }
+  else
+  {
+    return StringFormat::Fmt("GPUAddress::%llu", el.pointer);
+  }
 }
 
 BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::Resource, 8);

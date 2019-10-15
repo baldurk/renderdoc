@@ -879,6 +879,14 @@ public:
                 else
                   v = list[comp * rowdim];
 
+                if(el.type.descriptor.pointerTypeID != ~0U)
+                {
+                  PointerVal ptr;
+                  ptr.pointer = v.toULongLong();
+                  ptr.pointerTypeID = el.type.descriptor.pointerTypeID;
+                  v = ToQStr(ptr);
+                }
+
                 RichResourceTextInitialise(v);
 
                 if(RichResourceTextCheck(v))

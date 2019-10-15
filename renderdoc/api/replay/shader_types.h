@@ -97,6 +97,25 @@ struct UIntVecVal
   uint32_t w;
 };
 
+DOCUMENT("A 64-bit pointer value with optional type information.")
+struct PointerVal
+{
+  DOCUMENT("");
+  PointerVal() = default;
+  PointerVal(const PointerVal &) = default;
+
+  DOCUMENT("The actual pointer value itself.");
+  uint64_t pointer;
+
+  DOCUMENT("An optional :class:`ResourceId` identifying the shader containing the type info.");
+  ResourceId shader;
+
+  DOCUMENT("The index into :data:`ShaderReflection.pointerTypes` of the pointed type.");
+  uint32_t pointerTypeID;
+};
+
+DECLARE_STRINGISE_TYPE(PointerVal);
+
 DOCUMENT("A C union that holds 16 values, with each different basic variable type.");
 union ShaderValue
 {
@@ -141,7 +160,7 @@ struct ShaderVariable
   {
     name = "";
     rows = columns = 0;
-    displayAsHex = isStruct = rowMajor = false;
+    displayAsHex = isStruct = rowMajor = isPointer = false;
     type = VarType::Float;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
@@ -152,7 +171,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = false;
+    displayAsHex = isStruct = rowMajor = isPointer = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::Float;
@@ -166,7 +185,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = false;
+    displayAsHex = isStruct = rowMajor = isPointer = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::SInt;
@@ -180,7 +199,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = false;
+    displayAsHex = isStruct = rowMajor = isPointer = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::UInt;
@@ -193,7 +212,8 @@ struct ShaderVariable
   {
     return rows == o.rows && columns == o.columns && name == o.name && type == o.type &&
            displayAsHex == o.displayAsHex && !memcmp(&value, &o.value, sizeof(value)) &&
-           isStruct == o.isStruct && members == o.members;
+           isStruct == o.isStruct && rowMajor == o.rowMajor && isPointer == o.isPointer &&
+           members == o.members;
   }
   bool operator<(const ShaderVariable &o) const
   {
@@ -211,6 +231,8 @@ struct ShaderVariable
       return isStruct < o.isStruct;
     if(!(rowMajor == o.rowMajor))
       return rowMajor < o.rowMajor;
+    if(!(isPointer == o.isPointer))
+      return isPointer < o.isPointer;
     if(memcmp(&value, &o.value, sizeof(value)) < 0)
       return true;
     if(!(members == o.members))
@@ -218,18 +240,16 @@ struct ShaderVariable
     return false;
   }
 
-  DOCUMENT("The number of rows in this matrix.");
-  uint32_t rows;
-  DOCUMENT("The number of columns in this matrix.");
-  uint32_t columns;
   DOCUMENT("The name of this variable.");
   rdcstr name;
 
-  DOCUMENT("The :class:`basic type <VarType>` of this variable.");
-  VarType type;
+  DOCUMENT("The number of rows in this matrix.");
+  uint8_t rows;
+  DOCUMENT("The number of columns in this matrix.");
+  uint8_t columns;
 
-  DOCUMENT("The :class:`contents <ShaderValue>` of this variable if it has no members.");
-  ShaderValue value;
+  DOCUMENT("``True`` if this variable is a pointer.");
+  bool isPointer;
 
   DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
   bool displayAsHex;
@@ -240,8 +260,56 @@ struct ShaderVariable
   DOCUMENT("``True`` if this variable is stored in rows in memory. Only relevant for matrices.");
   bool rowMajor;
 
+  DOCUMENT("The :class:`basic type <VarType>` of this variable.");
+  VarType type;
+
+  DOCUMENT("The :class:`contents <ShaderValue>` of this variable if it has no members.");
+  ShaderValue value;
+
   DOCUMENT("The members of this variable as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> members;
+
+  DOCUMENT(R"(Utility function for setting a pointer value with no type information.
+
+:param int pointer: The actual pointer value.
+)");
+  inline void SetTypelessPointer(uint64_t pointer)
+  {
+    isPointer = true;
+    value.u64v[0] = pointer;
+  }
+  DOCUMENT(R"(Utility function for setting a pointer value with type information.
+
+:param int pointer: The actual pointer value.
+:param ResourceId shader: The shader containing the type information.
+:param int pointerTypeID: The type's index in the shader's :data:`ShaderReflection.pointerTypes`
+  list.
+)");
+  inline void SetTypedPointer(uint64_t pointer, ResourceId shader, uint32_t pointerTypeID)
+  {
+    isPointer = true;
+    value.u64v[0] = pointer;
+    value.u64v[1] = pointerTypeID;
+    pointerShader = shader;
+  }
+
+  DOCUMENT(R"(Utility function for getting a pointer value, with optional type information.
+
+:return: A :class:`PointerVal` with the pointer value.
+:rtype: PointerVal
+)");
+  inline PointerVal GetPointer() const
+  {
+    return {value.u64v[0], pointerShader, uint32_t(value.u64v[1] & 0xFFFFFFFF)};
+  }
+
+private:
+  DOCUMENT("");
+  ResourceId pointerShader;
+
+  // make DoSerialise a friend so it can serialise pointerShader
+  template <typename SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, ShaderVariable &el);
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderVariable);
@@ -613,7 +681,7 @@ struct ShaderVariableDescriptor
     return type == o.type && rows == o.rows && columns == o.columns &&
            rowMajorStorage == o.rowMajorStorage && elements == o.elements &&
            arrayByteStride == o.arrayByteStride && matrixByteStride == o.matrixByteStride &&
-           name == o.name;
+           pointerTypeID == o.pointerTypeID && name == o.name;
   }
   bool operator<(const ShaderVariableDescriptor &o) const
   {
@@ -637,6 +705,8 @@ struct ShaderVariableDescriptor
   }
   DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
   rdcstr name;
+  DOCUMENT("The index in :data:`ShaderReflection.pointerTypes` of the pointee type.");
+  uint32_t pointerTypeID = ~0U;
   DOCUMENT("The number of elements in the array, or 1 if it's not an array.");
   uint32_t elements = 1;
   DOCUMENT("The number of bytes between the start of one element in the array and the next.");
@@ -653,9 +723,9 @@ struct ShaderVariableDescriptor
   bool rowMajorStorage = false;
   DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
   bool displayAsHex = false;
-  DOCUMENT(R"(``True`` if the contents of this variable should be displayed as RGB color (where 
-possible).
-)");
+  DOCUMENT(R"(``True`` if the contents of this variable should be displayed as RGB color (where
+ possible).
+ )");
   bool displayAsRGB = false;
 };
 
@@ -1042,6 +1112,9 @@ struct ShaderReflection
   // TODO expand this to encompass shader subroutines.
   DOCUMENT("A list of strings with the shader's interfaces. Largely an unused API feature.");
   rdcarray<rdcstr> interfaces;
+
+  DOCUMENT("A list of :class:`ShaderVariableType` with the shader's pointer types.");
+  rdcarray<ShaderVariableType> pointerTypes;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderReflection);

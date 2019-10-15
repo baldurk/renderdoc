@@ -60,13 +60,103 @@ rdcstr DoStringise(const uint32_t &el)
   return QString::number(el).toStdString();
 }
 
-// this one we do by hand as it requires formatting
+// these ones we do by hand as it requires formatting
 template <>
 rdcstr DoStringise(const ResourceId &el)
 {
   uint64_t num;
   memcpy(&num, &el, sizeof(num));
-  return lit("ResourceId::%1").arg(num).toStdString();
+  return lit("ResourceId::%1").arg(num);
+}
+
+QMap<QPair<ResourceId, uint32_t>, uint32_t> PointerTypeRegistry::typeMapping;
+rdcarray<ShaderVariableType> PointerTypeRegistry::typeDescriptions;
+
+static const uint32_t TypeIDBit = 0x80000000;
+
+void PointerTypeRegistry::Init()
+{
+  typeMapping.clear();
+
+  // type ID 0 is reserved as a NULL/empty descriptor
+  typeDescriptions.resize(1);
+  typeDescriptions[0].descriptor.name = "<Unknown>";
+}
+
+uint32_t PointerTypeRegistry::GetTypeID(ResourceId shader, uint32_t pointerTypeId)
+{
+  return typeMapping[qMakePair(shader, pointerTypeId)];
+}
+
+uint32_t PointerTypeRegistry::GetTypeID(const ShaderVariableType &structDef)
+{
+  // see if the type is already registered, return its existing ID
+  for(uint32_t i = 1; i < typeDescriptions.size(); i++)
+  {
+    if(structDef == typeDescriptions[i])
+      return TypeIDBit | i;
+  }
+
+  uint32_t id = TypeIDBit | (uint32_t)typeDescriptions.size();
+
+  // otherwise register the new type
+  typeDescriptions.push_back(structDef);
+  typeMapping[qMakePair(ResourceId(), id)] = id;
+
+  return id;
+}
+
+const ShaderVariableType &PointerTypeRegistry::GetTypeDescriptor(uint32_t typeId)
+{
+  return typeDescriptions[typeId & ~TypeIDBit];
+}
+
+void PointerTypeRegistry::CacheSubTypes(const ShaderReflection *reflection,
+                                        ShaderVariableType &structDef)
+{
+  if((structDef.descriptor.pointerTypeID & TypeIDBit) == 0)
+    structDef.descriptor.pointerTypeID =
+        PointerTypeRegistry::GetTypeID(reflection->pointerTypes[structDef.descriptor.pointerTypeID]);
+
+  for(ShaderConstant &member : structDef.members)
+    CacheSubTypes(reflection, member.type);
+}
+
+void PointerTypeRegistry::CacheShader(const ShaderReflection *reflection)
+{
+  // nothing to do if there are no pointer types
+  if(reflection->pointerTypes.isEmpty())
+    return;
+
+  // check if we've already cached this shader (we know there's at least one pointer type)
+  if(typeMapping.contains(qMakePair(reflection->resourceId, 0)))
+    return;
+
+  for(uint32_t i = 0; i < reflection->pointerTypes.size(); i++)
+  {
+    ShaderVariableType typeDesc = reflection->pointerTypes[i];
+
+    // first recursively cache all subtypes needed by the root struct types
+    CacheSubTypes(reflection, typeDesc);
+
+    // then look up the Type ID for this struct
+    typeMapping[qMakePair(reflection->resourceId, i)] = GetTypeID(typeDesc);
+  }
+}
+
+template <>
+rdcstr DoStringise(const PointerVal &el)
+{
+  if(el.pointerTypeID != ~0U)
+  {
+    uint32_t ptrTypeId = PointerTypeRegistry::GetTypeID(el.shader, el.pointerTypeID);
+
+    return QFormatStr("GPUAddress::%1::%2").arg(el.pointer).arg(ptrTypeId);
+  }
+  else
+  {
+    return QFormatStr("GPUAddress::%1").arg(el.pointer);
+  }
 }
 
 // this is an opaque struct that contains the data to render, hit-test, etc for some text that
@@ -183,6 +273,37 @@ typedef QSharedPointer<RichResourceText> RichResourceTextPtr;
 
 Q_DECLARE_METATYPE(RichResourceTextPtr);
 
+void GPUAddress::cacheAddress(const QWidget *widget)
+{
+  if(!ctxptr)
+    ctxptr = getCaptureContext(widget);
+
+  // bail out if we don't have a context
+  if(!ctxptr)
+    return;
+
+  // bail if we're already cached
+  if(base != ResourceId())
+    return;
+
+  // find the first matching buffer
+  for(const BufferDescription &b : ctxptr->GetBuffers())
+  {
+    if(b.gpuAddress && b.gpuAddress <= val.pointer && b.gpuAddress + b.length > val.pointer)
+    {
+      base = b.resourceId;
+      offset = val.pointer - b.gpuAddress;
+      return;
+    }
+  }
+}
+
+// for the same reason as above we use a shared pointer for GPU addresses too. This ensures the
+// cached data doesn't keep getting re-cached in copies.
+typedef QSharedPointer<GPUAddress> GPUAddressPtr;
+
+Q_DECLARE_METATYPE(GPUAddressPtr);
+
 QString ResIdTextToString(RichResourceTextPtr ptr)
 {
   return ptr->text;
@@ -193,10 +314,19 @@ QString ResIdToString(ResourceId ptr)
   return ToQStr(ptr);
 }
 
+QString GPUAddressToString(GPUAddressPtr addr)
+{
+  if(addr->base != ResourceId())
+    return QFormatStr("%1+%2").arg(ToQStr(addr->base)).arg(addr->offset);
+  else
+    return QFormatStr("0x%1").arg(addr->val.pointer, 0, 16);
+}
+
 void RegisterMetatypeConversions()
 {
   QMetaType::registerConverter<RichResourceTextPtr, QString>(&ResIdTextToString);
   QMetaType::registerConverter<ResourceId, QString>(&ResIdToString);
+  QMetaType::registerConverter<GPUAddressPtr, QString>(&GPUAddressToString);
 }
 
 void RichResourceTextInitialise(QVariant &var)
@@ -211,14 +341,40 @@ void RichResourceTextInitialise(QVariant &var)
   QString text = var.toString().trimmed();
 
   // do a simple string search first before using regular expressions
-  if(!text.contains(lit("ResourceId::")))
+  if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")))
     return;
+
+  // two forms: GPUAddress::012345        - typeless
+  //            GPUAddress::012345::991   - using type 991 from PointerTypeRegistry
+  static QRegularExpression addrRE(lit("GPUAddress::([0-9]*)(::([0-9]*))?"));
+
+  QRegularExpressionMatch match = addrRE.match(text);
+
+  if(match.hasMatch())
+  {
+    // don't support mixed text & addresses. Only do the replacement if we matched the whole string
+    if(match.capturedStart(0) == 0 && match.capturedLength(0) == text.length())
+    {
+      GPUAddressPtr addr(new GPUAddress);
+      addr->val.pointer = match.captured(1).toULongLong();
+
+      // we deliberately set this to ResourceId() to indicate that we're using an ID from the
+      // registry, not a shader-relative index
+      addr->val.shader = ResourceId();
+      addr->val.pointerTypeID = match.captured(3).toULong();
+
+      var = QVariant::fromValue(addr);
+      return;
+    }
+
+    return;
+  }
 
   // use regexp to split up into fragments of text and resourceid. The resourceid is then
   // formatted on the fly in RichResourceText::cacheDocument
-  static QRegularExpression re(lit("(ResourceId::)([0-9]*)"));
+  static QRegularExpression resRE(lit("(ResourceId::)([0-9]*)"));
 
-  QRegularExpressionMatch match = re.match(text);
+  match = resRE.match(text);
 
   if(match.hasMatch())
   {
@@ -250,7 +406,7 @@ void RichResourceTextInitialise(QVariant &var)
 
       linkedText->fragments.push_back(id);
 
-      match = re.match(text);
+      match = resRE.match(text);
     }
 
     if(!text.isEmpty())
@@ -265,6 +421,7 @@ void RichResourceTextInitialise(QVariant &var)
 bool RichResourceTextCheck(const QVariant &var)
 {
   return var.userType() == qMetaTypeId<RichResourceTextPtr>() ||
+         var.userType() == qMetaTypeId<GPUAddressPtr>() ||
          var.userType() == qMetaTypeId<ResourceId>();
 }
 
@@ -275,8 +432,8 @@ static const int RichResourceTextMargin = 2;
 void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
                            QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var)
 {
-  // special case handling for ResourceId
-  if(var.userType() == qMetaTypeId<ResourceId>())
+  // special case handling for ResourceId/GPUAddress on its own
+  if(var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<GPUAddressPtr>())
   {
     painter->save();
 
@@ -290,14 +447,46 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
     QString name;
 
-    ICaptureContext *ctxptr = getCaptureContext(owner);
+    bool valid = false;
 
-    ResourceId id = var.value<ResourceId>();
+    if(var.userType() == qMetaTypeId<ResourceId>())
+    {
+      ICaptureContext *ctxptr = getCaptureContext(owner);
 
-    if(ctxptr)
-      name = ctxptr->GetResourceName(id);
+      ResourceId id = var.value<ResourceId>();
+
+      valid = (id != ResourceId());
+
+      if(ctxptr)
+        name = ctxptr->GetResourceName(id);
+      else
+        name = ToQStr(id);
+    }
     else
-      name = ToQStr(id);
+    {
+      GPUAddressPtr ptr = var.value<GPUAddressPtr>();
+
+      ptr->cacheAddress(owner);
+
+      valid = (ptr->val.pointer != 0);
+
+      if(valid)
+      {
+        if(ptr->base != ResourceId())
+        {
+          name = QFormatStr("%1+%2").arg(ptr->ctxptr->GetResourceName(ptr->base)).arg(ptr->offset);
+        }
+        else
+        {
+          name = QFormatStr("Unknown 0x%1").arg(ptr->val.pointer, 16, 16);
+          valid = false;
+        }
+      }
+      else
+      {
+        name = lit("NULL");
+      }
+    }
 
     painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, name);
 
@@ -318,7 +507,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
     painter->drawPixmap(pos, px, px.rect());
 
-    if(mouseOver && textRect.contains(mousePos) && id != ResourceId())
+    if(mouseOver && textRect.contains(mousePos) && valid)
     {
       int underline_y = textRect.bottom() + margin;
 
@@ -400,8 +589,8 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
 int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVariant &var)
 {
-  // special case handling for ResourceId
-  if(var.userType() == qMetaTypeId<ResourceId>())
+  // special case handling for ResourceId/GPUAddress on its own
+  if(var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<GPUAddressPtr>())
   {
     QFont f = font;
     f.setBold(true);
@@ -412,12 +601,28 @@ int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVa
 
     QString name;
 
-    ICaptureContext *ctxptr = getCaptureContext(owner);
+    if(var.userType() == qMetaTypeId<ResourceId>())
+    {
+      ICaptureContext *ctxptr = getCaptureContext(owner);
 
-    if(ctxptr)
-      name = ctxptr->GetResourceName(var.value<ResourceId>());
+      ResourceId id = var.value<ResourceId>();
+
+      if(ctxptr)
+        name = ctxptr->GetResourceName(id);
+      else
+        name = ToQStr(id);
+    }
     else
-      name = ToQStr(var.value<ResourceId>());
+    {
+      GPUAddressPtr ptr = var.value<GPUAddressPtr>();
+
+      ptr->cacheAddress(owner);
+
+      if(ptr->val.pointer != 0)
+        name = QFormatStr("%1+%2").arg(ptr->ctxptr->GetResourceName(ptr->base)).arg(ptr->offset);
+      else
+        name = lit("NULL");
+    }
 
     const QPixmap &px = Pixmaps::link(owner->devicePixelRatio());
 
@@ -439,14 +644,32 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
   if(event->type() != QEvent::MouseButtonRelease && event->type() != QEvent::MouseMove)
     return false;
 
-  // special case handling for ResourceId
-  if(var.userType() == qMetaTypeId<ResourceId>())
+  // special case handling for ResourceId/GPUAddress on its own
+  if(var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<GPUAddressPtr>())
   {
-    ResourceId id = var.value<ResourceId>();
+    ResourceId id;
+    GPUAddressPtr ptr;
+    ICaptureContext *ctxptr = NULL;
 
-    // empty resource ids are not clickable or hover-highlighted.
-    if(id == ResourceId())
-      return false;
+    if(var.userType() == qMetaTypeId<ResourceId>())
+    {
+      id = var.value<ResourceId>();
+
+      // empty resource ids are not clickable or hover-highlighted.
+      if(id == ResourceId())
+        return false;
+    }
+
+    if(var.userType() == qMetaTypeId<GPUAddressPtr>())
+    {
+      ptr = var.value<GPUAddressPtr>();
+
+      ptr->cacheAddress(owner);
+
+      // NULL or unknown addresses also are not clickable
+      if(ptr->val.pointer == 0 || ptr->base == ResourceId())
+        return false;
+    }
 
     QFont f = font;
     f.setBold(true);
@@ -457,12 +680,21 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
     QString name;
 
-    ICaptureContext *ctxptr = getCaptureContext(owner);
+    if(var.userType() == qMetaTypeId<ResourceId>())
+    {
+      ctxptr = getCaptureContext(owner);
 
-    if(ctxptr)
-      name = ctxptr->GetResourceName(id);
+      if(ctxptr)
+        name = ctxptr->GetResourceName(id);
+      else
+        name = ToQStr(id);
+    }
     else
-      name = ToQStr(id);
+    {
+      ctxptr = ptr->ctxptr;
+
+      name = QFormatStr("%1+%2").arg(ptr->ctxptr->GetResourceName(ptr->base)).arg(ptr->offset);
+    }
 
     QRect textRect = QFontMetrics(f).boundingRect(rect, Qt::AlignLeft | Qt::AlignVCenter, name);
 
@@ -472,21 +704,45 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
     rect.setWidth(textRect.width() + margin + px.width());
     rect.setHeight(qMax(textRect.height(), px.height()));
 
-    if(rect.contains(event->pos()) && id != ResourceId())
+    if(rect.contains(event->pos()))
     {
-      if(event->type() == QEvent::MouseButtonRelease && ctxptr)
+      if(var.userType() == qMetaTypeId<ResourceId>())
       {
-        ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
+        if(event->type() == QEvent::MouseButtonRelease && ctxptr)
+        {
+          ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
 
-        if(!ctx.HasResourceInspector())
-          ctx.ShowResourceInspector();
+          if(!ctx.HasResourceInspector())
+            ctx.ShowResourceInspector();
 
-        ctx.GetResourceInspector()->Inspect(id);
+          ctx.GetResourceInspector()->Inspect(id);
 
-        ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
+          ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
+        }
+
+        return true;
       }
+      else if(var.userType() == qMetaTypeId<GPUAddressPtr>())
+      {
+        if(event->type() == QEvent::MouseButtonRelease && ctxptr)
+        {
+          ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
 
-      return true;
+          const ShaderVariableType &ptrType = PointerTypeRegistry::GetTypeDescriptor(ptr->val);
+
+          QString formatter;
+
+          if(!ptrType.members.isEmpty())
+            formatter = BufferFormatter::DeclareStruct(ptrType.descriptor.name, ptrType.members,
+                                                       ptrType.descriptor.arrayByteStride);
+
+          IBufferViewer *view = ctx.ViewBuffer(ptr->offset, 0, ptr->base, formatter);
+
+          ctx.AddDockWindow(view->Widget(), DockReference::MainToolArea, NULL);
+        }
+
+        return true;
+      }
     }
 
     return false;

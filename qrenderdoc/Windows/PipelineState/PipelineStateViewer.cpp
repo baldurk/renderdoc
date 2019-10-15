@@ -79,32 +79,6 @@ static uint32_t byteSize(const ResourceFormat &fmt)
   return fmt.compByteWidth * fmt.compCount;
 }
 
-static QString padding(uint32_t bytes)
-{
-  if(bytes == 0)
-    return QString();
-
-  QString ret;
-
-  if(bytes > 4)
-  {
-    ret += lit("xint pad[%1];").arg(bytes / 4);
-
-    bytes = bytes % 4;
-  }
-
-  if(bytes == 4)
-    ret += lit("xint pad;");
-  else if(bytes == 3)
-    ret += lit("xshort pad; xbyte pad;");
-  else if(bytes == 2)
-    ret += lit("xshort pad;");
-  else if(bytes == 1)
-    ret += lit("xbyte pad;");
-
-  return ret + lit("\n");
-}
-
 PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::PipelineStateViewer), m_Ctx(ctx)
 {
@@ -617,83 +591,6 @@ void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
   });
 }
 
-QString PipelineStateViewer::declareStruct(QList<QString> &declaredStructs, const QString &name,
-                                           const rdcarray<ShaderConstant> &members,
-                                           uint32_t requiredByteStride)
-{
-  QString ret;
-
-  ret = lit("struct %1\n{\n").arg(name);
-
-  for(int i = 0; i < members.count(); i++)
-  {
-    QString arraySize;
-    if(members[i].type.descriptor.elements > 1)
-      arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
-
-    QString varTypeName = members[i].type.descriptor.name;
-
-    if(!members[i].type.members.isEmpty())
-    {
-      // GL structs don't give us typenames (boo!) so give them unique names. This will mean some
-      // structs get duplicated if they're used in multiple places, but not much we can do about
-      // that.
-      if(varTypeName.isEmpty() || varTypeName == lit("struct"))
-        varTypeName = lit("anon%1").arg(declaredStructs.size());
-
-      if(!declaredStructs.contains(varTypeName))
-      {
-        declaredStructs.push_back(varTypeName);
-        ret = declareStruct(declaredStructs, varTypeName, members[i].type.members,
-                            members[i].type.descriptor.arrayByteStride) +
-              lit("\n") + ret;
-      }
-    }
-
-    ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(members[i].name).arg(arraySize);
-  }
-
-  if(requiredByteStride > 0)
-  {
-    uint32_t structStart = 0;
-
-    const ShaderConstant *lastChild = &members.back();
-
-    structStart += lastChild->byteOffset;
-    while(!lastChild->type.members.isEmpty())
-    {
-      lastChild = &lastChild->type.members.back();
-      structStart += lastChild->byteOffset;
-    }
-
-    uint32_t size = lastChild->type.descriptor.rows * lastChild->type.descriptor.columns;
-    if(lastChild->type.descriptor.type == VarType::Double ||
-       lastChild->type.descriptor.type == VarType::ULong ||
-       lastChild->type.descriptor.type == VarType::SLong)
-      size *= 8;
-    else if(lastChild->type.descriptor.type == VarType::Float ||
-            lastChild->type.descriptor.type == VarType::UInt ||
-            lastChild->type.descriptor.type == VarType::SInt)
-      size *= 4;
-    else if(lastChild->type.descriptor.type == VarType::Half ||
-            lastChild->type.descriptor.type == VarType::UShort ||
-            lastChild->type.descriptor.type == VarType::SShort)
-      size *= 2;
-
-    if(lastChild->type.descriptor.elements > 1)
-      size *= lastChild->type.descriptor.elements;
-
-    uint32_t padBytes = requiredByteStride - (lastChild->byteOffset + size);
-
-    if(padBytes > 0)
-      ret += lit("    ") + padding(padBytes);
-  }
-
-  ret += lit("}\n");
-
-  return ret;
-}
-
 void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
                                                   const rdcarray<ShaderConstant> &vars,
                                                   QString &struct_contents, QString &struct_defs)
@@ -1181,7 +1078,7 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
       continue;
 
     // declare any padding from previous element to this one
-    format += padding(attrs[i].byteOffset - offset);
+    format += BufferFormatter::DeclarePaddingBytes(attrs[i].byteOffset - offset);
 
     const ResourceFormat &fmt = attrs[i].format;
 
@@ -1261,7 +1158,7 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
   }
 
   if(stride > 0)
-    format += padding(stride - offset);
+    format += BufferFormatter::DeclarePaddingBytes(stride - offset);
 
   return format;
 }

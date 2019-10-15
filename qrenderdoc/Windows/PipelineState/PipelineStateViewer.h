@@ -91,9 +91,6 @@ private:
 
   QMenu *editMenus[6] = {};
 
-  QString declareStruct(QList<QString> &declaredStructs, const QString &name,
-                        const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
-
   QString GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,
                            const ShaderReflection *shaderDetails, const QString &entryFunc);
   IShaderViewer *EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,

@@ -878,6 +878,7 @@ void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, Vulkan
 {
   usage = pCreateInfo->usage;
   size = pCreateInfo->size;
+  gpuAddress = 0;
 }
 
 void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,

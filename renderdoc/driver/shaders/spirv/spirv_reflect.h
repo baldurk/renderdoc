@@ -113,9 +113,11 @@ private:
 
   void MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
                                   uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
+                                  SparseIdMap<uint16_t> &pointerTypes,
                                   const std::vector<SpecConstant> &specInfo) const;
-  void MakeConstantBlockVariable(ShaderConstant &outConst, const DataType &type, const rdcstr &name,
-                                 const Decorations &decorations,
+  void MakeConstantBlockVariable(ShaderConstant &outConst, SparseIdMap<uint16_t> &pointerTypes,
+                                 const DataType &type, const rdcstr &name,
+                                 const Decorations &varDecorations,
                                  const std::vector<SpecConstant> &specInfo) const;
   void AddSignatureParameter(const bool isInput, const ShaderStage stage, const Id id,
                              const Id structID, uint32_t &regIndex,
@@ -143,7 +145,7 @@ private:
 static const uint32_t SpecializationConstantBindSet = 1234567;
 static const uint32_t PushConstantBindSet = 1234568;
 
-void FillSpecConstantVariables(const rdcarray<ShaderConstant> &invars,
+void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
                                const std::vector<SpecConstant> &specInfo);
 

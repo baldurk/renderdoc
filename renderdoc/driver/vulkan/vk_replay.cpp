@@ -392,6 +392,7 @@ BufferDescription VulkanReplay::GetBuffer(ResourceId id)
   ret.resourceId = m_pDriver->GetResourceManager()->GetOriginalID(id);
   ret.length = bufinfo.size;
   ret.creationFlags = BufferCategory::NoFlags;
+  ret.gpuAddress = bufinfo.gpuAddress;
 
   if(bufinfo.usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT))
     ret.creationFlags |= BufferCategory::ReadWrite;
@@ -1938,7 +1939,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
 
   if(c.bufferBacked)
   {
-    StandardFillCBufferVariables(c.variables, outvars, data);
+    StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, data);
   }
   else
   {
@@ -1952,7 +1953,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
         auto specInfo =
             pipeIt->second.shaders[it->second.GetReflection(entryPoint, pipeline).stageIndex].specialization;
 
-        FillSpecConstantVariables(c.variables, outvars, specInfo);
+        FillSpecConstantVariables(refl.resourceId, c.variables, outvars, specInfo);
       }
     }
     else
@@ -1960,7 +1961,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
       bytebuf pushdata;
       pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
       memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
-      StandardFillCBufferVariables(c.variables, outvars, pushdata);
+      StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, pushdata);
     }
   }
 }
