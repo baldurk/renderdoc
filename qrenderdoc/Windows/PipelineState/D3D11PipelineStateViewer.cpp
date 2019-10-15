@@ -694,7 +694,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
         typeName = QFormatStr("%1ByteAddressBuffer")
                        .arg(view.type == D3D11ViewTag::UAV ? lit("RW") : QString());
       }
-      else if(r.elementByteSize > 0)
+      else if(r.elementByteSize > 0 && r.viewFormat.type == ResourceFormatType::Undefined)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
         typeName = QFormatStr("%1StructuredBuffer[%2]")
