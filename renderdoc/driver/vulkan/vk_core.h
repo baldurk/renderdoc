@@ -719,12 +719,12 @@ private:
   std::vector<VkResourceRecord *> m_CoherentMaps;
   Threading::CriticalSection m_CoherentMapsLock;
 
-  std::map<ResourceId, FrameRefType> m_ForcedReferences;
+  rdcarray<VkResourceRecord *> m_ForcedReferences;
   Threading::CriticalSection m_ForcedReferencesLock;
 
-  std::map<ResourceId, FrameRefType> GetForcedReferences()
+  rdcarray<VkResourceRecord *> GetForcedReferences()
   {
-    std::map<ResourceId, FrameRefType> ret;
+    rdcarray<VkResourceRecord *> ret;
 
     {
       SCOPED_LOCK(m_ForcedReferencesLock);
@@ -734,30 +734,22 @@ private:
     return ret;
   }
 
-  bool IsForcedReference(ResourceId id)
+  bool IsForcedReference(VkResourceRecord *record)
   {
     bool ret = false;
 
     {
       SCOPED_LOCK(m_ForcedReferencesLock);
-      ret = (m_ForcedReferences.find(id) != m_ForcedReferences.end());
+      ret = (m_ForcedReferences.indexOf(record) != -1);
     }
 
     return ret;
   }
 
-  void AddForcedReference(ResourceId id, FrameRefType ref)
+  void AddForcedReference(VkResourceRecord *record)
   {
     SCOPED_LOCK(m_ForcedReferencesLock);
-    m_ForcedReferences[id] = ref;
-
-    // also add it immediately in case we're mid-way through a frame, and the forced references have
-    // already been processed for this frame.
-    // Note we force read-before-write because this resource is implicitly untracked so we have no
-    // way of knowing how it's used
-    GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
-    if(ref != eFrameRef_Read)
-      GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+    m_ForcedReferences.push_back(record);
   }
 
   // used both on capture and replay side to track image layouts. Only locked

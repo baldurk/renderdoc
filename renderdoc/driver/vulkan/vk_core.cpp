@@ -1552,15 +1552,17 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
   GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
 
-  std::map<ResourceId, FrameRefType> forced = GetForcedReferences();
+  rdcarray<VkResourceRecord *> forced = GetForcedReferences();
 
   // Note we force read-before-write because this resource is implicitly untracked so we have no
   // way of knowing how it's used
   for(auto it = forced.begin(); it != forced.end(); ++it)
   {
-    GetResourceManager()->MarkResourceFrameReferenced(it->first, eFrameRef_Read);
-    if(it->second != eFrameRef_Read)
-      GetResourceManager()->MarkResourceFrameReferenced(it->first, it->second);
+    // reference the buffer
+    GetResourceManager()->MarkResourceFrameReferenced((*it)->GetResourceID(), eFrameRef_Read);
+    // and its backing memory
+    GetResourceManager()->MarkMemoryFrameReferenced((*it)->baseResource, (*it)->memOffset,
+                                                    (*it)->memSize, eFrameRef_ReadBeforeWrite);
   }
 
   RDCLOG("Starting capture, frame %u", m_FrameCounter);

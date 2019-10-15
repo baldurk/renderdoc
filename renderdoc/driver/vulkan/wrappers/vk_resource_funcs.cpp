@@ -511,7 +511,6 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
     }
   }
 
-  m_ForcedReferences.erase(GetResID(memory));
   m_CreationInfo.erase(GetResID(memory));
 
   GetResourceManager()->ReleaseWrappedResource(memory);
@@ -919,9 +918,14 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     record->memOffset = memoryOffset;
 
     // if the buffer was force-referenced, do the same with the memory
-    if(IsForcedReference(GetResID(buffer)))
+    if(IsForcedReference(record))
     {
-      AddForcedReference(GetResID(memory), eFrameRef_ReadBeforeWrite);
+      // in case we're currently capturing, immediately consider the buffer and backing memory as
+      // read-before-write referenced
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkMemoryFrameReferenced(GetResID(memory), memoryOffset,
+                                                      record->memSize, eFrameRef_ReadBeforeWrite);
 
       // the memory is immediately dirty because we have no way of tracking writes to it
       GetResourceManager()->MarkDirtyResource(GetResID(memory));
@@ -1135,6 +1139,9 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
           VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,
       };
 
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pBuffer);
+      record->memSize = pCreateInfo->size;
+
       // if we're using VK_EXT_buffer_device_address, we fetch the device address that's been
       // allocated and insert it into the next chain and patch the flags so that it replays
       // naturally.
@@ -1159,7 +1166,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
         // this buffer must be forced to be in any captures, since we can't track when it's used by
         // address
-        AddForcedReference(GetResID(*pBuffer), eFrameRef_Read);
+        AddForcedReference(record);
       }
 
       {
@@ -1171,9 +1178,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         chunk = scope.Get();
       }
 
-      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pBuffer);
       record->AddChunk(chunk);
-      record->memSize = pCreateInfo->size;
 
       bool isSparse = (pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT |
                                              VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
@@ -1994,9 +1999,15 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       bufrecord->memOffset = pBindInfos[i].memoryOffset;
 
       // if the buffer was force-referenced, do the same with the memory
-      if(IsForcedReference(GetResID(pBindInfos[i].buffer)))
+      if(IsForcedReference(bufrecord))
       {
-        AddForcedReference(GetResID(pBindInfos[i].memory), eFrameRef_ReadBeforeWrite);
+        // in case we're currently capturing, immediately consider the buffer and backing memory as
+        // read-before-write referenced
+        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(),
+                                                          eFrameRef_ReadBeforeWrite);
+        GetResourceManager()->MarkMemoryFrameReferenced(
+            GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
+            eFrameRef_ReadBeforeWrite);
 
         // the memory is immediately dirty because we have no way of tracking writes to it
         GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));

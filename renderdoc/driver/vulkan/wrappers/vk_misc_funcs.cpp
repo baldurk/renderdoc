@@ -98,7 +98,7 @@ VkFramebufferCreateInfo WrappedVulkan::UnwrapInfo(const VkFramebufferCreateInfo 
     if(obj == VK_NULL_HANDLE)                                                                      \
       return;                                                                                      \
     type unwrappedObj = Unwrap(obj);                                                               \
-    m_ForcedReferences.erase(GetResID(obj));                                                       \
+    m_ForcedReferences.removeOne(GetRecord(obj));                                                  \
     if(IsReplayMode(m_State))                                                                      \
       m_CreationInfo.erase(GetResID(obj));                                                         \
     GetResourceManager()->ReleaseWrappedResource(obj, true);                                       \
