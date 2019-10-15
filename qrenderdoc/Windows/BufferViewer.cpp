@@ -2112,8 +2112,12 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   }
   else
   {
+    uint64_t len = m_ByteSize;
+    if(len == UINT64_MAX)
+      len = 0;
+
     QString errors;
-    bufdata->vsinConfig.columns = FormatElement::ParseFormatString(m_Format, 0, true, errors);
+    bufdata->vsinConfig.columns = FormatElement::ParseFormatString(m_Format, len, true, errors);
 
     ClearModels();
   }
@@ -3260,7 +3264,11 @@ void BufferViewer::processFormat(const QString &format)
 
   BufferConfiguration bufconfig;
 
-  QList<FormatElement> cols = FormatElement::ParseFormatString(format, 0, true, errors);
+  uint64_t len = m_ByteSize;
+  if(len == UINT64_MAX)
+    len = 0;
+
+  QList<FormatElement> cols = FormatElement::ParseFormatString(format, len, true, errors);
 
   int maxNumRows = 1;
 
