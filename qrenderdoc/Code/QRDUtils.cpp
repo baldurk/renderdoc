@@ -1792,7 +1792,7 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 #else
   // try to find a way to run the application elevated.
   const QString graphicalSudo[] = {
-      lit("pkexec"), lit("kdesudo"), lit("gksudo"), lit("beesu"),
+      lit("kdesudo"), lit("gksudo"), lit("beesu"),
   };
 
   // if none of the graphical options, then look for sudo and either
