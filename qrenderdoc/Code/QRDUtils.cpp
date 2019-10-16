@@ -1855,9 +1855,10 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 
     // run terminal sudo with emulator
     QStringList termParams;
-    termParams
-        << lit("-e")
-        << lit("bash -c 'sudo %1 %2'").arg(fullExecutablePath).arg(params.join(QLatin1Char(' ')));
+    termParams << lit("-e")
+               << lit("bash -c 'echo Running \"%1 %2\" as root.;echo;sudo %1 %2'")
+                      .arg(fullExecutablePath)
+                      .arg(params.join(QLatin1Char(' ')));
 
     process->start(term, termParams);
 
