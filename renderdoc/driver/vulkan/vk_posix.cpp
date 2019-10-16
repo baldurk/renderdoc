@@ -457,7 +457,7 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
       numMatch++;
   }
 
-  flags = VulkanLayerFlags::CouldElevate | VulkanLayerFlags::UpdateAllowed;
+  flags = VulkanLayerFlags::UserRegisterable | VulkanLayerFlags::UpdateAllowed;
 
   if(numMatch >= 1)
     flags |= VulkanLayerFlags::ThisInstallRegistered;
@@ -466,11 +466,23 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   if(numExist == 1 && numMatch == 1)
     return false;
 
+  if(numMatch == 1 && exist[(int)LayerPath::etc] && match[(int)LayerPath::etc])
+  {
+    // if only /etc is registered matching us, keep things simple and don't allow unregistering it
+    // and registering the /home. Just unregister the /home that doesn't match
+    flags &= ~(VulkanLayerFlags::UserRegisterable | VulkanLayerFlags::UpdateAllowed);
+  }
+
   if(exist[(int)LayerPath::usr] && !match[(int)LayerPath::usr])
     otherJSONs.push_back(LayerRegistrationPath(LayerPath::usr));
 
   if(exist[(int)LayerPath::etc] && !match[(int)LayerPath::etc])
+  {
+    // if the /etc manifest doesn't match we need to elevate to fix it regardless of whether we
+    // delete it in favour of a /home manifest, or if we update it.
+    flags |= VulkanLayerFlags::NeedElevation;
     otherJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+  }
 
   if(exist[(int)LayerPath::home] && !match[(int)LayerPath::home])
     otherJSONs.push_back(LayerRegistrationPath(LayerPath::home));
@@ -480,12 +492,40 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
 
   if(exist[(int)LayerPath::usr] && match[(int)LayerPath::usr])
   {
-    // just need to unregister others
+    // just need to unregister others, but we can't user-local register anymore (as that would
+    // require removing the one in /usr which we can't do)
+    flags &= ~VulkanLayerFlags::UserRegisterable;
+
+    // any other manifests that exist, even if they match, are considered others.
+    if(exist[(int)LayerPath::home])
+    {
+      otherJSONs.push_back(LayerRegistrationPath(LayerPath::home));
+      flags |= VulkanLayerFlags::OtherInstallsRegistered;
+    }
+
+    // any other manifests that exist, even if they match, are considered others.
+    if(exist[(int)LayerPath::etc])
+    {
+      otherJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+      flags |= VulkanLayerFlags::OtherInstallsRegistered | VulkanLayerFlags::NeedElevation;
+    }
   }
   else
   {
-    myJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
-    myJSONs.push_back(LayerRegistrationPath(LayerPath::home));
+    // if we have multiple matches but they are all correct, and there are no other JSONs we just
+    // report that home needs to be unregistered.
+    if(otherJSONs.empty() && exist[(int)LayerPath::etc] && match[(int)LayerPath::etc])
+    {
+      flags &= ~(VulkanLayerFlags::UserRegisterable | VulkanLayerFlags::UpdateAllowed);
+      flags |= VulkanLayerFlags::OtherInstallsRegistered;
+      myJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+      otherJSONs.push_back(LayerRegistrationPath(LayerPath::home));
+    }
+    else
+    {
+      myJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+      myJSONs.push_back(LayerRegistrationPath(LayerPath::home));
+    }
   }
 
   if(exist[(int)LayerPath::usr] && !match[(int)LayerPath::usr])
@@ -500,7 +540,39 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
 
 void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 {
+  std::string usrPath = LayerRegistrationPath(LayerPath::usr);
   std::string homePath = LayerRegistrationPath(LayerPath::home);
+  std::string etcPath = LayerRegistrationPath(LayerPath::etc);
+
+  if(FileExists(usrPath))
+  {
+    // if the usr path exists, all we can do is try to remove etc & home. This assumes a
+    // system-level install
+    if(!systemLevel)
+    {
+      RDCERR("Can't register user-local with manifest under /usr");
+      return;
+    }
+
+    if(FileExists(homePath))
+    {
+      if(unlink(homePath.c_str()) < 0)
+      {
+        const char *const errtext = strerror(errno);
+        RDCERR("Error removing %s: %s", homePath.c_str(), errtext);
+      }
+    }
+    if(FileExists(etcPath))
+    {
+      if(unlink(etcPath.c_str()) < 0)
+      {
+        const char *const errtext = strerror(errno);
+        RDCERR("Error removing %s: %s", etcPath.c_str(), errtext);
+      }
+    }
+
+    return;
+  }
 
   // if we want to install to the system and there's a registration in $HOME, delete it
   if(systemLevel && FileExists(homePath))
@@ -511,8 +583,6 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
       RDCERR("Error removing %s: %s", homePath.c_str(), errtext);
     }
   }
-
-  std::string etcPath = LayerRegistrationPath(LayerPath::etc);
 
   // and vice-versa
   if(!systemLevel && FileExists(etcPath))

@@ -3926,10 +3926,18 @@ DOCUMENT(R"(A set of flags giving details of the current status of vulkan layer 
 
   Fixing any issues will require elevation to system administrator privileges.
 
-.. data:: CouldElevate
+.. data:: UserRegisterable
 
-  Fixing issues could be done purely as a user, but can optionally be done at system level with
-  system administrator privileges.
+  This layer can be registered as user-local, as well as system-wide. If :data:`NeedElevation` isn't
+  also set then the entire process can be done un-elevated if user-local is desired.
+
+  .. note::
+  
+    If the :data:`NeedElevation` flag is set then elevation is required to fix the layer
+    registration, even if a user-local registration is desired.
+
+    Most commonly this situation arises if there is no other registration, or the existing one is
+    already user-local.
 
 .. data:: RegisterAll
 
@@ -3951,7 +3959,7 @@ enum class VulkanLayerFlags : uint32_t
   OtherInstallsRegistered = 0x1,
   ThisInstallRegistered = 0x2,
   NeedElevation = 0x4,
-  CouldElevate = 0x8,
+  UserRegisterable = 0x8,
   RegisterAll = 0x10,
   UpdateAllowed = 0x20,
   Unfixable = 0x40,

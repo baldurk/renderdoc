@@ -340,15 +340,23 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
   const bool hasOtherJSON = bool(info.flags & VulkanLayerFlags::OtherInstallsRegistered);
   const bool thisRegistered = bool(info.flags & VulkanLayerFlags::ThisInstallRegistered);
   const bool needElevation = bool(info.flags & VulkanLayerFlags::NeedElevation);
-  const bool couldElevate = bool(info.flags & VulkanLayerFlags::CouldElevate);
+  const bool userRegisterable = bool(info.flags & VulkanLayerFlags::UserRegisterable);
   const bool registerAll = bool(info.flags & VulkanLayerFlags::RegisterAll);
   const bool updateAllowed = bool(info.flags & VulkanLayerFlags::UpdateAllowed);
 
   if(info.flags & VulkanLayerFlags::Unfixable)
   {
     QString msg =
-        tr("There is an unfixable problem with your vulkan layer configuration. Please consult the "
-           "RenderDoc documentation, or package/distribution documentation on linux\n\n");
+        tr("There is an unfixable problem with your vulkan layer configuration.\n\n"
+           "This is most commonly caused by having a distribution-provided package of RenderDoc "
+           "installed, which cannot be modified by another build of RenderDoc.\n\n"
+           "Please consult the RenderDoc documentation, or package/distribution documentation on "
+           "linux. ");
+
+    if(info.otherJSONs.size() > 1)
+      msg += tr("Conflicting manifests:\n\n");
+    else
+      msg += tr("Conflicting manifest:\n\n");
 
     for(const rdcstr &j : info.otherJSONs)
       msg += j + lit("\n");
@@ -364,12 +372,12 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
   {
     if(info.otherJSONs.size() > 1)
       msg +=
-          tr("there are other RenderDoc builds registered already. They must be disabled so that "
-             "capture can happen without nasty clashes.");
+          tr("there are other conflicting RenderDoc builds registered already. They must be "
+             "disabled so that vulkan programs can be captured without crashes.");
     else
       msg +=
-          tr("there is another RenderDoc build registered already. It must be disabled so that "
-             "capture can happen without nasty clashes.");
+          tr("there is another conflicting RenderDoc build registered already. It must be disabled "
+             "so that vulkan programs can be captured without crashes.");
 
     if(!thisRegistered)
       msg += tr(" Also ");
@@ -410,44 +418,69 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
     msg += lit("\n");
   }
 
+  if(needElevation)
+    msg +=
+        tr("Due to some builds being in privileged locations, RenderDoc must elevate permissions "
+           "to update them.\n\n");
+
   msg += tr("This is a one-off change, it won't be needed again unless the installation moves.");
 
   QMessageBox::StandardButton install = RDDialog::question(this, caption, msg, RDDialog::YesNoCancel);
 
   if(install == QMessageBox::Yes)
   {
-    bool run = false;
-    bool admin = false;
+    bool admin = needElevation;
+    bool system = true;    // default to system-wide install
+    bool run = true;       // default to running
 
-    // if we need to elevate, just try it.
-    if(needElevation)
+    // if we could install user-local, ask the user if that's what they want.
+    if(userRegisterable)
     {
-      admin = run = true;
-    }
-    // if we could elevate, ask the user
-    else if(couldElevate)
-    {
-      QMessageBox::StandardButton elevate = RDDialog::question(
-          this, tr("System layer install"),
-          tr("Do you want to elevate permissions to install the layer at a system level?\n\n"
-             "If you click 'No', the layer will be installed at a per-user level."),
-          RDDialog::YesNoCancel);
+      msg =
+          tr("Do you want to install the layer at a system level?\n\n"
+             "If you click 'No', the layer will be installed at a per-user level.");
+
+      if(needElevation)
+        msg +=
+            tr("\n\nNote that RenderDoc needs to elevate permissions to update the registration "
+               "regardless.");
+      else
+        msg +=
+            tr("\n\nNote that RenderDoc will need to elevate permissions to register at system "
+               "level.");
+
+      QMessageBox::StandardButton elevate =
+          RDDialog::question(this, tr("Install at system level"), msg, RDDialog::YesNoCancel);
 
       if(elevate == QMessageBox::Yes)
-        admin = true;
+        admin = system = true;
       else if(elevate == QMessageBox::No)
-        admin = false;
+        system = false;
 
       run = (elevate != QMessageBox::Cancel);
-    }
-    // otherwise run non-elevated
-    else
-    {
-      run = true;
     }
 
     if(run)
     {
+      auto regComplete = [this, admin]() {
+        bool needReg = RENDERDOC_NeedVulkanLayerRegistration(NULL);
+        ui->vulkanLayerWarn->setVisible(needReg);
+
+#if !defined(Q_OS_LINUX)
+        // can't alert the user on linux because the command might still be running - there's
+        // seemingly no portable way to wait for the command to finish.
+        if(needReg)
+        {
+          QString err = tr("Vulkan layer registration failed for unknown reasons.");
+
+          if(admin)
+            err += tr(" Ensure that the elevation to admin permissions succeeded.");
+
+          RDDialog::critical(this, tr("Layer registration failed"), err);
+        }
+#endif
+      };
+
       if(admin)
       {
 // linux sometimes can't run GUI apps as root, so we have to run renderdoccmd. Check that it's
@@ -480,25 +513,40 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
           // it's in the path, we can continue
         }
 
-        RunProcessAsAdmin(cmd, QStringList() << lit("vulkanregister") << lit("--system"), this,
-                          true, [this]() { ui->vulkanLayerWarn->setVisible(false); });
+        QStringList renderdoccmdParams;
+
+        renderdoccmdParams << lit("vulkanregister");
+        if(system)
+          renderdoccmdParams << lit("--system");
+
+        if(!RunProcessAsAdmin(cmd, renderdoccmdParams, this, true, regComplete))
+          regComplete();
 #else
-        RunProcessAsAdmin(qApp->applicationFilePath(),
-                          QStringList() << lit("--install_vulkan_layer") << lit("root"), this,
-                          false, [this]() { ui->vulkanLayerWarn->setVisible(false); });
+        QStringList qrenderdocParams;
+
+        qrenderdocParams << lit("--install_vulkan_layer");
+        if(system)
+          qrenderdocParams << lit("root");
+
+        if(!RunProcessAsAdmin(qApp->applicationFilePath(), qrenderdocParams, this, false, regComplete))
+          regComplete();
 #endif
         return;
       }
       else
       {
         QProcess *process = new QProcess;
-        process->start(qApp->applicationFilePath(), QStringList() << lit("--install_vulkan_layer")
-                                                                  << lit("user"));
+        process->start(qApp->applicationFilePath(), QStringList()
+                                                        << lit("--install_vulkan_layer")
+                                                        << (system ? lit("root") : lit("user")));
         process->waitForFinished(300);
 
         // when the process exits, delete
         QObject::connect(process, OverloadedSlot<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                         [process](int exitCode, QProcess::ExitStatus) { process->deleteLater(); });
+                         [regComplete, process](int exitCode, QProcess::ExitStatus) {
+                           process->deleteLater();
+                           regComplete();
+                         });
       }
     }
 
