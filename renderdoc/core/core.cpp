@@ -373,6 +373,10 @@ void RenderDoc::Initialise()
   RDCLOG("Packaged for %s (%s) - %s", DISTRIBUTION_NAME, DISTRIBUTION_VERSION, DISTRIBUTION_CONTACT);
 #endif
 
+#if defined(RENDERDOC_HOOK_DLSYM)
+  RDCWARN("dlsym() hooking enabled!");
+#endif
+
   Keyboard::Init();
 
   m_FrameTimer.InitTimers();

@@ -7,6 +7,13 @@ set(RDOC_INCLUDES
     PRIVATE ${RDOC_SOURCE_DIR}/3rdparty)
 set(RDOC_LIBRARIES)
 
+option(ENABLE_DLSYM_HOOKING "Enable dlsym() hooking via glibc internals" OFF)
+
+if(ENABLE_DLSYM_HOOKING)
+    set(RDOC_DEFINITIONS ${RDOC_DEFINITIONS} PRIVATE -DRENDERDOC_HOOK_DLSYM)
+    message(WARNING "Enabling dlsym() hooking - may cause issues, segfaults, crashes, or bad behaviour. Only enable if absolutely required")
+endif()
+
 if(ANDROID)
     list(APPEND RDOC_LIBRARIES
         PRIVATE -lm

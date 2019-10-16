@@ -43,7 +43,9 @@ void *intercept_dlopen(const char *filename, int flag, void *ret);
 void plthook_lib(void *handle);
 
 typedef void *(*DLOPENPROC)(const char *, int);
+typedef void *(*DLSYMPROC)(void *, const char *);
 DLOPENPROC realdlopen = NULL;
+DLSYMPROC realdlsym = NULL;
 
 static volatile int32_t tlsbusyflag = 0;
 
@@ -74,6 +76,45 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
 
   return ret;
 }
+
+#if defined(RENDERDOC_HOOK_DLSYM)
+
+#pragma message("ALERT: dlsym() hooking enabled! This is unreliable & relies on glibc internals.")
+
+extern "C" {
+
+__attribute__((visibility("default"))) void *dlsym(void *handle, const char *name);
+
+extern void *_dl_sym(void *, const char *, void *);
+
+void bootstrap_dlsym()
+{
+  realdlsym = (DLSYMPROC)_dl_sym(RTLD_NEXT, "dlsym", (void *)&dlsym);
+}
+
+__attribute__((visibility("default"))) void *dlsym(void *handle, const char *name)
+{
+  if(!strcmp(name, "dlsym"))
+    return (void *)&dlsym;
+
+  if(!strcmp(name, "dlopen") && realdlopen)
+    return (void *)&dlopen;
+
+  if(realdlsym == NULL)
+    bootstrap_dlsym();
+
+  if(realdlsym == NULL)
+  {
+    fprintf(stderr, "Couldn't get onwards dlsym in hooked dlsym\n");
+    exit(-1);
+  }
+
+  return realdlsym(handle, name);
+}
+
+};    // extern "C"
+
+#endif
 
 void plthook_lib(void *handle)
 {
