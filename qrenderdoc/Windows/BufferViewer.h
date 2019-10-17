@@ -50,6 +50,7 @@ struct BufferExport
   enum ExportFormat
   {
     CSV,
+    OBJ,
     RawBytes,
   };
 
@@ -211,6 +212,7 @@ private:
   QMenu *m_ExportMenu = NULL;
 
   QAction *m_ExportCSV = NULL;
+  QAction *m_ExportOBJ = NULL;
   QAction *m_ExportBytes = NULL;
   QAction *m_DebugVert = NULL;
 

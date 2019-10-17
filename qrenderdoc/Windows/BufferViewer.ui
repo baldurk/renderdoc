@@ -778,7 +778,7 @@
        <bool>true</bool>
       </property>
       <property name="toolTip">
-       <string>Export to CSV or raw bytes</string>
+       <string>Export to CSV or OBJ or raw bytes</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">

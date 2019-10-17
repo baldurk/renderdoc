@@ -1681,10 +1681,14 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   m_ExportCSV = new QAction(tr("Export to &CSV"), this);
   m_ExportCSV->setIcon(Icons::save());
+  m_ExportOBJ = new QAction(tr("Export to &OBJ"), this);
+  m_ExportOBJ->setIcon(Icons::save());
   m_ExportBytes = new QAction(tr("Export to &Bytes"), this);
   m_ExportBytes->setIcon(Icons::save());
 
   m_ExportMenu->addAction(m_ExportCSV);
+  if (m_MeshView)
+    m_ExportMenu->addAction(m_ExportOBJ);
   m_ExportMenu->addAction(m_ExportBytes);
 
   m_DebugVert = new QAction(tr("&Debug this Vertex"), this);
@@ -1694,6 +1698,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   QObject::connect(m_ExportCSV, &QAction::triggered,
                    [this] { exportData(BufferExport(BufferExport::CSV)); });
+  QObject::connect(m_ExportOBJ, &QAction::triggered,
+                   [this] { exportData(BufferExport(BufferExport::OBJ)); });
   QObject::connect(m_ExportBytes, &QAction::triggered,
                    [this] { exportData(BufferExport(BufferExport::RawBytes)); });
   QObject::connect(m_DebugVert, &QAction::triggered, this, &BufferViewer::debugVertex);
@@ -3377,6 +3383,8 @@ void BufferViewer::exportData(const BufferExport &params)
   QString filter;
   if(params.format == BufferExport::CSV)
     filter = tr("CSV Files (*.csv)");
+  else if (params.format == BufferExport::OBJ)
+    filter = tr("OBJ Files (*.obj)");
   else if(params.format == BufferExport::RawBytes)
     filter = tr("Binary Files (*.bin)");
 
@@ -3390,7 +3398,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
   QIODevice::OpenMode flags = QIODevice::WriteOnly | QFile::Truncate;
 
-  if(params.format == BufferExport::CSV)
+  if(params.format == BufferExport::CSV || params.format == BufferExport::OBJ)
     flags |= QIODevice::Text;
 
   if(!f->open(flags))
@@ -3470,6 +3478,106 @@ void BufferViewer::exportData(const BufferExport &params)
             f->write(d.nulls);
           }
         }
+      }
+    }
+    else if (params.format == BufferExport::OBJ)
+    {
+      if (!m_MeshView)
+        return;
+
+      QTextStream s(f);
+
+      const BufferConfiguration &config = model->getConfig();
+      // cache column data for the inner loop
+      QVector<CachedElData> cache;
+
+      CacheDataForIteration(cache, config.columns, config.buffers, config.curInstance);
+
+      int exported_attr = 0;
+      for (int col = 0; col < cache.count(); col++)
+      {
+        const CachedElData &d = cache[col];
+        const FormatElement *el = d.el;
+
+        const byte *bytes = d.data;
+        if (!bytes)
+          continue;
+
+        QString attr;
+        if (el->name.contains(lit("position"), Qt::CaseInsensitive) || el->systemValue == ShaderBuiltin::Position)
+          attr = lit("v");
+        else if (el->name.contains(lit("normal"), Qt::CaseInsensitive))
+          attr = lit("vn");
+        else if (el->name.contains(lit("texcoord0"), Qt::CaseInsensitive))
+          attr = lit("vt");
+
+        if (attr.isEmpty())
+          continue;
+
+        QVariantList list = el->GetVariants(bytes, d.end);
+
+        exported_attr++;
+
+        int idx = 0;
+        while (!list.isEmpty())
+        {
+          QMetaType::Type vt = GetVariantMetatype(list[0]);
+
+          s << attr;
+
+          if (vt == QMetaType::Double)
+          {
+            for (int i = 0; i < list.size(); i++)
+              s << " " << list[i].toDouble();
+          }
+          else if (vt == QMetaType::Float)
+          {
+            for (int i = 0; i < list.size(); i++)
+              s << " " << list[i].toFloat();
+          }
+          else if (vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
+          {
+            for (int i = 0; i < list.size(); i++)
+              s << " " << list[i].toUInt();
+          }
+          else if (vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
+          {
+            for (int i = 0; i < list.size(); i++)
+              s << " " << list[i].toInt();
+          }
+          s << "\n";
+
+          idx++;
+          bytes = d.data + d.stride * idx;
+          list = el->GetVariants(bytes, d.end);
+        }
+
+        s << "\n";
+      }
+
+      s << "\n";
+
+      for (int i = 0; i + 2 < model->rowCount(); i += 3)
+      {
+        // flip triangle order
+        int idx[3] = { i,i + 2,i + 1 };
+      
+        if (config.indices && config.indices->hasData())
+        {
+          for (int j = 0; j < 3; j++)
+          {
+            idx[j] = CalcIndex(config.indices, idx[j], config.baseVertex, config.primRestart);
+          }
+        }
+      
+        s << "f";
+        for (int j = 0; j < 3; j++)
+        {
+          s << " " << idx[j] + 1;
+          for (int k = 1; k < exported_attr; k++)
+            s << "/" << idx[j] + 1;
+        }
+        s << "\n";
       }
     }
     else if(params.format == BufferExport::CSV)
