@@ -552,8 +552,21 @@ void Reflector::PostParse()
             lengthName = StringFormat::Fmt("_%u", type.length);
         }
 
-        type.name = StringFormat::Fmt("%s[%s]", dataTypes[type.InnerType()].name.c_str(),
-                                      lengthName.c_str());
+        rdcstr basename = dataTypes[type.InnerType()].name;
+
+        // arrays are inside-out, so we need to insert our new array length before the first array
+        // length
+        int arrayCharIdx = basename.indexOf('[');
+        if(arrayCharIdx > 0)
+        {
+          type.name = StringFormat::Fmt("%s[%s]%s", basename.substr(0, arrayCharIdx).c_str(),
+                                        lengthName.c_str(), basename.substr(arrayCharIdx));
+        }
+        else
+        {
+          type.name = StringFormat::Fmt("%s[%s]", dataTypes[type.InnerType()].name.c_str(),
+                                        lengthName.c_str());
+        }
       }
       else if(type.type < DataType::StructType)
       {
