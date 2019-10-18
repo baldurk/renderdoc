@@ -100,12 +100,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dxil_bytecode.cpp" />
+    <ClCompile Include="llvm_decoder.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxil_bytecode.h" />
+    <ClInclude Include="llvm_bitreader.h" />
+    <ClInclude Include="llvm_decoder.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

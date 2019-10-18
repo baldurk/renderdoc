@@ -5,12 +5,15 @@
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
+    <ClCompile Include="llvm_decoder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxil_inspect.h" />
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>
     </ClInclude>
+    <ClInclude Include="llvm_bitreader.h" />
+    <ClInclude Include="llvm_decoder.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">
