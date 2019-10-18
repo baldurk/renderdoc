@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "dxbc_inspect.h"
+#include "dxbc_container.h"
 
 #include "dxbc_sdbg.h"
 

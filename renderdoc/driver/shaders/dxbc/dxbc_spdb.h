@@ -259,7 +259,7 @@ struct LocalMapping
 class SPDBChunk : public DXBCDebugChunk
 {
 public:
-  SPDBChunk(DXBCFile *dxbc, void *data);
+  SPDBChunk(DXBCContainer *dxbc, void *data);
   SPDBChunk(const SPDBChunk &) = delete;
   SPDBChunk &operator=(const SPDBChunk &o) = delete;
 

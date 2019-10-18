@@ -24,7 +24,7 @@
  ******************************************************************************/
 
 #include <algorithm>
-#include "dxbc_inspect.h"
+#include "dxbc_container.h"
 
 #include "official/cvinfo.h"
 #include "dxbc_spdb.h"
@@ -40,7 +40,7 @@ namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
 
-SPDBChunk::SPDBChunk(DXBCFile *dxbc, void *chunk)
+SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
 {
   m_HasDebugInfo = false;
 

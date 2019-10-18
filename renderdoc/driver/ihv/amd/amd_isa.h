@@ -27,11 +27,6 @@
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 
-namespace DXBC
-{
-class DXBCFile;
-};
-
 namespace GCNISA
 {
 void GetTargets(GraphicsAPI api, std::vector<std::string> &targets);

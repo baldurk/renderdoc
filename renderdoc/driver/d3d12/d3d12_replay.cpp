@@ -504,7 +504,7 @@ std::string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderRefl
   if(!sh)
     return "; Invalid Shader Specified";
 
-  DXBC::DXBCFile *dxbc = sh->GetDXBC();
+  DXBC::DXBCContainer *dxbc = sh->GetDXBC();
 
   if(target == DXBCDisassemblyTarget || target.empty())
     return dxbc->GetDisassembly();

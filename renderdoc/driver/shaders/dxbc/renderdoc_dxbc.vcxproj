@@ -102,7 +102,7 @@
     <ClCompile Include="dxbc_compile.cpp" />
     <ClCompile Include="dxbc_debug.cpp" />
     <ClCompile Include="dxbc_disassemble.cpp" />
-    <ClCompile Include="dxbc_inspect.cpp" />
+    <ClCompile Include="dxbc_container.cpp" />
     <ClCompile Include="dxbc_reflect.cpp" />
     <ClCompile Include="dxbc_sdbg.cpp" />
     <ClCompile Include="dxbc_spdb.cpp" />
@@ -114,7 +114,7 @@
     <ClInclude Include="dxbc_compile.h" />
     <ClInclude Include="dxbc_debug.h" />
     <ClInclude Include="dxbc_disassemble.h" />
-    <ClInclude Include="dxbc_inspect.h" />
+    <ClInclude Include="dxbc_container.h" />
     <ClInclude Include="dxbc_reflect.h" />
     <ClInclude Include="dxbc_sdbg.h" />
     <ClInclude Include="dxbc_spdb.h" />

@@ -25,7 +25,7 @@
 #include "d3d11_shader_cache.h"
 #include "common/shader_cache.h"
 #include "driver/dx/official/d3dcompiler.h"
-#include "driver/shaders/dxbc/dxbc_inspect.h"
+#include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
 #include "d3d11_device.h"
 #include "d3d11_resources.h"

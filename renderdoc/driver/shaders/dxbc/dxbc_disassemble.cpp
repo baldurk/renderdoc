@@ -29,7 +29,7 @@
 #include "core/core.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
-#include "dxbc_inspect.h"
+#include "dxbc_container.h"
 
 namespace DXBC
 {
@@ -281,7 +281,7 @@ bool ASMOperand::operator==(const ASMOperand &o) const
   return true;
 }
 
-void DXBCFile::FetchTypeVersion()
+void DXBCContainer::FetchTypeVersion()
 {
   if(m_HexDump.empty())
     return;
@@ -294,7 +294,7 @@ void DXBCFile::FetchTypeVersion()
   m_Version.Minor = VersionToken::MinorVersion.Get(cur[0]);
 }
 
-void DXBCFile::FetchComputeProperties()
+void DXBCContainer::FetchComputeProperties()
 {
   if(m_HexDump.empty())
     return;
@@ -375,7 +375,7 @@ void DXBCFile::FetchComputeProperties()
   }
 }
 
-void DXBCFile::DisassembleHexDump()
+void DXBCContainer::DisassembleHexDump()
 {
   if(m_Disassembled)
     return;
@@ -470,7 +470,7 @@ void DXBCFile::DisassembleHexDump()
   m_Instructions.push_back(implicitRet);
 }
 
-void DXBCFile::MakeDisassemblyString()
+void DXBCContainer::MakeDisassemblyString()
 {
   DisassembleHexDump();
 
@@ -633,7 +633,7 @@ void DXBCFile::MakeDisassemblyString()
   }
 }
 
-bool DXBCFile::IsDeclaration(OpcodeType op)
+bool DXBCContainer::IsDeclaration(OpcodeType op)
 {
   // isDecl means not a real instruction, just a declaration type token
   bool isDecl = false;
@@ -646,7 +646,7 @@ bool DXBCFile::IsDeclaration(OpcodeType op)
   return isDecl;
 }
 
-bool DXBCFile::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOperand &retOper)
+bool DXBCContainer::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOperand &retOper)
 {
   uint32_t OperandToken0 = tokenStream[0];
 
@@ -837,7 +837,7 @@ const CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t m
   return NULL;
 }
 
-std::string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
+std::string ASMOperand::toString(DXBCContainer *dxbc, ToString flags) const
 {
   std::string str, regstr;
 
@@ -1287,7 +1287,7 @@ std::string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
   return str;
 }
 
-bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool friendlyName)
+bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool friendlyName)
 {
   uint32_t *begin = tokenStream;
   uint32_t OpcodeToken0 = tokenStream[0];
@@ -2149,7 +2149,7 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool friend
   return true;
 }
 
-bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, bool friendlyName)
+bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, bool friendlyName)
 {
   uint32_t *begin = tokenStream;
   uint32_t OpcodeToken0 = tokenStream[0];
@@ -2427,7 +2427,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, boo
 
 // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb219840(v=vs.85).aspx
 // for details of these opcodes
-size_t DXBCFile::NumOperands(OpcodeType op)
+size_t DXBCContainer::NumOperands(OpcodeType op)
 {
   switch(op)
   {

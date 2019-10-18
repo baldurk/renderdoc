@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "driver/shaders/dxbc/dxbc_inspect.h"
+#include "driver/shaders/dxbc/dxbc_container.h"
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
@@ -639,7 +639,7 @@ public:
     DXBCKey(const D3D12_SHADER_BYTECODE &byteCode)
     {
       byteLen = (uint32_t)byteCode.BytecodeLength;
-      DXBC::DXBCFile::GetHash(hash, byteCode.pShaderBytecode, byteCode.BytecodeLength);
+      DXBC::DXBCContainer::GetHash(hash, byteCode.pShaderBytecode, byteCode.BytecodeLength);
     }
 
     // assume that byte length + hash is enough to uniquely identify a shader bytecode
@@ -750,12 +750,12 @@ public:
       return ret;
     }
 
-    DXBC::DXBCFile *GetDXBC()
+    DXBC::DXBCContainer *GetDXBC()
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
         TryReplaceOriginalByteCode();
-        m_DXBCFile = new DXBC::DXBCFile((const void *)&m_Bytecode[0], m_Bytecode.size());
+        m_DXBCFile = new DXBC::DXBCContainer((const void *)&m_Bytecode[0], m_Bytecode.size());
       }
       return m_DXBCFile;
     }
@@ -790,7 +790,7 @@ public:
     std::vector<byte> m_Bytecode;
 
     bool m_Built;
-    DXBC::DXBCFile *m_DXBCFile;
+    DXBC::DXBCContainer *m_DXBCFile;
     ShaderReflection m_Details;
     ShaderBindpointMapping m_Mapping;
 

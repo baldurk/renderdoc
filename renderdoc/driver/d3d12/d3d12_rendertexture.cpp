@@ -526,7 +526,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     if(FAILED(hr))
       return false;
 
-    DXBC::DXBCFile *dxbc = shader->GetDXBC();
+    DXBC::DXBCContainer *dxbc = shader->GetDXBC();
 
     RDCASSERT(dxbc);
     RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);

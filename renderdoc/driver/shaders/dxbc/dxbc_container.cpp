@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "dxbc_inspect.h"
+#include "dxbc_container.h"
 #include <algorithm>
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
@@ -354,7 +354,8 @@ std::string TypeName(CBufferVariableType::Descriptor desc)
   return ret;
 }
 
-CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, uint32_t typeOffset)
+CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkContents,
+                                                 uint32_t typeOffset)
 {
   if(m_Variables.find(typeOffset) != m_Variables.end())
     return m_Variables[typeOffset];
@@ -451,7 +452,7 @@ CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, 
   return ret;
 }
 
-void DXBCFile::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
+void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
 {
   if(BytecodeLength < sizeof(FileHeader))
   {
@@ -464,7 +465,7 @@ void DXBCFile::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLe
   memcpy(hash, header->hashValue, sizeof(header->hashValue));
 }
 
-bool DXBCFile::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
+bool DXBCContainer::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
 {
   FileHeader *header = (FileHeader *)ByteCode;
 
@@ -495,7 +496,7 @@ bool DXBCFile::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
   return false;
 }
 
-bool DXBCFile::CheckForShaderCode(const void *ByteCode, size_t ByteCodeLength)
+bool DXBCContainer::CheckForShaderCode(const void *ByteCode, size_t ByteCodeLength)
 {
   FileHeader *header = (FileHeader *)ByteCode;
 
@@ -520,7 +521,7 @@ bool DXBCFile::CheckForShaderCode(const void *ByteCode, size_t ByteCodeLength)
   return false;
 }
 
-std::string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
+std::string DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 {
   std::string debugPath;
   FileHeader *header = (FileHeader *)ByteCode;
@@ -559,7 +560,7 @@ std::string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
   return debugPath;
 }
 
-DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
+DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 {
   m_DebugInfo = NULL;
 
@@ -1308,7 +1309,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
   }
 }
 
-void DXBCFile::GuessResources()
+void DXBCContainer::GuessResources()
 {
   char buf[64] = {0};
 

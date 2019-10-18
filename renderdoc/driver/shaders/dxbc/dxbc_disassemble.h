@@ -682,7 +682,7 @@ enum ComponentType
 // Main structures
 /////////////////////////////////////////////////////////////////////////
 
-class DXBCFile;
+class DXBCContainer;
 
 struct ASMIndex;
 struct ASMDecl;
@@ -721,7 +721,7 @@ struct ASMOperand
 
   bool operator==(const ASMOperand &o) const;
 
-  std::string toString(DXBCFile *dxbc, ToString flags) const;
+  std::string toString(DXBCContainer *dxbc, ToString flags) const;
 
   ///////////////////////////////////////
 

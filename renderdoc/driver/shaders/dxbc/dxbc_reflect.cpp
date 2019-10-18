@@ -25,7 +25,7 @@
 #include "dxbc_reflect.h"
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
-#include "dxbc_inspect.h"
+#include "dxbc_container.h"
 
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var);
 
@@ -99,7 +99,7 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
   return ret;
 }
 
-static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc,
+static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
                              const std::vector<DXBC::ShaderInputBind> &in,
                              rdcarray<Bindpoint> &mapping, rdcarray<ShaderResource> &refl)
 {
@@ -195,7 +195,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc,
   }
 }
 
-void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
+void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
                           ShaderBindpointMapping *mapping)
 {
   if(dxbc == NULL || !RenderDoc::Inst().IsReplayApp())

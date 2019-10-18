@@ -1182,7 +1182,7 @@ bool D3D11RenderState::Shader::Used_CB(uint32_t slot) const
   if(shad == NULL)
     return false;
 
-  DXBC::DXBCFile *dxbc = shad->GetDXBC();
+  DXBC::DXBCContainer *dxbc = shad->GetDXBC();
 
   // have to assume it's used if there's no DXBC
   if(dxbc == NULL)
@@ -1205,7 +1205,7 @@ bool D3D11RenderState::Shader::Used_SRV(uint32_t slot) const
   if(shad == NULL)
     return false;
 
-  DXBC::DXBCFile *dxbc = shad->GetDXBC();
+  DXBC::DXBCContainer *dxbc = shad->GetDXBC();
 
   // have to assume it's used if there's no DXBC
   if(dxbc == NULL)
@@ -1225,7 +1225,7 @@ bool D3D11RenderState::Shader::Used_UAV(uint32_t slot) const
   if(shad == NULL)
     return false;
 
-  DXBC::DXBCFile *dxbc = shad->GetDXBC();
+  DXBC::DXBCContainer *dxbc = shad->GetDXBC();
 
   // have to assume it's used if there's no DXBC
   if(dxbc == NULL)

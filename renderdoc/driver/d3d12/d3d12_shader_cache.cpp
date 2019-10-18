@@ -25,7 +25,7 @@
 #include "d3d12_shader_cache.h"
 #include "common/shader_cache.h"
 #include "driver/dx/official/d3dcompiler.h"
-#include "driver/shaders/dxbc/dxbc_inspect.h"
+#include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
 
 typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);

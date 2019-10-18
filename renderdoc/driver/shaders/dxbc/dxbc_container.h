@@ -338,11 +338,11 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags);
 
 // declare one of these and pass in your shader bytecode, then inspect
 // the members that are populated with the shader information.
-class DXBCFile
+class DXBCContainer
 {
 public:
-  DXBCFile(const void *ByteCode, size_t ByteCodeLength);
-  ~DXBCFile() { SAFE_DELETE(m_DebugInfo); }
+  DXBCContainer(const void *ByteCode, size_t ByteCodeLength);
+  ~DXBCContainer() { SAFE_DELETE(m_DebugInfo); }
   D3D11_ShaderType m_Type;
   struct
   {
@@ -396,8 +396,8 @@ public:
   static std::string GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 
 private:
-  DXBCFile(const DXBCFile &o);
-  DXBCFile &operator=(const DXBCFile &o);
+  DXBCContainer(const DXBCContainer &o);
+  DXBCContainer &operator=(const DXBCContainer &o);
 
   void FetchComputeProperties();
   void FetchTypeVersion();

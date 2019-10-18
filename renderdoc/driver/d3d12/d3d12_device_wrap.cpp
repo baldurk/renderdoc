@@ -396,8 +396,8 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
       {
         if(shaders[i]->BytecodeLength > 0 && shaders[i]->pShaderBytecode)
         {
-          if(!DXBC::DXBCFile::CheckForShaderCode(shaders[i]->pShaderBytecode,
-                                                 shaders[i]->BytecodeLength))
+          if(!DXBC::DXBCContainer::CheckForShaderCode(shaders[i]->pShaderBytecode,
+                                                      shaders[i]->BytecodeLength))
           {
             RDCERR(
                 "No shader code found in %s bytecode in pipeline state. "
@@ -532,8 +532,8 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
       {
         if(shaders[i]->BytecodeLength > 0 && shaders[i]->pShaderBytecode)
         {
-          if(!DXBC::DXBCFile::CheckForShaderCode(shaders[i]->pShaderBytecode,
-                                                 shaders[i]->BytecodeLength))
+          if(!DXBC::DXBCContainer::CheckForShaderCode(shaders[i]->pShaderBytecode,
+                                                      shaders[i]->BytecodeLength))
           {
             RDCERR(
                 "No shader code found in %s bytecode in pipeline state. "
@@ -654,8 +654,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 
     // check for bytecode - if the user is wrongly using DXIL we will hard-fail instead of producing
     // a corrupted capture.
-    if(!DXBC::DXBCFile::CheckForShaderCode(unwrappedDesc.CS.pShaderBytecode,
-                                           unwrappedDesc.CS.BytecodeLength))
+    if(!DXBC::DXBCContainer::CheckForShaderCode(unwrappedDesc.CS.pShaderBytecode,
+                                                unwrappedDesc.CS.BytecodeLength))
     {
       RDCERR(
           "No shader code found in CS bytecode in pipeline state. "
@@ -719,8 +719,8 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
   {
     // check for bytecode - if the user is wrongly using DXIL we will hard-fail instead of producing
     // a corrupted capture.
-    if(!DXBC::DXBCFile::CheckForShaderCode(unwrappedDesc.CS.pShaderBytecode,
-                                           unwrappedDesc.CS.BytecodeLength))
+    if(!DXBC::DXBCContainer::CheckForShaderCode(unwrappedDesc.CS.pShaderBytecode,
+                                                unwrappedDesc.CS.BytecodeLength))
     {
       RDCERR(
           "No shader code found in CS bytecode in pipeline state. "

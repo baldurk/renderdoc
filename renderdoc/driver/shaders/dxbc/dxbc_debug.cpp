@@ -26,7 +26,7 @@
 #include "dxbc_debug.h"
 #include <algorithm>
 #include "maths/formatpacking.h"
-#include "dxbc_inspect.h"
+#include "dxbc_container.h"
 
 using namespace DXBC;
 

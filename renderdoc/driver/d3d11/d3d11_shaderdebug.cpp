@@ -243,7 +243,7 @@ static void FlattenVariables(const rdcarray<ShaderConstant> &constants,
 class D3D11DebugAPIWrapper : public ShaderDebug::DebugAPIWrapper
 {
 public:
-  D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCFile *dxbc,
+  D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCContainer *dxbc,
                        const ShaderDebug::GlobalState &globalState);
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
@@ -268,12 +268,12 @@ public:
 private:
   D3D11_ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : D3D11_ShaderType_Pixel; }
   WrappedID3D11Device *m_pDevice;
-  DXBC::DXBCFile *m_dxbc;
+  DXBC::DXBCContainer *m_dxbc;
   const ShaderDebug::GlobalState &m_globalState;
   uint32_t m_instruction;
 };
 
-D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCFile *dxbc,
+D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCContainer *dxbc,
                                            const ShaderDebug::GlobalState &globalState)
     : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0)
 {
@@ -1603,7 +1603,7 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBC::OpcodeType opcode,
 }
 
 ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                                             DXBC::DXBCFile *dxbc,
+                                                             DXBC::DXBCContainer *dxbc,
                                                              const ShaderReflection &refl,
                                                              bytebuf *cbufData)
 {
@@ -1768,7 +1768,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 }
 
 void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global,
-                                                DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot,
+                                                DXBC::DXBCContainer *dxbc, uint32_t UAVStartSlot,
                                                 ID3D11UnorderedAccessView **UAVs,
                                                 ID3D11ShaderResourceView **SRVs)
 {
@@ -2125,7 +2125,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   if(!vs)
     return empty;
 
-  DXBCFile *dxbc = vs->GetDXBC();
+  DXBCContainer *dxbc = vs->GetDXBC();
   const ShaderReflection &refl = vs->GetDetails();
 
   if(!dxbc)
@@ -2545,7 +2545,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  DXBCFile *dxbc = ps->GetDXBC();
+  DXBCContainer *dxbc = ps->GetDXBC();
   const ShaderReflection &refl = ps->GetDetails();
 
   if(!dxbc)
@@ -2553,7 +2553,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   dxbc->GetDisassembly();
 
-  DXBCFile *prevdxbc = NULL;
+  DXBCContainer *prevdxbc = NULL;
 
   if(prevdxbc == NULL && gs != NULL)
     prevdxbc = gs->GetDXBC();
@@ -3810,7 +3810,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   if(!cs)
     return empty;
 
-  DXBCFile *dxbc = cs->GetDXBC();
+  DXBCContainer *dxbc = cs->GetDXBC();
   const ShaderReflection &refl = cs->GetDetails();
 
   if(!dxbc)

@@ -479,7 +479,7 @@ std::string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderRefl
   if(it == WrappedShader::m_ShaderList.end())
     return "; Invalid Shader Specified";
 
-  DXBC::DXBCFile *dxbc = it->second->GetDXBC();
+  DXBC::DXBCContainer *dxbc = it->second->GetDXBC();
 
   if(target == DXBCDisassemblyTarget || target.empty())
     return dxbc->GetDisassembly();

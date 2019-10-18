@@ -203,10 +203,6 @@ enum class RDCDriver : uint32_t
 
 DECLARE_REFLECTION_ENUM(RDCDriver);
 
-namespace DXBC
-{
-class DXBCFile;
-}
 namespace Callstack
 {
 class StackResolver;

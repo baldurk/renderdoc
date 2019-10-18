@@ -31,7 +31,7 @@
 
 namespace DXBC
 {
-class DXBCFile;
+class DXBCContainer;
 struct CBufferVariable;
 }
 
@@ -208,7 +208,7 @@ public:
     dxbc = NULL;
     RDCEraseEl(semantics);
   }
-  State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCFile *f)
+  State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCContainer *f)
   {
     quadIndex = quadIdx;
     nextInstruction = 0;
@@ -268,7 +268,7 @@ private:
   VarType OperationType(const DXBC::OpcodeType &op) const;
   bool OperationFlushing(const DXBC::OpcodeType &op) const;
 
-  DXBC::DXBCFile *dxbc;
+  DXBC::DXBCContainer *dxbc;
   const ShaderDebugTrace *trace;
 };
 

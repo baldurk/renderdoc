@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClCompile Include="dxbc_debug.cpp" />
     <ClCompile Include="dxbc_disassemble.cpp" />
-    <ClCompile Include="dxbc_inspect.cpp" />
     <ClCompile Include="dxbc_compile.cpp" />
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
@@ -11,11 +10,11 @@
     <ClCompile Include="dxbc_reflect.cpp" />
     <ClCompile Include="dxbc_spdb.cpp" />
     <ClCompile Include="dxbc_sdbg.cpp" />
+    <ClCompile Include="dxbc_container.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
     <ClInclude Include="dxbc_disassemble.h" />
-    <ClInclude Include="dxbc_inspect.h" />
     <ClInclude Include="dxbc_sdbg.h" />
     <ClInclude Include="dxbc_spdb.h" />
     <ClInclude Include="dxbc_compile.h" />
@@ -29,6 +28,7 @@
     <ClInclude Include="official\cvinfo.h">
       <Filter>official</Filter>
     </ClInclude>
+    <ClInclude Include="dxbc_container.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

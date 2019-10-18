@@ -74,13 +74,13 @@ const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDe
 
 void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 {
-  if(!DXBC::DXBCFile::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
+  if(!DXBC::DXBCContainer::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
   {
     std::string originalPath = m_DebugInfoPath;
 
     if(originalPath.empty())
       originalPath =
-          DXBC::DXBCFile::GetDebugBinaryPath((const void *)&m_Bytecode[0], m_Bytecode.size());
+          DXBC::DXBCContainer::GetDebugBinaryPath((const void *)&m_Bytecode[0], m_Bytecode.size());
 
     if(!originalPath.empty())
     {
@@ -166,8 +166,8 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
           memcpy(&originalBytecode[0], &decompressed[0], originalBytecode.size());
         }
 
-        if(DXBC::DXBCFile::CheckForDebugInfo((const void *)&originalBytecode[0],
-                                             originalBytecode.size()))
+        if(DXBC::DXBCContainer::CheckForDebugInfo((const void *)&originalBytecode[0],
+                                                  originalBytecode.size()))
         {
           m_Bytecode.swap(originalBytecode);
         }

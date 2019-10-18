@@ -192,11 +192,11 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   if(drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
-  DXBC::DXBCFile *dxbcVS = vs->GetDXBC();
+  DXBC::DXBCContainer *dxbcVS = vs->GetDXBC();
 
   RDCASSERT(dxbcVS);
 
-  DXBC::DXBCFile *dxbcGS = NULL;
+  DXBC::DXBCContainer *dxbcGS = NULL;
 
   WrappedID3D12Shader *gs = origPSO->GS();
 
@@ -207,7 +207,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     RDCASSERT(dxbcGS);
   }
 
-  DXBC::DXBCFile *dxbcDS = NULL;
+  DXBC::DXBCContainer *dxbcDS = NULL;
 
   WrappedID3D12Shader *ds = origPSO->DS();
 
@@ -779,7 +779,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     posidx = -1;
     numPosComponents = 0;
 
-    DXBC::DXBCFile *lastShader = dxbcGS;
+    DXBC::DXBCContainer *lastShader = dxbcGS;
     if(dxbcDS)
       lastShader = dxbcDS;
 

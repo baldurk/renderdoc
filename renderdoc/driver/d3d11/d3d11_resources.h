@@ -28,7 +28,7 @@
 #include <algorithm>
 #include "driver/d3d11/d3d11_device.h"
 #include "driver/d3d11/d3d11_manager.h"
-#include "driver/shaders/dxbc/dxbc_inspect.h"
+#include "driver/shaders/dxbc/dxbc_container.h"
 
 D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr);
 ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr);
@@ -921,12 +921,12 @@ public:
     }
 
     void SetDebugInfoPath(const std::string &path) { m_DebugInfoPath = path; }
-    DXBC::DXBCFile *GetDXBC()
+    DXBC::DXBCContainer *GetDXBC()
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
         TryReplaceOriginalByteCode();
-        m_DXBCFile = new DXBC::DXBCFile((const void *)&m_Bytecode[0], m_Bytecode.size());
+        m_DXBCFile = new DXBC::DXBCContainer((const void *)&m_Bytecode[0], m_Bytecode.size());
       }
       return m_DXBCFile;
     }
@@ -962,7 +962,7 @@ public:
     std::vector<byte> m_Bytecode;
 
     bool m_Built = false;
-    DXBC::DXBCFile *m_DXBCFile;
+    DXBC::DXBCContainer *m_DXBCFile;
     ShaderReflection m_Details;
     ShaderBindpointMapping m_Mapping;
   };
@@ -992,7 +992,7 @@ public:
     }
   }
 
-  DXBC::DXBCFile *GetDXBC()
+  DXBC::DXBCContainer *GetDXBC()
   {
     SCOPED_LOCK(m_ShaderListLock);
     return m_ShaderList[m_ID]->GetDXBC();
