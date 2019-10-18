@@ -303,18 +303,21 @@ size_t BitcodeReader::abbrevSize() const
 
 const AbbrevDesc &BitcodeReader::getAbbrev(uint32_t blockId, uint32_t abbrevID)
 {
-  const BlockInfo &info = *blockInfo[blockId];
+  const BlockInfo *info = blockInfo[blockId];
 
   // IDs start at the first application specified ID. Rebase to that to get 0-base indices
   RDCASSERT(abbrevID >= APPLICATION_ABBREV);
   abbrevID -= APPLICATION_ABBREV;
 
-  // IDs are first assigned to those permanently from BLOCKINFO
-  if(abbrevID < info.abbrevs.size())
-    return info.abbrevs[abbrevID];
+  if(info)
+  {
+    // IDs are first assigned to those permanently from BLOCKINFO
+    if(abbrevID < info->abbrevs.size())
+      return info->abbrevs[abbrevID];
 
-  // block-local IDs start after the BLOCKINFO ones
-  abbrevID -= (uint32_t)info.abbrevs.size();
+    // block-local IDs start after the BLOCKINFO ones
+    abbrevID -= (uint32_t)info->abbrevs.size();
+  }
 
   RDCASSERT(!blockStack.empty());
   RDCASSERT(abbrevID < blockStack.back()->abbrevs.size());

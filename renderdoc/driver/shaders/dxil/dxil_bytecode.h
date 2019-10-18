@@ -26,6 +26,39 @@
 
 #include <stdint.h>
 
+#include "driver/dx/official/d3dcommon.h"
+#include "driver/shaders/dxbc/dxbc_common.h"
+
 namespace DXIL
 {
+class Program
+{
+public:
+  Program(const byte *bytes, size_t length);
+
+  void FetchComputeProperties(DXBC::Reflection *reflection);
+  DXBC::Reflection *GetReflection();
+
+  DXBC::ShaderType GetShaderType() { return m_Type; }
+  uint32_t GetMajorVersion() { return m_Major; }
+  uint32_t GetMinorVersion() { return m_Minor; }
+  D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
+  const std::string &GetDisassembly()
+  {
+    if(m_Disassembly.empty())
+      MakeDisassemblyString();
+    return m_Disassembly;
+  }
+
+private:
+  void MakeDisassemblyString();
+
+  DXBC::ShaderType m_Type;
+  uint32_t m_Major, m_Minor;
+
+  rdcstr m_Triple, m_Datalayout;
+
+  std::string m_Disassembly;
+};
+
 };    // namespace DXIL

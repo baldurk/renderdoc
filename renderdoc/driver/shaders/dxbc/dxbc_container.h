@@ -39,6 +39,11 @@ namespace DXBCBytecode
 class Program;
 };
 
+namespace DXIL
+{
+class Program;
+};
+
 namespace DXBC
 {
 class IDebugInfo;
@@ -151,6 +156,7 @@ public:
   const std::string &GetDisassembly();
 
   const DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
+  const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
@@ -168,8 +174,11 @@ private:
   CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
   std::map<uint32_t, CBufferVariableType> m_Variables;
 
+  rdcstr m_DebugFileName;
+
   ShaderStatistics m_ShaderStats;
   DXBCBytecode::Program *m_DXBCByteCode = NULL;
+  DXIL::Program *m_DXILByteCode = NULL;
   IDebugInfo *m_DebugInfo = NULL;
   Reflection *m_Reflection = NULL;
 };

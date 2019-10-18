@@ -317,7 +317,7 @@ private:
     byte data = *m_Bits & mask;
 
     // check if we overlap into the next destination byte
-    if(dstoffs + bitsToRead < 8)
+    if(dstoffs + bitsToRead <= 8)
     {
       *dst |= data << dstoffs;
     }

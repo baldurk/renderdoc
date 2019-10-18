@@ -28,6 +28,7 @@
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
 #include "driver/dx/official/d3dcompiler.h"
+#include "driver/shaders/dxil/dxil_bytecode.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "dxbc_bytecode.h"
@@ -103,11 +104,15 @@ struct FileHeader
   // uint32 chunkOffsets[numChunks]; follows
 };
 
+struct ILDNHeader
+{
+  uint16_t Flags;
+  uint16_t NameLength;
+  char Name[1];
+};
+
 struct RDEFHeader
 {
-  uint32_t fourcc;         // "RDEF"
-  uint32_t chunkLength;    // length of this chunk
-
   //////////////////////////////////////////////////////
   // offsets are relative to this position in the file.
   // NOT the end of this structure. Note this differs
@@ -151,9 +156,6 @@ struct RDEFResource
 
 struct SIGNHeader
 {
-  uint32_t fourcc;         // "ISGN", "OSGN, "OSG5", "PCSG"
-  uint32_t chunkLength;    // length of this chunk
-
   //////////////////////////////////////////////////////
   // offsets are relative to this position in the file.
   // NOT the end of this structure. Note this differs
@@ -244,6 +246,9 @@ static const uint32_t FOURCC_OSG5 = MAKE_FOURCC('O', 'S', 'G', '5');
 static const uint32_t FOURCC_PCSG = MAKE_FOURCC('P', 'C', 'S', 'G');
 static const uint32_t FOURCC_Aon9 = MAKE_FOURCC('A', 'o', 'n', '9');
 static const uint32_t FOURCC_PRIV = MAKE_FOURCC('P', 'R', 'I', 'V');
+static const uint32_t FOURCC_DXIL = MAKE_FOURCC('D', 'X', 'I', 'L');
+static const uint32_t FOURCC_ILDB = MAKE_FOURCC('I', 'L', 'D', 'B');
+static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
 
 int TypeByteSize(VariableType t)
 {
@@ -473,6 +478,8 @@ D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology()
 
     if(m_DXBCByteCode)
       m_OutputTopology = m_DXBCByteCode->GetOutputTopology();
+    else if(m_DXILByteCode)
+      m_OutputTopology = m_DXILByteCode->GetOutputTopology();
   }
 
   return m_OutputTopology;
@@ -490,6 +497,8 @@ const std::string &DXBCContainer::GetDisassembly()
 
     if(m_DXBCByteCode)
       m_Disassembly += m_DXBCByteCode->GetDisassembly();
+    else if(m_DXILByteCode)
+      m_Disassembly += m_DXILByteCode->GetDisassembly();
   }
 
   return m_Disassembly;
@@ -631,13 +640,13 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
-    uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
+    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
 
-    char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+    char *chunkContents = (char *)(chunkSize + 1);
 
     if(*fourcc == FOURCC_RDEF)
     {
-      RDEFHeader *h = (RDEFHeader *)fourcc;
+      RDEFHeader *h = (RDEFHeader *)chunkContents;
 
       // for target version 0x500, unknown[0] is FOURCC_RD11.
       // for 0x501 it's "\x13\x13\D%"
@@ -920,6 +929,46 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     {
       m_DXBCByteCode = new DXBCBytecode::Program((const byte *)chunkContents, *chunkSize);
     }
+    else if(*fourcc == FOURCC_ILDN)
+    {
+      ILDNHeader *h = (ILDNHeader *)chunkContents;
+
+      m_DebugFileName = rdcstr(h->Name, h->NameLength);
+    }
+  }
+
+  if(m_DXBCByteCode == NULL)
+  {
+    // prefer ILDB if present
+    for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+    {
+      uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+      uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
+
+      char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+
+      if(*fourcc == FOURCC_ILDB)
+      {
+        m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+      }
+    }
+
+    // if we didn't find it, look for DXIL
+    if(m_DXILByteCode == NULL)
+    {
+      for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+      {
+        uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+        uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
+
+        char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+
+        if(*fourcc == FOURCC_DXIL)
+        {
+          m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+        }
+      }
+    }
   }
 
   // get type/version that's used regularly and cheap to fetch
@@ -929,6 +978,12 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     m_Version.Major = m_DXBCByteCode->GetMajorVersion();
     m_Version.Minor = m_DXBCByteCode->GetMinorVersion();
   }
+  else if(m_DXILByteCode)
+  {
+    m_Type = m_DXILByteCode->GetShaderType();
+    m_Version.Major = m_DXILByteCode->GetMajorVersion();
+    m_Version.Minor = m_DXILByteCode->GetMinorVersion();
+  }
 
   // if reflection information was stripped, attempt to reverse engineer basic info from
   // declarations
@@ -937,19 +992,21 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     // need to disassemble now to guess resources
     if(m_DXBCByteCode)
       m_Reflection = m_DXBCByteCode->GuessReflection();
+    else if(m_DXILByteCode)
+      m_Reflection = m_DXILByteCode->GetReflection();
   }
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
-    // uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
+    // uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
 
-    char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+    char *chunkContents = (char *)(fourcc + 2);
 
     if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
        *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)
     {
-      SIGNHeader *sign = (SIGNHeader *)fourcc;
+      SIGNHeader *sign = (SIGNHeader *)chunkContents;
 
       std::vector<SigParameter> *sig = NULL;
 
@@ -1122,6 +1179,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   {
     if(m_DXBCByteCode)
       m_DXBCByteCode->FetchComputeProperties(m_Reflection);
+    else if(m_DXILByteCode)
+      m_DXILByteCode->FetchComputeProperties(m_Reflection);
   }
 
   // initialise debug chunks last
@@ -1345,7 +1404,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
   // if we had bytecode in this container, ensure we had reflection. If it's a blob with only an
   // input signature then we can do without reflection.
-  if(m_DXBCByteCode)
+  if(m_DXBCByteCode || m_DXILByteCode)
   {
     RDCASSERT(m_Reflection);
   }
@@ -1355,6 +1414,7 @@ DXBCContainer::~DXBCContainer()
 {
   SAFE_DELETE(m_DebugInfo);
   SAFE_DELETE(m_DXBCByteCode);
+  SAFE_DELETE(m_DXILByteCode);
   SAFE_DELETE(m_Reflection);
 }
 
@@ -1477,6 +1537,26 @@ ShaderCompileFlags EncodeFlags(const IDebugInfo *dbg)
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include "3rdparty/catch/catch.hpp"
+
+#if 0
+
+TEST_CASE("DO NOT COMMIT - convenience test", "[dxbc]")
+{
+  // this test loads a file from disk and passes it through DXBC::DXBCContainer. Useful for when you
+  // are iterating on a shader and don't want to have to load a whole capture.
+  std::vector<byte> buf;
+  FileIO::slurp("/path/to/container_file.dxbc", buf);
+
+  DXBC::DXBCContainer container(buf.data(), buf.size());
+
+  // the only thing fetched lazily is the disassembly, so grab that here
+
+  std::string disasm = container.GetDisassembly();
+
+  RDCLOG("%s", disasm.c_str());
+}
+
+#endif
 
 TEST_CASE("Check DXBC flags are non-overlapping", "[dxbc]")
 {

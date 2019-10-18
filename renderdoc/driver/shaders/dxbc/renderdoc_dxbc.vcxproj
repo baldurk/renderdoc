@@ -124,6 +124,11 @@
     <ClInclude Include="official\cvinfo.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\dxil\renderdoc_dxil.vcxproj">
+      <Project>{8ae46ec2-ea46-441f-bee2-94097101d6a3}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
