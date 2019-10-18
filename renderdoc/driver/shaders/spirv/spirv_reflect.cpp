@@ -560,7 +560,7 @@ void Reflector::PostParse()
         if(arrayCharIdx > 0)
         {
           type.name = StringFormat::Fmt("%s[%s]%s", basename.substr(0, arrayCharIdx).c_str(),
-                                        lengthName.c_str(), basename.substr(arrayCharIdx));
+                                        lengthName.c_str(), basename.substr(arrayCharIdx).c_str());
         }
         else
         {
