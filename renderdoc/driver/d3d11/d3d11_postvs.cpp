@@ -252,11 +252,11 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
   ID3D11GeometryShader *streamoutGS = NULL;
 
-  if(!dxbcVS->m_OutputSig.empty())
+  if(!dxbcVS->GetReflection()->OutputSig.empty())
   {
-    for(size_t i = 0; i < dxbcVS->m_OutputSig.size(); i++)
+    for(size_t i = 0; i < dxbcVS->GetReflection()->OutputSig.size(); i++)
     {
-      SigParameter &sign = dxbcVS->m_OutputSig[i];
+      const SigParameter &sign = dxbcVS->GetReflection()->OutputSig[i];
 
       D3D11_SO_DECLARATION_ENTRY decl;
 
@@ -666,9 +666,9 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
       lastShader = dxbcDS;
 
     sodecls.clear();
-    for(size_t i = 0; i < lastShader->m_OutputSig.size(); i++)
+    for(size_t i = 0; i < lastShader->GetReflection()->OutputSig.size(); i++)
     {
-      SigParameter &sign = lastShader->m_OutputSig[i];
+      const SigParameter &sign = lastShader->GetReflection()->OutputSig[i];
 
       D3D11_SO_DECLARATION_ENTRY decl;
 

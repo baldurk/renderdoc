@@ -1188,8 +1188,8 @@ bool D3D11RenderState::Shader::Used_CB(uint32_t slot) const
   if(dxbc == NULL)
     return true;
 
-  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
-    if(dxbc->m_CBuffers[i].reg == slot)
+  for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
+    if(dxbc->GetReflection()->CBuffers[i].reg == slot)
       return true;
 
   return false;
@@ -1211,7 +1211,7 @@ bool D3D11RenderState::Shader::Used_SRV(uint32_t slot) const
   if(dxbc == NULL)
     return true;
 
-  for(const DXBC::ShaderInputBind &bind : dxbc->m_SRVs)
+  for(const DXBC::ShaderInputBind &bind : dxbc->GetReflection()->SRVs)
     if(bind.reg == slot)
       return true;
 
@@ -1231,7 +1231,7 @@ bool D3D11RenderState::Shader::Used_UAV(uint32_t slot) const
   if(dxbc == NULL)
     return true;
 
-  for(const DXBC::ShaderInputBind &bind : dxbc->m_UAVs)
+  for(const DXBC::ShaderInputBind &bind : dxbc->GetReflection()->UAVs)
     if(bind.reg == slot)
       return true;
 

@@ -30,6 +30,12 @@
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 #include "driver/dx/official/d3dcommon.h"
+#include "dxbc_common.h"
+
+namespace DXBC
+{
+struct Reflection;
+};
 
 namespace DXBC
 {
@@ -652,22 +658,6 @@ enum ResourceDimension
   NUM_DIMENSIONS,
 };
 
-enum ResourceRetType
-{
-  RETURN_TYPE_UNKNOWN = 0,
-  RETURN_TYPE_UNORM = 1,
-  RETURN_TYPE_SNORM,
-  RETURN_TYPE_SINT,
-  RETURN_TYPE_UINT,
-  RETURN_TYPE_FLOAT,
-  RETURN_TYPE_MIXED,
-  RETURN_TYPE_DOUBLE,
-  RETURN_TYPE_CONTINUED,
-  RETURN_TYPE_UNUSED,
-
-  NUM_RETURN_TYPES,
-};
-
 enum ComponentType
 {
   COMPONENT_TYPE_UNKNOWN = 0,
@@ -721,7 +711,7 @@ struct ASMOperand
 
   bool operator==(const ASMOperand &o) const;
 
-  std::string toString(DXBCContainer *dxbc, ToString flags) const;
+  std::string toString(const DXBC::Reflection *reflection, ToString flags) const;
 
   ///////////////////////////////////////
 

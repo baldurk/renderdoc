@@ -562,12 +562,6 @@ std::string DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteC
 
 DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 {
-  m_DebugInfo = NULL;
-
-  m_Disassembled = false;
-
-  m_GuessedResources = true;
-
   RDCASSERT(ByteCodeLength < UINT32_MAX);
 
   RDCEraseEl(m_ShaderStats);
@@ -589,8 +583,6 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   // input layouts if they're super stripped down)
   m_Type = DXBC::ShaderType::Vertex;
 
-  bool rdefFound = false;
-
   uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
@@ -604,10 +596,10 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     {
       RDEFHeader *h = (RDEFHeader *)fourcc;
 
-      rdefFound = true;
-
       // for target version 0x500, unknown[0] is FOURCC_RD11.
       // for 0x501 it's "\x13\x13\D%"
+
+      m_Reflection = new Reflection;
 
       if(h->targetShaderStage == 0xffff)
         m_Type = DXBC::ShaderType::Pixel;
@@ -624,9 +616,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       else if(h->targetShaderStage == 0x4353)    // 'CS'
         m_Type = DXBC::ShaderType::Compute;
 
-      m_SRVs.reserve(h->resources.count);
-      m_UAVs.reserve(h->resources.count);
-      m_Samplers.reserve(h->resources.count);
+      m_Reflection->SRVs.reserve(h->resources.count);
+      m_Reflection->UAVs.reserve(h->resources.count);
+      m_Reflection->Samplers.reserve(h->resources.count);
 
       struct CBufferBind
       {
@@ -685,15 +677,15 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         }
         else if(desc.IsSampler())
         {
-          m_Samplers.push_back(desc);
+          m_Reflection->Samplers.push_back(desc);
         }
         else if(desc.IsSRV())
         {
-          m_SRVs.push_back(desc);
+          m_Reflection->SRVs.push_back(desc);
         }
         else if(desc.IsUAV())
         {
-          m_UAVs.push_back(desc);
+          m_Reflection->UAVs.push_back(desc);
         }
         else
         {
@@ -711,7 +703,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       // Note we preserve the arrays in SM5.1
       if(h->targetVersion < 0x501)
       {
-        for(std::vector<ShaderInputBind> *arr : {&m_SRVs, &m_UAVs, &m_Samplers})
+        for(std::vector<ShaderInputBind> *arr :
+            {&m_Reflection->SRVs, &m_Reflection->UAVs, &m_Reflection->Samplers})
         {
           std::vector<ShaderInputBind> &resArray = *arr;
           for(auto it = resArray.begin(); it != resArray.end();)
@@ -845,16 +838,16 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         if(cb.descriptor.type == CBuffer::Descriptor::TYPE_CBUFFER)
         {
-          m_CBuffers.push_back(cb);
+          m_Reflection->CBuffers.push_back(cb);
         }
         else if(cb.descriptor.type == CBuffer::Descriptor::TYPE_RESOURCE_BIND_INFO)
         {
           RDCASSERT(cb.variables.size() == 1 && cb.variables[0].name == "$Element");
-          m_ResourceBinds[cb.name] = cb.variables[0].type;
+          m_Reflection->ResourceBinds[cb.name] = cb.variables[0].type;
         }
         else if(cb.descriptor.type == CBuffer::Descriptor::TYPE_INTERFACE_POINTERS)
         {
-          m_Interfaces = cb;
+          m_Reflection->Interfaces = cb;
         }
         else
         {
@@ -890,18 +883,16 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   // get type/version that's used regularly and cheap to fetch
   FetchTypeVersion();
 
-  m_GuessedResources = false;
+  m_GuessedResources = (m_Reflection == NULL);
 
   // didn't find an rdef means reflection information was stripped.
   // Attempt to reverse engineer basic info from declarations
-  if(!rdefFound)
+  if(m_GuessedResources)
   {
     // need to disassemble now to guess resources
     DisassembleHexDump();
 
-    GuessResources();
-
-    m_GuessedResources = true;
+    ReflectFromBytecode();
   }
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
@@ -924,17 +915,17 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
       if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_ISG1)
       {
-        sig = &m_InputSig;
+        sig = &m_Reflection->InputSig;
         input = true;
       }
       if(*fourcc == FOURCC_OSGN || *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5)
       {
-        sig = &m_OutputSig;
+        sig = &m_Reflection->OutputSig;
         output = true;
       }
       if(*fourcc == FOURCC_PCSG)
       {
-        sig = &m_PatchConstantSig;
+        sig = &m_Reflection->PatchConstantSig;
         patch = true;
       }
 
@@ -1083,7 +1074,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   }
 
   // make sure to fetch the dispatch threads dimension from disassembly
-  if(!m_Disassembled && m_Type == DXBC::ShaderType::Compute)
+  if(m_Type == DXBC::ShaderType::Compute)
   {
     FetchComputeProperties();
   }
@@ -1306,9 +1297,17 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   }
 }
 
-void DXBCContainer::GuessResources()
+DXBCContainer::~DXBCContainer()
+{
+  SAFE_DELETE(m_DebugInfo);
+  SAFE_DELETE(m_Reflection);
+}
+
+void DXBCContainer::ReflectFromBytecode()
 {
   char buf[64] = {0};
+
+  m_Reflection = new Reflection;
 
   for(size_t i = 0; i < m_Declarations.size(); i++)
   {
@@ -1345,7 +1344,7 @@ void DXBCContainer::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Samplers.push_back(desc);
+        m_Reflection->Samplers.push_back(desc);
 
         break;
       }
@@ -1410,7 +1409,7 @@ void DXBCContainer::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_SRVs.push_back(desc);
+        m_Reflection->SRVs.push_back(desc);
 
         break;
       }
@@ -1448,9 +1447,9 @@ void DXBCContainer::GuessResources()
         }
 
         if(dcl.operand.type == TYPE_RESOURCE)
-          m_SRVs.push_back(desc);
+          m_Reflection->SRVs.push_back(desc);
         else
-          m_UAVs.push_back(desc);
+          m_Reflection->UAVs.push_back(desc);
 
         break;
       }
@@ -1483,7 +1482,7 @@ void DXBCContainer::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_SRVs.push_back(desc);
+        m_Reflection->SRVs.push_back(desc);
 
         break;
       }
@@ -1520,7 +1519,7 @@ void DXBCContainer::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_UAVs.push_back(desc);
+        m_Reflection->UAVs.push_back(desc);
 
         break;
       }
@@ -1579,7 +1578,7 @@ void DXBCContainer::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_UAVs.push_back(desc);
+        m_Reflection->UAVs.push_back(desc);
 
         break;
       }
@@ -1663,7 +1662,7 @@ void DXBCContainer::GuessResources()
           cb.variables.push_back(var);
         }
 
-        m_CBuffers.push_back(cb);
+        m_Reflection->CBuffers.push_back(cb);
 
         break;
       }
@@ -1780,7 +1779,7 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
   return ret;
 }
 
-ShaderCompileFlags EncodeFlags(const DXBCDebugChunk *dbg)
+ShaderCompileFlags EncodeFlags(const DebugChunk *dbg)
 {
   return EncodeFlags(dbg ? dbg->GetShaderCompileFlags() : 0);
 }

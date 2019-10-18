@@ -317,9 +317,9 @@ void DXBCContainer::FetchComputeProperties()
 
     if(op == OPCODE_DCL_THREAD_GROUP)
     {
-      DispatchThreadsDimension[0] = cur[1];
-      DispatchThreadsDimension[1] = cur[2];
-      DispatchThreadsDimension[2] = cur[3];
+      m_Reflection->DispatchThreadsDimension[0] = cur[1];
+      m_Reflection->DispatchThreadsDimension[1] = cur[2];
+      m_Reflection->DispatchThreadsDimension[2] = cur[3];
     }
     else if(op == OPCODE_DCL_INPUT)
     {
@@ -337,28 +337,28 @@ void DXBCContainer::FetchComputeProperties()
           param.compCount = 3;
           param.regChannelMask = param.channelUsedMask = 0x7;
           param.semanticIdxName = param.semanticName = "vThreadID";
-          m_InputSig.push_back(param);
+          m_Reflection->InputSig.push_back(param);
           break;
         case TYPE_INPUT_THREAD_GROUP_ID:
           param.systemValue = ShaderBuiltin::GroupIndex;
           param.compCount = 3;
           param.regChannelMask = param.channelUsedMask = 0x7;
           param.semanticIdxName = param.semanticName = "vThreadGroupID";
-          m_InputSig.push_back(param);
+          m_Reflection->InputSig.push_back(param);
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP:
           param.systemValue = ShaderBuiltin::GroupThreadIndex;
           param.compCount = 3;
           param.regChannelMask = param.channelUsedMask = 0x7;
           param.semanticIdxName = param.semanticName = "vThreadIDInGroup";
-          m_InputSig.push_back(param);
+          m_Reflection->InputSig.push_back(param);
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
           param.systemValue = ShaderBuiltin::GroupFlatIndex;
           param.compCount = 1;
           param.regChannelMask = param.channelUsedMask = 0x1;
           param.semanticIdxName = param.semanticName = "vThreadIDInGroupFlattened";
-          m_InputSig.push_back(param);
+          m_Reflection->InputSig.push_back(param);
           break;
       }
     }
@@ -770,7 +770,10 @@ bool DXBCContainer::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOp
 
     if(retOper.indices[idx].relative)
       retOper.indices[idx].str =
-          "[" + retOper.indices[idx].operand.toString(this, flags | ToString::ShowSwizzle) + " + ";
+          "[" +
+          retOper.indices[idx].operand.toString(m_GuessedResources ? NULL : m_Reflection,
+                                                flags | ToString::ShowSwizzle) +
+          " + ";
 
     if(retOper.indices[idx].absolute)
     {
@@ -837,7 +840,7 @@ const CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t m
   return NULL;
 }
 
-std::string ASMOperand::toString(DXBCContainer *dxbc, ToString flags) const
+std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString flags) const
 {
   std::string str, regstr;
 
@@ -889,18 +892,18 @@ std::string ASMOperand::toString(DXBCContainer *dxbc, ToString flags) const
 
       str += indices[0].str;
 
-      if(dxbc && friendly && !dxbc->m_GuessedResources && indices[0].absolute)
+      if(friendly && reflection && indices[0].absolute)
       {
         uint32_t idx = (uint32_t)indices[0].index;
 
-        std::vector<ShaderInputBind> *list = NULL;
+        const std::vector<ShaderInputBind> *list = NULL;
 
         if(type == TYPE_RESOURCE)
-          list = &dxbc->m_SRVs;
+          list = &reflection->SRVs;
         else if(type == TYPE_UNORDERED_ACCESS_VIEW)
-          list = &dxbc->m_UAVs;
+          list = &reflection->UAVs;
         else if(type == TYPE_SAMPLER)
-          list = &dxbc->m_Samplers;
+          list = &reflection->Samplers;
 
         if(list)
         {
@@ -1050,11 +1053,11 @@ std::string ASMOperand::toString(DXBCContainer *dxbc, ToString flags) const
       else
         str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
 
-      if(dxbc && friendly && !dxbc->m_GuessedResources && indices[0].absolute)
+      if(friendly && reflection && indices[0].absolute)
       {
         const CBuffer *cbuffer = NULL;
 
-        for(const CBuffer &cb : dxbc->m_CBuffers)
+        for(const CBuffer &cb : reflection->CBuffers)
         {
           if(cb.space == 0 && cb.reg == uint32_t(indices[0].index))
           {
@@ -1476,7 +1479,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
     if(sm51)
     {
       uint32_t float4size = tokenStream[0];
@@ -1518,7 +1521,8 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.str += retDecl.operand.toString(this, flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
+                                            flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_TEMPS)
   {
@@ -1557,7 +1561,8 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.str += retDecl.operand.toString(this, flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
+                                            flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT)
   {
@@ -1582,7 +1587,8 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     tokenStream++;
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(this, flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
+                                            flags | ToString::ShowSwizzle);
 
     retDecl.str += ", ";
     retDecl.str += SystemValueToString(retDecl.systemValue);
@@ -1593,7 +1599,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
   }
   else if(op == OPCODE_DCL_SAMPLER)
   {
@@ -1603,7 +1609,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
 
     retDecl.str += ", ";
     if(retDecl.samplerMode == SAMPLER_MODE_DEFAULT)
@@ -1664,7 +1670,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.str += toString(retDecl.resType[3]);
     retDecl.str += ")";
 
-    retDecl.str += " " + retDecl.operand.toString(this, flags);
+    retDecl.str += " " + retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
 
     retDecl.space = 0;
 
@@ -1692,7 +1698,8 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.str += toString(retDecl.interpolation);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(this, flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
+                                            flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_INDEX_RANGE)
   {
@@ -1700,7 +1707,8 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(this, flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
+                                            flags | ToString::ShowSwizzle);
 
     retDecl.indexRange = tokenStream[0];
     tokenStream++;
@@ -1722,10 +1730,6 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
 
     retDecl.groupSize[2] = tokenStream[0];
     tokenStream++;
-
-    DispatchThreadsDimension[0] = retDecl.groupSize[0];
-    DispatchThreadsDimension[1] = retDecl.groupSize[1];
-    DispatchThreadsDimension[2] = retDecl.groupSize[2];
 
     char buf[64] = {0};
     StringFormat::snprintf(buf, 63, "%u", retDecl.groupSize[0]);
@@ -1749,7 +1753,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.count = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
     retDecl.str += ", ";
 
     char buf[64] = {0};
@@ -1769,7 +1773,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.count = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
     retDecl.str += ", ";
 
     char buf[64] = {0};
@@ -1902,7 +1906,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
 
     if(retDecl.globallyCoherant)
       retDecl.str += ", globallyCoherant";
@@ -1944,7 +1948,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.stride = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
     retDecl.str += ", ";
 
     char buf[64] = {0};
@@ -2014,7 +2018,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
 
     retDecl.str += " ";
 
-    retDecl.str += retDecl.operand.toString(this, flags);
+    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
 
     if(retDecl.rov)
       retDecl.str += ", rasterizerOrderedAccess";
@@ -2213,7 +2217,8 @@ bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp
         for(uint32_t i = 0; i < retOp.operands.size(); i++)
         {
           retOp.str += ", ";
-          retOp.str += retOp.operands[i].toString(this, flags | ToString::ShowSwizzle);
+          retOp.str += retOp.operands[i].toString(m_GuessedResources ? NULL : m_Reflection,
+                                                  flags | ToString::ShowSwizzle);
         }
 
         tokenStream = end;
@@ -2384,7 +2389,8 @@ bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp
       retOp.str += " ";
     else
       retOp.str += ", ";
-    retOp.str += retOp.operands[i].toString(this, flags | ToString::ShowSwizzle);
+    retOp.str += retOp.operands[i].toString(m_GuessedResources ? NULL : m_Reflection,
+                                            flags | ToString::ShowSwizzle);
   }
 
 #if ENABLED(RDOC_DEVEL)

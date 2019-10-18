@@ -1257,9 +1257,9 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         default: RDCERR("Invalid dest operand!"); break;
       }
 
-      for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
+      for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
       {
-        if(dxbc->m_OutputSig[i].systemValue == builtin)
+        if(dxbc->GetReflection()->OutputSig[i].systemValue == builtin)
         {
           v = &outputs[i];
           break;
@@ -1271,7 +1271,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         RDCERR("Couldn't find type %d by semantic matching, falling back to string match",
                dstoper.type);
 
-        std::string name = dstoper.toString(dxbc, ToString::ShowSwizzle);
+        std::string name = dstoper.toString(dxbc->GetReflection(), ToString::ShowSwizzle);
         for(size_t i = 0; i < outputs.size(); i++)
         {
           if(outputs[i].name == name)
@@ -1291,7 +1291,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
 
-      std::string name = dstoper.toString(dxbc, ToString::ShowSwizzle);
+      std::string name = dstoper.toString(dxbc->GetReflection(), ToString::ShowSwizzle);
       for(size_t i = 0; i < outputs.size(); i++)
       {
         if(outputs[i].name == name)
@@ -1565,9 +1565,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, boo
     {
       int cb = -1;
 
-      for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+      for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
       {
-        if(dxbc->m_CBuffers[i].reg == indices[0])
+        if(dxbc->GetReflection()->CBuffers[i].reg == indices[0])
         {
           cb = (int)i;
           break;

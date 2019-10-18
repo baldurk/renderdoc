@@ -256,7 +256,7 @@ struct LocalMapping
   LocalVariableMapping var;
 };
 
-class SPDBChunk : public DXBCDebugChunk
+class SPDBChunk : public DebugChunk
 {
 public:
   SPDBChunk(DXBCContainer *dxbc, void *data);

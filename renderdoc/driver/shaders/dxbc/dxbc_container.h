@@ -38,134 +38,6 @@
 // http://source.winehq.org/git/wine.git/blob/HEAD:/dlls/d3dcompiler_43/reflection.c
 namespace DXBC
 {
-enum VariableType
-{
-  VARTYPE_VOID = 0,
-  VARTYPE_BOOL,
-  VARTYPE_INT,
-  VARTYPE_FLOAT,
-  VARTYPE_STRING,
-  VARTYPE_TEXTURE,
-  VARTYPE_TEXTURE1D,
-  VARTYPE_TEXTURE2D,
-  VARTYPE_TEXTURE3D,
-  VARTYPE_TEXTURECUBE,
-  VARTYPE_SAMPLER,
-  VARTYPE_SAMPLER1D,
-  VARTYPE_SAMPLER2D,
-  VARTYPE_SAMPLER3D,
-  VARTYPE_SAMPLERCUBE,
-  VARTYPE_PIXELSHADER,
-  VARTYPE_VERTEXSHADER,
-  VARTYPE_PIXELFRAGMENT,
-  VARTYPE_VERTEXFRAGMENT,
-  VARTYPE_UINT,
-  VARTYPE_UINT8,
-  VARTYPE_GEOMETRYSHADER,
-  VARTYPE_RASTERIZER,
-  VARTYPE_DEPTHSTENCIL,
-  VARTYPE_BLEND,
-  VARTYPE_BUFFER,
-  VARTYPE_CBUFFER,
-  VARTYPE_TBUFFER,
-  VARTYPE_TEXTURE1DARRAY,
-  VARTYPE_TEXTURE2DARRAY,
-  VARTYPE_RENDERTARGETVIEW,
-  VARTYPE_DEPTHSTENCILVIEW,
-  VARTYPE_TEXTURE2DMS,
-  VARTYPE_TEXTURE2DMSARRAY,
-  VARTYPE_TEXTURECUBEARRAY,
-  VARTYPE_HULLSHADER,
-  VARTYPE_DOMAINSHADER,
-  VARTYPE_INTERFACE_POINTER,
-  VARTYPE_COMPUTESHADER,
-  VARTYPE_DOUBLE,
-  VARTYPE_RWTEXTURE1D,
-  VARTYPE_RWTEXTURE1DARRAY,
-  VARTYPE_RWTEXTURE2D,
-  VARTYPE_RWTEXTURE2DARRAY,
-  VARTYPE_RWTEXTURE3D,
-  VARTYPE_RWBUFFER,
-  VARTYPE_BYTEADDRESS_BUFFER,
-  VARTYPE_RWBYTEADDRESS_BUFFER,
-  VARTYPE_STRUCTURED_BUFFER,
-  VARTYPE_RWSTRUCTURED_BUFFER,
-  VARTYPE_APPEND_STRUCTURED_BUFFER,
-  VARTYPE_CONSUME_STRUCTURED_BUFFER,
-  VARTYPE_MIN8FLOAT,
-  VARTYPE_MIN10FLOAT,
-  VARTYPE_MIN16FLOAT,
-  VARTYPE_MIN12INT,
-  VARTYPE_MIN16INT,
-  VARTYPE_MIN16UINT,
-};
-
-struct ShaderInputBind
-{
-  std::string name;
-
-  enum InputType
-  {
-    TYPE_CBUFFER = 0,
-    TYPE_TBUFFER,
-    TYPE_TEXTURE,
-    TYPE_SAMPLER,
-    TYPE_UAV_RWTYPED,
-    TYPE_STRUCTURED,
-    TYPE_UAV_RWSTRUCTURED,
-    TYPE_BYTEADDRESS,
-    TYPE_UAV_RWBYTEADDRESS,
-    TYPE_UAV_APPEND_STRUCTURED,
-    TYPE_UAV_CONSUME_STRUCTURED,
-    TYPE_UAV_RWSTRUCTURED_WITH_COUNTER,
-  } type;
-
-  constexpr bool IsCBuffer() const { return type == TYPE_CBUFFER; }
-  constexpr bool IsSampler() const { return type == TYPE_SAMPLER; }
-  constexpr bool IsSRV() const
-  {
-    return type == TYPE_TBUFFER || type == TYPE_TEXTURE || type == TYPE_STRUCTURED ||
-           type == TYPE_BYTEADDRESS;
-  }
-  constexpr bool IsUAV() const
-  {
-    return type == TYPE_UAV_RWTYPED || type == TYPE_UAV_RWSTRUCTURED ||
-           type == TYPE_UAV_RWBYTEADDRESS || type == TYPE_UAV_APPEND_STRUCTURED ||
-           type == TYPE_UAV_CONSUME_STRUCTURED || type == TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
-  }
-
-  uint32_t space;
-  uint32_t reg;
-  uint32_t bindCount;
-
-  uint32_t flags;
-  ResourceRetType retType;
-
-  enum Dimension
-  {
-    DIM_UNKNOWN = 0,
-    DIM_BUFFER,
-    DIM_TEXTURE1D,
-    DIM_TEXTURE1DARRAY,
-    DIM_TEXTURE2D,
-    DIM_TEXTURE2DARRAY,
-    DIM_TEXTURE2DMS,
-    DIM_TEXTURE2DMSARRAY,
-    DIM_TEXTURE3D,
-    DIM_TEXTURECUBE,
-    DIM_TEXTURECUBEARRAY,
-    DIM_BUFFEREX,
-  } dimension;
-
-  uint32_t numSamples;
-};
-
-/////////////////////////////////////////////////////////////////////////
-// the below classes basically mimics the existing reflection interface.
-//
-// essentially all information comes from the wine project.
-/////////////////////////////////////////////////////////////////////////
-
 // this struct is the whole STAT chunk, since it's just a series of fixed numbers
 // preceded by FourCC and chunk length as usual
 //
@@ -217,94 +89,12 @@ struct ShaderStatistics
   } version;
 };
 
-struct CBufferVariable;
-
-enum VariableClass
-{
-  CLASS_SCALAR = 0,
-  CLASS_VECTOR,
-  CLASS_MATRIX_ROWS,
-  CLASS_MATRIX_COLUMNS,
-  CLASS_OBJECT,
-  CLASS_STRUCT,
-  CLASS_INTERFACE_CLASS,
-  CLASS_INTERFACE_POINTER,
-};
-
-struct CBufferVariableType
-{
-  struct Descriptor
-  {
-    VariableClass varClass;
-    VariableType type;
-    uint32_t rows;
-    uint32_t cols;
-    uint32_t elements;
-    uint32_t members;
-    uint32_t bytesize;
-    std::string name;
-  } descriptor;
-
-  // if a struct, these are variables for each member (this can obviously nest). Not all
-  // elements of the nested member descriptor are valid, as this might not be in a cbuffer,
-  // but might be a loose structure
-  std::vector<CBufferVariable> members;
-};
-
-struct CBufferVariable
-{
-  std::string name;
-
-  struct
-  {
-    std::string name;
-    uint32_t offset;    // offset in parent (cbuffer or nested struct)
-    uint32_t flags;
-    std::vector<uint8_t> defaultValue;
-    uint32_t startTexture;    // first texture
-    uint32_t numTextures;
-    uint32_t startSampler;    // first sampler
-    uint32_t numSamplers;
-  } descriptor;
-
-  // type details of this variable
-  CBufferVariableType type;
-};
-
-struct CBuffer
-{
-  std::string name;
-
-  uint32_t space;
-  uint32_t reg;
-  uint32_t bindCount;
-
-  struct Descriptor
-  {
-    std::string name;
-
-    enum Type
-    {
-      TYPE_CBUFFER = 0,
-      TYPE_TBUFFER,
-      TYPE_INTERFACE_POINTERS,
-      TYPE_RESOURCE_BIND_INFO,
-    } type;
-
-    uint32_t numVars;
-    uint32_t byteSize;
-    uint32_t flags;
-  } descriptor;
-
-  std::vector<CBufferVariable> variables;
-};
-
 struct RDEFHeader;
 
-class DXBCDebugChunk
+class DebugChunk
 {
 public:
-  virtual ~DXBCDebugChunk() {}
+  virtual ~DebugChunk() {}
   virtual std::string GetCompilerSig() const = 0;
   virtual std::string GetEntryFunction() const = 0;
   virtual std::string GetShaderProfile() const = 0;
@@ -321,7 +111,7 @@ public:
 };
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
-ShaderCompileFlags EncodeFlags(const DXBCDebugChunk *dbg);
+ShaderCompileFlags EncodeFlags(const DebugChunk *dbg);
 ShaderCompileFlags EncodeFlags(const uint32_t flags);
 
 // declare one of these and pass in your shader bytecode, then inspect
@@ -330,40 +120,21 @@ class DXBCContainer
 {
 public:
   DXBCContainer(const void *ByteCode, size_t ByteCodeLength);
-  ~DXBCContainer() { SAFE_DELETE(m_DebugInfo); }
+  ~DXBCContainer();
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
   {
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
-  ShaderStatistics m_ShaderStats;
-  DXBCDebugChunk *m_DebugInfo;
-
   std::vector<uint32_t> m_Immediate;
-
-  bool m_GuessedResources;
-  std::vector<ShaderInputBind> m_SRVs;
-  std::vector<ShaderInputBind> m_UAVs;
-
-  std::vector<ShaderInputBind> m_Samplers;
-
-  std::vector<CBuffer> m_CBuffers;
-
-  CBuffer m_Interfaces;
-
-  std::map<std::string, CBufferVariableType> m_ResourceBinds;
-
-  std::vector<SigParameter> m_InputSig;
-  std::vector<SigParameter> m_OutputSig;
-  std::vector<SigParameter> m_PatchConstantSig;
-
-  uint32_t DispatchThreadsDimension[3];
 
   std::vector<uint32_t> m_HexDump;
 
   std::vector<byte> m_ShaderBlob;
 
+  const DebugChunk *GetDebugInfo() const { return m_DebugInfo; }
+  const Reflection *GetReflection() const { return m_Reflection; }
   const std::string &GetDisassembly()
   {
     if(m_Disassembly.empty())
@@ -391,7 +162,7 @@ private:
   void FetchTypeVersion();
   void DisassembleHexDump();
   void MakeDisassemblyString();
-  void GuessResources();
+  void ReflectFromBytecode();
 
   // these functions modify tokenStream pointer to point after the item
   // ExtractOperation/ExtractDecl returns false if not an operation (ie. it's a declaration)
@@ -404,10 +175,15 @@ private:
   CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
   std::map<uint32_t, CBufferVariableType> m_Variables;
 
-  bool m_Disassembled;
+  bool m_Disassembled = false;
+  bool m_GuessedResources = true;
 
-  std::vector<ASMDecl>
-      m_Declarations;    // declarations of inputs, outputs, constant buffers, temp registers etc.
+  ShaderStatistics m_ShaderStats;
+  DebugChunk *m_DebugInfo = NULL;
+  Reflection *m_Reflection = NULL;
+
+  // declarations of inputs, outputs, constant buffers, temp registers etc.
+  std::vector<ASMDecl> m_Declarations;
   std::vector<ASMOperation> m_Instructions;
 
   std::string m_Disassembly;

@@ -591,9 +591,9 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
         customPS = wrapped;
 
-        for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+        for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
         {
-          const DXBC::CBuffer &cbuf = dxbc->m_CBuffers[i];
+          const DXBC::CBuffer &cbuf = dxbc->GetReflection()->CBuffers[i];
           if(cbuf.name == "$Globals")
           {
             float *cbufData = new float[cbuf.descriptor.byteSize / sizeof(float) + 1];

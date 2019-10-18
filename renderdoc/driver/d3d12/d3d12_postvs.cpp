@@ -253,9 +253,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   int posidx = -1;
   int numPosComponents = 0;
 
-  if(!dxbcVS->m_OutputSig.empty())
+  if(!dxbcVS->GetReflection()->OutputSig.empty())
   {
-    for(const SigParameter &sign : dxbcVS->m_OutputSig)
+    for(const SigParameter &sign : dxbcVS->GetReflection()->OutputSig)
     {
       D3D12_SO_DECLARATION_ENTRY decl;
 
@@ -784,7 +784,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       lastShader = dxbcDS;
 
     sodecls.clear();
-    for(const SigParameter &sign : lastShader->m_OutputSig)
+    for(const SigParameter &sign : lastShader->GetReflection()->OutputSig)
     {
       D3D12_SO_DECLARATION_ENTRY decl;
 

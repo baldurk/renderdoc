@@ -169,9 +169,10 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
     }
     else
     {
-      if(dxbc->m_ResourceBinds.find(r.name) != dxbc->m_ResourceBinds.end())
+      auto it = dxbc->GetReflection()->ResourceBinds.find(r.name);
+      if(it != dxbc->GetReflection()->ResourceBinds.end())
       {
-        res.variableType = MakeShaderVariableType(dxbc->m_ResourceBinds[r.name]);
+        res.variableType = MakeShaderVariableType(it->second);
       }
       else
       {
@@ -217,22 +218,22 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
   refl->entryPoint = "main";
 
-  if(dxbc->m_DebugInfo)
+  if(dxbc->GetDebugInfo())
   {
-    refl->entryPoint = dxbc->m_DebugInfo->GetEntryFunction();
+    refl->entryPoint = dxbc->GetDebugInfo()->GetEntryFunction();
 
     refl->debugInfo.encoding = ShaderEncoding::HLSL;
 
-    refl->debugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
+    refl->debugInfo.compileFlags = DXBC::EncodeFlags(dxbc->GetDebugInfo());
 
-    refl->debugInfo.files.resize(dxbc->m_DebugInfo->Files.size());
-    for(size_t i = 0; i < dxbc->m_DebugInfo->Files.size(); i++)
+    refl->debugInfo.files.resize(dxbc->GetDebugInfo()->Files.size());
+    for(size_t i = 0; i < dxbc->GetDebugInfo()->Files.size(); i++)
     {
-      refl->debugInfo.files[i].filename = dxbc->m_DebugInfo->Files[i].first;
-      refl->debugInfo.files[i].contents = dxbc->m_DebugInfo->Files[i].second;
+      refl->debugInfo.files[i].filename = dxbc->GetDebugInfo()->Files[i].first;
+      refl->debugInfo.files[i].contents = dxbc->GetDebugInfo()->Files[i].second;
     }
 
-    std::string entry = dxbc->m_DebugInfo->GetEntryFunction();
+    std::string entry = dxbc->GetDebugInfo()->GetEntryFunction();
     if(entry.empty())
       entry = "main";
 
@@ -243,75 +244,79 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
   refl->encoding = ShaderEncoding::DXBC;
   refl->rawBytes = dxbc->m_ShaderBlob;
 
-  refl->dispatchThreadsDimension[0] = dxbc->DispatchThreadsDimension[0];
-  refl->dispatchThreadsDimension[1] = dxbc->DispatchThreadsDimension[1];
-  refl->dispatchThreadsDimension[2] = dxbc->DispatchThreadsDimension[2];
+  refl->dispatchThreadsDimension[0] = dxbc->GetReflection()->DispatchThreadsDimension[0];
+  refl->dispatchThreadsDimension[1] = dxbc->GetReflection()->DispatchThreadsDimension[1];
+  refl->dispatchThreadsDimension[2] = dxbc->GetReflection()->DispatchThreadsDimension[2];
 
-  refl->inputSignature = dxbc->m_InputSig;
-  refl->outputSignature = dxbc->m_OutputSig;
+  refl->inputSignature = dxbc->GetReflection()->InputSig;
+  refl->outputSignature = dxbc->GetReflection()->OutputSig;
 
   mapping->inputAttributes.resize(D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
   for(int s = 0; s < D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
     mapping->inputAttributes[s] = s;
 
-  mapping->constantBlocks.resize(dxbc->m_CBuffers.size());
-  refl->constantBlocks.resize(dxbc->m_CBuffers.size());
-  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+  mapping->constantBlocks.resize(dxbc->GetReflection()->CBuffers.size());
+  refl->constantBlocks.resize(dxbc->GetReflection()->CBuffers.size());
+  for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
   {
     ConstantBlock &cb = refl->constantBlocks[i];
 
-    cb.name = dxbc->m_CBuffers[i].name;
+    cb.name = dxbc->GetReflection()->CBuffers[i].name;
     cb.bufferBacked = true;
-    cb.byteSize = dxbc->m_CBuffers[i].descriptor.byteSize;
+    cb.byteSize = dxbc->GetReflection()->CBuffers[i].descriptor.byteSize;
     cb.bindPoint = (int32_t)i;
 
     Bindpoint map;
     map.arraySize = 1;
-    map.bindset = dxbc->m_CBuffers[i].space;
-    map.bind = dxbc->m_CBuffers[i].reg;
+    map.bindset = dxbc->GetReflection()->CBuffers[i].space;
+    map.bind = dxbc->GetReflection()->CBuffers[i].reg;
     map.used = true;
 
     mapping->constantBlocks[i] = map;
 
-    cb.variables.reserve(dxbc->m_CBuffers[i].variables.size());
-    for(size_t v = 0; v < dxbc->m_CBuffers[i].variables.size(); v++)
+    cb.variables.reserve(dxbc->GetReflection()->CBuffers[i].variables.size());
+    for(size_t v = 0; v < dxbc->GetReflection()->CBuffers[i].variables.size(); v++)
     {
-      cb.variables.push_back(MakeConstantBufferVariable(dxbc->m_CBuffers[i].variables[v]));
+      cb.variables.push_back(
+          MakeConstantBufferVariable(dxbc->GetReflection()->CBuffers[i].variables[v]));
     }
   }
 
-  mapping->samplers.resize(dxbc->m_Samplers.size());
-  refl->samplers.resize(dxbc->m_Samplers.size());
-  for(size_t i = 0; i < dxbc->m_Samplers.size(); i++)
+  mapping->samplers.resize(dxbc->GetReflection()->Samplers.size());
+  refl->samplers.resize(dxbc->GetReflection()->Samplers.size());
+  for(size_t i = 0; i < dxbc->GetReflection()->Samplers.size(); i++)
   {
     ShaderSampler &s = refl->samplers[i];
 
-    s.name = dxbc->m_Samplers[i].name;
+    s.name = dxbc->GetReflection()->Samplers[i].name;
     s.bindPoint = (int32_t)i;
 
     Bindpoint map;
     map.arraySize = 1;
-    map.bindset = dxbc->m_Samplers[i].space;
-    map.bind = dxbc->m_Samplers[i].reg;
+    map.bindset = dxbc->GetReflection()->Samplers[i].space;
+    map.bind = dxbc->GetReflection()->Samplers[i].reg;
     map.used = true;
 
     mapping->samplers[i] = map;
   }
 
-  mapping->readOnlyResources.resize(dxbc->m_SRVs.size());
-  refl->readOnlyResources.resize(dxbc->m_SRVs.size());
-  MakeResourceList(true, dxbc, dxbc->m_SRVs, mapping->readOnlyResources, refl->readOnlyResources);
+  mapping->readOnlyResources.resize(dxbc->GetReflection()->SRVs.size());
+  refl->readOnlyResources.resize(dxbc->GetReflection()->SRVs.size());
+  MakeResourceList(true, dxbc, dxbc->GetReflection()->SRVs, mapping->readOnlyResources,
+                   refl->readOnlyResources);
 
-  mapping->readWriteResources.resize(dxbc->m_UAVs.size());
-  refl->readWriteResources.resize(dxbc->m_UAVs.size());
-  MakeResourceList(false, dxbc, dxbc->m_UAVs, mapping->readWriteResources, refl->readWriteResources);
+  mapping->readWriteResources.resize(dxbc->GetReflection()->UAVs.size());
+  refl->readWriteResources.resize(dxbc->GetReflection()->UAVs.size());
+  MakeResourceList(false, dxbc, dxbc->GetReflection()->UAVs, mapping->readWriteResources,
+                   refl->readWriteResources);
 
   uint32_t numInterfaces = 0;
-  for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
-    numInterfaces = RDCMAX(dxbc->m_Interfaces.variables[i].descriptor.offset + 1, numInterfaces);
+  for(size_t i = 0; i < dxbc->GetReflection()->Interfaces.variables.size(); i++)
+    numInterfaces =
+        RDCMAX(dxbc->GetReflection()->Interfaces.variables[i].descriptor.offset + 1, numInterfaces);
 
   refl->interfaces.resize(numInterfaces);
-  for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
-    refl->interfaces[dxbc->m_Interfaces.variables[i].descriptor.offset] =
-        dxbc->m_Interfaces.variables[i].name;
+  for(size_t i = 0; i < dxbc->GetReflection()->Interfaces.variables.size(); i++)
+    refl->interfaces[dxbc->GetReflection()->Interfaces.variables[i].descriptor.offset] =
+        dxbc->GetReflection()->Interfaces.variables[i].name;
 }

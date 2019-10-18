@@ -247,7 +247,7 @@ struct SDBGType
 
 // SDBG chunk gets its own class since it's so complex. Deliberately fairly leaky too
 // since the data + use is a bit unclear still
-class SDBGChunk : public DXBCDebugChunk
+class SDBGChunk : public DebugChunk
 {
 public:
   SDBGChunk(void *data);

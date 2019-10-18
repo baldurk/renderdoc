@@ -1244,9 +1244,9 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
 
           if(builtinoutput)
           {
-            for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
+            for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
             {
-              if(dxbc->m_OutputSig[i].systemValue == mapping.var.builtin)
+              if(dxbc->GetReflection()->OutputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
                 regfirstcomp = 0;
@@ -1257,9 +1257,9 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
           }
           else
           {
-            for(size_t i = 0; i < dxbc->m_InputSig.size(); i++)
+            for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
             {
-              if(dxbc->m_InputSig[i].systemValue == mapping.var.builtin)
+              if(dxbc->GetReflection()->InputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
                 regfirstcomp = 0;
