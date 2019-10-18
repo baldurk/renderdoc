@@ -444,6 +444,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   {
     RDCDEBUG("Couldn't get ID3D12InfoQueue.");
   }
+
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    FirstFrame(NULL);
+  }
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()
@@ -523,11 +528,6 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
-
-  if(!RenderDoc::Inst().IsReplayApp())
-  {
-    FirstFrame(NULL);
-  }
 }
 
 HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
@@ -908,7 +908,7 @@ void WrappedID3D12Device::FirstFrame(IDXGISwapper *swapper)
   // if we have to capture the first frame, begin capturing immediately
   if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
-    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapper->GetHWND());
+    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapper ? swapper->GetHWND() : NULL);
 
     m_AppControlledCapture = false;
   }
