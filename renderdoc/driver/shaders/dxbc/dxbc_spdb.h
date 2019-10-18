@@ -30,7 +30,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "dxbc_disassemble.h"
+#include "dxbc_bytecode.h"
 
 namespace DXBC
 {
@@ -256,10 +256,10 @@ struct LocalMapping
   LocalVariableMapping var;
 };
 
-class SPDBChunk : public DebugChunk
+class SPDBChunk : public IDebugInfo
 {
 public:
-  SPDBChunk(DXBCContainer *dxbc, void *data);
+  SPDBChunk(Reflection *dxbc, void *data);
   SPDBChunk(const SPDBChunk &) = delete;
   SPDBChunk &operator=(const SPDBChunk &o) = delete;
 

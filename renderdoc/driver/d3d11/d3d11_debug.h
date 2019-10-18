@@ -30,7 +30,6 @@
 #include <utility>
 #include "api/replay/renderdoc_replay.h"
 #include "driver/dx/official/d3d11_4.h"
-#include "driver/shaders/dxbc/dxbc_debug.h"
 #include "replay/replay_driver.h"
 
 class Camera;
@@ -46,7 +45,13 @@ struct CopyPixelParams;
 namespace ShaderDebug
 {
 struct GlobalState;
+class State;
 }
+
+namespace DXBC
+{
+class DXBCContainer;
+};
 
 struct TextureShaderDetails
 {

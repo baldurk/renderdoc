@@ -26,7 +26,6 @@
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
-#include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"

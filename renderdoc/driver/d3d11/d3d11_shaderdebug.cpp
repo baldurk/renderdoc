@@ -26,8 +26,8 @@
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
+#include "driver/shaders/dxbc/dxbc_bytecode.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
-#include "driver/shaders/dxbc/dxbc_disassemble.h"
 #include "maths/formatpacking.h"
 #include "maths/vec.h"
 #include "strings/string_utils.h"
@@ -73,7 +73,7 @@ struct DebugHit
 // over this number of cycles and things get problematic
 #define SHADER_DEBUG_WARN_THRESHOLD 100000
 
-bool PromptDebugTimeout(DXBC::ProgramType prog, uint32_t cycleCounter)
+bool PromptDebugTimeout(uint32_t cycleCounter)
 {
   std::string msg = StringFormat::Fmt(
       "RenderDoc's shader debugging has been running for over %u cycles, which indicates either a "
@@ -249,15 +249,16 @@ public:
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
-  bool CalculateMathIntrinsic(DXBC::OpcodeType opcode, const ShaderVariable &input,
+  bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
 
-  ShaderVariable GetSampleInfo(DXBC::OperandType type, bool isAbsoluteResource, UINT slot,
+  ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource, UINT slot,
                                const char *opString);
-  ShaderVariable GetBufferInfo(DXBC::OperandType type, UINT slot, const char *opString);
-  ShaderVariable GetResourceInfo(DXBC::OperandType type, UINT slot, uint32_t mipLevel, int &dim);
+  ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, UINT slot, const char *opString);
+  ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, UINT slot, uint32_t mipLevel,
+                                 int &dim);
 
-  bool CalculateSampleGather(DXBC::OpcodeType opcode,
+  bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
                              ShaderDebug::SampleGatherResourceData resourceData,
                              ShaderDebug::SampleGatherSamplerData samplerData, ShaderVariable uv,
                              ShaderVariable ddxCalc, ShaderVariable ddyCalc,
@@ -285,8 +286,9 @@ void D3D11DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv
   m_pDevice->AddDebugMessage(c, sv, src, d);
 }
 
-ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBC::OperandType type, bool isAbsoluteResource,
-                                                   UINT slot, const char *opString)
+ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,
+                                                   bool isAbsoluteResource, UINT slot,
+                                                   const char *opString)
 {
   ID3D11DeviceContext *context = NULL;
   m_pDevice->GetImmediateContext(&context);
@@ -295,7 +297,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBC::OperandType type, bool 
 
   ID3D11Resource *res = NULL;
 
-  if(type == DXBC::TYPE_RASTERIZER)
+  if(type == DXBCBytecode::TYPE_RASTERIZER)
   {
     ID3D11RenderTargetView *rtv[8] = {};
     ID3D11DepthStencilView *dsv = NULL;
@@ -334,7 +336,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBC::OperandType type, bool 
       SAFE_RELEASE(rtv[i]);
     SAFE_RELEASE(dsv);
   }
-  else if(type == DXBC::TYPE_RESOURCE && isAbsoluteResource)
+  else if(type == DXBCBytecode::TYPE_RESOURCE && isAbsoluteResource)
   {
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
@@ -383,7 +385,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBC::OperandType type, bool 
     }
     else
     {
-      if(type == DXBC::TYPE_RASTERIZER)
+      if(type == DXBCBytecode::TYPE_RASTERIZER)
       {
         // special behaviour for non-2D (i.e. by definition non-multisampled) textures when
         // querying the rasterizer, just return 1.
@@ -406,7 +408,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBC::OperandType type, bool 
   return result;
 }
 
-ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBC::OperandType type, UINT slot,
+ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType type, UINT slot,
                                                    const char *opString)
 {
   ID3D11DeviceContext *context = NULL;
@@ -414,7 +416,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBC::OperandType type, UINT 
 
   ShaderVariable result("", 0U, 0U, 0U, 0U);
 
-  if(type == DXBC::TYPE_UNORDERED_ACCESS_VIEW)
+  if(type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
   {
     ID3D11UnorderedAccessView *uav = NULL;
     if(GetShaderType() == DXBC::ShaderType::Compute)
@@ -511,7 +513,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBC::OperandType type, UINT 
   return result;
 }
 
-ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBC::OperandType type, UINT slot,
+ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType type, UINT slot,
                                                      uint32_t mipLevel, int &dim)
 {
   ID3D11DeviceContext *context = NULL;
@@ -519,7 +521,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBC::OperandType type, UIN
 
   ShaderVariable result("", 0.0f, 0.0f, 0.0f, 0.0f);
 
-  if(type != DXBC::TYPE_UNORDERED_ACCESS_VIEW)
+  if(type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
   {
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
@@ -829,13 +831,13 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBC::OperandType type, UIN
 }
 
 bool D3D11DebugAPIWrapper::CalculateSampleGather(
-    DXBC::OpcodeType opcode, ShaderDebug::SampleGatherResourceData resourceData,
+    DXBCBytecode::OpcodeType opcode, ShaderDebug::SampleGatherResourceData resourceData,
     ShaderDebug::SampleGatherSamplerData samplerData, ShaderVariable uv, ShaderVariable ddxCalc,
     ShaderVariable ddyCalc, const int texelOffsets[3], int multisampleIndex,
     float lodOrCompareValue, const uint8_t swizzle[4], ShaderDebug::GatherChannel gatherChannel,
     const char *opString, ShaderVariable &output)
 {
-  using namespace DXBC;
+  using namespace DXBCBytecode;
 
   std::string funcRet = "";
   DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
@@ -919,7 +921,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   }
 
   {
-    char *typeStr[NUM_RETURN_TYPES] = {
+    char *typeStr[DXBC::NUM_RETURN_TYPES] = {
         "",    // enum starts at ==1
         "unorm float",
         "snorm float",
@@ -936,7 +938,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     // but since we don't know at debug time what the source texture format is
     // we just use the fattest one necessary. There's no harm in retrieving at
     // higher precision
-    DXGI_FORMAT fmts[NUM_RETURN_TYPES] = {
+    DXGI_FORMAT fmts[DXBC::NUM_RETURN_TYPES] = {
         DXGI_FORMAT_UNKNOWN,    // enum starts at ==1
         DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT,
         DXGI_FORMAT_R32G32B32A32_SINT, DXGI_FORMAT_R32G32B32A32_UINT, DXGI_FORMAT_R32G32B32A32_FLOAT,
@@ -1447,7 +1449,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   return true;
 }
 
-bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBC::OpcodeType opcode,
+bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode,
                                                   const ShaderVariable &input,
                                                   ShaderVariable &output1, ShaderVariable &output2)
 {
@@ -1459,11 +1461,11 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBC::OpcodeType opcode,
 
   switch(opcode)
   {
-    case DXBC::OPCODE_RCP: csProgram += "outval[0] = rcp(inval);\n"; break;
-    case DXBC::OPCODE_RSQ: csProgram += "outval[0] = rsqrt(inval);\n"; break;
-    case DXBC::OPCODE_EXP: csProgram += "outval[0] = exp2(inval);\n"; break;
-    case DXBC::OPCODE_LOG: csProgram += "outval[0] = log2(inval);\n"; break;
-    case DXBC::OPCODE_SINCOS: csProgram += "sincos(inval, outval[0], outval[1]);\n"; break;
+    case DXBCBytecode::OPCODE_RCP: csProgram += "outval[0] = rcp(inval);\n"; break;
+    case DXBCBytecode::OPCODE_RSQ: csProgram += "outval[0] = rsqrt(inval);\n"; break;
+    case DXBCBytecode::OPCODE_EXP: csProgram += "outval[0] = exp2(inval);\n"; break;
+    case DXBCBytecode::OPCODE_LOG: csProgram += "outval[0] = log2(inval);\n"; break;
+    case DXBCBytecode::OPCODE_SINCOS: csProgram += "sincos(inval, outval[0], outval[1]);\n"; break;
     default: RDCERR("Unexpected opcode %d passed to CalculateMathIntrinsic", opcode); return false;
   }
 
@@ -1607,10 +1609,10 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
                                                              const ShaderReflection &refl,
                                                              bytebuf *cbufData)
 {
-  using namespace DXBC;
+  using namespace DXBCBytecode;
   using namespace ShaderDebug;
 
-  State initialState = State(quadIdx, &trace, dxbc);
+  State initialState = State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
 
   // use pixel shader here to get inputs
 
@@ -1620,9 +1622,9 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
   bool inputCoverage = false;
 
-  for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
   {
-    const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+    const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
 
     if(decl.declaration == OPCODE_DCL_INPUT && decl.operand.type == TYPE_INPUT_COVERAGE_MASK)
     {
@@ -2071,12 +2073,12 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
     }
   }
 
-  for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
   {
-    const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+    const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
 
-    if(decl.declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
-       decl.declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+    if(decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
+       decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
     {
       uint32_t slot = (uint32_t)decl.operand.indices[0].index;
 
@@ -2086,7 +2088,8 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 
         ShaderDebug::GlobalState::groupsharedMem &mem = global.groupshared[slot];
 
-        mem.structured = (decl.declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
+        mem.structured =
+            (decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
 
         mem.count = decl.count;
         if(mem.structured)
@@ -2103,7 +2106,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-  using namespace DXBC;
+  using namespace DXBCBytecode;
   using namespace ShaderDebug;
 
   D3D11MarkerRegion debugpixRegion(
@@ -2125,7 +2128,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   if(!vs)
     return empty;
 
-  DXBCContainer *dxbc = vs->GetDXBC();
+  DXBC::DXBCContainer *dxbc = vs->GetDXBC();
   const ShaderReflection &refl = vs->GetDetails();
 
   if(!dxbc)
@@ -2455,7 +2458,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   std::vector<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
-    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
+    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
+                                    initialState.locals);
 
   states.push_back((State)initialState);
 
@@ -2472,7 +2476,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
     if(dxbc->GetDebugInfo())
     {
-      const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
+      const DXBCBytecode::Operation &op =
+          dxbc->GetDXBCByteCode()->GetInstruction((size_t)initialState.nextInstruction);
       dxbc->GetDebugInfo()->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
     }
 
@@ -2480,7 +2485,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
     if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
     {
-      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
+      if(PromptDebugTimeout(cycleCounter))
         break;
     }
   }
@@ -2489,10 +2494,10 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
-  ret.lineInfo.resize(dxbc->GetNumInstructions());
-  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetNumInstructions(); i++)
+  ret.lineInfo.resize(dxbc->GetDXBCByteCode()->GetNumInstructions());
+  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
   {
-    const ASMOperation &op = dxbc->GetInstruction(i);
+    const DXBCBytecode::Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
     dxbc->GetDebugInfo()->GetLineInfo(i, op.offset, ret.lineInfo[i]);
   }
 
@@ -2502,7 +2507,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                          uint32_t primitive)
 {
-  using namespace DXBC;
+  using namespace DXBCBytecode;
   using namespace ShaderDebug;
 
   D3D11MarkerRegion debugpixRegion(
@@ -2546,7 +2551,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  DXBCContainer *dxbc = ps->GetDXBC();
+  DXBC::DXBCContainer *dxbc = ps->GetDXBC();
   const ShaderReflection &refl = ps->GetDetails();
 
   if(!dxbc)
@@ -2554,7 +2559,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   dxbc->GetDisassembly();
 
-  DXBCContainer *prevdxbc = NULL;
+  DXBC::DXBCContainer *prevdxbc = NULL;
 
   if(prevdxbc == NULL && gs != NULL)
     prevdxbc = gs->GetDXBC();
@@ -2918,9 +2923,9 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   if(outputSampleCount > 1)
   {
     // scan the instructions to see if it contains any evaluates.
-    for(size_t i = 0; i < dxbc->GetNumInstructions(); i++)
+    for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
     {
-      const ASMOperation &op = dxbc->GetInstruction(i);
+      const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
 
       // skip any non-eval opcodes
       if(op.operation != OPCODE_EVAL_CENTROID && op.operation != OPCODE_EVAL_SAMPLE_INDEX &&
@@ -3642,7 +3647,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   std::vector<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
-    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetInstruction(0).offset, quad[destIdx].locals);
+    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
+                                    quad[destIdx].locals);
 
   states.push_back((State)quad[destIdx]);
 
@@ -3684,8 +3690,9 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
       if(dxbc->GetDebugInfo())
       {
-        size_t inst = RDCMIN((size_t)s.nextInstruction, dxbc->GetNumInstructions() - 1);
-        const ASMOperation &op = dxbc->GetInstruction(inst);
+        size_t inst =
+            RDCMIN((size_t)s.nextInstruction, dxbc->GetDXBCByteCode()->GetNumInstructions() - 1);
+        const DXBCBytecode::Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(inst);
         dxbc->GetDebugInfo()->GetLocals(s.nextInstruction, op.offset, s.locals);
       }
 
@@ -3755,7 +3762,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
       if(convergencePoint > 0)
       {
-        OpcodeType op = dxbc->GetInstruction(convergencePoint - 1).operation;
+        OpcodeType op = dxbc->GetDXBCByteCode()->GetInstruction(convergencePoint - 1).operation;
 
         // if the most advnaced thread hasn't just finished control flow, then all
         // threads are still running, so don't converge
@@ -3775,7 +3782,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
     if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
     {
-      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
+      if(PromptDebugTimeout(cycleCounter))
         break;
     }
   } while(!finished);
@@ -3784,10 +3791,10 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   traces[destIdx].hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
-  traces[destIdx].lineInfo.resize(dxbc->GetNumInstructions());
-  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetNumInstructions(); i++)
+  traces[destIdx].lineInfo.resize(dxbc->GetDXBCByteCode()->GetNumInstructions());
+  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
   {
-    const ASMOperation &op = dxbc->GetInstruction(i);
+    const DXBCBytecode::Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
     dxbc->GetDebugInfo()->GetLineInfo(i, op.offset, traces[destIdx].lineInfo[i]);
   }
 
@@ -3797,7 +3804,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                           const uint32_t threadid[3])
 {
-  using namespace DXBC;
+  using namespace DXBCBytecode;
   using namespace ShaderDebug;
 
   D3D11MarkerRegion simloop(StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)",
@@ -3818,7 +3825,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   if(!cs)
     return empty;
 
-  DXBCContainer *dxbc = cs->GetDXBC();
+  DXBC::DXBCContainer *dxbc = cs->GetDXBC();
   const ShaderReflection &refl = cs->GetDetails();
 
   if(!dxbc)
@@ -3850,7 +3857,8 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   std::vector<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
-    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetInstruction(0).offset, initialState.locals);
+    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
+                                    initialState.locals);
 
   states.push_back((State)initialState);
 
@@ -3865,7 +3873,8 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
     if(dxbc->GetDebugInfo())
     {
-      const ASMOperation &op = dxbc->GetInstruction((size_t)initialState.nextInstruction);
+      const DXBCBytecode::Operation &op =
+          dxbc->GetDXBCByteCode()->GetInstruction((size_t)initialState.nextInstruction);
       dxbc->GetDebugInfo()->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
     }
 
@@ -3873,7 +3882,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
     if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
     {
-      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
+      if(PromptDebugTimeout(cycleCounter))
         break;
     }
   }
@@ -3882,16 +3891,16 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
-  ret.lineInfo.resize(dxbc->GetNumInstructions());
-  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetNumInstructions(); i++)
+  ret.lineInfo.resize(dxbc->GetDXBCByteCode()->GetNumInstructions());
+  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
   {
-    const ASMOperation &op = dxbc->GetInstruction(i);
+    const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
     dxbc->GetDebugInfo()->GetLineInfo(i, op.offset, ret.lineInfo[i]);
   }
 
-  for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
   {
-    const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+    const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
 
     if(decl.declaration == OPCODE_DCL_INPUT &&
        (decl.operand.type == TYPE_INPUT_THREAD_ID || decl.operand.type == TYPE_INPUT_THREAD_GROUP_ID ||

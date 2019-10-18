@@ -40,7 +40,7 @@ namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
 
-SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
+SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 {
   m_HasDebugInfo = false;
 
@@ -1121,41 +1121,41 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
 
         // CV_HLSLREG_e == OperandType
 
-        switch((OperandType)defrange->regType)
+        switch((DXBCBytecode::OperandType)defrange->regType)
         {
-          case TYPE_TEMP:
+          case DXBCBytecode::TYPE_TEMP:
             range.type = RegisterType::Temporary;
             regtype = "temp";
             regprefix = "r";
             break;
-          case TYPE_INPUT:
-          case TYPE_INPUT_PRIMITIVEID:
-          case TYPE_INPUT_FORK_INSTANCE_ID:
-          case TYPE_INPUT_JOIN_INSTANCE_ID:
-          case TYPE_INPUT_CONTROL_POINT:
-          case TYPE_INPUT_PATCH_CONSTANT:
-          case TYPE_INPUT_DOMAIN_POINT:
-          case TYPE_INPUT_THREAD_ID:
-          case TYPE_INPUT_THREAD_GROUP_ID:
-          case TYPE_INPUT_THREAD_ID_IN_GROUP:
-          case TYPE_INPUT_COVERAGE_MASK:
-          case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-          case TYPE_INPUT_GS_INSTANCE_ID:
+          case DXBCBytecode::TYPE_INPUT:
+          case DXBCBytecode::TYPE_INPUT_PRIMITIVEID:
+          case DXBCBytecode::TYPE_INPUT_FORK_INSTANCE_ID:
+          case DXBCBytecode::TYPE_INPUT_JOIN_INSTANCE_ID:
+          case DXBCBytecode::TYPE_INPUT_CONTROL_POINT:
+          case DXBCBytecode::TYPE_INPUT_PATCH_CONSTANT:
+          case DXBCBytecode::TYPE_INPUT_DOMAIN_POINT:
+          case DXBCBytecode::TYPE_INPUT_THREAD_ID:
+          case DXBCBytecode::TYPE_INPUT_THREAD_GROUP_ID:
+          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP:
+          case DXBCBytecode::TYPE_INPUT_COVERAGE_MASK:
+          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+          case DXBCBytecode::TYPE_INPUT_GS_INSTANCE_ID:
             range.type = RegisterType::Input;
             regtype = "input";
             regprefix = "v";
             break;
-          case TYPE_OUTPUT:
-          case TYPE_OUTPUT_DEPTH:
-          case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-          case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-          case TYPE_OUTPUT_STENCIL_REF:
-          case TYPE_OUTPUT_COVERAGE_MASK:
+          case DXBCBytecode::TYPE_OUTPUT:
+          case DXBCBytecode::TYPE_OUTPUT_DEPTH:
+          case DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+          case DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+          case DXBCBytecode::TYPE_OUTPUT_STENCIL_REF:
+          case DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK:
             range.type = RegisterType::Output;
             regtype = "output";
             regprefix = "o";
             break;
-          case TYPE_INDEXABLE_TEMP:
+          case DXBCBytecode::TYPE_INDEXABLE_TEMP:
             range.type = RegisterType::IndexedTemporary;
             regtype = "indexable";
             regprefix = "x";
@@ -1165,7 +1165,7 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
         }
 
         // this is a virtual register, not stored
-        if((OperandType)defrange->regType == TYPE_STREAM)
+        if((DXBCBytecode::OperandType)defrange->regType == DXBCBytecode::TYPE_STREAM)
           continue;
 
         const char *space = "";
@@ -1198,41 +1198,47 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
 
         bool builtinoutput = false;
         mapping.var.builtin = ShaderBuiltin::Undefined;
-        switch((OperandType)defrange->regType)
+        switch((DXBCBytecode::OperandType)defrange->regType)
         {
-          case TYPE_OUTPUT_DEPTH:
+          case DXBCBytecode::TYPE_OUTPUT_DEPTH:
             builtinoutput = true;
             mapping.var.builtin = ShaderBuiltin::DepthOutput;
             break;
-          case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+          case DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL:
             builtinoutput = true;
             mapping.var.builtin = ShaderBuiltin::DepthOutputLessEqual;
             break;
-          case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+          case DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
             builtinoutput = true;
             mapping.var.builtin = ShaderBuiltin::DepthOutputGreaterEqual;
             break;
-          case TYPE_OUTPUT_STENCIL_REF:
+          case DXBCBytecode::TYPE_OUTPUT_STENCIL_REF:
             builtinoutput = true;
             mapping.var.builtin = ShaderBuiltin::StencilReference;
             break;
-          case TYPE_OUTPUT_COVERAGE_MASK:
+          case DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK:
             builtinoutput = true;
             mapping.var.builtin = ShaderBuiltin::MSAACoverage;
             break;
-          case TYPE_INPUT_PRIMITIVEID: mapping.var.builtin = ShaderBuiltin::PrimitiveIndex; break;
-          case TYPE_INPUT_COVERAGE_MASK: mapping.var.builtin = ShaderBuiltin::MSAACoverage; break;
-          case TYPE_INPUT_THREAD_ID:
+          case DXBCBytecode::TYPE_INPUT_PRIMITIVEID:
+            mapping.var.builtin = ShaderBuiltin::PrimitiveIndex;
+            break;
+          case DXBCBytecode::TYPE_INPUT_COVERAGE_MASK:
+            mapping.var.builtin = ShaderBuiltin::MSAACoverage;
+            break;
+          case DXBCBytecode::TYPE_INPUT_THREAD_ID:
             mapping.var.builtin = ShaderBuiltin::DispatchThreadIndex;
             break;
-          case TYPE_INPUT_THREAD_GROUP_ID: mapping.var.builtin = ShaderBuiltin::GroupIndex; break;
-          case TYPE_INPUT_THREAD_ID_IN_GROUP:
+          case DXBCBytecode::TYPE_INPUT_THREAD_GROUP_ID:
+            mapping.var.builtin = ShaderBuiltin::GroupIndex;
+            break;
+          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP:
             mapping.var.builtin = ShaderBuiltin::GroupThreadIndex;
             break;
-          case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
             mapping.var.builtin = ShaderBuiltin::GroupFlatIndex;
             break;
-          case TYPE_INPUT_GS_INSTANCE_ID:
+          case DXBCBytecode::TYPE_INPUT_GS_INSTANCE_ID:
             mapping.var.builtin = ShaderBuiltin::GSInstanceIndex;
             break;
           default: break;
@@ -1244,9 +1250,9 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
 
           if(builtinoutput)
           {
-            for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
+            for(size_t i = 0; i < reflection->OutputSig.size(); i++)
             {
-              if(dxbc->GetReflection()->OutputSig[i].systemValue == mapping.var.builtin)
+              if(reflection->OutputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
                 regfirstcomp = 0;
@@ -1257,9 +1263,9 @@ SPDBChunk::SPDBChunk(DXBCContainer *dxbc, void *chunk)
           }
           else
           {
-            for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
+            for(size_t i = 0; i < reflection->InputSig.size(); i++)
             {
-              if(dxbc->GetReflection()->InputSig[i].systemValue == mapping.var.builtin)
+              if(reflection->InputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
                 regfirstcomp = 0;
@@ -1806,6 +1812,11 @@ void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
       a.regCount = RDCMAX(it->var.columns, it->varFirstComp + it->numComps);
     }
   }
+}
+
+IDebugInfo *MakeSPDBChunk(Reflection *reflection, void *data)
+{
+  return new SPDBChunk(reflection, data);
 }
 
 };    // namespace DXBC

@@ -23,14 +23,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#pragma once
+
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
-
-#pragma once
-
-#include "dxbc_disassemble.h"
+#include "dxbc_bytecode.h"
 
 namespace DXBC
 {
@@ -58,12 +57,6 @@ namespace DXBC
 //  * SDBGVariable
 //  * SDBGInputRegister
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-struct CountOffset
-{
-  int32_t count;
-  int32_t offset;
-};
 
 // Completely understood
 struct SDBGHeader
@@ -121,7 +114,7 @@ struct SDBGAsmInstruction
 {
   int32_t instructionNum;
 
-  OpcodeType opCode;
+  DXBCBytecode::OpcodeType opCode;
 
   int32_t unknown_a[2];
   int32_t destRegister;
@@ -247,7 +240,7 @@ struct SDBGType
 
 // SDBG chunk gets its own class since it's so complex. Deliberately fairly leaky too
 // since the data + use is a bit unclear still
-class SDBGChunk : public DebugChunk
+class SDBGChunk : public IDebugInfo
 {
 public:
   SDBGChunk(void *data);

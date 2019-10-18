@@ -25,7 +25,6 @@
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
-#include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/formatpacking.h"
 #include "maths/vec.h"
 #include "serialise/serialiser.h"

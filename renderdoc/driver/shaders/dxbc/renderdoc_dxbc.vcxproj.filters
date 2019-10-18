@@ -11,10 +11,10 @@
     <ClCompile Include="dxbc_spdb.cpp" />
     <ClCompile Include="dxbc_sdbg.cpp" />
     <ClCompile Include="dxbc_container.cpp" />
+    <ClCompile Include="dxbc_bytecode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
-    <ClInclude Include="dxbc_disassemble.h" />
     <ClInclude Include="dxbc_sdbg.h" />
     <ClInclude Include="dxbc_spdb.h" />
     <ClInclude Include="dxbc_compile.h" />
@@ -30,6 +30,7 @@
     </ClInclude>
     <ClInclude Include="dxbc_container.h" />
     <ClInclude Include="dxbc_common.h" />
+    <ClInclude Include="dxbc_bytecode.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

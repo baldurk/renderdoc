@@ -1277,37 +1277,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     m_PostVSData[eventId].gsout.hasPosOut = posidx >= 0;
     m_PostVSData[eventId].gsout.idxBuf = NULL;
 
-    topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    if(lastShader == dxbcGS)
-    {
-      for(size_t i = 0; i < dxbcGS->GetNumDeclarations(); i++)
-      {
-        const DXBC::ASMDecl &decl = dxbcGS->GetDeclaration(i);
-
-        if(decl.declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
-        {
-          topo = decl.outTopology;
-          break;
-        }
-      }
-    }
-    else if(lastShader == dxbcDS)
-    {
-      for(size_t i = 0; i < dxbcDS->GetNumDeclarations(); i++)
-      {
-        const DXBC::ASMDecl &decl = dxbcDS->GetDeclaration(i);
-
-        if(decl.declaration == DXBC::OPCODE_DCL_TESS_DOMAIN)
-        {
-          if(decl.domain == DXBC::DOMAIN_ISOLINE)
-            topo = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-          else
-            topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-          break;
-        }
-      }
-    }
+    topo = lastShader->GetOutputTopology();
 
     m_PostVSData[eventId].gsout.topo = topo;
 

@@ -26,9 +26,9 @@
 #include "dxbc_debug.h"
 #include <algorithm>
 #include "maths/formatpacking.h"
-#include "dxbc_container.h"
+#include "dxbc_bytecode.h"
 
-using namespace DXBC;
+using namespace DXBCBytecode;
 
 namespace ShaderDebug
 {
@@ -58,7 +58,7 @@ static float flush_denorm(const float f)
   return ret;
 }
 
-VarType State::OperationType(const OpcodeType &op) const
+VarType State::OperationType(const DXBCBytecode::OpcodeType &op) const
 {
   switch(op)
   {
@@ -234,7 +234,7 @@ VarType State::OperationType(const OpcodeType &op) const
   }
 }
 
-bool State::OperationFlushing(const DXBC::OpcodeType &op) const
+bool State::OperationFlushing(const DXBCBytecode::OpcodeType &op) const
 {
   switch(op)
   {
@@ -1079,9 +1079,9 @@ void State::Init()
 {
   std::vector<uint32_t> indexTempSizes;
 
-  for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+  for(size_t i = 0; i < program->GetNumDeclarations(); i++)
   {
-    const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+    const DXBCBytecode::Declaration &decl = program->GetDeclaration(i);
 
     if(decl.declaration == OPCODE_DCL_TEMPS)
     {
@@ -1131,7 +1131,7 @@ void State::Init()
 
 bool State::Finished() const
 {
-  return dxbc && (done || nextInstruction >= (int)dxbc->GetNumInstructions());
+  return program && (done || nextInstruction >= (int)program->GetNumInstructions());
 }
 
 bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
@@ -1160,7 +1160,7 @@ bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVari
   return ret;
 }
 
-void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const ShaderVariable &val)
+void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVariable &val)
 {
   ShaderVariable *v = NULL;
 
@@ -1257,9 +1257,9 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         default: RDCERR("Invalid dest operand!"); break;
       }
 
-      for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
+      for(size_t i = 0; i < reflection->OutputSig.size(); i++)
       {
-        if(dxbc->GetReflection()->OutputSig[i].systemValue == builtin)
+        if(reflection->OutputSig[i].systemValue == builtin)
         {
           v = &outputs[i];
           break;
@@ -1271,7 +1271,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         RDCERR("Couldn't find type %d by semantic matching, falling back to string match",
                dstoper.type);
 
-        std::string name = dstoper.toString(dxbc->GetReflection(), ToString::ShowSwizzle);
+        std::string name = dstoper.toString(reflection, ToString::ShowSwizzle);
         for(size_t i = 0; i < outputs.size(); i++)
         {
           if(outputs[i].name == name)
@@ -1291,7 +1291,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
 
-      std::string name = dstoper.toString(dxbc->GetReflection(), ToString::ShowSwizzle);
+      std::string name = dstoper.toString(reflection, ToString::ShowSwizzle);
       for(size_t i = 0; i < outputs.size(); i++)
       {
         if(outputs[i].name == name)
@@ -1376,8 +1376,8 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
   }
 }
 
-ShaderVariable State::DDX(bool fine, State quad[4], const DXBC::ASMOperand &oper,
-                          const DXBC::ASMOperation &op) const
+ShaderVariable State::DDX(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
+                          const DXBCBytecode::Operation &op) const
 {
   ShaderVariable ret;
 
@@ -1401,8 +1401,8 @@ ShaderVariable State::DDX(bool fine, State quad[4], const DXBC::ASMOperand &oper
   return ret;
 }
 
-ShaderVariable State::DDY(bool fine, State quad[4], const DXBC::ASMOperand &oper,
-                          const DXBC::ASMOperation &op) const
+ShaderVariable State::DDY(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
+                          const DXBCBytecode::Operation &op) const
 {
   ShaderVariable ret;
 
@@ -1426,7 +1426,7 @@ ShaderVariable State::DDY(bool fine, State quad[4], const DXBC::ASMOperand &oper
   return ret;
 }
 
-ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, bool allowFlushing) const
+ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allowFlushing) const
 {
   ShaderVariable v, s;
 
@@ -1565,9 +1565,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, boo
     {
       int cb = -1;
 
-      for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
+      for(size_t i = 0; i < reflection->CBuffers.size(); i++)
       {
-        if(dxbc->GetReflection()->CBuffers[i].reg == indices[0])
+        if(reflection->CBuffers[i].reg == indices[0])
         {
           cb = (int)i;
           break;
@@ -1599,10 +1599,12 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, boo
     {
       v = s = ShaderVariable("", 0, 0, 0, 0);
 
+      const std::vector<uint32_t> &icb = program->GetImmediateConstantBuffer();
+
       // if this Vec4f is entirely in the ICB
-      if(indices[0] <= dxbc->m_Immediate.size() / 4 - 1)
+      if(indices[0] <= icb.size() / 4 - 1)
       {
-        memcpy(s.value.uv, &dxbc->m_Immediate[indices[0] * 4], sizeof(Vec4f));
+        memcpy(s.value.uv, &icb[indices[0] * 4], sizeof(Vec4f));
       }
       else
       {
@@ -1626,9 +1628,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, boo
     {
       uint32_t numthreads[3] = {0, 0, 0};
 
-      for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+      for(size_t i = 0; i < program->GetNumDeclarations(); i++)
       {
-        const ASMDecl &decl = dxbc->GetDeclaration(i);
+        const Declaration &decl = program->GetDeclaration(i);
 
         if(decl.declaration == OPCODE_DCL_THREAD_GROUP)
         {
@@ -1661,9 +1663,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op, boo
     {
       uint32_t numthreads[3] = {0, 0, 0};
 
-      for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+      for(size_t i = 0; i < program->GetNumDeclarations(); i++)
       {
-        const ASMDecl &decl = dxbc->GetDeclaration(i);
+        const Declaration &decl = program->GetDeclaration(i);
 
         if(decl.declaration == OPCODE_DCL_THREAD_GROUP)
         {
@@ -1761,10 +1763,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
   s.modified.clear();
 
-  if(s.nextInstruction >= s.dxbc->GetNumInstructions())
+  if(s.nextInstruction >= s.program->GetNumInstructions())
     return s;
 
-  const ASMOperation &op = s.dxbc->GetInstruction((size_t)s.nextInstruction);
+  const Operation &op = s.program->GetInstruction((size_t)s.nextInstruction);
 
   apiWrapper->SetCurrentInstruction(s.nextInstruction);
   s.nextInstruction++;
@@ -1772,13 +1774,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
   std::vector<ShaderVariable> srcOpers;
 
-  size_t numOperands = s.dxbc->NumOperands(op.operation);
-
   VarType optype = OperationType(op.operation);
 
-  RDCASSERT(op.operands.size() == numOperands);
-
-  for(size_t i = 1; i < numOperands; i++)
+  for(size_t i = 1; i < op.operands.size(); i++)
     srcOpers.push_back(GetSrc(op.operands[i], op));
 
   switch(op.operation)
@@ -2737,7 +2735,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
     case OPCODE_IMM_ATOMIC_UMAX:
     case OPCODE_IMM_ATOMIC_UMIN:
     {
-      ASMOperand beforeResult;
+      Operand beforeResult;
       uint32_t resIndex = 0;
       ShaderVariable *dstAddress = NULL;
       ShaderVariable *src0 = NULL;
@@ -2799,9 +2797,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         numElems = global.uavs[resIndex].numElements;
         data = &global.uavs[resIndex].data[0];
 
-        for(size_t i = 0; i < s.dxbc->GetNumDeclarations(); i++)
+        for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
         {
-          const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+          const DXBCBytecode::Declaration &decl = program->GetDeclaration(i);
 
           if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
              decl.operand.indices[0].index == resIndex)
@@ -2945,9 +2943,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           }
           else if(!gsm)
           {
-            for(size_t i = 0; i < s.dxbc->GetNumDeclarations(); i++)
+            for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
             {
-              const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+              const DXBCBytecode::Declaration &decl = program->GetDeclaration(i);
 
               if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW && !srv &&
                  decl.operand.indices[0].index == resIndex &&
@@ -3416,9 +3414,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // search for the declaration
         if(dim == 0)
         {
-          for(size_t i = 0; i < s.dxbc->GetNumDeclarations(); i++)
+          for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
           {
-            const DXBC::ASMDecl &decl = s.dxbc->GetDeclaration(i);
+            const DXBCBytecode::Declaration &decl = s.program->GetDeclaration(i);
 
             if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
                decl.operand.indices.size() == 1 &&
@@ -3528,12 +3526,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       SamplerMode samplerMode = NUM_SAMPLERS;
       ResourceDimension resourceDim = RESOURCE_DIMENSION_UNKNOWN;
-      ResourceRetType resourceRetType = RETURN_TYPE_UNKNOWN;
+      DXBC::ResourceRetType resourceRetType = DXBC::RETURN_TYPE_UNKNOWN;
       int sampleCount = 0;
 
-      for(size_t i = 0; i < dxbc->GetNumDeclarations(); i++)
+      for(size_t i = 0; i < program->GetNumDeclarations(); i++)
       {
-        const ASMDecl &decl = dxbc->GetDeclaration(i);
+        const Declaration &decl = program->GetDeclaration(i);
 
         if(decl.declaration == OPCODE_DCL_SAMPLER && op.operands.size() > 3 &&
            decl.operand.indices == op.operands[3].indices)
@@ -3599,9 +3597,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           // shouldn't matter though is it just comes out in the wash.
           RDCASSERT(decl.resType[0] == decl.resType[1] && decl.resType[1] == decl.resType[2] &&
                     decl.resType[2] == decl.resType[3]);
-          RDCASSERT(decl.resType[0] != RETURN_TYPE_CONTINUED &&
-                    decl.resType[0] != RETURN_TYPE_UNUSED && decl.resType[0] != RETURN_TYPE_MIXED &&
-                    decl.resType[0] >= 0 && decl.resType[0] < NUM_RETURN_TYPES);
+          RDCASSERT(decl.resType[0] != DXBC::RETURN_TYPE_CONTINUED &&
+                    decl.resType[0] != DXBC::RETURN_TYPE_UNUSED &&
+                    decl.resType[0] != DXBC::RETURN_TYPE_MIXED && decl.resType[0] >= 0 &&
+                    decl.resType[0] < DXBC::NUM_RETURN_TYPES);
         }
       }
 
@@ -3650,7 +3649,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       for(size_t i = 0; i < op.operands.size(); i++)
       {
-        const ASMOperand &operand = op.operands[i];
+        const Operand &operand = op.operands[i];
         if(operand.type == OperandType::TYPE_SAMPLER)
           samplerSlot = (UINT)operand.indices[0].index;
       }
@@ -3727,9 +3726,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       uint32_t search = s.nextInstruction;
 
-      for(; search < (uint32_t)dxbc->GetNumInstructions(); search++)
+      for(; search < (uint32_t)program->GetNumInstructions(); search++)
       {
-        const ASMOperation &nextOp = s.dxbc->GetInstruction((size_t)search);
+        const Operation &nextOp = s.program->GetInstruction((size_t)search);
 
         // track nested switch statements to ensure we don't accidentally pick the case from a
         // different switch
@@ -3778,9 +3777,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // skip straight past any case or default labels as we don't want to step to them, we want
         // next instruction to point
         // at the next excutable instruction (which might be a break if we're doing nothing)
-        for(; jumpLocation < (uint32_t)dxbc->GetNumInstructions(); jumpLocation++)
+        for(; jumpLocation < (uint32_t)program->GetNumInstructions(); jumpLocation++)
         {
-          const ASMOperation &nextOp = s.dxbc->GetInstruction(jumpLocation);
+          const Operation &nextOp = s.program->GetInstruction(jumpLocation);
 
           if(nextOp.operation != OPCODE_CASE && nextOp.operation != OPCODE_DEFAULT)
             break;
@@ -3818,9 +3817,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
         for(; s.nextInstruction >= 0; s.nextInstruction--)
         {
-          if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP)
+          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP)
             depth++;
-          if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_LOOP)
+          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_LOOP)
             depth--;
 
           if(depth == 0)
@@ -3844,13 +3843,13 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // break out (jump to next endloop/endswitch)
         int depth = 1;
 
-        for(; s.nextInstruction < (int)dxbc->GetNumInstructions(); s.nextInstruction++)
+        for(; s.nextInstruction < (int)program->GetNumInstructions(); s.nextInstruction++)
         {
-          if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_LOOP ||
-             s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_SWITCH)
+          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_LOOP ||
+             s.program->GetInstruction(s.nextInstruction).operation == OPCODE_SWITCH)
             depth++;
-          if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP ||
-             s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDSWITCH)
+          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP ||
+             s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDSWITCH)
             depth--;
 
           if(depth == 0)
@@ -3859,8 +3858,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           }
         }
 
-        RDCASSERT(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP ||
-                  s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDSWITCH);
+        RDCASSERT(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP ||
+                  s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDSWITCH);
 
         // don't want to process the endloop and jump again!
         s.nextInstruction++;
@@ -3884,14 +3883,14 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // skip back one to the if that we're processing
         s.nextInstruction--;
 
-        for(; s.nextInstruction < (int)dxbc->GetNumInstructions(); s.nextInstruction++)
+        for(; s.nextInstruction < (int)program->GetNumInstructions(); s.nextInstruction++)
         {
-          if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_IF)
+          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_IF)
             depth++;
           // only step out on an else if it's the matching depth to our starting if (depth == 1)
-          if(depth == 1 && s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ELSE)
+          if(depth == 1 && s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ELSE)
             depth--;
-          if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF)
+          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF)
             depth--;
 
           if(depth == 0)
@@ -3900,8 +3899,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           }
         }
 
-        RDCASSERT(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ELSE ||
-                  s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
+        RDCASSERT(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ELSE ||
+                  s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
 
         // step to next instruction after the else/endif (processing an else would skip that block)
         s.nextInstruction++;
@@ -3915,11 +3914,11 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       // next endif)
       int depth = 1;
 
-      for(; s.nextInstruction < (int)dxbc->GetNumInstructions(); s.nextInstruction++)
+      for(; s.nextInstruction < (int)program->GetNumInstructions(); s.nextInstruction++)
       {
-        if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_IF)
+        if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_IF)
           depth++;
-        if(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF)
+        if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF)
           depth--;
 
         if(depth == 0)
@@ -3928,7 +3927,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         }
       }
 
-      RDCASSERT(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
+      RDCASSERT(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
 
       // step to next instruction after the else/endif (for consistency with handling in the if
       // block)
@@ -3981,7 +3980,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
 using namespace ShaderDebug;
 
-TEST_CASE("DXBC debugging helpers", "[dxbc]")
+TEST_CASE("DXBC debugging helpers", "[program]")
 {
   const float posinf = std::numeric_limits<float>::infinity();
   const float neginf = -std::numeric_limits<float>::infinity();

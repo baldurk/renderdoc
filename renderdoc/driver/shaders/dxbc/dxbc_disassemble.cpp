@@ -23,15 +23,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "dxbc_disassemble.h"
 #include <math.h>
 #include "common/common.h"
 #include "core/core.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
+#include "dxbc_bytecode.h"
+
 #include "dxbc_container.h"
 
-namespace DXBC
+namespace DXBCBytecode
 {
 // little utility function to both document and easily extract an arbitrary mask
 // out of the tokens. Makes the assumption that we always take some masked off
@@ -127,7 +128,7 @@ static MaskedElement<bool, 0x00800000> HasOrderPreservingCounter;
 
 // Declarations are Opcode tokens, but with their own particular definitions
 // of most of the bits (aside from the generice type/length/extended bits above)
-namespace Declaration
+namespace Decl
 {
 // OPCODE_DCL_GLOBAL_FLAGS
 static MaskedElement<bool, 0x00000800> RefactoringAllowed;
@@ -150,10 +151,10 @@ static MaskedElement<SamplerMode, 0x00007800> SamplerMode;
 static MaskedElement<ResourceDimension, 0x0000F800> ResourceDim;
 static MaskedElement<uint32_t, 0x007F0000> SampleCount;
 // below come in a second token (ResourceReturnTypeToken). See extract functions below
-static MaskedElement<ResourceRetType, 0x0000000F> ReturnTypeX;
-static MaskedElement<ResourceRetType, 0x000000F0> ReturnTypeY;
-static MaskedElement<ResourceRetType, 0x00000F00> ReturnTypeZ;
-static MaskedElement<ResourceRetType, 0x0000F000> ReturnTypeW;
+static MaskedElement<DXBC::ResourceRetType, 0x0000000F> ReturnTypeX;
+static MaskedElement<DXBC::ResourceRetType, 0x000000F0> ReturnTypeY;
+static MaskedElement<DXBC::ResourceRetType, 0x00000F00> ReturnTypeZ;
+static MaskedElement<DXBC::ResourceRetType, 0x0000F000> ReturnTypeW;
 
 // OPCODE_DCL_INPUT_PS
 static MaskedElement<InterpolationMode, 0x00007800> InterpolationMode;
@@ -201,13 +202,13 @@ static MaskedElement<ResourceDimension, 0x000007C0> ResourceDim;
 static MaskedElement<uint32_t, 0x007FF800> BufferStride;
 
 // OPCODE_EX_RESOURCE_RETURN_TYPE
-static MaskedElement<ResourceRetType, 0x000003C0> ReturnTypeX;
-static MaskedElement<ResourceRetType, 0x00003C00> ReturnTypeY;
-static MaskedElement<ResourceRetType, 0x0003C000> ReturnTypeZ;
-static MaskedElement<ResourceRetType, 0x003C0000> ReturnTypeW;
+static MaskedElement<DXBC::ResourceRetType, 0x000003C0> ReturnTypeX;
+static MaskedElement<DXBC::ResourceRetType, 0x00003C00> ReturnTypeY;
+static MaskedElement<DXBC::ResourceRetType, 0x0003C000> ReturnTypeZ;
+static MaskedElement<DXBC::ResourceRetType, 0x003C0000> ReturnTypeW;
 };    // ExtendedOpcode
 
-namespace Operand
+namespace Oper
 {
 static MaskedElement<NumOperandComponents, 0x00000003> NumComponents;
 static MaskedElement<SelectionMode, 0x0000000C> SelectionMode;
@@ -248,15 +249,17 @@ static MaskedElement<MinimumPrecision, 0x0001C000> MinPrecision;
 static MaskedElement<bool, 0x00020000> NonUniform;
 };
 
+size_t NumOperands(OpcodeType op);
 std::string toString(const uint32_t values[], uint32_t numComps);
 char *toString(OpcodeType op);
 char *toString(ResourceDimension dim);
-char *toString(ResourceRetType type);
+char *toString(DXBC::ResourceRetType type);
 char *toString(ResinfoRetType type);
 char *toString(InterpolationMode type);
-char *SystemValueToString(SVSemantic type);
+char *SystemValueToString(DXBC::SVSemantic type);
+bool IsDeclaration(OpcodeType op);
 
-bool ASMOperand::operator==(const ASMOperand &o) const
+bool Operand::operator==(const Operand &o) const
 {
   if(type != o.type)
     return false;
@@ -281,7 +284,7 @@ bool ASMOperand::operator==(const ASMOperand &o) const
   return true;
 }
 
-void DXBCContainer::FetchTypeVersion()
+void Program::FetchTypeVersion()
 {
   if(m_HexDump.empty())
     return;
@@ -290,11 +293,11 @@ void DXBCContainer::FetchTypeVersion()
   uint32_t *cur = begin;
 
   m_Type = VersionToken::ProgramType.Get(cur[0]);
-  m_Version.Major = VersionToken::MajorVersion.Get(cur[0]);
-  m_Version.Minor = VersionToken::MinorVersion.Get(cur[0]);
+  m_Major = VersionToken::MajorVersion.Get(cur[0]);
+  m_Minor = VersionToken::MinorVersion.Get(cur[0]);
 }
 
-void DXBCContainer::FetchComputeProperties()
+void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 {
   if(m_HexDump.empty())
     return;
@@ -317,13 +320,13 @@ void DXBCContainer::FetchComputeProperties()
 
     if(op == OPCODE_DCL_THREAD_GROUP)
     {
-      m_Reflection->DispatchThreadsDimension[0] = cur[1];
-      m_Reflection->DispatchThreadsDimension[1] = cur[2];
-      m_Reflection->DispatchThreadsDimension[2] = cur[3];
+      reflection->DispatchThreadsDimension[0] = cur[1];
+      reflection->DispatchThreadsDimension[1] = cur[2];
+      reflection->DispatchThreadsDimension[2] = cur[3];
     }
     else if(op == OPCODE_DCL_INPUT)
     {
-      OperandType type = Operand::Type.Get(cur[1]);
+      OperandType type = Oper::Type.Get(cur[1]);
 
       SigParameter param;
 
@@ -337,28 +340,28 @@ void DXBCContainer::FetchComputeProperties()
           param.compCount = 3;
           param.regChannelMask = param.channelUsedMask = 0x7;
           param.semanticIdxName = param.semanticName = "vThreadID";
-          m_Reflection->InputSig.push_back(param);
+          reflection->InputSig.push_back(param);
           break;
         case TYPE_INPUT_THREAD_GROUP_ID:
           param.systemValue = ShaderBuiltin::GroupIndex;
           param.compCount = 3;
           param.regChannelMask = param.channelUsedMask = 0x7;
           param.semanticIdxName = param.semanticName = "vThreadGroupID";
-          m_Reflection->InputSig.push_back(param);
+          reflection->InputSig.push_back(param);
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP:
           param.systemValue = ShaderBuiltin::GroupThreadIndex;
           param.compCount = 3;
           param.regChannelMask = param.channelUsedMask = 0x7;
           param.semanticIdxName = param.semanticName = "vThreadIDInGroup";
-          m_Reflection->InputSig.push_back(param);
+          reflection->InputSig.push_back(param);
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
           param.systemValue = ShaderBuiltin::GroupFlatIndex;
           param.compCount = 1;
           param.regChannelMask = param.channelUsedMask = 0x1;
           param.semanticIdxName = param.semanticName = "vThreadIDInGroupFlattened";
-          m_Reflection->InputSig.push_back(param);
+          reflection->InputSig.push_back(param);
           break;
       }
     }
@@ -375,7 +378,7 @@ void DXBCContainer::FetchComputeProperties()
   }
 }
 
-void DXBCContainer::DisassembleHexDump()
+void Program::DisassembleHexDump()
 {
   if(m_Disassembled)
     return;
@@ -390,12 +393,10 @@ void DXBCContainer::DisassembleHexDump()
   uint32_t *end = &m_HexDump.back();
 
   // check supported types
-  if(!(m_Version.Major == 0x5 && m_Version.Minor == 0x1) &&
-     !(m_Version.Major == 0x5 && m_Version.Minor == 0x0) &&
-     !(m_Version.Major == 0x4 && m_Version.Minor == 0x1) &&
-     !(m_Version.Major == 0x4 && m_Version.Minor == 0x0))
+  if(!(m_Major == 0x5 && m_Minor == 0x1) && !(m_Major == 0x5 && m_Minor == 0x0) &&
+     !(m_Major == 0x4 && m_Minor == 0x1) && !(m_Major == 0x4 && m_Minor == 0x0))
   {
-    RDCERR("Unsupported shader bytecode version: %u.%u", m_Version.Major, m_Version.Minor);
+    RDCERR("Unsupported shader bytecode version: %u.%u", m_Major, m_Minor);
     return;
   }
 
@@ -433,8 +434,8 @@ void DXBCContainer::DisassembleHexDump()
 
   while(cur < end)
   {
-    ASMOperation op;
-    ASMDecl decl;
+    Operation op;
+    Declaration decl;
 
     uintptr_t offset = cur - begin;
 
@@ -461,7 +462,7 @@ void DXBCContainer::DisassembleHexDump()
 
   RDCASSERT(m_Declarations.size() <= numDecls);
 
-  ASMOperation implicitRet;
+  Operation implicitRet;
   implicitRet.length = 1;
   implicitRet.offset = (end - begin) * sizeof(uint32_t);
   implicitRet.operation = OPCODE_RET;
@@ -470,15 +471,9 @@ void DXBCContainer::DisassembleHexDump()
   m_Instructions.push_back(implicitRet);
 }
 
-void DXBCContainer::MakeDisassemblyString()
+void Program::MakeDisassemblyString()
 {
   DisassembleHexDump();
-
-  uint32_t *hash =
-      (uint32_t *)&m_ShaderBlob[4];    // hash is 4 uints, starting after the FOURCC of 'DXBC'
-
-  m_Disassembly =
-      StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n", hash[0], hash[1], hash[2], hash[3]);
 
   if(m_HexDump.empty())
   {
@@ -497,7 +492,7 @@ void DXBCContainer::MakeDisassemblyString()
     default: RDCERR("Unknown shader type: %u", m_Type); break;
   }
 
-  m_Disassembly += StringFormat::Fmt("%d_%d\n", m_Version.Major, m_Version.Minor);
+  m_Disassembly += StringFormat::Fmt("%d_%d\n", m_Major, m_Minor);
 
   int indent = 0;
 
@@ -633,61 +628,48 @@ void DXBCContainer::MakeDisassemblyString()
   }
 }
 
-bool DXBCContainer::IsDeclaration(OpcodeType op)
-{
-  // isDecl means not a real instruction, just a declaration type token
-  bool isDecl = false;
-  isDecl = isDecl || (op >= OPCODE_DCL_RESOURCE && op <= OPCODE_DCL_GLOBAL_FLAGS);
-  isDecl = isDecl || (op >= OPCODE_DCL_STREAM && op <= OPCODE_DCL_RESOURCE_STRUCTURED);
-  isDecl = isDecl || (op == OPCODE_DCL_GS_INSTANCE_COUNT);
-  isDecl = isDecl || (op == OPCODE_HS_DECLS);
-  isDecl = isDecl || (op == OPCODE_CUSTOMDATA);
-
-  return isDecl;
-}
-
-bool DXBCContainer::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOperand &retOper)
+bool Program::ExtractOperand(uint32_t *&tokenStream, ToString flags, Operand &retOper)
 {
   uint32_t OperandToken0 = tokenStream[0];
 
-  retOper.type = Operand::Type.Get(OperandToken0);
-  retOper.numComponents = Operand::NumComponents.Get(OperandToken0);
+  retOper.type = Oper::Type.Get(OperandToken0);
+  retOper.numComponents = Oper::NumComponents.Get(OperandToken0);
 
-  SelectionMode selMode = Operand::SelectionMode.Get(OperandToken0);
+  SelectionMode selMode = Oper::SelectionMode.Get(OperandToken0);
 
   if(selMode == SELECTION_MASK)
   {
     int i = 0;
 
-    if(Operand::ComponentMaskX.Get(OperandToken0))
+    if(Oper::ComponentMaskX.Get(OperandToken0))
       retOper.comps[i++] = 0;
-    if(Operand::ComponentMaskY.Get(OperandToken0))
+    if(Oper::ComponentMaskY.Get(OperandToken0))
       retOper.comps[i++] = 1;
-    if(Operand::ComponentMaskZ.Get(OperandToken0))
+    if(Oper::ComponentMaskZ.Get(OperandToken0))
       retOper.comps[i++] = 2;
-    if(Operand::ComponentMaskW.Get(OperandToken0))
+    if(Oper::ComponentMaskW.Get(OperandToken0))
       retOper.comps[i++] = 3;
   }
   else if(selMode == SELECTION_SWIZZLE)
   {
-    retOper.comps[0] = Operand::ComponentSwizzleX.Get(OperandToken0);
-    retOper.comps[1] = Operand::ComponentSwizzleY.Get(OperandToken0);
-    retOper.comps[2] = Operand::ComponentSwizzleZ.Get(OperandToken0);
-    retOper.comps[3] = Operand::ComponentSwizzleW.Get(OperandToken0);
+    retOper.comps[0] = Oper::ComponentSwizzleX.Get(OperandToken0);
+    retOper.comps[1] = Oper::ComponentSwizzleY.Get(OperandToken0);
+    retOper.comps[2] = Oper::ComponentSwizzleZ.Get(OperandToken0);
+    retOper.comps[3] = Oper::ComponentSwizzleW.Get(OperandToken0);
   }
   else if(selMode == SELECTION_SELECT_1)
   {
-    retOper.comps[0] = Operand::ComponentSel1.Get(OperandToken0);
+    retOper.comps[0] = Oper::ComponentSel1.Get(OperandToken0);
   }
 
-  uint32_t indexDim = Operand::IndexDimension.Get(OperandToken0);
+  uint32_t indexDim = Oper::IndexDimension.Get(OperandToken0);
 
   OperandIndexType rep[] = {
-      Operand::Index0.Get(OperandToken0), Operand::Index1.Get(OperandToken0),
-      Operand::Index2.Get(OperandToken0),
+      Oper::Index0.Get(OperandToken0), Oper::Index1.Get(OperandToken0),
+      Oper::Index2.Get(OperandToken0),
   };
 
-  bool extended = Operand::Extended.Get(OperandToken0);
+  bool extended = Oper::Extended.Get(OperandToken0);
 
   tokenStream++;
 
@@ -770,9 +752,7 @@ bool DXBCContainer::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOp
 
     if(retOper.indices[idx].relative)
       retOper.indices[idx].str =
-          "[" +
-          retOper.indices[idx].operand.toString(m_GuessedResources ? NULL : m_Reflection,
-                                                flags | ToString::ShowSwizzle) +
+          "[" + retOper.indices[idx].operand.toString(m_Reflection, flags | ToString::ShowSwizzle) +
           " + ";
 
     if(retOper.indices[idx].absolute)
@@ -810,11 +790,11 @@ bool DXBCContainer::ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOp
   return true;
 }
 
-const CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t maxOffset,
-                                      const std::vector<CBufferVariable> &variables,
-                                      uint32_t &byteOffset, std::string &prefix)
+const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t maxOffset,
+                                            const std::vector<DXBC::CBufferVariable> &variables,
+                                            uint32_t &byteOffset, std::string &prefix)
 {
-  for(const CBufferVariable &v : variables)
+  for(const DXBC::CBufferVariable &v : variables)
   {
     // absolute byte offset of this variable in the cbuffer
     const uint32_t voffs = byteOffset + v.descriptor.offset;
@@ -840,7 +820,7 @@ const CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t m
   return NULL;
 }
 
-std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString flags) const
+std::string Operand::toString(const DXBC::Reflection *reflection, ToString flags) const
 {
   std::string str, regstr;
 
@@ -896,7 +876,7 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
       {
         uint32_t idx = (uint32_t)indices[0].index;
 
-        const std::vector<ShaderInputBind> *list = NULL;
+        const std::vector<DXBC::ShaderInputBind> *list = NULL;
 
         if(type == TYPE_RESOURCE)
           list = &reflection->SRVs;
@@ -907,7 +887,7 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
 
         if(list)
         {
-          for(const ShaderInputBind &b : *list)
+          for(const DXBC::ShaderInputBind &b : *list)
           {
             if(b.reg != idx || b.space != 0)
               continue;
@@ -1055,9 +1035,9 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
 
       if(friendly && reflection && indices[0].absolute)
       {
-        const CBuffer *cbuffer = NULL;
+        const DXBC::CBuffer *cbuffer = NULL;
 
-        for(const CBuffer &cb : reflection->CBuffers)
+        for(const DXBC::CBuffer &cb : reflection->CBuffers)
         {
           if(cb.space == 0 && cb.reg == uint32_t(indices[0].index))
           {
@@ -1093,7 +1073,7 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
             uint32_t baseOffset = 0;
 
             std::string prefix;
-            const CBufferVariable *var =
+            const DXBC::CBufferVariable *var =
                 FindCBufferVar(minOffset, maxOffset, cbuffer->variables, baseOffset, prefix);
 
             if(var)
@@ -1123,8 +1103,9 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
               }
 
               // or if it's a matrix
-              if((var->type.descriptor.varClass == CLASS_MATRIX_ROWS && var->type.descriptor.cols > 1) ||
-                 (var->type.descriptor.varClass == CLASS_MATRIX_COLUMNS &&
+              if((var->type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS &&
+                  var->type.descriptor.cols > 1) ||
+                 (var->type.descriptor.varClass == DXBC::CLASS_MATRIX_COLUMNS &&
                   var->type.descriptor.rows > 1))
               {
                 str += StringFormat::Fmt("[%u]", varOffset / 16);
@@ -1209,7 +1190,7 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
   {
     RDCASSERT(indices.size() == 0);
 
-    str = "l(" + DXBC::toString(values, numComponents == NUMCOMPS_1 ? 1U : 4U) + ")";
+    str = "l(" + DXBCBytecode::toString(values, numComponents == NUMCOMPS_1 ? 1U : 4U) + ")";
   }
   else if(type == TYPE_IMMEDIATE64)
   {
@@ -1290,7 +1271,7 @@ std::string ASMOperand::toString(const DXBC::Reflection *reflection, ToString fl
   return str;
 }
 
-bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool friendlyName)
+bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool friendlyName)
 {
   uint32_t *begin = tokenStream;
   uint32_t OpcodeToken0 = tokenStream[0];
@@ -1298,7 +1279,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   ToString flags = friendlyName ? ToString::FriendlyNameRegisters : ToString::None;
   flags = flags | ToString::IsDecl;
 
-  const bool sm51 = (m_Version.Major == 0x5 && m_Version.Minor == 0x1);
+  const bool sm51 = (m_Major == 0x5 && m_Minor == 0x1);
 
   OpcodeType op = Opcode::Type.Get(OpcodeToken0);
 
@@ -1392,18 +1373,15 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
 
   if(op == OPCODE_DCL_GLOBAL_FLAGS)
   {
-    retDecl.refactoringAllowed = Declaration::RefactoringAllowed.Get(OpcodeToken0);
-    retDecl.doublePrecisionFloats = Declaration::DoubleFloatOps.Get(OpcodeToken0);
-    retDecl.forceEarlyDepthStencil = Declaration::ForceEarlyDepthStencil.Get(OpcodeToken0);
-    retDecl.enableRawAndStructuredBuffers = Declaration::EnableRawStructuredBufs.Get(OpcodeToken0);
-    retDecl.skipOptimisation = Declaration::SkipOptimisation.Get(OpcodeToken0);
-    retDecl.enableMinPrecision = Declaration::EnableMinPrecision.Get(OpcodeToken0);
-    retDecl.enableD3D11_1DoubleExtensions =
-        Declaration::EnableD3D11_1DoubleExtensions.Get(OpcodeToken0);
-    retDecl.enableD3D11_1ShaderExtensions =
-        Declaration::EnableD3D11_1ShaderExtensions.Get(OpcodeToken0);
-    retDecl.enableD3D12AllResourcesBound =
-        Declaration::EnableD3D12AllResourcesBound.Get(OpcodeToken0);
+    retDecl.refactoringAllowed = Decl::RefactoringAllowed.Get(OpcodeToken0);
+    retDecl.doublePrecisionFloats = Decl::DoubleFloatOps.Get(OpcodeToken0);
+    retDecl.forceEarlyDepthStencil = Decl::ForceEarlyDepthStencil.Get(OpcodeToken0);
+    retDecl.enableRawAndStructuredBuffers = Decl::EnableRawStructuredBufs.Get(OpcodeToken0);
+    retDecl.skipOptimisation = Decl::SkipOptimisation.Get(OpcodeToken0);
+    retDecl.enableMinPrecision = Decl::EnableMinPrecision.Get(OpcodeToken0);
+    retDecl.enableD3D11_1DoubleExtensions = Decl::EnableD3D11_1DoubleExtensions.Get(OpcodeToken0);
+    retDecl.enableD3D11_1ShaderExtensions = Decl::EnableD3D11_1ShaderExtensions.Get(OpcodeToken0);
+    retDecl.enableD3D12AllResourcesBound = Decl::EnableD3D12AllResourcesBound.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
@@ -1473,13 +1451,13 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_CONSTANT_BUFFER)
   {
-    CBufferAccessPattern accessPattern = Declaration::AccessPattern.Get(OpcodeToken0);
+    CBufferAccessPattern accessPattern = Decl::AccessPattern.Get(OpcodeToken0);
 
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
     if(sm51)
     {
       uint32_t float4size = tokenStream[0];
@@ -1521,8 +1499,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
-                                            flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_TEMPS)
   {
@@ -1561,8 +1538,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
-                                            flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT)
   {
@@ -1583,12 +1559,11 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.systemValue = (SVSemantic)tokenStream[0];
+    retDecl.systemValue = (DXBC::SVSemantic)tokenStream[0];
     tokenStream++;
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
-                                            flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
 
     retDecl.str += ", ";
     retDecl.str += SystemValueToString(retDecl.systemValue);
@@ -1599,17 +1574,17 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
   }
   else if(op == OPCODE_DCL_SAMPLER)
   {
-    retDecl.samplerMode = Declaration::SamplerMode.Get(OpcodeToken0);
+    retDecl.samplerMode = Decl::SamplerMode.Get(OpcodeToken0);
 
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
 
     retDecl.str += ", ";
     if(retDecl.samplerMode == SAMPLER_MODE_DEFAULT)
@@ -1636,13 +1611,13 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_RESOURCE)
   {
-    retDecl.dim = Declaration::ResourceDim.Get(OpcodeToken0);
+    retDecl.dim = Decl::ResourceDim.Get(OpcodeToken0);
 
     retDecl.sampleCount = 0;
     if(retDecl.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
        retDecl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
     {
-      retDecl.sampleCount = Declaration::SampleCount.Get(OpcodeToken0);
+      retDecl.sampleCount = Decl::SampleCount.Get(OpcodeToken0);
     }
 
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
@@ -1651,10 +1626,10 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     uint32_t ResourceReturnTypeToken = tokenStream[0];
     tokenStream++;
 
-    retDecl.resType[0] = Declaration::ReturnTypeX.Get(ResourceReturnTypeToken);
-    retDecl.resType[1] = Declaration::ReturnTypeY.Get(ResourceReturnTypeToken);
-    retDecl.resType[2] = Declaration::ReturnTypeZ.Get(ResourceReturnTypeToken);
-    retDecl.resType[3] = Declaration::ReturnTypeW.Get(ResourceReturnTypeToken);
+    retDecl.resType[0] = Decl::ReturnTypeX.Get(ResourceReturnTypeToken);
+    retDecl.resType[1] = Decl::ReturnTypeY.Get(ResourceReturnTypeToken);
+    retDecl.resType[2] = Decl::ReturnTypeZ.Get(ResourceReturnTypeToken);
+    retDecl.resType[3] = Decl::ReturnTypeW.Get(ResourceReturnTypeToken);
 
     retDecl.str += "_";
     retDecl.str += toString(retDecl.dim);
@@ -1670,7 +1645,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.str += toString(retDecl.resType[3]);
     retDecl.str += ")";
 
-    retDecl.str += " " + retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += " " + retDecl.operand.toString(m_Reflection, flags);
 
     retDecl.space = 0;
 
@@ -1689,7 +1664,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_INPUT_PS)
   {
-    retDecl.interpolation = Declaration::InterpolationMode.Get(OpcodeToken0);
+    retDecl.interpolation = Decl::InterpolationMode.Get(OpcodeToken0);
 
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
@@ -1698,8 +1673,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.str += toString(retDecl.interpolation);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
-                                            flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_INDEX_RANGE)
   {
@@ -1707,8 +1681,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection,
-                                            flags | ToString::ShowSwizzle);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
 
     retDecl.indexRange = tokenStream[0];
     tokenStream++;
@@ -1730,7 +1703,6 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
 
     retDecl.groupSize[2] = tokenStream[0];
     tokenStream++;
-
     char buf[64] = {0};
     StringFormat::snprintf(buf, 63, "%u", retDecl.groupSize[0]);
     retDecl.str += buf;
@@ -1753,7 +1725,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.count = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
     retDecl.str += ", ";
 
     char buf[64] = {0};
@@ -1773,7 +1745,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.count = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
     retDecl.str += ", ";
 
     char buf[64] = {0};
@@ -1788,7 +1760,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   {
     retDecl.str += " ";
 
-    retDecl.controlPointCount = Declaration::ControlPointCount.Get(OpcodeToken0);
+    retDecl.controlPointCount = Decl::ControlPointCount.Get(OpcodeToken0);
 
     char buf[64] = {0};
     StringFormat::snprintf(buf, 63, "%u", retDecl.controlPointCount);
@@ -1796,7 +1768,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_TESS_DOMAIN)
   {
-    retDecl.domain = Declaration::TessDomain.Get(OpcodeToken0);
+    retDecl.domain = Decl::TessDomain.Get(OpcodeToken0);
 
     retDecl.str += " ";
     if(retDecl.domain == DOMAIN_ISOLINE)
@@ -1810,7 +1782,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_TESS_PARTITIONING)
   {
-    retDecl.partition = Declaration::TessPartitioning.Get(OpcodeToken0);
+    retDecl.partition = Decl::TessPartitioning.Get(OpcodeToken0);
 
     retDecl.str += " ";
     if(retDecl.partition == PARTITIONING_INTEGER)
@@ -1826,7 +1798,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_GS_INPUT_PRIMITIVE)
   {
-    retDecl.inPrim = Declaration::InputPrimitive.Get(OpcodeToken0);
+    retDecl.inPrim = Decl::InputPrimitive.Get(OpcodeToken0);
 
     retDecl.str += " ";
     if(retDecl.inPrim == PRIMITIVE_POINT)
@@ -1853,7 +1825,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
   {
-    retDecl.outTopology = Declaration::OutputPrimitiveTopology.Get(OpcodeToken0);
+    retDecl.outTopology = Decl::OutputPrimitiveTopology.Get(OpcodeToken0);
 
     retDecl.str += " ";
     if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_POINTLIST)
@@ -1879,7 +1851,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_TESS_OUTPUT_PRIMITIVE)
   {
-    retDecl.outPrim = Declaration::OutputPrimitive.Get(OpcodeToken0);
+    retDecl.outPrim = Decl::OutputPrimitive.Get(OpcodeToken0);
 
     retDecl.str += " ";
     if(retDecl.outPrim == OUTPUT_PRIMITIVE_POINT)
@@ -1896,17 +1868,17 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW || op == OPCODE_DCL_RESOURCE_RAW)
   {
     retDecl.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) &&
-                  Declaration::RasterizerOrderedAccess.Get(OpcodeToken0);
+                  Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
 
-    retDecl.globallyCoherant = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) &
-                               Declaration::GloballyCoherent.Get(OpcodeToken0);
+    retDecl.globallyCoherant =
+        (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) & Decl::GloballyCoherent.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
 
     if(retDecl.globallyCoherant)
       retDecl.str += ", globallyCoherant";
@@ -1935,10 +1907,10 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
                          Opcode::HasOrderPreservingCounter.Get(OpcodeToken0);
 
     retDecl.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
-                  Declaration::RasterizerOrderedAccess.Get(OpcodeToken0);
+                  Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
 
     retDecl.globallyCoherant = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &
-                               Declaration::GloballyCoherent.Get(OpcodeToken0);
+                               Decl::GloballyCoherent.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
@@ -1948,7 +1920,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     retDecl.stride = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
     retDecl.str += ", ";
 
     char buf[64] = {0};
@@ -1981,11 +1953,11 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED)
   {
-    retDecl.dim = Declaration::ResourceDim.Get(OpcodeToken0);
+    retDecl.dim = Decl::ResourceDim.Get(OpcodeToken0);
 
-    retDecl.globallyCoherant = Declaration::GloballyCoherent.Get(OpcodeToken0);
+    retDecl.globallyCoherant = Decl::GloballyCoherent.Get(OpcodeToken0);
 
-    retDecl.rov = Declaration::RasterizerOrderedAccess.Get(OpcodeToken0);
+    retDecl.rov = Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
 
     retDecl.str += "_";
     retDecl.str += toString(retDecl.dim);
@@ -1999,10 +1971,10 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     uint32_t ResourceReturnTypeToken = tokenStream[0];
     tokenStream++;
 
-    retDecl.resType[0] = Declaration::ReturnTypeX.Get(ResourceReturnTypeToken);
-    retDecl.resType[1] = Declaration::ReturnTypeY.Get(ResourceReturnTypeToken);
-    retDecl.resType[2] = Declaration::ReturnTypeZ.Get(ResourceReturnTypeToken);
-    retDecl.resType[3] = Declaration::ReturnTypeW.Get(ResourceReturnTypeToken);
+    retDecl.resType[0] = Decl::ReturnTypeX.Get(ResourceReturnTypeToken);
+    retDecl.resType[1] = Decl::ReturnTypeY.Get(ResourceReturnTypeToken);
+    retDecl.resType[2] = Decl::ReturnTypeZ.Get(ResourceReturnTypeToken);
+    retDecl.resType[3] = Decl::ReturnTypeW.Get(ResourceReturnTypeToken);
 
     retDecl.str += " ";
 
@@ -2018,7 +1990,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
 
     retDecl.str += " ";
 
-    retDecl.str += retDecl.operand.toString(m_GuessedResources ? NULL : m_Reflection, flags);
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags);
 
     if(retDecl.rov)
       retDecl.str += ", rasterizerOrderedAccess";
@@ -2114,8 +2086,8 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
     uint32_t CountToken = tokenStream[0];
     tokenStream++;
 
-    retDecl.numInterfaces = Declaration::NumInterfaces.Get(CountToken);
-    uint32_t TableLength = Declaration::TableLength.Get(CountToken);
+    retDecl.numInterfaces = Decl::NumInterfaces.Get(CountToken);
+    uint32_t TableLength = Decl::TableLength.Get(CountToken);
 
     retDecl.str += " ";
 
@@ -2153,7 +2125,7 @@ bool DXBCContainer::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool f
   return true;
 }
 
-bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, bool friendlyName)
+bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool friendlyName)
 {
   uint32_t *begin = tokenStream;
   uint32_t OpcodeToken0 = tokenStream[0];
@@ -2217,8 +2189,7 @@ bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp
         for(uint32_t i = 0; i < retOp.operands.size(); i++)
         {
           retOp.str += ", ";
-          retOp.str += retOp.operands[i].toString(m_GuessedResources ? NULL : m_Reflection,
-                                                  flags | ToString::ShowSwizzle);
+          retOp.str += retOp.operands[i].toString(m_Reflection, flags | ToString::ShowSwizzle);
         }
 
         tokenStream = end;
@@ -2389,8 +2360,7 @@ bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp
       retOp.str += " ";
     else
       retOp.str += ", ";
-    retOp.str += retOp.operands[i].toString(m_GuessedResources ? NULL : m_Reflection,
-                                            flags | ToString::ShowSwizzle);
+    retOp.str += retOp.operands[i].toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
 
 #if ENABLED(RDOC_DEVEL)
@@ -2433,7 +2403,7 @@ bool DXBCContainer::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp
 
 // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb219840(v=vs.85).aspx
 // for details of these opcodes
-size_t DXBCContainer::NumOperands(OpcodeType op)
+size_t NumOperands(OpcodeType op)
 {
   switch(op)
   {
@@ -2971,19 +2941,19 @@ char *toString(ResourceDimension dim)
   return "";
 }
 
-char *toString(ResourceRetType type)
+char *toString(DXBC::ResourceRetType type)
 {
   switch(type)
   {
-    case RETURN_TYPE_UNORM: return "unorm";
-    case RETURN_TYPE_SNORM: return "snorm";
-    case RETURN_TYPE_SINT: return "sint";
-    case RETURN_TYPE_UINT: return "uint";
-    case RETURN_TYPE_FLOAT: return "float";
-    case RETURN_TYPE_MIXED: return "mixed";
-    case RETURN_TYPE_DOUBLE: return "double";
-    case RETURN_TYPE_CONTINUED: return "continued";
-    case RETURN_TYPE_UNUSED: return "unused";
+    case DXBC::RETURN_TYPE_UNORM: return "unorm";
+    case DXBC::RETURN_TYPE_SNORM: return "snorm";
+    case DXBC::RETURN_TYPE_SINT: return "sint";
+    case DXBC::RETURN_TYPE_UINT: return "uint";
+    case DXBC::RETURN_TYPE_FLOAT: return "float";
+    case DXBC::RETURN_TYPE_MIXED: return "mixed";
+    case DXBC::RETURN_TYPE_DOUBLE: return "double";
+    case DXBC::RETURN_TYPE_CONTINUED: return "continued";
+    case DXBC::RETURN_TYPE_UNUSED: return "unused";
     default: break;
   }
 
@@ -3024,58 +2994,58 @@ char *toString(InterpolationMode interp)
   return "";
 }
 
-char *SystemValueToString(SVSemantic name)
+char *SystemValueToString(DXBC::SVSemantic name)
 {
   switch(name)
   {
-    case SVNAME_POSITION: return "position";
-    case SVNAME_CLIP_DISTANCE: return "clipdistance";
-    case SVNAME_CULL_DISTANCE: return "culldistance";
-    case SVNAME_RENDER_TARGET_ARRAY_INDEX: return "rendertarget_array_index";
-    case SVNAME_VIEWPORT_ARRAY_INDEX: return "viewport_array_index";
-    case SVNAME_VERTEX_ID: return "vertexid";
-    case SVNAME_PRIMITIVE_ID: return "primitiveid";
-    case SVNAME_INSTANCE_ID: return "instanceid";
-    case SVNAME_IS_FRONT_FACE: return "isfrontface";
-    case SVNAME_SAMPLE_INDEX:
+    case DXBC::SVNAME_POSITION: return "position";
+    case DXBC::SVNAME_CLIP_DISTANCE: return "clipdistance";
+    case DXBC::SVNAME_CULL_DISTANCE: return "culldistance";
+    case DXBC::SVNAME_RENDER_TARGET_ARRAY_INDEX: return "rendertarget_array_index";
+    case DXBC::SVNAME_VIEWPORT_ARRAY_INDEX: return "viewport_array_index";
+    case DXBC::SVNAME_VERTEX_ID: return "vertexid";
+    case DXBC::SVNAME_PRIMITIVE_ID: return "primitiveid";
+    case DXBC::SVNAME_INSTANCE_ID: return "instanceid";
+    case DXBC::SVNAME_IS_FRONT_FACE: return "isfrontface";
+    case DXBC::SVNAME_SAMPLE_INDEX:
       return "sampleidx";
 
     // tessellation factors don't correspond directly to their enum values
 
     // SVNAME_FINAL_QUAD_EDGE_TESSFACTOR
-    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR0: return "finalQuadUeq0EdgeTessFactor";
-    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR1: return "finalQuadVeq0EdgeTessFactor";
-    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR2: return "finalQuadUeq1EdgeTessFactor";
-    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR3:
+    case DXBC::SVNAME_FINAL_QUAD_EDGE_TESSFACTOR0: return "finalQuadUeq0EdgeTessFactor";
+    case DXBC::SVNAME_FINAL_QUAD_EDGE_TESSFACTOR1: return "finalQuadVeq0EdgeTessFactor";
+    case DXBC::SVNAME_FINAL_QUAD_EDGE_TESSFACTOR2: return "finalQuadUeq1EdgeTessFactor";
+    case DXBC::SVNAME_FINAL_QUAD_EDGE_TESSFACTOR3:
       return "finalQuadVeq1EdgeTessFactor";
 
     // SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR
-    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR0: return "finalQuadUInsideTessFactor";
-    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR1:
+    case DXBC::SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR0: return "finalQuadUInsideTessFactor";
+    case DXBC::SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR1:
       return "finalQuadVInsideTessFactor";
 
     // SVNAME_FINAL_TRI_EDGE_TESSFACTOR
-    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR0: return "finalTriUeq0EdgeTessFactor";
-    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR1: return "finalTriVeq0EdgeTessFactor";
-    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR2:
+    case DXBC::SVNAME_FINAL_TRI_EDGE_TESSFACTOR0: return "finalTriUeq0EdgeTessFactor";
+    case DXBC::SVNAME_FINAL_TRI_EDGE_TESSFACTOR1: return "finalTriVeq0EdgeTessFactor";
+    case DXBC::SVNAME_FINAL_TRI_EDGE_TESSFACTOR2:
       return "finalTriWeq0EdgeTessFactor";
 
     // SVNAME_FINAL_TRI_INSIDE_TESSFACTOR
-    case SVNAME_FINAL_TRI_INSIDE_TESSFACTOR:
+    case DXBC::SVNAME_FINAL_TRI_INSIDE_TESSFACTOR:
       return "finalTriInsideTessFactor";
 
     // SVNAME_FINAL_LINE_DETAIL_TESSFACTOR
-    case SVNAME_FINAL_LINE_DETAIL_TESSFACTOR:
+    case DXBC::SVNAME_FINAL_LINE_DETAIL_TESSFACTOR:
       return "finalLineEdgeTessFactor";
 
     // SVNAME_FINAL_LINE_DENSITY_TESSFACTOR
-    case SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return "finalLineInsideTessFactor";
+    case DXBC::SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return "finalLineInsideTessFactor";
 
-    case SVNAME_TARGET: return "target";
-    case SVNAME_DEPTH: return "depth";
-    case SVNAME_COVERAGE: return "coverage";
-    case SVNAME_DEPTH_GREATER_EQUAL: return "depthgreaterequal";
-    case SVNAME_DEPTH_LESS_EQUAL: return "depthlessequal";
+    case DXBC::SVNAME_TARGET: return "target";
+    case DXBC::SVNAME_DEPTH: return "depth";
+    case DXBC::SVNAME_COVERAGE: return "coverage";
+    case DXBC::SVNAME_DEPTH_GREATER_EQUAL: return "depthgreaterequal";
+    case DXBC::SVNAME_DEPTH_LESS_EQUAL: return "depthlessequal";
     default: break;
   }
 
@@ -3083,4 +3053,17 @@ char *SystemValueToString(SVSemantic name)
   return "";
 }
 
-};    // namespace DXBC
+bool IsDeclaration(OpcodeType op)
+{
+  // isDecl means not a real instruction, just a declaration type token
+  bool isDecl = false;
+  isDecl = isDecl || (op >= OPCODE_DCL_RESOURCE && op <= OPCODE_DCL_GLOBAL_FLAGS);
+  isDecl = isDecl || (op >= OPCODE_DCL_STREAM && op <= OPCODE_DCL_RESOURCE_STRUCTURED);
+  isDecl = isDecl || (op == OPCODE_DCL_GS_INSTANCE_COUNT);
+  isDecl = isDecl || (op == OPCODE_HS_DECLS);
+  isDecl = isDecl || (op == OPCODE_CUSTOMDATA);
+
+  return isDecl;
+}
+
+};    // namespace DXBCBytecode

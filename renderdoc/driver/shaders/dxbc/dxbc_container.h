@@ -31,8 +31,21 @@
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
+#include "driver/dx/official/d3dcommon.h"
 #include "dxbc_common.h"
-#include "dxbc_disassemble.h"
+
+namespace DXBCBytecode
+{
+class Program;
+};
+
+namespace DXBC
+{
+class IDebugInfo;
+struct Reflection;
+IDebugInfo *MakeSDBGChunk(void *data);
+IDebugInfo *MakeSPDBChunk(Reflection *reflection, void *data);
+};
 
 // many thanks to winehq for information of format of RDEF, STAT and SIGN chunks:
 // http://source.winehq.org/git/wine.git/blob/HEAD:/dlls/d3dcompiler_43/reflection.c
@@ -89,12 +102,14 @@ struct ShaderStatistics
   } version;
 };
 
+std::string TypeName(CBufferVariableType::Descriptor desc);
+
 struct RDEFHeader;
 
-class DebugChunk
+class IDebugInfo
 {
 public:
-  virtual ~DebugChunk() {}
+  virtual ~IDebugInfo() {}
   virtual std::string GetCompilerSig() const = 0;
   virtual std::string GetEntryFunction() const = 0;
   virtual std::string GetShaderProfile() const = 0;
@@ -111,7 +126,7 @@ public:
 };
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
-ShaderCompileFlags EncodeFlags(const DebugChunk *dbg);
+ShaderCompileFlags EncodeFlags(const IDebugInfo *dbg);
 ShaderCompileFlags EncodeFlags(const uint32_t flags);
 
 // declare one of these and pass in your shader bytecode, then inspect
@@ -127,27 +142,15 @@ public:
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
-  std::vector<uint32_t> m_Immediate;
-
-  std::vector<uint32_t> m_HexDump;
-
   std::vector<byte> m_ShaderBlob;
 
-  const DebugChunk *GetDebugInfo() const { return m_DebugInfo; }
+  const IDebugInfo *GetDebugInfo() const { return m_DebugInfo; }
   const Reflection *GetReflection() const { return m_Reflection; }
-  const std::string &GetDisassembly()
-  {
-    if(m_Disassembly.empty())
-      MakeDisassemblyString();
-    return m_Disassembly;
-  }
+  D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
 
-  size_t GetNumDeclarations() { return m_Declarations.size(); }
-  const ASMDecl &GetDeclaration(size_t i) { return m_Declarations[i]; }
-  size_t GetNumInstructions() { return m_Instructions.size(); }
-  const ASMOperation &GetInstruction(size_t i) { return m_Instructions[i]; }
-  size_t NumOperands(OpcodeType op);
+  const std::string &GetDisassembly();
 
+  const DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
@@ -158,35 +161,17 @@ private:
   DXBCContainer(const DXBCContainer &o);
   DXBCContainer &operator=(const DXBCContainer &o);
 
-  void FetchComputeProperties();
-  void FetchTypeVersion();
-  void DisassembleHexDump();
-  void MakeDisassemblyString();
-  void ReflectFromBytecode();
+  std::string m_Disassembly;
 
-  // these functions modify tokenStream pointer to point after the item
-  // ExtractOperation/ExtractDecl returns false if not an operation (ie. it's a declaration)
-  bool ExtractOperation(uint32_t *&tokenStream, ASMOperation &op, bool friendlyName);
-  bool ExtractDecl(uint32_t *&tokenStream, ASMDecl &decl, bool friendlyName);
-  bool ExtractOperand(uint32_t *&tokenStream, ToString flags, ASMOperand &oper);
-
-  bool IsDeclaration(OpcodeType op);
+  D3D_PRIMITIVE_TOPOLOGY m_OutputTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
   CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
   std::map<uint32_t, CBufferVariableType> m_Variables;
 
-  bool m_Disassembled = false;
-  bool m_GuessedResources = true;
-
   ShaderStatistics m_ShaderStats;
-  DebugChunk *m_DebugInfo = NULL;
+  DXBCBytecode::Program *m_DXBCByteCode = NULL;
+  IDebugInfo *m_DebugInfo = NULL;
   Reflection *m_Reflection = NULL;
-
-  // declarations of inputs, outputs, constant buffers, temp registers etc.
-  std::vector<ASMDecl> m_Declarations;
-  std::vector<ASMOperation> m_Instructions;
-
-  std::string m_Disassembly;
 };
 
 };    // namespace DXBC

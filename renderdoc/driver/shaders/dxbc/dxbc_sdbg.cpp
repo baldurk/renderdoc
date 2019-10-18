@@ -145,4 +145,9 @@ std::string SDBGChunk::GetSymbolName(int32_t symbolOffset, int32_t symbolLength)
   return std::string(&m_RawData[offset], symbolLength);
 }
 
+IDebugInfo *MakeSDBGChunk(void *data)
+{
+  return new SDBGChunk(data);
+}
+
 };    // namespace DXBC

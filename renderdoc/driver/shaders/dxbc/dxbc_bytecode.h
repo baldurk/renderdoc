@@ -1,8 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2019 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2019 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,21 +24,23 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
+#include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "dxbc_common.h"
 
 namespace DXBC
 {
+struct CBuffer;
+struct ShaderInputBind;
+class IDebugInfo;
 struct Reflection;
 };
 
-namespace DXBC
-{
-/////////////////////////////////////////////////////////////////////////
+namespace DXBCBytecode
+{    /////////////////////////////////////////////////////////////////////////
 // Enums for use below. If you're reading this you might want to skip to
 // the main structures after this section.
 /////////////////////////////////////////////////////////////////////////
@@ -417,49 +418,6 @@ enum OperandType
   NUM_OPERAND_TYPES,
 };
 
-enum SVSemantic
-{
-  SVNAME_UNDEFINED = 0,
-  SVNAME_POSITION,
-  SVNAME_CLIP_DISTANCE,
-  SVNAME_CULL_DISTANCE,
-  SVNAME_RENDER_TARGET_ARRAY_INDEX,
-  SVNAME_VIEWPORT_ARRAY_INDEX,
-  SVNAME_VERTEX_ID,
-  SVNAME_PRIMITIVE_ID,
-  SVNAME_INSTANCE_ID,
-  SVNAME_IS_FRONT_FACE,
-  SVNAME_SAMPLE_INDEX,
-
-  // following are non-contiguous
-  SVNAME_FINAL_QUAD_EDGE_TESSFACTOR0,
-  SVNAME_FINAL_QUAD_EDGE_TESSFACTOR = SVNAME_FINAL_QUAD_EDGE_TESSFACTOR0,
-  SVNAME_FINAL_QUAD_EDGE_TESSFACTOR1,
-  SVNAME_FINAL_QUAD_EDGE_TESSFACTOR2,
-  SVNAME_FINAL_QUAD_EDGE_TESSFACTOR3,
-
-  SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR0,
-  SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR = SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR0,
-  SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR1,
-
-  SVNAME_FINAL_TRI_EDGE_TESSFACTOR0,
-  SVNAME_FINAL_TRI_EDGE_TESSFACTOR = SVNAME_FINAL_TRI_EDGE_TESSFACTOR0,
-  SVNAME_FINAL_TRI_EDGE_TESSFACTOR1,
-  SVNAME_FINAL_TRI_EDGE_TESSFACTOR2,
-
-  SVNAME_FINAL_TRI_INSIDE_TESSFACTOR,
-
-  SVNAME_FINAL_LINE_DETAIL_TESSFACTOR,
-
-  SVNAME_FINAL_LINE_DENSITY_TESSFACTOR,
-
-  SVNAME_TARGET = 64,
-  SVNAME_DEPTH,
-  SVNAME_COVERAGE,
-  SVNAME_DEPTH_GREATER_EQUAL,
-  SVNAME_DEPTH_LESS_EQUAL,
-};
-
 enum OperandIndexType
 {
   INDEX_IMMEDIATE32 = 0,              // 0
@@ -658,24 +616,12 @@ enum ResourceDimension
   NUM_DIMENSIONS,
 };
 
-enum ComponentType
-{
-  COMPONENT_TYPE_UNKNOWN = 0,
-  COMPONENT_TYPE_UINT32,
-  COMPONENT_TYPE_SINT32,
-  COMPONENT_TYPE_FLOAT32,
-
-  NUM_COMP_TYPES,
-};
-
 /////////////////////////////////////////////////////////////////////////
 // Main structures
 /////////////////////////////////////////////////////////////////////////
 
-class DXBCContainer;
-
-struct ASMIndex;
-struct ASMDecl;
+struct RegIndex;
+struct Declaration;
 
 enum class ToString
 {
@@ -695,9 +641,9 @@ constexpr inline bool operator&(ToString a, ToString b)
   return (int(a) & int(b)) != 0;
 }
 
-struct ASMOperand
+struct Operand
 {
-  ASMOperand()
+  Operand()
   {
     type = NUM_OPERAND_TYPES;
     numComponents = MAX_COMPONENTS;
@@ -709,7 +655,7 @@ struct ASMOperand
     declaration = NULL;
   }
 
-  bool operator==(const ASMOperand &o) const;
+  bool operator==(const Operand &o) const;
 
   std::string toString(const DXBC::Reflection *reflection, ToString flags) const;
 
@@ -727,15 +673,15 @@ struct ASMOperand
                        //		.xyzw = {  0,  1,  2,  3 }
                        //		.wzyx = {  3,  2,  1,  0 }
 
-  std::vector<ASMIndex> indices;    // indices for this register.
+  std::vector<RegIndex> indices;    // indices for this register.
                                     // 0 means this is a special register, specified by type alone.
-  // 1 is probably most common. Indicates ASMIndex specifies the register
+  // 1 is probably most common. Indicates RegIndex specifies the register
   // 2 is for constant buffers, array inputs etc. [0] indicates the cbuffer, [1] indicates the
   // cbuffer member
   // 3 is rare but follows the above pattern
 
   // the declaration of the resource in this operand (not always present)
-  ASMDecl *declaration;
+  Declaration *declaration;
 
   uint32_t values[4];    // if this operand is immediate, the values are here
 
@@ -746,17 +692,17 @@ struct ASMOperand
   uint32_t funcNum;    // interface this operand refers to
 };
 
-struct ASMIndex
+struct RegIndex
 {
-  ASMIndex()
+  RegIndex()
   {
     absolute = false;
     relative = false;
     index = 0;
   }
 
-  bool operator!=(const ASMIndex &o) const { return !(*this == o); }
-  bool operator==(const ASMIndex &o) const
+  bool operator!=(const RegIndex &o) const { return !(*this == o); }
+  bool operator==(const RegIndex &o) const
   {
     if(absolute == o.absolute && relative == o.relative)
     {
@@ -782,12 +728,12 @@ struct ASMIndex
   // both cannot be false, at least one must be true.
 
   uint64_t index;
-  ASMOperand operand;
+  Operand operand;
 };
 
-struct ASMDecl
+struct Declaration
 {
-  ASMDecl()
+  Declaration()
   {
     offset = 0;
     length = 0;
@@ -806,11 +752,11 @@ struct ASMDecl
     count = 0;
     groupSize[0] = groupSize[1] = groupSize[2] = 0;
     space = 0;
-    resType[0] = resType[1] = resType[2] = resType[3] = NUM_RETURN_TYPES;
+    resType[0] = resType[1] = resType[2] = resType[3] = DXBC::NUM_RETURN_TYPES;
     dim = RESOURCE_DIMENSION_UNKNOWN;
     sampleCount = 0;
     interpolation = INTERPOLATION_UNDEFINED;
-    systemValue = SVNAME_UNDEFINED;
+    systemValue = DXBC::SVNAME_UNDEFINED;
     maxOut = 0;
     samplerMode = NUM_SAMPLERS;
     domain = DOMAIN_UNDEFINED;
@@ -841,7 +787,7 @@ struct ASMDecl
                          // but can be non-zero for e.g. HS control point and join phase
   OpcodeType declaration;
 
-  ASMOperand operand;    // many decls use an operand to declare things
+  Operand operand;    // many decls use an operand to declare things
 
   std::vector<uint32_t> immediateData;    // raw data (like default value of operand) for immediate
                                           // constant buffer decl
@@ -879,7 +825,7 @@ struct ASMDecl
 
   // OPCODE_DCL_RESOURCE
   uint32_t space;
-  ResourceRetType resType[4];
+  DXBC::ResourceRetType resType[4];
   ResourceDimension dim;
   uint32_t sampleCount;
 
@@ -887,7 +833,7 @@ struct ASMDecl
   InterpolationMode interpolation;
 
   // OPCODE_DCL_INPUT_SIV
-  SVSemantic systemValue;
+  DXBC::SVSemantic systemValue;
 
   // OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT
   uint32_t maxOut;
@@ -939,9 +885,9 @@ struct ASMDecl
   uint32_t numTypes;
 };
 
-struct ASMOperation
+struct Operation
 {
-  ASMOperation()
+  Operation()
   {
     offset = 0;
     length = 0;
@@ -954,7 +900,7 @@ struct ASMOperation
     syncFlags = 0;
     texelOffset[0] = texelOffset[1] = texelOffset[2] = 0;
     resDim = RESOURCE_DIMENSION_UNKNOWN;
-    resType[0] = resType[1] = resType[2] = resType[3] = RETURN_TYPE_UNUSED;
+    resType[0] = resType[1] = resType[2] = resType[3] = DXBC::RETURN_TYPE_UNUSED;
   }
 
   std::string str;
@@ -971,12 +917,68 @@ struct ASMOperation
   ResinfoRetType resinfoRetType;    // return type of resinfo
   uint32_t syncFlags;               // sync flags (for compute shader sync operations)
 
-  int texelOffset[3];            // U,V,W texel offset
-  ResourceDimension resDim;      // resource dimension (tex2d etc)
-  ResourceRetType resType[4];    // return type (e.g. for a sample operation)
+  int texelOffset[3];                  // U,V,W texel offset
+  ResourceDimension resDim;            // resource dimension (tex2d etc)
+  DXBC::ResourceRetType resType[4];    // return type (e.g. for a sample operation)
   uint32_t stride;
 
-  std::vector<ASMOperand> operands;
+  std::vector<Operand> operands;
 };
 
-};    // DXBC
+class Program
+{
+public:
+  Program(const byte *bytes, size_t length);
+
+  void FetchComputeProperties(DXBC::Reflection *reflection);
+  DXBC::Reflection *GuessReflection();
+
+  void SetReflection(const DXBC::Reflection *refl) { m_Reflection = refl; }
+  void SetDebugInfo(const DXBC::IDebugInfo *debug) { m_DebugInfo = debug; }
+  DXBC::ShaderType GetShaderType() { return m_Type; }
+  uint32_t GetMajorVersion() { return m_Major; }
+  uint32_t GetMinorVersion() { return m_Minor; }
+  D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
+  const std::string &GetDisassembly()
+  {
+    if(m_Disassembly.empty())
+      MakeDisassemblyString();
+    return m_Disassembly;
+  }
+  size_t GetNumDeclarations() const { return m_Declarations.size(); }
+  const Declaration &GetDeclaration(size_t i) const { return m_Declarations[i]; }
+  size_t GetNumInstructions() const { return m_Instructions.size(); }
+  const Operation &GetInstruction(size_t i) const { return m_Instructions[i]; }
+  const std::vector<uint32_t> &GetImmediateConstantBuffer() const { return m_Immediate; }
+private:
+  void FetchTypeVersion();
+  void DisassembleHexDump();
+  void MakeDisassemblyString();
+
+  const DXBC::Reflection *m_Reflection = NULL;
+  const DXBC::IDebugInfo *m_DebugInfo = NULL;
+
+  DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
+  uint32_t m_Major = 0, m_Minor = 0;
+
+  rdcarray<uint32_t> m_HexDump;
+
+  std::vector<uint32_t> m_Immediate;
+
+  uint32_t threadDimension[3];
+
+  bool m_Disassembled = false;
+
+  std::string m_Disassembly;
+
+  // declarations of inputs, outputs, constant buffers, temp registers etc.
+  std::vector<Declaration> m_Declarations;
+  std::vector<Operation> m_Instructions;
+
+  // these functions modify tokenStream pointer to point after the item
+  // ExtractOperation/ExtractDecl returns false if not an operation (ie. it's a declaration)
+  bool ExtractOperation(uint32_t *&tokenStream, Operation &op, bool friendlyName);
+  bool ExtractDecl(uint32_t *&tokenStream, Declaration &decl, bool friendlyName);
+  bool ExtractOperand(uint32_t *&tokenStream, ToString flags, Operand &oper);
+};
+};

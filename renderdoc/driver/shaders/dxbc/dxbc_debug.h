@@ -27,10 +27,11 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
-#include "dxbc_disassemble.h"
+#include "dxbc_bytecode.h"
 
 namespace DXBC
 {
+struct Reflection;
 class DXBCContainer;
 struct CBufferVariable;
 }
@@ -148,7 +149,7 @@ public:
 
 struct SampleGatherResourceData
 {
-  DXBC::ResourceDimension dim;
+  DXBCBytecode::ResourceDimension dim;
   DXBC::ResourceRetType retType;
   int sampleCount;
   UINT slot;
@@ -156,7 +157,7 @@ struct SampleGatherResourceData
 
 struct SampleGatherSamplerData
 {
-  DXBC::SamplerMode mode;
+  DXBCBytecode::SamplerMode mode;
   UINT slot;
   float bias;
 };
@@ -176,17 +177,19 @@ public:
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                std::string d) = 0;
 
-  virtual bool CalculateMathIntrinsic(DXBC::OpcodeType opcode, const ShaderVariable &input,
+  virtual bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;
 
-  virtual ShaderVariable GetSampleInfo(DXBC::OperandType type, bool isAbsoluteResource, UINT slot,
+  virtual ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource,
+                                       UINT slot, const char *opString) = 0;
+
+  virtual ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, UINT slot,
                                        const char *opString) = 0;
+  virtual ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, UINT slot,
+                                         uint32_t mipLevel, int &dim) = 0;
 
-  virtual ShaderVariable GetBufferInfo(DXBC::OperandType type, UINT slot, const char *opString) = 0;
-  virtual ShaderVariable GetResourceInfo(DXBC::OperandType type, UINT slot, uint32_t mipLevel,
-                                         int &dim) = 0;
-
-  virtual bool CalculateSampleGather(DXBC::OpcodeType opcode, SampleGatherResourceData resourceData,
+  virtual bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
+                                     SampleGatherResourceData resourceData,
                                      SampleGatherSamplerData samplerData, ShaderVariable uv,
                                      ShaderVariable ddxCalc, ShaderVariable ddyCalc,
                                      const int texelOffsets[3], int multisampleIndex,
@@ -205,17 +208,20 @@ public:
     flags = ShaderEvents::NoEvent;
     done = false;
     trace = NULL;
-    dxbc = NULL;
+    program = NULL;
+    program = NULL;
     RDCEraseEl(semantics);
   }
-  State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCContainer *f)
+  State(int quadIdx, const ShaderDebugTrace *t, const DXBC::Reflection *r,
+        const DXBCBytecode::Program *p)
   {
     quadIndex = quadIdx;
     nextInstruction = 0;
     flags = ShaderEvents::NoEvent;
     done = false;
     trace = t;
-    dxbc = f;
+    reflection = r;
+    program = p;
     RDCEraseEl(semantics);
   }
 
@@ -251,24 +257,25 @@ private:
                    uint32_t srcIndex, bool flushDenorm);
   // sets the destination operand by looking up in the register
   // file and applying any masking or swizzling
-  void SetDst(const DXBC::ASMOperand &dstoper, const DXBC::ASMOperation &op,
+  void SetDst(const DXBCBytecode::Operand &dstoper, const DXBCBytecode::Operation &op,
               const ShaderVariable &val);
 
   // retrieves the value of the operand, by looking up
   // in the register file and performing any swizzling and
   // negation/abs functions
-  ShaderVariable GetSrc(const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op,
+  ShaderVariable GetSrc(const DXBCBytecode::Operand &oper, const DXBCBytecode::Operation &op,
                         bool allowFlushing = true) const;
 
-  ShaderVariable DDX(bool fine, State quad[4], const DXBC::ASMOperand &oper,
-                     const DXBC::ASMOperation &op) const;
-  ShaderVariable DDY(bool fine, State quad[4], const DXBC::ASMOperand &oper,
-                     const DXBC::ASMOperation &op) const;
+  ShaderVariable DDX(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
+                     const DXBCBytecode::Operation &op) const;
+  ShaderVariable DDY(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
+                     const DXBCBytecode::Operation &op) const;
 
-  VarType OperationType(const DXBC::OpcodeType &op) const;
-  bool OperationFlushing(const DXBC::OpcodeType &op) const;
+  VarType OperationType(const DXBCBytecode::OpcodeType &op) const;
+  bool OperationFlushing(const DXBCBytecode::OpcodeType &op) const;
 
-  DXBC::DXBCContainer *dxbc;
+  const DXBC::Reflection *reflection;
+  const DXBCBytecode::Program *program;
   const ShaderDebugTrace *trace;
 };
 
