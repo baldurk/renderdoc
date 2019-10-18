@@ -86,7 +86,7 @@ namespace VersionToken
 static MaskedElement<uint32_t, 0x000000f0> MajorVersion;
 static MaskedElement<uint32_t, 0x0000000f> MinorVersion;
 
-static MaskedElement<D3D11_ShaderType, 0xffff0000> ProgramType;
+static MaskedElement<DXBC::ShaderType, 0xffff0000> ProgramType;
 };
 
 namespace LengthToken
@@ -488,12 +488,12 @@ void DXBCContainer::MakeDisassemblyString()
 
   switch(m_Type)
   {
-    case D3D11_ShaderType_Pixel: m_Disassembly += "ps_"; break;
-    case D3D11_ShaderType_Vertex: m_Disassembly += "vs_"; break;
-    case D3D11_ShaderType_Geometry: m_Disassembly += "gs_"; break;
-    case D3D11_ShaderType_Hull: m_Disassembly += "hs_"; break;
-    case D3D11_ShaderType_Domain: m_Disassembly += "ds_"; break;
-    case D3D11_ShaderType_Compute: m_Disassembly += "cs_"; break;
+    case DXBC::ShaderType::Pixel: m_Disassembly += "ps_"; break;
+    case DXBC::ShaderType::Vertex: m_Disassembly += "vs_"; break;
+    case DXBC::ShaderType::Geometry: m_Disassembly += "gs_"; break;
+    case DXBC::ShaderType::Hull: m_Disassembly += "hs_"; break;
+    case DXBC::ShaderType::Domain: m_Disassembly += "ds_"; break;
+    case DXBC::ShaderType::Compute: m_Disassembly += "cs_"; break;
     default: RDCERR("Unknown shader type: %u", m_Type); break;
   }
 

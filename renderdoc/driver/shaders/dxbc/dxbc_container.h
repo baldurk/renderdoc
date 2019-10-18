@@ -31,20 +31,8 @@
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
+#include "dxbc_common.h"
 #include "dxbc_disassemble.h"
-
-// matches D3D11_SHADER_VERSION_TYPE from d3d11shader.h
-enum D3D11_ShaderType
-{
-  D3D11_ShaderType_Pixel = 0,
-  D3D11_ShaderType_Vertex = 1,
-  D3D11_ShaderType_Geometry = 2,
-
-  // D3D11 Shaders
-  D3D11_ShaderType_Hull = 3,
-  D3D11_ShaderType_Domain = 4,
-  D3D11_ShaderType_Compute = 5,
-};
 
 // many thanks to winehq for information of format of RDEF, STAT and SIGN chunks:
 // http://source.winehq.org/git/wine.git/blob/HEAD:/dlls/d3dcompiler_43/reflection.c
@@ -343,10 +331,10 @@ class DXBCContainer
 public:
   DXBCContainer(const void *ByteCode, size_t ByteCodeLength);
   ~DXBCContainer() { SAFE_DELETE(m_DebugInfo); }
-  D3D11_ShaderType m_Type;
+  DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
   {
-    uint32_t Major, Minor;
+    uint32_t Major = 0, Minor = 0;
   } m_Version;
 
   ShaderStatistics m_ShaderStats;

@@ -529,7 +529,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     DXBC::DXBCContainer *dxbc = shader->GetDXBC();
 
     RDCASSERT(dxbc);
-    RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);
+    RDCASSERT(dxbc->m_Type == DXBC::ShaderType::Pixel);
 
     for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
     {

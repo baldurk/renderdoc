@@ -29,6 +29,7 @@
       <Filter>official</Filter>
     </ClInclude>
     <ClInclude Include="dxbc_container.h" />
+    <ClInclude Include="dxbc_common.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

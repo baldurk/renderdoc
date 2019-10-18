@@ -266,7 +266,7 @@ public:
                              const char *opString, ShaderVariable &output);
 
 private:
-  D3D11_ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : D3D11_ShaderType_Pixel; }
+  DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
   WrappedID3D11Device *m_pDevice;
   DXBC::DXBCContainer *m_dxbc;
   const ShaderDebug::GlobalState &m_globalState;
@@ -339,12 +339,12 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBC::OperandType type, bool 
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
     {
-      case D3D11_ShaderType_Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Hull: context->HSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Domain: context->DSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Hull: context->HSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Domain: context->DSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
     }
 
     if(srv)
@@ -417,7 +417,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBC::OperandType type, UINT 
   if(type == DXBC::TYPE_UNORDERED_ACCESS_VIEW)
   {
     ID3D11UnorderedAccessView *uav = NULL;
-    if(GetShaderType() == D3D11_ShaderType_Compute)
+    if(GetShaderType() == DXBC::ShaderType::Compute)
       context->CSGetUnorderedAccessViews(slot, 1, &uav);
     else
       context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
@@ -460,12 +460,12 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBC::OperandType type, UINT 
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
     {
-      case D3D11_ShaderType_Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Hull: context->HSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Domain: context->DSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Hull: context->HSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Domain: context->DSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
     }
 
     if(srv)
@@ -524,12 +524,12 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBC::OperandType type, UIN
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
     {
-      case D3D11_ShaderType_Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Hull: context->HSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Domain: context->DSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
-      case D3D11_ShaderType_Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Hull: context->HSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Domain: context->DSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
     }
 
     if(srv)
@@ -693,7 +693,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBC::OperandType type, UIN
   else
   {
     ID3D11UnorderedAccessView *uav = NULL;
-    if(GetShaderType() == D3D11_ShaderType_Compute)
+    if(GetShaderType() == DXBC::ShaderType::Compute)
     {
       context->CSGetUnorderedAccessViews(slot, 1, &uav);
     }
@@ -1273,27 +1273,27 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   // fetch SRV and sampler from the shader stage we're debugging that this opcode wants to load from
   switch(GetShaderType())
   {
-    case D3D11_ShaderType_Vertex:
+    case DXBC::ShaderType::Vertex:
       context->VSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->VSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;
-    case D3D11_ShaderType_Hull:
+    case DXBC::ShaderType::Hull:
       context->HSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->HSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;
-    case D3D11_ShaderType_Domain:
+    case DXBC::ShaderType::Domain:
       context->DSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->DSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;
-    case D3D11_ShaderType_Geometry:
+    case DXBC::ShaderType::Geometry:
       context->GSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->GSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;
-    case D3D11_ShaderType_Pixel:
+    case DXBC::ShaderType::Pixel:
       context->PSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->PSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;
-    case D3D11_ShaderType_Compute:
+    case DXBC::ShaderType::Compute:
       context->CSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->CSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;

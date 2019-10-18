@@ -111,6 +111,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dxbc_common.h" />
     <ClInclude Include="dxbc_compile.h" />
     <ClInclude Include="dxbc_debug.h" />
     <ClInclude Include="dxbc_disassemble.h" />

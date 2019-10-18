@@ -581,7 +581,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
       auto dxbc = it->second->GetDXBC();
 
       RDCASSERT(dxbc);
-      RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);
+      RDCASSERT(dxbc->m_Type == DXBC::ShaderType::Pixel);
 
       if(m_pDevice->GetResourceManager()->HasLiveResource(cfg.customShaderId))
       {

@@ -203,12 +203,12 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
   switch(dxbc->m_Type)
   {
-    case D3D11_ShaderType_Pixel: refl->stage = ShaderStage::Pixel; break;
-    case D3D11_ShaderType_Vertex: refl->stage = ShaderStage::Vertex; break;
-    case D3D11_ShaderType_Geometry: refl->stage = ShaderStage::Geometry; break;
-    case D3D11_ShaderType_Hull: refl->stage = ShaderStage::Hull; break;
-    case D3D11_ShaderType_Domain: refl->stage = ShaderStage::Domain; break;
-    case D3D11_ShaderType_Compute: refl->stage = ShaderStage::Compute; break;
+    case DXBC::ShaderType::Pixel: refl->stage = ShaderStage::Pixel; break;
+    case DXBC::ShaderType::Vertex: refl->stage = ShaderStage::Vertex; break;
+    case DXBC::ShaderType::Geometry: refl->stage = ShaderStage::Geometry; break;
+    case DXBC::ShaderType::Hull: refl->stage = ShaderStage::Hull; break;
+    case DXBC::ShaderType::Domain: refl->stage = ShaderStage::Domain; break;
+    case DXBC::ShaderType::Compute: refl->stage = ShaderStage::Compute; break;
     default:
       RDCERR("Unexpected DXBC shader type %u", dxbc->m_Type);
       refl->stage = ShaderStage::Vertex;

@@ -566,9 +566,6 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
   m_Disassembled = false;
 
-  m_Type = D3D11_ShaderType_Vertex;
-  m_Version.Major = 5;
-  m_Version.Minor = 0;
   m_GuessedResources = true;
 
   RDCASSERT(ByteCodeLength < UINT32_MAX);
@@ -590,7 +587,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
   // default to vertex shader to support blobs without RDEF chunks (e.g. used with
   // input layouts if they're super stripped down)
-  m_Type = D3D11_ShaderType_Vertex;
+  m_Type = DXBC::ShaderType::Vertex;
 
   bool rdefFound = false;
 
@@ -613,19 +610,19 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       // for 0x501 it's "\x13\x13\D%"
 
       if(h->targetShaderStage == 0xffff)
-        m_Type = D3D11_ShaderType_Pixel;
+        m_Type = DXBC::ShaderType::Pixel;
       else if(h->targetShaderStage == 0xfffe)
-        m_Type = D3D11_ShaderType_Vertex;
+        m_Type = DXBC::ShaderType::Vertex;
 
       else if(h->targetShaderStage == 0x4753)    // 'GS'
-        m_Type = D3D11_ShaderType_Geometry;
+        m_Type = DXBC::ShaderType::Geometry;
 
       else if(h->targetShaderStage == 0x4853)    // 'HS'
-        m_Type = D3D11_ShaderType_Hull;
+        m_Type = DXBC::ShaderType::Hull;
       else if(h->targetShaderStage == 0x4453)    // 'DS'
-        m_Type = D3D11_ShaderType_Domain;
+        m_Type = DXBC::ShaderType::Domain;
       else if(h->targetShaderStage == 0x4353)    // 'CS'
-        m_Type = D3D11_ShaderType_Compute;
+        m_Type = DXBC::ShaderType::Compute;
 
       m_SRVs.reserve(h->resources.count);
       m_UAVs.reserve(h->resources.count);
@@ -988,10 +985,10 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         desc.compCount = (desc.regChannelMask & 0x1 ? 1 : 0) + (desc.regChannelMask & 0x2 ? 1 : 0) +
                          (desc.regChannelMask & 0x4 ? 1 : 0) + (desc.regChannelMask & 0x8 ? 1 : 0);
 
-        RDCASSERT(m_Type != (D3D11_ShaderType)-1);
+        RDCASSERT(m_Type != DXBC::ShaderType::Max);
 
         // pixel shader outputs with registers are always targets
-        if(m_Type == D3D11_ShaderType_Pixel && output &&
+        if(m_Type == DXBC::ShaderType::Pixel && output &&
            desc.systemValue == ShaderBuiltin::Undefined && desc.regIndex >= 0 && desc.regIndex <= 16)
           desc.systemValue = ShaderBuiltin::ColorOutput;
 
@@ -1086,7 +1083,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   }
 
   // make sure to fetch the dispatch threads dimension from disassembly
-  if(!m_Disassembled && m_Type == D3D11_ShaderType_Compute)
+  if(!m_Disassembled && m_Type == DXBC::ShaderType::Compute)
   {
     FetchComputeProperties();
   }
