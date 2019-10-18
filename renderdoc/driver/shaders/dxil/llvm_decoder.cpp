@@ -26,6 +26,311 @@
 
 namespace LLVMBC
 {
+enum class AbbrevEncoding : uint8_t
+{
+  Fixed = 1,
+  VBR = 2,
+  Array = 3,
+  Char6 = 4,
+  Blob = 5,
+  // the abbrev encoding is only 3 bits, so 8 is not representable, we can store whether or not
+  // we're a literal this way.
+  Literal = 8,
+};
+
+struct AbbrevParam
+{
+  AbbrevEncoding encoding;
+  uint64_t value;    // this is also the bitwidth for Fixed/VBR
+};
+
+struct AbbrevDesc
+{
+  rdcarray<AbbrevParam> params;
+};
+
+// the temporary context while pushing/popping blocks
+struct BlockContext
+{
+  BlockContext(size_t size = 2) : abbrevSize(size) {}
+  size_t abbrevSize;
+  rdcarray<AbbrevDesc> abbrevs;
+};
+
+// the permanent block info defined by BLOCKINFO
+struct BlockInfo
+{
+  // rdcstr blockname;
+  // rdcarray<rdcstr> recordnames;
+  rdcarray<AbbrevDesc> abbrevs;
+};
+
+enum AbbrevId
+{
+  END_BLOCK = 0,
+  ENTER_SUBBLOCK = 1,
+  DEFINE_ABBREV = 2,
+  UNABBREV_RECORD = 3,
+  APPLICATION_ABBREV = 4,
+};
+
+enum class BlockInfoRecord
+{
+  SETBID = 1,
+  BLOCKNAME = 2,
+  SETRECORDNAME = 3,
+};
+
+BitcodeReader::BitcodeReader(const byte *bitcode, size_t length) : b(bitcode, length)
+{
+  uint32_t magic = b.Read<uint32_t>();
+
+  RDCASSERT(magic == MAKE_FOURCC('B', 'C', 0xC0, 0xDE));
+}
+
+BitcodeReader::~BitcodeReader()
+{
+  for(auto it = blockInfo.begin(); it != blockInfo.end(); ++it)
+    delete it->second;
+}
+
+BlockOrRecord BitcodeReader::ReadToplevelBlock()
+{
+  BlockOrRecord ret;
+
+  // should hit ENTER_SUBBLOCK first for top-level block
+  uint32_t abbrevID = b.fixed<uint32_t>(abbrevSize());
+  RDCASSERT(abbrevID == ENTER_SUBBLOCK);
+
+  ReadBlockContents(ret);
+
+  return ret;
+}
+
+bool BitcodeReader::AtEndOfStream()
+{
+  return b.AtEndOfStream();
+}
+
+void BitcodeReader::ReadBlockContents(BlockOrRecord &block)
+{
+  block.id = b.vbr<uint32_t>(8);
+
+  blockStack.push_back(new BlockContext(b.vbr<size_t>(4)));
+
+  b.align32bits();
+  block.blockDwordLength = b.Read<uint32_t>();
+
+  // used for blockinfo only
+  BlockInfo *curBlockInfo = NULL;
+
+  uint32_t abbrevID = ~0U;
+  do
+  {
+    abbrevID = b.fixed<uint32_t>(abbrevSize());
+
+    if(abbrevID == END_BLOCK)
+    {
+      b.align32bits();
+    }
+    else if(abbrevID == ENTER_SUBBLOCK)
+    {
+      BlockOrRecord sub;
+
+      ReadBlockContents(sub);
+
+      block.children.push_back(sub);
+    }
+    else if(abbrevID == DEFINE_ABBREV)
+    {
+      AbbrevDesc a;
+
+      uint32_t numops = b.vbr<uint32_t>(5);
+
+      a.params.resize(numops);
+
+      for(uint32_t i = 0; i < numops; i++)
+      {
+        AbbrevParam &param = a.params[i];
+
+        bool lit = b.fixed<bool>(1);
+
+        if(lit)
+        {
+          param.encoding = AbbrevEncoding::Literal;
+          param.value = b.vbr<uint64_t>(8);
+        }
+        else
+        {
+          param.encoding = b.fixed<AbbrevEncoding>(3);
+
+          if(param.encoding == AbbrevEncoding::Fixed || param.encoding == AbbrevEncoding::VBR)
+          {
+            param.value = b.vbr<uint64_t>(5);
+          }
+        }
+      }
+
+      if(curBlockInfo)
+        curBlockInfo->abbrevs.push_back(a);
+      else
+        blockStack.back()->abbrevs.push_back(a);
+    }
+    else if(abbrevID == UNABBREV_RECORD)
+    {
+      BlockOrRecord r;
+      r.id = b.vbr<uint32_t>(6);
+      uint32_t numops = b.vbr<uint32_t>(6);
+      r.ops.resize(numops);
+      for(uint32_t i = 0; i < numops; i++)
+        r.ops[i] = b.vbr<uint64_t>(6);
+
+      if(block.id == 0)    // BLOCKINFO is block 0
+      {
+        switch(BlockInfoRecord(r.id))
+        {
+          case BlockInfoRecord::SETBID:
+          {
+            curBlockInfo = blockInfo[(uint32_t)r.ops[0]];
+            if(curBlockInfo == NULL)
+              curBlockInfo = blockInfo[(uint32_t)r.ops[0]] = new BlockInfo;
+            break;
+          }
+          case BlockInfoRecord::BLOCKNAME:
+          {
+            // skipped because this is so rarely used
+            /*
+            for(uint32_t i = 0; i < r.ops.size(); i++)
+              curBlockInfo->blockname.push_back((char)r.ops[i]);
+              */
+            break;
+          }
+          case BlockInfoRecord::SETRECORDNAME:
+          {
+            // skipped because this is so rarely used
+            /*
+            uint32_t record = (uint32_t)r.ops[0];
+            if(record >= curBlockInfo->recordnames.size())
+              curBlockInfo->recordnames.resize(record + 1);
+            r.ops.erase(r.ops.begin());
+            for(uint32_t i = 0; i < r.ops.size(); i++)
+              curBlockInfo->recordnames[record].push_back((char)r.ops[i]);
+              */
+            break;
+          }
+        }
+      }
+
+      block.children.push_back(r);
+    }
+    else
+    {
+      const AbbrevDesc &a = getAbbrev(block.id, abbrevID);
+
+      BlockOrRecord r;
+
+      // should have at least one param for the code itself
+      RDCASSERT(!a.params.empty());
+
+      r.id = (uint32_t)decodeAbbrevParam(a.params[0]);
+
+      // process the rest of the operands - since some might be arrays we don't know until we
+      // process it how many ops the record will end up with but it will be at least one per
+      // parameter.
+      r.ops.reserve(a.params.size() - 1);
+      for(size_t i = 1; i < a.params.size(); i++)
+      {
+        const AbbrevParam &param = a.params[i];
+
+        if(param.encoding == AbbrevEncoding::Array)
+        {
+          // must be another param to specify the value type, and it must be the last
+          RDCASSERT(i + 1 == a.params.size() - 1);
+          const AbbrevParam &elType = a.params[i + 1];
+
+          size_t arrayLen = b.vbr<size_t>(6);
+
+          for(size_t el = 0; el < arrayLen; el++)
+            r.ops.push_back(decodeAbbrevParam(elType));
+
+          break;
+        }
+        else if(param.encoding == AbbrevEncoding::Blob)
+        {
+          // blob must be the last value
+          RDCASSERT(i == a.params.size() - 1);
+          b.ReadBlob(r.blob, r.blobLength);
+
+          break;
+        }
+        else
+        {
+          r.ops.push_back(decodeAbbrevParam(param));
+        }
+      }
+
+      block.children.push_back(r);
+    }
+  } while(abbrevID != END_BLOCK);
+
+  delete blockStack.back();
+  blockStack.erase(blockStack.size() - 1);
+}
+
+uint64_t BitcodeReader::decodeAbbrevParam(const AbbrevParam &param)
+{
+  RDCASSERT(param.encoding != AbbrevEncoding::Array && param.encoding != AbbrevEncoding::Blob);
+
+  switch(param.encoding)
+  {
+    case AbbrevEncoding::Fixed: return b.fixed<uint64_t>(param.value);
+    case AbbrevEncoding::VBR: return b.vbr<uint64_t>(param.value);
+    case AbbrevEncoding::Char6: return b.c6();
+    case AbbrevEncoding::Literal: return param.value;
+    case AbbrevEncoding::Array:
+    case AbbrevEncoding::Blob: RDCERR("Array and blob types must be decoded specially");
+  }
+
+  return 0;
+}
+
+size_t BitcodeReader::abbrevSize() const
+{
+  if(blockStack.empty())
+    return 2;
+  return blockStack.back()->abbrevSize;
+}
+
+const AbbrevDesc &BitcodeReader::getAbbrev(uint32_t blockId, uint32_t abbrevID)
+{
+  const BlockInfo &info = *blockInfo[blockId];
+
+  // IDs start at the first application specified ID. Rebase to that to get 0-base indices
+  RDCASSERT(abbrevID >= APPLICATION_ABBREV);
+  abbrevID -= APPLICATION_ABBREV;
+
+  // IDs are first assigned to those permanently from BLOCKINFO
+  if(abbrevID < info.abbrevs.size())
+    return info.abbrevs[abbrevID];
+
+  // block-local IDs start after the BLOCKINFO ones
+  abbrevID -= (uint32_t)info.abbrevs.size();
+
+  RDCASSERT(!blockStack.empty());
+  RDCASSERT(abbrevID < blockStack.back()->abbrevs.size());
+
+  return blockStack.back()->abbrevs[abbrevID];
+}
+
+rdcstr BlockOrRecord::getString(size_t startOffset) const
+{
+  rdcstr ret;
+  ret.resize(ops.size() - startOffset);
+  for(size_t i = 0; i < ret.size(); i++)
+    ret[i] = (char)ops[i + startOffset];
+  return ret;
+}
+
 };    // namespace LLVMBC
 
 #if ENABLED(ENABLE_UNIT_TESTS)

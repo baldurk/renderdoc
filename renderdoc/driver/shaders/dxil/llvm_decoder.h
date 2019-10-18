@@ -24,8 +24,54 @@
 
 #pragma once
 
+#include <map>
 #include "llvm_bitreader.h"
 
 namespace LLVMBC
 {
+struct BlockOrRecord
+{
+  uint32_t id;
+  uint32_t blockDwordLength = 0;    // 0 for records
+
+  bool IsBlock() const { return blockDwordLength > 0; }
+  bool IsRecord() const { return blockDwordLength == 0; }
+  // if a block, the child blocks/records
+  rdcarray<BlockOrRecord> children;
+
+  rdcstr getString(size_t startOffset = 0) const;
+
+  // if a record, the ops
+  rdcarray<uint64_t> ops;
+  // if this is an abbreviated record with a blob, this is the last operand
+  // this points into the overall byte storage, so the lifetime is limited.
+  const byte *blob = NULL;
+  size_t blobLength = 0;
+};
+
+struct AbbrevParam;
+struct AbbrevDesc;
+struct BlockContext;
+struct BlockInfo;
+
+class BitcodeReader
+{
+public:
+  BitcodeReader(const byte *bitcode, size_t length);
+  ~BitcodeReader();
+  BlockOrRecord ReadToplevelBlock();
+  bool AtEndOfStream();
+
+private:
+  BitReader b;
+
+  void ReadBlockContents(BlockOrRecord &block);
+  const AbbrevDesc &getAbbrev(uint32_t blockId, uint32_t abbrevID);
+  size_t abbrevSize() const;
+  uint64_t decodeAbbrevParam(const AbbrevParam &param);
+
+  rdcarray<BlockContext *> blockStack;
+  std::map<uint32_t, BlockInfo *> blockInfo;
+};
+
 };    // namespace LLVMBC
