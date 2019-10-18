@@ -1866,6 +1866,9 @@ void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t 
   {
     uint32_t relativeOffset = 0;
 
+    if(arraySize == ~0U)
+      arraySize = 1;
+
     cblock.resize(arraySize);
     for(uint32_t i = 0; i < arraySize; i++)
     {
