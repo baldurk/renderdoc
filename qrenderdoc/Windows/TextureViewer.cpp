@@ -631,22 +631,32 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 
   QWidget *statusflowWidget = new QWidget(this);
 
-  FlowLayout *statusflow = new FlowLayout(statusflowWidget, 0, 3, 0);
+  ui->statusbar->removeWidget(ui->texStatusName);
+  ui->statusbar->removeWidget(ui->texStatusDim);
+  ui->statusbar->removeWidget(ui->texStatusFormat);
+  ui->statusbar->removeWidget(ui->pickSwatch);
+  ui->statusbar->removeWidget(ui->hoverText);
+  ui->statusbar->removeWidget(ui->pickedText);
+
+  FlowLayout *statusflow = new FlowLayout(0, 3, 0);
 
   statusflowWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-  ui->statusbar->removeWidget(ui->texStatusDim);
-  ui->statusbar->removeWidget(ui->pickSwatch);
-  ui->statusbar->removeWidget(ui->statusText);
-
+  statusflow->addWidget(ui->texStatusName);
   statusflow->addWidget(ui->texStatusDim);
+  statusflow->addWidget(ui->texStatusFormat);
   statusflow->addWidget(ui->pickSwatch);
-  statusflow->addWidget(ui->statusText);
+  statusflow->addWidget(ui->hoverText);
+  statusflow->addWidget(ui->pickedText);
 
+  ui->texStatusName->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->texStatusDim->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->statusText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->texStatusFormat->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->hoverText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->pickedText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
-  ui->statusbar->addWidget(statusflowWidget);
+  ui->renderLayout->removeItem(ui->statusbar);
+  ui->renderLayout->addItem(statusflow);
 
   ui->channels->addItems({lit("RGBA"), lit("RGBM"), lit("YUVA decode"), tr("Custom")});
 
@@ -943,13 +953,19 @@ void TextureViewer::UI_UpdateStatusText()
                             .arg((x * invWidth), 5, 'f', 4)
                             .arg((y * invHeight), 5, 'f', 4);
 
-  QString statusText = tr("Hover - ") + hoverCoords;
+  QString hoverText;
 
   uint32_t hoverX = (uint32_t)m_CurHoverPixel.x();
   uint32_t hoverY = (uint32_t)m_CurHoverPixel.y();
 
   if(hoverX > tex.width || hoverY > tex.height)
-    statusText = tr("Hover - [%1]").arg(hoverCoords);
+    hoverText = tr("Hover - [%1] - ").arg(hoverCoords);
+  else
+    hoverText = tr("Hover -  %1  - ").arg(hoverCoords);
+
+  ui->hoverText->setText(hoverText);
+
+  QString pickedText;
 
   if(m_PickedPoint.x() >= 0)
   {
@@ -962,13 +978,13 @@ void TextureViewer::UI_UpdateStatusText()
 
     y = qMax(0, y);
 
-    statusText += tr(" - Right click - %1, %2: ").arg(x, 4).arg(y, 4);
+    pickedText = tr("Right click - %1, %2: ").arg(x, 4).arg(y, 4);
 
     PixelValue val = m_CurPixelValue;
 
     if(m_TexDisplay.customShaderId != ResourceId())
     {
-      statusText += QFormatStr("%1, %2, %3, %4")
+      pickedText += QFormatStr("%1, %2, %3, %4")
                         .arg(Formatter::Format(val.floatValue[0]))
                         .arg(Formatter::Format(val.floatValue[1]))
                         .arg(Formatter::Format(val.floatValue[2]))
@@ -976,24 +992,24 @@ void TextureViewer::UI_UpdateStatusText()
 
       val = m_CurRealValue;
 
-      statusText += tr(" (Real: ");
+      pickedText += tr(" (Real: ");
     }
 
     if(dsv)
     {
-      statusText += tr("Depth ");
+      pickedText += tr("Depth ");
       if(uintTex)
       {
-        statusText += Formatter::Format(val.uintValue[0]);
+        pickedText += Formatter::Format(val.uintValue[0]);
       }
       else
       {
-        statusText += Formatter::Format(val.floatValue[0]);
+        pickedText += Formatter::Format(val.floatValue[0]);
       }
 
       int stencil = (int)(255.0f * val.floatValue[1]);
 
-      statusText +=
+      pickedText +=
           tr(", Stencil %1 / 0x%2").arg(stencil).arg(Formatter::Format(uint8_t(stencil & 0xff), true));
     }
     else
@@ -1001,55 +1017,55 @@ void TextureViewer::UI_UpdateStatusText()
       // Restrict the number of components displayed to the component count of the resource format
       if(uintTex)
       {
-        statusText += QFormatStr("%1").arg(Formatter::Format(val.uintValue[0]));
+        pickedText += QFormatStr("%1").arg(Formatter::Format(val.uintValue[0]));
         if(tex.format.compCount > 1)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[1]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[1]));
         if(tex.format.compCount > 2)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[2]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[2]));
         if(tex.format.compCount > 3)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[3]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.uintValue[3]));
       }
       else if(sintTex)
       {
-        statusText += QFormatStr("%1").arg(Formatter::Format(val.intValue[0]));
+        pickedText += QFormatStr("%1").arg(Formatter::Format(val.intValue[0]));
         if(tex.format.compCount > 1)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[1]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[1]));
         if(tex.format.compCount > 2)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[2]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[2]));
         if(tex.format.compCount > 3)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[3]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.intValue[3]));
       }
       else
       {
-        statusText += QFormatStr("%1").arg(Formatter::Format(val.floatValue[0]));
+        pickedText += QFormatStr("%1").arg(Formatter::Format(val.floatValue[0]));
         if(tex.format.compCount > 1)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[1]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[1]));
         if(tex.format.compCount > 2)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[2]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[2]));
         if(tex.format.compCount > 3)
-          statusText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[3]));
+          pickedText += QFormatStr(", %1").arg(Formatter::Format(val.floatValue[3]));
       }
     }
 
     if(m_TexDisplay.customShaderId != ResourceId())
-      statusText += lit(")");
+      pickedText += lit(")");
   }
   else
   {
-    statusText += tr(" - Right click to pick a pixel");
+    pickedText += tr("Right click to pick a pixel");
   }
 
   // try and keep status text consistent by sticking to the high water mark
   // of length (prevents nasty oscillation when the length of the string is
   // just popping over/under enough to overflow onto the next line).
 
-  if(statusText.length() > m_HighWaterStatusLength)
-    m_HighWaterStatusLength = statusText.length();
+  if(pickedText.length() > m_HighWaterStatusLength)
+    m_HighWaterStatusLength = pickedText.length();
 
-  if(statusText.length() < m_HighWaterStatusLength)
-    statusText += QString(m_HighWaterStatusLength - statusText.length(), QLatin1Char(' '));
+  if(pickedText.length() < m_HighWaterStatusLength)
+    pickedText += QString(m_HighWaterStatusLength - pickedText.length(), QLatin1Char(' '));
 
-  ui->statusText->setText(statusText);
+  ui->pickedText->setText(pickedText);
 }
 
 void TextureViewer::UI_UpdateTextureDetails()
@@ -1059,7 +1075,9 @@ void TextureViewer::UI_UpdateTextureDetails()
   TextureDescription *texptr = GetCurrentTexture();
   if(texptr == NULL)
   {
+    ui->texStatusName->setText(status);
     ui->texStatusDim->setText(status);
+    ui->texStatusFormat->setText(status);
 
     ui->renderContainer->setWindowTitle(tr("Unbound"));
     return;
@@ -1117,7 +1135,9 @@ void TextureViewer::UI_UpdateTextureDetails()
     ui->renderContainer->setWindowTitle(title);
   }
 
-  status = m_Ctx.GetResourceName(current.resourceId) + lit(" - ");
+  ui->texStatusName->setText(m_Ctx.GetResourceName(current.resourceId) + lit(" - "));
+
+  status = QString();
 
   if(current.dimension >= 1)
     status += QString::number(current.width);
@@ -1134,7 +1154,11 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   status += QFormatStr(" %1 mips").arg(current.mips);
 
-  status += lit(" - ") + current.format.Name();
+  status += lit(" - ");
+
+  ui->texStatusDim->setText(status);
+
+  status = current.format.Name();
 
   const bool yuv = (current.format.type == ResourceFormatType::YUV8 ||
                     current.format.type == ResourceFormatType::YUV10 ||
@@ -1159,7 +1183,7 @@ void TextureViewer::UI_UpdateTextureDetails()
   if(viewCast != CompType::Typeless)
     status += tr(" Viewed as %1").arg(ToQStr(viewCast));
 
-  ui->texStatusDim->setText(status);
+  ui->texStatusFormat->setText(status);
 }
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
@@ -2456,7 +2480,9 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
   if(e->matches(QKeySequence::Copy))
   {
     QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setText(ui->texStatusDim->text() + lit(" | ") + ui->statusText->text());
+    clipboard->setText(ui->texStatusName->text() + ui->texStatusDim->text() +
+                       ui->texStatusFormat->text() + lit(" | ") + ui->hoverText->text() +
+                       ui->pickedText->text());
   }
 
   if(!m_Ctx.IsCaptureLoaded())
@@ -2776,7 +2802,11 @@ void TextureViewer::Reset()
   ui->debugPixelContext->setEnabled(false);
   ui->debugPixelContext->setToolTip(QString());
 
-  ui->statusText->setText(QString());
+  ui->texStatusName->setText(QString());
+  ui->texStatusDim->setText(QString());
+  ui->texStatusFormat->setText(QString());
+  ui->hoverText->setText(QString());
+  ui->pickedText->setText(QString());
   ui->renderContainer->setWindowTitle(tr("Current"));
   ui->mipLevel->clear();
   ui->sliceFace->clear();

@@ -1061,6 +1061,24 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
     <item>
      <layout class="QHBoxLayout" name="statusbar">
       <item>
+       <widget class="QLabel" name="texStatusName">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Consolas</family>
+         </font>
+        </property>
+        <property name="text">
+         <string>texStatusName</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="texStatusDim">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -1078,6 +1096,24 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
         </property>
        </widget>
       </item>
+       <item>
+         <widget class="QLabel" name="texStatusFormat">
+           <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+             </sizepolicy>
+           </property>
+           <property name="font">
+             <font>
+               <family>Consolas</family>
+             </font>
+           </property>
+           <property name="text">
+             <string>texStatusFormat</string>
+           </property>
+         </widget>
+       </item>
       <item>
        <widget class="QWidget" name="pickSwatch" native="true">
         <property name="sizePolicy">
@@ -1095,7 +1131,7 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="statusText">
+       <widget class="QLabel" name="hoverText">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
           <horstretch>0</horstretch>
@@ -1108,7 +1144,25 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
          </font>
         </property>
         <property name="text">
-         <string>Status Text</string>
+         <string>hoverText</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="pickedText">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Consolas</family>
+         </font>
+        </property>
+        <property name="text">
+         <string>pickedText</string>
         </property>
        </widget>
       </item>
