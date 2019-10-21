@@ -39,6 +39,8 @@ rdcstr DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(FileIOFailed, "File I/O failed");
     STRINGISE_ENUM_CLASS_NAMED(FileIncompatibleVersion, "File of incompatible version");
     STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File corrupted");
+    STRINGISE_ENUM_CLASS_NAMED(ImageUnsupported,
+                               "The image file is recognised but the format is unsupported");
     STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API is unsupported");
     STRINGISE_ENUM_CLASS_NAMED(APIInitFailed, "API initialisation failed");
     STRINGISE_ENUM_CLASS_NAMED(APIIncompatibleVersion,
@@ -50,6 +52,19 @@ rdcstr DoStringise(const ReplayStatus &el)
                                "Replaying the capture encountered invalid/corrupted data");
     STRINGISE_ENUM_CLASS_NAMED(APIReplayFailed, "Replaying the capture failed at the API level");
     STRINGISE_ENUM_CLASS_NAMED(JDWPFailure, "JDWP debugger connection could not be established");
+    STRINGISE_ENUM_CLASS_NAMED(
+        AndroidGrantPermissionsFailed,
+        "Failed to grant runtime permissions when installing Android remote server");
+    STRINGISE_ENUM_CLASS_NAMED(
+        AndroidABINotFound,
+        "Couldn't determine supported ABIs when installing Android remote server");
+    STRINGISE_ENUM_CLASS_NAMED(
+        AndroidAPKFolderNotFound,
+        "Couldn't find the folder which contains the Android remote server APK");
+    STRINGISE_ENUM_CLASS_NAMED(AndroidAPKInstallFailed,
+                               "Failed to install Android remote server for unknown reasons");
+    STRINGISE_ENUM_CLASS_NAMED(AndroidAPKVerifyFailed,
+                               "Failed to verify installed Android remote server");
   }
   END_ENUM_STRINGISE();
 }
