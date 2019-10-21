@@ -283,8 +283,8 @@ uint64_t BitcodeReader::decodeAbbrevParam(const AbbrevParam &param)
 
   switch(param.encoding)
   {
-    case AbbrevEncoding::Fixed: return b.fixed<uint64_t>(param.value);
-    case AbbrevEncoding::VBR: return b.vbr<uint64_t>(param.value);
+    case AbbrevEncoding::Fixed: return b.fixed<uint64_t>((size_t)param.value);
+    case AbbrevEncoding::VBR: return b.vbr<uint64_t>((size_t)param.value);
     case AbbrevEncoding::Char6: return b.c6();
     case AbbrevEncoding::Literal: return param.value;
     case AbbrevEncoding::Array:

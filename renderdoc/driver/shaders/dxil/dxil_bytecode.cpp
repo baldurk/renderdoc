@@ -617,7 +617,7 @@ Program::Program(const byte *bytes, size_t length)
           std::string metastr = StringFormat::Fmt("!%u = ", (uint32_t)i);
 
           auto getMetaString = [&rootblock](uint64_t id) -> rdcstr {
-            return id ? rootblock.children[id - 1].getString() : "NULL";
+            return id ? rootblock.children[size_t(id - 1)].getString() : "NULL";
           };
 
           if(IS_KNOWN(meta.id, MetaDataRecord::STRING_OLD))
