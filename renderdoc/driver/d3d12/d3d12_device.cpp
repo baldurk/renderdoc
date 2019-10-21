@@ -1334,20 +1334,48 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
 
   if(ser.IsWriting())
   {
-    // if we have a box, calculate how much data from user's pitch
-    if(pDstBox)
-    {
-      UINT numSlicesBeforeLast = pDstBox->back - pDstBox->front - 1;
-      UINT numRows = pDstBox->bottom - pDstBox->top;
+    D3D12_RESOURCE_DESC desc = Resource->GetDesc();
 
-      dataSize = SrcDepthPitch * uint64_t(numSlicesBeforeLast) + SrcRowPitch * uint64_t(numRows);
+    // for buffers the data size is just the width of the box/resource
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      if(pDstBox)
+        dataSize = RDCMIN(desc.Width, UINT64(pDstBox->right - pDstBox->left));
+      else
+        dataSize = desc.Width;
     }
     else
     {
-      D3D12_RESOURCE_DESC desc = Resource->GetDesc();
+      UINT width = UINT(desc.Width);
+      UINT height = desc.Height;
+      // only 3D textures have a depth, array slices are separate subresources.
+      UINT depth = (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? desc.DepthOrArraySize : 1);
 
-      // otherwise fetch the whole resource size
-      m_pDevice->GetCopyableFootprints(&desc, Subresource, 1, 0, NULL, NULL, NULL, &dataSize);
+      // if we have a box, use its dimensions
+      if(pDstBox)
+      {
+        width = RDCMIN(width, pDstBox->right - pDstBox->left);
+        height = RDCMIN(height, pDstBox->bottom - pDstBox->top);
+        depth = RDCMIN(depth, pDstBox->back - pDstBox->front);
+      }
+
+      if(IsBlockFormat(desc.Format))
+        height = RDCMAX(1U, AlignUp4(height) / 4);
+      else if(IsYUVPlanarFormat(desc.Format))
+        height = GetYUVNumRows(desc.Format, height);
+
+      dataSize = 0;
+
+      // if we're copying multiple slices, all but the last one consume SrcDepthPitch bytes
+      if(depth > 1)
+        dataSize += SrcDepthPitch * (depth - 1);
+
+      // similarly if we're copying multiple rows (possibly block-sized rows) in the final slice
+      if(height > 1)
+        dataSize += SrcRowPitch * (height - 1);
+
+      // lastly, the final row (or block row) consumes just a tightly packed amount of data
+      dataSize += GetRowPitch(width, desc.Format, 0);
     }
   }
 
