@@ -826,5 +826,6 @@ enum class D3D12Chunk : uint32_t
   List_EndRenderPass,
   List_RSSetShadingRate,
   List_RSSetShadingRateImage,
+  Device_ExternalDXGIResource,
   Max,
 };

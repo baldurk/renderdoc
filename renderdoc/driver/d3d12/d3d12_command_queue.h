@@ -195,6 +195,10 @@ public:
   {
     return m_pDevice->WrapSwapchainBuffer(swapper, bufferFormat, buffer, realSurface);
   }
+  virtual IDXGIResource *WrapExternalDXGIResource(IDXGIResource *res)
+  {
+    return m_pDevice->WrapExternalDXGIResource(res);
+  }
 
   virtual HRESULT Present(IDXGISwapper *swapper, UINT SyncInterval, UINT Flags)
   {

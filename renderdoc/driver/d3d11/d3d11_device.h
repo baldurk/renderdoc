@@ -548,6 +548,8 @@ public:
   void ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                  IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
+  virtual IDXGIResource *WrapExternalDXGIResource(IDXGIResource *res);
+
   ResourceId GetBackbufferResourceID() { return m_BBID; }
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }
@@ -606,6 +608,9 @@ public:
   std::vector<D3D11_SUBRESOURCE_DATA> Serialise_CreateTextureData(
       SerialiserType &ser, ID3D11Resource *tex, ResourceId id, const D3D11_SUBRESOURCE_DATA *data,
       UINT w, UINT h, UINT d, DXGI_FORMAT fmt, UINT mips, UINT arr, bool HasData);
+
+  HRESULT STDMETHODCALLTYPE OpenSharedResourceInternal(bool externalResource, HANDLE hResource,
+                                                       REFIID ReturnedInterface, void **ppResource);
 
 // this is defined as a macro so that we can re-use it to explicitly instantiate these functions as
 // templates in the wrapper definition file.

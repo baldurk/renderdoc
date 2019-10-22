@@ -993,6 +993,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
     case D3D11Chunk::CreateDeferredContext: return Serialise_CreateDeferredContext(ser, 0, 0x0);
 
     case D3D11Chunk::SetExceptionMode: return Serialise_SetExceptionMode(ser, 0);
+    case D3D11Chunk::ExternalDXGIResource:
     case D3D11Chunk::OpenSharedResource:
     {
       IID nul;
@@ -1466,6 +1467,24 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   }
 
   return pTex;
+}
+
+IDXGIResource *WrappedID3D11Device::WrapExternalDXGIResource(IDXGIResource *res)
+{
+  ID3D11Resource *d3d11res;
+  res->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11res);
+  if(GetResourceManager()->HasWrapper(d3d11res))
+  {
+    ID3D11DeviceChild *wrapper = GetResourceManager()->GetWrapper(d3d11res);
+    IDXGIResource *ret = NULL;
+    wrapper->QueryInterface(__uuidof(IDXGIResource), (void **)&ret);
+    res->Release();
+    return ret;
+  }
+
+  void *voidRes = (void *)res;
+  OpenSharedResourceInternal(true, 0, __uuidof(IDXGIResource), &voidRes);
+  return (IDXGIResource *)voidRes;
 }
 
 void WrappedID3D11Device::SetMarker(uint32_t col, const wchar_t *name)

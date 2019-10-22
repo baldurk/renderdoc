@@ -2284,7 +2284,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
     D3D12_HEAP_PROPERTIES heapProperties;
     D3D12_HEAP_FLAGS heapFlags;
 
-    ID3D12Resource *res{};
+    ID3D12Resource *res = NULL;
     if(ser.IsWriting())
     {
       res = (ID3D12Resource *)*ppvObj;
@@ -2376,6 +2376,12 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
+  return OpenSharedHandleInternal(false, NTHandle, riid, ppvObj);
+}
+
+HRESULT WrappedID3D12Device::OpenSharedHandleInternal(bool externalResource, HANDLE NTHandle,
+                                                      REFIID riid, void **ppvObj)
+{
   if(IsReplayMode(m_State))
   {
     RDCERR("Don't support opening shared handle during replay.");
@@ -2385,12 +2391,22 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
   if(ppvObj == NULL)
     return E_INVALIDARG;
 
+  bool isDXGIRes = (riid == __uuidof(IDXGIResource) ? true : false);
   bool isRes = (riid == __uuidof(ID3D12Resource) ? true : false);
-  if(isRes)
+  if(isDXGIRes || isRes)
   {
     void *ret = NULL;
     HRESULT hr;
-    SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedHandle(NTHandle, riid, &ret));
+
+    if(externalResource)
+    {
+      ret = *ppvObj;
+      SERIALISE_TIME_CALL(hr = S_OK);
+    }
+    else
+    {
+      SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedHandle(NTHandle, riid, &ret));
+    }
 
     if(FAILED(hr))
     {
@@ -2400,15 +2416,44 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
     }
     else
     {
+      if(isDXGIRes)
+      {
+        IDXGIResource *dxgiRes = (IDXGIResource *)ret;
+
+        ID3D12Resource *d3d12Res = NULL;
+        hr = dxgiRes->QueryInterface(__uuidof(ID3D12Resource), (void **)&d3d12Res);
+
+        // if we can't get a d3d11Res then we can't properly wrap this resource,
+        // whatever it is.
+        if(FAILED(hr) || d3d12Res == NULL)
+        {
+          SAFE_RELEASE(d3d12Res);
+          SAFE_RELEASE(dxgiRes);
+          return E_NOINTERFACE;
+        }
+
+        // release this interface
+        SAFE_RELEASE(dxgiRes);
+
+        // and use this one, so it'll be casted back below
+        ret = (void *)d3d12Res;
+        isRes = true;
+      }
+
       ID3D12Resource *real = (ID3D12Resource *)ret;
 
       WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(real, this);
-      *ppvObj = (ID3D12Resource *)wrapped;
+
+      if(isDXGIRes)
+        wrapped->QueryInterface(__uuidof(IDXGIResource), ppvObj);
+      else
+        *ppvObj = (ID3D12Resource *)wrapped;
 
       CACHE_THREAD_SERIALISER();
 
-      SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_OpenSharedHandle);
-      Serialise_OpenSharedHandle(ser, NTHandle, riid, ppvObj);
+      SCOPED_SERIALISE_CHUNK(externalResource ? D3D12Chunk::Device_ExternalDXGIResource
+                                              : D3D12Chunk::Device_OpenSharedHandle);
+      Serialise_OpenSharedHandle(ser, NTHandle, __uuidof(ID3D12Resource), (void **)&wrapped);
 
       D3D12_RESOURCE_DESC desc = wrapped->GetDesc();
       D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_COMMON;

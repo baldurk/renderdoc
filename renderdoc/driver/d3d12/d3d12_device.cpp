@@ -1135,6 +1135,24 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   return pRes;
 }
 
+IDXGIResource *WrappedID3D12Device::WrapExternalDXGIResource(IDXGIResource *res)
+{
+  ID3D12Resource *d3d12res;
+  res->QueryInterface(__uuidof(ID3D12Resource), (void **)&d3d12res);
+  if(GetResourceManager()->HasWrapper(d3d12res))
+  {
+    ID3D12DeviceChild *wrapper = GetResourceManager()->GetWrapper(d3d12res);
+    IDXGIResource *ret = NULL;
+    wrapper->QueryInterface(__uuidof(IDXGIResource), (void **)&ret);
+    res->Release();
+    return ret;
+  }
+
+  void *voidRes = (void *)res;
+  OpenSharedHandleInternal(true, 0, __uuidof(IDXGIResource), &voidRes);
+  return (IDXGIResource *)voidRes;
+}
+
 void WrappedID3D12Device::Map(ID3D12Resource *Resource, UINT Subresource)
 {
   MapState map;
@@ -2896,6 +2914,9 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       return Serialise_CreateCommittedResource1(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
                                                 D3D12_RESOURCE_STATE_COMMON, NULL, NULL, IID(), NULL);
     case D3D12Chunk::Device_CreateHeap1: return Serialise_CreateHeap1(ser, NULL, NULL, IID(), NULL);
+    case D3D12Chunk::Device_ExternalDXGIResource:
+      return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
+      break;
     default:
     {
       SystemChunk system = (SystemChunk)context;

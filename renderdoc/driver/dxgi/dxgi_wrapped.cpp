@@ -605,6 +605,125 @@ WrappedIDXGIOutput6::~WrappedIDXGIOutput6()
   SAFE_RELEASE(m_Owner);
 }
 
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::FindClosestMatchingMode(
+    const DXGI_MODE_DESC *pModeToMatch, DXGI_MODE_DESC *pClosestMatch, IUnknown *pConcernedDevice)
+{
+  ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
+
+  if(wrapDevice)
+    return m_pReal->FindClosestMatchingMode(pModeToMatch, pClosestMatch,
+                                            wrapDevice->GetRealIUnknown());
+
+  if(pConcernedDevice)
+    RDCERR("Unrecognised device in FindClosestMatchingMode()");
+
+  return E_INVALIDARG;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::TakeOwnership(IUnknown *pDevice, BOOL Exclusive)
+{
+  ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
+
+  if(wrapDevice)
+    return m_pReal->TakeOwnership(wrapDevice->GetRealIUnknown(), Exclusive);
+
+  // since this is supposed to be an internal function, allow passing through the pointer directly
+  // just in case
+  return m_pReal->TakeOwnership(pDevice, Exclusive);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::FindClosestMatchingMode1(
+    const DXGI_MODE_DESC1 *pModeToMatch, DXGI_MODE_DESC1 *pClosestMatch, IUnknown *pConcernedDevice)
+{
+  ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
+
+  if(wrapDevice)
+    return m_pReal1->FindClosestMatchingMode1(pModeToMatch, pClosestMatch,
+                                              wrapDevice->GetRealIUnknown());
+
+  if(pConcernedDevice)
+    RDCERR("Unrecognised device in FindClosestMatchingMode1()");
+
+  return E_INVALIDARG;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::GetDisplaySurfaceData1(IDXGIResource *pDestination)
+{
+  return m_pReal1->GetDisplaySurfaceData1(UnwrapDXGIResource(pDestination));
+}
+
+HRESULT STDMETHODCALLTYPE
+WrappedIDXGIOutput6::DuplicateOutput(IUnknown *pDevice, IDXGIOutputDuplication **ppOutputDuplication)
+{
+  if(!ppOutputDuplication)
+    return E_INVALIDARG;
+
+  ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
+
+  if(wrapDevice)
+  {
+    IDXGIOutputDuplication *dup = NULL;
+    HRESULT ret = m_pReal1->DuplicateOutput(wrapDevice->GetRealIUnknown(), &dup);
+
+    if(SUCCEEDED(ret) && dup)
+      dup = new WrappedIDXGIOutputDuplication(wrapDevice, dup);
+
+    *ppOutputDuplication = dup;
+
+    return ret;
+  }
+
+  if(pDevice)
+    RDCERR("Unrecognised device in DuplicateOutput()");
+
+  return E_INVALIDARG;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::CheckOverlaySupport(DXGI_FORMAT EnumFormat,
+                                                                   IUnknown *pConcernedDevice,
+                                                                   UINT *pFlags)
+{
+  ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
+
+  if(wrapDevice)
+    return m_pReal3->CheckOverlaySupport(EnumFormat, wrapDevice->GetRealIUnknown(), pFlags);
+
+  if(pConcernedDevice)
+    RDCERR("Unrecognised device in CheckOverlaySupport()");
+
+  return E_INVALIDARG;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::DuplicateOutput1(
+    IUnknown *pDevice, UINT Flags, UINT SupportedFormatsCount, const DXGI_FORMAT *pSupportedFormats,
+    IDXGIOutputDuplication **ppOutputDuplication)
+{
+  if(!ppOutputDuplication)
+    return E_INVALIDARG;
+
+  ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
+
+  if(wrapDevice)
+  {
+    IDXGIOutputDuplication *dup = NULL;
+    HRESULT ret =
+        m_pReal5->DuplicateOutput1(wrapDevice->GetRealIUnknown(), Flags, SupportedFormatsCount,
+                                   pSupportedFormats, ppOutputDuplication);
+
+    if(SUCCEEDED(ret) && dup)
+      dup = new WrappedIDXGIOutputDuplication(wrapDevice, dup);
+
+    *ppOutputDuplication = dup;
+
+    return ret;
+  }
+
+  if(pDevice)
+    RDCERR("Unrecognised device in DuplicateOutput()");
+
+  return E_INVALIDARG;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IDXGIOutput))
@@ -1271,4 +1390,48 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForComposition(IUnknown *pDevice,
   }
 
   return m_pReal2->CreateSwapChainForComposition(pDevice, pDesc, unwrappedOutput, ppSwapChain);
+}
+
+WrappedIDXGIOutputDuplication::WrappedIDXGIOutputDuplication(ID3DDevice *device,
+                                                             IDXGIOutputDuplication *real)
+    : RefCountDXGIObject(real), m_Device(device), m_pReal(real)
+{
+}
+
+WrappedIDXGIOutputDuplication::~WrappedIDXGIOutputDuplication()
+{
+  SAFE_RELEASE(m_pReal);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutputDuplication::AcquireNextFrame(
+    UINT TimeoutInMilliseconds, DXGI_OUTDUPL_FRAME_INFO *pFrameInfo, IDXGIResource **ppDesktopResource)
+{
+  if(!ppDesktopResource)
+    return E_INVALIDARG;
+
+  IDXGIResource *desktop = NULL;
+  HRESULT ret = m_pReal->AcquireNextFrame(TimeoutInMilliseconds, pFrameInfo, &desktop);
+
+  if(SUCCEEDED(ret) && desktop)
+    desktop = m_Device->WrapExternalDXGIResource(desktop);
+
+  *ppDesktopResource = desktop;
+
+  return ret;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutputDuplication::QueryInterface(REFIID riid, void **ppvObject)
+{
+  if(riid == __uuidof(IDXGIOutputDuplication))
+  {
+    AddRef();
+    *ppvObject = (IDXGIOutputDuplication *)this;
+    return S_OK;
+  }
+  else
+  {
+    WarnUnknownGUID("IDXGIOutputDuplication", riid);
+  }
+
+  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }

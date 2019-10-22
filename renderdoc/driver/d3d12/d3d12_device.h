@@ -713,6 +713,8 @@ public:
   void ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                  IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
+  IDXGIResource *WrapExternalDXGIResource(IDXGIResource *res);
+
   void Map(ID3D12Resource *Resource, UINT Subresource);
   void Unmap(ID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
              const D3D12_RANGE *pWrittenRange);
@@ -953,6 +955,9 @@ public:
                                        ID3D12DeviceChild *pObject,
                                        const SECURITY_ATTRIBUTES *pAttributes, DWORD Access,
                                        LPCWSTR Name, HANDLE *pHandle);
+
+  HRESULT STDMETHODCALLTYPE OpenSharedHandleInternal(bool externalResource, HANDLE NTHandle,
+                                                     REFIID riid, void **ppvObj);
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedHandle,
                                        HANDLE NTHandle, REFIID riid, void **ppvObj);

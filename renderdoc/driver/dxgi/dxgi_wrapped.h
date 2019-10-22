@@ -192,6 +192,8 @@ struct ID3DDevice
   virtual IUnknown *WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_FORMAT bufferFormat,
                                         UINT buffer, IUnknown *realSurface) = 0;
 
+  virtual IDXGIResource *WrapExternalDXGIResource(IDXGIResource *res) = 0;
+
   virtual HRESULT Present(IDXGISwapper *swapper, UINT SyncInterval, UINT Flags) = 0;
 };
 
@@ -903,6 +905,93 @@ public:
   }
 };
 
+class WrappedIDXGIOutputDuplication : public IDXGIOutputDuplication, public RefCountDXGIObject
+{
+  ID3DDevice *m_Device;
+  IDXGIOutputDuplication *m_pReal;
+
+public:
+  IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+
+  WrappedIDXGIOutputDuplication(ID3DDevice *device, IDXGIOutputDuplication *real);
+  ~WrappedIDXGIOutputDuplication();
+
+  IDXGIOutputDuplication *GetReal() { return m_pReal; }
+  //////////////////////////////
+  // implement IDXGIOutputDuplication
+
+  virtual void STDMETHODCALLTYPE GetDesc(
+      /* [annotation][out] */
+      _Out_ DXGI_OUTDUPL_DESC *pDesc)
+  {
+    return m_pReal->GetDesc(pDesc);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE AcquireNextFrame(
+      /* [annotation][in] */
+      _In_ UINT TimeoutInMilliseconds,
+      /* [annotation][out] */
+      _Out_ DXGI_OUTDUPL_FRAME_INFO *pFrameInfo,
+      /* [annotation][out] */
+      _COM_Outptr_ IDXGIResource **ppDesktopResource);
+
+  virtual HRESULT STDMETHODCALLTYPE GetFrameDirtyRects(
+      /* [annotation][in] */
+      _In_ UINT DirtyRectsBufferSize,
+      /* [annotation][out] */
+      _Out_writes_bytes_to_(DirtyRectsBufferSize, *pDirtyRectsBufferSizeRequired)
+          RECT *pDirtyRectsBuffer,
+      /* [annotation][out] */
+      _Out_ UINT *pDirtyRectsBufferSizeRequired)
+  {
+    return m_pReal->GetFrameDirtyRects(DirtyRectsBufferSize, pDirtyRectsBuffer,
+                                       pDirtyRectsBufferSizeRequired);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetFrameMoveRects(
+      /* [annotation][in] */
+      _In_ UINT MoveRectsBufferSize,
+      /* [annotation][out] */
+      _Out_writes_bytes_to_(MoveRectsBufferSize, *pMoveRectsBufferSizeRequired)
+          DXGI_OUTDUPL_MOVE_RECT *pMoveRectBuffer,
+      /* [annotation][out] */
+      _Out_ UINT *pMoveRectsBufferSizeRequired)
+  {
+    return m_pReal->GetFrameMoveRects(MoveRectsBufferSize, pMoveRectBuffer,
+                                      pMoveRectsBufferSizeRequired);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetFramePointerShape(
+      /* [annotation][in] */
+      _In_ UINT PointerShapeBufferSize,
+      /* [annotation][out] */
+      _Out_writes_bytes_to_(PointerShapeBufferSize,
+                            *pPointerShapeBufferSizeRequired) void *pPointerShapeBuffer,
+      /* [annotation][out] */
+      _Out_ UINT *pPointerShapeBufferSizeRequired,
+      /* [annotation][out] */
+      _Out_ DXGI_OUTDUPL_POINTER_SHAPE_INFO *pPointerShapeInfo)
+  {
+    return m_pReal->GetFramePointerShape(PointerShapeBufferSize, pPointerShapeBuffer,
+                                         pPointerShapeBufferSizeRequired, pPointerShapeInfo);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE MapDesktopSurface(
+      /* [annotation][out] */
+      _Out_ DXGI_MAPPED_RECT *pLockedRect)
+  {
+    return m_pReal->MapDesktopSurface(pLockedRect);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE UnMapDesktopSurface(void)
+  {
+    return m_pReal->UnMapDesktopSurface();
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE ReleaseFrame(void) { return m_pReal->ReleaseFrame(); }
+};
+
 class WrappedIDXGIOutput6 : public IDXGIOutput6, public RefCountDXGIObject
 {
   RefCountDXGIObject *m_Owner;
@@ -949,18 +1038,12 @@ public:
       /* [annotation][out] */
       _Out_ DXGI_MODE_DESC *pClosestMatch,
       /* [annotation][in] */
-      _In_opt_ IUnknown *pConcernedDevice)
-  {
-    return m_pReal->FindClosestMatchingMode(pModeToMatch, pClosestMatch, pConcernedDevice);
-  }
+      _In_opt_ IUnknown *pConcernedDevice);
 
   virtual HRESULT STDMETHODCALLTYPE WaitForVBlank(void) { return m_pReal->WaitForVBlank(); }
   virtual HRESULT STDMETHODCALLTYPE TakeOwnership(
       /* [annotation][in] */
-      _In_ IUnknown *pDevice, BOOL Exclusive)
-  {
-    return m_pReal->TakeOwnership(pDevice, Exclusive);
-  }
+      _In_ IUnknown *pDevice, BOOL Exclusive);
 
   virtual void STDMETHODCALLTYPE ReleaseOwnership(void) { return m_pReal->ReleaseOwnership(); }
   virtual HRESULT STDMETHODCALLTYPE GetGammaControlCapabilities(
@@ -1025,26 +1108,17 @@ public:
       /* [annotation][out] */
       _Out_ DXGI_MODE_DESC1 *pClosestMatch,
       /* [annotation][in] */
-      _In_opt_ IUnknown *pConcernedDevice)
-  {
-    return m_pReal1->FindClosestMatchingMode1(pModeToMatch, pClosestMatch, pConcernedDevice);
-  }
+      _In_opt_ IUnknown *pConcernedDevice);
 
   virtual HRESULT STDMETHODCALLTYPE GetDisplaySurfaceData1(
       /* [annotation][in] */
-      _In_ IDXGIResource *pDestination)
-  {
-    return m_pReal1->GetDisplaySurfaceData1(pDestination);
-  }
+      _In_ IDXGIResource *pDestination);
 
   virtual HRESULT STDMETHODCALLTYPE DuplicateOutput(
       /* [annotation][in] */
       _In_ IUnknown *pDevice,
       /* [annotation][out] */
-      _COM_Outptr_ IDXGIOutputDuplication **ppOutputDuplication)
-  {
-    return m_pReal1->DuplicateOutput(pDevice, ppOutputDuplication);
-  }
+      _COM_Outptr_ IDXGIOutputDuplication **ppOutputDuplication);
 
   //////////////////////////////
   // implement IDXGIOutput2
@@ -1059,10 +1133,7 @@ public:
       /* [annotation][out] */
       _In_ IUnknown *pConcernedDevice,
       /* [annotation][out] */
-      _Out_ UINT *pFlags)
-  {
-    return m_pReal3->CheckOverlaySupport(EnumFormat, pConcernedDevice, pFlags);
-  }
+      _Out_ UINT *pFlags);
 
   //////////////////////////////
   // implement IDXGIOutput4
@@ -1092,11 +1163,7 @@ public:
       /* [annotation][in] */
       _In_reads_(SupportedFormatsCount) const DXGI_FORMAT *pSupportedFormats,
       /* [annotation][out] */
-      _COM_Outptr_ IDXGIOutputDuplication **ppOutputDuplication)
-  {
-    return m_pReal5->DuplicateOutput1(pDevice, Flags, SupportedFormatsCount, pSupportedFormats,
-                                      ppOutputDuplication);
-  }
+      _COM_Outptr_ IDXGIOutputDuplication **ppOutputDuplication);
 
   //////////////////////////////
   // implement IDXGIOutput6

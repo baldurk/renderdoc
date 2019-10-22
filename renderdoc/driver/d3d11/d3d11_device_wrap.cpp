@@ -3274,6 +3274,12 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID ReturnedInterface,
                                                 void **ppResource)
 {
+  return OpenSharedResourceInternal(false, hResource, ReturnedInterface, ppResource);
+}
+
+HRESULT WrappedID3D11Device::OpenSharedResourceInternal(bool externalResource, HANDLE hResource,
+                                                        REFIID ReturnedInterface, void **ppResource)
+{
   if(IsReplayMode(m_State))
   {
     RDCERR("Don't support opening shared resources during replay.");
@@ -3294,7 +3300,16 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
   {
     void *res = NULL;
     HRESULT hr;
-    SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, &res));
+
+    if(externalResource)
+    {
+      res = *ppResource;
+      SERIALISE_TIME_CALL(hr = S_OK);
+    }
+    else
+    {
+      SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, &res));
+    }
 
     if(FAILED(hr))
     {
@@ -3362,6 +3377,8 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
 
       ID3D11Resource *realRes = NULL;
 
+      void *ppvWrapped = NULL;
+
       if(isBuf)
       {
         WrappedID3D11Buffer *w = new WrappedID3D11Buffer((ID3D11Buffer *)res, 0, this);
@@ -3369,7 +3386,21 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
 
         realRes = w->GetReal();
 
-        *ppResource = (ID3D11Buffer *)w;
+        ppvWrapped = (ID3D11Buffer *)w;
+
+        if(isDXGIRes)
+        {
+          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+          w->Release();
+        }
+        else if(isRes)
+        {
+          *ppResource = (ID3D11Resource *)w;
+        }
+        else
+        {
+          *ppResource = (ID3D11Buffer *)w;
+        }
       }
       else if(isTex1D)
       {
@@ -3378,7 +3409,21 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
 
         realRes = w->GetReal();
 
-        *ppResource = (ID3D11Texture1D *)w;
+        ppvWrapped = (ID3D11Texture1D *)w;
+
+        if(isDXGIRes)
+        {
+          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+          w->Release();
+        }
+        else if(isRes)
+        {
+          *ppResource = (ID3D11Resource *)w;
+        }
+        else
+        {
+          *ppResource = (ID3D11Texture1D *)w;
+        }
       }
       else if(isTex2D)
       {
@@ -3387,7 +3432,21 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
 
         realRes = w->GetReal();
 
-        *ppResource = (ID3D11Texture2D *)w;
+        ppvWrapped = (ID3D11Texture2D *)w;
+
+        if(isDXGIRes)
+        {
+          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+          w->Release();
+        }
+        else if(isRes)
+        {
+          *ppResource = (ID3D11Resource *)w;
+        }
+        else
+        {
+          *ppResource = (ID3D11Texture2D *)w;
+        }
       }
       else if(isTex3D)
       {
@@ -3396,15 +3455,30 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
 
         realRes = w->GetReal();
 
-        *ppResource = (ID3D11Texture3D *)w;
+        ppvWrapped = (ID3D11Texture3D *)w;
+
+        if(isDXGIRes)
+        {
+          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+          w->Release();
+        }
+        else if(isRes)
+        {
+          *ppResource = (ID3D11Resource *)w;
+        }
+        else
+        {
+          *ppResource = (ID3D11Texture3D *)w;
+        }
       }
 
       Chunk *chunk = NULL;
 
       {
         USE_SCRATCH_SERIALISER();
-        SCOPED_SERIALISE_CHUNK(D3D11Chunk::OpenSharedResource);
-        Serialise_OpenSharedResource(GET_SERIALISER, hResource, ReturnedInterface, ppResource);
+        SCOPED_SERIALISE_CHUNK(externalResource ? D3D11Chunk::ExternalDXGIResource
+                                                : D3D11Chunk::OpenSharedResource);
+        Serialise_OpenSharedResource(GET_SERIALISER, hResource, ReturnedInterface, &ppvWrapped);
 
         chunk = scope.Get();
       }
