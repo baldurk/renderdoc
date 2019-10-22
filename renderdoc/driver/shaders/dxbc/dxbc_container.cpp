@@ -994,6 +994,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       m_Reflection = m_DXBCByteCode->GuessReflection();
     else if(m_DXILByteCode)
       m_Reflection = m_DXILByteCode->GetReflection();
+    else
+      m_Reflection = new Reflection;
   }
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
