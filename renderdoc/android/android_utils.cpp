@@ -256,9 +256,6 @@ rdcstr GetFriendlyName(const rdcstr &deviceID)
   else if(!manuf.empty() && !model.empty())
     combined = manuf + " " + model;
 
-  if(!IsSupported(deviceID))
-    combined += " - (Android 5.x)";
-
   return combined;
 }
 

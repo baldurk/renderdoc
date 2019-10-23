@@ -762,6 +762,8 @@ struct AndroidController : public IDeviceProtocolHandler
         Device dev;
         dev.active = true;
         dev.name = Android::GetFriendlyName(d);
+        if(!Android::IsSupported(d))
+          dev.name += " - (Android 5.x)";
         dev.portbase =
             uint16_t(RenderDoc_ForwardPortBase +
                      RenderDoc::Inst().GetForwardedPortSlot() * RenderDoc_ForwardPortStride);
