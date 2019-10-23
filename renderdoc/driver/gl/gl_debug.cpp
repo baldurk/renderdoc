@@ -2128,7 +2128,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     GetBufferData(cfg.position.vertexResourceId, cfg.position.vertexByteOffset, 0, oldData);
 
     // clamp maxIndex to upper bound in case we got invalid indices or primitive restart indices
-    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / cfg.position.vertexByteStride));
+    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / RDCMAX(1U, cfg.position.vertexByteStride)));
 
     if(DebugData.pickVBBuf == 0 || DebugData.pickVBSize < (maxIndex + 1) * sizeof(Vec4f))
     {

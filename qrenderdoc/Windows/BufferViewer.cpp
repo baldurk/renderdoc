@@ -1385,8 +1385,8 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
         BufferDescription *buf = ctx.GetBuffer(vb.resourceId);
         if(buf)
         {
-          numRowsUpperBound =
-              qMax(numRowsUpperBound, uint32_t(buf->length - vb.byteOffset) / vb.byteStride);
+          numRowsUpperBound = qMax(numRowsUpperBound,
+                                   uint32_t(buf->length - vb.byteOffset) / qMax(1U, vb.byteStride));
         }
       }
 

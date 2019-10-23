@@ -2941,7 +2941,7 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
     GetDebugManager()->GetBufferData(vb, cfg.position.vertexByteOffset, 0, oldData);
 
     // clamp maxIndex to upper bound in case we got invalid indices or primitive restart indices
-    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / cfg.position.vertexByteStride));
+    maxIndex = RDCMIN(maxIndex, uint32_t(oldData.size() / RDCMAX(1U, cfg.position.vertexByteStride)));
 
     if(m_VertexPick.PickVBBuf == NULL || m_VertexPick.PickVBSize < (maxIndex + 1) * sizeof(Vec4f))
     {
