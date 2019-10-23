@@ -319,6 +319,40 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     params.Extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
   }
 
+  VkValidationFeaturesEXT featuresEXT = {VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+  VkValidationFeatureDisableEXT disableFeatures[] = {VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT};
+  featuresEXT.disabledValidationFeatureCount = ARRAY_COUNT(disableFeatures);
+  featuresEXT.pDisabledValidationFeatures = disableFeatures;
+
+  VkValidationFlagsEXT flagsEXT = {VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT};
+  VkValidationCheckEXT disableChecks[] = {VK_VALIDATION_CHECK_SHADERS_EXT};
+  flagsEXT.disabledValidationCheckCount = ARRAY_COUNT(disableChecks);
+  flagsEXT.pDisabledValidationChecks = disableChecks;
+
+  void *instNext = NULL;
+
+  if(supportedExtensions.find(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) != supportedExtensions.end() &&
+     std::find(params.Extensions.begin(), params.Extensions.end(),
+               VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == params.Extensions.end())
+  {
+    if(!m_Replay.IsRemoteProxy())
+      RDCLOG("Enabling VK_EXT_validation_features");
+    params.Extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+
+    instNext = &featuresEXT;
+  }
+  else if(supportedExtensions.find(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) !=
+              supportedExtensions.end() &&
+          std::find(params.Extensions.begin(), params.Extensions.end(),
+                    VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) == params.Extensions.end())
+  {
+    if(!m_Replay.IsRemoteProxy())
+      RDCLOG("Enabling VK_EXT_validation_flags");
+    params.Extensions.push_back(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME);
+
+    instNext = &flagsEXT;
+  }
+
   const char **layerscstr = new const char *[params.Layers.size()];
   for(size_t i = 0; i < params.Layers.size(); i++)
     layerscstr[i] = params.Layers[i].c_str();
@@ -329,7 +363,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
   VkInstanceCreateInfo instinfo = {
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      NULL,
+      instNext,
       0,
       &renderdocAppInfo,
       (uint32_t)params.Layers.size(),
@@ -342,38 +376,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     renderdocAppInfo.apiVersion = params.APIVersion;
 
   m_Instance = VK_NULL_HANDLE;
-
-  VkValidationFeaturesEXT featuresEXT = {VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
-  VkValidationFeatureDisableEXT disableFeatures[] = {VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT};
-  featuresEXT.disabledValidationFeatureCount = ARRAY_COUNT(disableFeatures);
-  featuresEXT.pDisabledValidationFeatures = disableFeatures;
-
-  VkValidationFlagsEXT flagsEXT = {VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT};
-  VkValidationCheckEXT disableChecks[] = {VK_VALIDATION_CHECK_SHADERS_EXT};
-  flagsEXT.disabledValidationCheckCount = ARRAY_COUNT(disableChecks);
-  flagsEXT.pDisabledValidationChecks = disableChecks;
-
-  if(supportedExtensions.find(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) != supportedExtensions.end() &&
-     std::find(params.Extensions.begin(), params.Extensions.end(),
-               VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == params.Extensions.end())
-  {
-    if(!m_Replay.IsRemoteProxy())
-      RDCLOG("Enabling VK_EXT_validation_features");
-    params.Extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
-
-    instinfo.pNext = &featuresEXT;
-  }
-  else if(supportedExtensions.find(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) !=
-              supportedExtensions.end() &&
-          std::find(params.Extensions.begin(), params.Extensions.end(),
-                    VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) == params.Extensions.end())
-  {
-    if(!m_Replay.IsRemoteProxy())
-      RDCLOG("Enabling VK_EXT_validation_flags");
-    params.Extensions.push_back(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME);
-
-    instinfo.pNext = &flagsEXT;
-  }
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
