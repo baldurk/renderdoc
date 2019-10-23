@@ -926,7 +926,7 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
         if(space == -1)
           return BoundCBuffer();
 
-        if(bind.bindset >= s.spaces.count() || bind.bind >= s.spaces[space].constantBuffers.count())
+        if(space >= s.spaces.count() || bind.bind >= s.spaces[space].constantBuffers.count())
           return BoundCBuffer();
 
         const D3D12Pipe::ConstantBuffer &descriptor = s.spaces[space].constantBuffers[bind.bind];
