@@ -81,9 +81,27 @@ v2f main(consts IN, uint tri : SV_InstanceID)
 
   std::string pixel = R"EOSHADER(
 
+struct InnerStruct
+{
+  float a;
+  float b[2];
+  float c;
+};
+
+struct MyStruct
+{
+  float a;
+  float4 b;
+  float c;
+  InnerStruct d;
+  float e;
+};
+
 Buffer<float> test : register(t0);
 ByteAddressBuffer byterotest : register(t1);
+StructuredBuffer<MyStruct> structrotest : register(t2);
 RWByteAddressBuffer byterwtest : register(u1);
+RWStructuredBuffer<MyStruct> structrwtest : register(u2);
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -204,23 +222,286 @@ float4 main(v2f IN) : SV_Target0
     return float4(tiny * 1.5e-8f, tiny * 1.5e-9f, asfloat(intval) == 0.0f ? 1.0f : 0.0f, 1.0f);
 
   // test reading/writing byte address data
+
+  // mis-aligned loads
   if(IN.tri == 35)
   {
-    return float4(asfloat(byterotest.Load(0).x), asfloat(byterotest.Load(1).x),
-                  asfloat(byterotest.Load(3).x), float(byterotest.Load(8).x));
-  }
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
 
+    return float4(asfloat(byterotest.Load(z+0).x), asfloat(byterotest.Load(z+1).x),
+                  asfloat(byterotest.Load(z+3).x), float(byterotest.Load(z+8).x));
+  }
+  // later loads: valid, out of view bounds but in buffer bounds, out of both bounds
   if(IN.tri == 36)
   {
-    byterwtest.Store(0, asuint(5.4321f));
-    byterwtest.Store(4, asuint(9.8765f));
-    byterwtest.Store(8, 0xbeef);
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
 
+    return float4(asfloat(byterotest.Load(z+40).x), asfloat(byterotest.Load(z+44).x),
+                  asfloat(byterotest.Load(z+48).x), float(byterotest.Load(z+4096).x));
+  }
+  // 4-uint load
+  if(IN.tri == 37)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    // test a 4-uint load
+    return asfloat(byterotest.Load4(z+24));
+  }
+  // 4-uint load crossing view bounds
+  if(IN.tri == 38)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    // test a 4-uint load
+    return asfloat(byterotest.Load4(z+40));
+  }
+  // 4-uint load out of view bounds
+  if(IN.tri == 39)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    // test a 4-uint load
+    return asfloat(byterotest.Load4(z+48));
+  }
+
+  // mis-aligned store
+  if(IN.tri == 40)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    byterwtest.Store(z+0, asuint(5.4321f));
+    byterwtest.Store(z+1, asuint(9.8765f));
+
+    return asfloat(byterwtest.Load(z2+0).x);
+  }
+  // mis-aligned loads
+  if(IN.tri == 41)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    byterwtest.Store(z+0, asuint(5.4321f));
+    byterwtest.Store(z+4, asuint(9.8765f));
+    byterwtest.Store(z+8, 0xbeef);
+
+    return float4(asfloat(byterwtest.Load(z2+0).x), asfloat(byterwtest.Load(z2+1).x),
+                  asfloat(byterwtest.Load(z2+3).x), float(byterwtest.Load(z2+8).x));
+  }
+  // later stores: valid, out of view bounds but in buffer bounds, out of both bounds
+  if(IN.tri == 42)
+  {
     // use this to ensure the compiler doesn't know we're loading from the same locations
-    uint zero = intval - IN.tri - 7;
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
 
-    return float4(asfloat(byterwtest.Load(zero+0).x), asfloat(byterwtest.Load(zero+1).x),
-                  asfloat(byterwtest.Load(zero+3).x), float(byterwtest.Load(zero+8).x));
+    byterwtest.Store(z+40, asuint(1.2345f));
+    byterwtest.Store(z+44, asuint(9.8765f));
+    byterwtest.Store(z+48, asuint(1.81818f));
+    byterwtest.Store(z+4096, asuint(5.55555f));
+
+    return float4(asfloat(byterwtest.Load(z2+40).x), asfloat(byterwtest.Load(z2+44).x),
+                  asfloat(byterwtest.Load(z2+48).x), float(byterwtest.Load(z2+4096).x));
+  }
+  // 4-uint store
+  if(IN.tri == 43)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    byterwtest.Store4(z+24, uint4(99, 88, 77, 66));
+
+    return asfloat(byterotest.Load4(z2+24));
+  }
+  // 4-uint store crossing view bounds
+  if(IN.tri == 44)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    byterwtest.Store4(z+40, uint4(99, 88, 77, 66));
+
+    return asfloat(byterotest.Load4(z2+40));
+  }
+  // 4-uint store out of view bounds
+  if(IN.tri == 45)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    byterwtest.Store4(z+48, uint4(99, 88, 77, 66));
+
+    return asfloat(byterotest.Load4(z2+48));
+  }
+
+  // test reading/writing structured data
+
+  // reading struct at 0 (need two tests to verify most of the data,
+  // we assume the rest is OK because of alignment)
+  if(IN.tri == 46)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = structrotest[z+0];
+
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 47)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = structrotest[z+0];
+
+    return float4(read.a, read.e, read.d.b[z+0], read.d.c);
+  }
+  // reading later, but in bounds
+  if(IN.tri == 48)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = structrotest[z+3];
+
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 49)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = structrotest[z+3];
+
+    return float4(read.a, read.e, read.d.b[z+0], read.d.c);
+  }
+  // structured buffers do not allow partially out of bounds behaviour:
+  // - buffers must by multiples of structure stride (so buffer partials aren't allowed)
+  // - views work in units of structure stride (so view partials aren't allowed)
+  // we can only test fully out of bounds of the view, but in bounds of the buffer
+  if(IN.tri == 50)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = structrotest[z+7];
+
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 51)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    MyStruct read = structrotest[z+7];
+
+    return float4(read.a, read.e, read.d.b[z+0], read.d.c);
+  }
+
+  // storing in bounds
+  if(IN.tri == 52)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    MyStruct write = (MyStruct)0;
+
+    write.a = zero+1.0f;
+    write.c = zero+2.0f;
+    write.e = zero+3.0f;
+    write.b = float4(zero+4.0f, zero+5.0f, zero+6.0f, zero+7.0f);
+    write.d.a = zero+8.0f;
+    write.d.b[0] = zero+9.0f;
+    write.d.b[1] = zero+10.0f;
+    write.d.c = zero+11.0f;
+
+    structrwtest[z+2] = write;
+
+    MyStruct read = structrwtest[z2+2];
+
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 53)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    MyStruct write = (MyStruct)0;
+
+    write.a = zero+1.0f;
+    write.c = zero+2.0f;
+    write.e = zero+3.0f;
+    write.b = float4(zero+4.0f, zero+5.0f, zero+6.0f, zero+7.0f);
+    write.d.a = zero+8.0f;
+    write.d.b[0] = zero+9.0f;
+    write.d.b[1] = zero+10.0f;
+    write.d.c = zero+11.0f;
+
+    structrwtest[z+2] = write;
+
+    MyStruct read = structrwtest[z2+2];
+
+    return float4(read.a, read.e, read.d.b[z2+0], read.d.c);
+  }
+
+  // storing out of bounds
+  if(IN.tri == 54)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    MyStruct write = (MyStruct)0;
+
+    write.a = zero+1.0f;
+    write.c = zero+2.0f;
+    write.e = zero+3.0f;
+    write.b = float4(zero+4.0f, zero+5.0f, zero+6.0f, zero+7.0f);
+    write.d.a = zero+8.0f;
+    write.d.b[0] = zero+9.0f;
+    write.d.b[1] = zero+10.0f;
+    write.d.c = zero+11.0f;
+
+    structrwtest[z+7] = write;
+
+    MyStruct read = structrwtest[z2+7];
+
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 55)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    MyStruct write = (MyStruct)0;
+
+    write.a = zero+1.0f;
+    write.c = zero+2.0f;
+    write.e = zero+3.0f;
+    write.b = float4(zero+4.0f, zero+5.0f, zero+6.0f, zero+7.0f);
+    write.d.a = zero+8.0f;
+    write.d.b[0] = zero+9.0f;
+    write.d.b[1] = zero+10.0f;
+    write.d.c = zero+11.0f;
+
+    structrwtest[z+7] = write;
+
+    MyStruct read = structrwtest[z2+7];
+
+    return float4(read.a, read.e, read.d.b[z2+0], read.d.c);
   }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
@@ -228,13 +509,16 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
-  static const uint32_t numTests = 37;
-
   int main()
   {
     // initialise, create window, create device, etc
     if(!Init())
       return 3;
+
+    size_t lastTest = pixel.rfind("IN.tri == ");
+    lastTest += sizeof("IN.tri == ") - 1;
+
+    const uint32_t numTests = atoi(pixel.c_str() + lastTest) + 1;
 
     ID3DBlobPtr vsblob = Compile(common + vertex, "main", "vs_5_0");
     ID3DBlobPtr psblob = Compile(common + pixel, "main", "ps_5_0");
@@ -288,21 +572,36 @@ float4 main(v2f IN) : SV_Target0
     pun.u = 0xdead;
 
     float testdata[] = {
-        1.2345f, 2.345678f, pun.f, 4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f,  10.0f,
-        11.0f,   12.0f,     13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 120.0f,
+        1.0f,  2.0f,  3.0f,  4.0f,  1.234567f, pun.f, 7.0f,  8.0f,  9.0f,  10.0f,
+        11.0f, 12.0f, 13.0f, 14.0f, 15.0f,     16.0f, 17.0f, 18.0f, 19.0f, 20.0f,
     };
 
     ID3D11BufferPtr srvBuf = MakeBuffer().SRV().Data(testdata);
     ID3D11ShaderResourceViewPtr srv = MakeSRV(srvBuf).Format(DXGI_FORMAT_R32_FLOAT);
 
     ID3D11BufferPtr rawBuf = MakeBuffer().SRV().ByteAddressed().Data(testdata);
-    ID3D11ShaderResourceViewPtr rawsrv = MakeSRV(rawBuf).Format(DXGI_FORMAT_R32_TYPELESS);
+    ID3D11ShaderResourceViewPtr rawsrv =
+        MakeSRV(rawBuf).Format(DXGI_FORMAT_R32_TYPELESS).FirstElement(4).NumElements(12);
 
     ID3D11BufferPtr rawBuf2 = MakeBuffer().UAV().ByteAddressed().Size(1024);
-    ID3D11UnorderedAccessViewPtr rawuav = MakeUAV(rawBuf2).Format(DXGI_FORMAT_R32_TYPELESS);
+    ID3D11UnorderedAccessViewPtr rawuav =
+        MakeUAV(rawBuf2).Format(DXGI_FORMAT_R32_TYPELESS).FirstElement(4).NumElements(12);
+
+    float structdata[220];
+    for(int i = 0; i < 220; i++)
+      structdata[i] = float(i);
+
+    ID3D11BufferPtr structBuf = MakeBuffer().SRV().Structured(11 * sizeof(float)).Data(structdata);
+    ID3D11ShaderResourceViewPtr structsrv =
+        MakeSRV(structBuf).Format(DXGI_FORMAT_UNKNOWN).FirstElement(3).NumElements(5);
+
+    ID3D11BufferPtr structBuf2 = MakeBuffer().UAV().Structured(11 * sizeof(float)).Size(880);
+    ID3D11UnorderedAccessViewPtr structuav =
+        MakeUAV(structBuf2).Format(DXGI_FORMAT_UNKNOWN).FirstElement(3).NumElements(5);
 
     ctx->PSSetShaderResources(0, 1, &srv.GetInterfacePtr());
     ctx->PSSetShaderResources(1, 1, &rawsrv.GetInterfacePtr());
+    ctx->PSSetShaderResources(2, 1, &structsrv.GetInterfacePtr());
 
     while(Running())
     {
@@ -320,8 +619,10 @@ float4 main(v2f IN) : SV_Target0
 
       UINT zero[4] = {};
       ctx->ClearUnorderedAccessViewUint(rawuav, zero);
-      ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 1,
-                                                     &rawuav.GetInterfacePtr(), NULL);
+      ctx->ClearUnorderedAccessViewUint(structuav, zero);
+      ID3D11UnorderedAccessView *uavs[] = {rawuav, structuav};
+      ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &fltRT.GetInterfacePtr(), NULL, 1, 2, uavs,
+                                                     NULL);
 
       ctx->DrawInstanced(3, numTests, 0, 0);
 

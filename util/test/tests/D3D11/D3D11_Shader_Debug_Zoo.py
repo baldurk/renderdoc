@@ -13,6 +13,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
+        failed = False
+
         # Loop over every test
         for test in range(draw.numInstances):
             # Debug the shader
@@ -21,8 +23,16 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
             last_state: rd.ShaderDebugState = trace.states[-1]
 
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, last_state.outputs[0].value.fv[0:4], 0.0)
+            try:
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, last_state.outputs[0].value.fv[0:4], 0.0)
+            except rdtest.TestFailureException as ex:
+                failed = True
+                rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                continue
 
             rdtest.log.success("Test {} matched as expected".format(test))
+
+        if failed:
+            raise rdtest.TestFailureException("Some tests were not as expected")
 
         rdtest.log.success("All tests matched")
