@@ -3098,7 +3098,18 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // raw loads/stores can come from any component (as long as it's within range of the data!)
         if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
         {
-          maxIndex = 4;
+          fmt.byteWidth = 4;
+
+          // normally we can read 4 elements
+          fmt.numComps = 4;
+          // clamp to out of bounds based on numElems
+          fmt.numComps = RDCMIN(fmt.numComps, int(numElems - elemIdx) / 4);
+          maxIndex = fmt.numComps;
+
+          if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff &&
+             op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
+            fmt.numComps = 1;
+          fmt.fmt = CompType::UInt;
         }
 
         if(load)
