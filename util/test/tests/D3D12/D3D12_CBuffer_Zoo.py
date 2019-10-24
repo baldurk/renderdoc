@@ -15,6 +15,28 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
+
+        refl: rd.ShaderReflection = pipe.GetShaderReflection(stage)
+        mapping: rd.ShaderBindpointMapping = pipe.GetBindpointMapping(stage)
+
+        # Make sure we have three constant buffers - b0 normal, b1 root constants, and space9999999:b0
+        binds = [
+            (0, 0),
+            (0, 1),
+            (999999999, 0),
+        ]
+
+        if len(refl.constantBlocks) != len(mapping.constantBlocks) or len(refl.constantBlocks) != len(binds):
+            raise rdtest.TestFailureException(
+                "Expected {}} constant buffers, only got {} {}".format(len(binds), len(refl.constantBlocks),
+                                                                       len(refl.constantBlocks)))
+
+        for b in range(0, len(binds)):
+            if binds[b][0] != mapping.constantBlocks[b].bindset or binds[b][1] != mapping.constantBlocks[b].bind:
+                raise rdtest.TestFailureException(
+                    "Unexpected cb[{}] mapping: set {} bind {}".format(b, mapping.constantBlocks[b].bindset,
+                                                                       mapping.constantBlocks[b].bind))
+
         cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
 
         var_check = rdtest.ConstantBufferChecker(
@@ -340,3 +362,14 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         var_check.done()
 
         rdtest.log.success("Root signature variables are as expected")
+
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 2, 0)
+
+        var_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
+                                                       pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 2,
+                                                       cbuf.resourceId, cbuf.byteOffset))
+
+        # float4 huge_val;
+        var_check.check('huge_val').rows(1).cols(4).value([64.0, 65.0, 66.0, 67.0])

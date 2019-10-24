@@ -238,9 +238,14 @@ cbuffer rootconsts : register(b1)
   float3_1 root_d;
 };
 
+cbuffer hugespace : register(b0, space999999999)
+{
+  float4 huge_val;
+};
+
 float4 main() : SV_Target0
 {
-	return test + root_zero + float4(0.1f, 0.0f, 0.0f, 0.0f);
+	return test + root_zero + huge_val * 1e-30f + float4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
 )EOSHADER";
@@ -266,7 +271,7 @@ float4 main() : SV_Target0
       return 3;
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
-    ID3DBlobPtr psblob = Compile(pixel, "main", "ps_5_0");
+    ID3DBlobPtr psblob = Compile(pixel, "main", "ps_5_1");
 
     Vec4f cbufferdata[512];
 
@@ -299,6 +304,7 @@ float4 main() : SV_Target0
     ID3D12RootSignaturePtr sig = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
         constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, sizeof(rootData) / sizeof(uint32_t)),
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 999999999, 0),
     });
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob).RTVs(
@@ -335,6 +341,7 @@ float4 main() : SV_Target0
       cmd->SetGraphicsRootSignature(sig);
       cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
       cmd->SetGraphicsRoot32BitConstants(1, sizeof(rootData) / sizeof(uint32_t), &rootData, 0);
+      cmd->SetGraphicsRootConstantBufferView(2, cb->GetGPUVirtualAddress() + 256);
 
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
