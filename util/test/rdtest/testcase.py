@@ -341,9 +341,10 @@ class TestCase:
         self.controller.Shutdown()
         self.pickout = None
 
-    def invoketest(self):
+    def invoketest(self, debugMode):
         self.run()
         self.pickout = None
+        self.debugMode = debugMode
 
     def get_first_draw(self):
         first_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[0]

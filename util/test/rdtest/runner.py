@@ -297,17 +297,17 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         util.set_current_test(name)
 
-        def do():
+        def do(debugMode):
             if in_process:
-                instance.invoketest()
+                instance.invoketest(debugMode)
             else:
                 _run_test(testclass, failedcases)
 
         if debugger:
-            do()
+            do(True)
         else:
             try:
-                do()
+                do(False)
             except Exception as ex:
                 log.failure(ex)
                 failedcases.append(testclass)
@@ -356,7 +356,7 @@ def internal_run_test(test_name):
 
             try:
                 instance = testclass()
-                instance.invoketest()
+                instance.invoketest(False)
                 suceeded = True
             except Exception as ex:
                 log.failure(ex)
