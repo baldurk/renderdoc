@@ -162,6 +162,7 @@ struct GraphicsTest
   virtual GraphicsWindow *MakeWindow(int width, int height, const char *title) { return NULL; }
   virtual int main() { return 9; }
   virtual void Prepare(int argc, char **argv);
+  virtual void SetName(const char *name) { screenTitle = name; }
   virtual bool Init();
   virtual void Shutdown();
 

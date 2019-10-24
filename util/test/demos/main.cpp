@@ -498,6 +498,7 @@ Usage: %s Test_Name [test_options]
     {
       TEST_LOG("\n\n======\nRunning %s\n\n", test.Name);
       test.test->Prepare(argc, argv);
+      test.test->SetName(test.Name);
 
       if(!test.IsAvailable())
       {
