@@ -41,6 +41,12 @@
 
 typedef uint8_t byte;
 
+#define STRINGIZE2(a) #a
+#define STRINGIZE(a) STRINGIZE2(a)
+
+#define CONCAT2(a, b) a##b
+#define CONCAT(a, b) CONCAT2(a, b)
+
 enum class SPIRVTarget
 {
   opengl,
@@ -230,6 +236,7 @@ void RegisterTest(TestMetadata test);
 
 #define RD_TEST(Test, Parent)             \
   struct Test;                            \
+  int CONCAT(unique_, Test);              \
   typedef Test CurrentTest;               \
   namespace                               \
   {                                       \

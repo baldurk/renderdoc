@@ -44,9 +44,6 @@
 #define INDEX2 381
 #define NONUNIFORMIDX 20
 
-#define STRINGISE2(a) #a
-#define STRINGISE(a) STRINGISE2(a)
-
 RD_TEST(VK_Descriptor_Indexing, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
@@ -149,7 +146,7 @@ layout(binding = 0, std430) buffer inbuftype {
   tex_ref inrefs[];
 } inbuf[];
 
-layout(binding = 1) uniform sampler2D tex1[)EOSHADER" STRINGISE(DESC_ARRAY1_SIZE) R"EOSHADER(];
+layout(binding = 1) uniform sampler2D tex1[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(];
 layout(binding = 2) uniform sampler2D tex2[];
 
 void add_color(sampler2D tex)
@@ -157,21 +154,21 @@ void add_color(sampler2D tex)
   Color *= (vec4(0.25f) + texture(tex, vertIn.uv.xy));
 }
 
-void add_indirect_color2(sampler2D texs[)EOSHADER" STRINGISE(DESC_ARRAY1_SIZE) R"EOSHADER(], uint idx)
+void add_indirect_color2(sampler2D texs[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(], uint idx)
 {
   add_color(texs[idx]);
 }
 
 void add_indirect_color(int dummy,
-                        sampler2D texs[)EOSHADER" STRINGISE(DESC_ARRAY1_SIZE) R"EOSHADER(], tex_ref t)
+                        sampler2D texs[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(], tex_ref t)
 {
   // second array-param function call
   add_indirect_color2(texs, t.idx);
 }
 
 void dispatch_indirect_color(int dummy1,
-                             sampler2D texA[)EOSHADER" STRINGISE(DESC_ARRAY1_SIZE) R"EOSHADER(],
-                             sampler2D texB[)EOSHADER" STRINGISE(DESC_ARRAY1_SIZE) R"EOSHADER(],
+                             sampler2D texA[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(],
+                             sampler2D texB[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(],
                              float dummy2, tex_ref t)
 {
   if(t.binding == 0)
@@ -189,7 +186,7 @@ void dispatch_indirect_color(int dummy1,
 void add_parameterless()
 {
   // use array directly without it being a function parameter
-  Color += 0.1f * texture(tex1[)EOSHADER" STRINGISE(INDEX3) R"EOSHADER(], vertIn.uv.xy);
+  Color += 0.1f * texture(tex1[)EOSHADER" STRINGIZE(INDEX3) R"EOSHADER(], vertIn.uv.xy);
 }
 
 void main()
