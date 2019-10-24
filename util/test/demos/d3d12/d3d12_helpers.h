@@ -141,6 +141,7 @@ public:
 
   D3D12TextureCreator &Upload();
   D3D12TextureCreator &Readback();
+  D3D12TextureCreator &CustomHeap(D3D12_HEAP_PROPERTIES heap);
 
   D3D12TextureCreator &InitialState(D3D12_RESOURCE_STATES state);
 

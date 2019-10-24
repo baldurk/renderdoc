@@ -348,6 +348,12 @@ D3D12TextureCreator &D3D12TextureCreator::Readback()
   return *this;
 }
 
+D3D12TextureCreator &D3D12TextureCreator::CustomHeap(D3D12_HEAP_PROPERTIES heap)
+{
+  m_HeapDesc = heap;
+  return *this;
+}
+
 D3D12TextureCreator &D3D12TextureCreator::InitialState(D3D12_RESOURCE_STATES state)
 {
   m_InitialState = state;
