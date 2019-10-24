@@ -394,6 +394,44 @@ void D3D11GraphicsTest::RSSetViewport(D3D11_VIEWPORT view)
   ctx->RSSetViewports(1, &view);
 }
 
+D3D11_RASTERIZER_DESC D3D11GraphicsTest::GetRasterState()
+{
+  ID3D11RasterizerState *state = NULL;
+  ctx->RSGetState(&state);
+
+  D3D11_RASTERIZER_DESC ret;
+
+  if(state)
+  {
+    state->GetDesc(&ret);
+    return ret;
+  }
+
+  ret.FillMode = D3D11_FILL_SOLID;
+  ret.CullMode = D3D11_CULL_BACK;
+  ret.FrontCounterClockwise = FALSE;
+  ret.DepthBias = 0;
+  ret.DepthBiasClamp = 0.0f;
+  ret.SlopeScaledDepthBias = 0.0f;
+  ret.DepthClipEnable = TRUE;
+  ret.ScissorEnable = FALSE;
+  ret.MultisampleEnable = FALSE;
+  ret.AntialiasedLineEnable = FALSE;
+
+  return ret;
+}
+
+void D3D11GraphicsTest::SetRasterState(const D3D11_RASTERIZER_DESC &desc)
+{
+  ID3D11RasterizerState *state = NULL;
+  ctx->RSGetState(&state);
+
+  rastState = NULL;
+  dev->CreateRasterizerState(&desc, &rastState);
+
+  ctx->RSSetState(rastState);
+}
+
 D3D11_DEPTH_STENCIL_DESC D3D11GraphicsTest::GetDepthState()
 {
   ID3D11DepthStencilState *state = NULL;

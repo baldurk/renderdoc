@@ -141,6 +141,8 @@ struct D3D11GraphicsTest : public GraphicsTest
 
   void ClearRenderTargetView(ID3D11RenderTargetView *rt, Vec4f col);
 
+  D3D11_RASTERIZER_DESC GetRasterState();
+  void SetRasterState(const D3D11_RASTERIZER_DESC &desc);
   void RSSetViewport(D3D11_VIEWPORT view);
 
   D3D11_DEPTH_STENCIL_DESC GetDepthState();
@@ -161,6 +163,7 @@ struct D3D11GraphicsTest : public GraphicsTest
   D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1;
 
   ID3D11DepthStencilStatePtr depthState;
+  ID3D11RasterizerStatePtr rastState;
 
   GraphicsWindow *mainWindow = NULL;
 
