@@ -69,7 +69,7 @@ void main()
   {
     for(uint x = topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
     {
-      uvec4 bucketIdx = uint(HGRAM_NUM_BUCKETS + 1u).xxxx;
+      uvec4 bucketIdx = uvec4(HGRAM_NUM_BUCKETS + 1u);
 
 #if UINT_TEX
       {
@@ -79,18 +79,18 @@ void main()
             histogram_minmax.HistogramSample, histogram_minmax.HistogramTextureResolution);
 
         if((histogram_minmax.HistogramChannels & 0x1u) == 0u)
-          data.x = uint(histogram_minmax.HistogramMax + 1);
+          data.x = uint(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x2u) == 0u)
-          data.y = uint(histogram_minmax.HistogramMax + 1);
+          data.y = uint(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x4u) == 0u)
-          data.z = uint(histogram_minmax.HistogramMax + 1);
+          data.z = uint(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x8u) == 0u)
-          data.w = uint(histogram_minmax.HistogramMax + 1);
+          data.w = uint(histogram_minmax.HistogramMax + 1.0f);
 
-        if(histogram_minmax.HistogramChannels > 0)
+        if(histogram_minmax.HistogramChannels > 0u)
         {
-          vec4 normalisedVal = (vec4(data) - histogram_minmax.HistogramMin.xxxx) /
-                               (histogram_minmax.HistogramMax - histogram_minmax.HistogramMin).xxxx;
+          vec4 normalisedVal = (vec4(data) - vec4(histogram_minmax.HistogramMin)) /
+                               vec4(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
           if(normalisedVal.x < 0.0f)
             normalisedVal.x = 2.0f;
@@ -112,18 +112,18 @@ void main()
             histogram_minmax.HistogramSample, histogram_minmax.HistogramTextureResolution);
 
         if((histogram_minmax.HistogramChannels & 0x1u) == 0u)
-          data.x = int(histogram_minmax.HistogramMax + 1);
+          data.x = int(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x2u) == 0u)
-          data.y = int(histogram_minmax.HistogramMax + 1);
+          data.y = int(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x4u) == 0u)
-          data.z = int(histogram_minmax.HistogramMax + 1);
+          data.z = int(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x8u) == 0u)
-          data.w = int(histogram_minmax.HistogramMax + 1);
+          data.w = int(histogram_minmax.HistogramMax + 1.0f);
 
-        if(histogram_minmax.HistogramChannels > 0)
+        if(histogram_minmax.HistogramChannels > 0u)
         {
-          vec4 normalisedVal = (vec4(data) - histogram_minmax.HistogramMin.xxxx) /
-                               (histogram_minmax.HistogramMax - histogram_minmax.HistogramMin).xxxx;
+          vec4 normalisedVal = (vec4(data) - vec4(histogram_minmax.HistogramMin)) /
+                               vec4(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
           if(normalisedVal.x < 0.0f)
             normalisedVal.x = 2.0f;
@@ -146,18 +146,18 @@ void main()
             histogram_minmax.HistogramYUVDownsampleRate, histogram_minmax.HistogramYUVAChannels);
 
         if((histogram_minmax.HistogramChannels & 0x1u) == 0u)
-          data.x = float(histogram_minmax.HistogramMax + 1);
+          data.x = float(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x2u) == 0u)
-          data.y = float(histogram_minmax.HistogramMax + 1);
+          data.y = float(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x4u) == 0u)
-          data.z = float(histogram_minmax.HistogramMax + 1);
+          data.z = float(histogram_minmax.HistogramMax + 1.0f);
         if((histogram_minmax.HistogramChannels & 0x8u) == 0u)
-          data.w = float(histogram_minmax.HistogramMax + 1);
+          data.w = float(histogram_minmax.HistogramMax + 1.0f);
 
-        if(histogram_minmax.HistogramChannels > 0)
+        if(histogram_minmax.HistogramChannels > 0u)
         {
-          vec4 normalisedVal = (vec4(data) - histogram_minmax.HistogramMin.xxxx) /
-                               (histogram_minmax.HistogramMax - histogram_minmax.HistogramMin).xxxx;
+          vec4 normalisedVal = (vec4(data) - vec4(histogram_minmax.HistogramMin)) /
+                               vec4(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
           if(normalisedVal.x < 0.0f)
             normalisedVal.x = 2.0f;
