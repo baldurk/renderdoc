@@ -260,6 +260,8 @@ void GLReplay::SetReplayData(GLWindowingData data)
   if(m_pDriver != NULL)
     m_pDriver->RegisterReplayContext(m_ReplayCtx, NULL, true, true);
 
+  m_pDriver->RegisterDebugCallback();
+
   InitDebugData();
 
   if(!HasDebugContext())

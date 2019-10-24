@@ -1150,6 +1150,8 @@ void GLReplay::DeleteDebugData()
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
+  GL.glDebugMessageCallback(NULL, NULL);
+
   if(DebugData.overlayProg)
     drv.glDeleteProgram(DebugData.overlayProg);
 
@@ -1158,6 +1160,8 @@ void GLReplay::DeleteDebugData()
   drv.glDeleteQueries((GLsizei)DebugData.feedbackQueries.size(), DebugData.feedbackQueries.data());
 
   MakeCurrentReplayContext(m_DebugCtx);
+
+  GL.glDebugMessageCallback(NULL, NULL);
 
   ClearPostVSCache();
 

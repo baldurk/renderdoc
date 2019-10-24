@@ -661,8 +661,6 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = CaptureState::LoadingReplaying;
-
-    RegisterDebugCallback();
   }
   else
   {
