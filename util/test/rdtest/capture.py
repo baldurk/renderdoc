@@ -13,7 +13,7 @@ def run_until_capture(control):
 
 
 class TargetControl():
-    def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout=30, exit_kill=True):
+    def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout=60, exit_kill=True):
         """
         Creates a target control manager for a given ident
 

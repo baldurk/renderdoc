@@ -342,6 +342,9 @@
     <ClCompile Include="gl\gl_parameter_zoo.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_buffer_spam.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
