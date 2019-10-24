@@ -1481,6 +1481,28 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
               }
             }
 
+            if(fileIdx == -1)
+            {
+              // if file index is still -1, try again but with normalised names
+              for(char &c : name)
+                if(c == '\\')
+                  c = '/';
+
+              for(size_t i = 0; i < Files.size(); i++)
+              {
+                std::string normalised = Files[i].first;
+                for(char &c : normalised)
+                  if(c == '\\')
+                    c = '/';
+
+                if(!_stricmp(normalised.c_str(), name.c_str()))
+                {
+                  fileIdx = (int32_t)i;
+                  break;
+                }
+              }
+            }
+
             FileMapping[chunkOffs] = fileIdx;
           }
           else
