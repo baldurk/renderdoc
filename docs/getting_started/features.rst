@@ -86,7 +86,7 @@ Vulkan
 ------
 
 * Support for Vulkan 1.1 on Windows, Linux, Android, and Stadia.
-* Event markers and object naming both come from ``VK_EXT_debug_marker``.
+* Event markers and object naming both come from ``VK_EXT_debug_utils`` or deprecated ``VK_EXT_debug_marker``.
 
 OpenGL & OpenGL ES
 ------------------
