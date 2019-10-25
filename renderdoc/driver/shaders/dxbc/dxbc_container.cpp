@@ -436,7 +436,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
       v.type = ParseRDEFType(h, chunkContents, members[j].typeOffset);
       v.descriptor.offset = members[j].memberOffset;
 
-      ret.descriptor.bytesize += v.type.descriptor.bytesize;
+      ret.descriptor.bytesize = v.descriptor.offset + v.type.descriptor.bytesize;
 
       // N/A
       v.descriptor.flags = 0;
@@ -456,14 +456,25 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
     // matrices take up a full vector for each column or row depending which is major, regardless of
     // the other dimension
     if(ret.descriptor.varClass == CLASS_MATRIX_COLUMNS)
+    {
       ret.descriptor.bytesize = TypeByteSize(ret.descriptor.type) * ret.descriptor.cols * 4 *
                                 RDCMAX(1U, ret.descriptor.elements);
+    }
     else if(ret.descriptor.varClass == CLASS_MATRIX_ROWS)
+    {
       ret.descriptor.bytesize = TypeByteSize(ret.descriptor.type) * ret.descriptor.rows * 4 *
                                 RDCMAX(1U, ret.descriptor.elements);
+    }
     else
-      ret.descriptor.bytesize = TypeByteSize(ret.descriptor.type) * ret.descriptor.rows *
-                                ret.descriptor.cols * RDCMAX(1U, ret.descriptor.elements);
+    {
+      // arrays also take up a full vector for each element
+      if(ret.descriptor.elements > 1)
+        ret.descriptor.bytesize =
+            TypeByteSize(ret.descriptor.type) * 4 * RDCMAX(1U, ret.descriptor.elements);
+      else
+        ret.descriptor.bytesize =
+            TypeByteSize(ret.descriptor.type) * ret.descriptor.rows * ret.descriptor.cols;
+    }
   }
 
   m_Variables[typeOffset] = ret;

@@ -71,6 +71,17 @@ struct vec3_1 { vec3 a; float b; };
 
 struct nested { vec3_1 a; vec4 b[4]; vec3_1 c[4]; };
 
+struct nested_with_padding
+{
+  float a;                              // 0, <1, 2, 3>
+  vec4 b;                               // {4, 5, 6, 7}
+  float c;                              // 8, <9, 10, 11>
+  vec3 d[4];                            // [0]: {12, 13, 14}, <15>
+                                        // [1]: {16, 17, 18}, <19>
+                                        // [2]: {20, 21, 22}, <23>
+                                        // [3]: {24, 25, 26}, <27>
+};
+
 layout(binding = 0, std140) uniform constsbuf
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -257,14 +268,16 @@ layout(binding = 0, std140) uniform constsbuf
                                           //         <435, 439>
                                           // }
 
-  vec4 test;                              // {440, 441, 442, 443}
+  nested_with_padding ak[2];              // 440 - 467, 468 - 495
+
+  vec4 test;                              // {496, 497, 498, 499}
 
   // because GL has worse handling of multidimensional arrays than other APIs, we add an extra test
   // here with more than 2 dimensions
 
-  vec4 multiarray2[4][3][2];              // [0][0][0] = {444, 445, 446, 447}
-                                          // [0][0][1] = {448, 449, 450, 451}
-                                          // [0][1][0] = {452, ..., ..., ...}
+  vec4 multiarray2[4][3][2];              // [0][0][0] = {500, 501, 502, 503}
+                                          // [0][0][1] = {504, 505, 506, 507}
+                                          // [0][1][0] = {508, ..., ..., ...}
                                           // [0][1][1] = {..., ..., ..., ...}
                                           // [0][2][0] = {..., ..., ..., ...}
                                           // [0][2][1] = {..., ..., ..., ...}
@@ -335,9 +348,9 @@ void main()
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
 
-    Vec4f cbufferdata[684];
+    Vec4f cbufferdata[1024];
 
-    for(int i = 0; i < 684; i++)
+    for(int i = 0; i < 1024; i++)
       cbufferdata[i] = Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
     GLuint cb = MakeBuffer();

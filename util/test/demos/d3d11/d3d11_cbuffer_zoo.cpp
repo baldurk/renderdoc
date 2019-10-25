@@ -36,6 +36,17 @@ struct float3_1 { float3 a; float b; };
 
 struct nested { float3_1 a; float4 b[4]; float3_1 c[4]; };
 
+struct nested_with_padding
+{
+  float a;                              // 0, <1, 2, 3>
+  float4 b;                             // {4, 5, 6, 7}
+  float c;                              // 8, <9, 10, 11>
+  float3 d[4];                          // [0]: {12, 13, 14}, <15>
+                                        // [1]: {16, 17, 18}, <19>
+                                        // [2]: {20, 21, 22}, <23>
+                                        // [3]: {24, 25, 26}, <27>
+};
+
 cbuffer consts : register(b0)
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -225,8 +236,10 @@ cbuffer consts : register(b0)
                                           //         <434, 438>
                                           //         <435, 439>
                                           // }
+                                          
+  nested_with_padding ak[2];              // 440 - 467, 468 - 495
 
-  float4 test;                            // {440, 441, 442, 443}
+  float4 test;                            // {496, 497, 498, 499}
 };
 
 float4 main() : SV_Target0

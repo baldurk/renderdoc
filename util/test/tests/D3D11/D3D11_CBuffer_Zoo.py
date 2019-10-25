@@ -300,13 +300,48 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
                                                                  433.0, 437.0]),
         })
 
+        # struct nested_with_padding
+        # {
+        #   float a; // float3 padding
+        #   float4 b;
+        #   float c; // float3 padding
+        #   float3 d[4]; // float padding after each one
+        # };
+        # nested_with_padding ak[2];
+        var_check.check('ak').rows(0).cols(0).arraySize(2).members({
+            # ak[0]
+            0: lambda s: s.rows(0).cols(0).structSize(4).members({
+                'a': lambda y: y.rows(1).cols(1).value([440.0]),
+                'b': lambda y: y.rows(1).cols(4).value([444.0, 445.0, 446.0, 447.0]),
+                'c': lambda y: y.rows(1).cols(1).value([448.0]),
+                'd': lambda x: x.rows(0).cols(0).arraySize(4).members({
+                    0: lambda z: z.rows(1).cols(3).value([452.0, 453.0, 454.0]),
+                    1: lambda z: z.rows(1).cols(3).value([456.0, 457.0, 458.0]),
+                    2: lambda z: z.rows(1).cols(3).value([460.0, 461.0, 462.0]),
+                    3: lambda z: z.rows(1).cols(3).value([464.0, 465.0, 466.0]),
+                }),
+            }),
+            # ak[1]
+            1: lambda s: s.rows(0).cols(0).structSize(4).members({
+                'a': lambda y: y.rows(1).cols(1).value([468.0]),
+                'b': lambda y: y.rows(1).cols(4).value([472.0, 473.0, 474.0, 475.0]),
+                'c': lambda y: y.rows(1).cols(1).value([476.0]),
+                'd': lambda x: x.rows(0).cols(0).arraySize(4).members({
+                    0: lambda z: z.rows(1).cols(3).value([480.0, 481.0, 482.0]),
+                    1: lambda z: z.rows(1).cols(3).value([484.0, 485.0, 486.0]),
+                    2: lambda z: z.rows(1).cols(3).value([488.0, 489.0, 490.0]),
+                    3: lambda z: z.rows(1).cols(3).value([492.0, 493.0, 494.0]),
+                }),
+            }),
+        })
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([440.0, 441.0, 442.0, 443.0])
+        var_check.check('test').rows(1).cols(4).value([496.0, 497.0, 498.0, 499.0])
 
         var_check.done()
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [440.1, 441.0, 442.0, 443.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [496.1, 497.0, 498.0, 499.0])
 
         rdtest.log.success("Picked value is as expected")

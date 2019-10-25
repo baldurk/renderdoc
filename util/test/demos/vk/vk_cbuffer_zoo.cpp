@@ -70,6 +70,17 @@ struct vec3_1 { vec3 a; float b; };
 
 struct nested { vec3_1 a; vec4 b[4]; vec3_1 c[4]; };
 
+struct nested_with_padding
+{
+  float a;                              // 0, <1, 2, 3>
+  vec4 b;                               // {4, 5, 6, 7}
+  float c;                              // 8, <9, 10, 11>
+  vec3 d[4];                            // [0]: {12, 13, 14}, <15>
+                                        // [1]: {16, 17, 18}, <19>
+                                        // [2]: {20, 21, 22}, <23>
+                                        // [3]: {24, 25, 26}, <27>
+};
+
 layout(set = 0, binding = 0, std140) uniform constsbuf
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -256,7 +267,9 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
                                         //         <435, 439>
                                         // }
 
-  vec4 test;                            // {440, 441, 442, 443}
+  nested_with_padding ak[2];            // 440 - 467, 468 - 495
+
+  vec4 test;                            // {496, 497, 498, 499}
 };
 
 layout (constant_id = 0) const int A = 10;
@@ -275,6 +288,17 @@ void main()
 struct float3_1 { float3 a; float b; };
 
 struct nested { float3_1 a; float4 b[4]; float3_1 c[4]; };
+
+struct nested_with_padding
+{
+  float a;                              // 0, <1, 2, 3>
+  float4 b;                             // {4, 5, 6, 7}
+  float c;                              // 8, <9, 10, 11>
+  float3 d[4];                          // [0]: {12, 13, 14}, <15>
+                                        // [1]: {16, 17, 18}, <19>
+                                        // [2]: {20, 21, 22}, <23>
+                                        // [3]: {24, 25, 26}, <27>
+};
 
 layout(set = 0, binding = 0) cbuffer consts
 {
@@ -471,8 +495,10 @@ layout(set = 0, binding = 0) cbuffer consts
                                           //         <434, 438>
                                           //         <435, 439>
                                           // }
+                                          
+  nested_with_padding ak[2];              // 440 - 467, 468 - 495
 
-  float4 test;                            // {440, 441, 442, 443}
+  float4 test;                            // {496, 497, 498, 499}
 };
 
 float4 main() : SV_Target0
