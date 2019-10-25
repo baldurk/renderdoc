@@ -995,6 +995,9 @@ void TextureViewer::UI_UpdateStatusText()
       pickedText += tr(" (Real: ");
     }
 
+    if(tex.format.type == ResourceFormatType::A8)
+      val.floatValue[0] = val.floatValue[3];
+
     if(dsv)
     {
       pickedText += tr("Depth ");
