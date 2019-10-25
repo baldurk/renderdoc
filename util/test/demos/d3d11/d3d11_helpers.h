@@ -281,11 +281,12 @@ public:
   operator ID3D11UnorderedAccessViewPtr();
 
 private:
-  void SetupDescriptors(ViewType viewType, ResourceType resType);
+  void SetupDescriptors();
 
   D3D11GraphicsTest *m_Test;
   ID3D11Resource *m_Res;
-  ViewType m_Type;
+  ViewType m_ViewType;
+  ResourceType m_ResType;
 
   // instead of a huge mess trying to auto populate the actual descriptors from saved values, as
   // they aren't very nicely compatible (e.g. RTVs have mipslice selection on 3D textures, SRVs

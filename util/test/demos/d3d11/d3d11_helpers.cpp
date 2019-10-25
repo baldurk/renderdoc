@@ -385,65 +385,63 @@ D3D11TextureCreator::operator ID3D11Texture3DPtr() const
 }
 
 D3D11ViewCreator::D3D11ViewCreator(D3D11GraphicsTest *test, ViewType viewType, ID3D11Buffer *buf)
-    : m_Test(test), m_Type(viewType), m_Res(buf)
+    : m_Test(test), m_ViewType(viewType), m_ResType(ResourceType::Buffer), m_Res(buf)
 {
-  SetupDescriptors(viewType, ResourceType::Buffer);
+  SetupDescriptors();
 }
 
 D3D11ViewCreator::D3D11ViewCreator(D3D11GraphicsTest *test, ViewType viewType, ID3D11Texture1D *tex)
-    : m_Test(test), m_Type(viewType), m_Res(tex)
+    : m_Test(test), m_ViewType(viewType), m_Res(tex)
 {
   D3D11_TEXTURE1D_DESC texdesc;
   tex->GetDesc(&texdesc);
 
-  ResourceType resType = ResourceType::Texture1D;
+  m_ResType = ResourceType::Texture1D;
 
   if(texdesc.ArraySize > 1)
-    resType = ResourceType::Texture1DArray;
+    m_ResType = ResourceType::Texture1DArray;
 
-  SetupDescriptors(viewType, resType);
+  SetupDescriptors();
 
   Format(texdesc.Format);
 }
 
 D3D11ViewCreator::D3D11ViewCreator(D3D11GraphicsTest *test, ViewType viewType, ID3D11Texture2D *tex)
-    : m_Test(test), m_Type(viewType), m_Res(tex)
+    : m_Test(test), m_ViewType(viewType), m_Res(tex)
 {
   D3D11_TEXTURE2D_DESC texdesc;
   tex->GetDesc(&texdesc);
 
-  ResourceType resType;
-
   if(texdesc.SampleDesc.Count > 1)
   {
-    resType = ResourceType::Texture2DMS;
+    m_ResType = ResourceType::Texture2DMS;
     if(texdesc.ArraySize > 1)
-      resType = ResourceType::Texture2DMSArray;
+      m_ResType = ResourceType::Texture2DMSArray;
   }
   else
   {
-    resType = ResourceType::Texture2D;
+    m_ResType = ResourceType::Texture2D;
     if(texdesc.ArraySize > 1)
-      resType = ResourceType::Texture2DArray;
+      m_ResType = ResourceType::Texture2DArray;
   }
 
-  SetupDescriptors(viewType, resType);
+  SetupDescriptors();
 
   Format(texdesc.Format);
 }
 
 D3D11ViewCreator::D3D11ViewCreator(D3D11GraphicsTest *test, ViewType viewType, ID3D11Texture3D *tex)
-    : m_Test(test), m_Type(viewType), m_Res(tex)
+    : m_Test(test), m_ViewType(viewType), m_ResType(ResourceType::Texture3D), m_Res(tex)
 {
   D3D11_TEXTURE3D_DESC texdesc;
   tex->GetDesc(&texdesc);
 
-  SetupDescriptors(viewType, ResourceType::Texture3D);
+  SetupDescriptors();
 
   Format(texdesc.Format);
 }
 
-void D3D11ViewCreator::SetupDescriptors(ViewType viewType, ResourceType resType)
+void D3D11ViewCreator::SetupDescriptors()
 {
   memset(&desc, 0, sizeof(desc));
 
@@ -491,41 +489,41 @@ void D3D11ViewCreator::SetupDescriptors(ViewType viewType, ResourceType resType)
       D3D11_UAV_DIMENSION_TEXTURE3D,         // Texture3D
   };
 
-  if(viewType == ViewType::SRV)
+  if(m_ViewType == ViewType::SRV)
   {
-    desc.srv.ViewDimension = srvDim[(int)resType];
+    desc.srv.ViewDimension = srvDim[(int)m_ResType];
 
-    if(resType == ResourceType::Buffer)
+    if(m_ResType == ResourceType::Buffer)
     {
       firstElement = &desc.srv.Buffer.FirstElement;
       numElements = &desc.srv.Buffer.NumElements;
     }
   }
-  else if(viewType == ViewType::RTV)
+  else if(m_ViewType == ViewType::RTV)
   {
-    desc.rtv.ViewDimension = rtvDim[(int)resType];
+    desc.rtv.ViewDimension = rtvDim[(int)m_ResType];
 
-    if(resType == ResourceType::Buffer)
+    if(m_ResType == ResourceType::Buffer)
     {
       firstElement = &desc.rtv.Buffer.FirstElement;
       numElements = &desc.rtv.Buffer.NumElements;
     }
   }
-  else if(viewType == ViewType::DSV)
+  else if(m_ViewType == ViewType::DSV)
   {
-    desc.dsv.ViewDimension = dsvDim[(int)resType];
+    desc.dsv.ViewDimension = dsvDim[(int)m_ResType];
 
     if(desc.dsv.ViewDimension == D3D11_DSV_DIMENSION_UNKNOWN)
       TEST_FATAL("Unsupported resource for DSV");
   }
-  else if(viewType == ViewType::UAV)
+  else if(m_ViewType == ViewType::UAV)
   {
-    desc.uav.ViewDimension = uavDim[(int)resType];
+    desc.uav.ViewDimension = uavDim[(int)m_ResType];
 
     if(desc.uav.ViewDimension == D3D11_UAV_DIMENSION_UNKNOWN)
       TEST_FATAL("Unsupported resource for UAV");
 
-    if(resType == ResourceType::Buffer)
+    if(m_ResType == ResourceType::Buffer)
     {
       firstElement = &desc.uav.Buffer.FirstElement;
       numElements = &desc.uav.Buffer.NumElements;
@@ -660,12 +658,12 @@ void D3D11ViewCreator::SetupDescriptors(ViewType viewType, ResourceType resType)
       },
   };
 
-  if(resType != ResourceType::Buffer)
+  if(m_ResType != ResourceType::Buffer)
   {
-    firstMip = pointers[(int)viewType][(int)resType][0];
-    numMips = pointers[(int)viewType][(int)resType][1];
-    firstSlice = pointers[(int)viewType][(int)resType][2];
-    numSlices = pointers[(int)viewType][(int)resType][3];
+    firstMip = pointers[(int)m_ViewType][(int)m_ResType][0];
+    numMips = pointers[(int)m_ViewType][(int)m_ResType][1];
+    firstSlice = pointers[(int)m_ViewType][(int)m_ResType][2];
+    numSlices = pointers[(int)m_ViewType][(int)m_ResType][3];
 
     if(numMips)
       *numMips = ~0U;
@@ -692,8 +690,6 @@ D3D11ViewCreator &D3D11ViewCreator::NumElements(UINT num)
 {
   if(numElements)
     *numElements = num;
-  else
-    TEST_ERROR("This view & resource doesn't support NumElements");
   return *this;
 }
 
@@ -701,8 +697,6 @@ D3D11ViewCreator &D3D11ViewCreator::FirstMip(UINT mip)
 {
   if(firstMip)
     *firstMip = mip;
-  else
-    TEST_ERROR("This view & resource doesn't support FirstMip");
   return *this;
 }
 
@@ -710,8 +704,6 @@ D3D11ViewCreator &D3D11ViewCreator::NumMips(UINT num)
 {
   if(numMips)
     *numMips = num;
-  else
-    TEST_ERROR("This view & resource doesn't support NumMips");
   return *this;
 }
 
@@ -719,8 +711,6 @@ D3D11ViewCreator &D3D11ViewCreator::FirstSlice(UINT mip)
 {
   if(firstSlice)
     *firstSlice = mip;
-  else
-    TEST_ERROR("This view & resource doesn't support FirstSlice");
   return *this;
 }
 
@@ -728,8 +718,6 @@ D3D11ViewCreator &D3D11ViewCreator::NumSlices(UINT num)
 {
   if(numSlices)
     *numSlices = num;
-  else
-    TEST_ERROR("This view & resource doesn't support NumSlices");
   return *this;
 }
 
@@ -772,7 +760,7 @@ D3D11ViewCreator::operator ID3D11ShaderResourceViewPtr()
   }
 
   TEST_ASSERT(m_Res, "Must have resource");
-  TEST_ASSERT(m_Type == ViewType::SRV, "Casting non-SRV ViewCreator to SRV");
+  TEST_ASSERT(m_ViewType == ViewType::SRV, "Casting non-SRV ViewCreator to SRV");
 
   ID3D11ShaderResourceViewPtr srv;
   CHECK_HR(m_Test->dev->CreateShaderResourceView(m_Res, &desc.srv, &srv));
@@ -802,7 +790,7 @@ D3D11ViewCreator::operator ID3D11UnorderedAccessViewPtr()
   }
 
   TEST_ASSERT(m_Res, "Must have resource");
-  TEST_ASSERT(m_Type == ViewType::UAV, "Casting non-UAV ViewCreator to UAV");
+  TEST_ASSERT(m_ViewType == ViewType::UAV, "Casting non-UAV ViewCreator to UAV");
 
   ID3D11UnorderedAccessViewPtr uav;
   CHECK_HR(m_Test->dev->CreateUnorderedAccessView(m_Res, &desc.uav, &uav));
@@ -812,7 +800,7 @@ D3D11ViewCreator::operator ID3D11UnorderedAccessViewPtr()
 D3D11ViewCreator::operator ID3D11RenderTargetViewPtr()
 {
   TEST_ASSERT(m_Res, "Must have resource");
-  TEST_ASSERT(m_Type == ViewType::RTV, "Casting non-RTV ViewCreator to RTV");
+  TEST_ASSERT(m_ViewType == ViewType::RTV, "Casting non-RTV ViewCreator to RTV");
 
   ID3D11RenderTargetViewPtr rtv;
   CHECK_HR(m_Test->dev->CreateRenderTargetView(m_Res, &desc.rtv, &rtv));
@@ -822,7 +810,7 @@ D3D11ViewCreator::operator ID3D11RenderTargetViewPtr()
 D3D11ViewCreator::operator ID3D11DepthStencilViewPtr()
 {
   TEST_ASSERT(m_Res, "Must have resource");
-  TEST_ASSERT(m_Type == ViewType::DSV, "Casting non-DSV ViewCreator to DSV");
+  TEST_ASSERT(m_ViewType == ViewType::DSV, "Casting non-DSV ViewCreator to DSV");
 
   ID3D11DepthStencilViewPtr dsv;
   CHECK_HR(m_Test->dev->CreateDepthStencilView(m_Res, &desc.dsv, &dsv));
