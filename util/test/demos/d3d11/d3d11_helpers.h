@@ -330,3 +330,10 @@ inline void SetDebugName(T pObj, const char *name)
   if(pObj)
     pObj->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(name), name);
 }
+
+template <class T>
+inline void SetDebugName(T pObj, const wchar_t *name)
+{
+  if(pObj)
+    pObj->SetPrivateData(WKPDID_D3DDebugObjectNameW, UINT(wcslen(name) * sizeof(wchar_t)), name);
+}
