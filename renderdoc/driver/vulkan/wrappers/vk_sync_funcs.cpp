@@ -206,13 +206,26 @@ VkResult WrappedVulkan::vkGetFenceStatus(VkDevice device, VkFence fence)
 
   if(IsActiveCapturing(m_State))
   {
-    CACHE_THREAD_SERIALISER();
+    bool alreadySerialised = false;
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetFenceStatus);
-    Serialise_vkGetFenceStatus(ser, device, fence);
+    {
+      m_FrameCaptureRecord->LockChunks();
+      alreadySerialised = (m_FrameCaptureRecord->NumChunks() > 0 &&
+                           m_FrameCaptureRecord->GetLastChunk()->GetChunkType<VulkanChunk>() ==
+                               VulkanChunk::vkGetFenceStatus);
+      m_FrameCaptureRecord->UnlockChunks();
+    }
 
-    m_FrameCaptureRecord->AddChunk(scope.Get());
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+    if(!alreadySerialised)
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetFenceStatus);
+      Serialise_vkGetFenceStatus(ser, device, fence);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+    }
   }
 
   return ret;
@@ -492,12 +505,25 @@ VkResult WrappedVulkan::vkGetEventStatus(VkDevice device, VkEvent event)
 
   if(IsActiveCapturing(m_State))
   {
-    CACHE_THREAD_SERIALISER();
+    bool alreadySerialised = false;
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetEventStatus);
-    Serialise_vkGetEventStatus(ser, device, event);
+    {
+      m_FrameCaptureRecord->LockChunks();
+      alreadySerialised = (m_FrameCaptureRecord->NumChunks() > 0 &&
+                           m_FrameCaptureRecord->GetLastChunk()->GetChunkType<VulkanChunk>() ==
+                               VulkanChunk::vkGetEventStatus);
+      m_FrameCaptureRecord->UnlockChunks();
+    }
 
-    m_FrameCaptureRecord->AddChunk(scope.Get());
+    if(!alreadySerialised)
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetEventStatus);
+      Serialise_vkGetEventStatus(ser, device, event);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
   }
 
   return ret;
@@ -968,13 +994,26 @@ VkResult WrappedVulkan::vkGetSemaphoreCounterValueKHR(VkDevice device, VkSemapho
 
   if(IsActiveCapturing(m_State))
   {
-    CACHE_THREAD_SERIALISER();
+    bool alreadySerialised = false;
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetSemaphoreCounterValueKHR);
-    Serialise_vkGetSemaphoreCounterValueKHR(ser, device, semaphore, pValue);
+    {
+      m_FrameCaptureRecord->LockChunks();
+      alreadySerialised = (m_FrameCaptureRecord->NumChunks() > 0 &&
+                           m_FrameCaptureRecord->GetLastChunk()->GetChunkType<VulkanChunk>() ==
+                               VulkanChunk::vkGetSemaphoreCounterValueKHR);
+      m_FrameCaptureRecord->UnlockChunks();
+    }
 
-    m_FrameCaptureRecord->AddChunk(scope.Get());
-    GetResourceManager()->MarkResourceFrameReferenced(GetResID(semaphore), eFrameRef_Read);
+    if(!alreadySerialised)
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetSemaphoreCounterValueKHR);
+      Serialise_vkGetSemaphoreCounterValueKHR(ser, device, semaphore, pValue);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(semaphore), eFrameRef_Read);
+    }
   }
 
   return ret;
