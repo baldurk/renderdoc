@@ -458,7 +458,7 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if((*driver)->GetResources()[0].resourceId == ResourceId())
   {
-    delete *driver;
+    driver->Shutdown();
     return ReplayStatus::ImageUnsupported;
   }
 
