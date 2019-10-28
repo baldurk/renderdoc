@@ -202,7 +202,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   }
 
   bool depthFormat = IsDepthFormat(descMS.Format);
-  bool intFormat = IsUIntFormat(descMS.Format) || IsIntFormat(descMS.Format);
+  bool intFormat =
+      IsUIntFormat(descMS.Format) || IsIntFormat(descMS.Format) || IsTypelessFormat(descMS.Format);
 
   ID3D11Texture2D *rtvResource = NULL;
   ID3D11Texture2D *srvResource = NULL;
@@ -547,7 +548,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   D3D11_TEXTURE2D_DESC srvResDesc = descMS;
 
   bool depthFormat = IsDepthFormat(descMS.Format);
-  bool intFormat = IsUIntFormat(descMS.Format) || IsIntFormat(descMS.Format);
+  bool intFormat =
+      IsUIntFormat(descMS.Format) || IsIntFormat(descMS.Format) || IsTypelessFormat(descMS.Format);
 
   rtvResDesc.BindFlags = depthFormat ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET;
   srvResDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
