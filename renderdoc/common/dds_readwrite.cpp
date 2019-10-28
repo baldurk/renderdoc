@@ -990,6 +990,7 @@ dds_data load_dds_from_file(FILE *f)
       case 114: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32_FLOAT); break;
       case 115: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32G32_FLOAT); break;
       case 116: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32G32B32A32_FLOAT); break;
+      case 117: RDCERR("Legacy CxV8U8 format is unsupported"); return error;
       default: RDCWARN("Unsupported FourCC: %08x", header.ddspf.dwFourCC); return error;
     }
   }
