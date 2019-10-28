@@ -456,6 +456,12 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   *driver = new ImageViewer(proxy, filename.c_str());
 
+  if((*driver)->GetResources()[0].resourceId == ResourceId())
+  {
+    delete *driver;
+    return ReplayStatus::ImageUnsupported;
+  }
+
   return ReplayStatus::Succeeded;
 }
 
@@ -730,6 +736,9 @@ void ImageViewer::RefreshFile()
 
   if(m_TextureID == ResourceId())
     m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+
+  if(m_TextureID == ResourceId())
+    RDCERR("Couldn't create proxy texture for image file");
 
   if(!dds)
   {

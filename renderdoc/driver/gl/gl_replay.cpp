@@ -2948,9 +2948,6 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  GLuint tex = 0;
-  drv.glGenTextures(1, &tex);
-
   GLenum intFormat = MakeGLFormat(templateTex.format);
   bool isCompressed = IsCompressedFormat(intFormat);
 
@@ -2961,6 +2958,12 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
     baseFormat = GetBaseFormat(intFormat);
     dataType = GetDataType(intFormat);
   }
+
+  if(baseFormat == eGL_NONE || dataType == eGL_NONE)
+    return ResourceId();
+
+  GLuint tex = 0;
+  drv.glGenTextures(1, &tex);
 
   GLenum target = eGL_NONE;
 
@@ -3108,6 +3111,9 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
   GLuint tex = m_pDriver->GetResourceManager()->GetCurrentResource(texid).name;
 
   auto &texdetails = m_pDriver->m_Textures[texid];
+
+  if(texdetails.curType == eGL_NONE)
+    return;
 
   GLenum fmt = texdetails.internalFormat;
   GLenum target = texdetails.curType;

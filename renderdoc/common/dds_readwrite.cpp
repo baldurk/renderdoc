@@ -312,6 +312,13 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return special;
     case DXGI_FORMAT_D24_UNORM_S8_UINT: special.type = ResourceFormatType::D24S8; return special;
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: special.type = ResourceFormatType::D32S8; return special;
+    case DXGI_FORMAT_YUY2:
+      special.type = ResourceFormatType::YUV8;
+      special.compByteWidth = 1;
+      special.compCount = 3;
+      special.compType = CompType::UNorm;
+      special.SetYUVSubsampling(422);
+      return special;
 
     case DXGI_FORMAT_R32G32B32A32_UINT:
       fmt32.compType = CompType::UInt;
@@ -922,6 +929,8 @@ dds_data load_dds_from_file(FILE *f)
   if(ret.cubemap)
     ret.slices *= 6;
 
+  bool bgrSwap = false;
+
   if(dx10Header)
   {
     ret.format = DXGIFormat2ResourceFormat(headerDXT10.dxgiFormat);
@@ -966,6 +975,12 @@ dds_data load_dds_from_file(FILE *f)
       case MAKE_FOURCC('G', 'R', 'G', 'B'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_G8R8_G8B8_UNORM);
         break;
+      case MAKE_FOURCC('U', 'Y', 'V', 'Y'):
+        bgrSwap = true;
+      // deliberate fall-through
+      case MAKE_FOURCC('Y', 'U', 'Y', '2'):
+        ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_YUY2);
+        break;
       case 36: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_UNORM); break;
       case 82: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_D32_FLOAT); break;
       case 110: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_SNORM); break;
@@ -997,6 +1012,7 @@ dds_data load_dds_from_file(FILE *f)
   }
 
   uint32_t bytesPerPixel = 1;
+  int subsamplePacking = 1;
   switch(ret.format.type)
   {
     case ResourceFormatType::S8:
@@ -1009,11 +1025,17 @@ dds_data load_dds_from_file(FILE *f)
     case ResourceFormatType::R5G5B5A1:
     case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
     case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
-    case ResourceFormatType::D16S8:
     case ResourceFormatType::YUV8:
+      if(ret.format.YUVPlaneCount() == 1 && ret.format.YUVSubsampling() == 422)
+      {
+        subsamplePacking = 2;
+        bytesPerPixel = 2;
+        break;
+      }
     case ResourceFormatType::YUV10:
     case ResourceFormatType::YUV12:
     case ResourceFormatType::YUV16:
+    case ResourceFormatType::D16S8:
     case ResourceFormatType::R4G4:
       RDCERR("Unsupported file format %u", ret.format.type);
       return error;
@@ -1036,10 +1058,6 @@ dds_data load_dds_from_file(FILE *f)
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
       case ResourceFormatType::ASTC:
-      case ResourceFormatType::YUV8:
-      case ResourceFormatType::YUV10:
-      case ResourceFormatType::YUV12:
-      case ResourceFormatType::YUV16:
         RDCERR("Unsupported file format, %u", ret.format.type);
         return error;
       default: break;
@@ -1055,6 +1073,7 @@ dds_data load_dds_from_file(FILE *f)
     for(int mip = 0; mip < ret.mips; mip++)
     {
       int rowlen = RDCMAX(1, ret.width >> mip);
+      rowlen = AlignUp(rowlen, subsamplePacking);
       int numRows = RDCMAX(1, ret.height >> mip);
       int numdepths = RDCMAX(1, ret.depth >> mip);
       int pitch = RDCMAX(1U, rowlen * bytesPerPixel);
@@ -1081,6 +1100,28 @@ dds_data load_dds_from_file(FILE *f)
         for(int row = 0; row < numRows; row++)
         {
           FileIO::fread(bytedata, 1, pitch, f);
+
+          if(bgrSwap)
+          {
+            byte *rgba = bytedata;
+
+            if(bytesPerPixel >= 3)
+            {
+              for(int p = 0; p < rowlen; p++)
+              {
+                std::swap(rgba[0], rgba[2]);
+                rgba += bytesPerPixel;
+              }
+            }
+            else
+            {
+              for(int p = 0; p < rowlen; p++)
+              {
+                std::swap(rgba[0], rgba[1]);
+                rgba += bytesPerPixel;
+              }
+            }
+          }
 
           bytedata += pitch;
         }
