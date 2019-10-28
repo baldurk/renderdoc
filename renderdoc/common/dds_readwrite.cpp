@@ -1033,6 +1033,7 @@ dds_data load_dds_from_file(FILE *f)
         bytesPerPixel = 2;
         break;
       }
+    // deliberate fall-through
     case ResourceFormatType::YUV10:
     case ResourceFormatType::YUV12:
     case ResourceFormatType::YUV16:
