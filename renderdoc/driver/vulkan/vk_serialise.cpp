@@ -3050,7 +3050,16 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutBinding &el)
   SERIALISE_MEMBER(descriptorType);
   SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER_VKFLAGS(VkShaderStageFlags, stageFlags);
-  SERIALISE_MEMBER_ARRAY(pImmutableSamplers, descriptorCount);
+
+  if(el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+     el.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+  {
+    SERIALISE_MEMBER_ARRAY(pImmutableSamplers, descriptorCount);
+  }
+  else
+  {
+    SERIALISE_MEMBER_ARRAY_EMPTY(pImmutableSamplers);
+  }
 }
 
 template <>

@@ -45,7 +45,9 @@ VkDescriptorSetLayoutCreateInfo WrappedVulkan::UnwrapInfo(const VkDescriptorSetL
   {
     unwrapped[i] = info->pBindings[i];
 
-    if(unwrapped[i].pImmutableSamplers)
+    if((unwrapped[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+        unwrapped[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+       unwrapped[i].pImmutableSamplers)
     {
       VkSampler *unwrappedSamplers = nextSampler;
       nextSampler += unwrapped[i].descriptorCount;

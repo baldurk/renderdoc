@@ -115,7 +115,9 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
        bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
       dynamicCount++;
 
-    if(pCreateInfo->pBindings[i].pImmutableSamplers)
+    if((bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+        bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+       pCreateInfo->pBindings[i].pImmutableSamplers)
     {
       bindings[b].immutableSampler = new ResourceId[bindings[b].descriptorCount];
 
