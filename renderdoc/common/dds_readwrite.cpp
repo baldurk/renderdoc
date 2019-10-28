@@ -345,6 +345,7 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
 
     case DXGI_FORMAT_R32_UINT: fmt32.compType = CompType::UInt; return fmt32;
     case DXGI_FORMAT_R32_SINT: fmt32.compType = CompType::SInt; return fmt32;
+    case DXGI_FORMAT_D32_FLOAT: fmt32.compType = CompType::Depth; return fmt32;
     case DXGI_FORMAT_R32_FLOAT: return fmt32;
 
     case DXGI_FORMAT_R16G16B16A16_UINT:
@@ -966,6 +967,7 @@ dds_data load_dds_from_file(FILE *f)
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_G8R8_G8B8_UNORM);
         break;
       case 36: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_UNORM); break;
+      case 82: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_D32_FLOAT); break;
       case 110: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_SNORM); break;
       case 111: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16_FLOAT); break;
       case 112: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16_FLOAT); break;
