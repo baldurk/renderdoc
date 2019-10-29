@@ -25,6 +25,7 @@
 #pragma once
 
 #include "api/replay/renderdoc_replay.h"
+#include "os/os_specific.h"
 
 namespace Network
 {
@@ -102,6 +103,7 @@ protected:
   Network::Socket *m_Socket;
   WriteSerialiser *writer;
   ReadSerialiser *reader;
+  FileIO::LogFileHandle *debugLog;
   rdcstr m_deviceID;
 
   rdcarray<rdcpair<RDCDriver, rdcstr>> m_Proxies;

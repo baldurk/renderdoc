@@ -37,6 +37,12 @@
 #include "strings/string_utils.h"
 #include "replay_proxy.h"
 
+#if ENABLED(RDOC_DEVEL)
+static const uint32_t RemoteServerTimeoutMS = 5000;
+#endif
+
+#define DEBUG_REMOTE_SERVER OPTION_OFF
+
 static const uint32_t RemoteServerProtocolVersion =
     uint32_t(RENDERDOC_VERSION_MAJOR * 1000) | RENDERDOC_VERSION_MINOR;
 
@@ -75,8 +81,58 @@ enum RemoteServerPacket
   eRemoteServer_RemoteServerCount,
 };
 
+DECLARE_REFLECTION_ENUM(RemoteServerPacket);
+
 RDCCOMPILE_ASSERT((int)eRemoteServer_RemoteServerCount < (int)eReplayProxy_First,
                   "Remote server and Replay Proxy packets overlap");
+
+template <>
+rdcstr DoStringise(const RemoteServerPacket &el)
+{
+  BEGIN_ENUM_STRINGISE(RemoteServerPacket);
+  {
+    STRINGISE_ENUM_NAMED(eRemoteServer_Noop, "No-op");
+    STRINGISE_ENUM_NAMED(eRemoteServer_Handshake, "Handshake");
+    STRINGISE_ENUM_NAMED(eRemoteServer_VersionMismatch, "VersionMismatch");
+    STRINGISE_ENUM_NAMED(eRemoteServer_Busy, "Busy");
+
+    STRINGISE_ENUM_NAMED(eRemoteServer_Ping, "Ping");
+    STRINGISE_ENUM_NAMED(eRemoteServer_RemoteDriverList, "RemoteDriverList");
+    STRINGISE_ENUM_NAMED(eRemoteServer_TakeOwnershipCapture, "TakeOwnershipCapture");
+    STRINGISE_ENUM_NAMED(eRemoteServer_CopyCaptureToRemote, "CopyCaptureToRemote");
+    STRINGISE_ENUM_NAMED(eRemoteServer_CopyCaptureFromRemote, "CopyCaptureFromRemote");
+    STRINGISE_ENUM_NAMED(eRemoteServer_OpenLog, "OpenLog");
+    STRINGISE_ENUM_NAMED(eRemoteServer_LogOpenProgress, "LogOpenProgress");
+    STRINGISE_ENUM_NAMED(eRemoteServer_LogOpened, "LogOpened");
+    STRINGISE_ENUM_NAMED(eRemoteServer_HasCallstacks, "HasCallstacks");
+    STRINGISE_ENUM_NAMED(eRemoteServer_InitResolver, "InitResolver");
+    STRINGISE_ENUM_NAMED(eRemoteServer_ResolverProgress, "ResolverProgress");
+    STRINGISE_ENUM_NAMED(eRemoteServer_GetResolve, "GetResolve");
+    STRINGISE_ENUM_NAMED(eRemoteServer_CloseLog, "CloseLog");
+    STRINGISE_ENUM_NAMED(eRemoteServer_HomeDir, "HomeDir");
+    STRINGISE_ENUM_NAMED(eRemoteServer_ListDir, "ListDir");
+    STRINGISE_ENUM_NAMED(eRemoteServer_ExecuteAndInject, "ExecuteAndInject");
+    STRINGISE_ENUM_NAMED(eRemoteServer_ShutdownServer, "ShutdownServer");
+    STRINGISE_ENUM_NAMED(eRemoteServer_GetDriverName, "GetDriverName");
+    STRINGISE_ENUM_NAMED(eRemoteServer_GetSectionCount, "GetSectionCount");
+    STRINGISE_ENUM_NAMED(eRemoteServer_FindSectionByName, "FindSectionByName");
+    STRINGISE_ENUM_NAMED(eRemoteServer_FindSectionByType, "FindSectionByType");
+    STRINGISE_ENUM_NAMED(eRemoteServer_GetSectionProperties, "GetSectionProperties");
+    STRINGISE_ENUM_NAMED(eRemoteServer_GetSectionContents, "GetSectionContents");
+    STRINGISE_ENUM_NAMED(eRemoteServer_WriteSection, "WriteSection");
+    STRINGISE_ENUM_NAMED(eRemoteServer_GetAvailableGPUs, "GetAvailableGPUs");
+    STRINGISE_ENUM_NAMED(eRemoteServer_RemoteServerCount, "RemoteServerCount");
+  }
+  END_ENUM_STRINGISE();
+}
+
+std::string GetRemoteServerChunkName(uint32_t idx)
+{
+  if(idx < eRemoteServer_RemoteServerCount)
+    return ToStr((RemoteServerPacket)idx);
+
+  return ToStr((ReplayProxyPacket)idx);
+}
 
 #define WRITE_DATA_SCOPE() WriteSerialiser &ser = writer;
 #define READ_DATA_SCOPE() ReadSerialiser &ser = reader;
@@ -155,6 +211,10 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
                                      RENDERDOC_PreviewWindowCallback previewWindow)
 {
   Network::Socket *&client = threadData->socket;
+
+#if ENABLED(RDOC_DEVEL)
+  client->SetTimeout(RemoteServerTimeoutMS);
+#endif
 
   uint32_t ip = client->GetRemoteIP();
 
@@ -1076,6 +1136,10 @@ RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend)
 
   uint32_t version = RemoteServerProtocolVersion;
 
+#if ENABLED(RDOC_DEVEL)
+  sock->SetTimeout(RemoteServerTimeoutMS);
+#endif
+
   {
     WriteSerialiser ser(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream);
 
@@ -1134,6 +1198,23 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
   reader = new ReadSerialiser(new StreamReader(sock, Ownership::Nothing), Ownership::Stream);
   writer = new WriteSerialiser(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream);
 
+#if ENABLED(RDOC_DEVEL) && ENABLED(DEBUG_REMOTE_SERVER)
+  reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+  writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+
+  rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer.log";
+
+  // truncate the log
+  debugLog = FileIO::logfile_open(filename.c_str());
+  FileIO::logfile_close(debugLog, filename.c_str());
+  debugLog = FileIO::logfile_open(filename.c_str());
+
+  reader->EnableDumping(debugLog);
+  writer->EnableDumping(debugLog);
+#else
+  debugLog = NULL;
+#endif
+
   writer->SetStreamingMode(true);
   reader->SetStreamingMode(true);
 
@@ -1146,6 +1227,7 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
 
 RemoteServer::~RemoteServer()
 {
+  FileIO::logfile_close(debugLog, NULL);
   SAFE_DELETE(writer);
   SAFE_DELETE(reader);
   SAFE_DELETE(m_Socket);
