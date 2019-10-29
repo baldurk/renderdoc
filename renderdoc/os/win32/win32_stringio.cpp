@@ -662,15 +662,12 @@ int fclose(FILE *f)
   return ::fclose(f);
 }
 
-static HANDLE logHandle = NULL;
-
-bool logfile_open(const char *filename)
+LogFileHandle *logfile_open(const char *filename)
 {
   std::wstring wfn = StringFormat::UTF82Wide(std::string(filename));
-  logHandle = CreateFileW(wfn.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                          OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-  return logHandle != NULL;
+  return (LogFileHandle *)CreateFileW(wfn.c_str(), FILE_APPEND_DATA,
+                                      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS,
+                                      FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
 static std::string logfile_readall_fallback(const wchar_t *filename)
@@ -747,25 +744,24 @@ std::string logfile_readall(const char *filename)
   return ret;
 }
 
-void logfile_append(const char *msg, size_t length)
+void logfile_append(LogFileHandle *logHandle, const char *msg, size_t length)
 {
   if(logHandle)
   {
     DWORD bytesWritten = 0;
-    WriteFile(logHandle, msg, (DWORD)length, &bytesWritten, NULL);
+    WriteFile((HANDLE)logHandle, msg, (DWORD)length, &bytesWritten, NULL);
   }
 }
 
-void logfile_close(const char *filename)
+void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
 {
-  CloseHandle(logHandle);
-  logHandle = NULL;
+  CloseHandle((HANDLE)logHandle);
 
-  if(filename)
+  if(deleteFilename)
   {
     // we can just try to delete the file. If it's open elsewhere in another process, the delete
     // will fail.
-    std::wstring wpath = StringFormat::UTF82Wide(std::string(filename));
+    std::wstring wpath = StringFormat::UTF82Wide(std::string(deleteFilename));
     ::DeleteFileW(wpath.c_str());
   }
 }

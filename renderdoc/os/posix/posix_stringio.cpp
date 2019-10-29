@@ -471,15 +471,15 @@ bool exists(const char *filename)
   return (res == 0);
 }
 
-static int logfileFD = -1;
+rdcarray<int> logfiles;
 
 // this is used in posix_process.cpp, so that we can close the handle any time that we fork()
 void ReleaseFDAfterFork()
 {
   // we do NOT release the shared lock here, since the file descriptor is shared so we'd be
   // releasing the parent process's lock. Just close our file descriptor
-  if(logfileFD >= 0)
-    close(logfileFD);
+  for(int log : logfiles)
+    close(log);
 }
 
 std::string logfile_readall(const char *filename)
@@ -504,35 +504,49 @@ std::string logfile_readall(const char *filename)
   return ret;
 }
 
-bool logfile_open(const char *filename)
+LogFileHandle *logfile_open(const char *filename)
 {
-  logfileFD = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  int fd = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+  if(fd < 0)
+  {
+    RDCWARN("Couldn't open logfile '%s': %d", filename, (int)errno);
+    return NULL;
+  }
+
+  logfiles.push_back(fd);
 
   // acquire a shared lock. Every process acquires a shared lock to the common logfile. Each time a
   // process shuts down and wants to close the logfile, it releases its shared lock and tries to
   // acquire an exclusive lock, to see if it can delete the file. See logfile_close.
-  int err = flock(logfileFD, LOCK_SH | LOCK_NB);
+  int err = flock(fd, LOCK_SH | LOCK_NB);
 
   if(err < 0)
-    RDCWARN("Couldn't acquire shared lock to %s: %d", filename, (int)errno);
+    RDCWARN("Couldn't acquire shared lock to '%s': %d", filename, (int)errno);
 
-  return logfileFD >= 0;
+  return (LogFileHandle *)(uintptr_t)fd;
 }
 
-void logfile_append(const char *msg, size_t length)
+void logfile_append(LogFileHandle *logHandle, const char *msg, size_t length)
 {
-  if(logfileFD >= 0)
-    write(logfileFD, msg, (unsigned int)length);
-}
-
-void logfile_close(const char *filename)
-{
-  if(logfileFD >= 0)
+  if(logHandle)
   {
-    // release our shared lock
-    int err = flock(logfileFD, LOCK_UN | LOCK_NB);
+    int fd = int(uintptr_t(logHandle) & 0xffffffff);
 
-    if(err == 0 && filename)
+    write(fd, msg, (unsigned int)length);
+  }
+}
+
+void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
+{
+  if(logHandle)
+  {
+    int fd = int(uintptr_t(logHandle) & 0xffffffff);
+
+    // release our shared lock
+    int err = flock(fd, LOCK_UN | LOCK_NB);
+
+    if(err == 0 && deleteFilename)
     {
       // now try to acquire an exclusive lock. If this succeeds, no other processes are using the
       // file (since no other shared locks exist), so we can delete it. If it fails, some other
@@ -540,20 +554,20 @@ void logfile_close(const char *filename)
       // NOTE: there is a race here between acquiring the exclusive lock and unlinking, but we
       // aren't interested in this kind of race - we're interested in whether an application is
       // still running when the UI closes, or vice versa, or similar cases.
-      err = flock(logfileFD, LOCK_EX | LOCK_NB);
+      err = flock(fd, LOCK_EX | LOCK_NB);
 
       if(err == 0)
       {
         // we got the exclusive lock. Now release it, close fd, and unlink the file
-        err = flock(logfileFD, LOCK_UN | LOCK_NB);
+        err = flock(fd, LOCK_UN | LOCK_NB);
 
         // can't really error handle here apart from retrying
         if(err != 0)
-          RDCWARN("Couldn't release exclusive lock to %s: %d", filename, (int)errno);
+          RDCWARN("Couldn't release exclusive lock to '%s': %d", deleteFilename, (int)errno);
 
-        close(logfileFD);
+        close(fd);
 
-        unlink(filename);
+        unlink(deleteFilename);
 
         // return immediately so we don't close again below.
         return;
@@ -561,12 +575,14 @@ void logfile_close(const char *filename)
     }
     else
     {
-      RDCWARN("Couldn't release shared lock to %s: %d", filename, (int)errno);
+      RDCWARN("Couldn't release shared lock to '%s': %d", deleteFilename, (int)errno);
       // nothing to do, we won't try again, just exit. The log might lie around, but that's
       // relatively harmless.
     }
 
-    close(logfileFD);
+    logfiles.removeOne(fd);
+
+    close(fd);
   }
 }
 };

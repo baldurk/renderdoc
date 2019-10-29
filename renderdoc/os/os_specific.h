@@ -311,9 +311,10 @@ int fclose(FILE *f);
 
 // functions for atomically appending to a log that may be in use in multiple
 // processes
-bool logfile_open(const char *filename);
-void logfile_append(const char *msg, size_t length);
-void logfile_close(const char *filename);
+struct LogFileHandle;
+LogFileHandle *logfile_open(const char *filename);
+void logfile_append(LogFileHandle *logHandle, const char *msg, size_t length);
+void logfile_close(LogFileHandle *logHandle, const char *deleteFilename);
 
 // read the whole logfile into memory. This may race with processes writing, but it will read the
 // whole of the file at some point. Useful since normal file reading may fail on the shared logfile

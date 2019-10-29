@@ -293,7 +293,7 @@ uint64_t Log2Floor(uint64_t value)
 #endif
 
 static std::string logfile;
-static bool logfileOpened = false;
+static FileIO::LogFileHandle *logfileHandle = NULL;
 
 const char *rdclog_getfilename()
 {
@@ -308,21 +308,22 @@ void rdclog_filename(const char *filename)
   if(filename && filename[0])
     logfile = filename;
 
-  FileIO::logfile_close(NULL);
+  FileIO::logfile_close(logfileHandle, NULL);
 
-  logfileOpened = false;
+  logfileHandle = NULL;
 
   if(!logfile.empty())
   {
-    logfileOpened = FileIO::logfile_open(logfile.c_str());
+    logfileHandle = FileIO::logfile_open(logfile.c_str());
 
-    if(logfileOpened && previous.c_str())
+    if(logfileHandle && previous.c_str())
     {
       std::vector<unsigned char> previousContents;
       FileIO::slurp(previous.c_str(), previousContents);
 
       if(!previousContents.empty())
-        FileIO::logfile_append((const char *)&previousContents[0], previousContents.size());
+        FileIO::logfile_append(logfileHandle, (const char *)&previousContents[0],
+                               previousContents.size());
 
       FileIO::Delete(previous.c_str());
     }
@@ -339,7 +340,7 @@ void rdclog_enableoutput()
 void rdclog_closelog(const char *filename)
 {
   log_output_enabled = false;
-  FileIO::logfile_close(filename);
+  FileIO::logfile_close(logfileHandle, filename);
 }
 
 void rdclog_flush()
@@ -366,10 +367,10 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
     OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
 #endif
 #if ENABLED(OUTPUT_LOG_TO_DISK)
-  if(logfileOpened)
+  if(logfileHandle)
   {
     // strlen used as byte length - str is UTF-8 so this is NOT number of characters
-    FileIO::logfile_append(fullMsg, strlen(fullMsg));
+    FileIO::logfile_append(logfileHandle, fullMsg, strlen(fullMsg));
   }
 #endif
 }
