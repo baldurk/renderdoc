@@ -565,7 +565,7 @@ void GLReplay::CacheTexture(ResourceId id)
     case eGL_TEXTURE_1D_ARRAY:
       tex.dimension = 1;
       tex.width = (uint32_t)width;
-      tex.arraysize = depth;
+      tex.arraysize = height;
       break;
     case eGL_TEXTURE_2D:
     case eGL_TEXTURE_RECTANGLE:
@@ -3125,6 +3125,9 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
   GLint width = RDCMAX(1, texdetails.width >> mip);
   GLint height = RDCMAX(1, texdetails.height >> mip);
 
+  if(target == eGL_TEXTURE_1D_ARRAY)
+    height = 1;
+
   if(IsCompressedFormat(fmt))
   {
     if(target == eGL_TEXTURE_1D)
@@ -3262,7 +3265,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
       }
 
       // copy this slice into the 2D MSAA texture
-      CopyArrayToTex2DMS(tex, uploadTex, width, height, 1, texdetails.samples,
+      CopyArrayToTex2DMS(tex, uploadTex, width, height, texdetails.depth, texdetails.samples,
                          texdetails.internalFormat, arrayIdx);
 
       // delete the temporary texture

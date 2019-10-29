@@ -372,6 +372,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     if(texDetails.curType == eGL_TEXTURE_CUBE_MAP)
       depth *= 6;
 
+    if(texDetails.curType == eGL_TEXTURE_1D_ARRAY)
+      depth = RDCMAX((uint32_t)texDetails.height, 1U);
+
     uint32_t numSlices = depth * RDCMAX((uint32_t)texDetails.samples, 1U);
 
     uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, numSlices - 1);

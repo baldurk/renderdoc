@@ -895,8 +895,16 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         if(details.curType == eGL_TEXTURE_CUBE_MAP)
           d *= 6;
         else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY ||
-                details.curType == eGL_TEXTURE_1D_ARRAY || details.curType == eGL_TEXTURE_2D_ARRAY)
+                details.curType == eGL_TEXTURE_2D_ARRAY)
           d = details.depth;
+
+        // glCopyImageSubData treats 1D arrays sanely - with depth as array size - but at odds
+        // with the rest of the API.
+        if(details.curType == eGL_TEXTURE_1D_ARRAY)
+        {
+          h = 1;
+          d = details.height;
+        }
 
         // AMD throws an error copying mips that are smaller than the block size in one dimension,
         // so do copy via CPU instead (will be slow, potentially we could optimise this if there's a
@@ -1116,9 +1124,11 @@ uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLIniti
       uint32_t h = RDCMAX(TextureState.height >> i, 1U);
       uint32_t d = RDCMAX(TextureState.depth >> i, 1U);
 
-      if(TextureState.type == eGL_TEXTURE_CUBE_MAP_ARRAY ||
-         TextureState.type == eGL_TEXTURE_1D_ARRAY || TextureState.type == eGL_TEXTURE_2D_ARRAY)
+      if(TextureState.type == eGL_TEXTURE_CUBE_MAP_ARRAY || TextureState.type == eGL_TEXTURE_2D_ARRAY)
         d = TextureState.depth;
+
+      if(TextureState.type == eGL_TEXTURE_1D_ARRAY)
+        h = TextureState.height;
 
       uint32_t size = 0;
 
@@ -1518,9 +1528,11 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
               d = RDCMAX(1, d >> 1);
 
               if(TextureState.type == eGL_TEXTURE_CUBE_MAP_ARRAY ||
-                 TextureState.type == eGL_TEXTURE_1D_ARRAY ||
                  TextureState.type == eGL_TEXTURE_2D_ARRAY)
                 d = (GLsizei)TextureState.depth;
+
+              if(TextureState.type == eGL_TEXTURE_1D_ARRAY)
+                h = (GLsizei)TextureState.height;
 
               // if this mip doesn't exist yet, we must create it with dummy data.
               if(m >= liveMips)
@@ -1640,8 +1652,11 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
             uint32_t d = RDCMAX(TextureState.depth >> i, 1U);
 
             if(TextureState.type == eGL_TEXTURE_CUBE_MAP_ARRAY ||
-               TextureState.type == eGL_TEXTURE_1D_ARRAY || TextureState.type == eGL_TEXTURE_2D_ARRAY)
+               TextureState.type == eGL_TEXTURE_2D_ARRAY)
               d = TextureState.depth;
+
+            if(TextureState.type == eGL_TEXTURE_1D_ARRAY)
+              h = TextureState.height;
 
             // calculate the actual byte size of this mip
             if(isCompressed)
@@ -1960,8 +1975,16 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
           if(details.curType == eGL_TEXTURE_CUBE_MAP)
             d *= 6;
           else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY ||
-                  details.curType == eGL_TEXTURE_1D_ARRAY || details.curType == eGL_TEXTURE_2D_ARRAY)
+                  details.curType == eGL_TEXTURE_2D_ARRAY)
             d = details.depth;
+
+          // glCopyImageSubData treats 1D arrays sanely - with depth as array size - but at odds
+          // with the rest of the API.
+          if(details.curType == eGL_TEXTURE_1D_ARRAY)
+          {
+            h = 1;
+            d = details.height;
+          }
 
           // AMD throws an error copying mips that are smaller than the block size in one dimension,
           // so do copy via CPU instead (will be slow, potentially we could optimise this if there's
