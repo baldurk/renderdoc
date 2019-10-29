@@ -29,6 +29,7 @@ set(VULKAN_SRC
         vk/vk_spec_constants.cpp
         vk/vk_spirv_13_shaders.cpp
         vk/vk_structured_buffer_nested.cpp
+        vk/vk_texture_zoo.cpp
         vk/vk_triangle_fan.cpp
         vk/vk_vertex_attr_zoo.cpp
         vk/vk_video_textures.cpp
@@ -58,12 +59,14 @@ set(OPENGL_SRC
         gl/gl_shader_editing.cpp
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
+        gl/gl_texture_zoo.cpp
         gl/gl_unsized_ms_fbo_attachment.cpp
         gl/gl_vao_0.cpp
         gl/gl_vertex_attr_zoo.cpp)
 
 set(SRC main.cpp
         test_common.cpp
+        texture_zoo.cpp
         linux/linux_platform.cpp
         linux/linux_window.cpp)
 

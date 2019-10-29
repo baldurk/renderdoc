@@ -334,6 +334,24 @@ void D3D11GraphicsTest::Present()
   swap->Present(0, 0);
 }
 
+void D3D11GraphicsTest::pushMarker(const std::string &name)
+{
+  if(annot)
+    annot->BeginEvent(UTF82Wide(name).c_str());
+}
+
+void D3D11GraphicsTest::setMarker(const std::string &name)
+{
+  if(annot)
+    annot->SetMarker(UTF82Wide(name).c_str());
+}
+
+void D3D11GraphicsTest::popMarker()
+{
+  if(annot)
+    annot->EndEvent();
+}
+
 std::vector<byte> D3D11GraphicsTest::GetBufferData(ID3D11Buffer *buffer, uint32_t offset, uint32_t len)
 {
   D3D11_MAPPED_SUBRESOURCE mapped;

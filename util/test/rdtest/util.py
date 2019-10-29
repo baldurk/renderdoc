@@ -250,9 +250,10 @@ FLT_EPSILON = 2.0*1.19209290E-07
 
 
 def value_compare(ref, data, eps=FLT_EPSILON):
-    if type(ref) == float:
-        if type(data) != float:
-            return False
+    if type(ref) == float or type(data) == float:
+        # if the types are different this is probably 0.0 == 0 or something. Just compare straight by casting to floats
+        if type(data) != type(data):
+            return float(data) == float(ref)
 
         # Special handling for NaNs - NaNs are always equal to NaNs, but NaN is never equal to any other value
         if math.isnan(ref) and math.isnan(data):

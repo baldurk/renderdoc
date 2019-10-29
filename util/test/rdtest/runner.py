@@ -341,6 +341,23 @@ def vulkan_register():
     rd.UpdateVulkanLayerRegistration(True)
 
 
+def launch_remote_server():
+    # Fork the interpreter to run the test, in case it crashes we can catch it.
+    # We can re-run with the same parameters
+    args = sys.argv.copy()
+    args.insert(0, sys.executable)
+
+    # Add parameter to run the remote server itself
+    args.append('--internal_remote_server')
+
+    subprocess.Popen(args)
+    return
+
+
+def become_remote_server():
+    rd.BecomeRemoteServer('localhost', None, None)
+
+
 def internal_run_test(test_name):
     testcases = get_tests()
 

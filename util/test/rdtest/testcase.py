@@ -328,7 +328,8 @@ class TestCase:
 
         self.check_capture()
 
-        self.controller.Shutdown()
+        if self.controller is not None:
+            self.controller.Shutdown()
 
     def invoketest(self, debugMode):
         self.run()

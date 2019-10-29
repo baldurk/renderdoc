@@ -700,8 +700,6 @@ D3D12ViewCreator &D3D12ViewCreator::FirstMip(UINT mip)
 {
   if(firstMip)
     *firstMip = mip;
-  else
-    TEST_ERROR("This view & resource doesn't support FirstMip");
   return *this;
 }
 
@@ -709,8 +707,6 @@ D3D12ViewCreator &D3D12ViewCreator::NumMips(UINT num)
 {
   if(numMips)
     *numMips = num;
-  else
-    TEST_ERROR("This view & resource doesn't support NumMips");
   return *this;
 }
 
@@ -718,8 +714,6 @@ D3D12ViewCreator &D3D12ViewCreator::FirstSlice(UINT mip)
 {
   if(firstSlice)
     *firstSlice = mip;
-  else
-    TEST_ERROR("This view & resource doesn't support FirstSlice");
   return *this;
 }
 
@@ -727,8 +721,6 @@ D3D12ViewCreator &D3D12ViewCreator::NumSlices(UINT num)
 {
   if(numSlices)
     *numSlices = num;
-  else
-    TEST_ERROR("This view & resource doesn't support NumSlices");
   return *this;
 }
 
@@ -742,8 +734,6 @@ D3D12ViewCreator &D3D12ViewCreator::PlaneSlice(UINT plane)
 {
   if(planeSlice)
     *planeSlice = plane;
-  else
-    TEST_ERROR("This view & resource doesn't support NumSlices");
   return *this;
 }
 
@@ -874,6 +864,16 @@ D3D12PSOCreator::D3D12PSOCreator(D3D12GraphicsTest *test) : m_Test(test)
   GraphicsDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
   GraphicsDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
   GraphicsDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+  GraphicsDesc.DepthStencilState.DepthEnable = FALSE;
+  GraphicsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+  GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+  GraphicsDesc.DepthStencilState.StencilReadMask = 0xff;
+  GraphicsDesc.DepthStencilState.StencilWriteMask = 0xff;
+  GraphicsDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+  GraphicsDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+  GraphicsDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+  GraphicsDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+  GraphicsDesc.DepthStencilState.BackFace = GraphicsDesc.DepthStencilState.FrontFace;
 }
 
 D3D12PSOCreator &D3D12PSOCreator::VS(ID3DBlobPtr blob)

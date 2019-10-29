@@ -36,6 +36,8 @@ parser.add_argument('--debugger',
 parser.add_argument('--internal_run_test', help=argparse.SUPPRESS, type=str, required=False)
 # Internal command, when we re-run as admin to register vulkan layer
 parser.add_argument('--internal_vulkan_register', help=argparse.SUPPRESS, action="store_true", required=False)
+# Internal command, when we re-run as a remote server
+parser.add_argument('--internal_remote_server', help=argparse.SUPPRESS, action="store_true", required=False)
 args = parser.parse_args()
 
 if args.renderdoc is not None:
@@ -110,6 +112,8 @@ if args.debugger:
 
 if args.internal_vulkan_register:
     rdtest.vulkan_register()
+elif args.internal_remote_server:
+    rdtest.become_remote_server()
 elif args.internal_run_test is not None:
     rdtest.internal_run_test(args.internal_run_test)
 else:

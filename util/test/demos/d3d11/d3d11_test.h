@@ -152,6 +152,10 @@ struct D3D11GraphicsTest : public GraphicsTest
   bool Running();
   void Present();
 
+  void pushMarker(const std::string &name);
+  void setMarker(const std::string &name);
+  void popMarker();
+
   DXGI_FORMAT backbufferFmt = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
   int backbufferCount = 2;
   int backbufferMSAA = 1;

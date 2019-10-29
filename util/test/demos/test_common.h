@@ -121,6 +121,8 @@ struct Vec4f
     z = Z;
     w = W;
   }
+  bool operator==(const Vec4f &o) { return x == o.x && y == o.y && z == o.z && w == o.w; }
+  bool operator!=(const Vec4f &o) { return !(*this == o); }
   float x, y, z, w;
 };
 
@@ -333,3 +335,62 @@ void DebugPrint(const char *fmt, ...);
     DEBUG_BREAK();                                                                   \
     exit(0);                                                                         \
   } while(0)
+
+namespace TextureZoo
+{
+enum class DataType
+{
+  Float,
+  UNorm,
+  SNorm,
+  UInt,
+  SInt,
+  Count,
+};
+
+enum class TextureType
+{
+  Unknown,
+  Regular,
+  R9G9B9E5,
+  G4R4,
+  A4R4G4B4,
+  R4G4B4A4,
+  R5G6B5,
+  R5G5B5A1,
+  A1R5G5B5,
+  RGB10A2,
+  BC1,
+  BC2,
+  BC3,
+  BC4,
+  BC5,
+  BC6,
+  BC7,
+};
+
+static const uint32_t texWidth = 8;
+static const uint32_t texHeight = 8;
+static const uint32_t texDepth = 10;
+static const uint32_t texMips = 3;
+static const uint32_t texSlices = 2;
+static const uint32_t texSamples = 2;
+
+struct TexConfig
+{
+  TextureType type;
+  uint32_t componentCount;
+  uint32_t componentBytes;
+  DataType data;
+};
+
+struct TexData
+{
+  std::vector<byte> byteData;
+  uint32_t rowPitch = 0;
+  uint32_t slicePitch = 0;
+};
+
+void MakeData(TexData &data, const TexConfig &cfg, Vec4i dimensions, uint32_t mip, uint32_t slice);
+
+};    // namespace TextureZoo

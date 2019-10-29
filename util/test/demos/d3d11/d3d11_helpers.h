@@ -325,15 +325,16 @@ private:
   }
 
 template <class T>
-inline void SetDebugName(T pObj, const char *name)
+inline void SetDebugName(T pObj, const std::string &name)
 {
   if(pObj)
-    pObj->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(name), name);
+    pObj->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)name.size(), name.c_str());
 }
 
 template <class T>
-inline void SetDebugName(T pObj, const wchar_t *name)
+inline void SetDebugName(T pObj, const std::wstring &name)
 {
   if(pObj)
-    pObj->SetPrivateData(WKPDID_D3DDebugObjectNameW, UINT(wcslen(name) * sizeof(wchar_t)), name);
+    pObj->SetPrivateData(WKPDID_D3DDebugObjectNameW, UINT(name.size() * sizeof(wchar_t)),
+                         name.c_str());
 }
