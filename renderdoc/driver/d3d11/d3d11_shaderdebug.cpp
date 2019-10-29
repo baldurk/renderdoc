@@ -2259,8 +2259,11 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
       {
         if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= draw->numInstances)
         {
-          srcData = &staticData[el->InputSlot][el->AlignedByteOffset];
-          dataSize = staticData[el->InputSlot].size() - el->AlignedByteOffset;
+          if(staticData[el->InputSlot].size() >= el->AlignedByteOffset)
+          {
+            srcData = &staticData[el->InputSlot][el->AlignedByteOffset];
+            dataSize = staticData[el->InputSlot].size() - el->AlignedByteOffset;
+          }
         }
         else
         {
