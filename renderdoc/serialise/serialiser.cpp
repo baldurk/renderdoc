@@ -29,10 +29,57 @@
 #include "core/core.h"
 #include "strings/string_utils.h"
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
 
 int64_t Chunk::m_LiveChunks = 0;
 int64_t Chunk::m_TotalMem = 0;
+
+void DumpObject(FileIO::LogFileHandle *log, const rdcstr &indent, SDObject *obj)
+{
+  if(obj->NumChildren() > 0)
+  {
+    std::string msg =
+        StringFormat::Fmt("%s%s%s %s:\n", indent.c_str(), obj->type.name.c_str(),
+                          obj->type.basetype == SDBasic::Array ? "[]" : "", obj->name.c_str());
+    FileIO::logfile_append(log, msg.c_str(), msg.size());
+    for(size_t i = 0; i < obj->NumChildren(); i++)
+      DumpObject(log, indent + "  ", obj->GetChild(i));
+  }
+  else
+  {
+    rdcstr val;
+    switch(obj->type.basetype)
+    {
+      case SDBasic::Chunk: val = "{Chunk}"; break;
+      case SDBasic::Struct: val = "{Struct}"; break;
+      case SDBasic::Array:
+        // this must be an empty array, or it would have children above
+        val = "{}";
+        break;
+      case SDBasic::Buffer: val = "[buffer]"; break;
+      case SDBasic::Null: val = "NULL"; break;
+      case SDBasic::String: val = obj->data.str; break;
+      case SDBasic::Enum: val = obj->data.str; break;
+      case SDBasic::UnsignedInteger: val = ToStr(obj->data.basic.u); break;
+      case SDBasic::SignedInteger: val = ToStr(obj->data.basic.i); break;
+      case SDBasic::Float: val = ToStr(obj->data.basic.d); break;
+      case SDBasic::Boolean: val = ToStr(obj->data.basic.b); break;
+      case SDBasic::Character: val = ToStr(obj->data.basic.c); break;
+      case SDBasic::Resource: val = ToStr(obj->data.basic.id); break;
+    }
+    std::string msg = StringFormat::Fmt("%s%s %s = %s\n", indent.c_str(), obj->type.name.c_str(),
+                                        obj->name.c_str(), val.c_str());
+    FileIO::logfile_append(log, msg.c_str(), msg.size());
+  }
+}
+
+void DumpChunk(bool reading, FileIO::LogFileHandle *log, SDChunk *chunk)
+{
+  std::string msg = StringFormat::Fmt("%s %s @ %llu:\n", reading ? "Read" : "Wrote",
+                                      chunk->name.c_str(), chunk->metadata.timestampMicro);
+  FileIO::logfile_append(log, msg.c_str(), msg.size());
+  DumpObject(log, "  ", chunk);
+}
 
 #endif
 
@@ -217,6 +264,13 @@ void Serialiser<SerialiserMode::Reading>::EndChunk()
       m_StructureStack.back()->type.byteSize = m_ChunkMetadata.length;
       m_StructureStack.pop_back();
     }
+
+#if ENABLED(RDOC_DEVEL)
+    if(m_DebugDumpLog && !m_StructuredFile->chunks.empty())
+    {
+      DumpChunk(true, m_DebugDumpLog, m_StructuredFile->chunks.back());
+    }
+#endif
   }
 
   // only skip remaining bytes if we have a valid length - if we have a length of 0 we wrote this
@@ -379,6 +433,22 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
     }
   }
 
+  if(ExportStructure())
+  {
+    std::string name = m_ChunkLookup ? m_ChunkLookup(chunkID) : "";
+
+    if(name.empty())
+      name = "<Unknown Chunk>";
+
+    SDChunk *chunk = new SDChunk(name.c_str());
+    chunk->metadata = m_ChunkMetadata;
+
+    m_StructuredFile->chunks.push_back(chunk);
+    m_StructureStack.push_back(chunk);
+
+    m_InternalElement = false;
+  }
+
   return chunkID;
 }
 
@@ -409,6 +479,8 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
     }
 
     m_Write->WriteAt(chunkOffset, uint32_t(chunkLength & 0xffffffff));
+
+    m_ChunkMetadata.length = chunkLength;
   }
   else
   {
@@ -441,6 +513,25 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
     {
       RDCDEBUG("Chunk was exactly the estimate of %llu bytes.", m_ChunkMetadata.length);
     }
+  }
+
+  if(ExportStructure())
+  {
+    RDCASSERTMSG("Object Stack is imbalanced!", m_StructureStack.size() <= 1,
+                 m_StructureStack.size());
+
+    if(!m_StructureStack.empty())
+    {
+      m_StructureStack.back()->type.byteSize = m_ChunkMetadata.length;
+      m_StructureStack.pop_back();
+    }
+
+#if ENABLED(RDOC_DEVEL)
+    if(m_DebugDumpLog && !m_StructuredFile->chunks.empty())
+    {
+      DumpChunk(false, m_DebugDumpLog, m_StructuredFile->chunks.back());
+    }
+#endif
   }
 
   // align to the natural chunk alignment
@@ -562,6 +653,8 @@ rdcstr DoStringise(const SDTypeFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(Hidden);
     STRINGISE_BITFIELD_CLASS_BIT(Nullable);
     STRINGISE_BITFIELD_CLASS_BIT(NullString);
+    STRINGISE_BITFIELD_CLASS_BIT(FixedArray);
+    STRINGISE_BITFIELD_CLASS_BIT(Union);
   }
   END_BITFIELD_STRINGISE();
 }
@@ -574,6 +667,7 @@ rdcstr DoStringise(const SDChunkFlags &el)
     STRINGISE_BITFIELD_CLASS_VALUE(NoFlags);
 
     STRINGISE_BITFIELD_CLASS_BIT(OpaqueChunk);
+    STRINGISE_BITFIELD_CLASS_BIT(HasCallstack);
   }
   END_BITFIELD_STRINGISE();
 }

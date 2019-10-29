@@ -90,7 +90,13 @@ public:
   static constexpr bool IsWriting() { return sertype == SerialiserMode::Writing; }
   bool ExportStructure() const
   {
-    return sertype == SerialiserMode::Reading && m_ExportStructured && !m_InternalElement;
+    // in debug builds, allow structured export during write for debugging. In release, only allow
+    // it on read to compile out the extra code on the writing path
+    return
+#if ENABLED(RDOC_RELEASE)
+        sertype == SerialiserMode::Reading &&
+#endif
+        m_ExportStructured && !m_InternalElement;
   }
 
   enum ChunkFlags
@@ -115,6 +121,11 @@ public:
   StreamReader *GetReader() { return m_Read; }
   uint32_t GetChunkMetadataRecording() { return m_ChunkFlags; }
   void SetChunkMetadataRecording(uint32_t flags);
+
+// debug-only option to dump out (roughly) the data going through the serialiser as it happens
+#if ENABLED(RDOC_DEVEL)
+  void EnableDumping(FileIO::LogFileHandle *debugLog) { m_DebugDumpLog = debugLog; }
+#endif
 
   SDChunkMetaData &ChunkMetadata() { return m_ChunkMetadata; }
   //////////////////////////////////////////
@@ -1573,6 +1584,9 @@ private:
   }
 
   ChunkLookup m_ChunkLookup = NULL;
+#if ENABLED(RDOC_DEVEL)
+  FileIO::LogFileHandle *m_DebugDumpLog = NULL;
+#endif
 };
 
 #ifndef SERIALISER_IMPL
@@ -1695,7 +1709,7 @@ public:
   {
     FreeAlignedBuffer(m_Data);
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
     Atomic::Dec64(&m_LiveChunks);
     Atomic::ExchAdd64(&m_TotalMem, -int64_t(m_Length));
 #endif
@@ -1706,7 +1720,7 @@ public:
   {
     return (ChunkType)m_ChunkType;
   }
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   static uint64_t NumLiveChunks() { return m_LiveChunks; }
   static uint64_t TotalMem() { return m_TotalMem; }
 #else
@@ -1729,7 +1743,7 @@ public:
 
     ser.GetWriter()->Rewind();
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
     Atomic::Inc64(&m_LiveChunks);
     Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
 #endif
@@ -1746,7 +1760,7 @@ public:
 
     memcpy(ret->m_Data, m_Data, (size_t)m_Length);
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
     Atomic::Inc64(&m_LiveChunks);
     Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
 #endif
@@ -1771,7 +1785,7 @@ private:
   uint32_t m_Length;
   byte *m_Data;
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   static int64_t m_LiveChunks, m_TotalMem;
 #endif
 };
