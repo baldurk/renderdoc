@@ -57,10 +57,7 @@ cbuffer FontCBuffer REG(b0)
 cbuffer TexDisplayVSCBuffer REG(b0)
 {
   float2 Position;
-  float2 TextureResolution;
-
-  float2 ScreenAspect;
-  float Scale;
+  float2 VertexScale;
 };
 
 cbuffer TexDisplayPSCBuffer REG(b0)

@@ -367,12 +367,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   vertexData.Position.x = x * (2.0f / m_OutputWidth);
   vertexData.Position.y = -y * (2.0f / m_OutputHeight);
 
-  vertexData.ScreenAspect.x = m_OutputHeight / m_OutputWidth;
-  vertexData.ScreenAspect.y = 1.0f;
-
-  vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
-  vertexData.TextureResolution.y = 1.0f;
-
   if(cfg.rangeMax <= cfg.rangeMin)
     cfg.rangeMax += 0.00001f;
 
@@ -417,9 +411,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   float tex_y =
       float(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D ? 100 : resourceDesc.Height);
 
-  vertexData.TextureResolution.x *= tex_x / m_OutputWidth;
-  vertexData.TextureResolution.y *= tex_y / m_OutputHeight;
-
   pixelData.TextureResolutionPS.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> cfg.mip)));
   pixelData.TextureResolutionPS.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> cfg.mip)));
   pixelData.TextureResolutionPS.z =
@@ -428,7 +419,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     pixelData.TextureResolutionPS.z = float(resourceDesc.DepthOrArraySize);
 
-  vertexData.Scale = cfg.scale;
   pixelData.ScalePS = cfg.scale;
 
   if(cfg.scale <= 0.0f)
@@ -436,21 +426,23 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     float xscale = m_OutputWidth / tex_x;
     float yscale = m_OutputHeight / tex_y;
 
-    vertexData.Scale = RDCMIN(xscale, yscale);
+    cfg.scale = RDCMIN(xscale, yscale);
 
     if(yscale > xscale)
     {
       vertexData.Position.x = 0;
-      vertexData.Position.y = tex_y * vertexData.Scale / m_OutputHeight - 1.0f;
+      vertexData.Position.y = tex_y * cfg.scale / m_OutputHeight - 1.0f;
     }
     else
     {
       vertexData.Position.y = 0;
-      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / m_OutputWidth;
+      vertexData.Position.x = 1.0f - tex_x * cfg.scale / m_OutputWidth;
     }
   }
 
-  vertexData.Scale *= 2.0f;    // viewport is -1 -> 1
+  // normalisation factor for output * selected scale * viewport scale
+  vertexData.VertexScale.x = (tex_x / m_OutputWidth) * cfg.scale * 2.0f;
+  vertexData.VertexScale.y = (tex_y / m_OutputHeight) * cfg.scale * 2.0f;
 
   pixelData.MipLevel = (float)cfg.mip;
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;

@@ -479,13 +479,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   vertexData.Position.x = x * (2.0f / m_OutputWidth);
   vertexData.Position.y = -y * (2.0f / m_OutputHeight);
 
-  vertexData.ScreenAspect.x =
-      (m_OutputHeight / m_OutputWidth);    // 0.5 = character width / character height
-  vertexData.ScreenAspect.y = 1.0f;
-
-  vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
-  vertexData.TextureResolution.y = 1.0f;
-
   if(cfg.rangeMax <= cfg.rangeMin)
     cfg.rangeMax += 0.00001f;
 
@@ -534,9 +527,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   float tex_x = float(details.texWidth);
   float tex_y = float(details.texType == eTexType_1D ? 100 : details.texHeight);
 
-  vertexData.TextureResolution.x *= tex_x / m_OutputWidth;
-  vertexData.TextureResolution.y *= tex_y / m_OutputHeight;
-
   pixelData.TextureResolutionPS.x = float(RDCMAX(1U, details.texWidth >> cfg.mip));
   pixelData.TextureResolutionPS.y = float(RDCMAX(1U, details.texHeight >> cfg.mip));
   pixelData.TextureResolutionPS.z = float(RDCMAX(1U, details.texDepth >> cfg.mip));
@@ -544,7 +534,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   if(details.texArraySize > 1 && details.texType != eTexType_3D)
     pixelData.TextureResolutionPS.z = float(details.texArraySize);
 
-  vertexData.Scale = cfg.scale;
   pixelData.ScalePS = cfg.scale;
 
   pixelData.YUVDownsampleRate = details.YUVDownsampleRate;
@@ -555,19 +544,23 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     float xscale = m_OutputWidth / tex_x;
     float yscale = m_OutputHeight / tex_y;
 
-    vertexData.Scale = RDCMIN(xscale, yscale);
+    cfg.scale = RDCMIN(xscale, yscale);
 
     if(yscale > xscale)
     {
       vertexData.Position.x = 0;
-      vertexData.Position.y = tex_y * vertexData.Scale / m_OutputHeight - 1.0f;
+      vertexData.Position.y = tex_y * cfg.scale / m_OutputHeight - 1.0f;
     }
     else
     {
       vertexData.Position.y = 0;
-      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / m_OutputWidth;
+      vertexData.Position.x = 1.0f - tex_x * cfg.scale / m_OutputWidth;
     }
   }
+
+  // normalisation factor for output * selected scale * viewport scale
+  vertexData.VertexScale.x = (tex_x / m_OutputWidth) * cfg.scale * 2.0f;
+  vertexData.VertexScale.y = (tex_y / m_OutputHeight) * cfg.scale * 2.0f;
 
   ID3D11PixelShader *customPS = NULL;
   ID3D11Buffer *customBuff = NULL;
@@ -707,8 +700,6 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
       }
     }
   }
-
-  vertexData.Scale *= 2.0f;    // viewport is -1 -> 1
 
   pixelData.MipLevel = (float)cfg.mip;
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;

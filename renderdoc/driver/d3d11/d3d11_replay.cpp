@@ -1945,10 +1945,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->ClearRenderTargetView(rtv, color);
 
-      D3D11_VIEWPORT viewport = {0, 0, (float)(desc.Width >> mip), 1.0f, 0.0f, 1.0f};
-
-      SetOutputDimensions(desc.Width, 1);
+      D3D11_VIEWPORT viewport = {
+          0, 0, (float)desc.Width, 1.0f, 0.0f, 1.0f,
+      };
       m_pImmediateContext->RSSetViewports(1, &viewport);
+      SetOutputDimensions(desc.Width, 1);
 
       {
         TextureDisplay texDisplay;
@@ -1964,12 +1965,15 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.sliceFace = arrayIdx;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
-        texDisplay.scale = 1.0f;
         texDisplay.resourceId = tex;
         texDisplay.typeHint = params.typeHint;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
+
+        // we scale our texture rendering by output dimension. To counteract that, add a manual
+        // scale here
+        texDisplay.scale = 1.0f / float(1 << mip);
 
         RenderTextureInternal(texDisplay, false);
       }
@@ -2092,8 +2096,9 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->ClearRenderTargetView(rtv, color);
 
-      D3D11_VIEWPORT viewport = {0,    0,   (float)(desc.Width >> mip), (float)(desc.Height >> mip),
-                                 0.0f, 1.0f};
+      D3D11_VIEWPORT viewport = {
+          0, 0, (float)desc.Width, (float)desc.Height, 0.0f, 1.0f,
+      };
 
       SetOutputDimensions(desc.Width, desc.Height);
       m_pImmediateContext->RSSetViewports(1, &viewport);
@@ -2114,12 +2119,15 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
           texDisplay.sliceFace /= sampleCount;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
-        texDisplay.scale = 1.0f;
         texDisplay.resourceId = tex;
         texDisplay.typeHint = params.typeHint;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
+
+        // we scale our texture rendering by output dimension. To counteract that, add a manual
+        // scale here
+        texDisplay.scale = 1.0f / float(1 << mip);
 
         RenderTextureInternal(texDisplay, false);
       }
@@ -2239,8 +2247,9 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       ID3D11RenderTargetView *wrappedrtv = NULL;
       ID3D11RenderTargetView *rtv = NULL;
 
-      D3D11_VIEWPORT viewport = {0,    0,   (float)(desc.Width >> mip), (float)(desc.Height >> mip),
-                                 0.0f, 1.0f};
+      D3D11_VIEWPORT viewport = {
+          0, 0, (float)desc.Width, (float)desc.Height, 0.0f, 1.0f,
+      };
 
       for(UINT i = 0; i < (desc.Depth >> mip); i++)
       {
@@ -2276,12 +2285,15 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.sliceFace = i << mip;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
-        texDisplay.scale = 1.0f;
         texDisplay.resourceId = tex;
         texDisplay.typeHint = params.typeHint;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
+
+        // we scale our texture rendering by output dimension. To counteract that, add a manual
+        // scale here
+        texDisplay.scale = 1.0f / float(1 << mip);
 
         RenderTextureInternal(texDisplay, false);
 

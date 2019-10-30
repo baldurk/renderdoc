@@ -50,8 +50,7 @@ v2f RENDERDOC_TexDisplayVS(uint vertID : SV_VertexID)
 
   float2 pos = positions[vertID];
 
-  OUT.pos = float4(Position.xy + pos.xy * TextureResolution.xy * Scale * ScreenAspect.xy, 0, 1) -
-            float4(1.0, -1.0, 0, 0);
+  OUT.pos = float4(Position.xy + pos.xy * VertexScale.xy, 0, 1) - float4(1.0, -1.0, 0, 0);
   OUT.tex.xy = float2(pos.x, -pos.y);
   return OUT;
 }

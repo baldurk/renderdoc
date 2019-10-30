@@ -3066,6 +3066,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     if(copyDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
       copyDesc.DepthOrArraySize = 1;
 
+    SetOutputDimensions(uint32_t(copyDesc.Width), copyDesc.Height);
+
     copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
     copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
 
@@ -3074,8 +3076,6 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
                                             D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
                                             __uuidof(ID3D12Resource), (void **)&remapTexture);
     RDCASSERTEQUAL(hr, S_OK);
-
-    SetOutputDimensions(uint32_t(copyDesc.Width), copyDesc.Height);
 
     TexDisplayFlags flags =
         IsSRGBFormat(copyDesc.Format) ? eTexDisplay_None : eTexDisplay_LinearRender;
@@ -3128,12 +3128,15 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.sliceFace /= sampleCount;
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
-      texDisplay.scale = 1.0f;
       texDisplay.resourceId = tex;
       texDisplay.typeHint = CompType::Typeless;
       texDisplay.rawOutput = false;
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;
+
+      // we scale our texture rendering by output dimension. To counteract that, add a manual
+      // scale here
+      texDisplay.scale = 1.0f / float(1 << mip);
 
       if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
         texDisplay.sliceFace = loop << mip;
