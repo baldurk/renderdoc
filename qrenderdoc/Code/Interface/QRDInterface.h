@@ -295,13 +295,11 @@ struct IBufferViewer
                           const rdcstr &format = "") = 0;
   DOCUMENT(R"(In a raw buffer viewer, load the contents from a particular texture resource.
 
-:param int arrayIdx: The array slice to load from.
-:param int mip: The mip level to load from.
 :param ~renderdoc.ResourceId id: The ID of the texture itself.
+:param Subresource sub: The subresource within this texture to use.
 :param str format: Optionally a HLSL/GLSL style formatting string.
 )");
-  virtual void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                           const rdcstr &format = "") = 0;
+  virtual void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "") = 0;
 
 protected:
   IBufferViewer() = default;
@@ -1863,14 +1861,13 @@ through the execution of a given shader.
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of a texture's raw
 bytes.
 
-:param int arrayIdx: The array slice to load from.
-:param int mip: The mip level to load from.
 :param ~renderdoc.ResourceId id: The ID of the texture itself.
+:param Subresource sub: The subresource within this texture to use.
 :param str format: Optionally a HLSL/GLSL style formatting string.
 :return: The new :class:`BufferViewer` window opened, but not shown.
 :rtype: BufferViewer
 )");
-  virtual IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+  virtual IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
                                              const rdcstr &format = "") = 0;
 
   DOCUMENT(R"(Show a new :class:`ConstantBufferPreviewer` window, showing a read-only view of a the

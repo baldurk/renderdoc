@@ -633,7 +633,7 @@ void PixelHistoryView::updateWindowTitle()
 
   TextureDescription *tex = m_Ctx.GetTexture(m_ID);
   if(tex->msSamp > 1)
-    title += tr(" @ Sample %1").arg(m_Display.sampleIdx);
+    title += tr(" @ Sample %1").arg(m_Display.subresource.sample);
 
   setWindowTitle(title);
 }
@@ -698,8 +698,8 @@ void PixelHistoryView::startDebug(EventTag tag)
   ShaderDebugTrace *trace = NULL;
 
   m_Ctx.Replay().AsyncInvoke([this, &trace, &done, tag](IReplayController *r) {
-    trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx,
-                          tag.primitive);
+    trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(),
+                          m_Display.subresource.sample, tag.primitive);
 
     if(trace->states.isEmpty())
     {

@@ -244,7 +244,7 @@ public:
 
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                             const rdcstr &format = "") override;
-  IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+  IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
                                      const rdcstr &format = "") override;
 
   IConstantBufferPreviewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot,

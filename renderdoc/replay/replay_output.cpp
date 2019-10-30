@@ -282,6 +282,10 @@ void ReplayOutput::RefreshOverlay()
       m_OverlayResourceId = ResourceId();
     }
   }
+  else
+  {
+    m_OverlayDirty = false;
+  }
 }
 
 ResourceId ReplayOutput::GetCustomShaderTexID()
@@ -328,8 +332,8 @@ bool ReplayOutput::SetPixelContext(WindowingData window)
   return m_PixelContext.outputID != 0;
 }
 
-bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeCast,
-                                uint32_t mip, uint32_t slice)
+bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, const Subresource &sub,
+                                CompType typeCast)
 {
   CHECK_REPLAY_THREAD();
 
@@ -355,9 +359,8 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
     {
       m_Thumbnails[i].texture = texID;
       m_Thumbnails[i].depthMode = depthMode;
+      m_Thumbnails[i].sub = sub;
       m_Thumbnails[i].typeCast = typeCast;
-      m_Thumbnails[i].mip = mip;
-      m_Thumbnails[i].slice = slice;
       m_Thumbnails[i].dirty = true;
 
       return true;
@@ -368,9 +371,8 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
   p.outputID = m_pDevice->MakeOutputWindow(window, false);
   p.texture = texID;
   p.depthMode = depthMode;
+  p.sub = sub;
   p.typeCast = typeCast;
-  p.mip = mip;
-  p.slice = slice;
   p.dirty = true;
 
   RDCASSERT(p.outputID > 0);
@@ -378,100 +380,6 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
   m_Thumbnails.push_back(p);
 
   return true;
-}
-
-rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
-{
-  CHECK_REPLAY_THREAD();
-
-  PixelValue minval = {{0.0f, 0.0f, 0.0f, 0.0f}};
-  PixelValue maxval = {{1.0f, 1.0f, 1.0f, 1.0f}};
-
-  ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
-
-  CompType typeCast = m_RenderData.texDisplay.typeCast;
-  uint32_t slice = m_RenderData.texDisplay.sliceFace;
-  uint32_t mip = m_RenderData.texDisplay.mip;
-  uint32_t sample = m_RenderData.texDisplay.sampleIdx;
-
-  if(m_RenderData.texDisplay.customShaderId != ResourceId() &&
-     m_CustomShaderResourceId != ResourceId())
-  {
-    tex = m_CustomShaderResourceId;
-    typeCast = CompType::Typeless;
-    slice = 0;
-    sample = 0;
-  }
-
-  m_pDevice->GetMinMax(tex, slice, mip, sample, typeCast, &minval.floatValue[0],
-                       &maxval.floatValue[0]);
-
-  return make_rdcpair(minval, maxval);
-}
-
-rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4])
-{
-  CHECK_REPLAY_THREAD();
-
-  std::vector<uint32_t> hist;
-
-  ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
-
-  CompType typeCast = m_RenderData.texDisplay.typeCast;
-  uint32_t slice = m_RenderData.texDisplay.sliceFace;
-  uint32_t mip = m_RenderData.texDisplay.mip;
-  uint32_t sample = m_RenderData.texDisplay.sampleIdx;
-
-  if(m_RenderData.texDisplay.customShaderId != ResourceId() &&
-     m_CustomShaderResourceId != ResourceId())
-  {
-    tex = m_CustomShaderResourceId;
-    typeCast = CompType::Typeless;
-    slice = 0;
-    sample = 0;
-  }
-
-  m_pDevice->GetHistogram(tex, slice, mip, sample, typeCast, minval, maxval, channels, hist);
-
-  return hist;
-}
-
-PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y,
-                                   uint32_t sliceFace, uint32_t mip, uint32_t sample)
-{
-  CHECK_REPLAY_THREAD();
-
-  PixelValue ret;
-
-  RDCEraseEl(ret.floatValue);
-
-  if(tex == ResourceId())
-    return ret;
-
-  CompType typeCast = m_RenderData.texDisplay.typeCast;
-
-  if(customShader && m_RenderData.texDisplay.customShaderId != ResourceId() &&
-     m_CustomShaderResourceId != ResourceId())
-  {
-    tex = m_CustomShaderResourceId;
-    typeCast = CompType::Typeless;
-  }
-
-  // for 'heatmap' type overlays, pick from the overlay texture
-  if((m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
-      m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
-      m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
-      m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass) &&
-     m_OverlayResourceId != ResourceId())
-  {
-    tex = m_OverlayResourceId;
-    typeCast = CompType::Typeless;
-  }
-
-  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeCast,
-                       ret.floatValue);
-
-  return ret;
 }
 
 rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t x, uint32_t y)
@@ -614,7 +522,7 @@ void ReplayOutput::DisplayContext()
 
   const float contextZoom = 8.0f;
 
-  disp.scale = contextZoom / float(1 << disp.mip);
+  disp.scale = contextZoom / float(1 << disp.subresource.mip);
 
   int32_t width = 0, height = 0;
   m_pDevice->GetOutputWindowDimensions(m_PixelContext.outputID, width, height);
@@ -625,11 +533,11 @@ void ReplayOutput::DisplayContext()
   int x = (int)m_ContextX;
   int y = (int)m_ContextY;
 
-  x >>= disp.mip;
-  x <<= disp.mip;
+  x >>= disp.subresource.mip;
+  x <<= disp.subresource.mip;
 
-  y >>= disp.mip;
-  y <<= disp.mip;
+  y >>= disp.subresource.mip;
+  y <<= disp.subresource.mip;
 
   disp.xOffset = -(float)x * disp.scale;
   disp.yOffset = -(float)y * disp.scale;
@@ -727,15 +635,14 @@ void ReplayOutput::Display()
     disp.hdrMultiplier = -1.0f;
     disp.linearDisplayAsGamma = true;
     disp.flipY = false;
-    disp.mip = m_Thumbnails[i].mip;
-    disp.sampleIdx = ~0U;
+    disp.subresource = m_Thumbnails[i].sub;
+    disp.subresource.sample = ~0U;
     disp.customShaderId = ResourceId();
     disp.resourceId = m_pDevice->GetLiveID(m_Thumbnails[i].texture);
     disp.typeCast = m_Thumbnails[i].typeCast;
     disp.scale = -1.0f;
     disp.rangeMin = 0.0f;
     disp.rangeMax = 1.0f;
-    disp.sliceFace = m_Thumbnails[i].slice;
     disp.xOffset = 0.0f;
     disp.yOffset = 0.0f;
     disp.rawOutput = false;
@@ -792,14 +699,14 @@ void ReplayOutput::DisplayTex()
 
   if(m_RenderData.texDisplay.customShaderId != ResourceId())
   {
-    m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(
-        m_RenderData.texDisplay.customShaderId, texDisplay.resourceId, texDisplay.mip,
-        texDisplay.sliceFace, texDisplay.sampleIdx, texDisplay.typeCast);
+    m_CustomShaderResourceId =
+        m_pDevice->ApplyCustomShader(m_RenderData.texDisplay.customShaderId, texDisplay.resourceId,
+                                     texDisplay.subresource, texDisplay.typeCast);
 
     texDisplay.resourceId = m_pDevice->GetLiveID(m_CustomShaderResourceId);
     texDisplay.typeCast = CompType::Typeless;
     texDisplay.customShaderId = ResourceId();
-    texDisplay.sliceFace = 0;
+    texDisplay.subresource.slice = 0;
   }
 
   FloatVector color;

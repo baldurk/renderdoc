@@ -1334,8 +1334,109 @@ void GLReplay::RestoreSamplerParams(GLenum target, GLuint texname, TextureSample
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state.compareMode);
 }
 
-bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         CompType typeCast, float *minval, float *maxval)
+void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                         CompType typeCast, float pixel[4])
+{
+  WrappedOpenGL &drv = *m_pDriver;
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.pickPixelFBO);
+  drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, DebugData.pickPixelFBO);
+
+  pixel[0] = pixel[1] = pixel[2] = pixel[3] = 0.0f;
+  drv.glClearBufferfv(eGL_COLOR, 0, pixel);
+
+  DebugData.outWidth = DebugData.outHeight = 1.0f;
+  drv.glViewport(0, 0, 1, 1);
+
+  TextureDisplay texDisplay;
+
+  texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+  texDisplay.flipY = false;
+  texDisplay.hdrMultiplier = -1.0f;
+  texDisplay.linearDisplayAsGamma = true;
+  texDisplay.subresource = sub;
+  texDisplay.customShaderId = ResourceId();
+  texDisplay.rangeMin = 0.0f;
+  texDisplay.rangeMax = 1.0f;
+  texDisplay.scale = 1.0f;
+  texDisplay.resourceId = texture;
+  texDisplay.typeCast = typeCast;
+  texDisplay.rawOutput = true;
+  texDisplay.xOffset = -float(x << sub.mip);
+  texDisplay.yOffset = -float(y << sub.mip);
+
+  RenderTextureInternal(texDisplay, eTexDisplay_MipShift);
+
+  drv.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixel);
+
+  if(!HasExt[ARB_gpu_shader5])
+  {
+    auto &texDetails = m_pDriver->m_Textures[texDisplay.resourceId];
+
+    if(IsSIntFormat(texDetails.internalFormat))
+    {
+      int32_t casted[4] = {
+          (int32_t)pixel[0], (int32_t)pixel[1], (int32_t)pixel[2], (int32_t)pixel[3],
+      };
+
+      memcpy(pixel, casted, sizeof(casted));
+    }
+    else if(IsUIntFormat(texDetails.internalFormat))
+    {
+      uint32_t casted[4] = {
+          (uint32_t)pixel[0], (uint32_t)pixel[1], (uint32_t)pixel[2], (uint32_t)pixel[3],
+      };
+
+      memcpy(pixel, casted, sizeof(casted));
+    }
+  }
+
+  {
+    auto &texDetails = m_pDriver->m_Textures[texture];
+
+    // need to read stencil separately as GL can't read both depth and stencil
+    // at the same time.
+    if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
+       texDetails.internalFormat == eGL_DEPTH32F_STENCIL8 ||
+       texDetails.internalFormat == eGL_DEPTH_STENCIL ||
+       texDetails.internalFormat == eGL_STENCIL_INDEX8)
+    {
+      texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
+
+      RenderTextureInternal(texDisplay, eTexDisplay_MipShift);
+
+      uint32_t stencilpixel[4];
+      drv.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)stencilpixel);
+
+      if(!HasExt[ARB_gpu_shader5])
+      {
+        // bits weren't aliased, so re-cast back to uint.
+        float fpix[4];
+        memcpy(fpix, stencilpixel, sizeof(fpix));
+
+        stencilpixel[0] = (uint32_t)fpix[0];
+        stencilpixel[1] = (uint32_t)fpix[1];
+      }
+
+      // not sure whether [0] or [1] will return stencil values, so use
+      // max of two because other channel should be 0
+      pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1])) / 255.0f;
+
+      // the first depth read will have read stencil instead.
+      // NULL it out so the UI sees only stencil
+      if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
+      {
+        pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1])) / 255.0f;
+        pixel[0] = 0.0f;
+      }
+    }
+  }
+}
+
+bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
+                         float *maxval)
 {
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -1349,14 +1450,12 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     };
     Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
 
-    bool success =
-        GetMinMax(texid, sliceFace, mip, sample, typeCast, false, &depth[0].x, &depth[1].x);
+    bool success = GetMinMax(texid, sub, typeCast, false, &depth[0].x, &depth[1].x);
 
     if(!success)
       return false;
 
-    success = GetMinMax(texid, sliceFace, mip, sample, typeCast, true, (float *)&stencil[0].x,
-                        (float *)&stencil[1].x);
+    success = GetMinMax(texid, sub, typeCast, true, (float *)&stencil[0].x, (float *)&stencil[1].x);
 
     if(!success)
       return false;
@@ -1386,11 +1485,11 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     return true;
   }
 
-  return GetMinMax(texid, sliceFace, mip, sample, typeCast, false, minval, maxval);
+  return GetMinMax(texid, sub, typeCast, false, minval, maxval);
 }
 
-bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         CompType typeCast, bool stencil, float *minval, float *maxval)
+bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, bool stencil,
+                         float *minval, float *maxval)
 {
   if(texid == ResourceId() || m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
     return false;
@@ -1485,18 +1584,18 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
       (HistogramUBOData *)GL.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramUBOData),
                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-  cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
-  cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
-  cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> mip, 1U);
+  cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> sub.mip, 1U);
+  cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> sub.mip, 1U);
+  cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> sub.mip, 1U);
   if(texDetails.curType == eGL_TEXTURE_3D)
     cdata->HistogramSlice =
-        (float)RDCCLAMP(sliceFace, 0U, uint32_t(details.depth >> mip) - 1) + 0.001f;
+        (float)RDCCLAMP(sub.slice, 0U, uint32_t(details.depth >> sub.mip) - 1) + 0.001f;
   else
-    cdata->HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.arraysize - 1) + 0.001f;
-  cdata->HistogramMip = (int)mip;
+    cdata->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, details.arraysize - 1) + 0.001f;
+  cdata->HistogramMip = (int)sub.mip;
   cdata->HistogramNumSamples = texDetails.samples;
-  cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp - 1);
-  if(sample == ~0U)
+  cdata->HistogramSample = (int)RDCCLAMP(sub.sample, 0U, details.msSamp - 1);
+  if(sub.sample == ~0U)
     cdata->HistogramSample = -int(details.msSamp);
   cdata->HistogramMin = 0.0f;
   cdata->HistogramMax = 1.0f;
@@ -1610,9 +1709,8 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
   return true;
 }
 
-bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeCast, float minval, float maxval, bool channels[4],
-                            std::vector<uint32_t> &histogram)
+bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
+                            float maxval, bool channels[4], std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval || texid == ResourceId())
     return false;
@@ -1746,18 +1844,18 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
       (HistogramUBOData *)GL.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramUBOData),
                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-  cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
-  cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
-  cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> mip, 1U);
+  cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> sub.mip, 1U);
+  cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> sub.mip, 1U);
+  cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> sub.mip, 1U);
   if(texDetails.curType == eGL_TEXTURE_3D)
     cdata->HistogramSlice =
-        (float)RDCCLAMP(sliceFace, 0U, uint32_t(details.depth >> mip) - 1) + 0.001f;
+        (float)RDCCLAMP(sub.slice, 0U, uint32_t(details.depth >> sub.mip) - 1) + 0.001f;
   else
-    cdata->HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.arraysize - 1) + 0.001f;
-  cdata->HistogramMip = mip;
+    cdata->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, details.arraysize - 1) + 0.001f;
+  cdata->HistogramMip = sub.mip;
   cdata->HistogramNumSamples = texDetails.samples;
-  cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp - 1);
-  if(sample == ~0U)
+  cdata->HistogramSample = (int)RDCCLAMP(sub.sample, 0U, details.msSamp - 1);
+  if(sub.sample == ~0U)
     cdata->HistogramSample = -int(details.msSamp);
   cdata->HistogramMin = minval;
 
@@ -2332,109 +2430,6 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
   }
 
   return ret;
-}
-
-void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                         uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
-{
-  WrappedOpenGL &drv = *m_pDriver;
-
-  MakeCurrentReplayContext(m_DebugCtx);
-
-  drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.pickPixelFBO);
-  drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, DebugData.pickPixelFBO);
-
-  pixel[0] = pixel[1] = pixel[2] = pixel[3] = 0.0f;
-  drv.glClearBufferfv(eGL_COLOR, 0, pixel);
-
-  DebugData.outWidth = DebugData.outHeight = 1.0f;
-  drv.glViewport(0, 0, 1, 1);
-
-  TextureDisplay texDisplay;
-
-  texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
-  texDisplay.flipY = false;
-  texDisplay.hdrMultiplier = -1.0f;
-  texDisplay.linearDisplayAsGamma = true;
-  texDisplay.mip = mip;
-  texDisplay.sampleIdx = sample;
-  texDisplay.customShaderId = ResourceId();
-  texDisplay.sliceFace = sliceFace;
-  texDisplay.rangeMin = 0.0f;
-  texDisplay.rangeMax = 1.0f;
-  texDisplay.scale = 1.0f;
-  texDisplay.resourceId = texture;
-  texDisplay.typeCast = typeCast;
-  texDisplay.rawOutput = true;
-  texDisplay.xOffset = -float(x << mip);
-  texDisplay.yOffset = -float(y << mip);
-
-  RenderTextureInternal(texDisplay, eTexDisplay_MipShift);
-
-  drv.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixel);
-
-  if(!HasExt[ARB_gpu_shader5])
-  {
-    auto &texDetails = m_pDriver->m_Textures[texDisplay.resourceId];
-
-    if(IsSIntFormat(texDetails.internalFormat))
-    {
-      int32_t casted[4] = {
-          (int32_t)pixel[0], (int32_t)pixel[1], (int32_t)pixel[2], (int32_t)pixel[3],
-      };
-
-      memcpy(pixel, casted, sizeof(casted));
-    }
-    else if(IsUIntFormat(texDetails.internalFormat))
-    {
-      uint32_t casted[4] = {
-          (uint32_t)pixel[0], (uint32_t)pixel[1], (uint32_t)pixel[2], (uint32_t)pixel[3],
-      };
-
-      memcpy(pixel, casted, sizeof(casted));
-    }
-  }
-
-  {
-    auto &texDetails = m_pDriver->m_Textures[texture];
-
-    // need to read stencil separately as GL can't read both depth and stencil
-    // at the same time.
-    if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
-       texDetails.internalFormat == eGL_DEPTH32F_STENCIL8 ||
-       texDetails.internalFormat == eGL_DEPTH_STENCIL ||
-       texDetails.internalFormat == eGL_STENCIL_INDEX8)
-    {
-      texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
-
-      RenderTextureInternal(texDisplay, eTexDisplay_MipShift);
-
-      uint32_t stencilpixel[4];
-      drv.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)stencilpixel);
-
-      if(!HasExt[ARB_gpu_shader5])
-      {
-        // bits weren't aliased, so re-cast back to uint.
-        float fpix[4];
-        memcpy(fpix, stencilpixel, sizeof(fpix));
-
-        stencilpixel[0] = (uint32_t)fpix[0];
-        stencilpixel[1] = (uint32_t)fpix[1];
-      }
-
-      // not sure whether [0] or [1] will return stencil values, so use
-      // max of two because other channel should be 0
-      pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1])) / 255.0f;
-
-      // the first depth read will have read stencil instead.
-      // NULL it out so the UI sees only stencil
-      if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
-      {
-        pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1])) / 255.0f;
-        pixel[0] = 0.0f;
-      }
-    }
-  }
 }
 
 void GLReplay::RenderCheckerboard()

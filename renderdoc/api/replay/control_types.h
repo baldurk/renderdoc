@@ -264,18 +264,12 @@ See :meth:`ReplayController.BuildCustomShader` for creating an appropriate custo
 )");
   ResourceId customShaderId;
 
-  DOCUMENT("Select the mip of the texture to display.");
-  uint32_t mip = 0;
+  DOCUMENT(R"(The subresource of the texture to display.
 
-  DOCUMENT("Select the slice or face of the texture to display if it's an array, 3D, or cube tex.");
-  uint32_t sliceFace = 0;
-
-  DOCUMENT(R"(Select the sample of the texture to display if it's a multi-sampled texture.
-
-If this is set to :data:`ResolveSamples` then a default resolve will be performed that averages all
-samples.
+If the :data:`Subresource.sample` member is set to :data:`ResolveSamples` then a default resolve
+will be performed that averages all samples.
 )");
-  uint32_t sampleIdx = 0;
+  Subresource subresource = {0, 0, 0};
 
   DOCUMENT(R"(``True`` if the rendered image should be as close as possible in value to the input.
 

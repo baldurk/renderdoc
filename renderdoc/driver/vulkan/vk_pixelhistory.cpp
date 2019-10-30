@@ -110,8 +110,7 @@ struct EventInfo
 
 std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
                                                           ResourceId target, uint32_t x, uint32_t y,
-                                                          uint32_t slice, uint32_t mip,
-                                                          uint32_t sampleIdx, CompType typeCast)
+                                                          const Subresource &sub, CompType typeCast)
 {
   VULKANNOTIMP("PixelHistory");
   return std::vector<PixelModification>();
@@ -1155,8 +1154,7 @@ VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspect
 
 std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
                                                           ResourceId target, uint32_t x, uint32_t y,
-                                                          uint32_t slice, uint32_t mip,
-                                                          uint32_t sampleIdx, CompType typeCast)
+                                                          const Subresource &sub, CompType typeCast)
 {
   RDCDEBUG("PixelHistory: pixel: (%u, %u) with %u events", x, y, events.size());
   std::vector<PixelModification> history;
@@ -1169,6 +1167,9 @@ std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage
   const VulkanCreationInfo::Image &imginfo = GetDebugManager()->GetImageInfo(target);
   if(imginfo.format == VK_FORMAT_UNDEFINED)
     return history;
+
+  uint32_t mip = sub.mip;
+  uint32_t sampleIdx = sub.sample;
 
   // TODO: figure out correct aspect.
   VkImageLayout imgLayout = GetDebugManager()->GetImageLayout(target, VK_IMAGE_ASPECT_COLOR_BIT, mip);

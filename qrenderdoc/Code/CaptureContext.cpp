@@ -2151,12 +2151,12 @@ IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize
   return viewer;
 }
 
-IBufferViewer *CaptureContext::ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+IBufferViewer *CaptureContext::ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
                                                    const rdcstr &format)
 {
   BufferViewer *viewer = new BufferViewer(*this, false, m_MainWindow);
 
-  viewer->ViewTexture(arrayIdx, mip, id, format);
+  viewer->ViewTexture(id, sub, format);
 
   return viewer;
 }

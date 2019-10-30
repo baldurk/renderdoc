@@ -392,10 +392,10 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
-  pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, resourceDesc.SampleDesc.Count - 1);
+  pixelData.SampleIdx = (int)RDCCLAMP(cfg.subresource.sample, 0U, resourceDesc.SampleDesc.Count - 1);
 
   // hacky resolve
-  if(cfg.sampleIdx == ~0U)
+  if(cfg.subresource.sample == ~0U)
     pixelData.SampleIdx = -int(resourceDesc.SampleDesc.Count);
 
   if(resourceDesc.Format == DXGI_FORMAT_UNKNOWN)
@@ -411,10 +411,12 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   float tex_y =
       float(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D ? 100 : resourceDesc.Height);
 
-  pixelData.TextureResolutionPS.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> cfg.mip)));
-  pixelData.TextureResolutionPS.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> cfg.mip)));
+  pixelData.TextureResolutionPS.x =
+      float(RDCMAX(1U, uint32_t(resourceDesc.Width >> cfg.subresource.mip)));
+  pixelData.TextureResolutionPS.y =
+      float(RDCMAX(1U, uint32_t(resourceDesc.Height >> cfg.subresource.mip)));
   pixelData.TextureResolutionPS.z =
-      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> cfg.mip)));
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> cfg.subresource.mip)));
 
   if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     pixelData.TextureResolutionPS.z = float(resourceDesc.DepthOrArraySize);
@@ -444,16 +446,17 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   vertexData.VertexScale.x = (tex_x / m_OutputWidth) * cfg.scale * 2.0f;
   vertexData.VertexScale.y = (tex_y / m_OutputHeight) * cfg.scale * 2.0f;
 
-  pixelData.MipLevel = (float)cfg.mip;
+  pixelData.MipLevel = (float)cfg.subresource.mip;
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     pixelData.Slice =
-        float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t((resourceDesc.DepthOrArraySize >> cfg.mip) - 1)) +
+        float(RDCCLAMP(cfg.subresource.slice, 0U,
+                       uint32_t((resourceDesc.DepthOrArraySize >> cfg.subresource.mip) - 1)) +
               0.001f);
   else
-    pixelData.Slice =
-        float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)) + 0.001f);
+    pixelData.Slice = float(
+        RDCCLAMP(cfg.subresource.slice, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)) + 0.001f);
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
@@ -580,7 +583,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             {
               uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
 
-              d[0] = cfg.mip;
+              d[0] = cfg.subresource.mip;
             }
             else
             {
@@ -595,7 +598,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             {
               uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
 
-              d[0] = cfg.sliceFace;
+              d[0] = cfg.subresource.slice;
             }
             else
             {
@@ -610,7 +613,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             {
               int32_t *d = (int32_t *)(byteData + var.descriptor.offset);
 
-              d[0] = cfg.sampleIdx;
+              d[0] = cfg.subresource.sample;
             }
             else
             {

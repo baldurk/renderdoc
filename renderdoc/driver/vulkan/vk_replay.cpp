@@ -719,162 +719,6 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
   return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
-void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                             uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
-{
-  int oldW = m_DebugWidth, oldH = m_DebugHeight;
-
-  m_DebugWidth = m_DebugHeight = 1;
-
-  VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texture];
-
-  bool isStencil = IsStencilFormat(iminfo.format);
-
-  // do a second pass to render the stencil, if needed
-  for(int pass = 0; pass < (isStencil ? 2 : 1); pass++)
-  {
-    // render picked pixel to readback F32 RGBA texture
-    {
-      TextureDisplay texDisplay;
-
-      texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
-      texDisplay.hdrMultiplier = -1.0f;
-      texDisplay.linearDisplayAsGamma = true;
-      texDisplay.flipY = false;
-      texDisplay.mip = mip;
-      texDisplay.sampleIdx = sample;
-      texDisplay.customShaderId = ResourceId();
-      texDisplay.sliceFace = sliceFace;
-      texDisplay.overlay = DebugOverlay::NoOverlay;
-      texDisplay.rangeMin = 0.0f;
-      texDisplay.rangeMax = 1.0f;
-      texDisplay.scale = 1.0f;
-      texDisplay.resourceId = texture;
-      texDisplay.typeCast = typeCast;
-      texDisplay.rawOutput = true;
-      texDisplay.xOffset = -float(x << mip);
-      texDisplay.yOffset = -float(y << mip);
-
-      // only render green (stencil) in second pass
-      if(pass == 1)
-      {
-        texDisplay.green = true;
-        texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
-      }
-
-      VkClearValue clearval = {};
-      VkRenderPassBeginInfo rpbegin = {
-          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-          NULL,
-          Unwrap(m_PixelPick.RP),
-          Unwrap(m_PixelPick.FB),
-          {{
-               0, 0,
-           },
-           {1, 1}},
-          1,
-          &clearval,
-      };
-
-      RenderTextureInternal(texDisplay, rpbegin, eTexDisplay_F32Render | eTexDisplay_MipShift);
-    }
-
-    VkDevice dev = m_pDriver->GetDev();
-    VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-    const VkDevDispatchTable *vt = ObjDisp(dev);
-
-    VkResult vkr = VK_SUCCESS;
-
-    {
-      VkImageMemoryBarrier pickimBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                            NULL,
-                                            0,
-                                            0,
-                                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                            VK_QUEUE_FAMILY_IGNORED,
-                                            VK_QUEUE_FAMILY_IGNORED,
-                                            Unwrap(m_PixelPick.Image),
-                                            {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
-
-      // update image layout from color attachment to transfer source, with proper memory barriers
-      pickimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-      pickimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      DoPipelineBarrier(cmd, 1, &pickimBarrier);
-      pickimBarrier.oldLayout = pickimBarrier.newLayout;
-      pickimBarrier.srcAccessMask = pickimBarrier.dstAccessMask;
-
-      // do copy
-      VkBufferImageCopy region = {
-          0, 128, 1, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0}, {1, 1, 1},
-      };
-      vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_PixelPick.Image),
-                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               Unwrap(m_PixelPick.ReadbackBuffer.buf), 1, &region);
-
-      // update image layout back to color attachment
-      pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-      pickimBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-      DoPipelineBarrier(cmd, 1, &pickimBarrier);
-
-      vt->EndCommandBuffer(Unwrap(cmd));
-    }
-
-    // submit cmds and wait for idle so we can readback
-    m_pDriver->SubmitCmds();
-    m_pDriver->FlushQ();
-
-    float *pData = NULL;
-    vt->MapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0,
-                  (void **)&pData);
-
-    VkMappedMemoryRange range = {
-        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-        NULL,
-        Unwrap(m_PixelPick.ReadbackBuffer.mem),
-        0,
-        VK_WHOLE_SIZE,
-    };
-
-    vkr = vt->InvalidateMappedMemoryRanges(Unwrap(dev), 1, &range);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    RDCASSERT(pData != NULL);
-
-    if(pData == NULL)
-    {
-      RDCERR("Failed ot map readback buffer memory");
-    }
-    else
-    {
-      // only write stencil to .y
-      if(pass == 1)
-      {
-        pixel[1] = ((uint32_t *)pData)[0] / 255.0f;
-      }
-      else
-      {
-        pixel[0] = pData[0];
-        pixel[1] = pData[1];
-        pixel[2] = pData[2];
-        pixel[3] = pData[3];
-      }
-    }
-
-    vt->UnmapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem));
-  }
-
-  m_DebugWidth = oldW;
-  m_DebugHeight = oldH;
-}
-
 void VulkanReplay::RenderCheckerboard()
 {
   auto it = m_OutputWindows.find(m_ActiveWinID);
@@ -2121,8 +1965,162 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
   }
 }
 
-bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                             CompType typeCast, float *minval, float *maxval)
+void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                             CompType typeCast, float pixel[4])
+{
+  int oldW = m_DebugWidth, oldH = m_DebugHeight;
+
+  m_DebugWidth = m_DebugHeight = 1;
+
+  VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texture];
+
+  bool isStencil = IsStencilFormat(iminfo.format);
+
+  // do a second pass to render the stencil, if needed
+  for(int pass = 0; pass < (isStencil ? 2 : 1); pass++)
+  {
+    // render picked pixel to readback F32 RGBA texture
+    {
+      TextureDisplay texDisplay;
+
+      texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+      texDisplay.hdrMultiplier = -1.0f;
+      texDisplay.linearDisplayAsGamma = true;
+      texDisplay.flipY = false;
+      texDisplay.subresource = sub;
+      texDisplay.customShaderId = ResourceId();
+      texDisplay.overlay = DebugOverlay::NoOverlay;
+      texDisplay.rangeMin = 0.0f;
+      texDisplay.rangeMax = 1.0f;
+      texDisplay.scale = 1.0f;
+      texDisplay.resourceId = texture;
+      texDisplay.typeCast = typeCast;
+      texDisplay.rawOutput = true;
+      texDisplay.xOffset = -float(x << sub.mip);
+      texDisplay.yOffset = -float(y << sub.mip);
+
+      // only render green (stencil) in second pass
+      if(pass == 1)
+      {
+        texDisplay.green = true;
+        texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
+      }
+
+      VkClearValue clearval = {};
+      VkRenderPassBeginInfo rpbegin = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          NULL,
+          Unwrap(m_PixelPick.RP),
+          Unwrap(m_PixelPick.FB),
+          {{
+               0, 0,
+           },
+           {1, 1}},
+          1,
+          &clearval,
+      };
+
+      RenderTextureInternal(texDisplay, rpbegin, eTexDisplay_F32Render | eTexDisplay_MipShift);
+    }
+
+    VkDevice dev = m_pDriver->GetDev();
+    VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+    const VkDevDispatchTable *vt = ObjDisp(dev);
+
+    VkResult vkr = VK_SUCCESS;
+
+    {
+      VkImageMemoryBarrier pickimBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                            NULL,
+                                            0,
+                                            0,
+                                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                            VK_QUEUE_FAMILY_IGNORED,
+                                            VK_QUEUE_FAMILY_IGNORED,
+                                            Unwrap(m_PixelPick.Image),
+                                            {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+      // update image layout from color attachment to transfer source, with proper memory barriers
+      pickimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      pickimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      DoPipelineBarrier(cmd, 1, &pickimBarrier);
+      pickimBarrier.oldLayout = pickimBarrier.newLayout;
+      pickimBarrier.srcAccessMask = pickimBarrier.dstAccessMask;
+
+      // do copy
+      VkBufferImageCopy region = {
+          0, 128, 1, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0}, {1, 1, 1},
+      };
+      vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_PixelPick.Image),
+                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               Unwrap(m_PixelPick.ReadbackBuffer.buf), 1, &region);
+
+      // update image layout back to color attachment
+      pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      pickimBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      DoPipelineBarrier(cmd, 1, &pickimBarrier);
+
+      vt->EndCommandBuffer(Unwrap(cmd));
+    }
+
+    // submit cmds and wait for idle so we can readback
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+
+    float *pData = NULL;
+    vt->MapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0,
+                  (void **)&pData);
+
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        NULL,
+        Unwrap(m_PixelPick.ReadbackBuffer.mem),
+        0,
+        VK_WHOLE_SIZE,
+    };
+
+    vkr = vt->InvalidateMappedMemoryRanges(Unwrap(dev), 1, &range);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    RDCASSERT(pData != NULL);
+
+    if(pData == NULL)
+    {
+      RDCERR("Failed ot map readback buffer memory");
+    }
+    else
+    {
+      // only write stencil to .y
+      if(pass == 1)
+      {
+        pixel[1] = ((uint32_t *)pData)[0] / 255.0f;
+      }
+      else
+      {
+        pixel[0] = pData[0];
+        pixel[1] = pData[1];
+        pixel[2] = pData[2];
+        pixel[3] = pData[3];
+      }
+    }
+
+    vt->UnmapMemory(Unwrap(dev), Unwrap(m_PixelPick.ReadbackBuffer.mem));
+  }
+
+  m_DebugWidth = oldW;
+  m_DebugHeight = oldH;
+}
+
+bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast,
+                             float *minval, float *maxval)
 {
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
 
@@ -2135,14 +2133,12 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     };
     Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
 
-    bool success =
-        GetMinMax(texid, sliceFace, mip, sample, typeCast, false, &depth[0].x, &depth[1].x);
+    bool success = GetMinMax(texid, sub, typeCast, false, &depth[0].x, &depth[1].x);
 
     if(!success)
       return false;
 
-    success = GetMinMax(texid, sliceFace, mip, sample, typeCast, true, (float *)&stencil[0].x,
-                        (float *)&stencil[1].x);
+    success = GetMinMax(texid, sub, typeCast, true, (float *)&stencil[0].x, (float *)&stencil[1].x);
 
     if(!success)
       return false;
@@ -2157,11 +2153,11 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     return true;
   }
 
-  return GetMinMax(texid, sliceFace, mip, sample, typeCast, false, minval, maxval);
+  return GetMinMax(texid, sub, typeCast, false, minval, maxval);
 }
 
-bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                             CompType typeCast, bool stencil, float *minval, float *maxval)
+bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast,
+                             bool stencil, float *minval, float *maxval)
 {
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -2325,18 +2321,18 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
 
-  data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
-  data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
-  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.extent.depth) >> mip, 1U);
+  data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> sub.mip, 1U);
+  data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> sub.mip, 1U);
+  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.extent.depth) >> sub.mip, 1U);
   if(iminfo.type == VK_IMAGE_TYPE_3D)
     data->HistogramSlice =
-        (float)RDCCLAMP(sliceFace, 0U, uint32_t(iminfo.extent.depth >> mip) - 1) + 0.001f;
+        (float)RDCCLAMP(sub.slice, 0U, uint32_t(iminfo.extent.depth >> sub.mip) - 1) + 0.001f;
   else
-    data->HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, (uint32_t)iminfo.arrayLayers - 1) + 0.001f;
-  data->HistogramMip = (int)mip;
+    data->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, (uint32_t)iminfo.arrayLayers - 1) + 0.001f;
+  data->HistogramMip = (int)sub.mip;
   data->HistogramNumSamples = iminfo.samples;
-  data->HistogramSample = (int)RDCCLAMP(sample, 0U, uint32_t(iminfo.samples) - 1);
-  if(sample == ~0U)
+  data->HistogramSample = (int)RDCCLAMP(sub.sample, 0U, uint32_t(iminfo.samples) - 1);
+  if(sub.sample == ~0U)
     data->HistogramSample = -iminfo.samples;
   data->HistogramMin = 0.0f;
   data->HistogramMax = 1.0f;
@@ -2479,8 +2475,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   return true;
 }
 
-bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                CompType typeCast, float minval, float maxval, bool channels[4],
+bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
+                                float minval, float maxval, bool channels[4],
                                 std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
@@ -2646,18 +2642,18 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
 
-  data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
-  data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
-  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.extent.depth) >> mip, 1U);
+  data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> sub.mip, 1U);
+  data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> sub.mip, 1U);
+  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.extent.depth) >> sub.mip, 1U);
   if(iminfo.type == VK_IMAGE_TYPE_3D)
     data->HistogramSlice =
-        (float)RDCCLAMP(sliceFace, 0U, uint32_t(iminfo.extent.depth >> mip) - 1) + 0.001f;
+        (float)RDCCLAMP(sub.slice, 0U, uint32_t(iminfo.extent.depth >> sub.mip) - 1) + 0.001f;
   else
-    data->HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, (uint32_t)iminfo.arrayLayers - 1) + 0.001f;
-  data->HistogramMip = (int)mip;
+    data->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, (uint32_t)iminfo.arrayLayers - 1) + 0.001f;
+  data->HistogramMip = (int)sub.mip;
   data->HistogramNumSamples = iminfo.samples;
-  data->HistogramSample = (int)RDCCLAMP(sample, 0U, uint32_t(iminfo.samples) - 1);
-  if(sample == ~0U)
+  data->HistogramSample = (int)RDCCLAMP(sub.sample, 0U, uint32_t(iminfo.samples) - 1);
+  if(sub.sample == ~0U)
     data->HistogramSample = -iminfo.samples;
   data->HistogramMin = minval;
 
@@ -2800,7 +2796,7 @@ std::vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
   return m_pDriver->GetUsage(id);
 }
 
-void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
                                   const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
@@ -2818,6 +2814,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   if(!layouts.isMemoryBound)
     return;
+
+  Subresource s = sub;
 
   VkImageCreateInfo imCreateInfo = {
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -2910,9 +2908,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     imCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     imCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width >> mip);
-    imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height >> mip);
-    imCreateInfo.extent.depth = RDCMAX(1U, imCreateInfo.extent.depth >> mip);
+    imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width >> s.mip);
+    imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height >> s.mip);
+    imCreateInfo.extent.depth = RDCMAX(1U, imCreateInfo.extent.depth >> s.mip);
 
     // convert a 3D texture into a 2D array, so we can render to the slices without needing
     // KHR_maintenance1
@@ -2976,7 +2974,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-    VkSubpassDescription sub = {
+    VkSubpassDescription subpass = {
         0,    VK_PIPELINE_BIND_POINT_GRAPHICS,
         0,    NULL,       // inputs
         1,    &attRef,    // color
@@ -2992,7 +2990,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
         1,
         &attDesc,
         1,
-        &sub,
+        &subpass,
         0,
         NULL,    // dependencies
     };
@@ -3023,12 +3021,11 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       texDisplay.linearDisplayAsGamma = false;
       texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.flipY = false;
-      texDisplay.mip = mip;
-      texDisplay.sampleIdx = imInfo.type == VK_IMAGE_TYPE_3D ? 0 : (resolve ? ~0U : arrayIdx);
+      texDisplay.subresource.mip = s.mip;
+      texDisplay.subresource.slice = imInfo.type == VK_IMAGE_TYPE_3D ? i : s.slice;
+      texDisplay.subresource.sample =
+          imInfo.type == VK_IMAGE_TYPE_3D ? 0 : (resolve ? ~0U : s.sample);
       texDisplay.customShaderId = ResourceId();
-      texDisplay.sliceFace = imInfo.type == VK_IMAGE_TYPE_3D ? i : arrayIdx;
-      if(imInfo.samples > 1)
-        texDisplay.sliceFace /= imInfo.samples;
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.scale = 1.0f;
@@ -3115,8 +3112,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     // these have already been selected, don't need to fetch that subresource
     // when copying back to readback buffer
-    arrayIdx = 0;
-    mip = 0;
+    s.slice = 0;
+    s.mip = 0;
 
     // no longer depth, if it was
     isDepth = false;
@@ -3128,8 +3125,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     imCreateInfo.arrayLayers = 1;
     imCreateInfo.mipLevels = 1;
 
-    imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width >> mip);
-    imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height >> mip);
+    imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width >> s.mip);
+    imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height >> s.mip);
 
     // create resolve texture
     vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
@@ -3151,7 +3148,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     RDCASSERT(!isDepth && !isStencil);
 
     VkImageResolve resolveRegion = {
-        {VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx, 1},
+        {VK_IMAGE_ASPECT_COLOR_BIT, s.mip, s.slice, 1},
         {0, 0, 0},
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
         {0, 0, 0},
@@ -3284,8 +3281,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     // these have already been selected, don't need to fetch that subresource
     // when copying back to readback buffer
-    arrayIdx = 0;
-    mip = 0;
+    s.slice = 0;
+    s.mip = 0;
   }
   else if(wasms)
   {
@@ -3455,6 +3452,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
     srcImage = tmpImage;
     srcQueueIndex = m_pDriver->GetQueueFamilyIndex();
+
+    s.slice = s.slice * numSamples + s.sample;
+    s.sample = 0;
   }
 
   VkImageMemoryBarrier srcimBarrier = {
@@ -3518,7 +3518,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
           0,
           0,
           0,
-          {copyAspects, mip, arrayIdx, 1},
+          {copyAspects, s.mip, s.slice, 1},
           {
               0, 0, 0,
           },
@@ -3529,7 +3529,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
           0,
           0,
           0,
-          {VK_IMAGE_ASPECT_STENCIL_BIT, mip, arrayIdx, 1},
+          {VK_IMAGE_ASPECT_STENCIL_BIT, s.mip, s.slice, 1},
           {
               0, 0, 0,
           },
@@ -3539,9 +3539,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   for(int i = 0; i < 2; i++)
   {
-    copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> mip);
-    copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> mip);
-    copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> mip);
+    copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> s.mip);
+    copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> s.mip);
+    copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> s.mip);
   }
 
   uint32_t dataSize = 0;
@@ -3549,13 +3549,13 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   // for most combined depth-stencil images this will be large enough for both to be copied
   // separately, but for D24S8 we need to add extra space since they won't be copied packed
   dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                         imCreateInfo.format, mip);
+                         imCreateInfo.format, s.mip);
 
   if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
   {
     dataSize = AlignUp(dataSize, 4U);
     dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                            VK_FORMAT_S8_UINT, mip);
+                            VK_FORMAT_S8_UINT, s.mip);
   }
 
   VkBufferCreateInfo bufInfo = {
@@ -3590,7 +3590,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   {
     copyregion[1].bufferOffset =
         GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                    GetDepthOnlyFormat(imCreateInfo.format), mip);
+                    GetDepthOnlyFormat(imCreateInfo.format), s.mip);
 
     copyregion[1].bufferOffset = AlignUp(copyregion[1].bufferOffset, (VkDeviceSize)4);
 
@@ -3604,7 +3604,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     {
       copyregion[0].imageSubresource.baseArrayLayer = i;
       copyregion[0].bufferOffset =
-          i * GetByteSize(imInfo.extent.width, imInfo.extent.height, 1, imCreateInfo.format, mip);
+          i * GetByteSize(imInfo.extent.width, imInfo.extent.height, 1, imCreateInfo.format, s.mip);
       vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                readbackBuf, 1, copyregion);
     }
@@ -3814,20 +3814,20 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
   m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
 }
 
-ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
+ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
+                                           const Subresource &sub, CompType typeCast)
 {
   if(shader == ResourceId() || texid == ResourceId())
     return ResourceId();
 
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 
-  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height, mip);
+  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height, sub.mip);
 
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
-  m_DebugWidth = RDCMAX(1U, iminfo.extent.width >> mip);
-  m_DebugHeight = RDCMAX(1U, iminfo.extent.height >> mip);
+  m_DebugWidth = RDCMAX(1U, iminfo.extent.width >> sub.mip);
+  m_DebugHeight = RDCMAX(1U, iminfo.extent.height >> sub.mip);
 
   TextureDisplay disp;
   disp.red = disp.green = disp.blue = disp.alpha = true;
@@ -3839,14 +3839,12 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.typeCast = typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.mip = mip;
-  disp.sampleIdx = sampleIdx;
+  disp.subresource = sub;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;
   disp.rawOutput = false;
   disp.scale = 1.0f;
-  disp.sliceFace = arrayIdx;
 
   VkClearValue clearval = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
   VkRenderPassBeginInfo rpbegin = {
@@ -4094,8 +4092,8 @@ ResourceId VulkanReplay::CreateProxyTexture(const TextureDescription &templateTe
   return ResourceId();
 }
 
-void VulkanReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip,
-                                       byte *data, size_t dataSize)
+void VulkanReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data,
+                                       size_t dataSize)
 {
   VULKANNOTIMP("SetProxyTextureData");
 }

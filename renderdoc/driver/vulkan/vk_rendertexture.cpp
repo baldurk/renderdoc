@@ -275,37 +275,37 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   data->FlipY = cfg.flipY ? 1 : 0;
 
-  data->MipLevel = (int)cfg.mip;
+  data->MipLevel = (int)cfg.subresource.mip;
   data->Slice = 0;
   if(iminfo.type != VK_IMAGE_TYPE_3D)
   {
     uint32_t numSlices = RDCMAX((uint32_t)iminfo.arrayLayers, 1U);
 
-    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, numSlices - 1);
+    uint32_t sliceFace = RDCCLAMP(cfg.subresource.slice, 0U, numSlices - 1);
     data->Slice = (float)sliceFace + 0.001f;
   }
   else
   {
-    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, iminfo.extent.depth - 1);
+    uint32_t sliceFace = RDCCLAMP(cfg.subresource.slice, 0U, iminfo.extent.depth - 1);
     data->Slice = (float)sliceFace + 0.001f;
   }
 
-  data->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.mip));
-  data->TextureResolutionPS.y = float(RDCMAX(1, tex_y >> cfg.mip));
-  data->TextureResolutionPS.z = float(RDCMAX(1, tex_z >> cfg.mip));
+  data->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.subresource.mip));
+  data->TextureResolutionPS.y = float(RDCMAX(1, tex_y >> cfg.subresource.mip));
+  data->TextureResolutionPS.z = float(RDCMAX(1, tex_z >> cfg.subresource.mip));
 
   if(mipShift)
-    data->MipShift = float(1 << cfg.mip);
+    data->MipShift = float(1 << cfg.subresource.mip);
   else
     data->MipShift = 1.0f;
 
   data->Scale = cfg.scale;
 
-  int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)SampleCount(iminfo.samples));
+  int sampleIdx = (int)RDCCLAMP(cfg.subresource.sample, 0U, (uint32_t)SampleCount(iminfo.samples));
 
-  sampleIdx = cfg.sampleIdx;
+  sampleIdx = cfg.subresource.sample;
 
-  if(cfg.sampleIdx == ~0U)
+  if(cfg.subresource.sample == ~0U)
     sampleIdx = -SampleCount(iminfo.samples);
 
   data->SampleIdx = sampleIdx;
@@ -368,8 +368,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     customData->texDim.y = iminfo.extent.height;
     customData->texDim.z = iminfo.extent.depth;
     customData->texDim.w = iminfo.mipLevels;
-    customData->selectedMip = cfg.mip;
-    customData->selectedSliceFace = cfg.sliceFace;
+    customData->selectedMip = cfg.subresource.mip;
+    customData->selectedSliceFace = cfg.subresource.slice;
     customData->selectedSample = sampleIdx;
     customData->texType = (uint32_t)textype;
     customData->YUVDownsampleRate = YUVDownsampleRate;
@@ -412,7 +412,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imdesc.imageView = Unwrap(liveImView);
   imdesc.sampler = Unwrap(m_General.PointSampler);
-  if(cfg.mip == 0 && cfg.scale < 1.0f)
+  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f)
     imdesc.sampler = Unwrap(m_TexRender.LinearSampler);
 
   VkDescriptorImageInfo altimdesc[2] = {};
@@ -422,7 +422,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     altimdesc[i - 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     altimdesc[i - 1].imageView = Unwrap(texviews.views[i]);
     altimdesc[i - 1].sampler = Unwrap(m_General.PointSampler);
-    if(cfg.mip == 0 && cfg.scale < 1.0f)
+    if(cfg.subresource.mip == 0 && cfg.scale < 1.0f)
       altimdesc[i - 1].sampler = Unwrap(m_TexRender.LinearSampler);
   }
 

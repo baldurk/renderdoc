@@ -215,20 +215,20 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
       loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedMip");
       if(loc >= 0)
-        drv.glProgramUniform1ui(customProgram, loc, cfg.mip);
+        drv.glProgramUniform1ui(customProgram, loc, cfg.subresource.mip);
 
       loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSliceFace");
       if(loc >= 0)
-        drv.glProgramUniform1ui(customProgram, loc, cfg.sliceFace);
+        drv.glProgramUniform1ui(customProgram, loc, cfg.subresource.slice);
 
       loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedSample");
       if(loc >= 0)
       {
-        if(cfg.sampleIdx == ~0U)
+        if(cfg.subresource.sample == ~0U)
           drv.glProgramUniform1i(customProgram, loc, -texDetails.samples);
         else
-          drv.glProgramUniform1i(customProgram, loc,
-                                 (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1));
+          drv.glProgramUniform1i(customProgram, loc, (int)RDCCLAMP(cfg.subresource.sample, 0U,
+                                                                   (uint32_t)texDetails.samples - 1));
       }
 
       loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_TextureType");
@@ -289,8 +289,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   TextureSamplerMode mode = TextureSamplerMode::Point;
 
-  if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != RESTYPE_TEXBUFFER &&
-     resType != RESTYPE_TEXRECT)
+  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
+     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT)
   {
     mode = TextureSamplerMode::Linear;
   }
@@ -365,7 +365,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   ubo->RangeMinimum = cfg.rangeMin;
   ubo->InverseRangeSize = 1.0f / (cfg.rangeMax - cfg.rangeMin);
 
-  ubo->MipLevel = (int)cfg.mip;
+  ubo->MipLevel = (int)cfg.subresource.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
   {
     uint32_t numSlices = RDCMAX((uint32_t)texDetails.depth, 1U);
@@ -375,12 +375,13 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     if(texDetails.curType == eGL_TEXTURE_1D_ARRAY)
       numSlices = RDCMAX((uint32_t)texDetails.height, 1U);
 
-    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, numSlices - 1);
+    uint32_t sliceFace = RDCCLAMP(cfg.subresource.slice, 0U, numSlices - 1);
     ubo->Slice = (float)sliceFace + 0.001f;
   }
   else
   {
-    uint32_t sliceFace = RDCCLAMP(cfg.sliceFace, 0U, RDCMAX((uint32_t)texDetails.depth, 1U) - 1);
+    uint32_t sliceFace =
+        RDCCLAMP(cfg.subresource.slice, 0U, RDCMAX((uint32_t)texDetails.depth, 1U) - 1);
     ubo->Slice = (float)sliceFace + 0.001f;
   }
 
@@ -397,22 +398,22 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   ubo->RawOutput = cfg.rawOutput ? 1 : 0;
 
-  ubo->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.mip));
-  ubo->TextureResolutionPS.y = float(RDCMAX(1, tex_y >> cfg.mip));
-  ubo->TextureResolutionPS.z = float(RDCMAX(1, tex_z >> cfg.mip));
+  ubo->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.subresource.mip));
+  ubo->TextureResolutionPS.y = float(RDCMAX(1, tex_y >> cfg.subresource.mip));
+  ubo->TextureResolutionPS.z = float(RDCMAX(1, tex_z >> cfg.subresource.mip));
 
   if(mipShift)
-    ubo->MipShift = float(1 << cfg.mip);
+    ubo->MipShift = float(1 << cfg.subresource.mip);
   else
     ubo->MipShift = 1.0f;
 
   ubo->OutputRes.x = DebugData.outWidth;
   ubo->OutputRes.y = DebugData.outHeight;
 
-  ubo->SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1);
+  ubo->SampleIdx = (int)RDCCLAMP(cfg.subresource.sample, 0U, (uint32_t)texDetails.samples - 1);
 
   // hacky resolve
-  if(cfg.sampleIdx == ~0U)
+  if(cfg.subresource.sample == ~0U)
     ubo->SampleIdx = -texDetails.samples;
 
   ubo->DecodeYUV = 0;

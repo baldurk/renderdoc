@@ -281,8 +281,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 
 std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage> events,
                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                         uint32_t slice, uint32_t mip,
-                                                         uint32_t sampleIdx, CompType typeCast)
+                                                         const Subresource &sub, CompType typeCast)
 {
   std::vector<PixelModification> history;
 
@@ -296,6 +295,10 @@ std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage>
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return history;
+
+  uint32_t slice = sub.slice;
+  uint32_t mip = sub.mip;
+  uint32_t sampleIdx = sub.sample;
 
   D3D11MarkerRegion historyMarker(
       StringFormat::Fmt("Doing PixelHistory on %llu, (%u,%u) %u, %u, %u over %u events", target, x,

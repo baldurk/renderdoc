@@ -1958,7 +1958,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     if(tex->type == TextureType::Buffer)
     {
       IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(
-          0, 0, tex->resourceId, FormatElement::GenerateTextureBufferFormat(*tex));
+          tex->resourceId, Subresource(), FormatElement::GenerateTextureBufferFormat(*tex));
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }

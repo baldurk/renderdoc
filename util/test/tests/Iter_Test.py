@@ -135,7 +135,7 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Fetching history for %d,%d on target %s" % (x, y, str(target)))
 
-        history = self.controller.PixelHistory(target, x, y, 0, 0, 0, rd.CompType.Typeless)
+        history = self.controller.PixelHistory(target, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
 
         rdtest.log.success("Pixel %d,%d has %d history events" % (x, y, len(history)))
 

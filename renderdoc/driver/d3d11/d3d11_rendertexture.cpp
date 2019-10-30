@@ -507,10 +507,10 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(cfg.resourceId, cfg.typeCast,
                                                                      cfg.rawOutput ? true : false);
 
-  int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
+  int sampleIdx = (int)RDCCLAMP(cfg.subresource.sample, 0U, details.sampleCount - 1);
 
   // hacky resolve
-  if(cfg.sampleIdx == ~0U)
+  if(cfg.subresource.sample == ~0U)
     sampleIdx = -int(details.sampleCount);
 
   pixelData.SampleIdx = sampleIdx;
@@ -529,9 +529,9 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   float tex_x = float(details.texWidth);
   float tex_y = float(details.texType == eTexType_1D ? 100 : details.texHeight);
 
-  pixelData.TextureResolutionPS.x = float(RDCMAX(1U, details.texWidth >> cfg.mip));
-  pixelData.TextureResolutionPS.y = float(RDCMAX(1U, details.texHeight >> cfg.mip));
-  pixelData.TextureResolutionPS.z = float(RDCMAX(1U, details.texDepth >> cfg.mip));
+  pixelData.TextureResolutionPS.x = float(RDCMAX(1U, details.texWidth >> cfg.subresource.mip));
+  pixelData.TextureResolutionPS.y = float(RDCMAX(1U, details.texHeight >> cfg.subresource.mip));
+  pixelData.TextureResolutionPS.z = float(RDCMAX(1U, details.texDepth >> cfg.subresource.mip));
 
   if(details.texArraySize > 1 && details.texType != eTexType_3D)
     pixelData.TextureResolutionPS.z = float(details.texArraySize);
@@ -635,7 +635,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
                 {
                   uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
 
-                  d[0] = cfg.mip;
+                  d[0] = cfg.subresource.mip;
                 }
                 else
                 {
@@ -650,7 +650,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
                 {
                   uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
 
-                  d[0] = cfg.sliceFace;
+                  d[0] = cfg.subresource.slice;
                 }
                 else
                 {
@@ -665,7 +665,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
                 {
                   int32_t *d = (int32_t *)(byteData + var.descriptor.offset);
 
-                  d[0] = cfg.sampleIdx;
+                  d[0] = cfg.subresource.sample;
                 }
                 else
                 {
@@ -703,14 +703,15 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     }
   }
 
-  pixelData.MipLevel = (float)cfg.mip;
+  pixelData.MipLevel = (float)cfg.subresource.mip;
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
-  pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, details.texArraySize - 1) + 0.001f);
+  pixelData.Slice = float(RDCCLAMP(cfg.subresource.slice, 0U, details.texArraySize - 1));
 
   if(details.texType == eTexType_3D)
   {
     pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
-    pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, (details.texDepth >> cfg.mip) - 1) + 0.001f);
+    pixelData.Slice = float(
+        RDCCLAMP(cfg.subresource.slice, 0U, (details.texDepth >> cfg.subresource.mip) - 1) + 0.001f);
   }
   else if(details.texType == eTexType_1D)
   {

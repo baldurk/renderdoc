@@ -216,7 +216,8 @@ protected:
   void changeEvent(QEvent *event) override;
 
 private:
-  void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
+  void RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint32_t y, PixelValue &pickValue,
+                            PixelValue &realValue);
   void RT_PickPixelsAndUpdate(IReplayController *);
   void RT_PickHoverAndUpdate(IReplayController *);
   void RT_UpdateAndDisplay(IReplayController *);

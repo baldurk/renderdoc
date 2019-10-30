@@ -85,7 +85,7 @@ public:
   }
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                   const rdcstr &format = "") override;
-  void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const rdcstr &format = "") override;
+  void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "") override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;
@@ -175,8 +175,7 @@ private:
   // data from raw buffer view
   bool m_IsBuffer = true;
   QString m_Format;
-  uint32_t m_TexArrayIdx = 0;
-  uint32_t m_TexMip = 0;
+  Subresource m_TexSub = {0, 0, 0};
   uint64_t m_ByteOffset = 0;
   uint64_t m_ObjectByteSize = UINT64_MAX;
   uint64_t m_ByteSize = UINT64_MAX;

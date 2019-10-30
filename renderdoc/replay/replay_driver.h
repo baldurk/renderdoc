@@ -135,7 +135,7 @@ public:
                                       MeshDataStage stage) = 0;
 
   virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) = 0;
-  virtual void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  virtual void GetTextureData(ResourceId tex, const Subresource &sub,
                               const GetTextureDataParams &params, bytebuf &data) = 0;
 
   virtual void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
@@ -156,8 +156,7 @@ public:
 
   virtual std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events,
                                                       ResourceId target, uint32_t x, uint32_t y,
-                                                      uint32_t slice, uint32_t mip,
-                                                      uint32_t sampleIdx, CompType typeCast) = 0;
+                                                      const Subresource &sub, CompType typeCast) = 0;
   virtual ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
   virtual ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -201,14 +200,15 @@ public:
   virtual bool IsOutputWindowVisible(uint64_t id) = 0;
   virtual void FlipOutputWindow(uint64_t id) = 0;
 
-  virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         CompType typeCast, float *minval, float *maxval) = 0;
-  virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeCast, float minval, float maxval, bool channels[4],
-                            std::vector<uint32_t> &histogram) = 0;
+  virtual bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
+                         float *maxval) = 0;
+  virtual bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
+                            float maxval, bool channels[4], std::vector<uint32_t> &histogram) = 0;
+  virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                         CompType typeCast, float pixel[4]) = 0;
 
   virtual ResourceId CreateProxyTexture(const TextureDescription &templateTex) = 0;
-  virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
+  virtual void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data,
                                    size_t dataSize) = 0;
   virtual bool IsTextureSupported(const ResourceFormat &format) = 0;
 
@@ -223,16 +223,14 @@ public:
                                  const std::string &entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, std::string *errors) = 0;
   virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
-  virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                       uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast) = 0;
+  virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
+                                       CompType typeCast) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 
   virtual void RenderCheckerboard() = 0;
 
   virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 
-  virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                         uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4]) = 0;
   virtual uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height,
                               const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };

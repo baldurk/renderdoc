@@ -41,7 +41,7 @@ class GL_Per_Type_Tex_Units(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 "First texture should be 8x8, not {}x{}".format(tex_details.width, tex_details.height))
 
-        data = self.controller.GetTextureData(id, 0, 0)
+        data = self.controller.GetTextureData(id, rd.Subresource(0, 0, 0))
         first_pixel = struct.unpack_from("BBBB", data, 0)
 
         if not rdtest.value_compare(first_pixel, (255, 0, 0, 255)):
@@ -71,7 +71,7 @@ class GL_Per_Type_Tex_Units(rdtest.TestCase):
                 "First texture should be 4x4x4, not {}x{}x{}".format(tex_details.width, tex_details.height,
                                                                      tex_details.depth))
 
-        data = self.controller.GetTextureData(id, 0, 0)
+        data = self.controller.GetTextureData(id, rd.Subresource(0, 0, 0))
         first_pixel = struct.unpack_from("BBBB", data, 0)
 
         if not rdtest.value_compare(first_pixel, (0, 255, 0, 255)):

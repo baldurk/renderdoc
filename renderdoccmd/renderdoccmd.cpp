@@ -62,8 +62,7 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   rdcarray<TextureDescription> texs = renderer->GetTextures();
 
   TextureDisplay d;
-  d.mip = 0;
-  d.sampleIdx = ~0U;
+  d.subresource = {0, 0, ~0U};
   d.overlay = DebugOverlay::NoOverlay;
   d.typeCast = CompType::Typeless;
   d.customShaderId = ResourceId();
@@ -75,7 +74,6 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   d.scale = 1.0f;
   d.xOffset = 0.0f;
   d.yOffset = 0.0f;
-  d.sliceFace = 0;
   d.rawOutput = false;
   d.red = d.green = d.blue = true;
   d.alpha = false;

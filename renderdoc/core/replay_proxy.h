@@ -245,42 +245,11 @@ public:
       return m_Proxy->RenderHighlightBox(w, h, scale);
   }
 
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeCast, float *minval, float *maxval)
-  {
-    if(m_Proxy)
-    {
-      EnsureTexCached(texid, sliceFace, mip);
-      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
-        return false;
-      return m_Proxy->GetMinMax(m_ProxyTextures[texid], sliceFace, mip, sample, typeCast, minval,
-                                maxval);
-    }
-
-    return false;
-  }
-
-  bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeCast, float minval, float maxval, bool channels[4],
-                    std::vector<uint32_t> &histogram)
-  {
-    if(m_Proxy)
-    {
-      EnsureTexCached(texid, sliceFace, mip);
-      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
-        return false;
-      return m_Proxy->GetHistogram(m_ProxyTextures[texid], sliceFace, mip, sample, typeCast, minval,
-                                   maxval, channels, histogram);
-    }
-
-    return false;
-  }
-
   bool RenderTexture(TextureDisplay cfg)
   {
     if(m_Proxy)
     {
-      EnsureTexCached(cfg.resourceId, cfg.sliceFace, cfg.mip);
+      EnsureTexCached(cfg.resourceId, cfg.subresource);
       if(cfg.resourceId == ResourceId() || m_ProxyTextures[cfg.resourceId] == ResourceId())
         return false;
       cfg.resourceId = m_ProxyTextures[cfg.resourceId];
@@ -299,12 +268,12 @@ public:
     return false;
   }
 
-  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeCast, float pixel[4])
+  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                 CompType typeCast, float pixel[4])
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texture, sliceFace, mip);
+      EnsureTexCached(texture, sub);
       if(texture == ResourceId() || m_ProxyTextures[texture] == ResourceId())
         return;
 
@@ -318,12 +287,41 @@ public:
          (m_APIProps.localRenderer == GraphicsAPI::OpenGL))
       {
         TextureDescription tex = m_Proxy->GetTexture(texture);
-        uint32_t mipHeight = RDCMAX(1U, tex.height >> mip);
+        uint32_t mipHeight = RDCMAX(1U, tex.height >> sub.mip);
         y = (mipHeight - 1) - y;
       }
 
-      m_Proxy->PickPixel(texture, x, y, sliceFace, mip, sample, typeCast, pixel);
+      m_Proxy->PickPixel(texture, x, y, sub, typeCast, pixel);
     }
+  }
+
+  bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
+                 float *maxval)
+  {
+    if(m_Proxy)
+    {
+      EnsureTexCached(texid, sub);
+      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
+        return false;
+      return m_Proxy->GetMinMax(m_ProxyTextures[texid], sub, typeCast, minval, maxval);
+    }
+
+    return false;
+  }
+
+  bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
+                    float maxval, bool channels[4], std::vector<uint32_t> &histogram)
+  {
+    if(m_Proxy)
+    {
+      EnsureTexCached(texid, sub);
+      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
+        return false;
+      return m_Proxy->GetHistogram(m_ProxyTextures[texid], sub, typeCast, minval, maxval, channels,
+                                   histogram);
+    }
+
+    return false;
   }
 
   void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
@@ -433,17 +431,16 @@ public:
       m_Proxy->FreeTargetResource(id);
   }
 
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeCast)
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
+                               CompType typeCast)
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texid, 0, mip);
+      EnsureTexCached(texid, sub);
       if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
         return ResourceId();
       texid = m_ProxyTextures[texid];
-      ResourceId customResourceId =
-          m_Proxy->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx, typeCast);
+      ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, sub, typeCast);
       m_LocalTextures.insert(customResourceId);
       m_ProxyTextures[customResourceId] = customResourceId;
       return customResourceId;
@@ -498,7 +495,7 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(void, GetBufferData, ResourceId buff, uint64_t offset, uint64_t len,
                              bytebuf &retData);
-  IMPLEMENT_FUNCTION_PROXIED(void, GetTextureData, ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  IMPLEMENT_FUNCTION_PROXIED(void, GetTextureData, ResourceId tex, const Subresource &sub,
                              const GetTextureDataParams &params, bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, uint32_t eventId);
@@ -522,8 +519,7 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(std::vector<PixelModification>, PixelHistory,
                              std::vector<EventUsage> events, ResourceId target, uint32_t x,
-                             uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx,
-                             CompType typeCast);
+                             uint32_t y, const Subresource &sub, CompType typeCast);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugVertex, uint32_t eventId, uint32_t vertid,
                              uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugPixel, uint32_t eventId, uint32_t x, uint32_t y,
@@ -542,8 +538,8 @@ public:
   // and GetTextureData, but they do extra work to try and optimise transfer by delta-encoding the
   // difference in the returned data to the last time the resource was cached
   IMPLEMENT_FUNCTION_PROXIED(void, CacheBufferData, ResourceId buff);
-  IMPLEMENT_FUNCTION_PROXIED(void, CacheTextureData, ResourceId tex, uint32_t arrayIdx,
-                             uint32_t mip, const GetTextureDataParams &params);
+  IMPLEMENT_FUNCTION_PROXIED(void, CacheTextureData, ResourceId tex, const Subresource &sub,
+                             const GetTextureDataParams &params);
 
   // utility function to serialise the contents of a byte array given the previous contents that's
   // available on both sides of the communication.
@@ -558,8 +554,7 @@ public:
     return ResourceId();
   }
 
-  void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
-                           size_t dataSize)
+  void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data, size_t dataSize)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
   }
@@ -577,7 +572,7 @@ public:
   }
 
 private:
-  void EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
+  void EnsureTexCached(ResourceId texid, const Subresource &sub);
   void RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureDataParams &params);
   void EnsureBufCached(ResourceId bufid);
   IMPLEMENT_FUNCTION_PROXIED(bool, NeedRemapForFetch, const ResourceFormat &format);
@@ -590,16 +585,13 @@ private:
   struct TextureCacheEntry
   {
     ResourceId replayid;
-    uint32_t arrayIdx;
-    uint32_t mip;
+    Subresource sub;
 
     bool operator<(const TextureCacheEntry &o) const
     {
       if(replayid != o.replayid)
         return replayid < o.replayid;
-      if(arrayIdx != o.arrayIdx)
-        return arrayIdx < o.arrayIdx;
-      return mip < o.mip;
+      return sub < o.sub;
     }
   };
   // this cache only exists on the client side, with the proxy renderer. This denotes cases where we

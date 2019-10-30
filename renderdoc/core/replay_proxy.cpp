@@ -876,7 +876,7 @@ void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_GetTextureData(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                         ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                         ResourceId tex, const Subresource &sub,
                                          const GetTextureDataParams &params, bytebuf &data)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetTextureData;
@@ -885,8 +885,7 @@ void ReplayProxy::Proxied_GetTextureData(ParamSerialiser &paramser, ReturnSerial
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(tex);
-    SERIALISE_ELEMENT(arrayIdx);
-    SERIALISE_ELEMENT(mip);
+    SERIALISE_ELEMENT(sub);
     SERIALISE_ELEMENT(params);
     END_PARAMS();
   }
@@ -894,7 +893,7 @@ void ReplayProxy::Proxied_GetTextureData(ParamSerialiser &paramser, ReturnSerial
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      m_Remote->GetTextureData(tex, arrayIdx, mip, params, data);
+      m_Remote->GetTextureData(tex, sub, params, data);
   }
 
   // over-estimate of total uncompressed data written. Since the decompression chain needs to know
@@ -948,10 +947,10 @@ void ReplayProxy::Proxied_GetTextureData(ParamSerialiser &paramser, ReturnSerial
   CheckError(packet, expectedPacket);
 }
 
-void ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+void ReplayProxy::GetTextureData(ResourceId tex, const Subresource &sub,
                                  const GetTextureDataParams &params, bytebuf &data)
 {
-  PROXY_FUNCTION(GetTextureData, tex, arrayIdx, mip, params, data);
+  PROXY_FUNCTION(GetTextureData, tex, sub, params, data);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -1411,8 +1410,7 @@ void ReplayProxy::RemoveReplacement(ResourceId id)
 template <typename ParamSerialiser, typename ReturnSerialiser>
 std::vector<PixelModification> ReplayProxy::Proxied_PixelHistory(
     ParamSerialiser &paramser, ReturnSerialiser &retser, std::vector<EventUsage> events,
-    ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx,
-    CompType typeCast)
+    ResourceId target, uint32_t x, uint32_t y, const Subresource &sub, CompType typeCast)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_PixelHistory;
   ReplayProxyPacket packet = eReplayProxy_PixelHistory;
@@ -1424,9 +1422,7 @@ std::vector<PixelModification> ReplayProxy::Proxied_PixelHistory(
     SERIALISE_ELEMENT(target);
     SERIALISE_ELEMENT(x);
     SERIALISE_ELEMENT(y);
-    SERIALISE_ELEMENT(slice);
-    SERIALISE_ELEMENT(mip);
-    SERIALISE_ELEMENT(sampleIdx);
+    SERIALISE_ELEMENT(sub);
     SERIALISE_ELEMENT(typeCast);
     END_PARAMS();
   }
@@ -1434,7 +1430,7 @@ std::vector<PixelModification> ReplayProxy::Proxied_PixelHistory(
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->PixelHistory(events, target, x, y, slice, mip, sampleIdx, typeCast);
+      ret = m_Remote->PixelHistory(events, target, x, y, sub, typeCast);
   }
 
   SERIALISE_RETURN(ret);
@@ -1444,10 +1440,9 @@ std::vector<PixelModification> ReplayProxy::Proxied_PixelHistory(
 
 std::vector<PixelModification> ReplayProxy::PixelHistory(std::vector<EventUsage> events,
                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                         uint32_t slice, uint32_t mip,
-                                                         uint32_t sampleIdx, CompType typeCast)
+                                                         const Subresource &sub, CompType typeCast)
 {
-  PROXY_FUNCTION(PixelHistory, events, target, x, y, slice, mip, sampleIdx, typeCast);
+  PROXY_FUNCTION(PixelHistory, events, target, x, y, sub, typeCast);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2087,7 +2082,7 @@ void ReplayProxy::CacheBufferData(ResourceId buff)
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_CacheTextureData(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                           ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                           ResourceId tex, const Subresource &sub,
                                            const GetTextureDataParams &params)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_CacheTextureData;
@@ -2096,8 +2091,7 @@ void ReplayProxy::Proxied_CacheTextureData(ParamSerialiser &paramser, ReturnSeri
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(tex);
-    SERIALISE_ELEMENT(arrayIdx);
-    SERIALISE_ELEMENT(mip);
+    SERIALISE_ELEMENT(sub);
     SERIALISE_ELEMENT(params);
     END_PARAMS();
   }
@@ -2107,7 +2101,7 @@ void ReplayProxy::Proxied_CacheTextureData(ParamSerialiser &paramser, ReturnSeri
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      m_Remote->GetTextureData(tex, arrayIdx, mip, params, data);
+      m_Remote->GetTextureData(tex, sub, params, data);
   }
 
   {
@@ -2116,7 +2110,7 @@ void ReplayProxy::Proxied_CacheTextureData(ParamSerialiser &paramser, ReturnSeri
     SERIALISE_ELEMENT(packet);
   }
 
-  TextureCacheEntry entry = {tex, arrayIdx, mip};
+  TextureCacheEntry entry = {tex, sub};
   DeltaTransferBytes(retser, m_ProxyTextureData[entry], data);
 
   retser.EndChunk();
@@ -2124,10 +2118,10 @@ void ReplayProxy::Proxied_CacheTextureData(ParamSerialiser &paramser, ReturnSeri
   CheckError(packet, expectedPacket);
 }
 
-void ReplayProxy::CacheTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+void ReplayProxy::CacheTextureData(ResourceId tex, const Subresource &sub,
                                    const GetTextureDataParams &params)
 {
-  PROXY_FUNCTION(CacheTextureData, tex, arrayIdx, mip, params);
+  PROXY_FUNCTION(CacheTextureData, tex, sub, params);
 }
 
 #pragma endregion Proxied Functions
@@ -2210,18 +2204,27 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
   }
 }
 
-void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
+void ReplayProxy::EnsureTexCached(ResourceId texid, const Subresource &sub)
 {
   if(m_Reader.IsErrored() || m_Writer.IsErrored())
     return;
 
-  TextureCacheEntry entry = {texid, arrayIdx, mip};
+  TextureCacheEntry entry = {texid, sub};
 
-  // 3D textures shouldn't cache by array index, since we fetch the whole texture at once.
+  // ignore parameters in the key which don't matter for this texture
   {
     auto it = m_TextureInfo.find(texid);
-    if(it != m_TextureInfo.end() && it->second.dimension == 3)
-      entry.arrayIdx = 0;
+    if(it != m_TextureInfo.end())
+    {
+      if(it->second.mips <= 1)
+        entry.sub.mip = 0;
+
+      if(it->second.dimension == 3 || it->second.arraysize <= 1)
+        entry.sub.slice = 0;
+
+      if(it->second.msSamp <= 1)
+        entry.sub.sample = 0;
+    }
   }
 
   if(m_LocalTextures.find(texid) != m_LocalTextures.end())
@@ -2245,25 +2248,20 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
 
     for(uint32_t sample = 0; sample < proxy.msSamp; sample++)
     {
-      // MSAA array textures are remapped so it's:
-      // [slice 0 samp 0, slice 0 samp 1, slice 1 samp 0, slice 1 samp 1, ...]
-      // so we need to calculate the effective array index to fetch and set the data.
-      // For non-MSAA textures this operation does nothing (sample is 0, proxy.msSamp is 1)
-      uint32_t sampleArrayIdx = arrayIdx * proxy.msSamp + sample;
+      Subresource s = sub;
+      s.sample = sample;
 
-      TextureCacheEntry sampleArrayEntry = entry;
-      sampleArrayEntry.arrayIdx = sampleArrayIdx;
+      TextureCacheEntry sampleArrayEntry = {texid, s};
 
 #if ENABLED(TRANSFER_RESOURCE_CONTENTS_DELTAS)
-      CacheTextureData(texid, sampleArrayIdx, mip, proxy.params);
+      CacheTextureData(texid, s, proxy.params);
 #else
-      GetTextureData(texid, sampleArrayIdx, mip, proxy.params, m_ProxyTextureData[entry]);
+      GetTextureData(texid, s, proxy.params, m_ProxyTextureData[entry]);
 #endif
 
       auto it = m_ProxyTextureData.find(sampleArrayEntry);
       if(it != m_ProxyTextureData.end())
-        m_Proxy->SetProxyTextureData(proxy.id, sampleArrayIdx, mip, it->second.data(),
-                                     it->second.size());
+        m_Proxy->SetProxyTextureData(proxy.id, s, it->second.data(), it->second.size());
     }
 
     m_TextureProxyCache.insert(entry);
@@ -2418,9 +2416,7 @@ void ReplayProxy::RefreshPreviewWindow()
         cfg.hdrMultiplier = -1.0f;
         cfg.linearDisplayAsGamma = true;
         cfg.customShaderId = ResourceId();
-        cfg.mip = 0;
-        cfg.sliceFace = 0;
-        cfg.sampleIdx = 0;
+        cfg.subresource = {0, 0, 0};
         cfg.rawOutput = false;
         cfg.backgroundColor = FloatVector(0, 0, 0, 0);
         cfg.overlay = DebugOverlay::NoOverlay;
@@ -2611,7 +2607,7 @@ bool ReplayProxy::Tick(int type)
   {
     case eReplayProxy_CacheBufferData: CacheBufferData(ResourceId()); break;
     case eReplayProxy_CacheTextureData:
-      CacheTextureData(ResourceId(), 0, 0, GetTextureDataParams());
+      CacheTextureData(ResourceId(), Subresource(), GetTextureDataParams());
       break;
     case eReplayProxy_ReplayLog: ReplayLog(0, (ReplayLogType)0); break;
     case eReplayProxy_FetchStructuredFile: FetchStructuredFile(); break;
@@ -2634,7 +2630,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetTextureData:
     {
       bytebuf dummy;
-      GetTextureData(ResourceId(), 0, 0, GetTextureDataParams(), dummy);
+      GetTextureData(ResourceId(), Subresource(), GetTextureDataParams(), dummy);
       break;
     }
     case eReplayProxy_SavePipelineState: SavePipelineState(0); break;
@@ -2690,7 +2686,7 @@ bool ReplayProxy::Tick(int type)
                     std::vector<uint32_t>());
       break;
     case eReplayProxy_PixelHistory:
-      PixelHistory(std::vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, CompType::Typeless);
+      PixelHistory(std::vector<EventUsage>(), ResourceId(), 0, 0, Subresource(), CompType::Typeless);
       break;
     case eReplayProxy_DisassembleShader: DisassembleShader(ResourceId(), NULL, ""); break;
     case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;

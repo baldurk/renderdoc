@@ -725,8 +725,8 @@ void TextureViewer::HighlightUsage()
     m_Ctx.GetTimelineBar()->HighlightResourceUsage(texptr->resourceId);
 }
 
-void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue,
-                                         PixelValue &realValue)
+void TextureViewer::RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint32_t y,
+                                         PixelValue &pickValue, PixelValue &realValue)
 {
   TextureDescription *texptr = GetCurrentTexture();
 
@@ -736,18 +736,38 @@ void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pic
   if(m_TexDisplay.flipY)
     y = (texptr->height - 1) - y;
 
-  x = qMax(0U, x >> m_TexDisplay.mip);
-  y = qMax(0U, y >> m_TexDisplay.mip);
+  x = qMax(0U, x >> m_TexDisplay.subresource.mip);
+  y = qMax(0U, y >> m_TexDisplay.subresource.mip);
 
-  pickValue = m_Output->PickPixel(m_TexDisplay.resourceId, true, x, y, m_TexDisplay.sliceFace,
-                                  m_TexDisplay.mip, m_TexDisplay.sampleIdx);
+  ResourceId overlayResId = m_Output->GetDebugOverlayTexID();
+
+  if((m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
+      m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
+      m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+      m_TexDisplay.overlay == DebugOverlay::TriangleSizePass) &&
+     overlayResId != ResourceId())
+  {
+    realValue =
+        r->PickPixel(overlayResId, x, y, {m_TexDisplay.subresource.mip, 0, 0}, CompType::Typeless);
+  }
+  else
+  {
+    realValue =
+        r->PickPixel(m_TexDisplay.resourceId, x, y, m_TexDisplay.subresource, m_TexDisplay.typeCast);
+  }
 
   if(m_TexDisplay.customShaderId != ResourceId())
-    realValue = m_Output->PickPixel(m_TexDisplay.resourceId, false, x, y, m_TexDisplay.sliceFace,
-                                    m_TexDisplay.mip, m_TexDisplay.sampleIdx);
+  {
+    pickValue = r->PickPixel(m_Output->GetCustomShaderTexID(), x, y,
+                             {m_TexDisplay.subresource.mip, 0, 0}, CompType::Typeless);
+  }
+  else
+  {
+    pickValue = realValue;
+  }
 }
 
-void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *)
+void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *r)
 {
   PixelValue pickValue, realValue;
 
@@ -757,7 +777,7 @@ void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *)
   uint32_t x = (uint32_t)m_PickedPoint.x();
   uint32_t y = (uint32_t)m_PickedPoint.y();
 
-  RT_FetchCurrentPixel(x, y, pickValue, realValue);
+  RT_FetchCurrentPixel(r, x, y, pickValue, realValue);
 
   m_Output->SetPixelContextLocation(x, y);
 
@@ -769,21 +789,21 @@ void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *)
   GUIInvoke::call(this, [this]() { UI_UpdateStatusText(); });
 }
 
-void TextureViewer::RT_PickHoverAndUpdate(IReplayController *)
+void TextureViewer::RT_PickHoverAndUpdate(IReplayController *r)
 {
   PixelValue pickValue, realValue;
 
   uint32_t x = (uint32_t)m_CurHoverPixel.x();
   uint32_t y = (uint32_t)m_CurHoverPixel.y();
 
-  RT_FetchCurrentPixel(x, y, pickValue, realValue);
+  RT_FetchCurrentPixel(r, x, y, pickValue, realValue);
 
   m_CurHoverValue = pickValue;
 
   GUIInvoke::call(this, [this]() { UI_UpdateStatusText(); });
 }
 
-void TextureViewer::RT_UpdateAndDisplay(IReplayController *)
+void TextureViewer::RT_UpdateAndDisplay(IReplayController *r)
 {
   if(m_Output != NULL)
     m_Output->SetTextureDisplay(m_TexDisplay);
@@ -791,7 +811,7 @@ void TextureViewer::RT_UpdateAndDisplay(IReplayController *)
   GUIInvoke::call(this, [this]() { ui->render->update(); });
 }
 
-void TextureViewer::RT_UpdateVisualRange(IReplayController *)
+void TextureViewer::RT_UpdateVisualRange(IReplayController *r)
 {
   TextureDescription *texptr = GetCurrentTexture();
 
@@ -819,8 +839,19 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
       m_TexDisplay.blue && fmt.compCount > 2, m_TexDisplay.alpha && fmt.compCount > 3,
   };
 
+  ResourceId textureId = m_TexDisplay.resourceId;
+  Subresource sub = m_TexDisplay.subresource;
+  CompType typeCast = m_TexDisplay.typeCast;
+
+  if(m_TexDisplay.customShaderId != ResourceId() && m_Output->GetCustomShaderTexID() != ResourceId())
+  {
+    textureId = m_Output->GetCustomShaderTexID();
+    sub.slice = sub.sample = 0;
+    typeCast = CompType::Typeless;
+  }
+
   PixelValue min, max;
-  rdctie(min, max) = m_Output->GetMinMax();
+  rdctie(min, max) = r->GetMinMax(textureId, sub, typeCast);
 
   // exclude any channels where the min == max, as this destroys the histogram's utility.
   // When we do this, after we have the histogram we set the appropriate bucket to max - to still
@@ -842,8 +873,9 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
     }
   }
 
-  rdcarray<uint32_t> histogram = m_Output->GetHistogram(ui->rangeHistogram->rangeMin(),
-                                                        ui->rangeHistogram->rangeMax(), channels);
+  rdcarray<uint32_t> histogram =
+      r->GetHistogram(textureId, sub, typeCast, ui->rangeHistogram->rangeMin(),
+                      ui->rangeHistogram->rangeMax(), channels);
 
   if(!histogram.empty())
   {
@@ -934,10 +966,10 @@ void TextureViewer::UI_UpdateStatusText()
     ui->pickSwatch->setPalette(Pal);
   }
 
-  int y = m_CurHoverPixel.y() >> (int)m_TexDisplay.mip;
+  int y = m_CurHoverPixel.y() >> (int)m_TexDisplay.subresource.mip;
 
-  uint32_t mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.mip);
-  uint32_t mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.mip);
+  uint32_t mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.subresource.mip);
+  uint32_t mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.subresource.mip);
 
   if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
     y = (int)(mipHeight - 1) - y;
@@ -946,7 +978,7 @@ void TextureViewer::UI_UpdateStatusText()
 
   y = qMax(0, y);
 
-  int x = m_CurHoverPixel.x() >> (int)m_TexDisplay.mip;
+  int x = m_CurHoverPixel.x() >> (int)m_TexDisplay.subresource.mip;
   float invWidth = 1.0f / mipWidth;
   float invHeight = 1.0f / mipHeight;
 
@@ -972,8 +1004,8 @@ void TextureViewer::UI_UpdateStatusText()
 
   if(m_PickedPoint.x() >= 0)
   {
-    x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
-    y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+    x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
+    y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
     if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
       y = (int)(mipHeight - 1) - y;
     if(m_TexDisplay.flipY)
@@ -1294,8 +1326,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
   ui->mipLevel->clear();
 
-  m_TexDisplay.mip = 0;
-  m_TexDisplay.sliceFace = 0;
+  m_TexDisplay.subresource.mip = 0;
+  m_TexDisplay.subresource.slice = 0;
 
   bool usemipsettings = true;
   bool useslicesettings = true;
@@ -1930,7 +1962,7 @@ void TextureViewer::GotoLocation(int x, int y)
 
   m_PickedPoint = QPoint(x, y);
 
-  uint32_t mipHeight = qMax(1U, tex->height >> (int)m_TexDisplay.mip);
+  uint32_t mipHeight = qMax(1U, tex->height >> (int)m_TexDisplay.subresource.mip);
   if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
     m_PickedPoint.setY((int)(mipHeight - 1) - m_PickedPoint.y());
   if(m_TexDisplay.flipY)
@@ -2164,15 +2196,18 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     if(m_Ctx.GetTexture(res.resourceId))
     {
       m_Ctx.Replay().AsyncInvoke([this, winData, res](IReplayController *) {
-        m_Output->AddThumbnail(winData, res.resourceId, res.typeCast,
-                               res.firstMip >= 0 ? res.firstMip : 0,
-                               res.firstSlice >= 0 ? res.firstSlice : 0);
+        Subresource sub = {0, 0, ~0U};
+        if(res.firstMip >= 0)
+          sub.mip = res.firstMip;
+        if(res.firstSlice >= 0)
+          sub.slice = res.firstSlice;
+        m_Output->AddThumbnail(winData, res.resourceId, sub, res.typeCast);
       });
     }
     else
     {
       m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
-        m_Output->AddThumbnail(winData, ResourceId(), CompType::Typeless, 0, 0);
+        m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
       });
     }
 
@@ -2189,7 +2224,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
 
     WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
     m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
-      m_Output->AddThumbnail(winData, ResourceId(), CompType::Typeless, 0, 0);
+      m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
     });
   }
   else
@@ -2501,7 +2536,7 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
 
   bool nudged = false;
 
-  int increment = 1 << (int)m_TexDisplay.mip;
+  int increment = 1 << (int)m_TexDisplay.subresource.mip;
 
   if(e->key() == Qt::Key_Up && m_PickedPoint.y() > 0)
   {
@@ -3354,8 +3389,20 @@ void TextureViewer::AutoFitRange()
     return;
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+
+    ResourceId textureId = m_TexDisplay.resourceId;
+    Subresource sub = m_TexDisplay.subresource;
+    CompType typeCast = m_TexDisplay.typeCast;
+
+    if(m_TexDisplay.customShaderId != ResourceId() && m_Output->GetCustomShaderTexID() != ResourceId())
+    {
+      textureId = m_Output->GetCustomShaderTexID();
+      sub.slice = sub.sample = 0;
+      typeCast = CompType::Typeless;
+    }
+
     PixelValue min, max;
-    rdctie(min, max) = m_Output->GetMinMax();
+    rdctie(min, max) = r->GetMinMax(textureId, sub, typeCast);
 
     {
       float minval = FLT_MAX;
@@ -3478,27 +3525,27 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
   TextureDescription &tex = *texptr;
 
-  uint32_t prevSlice = m_TexDisplay.sliceFace;
+  uint32_t prevSlice = m_TexDisplay.subresource.slice;
 
   if(tex.mips > 1)
   {
-    m_TexDisplay.mip = (uint32_t)qMax(0, index);
-    m_TexDisplay.sampleIdx = 0;
+    m_TexDisplay.subresource.mip = (uint32_t)qMax(0, index);
+    m_TexDisplay.subresource.sample = 0;
   }
   else
   {
-    m_TexDisplay.mip = 0;
-    m_TexDisplay.sampleIdx = (uint32_t)qMax(0, index);
-    if(m_TexDisplay.sampleIdx == tex.msSamp)
-      m_TexDisplay.sampleIdx = ~0U;
+    m_TexDisplay.subresource.mip = 0;
+    m_TexDisplay.subresource.sample = (uint32_t)qMax(0, index);
+    if(m_TexDisplay.subresource.sample == tex.msSamp)
+      m_TexDisplay.subresource.sample = ~0U;
   }
 
   // For 3D textures, update the slice list for this mip
   if(tex.depth > 1)
   {
-    uint32_t newSlice = prevSlice >> (int)m_TexDisplay.mip;
+    uint32_t newSlice = prevSlice >> (int)m_TexDisplay.subresource.mip;
 
-    uint32_t numSlices = qMax(1U, tex.depth >> (int)m_TexDisplay.mip);
+    uint32_t numSlices = qMax(1U, tex.depth >> (int)m_TexDisplay.subresource.mip);
 
     ui->sliceFace->clear();
 
@@ -3528,7 +3575,7 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
     return;
 
   TextureDescription &tex = *texptr;
-  m_TexDisplay.sliceFace = (uint32_t)qMax(0, index);
+  m_TexDisplay.subresource.slice = (uint32_t)qMax(0, index);
 
   INVOKE_MEMFN(RT_UpdateVisualRange);
 
@@ -3553,7 +3600,7 @@ void TextureViewer::ShowGotoPopup()
   {
     QPoint p = m_PickedPoint;
 
-    uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.mip);
+    uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
     if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
       p.setY((int)(mipHeight - 1) - p.y());
@@ -3570,17 +3617,8 @@ void TextureViewer::on_viewTexBuffer_clicked()
 
   if(texptr)
   {
-    uint32_t slice = m_TexDisplay.sliceFace;
-
-    if(texptr->msSamp > 1)
-    {
-      slice *= texptr->msSamp;
-      if(m_TexDisplay.sampleIdx < texptr->msSamp)
-        slice += m_TexDisplay.sampleIdx;
-    }
-
     IBufferViewer *viewer =
-        m_Ctx.ViewTextureAsBuffer(slice, m_TexDisplay.mip, texptr->resourceId,
+        m_Ctx.ViewTextureAsBuffer(texptr->resourceId, m_TexDisplay.subresource,
                                   FormatElement::GenerateTextureBufferFormat(*texptr));
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
@@ -3612,8 +3650,8 @@ void TextureViewer::on_saveTex_clicked()
   // overwrite save params with current texture display settings
   m_SaveConfig.resourceId = m_TexDisplay.resourceId;
   m_SaveConfig.typeCast = m_TexDisplay.typeCast;
-  m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
-  m_SaveConfig.mip = (int)m_TexDisplay.mip;
+  m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.subresource.slice;
+  m_SaveConfig.mip = (int)m_TexDisplay.subresource.mip;
 
   m_SaveConfig.channelExtract = -1;
   if(m_TexDisplay.red && !m_TexDisplay.green && !m_TexDisplay.blue && !m_TexDisplay.alpha)
@@ -3692,12 +3730,12 @@ void TextureViewer::on_debugPixelContext_clicked()
   if(m_PickedPoint.x() < 0 || m_PickedPoint.y() < 0)
     return;
 
-  int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
-  int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+  int x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
+  int y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
 
   TextureDescription *texptr = GetCurrentTexture();
 
-  uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.mip);
+  uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
   if(m_TexDisplay.flipY)
     y = (int)(mipHeight - 1) - y;
@@ -3706,7 +3744,7 @@ void TextureViewer::on_debugPixelContext_clicked()
   ShaderDebugTrace *trace = NULL;
 
   m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y](IReplayController *r) {
-    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
+    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.subresource.sample, ~0U);
 
     if(trace->states.isEmpty())
     {
@@ -3755,10 +3793,10 @@ void TextureViewer::on_pixelHistory_clicked()
 
   ANALYTIC_SET(UIFeatures.PixelHistory, true);
 
-  int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
-  int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+  int x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
+  int y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
 
-  uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.mip);
+  uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
   if(m_TexDisplay.flipY)
     y = (int)(mipHeight - 1) - y;
@@ -3777,8 +3815,8 @@ void TextureViewer::on_pixelHistory_clicked()
     QThread::msleep(150);
     m_Ctx.Replay().AsyncInvoke([this, texptr, x, y, hist, histWidget](IReplayController *r) {
       rdcarray<PixelModification> history =
-          r->PixelHistory(texptr->resourceId, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
-                          m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeCast);
+          r->PixelHistory(texptr->resourceId, (uint32_t)x, (int32_t)y, m_TexDisplay.subresource,
+                          m_TexDisplay.typeCast);
 
       GUIInvoke::call(this, [hist, histWidget, history] {
         if(histWidget)

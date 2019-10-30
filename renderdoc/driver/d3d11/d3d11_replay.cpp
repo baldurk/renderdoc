@@ -1590,128 +1590,91 @@ ResourceId D3D11Replay::GetLiveID(ResourceId id)
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
-bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               CompType typeCast, float minval, float maxval, bool channels[4],
-                               std::vector<uint32_t> &histogram)
+void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                            CompType typeCast, float pixel[4])
 {
-  if(minval >= maxval)
-    return false;
-
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, true);
-
-  if(details.texFmt == DXGI_FORMAT_UNKNOWN)
-    return false;
-
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
-  HistogramCBufferData cdata;
-  cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> mip, 1U);
-  cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> mip, 1U);
-  cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> mip, 1U);
-  if(details.texType == eTexType_3D)
-    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, (details.texDepth >> mip) - 1);
-  else
-    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.texArraySize - 1);
-  cdata.HistogramMip = mip;
-  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount - 1);
-  if(sample == ~0U)
-    cdata.HistogramSample = -int(details.sampleCount);
-  cdata.HistogramMin = minval;
+  D3D11MarkerRegion marker("PickPixel");
 
-  // The calculation in the shader normalises each value between min and max, then multiplies by the
-  // number of buckets.
-  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
-  cdata.HistogramMax = maxval + maxval * 1e-6f;
+  m_pImmediateContext->OMSetRenderTargets(1, &m_PixelPick.RTV, NULL);
 
-  cdata.HistogramChannels = 0;
-  if(channels[0])
-    cdata.HistogramChannels |= 0x1;
-  if(channels[1])
-    cdata.HistogramChannels |= 0x2;
-  if(channels[2])
-    cdata.HistogramChannels |= 0x4;
-  if(channels[3])
-    cdata.HistogramChannels |= 0x8;
-  cdata.HistogramFlags = 0;
+  float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-  Vec4u YUVDownsampleRate = {};
-  Vec4u YUVAChannels = {};
+  m_pImmediateContext->ClearRenderTargetView(m_PixelPick.RTV, color);
 
-  GetYUVShaderParameters(details.texFmt, YUVDownsampleRate, YUVAChannels);
+  D3D11_VIEWPORT viewport;
+  RDCEraseEl(viewport);
 
-  cdata.HistogramYUVDownsampleRate = YUVDownsampleRate;
-  cdata.HistogramYUVAChannels = YUVAChannels;
+  SetOutputDimensions(100, 100);
 
-  int srvOffset = 0;
-  int intIdx = 0;
+  viewport.TopLeftX = 0;
+  viewport.TopLeftY = 0;
+  viewport.Width = 100;
+  viewport.Height = 100;
 
-  if(IsUIntFormat(details.texFmt))
+  m_pImmediateContext->RSSetViewports(1, &viewport);
+
   {
-    cdata.HistogramFlags |= TEXDISPLAY_UINT_TEX;
-    srvOffset = 10;
-    intIdx = 1;
-  }
-  if(IsIntFormat(details.texFmt))
-  {
-    cdata.HistogramFlags |= TEXDISPLAY_SINT_TEX;
-    srvOffset = 20;
-    intIdx = 2;
+    TextureDisplay texDisplay;
+
+    texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+    texDisplay.hdrMultiplier = -1.0f;
+    texDisplay.linearDisplayAsGamma = true;
+    texDisplay.flipY = false;
+    texDisplay.subresource = sub;
+    texDisplay.customShaderId = ResourceId();
+    texDisplay.rangeMin = 0.0f;
+    texDisplay.rangeMax = 1.0f;
+    texDisplay.scale = 1.0f;
+    texDisplay.resourceId = texture;
+    texDisplay.typeCast = typeCast;
+    texDisplay.rawOutput = true;
+    texDisplay.xOffset = -float(x << sub.mip);
+    texDisplay.yOffset = -float(y << sub.mip);
+
+    RenderTextureInternal(texDisplay, false);
   }
 
-  ID3D11Buffer *cbuf = GetDebugManager()->MakeCBuffer(&cdata, sizeof(cdata));
+  D3D11_BOX box;
+  box.front = 0;
+  box.back = 1;
+  box.left = 0;
+  box.right = 1;
+  box.top = 0;
+  box.bottom = 1;
 
-  UINT zeroes[] = {0, 0, 0, 0};
-  m_pImmediateContext->ClearUnorderedAccessViewUint(m_Histogram.HistogramUAV, zeroes);
-
-  m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
-
-  ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {0};
-  UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
-  memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
-
-  const UINT numUAVs =
-      m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
-  uavs[0] = m_Histogram.HistogramUAV;
-  m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, UAV_keepcounts);
-
-  m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
-
-  m_pImmediateContext->CSSetShaderResources(srvOffset, eTexType_Max, details.srv);
-
-  m_pImmediateContext->CSSetShader(m_Histogram.HistogramCS[details.texType][intIdx], NULL, 0);
-
-  int tilesX = (int)ceil(cdata.HistogramTextureResolution.x /
-                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
-  int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
-                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
-
-  m_pImmediateContext->Dispatch(tilesX, tilesY, 1);
-
-  m_pImmediateContext->CopyResource(m_Histogram.ResultStageBuff, m_Histogram.ResultBuff);
+  m_pImmediateContext->CopySubresourceRegion(m_PixelPick.StageTexture, 0, 0, 0, 0,
+                                             m_PixelPick.Texture, 0, &box);
 
   D3D11_MAPPED_SUBRESOURCE mapped;
-
-  HRESULT hr = m_pImmediateContext->Map(m_Histogram.ResultStageBuff, 0, D3D11_MAP_READ, 0, &mapped);
-
-  histogram.clear();
-  histogram.resize(HGRAM_NUM_BUCKETS);
+  mapped.pData = NULL;
+  HRESULT hr = m_pImmediateContext->Map(m_PixelPick.StageTexture, 0, D3D11_MAP_READ, 0, &mapped);
 
   if(FAILED(hr))
   {
-    RDCERR("Can't map histogram stage buff HRESULT: %s", ToStr(hr).c_str());
+    RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  float *pix = (float *)mapped.pData;
+
+  if(pix == NULL)
+  {
+    RDCERR("Failed to map pick-pixel staging texture.");
   }
   else
   {
-    memcpy(&histogram[0], mapped.pData, sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
-
-    m_pImmediateContext->Unmap(m_Histogram.ResultStageBuff, 0);
+    pixel[0] = pix[0];
+    pixel[1] = pix[1];
+    pixel[2] = pix[2];
+    pixel[3] = pix[3];
   }
 
-  return true;
+  m_pImmediateContext->Unmap(m_PixelPick.StageTexture, 0);
 }
 
-bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeCast, float *minval, float *maxval)
+bool D3D11Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast,
+                            float *minval, float *maxval)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, true);
 
@@ -1721,16 +1684,16 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   HistogramCBufferData cdata;
-  cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> mip, 1U);
-  cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> mip, 1U);
-  cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> mip, 1U);
+  cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> sub.mip, 1U);
+  cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> sub.mip, 1U);
+  cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> sub.mip, 1U);
   if(details.texType == eTexType_3D)
-    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, (details.texDepth >> mip) - 1);
+    cdata.HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, (details.texDepth >> sub.mip) - 1);
   else
-    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.texArraySize - 1);
-  cdata.HistogramMip = mip;
-  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount - 1);
-  if(sample == ~0U)
+    cdata.HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, details.texArraySize - 1);
+  cdata.HistogramMip = sub.mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sub.sample, 0U, details.sampleCount - 1);
+  if(sub.sample == ~0U)
     cdata.HistogramSample = -int(details.sampleCount);
   cdata.HistogramMin = 0.0f;
   cdata.HistogramMax = 1.0f;
@@ -1823,6 +1786,129 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   return true;
 }
 
+bool D3D11Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
+                               float minval, float maxval, bool channels[4],
+                               std::vector<uint32_t> &histogram)
+{
+  if(minval >= maxval)
+    return false;
+
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, true);
+
+  if(details.texFmt == DXGI_FORMAT_UNKNOWN)
+    return false;
+
+  D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> sub.mip, 1U);
+  cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> sub.mip, 1U);
+  cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> sub.mip, 1U);
+  if(details.texType == eTexType_3D)
+    cdata.HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, (details.texDepth >> sub.mip) - 1);
+  else
+    cdata.HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, details.texArraySize - 1);
+  cdata.HistogramMip = sub.mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sub.sample, 0U, details.sampleCount - 1);
+  if(sub.sample == ~0U)
+    cdata.HistogramSample = -int(details.sampleCount);
+  cdata.HistogramMin = minval;
+
+  // The calculation in the shader normalises each value between min and max, then multiplies by the
+  // number of buckets.
+  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
+  cdata.HistogramMax = maxval + maxval * 1e-6f;
+
+  cdata.HistogramChannels = 0;
+  if(channels[0])
+    cdata.HistogramChannels |= 0x1;
+  if(channels[1])
+    cdata.HistogramChannels |= 0x2;
+  if(channels[2])
+    cdata.HistogramChannels |= 0x4;
+  if(channels[3])
+    cdata.HistogramChannels |= 0x8;
+  cdata.HistogramFlags = 0;
+
+  Vec4u YUVDownsampleRate = {};
+  Vec4u YUVAChannels = {};
+
+  GetYUVShaderParameters(details.texFmt, YUVDownsampleRate, YUVAChannels);
+
+  cdata.HistogramYUVDownsampleRate = YUVDownsampleRate;
+  cdata.HistogramYUVAChannels = YUVAChannels;
+
+  int srvOffset = 0;
+  int intIdx = 0;
+
+  if(IsUIntFormat(details.texFmt))
+  {
+    cdata.HistogramFlags |= TEXDISPLAY_UINT_TEX;
+    srvOffset = 10;
+    intIdx = 1;
+  }
+  if(IsIntFormat(details.texFmt))
+  {
+    cdata.HistogramFlags |= TEXDISPLAY_SINT_TEX;
+    srvOffset = 20;
+    intIdx = 2;
+  }
+
+  if(details.texType == eTexType_3D)
+    cdata.HistogramSlice = float(sub.slice);
+
+  ID3D11Buffer *cbuf = GetDebugManager()->MakeCBuffer(&cdata, sizeof(cdata));
+
+  UINT zeroes[] = {0, 0, 0, 0};
+  m_pImmediateContext->ClearUnorderedAccessViewUint(m_Histogram.HistogramUAV, zeroes);
+
+  m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
+
+  ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {0};
+  UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
+  memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
+
+  const UINT numUAVs =
+      m_pImmediateContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+  uavs[0] = m_Histogram.HistogramUAV;
+  m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, UAV_keepcounts);
+
+  m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
+
+  m_pImmediateContext->CSSetShaderResources(srvOffset, eTexType_Max, details.srv);
+
+  m_pImmediateContext->CSSetShader(m_Histogram.HistogramCS[details.texType][intIdx], NULL, 0);
+
+  int tilesX = (int)ceil(cdata.HistogramTextureResolution.x /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  m_pImmediateContext->Dispatch(tilesX, tilesY, 1);
+
+  m_pImmediateContext->CopyResource(m_Histogram.ResultStageBuff, m_Histogram.ResultBuff);
+
+  D3D11_MAPPED_SUBRESOURCE mapped;
+
+  HRESULT hr = m_pImmediateContext->Map(m_Histogram.ResultStageBuff, 0, D3D11_MAP_READ, 0, &mapped);
+
+  histogram.clear();
+  histogram.resize(HGRAM_NUM_BUCKETS);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Can't map histogram stage buff HRESULT: %s", ToStr(hr).c_str());
+  }
+  else
+  {
+    memcpy(&histogram[0], mapped.pData, sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
+
+    m_pImmediateContext->Unmap(m_Histogram.ResultStageBuff, 0);
+  }
+
+  return true;
+}
+
 void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
 {
   auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
@@ -1840,7 +1926,7 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
   GetDebugManager()->GetBufferData(buffer, offset, length, retData);
 }
 
-void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
                                  const GetTextureDataParams &params, bytebuf &data)
 {
   D3D11RenderStateTracker tracker(m_pImmediateContext);
@@ -1869,7 +1955,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
 
-    if(mip >= mips || arrayIdx >= desc.ArraySize)
+    if(sub.mip >= mips || sub.slice >= desc.ArraySize)
       return;
 
     if(params.remap != RemapTexture::NoRemap)
@@ -1891,7 +1977,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       desc.ArraySize = 1;
     }
 
-    subresource = arrayIdx * mips + mip;
+    subresource = sub.slice * mips + sub.mip;
 
     HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &d);
 
@@ -1903,11 +1989,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       return;
     }
 
-    bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+    bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, sub.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      subresource = mip;
+      subresource = sub.mip;
 
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;
@@ -1927,7 +2013,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
       rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
       rtvDesc.Format = desc.Format;
-      rtvDesc.Texture1D.MipSlice = mip;
+      rtvDesc.Texture1D.MipSlice = sub.mip;
 
       ID3D11RenderTargetView *wrappedrtv = NULL;
       hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -1959,10 +2045,9 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.linearDisplayAsGamma = false;
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
-        texDisplay.mip = mip;
-        texDisplay.sampleIdx = 0;
+        texDisplay.subresource = sub;
+        texDisplay.subresource.sample = 0;
         texDisplay.customShaderId = ResourceId();
-        texDisplay.sliceFace = arrayIdx;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
@@ -1973,7 +2058,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
         // we scale our texture rendering by output dimension. To counteract that, add a manual
         // scale here
-        texDisplay.scale = 1.0f / float(1 << mip);
+        texDisplay.scale = 1.0f / float(1 << sub.mip);
 
         RenderTextureInternal(texDisplay, false);
       }
@@ -2019,7 +2104,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
 
-    if(mip >= mips || arrayIdx >= desc.ArraySize)
+    if(sub.mip >= mips || sub.slice >= desc.ArraySize)
       return;
 
     if(params.remap != RemapTexture::NoRemap)
@@ -2042,7 +2127,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       desc.ArraySize = 1;
     }
 
-    subresource = arrayIdx * mips + mip;
+    subresource = sub.slice * mips + sub.mip;
 
     HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &d);
 
@@ -2054,11 +2139,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       return;
     }
 
-    bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+    bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      subresource = mip;
+      subresource = sub.mip;
 
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;
@@ -2078,7 +2163,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
       rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
       rtvDesc.Format = desc.Format;
-      rtvDesc.Texture2D.MipSlice = mip;
+      rtvDesc.Texture2D.MipSlice = sub.mip;
 
       ID3D11RenderTargetView *wrappedrtv = NULL;
       hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -2111,12 +2196,10 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.linearDisplayAsGamma = false;
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
-        texDisplay.mip = mip;
-        texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
+        texDisplay.subresource.mip = sub.mip;
+        texDisplay.subresource.slice = sub.slice;
+        texDisplay.subresource.sample = params.resolve ? ~0U : sub.sample;
         texDisplay.customShaderId = ResourceId();
-        texDisplay.sliceFace = arrayIdx;
-        if(sampleCount > 1)
-          texDisplay.sliceFace /= sampleCount;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
@@ -2127,7 +2210,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
         // we scale our texture rendering by output dimension. To counteract that, add a manual
         // scale here
-        texDisplay.scale = 1.0f / float(1 << mip);
+        texDisplay.scale = 1.0f / float(1 << sub.mip);
 
         RenderTextureInternal(texDisplay, false);
       }
@@ -2153,7 +2236,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         return;
       }
 
-      m_pImmediateContext->ResolveSubresource(resolveTex, arrayIdx, wrapTex, arrayIdx, desc.Format);
+      m_pImmediateContext->ResolveSubresource(resolveTex, sub.slice, wrapTex, sub.slice, desc.Format);
       m_pImmediateContext->CopyResource(d, resolveTex);
 
       SAFE_RELEASE(resolveTex);
@@ -2161,6 +2244,8 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     else if(wasms)
     {
       GetDebugManager()->CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D1, d), wrapTex->GetReal());
+
+      subresource = (sub.slice * sampleCount + sub.sample) * mips + sub.mip;
     }
     else
     {
@@ -2185,7 +2270,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
-    if(mip >= mips)
+    if(sub.mip >= mips)
       return;
 
     if(params.remap != RemapTexture::NoRemap)
@@ -2205,7 +2290,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       }
     }
 
-    subresource = mip;
+    subresource = sub.mip;
 
     HRESULT hr = m_pDevice->CreateTexture3D(&desc, NULL, &d);
 
@@ -2217,11 +2302,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       return;
     }
 
-    bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip);
+    bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, sub.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      subresource = mip;
+      subresource = sub.mip;
 
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;
@@ -2241,7 +2326,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
       rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
       rtvDesc.Format = desc.Format;
-      rtvDesc.Texture3D.MipSlice = mip;
+      rtvDesc.Texture3D.MipSlice = sub.mip;
       rtvDesc.Texture3D.FirstWSlice = 0;
       rtvDesc.Texture3D.WSize = 1;
       ID3D11RenderTargetView *wrappedrtv = NULL;
@@ -2251,7 +2336,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
           0, 0, (float)desc.Width, (float)desc.Height, 0.0f, 1.0f,
       };
 
-      for(UINT i = 0; i < (desc.Depth >> mip); i++)
+      for(UINT i = 0; i < (desc.Depth >> sub.mip); i++)
       {
         rtvDesc.Texture3D.FirstWSlice = i;
         hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -2279,10 +2364,10 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.linearDisplayAsGamma = false;
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
-        texDisplay.mip = mip;
-        texDisplay.sampleIdx = 0;
+        texDisplay.subresource.mip = sub.mip;
+        texDisplay.subresource.slice = i;
+        texDisplay.subresource.sample = 0;
         texDisplay.customShaderId = ResourceId();
-        texDisplay.sliceFace = i;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
@@ -2293,7 +2378,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
         // we scale our texture rendering by output dimension. To counteract that, add a manual
         // scale here
-        texDisplay.scale = 1.0f / float(1 << mip);
+        texDisplay.scale = 1.0f / float(1 << sub.mip);
 
         RenderTextureInternal(texDisplay, false);
 
@@ -2328,10 +2413,10 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     // for 3D textures if we wanted a particular slice (arrayIdx > 0)
     // copy it into the beginning.
-    if(intercept.numSlices > 1 && arrayIdx > 0 && (int)arrayIdx < intercept.numSlices)
+    if(intercept.numSlices > 1 && sub.slice > 0 && (int)sub.slice < intercept.numSlices)
     {
       byte *dst = data.data();
-      byte *src = data.data() + intercept.app.DepthPitch * arrayIdx;
+      byte *src = data.data() + intercept.app.DepthPitch * sub.slice;
 
       for(int row = 0; row < intercept.numRows; row++)
       {
@@ -3118,91 +3203,6 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   return ~0U;
 }
 
-void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
-{
-  D3D11RenderStateTracker tracker(m_pImmediateContext);
-
-  D3D11MarkerRegion marker("PickPixel");
-
-  m_pImmediateContext->OMSetRenderTargets(1, &m_PixelPick.RTV, NULL);
-
-  float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
-  m_pImmediateContext->ClearRenderTargetView(m_PixelPick.RTV, color);
-
-  D3D11_VIEWPORT viewport;
-  RDCEraseEl(viewport);
-
-  SetOutputDimensions(100, 100);
-
-  viewport.TopLeftX = 0;
-  viewport.TopLeftY = 0;
-  viewport.Width = 100;
-  viewport.Height = 100;
-
-  m_pImmediateContext->RSSetViewports(1, &viewport);
-
-  {
-    TextureDisplay texDisplay;
-
-    texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
-    texDisplay.hdrMultiplier = -1.0f;
-    texDisplay.linearDisplayAsGamma = true;
-    texDisplay.flipY = false;
-    texDisplay.mip = mip;
-    texDisplay.sampleIdx = sample;
-    texDisplay.customShaderId = ResourceId();
-    texDisplay.sliceFace = sliceFace;
-    texDisplay.rangeMin = 0.0f;
-    texDisplay.rangeMax = 1.0f;
-    texDisplay.scale = 1.0f;
-    texDisplay.resourceId = texture;
-    texDisplay.typeCast = typeCast;
-    texDisplay.rawOutput = true;
-    texDisplay.xOffset = -float(x << mip);
-    texDisplay.yOffset = -float(y << mip);
-
-    RenderTextureInternal(texDisplay, false);
-  }
-
-  D3D11_BOX box;
-  box.front = 0;
-  box.back = 1;
-  box.left = 0;
-  box.right = 1;
-  box.top = 0;
-  box.bottom = 1;
-
-  m_pImmediateContext->CopySubresourceRegion(m_PixelPick.StageTexture, 0, 0, 0, 0,
-                                             m_PixelPick.Texture, 0, &box);
-
-  D3D11_MAPPED_SUBRESOURCE mapped;
-  mapped.pData = NULL;
-  HRESULT hr = m_pImmediateContext->Map(m_PixelPick.StageTexture, 0, D3D11_MAP_READ, 0, &mapped);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
-  }
-
-  float *pix = (float *)mapped.pData;
-
-  if(pix == NULL)
-  {
-    RDCERR("Failed to map pick-pixel staging texture.");
-  }
-  else
-  {
-    pixel[0] = pix[0];
-    pixel[1] = pix[1];
-    pixel[2] = pix[2];
-    pixel[3] = pix[3];
-  }
-
-  m_pImmediateContext->Unmap(m_PixelPick.StageTexture, 0);
-}
-
 void D3D11Replay::CreateCustomShaderTex(uint32_t w, uint32_t h)
 {
   D3D11_TEXTURE2D_DESC texdesc;
@@ -3242,8 +3242,8 @@ void D3D11Replay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   }
 }
 
-ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
+ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
+                                          const Subresource &sub, CompType typeCast)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, false);
 
@@ -3258,7 +3258,7 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
 
     desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    desc.Texture2D.MipSlice = mip;
+    desc.Texture2D.MipSlice = sub.mip;
 
     WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_CustomShaderTex;
     HRESULT hr = m_pDevice->CreateRenderTargetView(wrapped, &desc, &customRTV);
@@ -3282,8 +3282,8 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
 
   viewport.TopLeftX = 0;
   viewport.TopLeftY = 0;
-  viewport.Width = (float)RDCMAX(1U, details.texWidth >> mip);
-  viewport.Height = (float)RDCMAX(1U, details.texHeight >> mip);
+  viewport.Width = (float)RDCMAX(1U, details.texWidth >> sub.mip);
+  viewport.Height = (float)RDCMAX(1U, details.texHeight >> sub.mip);
 
   m_pImmediateContext->RSSetViewports(1, &viewport);
 
@@ -3298,16 +3298,15 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
   disp.backgroundColor = FloatVector(0, 0, 0, 1.0);
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.mip = mip;
-  disp.sampleIdx = sampleIdx;
+  disp.subresource = sub;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;
   disp.rawOutput = false;
   disp.scale = 1.0f;
-  disp.sliceFace = arrayIdx;
 
-  SetOutputDimensions(RDCMAX(1U, details.texWidth >> mip), RDCMAX(1U, details.texHeight >> mip));
+  SetOutputDimensions(RDCMAX(1U, details.texWidth >> sub.mip),
+                      RDCMAX(1U, details.texHeight >> sub.mip));
 
   RenderTextureInternal(disp, true);
 
@@ -3451,7 +3450,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
   return ret;
 }
 
-void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
+void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data,
                                       size_t dataSize)
 {
   if(texid == ResourceId())
@@ -3469,22 +3468,21 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
 
     uint32_t mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
 
-    if(mip >= mips || arrayIdx >= desc.ArraySize)
+    if(sub.mip >= mips || sub.slice >= desc.ArraySize)
     {
-      RDCERR("arrayIdx %d and mip %d invalid for tex", arrayIdx, mip);
+      RDCERR("arrayIdx %d and mip %d invalid for tex", sub.slice, sub.mip);
       return;
     }
 
-    uint32_t sub = arrayIdx * mips + mip;
-
-    if(dataSize < GetByteSize(desc.Width, 1, 1, desc.Format, mip))
+    if(dataSize < GetByteSize(desc.Width, 1, 1, desc.Format, sub.mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data, GetRowPitch(desc.Width, desc.Format, mip),
-                           GetByteSize(desc.Width, 1, 1, desc.Format, mip));
+    ctx->UpdateSubresource(tex->GetReal(), sub.slice * mips + sub.mip, NULL, data,
+                           GetRowPitch(desc.Width, desc.Format, sub.mip),
+                           GetByteSize(desc.Width, 1, 1, desc.Format, sub.mip));
   }
   else if(WrappedID3D11Texture2D1::m_TextureList.find(texid) !=
           WrappedID3D11Texture2D1::m_TextureList.end())
@@ -3499,13 +3497,13 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
 
     UINT sampleCount = RDCMAX(1U, desc.SampleDesc.Count);
 
-    if(mip >= mips || arrayIdx >= desc.ArraySize * sampleCount)
+    if(sub.mip >= mips || sub.slice >= desc.ArraySize || sub.sample >= sampleCount)
     {
-      RDCERR("arrayIdx %d and mip %d invalid for tex", arrayIdx, mip);
+      RDCERR("arrayIdx %d, mip %d, slice %d invalid for tex", sub.slice, sub.mip, sub.sample);
       return;
     }
 
-    if(dataSize < GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip))
+    if(dataSize < GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
@@ -3522,26 +3520,26 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
       uploadDesc.SampleDesc.Quality = 0;
       uploadDesc.ArraySize *= desc.SampleDesc.Count;
 
+      UINT unpackedSlice = sub.slice * desc.SampleDesc.Count + sub.sample;
+
       // create an unwrapped texture to upload the data into a slice of
       ID3D11Texture2D *uploadTex = NULL;
       m_pDevice->GetReal()->CreateTexture2D(&uploadDesc, NULL, &uploadTex);
 
-      ctx->UpdateSubresource(uploadTex, arrayIdx, NULL, data,
-                             GetRowPitch(desc.Width, desc.Format, mip),
-                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
+      ctx->UpdateSubresource(uploadTex, unpackedSlice, NULL, data,
+                             GetRowPitch(desc.Width, desc.Format, sub.mip),
+                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip));
 
       // copy that slice into MSAA sample
-      GetDebugManager()->CopyArrayToTex2DMS(tex->GetReal(), uploadTex, arrayIdx);
+      GetDebugManager()->CopyArrayToTex2DMS(tex->GetReal(), uploadTex, unpackedSlice);
 
       uploadTex->Release();
     }
     else
     {
-      uint32_t sub = arrayIdx * mips + mip;
-
-      ctx->UpdateSubresource(tex->GetReal(), sub, NULL, data,
-                             GetRowPitch(desc.Width, desc.Format, mip),
-                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
+      ctx->UpdateSubresource(tex->GetReal(), sub.slice * mips + sub.mip, NULL, data,
+                             GetRowPitch(desc.Width, desc.Format, sub.mip),
+                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip));
     }
   }
   else if(WrappedID3D11Texture3D1::m_TextureList.find(texid) !=
@@ -3556,20 +3554,21 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
     uint32_t mips =
         desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
-    if(mip >= mips)
+    if(sub.mip >= mips)
     {
-      RDCERR("arrayIdx %d and mip %d invalid for tex", arrayIdx, mip);
+      RDCERR("mip %d invalid for tex", sub.mip);
       return;
     }
 
-    if(dataSize < GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip))
+    if(dataSize < GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, sub.mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), mip, NULL, data, GetRowPitch(desc.Width, desc.Format, mip),
-                           GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
+    ctx->UpdateSubresource(tex->GetReal(), sub.mip, NULL, data,
+                           GetRowPitch(desc.Width, desc.Format, sub.mip),
+                           GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip));
   }
   else
   {

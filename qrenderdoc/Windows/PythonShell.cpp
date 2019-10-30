@@ -424,11 +424,10 @@ struct CaptureContextInvoker : ICaptureContext
                                               id, format);
   }
 
-  virtual IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+  virtual IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
                                              const rdcstr &format = "") override
   {
-    return InvokeRetFunction<IBufferViewer *>(&ICaptureContext::ViewTextureAsBuffer, arrayIdx, mip,
-                                              id, format);
+    return InvokeRetFunction<IBufferViewer *>(&ICaptureContext::ViewTextureAsBuffer, id, sub, format);
   }
 
   virtual IConstantBufferPreviewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot,

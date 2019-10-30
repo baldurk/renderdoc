@@ -652,7 +652,7 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
   return retData;
 }
 
-bytebuf ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip)
+bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 {
   CHECK_REPLAY_THREAD();
 
@@ -666,7 +666,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint
     return ret;
   }
 
-  m_pDevice->GetTextureData(liveId, arrayIdx, mip, GetTextureDataParams(), ret);
+  m_pDevice->GetTextureData(liveId, sub, GetTextureDataParams(), ret);
 
   return ret;
 }
@@ -696,8 +696,8 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   }
   else
   {
-    if(sd.sample.sampleIndex != ~0U)
-      sd.sample.sampleIndex = RDCCLAMP(sd.sample.sampleIndex, 0U, td.msSamp);
+    if(sd.sample.sampleIndex >= 0)
+      sd.sample.sampleIndex = RDCCLAMP((uint32_t)sd.sample.sampleIndex, 0U, td.msSamp);
   }
 
   // don't support cube cruciform for non cubemaps, or
@@ -742,7 +742,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
   // treat any multisampled texture as if it were an array
   // of <sample count> dimension (on top of potential existing array
-  // dimension). GetTextureData() uses the same convention.
+  // dimension).
   if(td.msSamp > 1)
   {
     td.arraysize *= td.msSamp;
@@ -964,8 +964,10 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       params.blackPoint = sd.comp.blackPoint;
       params.whitePoint = sd.comp.whitePoint;
 
+      Subresource sub = {mip, slice / sampleCount, slice % sampleCount};
+
       bytebuf data;
-      m_pDevice->GetTextureData(liveid, slice, mip, params, data);
+      m_pDevice->GetTextureData(liveid, sub, params, data);
 
       if(data.empty())
       {
@@ -1553,13 +1555,14 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   return success;
 }
 
-rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, uint32_t x,
-                                                           uint32_t y, uint32_t slice, uint32_t mip,
-                                                           uint32_t sampleIdx, CompType typeCast)
+rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, uint32_t x, uint32_t y,
+                                                           const Subresource &sub, CompType typeCast)
 {
   CHECK_REPLAY_THREAD();
 
   rdcarray<PixelModification> ret;
+
+  Subresource subresource = sub;
 
   for(size_t t = 0; t < m_Textures.size(); t++)
   {
@@ -1573,18 +1576,18 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
       }
 
       if(m_Textures[t].msSamp == 1)
-        sampleIdx = ~0U;
+        subresource.sample = ~0U;
 
       if(m_Textures[t].dimension == 3)
       {
-        slice = RDCCLAMP(slice, 0U, m_Textures[t].depth >> mip);
+        subresource.slice = RDCCLAMP(subresource.slice, 0U, m_Textures[t].depth >> subresource.mip);
       }
       else
       {
-        slice = RDCCLAMP(slice, 0U, m_Textures[t].arraysize);
+        subresource.slice = RDCCLAMP(subresource.slice, 0U, m_Textures[t].arraysize);
       }
 
-      mip = RDCCLAMP(mip, 0U, m_Textures[t].mips);
+      subresource.mip = RDCCLAMP(subresource.mip, 0U, m_Textures[t].mips - 1);
 
       break;
     }
@@ -1665,11 +1668,56 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
   if(id == ResourceId())
     return ret;
 
-  ret = m_pDevice->PixelHistory(events, id, x, y, slice, mip, sampleIdx, typeCast);
+  ret = m_pDevice->PixelHistory(events, id, x, y, subresource, typeCast);
 
   SetFrameEvent(m_EventID, true);
 
   return ret;
+}
+
+PixelValue ReplayController::PickPixel(ResourceId tex, uint32_t x, uint32_t y,
+                                       const Subresource &sub, CompType typeCast)
+{
+  CHECK_REPLAY_THREAD();
+
+  PixelValue ret;
+
+  RDCEraseEl(ret.floatValue);
+
+  if(tex == ResourceId())
+    return ret;
+
+  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sub, typeCast, ret.floatValue);
+
+  return ret;
+}
+
+rdcpair<PixelValue, PixelValue> ReplayController::GetMinMax(ResourceId textureId,
+                                                            const Subresource &sub, CompType typeCast)
+{
+  CHECK_REPLAY_THREAD();
+
+  PixelValue minval = {{0.0f, 0.0f, 0.0f, 0.0f}};
+  PixelValue maxval = {{1.0f, 1.0f, 1.0f, 1.0f}};
+
+  m_pDevice->GetMinMax(m_pDevice->GetLiveID(textureId), sub, typeCast, &minval.floatValue[0],
+                       &maxval.floatValue[0]);
+
+  return make_rdcpair(minval, maxval);
+}
+
+rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Subresource &sub,
+                                                  CompType typeCast, float minval, float maxval,
+                                                  bool channels[4])
+{
+  CHECK_REPLAY_THREAD();
+
+  std::vector<uint32_t> hist;
+
+  m_pDevice->GetHistogram(m_pDevice->GetLiveID(textureId), sub, typeCast, minval, maxval, channels,
+                          hist);
+
+  return hist;
 }
 
 ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
@@ -1831,8 +1879,7 @@ void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
 
   TextureDisplay d;
   d.resourceId = texid;
-  d.mip = 0;
-  d.sampleIdx = ~0U;
+  d.subresource = {0, 0, ~0U};
   d.overlay = DebugOverlay::NoOverlay;
   d.typeCast = CompType::Typeless;
   d.hdrMultiplier = -1.0f;
@@ -1843,7 +1890,6 @@ void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
   d.scale = 1.0f;
   d.xOffset = 0.0f;
   d.yOffset = 0.0f;
-  d.sliceFace = 0;
   d.rawOutput = false;
   d.red = d.green = d.blue = true;
   d.alpha = false;

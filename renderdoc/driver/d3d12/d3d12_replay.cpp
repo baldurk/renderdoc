@@ -1701,99 +1701,6 @@ void D3D12Replay::RenderCheckerboard()
   }
 }
 
-void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
-{
-  SetOutputDimensions(1, 1);
-
-  {
-    TextureDisplay texDisplay;
-
-    texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
-    texDisplay.hdrMultiplier = -1.0f;
-    texDisplay.linearDisplayAsGamma = true;
-    texDisplay.flipY = false;
-    texDisplay.mip = mip;
-    texDisplay.sampleIdx = sample;
-    texDisplay.customShaderId = ResourceId();
-    texDisplay.sliceFace = sliceFace;
-    texDisplay.rangeMin = 0.0f;
-    texDisplay.rangeMax = 1.0f;
-    texDisplay.scale = 1.0f;
-    texDisplay.resourceId = texture;
-    texDisplay.typeCast = typeCast;
-    texDisplay.rawOutput = true;
-    texDisplay.xOffset = -float(x << mip);
-    texDisplay.yOffset = -float(y << mip);
-
-    RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,
-                          eTexDisplay_F32Render);
-  }
-
-  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
-
-  D3D12_RESOURCE_BARRIER barrier = {};
-
-  barrier.Transition.pResource = m_PixelPick.Texture;
-  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-  list->ResourceBarrier(1, &barrier);
-
-  D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
-
-  src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-  src.pResource = m_PixelPick.Texture;
-  src.SubresourceIndex = 0;
-
-  dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-  dst.pResource = m_General.ResultReadbackBuffer;
-  dst.PlacedFootprint.Offset = 0;
-  dst.PlacedFootprint.Footprint.Width = sizeof(Vec4f);
-  dst.PlacedFootprint.Footprint.Height = 1;
-  dst.PlacedFootprint.Footprint.Depth = 1;
-  dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-  dst.PlacedFootprint.Footprint.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-
-  list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-
-  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-
-  list->ResourceBarrier(1, &barrier);
-
-  list->Close();
-
-  m_pDevice->ExecuteLists();
-  m_pDevice->FlushLists();
-
-  D3D12_RANGE range = {0, sizeof(Vec4f)};
-
-  float *pix = NULL;
-  HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, (void **)&pix);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Failed to map picking stage tex HRESULT: %s", ToStr(hr).c_str());
-  }
-
-  if(pix == NULL)
-  {
-    RDCERR("Failed to map pick-pixel staging texture.");
-  }
-  else
-  {
-    pixel[0] = pix[0];
-    pixel[1] = pix[1];
-    pixel[2] = pix[2];
-    pixel[3] = pix[3];
-  }
-
-  range.End = 0;
-
-  if(SUCCEEDED(hr))
-    m_General.ResultReadbackBuffer->Unmap(0, &range);
-}
-
 uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
                                  const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
@@ -2251,8 +2158,99 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   return ~0U;
 }
 
-bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeCast, float *minval, float *maxval)
+void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                            CompType typeCast, float pixel[4])
+{
+  SetOutputDimensions(1, 1);
+
+  {
+    TextureDisplay texDisplay;
+
+    texDisplay.red = texDisplay.green = texDisplay.blue = texDisplay.alpha = true;
+    texDisplay.hdrMultiplier = -1.0f;
+    texDisplay.linearDisplayAsGamma = true;
+    texDisplay.flipY = false;
+    texDisplay.subresource = sub;
+    texDisplay.customShaderId = ResourceId();
+    texDisplay.rangeMin = 0.0f;
+    texDisplay.rangeMax = 1.0f;
+    texDisplay.scale = 1.0f;
+    texDisplay.resourceId = texture;
+    texDisplay.typeCast = typeCast;
+    texDisplay.rawOutput = true;
+    texDisplay.xOffset = -float(x << sub.mip);
+    texDisplay.yOffset = -float(y << sub.mip);
+
+    RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,
+                          eTexDisplay_F32Render);
+  }
+
+  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+
+  barrier.Transition.pResource = m_PixelPick.Texture;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+  list->ResourceBarrier(1, &barrier);
+
+  D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
+
+  src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  src.pResource = m_PixelPick.Texture;
+  src.SubresourceIndex = 0;
+
+  dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  dst.pResource = m_General.ResultReadbackBuffer;
+  dst.PlacedFootprint.Offset = 0;
+  dst.PlacedFootprint.Footprint.Width = sizeof(Vec4f);
+  dst.PlacedFootprint.Footprint.Height = 1;
+  dst.PlacedFootprint.Footprint.Depth = 1;
+  dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  dst.PlacedFootprint.Footprint.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+  list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+  list->ResourceBarrier(1, &barrier);
+
+  list->Close();
+
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists();
+
+  D3D12_RANGE range = {0, sizeof(Vec4f)};
+
+  float *pix = NULL;
+  HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, (void **)&pix);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map picking stage tex HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  if(pix == NULL)
+  {
+    RDCERR("Failed to map pick-pixel staging texture.");
+  }
+  else
+  {
+    pixel[0] = pix[0];
+    pixel[1] = pix[1];
+    pixel[2] = pix[2];
+    pixel[3] = pix[3];
+  }
+
+  range.End = 0;
+
+  if(SUCCEEDED(hr))
+    m_General.ResultReadbackBuffer->Unmap(0, &range);
+}
+
+bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast,
+                            float *minval, float *maxval)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
@@ -2262,24 +2260,24 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   HistogramCBufferData cdata;
-  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> mip)));
-  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> mip)));
+  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> sub.mip)));
+  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> sub.mip)));
   cdata.HistogramTextureResolution.z =
-      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> mip)));
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> sub.mip)));
 
   if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     cdata.HistogramSlice =
-        float(RDCCLAMP(sliceFace, 0U, uint32_t((resourceDesc.DepthOrArraySize >> mip) - 1)));
+        float(RDCCLAMP(sub.slice, 0U, uint32_t((resourceDesc.DepthOrArraySize >> sub.mip) - 1)));
   else
     cdata.HistogramSlice =
-        float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+        float(RDCCLAMP(sub.slice, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
 
-  cdata.HistogramMip = mip;
-  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
-  if(sample == ~0U)
+  cdata.HistogramMip = sub.mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sub.sample, 0U, resourceDesc.SampleDesc.Count - 1);
+  if(sub.sample == ~0U)
     cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
   cdata.HistogramMin = 0.0f;
   cdata.HistogramMax = 1.0f;
@@ -2429,8 +2427,8 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   return true;
 }
 
-bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               CompType typeCast, float minval, float maxval, bool channels[4],
+bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
+                               float minval, float maxval, bool channels[4],
                                std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
@@ -2444,24 +2442,24 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   HistogramCBufferData cdata;
-  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> mip)));
-  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> mip)));
+  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> sub.mip)));
+  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> sub.mip)));
   cdata.HistogramTextureResolution.z =
-      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> mip)));
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> sub.mip)));
 
   if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     cdata.HistogramSlice =
-        float(RDCCLAMP(sliceFace, 0U, uint32_t((resourceDesc.DepthOrArraySize >> mip) - 1)));
+        float(RDCCLAMP(sub.slice, 0U, uint32_t((resourceDesc.DepthOrArraySize >> sub.mip) - 1)));
   else
     cdata.HistogramSlice =
-        float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+        float(RDCCLAMP(sub.slice, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
 
-  cdata.HistogramMip = mip;
-  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
-  if(sample == ~0U)
+  cdata.HistogramMip = sub.mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sub.sample, 0U, resourceDesc.SampleDesc.Count - 1);
+  if(sub.sample == ~0U)
     cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
   cdata.HistogramMin = minval;
   cdata.HistogramFlags = 0;
@@ -2985,7 +2983,7 @@ void D3D12Replay::RefreshDerivedReplacements()
   }
 }
 
-void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
                                  const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
@@ -2999,9 +2997,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     return;
   }
 
-  D3D12MarkerRegion region(
-      m_pDevice->GetQueue(),
-      StringFormat::Fmt("GetTextureData(%u, %u, remap=%d)", mip, arrayIdx, params.remap));
+  D3D12MarkerRegion region(m_pDevice->GetQueue(),
+                           StringFormat::Fmt("GetTextureData(%u, %u, %u, remap=%d)", sub.mip,
+                                             sub.slice, sub.sample, params.remap));
+
+  Subresource s = sub;
 
   HRESULT hr = S_OK;
 
@@ -3045,8 +3045,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   // want to copy and then set arrayIdx to 0 to simplify subresource calculations
   if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
   {
-    slice3DCopy = arrayIdx;
-    arrayIdx = 0;
+    slice3DCopy = s.slice;
+    s.slice = 0;
   }
 
   ID3D12Resource *srcTexture = resource;
@@ -3080,8 +3080,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     SetOutputDimensions(uint32_t(copyDesc.Width), copyDesc.Height);
 
-    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
-    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
+    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> s.mip);
+    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> s.mip);
 
     ID3D12Resource *remapTexture;
     hr = m_pDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
@@ -3113,7 +3113,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     {
       rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
       rtvDesc.Texture3D.WSize = 1;
-      loopCount = RDCMAX(0U, uint32_t(copyDesc.DepthOrArraySize >> mip));
+      loopCount = RDCMAX(0U, uint32_t(copyDesc.DepthOrArraySize >> s.mip));
     }
 
     // we only loop for 3D slices, other types we just do one remap for the desired mip/slice
@@ -3132,12 +3132,12 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       texDisplay.linearDisplayAsGamma = false;
       texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.flipY = false;
-      texDisplay.mip = mip;
-      texDisplay.sampleIdx = resolve ? ~0U : arrayIdx;
+      texDisplay.subresource.mip = s.mip;
+      texDisplay.subresource.slice = s.slice;
+      if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+        texDisplay.subresource.slice = loop;
+      texDisplay.subresource.sample = resolve ? ~0U : s.sample;
       texDisplay.customShaderId = ResourceId();
-      texDisplay.sliceFace = arrayIdx;
-      if(sampleCount > 1)
-        texDisplay.sliceFace /= sampleCount;
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.resourceId = tex;
@@ -3148,7 +3148,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
       // we scale our texture rendering by output dimension. To counteract that, add a manual
       // scale here
-      texDisplay.scale = 1.0f / float(1 << mip);
+      texDisplay.scale = 1.0f / float(1 << s.mip);
 
       RenderTextureInternal(GetDebugManager()->GetCPUHandle(GET_TEX_RTV), texDisplay, flags);
     }
@@ -3166,8 +3166,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     // these have already been selected, don't need to fetch that subresource
     // when copying back to readback buffer
-    arrayIdx = 0;
-    mip = 0;
+    s.slice = 0;
+    s.mip = 0;
 
     // no longer depth, if it was
     isDepth = false;
@@ -3179,8 +3179,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     copyDesc.DepthOrArraySize = 1;
     copyDesc.MipLevels = 1;
 
-    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
-    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
+    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> s.mip);
+    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> s.mip);
 
     ID3D12Resource *resolveTexture;
     hr = m_pDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
@@ -3219,7 +3219,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->ResolveSubresource(resolveTexture, 0, srcTexture,
-                             arrayIdx * resDesc.DepthOrArraySize + mip, resDesc.Format);
+                             s.slice * resDesc.DepthOrArraySize + s.mip, resDesc.Format);
 
     // real resource back to normal
     for(size_t i = 0; i < barriers.size(); i++)
@@ -3239,8 +3239,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     // these have already been selected, don't need to fetch that subresource
     // when copying back to readback buffer
-    arrayIdx = 0;
-    mip = 0;
+    s.slice = 0;
+    s.mip = 0;
   }
   else if(wasms)
   {
@@ -3313,6 +3313,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         isDepth ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_RENDER_TARGET;
     b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
     list->ResourceBarrier(1, &b);
+
+    s.slice = s.slice * sampleCount + s.sample;
+    s.sample = 0;
   }
 
   if(list == NULL)
@@ -3380,15 +3383,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   UINT arrayStride = copyDesc.MipLevels;
   UINT planeStride = copyDesc.DepthOrArraySize * copyDesc.MipLevels;
 
-  for(UINT i = 0; i < planes; i++)
+  for(UINT p = 0; p < planes; p++)
   {
     readbackDesc.Width = AlignUp(readbackDesc.Width, 512ULL);
 
-    UINT sub = mip + arrayIdx * arrayStride + i * planeStride;
-
     UINT64 subSize = 0;
-    m_pDevice->GetCopyableFootprints(&copyDesc, sub, 1, readbackDesc.Width, layouts + i,
-                                     rowcounts + i, NULL, &subSize);
+    m_pDevice->GetCopyableFootprints(&copyDesc, s.mip + s.slice * arrayStride + p * planeStride, 1,
+                                     readbackDesc.Width, layouts + p, rowcounts + p, NULL, &subSize);
     readbackDesc.Width += subSize;
   }
 
@@ -3405,17 +3406,17 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
                                           __uuidof(ID3D12Resource), (void **)&readbackBuf);
   RDCASSERTEQUAL(hr, S_OK);
 
-  for(UINT i = 0; i < planes; i++)
+  for(UINT p = 0; p < planes; p++)
   {
     D3D12_TEXTURE_COPY_LOCATION dst, src;
 
     src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     src.pResource = srcTexture;
-    src.SubresourceIndex = mip + arrayIdx * arrayStride + i * planeStride;
+    src.SubresourceIndex = s.mip + s.slice * arrayStride + p * planeStride;
 
     dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     dst.pResource = readbackBuf;
-    dst.PlacedFootprint = layouts[i];
+    dst.PlacedFootprint = layouts[p];
 
     list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
   }
@@ -3455,11 +3456,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
        copyDesc.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
        copyDesc.Format == DXGI_FORMAT_R32G8X24_TYPELESS)
     {
-      for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+      for(UINT z = 0; z < layouts[0].Footprint.Depth; z++)
       {
-        for(UINT r = 0; r < layouts[0].Footprint.Height; r++)
+        for(UINT y = 0; y < layouts[0].Footprint.Height; y++)
         {
-          UINT row = r + s * layouts[0].Footprint.Height;
+          UINT row = y + z * layouts[0].Footprint.Height;
 
           uint32_t *dSrc = (uint32_t *)(pData + layouts[0].Footprint.RowPitch * row);
           uint8_t *sSrc =
@@ -3486,11 +3487,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     }
     else    // D24_S8
     {
-      for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+      for(UINT z = 0; z < layouts[0].Footprint.Depth; z++)
       {
-        for(UINT r = 0; r < rowcounts[0]; r++)
+        for(UINT y = 0; y < rowcounts[0]; y++)
         {
-          UINT row = r + s * rowcounts[0];
+          UINT row = y + z * rowcounts[0];
 
           // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are
           // garbage
@@ -3519,11 +3520,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     UINT dstRowPitch = GetByteSize(layouts[0].Footprint.Width, 1, 1, copyDesc.Format, 0);
 
     // copy row by row
-    for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+    for(UINT z = 0; z < layouts[0].Footprint.Depth; z++)
     {
-      for(UINT r = 0; r < rowcounts[0]; r++)
+      for(UINT y = 0; y < rowcounts[0]; y++)
       {
-        UINT row = r + s * rowcounts[0];
+        UINT row = y + z * rowcounts[0];
 
         byte *src = pData + layouts[0].Footprint.RowPitch * row;
         byte *dst = data.data() + dstRowPitch * row;
@@ -3536,10 +3537,10 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     if(layouts[0].Footprint.Depth > 1 && slice3DCopy > 0 &&
        (int)slice3DCopy < layouts[0].Footprint.Depth)
     {
-      for(UINT r = 0; r < rowcounts[0]; r++)
+      for(UINT y = 0; y < rowcounts[0]; y++)
       {
-        UINT srcrow = r + slice3DCopy * rowcounts[0];
-        UINT dstrow = r;
+        UINT srcrow = y + slice3DCopy * rowcounts[0];
+        UINT dstrow = y;
 
         byte *src = pData + layouts[0].Footprint.RowPitch * srcrow;
         byte *dst = data.data() + dstRowPitch * dstrow;
@@ -3567,8 +3568,8 @@ void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf sourc
   BuildShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
-ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
+ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
+                                          const Subresource &sub, CompType typeCast)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
@@ -3625,7 +3626,7 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
   D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
   rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
   rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-  rtvDesc.Texture2D.MipSlice = mip;
+  rtvDesc.Texture2D.MipSlice = sub.mip;
 
   m_pDevice->CreateRenderTargetView(m_CustomShaderTex, &rtvDesc,
                                     GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV));
@@ -3647,16 +3648,15 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
   disp.typeCast = typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.mip = mip;
-  disp.sampleIdx = sampleIdx;
+  disp.subresource = sub;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;
   disp.rawOutput = false;
   disp.scale = 1.0f;
-  disp.sliceFace = arrayIdx;
 
-  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> mip), RDCMAX(1U, resDesc.Height >> mip));
+  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> sub.mip),
+                      RDCMAX(1U, resDesc.Height >> sub.mip));
 
   RenderTextureInternal(GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV), disp,
                         eTexDisplay_BlendAlpha);
@@ -3668,8 +3668,7 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
 
 std::vector<PixelModification> D3D12Replay::PixelHistory(std::vector<EventUsage> events,
                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                         uint32_t slice, uint32_t mip,
-                                                         uint32_t sampleIdx, CompType typeCast)
+                                                         const Subresource &sub, CompType typeCast)
 {
   return std::vector<PixelModification>();
 }
@@ -3679,7 +3678,7 @@ ResourceId D3D12Replay::CreateProxyTexture(const TextureDescription &templateTex
   return ResourceId();
 }
 
-void D3D12Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
+void D3D12Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data,
                                       size_t dataSize)
 {
 }

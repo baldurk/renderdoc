@@ -47,8 +47,8 @@ public:
   rdcpair<int32_t, int32_t> GetDimensions();
 
   void ClearThumbnails();
-  bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeCast, uint32_t mip,
-                    uint32_t slice);
+  bool AddThumbnail(WindowingData window, ResourceId texID, const Subresource &sub,
+                    CompType typeCast);
 
   void Display();
 
@@ -57,13 +57,8 @@ public:
   void SetPixelContextLocation(uint32_t x, uint32_t y);
   void DisablePixelContext();
 
-  rdcpair<PixelValue, PixelValue> GetMinMax();
-  rdcarray<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]);
-
   ResourceId GetCustomShaderTexID();
   ResourceId GetDebugOverlayTexID();
-  PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
-                       uint32_t sliceFace, uint32_t mip, uint32_t sample);
   rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventId, uint32_t x, uint32_t y);
 
 private:
@@ -94,8 +89,7 @@ private:
   {
     ResourceId texture;
     bool depthMode;
-    uint32_t mip;
-    uint32_t slice;
+    Subresource sub;
     uint64_t wndHandle;
     CompType typeCast;
     uint64_t outputID;
@@ -184,8 +178,14 @@ public:
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
-  rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
-                                           uint32_t mip, uint32_t sampleIdx, CompType typeCast);
+  PixelValue PickPixel(ResourceId textureId, uint32_t x, uint32_t y, const Subresource &sub,
+                       CompType typeCast);
+  rdcpair<PixelValue, PixelValue> GetMinMax(ResourceId textureId, const Subresource &sub,
+                                            CompType typeCast);
+  rdcarray<uint32_t> GetHistogram(ResourceId textureId, const Subresource &sub, CompType typeCast,
+                                  float minval, float maxval, bool channels[4]);
+  rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y,
+                                           const Subresource &sub, CompType typeCast);
   ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                                 uint32_t vertOffset);
   ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
@@ -197,7 +197,7 @@ public:
   rdcarray<EventUsage> GetUsage(ResourceId id);
 
   bytebuf GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
-  bytebuf GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip);
+  bytebuf GetTextureData(ResourceId buff, const Subresource &sub);
 
   bool SaveTexture(const TextureSave &saveData, const char *path);
 

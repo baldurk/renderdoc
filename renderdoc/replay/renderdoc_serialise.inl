@@ -814,6 +814,16 @@ void DoSerialise(SerialiserType &ser, PixelValue &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, Subresource &el)
+{
+  SERIALISE_MEMBER(mip);
+  SERIALISE_MEMBER(slice);
+  SERIALISE_MEMBER(sample);
+
+  SIZE_CHECK(12);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ModificationValue &el)
 {
   SERIALISE_MEMBER(col);
@@ -2263,6 +2273,8 @@ INSTANTIATE_SERIALISE_TYPE(MeshFormat)
 INSTANTIATE_SERIALISE_TYPE(FloatVector)
 INSTANTIATE_SERIALISE_TYPE(Uuid)
 INSTANTIATE_SERIALISE_TYPE(CounterDescription)
+INSTANTIATE_SERIALISE_TYPE(PixelValue)
+INSTANTIATE_SERIALISE_TYPE(Subresource)
 INSTANTIATE_SERIALISE_TYPE(PixelModification)
 INSTANTIATE_SERIALISE_TYPE(EventUsage)
 INSTANTIATE_SERIALISE_TYPE(CounterResult)

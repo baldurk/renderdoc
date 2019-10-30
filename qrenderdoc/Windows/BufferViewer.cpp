@@ -2212,7 +2212,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
       else
       {
-        buf->storage = r->GetTextureData(m_BufferID, m_TexArrayIdx, m_TexMip);
+        buf->storage = r->GetTextureData(m_BufferID, m_TexSub);
       }
     }
 
@@ -2939,15 +2939,14 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   processFormat(format);
 }
 
-void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const rdcstr &format)
+void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format)
 {
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
   m_IsBuffer = false;
-  m_TexArrayIdx = arrayIdx;
-  m_TexMip = mip;
   m_BufferID = id;
+  m_TexSub = sub;
 
   updateWindowTitle();
 

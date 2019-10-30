@@ -14,7 +14,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
 
-        data = self.controller.GetTextureData(id, 0, 0)
+        data = self.controller.GetTextureData(id, rd.Subresource(0, 0, 0))
         first_pixel = struct.unpack_from("BBBB", data, 0)
 
         val = [255, 0, 255, 255]

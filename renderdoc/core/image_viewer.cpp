@@ -110,28 +110,26 @@ public:
   {
     m_Proxy->RenderHighlightBox(w, h, scale);
   }
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeCast, float *minval, float *maxval)
+  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                 CompType typeCast, float pixel[4])
   {
-    return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, typeCast, minval, maxval);
+    m_Proxy->PickPixel(m_TextureID, x, y, sub, typeCast, pixel);
   }
-  bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeCast, float minval, float maxval, bool channels[4],
-                    std::vector<uint32_t> &histogram)
+  bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
+                 float *maxval)
   {
-    return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, typeCast, minval, maxval,
-                                 channels, histogram);
+    return m_Proxy->GetMinMax(m_TextureID, sub, typeCast, minval, maxval);
+  }
+  bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
+                    float maxval, bool channels[4], std::vector<uint32_t> &histogram)
+  {
+    return m_Proxy->GetHistogram(m_TextureID, sub, typeCast, minval, maxval, channels, histogram);
   }
   bool RenderTexture(TextureDisplay cfg)
   {
     if(cfg.resourceId != m_TextureID && cfg.resourceId != m_CustomTexID)
       cfg.resourceId = m_TextureID;
     return m_Proxy->RenderTexture(cfg);
-  }
-  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeCast, float pixel[4])
-  {
-    m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, typeCast, pixel);
   }
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y)
@@ -153,20 +151,19 @@ public:
     m_Proxy->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeCast)
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
+                               CompType typeCast)
   {
-    m_CustomTexID =
-        m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeCast);
+    m_CustomTexID = m_Proxy->ApplyCustomShader(shader, m_TextureID, sub, typeCast);
     return m_CustomTexID;
   }
   const std::vector<ResourceDescription> &GetResources() { return m_Resources; }
   std::vector<ResourceId> GetTextures() { return {m_TextureID}; }
   TextureDescription GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
-  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                      const GetTextureDataParams &params, bytebuf &data)
+  void GetTextureData(ResourceId tex, const Subresource &sub, const GetTextureDataParams &params,
+                      bytebuf &data)
   {
-    m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, params, data);
+    m_Proxy->GetTextureData(m_TextureID, sub, params, data);
   }
 
   // handle a couple of operations ourselves to return a simple fake log
@@ -249,8 +246,8 @@ public:
   }
   void FreeTargetResource(ResourceId id) {}
   std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
-                                              uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                                              uint32_t sampleIdx, CompType typeCast)
+                                              uint32_t x, uint32_t y, const Subresource &sub,
+                                              CompType typeCast)
   {
     return std::vector<PixelModification>();
   }
@@ -293,8 +290,7 @@ public:
     return ResourceId();
   }
 
-  void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
-                           size_t dataSize)
+  void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data, size_t dataSize)
   {
     RDCERR("Calling proxy-render functions on an image viewer");
   }
@@ -742,14 +738,14 @@ void ImageViewer::RefreshFile()
 
   if(!dds)
   {
-    m_Proxy->SetProxyTextureData(m_TextureID, 0, 0, data, datasize);
+    m_Proxy->SetProxyTextureData(m_TextureID, Subresource(), data, datasize);
     free(data);
   }
   else
   {
     for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
     {
-      m_Proxy->SetProxyTextureData(m_TextureID, i / texDetails.mips, i % texDetails.mips,
+      m_Proxy->SetProxyTextureData(m_TextureID, {i % texDetails.mips, i / texDetails.mips},
                                    read_data.subdata[i], (size_t)read_data.subsizes[i]);
 
       delete[] read_data.subdata[i];

@@ -309,11 +309,12 @@ public:
   CounterDescription DescribeCounter(GPUCounter counterID);
   std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters);
 
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeCast, float *minval, float *maxval);
-  bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeCast, float minval, float maxval, bool channels[4],
-                    std::vector<uint32_t> &histogram);
+  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
+                 CompType typeCast, float pixel[4]);
+  bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
+                 float *maxval);
+  bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
+                    float maxval, bool channels[4], std::vector<uint32_t> &histogram);
 
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(const std::vector<uint32_t> &passEvents);
@@ -324,8 +325,8 @@ public:
                               MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData);
-  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                      const GetTextureDataParams &params, bytebuf &data);
+  void GetTextureData(ResourceId tex, const Subresource &sub, const GetTextureDataParams &params,
+                      bytebuf &data);
 
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
@@ -360,28 +361,25 @@ public:
                             const bytebuf &data);
 
   std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
-                                              uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                                              uint32_t sampleIdx, CompType typeCast);
+                                              uint32_t x, uint32_t y, const Subresource &sub,
+                                              CompType typeCast);
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                               uint32_t primitive);
   ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                const uint32_t threadid[3]);
-  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeCast, float pixel[4]);
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
   ResourceId RenderOverlay(ResourceId cfg, CompType typeCast, FloatVector clearCol,
                            DebugOverlay overlay, uint32_t eventId,
                            const std::vector<uint32_t> &passEvents);
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeCast);
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
+                               CompType typeCast);
 
   ResourceId CreateProxyTexture(const TextureDescription &templateTex);
-  void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
-                           size_t dataSize);
+  void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data, size_t dataSize);
   bool IsTextureSupported(const ResourceFormat &format);
   bool NeedRemapForFetch(const ResourceFormat &format);
 
@@ -426,8 +424,8 @@ private:
 
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeCast, bool stencil, float *minval, float *maxval);
+  bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, bool stencil,
+                 float *minval, float *maxval);
 
   VulkanDebugManager *GetDebugManager();
   VulkanResourceManager *GetResourceManager();

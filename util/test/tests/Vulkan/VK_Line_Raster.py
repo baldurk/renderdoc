@@ -21,7 +21,7 @@ class VK_Line_Raster(rdtest.TestCase):
             x = self.view[0] * col + p[0]
             y = self.view[1] * row + p[1]
 
-            picked: rd.PixelValue = self.out.PickPixel(self.tex.resourceId, False, x, y, 0, 0, 0)
+            picked: rd.PixelValue = self.controller.PickPixel(self.tex, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
             ret.append(rdtest.value_compare(picked.floatValue, [0.0, 1.0, 1.0, 1.0]))
         return ret
 
@@ -34,16 +34,11 @@ class VK_Line_Raster(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        # Make an output so we can pick pixels
-        self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.tex = rd.TextureDisplay()
-        self.tex.resourceId = pipe.GetOutputTargets()[0].resourceId
-        self.out.SetTextureDisplay(self.tex)
+        self.tex = pipe.GetOutputTargets()[0].resourceId
 
-        texdetails = self.get_texture(self.tex.resourceId)
+        texdetails = self.get_texture(self.tex)
 
         # Top left we expect a regular line segment.
         s = self.sample(0, 0)
@@ -85,5 +80,3 @@ class VK_Line_Raster(rdtest.TestCase):
                 rdtest.log.success("{} line not supported".format(n))
 
         rdtest.log.success("All lines look as expected")
-
-        self.out.Shutdown()

@@ -740,17 +740,16 @@ Should only be called for texture outputs.
 
 :param WindowingData window: A :class:`WindowingData` describing the native window.
 :param ResourceId textureId: The texture ID to display in the thumbnail preview.
+:param Subresource sub: The subresource within this texture to use.
 :param CompType typeCast: If possible interpret the texture with this type instead of its normal
   type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
   texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
   normalised values.
-:param int slice: The slice of the texture to display.
-:param int mip: The mip of the texture to display.
 :return: A boolean indicating if the thumbnail was successfully created.
 :rtype: ``bool``
 )");
-  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, CompType typeCast,
-                            uint32_t mip, uint32_t slice) = 0;
+  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, const Subresource &sub,
+                            CompType typeCast) = 0;
 
   DOCUMENT(R"(Render to the window handle specified when the output was created.
 
@@ -780,34 +779,6 @@ Should only be called for texture outputs.
   DOCUMENT("Disable the pixel context view from rendering.");
   virtual void DisablePixelContext() = 0;
 
-  DOCUMENT(R"(Retrieves the minimum and maximum values in the current texture.
-
-Should only be called for texture outputs.
-
-:return: A tuple with the minimum and maximum pixel values respectively.
-:rtype: ``tuple`` of PixelValue and PixelValue
-)");
-  virtual rdcpair<PixelValue, PixelValue> GetMinMax() = 0;
-
-  DOCUMENT(R"(Retrieve a list of values that can be used to show a histogram of values for the
-current texture.
-
-The output list contains N buckets, and each bucket has the number of pixels that falls in each
-bucket when the pixel values are divided between ``minval`` and ``maxval``.
-
-Should only be called for texture outputs.
-
-:param float minval: The lower end of the smallest bucket. If any values are below this, they are
-  not added to any bucket.
-:param float maxval: The upper end of the largest bucket. If any values are above this, they are
-  not added to any bucket.
-:param list channels: A list of four ``bool`` values indicating whether each of RGBA should be
-  included in the count.
-:return: A list of the unnormalised bucket values.
-:rtype: ``list`` of ``int``
-)");
-  virtual rdcarray<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]) = 0;
-
   DOCUMENT(R"(Retrieves the :class:`ResourceId` containing the contents of the texture after being
 passed through a custom shader pass.
 
@@ -827,29 +798,6 @@ Should only be called for texture outputs.
 :rtype: ResourceId
 )");
   virtual ResourceId GetDebugOverlayTexID() = 0;
-
-  DOCUMENT(R"(Retrieve the contents of a particular pixel in a texture.
-
-Should only be called for texture outputs.
-
-.. note::
-  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
-  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
-  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
-  bottom-left co-ordinates, care must be taken to translate them.
-
-:param ResourceId textureId: The texture to pick the pixel from.
-:param bool customShader: Whether to apply the configured custom shader.
-:param int x: The x co-ordinate to pick from.
-:param int y: The y co-ordinate to pick from.
-:param int sliceFace: The slice of an array or 3D texture, or face of a cubemap texture.
-:param int mip: The mip level to pick from.
-:param int sample: The multisample sample to pick from.
-:return: The contents of the pixel.
-:rtype: PixelValue
-)");
-  virtual PixelValue PickPixel(ResourceId textureId, bool customShader, uint32_t x, uint32_t y,
-                               uint32_t sliceFace, uint32_t mip, uint32_t sample) = 0;
 
   DOCUMENT(R"(Retrieves the vertex and instance that is under the cursor location, when viewed
 relative to the current window with the current mesh display configuration.
@@ -1235,6 +1183,67 @@ only ever have one result (only one entry point per shader).
   virtual ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
                                       ShaderEntryPoint entry) = 0;
 
+  DOCUMENT(R"(Retrieve the contents of a particular pixel in a texture.
+
+.. note::
+  X and Y co-ordinates are always considered to be top-left, even on GL, for consistency between
+  APIs and preventing the need for API-specific code in most cases. This means if co-ordinates are
+  fetched from e.g. viewport or scissor data or other GL pipeline state which is perhaps in
+  bottom-left co-ordinates, care must be taken to translate them.
+
+:param ResourceId textureId: The texture to pick the pixel from.
+:param int x: The x co-ordinate to pick from.
+:param int y: The y co-ordinate to pick from.
+:param Subresource sub: The subresource within this texture to use.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
+:return: The contents of the pixel.
+:rtype: PixelValue
+)");
+  virtual PixelValue PickPixel(ResourceId textureId, uint32_t x, uint32_t y, const Subresource &sub,
+                               CompType typeCast) = 0;
+
+  DOCUMENT(R"(Retrieves the minimum and maximum values in the specified texture.
+
+:param ResourceId textureId: The texture to get the values from.
+:param Subresource sub: The subresource within this texture to use.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
+:return: A tuple with the minimum and maximum pixel values respectively.
+:rtype: ``tuple`` of PixelValue and PixelValue
+)");
+  virtual rdcpair<PixelValue, PixelValue> GetMinMax(ResourceId textureId, const Subresource &sub,
+                                                    CompType typeCast) = 0;
+
+  DOCUMENT(R"(Retrieve a list of values that can be used to show a histogram of values for the
+specified texture.
+
+The output list contains N buckets, and each bucket has the number of pixels that falls in each
+bucket when the pixel values are divided between ``minval`` and ``maxval``.
+
+:param ResourceId textureId: The texture to get the histogram from.
+:param Subresource sub: The subresource within this texture to use.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
+:param float minval: The lower end of the smallest bucket. If any values are below this, they are
+  not added to any bucket.
+:param float maxval: The upper end of the largest bucket. If any values are above this, they are
+  not added to any bucket.
+:param list channels: A list of four ``bool`` values indicating whether each of RGBA should be
+  included in the count.
+:return: A list of the unnormalised bucket values.
+:rtype: ``list`` of ``int``
+)");
+  virtual rdcarray<uint32_t> GetHistogram(ResourceId textureId, const Subresource &sub,
+                                          CompType typeCast, float minval, float maxval,
+                                          bool channels[4]) = 0;
+
   DOCUMENT(R"(Retrieve the history of modifications to the selected pixel on the selected texture.
 
 .. note::
@@ -1246,8 +1255,7 @@ only ever have one result (only one entry point per shader).
 :param ResourceId texture: The texture to search for modifications.
 :param int x: The x co-ordinate.
 :param int y: The y co-ordinate.
-:param int slice: The slice of an array or 3D texture, or face of a cubemap texture.
-:param int mip: The mip level to pick from.
+:param Subresource sub: The subresource within this texture to use.
 :param int sampleIdx: The multi-sampled sample. Ignored if non-multisampled texture.
 :param CompType typeCast: If possible interpret the texture with this type instead of its normal
   type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
@@ -1257,8 +1265,7 @@ only ever have one result (only one entry point per shader).
 :rtype: ``list`` of :class:`PixelModification`
 )");
   virtual rdcarray<PixelModification> PixelHistory(ResourceId texture, uint32_t x, uint32_t y,
-                                                   uint32_t slice, uint32_t mip, uint32_t sampleIdx,
-                                                   CompType typeCast) = 0;
+                                                   const Subresource &sub, CompType typeCast) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a vertex shader.
 
@@ -1369,17 +1376,12 @@ texture to something compatible with the target file format.
 
   DOCUMENT(R"(Retrieve the contents of one subresource of a texture as a ``bytes``.
 
-For multi-sampled images, they are treated as if they are an array that is Nx longer, with each
-array slice being expanded in-place so it would be slice 0: sample 0, slice 0: sample 1, slice 1:
-sample 0, etc.
-
 :param ResourceId tex: The id of the texture to retrieve data from.
-:param int arrayIdx: The slice of an array or 3D texture, or face of a cubemap texture.
-:param int mip: The mip level to pick from.
+:param Subresource sub: The subresource within this texture to use.
 :return: The requested texture contents.
 :rtype: ``bytes``
 )");
-  virtual bytebuf GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip) = 0;
+  virtual bytebuf GetTextureData(ResourceId tex, const Subresource &sub) = 0;
 
   static const uint32_t NoPreference = ~0U;
 
