@@ -32,11 +32,11 @@
 #include "data/glsl/glsl_ubos_cpp.h"
 
 void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
-                                      CompType typeHint, TextureDisplayViews &views)
+                                      CompType typeCast, TextureDisplayViews &views)
 {
   VkDevice dev = m_pDriver->GetDev();
 
-  if(views.typeHint != typeHint)
+  if(views.typeCast != typeCast)
   {
     // if the type hint has changed, recreate the image views
     for(size_t i = 0; i < ARRAY_COUNT(views.views); i++)
@@ -46,9 +46,9 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
     }
   }
 
-  views.typeHint = typeHint;
+  views.typeCast = typeCast;
 
-  VkFormat fmt = views.castedFormat = GetViewCastedFormat(iminfo.format, typeHint);
+  VkFormat fmt = views.castedFormat = GetViewCastedFormat(iminfo.format, typeCast);
 
   // all types have at least views[0] populated, so if it's still there, we can just return
   if(views.views[0] != VK_NULL_HANDLE)
@@ -169,7 +169,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   if(!layouts.isMemoryBound)
     return false;
 
-  CreateTexImageView(liveIm, iminfo, cfg.typeHint, texviews);
+  CreateTexImageView(liveIm, iminfo, cfg.typeCast, texviews);
 
   int displayformat = 0;
   uint32_t descSetBinding = 0;

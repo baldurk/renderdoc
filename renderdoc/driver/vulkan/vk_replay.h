@@ -310,9 +310,9 @@ public:
   std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeHint, float *minval, float *maxval);
+                 CompType typeCast, float *minval, float *maxval);
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeCast, float minval, float maxval, bool channels[4],
                     std::vector<uint32_t> &histogram);
 
   void InitPostVSBuffers(uint32_t eventId);
@@ -361,7 +361,7 @@ public:
 
   std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
                                               uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                                              uint32_t sampleIdx, CompType typeHint);
+                                              uint32_t sampleIdx, CompType typeCast);
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -369,15 +369,15 @@ public:
   ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                const uint32_t threadid[3]);
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeHint, float pixel[4]);
+                 uint32_t sample, CompType typeCast, float pixel[4]);
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId cfg, CompType typeHint, FloatVector clearCol,
+  ResourceId RenderOverlay(ResourceId cfg, CompType typeCast, FloatVector clearCol,
                            DebugOverlay overlay, uint32_t eventId,
                            const std::vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeHint);
+                               uint32_t sampleIdx, CompType typeCast);
 
   ResourceId CreateProxyTexture(const TextureDescription &templateTex);
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
@@ -427,7 +427,7 @@ private:
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeHint, bool stencil, float *minval, float *maxval);
+                 CompType typeCast, bool stencil, float *minval, float *maxval);
 
   VulkanDebugManager *GetDebugManager();
   VulkanResourceManager *GetResourceManager();
@@ -517,7 +517,7 @@ private:
 
   struct TextureDisplayViews
   {
-    CompType typeHint;
+    CompType typeCast;
     VkFormat castedFormat;    // the format after applying the above type hint
 
     // for a color/depth-only textures, views[0] is the view and views[1] and views[2] are NULL
@@ -717,7 +717,7 @@ private:
   void CachePipelineExecutables(ResourceId pipeline);
 
   void CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
-                          CompType typeHint, TextureDisplayViews &views);
+                          CompType typeCast, TextureDisplayViews &views);
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, std::vector<uint32_t> *eventIDs);
 

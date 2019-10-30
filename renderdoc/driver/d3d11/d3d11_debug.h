@@ -115,7 +115,7 @@ public:
 
   void FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size);
 
-  TextureShaderDetails GetShaderDetails(ResourceId id, CompType typeHint, bool rawOutput);
+  TextureShaderDetails GetShaderDetails(ResourceId id, CompType typeCast, bool rawOutput);
 
   void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
@@ -126,7 +126,7 @@ public:
   struct CacheElem
   {
     CacheElem(ResourceId id_, CompType typeHint_, bool raw_)
-        : created(false), id(id_), typeHint(typeHint_), raw(raw_), srvResource(NULL)
+        : created(false), id(id_), typeCast(typeHint_), raw(raw_), srvResource(NULL)
     {
       srv[0] = srv[1] = NULL;
     }
@@ -140,13 +140,13 @@ public:
 
     bool created;
     ResourceId id;
-    CompType typeHint;
+    CompType typeCast;
     bool raw;
     ID3D11Resource *srvResource;
     ID3D11ShaderResourceView *srv[2];
   };
 
-  CacheElem &GetCachedElem(ResourceId id, CompType typeHint, bool raw);
+  CacheElem &GetCachedElem(ResourceId id, CompType typeCast, bool raw);
 
 private:
   void InitCommonResources();

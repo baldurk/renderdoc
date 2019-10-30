@@ -113,7 +113,7 @@ int Following::GetFirstArraySlice(ICaptureContext &ctx)
 
 CompType Following::GetTypeHint(ICaptureContext &ctx)
 {
-  return GetBoundResource(ctx, arrayEl).typeHint;
+  return GetBoundResource(ctx, arrayEl).typeCast;
 }
 
 ResourceId Following::GetResourceId(ICaptureContext &ctx)
@@ -805,10 +805,10 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
   bool uintTex = (tex.format.compType == CompType::UInt);
   bool sintTex = (tex.format.compType == CompType::SInt);
 
-  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::UInt)
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::UInt)
     uintTex = true;
 
-  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::SInt)
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::SInt)
     sintTex = true;
 
   if(m_TexDisplay.customShaderId != ResourceId())
@@ -887,10 +887,10 @@ void TextureViewer::UI_UpdateStatusText()
   bool uintTex = (tex.format.compType == CompType::UInt);
   bool sintTex = (tex.format.compType == CompType::SInt);
 
-  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::UInt)
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::UInt)
     uintTex = true;
 
-  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::SInt)
+  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::SInt)
     sintTex = true;
 
   if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
@@ -1173,13 +1173,13 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   CompType viewCast = CompType::Typeless;
 
-  if(current.format.compType != m_TexDisplay.typeHint &&
-     m_TexDisplay.typeHint != CompType::Typeless && !yuv)
+  if(current.format.compType != m_TexDisplay.typeCast &&
+     m_TexDisplay.typeCast != CompType::Typeless && !yuv)
   {
-    viewCast = m_TexDisplay.typeHint;
+    viewCast = m_TexDisplay.typeCast;
   }
   else if(current.format.compType == CompType::Typeless &&
-          m_TexDisplay.typeHint == CompType::Typeless && !yuv)
+          m_TexDisplay.typeCast == CompType::Typeless && !yuv)
   {
     // if it's a typeless texture and we don't have a hint, ensure the user knows it's being viewed
     // as unorm as a fallback
@@ -1229,22 +1229,22 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_TextureSettings[m_TexDisplay.resourceId].minrange = ui->rangeHistogram->blackPoint();
     m_TextureSettings[m_TexDisplay.resourceId].maxrange = ui->rangeHistogram->whitePoint();
 
-    if(m_TexDisplay.typeHint != CompType::Typeless)
-      m_TextureSettings[m_TexDisplay.resourceId].typeHint = m_TexDisplay.typeHint;
+    if(m_TexDisplay.typeCast != CompType::Typeless)
+      m_TextureSettings[m_TexDisplay.resourceId].typeCast = m_TexDisplay.typeCast;
   }
 
   m_TexDisplay.resourceId = tex.resourceId;
 
   // interpret the texture according to the currently following type.
   if(!currentTextureIsLocked())
-    m_TexDisplay.typeHint = m_Following.GetTypeHint(m_Ctx);
+    m_TexDisplay.typeCast = m_Following.GetTypeHint(m_Ctx);
   else
-    m_TexDisplay.typeHint = CompType::Typeless;
+    m_TexDisplay.typeCast = CompType::Typeless;
 
   // if there is no such type or it isn't being followed, use the last seen interpretation
-  if(m_TexDisplay.typeHint == CompType::Typeless &&
+  if(m_TexDisplay.typeCast == CompType::Typeless &&
      m_TextureSettings.contains(m_TexDisplay.resourceId))
-    m_TexDisplay.typeHint = m_TextureSettings[m_TexDisplay.resourceId].typeHint;
+    m_TexDisplay.typeCast = m_TextureSettings[m_TexDisplay.resourceId].typeCast;
 
   // try to maintain the pan in the new texture. If the new texture
   // is approx an integer multiple of the old texture, just changing
@@ -1475,14 +1475,14 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
         ui->flip_y->setChecked(false);
 
       m_NoRangePaint = true;
-      UI_SetHistogramRange(texptr, m_TexDisplay.typeHint);
+      UI_SetHistogramRange(texptr, m_TexDisplay.typeCast);
       m_NoRangePaint = false;
     }
 
     // reset the range if desired
     if(m_Ctx.Config().TextureViewer_ResetRange)
     {
-      UI_SetHistogramRange(texptr, m_TexDisplay.typeHint);
+      UI_SetHistogramRange(texptr, m_TexDisplay.typeCast);
     }
   }
 
@@ -1505,9 +1505,9 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   HighlightUsage();
 }
 
-void TextureViewer::UI_SetHistogramRange(const TextureDescription *tex, CompType typeHint)
+void TextureViewer::UI_SetHistogramRange(const TextureDescription *tex, CompType typeCast)
 {
-  if(tex != NULL && (tex->format.compType == CompType::SNorm || typeHint == CompType::SNorm))
+  if(tex != NULL && (tex->format.compType == CompType::SNorm || typeCast == CompType::SNorm))
     ui->rangeHistogram->setRange(-1.0f, 1.0f);
   else
     ui->rangeHistogram->setRange(0.0f, 1.0f);
@@ -2164,7 +2164,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     if(m_Ctx.GetTexture(res.resourceId))
     {
       m_Ctx.Replay().AsyncInvoke([this, winData, res](IReplayController *) {
-        m_Output->AddThumbnail(winData, res.resourceId, res.typeHint,
+        m_Output->AddThumbnail(winData, res.resourceId, res.typeCast,
                                res.firstMip >= 0 ? res.firstMip : 0,
                                res.firstSlice >= 0 ? res.firstSlice : 0);
       });
@@ -3322,7 +3322,7 @@ void TextureViewer::on_autoFit_mouseClicked(QMouseEvent *e)
 
 void TextureViewer::on_reset01_clicked()
 {
-  UI_SetHistogramRange(GetCurrentTexture(), m_TexDisplay.typeHint);
+  UI_SetHistogramRange(GetCurrentTexture(), m_TexDisplay.typeCast);
 
   ui->autoFit->setChecked(false);
 
@@ -3369,9 +3369,9 @@ void TextureViewer::AutoFitRange()
       {
         fmt.compType = CompType::Float;
       }
-      if(fmt.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::UInt)
+      if(fmt.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::UInt)
         fmt.compType = CompType::UInt;
-      if(fmt.compType == CompType::Typeless && m_TexDisplay.typeHint == CompType::SInt)
+      if(fmt.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::SInt)
         fmt.compType = CompType::SInt;
 
       for(int i = 0; i < 4; i++)
@@ -3611,7 +3611,7 @@ void TextureViewer::on_saveTex_clicked()
 
   // overwrite save params with current texture display settings
   m_SaveConfig.resourceId = m_TexDisplay.resourceId;
-  m_SaveConfig.typeHint = m_TexDisplay.typeHint;
+  m_SaveConfig.typeCast = m_TexDisplay.typeCast;
   m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
   m_SaveConfig.mip = (int)m_TexDisplay.mip;
 
@@ -3778,7 +3778,7 @@ void TextureViewer::on_pixelHistory_clicked()
     m_Ctx.Replay().AsyncInvoke([this, texptr, x, y, hist, histWidget](IReplayController *r) {
       rdcarray<PixelModification> history =
           r->PixelHistory(texptr->resourceId, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
-                          m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeHint);
+                          m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeCast);
 
       GUIInvoke::call(this, [hist, histWidget, history] {
         if(histWidget)

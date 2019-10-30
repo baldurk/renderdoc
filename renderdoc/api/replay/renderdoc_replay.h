@@ -740,12 +740,16 @@ Should only be called for texture outputs.
 
 :param WindowingData window: A :class:`WindowingData` describing the native window.
 :param ResourceId textureId: The texture ID to display in the thumbnail preview.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
 :param int slice: The slice of the texture to display.
 :param int mip: The mip of the texture to display.
 :return: A boolean indicating if the thumbnail was successfully created.
 :rtype: ``bool``
 )");
-  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, CompType typeHint,
+  virtual bool AddThumbnail(WindowingData window, ResourceId textureId, CompType typeCast,
                             uint32_t mip, uint32_t slice) = 0;
 
   DOCUMENT(R"(Render to the window handle specified when the output was created.
@@ -1245,13 +1249,16 @@ only ever have one result (only one entry point per shader).
 :param int slice: The slice of an array or 3D texture, or face of a cubemap texture.
 :param int mip: The mip level to pick from.
 :param int sampleIdx: The multi-sampled sample. Ignored if non-multisampled texture.
-:param CompType typeHint: A hint on how to interpret textures that are typeless.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
 :return: The list of pixel history events.
 :rtype: ``list`` of :class:`PixelModification`
 )");
   virtual rdcarray<PixelModification> PixelHistory(ResourceId texture, uint32_t x, uint32_t y,
                                                    uint32_t slice, uint32_t mip, uint32_t sampleIdx,
-                                                   CompType typeHint) = 0;
+                                                   CompType typeCast) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a vertex shader.
 

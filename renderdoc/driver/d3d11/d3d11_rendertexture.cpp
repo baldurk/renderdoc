@@ -32,12 +32,12 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, CompType typeHint,
+D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, CompType typeCast,
                                                                bool raw)
 {
   for(auto it = m_ShaderItemCache.begin(); it != m_ShaderItemCache.end(); ++it)
   {
-    if(it->id == id && it->typeHint == typeHint && it->raw == raw)
+    if(it->id == id && it->typeCast == typeCast && it->raw == raw)
       return *it;
   }
 
@@ -48,11 +48,11 @@ D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, Co
     m_ShaderItemCache.pop_back();
   }
 
-  m_ShaderItemCache.push_front(CacheElem(id, typeHint, raw));
+  m_ShaderItemCache.push_front(CacheElem(id, typeCast, raw));
   return m_ShaderItemCache.front();
 }
 
-TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType typeHint,
+TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType typeCast,
                                                          bool rawOutput)
 {
   TextureShaderDetails details;
@@ -60,7 +60,7 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
 
   bool foundResource = false;
 
-  CacheElem &cache = GetCachedElem(id, typeHint, rawOutput);
+  CacheElem &cache = GetCachedElem(id, typeCast, rawOutput);
 
   bool msaaDepth = false;
 
@@ -89,7 +89,7 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
     details.texArraySize = desc1d.ArraySize;
     details.texMips = desc1d.MipLevels;
 
-    srvFormat = GetTypedFormat(details.texFmt, typeHint);
+    srvFormat = GetTypedFormat(details.texFmt, typeCast);
 
     details.srvResource = wrapTex1D;
 
@@ -152,10 +152,10 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
     }
 
     if(mode == TEXDISPLAY_DEPTH_TARGET || IsDepthFormat(details.texFmt) ||
-       IsDepthFormat(GetTypedFormat(details.texFmt, typeHint)))
+       IsDepthFormat(GetTypedFormat(details.texFmt, typeCast)))
     {
       details.texType = eTexType_Depth;
-      details.texFmt = GetTypedFormat(details.texFmt, typeHint);
+      details.texFmt = GetTypedFormat(details.texFmt, typeCast);
     }
 
     // backbuffer is always interpreted as SRGB data regardless of format specified:
@@ -179,7 +179,7 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
         details.texFmt = GetSRGBFormat(wrapTex2D->m_RealDescriptor->Format);
     }
 
-    srvFormat = GetTypedFormat(details.texFmt, typeHint);
+    srvFormat = GetTypedFormat(details.texFmt, typeCast);
 
     details.srvResource = wrapTex2D;
 
@@ -246,7 +246,7 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
     details.texArraySize = 1;
     details.texMips = desc3d.MipLevels;
 
-    srvFormat = GetTypedFormat(details.texFmt, typeHint);
+    srvFormat = GetTypedFormat(details.texFmt, typeCast);
 
     details.srvResource = wrapTex3D;
 
@@ -504,7 +504,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   pixelData.FlipY = cfg.flipY ? 1 : 0;
 
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(cfg.resourceId, cfg.typeHint,
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(cfg.resourceId, cfg.typeCast,
                                                                      cfg.rawOutput ? true : false);
 
   int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
@@ -750,13 +750,13 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   int srvOffset = 0;
 
   if(IsUIntFormat(details.texFmt) ||
-     (IsTypelessFormat(details.texFmt) && cfg.typeHint == CompType::UInt))
+     (IsTypelessFormat(details.texFmt) && cfg.typeCast == CompType::UInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
     srvOffset = 10;
   }
   if(IsIntFormat(details.texFmt) ||
-     (IsTypelessFormat(details.texFmt) && cfg.typeHint == CompType::SInt))
+     (IsTypelessFormat(details.texFmt) && cfg.typeCast == CompType::SInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
     srvOffset = 20;

@@ -198,8 +198,13 @@ struct TextureDisplay
   DOCUMENT("The :class:`ResourceId` of the texture to display.");
   ResourceId resourceId;
 
-  DOCUMENT("An optional :class:`CompType` hint to use when displaying a typeless texture.");
-  CompType typeHint = CompType::Typeless;
+  DOCUMENT(R"(If possible interpret the texture with this type instead of its normal type.
+
+If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the texture
+data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned normalised
+values.
+)");
+  CompType typeCast = CompType::Typeless;
 
   DOCUMENT("The value in each channel to map to the black point.");
   float rangeMin = 0.0f;
@@ -407,8 +412,13 @@ struct TextureSave
   DOCUMENT("The :class:`ResourceId` of the texture to save.");
   ResourceId resourceId;
 
-  DOCUMENT("An optional :class:`CompType` hint to use when saving a typeless texture.");
-  CompType typeHint = CompType::Typeless;
+  DOCUMENT(R"(If possible interpret the texture with this type instead of its normal type.
+
+If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the texture
+data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned normalised
+values.
+)");
+  CompType typeCast = CompType::Typeless;
 
   DOCUMENT("The :class:`FileType` to use when saving to the destination file.");
   FileType destType = FileType::DDS;

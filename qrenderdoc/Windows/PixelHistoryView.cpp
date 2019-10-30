@@ -51,7 +51,7 @@ public:
     CompType compType = m_Tex->format.compType;
 
     if(compType == CompType::Typeless)
-      compType = display.typeHint;
+      compType = display.typeCast;
 
     m_IsUint = (compType == CompType::UInt);
     m_IsSint = (compType == CompType::SInt);

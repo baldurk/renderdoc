@@ -44,7 +44,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GetTextureDataParams &el)
 {
   SERIALISE_MEMBER(forDiskSave);
-  SERIALISE_MEMBER(typeHint);
+  SERIALISE_MEMBER(typeCast);
   SERIALISE_MEMBER(resolve);
   SERIALISE_MEMBER(remap);
   SERIALISE_MEMBER(blackPoint);

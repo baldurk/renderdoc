@@ -200,7 +200,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   D3D12RenderState m_PrevState;
 };
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                       DebugOverlay overlay, uint32_t eventId,
                                       const std::vector<uint32_t> &passEvents)
 {
@@ -216,7 +216,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, Float
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
-  GetDebugManager()->PrepareTextureSampling(resource, typeHint, resType, barriers);
+  GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
   D3D12_RESOURCE_DESC overlayTexDesc;
   overlayTexDesc.Alignment = 0;

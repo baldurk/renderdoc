@@ -1335,7 +1335,7 @@ void GLReplay::RestoreSamplerParams(GLenum target, GLuint texname, TextureSample
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         CompType typeHint, float *minval, float *maxval)
+                         CompType typeCast, float *minval, float *maxval)
 {
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -1350,12 +1350,12 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
 
     bool success =
-        GetMinMax(texid, sliceFace, mip, sample, typeHint, false, &depth[0].x, &depth[1].x);
+        GetMinMax(texid, sliceFace, mip, sample, typeCast, false, &depth[0].x, &depth[1].x);
 
     if(!success)
       return false;
 
-    success = GetMinMax(texid, sliceFace, mip, sample, typeHint, true, (float *)&stencil[0].x,
+    success = GetMinMax(texid, sliceFace, mip, sample, typeCast, true, (float *)&stencil[0].x,
                         (float *)&stencil[1].x);
 
     if(!success)
@@ -1386,11 +1386,11 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     return true;
   }
 
-  return GetMinMax(texid, sliceFace, mip, sample, typeHint, false, minval, maxval);
+  return GetMinMax(texid, sliceFace, mip, sample, typeCast, false, minval, maxval);
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         CompType typeHint, bool stencil, float *minval, float *maxval)
+                         CompType typeCast, bool stencil, float *minval, float *maxval)
 {
   if(texid == ResourceId() || m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
     return false;
@@ -1611,7 +1611,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 }
 
 bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeHint, float minval, float maxval, bool channels[4],
+                            CompType typeCast, float minval, float maxval, bool channels[4],
                             std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval || texid == ResourceId())
@@ -2335,7 +2335,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                         uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
+                         uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
 {
   WrappedOpenGL &drv = *m_pDriver;
 
@@ -2364,7 +2364,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
   texDisplay.rangeMax = 1.0f;
   texDisplay.scale = 1.0f;
   texDisplay.resourceId = texture;
-  texDisplay.typeHint = typeHint;
+  texDisplay.typeCast = typeCast;
   texDisplay.rawOutput = true;
   texDisplay.xOffset = -float(x << mip);
   texDisplay.yOffset = -float(y << mip);

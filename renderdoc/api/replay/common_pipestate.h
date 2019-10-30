@@ -235,7 +235,7 @@ struct BoundResource
     dynamicallyUsed = true;
     firstMip = -1;
     firstSlice = -1;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
   }
   BoundResource(ResourceId id)
   {
@@ -243,14 +243,14 @@ struct BoundResource
     dynamicallyUsed = true;
     firstMip = -1;
     firstSlice = -1;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
   }
   BoundResource(const BoundResource &) = default;
 
   bool operator==(const BoundResource &o) const
   {
     return resourceId == o.resourceId && firstMip == o.firstMip && firstSlice == o.firstSlice &&
-           typeHint == o.typeHint;
+           typeCast == o.typeCast;
   }
   bool operator<(const BoundResource &o) const
   {
@@ -260,8 +260,8 @@ struct BoundResource
       return firstMip < o.firstMip;
     if(firstSlice != o.firstSlice)
       return firstSlice < o.firstSlice;
-    if(typeHint != o.typeHint)
-      return typeHint < o.typeHint;
+    if(typeCast != o.typeCast)
+      return typeCast < o.typeCast;
     return false;
   }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the bound resource.");
@@ -278,7 +278,7 @@ scenarios where only a small sparse subset of bound resources are actually used.
   int firstSlice;
   DOCUMENT(
       "For textures, a :class:`~renderdoc.CompType` hint for how to interpret typeless textures.");
-  CompType typeHint;
+  CompType typeCast;
 };
 
 DECLARE_REFLECTION_STRUCT(BoundResource);

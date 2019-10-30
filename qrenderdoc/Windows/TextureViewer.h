@@ -105,7 +105,7 @@ struct TexSettings
     slice = 0;
     minrange = 0.0f;
     maxrange = 1.0f;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
   }
 
   int displayType;    // RGBA, RGBM, YUV Decode, Custom
@@ -115,7 +115,7 @@ struct TexSettings
   bool depth, stencil;
   int mip, slice;
   float minrange, maxrange;
-  CompType typeHint;
+  CompType typeCast;
 };
 
 class TextureViewer : public QFrame, public ITextureViewer, public ICaptureViewer
@@ -228,7 +228,7 @@ private:
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);
 
-  void UI_SetHistogramRange(const TextureDescription *tex, CompType typeHint);
+  void UI_SetHistogramRange(const TextureDescription *tex, CompType typeCast);
 
   void UI_UpdateChannels();
 

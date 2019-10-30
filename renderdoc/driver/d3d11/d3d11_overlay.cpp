@@ -38,11 +38,11 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                       DebugOverlay overlay, uint32_t eventId,
                                       const std::vector<uint32_t> &passEvents)
 {
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, false);
 
   D3D11MarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
 

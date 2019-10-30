@@ -246,14 +246,14 @@ public:
   }
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeHint, float *minval, float *maxval)
+                 CompType typeCast, float *minval, float *maxval)
   {
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
       if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
         return false;
-      return m_Proxy->GetMinMax(m_ProxyTextures[texid], sliceFace, mip, sample, typeHint, minval,
+      return m_Proxy->GetMinMax(m_ProxyTextures[texid], sliceFace, mip, sample, typeCast, minval,
                                 maxval);
     }
 
@@ -261,7 +261,7 @@ public:
   }
 
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeCast, float minval, float maxval, bool channels[4],
                     std::vector<uint32_t> &histogram)
   {
     if(m_Proxy)
@@ -269,7 +269,7 @@ public:
       EnsureTexCached(texid, sliceFace, mip);
       if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
         return false;
-      return m_Proxy->GetHistogram(m_ProxyTextures[texid], sliceFace, mip, sample, typeHint, minval,
+      return m_Proxy->GetHistogram(m_ProxyTextures[texid], sliceFace, mip, sample, typeCast, minval,
                                    maxval, channels, histogram);
     }
 
@@ -300,7 +300,7 @@ public:
   }
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeHint, float pixel[4])
+                 uint32_t sample, CompType typeCast, float pixel[4])
   {
     if(m_Proxy)
     {
@@ -322,7 +322,7 @@ public:
         y = (mipHeight - 1) - y;
       }
 
-      m_Proxy->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
+      m_Proxy->PickPixel(texture, x, y, sliceFace, mip, sample, typeCast, pixel);
     }
   }
 
@@ -434,7 +434,7 @@ public:
   }
 
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeHint)
+                               uint32_t sampleIdx, CompType typeCast)
   {
     if(m_Proxy)
     {
@@ -443,7 +443,7 @@ public:
         return ResourceId();
       texid = m_ProxyTextures[texid];
       ResourceId customResourceId =
-          m_Proxy->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx, typeHint);
+          m_Proxy->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx, typeCast);
       m_LocalTextures.insert(customResourceId);
       m_ProxyTextures[customResourceId] = customResourceId;
       return customResourceId;
@@ -506,7 +506,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventId, uint32_t instID,
                              uint32_t viewID, MeshDataStage stage);
 
-  IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, CompType typeHint,
+  IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, CompType typeCast,
                              FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                              const std::vector<uint32_t> &passEvents);
 
@@ -523,7 +523,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(std::vector<PixelModification>, PixelHistory,
                              std::vector<EventUsage> events, ResourceId target, uint32_t x,
                              uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx,
-                             CompType typeHint);
+                             CompType typeCast);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugVertex, uint32_t eventId, uint32_t vertid,
                              uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugPixel, uint32_t eventId, uint32_t x, uint32_t y,

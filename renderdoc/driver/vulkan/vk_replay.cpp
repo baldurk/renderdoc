@@ -720,7 +720,7 @@ std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderRef
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                             uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
+                             uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
 {
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
@@ -750,7 +750,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       texDisplay.rangeMax = 1.0f;
       texDisplay.scale = 1.0f;
       texDisplay.resourceId = texture;
-      texDisplay.typeHint = typeHint;
+      texDisplay.typeCast = typeCast;
       texDisplay.rawOutput = true;
       texDisplay.xOffset = -float(x << mip);
       texDisplay.yOffset = -float(y << mip);
@@ -2122,7 +2122,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
 }
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                             CompType typeHint, float *minval, float *maxval)
+                             CompType typeCast, float *minval, float *maxval)
 {
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
 
@@ -2136,12 +2136,12 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     Vec4u stencil[2] = {{0, 0, 0, 0}, {1, 1, 1, 1}};
 
     bool success =
-        GetMinMax(texid, sliceFace, mip, sample, typeHint, false, &depth[0].x, &depth[1].x);
+        GetMinMax(texid, sliceFace, mip, sample, typeCast, false, &depth[0].x, &depth[1].x);
 
     if(!success)
       return false;
 
-    success = GetMinMax(texid, sliceFace, mip, sample, typeHint, true, (float *)&stencil[0].x,
+    success = GetMinMax(texid, sliceFace, mip, sample, typeCast, true, (float *)&stencil[0].x,
                         (float *)&stencil[1].x);
 
     if(!success)
@@ -2157,11 +2157,11 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
     return true;
   }
 
-  return GetMinMax(texid, sliceFace, mip, sample, typeHint, false, minval, maxval);
+  return GetMinMax(texid, sliceFace, mip, sample, typeCast, false, minval, maxval);
 }
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                             CompType typeHint, bool stencil, float *minval, float *maxval)
+                             CompType typeCast, bool stencil, float *minval, float *maxval)
 {
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -2178,7 +2178,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   if(!IsStencilFormat(iminfo.format))
     stencil = false;
 
-  CreateTexImageView(liveIm, iminfo, typeHint, texviews);
+  CreateTexImageView(liveIm, iminfo, typeCast, texviews);
 
   VkImageView liveImView = texviews.views[0];
 
@@ -2480,7 +2480,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 }
 
 bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                CompType typeHint, float minval, float maxval, bool channels[4],
+                                CompType typeCast, float minval, float maxval, bool channels[4],
                                 std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
@@ -2503,7 +2503,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   if(IsStencilFormat(iminfo.format) && !channels[0] && channels[1] && !channels[2] && !channels[3])
     stencil = true;
 
-  CreateTexImageView(liveIm, iminfo, typeHint, texviews);
+  CreateTexImageView(liveIm, iminfo, typeCast, texviews);
 
   uint32_t descSetBinding = 0;
   uint32_t intTypeIndex = 0;
@@ -3033,7 +3033,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.resourceId = tex;
-      texDisplay.typeHint = CompType::Typeless;
+      texDisplay.typeCast = CompType::Typeless;
       texDisplay.rawOutput = false;
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;
@@ -3815,7 +3815,7 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
 }
 
 ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
+                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
 {
   if(shader == ResourceId() || texid == ResourceId())
     return ResourceId();
@@ -3836,7 +3836,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.yOffset = 0.0f;
   disp.customShaderId = shader;
   disp.resourceId = texid;
-  disp.typeHint = typeHint;
+  disp.typeCast = typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

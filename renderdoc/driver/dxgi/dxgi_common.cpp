@@ -1083,7 +1083,7 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f)
   return f;
 }
 
-DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeHint)
+DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeCast)
 {
   switch(f)
   {
@@ -1091,167 +1091,167 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeHint)
 
     case DXGI_FORMAT_R8_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R8_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R8_SINT;
-      if(typeHint == CompType::SNorm)
+      if(typeCast == CompType::SNorm)
         return DXGI_FORMAT_R8_SNORM;
       return DXGI_FORMAT_R8_UNORM;
     }
 
     case DXGI_FORMAT_R8G8_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R8G8_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R8G8_SINT;
-      if(typeHint == CompType::SNorm)
+      if(typeCast == CompType::SNorm)
         return DXGI_FORMAT_R8G8_SNORM;
       return DXGI_FORMAT_R8G8_UNORM;
     }
 
     case DXGI_FORMAT_R8G8B8A8_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R8G8B8A8_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R8G8B8A8_SINT;
-      if(typeHint == CompType::SNorm)
+      if(typeCast == CompType::SNorm)
         return DXGI_FORMAT_R8G8B8A8_SNORM;
-      if(typeHint == CompType::UNormSRGB)
+      if(typeCast == CompType::UNormSRGB)
         return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       return DXGI_FORMAT_R8G8B8A8_UNORM;
     }
 
     case DXGI_FORMAT_R16_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R16_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R16_SINT;
-      if(typeHint == CompType::SNorm)
+      if(typeCast == CompType::SNorm)
         return DXGI_FORMAT_R16_SNORM;
-      if(typeHint == CompType::Float)
+      if(typeCast == CompType::Float)
         return DXGI_FORMAT_R16_FLOAT;
-      if(typeHint == CompType::Depth)
+      if(typeCast == CompType::Depth)
         return DXGI_FORMAT_D16_UNORM;
       return DXGI_FORMAT_R16_UNORM;
     }
 
     case DXGI_FORMAT_R16G16_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R16G16_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R16G16_SINT;
-      if(typeHint == CompType::SNorm)
+      if(typeCast == CompType::SNorm)
         return DXGI_FORMAT_R16G16_SNORM;
-      if(typeHint == CompType::Float)
+      if(typeCast == CompType::Float)
         return DXGI_FORMAT_R16G16_FLOAT;
       return DXGI_FORMAT_R16G16_UNORM;
     }
 
     case DXGI_FORMAT_R16G16B16A16_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R16G16B16A16_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R16G16B16A16_SINT;
-      if(typeHint == CompType::SNorm)
+      if(typeCast == CompType::SNorm)
         return DXGI_FORMAT_R16G16B16A16_SNORM;
-      if(typeHint == CompType::Float)
+      if(typeCast == CompType::Float)
         return DXGI_FORMAT_R16G16B16A16_FLOAT;
       return DXGI_FORMAT_R16G16B16A16_UNORM;
     }
 
     case DXGI_FORMAT_R32_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R32_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R32_SINT;
-      if(typeHint == CompType::Depth)
+      if(typeCast == CompType::Depth)
         return DXGI_FORMAT_D32_FLOAT;
       return DXGI_FORMAT_R32_FLOAT;
     }
 
     case DXGI_FORMAT_R32G32_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R32G32_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R32G32_SINT;
       return DXGI_FORMAT_R32G32_FLOAT;
     }
 
     case DXGI_FORMAT_R32G32B32_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R32G32B32_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R32G32B32_SINT;
       return DXGI_FORMAT_R32G32B32_FLOAT;
     }
 
     case DXGI_FORMAT_R32G32B32A32_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R32G32B32A32_UINT;
-      if(typeHint == CompType::SInt)
+      if(typeCast == CompType::SInt)
         return DXGI_FORMAT_R32G32B32A32_SINT;
       return DXGI_FORMAT_R32G32B32A32_FLOAT;
     }
 
     case DXGI_FORMAT_R32G8X24_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
-      if(typeHint == CompType::Depth)
+      if(typeCast == CompType::Depth)
         return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
       return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
     }
 
     case DXGI_FORMAT_R24G8_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
-      if(typeHint == CompType::Depth)
+      if(typeCast == CompType::Depth)
         return DXGI_FORMAT_D24_UNORM_S8_UINT;
       return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     }
 
     case DXGI_FORMAT_R10G10B10A2_TYPELESS:
     {
-      if(typeHint == CompType::UInt)
+      if(typeCast == CompType::UInt)
         return DXGI_FORMAT_R10G10B10A2_UINT;
       return DXGI_FORMAT_R10G10B10A2_UNORM;
     }
 
     case DXGI_FORMAT_BC4_TYPELESS:
-      return typeHint == CompType::SNorm ? DXGI_FORMAT_BC4_SNORM : DXGI_FORMAT_BC4_UNORM;
+      return typeCast == CompType::SNorm ? DXGI_FORMAT_BC4_SNORM : DXGI_FORMAT_BC4_UNORM;
 
     case DXGI_FORMAT_BC5_TYPELESS:
-      return typeHint == CompType::SNorm ? DXGI_FORMAT_BC5_SNORM : DXGI_FORMAT_BC5_UNORM;
+      return typeCast == CompType::SNorm ? DXGI_FORMAT_BC5_SNORM : DXGI_FORMAT_BC5_UNORM;
 
     case DXGI_FORMAT_BC6H_TYPELESS:
-      return typeHint == CompType::SNorm ? DXGI_FORMAT_BC6H_SF16 : DXGI_FORMAT_BC6H_UF16;
+      return typeCast == CompType::SNorm ? DXGI_FORMAT_BC6H_SF16 : DXGI_FORMAT_BC6H_UF16;
 
     // these formats have only one valid non-typeless format (ignoring SRGB)
     case DXGI_FORMAT_B8G8R8A8_TYPELESS:
-      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB
+      return typeCast == CompType::UNormSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB
                                              : DXGI_FORMAT_B8G8R8A8_UNORM;
     case DXGI_FORMAT_B8G8R8X8_TYPELESS:
-      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_B8G8R8X8_UNORM_SRGB
+      return typeCast == CompType::UNormSRGB ? DXGI_FORMAT_B8G8R8X8_UNORM_SRGB
                                              : DXGI_FORMAT_B8G8R8X8_UNORM;
     case DXGI_FORMAT_BC1_TYPELESS:
-      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
+      return typeCast == CompType::UNormSRGB ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
     case DXGI_FORMAT_BC2_TYPELESS:
-      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
+      return typeCast == CompType::UNormSRGB ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
     case DXGI_FORMAT_BC3_TYPELESS:
-      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
+      return typeCast == CompType::UNormSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
     case DXGI_FORMAT_BC7_TYPELESS:
-      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
+      return typeCast == CompType::UNormSRGB ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
 
     default: break;
   }
@@ -3001,10 +3001,10 @@ TEST_CASE("DXGI formats", "[format][d3d]")
       {
         // this format has special handling, so we skip it from the below Typeless/Typed check
 
-        CompType typeHint = fmt.compType;
+        CompType typeCast = fmt.compType;
 
         DXGI_FORMAT typeless = GetTypelessFormat(f);
-        DXGI_FORMAT typed = GetTypedFormat(typeless, typeHint);
+        DXGI_FORMAT typed = GetTypedFormat(typeless, typeCast);
 
         CHECK(typed == DXGI_FORMAT_R10G10B10A2_UNORM);
 
@@ -3013,11 +3013,11 @@ TEST_CASE("DXGI formats", "[format][d3d]")
 
       if(!IsTypelessFormat(f))
       {
-        CompType typeHint = fmt.compType;
+        CompType typeCast = fmt.compType;
 
         DXGI_FORMAT original = f;
         DXGI_FORMAT typeless = GetTypelessFormat(f);
-        DXGI_FORMAT typed = GetTypedFormat(typeless, typeHint);
+        DXGI_FORMAT typed = GetTypedFormat(typeless, typeCast);
 
         if(fmt.SRGBCorrected())
           typed = GetSRGBFormat(typed);

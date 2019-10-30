@@ -170,9 +170,9 @@ public:
   ResourceId GetLiveID(ResourceId id);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeHint, float *minval, float *maxval);
+                 CompType typeCast, float *minval, float *maxval);
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeCast, float minval, float maxval, bool channels[4],
                     std::vector<uint32_t> &histogram);
 
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
@@ -224,7 +224,7 @@ public:
 
   std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
                                               uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                                              uint32_t sampleIdx, CompType typeHint);
+                                              uint32_t sampleIdx, CompType typeCast);
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -232,11 +232,11 @@ public:
   ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                const uint32_t threadid[3]);
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeHint, float pixel[4]);
+                 uint32_t sample, CompType typeCast, float pixel[4]);
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+  ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                            DebugOverlay overlay, uint32_t eventId,
                            const std::vector<uint32_t> &passEvents);
 
@@ -244,7 +244,7 @@ public:
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
                          std::string *errors);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeHint);
+                               uint32_t sampleIdx, CompType typeCast);
 
   bool IsRenderOutput(ResourceId id);
 

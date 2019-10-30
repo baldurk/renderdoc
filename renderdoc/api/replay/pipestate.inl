@@ -1020,7 +1020,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
         val.resourceId = s.srvs[i].resourceResourceId;
         val.firstMip = (int)s.srvs[i].firstMip;
         val.firstSlice = (int)s.srvs[i].firstSlice;
-        val.typeHint = s.srvs[i].viewFormat.compType;
+        val.typeCast = s.srvs[i].viewFormat.compType;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
@@ -1053,7 +1053,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
           val.resourceId = bind.resourceId;
           val.firstMip = (int)bind.firstMip;
           val.firstSlice = (int)bind.firstSlice;
-          val.typeHint = bind.viewFormat.compType;
+          val.typeCast = bind.viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1073,7 +1073,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
         val.resourceId = m_GL->textures[i].resourceId;
         val.firstMip = (int)m_GL->textures[i].firstMip;
         val.firstSlice = 0;
-        val.typeHint = CompType::Typeless;
+        val.typeCast = CompType::Typeless;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
@@ -1118,7 +1118,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
               val[i].dynamicallyUsed = bind.binds[i].dynamicallyUsed;
               val[i].firstMip = (int)bind.binds[i].firstMip;
               val[i].firstSlice = (int)bind.binds[i].firstSlice;
-              val[i].typeHint = bind.binds[i].viewFormat.compType;
+              val[i].typeCast = bind.binds[i].viewFormat.compType;
             }
           }
         }
@@ -1151,7 +1151,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
           val.resourceId = m_D3D11->computeShader.uavs[i].resourceResourceId;
           val.firstMip = (int)m_D3D11->computeShader.uavs[i].firstMip;
           val.firstSlice = (int)m_D3D11->computeShader.uavs[i].firstSlice;
-          val.typeHint = m_D3D11->computeShader.uavs[i].viewFormat.compType;
+          val.typeCast = m_D3D11->computeShader.uavs[i].viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1179,7 +1179,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
           val.resourceId = m_D3D11->outputMerger.uavs[i].resourceResourceId;
           val.firstMip = (int)m_D3D11->outputMerger.uavs[i].firstMip;
           val.firstSlice = (int)m_D3D11->outputMerger.uavs[i].firstSlice;
-          val.typeHint = m_D3D11->outputMerger.uavs[i].viewFormat.compType;
+          val.typeCast = m_D3D11->outputMerger.uavs[i].viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1211,7 +1211,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
           val.resourceId = bind.resourceId;
           val.firstMip = (int)bind.firstMip;
           val.firstSlice = (int)bind.firstSlice;
-          val.typeHint = bind.viewFormat.compType;
+          val.typeCast = bind.viewFormat.compType;
 
           ret.push_back(BoundResourceArray(key, {val}));
         }
@@ -1229,7 +1229,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
         val.resourceId = m_GL->images[i].resourceId;
         val.firstMip = (int)m_GL->images[i].mipLevel;
         val.firstSlice = (int)m_GL->images[i].slice;
-        val.typeHint = m_GL->images[i].imageFormat.compType;
+        val.typeCast = m_GL->images[i].imageFormat.compType;
 
         ret.push_back(BoundResourceArray(key, {val}));
       }
@@ -1272,7 +1272,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
               val[i].dynamicallyUsed = bind.binds[i].dynamicallyUsed;
               val[i].firstMip = (int)bind.binds[i].firstMip;
               val[i].firstSlice = (int)bind.binds[i].firstSlice;
-              val[i].typeHint = bind.binds[i].viewFormat.compType;
+              val[i].typeCast = bind.binds[i].viewFormat.compType;
             }
           }
         }
@@ -1293,7 +1293,7 @@ BoundResource PipeState::GetDepthTarget() const
       ret.resourceId = m_D3D11->outputMerger.depthTarget.resourceResourceId;
       ret.firstMip = (int)m_D3D11->outputMerger.depthTarget.firstMip;
       ret.firstSlice = (int)m_D3D11->outputMerger.depthTarget.firstSlice;
-      ret.typeHint = m_D3D11->outputMerger.depthTarget.viewFormat.compType;
+      ret.typeCast = m_D3D11->outputMerger.depthTarget.viewFormat.compType;
       return ret;
     }
     else if(IsCaptureD3D12())
@@ -1302,7 +1302,7 @@ BoundResource PipeState::GetDepthTarget() const
       ret.resourceId = m_D3D12->outputMerger.depthTarget.resourceId;
       ret.firstMip = (int)m_D3D12->outputMerger.depthTarget.firstMip;
       ret.firstSlice = (int)m_D3D12->outputMerger.depthTarget.firstSlice;
-      ret.typeHint = m_D3D12->outputMerger.depthTarget.viewFormat.compType;
+      ret.typeCast = m_D3D12->outputMerger.depthTarget.viewFormat.compType;
       return ret;
     }
     else if(IsCaptureGL())
@@ -1311,7 +1311,7 @@ BoundResource PipeState::GetDepthTarget() const
       ret.resourceId = m_GL->framebuffer.drawFBO.depthAttachment.resourceId;
       ret.firstMip = (int)m_GL->framebuffer.drawFBO.depthAttachment.mipLevel;
       ret.firstSlice = (int)m_GL->framebuffer.drawFBO.depthAttachment.slice;
-      ret.typeHint = CompType::Typeless;
+      ret.typeCast = CompType::Typeless;
       return ret;
     }
     else if(IsCaptureVK())
@@ -1325,7 +1325,7 @@ BoundResource PipeState::GetDepthTarget() const
         ret.resourceId = fb.attachments[rp.depthstencilAttachment].imageResourceId;
         ret.firstMip = (int)fb.attachments[rp.depthstencilAttachment].firstMip;
         ret.firstSlice = (int)fb.attachments[rp.depthstencilAttachment].firstSlice;
-        ret.typeHint = fb.attachments[rp.depthstencilAttachment].viewFormat.compType;
+        ret.typeCast = fb.attachments[rp.depthstencilAttachment].viewFormat.compType;
         return ret;
       }
 
@@ -1350,7 +1350,7 @@ rdcarray<BoundResource> PipeState::GetOutputTargets() const
         ret[i].resourceId = m_D3D11->outputMerger.renderTargets[i].resourceResourceId;
         ret[i].firstMip = (int)m_D3D11->outputMerger.renderTargets[i].firstMip;
         ret[i].firstSlice = (int)m_D3D11->outputMerger.renderTargets[i].firstSlice;
-        ret[i].typeHint = m_D3D11->outputMerger.renderTargets[i].viewFormat.compType;
+        ret[i].typeCast = m_D3D11->outputMerger.renderTargets[i].viewFormat.compType;
       }
     }
     else if(IsCaptureD3D12())
@@ -1361,7 +1361,7 @@ rdcarray<BoundResource> PipeState::GetOutputTargets() const
         ret[i].resourceId = m_D3D12->outputMerger.renderTargets[i].resourceId;
         ret[i].firstMip = (int)m_D3D12->outputMerger.renderTargets[i].firstMip;
         ret[i].firstSlice = (int)m_D3D12->outputMerger.renderTargets[i].firstSlice;
-        ret[i].typeHint = m_D3D12->outputMerger.renderTargets[i].viewFormat.compType;
+        ret[i].typeCast = m_D3D12->outputMerger.renderTargets[i].viewFormat.compType;
       }
     }
     else if(IsCaptureGL())
@@ -1376,7 +1376,7 @@ rdcarray<BoundResource> PipeState::GetOutputTargets() const
           ret[i].resourceId = m_GL->framebuffer.drawFBO.colorAttachments[db].resourceId;
           ret[i].firstMip = (int)m_GL->framebuffer.drawFBO.colorAttachments[db].mipLevel;
           ret[i].firstSlice = (int)m_GL->framebuffer.drawFBO.colorAttachments[db].slice;
-          ret[i].typeHint = CompType::Typeless;
+          ret[i].typeCast = CompType::Typeless;
         }
       }
     }
@@ -1395,7 +1395,7 @@ rdcarray<BoundResource> PipeState::GetOutputTargets() const
           ret[idx].resourceId = fb.attachments[rp.colorAttachments[i]].imageResourceId;
           ret[idx].firstMip = (int)fb.attachments[rp.colorAttachments[i]].firstMip;
           ret[idx].firstSlice = (int)fb.attachments[rp.colorAttachments[i]].firstSlice;
-          ret[idx].typeHint = fb.attachments[rp.colorAttachments[i]].viewFormat.compType;
+          ret[idx].typeCast = fb.attachments[rp.colorAttachments[i]].viewFormat.compType;
         }
 
         idx++;
@@ -1408,7 +1408,7 @@ rdcarray<BoundResource> PipeState::GetOutputTargets() const
           ret[idx].resourceId = fb.attachments[rp.resolveAttachments[i]].imageResourceId;
           ret[idx].firstMip = (int)fb.attachments[rp.resolveAttachments[i]].firstMip;
           ret[idx].firstSlice = (int)fb.attachments[rp.resolveAttachments[i]].firstSlice;
-          ret[idx].typeHint = fb.attachments[rp.resolveAttachments[i]].viewFormat.compType;
+          ret[idx].typeCast = fb.attachments[rp.resolveAttachments[i]].viewFormat.compType;
         }
 
         idx++;

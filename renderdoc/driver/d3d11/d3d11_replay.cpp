@@ -1591,13 +1591,13 @@ ResourceId D3D11Replay::GetLiveID(ResourceId id)
 }
 
 bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               CompType typeHint, float minval, float maxval, bool channels[4],
+                               CompType typeCast, float minval, float maxval, bool channels[4],
                                std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
 
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, true);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return false;
@@ -1711,9 +1711,9 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 }
 
 bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeHint, float *minval, float *maxval)
+                            CompType typeCast, float *minval, float *maxval)
 {
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, true);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return false;
@@ -1748,7 +1748,7 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   int srvOffset = 0;
   int intIdx = 0;
 
-  DXGI_FORMAT fmt = GetTypedFormat(details.texFmt, typeHint);
+  DXGI_FORMAT fmt = GetTypedFormat(details.texFmt, typeCast);
 
   if(IsUIntFormat(fmt))
   {
@@ -1966,7 +1966,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
-        texDisplay.typeHint = params.typeHint;
+        texDisplay.typeCast = params.typeCast;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
@@ -2120,7 +2120,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
-        texDisplay.typeHint = params.typeHint;
+        texDisplay.typeCast = params.typeCast;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
@@ -2286,7 +2286,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
-        texDisplay.typeHint = params.typeHint;
+        texDisplay.typeCast = params.typeCast;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
@@ -3119,7 +3119,7 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 }
 
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
+                            uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
 {
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
@@ -3158,7 +3158,7 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
     texDisplay.rangeMax = 1.0f;
     texDisplay.scale = 1.0f;
     texDisplay.resourceId = texture;
-    texDisplay.typeHint = typeHint;
+    texDisplay.typeCast = typeCast;
     texDisplay.rawOutput = true;
     texDisplay.xOffset = -float(x << mip);
     texDisplay.yOffset = -float(y << mip);
@@ -3243,9 +3243,9 @@ void D3D11Replay::CreateCustomShaderTex(uint32_t w, uint32_t h)
 }
 
 ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
+                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
 {
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeHint, false);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, false);
 
   CreateCustomShaderTex(details.texWidth, details.texHeight);
 
@@ -3294,7 +3294,7 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
   disp.yOffset = 0.0f;
   disp.customShaderId = shader;
   disp.resourceId = texid;
-  disp.typeHint = typeHint;
+  disp.typeCast = typeCast;
   disp.backgroundColor = FloatVector(0, 0, 0, 1.0);
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;

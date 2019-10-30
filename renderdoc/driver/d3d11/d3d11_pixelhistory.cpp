@@ -282,7 +282,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage> events,
                                                          ResourceId target, uint32_t x, uint32_t y,
                                                          uint32_t slice, uint32_t mip,
-                                                         uint32_t sampleIdx, CompType typeHint)
+                                                         uint32_t sampleIdx, CompType typeCast)
 {
   std::vector<PixelModification> history;
 
@@ -292,7 +292,7 @@ std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage>
     return history;
 
   // cache the texture details of the destination texture that we're doing the pixel history on
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(target, typeHint, true);
+  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(target, typeCast, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return history;
@@ -303,7 +303,7 @@ std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage>
 
   // Use the given type hint for typeless textures
   details.texFmt = GetNonSRGBFormat(details.texFmt);
-  details.texFmt = GetTypedFormat(details.texFmt, typeHint);
+  details.texFmt = GetTypedFormat(details.texFmt, typeCast);
 
   SCOPED_TIMER("D3D11DebugManager::PixelHistory");
 

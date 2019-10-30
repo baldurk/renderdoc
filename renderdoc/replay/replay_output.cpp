@@ -177,7 +177,7 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
   bool wasClearBeforeDraw = (m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforeDraw ||
                              m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass);
 
-  if(o.overlay != m_RenderData.texDisplay.overlay || o.typeHint != m_RenderData.texDisplay.typeHint ||
+  if(o.overlay != m_RenderData.texDisplay.overlay || o.typeCast != m_RenderData.texDisplay.typeCast ||
      o.resourceId != m_RenderData.texDisplay.resourceId)
   {
     if(wasClearBeforeDraw)
@@ -273,7 +273,7 @@ void ReplayOutput::RefreshOverlay()
       f.z = ConvertLinearToSRGB(f.z);
 
       m_OverlayResourceId = m_pDevice->RenderOverlay(
-          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId), m_RenderData.texDisplay.typeHint,
+          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId), m_RenderData.texDisplay.typeCast,
           f, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_OverlayDirty = false;
     }
@@ -328,7 +328,7 @@ bool ReplayOutput::SetPixelContext(WindowingData window)
   return m_PixelContext.outputID != 0;
 }
 
-bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint,
+bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType typeCast,
                                 uint32_t mip, uint32_t slice)
 {
   CHECK_REPLAY_THREAD();
@@ -355,7 +355,7 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
     {
       m_Thumbnails[i].texture = texID;
       m_Thumbnails[i].depthMode = depthMode;
-      m_Thumbnails[i].typeHint = typeHint;
+      m_Thumbnails[i].typeCast = typeCast;
       m_Thumbnails[i].mip = mip;
       m_Thumbnails[i].slice = slice;
       m_Thumbnails[i].dirty = true;
@@ -368,7 +368,7 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, CompType
   p.outputID = m_pDevice->MakeOutputWindow(window, false);
   p.texture = texID;
   p.depthMode = depthMode;
-  p.typeHint = typeHint;
+  p.typeCast = typeCast;
   p.mip = mip;
   p.slice = slice;
   p.dirty = true;
@@ -389,7 +389,7 @@ rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 
-  CompType typeHint = m_RenderData.texDisplay.typeHint;
+  CompType typeCast = m_RenderData.texDisplay.typeCast;
   uint32_t slice = m_RenderData.texDisplay.sliceFace;
   uint32_t mip = m_RenderData.texDisplay.mip;
   uint32_t sample = m_RenderData.texDisplay.sampleIdx;
@@ -398,12 +398,12 @@ rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
      m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
     slice = 0;
     sample = 0;
   }
 
-  m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &minval.floatValue[0],
+  m_pDevice->GetMinMax(tex, slice, mip, sample, typeCast, &minval.floatValue[0],
                        &maxval.floatValue[0]);
 
   return make_rdcpair(minval, maxval);
@@ -417,7 +417,7 @@ rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool c
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 
-  CompType typeHint = m_RenderData.texDisplay.typeHint;
+  CompType typeCast = m_RenderData.texDisplay.typeCast;
   uint32_t slice = m_RenderData.texDisplay.sliceFace;
   uint32_t mip = m_RenderData.texDisplay.mip;
   uint32_t sample = m_RenderData.texDisplay.sampleIdx;
@@ -426,12 +426,12 @@ rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool c
      m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
     slice = 0;
     sample = 0;
   }
 
-  m_pDevice->GetHistogram(tex, slice, mip, sample, typeHint, minval, maxval, channels, hist);
+  m_pDevice->GetHistogram(tex, slice, mip, sample, typeCast, minval, maxval, channels, hist);
 
   return hist;
 }
@@ -448,13 +448,13 @@ PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x
   if(tex == ResourceId())
     return ret;
 
-  CompType typeHint = m_RenderData.texDisplay.typeHint;
+  CompType typeCast = m_RenderData.texDisplay.typeCast;
 
   if(customShader && m_RenderData.texDisplay.customShaderId != ResourceId() &&
      m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
   }
 
   // for 'heatmap' type overlays, pick from the overlay texture
@@ -465,10 +465,10 @@ PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x
      m_OverlayResourceId != ResourceId())
   {
     tex = m_OverlayResourceId;
-    typeHint = CompType::Typeless;
+    typeCast = CompType::Typeless;
   }
 
-  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeHint,
+  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeCast,
                        ret.floatValue);
 
   return ret;
@@ -731,7 +731,7 @@ void ReplayOutput::Display()
     disp.sampleIdx = ~0U;
     disp.customShaderId = ResourceId();
     disp.resourceId = m_pDevice->GetLiveID(m_Thumbnails[i].texture);
-    disp.typeHint = m_Thumbnails[i].typeHint;
+    disp.typeCast = m_Thumbnails[i].typeCast;
     disp.scale = -1.0f;
     disp.rangeMin = 0.0f;
     disp.rangeMax = 1.0f;
@@ -741,7 +741,7 @@ void ReplayOutput::Display()
     disp.rawOutput = false;
     disp.overlay = DebugOverlay::NoOverlay;
 
-    if(m_Thumbnails[i].typeHint == CompType::SNorm)
+    if(m_Thumbnails[i].typeCast == CompType::SNorm)
       disp.rangeMin = -1.0f;
 
     if(m_Thumbnails[i].depthMode)
@@ -794,10 +794,10 @@ void ReplayOutput::DisplayTex()
   {
     m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(
         m_RenderData.texDisplay.customShaderId, texDisplay.resourceId, texDisplay.mip,
-        texDisplay.sliceFace, texDisplay.sampleIdx, texDisplay.typeHint);
+        texDisplay.sliceFace, texDisplay.sampleIdx, texDisplay.typeCast);
 
     texDisplay.resourceId = m_pDevice->GetLiveID(m_CustomShaderResourceId);
-    texDisplay.typeHint = CompType::Typeless;
+    texDisplay.typeCast = CompType::Typeless;
     texDisplay.customShaderId = ResourceId();
     texDisplay.sliceFace = 0;
   }
@@ -835,7 +835,7 @@ void ReplayOutput::DisplayTex()
     texDisplay.rangeMin = 0.0f;
     texDisplay.rangeMax = 1.0f;
     texDisplay.linearDisplayAsGamma = false;
-    texDisplay.typeHint = CompType::Typeless;
+    texDisplay.typeCast = CompType::Typeless;
 
     m_pDevice->RenderTexture(texDisplay);
   }

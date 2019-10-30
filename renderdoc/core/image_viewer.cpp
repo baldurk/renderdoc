@@ -111,15 +111,15 @@ public:
     m_Proxy->RenderHighlightBox(w, h, scale);
   }
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 CompType typeHint, float *minval, float *maxval)
+                 CompType typeCast, float *minval, float *maxval)
   {
-    return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval);
+    return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, typeCast, minval, maxval);
   }
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    CompType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeCast, float minval, float maxval, bool channels[4],
                     std::vector<uint32_t> &histogram)
   {
-    return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval,
+    return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, typeCast, minval, maxval,
                                  channels, histogram);
   }
   bool RenderTexture(TextureDisplay cfg)
@@ -129,9 +129,9 @@ public:
     return m_Proxy->RenderTexture(cfg);
   }
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, CompType typeHint, float pixel[4])
+                 uint32_t sample, CompType typeCast, float pixel[4])
   {
-    m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, typeHint, pixel);
+    m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, typeCast, pixel);
   }
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y)
@@ -154,10 +154,10 @@ public:
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, CompType typeHint)
+                               uint32_t sampleIdx, CompType typeCast)
   {
     m_CustomTexID =
-        m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
+        m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeCast);
     return m_CustomTexID;
   }
   const std::vector<ResourceDescription> &GetResources() { return m_Resources; }
@@ -230,7 +230,7 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+  ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                            DebugOverlay overlay, uint32_t eventId,
                            const std::vector<uint32_t> &passEvents)
   {
@@ -250,7 +250,7 @@ public:
   void FreeTargetResource(ResourceId id) {}
   std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
                                               uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                                              uint32_t sampleIdx, CompType typeHint)
+                                              uint32_t sampleIdx, CompType typeCast)
   {
     return std::vector<PixelModification>();
   }

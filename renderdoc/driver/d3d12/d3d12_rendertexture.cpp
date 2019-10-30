@@ -32,7 +32,7 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint,
+void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompType typeCast,
                                                int &resType,
                                                std::vector<D3D12_RESOURCE_BARRIER> &barriers)
 {
@@ -41,7 +41,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-  srvDesc.Format = GetTypedFormat(resourceDesc.Format, typeHint);
+  srvDesc.Format = GetTypedFormat(resourceDesc.Format, typeCast);
   srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
@@ -457,7 +457,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
-  GetDebugManager()->PrepareTextureSampling(resource, cfg.typeHint, resType, barriers);
+  GetDebugManager()->PrepareTextureSampling(resource, cfg.typeCast, resType, barriers);
 
   pixelData.OutputDisplayFormat = resType;
 

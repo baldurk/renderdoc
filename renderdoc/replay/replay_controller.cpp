@@ -958,7 +958,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       GetTextureDataParams params;
       params.forDiskSave = true;
-      params.typeHint = sd.typeHint;
+      params.typeCast = sd.typeCast;
       params.resolve = resolveSamples;
       params.remap = remap;
       params.blackPoint = sd.comp.blackPoint;
@@ -1285,7 +1285,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       ResourceFormat saveFmt = td.format;
       // use typeCast to inform typeless saving, otherwise it will get lost
       if(saveFmt.compType == CompType::Typeless)
-        saveFmt.compType = sd.typeHint;
+        saveFmt.compType = sd.typeCast;
 
       ddsData.width = td.width;
       ddsData.height = td.height;
@@ -1372,7 +1372,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       ResourceFormat saveFmt = td.format;
       if(saveFmt.compType == CompType::Typeless)
-        saveFmt.compType = sd.typeHint;
+        saveFmt.compType = sd.typeCast;
       if(saveFmt.compType == CompType::Typeless)
         saveFmt.compType = saveFmt.compByteWidth == 4 ? CompType::Float : CompType::UNorm;
 
@@ -1555,7 +1555,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
 rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, uint32_t x,
                                                            uint32_t y, uint32_t slice, uint32_t mip,
-                                                           uint32_t sampleIdx, CompType typeHint)
+                                                           uint32_t sampleIdx, CompType typeCast)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1665,7 +1665,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
   if(id == ResourceId())
     return ret;
 
-  ret = m_pDevice->PixelHistory(events, id, x, y, slice, mip, sampleIdx, typeHint);
+  ret = m_pDevice->PixelHistory(events, id, x, y, slice, mip, sampleIdx, typeCast);
 
   SetFrameEvent(m_EventID, true);
 
@@ -1834,7 +1834,7 @@ void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
   d.mip = 0;
   d.sampleIdx = ~0U;
   d.overlay = DebugOverlay::NoOverlay;
-  d.typeHint = CompType::Typeless;
+  d.typeCast = CompType::Typeless;
   d.hdrMultiplier = -1.0f;
   d.linearDisplayAsGamma = true;
   d.flipY = false;

@@ -65,7 +65,7 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   d.mip = 0;
   d.sampleIdx = ~0U;
   d.overlay = DebugOverlay::NoOverlay;
-  d.typeHint = CompType::Typeless;
+  d.typeCast = CompType::Typeless;
   d.customShaderId = ResourceId();
   d.hdrMultiplier = -1.0f;
   d.linearDisplayAsGamma = true;

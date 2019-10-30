@@ -52,7 +52,7 @@ DECLARE_REFLECTION_ENUM(RemapTexture);
 struct GetTextureDataParams
 {
   bool forDiskSave;
-  CompType typeHint;
+  CompType typeCast;
   bool resolve;
   RemapTexture remap;
   float blackPoint;
@@ -60,7 +60,7 @@ struct GetTextureDataParams
 
   GetTextureDataParams()
       : forDiskSave(false),
-        typeHint(CompType::Typeless),
+        typeCast(CompType::Typeless),
         resolve(false),
         remap(RemapTexture::NoRemap),
         blackPoint(0.0f),
@@ -157,7 +157,7 @@ public:
   virtual std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events,
                                                       ResourceId target, uint32_t x, uint32_t y,
                                                       uint32_t slice, uint32_t mip,
-                                                      uint32_t sampleIdx, CompType typeHint) = 0;
+                                                      uint32_t sampleIdx, CompType typeCast) = 0;
   virtual ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
   virtual ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -165,7 +165,7 @@ public:
   virtual ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                        const uint32_t threadid[3]) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+  virtual ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                    DebugOverlay overlay, uint32_t eventId,
                                    const std::vector<uint32_t> &passEvents) = 0;
 
@@ -202,9 +202,9 @@ public:
   virtual void FlipOutputWindow(uint64_t id) = 0;
 
   virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         CompType typeHint, float *minval, float *maxval) = 0;
+                         CompType typeCast, float *minval, float *maxval) = 0;
   virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeHint, float minval, float maxval, bool channels[4],
+                            CompType typeCast, float minval, float maxval, bool channels[4],
                             std::vector<uint32_t> &histogram) = 0;
 
   virtual ResourceId CreateProxyTexture(const TextureDescription &templateTex) = 0;
@@ -224,7 +224,7 @@ public:
                                  ShaderStage type, ResourceId *id, std::string *errors) = 0;
   virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                       uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint) = 0;
+                                       uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 
   virtual void RenderCheckerboard() = 0;
@@ -232,7 +232,7 @@ public:
   virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 
   virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                         uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4]) = 0;
+                         uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4]) = 0;
   virtual uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height,
                               const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };

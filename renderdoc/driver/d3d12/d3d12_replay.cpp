@@ -1702,7 +1702,7 @@ void D3D12Replay::RenderCheckerboard()
 }
 
 void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
+                            uint32_t mip, uint32_t sample, CompType typeCast, float pixel[4])
 {
   SetOutputDimensions(1, 1);
 
@@ -1721,7 +1721,7 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
     texDisplay.rangeMax = 1.0f;
     texDisplay.scale = 1.0f;
     texDisplay.resourceId = texture;
-    texDisplay.typeHint = typeHint;
+    texDisplay.typeCast = typeCast;
     texDisplay.rawOutput = true;
     texDisplay.xOffset = -float(x << mip);
     texDisplay.yOffset = -float(y << mip);
@@ -2252,7 +2252,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
 }
 
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            CompType typeHint, float *minval, float *maxval)
+                            CompType typeCast, float *minval, float *maxval)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
@@ -2296,7 +2296,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
   int intIdx = 0;
 
-  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeCast);
 
   if(IsUIntFormat(fmt))
     intIdx = 1;
@@ -2310,7 +2310,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
-  GetDebugManager()->PrepareTextureSampling(resource, typeHint, resType, barriers);
+  GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
@@ -2430,7 +2430,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 }
 
 bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               CompType typeHint, float minval, float maxval, bool channels[4],
+                               CompType typeCast, float minval, float maxval, bool channels[4],
                                std::vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
@@ -2492,7 +2492,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 
   int intIdx = 0;
 
-  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeCast);
 
   if(IsUIntFormat(fmt))
     intIdx = 1;
@@ -2506,7 +2506,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
-  GetDebugManager()->PrepareTextureSampling(resource, typeHint, resType, barriers);
+  GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
@@ -3141,7 +3141,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.resourceId = tex;
-      texDisplay.typeHint = CompType::Typeless;
+      texDisplay.typeCast = CompType::Typeless;
       texDisplay.rawOutput = false;
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;
@@ -3568,7 +3568,7 @@ void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf sourc
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
+                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
@@ -3644,7 +3644,7 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
   disp.yOffset = 0.0f;
   disp.customShaderId = shader;
   disp.resourceId = texid;
-  disp.typeHint = typeHint;
+  disp.typeCast = typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;
@@ -3669,7 +3669,7 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
 std::vector<PixelModification> D3D12Replay::PixelHistory(std::vector<EventUsage> events,
                                                          ResourceId target, uint32_t x, uint32_t y,
                                                          uint32_t slice, uint32_t mip,
-                                                         uint32_t sampleIdx, CompType typeHint)
+                                                         uint32_t sampleIdx, CompType typeCast)
 {
   return std::vector<PixelModification>();
 }

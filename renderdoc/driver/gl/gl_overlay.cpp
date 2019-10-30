@@ -228,7 +228,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   return HasSPIRVShaders;
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                    DebugOverlay overlay, uint32_t eventId,
                                    const std::vector<uint32_t> &passEvents)
 {

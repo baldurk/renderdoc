@@ -396,7 +396,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   indexCount = (uint32_t)patchedIndices.size();
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, FloatVector clearCol,
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                        DebugOverlay overlay, uint32_t eventId,
                                        const std::vector<uint32_t> &passEvents)
 {

@@ -47,7 +47,7 @@ public:
   rdcpair<int32_t, int32_t> GetDimensions();
 
   void ClearThumbnails();
-  bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeHint, uint32_t mip,
+  bool AddThumbnail(WindowingData window, ResourceId texID, CompType typeCast, uint32_t mip,
                     uint32_t slice);
 
   void Display();
@@ -97,7 +97,7 @@ private:
     uint32_t mip;
     uint32_t slice;
     uint64_t wndHandle;
-    CompType typeHint;
+    CompType typeCast;
     uint64_t outputID;
 
     bool dirty;
@@ -185,7 +185,7 @@ public:
   ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
-                                           uint32_t mip, uint32_t sampleIdx, CompType typeHint);
+                                           uint32_t mip, uint32_t sampleIdx, CompType typeCast);
   ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                                 uint32_t vertOffset);
   ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);

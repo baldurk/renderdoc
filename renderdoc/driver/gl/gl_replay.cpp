@@ -2381,7 +2381,7 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.scale = 1.0f;
         texDisplay.resourceId = tex;
-        texDisplay.typeHint = CompType::Typeless;
+        texDisplay.typeCast = CompType::Typeless;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
@@ -2431,7 +2431,7 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.scale = 1.0f;
         texDisplay.resourceId = tex;
-        texDisplay.typeHint = CompType::Typeless;
+        texDisplay.typeCast = CompType::Typeless;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
@@ -2774,7 +2774,7 @@ void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                       uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
+                                       uint32_t arrayIdx, uint32_t sampleIdx, CompType typeCast)
 {
   if(shader == ResourceId() || texid == ResourceId())
     return ResourceId();
@@ -2805,7 +2805,7 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.yOffset = 0.0f;
   disp.customShaderId = shader;
   disp.resourceId = texid;
-  disp.typeHint = typeHint;
+  disp.typeCast = typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;
@@ -3362,7 +3362,7 @@ std::vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 std::vector<PixelModification> GLReplay::PixelHistory(std::vector<EventUsage> events,
                                                       ResourceId target, uint32_t x, uint32_t y,
                                                       uint32_t slice, uint32_t mip,
-                                                      uint32_t sampleIdx, CompType typeHint)
+                                                      uint32_t sampleIdx, CompType typeCast)
 {
   GLNOTIMP("GLReplay::PixelHistory");
   return std::vector<PixelModification>();
