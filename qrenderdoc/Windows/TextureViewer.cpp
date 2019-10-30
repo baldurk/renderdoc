@@ -736,6 +736,9 @@ void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pic
   if(m_TexDisplay.flipY)
     y = (texptr->height - 1) - y;
 
+  x = qMax(0U, x >> m_TexDisplay.mip);
+  y = qMax(0U, y >> m_TexDisplay.mip);
+
   pickValue = m_Output->PickPixel(m_TexDisplay.resourceId, true, x, y, m_TexDisplay.sliceFace,
                                   m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 

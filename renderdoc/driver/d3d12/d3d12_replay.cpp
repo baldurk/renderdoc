@@ -1720,8 +1720,8 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
     texDisplay.resourceId = texture;
     texDisplay.typeHint = typeHint;
     texDisplay.rawOutput = true;
-    texDisplay.xOffset = -float(x);
-    texDisplay.yOffset = -float(y);
+    texDisplay.xOffset = -float(x << mip);
+    texDisplay.yOffset = -float(y << mip);
 
     RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,
                           eTexDisplay_F32Render);
