@@ -3530,9 +3530,6 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
   TextureDescription &tex = *texptr;
   m_TexDisplay.sliceFace = (uint32_t)qMax(0, index);
 
-  if(tex.depth > 1)
-    m_TexDisplay.sliceFace = (uint32_t)(qMax(0, index) << (int)m_TexDisplay.mip);
-
   INVOKE_MEMFN(RT_UpdateVisualRange);
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
@@ -3617,9 +3614,6 @@ void TextureViewer::on_saveTex_clicked()
   m_SaveConfig.typeHint = m_TexDisplay.typeHint;
   m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
   m_SaveConfig.mip = (int)m_TexDisplay.mip;
-
-  if(texptr->depth > 1)
-    m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
 
   m_SaveConfig.channelExtract = -1;
   if(m_TexDisplay.red && !m_TexDisplay.green && !m_TexDisplay.blue && !m_TexDisplay.alpha)

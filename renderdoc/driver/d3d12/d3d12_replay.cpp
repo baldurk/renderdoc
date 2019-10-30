@@ -2267,10 +2267,12 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
 
-  cdata.HistogramSlice = float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
-
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-    cdata.HistogramSlice = float(sliceFace) / float(resourceDesc.DepthOrArraySize);
+    cdata.HistogramSlice =
+        float(RDCCLAMP(sliceFace, 0U, uint32_t((resourceDesc.DepthOrArraySize >> mip) - 1)));
+  else
+    cdata.HistogramSlice =
+        float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
 
   cdata.HistogramMip = mip;
   cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
@@ -2447,10 +2449,12 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
   if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
 
-  cdata.HistogramSlice = float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
-
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-    cdata.HistogramSlice = float(sliceFace) / float(resourceDesc.DepthOrArraySize);
+    cdata.HistogramSlice =
+        float(RDCCLAMP(sliceFace, 0U, uint32_t((resourceDesc.DepthOrArraySize >> mip) - 1)));
+  else
+    cdata.HistogramSlice =
+        float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
 
   cdata.HistogramMip = mip;
   cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
@@ -3137,9 +3141,6 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       // we scale our texture rendering by output dimension. To counteract that, add a manual
       // scale here
       texDisplay.scale = 1.0f / float(1 << mip);
-
-      if(copyDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-        texDisplay.sliceFace = loop << mip;
 
       RenderTextureInternal(GetDebugManager()->GetCPUHandle(GET_TEX_RTV), texDisplay, flags);
     }

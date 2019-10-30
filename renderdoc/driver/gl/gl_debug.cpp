@@ -1485,10 +1485,11 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
   cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
   cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
   cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> mip, 1U);
-  if(texDetails.curType != eGL_TEXTURE_3D)
-    cdata->HistogramSlice = (float)sliceFace + 0.001f;
+  if(texDetails.curType == eGL_TEXTURE_3D)
+    cdata->HistogramSlice =
+        (float)RDCCLAMP(sliceFace, 0U, uint32_t(details.depth >> mip) - 1) + 0.001f;
   else
-    cdata->HistogramSlice = (float)(sliceFace >> mip);
+    cdata->HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.arraysize - 1) + 0.001f;
   cdata->HistogramMip = (int)mip;
   cdata->HistogramNumSamples = texDetails.samples;
   cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp - 1);
@@ -1745,10 +1746,11 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
   cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
   cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> mip, 1U);
-  if(texDetails.curType != eGL_TEXTURE_3D)
-    cdata->HistogramSlice = (float)sliceFace + 0.001f;
+  if(texDetails.curType == eGL_TEXTURE_3D)
+    cdata->HistogramSlice =
+        (float)RDCCLAMP(sliceFace, 0U, uint32_t(details.depth >> mip) - 1) + 0.001f;
   else
-    cdata->HistogramSlice = (float)(sliceFace >> mip);
+    cdata->HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.arraysize - 1) + 0.001f;
   cdata->HistogramMip = mip;
   cdata->HistogramNumSamples = texDetails.samples;
   cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp - 1);

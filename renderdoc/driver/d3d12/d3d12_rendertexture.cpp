@@ -446,10 +446,14 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   pixelData.MipLevel = (float)cfg.mip;
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
-  pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-    pixelData.Slice = float(cfg.sliceFace >> cfg.mip);
+    pixelData.Slice =
+        float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t((resourceDesc.DepthOrArraySize >> cfg.mip) - 1)) +
+              0.001f);
+  else
+    pixelData.Slice =
+        float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)) + 0.001f);
 
   std::vector<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;

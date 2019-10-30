@@ -703,12 +703,12 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   pixelData.MipLevel = (float)cfg.mip;
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
-  pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, details.texArraySize - 1));
+  pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, details.texArraySize - 1) + 0.001f);
 
   if(details.texType == eTexType_3D)
   {
     pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
-    pixelData.Slice = float(cfg.sliceFace >> cfg.mip);
+    pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, (details.texDepth >> cfg.mip) - 1) + 0.001f);
   }
   else if(details.texType == eTexType_1D)
   {

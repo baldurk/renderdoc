@@ -1567,7 +1567,15 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
       if(m_Textures[t].msSamp == 1)
         sampleIdx = ~0U;
 
-      slice = RDCCLAMP(slice, 0U, m_Textures[t].arraysize);
+      if(m_Textures[t].dimension == 3)
+      {
+        slice = RDCCLAMP(slice, 0U, m_Textures[t].depth >> mip);
+      }
+      else
+      {
+        slice = RDCCLAMP(slice, 0U, m_Textures[t].arraysize);
+      }
+
       mip = RDCCLAMP(mip, 0U, m_Textures[t].mips);
 
       break;

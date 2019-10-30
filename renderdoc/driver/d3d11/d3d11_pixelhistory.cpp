@@ -632,7 +632,10 @@ std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage>
   colourCopyParams.intTex = intTex;
   colourCopyParams.srcxyCBuf = srcxyCBuf;
   colourCopyParams.storexyCBuf = storexyCBuf;
-  colourCopyParams.subres = details.texArraySize * slice + mip;
+  if(details.texType == eTexType_3D)
+    colourCopyParams.subres = mip;
+  else
+    colourCopyParams.subres = details.texArraySize * slice + mip;
 
   CopyPixelParams depthCopyParams = colourCopyParams;
 

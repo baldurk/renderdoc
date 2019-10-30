@@ -1608,7 +1608,10 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
   cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> mip, 1U);
   cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> mip, 1U);
   cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> mip, 1U);
-  cdata.HistogramSlice = (float)sliceFace;
+  if(details.texType == eTexType_3D)
+    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, (details.texDepth >> mip) - 1);
+  else
+    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.texArraySize - 1);
   cdata.HistogramMip = mip;
   cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount - 1);
   if(sample == ~0U)
@@ -1654,9 +1657,6 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
     srvOffset = 20;
     intIdx = 2;
   }
-
-  if(details.texType == eTexType_3D)
-    cdata.HistogramSlice = float(sliceFace);
 
   ID3D11Buffer *cbuf = GetDebugManager()->MakeCBuffer(&cdata, sizeof(cdata));
 
@@ -1724,7 +1724,10 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   cdata.HistogramTextureResolution.x = (float)RDCMAX(details.texWidth >> mip, 1U);
   cdata.HistogramTextureResolution.y = (float)RDCMAX(details.texHeight >> mip, 1U);
   cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth >> mip, 1U);
-  cdata.HistogramSlice = (float)sliceFace;
+  if(details.texType == eTexType_3D)
+    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, (details.texDepth >> mip) - 1);
+  else
+    cdata.HistogramSlice = (float)RDCCLAMP(sliceFace, 0U, details.texArraySize - 1);
   cdata.HistogramMip = mip;
   cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount - 1);
   if(sample == ~0U)
@@ -1759,9 +1762,6 @@ bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
     srvOffset = 20;
     intIdx = 2;
   }
-
-  if(details.texType == eTexType_3D)
-    cdata.HistogramSlice = float(sliceFace);
 
   ID3D11Buffer *cbuf = GetDebugManager()->MakeCBuffer(&cdata, sizeof(cdata));
 
@@ -2282,7 +2282,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
         texDisplay.mip = mip;
         texDisplay.sampleIdx = 0;
         texDisplay.customShaderId = ResourceId();
-        texDisplay.sliceFace = i << mip;
+        texDisplay.sliceFace = i;
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.resourceId = tex;
