@@ -2191,7 +2191,8 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     case RemapTexture::RGBA8:
       tex.format.compCount = 4;
       tex.format.compByteWidth = 1;
-      tex.format.compType = CompType::UNorm;
+      if(tex.format.compType != CompType::UNormSRGB)
+        tex.format.compType = CompType::UNorm;
       // Range adaptation is only needed when remapping a higher precision format down to RGBA8.
       params.whitePoint = 1.0f;
       break;
