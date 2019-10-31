@@ -1724,7 +1724,7 @@ public:
     PipelineLayoutData *pipeLayoutInfo;      // only for pipeline layouts
     DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
     DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates
-    uint32_t queueFamilyIndex;               // only for queues
+    uint32_t queueFamilyIndex;               // only for queues and command pools
   };
 
   VkResourceRecord *bakedCommands;

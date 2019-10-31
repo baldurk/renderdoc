@@ -4056,6 +4056,22 @@ const DrawcallDescription *WrappedVulkan::GetDrawcall(uint32_t eventId)
   return m_Drawcalls[eventId];
 }
 
+uint32_t WrappedVulkan::FindCommandQueueFamily(ResourceId cmdId)
+{
+  auto it = m_commandQueueFamilies.find(cmdId);
+  if(it == m_commandQueueFamilies.end())
+  {
+    RDCERR("Unknown queue family for %s", ToStr(cmdId).c_str());
+    return m_QueueFamilyIdx;
+  }
+  return it->second;
+}
+
+void WrappedVulkan::InsertCommandQueueFamily(ResourceId cmdId, uint32_t queueFamilyIndex)
+{
+  m_commandQueueFamilies[cmdId] = queueFamilyIndex;
+}
+
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None

@@ -747,6 +747,9 @@ private:
     m_ForcedReferences.push_back(record);
   }
 
+  // used on replay side to track the queue family of command buffers and pools
+  std::map<ResourceId, uint32_t> m_commandQueueFamilies;
+
   // used both on capture and replay side to track image layouts. Only locked
   // in capture
   std::map<ResourceId, ImageLayouts> m_ImageLayouts;
@@ -1043,6 +1046,8 @@ public:
     return m_PhysicalDeviceData.performanceQueryFeatures;
   }
   VkDriverInfo GetDriverInfo() { return m_PhysicalDeviceData.driverInfo; }
+  uint32_t FindCommandQueueFamily(ResourceId cmdId);
+  void InsertCommandQueueFamily(ResourceId cmdId, uint32_t queueFamilyIndex);
   // Device initialization
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance, const VkInstanceCreateInfo *pCreateInfo,
