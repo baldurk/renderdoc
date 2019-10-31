@@ -2143,7 +2143,7 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     return;
   }
 
-  if(m_Proxy->IsTextureSupported(tex.format))
+  if(m_Proxy->IsTextureSupported(tex))
     return;
 
   if(tex.format.Special())

@@ -380,7 +380,7 @@ public:
 
   ResourceId CreateProxyTexture(const TextureDescription &templateTex);
   void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data, size_t dataSize);
-  bool IsTextureSupported(const ResourceFormat &format);
+  bool IsTextureSupported(const TextureDescription &tex);
   bool NeedRemapForFetch(const ResourceFormat &format);
 
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);

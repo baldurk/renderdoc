@@ -210,7 +210,7 @@ public:
   virtual ResourceId CreateProxyTexture(const TextureDescription &templateTex) = 0;
   virtual void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data,
                                    size_t dataSize) = 0;
-  virtual bool IsTextureSupported(const ResourceFormat &format) = 0;
+  virtual bool IsTextureSupported(const TextureDescription &tex) = 0;
 
   virtual ResourceId CreateProxyBuffer(const BufferDescription &templateBuf) = 0;
   virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;

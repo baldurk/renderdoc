@@ -4098,7 +4098,7 @@ void VulkanReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub,
   VULKANNOTIMP("SetProxyTextureData");
 }
 
-bool VulkanReplay::IsTextureSupported(const ResourceFormat &format)
+bool VulkanReplay::IsTextureSupported(const TextureDescription &tex)
 {
   return true;
 }

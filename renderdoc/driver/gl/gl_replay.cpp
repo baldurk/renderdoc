@@ -3290,21 +3290,31 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
   }
 }
 
-bool GLReplay::IsTextureSupported(const ResourceFormat &format)
+bool GLReplay::IsTextureSupported(const TextureDescription &tex)
 {
   // We couldn't create proxy textures for ASTC textures (see MakeGLFormat). So we give back false
   // and let RemapProxyTextureIfNeeded to set remap type for them.
-  if(format.type == ResourceFormatType::ASTC)
+  if(tex.format.type == ResourceFormatType::ASTC)
     return false;
 
   // we don't try to replay alpha8 textures, as we stick strictly to core profile GL
-  if(format.type == ResourceFormatType::A8)
+  if(tex.format.type == ResourceFormatType::A8)
     return false;
 
   // BGRA is not accepted as an internal format in case of GL
   // EXT_texture_format_BGRA8888 is required for creating BGRA proxy textures in case of GLES
-  if(format.BGRAOrder())
+  if(tex.format.BGRAOrder())
     return IsGLES && HasExt[EXT_texture_format_BGRA8888];
+
+  // don't support 3D block compressed textures
+  if(tex.dimension == 3 &&
+     (tex.format.type == ResourceFormatType::BC1 || tex.format.type == ResourceFormatType::BC2 ||
+      tex.format.type == ResourceFormatType::BC1 || tex.format.type == ResourceFormatType::BC2 ||
+      tex.format.type == ResourceFormatType::BC3 || tex.format.type == ResourceFormatType::BC4 ||
+      tex.format.type == ResourceFormatType::BC5 || tex.format.type == ResourceFormatType::BC6 ||
+      tex.format.type == ResourceFormatType::BC7 || tex.format.type == ResourceFormatType::ASTC ||
+      tex.format.type == ResourceFormatType::ETC2 || tex.format.type == ResourceFormatType::EAC))
+    return false;
 
   return true;
 }

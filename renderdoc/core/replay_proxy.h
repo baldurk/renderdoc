@@ -559,7 +559,7 @@ public:
     RDCERR("Calling proxy-render functions on a proxy serialiser");
   }
 
-  bool IsTextureSupported(const ResourceFormat &format) { return true; }
+  bool IsTextureSupported(const TextureDescription &tex) { return true; }
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
