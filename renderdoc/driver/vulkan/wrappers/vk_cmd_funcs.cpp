@@ -453,6 +453,8 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
     // remap the queue family index
     CreateInfo.queueFamilyIndex = m_QueueRemapping[CreateInfo.queueFamilyIndex][0].family;
 
+    m_commandQueueFamilies[CmdPool] = CreateInfo.queueFamilyIndex;
+
     VkResult ret = ObjDisp(device)->CreateCommandPool(Unwrap(device), &CreateInfo, NULL, &pool);
 
     if(ret != VK_SUCCESS)
@@ -464,6 +466,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(CmdPool, pool);
+      m_commandQueueFamilies[live] = CreateInfo.queueFamilyIndex;
     }
 
     AddResource(CmdPool, ResourceType::Pool, "Command Pool");
@@ -500,6 +503,7 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
       }
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pCmdPool);
+      record->queueFamilyIndex = pCreateInfo->queueFamilyIndex;
       record->AddChunk(chunk);
     }
     else
@@ -557,7 +561,11 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cmd);
       GetResourceManager()->AddLiveResource(CommandBuffer, cmd);
+      m_commandQueueFamilies[live] = m_commandQueueFamilies[GetResID(AllocateInfo.commandPool)];
     }
+
+    m_commandQueueFamilies[CommandBuffer] =
+        m_commandQueueFamilies[GetResID(AllocateInfo.commandPool)];
 
     AddResource(CommandBuffer, ResourceType::CommandBuffer, "Command Buffer");
     DerivedResource(device, CommandBuffer);
