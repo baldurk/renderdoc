@@ -2245,7 +2245,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_RGBA32F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_RGBA32I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RGBA32UI;
       else
         RDCERR("Unrecognised component type");
@@ -2256,7 +2256,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_RGBA16F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_RGBA16I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RGBA16UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGBA16_SNORM;
@@ -2269,7 +2269,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
     {
       if(fmt.compType == CompType::SInt)
         ret = eGL_RGBA8I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RGBA8UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGBA8_SNORM;
@@ -2295,7 +2295,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_RGB32F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_RGB32I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RGB32UI;
       else
         RDCERR("Unrecognised component type");
@@ -2306,7 +2306,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_RGB16F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_RGB16I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RGB16UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGB16_SNORM;
@@ -2319,7 +2319,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
     {
       if(fmt.compType == CompType::SInt)
         ret = eGL_RGB8I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RGB8UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGB8_SNORM;
@@ -2345,7 +2345,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_RG32F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_RG32I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RG32UI;
       else
         RDCERR("Unrecognised component type");
@@ -2356,7 +2356,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_RG16F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_RG16I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RG16UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_RG16_SNORM;
@@ -2369,7 +2369,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
     {
       if(fmt.compType == CompType::SInt)
         ret = eGL_RG8I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_RG8UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_RG8_SNORM;
@@ -2395,7 +2395,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_R32F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_R32I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_R32UI;
       else if(fmt.compType == CompType::Depth)
         ret = eGL_DEPTH_COMPONENT32F;
@@ -2412,7 +2412,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
         ret = eGL_R16F;
       else if(fmt.compType == CompType::SInt)
         ret = eGL_R16I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_R16UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_R16_SNORM;
@@ -2427,7 +2427,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
     {
       if(fmt.compType == CompType::SInt)
         ret = eGL_R8I;
-      else if(fmt.compType == CompType::UInt)
+      else if(fmt.compType == CompType::UInt || fmt.compType == CompType::Typeless)
         ret = eGL_R8UI;
       else if(fmt.compType == CompType::SNorm)
         ret = eGL_R8_SNORM;

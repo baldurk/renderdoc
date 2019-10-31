@@ -567,141 +567,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   return true;
 }
 
-void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat,
-                                           GLenum internalFormatHint, GLenum textype, GLint dim,
-                                           GLint width, GLint height, GLint depth, GLint samples,
-                                           int mips)
-{
-  if(textype == eGL_TEXTURE_BUFFER)
-  {
-    return;
-  }
-
-  GLuint ppb = 0, pub = 0;
-
-  GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&ppb);
-  GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pub);
-
-  GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
-  if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
-  {
-    GL.glTextureStorage2DMultisampleEXT(tex, textype, samples, internalFormat, width, height,
-                                        GL_TRUE);
-  }
-  else if(textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-  {
-    GL.glTextureStorage3DMultisampleEXT(tex, textype, samples, internalFormat, width, height, depth,
-                                        GL_TRUE);
-  }
-  else
-  {
-    GL.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-    GL.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    GL.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    GL.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    GL.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-
-    bool isCompressed = IsCompressedFormat(internalFormat);
-
-    GLenum baseFormat = eGL_RGBA;
-    GLenum dataType = internalFormatHint != eGL_NONE ? internalFormatHint : eGL_UNSIGNED_BYTE;
-    if(!isCompressed)
-    {
-      baseFormat = GetBaseFormat(internalFormat);
-
-      if(internalFormatHint == eGL_NONE)
-        dataType = GetDataType(internalFormat);
-    }
-
-    GLenum targets[] = {
-        eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-        eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-        eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-    };
-
-    int count = ARRAY_COUNT(targets);
-
-    if(textype != eGL_TEXTURE_CUBE_MAP)
-    {
-      targets[0] = textype;
-      count = 1;
-    }
-
-    GLsizei w = (GLsizei)width;
-    GLsizei h = (GLsizei)height;
-    GLsizei d = (GLsizei)depth;
-
-    for(int m = 0; m < mips; m++)
-    {
-      for(int t = 0; t < count; t++)
-      {
-        if(isCompressed)
-        {
-          GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalFormat);
-
-          std::vector<byte> dummy;
-          dummy.resize(compSize);
-
-          if(dim == 1)
-            GL.glCompressedTextureImage1DEXT(tex, targets[t], m, internalFormat, w, 0, compSize,
-                                             &dummy[0]);
-          else if(dim == 2)
-            GL.glCompressedTextureImage2DEXT(tex, targets[t], m, internalFormat, w, h, 0, compSize,
-                                             &dummy[0]);
-          else if(dim == 3)
-            GL.glCompressedTextureImage3DEXT(tex, targets[t], m, internalFormat, w, h, d, 0,
-                                             compSize, &dummy[0]);
-        }
-        else
-        {
-          if(dim == 1)
-            GL.glTextureImage1DEXT(tex, targets[t], m, internalFormat, w, 0, baseFormat, dataType,
-                                   NULL);
-          else if(dim == 2)
-            GL.glTextureImage2DEXT(tex, targets[t], m, internalFormat, w, h, 0, baseFormat,
-                                   dataType, NULL);
-          else if(dim == 3)
-            GL.glTextureImage3DEXT(tex, targets[t], m, internalFormat, w, h, d, 0, baseFormat,
-                                   dataType, NULL);
-        }
-      }
-
-      w = RDCMAX(1, w >> 1);
-      if(textype != eGL_TEXTURE_1D_ARRAY)
-        h = RDCMAX(1, h >> 1);
-      if(textype != eGL_TEXTURE_2D_ARRAY && textype != eGL_TEXTURE_CUBE_MAP_ARRAY)
-        d = RDCMAX(1, d >> 1);
-    }
-  }
-
-  if(IsCaptureMode(m_State))
-  {
-    // register this texture and set up its texture details, so it's available for emulation
-    // readback.
-    GLResource res = TextureRes(m_Driver->GetCtx(), tex);
-    ResourceId id = RegisterResource(res);
-
-    WrappedOpenGL::TextureData &details = m_Driver->m_Textures[id];
-
-    details.resource = res;
-    details.curType = textype;
-    details.dimension = dim;
-    details.emulated = details.view = false;
-    details.width = width;
-    details.height = height;
-    details.depth = depth;
-    details.samples = samples;
-    details.creationFlags = TextureCategory::NoFlags;
-    details.internalFormat = internalFormat;
-    details.mipsValid = (1 << mips) - 1;
-  }
-
-  GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
-  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
-}
-
 void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
                                                       GLResource res)
 {
@@ -840,9 +705,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         mips = 1;
 
       // create texture of identical format/size to store initial contents
-      CreateTextureImage(tex, details.internalFormat, details.internalFormatHint, details.curType,
-                         details.dimension, details.width, details.height, details.depth,
-                         details.samples, mips);
+      m_Driver->CreateTextureImage(tex, details.internalFormat, details.internalFormatHint,
+                                   details.curType, details.dimension, details.width,
+                                   details.height, details.depth, details.samples, mips);
 
       // we need to set maxlevel appropriately for number of mips to force the texture to be
       // complete.
@@ -1576,10 +1441,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
           GL.glGenTextures(1, &tex);
           GL.glBindTexture(TextureState.type, tex);
 
-          CreateTextureImage(tex, TextureState.internalformat, details.internalFormatHint,
-                             TextureState.type, TextureState.dim, TextureState.width,
-                             TextureState.height, TextureState.depth, TextureState.samples,
-                             TextureState.mips);
+          m_Driver->CreateTextureImage(tex, TextureState.internalformat, details.internalFormatHint,
+                                       TextureState.type, TextureState.dim, TextureState.width,
+                                       TextureState.height, TextureState.depth,
+                                       TextureState.samples, TextureState.mips);
         }
         else if(ser.IsWriting())
         {

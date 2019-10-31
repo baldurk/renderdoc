@@ -113,11 +113,195 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
+  uint32_t numMips = m_CachedTextures[cfg.resourceId].mips;
+
+  GLuint castTexture = 0;
+
+  GLenum displayFormat = texDetails.internalFormat;
+
+  if(cfg.typeCast != CompType::Typeless &&
+     cfg.typeCast != MakeResourceFormat(target, displayFormat).compType)
+  {
+    displayFormat = GetViewCastedFormat(displayFormat, cfg.typeCast);
+
+    // if the format didn't change we can't re-interpret this format anyway
+    if(displayFormat != texDetails.internalFormat)
+    {
+      GLMarkerRegion region("Casting texture for view");
+
+      drv.glGenTextures(1, &castTexture);
+      drv.glActiveTexture(eGL_TEXTURE0);
+      drv.glBindTexture(target, castTexture);
+
+      // can't use texture views because the underlying image isn't immutable because we don't
+      // want to rely on texture storage. We also can't rely on texture views, meaning we need a
+      // fallback path ANYWAY, so might as well always use it. Yayyy opengl...
+      drv.CreateTextureImage(castTexture, displayFormat, eGL_NONE, target, texDetails.dimension,
+                             texDetails.width, texDetails.height, texDetails.depth,
+                             texDetails.samples, (int)numMips);
+
+      bool isCompressed = IsCompressedFormat(displayFormat);
+
+      GLint values[4] = {};
+      float fvalues[4] = {};
+
+      // ensure source texture is complete
+      GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, values);
+
+      int prevMaxLevel = values[0];
+
+      int maxlevel = numMips - 1;
+      GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+
+      // copy state
+
+      if(!texDetails.emulated && (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
+      {
+        GetTextureSwizzle(texname, target, (GLenum *)values);
+        SetTextureSwizzle(castTexture, target, (GLenum *)values);
+      }
+
+      if((target == eGL_TEXTURE_CUBE_MAP || target == eGL_TEXTURE_CUBE_MAP_ARRAY) &&
+         HasExt[ARB_seamless_cubemap_per_texture])
+      {
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, values);
+      }
+
+      if(target != eGL_TEXTURE_2D_MULTISAMPLE && target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+      {
+        if(HasExt[EXT_texture_sRGB_decode])
+        {
+          GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_SRGB_DECODE_EXT, values);
+          GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_SRGB_DECODE_EXT, values);
+        }
+
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_FUNC, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_COMPARE_FUNC, values);
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_COMPARE_MODE, values);
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_MIN_FILTER, values);
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_MAG_FILTER, values);
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_R, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_WRAP_R, values);
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_WRAP_S, values);
+        GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, values);
+        GL.glTextureParameterivEXT(castTexture, target, eGL_TEXTURE_WRAP_T, values);
+
+        if(HasExt[ARB_texture_border_clamp])
+        {
+          GL.glGetTextureParameterfvEXT(texname, target, eGL_TEXTURE_BORDER_COLOR, fvalues);
+          GL.glTextureParameterfvEXT(castTexture, target, eGL_TEXTURE_BORDER_COLOR, fvalues);
+        }
+
+        if(!IsGLES)
+        {
+          GL.glGetTextureParameterfvEXT(texname, target, eGL_TEXTURE_LOD_BIAS, fvalues);
+          GL.glTextureParameterfvEXT(castTexture, target, eGL_TEXTURE_LOD_BIAS, fvalues);
+        }
+
+        if(target != eGL_TEXTURE_RECTANGLE)
+        {
+          GL.glGetTextureParameterfvEXT(texname, target, eGL_TEXTURE_MIN_LOD, fvalues);
+          GL.glTextureParameterfvEXT(castTexture, target, eGL_TEXTURE_MIN_LOD, fvalues);
+          GL.glGetTextureParameterfvEXT(texname, target, eGL_TEXTURE_MAX_LOD, fvalues);
+          GL.glTextureParameterfvEXT(castTexture, target, eGL_TEXTURE_MAX_LOD, fvalues);
+        }
+      }
+
+      // copy mip data
+      for(uint32_t i = 0; i < numMips; i++)
+      {
+        int w = RDCMAX(texDetails.width >> i, 1);
+        int h = RDCMAX(texDetails.height >> i, 1);
+        int d = RDCMAX(texDetails.depth >> i, 1);
+
+        if(target == eGL_TEXTURE_CUBE_MAP)
+          d *= 6;
+        else if(target == eGL_TEXTURE_CUBE_MAP_ARRAY || target == eGL_TEXTURE_2D_ARRAY)
+          d = texDetails.depth;
+
+        // glCopyImageSubData treats 1D arrays sanely - with depth as array size - but at odds
+        // with the rest of the API.
+        if(target == eGL_TEXTURE_1D_ARRAY)
+        {
+          h = 1;
+          d = texDetails.height;
+        }
+
+        if((isCompressed && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
+           (isCompressed && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] &&
+            texDetails.curType == eGL_TEXTURE_CUBE_MAP) ||
+           (isCompressed && IsGLES))
+        {
+          GLenum targets[] = {
+              eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+              eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+              eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+          };
+
+          int count = ARRAY_COUNT(targets);
+
+          if(target != eGL_TEXTURE_CUBE_MAP)
+          {
+            targets[0] = target;
+            count = 1;
+          }
+
+          for(int trg = 0; trg < count; trg++)
+          {
+            size_t size = GetCompressedByteSize(w, h, d, displayFormat);
+
+            if(target == eGL_TEXTURE_CUBE_MAP)
+              size /= 6;
+
+            byte *buf = new byte[size];
+
+            if(IsGLES)
+            {
+              texDetails.GetCompressedImageDataGLES(i, targets[trg], size, buf);
+            }
+            else
+            {
+              // read to CPU
+              GL.glGetCompressedTextureImageEXT(texname, targets[trg], i, buf);
+            }
+
+            // write to GPU
+            if(texDetails.dimension == 1)
+              GL.glCompressedTextureSubImage1DEXT(castTexture, targets[trg], i, 0, w, displayFormat,
+                                                  (GLsizei)size, buf);
+            else if(texDetails.dimension == 2)
+              GL.glCompressedTextureSubImage2DEXT(castTexture, targets[trg], i, 0, 0, w, h,
+                                                  displayFormat, (GLsizei)size, buf);
+            else if(texDetails.dimension == 3)
+              GL.glCompressedTextureSubImage3DEXT(castTexture, targets[trg], i, 0, 0, 0, w, h, d,
+                                                  displayFormat, (GLsizei)size, buf);
+
+            delete[] buf;
+          }
+        }
+        else
+        {
+          GL.glCopyImageSubData(texname, target, i, 0, 0, 0, castTexture, target, i, 0, 0, 0, w, h,
+                                d);
+        }
+      }
+
+      GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&prevMaxLevel);
+
+      texname = castTexture;
+    }
+  }
+
   RDCGLenum dsTexMode = eGL_NONE;
-  if(IsDepthStencilFormat(texDetails.internalFormat))
+  if(IsDepthStencilFormat(displayFormat))
   {
     // stencil-only, make sure we display it as such
-    if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
+    if(displayFormat == eGL_STENCIL_INDEX8)
     {
       cfg.red = false;
       cfg.green = true;
@@ -126,7 +310,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     }
 
     // depth-only, make sure we display it as such
-    if(GetBaseFormat(texDetails.internalFormat) == eGL_DEPTH_COMPONENT)
+    if(GetBaseFormat(displayFormat) == eGL_DEPTH_COMPONENT)
     {
       cfg.red = true;
       cfg.green = false;
@@ -141,7 +325,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
       // Stencil texture sampling is not normalized in OpenGL
       intIdx = 1;
       float rangeScale = 1.0f;
-      switch(texDetails.internalFormat)
+      switch(displayFormat)
       {
         case eGL_STENCIL_INDEX1: rangeScale = 1.0f; break;
         case eGL_STENCIL_INDEX4: rangeScale = 16.0f; break;
@@ -162,16 +346,14 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   }
   else
   {
-    if(IsUIntFormat(texDetails.internalFormat))
+    if(IsUIntFormat(displayFormat))
       intIdx = 1;
-    if(IsSIntFormat(texDetails.internalFormat))
+    if(IsSIntFormat(displayFormat))
       intIdx = 2;
   }
 
   drv.glBindProgramPipeline(0);
   drv.glUseProgram(DebugData.texDisplayProg[intIdx]);
-
-  uint32_t numMips = m_CachedTextures[cfg.resourceId].mips;
 
   GLuint customProgram = 0;
 
@@ -393,7 +575,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   if(cfg.overlay == DebugOverlay::Clipping)
     ubo->OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
 
-  if(!IsSRGBFormat(texDetails.internalFormat) && cfg.linearDisplayAsGamma)
+  if(!IsSRGBFormat(displayFormat) && cfg.linearDisplayAsGamma)
     ubo->OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 
   ubo->RawOutput = cfg.rawOutput ? 1 : 0;
@@ -489,6 +671,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
     drv.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+
+  if(castTexture)
+    drv.glDeleteTextures(1, &castTexture);
 
   return true;
 }

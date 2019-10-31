@@ -1048,6 +1048,267 @@ bool IsSRGBFormat(GLenum internalFormat)
   return false;
 }
 
+GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast)
+{
+  switch(internalFormat)
+  {
+    case eGL_RGBA:
+    case eGL_RGBA8:
+    case eGL_RGBA8_SNORM:
+    case eGL_RGBA8UI:
+    case eGL_RGBA8I:
+    case eGL_SRGB_ALPHA:
+    case eGL_SRGB8_ALPHA8:
+      switch(typeCast)
+      {
+        case CompType::UNorm: internalFormat = eGL_RGBA8; break;
+        case CompType::SNorm: internalFormat = eGL_RGBA8_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_RGBA8UI; break;
+        case CompType::SInt: internalFormat = eGL_RGBA8I; break;
+        case CompType::UNormSRGB: internalFormat = eGL_SRGB8_ALPHA8; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RGB:
+    case eGL_RGB8:
+    case eGL_RGB8_SNORM:
+    case eGL_RGB8UI:
+    case eGL_RGB8I:
+    case eGL_SRGB:
+    case eGL_SRGB8:
+      switch(typeCast)
+      {
+        case CompType::UNorm: internalFormat = eGL_RGB8; break;
+        case CompType::SNorm: internalFormat = eGL_RGB8_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_RGB8UI; break;
+        case CompType::SInt: internalFormat = eGL_RGB8I; break;
+        case CompType::UNormSRGB: internalFormat = eGL_SRGB8; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RG:
+    case eGL_RG8:
+    case eGL_RG8_SNORM:
+    case eGL_RG8UI:
+    case eGL_RG8I:
+      switch(typeCast)
+      {
+        case CompType::UNorm: internalFormat = eGL_RG8; break;
+        case CompType::SNorm: internalFormat = eGL_RG8_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_RG8UI; break;
+        case CompType::SInt: internalFormat = eGL_RG8I; break;
+        case CompType::UNormSRGB: internalFormat = eGL_SRG8_EXT; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RED:
+    case eGL_R8:
+    case eGL_R8_SNORM:
+    case eGL_R8UI:
+    case eGL_R8I:
+      switch(typeCast)
+      {
+        case CompType::UNorm: internalFormat = eGL_R8; break;
+        case CompType::SNorm: internalFormat = eGL_R8_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_R8UI; break;
+        case CompType::SInt: internalFormat = eGL_R8I; break;
+        case CompType::UNormSRGB: internalFormat = eGL_SR8_EXT; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RGBA16F:
+    case eGL_RGBA16:
+    case eGL_RGBA16_SNORM:
+    case eGL_RGBA16UI:
+    case eGL_RGBA16I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_RGBA16F; break;
+        case CompType::UNorm: internalFormat = eGL_RGBA16; break;
+        case CompType::SNorm: internalFormat = eGL_RGBA16_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_RGBA16UI; break;
+        case CompType::SInt: internalFormat = eGL_RGBA16I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RGB16F:
+    case eGL_RGB16:
+    case eGL_RGB16_SNORM:
+    case eGL_RGB16UI:
+    case eGL_RGB16I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_RGB16F; break;
+        case CompType::UNorm: internalFormat = eGL_RGB16; break;
+        case CompType::SNorm: internalFormat = eGL_RGB16_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_RGB16UI; break;
+        case CompType::SInt: internalFormat = eGL_RGB16I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RG16F:
+    case eGL_RG16:
+    case eGL_RG16_SNORM:
+    case eGL_RG16UI:
+    case eGL_RG16I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_RG16F; break;
+        case CompType::UNorm: internalFormat = eGL_RG16; break;
+        case CompType::SNorm: internalFormat = eGL_RG16_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_RG16UI; break;
+        case CompType::SInt: internalFormat = eGL_RG16I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_R16F:
+    case eGL_R16:
+    case eGL_R16_SNORM:
+    case eGL_R16UI:
+    case eGL_R16I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_R16F; break;
+        case CompType::UNorm: internalFormat = eGL_R16; break;
+        case CompType::SNorm: internalFormat = eGL_R16_SNORM; break;
+        case CompType::UInt: internalFormat = eGL_R16UI; break;
+        case CompType::SInt: internalFormat = eGL_R16I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RGBA32F:
+    case eGL_RGBA32UI:
+    case eGL_RGBA32I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_RGBA32F; break;
+        case CompType::UInt: internalFormat = eGL_RGBA32UI; break;
+        case CompType::SInt: internalFormat = eGL_RGBA32I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RGB32F:
+    case eGL_RGB32UI:
+    case eGL_RGB32I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_RGB32F; break;
+        case CompType::UInt: internalFormat = eGL_RGB32UI; break;
+        case CompType::SInt: internalFormat = eGL_RGB32I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RG32F:
+    case eGL_RG32UI:
+    case eGL_RG32I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_RG32F; break;
+        case CompType::UInt: internalFormat = eGL_RG32UI; break;
+        case CompType::SInt: internalFormat = eGL_RG32I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_R32F:
+    case eGL_R32UI:
+    case eGL_R32I:
+      switch(typeCast)
+      {
+        case CompType::Float: internalFormat = eGL_R32F; break;
+        case CompType::UInt: internalFormat = eGL_R32UI; break;
+        case CompType::SInt: internalFormat = eGL_R32I; break;
+        default: break;
+      }
+      break;
+
+    case eGL_RGB10_A2UI:
+    case eGL_RGB10_A2:
+      switch(typeCast)
+      {
+        case CompType::Float:
+        case CompType::UNorm: internalFormat = eGL_RGB10_A2; break;
+        case CompType::UInt: internalFormat = eGL_RGB10_A2UI; break;
+        default: break;
+      }
+      break;
+
+    case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+    case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+      internalFormat = (typeCast == CompType::UNormSRGB) ? eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT
+                                                         : eGL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+      break;
+
+    case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+      internalFormat = (typeCast == CompType::UNormSRGB) ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT
+                                                         : eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+      break;
+
+    case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+      internalFormat = (typeCast == CompType::UNormSRGB) ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
+                                                         : eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+      break;
+
+    case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+      internalFormat = (typeCast == CompType::UNormSRGB) ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
+                                                         : eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+      break;
+
+    case eGL_COMPRESSED_RED_RGTC1:
+    case eGL_COMPRESSED_SIGNED_RED_RGTC1:
+      internalFormat = (typeCast == CompType::SNorm) ? eGL_COMPRESSED_SIGNED_RED_RGTC1
+                                                     : eGL_COMPRESSED_RED_RGTC1;
+      break;
+
+    case eGL_COMPRESSED_RG_RGTC2:
+    case eGL_COMPRESSED_SIGNED_RG_RGTC2:
+      internalFormat =
+          (typeCast == CompType::SNorm) ? eGL_COMPRESSED_SIGNED_RG_RGTC2 : eGL_COMPRESSED_RG_RGTC2;
+      break;
+
+    case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
+    case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
+      internalFormat = (typeCast == CompType::SNorm) ? eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB
+                                                     : eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
+      break;
+
+    case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
+    case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
+      internalFormat = (typeCast == CompType::UNormSRGB) ? eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB
+                                                         : eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+      break;
+
+    case eGL_COMPRESSED_SIGNED_R11_EAC:
+    case eGL_COMPRESSED_R11_EAC:
+      internalFormat =
+          (typeCast == CompType::SNorm) ? eGL_COMPRESSED_SIGNED_R11_EAC : eGL_COMPRESSED_R11_EAC;
+      break;
+
+    case eGL_COMPRESSED_SIGNED_RG11_EAC:
+    case eGL_COMPRESSED_RG11_EAC:
+      internalFormat =
+          (typeCast == CompType::SNorm) ? eGL_COMPRESSED_SIGNED_RG11_EAC : eGL_COMPRESSED_RG11_EAC;
+      break;
+
+    default: break;
+  }
+
+  return internalFormat;
+}
+
 GLenum TextureBinding(GLenum target)
 {
   switch(target)

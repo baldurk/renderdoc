@@ -552,6 +552,10 @@ public:
   ContextPair &GetCtx();
   GLResourceRecord *GetContextRecord();
 
+  void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
+                          GLenum textype, GLint dim, GLint width, GLint height, GLint depth,
+                          GLint samples, int mips);
+
   void PushInternalShader() { m_InternalShader++; }
   void PopInternalShader() { m_InternalShader--; }
   bool IsInternalShader() { return m_InternalShader > 0; }
