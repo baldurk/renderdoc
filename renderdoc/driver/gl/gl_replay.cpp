@@ -3130,6 +3130,11 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 
   if(IsCompressedFormat(fmt))
   {
+    PixelUnpackState unpack;
+    unpack.Fetch(true);
+
+    ResetPixelUnpackState(true, 1);
+
     if(target == eGL_TEXTURE_1D)
     {
       drv.glCompressedTextureSubImage1DEXT(tex, target, (GLint)mip, 0, width, fmt,
@@ -3173,6 +3178,8 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
     {
       RDCERR("Unexpected compressed MSAA texture!");
     }
+
+    unpack.Apply(true);
   }
   else
   {
@@ -3184,6 +3191,11 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
     }
+
+    PixelUnpackState unpack;
+    unpack.Fetch(false);
+
+    ResetPixelUnpackState(false, 1);
 
     if(target == eGL_TEXTURE_1D)
     {
@@ -3271,6 +3283,8 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
       // delete the temporary texture
       drv.glDeleteTextures(1, &uploadTex);
     }
+
+    unpack.Apply(false);
   }
 }
 
