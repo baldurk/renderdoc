@@ -113,6 +113,13 @@ public:
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
                  CompType typeCast, float pixel[4])
   {
+    if(m_Props.localRenderer == GraphicsAPI::OpenGL)
+    {
+      TextureDescription tex = m_Proxy->GetTexture(texture);
+      uint32_t mipHeight = RDCMAX(1U, tex.height >> sub.mip);
+      y = (mipHeight - 1) - y;
+    }
+
     m_Proxy->PickPixel(m_TextureID, x, y, sub, typeCast, pixel);
   }
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
@@ -129,6 +136,10 @@ public:
   {
     if(cfg.resourceId != m_TextureID && cfg.resourceId != m_CustomTexID)
       cfg.resourceId = m_TextureID;
+
+    if(m_Props.localRenderer == GraphicsAPI::OpenGL)
+      cfg.flipY = !cfg.flipY;
+
     return m_Proxy->RenderTexture(cfg);
   }
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
