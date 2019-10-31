@@ -3295,6 +3295,10 @@ bool GLReplay::IsTextureSupported(const ResourceFormat &format)
   if(format.type == ResourceFormatType::ASTC)
     return false;
 
+  // we don't try to replay alpha8 textures, as we stick strictly to core profile GL
+  if(format.type == ResourceFormatType::A8)
+    return false;
+
   // BGRA is not accepted as an internal format in case of GL
   // EXT_texture_format_BGRA8888 is required for creating BGRA proxy textures in case of GLES
   if(format.BGRAOrder())
