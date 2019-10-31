@@ -3203,6 +3203,26 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
     ResetPixelUnpackState(false, 1);
 
+    bytebuf swizzled;
+
+    // packed D24S8 is expected the wrong way around from comes in, so we re-swizzle it here
+    if(texdetails.internalFormat == eGL_DEPTH24_STENCIL8)
+    {
+      const uint32_t *srcptr = (const uint32_t *)data;
+      swizzled.resize(dataSize);
+      uint32_t *dstptr = (uint32_t *)swizzled.data();
+
+      for(size_t i = 0; i < dataSize; i += 4)
+      {
+        const uint32_t val = *srcptr;
+        *dstptr = (val << 8) | ((val & 0xff000000) >> 24);
+        srcptr++;
+        dstptr++;
+      }
+
+      data = swizzled.data();
+    }
+
     if(target == eGL_TEXTURE_1D)
     {
       drv.glTextureSubImage1DEXT(tex, target, (GLint)sub.mip, 0, width, baseformat, datatype, data);
@@ -3254,35 +3274,9 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
       GLint unpackedSlice = sub.slice * texdetails.samples + sub.sample;
 
-      // packed D24S8 is expected the wrong way around from comes in, so we re-swizzle it here
-      if(texdetails.internalFormat == eGL_DEPTH24_STENCIL8)
-      {
-        const uint32_t *srcptr = (const uint32_t *)data;
-        bytebuf swizzled;
-        swizzled.resize(dataSize);
-        uint32_t *dstptr = (uint32_t *)swizzled.data();
-
-        for(GLsizei y = 0; y < height; y++)
-        {
-          for(GLsizei x = 0; x < width; x++)
-          {
-            const uint32_t val = *srcptr;
-            *dstptr = (val << 8) | ((val & 0xff000000) >> 24);
-            srcptr++;
-            dstptr++;
-          }
-        }
-
-        // upload the data to the given slice
-        drv.glTextureSubImage3DEXT(uploadTex, eGL_TEXTURE_2D_ARRAY, 0, 0, 0, unpackedSlice, width,
-                                   height, 1, baseformat, datatype, swizzled.data());
-      }
-      else
-      {
-        // upload the data to the given slice
-        drv.glTextureSubImage3DEXT(uploadTex, eGL_TEXTURE_2D_ARRAY, 0, 0, 0, unpackedSlice, width,
-                                   height, 1, baseformat, datatype, data);
-      }
+      // upload the data to the given slice
+      drv.glTextureSubImage3DEXT(uploadTex, eGL_TEXTURE_2D_ARRAY, 0, 0, 0, unpackedSlice, width,
+                                 height, 1, baseformat, datatype, data);
 
       // copy this slice into the 2D MSAA texture
       CopyArrayToTex2DMS(tex, uploadTex, width, height, texdetails.depth, texdetails.samples,
