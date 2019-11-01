@@ -775,15 +775,18 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), col))].creationFlags |=
       TextureCategory::SwapBuffer;
 
+  uint32_t width = RDCMAX(1U, params.width);
+  uint32_t height = RDCMAX(1U, params.height);
+
   if(params.multiSamples > 1)
   {
-    drv.glTextureStorage2DMultisampleEXT(col, target, params.multiSamples, colfmt, params.width,
-                                         params.height, true);
+    drv.glTextureStorage2DMultisampleEXT(col, target, params.multiSamples, colfmt, width, height,
+                                         true);
   }
   else
   {
-    drv.glTextureImage2DEXT(col, target, 0, colfmt, params.width, params.height, 0,
-                            GetBaseFormat(colfmt), GetDataType(colfmt), NULL);
+    drv.glTextureImage2DEXT(col, target, 0, colfmt, width, height, 0, GetBaseFormat(colfmt),
+                            GetDataType(colfmt), NULL);
     drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
     drv.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     drv.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -792,7 +795,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   }
   drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, col, 0);
 
-  drv.glViewport(0, 0, params.width, params.height);
+  drv.glViewport(0, 0, width, height);
 
   if(params.depthBits > 0 || params.stencilBits > 0)
   {
@@ -835,14 +838,14 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
 
     if(params.multiSamples > 1)
     {
-      drv.glTextureStorage2DMultisampleEXT(depth, target, params.multiSamples, depthfmt,
-                                           params.width, params.height, true);
+      drv.glTextureStorage2DMultisampleEXT(depth, target, params.multiSamples, depthfmt, width,
+                                           height, true);
     }
     else
     {
       drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-      drv.glTextureImage2DEXT(depth, target, 0, depthfmt, params.width, params.height, 0,
-                              GetBaseFormat(depthfmt), GetDataType(depthfmt), NULL);
+      drv.glTextureImage2DEXT(depth, target, 0, depthfmt, width, height, 0, GetBaseFormat(depthfmt),
+                              GetDataType(depthfmt), NULL);
     }
 
     if(stencil && params.depthBits == 0)
