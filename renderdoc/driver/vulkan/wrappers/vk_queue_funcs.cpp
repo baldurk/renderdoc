@@ -50,8 +50,18 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
 
     ObjDisp(device)->GetDeviceQueue(Unwrap(device), remapFamily, remapIndex, &queue);
 
-    GetResourceManager()->WrapResource(Unwrap(device), queue);
-    GetResourceManager()->AddLiveResource(Queue, queue);
+    if(GetResourceManager()->HasWrapper(ToTypedHandle(queue)))
+    {
+      ResourceId live = GetResourceManager()->GetDispWrapper(queue)->id;
+
+      // whenever the new ID is requested, return the old ID, via replacements.
+      GetResourceManager()->ReplaceResource(Queue, GetResourceManager()->GetOriginalID(live));
+    }
+    else
+    {
+      GetResourceManager()->WrapResource(Unwrap(device), queue);
+      GetResourceManager()->AddLiveResource(Queue, queue);
+    }
 
     if(remapFamily == m_QueueFamilyIdx && m_Queue == VK_NULL_HANDLE)
     {

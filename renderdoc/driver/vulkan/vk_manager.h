@@ -296,6 +296,12 @@ public:
     return (WrappedVkNonDispRes *)GetWrapper(ToTypedHandle(real));
   }
 
+  template <typename realtype>
+  WrappedVkDispRes *GetDispWrapper(realtype real)
+  {
+    return (WrappedVkDispRes *)GetWrapper(ToTypedHandle(real));
+  }
+
   template <typename parenttype, typename realtype>
   ResourceId WrapResource(parenttype parentObj, realtype &obj)
   {
