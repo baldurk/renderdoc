@@ -1,12 +1,8 @@
-**IF YOU DO NOT FOLLOW THE GUIDELINES, YOUR ISSUE WILL BE CLOSED**
+<!-- IF YOU DO NOT FOLLOW THE GUIDELINES, OR DO NOT USE THE TEMPLATE BELOW, YOUR ISSUE WILL BE CLOSED!
 
-Guide to filing issues: https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING/Filing-Issues.md
+The template below shows what you need to include in a good bug report, and you must use it. More information is available in the documentation: https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING/Filing-Issues.md
 
-I'm happy to help fix bugs and discuss new features, but you have the responsibility to ensure I fully understand what you want and have the information I need to work on it. If you're _at all_ unsure of what is needed, please read the guide above for full information on what is expected for filing issues.
-
-Delete this section when you know what to do and fill out the template below. If you do not, your issue will be closed because you clearly didn't read this!
-
-----
+I'm happy to help, but you have to ensure I fully understand what you want and have the information I need. If you're unsure, please read the guide above for full information on what is expected for filing issues. -->
 
 ## Description
 
@@ -16,7 +12,7 @@ Here you can enter a description of either the bug that you are encountering, or
 
 -->
 
-## Repro steps
+## Steps to reproduce
 
 <!--
 

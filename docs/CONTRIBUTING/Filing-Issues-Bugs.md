@@ -2,6 +2,10 @@
 
 Sorry that you've run into a bug! I'd like to be able to fix it, but first you need to fill out a good bug report to ensure I can understand the problem.
 
+:warning: **PLEASE NOTE: YOU MUST USE THE PROVIDED ISSUE TEMPLATE!** :warning:
+
+This document explains the sections in the issue template and what you should put in them.
+
 # General guidance
 
 It's extremely rare that you can provide too much information, and by comparison it's quite common to provide too little information. The more information you can provide the better I can determine the bug.
@@ -16,16 +20,13 @@ Below is guidance for each section of the issue template.
 
 # Description
 
-In the description section you can explain what kind of problem you're running into. The golden rule for this is:
-
-1. Describe what you see actually happening.
-2. Describe what you'd expect to see instead.
+In the description section you can explain what kind of problem you're running into. The golden rule for this is to describe what you actually see happening, and then describe what you'd expect to see instead.
 
 The point here is to make it clear to anyone what the bug is, because unless you describe it not everyone may understand what the problem is. If you describe what you're trying to do and where the problem arises, compared to what you would expect to happen if everything worked, it's easier to understand.
 
-This is mostly relevant for bugs where something doesn't behave right rather than if something crashes where it's clear what is going wrong.
+This is mostly relevant for bugs where something doesn't behave right rather than if something crashes where it's clear what is going wrong, but it's still useful information.
 
-# Repro steps
+# Steps to reproduce
 
 This section is the most important one!
 
@@ -43,10 +44,8 @@ If you cannot share your capture or application even privately, then that's unde
 
 # Environment
 
-Please update the environment section to at least list the main three items:
+Please update the environment section for at least the three items present, the RenderDoc version you are using, your OS, and the graphics API(s) that you are seeing the bug on.
 
-1. The RenderDoc version you are using (including the date or commit hash for nightly builds)
-2. Your OS, such as Windows 7, Ubuntu, Android, Windows 10
-3. The graphics API where you can reproduce this bug.
+For the RenderDoc version if you're using a nightly build include the date or commit hash for that nightly build, since the v1.X number is not unique.
 
 Giving more details here such as your GPU and driver version can't hurt, but you must include the three above since this gives important information about where the problem might be.
