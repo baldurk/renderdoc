@@ -1329,6 +1329,7 @@ struct MemRefs
   inline MemRefs(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
       : initializedLiveRes(NULL)
   {
+    size = RDCMIN(size, UINT64_MAX - offset);
     rangeRefs.update(offset, offset + size, refType, ComposeFrameRefs);
   }
   template <typename Compose>
@@ -1346,6 +1347,7 @@ template <typename Compose>
 FrameRefType MemRefs::Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
                              Compose comp)
 {
+  size = RDCMIN(size, UINT64_MAX - offset);
   FrameRefType maxRefType = eFrameRef_None;
   rangeRefs.update(offset, offset + size, refType,
                    [&maxRefType, comp](FrameRefType oldRef, FrameRefType newRef) -> FrameRefType {
