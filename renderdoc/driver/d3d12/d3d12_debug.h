@@ -33,6 +33,17 @@ class WrappedID3D12Device;
 class D3D12ResourceManager;
 struct D3D12Descriptor;
 
+namespace DXBC
+{
+class DXBCContainer;
+};
+
+namespace ShaderDebug
+{
+struct GlobalState;
+class State;
+}
+
 #define D3D12_MSAA_SAMPLECOUNT 4
 
 // baked indices in descriptor heaps
@@ -153,6 +164,11 @@ public:
 
   void CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS);
   void CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray, UINT selectedSlice);
+
+  ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
+                                            DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
+                                            bytebuf *cbufData);
+  void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCContainer *dxbc);
 
 private:
   WrappedID3D12Device *m_pDevice = NULL;
