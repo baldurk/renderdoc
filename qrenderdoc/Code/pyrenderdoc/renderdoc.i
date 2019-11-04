@@ -50,6 +50,8 @@
 %rename("%(regex:/^GLPipe::(.*)/GL\\1/)s", regextarget=1, fullname=1, %$isclass) "GLPipe::.*";
 %rename("%(regex:/^VKPipe::(.*)/VK\\1/)s", regextarget=1, fullname=1, %$isclass) "VKPipe::.*";
 
+%rename("string") "SDObjectData::str";
+
 %begin %{
   #undef slots
 %}
