@@ -101,76 +101,162 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        // patch the parameters further so that this renderpass always loads and saves on replay. We
-        // do any clears as necessary manually here
+        // perform any clears needed
+
+        for(UINT i = 0; i < NumRenderTargets; i++)
         {
-          D3D12_RENDER_PASS_RENDER_TARGET_DESC *rts =
-              (D3D12_RENDER_PASS_RENDER_TARGET_DESC *)pRenderTargets;
-          D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *ds =
-              (D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *)pDepthStencil;
-
-          for(UINT i = 0; i < NumRenderTargets; i++)
+          if(pRenderTargets[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
           {
-            if(rts[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-            {
-              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ClearRenderTargetView(rts[i].cpuDescriptor,
-                                          rts[i].BeginningAccess.Clear.ClearValue.Color, 0, NULL);
-            }
-
-            rts[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-            rts[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-          }
-
-          if(ds)
-          {
-            D3D12_CLEAR_FLAGS flags = {};
-
-            if(ds->DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-              flags |= D3D12_CLEAR_FLAG_DEPTH;
-            if(ds->StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-              flags |= D3D12_CLEAR_FLAG_STENCIL;
-
-            if(flags)
-            {
-              // we can safely read from either depth/stencil clear values because if the access
-              // type isn't clear the corresponding flag will be unset - so whatever garbage value
-              // we have isn't used.
-              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ClearDepthStencilView(
-                      ds->cpuDescriptor, flags,
-                      ds->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
-                      ds->StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil, 0, NULL);
-            }
-
-            ds->DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-            ds->StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-            ds->DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-            ds->StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+            Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+                ->ClearRenderTargetView(pRenderTargets[i].cpuDescriptor,
+                                        pRenderTargets[i].BeginningAccess.Clear.ClearValue.Color, 0,
+                                        NULL);
           }
         }
 
-        Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
+        if(pDepthStencil)
+        {
+          D3D12_CLEAR_FLAGS flags = {};
 
-        m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].renderPassActive = true;
+          if(pDepthStencil->DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+            flags |= D3D12_CLEAR_FLAG_DEPTH;
+          if(pDepthStencil->StencilBeginningAccess.Type ==
+             D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+            flags |= D3D12_CLEAR_FLAG_STENCIL;
+
+          if(flags)
+          {
+            // we can safely read from either depth/stencil clear values because if the access
+            // type isn't clear the corresponding flag will be unset - so whatever garbage value
+            // we have isn't used.
+            Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+                ->ClearDepthStencilView(
+                    pDepthStencil->cpuDescriptor, flags,
+                    pDepthStencil->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
+                    pDepthStencil->StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil, 0,
+                    NULL);
+          }
+        }
+
+        {
+          D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
+          D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+
+          if(pDepthStencil)
+            dsvHandle = pDepthStencil->cpuDescriptor;
+
+          for(UINT i = 0; i < NumRenderTargets; i++)
+            rtHandles[i] = pRenderTargets[i].cpuDescriptor;
+
+          // need to unwrap here, as FromPortableHandle unwraps too.
+          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+              ->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE,
+                                   dsvHandle.ptr ? &dsvHandle : NULL);
+        }
+
+        // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->BeginRenderPass(NumRenderTargets,
+        // pRenderTargets, pDepthStencil, Flags);
 
         if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
         {
+          m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = true;
+
           m_Cmd->m_RenderState.rts = RTVs;
           m_Cmd->m_RenderState.dsv = DSV;
+          m_Cmd->m_RenderState.renderpass = true;
+
+          m_Cmd->m_RenderState.rpRTs.resize(NumRenderTargets);
+          for(UINT r = 0; r < NumRenderTargets; r++)
+            m_Cmd->m_RenderState.rpRTs[r] = pRenderTargets[r];
+
+          m_Cmd->m_RenderState.rpDSV = {};
+
+          if(pDepthStencil)
+            m_Cmd->m_RenderState.rpDSV = *pDepthStencil;
+
+          m_Cmd->m_RenderState.rpFlags = Flags;
         }
       }
     }
     else
     {
-      Unwrap4(pCommandList)->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
-      GetCrackedList4()->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
+      for(UINT i = 0; i < NumRenderTargets; i++)
+      {
+        if(pRenderTargets[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+        {
+          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+              ->ClearRenderTargetView(pRenderTargets[i].cpuDescriptor,
+                                      pRenderTargets[i].BeginningAccess.Clear.ClearValue.Color, 0,
+                                      NULL);
+        }
+      }
+
+      if(pDepthStencil)
+      {
+        D3D12_CLEAR_FLAGS flags = {};
+
+        if(pDepthStencil->DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+          flags |= D3D12_CLEAR_FLAG_DEPTH;
+        if(pDepthStencil->StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+          flags |= D3D12_CLEAR_FLAG_STENCIL;
+
+        if(flags)
+        {
+          // we can safely read from either depth/stencil clear values because if the access
+          // type isn't clear the corresponding flag will be unset - so whatever garbage value
+          // we have isn't used.
+          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+              ->ClearDepthStencilView(
+                  pDepthStencil->cpuDescriptor, flags,
+                  pDepthStencil->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
+                  pDepthStencil->StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil, 0,
+                  NULL);
+        }
+      }
+
+      D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
+      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+
+      if(pDepthStencil)
+        dsvHandle = pDepthStencil->cpuDescriptor;
+
+      for(UINT i = 0; i < NumRenderTargets; i++)
+        rtHandles[i] = pRenderTargets[i].cpuDescriptor;
+
+      // need to unwrap here, as FromPortableHandle unwraps too.
+      Unwrap(pCommandList)
+          ->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE, dsvHandle.ptr ? &dsvHandle : NULL);
+      GetCrackedList()->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE,
+                                           dsvHandle.ptr ? &dsvHandle : NULL);
+
+      // Unwrap4(pCommandList)->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil,
+      // Flags);
+      // GetCrackedList4()->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.rts = RTVs;
       state.dsv = DSV;
+      state.renderpass = true;
+
+      state.rpRTs.resize(NumRenderTargets);
+      for(UINT r = 0; r < NumRenderTargets; r++)
+        state.rpRTs[r] = pRenderTargets[r];
+
+      state.rpDSV = {};
+
+      if(pDepthStencil)
+        state.rpDSV = *pDepthStencil;
+
+      state.rpFlags = Flags;
+
+      m_Cmd->AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = "BeginRenderPass()";
+      draw.flags |= DrawFlags::BeginPass | DrawFlags::PassBoundary;
+
+      m_Cmd->AddDrawcall(draw, true);
     }
   }
 
@@ -181,8 +267,24 @@ void WrappedID3D12GraphicsCommandList::BeginRenderPass(
     UINT NumRenderTargets, const D3D12_RENDER_PASS_RENDER_TARGET_DESC *pRenderTargets,
     const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *pDepthStencil, D3D12_RENDER_PASS_FLAGS Flags)
 {
-  SERIALISE_TIME_CALL(
-      m_pList4->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags));
+  D3D12_RENDER_PASS_RENDER_TARGET_DESC *unwrappedRTs =
+      m_pDevice->GetTempArray<D3D12_RENDER_PASS_RENDER_TARGET_DESC>(NumRenderTargets);
+
+  for(UINT i = 0; i < NumRenderTargets; i++)
+  {
+    unwrappedRTs[i] = pRenderTargets[i];
+    unwrappedRTs[i].cpuDescriptor = Unwrap(unwrappedRTs[i].cpuDescriptor);
+  }
+
+  D3D12_RENDER_PASS_DEPTH_STENCIL_DESC unwrappedDSV;
+  if(pDepthStencil)
+  {
+    unwrappedDSV = *pDepthStencil;
+    unwrappedDSV.cpuDescriptor = Unwrap(unwrappedDSV.cpuDescriptor);
+  }
+
+  SERIALISE_TIME_CALL(m_pList4->BeginRenderPass(NumRenderTargets, unwrappedRTs,
+                                                pDepthStencil ? &unwrappedDSV : NULL, Flags));
 
   if(IsCaptureMode(m_State))
   {
@@ -255,24 +357,42 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->EndRenderPass();
+        // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->EndRenderPass();
 
         if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
         {
+          m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = false;
+
           m_Cmd->m_RenderState.rts.clear();
           m_Cmd->m_RenderState.dsv = D3D12Descriptor();
+          m_Cmd->m_RenderState.renderpass = false;
+          m_Cmd->m_RenderState.rpRTs.clear();
+          m_Cmd->m_RenderState.rpDSV = {};
+          m_Cmd->m_RenderState.rpFlags = D3D12_RENDER_PASS_FLAG_NONE;
         }
       }
     }
     else
     {
-      Unwrap4(pCommandList)->EndRenderPass();
-      GetCrackedList4()->EndRenderPass();
+      // Unwrap4(pCommandList)->EndRenderPass();
+      // GetCrackedList4()->EndRenderPass();
+
+      m_Cmd->AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = "EndRenderPass()";
+      draw.flags |= DrawFlags::EndPass | DrawFlags::PassBoundary;
+
+      m_Cmd->AddDrawcall(draw, true);
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.rts.clear();
       state.dsv = D3D12Descriptor();
+      state.renderpass = false;
+      state.rpRTs.clear();
+      state.rpDSV = {};
+      state.rpFlags = D3D12_RENDER_PASS_FLAG_NONE;
     }
   }
 

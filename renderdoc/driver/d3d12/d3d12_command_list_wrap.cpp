@@ -103,8 +103,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
         if(m_Cmd->m_DrawcallCallback)
           m_Cmd->m_DrawcallCallback->PreCloseCommandList(list);
 
-        if(m_Cmd->m_BakedCmdListInfo[BakedCommandList].renderPassActive)
-          list->EndRenderPass();
+        // if(m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive)
+        // list->EndRenderPass();
 
         list->Close();
 

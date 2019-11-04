@@ -58,6 +58,11 @@ struct D3D12RenderState
   std::vector<D3D12Descriptor> rts;
   D3D12Descriptor dsv;
 
+  bool renderpass = false;
+  std::vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rpRTs;
+  D3D12_RENDER_PASS_DEPTH_STENCIL_DESC rpDSV;
+  D3D12_RENDER_PASS_FLAGS rpFlags;
+
   std::vector<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
 

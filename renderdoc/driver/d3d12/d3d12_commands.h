@@ -207,9 +207,6 @@ struct BakedCmdListInfo
 
   ResourceId parentList;
 
-  // if a render pass is active when we early-close a list, we need to end it
-  bool renderPassActive = false;
-
   // modified during recording to ensure we end any markers that should be ended but weren't due to
   // a partial replay
   int markerCount;
@@ -263,6 +260,7 @@ struct D3D12CommandData
     {
       partialParent = ResourceId();
       baseEvent = 0;
+      renderPassActive = false;
     }
 
     // this records where in the frame a command list was executed, so that we know if our replay
@@ -290,6 +288,9 @@ struct D3D12CommandData
     // executecmdlists, but also allows the recording to 'rebase' the
     // last event ID by subtracting this, to know how far to record
     uint32_t baseEvent;
+
+    // if a render pass is active when we early-close a list, we need to end it
+    bool renderPassActive;
   } m_Partial[ePartialNum];
 
   // if we're replaying just a single draw or a particular command
