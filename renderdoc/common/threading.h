@@ -84,10 +84,30 @@ private:
 class ScopedSpinLock
 {
 public:
+  ScopedSpinLock() = default;
   ScopedSpinLock(SpinLock &spin) : m_Spin(&spin) { m_Spin->Lock(); }
-  ~ScopedSpinLock() { m_Spin->Unlock(); }
+  ScopedSpinLock(const ScopedSpinLock &) = delete;
+  ScopedSpinLock &operator=(const ScopedSpinLock &) = delete;
+  ScopedSpinLock &operator=(ScopedSpinLock &&other)
+  {
+    if(m_Spin != NULL)
+      m_Spin->Unlock();
+    m_Spin = other.m_Spin;
+    other.m_Spin = NULL;
+    return *this;
+  }
+  ScopedSpinLock(ScopedSpinLock &&other) : m_Spin(other.m_Spin) { other.m_Spin = NULL; }
+  ~ScopedSpinLock()
+  {
+    if(m_Spin != NULL)
+    {
+      m_Spin->Unlock();
+      m_Spin = NULL;
+    }
+  }
+
 private:
-  SpinLock *m_Spin;
+  SpinLock *m_Spin = NULL;
 };
 };
 
