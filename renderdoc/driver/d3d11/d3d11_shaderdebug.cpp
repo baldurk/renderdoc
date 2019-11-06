@@ -35,27 +35,6 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 #include "d3d11_shader_cache.h"
-// struct that saves pointers as we iterate through to where we ultimately
-// want to copy the data to
-struct DataOutput
-{
-  DataOutput(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
-  {
-    reg = regster;
-    elem = element;
-    numwords = numWords;
-    sysattribute = attr;
-    included = inc;
-  }
-
-  int reg;
-  int elem;
-  ShaderBuiltin sysattribute;
-
-  int numwords;
-
-  bool included;
-};
 
 struct DebugHit
 {
@@ -69,176 +48,6 @@ struct DebugHit
   uint32_t coverage;
   uint32_t rawdata;    // arbitrary, depending on shader
 };
-
-// over this number of cycles and things get problematic
-#define SHADER_DEBUG_WARN_THRESHOLD 100000
-
-bool PromptDebugTimeout(uint32_t cycleCounter)
-{
-  std::string msg = StringFormat::Fmt(
-      "RenderDoc's shader debugging has been running for over %u cycles, which indicates either a "
-      "very long-running loop, or possibly an infinite loop. Continuing could lead to extreme "
-      "memory allocations, slow UI or even crashes. Would you like to abort debugging to see what "
-      "has run so far?\n\n"
-      "Hit yes to abort debugging. Note that loading the resulting trace could take several "
-      "minutes.",
-      cycleCounter);
-
-  int ret = MessageBoxA(NULL, msg.c_str(), "Shader debugging timeout", MB_YESNO | MB_ICONWARNING);
-
-  if(ret == IDYES)
-    return true;
-
-  return false;
-}
-
-// apply coarse/fine derivatives to select threads within a quad to ensure all values are correct
-static void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4],
-                             const DataOutput &initialValue, float *data, float signmul,
-                             int32_t quadIdxA, int32_t quadIdxB = -1)
-{
-  for(int w = 0; w < initialValue.numwords; w++)
-  {
-    traces[quadIdxA].inputs[initialValue.reg].value.fv[initialValue.elem + w] += signmul * data[w];
-    if(quadIdxB >= 0)
-      traces[quadIdxB].inputs[initialValue.reg].value.fv[initialValue.elem + w] += signmul * data[w];
-  }
-
-  // quick check to see if this register was evaluated
-  if(global.sampleEvalRegisterMask & (1ULL << initialValue.reg))
-  {
-    // apply derivative to any cached sample evaluations on these quad indices
-    for(auto it = global.sampleEvalCache.begin(); it != global.sampleEvalCache.end(); ++it)
-    {
-      if((it->first.quadIndex == quadIdxA || it->first.quadIndex == quadIdxB) &&
-         initialValue.reg == it->first.inputRegisterIndex)
-      {
-        for(int w = 0; w < initialValue.numwords; w++)
-          it->second.value.fv[initialValue.elem + w] += data[w];
-      }
-    }
-  }
-}
-
-static void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
-                                  const ShaderVariable &v, rdcarray<ShaderVariable> &outvars)
-{
-  size_t outIdx = byteOffset / 16;
-  size_t outComp = (byteOffset % 16) / 4;
-
-  if(v.rowMajor)
-    outvars.resize(RDCMAX(outIdx + v.rows, outvars.size()));
-  else
-    outvars.resize(RDCMAX(outIdx + v.columns, outvars.size()));
-
-  if(!outvars[outIdx].name.empty())
-  {
-    // if we already have a variable in this slot, just append this variable to it. We should not
-    // overlap into the next register as that's not allowed.
-    outvars[outIdx].name = std::string(outvars[outIdx].name) + ", " + basename;
-    outvars[outIdx].rows = 1;
-    outvars[outIdx].isStruct = false;
-    outvars[outIdx].columns += v.columns;
-
-    RDCASSERT(outvars[outIdx].columns <= 4, outvars[outIdx].columns);
-
-    memcpy(&outvars[outIdx].value.uv[outComp], &v.value.uv[0], sizeof(uint32_t) * v.columns);
-  }
-  else
-  {
-    const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
-    const char *regName = v.rowMajor ? "row" : "col";
-    for(uint32_t reg = 0; reg < numRegisters; reg++)
-    {
-      if(numRegisters > 1)
-        outvars[outIdx + reg].name = StringFormat::Fmt("%s.%s%u", basename.c_str(), regName, reg);
-      else
-        outvars[outIdx + reg].name = basename;
-      outvars[outIdx + reg].rows = 1;
-      outvars[outIdx + reg].type = v.type;
-      outvars[outIdx + reg].isStruct = false;
-      outvars[outIdx + reg].columns = v.columns;
-      outvars[outIdx + reg].rowMajor = v.rowMajor;
-    }
-
-    if(v.rowMajor)
-    {
-      for(size_t ri = 0; ri < v.rows; ri++)
-        memcpy(&outvars[outIdx + ri].value.uv[0], &v.value.uv[ri * v.columns],
-               sizeof(uint32_t) * v.columns);
-    }
-    else
-    {
-      // if we have a matrix stored in column major order, we need to transpose it back so we can
-      // unroll it into vectors.
-      for(size_t ci = 0; ci < v.columns; ci++)
-        for(size_t ri = 0; ri < v.rows; ri++)
-          outvars[outIdx + ci].value.uv[ri] = v.value.uv[ri * v.columns + ci];
-    }
-  }
-}
-
-static void FlattenVariables(const rdcarray<ShaderConstant> &constants,
-                             const rdcarray<ShaderVariable> &invars,
-                             rdcarray<ShaderVariable> &outvars, const std::string &prefix,
-                             uint32_t baseOffset)
-{
-  RDCASSERTEQUAL(constants.size(), invars.size());
-
-  for(size_t i = 0; i < constants.size(); i++)
-  {
-    const ShaderConstant &c = constants[i];
-    const ShaderVariable &v = invars[i];
-
-    uint32_t byteOffset = baseOffset + c.byteOffset;
-
-    std::string basename = prefix + std::string(v.name);
-
-    if(!v.members.empty())
-    {
-      if(v.isStruct)
-      {
-        FlattenVariables(c.type.members, v.members, outvars, basename + ".", byteOffset);
-      }
-      else
-      {
-        if(c.type.members.empty())
-        {
-          // if there are no members in this type, it means it's a basic array - unroll directly
-
-          for(int m = 0; m < v.members.count(); m++)
-          {
-            FlattenSingleVariable(byteOffset + m * c.type.descriptor.arrayByteStride,
-                                  StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
-                                  outvars);
-          }
-        }
-        else
-        {
-          // otherwise we recurse into each member and flatten
-
-          for(int m = 0; m < v.members.count(); m++)
-          {
-            FlattenVariables(c.type.members, v.members[m].members, outvars,
-                             StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
-                             byteOffset + m * c.type.descriptor.arrayByteStride);
-          }
-        }
-      }
-
-      continue;
-    }
-
-    FlattenSingleVariable(byteOffset, basename, v, outvars);
-  }
-}
-
-static void FlattenVariables(const rdcarray<ShaderConstant> &constants,
-                             const rdcarray<ShaderVariable> &invars,
-                             rdcarray<ShaderVariable> &outvars)
-{
-  FlattenVariables(constants, invars, outvars, "", 0);
-}
 
 class D3D11DebugAPIWrapper : public ShaderDebug::DebugAPIWrapper
 {
@@ -939,15 +748,18 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     // we just use the fattest one necessary. There's no harm in retrieving at
     // higher precision
     DXGI_FORMAT fmts[DXBC::NUM_RETURN_TYPES] = {
-        DXGI_FORMAT_UNKNOWN,    // enum starts at ==1
-        DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT,
-        DXGI_FORMAT_R32G32B32A32_SINT, DXGI_FORMAT_R32G32B32A32_UINT, DXGI_FORMAT_R32G32B32A32_FLOAT,
-        DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_MIXED
+        DXGI_FORMAT_UNKNOWN,               // enum starts at ==1
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // unorm float
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // snorm float
+        DXGI_FORMAT_R32G32B32A32_SINT,     // int
+        DXGI_FORMAT_R32G32B32A32_UINT,     // uint
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // float
+        DXGI_FORMAT_UNKNOWN,               // RETURN_TYPE_MIXED
 
         // should maybe be double, but there is no double texture format anyway!
         // spec is unclear but I presume reads are done at most at float
         // precision anyway since that's the source, and converted to doubles.
-        DXGI_FORMAT_R32G32B32A32_FLOAT,
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // double
 
         DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_CONTINUED
         DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_UNUSED
@@ -1101,9 +913,9 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   {
     if(offsetDim == 1)
       StringFormat::snprintf(buf, 255, ", int(%d)", texelOffsets[0]);
-    if(offsetDim == 2)
+    else if(offsetDim == 2)
       StringFormat::snprintf(buf, 255, ", int2(%d, %d)", texelOffsets[0], texelOffsets[1]);
-    if(offsetDim == 3)
+    else if(offsetDim == 3)
       StringFormat::snprintf(buf, 255, ", int3(%d, %d, %d)", texelOffsets[0], texelOffsets[1],
                              texelOffsets[2]);
     // texdim == 4 is cube arrays, no offset supported
@@ -2571,7 +2383,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   if(prevdxbc == NULL && vs != NULL)
     prevdxbc = vs->GetDXBC();
 
-  std::vector<DataOutput> initialValues;
+  std::vector<PSInputElement> initialValues;
 
   std::string extractHlsl = "struct PSInput\n{\n";
 
@@ -2581,7 +2393,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   {
     extractHlsl += "float4 input_dummy : SV_Position;\n";
 
-    initialValues.push_back(DataOutput(-1, 0, 4, ShaderBuiltin::Undefined, true));
+    initialValues.push_back(PSInputElement(-1, 0, 4, ShaderBuiltin::Undefined, true));
 
     structureStride += 4;
   }
@@ -2658,7 +2470,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
             structureStride += 4 * numCols;
 
-            initialValues.push_back(DataOutput(-1, 0, numCols, ShaderBuiltin::Undefined, true));
+            initialValues.push_back(PSInputElement(-1, 0, numCols, ShaderBuiltin::Undefined, true));
 
             std::string name = prevdxbc->GetReflection()->OutputSig[os].semanticIdxName;
 
@@ -2673,7 +2485,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
         dummy_reg += ToStr((uint32_t)nextreg + dummy);
         extractHlsl += "float4 var_" + dummy_reg + " : semantic_" + dummy_reg + ";\n";
 
-        initialValues.push_back(DataOutput(-1, 0, 4, ShaderBuiltin::Undefined, true));
+        initialValues.push_back(PSInputElement(-1, 0, 4, ShaderBuiltin::Undefined, true));
 
         structureStride += 4 * sizeof(float);
       }
@@ -2859,17 +2671,17 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     {
       if(arrayLength == 0)
       {
-        initialValues.push_back(DataOutput(dxbc->GetReflection()->InputSig[i].regIndex, firstElem,
-                                           numCols, dxbc->GetReflection()->InputSig[i].systemValue,
-                                           included));
+        initialValues.push_back(
+            PSInputElement(dxbc->GetReflection()->InputSig[i].regIndex, firstElem, numCols,
+                           dxbc->GetReflection()->InputSig[i].systemValue, included));
       }
       else
       {
         for(int a = 0; a < arrayLength; a++)
         {
           initialValues.push_back(
-              DataOutput(dxbc->GetReflection()->InputSig[i].regIndex + a, firstElem, numCols,
-                         dxbc->GetReflection()->InputSig[i].systemValue, included));
+              PSInputElement(dxbc->GetReflection()->InputSig[i].regIndex + a, firstElem, numCols,
+                             dxbc->GetReflection()->InputSig[i].systemValue, included));
         }
       }
     }
@@ -3516,132 +3328,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
       evalSampleCache += 4;
     }
 
-    // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
-    // fine derivatives are generated from the destination index and its neighbours in X and Y.
-    // This isn't spec'd but we must assume something and this will hopefully get us closest to
-    // reproducing actual results.
-    //
-    // For debugging, we need members of the quad to be able to generate coarse and fine
-    // derivatives.
-    //
-    // For (0,0) we only need the coarse derivatives to get our neighbours (1,0) and (0,1) which
-    // will give us coarse and fine derivatives being identical.
-    //
-    // For the others we will need to use a combination of coarse and fine derivatives to get the
-    // diagonal element in the quad. In the examples below, remember that the quad indices are:
-    //
-    // +---+---+
-    // | 0 | 1 |
-    // +---+---+
-    // | 2 | 3 |
-    // +---+---+
-    //
-    // And that we have definitions of the derivatives:
-    //
-    // ddx_coarse = (1,0) - (0,0)
-    // ddy_coarse = (0,1) - (0,0)
-    //
-    // i.e. the same for all members of the quad
-    //
-    // ddx_fine   = (x,y) - (1-x,y)
-    // ddy_fine   = (x,y) - (x,1-y)
-    //
-    // i.e. the difference to the neighbour of our desired invocation (the one we have the actual
-    // inputs for, from gathering above).
-    //
-    // So e.g. if our thread is at (1,1) destIdx = 3
-    //
-    // (1,0) = (1,1) - ddx_fine
-    // (0,1) = (1,1) - ddy_fine
-    // (0,0) = (1,1) - ddy_fine - ddx_coarse
-    //
-    // and ddy_coarse is unused. For (1,0) destIdx = 1:
-    //
-    // (1,1) = (1,0) + ddy_fine
-    // (0,1) = (1,0) - ddx_coarse + ddy_coarse
-    // (0,0) = (1,0) - ddx_coarse
-    //
-    // and ddx_fine is unused (it's identical to ddx_coarse anyway)
-
-    // this is the value of input[1] - input[0]
-    float *ddx_coarse = (float *)data;
-
-    for(size_t i = 0; i < initialValues.size(); i++)
-    {
-      if(!initialValues[i].included)
-        continue;
-
-      if(initialValues[i].reg >= 0)
-      {
-        if(destIdx == 0)
-          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, 1.0f, 1, 3);
-        else if(destIdx == 1)
-          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, -1.0f, 0, 2);
-        else if(destIdx == 2)
-          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, 1.0f, 1);
-        else if(destIdx == 3)
-          ApplyDerivatives(global, traces, initialValues[i], ddx_coarse, -1.0f, 0);
-      }
-
-      ddx_coarse += initialValues[i].numwords;
-    }
-
-    // this is the value of input[2] - input[0]
-    float *ddy_coarse = ddx_coarse;
-
-    for(size_t i = 0; i < initialValues.size(); i++)
-    {
-      if(!initialValues[i].included)
-        continue;
-
-      if(initialValues[i].reg >= 0)
-      {
-        if(destIdx == 0)
-          ApplyDerivatives(global, traces, initialValues[i], ddy_coarse, 1.0f, 2, 3);
-        else if(destIdx == 1)
-          ApplyDerivatives(global, traces, initialValues[i], ddy_coarse, 1.0f, 2);
-        else if(destIdx == 2)
-          ApplyDerivatives(global, traces, initialValues[i], ddy_coarse, -1.0f, 0, 1);
-      }
-
-      ddy_coarse += initialValues[i].numwords;
-    }
-
-    float *ddxfine = ddy_coarse;
-
-    for(size_t i = 0; i < initialValues.size(); i++)
-    {
-      if(!initialValues[i].included)
-        continue;
-
-      if(initialValues[i].reg >= 0)
-      {
-        if(destIdx == 2)
-          ApplyDerivatives(global, traces, initialValues[i], ddxfine, 1.0f, 3);
-        else if(destIdx == 3)
-          ApplyDerivatives(global, traces, initialValues[i], ddxfine, -1.0f, 2);
-      }
-
-      ddxfine += initialValues[i].numwords;
-    }
-
-    float *ddyfine = ddxfine;
-
-    for(size_t i = 0; i < initialValues.size(); i++)
-    {
-      if(!initialValues[i].included)
-        continue;
-
-      if(initialValues[i].reg >= 0)
-      {
-        if(destIdx == 1)
-          ApplyDerivatives(global, traces, initialValues[i], ddyfine, 1.0f, 3);
-        else if(destIdx == 3)
-          ApplyDerivatives(global, traces, initialValues[i], ddyfine, -1.0f, 0, 1);
-      }
-
-      ddyfine += initialValues[i].numwords;
-    }
+    ApplyAllDerivatives(global, traces, destIdx, initialValues, (float *)data);
   }
 
   SAFE_DELETE_ARRAY(initialData);
