@@ -281,6 +281,24 @@ void PerformanceCounterViewer::OnCaptureLoaded()
   ui->saveCSV->setEnabled(true);
 }
 
+void PerformanceCounterViewer::OnEventChanged(uint32_t eventId)
+{
+  if(ui->syncViews->isChecked())
+  {
+    const int numItems = (int)ui->counterResults->rowCount();
+    for(int i = 0; i < numItems; ++i)
+    {
+      QTableWidgetItem *item = ui->counterResults->item(i, 0);
+      if(item->data(Qt::UserRole).toUInt() == eventId)
+      {
+        ui->counterResults->setCurrentItem(item);
+        ui->counterResults->scrollToItem(item);
+        break;
+      }
+    }
+  }
+}
+
 void PerformanceCounterViewer::on_counterResults_doubleClicked(const QModelIndex &index)
 {
   QTableWidgetItem *item = ui->counterResults->item(index.row(), 0);

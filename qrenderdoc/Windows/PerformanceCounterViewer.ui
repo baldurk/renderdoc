@@ -82,6 +82,39 @@
          </widget>
         </item>
         <item>
+         <widget class="QToolButton" name="syncViews">
+          <property name="toolTip">
+           <string>Sync Views</string>
+          </property>
+          <property name="text">
+           <string>Sync Views</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../Resources/resources.qrc">
+            <normaloff>:/arrow_join.png</normaloff>:/arrow_join.png</iconset>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextBesideIcon</enum>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+          <property name="arrowType">
+           <enum>Qt::NoArrow</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QToolButton" name="saveCSV">
           <property name="toolTip">
            <string>Export to CSV</string>
