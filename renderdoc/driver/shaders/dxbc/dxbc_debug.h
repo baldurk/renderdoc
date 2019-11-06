@@ -147,6 +147,44 @@ public:
   std::map<SampleEvalCacheKey, ShaderVariable> sampleEvalCache;
 };
 
+#define SHADER_DEBUG_WARN_THRESHOLD 100000
+bool PromptDebugTimeout(uint32_t cycleCounter);
+
+struct PSInputElement
+{
+  PSInputElement(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
+  {
+    reg = regster;
+    elem = element;
+    numwords = numWords;
+    sysattribute = attr;
+    included = inc;
+  }
+
+  int reg;
+  int elem;
+  ShaderBuiltin sysattribute;
+
+  int numwords;
+
+  bool included;
+};
+
+void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int reg,
+                      int element, int numWords, float *data, float signmul, int32_t quadIdxA,
+                      int32_t quadIdxB);
+
+void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
+                         const std::vector<PSInputElement> &initialValues, float *data);
+
+void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
+                           const ShaderVariable &v, rdcarray<ShaderVariable> &outvars);
+void FlattenVariables(const rdcarray<ShaderConstant> &constants,
+                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
+                      const std::string &prefix, uint32_t baseOffset);
+void FlattenVariables(const rdcarray<ShaderConstant> &constants,
+                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars);
+
 struct SampleGatherResourceData
 {
   DXBCBytecode::ResourceDimension dim;
