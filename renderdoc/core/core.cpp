@@ -294,6 +294,23 @@ void RenderDoc::Initialise()
 
   Threading::Init();
 
+  // set default capture log - useful for when hooks aren't setup
+  // through the UI (and a log file isn't set manually)
+  {
+    std::string capture_filename;
+
+    const char *base = "RenderDoc_app";
+    if(IsReplayApp())
+      base = "RenderDoc";
+
+    FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
+
+    if(m_CaptureFileTemplate.empty())
+      SetCaptureFileTemplate(capture_filename.c_str());
+
+    RDCLOGFILE(m_LoggingFilename.c_str());
+  }
+
   m_RemoteIdent = 0;
   m_RemoteThread = 0;
 
@@ -330,23 +347,6 @@ void RenderDoc::Initialise()
     {
       RDCWARN("Couldn't open socket for target control");
     }
-  }
-
-  // set default capture log - useful for when hooks aren't setup
-  // through the UI (and a log file isn't set manually)
-  {
-    std::string capture_filename;
-
-    const char *base = "RenderDoc_app";
-    if(IsReplayApp())
-      base = "RenderDoc";
-
-    FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
-
-    if(m_CaptureFileTemplate.empty())
-      SetCaptureFileTemplate(capture_filename.c_str());
-
-    RDCLOGFILE(m_LoggingFilename.c_str());
   }
 
   const char *platform =
