@@ -1079,8 +1079,9 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
             // from being passed through.
             if(bind)
             {
+              uint32_t arraySize = bind->arraySize == UINT_MAX ? 0U : bind->arraySize;
               num = RDCMIN(availDescriptors,
-                           bind->bind - range.BaseShaderRegister + RDCMAX(1U, bind->arraySize));
+                           bind->bind - range.BaseShaderRegister + RDCMAX(1U, arraySize));
             }
             else
             {
