@@ -1336,36 +1336,49 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
   }
 }
 
-std::vector<VkImageMemoryBarrier> WrappedVulkan::ImageInitializationBarriers(
-    ResourceId id, WrappedVkRes *live, InitPolicy policy, bool initialized, const ImgRefs *imgRefs) const
+void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *live, InitPolicy policy,
+                                                bool initialized, const ImgRefs *imgRefs,
+                                                std::vector<VkImageMemoryBarrier> &setupBarriers,
+                                                std::vector<VkImageMemoryBarrier> &cleanupBarriers) const
 {
-  std::vector<VkImageMemoryBarrier> barriers;
-
+  // For each subresource that will be initialized (either copy or fill), create barriers that will
+  // transition the subresource from UNDEFINED to TRANSFER_DST_OPTIMAL before the write (in
+  // `setupBarriers`), and barriers to transition the subresource from TRANSFER_DST_OPTIMAL back to
+  // the current layout (`cleanupBarriers`). `cleanupBarriers` will also transfer ownership back to
+  // the correct queues, if necessary.
   const ImageLayouts &imageLayouts = m_ImageLayouts.at(id);
-  VkImageMemoryBarrier barrier = {
-      VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-      NULL,
-      0,    // srcAccessmask initialized below
-      VK_ACCESS_TRANSFER_WRITE_BIT,
-      VK_IMAGE_LAYOUT_UNDEFINED,    // oldLayout initialized below
-      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      imageLayouts.queueFamilyIndex,
-      m_QueueFamilyIdx,
-      ToHandle<VkImage>(live),
-      {},    // subresourceRange initialized below
-  };
 
   for(size_t si = 0; si < imageLayouts.subresourceStates.size(); si++)
   {
-    barrier.subresourceRange = imageLayouts.subresourceStates[si].subresourceRange;
-    barrier.oldLayout = imageLayouts.subresourceStates[si].newLayout;
-    SanitiseOldImageLayout(barrier.oldLayout);
+    VkImageMemoryBarrier barrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        0,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        ToHandle<VkImage>(live),
+        imageLayouts.subresourceStates[si].subresourceRange,
+    };
+    VkImageMemoryBarrier revBarrier = barrier;
+    revBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    revBarrier.newLayout = imageLayouts.subresourceStates[si].newLayout;
+    SanitiseNewImageLayout(revBarrier.newLayout);
 
-    barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(barrier.oldLayout);
+    revBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    revBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS | MakeAccessMask(revBarrier.newLayout);
+    if(imageLayouts.queueFamilyIndex != m_QueueFamilyIdx)
+    {
+      revBarrier.srcQueueFamilyIndex = m_QueueFamilyIdx;
+      revBarrier.dstQueueFamilyIndex = imageLayouts.queueFamilyIndex;
+    }
 
     if(!initialized)
     {
-      barriers.push_back(barrier);
+      setupBarriers.push_back(barrier);
+      cleanupBarriers.push_back(revBarrier);
     }
     else
     {
@@ -1375,27 +1388,12 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::ImageInitializationBarriers(
       {
         if(initIt->second != eInitReq_None)
         {
-          barrier.subresourceRange = initIt->first;
-          barriers.push_back(barrier);
+          barrier.subresourceRange = revBarrier.subresourceRange = initIt->first;
+          setupBarriers.push_back(barrier);
+          cleanupBarriers.push_back(revBarrier);
         }
       }
     }
-  }
-  return barriers;
-}
-
-void InvertImageInitializationBarriers(std::vector<VkImageMemoryBarrier> &barriers)
-{
-  for(auto it = barriers.begin(); it != barriers.end(); ++it)
-  {
-    // update the live image layout back
-    std::swap(it->oldLayout, it->newLayout);
-
-    // make sure the apply completes before any further work
-    it->srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    it->dstAccessMask = VK_ACCESS_ALL_READ_BITS | MakeAccessMask(it->newLayout);
-
-    std::swap(it->srcQueueFamilyIndex, it->dstQueueFamilyIndex);
   }
 }
 
@@ -1990,12 +1988,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    std::vector<VkImageMemoryBarrier> barriers = ImageInitializationBarriers(
-        id, live, GetResourceManager()->GetInitPolicy(), initialized, imgRefs);
-    DoPipelineBarrier(cmd, (uint32_t)barriers.size(), barriers.data());
+    std::vector<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+    ImageInitializationBarriers(id, live, policy, initialized, imgRefs, setupBarriers,
+                                cleanupBarriers);
+    DoPipelineBarrier(cmd, (uint32_t)setupBarriers.size(), setupBarriers.data());
 
-    std::map<uint32_t, std::vector<VkImageMemoryBarrier> > extQBarriers = GetExtQBarriers(barriers);
-    SubmitExtQBarriers(extQBarriers);
+    SubmitExtQBarriers(GetExtQBarriers(setupBarriers));
 
     VkDeviceSize bufOffset = 0;
 
@@ -2123,18 +2121,15 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    InvertImageInitializationBarriers(barriers);
-
-    DoPipelineBarrier(cmd, (uint32_t)barriers.size(), barriers.data());
+    DoPipelineBarrier(cmd, (uint32_t)cleanupBarriers.size(), cleanupBarriers.data());
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+    std::map<uint32_t, std::vector<VkImageMemoryBarrier> > extQBarriers =
+        GetExtQBarriers(cleanupBarriers);
     if(extQBarriers.size() > 0)
     {
-      for(auto it = extQBarriers.begin(); it != extQBarriers.end(); ++it)
-        InvertImageInitializationBarriers(it->second);
-
       // ensure work is completed before we pass ownership back to original queue
       SubmitCmds();
       FlushQ();
