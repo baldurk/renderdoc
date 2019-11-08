@@ -1362,6 +1362,19 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
         ToHandle<VkImage>(live),
         imageLayouts.subresourceStates[si].subresourceRange,
     };
+    if(IsDepthAndStencilFormat(imageLayouts.imageInfo.format))
+    {
+      if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
+      {
+        // There will be a different subresourceState with DEPTH aspect, which is when we will
+        // handle both the depth and stencil aspects.
+        continue;
+      }
+      else
+      {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+      }
+    }
     VkImageMemoryBarrier revBarrier = barrier;
     revBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     revBarrier.newLayout = imageLayouts.subresourceStates[si].newLayout;
@@ -1386,9 +1399,26 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
           imgRefs->SubresourceRangeInitReqs(barrier.subresourceRange, policy, initialized);
       for(auto initIt = initReqs.begin(); initIt != initReqs.end(); ++initIt)
       {
-        if(initIt->second != eInitReq_None)
+        barrier.subresourceRange = revBarrier.subresourceRange = initIt->first;
+        InitReqType initReq = initIt->second;
+        if(IsDepthAndStencilFormat(imageLayouts.imageInfo.format))
         {
-          barrier.subresourceRange = revBarrier.subresourceRange = initIt->first;
+          if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
+          {
+            // There will be a different subresourceState with DEPTH aspect, which is when we will
+            // handle both the depth and stencil aspects.
+            continue;
+          }
+          else if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
+          {
+            barrier.subresourceRange.aspectMask = revBarrier.subresourceRange.aspectMask =
+                VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            initReq =
+                imgRefs->SubresourceRangeMaxInitReq(barrier.subresourceRange, policy, initialized);
+          }
+        }
+        if(initReq != eInitReq_None)
+        {
           setupBarriers.push_back(barrier);
           cleanupBarriers.push_back(revBarrier);
         }
@@ -2005,22 +2035,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     std::vector<VkBufferImageCopy> copyRegions;
     std::vector<VkImageSubresourceRange> clearRegions;
 
-#define INIT_REGION()                                                                          \
-  if(!initialized)                                                                             \
-  {                                                                                            \
-    copyRegions.push_back(region);                                                             \
-  }                                                                                            \
-  else                                                                                         \
-  {                                                                                            \
-    InitReqType initReq = imgRefs->SubresourceInitReq(                                         \
-        imgRefs->AspectIndex((VkImageAspectFlagBits)region.imageSubresource.aspectMask), m, a, \
-        policy, initialized);                                                                  \
-    if(initReq == eInitReq_Copy)                                                               \
-      copyRegions.push_back(region);                                                           \
-    else if(initReq == eInitReq_Clear)                                                         \
-      clearRegions.push_back(ImageRange(region.imageSubresource));                             \
-  }
-
     // copy each slice/mip individually
     for(int a = 0; a < m_CreationInfo.m_Image[id].arrayLayers; a++)
     {
@@ -2038,6 +2052,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
             },
             extent,
         };
+        VkImageSubresourceRange range = ImageRange(region.imageSubresource);
+        InitReqType initReq;
 
         if(planeCount > 1)
         {
@@ -2058,8 +2074,53 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
             bufOffset += GetPlaneByteSize(extent.width, extent.height, extent.depth, fmt, 0, i);
 
-            INIT_REGION();
+            if(!initialized)
+              initReq = eInitReq_Copy;
+            else
+              initReq = imgRefs->SubresourceRangeMaxInitReq(range, policy, initialized);
+            if(initReq == eInitReq_Copy)
+              copyRegions.push_back(region);
+            else if(initReq == eInitReq_Clear)
+              clearRegions.push_back(range);
           }
+        }
+        else if(IsDepthAndStencilFormat(fmt))
+        {
+          bufOffset = AlignUp(bufOffset, bufAlignment);
+
+          range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          if(!initialized)
+            initReq = eInitReq_Copy;
+          else
+            initReq = imgRefs->SubresourceRangeMaxInitReq(range, policy, initialized);
+          if(initReq == eInitReq_None)
+            continue;
+
+          region.bufferOffset = bufOffset;
+          region.imageSubresource.aspectMask = range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+          VkFormat sizeFormat = GetDepthOnlyFormat(fmt);
+
+          // pass 0 for mip since we've already pre-downscaled extent
+          bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
+          if(initReq == eInitReq_Copy)
+            copyRegions.push_back(region);
+          else if(initReq == eInitReq_Clear)
+            clearRegions.push_back(range);
+
+          // we removed stencil from the format, copy that separately now.
+          bufOffset = AlignUp(bufOffset, bufAlignment);
+
+          region.bufferOffset = bufOffset;
+          region.imageSubresource.aspectMask = range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          bufOffset += GetByteSize(extent.width, extent.height, extent.depth, VK_FORMAT_S8_UINT, 0);
+
+          if(initReq == eInitReq_Copy)
+            copyRegions.push_back(region);
+          else if(initReq == eInitReq_Clear)
+            clearRegions.push_back(range);
         }
         else
         {
@@ -2067,25 +2128,17 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
           region.bufferOffset = bufOffset;
 
-          VkFormat sizeFormat = GetDepthOnlyFormat(fmt);
-
           // pass 0 for mip since we've already pre-downscaled extent
-          bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
+          bufOffset += GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
 
-          INIT_REGION();
-
-          if(sizeFormat != fmt)
-          {
-            // if we removed stencil from the format, copy that separately now.
-            bufOffset = AlignUp(bufOffset, bufAlignment);
-
-            region.bufferOffset = bufOffset;
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-            bufOffset += GetByteSize(extent.width, extent.height, extent.depth, VK_FORMAT_S8_UINT, 0);
-
-            INIT_REGION();
-          }
+          if(!initialized)
+            initReq = eInitReq_Copy;
+          else
+            initReq = imgRefs->SubresourceRangeMaxInitReq(range, policy, initialized);
+          if(initReq == eInitReq_Copy)
+            copyRegions.push_back(region);
+          else if(initReq == eInitReq_Clear)
+            clearRegions.push_back(range);
         }
 
         // update the extent for the next mip
@@ -2094,8 +2147,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         extent.depth = RDCMAX(extent.depth >> 1, 1U);
       }
     }
-
-#undef INIT_REGION
 
     if(copyRegions.size() > 0)
       ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), ToHandle<VkImage>(live),

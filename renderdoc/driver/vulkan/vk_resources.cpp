@@ -3023,23 +3023,70 @@ int ImgRefs::SubresourceIndex(int aspectIndex, int level, int layer) const
   return (aspectIndex * splitLevelCount + level) * splitLayerCount + layer;
 }
 
+InitReqType ImgRefs::SubresourceRangeMaxInitReq(VkImageSubresourceRange range, InitPolicy policy,
+                                                bool initialized) const
+{
+  InitReqType initReq = eInitReq_None;
+  std::vector<int> splitAspectIndices;
+  if(areAspectsSplit)
+  {
+    int aspectIndex = 0;
+    for(auto aspectIt = ImageAspectFlagIter::begin(aspectMask);
+        aspectIt != ImageAspectFlagIter::end(); ++aspectIt, ++aspectIndex)
+    {
+      if(((*aspectIt) & range.aspectMask) != 0)
+        splitAspectIndices.push_back(aspectIndex);
+    }
+  }
+  else
+  {
+    splitAspectIndices.push_back(0);
+  }
+
+  int splitLevelCount = 1;
+  if(areLevelsSplit || range.baseMipLevel != 0 || range.levelCount < (uint32_t)imageInfo.levelCount)
+  {
+    splitLevelCount = range.levelCount;
+  }
+  int splitLayerCount = 1;
+  if(areLayersSplit || range.baseArrayLayer != 0 || range.layerCount < (uint32_t)imageInfo.layerCount)
+  {
+    splitLayerCount = range.layerCount;
+  }
+  for(auto aspectIndexIt = splitAspectIndices.begin(); aspectIndexIt != splitAspectIndices.end();
+      ++aspectIndexIt)
+  {
+    for(int level = range.baseMipLevel; level < splitLevelCount; ++level)
+    {
+      for(int layer = range.baseArrayLayer; layer < splitLayerCount; ++layer)
+      {
+        initReq =
+            RDCMAX(initReq, SubresourceInitReq(*aspectIndexIt, level, layer, policy, initialized));
+      }
+    }
+  }
+  return initReq;
+}
+
 std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::SubresourceRangeInitReqs(
     VkImageSubresourceRange range, InitPolicy policy, bool initialized) const
 {
   VkImageSubresourceRange out(range);
   std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > res;
-  std::vector<VkImageAspectFlags> splitAspects;
+  std::vector<rdcpair<int, VkImageAspectFlags> > splitAspects;
   if(areAspectsSplit)
   {
-    for(auto aspectIt = ImageAspectFlagIter::begin(aspectMask & range.aspectMask);
-        aspectIt != ImageAspectFlagIter::end(); ++aspectIt)
+    int aspectIndex = 0;
+    for(auto aspectIt = ImageAspectFlagIter::begin(aspectMask);
+        aspectIt != ImageAspectFlagIter::end(); ++aspectIt, ++aspectIndex)
     {
-      splitAspects.push_back(*aspectIt);
+      if(((*aspectIt) & range.aspectMask) != 0)
+        splitAspects.push_back({aspectIndex, (VkImageAspectFlags)*aspectIt});
     }
   }
   else
   {
-    splitAspects.push_back(range.aspectMask);
+    splitAspects.push_back({0, aspectMask});
   }
 
   int splitLevelCount = 1;
@@ -3054,10 +3101,10 @@ std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::Subresource
     splitLayerCount = range.layerCount;
     out.layerCount = 1;
   }
-  int aspectIndex = 0;
-  for(auto aspectIt = splitAspects.begin(); aspectIt != splitAspects.end(); ++aspectIt, ++aspectIndex)
+  for(auto aspectIt = splitAspects.begin(); aspectIt != splitAspects.end(); ++aspectIt)
   {
-    out.aspectMask = *aspectIt;
+    int aspectIndex = aspectIt->first;
+    out.aspectMask = aspectIt->second;
     for(int level = range.baseMipLevel; level < splitLevelCount; ++level)
     {
       out.baseMipLevel = level;
