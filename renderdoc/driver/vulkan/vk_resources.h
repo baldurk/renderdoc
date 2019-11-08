@@ -1146,6 +1146,8 @@ struct ImgRefs
   {
     return InitReq(SubresourceRef(aspectIndex, level, layer), policy, initialized);
   }
+  InitReqType SubresourceRangeMaxInitReq(VkImageSubresourceRange range, InitPolicy policy,
+                                         bool initialized) const;
   std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > SubresourceRangeInitReqs(
       VkImageSubresourceRange range, InitPolicy policy, bool initialized) const;
   void Split(bool splitAspects, bool splitLevels, bool splitLayers);
