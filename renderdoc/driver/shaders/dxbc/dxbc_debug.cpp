@@ -25,8 +25,11 @@
 
 #include "dxbc_debug.h"
 #include <algorithm>
+#include "driver/dxgi/dxgi_common.h"
 #include "maths/formatpacking.h"
+#include "replay/replay_driver.h"
 #include "dxbc_bytecode.h"
+#include "dxbc_container.h"
 
 using namespace DXBCBytecode;
 
@@ -3982,6 +3985,172 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
   return s;
 }
 
+void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
+                                    int quadIdx, DXBC::DXBCContainer *dxbc,
+                                    const ShaderReflection &refl, bytebuf *cbufData)
+{
+  initialState = ShaderDebug::State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
+
+  size_t numInputs = dxbc->GetReflection()->InputSig.size();
+  size_t numOutputs = dxbc->GetReflection()->OutputSig.size();
+
+  int32_t maxReg = -1;
+  for(size_t i = 0; i < numInputs; i++)
+    maxReg = RDCMAX(maxReg, (int32_t)dxbc->GetReflection()->InputSig[i].regIndex);
+
+  bool inputCoverage = false;
+
+  // Check if the shader uses the coverage mask
+  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
+  {
+    const Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
+
+    if(decl.declaration == OPCODE_DCL_INPUT && decl.operand.type == TYPE_INPUT_COVERAGE_MASK)
+    {
+      inputCoverage = true;
+      break;
+    }
+  }
+
+  // Add inputs to the shader trace
+  if(maxReg >= 0 || inputCoverage)
+  {
+    trace.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
+    for(size_t i = 0; i < numInputs; i++)
+    {
+      const SigParameter &sig = dxbc->GetReflection()->InputSig[i];
+
+      ShaderVariable v;
+
+      v.name = StringFormat::Fmt("v%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
+      v.rows = 1;
+      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
+                                                     ? 3
+                                                     : sig.regChannelMask & 0x2
+                                                           ? 2
+                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
+
+      if(sig.compType == CompType::UInt)
+        v.type = VarType::UInt;
+      else if(sig.compType == CompType::SInt)
+        v.type = VarType::SInt;
+
+      if(trace.inputs[sig.regIndex].columns == 0)
+        trace.inputs[sig.regIndex] = v;
+      else
+        trace.inputs[sig.regIndex].columns = RDCMAX(trace.inputs[sig.regIndex].columns, v.columns);
+    }
+
+    // Put the coverage mask at the end
+    if(inputCoverage)
+    {
+      trace.inputs[maxReg + 1] = ShaderVariable("vCoverage", 0U, 0U, 0U, 0U);
+      trace.inputs[maxReg + 1].columns = 1;
+    }
+  }
+
+  // Add outputs to the shader state
+  uint32_t specialOutputs = 0;
+  maxReg = -1;
+  for(size_t i = 0; i < numOutputs; i++)
+  {
+    if(dxbc->GetReflection()->OutputSig[i].regIndex == ~0U)
+      specialOutputs++;
+    else
+      maxReg = RDCMAX(maxReg, (int32_t)dxbc->GetReflection()->OutputSig[i].regIndex);
+  }
+
+  if(maxReg >= 0 || specialOutputs > 0)
+  {
+    initialState.outputs.resize(maxReg + 1 + specialOutputs);
+    for(size_t i = 0; i < numOutputs; i++)
+    {
+      const SigParameter &sig = dxbc->GetReflection()->OutputSig[i];
+
+      if(sig.regIndex == ~0U)
+        continue;
+
+      ShaderVariable v;
+
+      v.name = StringFormat::Fmt("o%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
+      v.rows = 1;
+      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
+                                                     ? 3
+                                                     : sig.regChannelMask & 0x2
+                                                           ? 2
+                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
+
+      if(initialState.outputs[sig.regIndex].columns == 0)
+        initialState.outputs[sig.regIndex] = v;
+      else
+        initialState.outputs[sig.regIndex].columns =
+            RDCMAX(initialState.outputs[sig.regIndex].columns, v.columns);
+    }
+
+    int32_t outIdx = maxReg + 1;
+
+    for(size_t i = 0; i < numOutputs; i++)
+    {
+      const SigParameter &sig = dxbc->GetReflection()->OutputSig[i];
+
+      if(sig.regIndex != ~0U)
+        continue;
+
+      ShaderVariable v;
+
+      if(sig.systemValue == ShaderBuiltin::OutputControlPointIndex)
+        v.name = "vOutputControlPointID";
+      else if(sig.systemValue == ShaderBuiltin::DepthOutput)
+        v.name = "oDepth";
+      else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
+        v.name = "oDepthLessEqual";
+      else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
+        v.name = "oDepthGreaterEqual";
+      else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
+        v.name = "oMask";
+      else if(sig.systemValue == ShaderBuiltin::StencilReference)
+        v.name = "oStencilRef";
+      else
+      {
+        RDCERR("Unhandled output: %s (%d)", sig.semanticName.c_str(), sig.systemValue);
+        continue;
+      }
+
+      v.rows = 1;
+      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
+                                                     ? 3
+                                                     : sig.regChannelMask & 0x2
+                                                           ? 2
+                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
+
+      initialState.outputs[outIdx++] = v;
+    }
+  }
+
+  // Fill constant buffers and add them to the trace
+  size_t numCBuffers = dxbc->GetReflection()->CBuffers.size();
+  trace.constantBlocks.resize(numCBuffers);
+  for(size_t i = 0; i < numCBuffers; i++)
+  {
+    rdcarray<ShaderVariable> vars;
+
+    // Fetch cbuffers into vars, which will be 'natural': structs with members, non merged vectors
+    StandardFillCBufferVariables(refl.constantBlocks[i].variables, vars,
+                                 cbufData[dxbc->GetReflection()->CBuffers[i].reg]);
+
+    FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);
+
+    for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
+    {
+      trace.constantBlocks[i].members[c].name =
+          StringFormat::Fmt("cb%u[%u] (%s)", dxbc->GetReflection()->CBuffers[i].reg, (uint32_t)c,
+                            trace.constantBlocks[i].members[c].name.c_str());
+    }
+  }
+
+  initialState.Init();
+}
+
 bool PromptDebugTimeout(uint32_t cycleCounter)
 {
   std::string msg = StringFormat::Fmt(
@@ -4286,6 +4455,50 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars)
 {
   FlattenVariables(constants, invars, outvars, "", 0);
+}
+
+void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt)
+{
+  if(format != DXGI_FORMAT_UNKNOWN)
+  {
+    ResourceFormat fmt = MakeResourceFormat(format);
+
+    viewFmt.byteWidth = fmt.compByteWidth;
+    viewFmt.numComps = fmt.compCount;
+    viewFmt.fmt = fmt.compType;
+
+    if(format == DXGI_FORMAT_R11G11B10_FLOAT)
+      viewFmt.byteWidth = 11;
+    else if(format == DXGI_FORMAT_R10G10B10A2_UINT || format == DXGI_FORMAT_R10G10B10A2_UNORM)
+      viewFmt.byteWidth = 10;
+  }
+}
+
+void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
+                                         uint32_t shaderRegister, GlobalState::ViewFmt &viewFmt)
+{
+  for(const DXBC::ShaderInputBind &bind : reflection.SRVs)
+  {
+    if(bind.reg == shaderRegister && bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
+       bind.retType < DXBC::RETURN_TYPE_MIXED && bind.retType != DXBC::RETURN_TYPE_UNKNOWN)
+    {
+      viewFmt.byteWidth = 4;
+      viewFmt.numComps = bind.numSamples;
+
+      if(bind.retType == DXBC::RETURN_TYPE_UNORM)
+        viewFmt.fmt = CompType::UNorm;
+      else if(bind.retType == DXBC::RETURN_TYPE_SNORM)
+        viewFmt.fmt = CompType::SNorm;
+      else if(bind.retType == DXBC::RETURN_TYPE_UINT)
+        viewFmt.fmt = CompType::UInt;
+      else if(bind.retType == DXBC::RETURN_TYPE_SINT)
+        viewFmt.fmt = CompType::SInt;
+      else
+        viewFmt.fmt = CompType::Float;
+
+      break;
+    }
+  }
 }
 
 };    // namespace ShaderDebug

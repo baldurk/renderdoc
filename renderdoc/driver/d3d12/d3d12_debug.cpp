@@ -1579,3 +1579,110 @@ void D3D12Replay::HistogramMinMax::Release()
   SAFE_RELEASE(MinMaxResultBuffer);
   SAFE_RELEASE(MinMaxTileBuffer);
 }
+
+void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t registerSpace,
+                                              D3D12DescriptorType type,
+                                              D3D12_SHADER_VISIBILITY visibility)
+{
+  // This function is used when root signature elements need to be added to a specific register
+  // space, such as for debug overlays. We can't remove elements from the root signature entirely
+  // because then then the root signature indices wouldn't match up as expected. Instead move them
+  // into the specified register space so that another register space (commonly space0) can be used
+  // for other purposes.
+  size_t numParams = sig.params.size();
+  for(size_t i = 0; i < numParams; i++)
+  {
+    if(sig.params[i].ShaderVisibility == visibility ||
+       sig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
+    {
+      D3D12_ROOT_PARAMETER_TYPE rootType = sig.params[i].ParameterType;
+      if(rootType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+      {
+        size_t numRanges = sig.params[i].ranges.size();
+        for(size_t r = 0; r < numRanges; r++)
+        {
+          D3D12_DESCRIPTOR_RANGE_TYPE rangeType = sig.params[i].ranges[r].RangeType;
+          if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && type == D3D12DescriptorType::CBV)
+          {
+            sig.params[i].ranges[r].RegisterSpace = registerSpace;
+          }
+          else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && type == D3D12DescriptorType::SRV)
+          {
+            sig.params[i].ranges[r].RegisterSpace = registerSpace;
+          }
+          else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV && type == D3D12DescriptorType::UAV)
+          {
+            sig.params[i].ranges[r].RegisterSpace = registerSpace;
+          }
+        }
+      }
+      else if(rootType == D3D12_ROOT_PARAMETER_TYPE_CBV && type == D3D12DescriptorType::CBV)
+      {
+        sig.params[i].Descriptor.RegisterSpace = registerSpace;
+      }
+      else if(rootType == D3D12_ROOT_PARAMETER_TYPE_SRV && type == D3D12DescriptorType::SRV)
+      {
+        sig.params[i].Descriptor.RegisterSpace = registerSpace;
+      }
+      else if(rootType == D3D12_ROOT_PARAMETER_TYPE_UAV && type == D3D12DescriptorType::UAV)
+      {
+        sig.params[i].Descriptor.RegisterSpace = registerSpace;
+      }
+    }
+  }
+}
+
+void AddDebugDescriptorToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
+                                     const PortableHandle &handle,
+                                     D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t sigElem,
+                                     std::set<ResourceId> &copiedHeaps)
+{
+  if(rs.graphics.sigelems.size() <= sigElem)
+    rs.graphics.sigelems.resize(sigElem + 1);
+
+  PortableHandle newHandle = handle;
+
+  // If a CBV_SRV_UAV heap is already set and hasn't had a debug descriptor copied in,
+  // copy the desired descriptor in and add the heap to the set of heaps that have had
+  // a debug descriptor set. If there's no available heapOtherwise we can set our own heap.
+
+  // It is the responsibility of the caller to keep track of the set of copied heaps to
+  // avoid overwriting another debug descriptor that may be needed.
+
+  for(size_t i = 0; i < rs.heaps.size(); i++)
+  {
+    WrappedID3D12DescriptorHeap *h =
+        pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(rs.heaps[i]);
+    if(h->GetDesc().Type == heapType)
+    {
+      // use the last descriptor
+      D3D12_CPU_DESCRIPTOR_HANDLE dst = h->GetCPUDescriptorHandleForHeapStart();
+      dst.ptr += (h->GetDesc().NumDescriptors - 1) * sizeof(D3D12Descriptor);
+
+      if(copiedHeaps.find(rs.heaps[i]) == copiedHeaps.end())
+      {
+        WrappedID3D12DescriptorHeap *h2 =
+            pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(handle.heap);
+        D3D12_CPU_DESCRIPTOR_HANDLE src = h2->GetCPUDescriptorHandleForHeapStart();
+        src.ptr += handle.index * sizeof(D3D12Descriptor);
+
+        // can't do a copy because the src heap is CPU write-only (shader visible). So instead,
+        // create directly
+        D3D12Descriptor *srcDesc = (D3D12Descriptor *)src.ptr;
+        srcDesc->Create(heapType, pDevice, dst);
+
+        copiedHeaps.insert(rs.heaps[i]);
+      }
+
+      newHandle = ToPortableHandle(dst);
+
+      break;
+    }
+  }
+
+  if(newHandle.heap == handle.heap)
+    rs.heaps.push_back(handle.heap);
+
+  rs.graphics.sigelems[sigElem] =
+      D3D12RenderState::SignatureElement(eRootTable, newHandle.heap, newHandle.index);
+}

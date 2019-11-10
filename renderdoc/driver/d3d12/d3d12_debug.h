@@ -28,6 +28,7 @@
 #include "core/core.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
+#include "d3d12_state.h"
 
 class WrappedID3D12Device;
 class D3D12ResourceManager;
@@ -165,9 +166,6 @@ public:
   void CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS);
   void CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray, UINT selectedSlice);
 
-  ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                            DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
-                                            bytebuf *cbufData);
   void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCContainer *dxbc);
 
 private:
@@ -215,3 +213,12 @@ private:
   ID3D12GraphicsCommandListX *m_DebugList = NULL;
   ID3D12CommandAllocator *m_DebugAlloc = NULL;
 };
+
+void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t registerSpace,
+                                              D3D12DescriptorType type,
+                                              D3D12_SHADER_VISIBILITY visibility);
+
+void AddDebugDescriptorToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
+                                     const PortableHandle &handle,
+                                     D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t sigElem,
+                                     std::set<ResourceId> &copiedHeaps);

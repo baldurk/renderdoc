@@ -119,9 +119,6 @@ public:
 
   void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
-  ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                            DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
-                                            bytebuf *cbufData);
   void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCContainer *dxbc,
                                uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs,
                                ID3D11ShaderResourceView **SRVs);
