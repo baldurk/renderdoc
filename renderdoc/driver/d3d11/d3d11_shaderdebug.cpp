@@ -1416,171 +1416,6 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   return true;
 }
 
-ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                                             DXBC::DXBCContainer *dxbc,
-                                                             const ShaderReflection &refl,
-                                                             bytebuf *cbufData)
-{
-  using namespace DXBCBytecode;
-  using namespace ShaderDebug;
-
-  State initialState = State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
-
-  // use pixel shader here to get inputs
-
-  int32_t maxReg = -1;
-  for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
-    maxReg = RDCMAX(maxReg, (int32_t)dxbc->GetReflection()->InputSig[i].regIndex);
-
-  bool inputCoverage = false;
-
-  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
-  {
-    const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
-
-    if(decl.declaration == OPCODE_DCL_INPUT && decl.operand.type == TYPE_INPUT_COVERAGE_MASK)
-    {
-      inputCoverage = true;
-      break;
-    }
-  }
-
-  if(maxReg >= 0 || inputCoverage)
-  {
-    trace.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
-    for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
-    {
-      const SigParameter &sig = dxbc->GetReflection()->InputSig[i];
-
-      ShaderVariable v;
-
-      v.name = StringFormat::Fmt("v%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
-      v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      if(sig.compType == CompType::UInt)
-        v.type = VarType::UInt;
-      else if(sig.compType == CompType::SInt)
-        v.type = VarType::SInt;
-
-      if(trace.inputs[sig.regIndex].columns == 0)
-        trace.inputs[sig.regIndex] = v;
-      else
-        trace.inputs[sig.regIndex].columns = RDCMAX(trace.inputs[sig.regIndex].columns, v.columns);
-    }
-
-    if(inputCoverage)
-    {
-      trace.inputs[maxReg + 1] = ShaderVariable("vCoverage", 0U, 0U, 0U, 0U);
-      trace.inputs[maxReg + 1].columns = 1;
-    }
-  }
-
-  uint32_t specialOutputs = 0;
-  maxReg = -1;
-  for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
-  {
-    if(dxbc->GetReflection()->OutputSig[i].regIndex == ~0U)
-      specialOutputs++;
-    else
-      maxReg = RDCMAX(maxReg, (int32_t)dxbc->GetReflection()->OutputSig[i].regIndex);
-  }
-
-  if(maxReg >= 0 || specialOutputs > 0)
-  {
-    initialState.outputs.resize(maxReg + 1 + specialOutputs);
-    for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
-    {
-      const SigParameter &sig = dxbc->GetReflection()->OutputSig[i];
-
-      if(sig.regIndex == ~0U)
-        continue;
-
-      ShaderVariable v;
-
-      v.name = StringFormat::Fmt("o%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
-      v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      if(initialState.outputs[sig.regIndex].columns == 0)
-        initialState.outputs[sig.regIndex] = v;
-      else
-        initialState.outputs[sig.regIndex].columns =
-            RDCMAX(initialState.outputs[sig.regIndex].columns, v.columns);
-    }
-
-    int32_t outIdx = maxReg + 1;
-
-    for(size_t i = 0; i < dxbc->GetReflection()->OutputSig.size(); i++)
-    {
-      const SigParameter &sig = dxbc->GetReflection()->OutputSig[i];
-
-      if(sig.regIndex != ~0U)
-        continue;
-
-      ShaderVariable v;
-
-      if(sig.systemValue == ShaderBuiltin::OutputControlPointIndex)
-        v.name = "vOutputControlPointID";
-      else if(sig.systemValue == ShaderBuiltin::DepthOutput)
-        v.name = "oDepth";
-      else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
-        v.name = "oDepthLessEqual";
-      else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
-        v.name = "oDepthGreaterEqual";
-      else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
-        v.name = "oMask";
-      else if(sig.systemValue == ShaderBuiltin::StencilReference)
-        v.name = "oStencilRef";
-      // if(sig.systemValue == TYPE_OUTPUT_CONTROL_POINT)							str = "oOutputControlPoint";
-      else
-      {
-        RDCERR("Unhandled output: %s (%d)", sig.semanticName.c_str(), sig.systemValue);
-        continue;
-      }
-
-      v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      initialState.outputs[outIdx++] = v;
-    }
-  }
-
-  trace.constantBlocks.resize(dxbc->GetReflection()->CBuffers.size());
-  for(size_t i = 0; i < dxbc->GetReflection()->CBuffers.size(); i++)
-  {
-    rdcarray<ShaderVariable> vars;
-
-    // fetch the cbuffer data into vars, which will be 'natural' - structs with members, non merged
-    // vectors
-    StandardFillCBufferVariables(refl.constantBlocks[i].variables, vars,
-                                 cbufData[dxbc->GetReflection()->CBuffers[i].reg]);
-
-    FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);
-
-    for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
-      trace.constantBlocks[i].members[c].name =
-          StringFormat::Fmt("cb%u[%u] (%s)", dxbc->GetReflection()->CBuffers[i].reg, (uint32_t)c,
-                            trace.constantBlocks[i].members[c].name.c_str());
-  }
-
-  initialState.Init();
-
-  return initialState;
-}
-
 void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global,
                                                 DXBC::DXBCContainer *dxbc, uint32_t UAVStartSlot,
                                                 ID3D11UnorderedAccessView **UAVs,
@@ -1809,17 +1644,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 
       if(sdesc.Format != DXGI_FORMAT_UNKNOWN)
       {
-        ResourceFormat fmt = MakeResourceFormat(sdesc.Format);
-
-        global.srvs[i].format.byteWidth = fmt.compByteWidth;
-        global.srvs[i].format.numComps = fmt.compCount;
-        global.srvs[i].format.fmt = fmt.compType;
-
-        if(sdesc.Format == DXGI_FORMAT_R11G11B10_FLOAT)
-          global.srvs[i].format.byteWidth = 11;
-        if(sdesc.Format == DXGI_FORMAT_R10G10B10A2_UINT ||
-           sdesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM)
-          global.srvs[i].format.byteWidth = 10;
+        ShaderDebug::FillViewFmt(sdesc.Format, global.srvs[i].format);
       }
       else
       {
@@ -1835,28 +1660,8 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           global.srvs[i].format.stride = bufdesc.StructureByteStride;
 
           // if we didn't get a type from the SRV description, try to pull it from the declaration
-          for(const DXBC::ShaderInputBind &bind : dxbc->GetReflection()->SRVs)
-          {
-            if(bind.reg == (uint32_t)i && bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
-               bind.retType < DXBC::RETURN_TYPE_MIXED && bind.retType != DXBC::RETURN_TYPE_UNKNOWN)
-            {
-              global.srvs[i].format.byteWidth = 4;
-              global.srvs[i].format.numComps = bind.numSamples;
-
-              if(bind.retType == DXBC::RETURN_TYPE_UNORM)
-                global.srvs[i].format.fmt = CompType::UNorm;
-              else if(bind.retType == DXBC::RETURN_TYPE_SNORM)
-                global.srvs[i].format.fmt = CompType::SNorm;
-              else if(bind.retType == DXBC::RETURN_TYPE_UINT)
-                global.srvs[i].format.fmt = CompType::UInt;
-              else if(bind.retType == DXBC::RETURN_TYPE_SINT)
-                global.srvs[i].format.fmt = CompType::SInt;
-              else
-                global.srvs[i].format.fmt = CompType::Float;
-
-              break;
-            }
-          }
+          ShaderDebug::LookupSRVFormatFromShaderReflection(*dxbc->GetReflection(), (uint32_t)i,
+                                                           global.srvs[i].format);
         }
       }
 
@@ -2020,7 +1825,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   GlobalState global;
   GetDebugManager()->CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
-  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, refl, cbufData);
+  State initialState;
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cbufData);
 
   for(size_t i = 0; i < ret.inputs.size(); i++)
   {
@@ -3235,8 +3041,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   {
     DebugHit *hit = winner;
 
-    State initialState =
-        GetDebugManager()->CreateShaderDebugState(traces[destIdx], destIdx, dxbc, refl, cbufData);
+    State initialState;
+    CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl, cbufData);
 
     rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
@@ -3536,7 +3342,8 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   GlobalState global;
   GetDebugManager()->CreateShaderGlobalState(global, dxbc, 0, rs->CSUAVs, rs->CS.SRVs);
-  State initialState = GetDebugManager()->CreateShaderDebugState(ret, -1, dxbc, refl, cbufData);
+  State initialState;
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cbufData);
 
   for(int i = 0; i < 3; i++)
   {

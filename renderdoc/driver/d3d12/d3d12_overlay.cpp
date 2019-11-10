@@ -81,30 +81,9 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
       D3D12RootSignature modsig = sig->sig;
 
-      // make sure no other UAV tables overlap. We can't remove elements entirely because then the
-      // root signature indices wouldn't match up as expected.
-      // Instead move them into an unused space.
-      for(size_t i = 0; i < modsig.params.size(); i++)
-      {
-        if(modsig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_PIXEL ||
-           modsig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
-        {
-          // use different register spaces for each just in case
-          UINT regSpace = modsig.maxSpaceIndex + modsig.params[i].ShaderVisibility;
-
-          if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
-          {
-            modsig.params[i].Descriptor.RegisterSpace = regSpace;
-          }
-          else if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-          {
-            for(size_t r = 0; r < modsig.params[i].ranges.size(); r++)
-            {
-              modsig.params[i].ranges[r].RegisterSpace = regSpace;
-            }
-          }
-        }
-      }
+      UINT regSpace = modsig.maxSpaceIndex + 1;
+      MoveRootSignatureElementsToRegisterSpace(modsig, regSpace, D3D12DescriptorType::UAV,
+                                               D3D12_SHADER_VISIBILITY_PIXEL);
 
       D3D12_DESCRIPTOR_RANGE1 range;
       range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
@@ -122,11 +101,6 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       param.DescriptorTable.pDescriptorRanges = &range;
 
       cache.sigElem = uint32_t(modsig.params.size() - 1);
-
-      std::vector<D3D12_ROOT_PARAMETER1> params;
-      params.resize(modsig.params.size());
-      for(size_t i = 0; i < params.size(); i++)
-        params[i] = modsig.params[i];
 
       ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
 
@@ -171,49 +145,8 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     rs.pipe = GetResID(cache.pipe);
     rs.graphics.rootsig = GetResID(cache.sig);
 
-    if(rs.graphics.sigelems.size() <= cache.sigElem)
-      rs.graphics.sigelems.resize(cache.sigElem + 1);
-
-    PortableHandle uav = m_UAV;
-
-    // if a CBV_SRV_UAV heap is already set, we need to copy our descriptor in
-    // if we haven't already. Otherwise we can set our own heap.
-    for(size_t i = 0; i < rs.heaps.size(); i++)
-    {
-      WrappedID3D12DescriptorHeap *h =
-          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(rs.heaps[i]);
-      if(h->GetDesc().Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-      {
-        // use the last descriptor
-        D3D12_CPU_DESCRIPTOR_HANDLE dst = h->GetCPUDescriptorHandleForHeapStart();
-        dst.ptr += (h->GetDesc().NumDescriptors - 1) * sizeof(D3D12Descriptor);
-
-        if(m_CopiedHeaps.find(rs.heaps[i]) == m_CopiedHeaps.end())
-        {
-          WrappedID3D12DescriptorHeap *h2 =
-              m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(m_UAV.heap);
-          D3D12_CPU_DESCRIPTOR_HANDLE src = h2->GetCPUDescriptorHandleForHeapStart();
-          src.ptr += m_UAV.index * sizeof(D3D12Descriptor);
-
-          // can't do a copy because the src heap is CPU write-only (shader visible). So instead,
-          // create directly
-          D3D12Descriptor *srcDesc = (D3D12Descriptor *)src.ptr;
-          srcDesc->Create(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, m_pDevice, dst);
-
-          m_CopiedHeaps.insert(rs.heaps[i]);
-        }
-
-        uav = ToPortableHandle(dst);
-
-        break;
-      }
-    }
-
-    if(uav.heap == m_UAV.heap)
-      rs.heaps.push_back(m_UAV.heap);
-
-    rs.graphics.sigelems[cache.sigElem] =
-        D3D12RenderState::SignatureElement(eRootTable, uav.heap, uav.index);
+    AddDebugDescriptorToRenderState(m_pDevice, rs, m_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                                    cache.sigElem, m_CopiedHeaps);
 
     // as we're changing the root signature, we need to reapply all elements,
     // so just apply all state

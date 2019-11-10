@@ -37,6 +37,7 @@ struct CBufferVariable;
 }
 
 class WrappedID3D11Device;
+enum DXGI_FORMAT;
 
 namespace ShaderDebug
 {
@@ -185,6 +186,11 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
 void FlattenVariables(const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars);
 
+void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
+
+void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
+                                         uint32_t shaderRegister, GlobalState::ViewFmt &viewFmt);
+
 struct SampleGatherResourceData
 {
   DXBCBytecode::ResourceDimension dim;
@@ -316,5 +322,9 @@ private:
   const DXBCBytecode::Program *program;
   const ShaderDebugTrace *trace;
 };
+
+void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
+                                    int quadIdx, DXBC::DXBCContainer *dxbc,
+                                    const ShaderReflection &refl, bytebuf *cbufData);
 
 };    // namespace ShaderDebug

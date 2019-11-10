@@ -117,22 +117,6 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   return false;
 }
 
-ShaderDebug::State D3D12DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                                             DXBC::DXBCContainer *dxbc,
-                                                             const ShaderReflection &refl,
-                                                             bytebuf *cbufData)
-{
-  RDCUNIMPLEMENTED("CreateShaderDebugState not yet implemented for D3D12");
-
-  using namespace DXBCBytecode;
-  using namespace ShaderDebug;
-
-  State initialState = State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
-
-  initialState.Init();
-  return initialState;
-}
-
 void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global,
                                                 DXBC::DXBCContainer *dxbc)
 {
