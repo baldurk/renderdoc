@@ -417,6 +417,10 @@ void GLReplay::InitDebugData()
       texSampleDefines +=
           "#define HAS_BIT_CONVERSION 1\n"
           "#extension GL_ARB_gpu_shader5 : require\n";
+    else if(HasExt[ARB_shader_bit_encoding])
+      texSampleDefines +=
+          "#define HAS_BIT_CONVERSION 1\n"
+          "#extension GL_ARB_shader_bit_encoding : require\n";
   }
 
   vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
