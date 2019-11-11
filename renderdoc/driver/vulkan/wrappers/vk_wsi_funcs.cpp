@@ -553,7 +553,10 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
       vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      swapInfo.lastPresent = 0;
+      swapInfo.lastPresent.imageIndex = 0;
+      swapInfo.lastPresent.presentQueue = VK_NULL_HANDLE;
+      swapInfo.lastPresent.waitSemaphores.clear();
+
       swapInfo.images.resize(numSwapImages);
       for(uint32_t i = 0; i < numSwapImages; i++)
       {
@@ -758,7 +761,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   // need to record which image was last flipped so we can get the correct backbuffer
   // for a thumbnail in EndFrameCapture
-  swapInfo.lastPresent = pPresentInfo->pImageIndices[0];
+  swapInfo.lastPresent.imageIndex = pPresentInfo->pImageIndices[0];
+  swapInfo.lastPresent.presentQueue = queue;
+  swapInfo.lastPresent.waitSemaphores.resize(pPresentInfo->waitSemaphoreCount);
+  for(size_t i = 0; i < swapInfo.lastPresent.waitSemaphores.size(); ++i)
+    swapInfo.lastPresent.waitSemaphores[i] = pPresentInfo->pWaitSemaphores[i];
+
   m_LastSwap = swaprecord->GetResourceID();
 
   if(IsBackgroundCapturing(m_State))
@@ -774,7 +782,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
       VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
 
-      uint32_t swapQueueIndex = m_ImageLayouts[GetResID(im)].queueFamilyIndex;
+      VkResourceRecord *queueRecord = GetRecord(queue);
+      uint32_t swapQueueIndex = queueRecord->queueFamilyIndex;
 
       VkDevDispatchTable *vt = ObjDisp(GetDev());
 
