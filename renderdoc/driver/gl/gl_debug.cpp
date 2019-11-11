@@ -394,6 +394,8 @@ void GLReplay::InitDebugData()
       texSampleDefines +=
           "#define TEXSAMPLE_BUFFER 1\n"
           "#extension GL_EXT_texture_buffer : require\n";
+
+    texSampleDefines += "#define HAS_BIT_CONVERSION 1\n";
   }
   else
   {
@@ -410,6 +412,11 @@ void GLReplay::InitDebugData()
       texSampleDefines +=
           "#define TEXSAMPLE_MULTISAMPLE 1\n"
           "#extension GL_ARB_texture_multisample : require\n";
+
+    if(HasExt[ARB_gpu_shader5])
+      texSampleDefines +=
+          "#define HAS_BIT_CONVERSION 1\n"
+          "#extension GL_ARB_gpu_shader5 : require\n";
   }
 
   vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
