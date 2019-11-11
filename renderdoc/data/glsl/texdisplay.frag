@@ -27,10 +27,6 @@
 #extension GL_EXT_texture_cube_map_array : enable
 #extension GL_EXT_texture_buffer : enable
 
-#else
-
-#extension GL_ARB_gpu_shader5 : enable
-
 #endif
 
 #define HEATMAP_UBO
@@ -151,7 +147,7 @@ void main(void)
 
   if(texdisplay.RawOutput != 0)
   {
-#ifdef GL_ARB_gpu_shader5
+#ifdef HAS_BIT_CONVERSION
     if(uintTex)
       color_out = uintBitsToFloat(ucol);
     else if(sintTex)
