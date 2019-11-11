@@ -242,7 +242,23 @@ TEST_CASE("Test array type", "[basictypes]")
 
   SECTION("Verify insert()")
   {
-    rdcarray<int> vec = {6, 3, 13, 5};
+    rdcarray<int> vec;
+    vec.insert(0, {});
+    REQUIRE(vec.size() == 0);
+    vec.insert(0, vec);
+    REQUIRE(vec.size() == 0);
+    vec.insert(0, NULL, 0);
+    REQUIRE(vec.size() == 0);
+    vec.insert(0, 5);
+    REQUIRE(vec.size() == 1);
+    CHECK(vec[0] == 5);
+
+    vec.insert(0, {6, 3, 13});
+    REQUIRE(vec.size() == 4);
+    CHECK(vec[0] == 6);
+    CHECK(vec[1] == 3);
+    CHECK(vec[2] == 13);
+    CHECK(vec[3] == 5);
 
     vec.insert(0, 9);
 
@@ -566,6 +582,55 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(valueConstructor == 0);
     CHECK(copyConstructor == (5 + 1 + 6 + 1 + 1) + 7 + 7 + 3);
     CHECK(destructor == (5 + 6 + 1) + 7 + 7);
+  };
+
+  SECTION("Inserting from array's unused memory into itself")
+  {
+    constructor = 0;
+    valueConstructor = 0;
+    copyConstructor = 0;
+    destructor = 0;
+
+    rdcarray<ConstructorCounter> test;
+
+    // ensure no re-allocations due to size
+    test.reserve(100);
+
+    test.resize(5);
+    test[0].value = 10;
+    test[1].value = 20;
+    test[2].value = 30;
+    test[3].value = 40;
+    test[4].value = 50;
+
+    test.resize(1);
+
+    CHECK(constructor == 5);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 0);
+    CHECK(destructor == 4);
+
+    // this should detect the overlapped range, and duplicate the whole object
+    test.insert(0, test.data() + 2, 3);
+
+    // ensure the correct size and allocated space
+    CHECK(test.capacity() == 100);
+    CHECK(test.size() == 4);
+
+    CHECK(test[0].value == 30);
+    CHECK(test[1].value == 40);
+    CHECK(test[2].value == 50);
+    CHECK(test[3].value == 10);
+
+    // on top of the above:
+    // - 1 copy and destruct for the duplication (copy into the new storage, destruct from
+    // the old storage)
+    // - 1 copy and destruct for shifting the array contents
+    // - 3 copies for the inserted items
+    CHECK(constructor == 5);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 1 + 1 + 3);
+    CHECK(destructor == 4 + 1 + 1);
   };
 };
 

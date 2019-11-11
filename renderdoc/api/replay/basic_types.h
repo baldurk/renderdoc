@@ -439,7 +439,7 @@ public:
 
   void insert(size_t offs, const T *el, size_t count)
   {
-    if(el + count >= begin() && end() >= el)
+    if(elems < el + count && el < elems + allocatedCount)
     {
       // we're inserting from ourselves, so if we did this blindly we'd potentially change the
       // contents of the inserted range while doing the insertion.
