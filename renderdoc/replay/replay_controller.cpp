@@ -728,6 +728,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   uint32_t sampleCount = td.msSamp;
   bool multisampled = td.msSamp > 1;
 
+  if(sd.sample.mapToArray)
+    sd.sample.sampleIndex = 0;
+
   bool resolveSamples = (sd.sample.sampleIndex == ~0U);
 
   if(resolveSamples)
