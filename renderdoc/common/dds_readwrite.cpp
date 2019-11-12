@@ -460,16 +460,16 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       case ResourceFormatType::BC3:
         return format.SRGBCorrected() ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
       case ResourceFormatType::BC4:
-        return format.compType == CompType::UNorm ? DXGI_FORMAT_BC4_UNORM : DXGI_FORMAT_BC4_SNORM;
+        return format.compType == CompType::SNorm ? DXGI_FORMAT_BC4_SNORM : DXGI_FORMAT_BC4_UNORM;
       case ResourceFormatType::BC5:
-        return format.compType == CompType::UNorm ? DXGI_FORMAT_BC5_UNORM : DXGI_FORMAT_BC5_SNORM;
+        return format.compType == CompType::SNorm ? DXGI_FORMAT_BC5_SNORM : DXGI_FORMAT_BC5_UNORM;
       case ResourceFormatType::BC6:
-        return format.compType == CompType::UNorm ? DXGI_FORMAT_BC6H_UF16 : DXGI_FORMAT_BC6H_SF16;
+        return format.compType == CompType::SNorm ? DXGI_FORMAT_BC6H_SF16 : DXGI_FORMAT_BC6H_UF16;
       case ResourceFormatType::BC7:
         return format.SRGBCorrected() ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
       case ResourceFormatType::R10G10B10A2:
-        return format.compType == CompType::UNorm ? DXGI_FORMAT_R10G10B10A2_UNORM
-                                                  : DXGI_FORMAT_R10G10B10A2_UINT;
+        return format.compType == CompType::UInt ? DXGI_FORMAT_R10G10B10A2_UINT
+                                                 : DXGI_FORMAT_R10G10B10A2_UNORM;
       case ResourceFormatType::R11G11B10: return DXGI_FORMAT_R11G11B10_FLOAT;
       case ResourceFormatType::R5G6B5:
         RDCASSERT(format.BGRAOrder());
