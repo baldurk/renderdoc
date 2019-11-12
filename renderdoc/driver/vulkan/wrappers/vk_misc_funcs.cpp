@@ -633,8 +633,11 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
     DerivedResource(device, Framebuffer);
     DerivedResource(CreateInfo.renderPass, Framebuffer);
 
-    for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
-      DerivedResource(CreateInfo.pAttachments[i], Framebuffer);
+    if((CreateInfo.flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR) == 0)
+    {
+      for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
+        DerivedResource(CreateInfo.pAttachments[i], Framebuffer);
+    }
   }
 
   return true;
