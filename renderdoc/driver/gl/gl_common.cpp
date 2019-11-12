@@ -474,6 +474,12 @@ void FetchEnabledExtensions()
 
     HasExt[ARB_program_interface_query] = false;
   }
+
+  if(!IsGLES && GLCoreVersion < 42 && HasExt[ARB_compute_shader])
+  {
+    RDCERR("GL implementation has ARB_compute_shader but is not at least 4.2. Disabling compute.");
+    HasExt[ARB_compute_shader] = false;
+  }
 }
 
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context)

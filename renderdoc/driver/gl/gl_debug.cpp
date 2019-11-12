@@ -762,13 +762,6 @@ void GLReplay::InitDebugData()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
 
-  if(HasExt[ARB_compute_shader] && !HasExt[ARB_shading_language_420pack])
-  {
-    RDCERR(
-        "GL implementation has ARB_compute_shader but not ARB_shading_language_420pack! "
-        "Compute shaders won't compile successfully.");
-  }
-
   // histogram/minmax data
   {
     RDCEraseEl(DebugData.minmaxTileProgram);
