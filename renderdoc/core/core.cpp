@@ -239,6 +239,30 @@ RenderDoc &RenderDoc::Inst()
 void RenderDoc::RecreateCrashHandler()
 {
 #if ENABLED(RDOC_CRASH_HANDLER)
+
+#if ENABLED(RDOC_WIN32)
+  // there are way too many invalid reports coming from chrome, completely disable the crash handler
+  // in that case.
+  std::string exename;
+  FileIO::GetExecutableFilename(exename);
+  exename = strlower(exename);
+
+  if(exename.find("chrome.exe") &&
+     (GetModuleHandleA("chrome_elf.dll") || GetModuleHandleA("chrome_child.dll")))
+  {
+    RDCWARN("Disabling crash handling server due to detected chrome.");
+    return;
+  }
+
+  // some people use vivaldi which is just chrome
+  if(exename.find("vivaldi.exe") &&
+     (GetModuleHandleA("vivaldi_elf.dll") || GetModuleHandleA("vivaldi_child.dll")))
+  {
+    RDCWARN("Disabling crash handling server due to detected chrome.");
+    return;
+  }
+#endif
+
   m_ExHandler = new CrashHandler(m_ExHandler);
 #endif
 
