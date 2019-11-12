@@ -345,7 +345,12 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   {
     m_Stage = m_ShaderDetails->stage;
 
-    m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+    QPointer<ShaderViewer> me(this);
+
+    m_Ctx.Replay().AsyncInvoke([me, this](IReplayController *r) {
+      if(!me)
+        return;
+
       rdcarray<rdcstr> targets = r->GetDisassemblyTargets();
 
       rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
@@ -1221,7 +1226,12 @@ void ShaderViewer::disassemble_typeChanged(int index)
     }
   }
 
-  m_Ctx.Replay().AsyncInvoke([this, target](IReplayController *r) {
+  QPointer<ShaderViewer> me(this);
+
+  m_Ctx.Replay().AsyncInvoke([me, this, target](IReplayController *r) {
+    if(!me)
+      return;
+
     rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
 
     GUIInvoke::call(this, [this, disasm]() {
