@@ -619,12 +619,15 @@ struct ReplayCommand : public Command
 
 struct formats_reader
 {
-  formats_reader()
+  formats_reader(bool input)
   {
     ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
 
     for(const CaptureFileFormat &f : tmp->GetCaptureFileFormats())
     {
+      if(!f.openSupported && input)
+        continue;
+
       exts.push_back(f.extension);
       names.push_back(f.name);
     }
@@ -668,9 +671,9 @@ struct ConvertCommand : public Command
     parser.add<std::string>("filename", 'f', "The file to convert from.", false);
     parser.add<std::string>("output", 'o', "The file to convert to.", false);
     parser.add<std::string>("input-format", 'i', "The format of the input file.", false, "",
-                            formats_reader());
+                            formats_reader(true));
     parser.add<std::string>("convert-format", 'c', "The format of the output file.", false, "",
-                            formats_reader());
+                            formats_reader(false));
     parser.add("list-formats", '\0', "Print a list of target formats.");
     parser.stop_at_rest(true);
   }
