@@ -148,11 +148,19 @@ std::string getToolInSDK(ToolDir subdir, const std::string &jdkroot, const std::
 
   return "";
 }
+
 struct ToolPathCache
 {
   std::string sdk, jdk;
   std::map<std::string, std::string> paths;
-} cache;
+};
+
+static ToolPathCache &getCache()
+{
+  static ToolPathCache cache;
+  return cache;
+}
+
 std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist)
 {
   // search path for tools:
@@ -170,6 +178,8 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 
   std::string sdk = RenderDoc::Inst().GetConfigSetting("androidSDKPath");
   std::string jdk = RenderDoc::Inst().GetConfigSetting("androidJDKPath");
+
+  ToolPathCache &cache = getCache();
 
   // invalidate the cache when these settings change
   if(sdk != cache.sdk || jdk != cache.jdk)
