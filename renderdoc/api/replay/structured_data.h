@@ -315,7 +315,7 @@ struct StructuredObjectList : public rdcarray<SDObject *>
 
 DECLARE_REFLECTION_STRUCT(StructuredObjectList);
 
-DOCUMENT("The data inside an class:`SDObject`, whether it's plain old data or complex children.");
+DOCUMENT("The data inside an :class:`SDObject` whether it's plain old data or complex children.");
 struct SDObjectData
 {
   DOCUMENT("");
@@ -327,7 +327,7 @@ struct SDObjectData
   DOCUMENT("The string contents of the object.");
   rdcstr str;
 
-  DOCUMENT("A ``list`` of class:`SDObject` containing the children of this class:`SDObject`.");
+  DOCUMENT("A list of :class:`SDObject` containing the children of this :class:`SDObject`.");
   StructuredObjectList children;
 
   SDObjectData(const SDObjectData &) = delete;
