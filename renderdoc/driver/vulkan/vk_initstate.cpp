@@ -822,10 +822,21 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
               {
-                dstImage[d].imageView =
-                    GetResourceManager()->GetLiveHandle<VkImageView>(src[d].imageInfo.imageView);
-                dstImage[d].sampler =
-                    GetResourceManager()->GetLiveHandle<VkSampler>(src[d].imageInfo.sampler);
+                if(writes[bind].descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER &&
+                   GetResourceManager()->HasLiveResource(src[d].imageInfo.imageView))
+                  dstImage[d].imageView =
+                      GetResourceManager()->GetLiveHandle<VkImageView>(src[d].imageInfo.imageView);
+                else
+                  dstImage[d].imageView = VK_NULL_HANDLE;
+
+                if((writes[bind].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+                    writes[bind].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+                   GetResourceManager()->HasLiveResource(src[d].imageInfo.sampler))
+                  dstImage[d].sampler =
+                      GetResourceManager()->GetLiveHandle<VkSampler>(src[d].imageInfo.sampler);
+                else
+                  dstImage[d].sampler = VK_NULL_HANDLE;
+
                 dstImage[d].imageLayout = src[d].imageInfo.imageLayout;
               }
 
@@ -846,8 +857,13 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
-                dstTexelBuffer[d] =
-                    GetResourceManager()->GetLiveHandle<VkBufferView>(src[d].texelBufferView);
+              {
+                if(GetResourceManager()->HasLiveResource(src[d].texelBufferView))
+                  dstTexelBuffer[d] =
+                      GetResourceManager()->GetLiveHandle<VkBufferView>(src[d].texelBufferView);
+                else
+                  dstTexelBuffer[d] = VK_NULL_HANDLE;
+              }
 
               writes[bind].pTexelBufferView = dstTexelBuffer;
               // NULL the others
@@ -862,8 +878,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             {
               for(uint32_t d = 0; d < descriptorCount; d++)
               {
-                dstBuffer[d].buffer =
-                    GetResourceManager()->GetLiveHandle<VkBuffer>(src[d].bufferInfo.buffer);
+                if(GetResourceManager()->HasLiveResource(src[d].bufferInfo.buffer))
+                  dstBuffer[d].buffer =
+                      GetResourceManager()->GetLiveHandle<VkBuffer>(src[d].bufferInfo.buffer);
+                else
+                  dstBuffer[d].buffer = VK_NULL_HANDLE;
                 dstBuffer[d].offset = src[d].bufferInfo.offset;
                 dstBuffer[d].range = src[d].bufferInfo.range;
               }
