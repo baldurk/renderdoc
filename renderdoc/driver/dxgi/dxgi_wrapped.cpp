@@ -77,6 +77,30 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     *ppvObject = (IDXGIAdapter *)(new WrappedIDXGIAdapter4(real));
     return true;
   }
+  else if(riid == __uuidof(IDXGIAdapter1))
+  {
+    IDXGIAdapter1 *real = (IDXGIAdapter1 *)(*ppvObject);
+    *ppvObject = (IDXGIAdapter1 *)(new WrappedIDXGIAdapter4(real));
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIAdapter2))
+  {
+    IDXGIAdapter2 *real = (IDXGIAdapter2 *)(*ppvObject);
+    *ppvObject = (IDXGIAdapter2 *)(new WrappedIDXGIAdapter4(real));
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIAdapter3))
+  {
+    IDXGIAdapter3 *real = (IDXGIAdapter3 *)(*ppvObject);
+    *ppvObject = (IDXGIAdapter3 *)(new WrappedIDXGIAdapter4(real));
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIAdapter4))
+  {
+    IDXGIAdapter4 *real = (IDXGIAdapter4 *)(*ppvObject);
+    *ppvObject = (IDXGIAdapter4 *)(new WrappedIDXGIAdapter4(real));
+    return true;
+  }
   else if(riid == __uuidof(IDXGIFactory))
   {
     // yes I know PRECISELY how fucked up this is. Speak to microsoft - after KB2670838 the internal
@@ -95,28 +119,10 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     RDCERR("Unexpected uuid in RefCountDXGIObject::HandleWrap");
     return false;
   }
-  else if(riid == __uuidof(IDXGIAdapter1))
-  {
-    IDXGIAdapter1 *real = (IDXGIAdapter1 *)(*ppvObject);
-    *ppvObject = (IDXGIAdapter1 *)(new WrappedIDXGIAdapter4(real));
-    return true;
-  }
   else if(riid == __uuidof(IDXGIFactory1))
   {
     IDXGIFactory1 *real = (IDXGIFactory1 *)(*ppvObject);
     *ppvObject = (IDXGIFactory1 *)(new WrappedIDXGIFactory(real));
-    return true;
-  }
-  else if(riid == __uuidof(IDXGIAdapter2))
-  {
-    IDXGIAdapter2 *real = (IDXGIAdapter2 *)(*ppvObject);
-    *ppvObject = (IDXGIAdapter2 *)(new WrappedIDXGIAdapter4(real));
-    return true;
-  }
-  else if(riid == __uuidof(IDXGIAdapter3))
-  {
-    IDXGIAdapter3 *real = (IDXGIAdapter3 *)(*ppvObject);
-    *ppvObject = (IDXGIAdapter3 *)(new WrappedIDXGIAdapter4(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory2))
@@ -880,6 +886,19 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIAdapter4::QueryInterface(REFIID riid, void
     {
       AddRef();
       *ppvObject = (IDXGIAdapter3 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIAdapter4))
+  {
+    if(m_pReal3)
+    {
+      AddRef();
+      *ppvObject = (IDXGIAdapter4 *)this;
       return S_OK;
     }
     else
