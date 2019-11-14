@@ -322,8 +322,22 @@ HRESULT WrappedID3D11Device::OpenSharedResource1(HANDLE hResource, REFIID return
 {
   if(m_pDevice1 == NULL)
     return E_NOINTERFACE;
-  RDCUNIMPLEMENTED("Not wrapping OpenSharedResource1");
-  return m_pDevice1->OpenSharedResource1(hResource, returnedInterface, ppResource);
+
+  if(ppResource == NULL)
+    return E_INVALIDARG;
+
+  HRESULT hr;
+
+  SERIALISE_TIME_CALL(hr = m_pDevice1->OpenSharedResource1(hResource, returnedInterface, ppResource));
+
+  if(FAILED(hr))
+  {
+    IUnknown *unk = (IUnknown *)*ppResource;
+    SAFE_RELEASE(unk);
+    return hr;
+  }
+
+  return OpenSharedResourceInternal(D3D11Chunk::OpenSharedResource1, returnedInterface, ppResource);
 }
 
 HRESULT WrappedID3D11Device::OpenSharedResourceByName(LPCWSTR lpName, DWORD dwDesiredAccess,
@@ -331,8 +345,24 @@ HRESULT WrappedID3D11Device::OpenSharedResourceByName(LPCWSTR lpName, DWORD dwDe
 {
   if(m_pDevice1 == NULL)
     return E_NOINTERFACE;
-  RDCUNIMPLEMENTED("Not wrapping OpenSharedResourceByName");
-  return m_pDevice1->OpenSharedResourceByName(lpName, dwDesiredAccess, returnedInterface, ppResource);
+
+  if(ppResource == NULL)
+    return E_INVALIDARG;
+
+  HRESULT hr;
+
+  SERIALISE_TIME_CALL(hr = m_pDevice1->OpenSharedResourceByName(lpName, dwDesiredAccess,
+                                                                returnedInterface, ppResource));
+
+  if(FAILED(hr))
+  {
+    IUnknown *unk = (IUnknown *)*ppResource;
+    SAFE_RELEASE(unk);
+    return hr;
+  }
+
+  return OpenSharedResourceInternal(D3D11Chunk::OpenSharedResourceByName, returnedInterface,
+                                    ppResource);
 }
 
 #undef IMPLEMENT_FUNCTION_SERIALISED

@@ -609,7 +609,7 @@ public:
       SerialiserType &ser, ID3D11Resource *tex, ResourceId id, const D3D11_SUBRESOURCE_DATA *data,
       UINT w, UINT h, UINT d, DXGI_FORMAT fmt, UINT mips, UINT arr, bool HasData);
 
-  HRESULT STDMETHODCALLTYPE OpenSharedResourceInternal(bool externalResource, HANDLE hResource,
+  HRESULT STDMETHODCALLTYPE OpenSharedResourceInternal(D3D11Chunk chunkType,
                                                        REFIID ReturnedInterface, void **ppResource);
 
 // this is defined as a macro so that we can re-use it to explicitly instantiate these functions as

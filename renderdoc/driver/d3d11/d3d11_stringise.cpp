@@ -59,7 +59,7 @@ rdcstr DoStringise(const D3D11ResourceType &el)
 template <>
 rdcstr DoStringise(const D3D11Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1128, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1130, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D11Chunk)
   {
@@ -210,6 +210,8 @@ rdcstr DoStringise(const D3D11Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(SwapDeviceContextState,
                                "ID3D11DeviceContext1::SwapDeviceContextState");
     STRINGISE_ENUM_CLASS_NAMED(ExternalDXGIResource, "External DXGI Resource import");
+    STRINGISE_ENUM_CLASS_NAMED(OpenSharedResource1, "ID3D11Device1::OpenSharedResource1");
+    STRINGISE_ENUM_CLASS_NAMED(OpenSharedResourceByName, "ID3D11Device1::OpenSharedResourceByName");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

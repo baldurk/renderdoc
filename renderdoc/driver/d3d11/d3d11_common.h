@@ -422,6 +422,8 @@ enum class D3D11Chunk : uint32_t
   PostFinishCommandListSet,
   SwapDeviceContextState,
   ExternalDXGIResource,
+  OpenSharedResource1,
+  OpenSharedResourceByName,
   Max,
 };
 

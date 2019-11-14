@@ -3017,7 +3017,7 @@ HRESULT WrappedID3D11Device::CreateDeferredContext(UINT ContextFlags,
 }
 
 template <typename SerialiserType>
-bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HANDLE hResource,
+bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HANDLE,
                                                        REFIID ReturnedInterface, void **ppResource)
 {
   ID3D11DeviceChild *res = ser.IsWriting() ? (ID3D11DeviceChild *)*ppResource : NULL;
@@ -3274,10 +3274,24 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID ReturnedInterface,
                                                 void **ppResource)
 {
-  return OpenSharedResourceInternal(false, hResource, ReturnedInterface, ppResource);
+  if(ppResource == NULL)
+    return E_INVALIDARG;
+
+  HRESULT hr;
+
+  SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, ppResource));
+
+  if(FAILED(hr))
+  {
+    IUnknown *unk = (IUnknown *)*ppResource;
+    SAFE_RELEASE(unk);
+    return hr;
+  }
+
+  return OpenSharedResourceInternal(D3D11Chunk::OpenSharedResource, ReturnedInterface, ppResource);
 }
 
-HRESULT WrappedID3D11Device::OpenSharedResourceInternal(bool externalResource, HANDLE hResource,
+HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
                                                         REFIID ReturnedInterface, void **ppResource)
 {
   if(IsReplayMode(m_State))
@@ -3285,9 +3299,6 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(bool externalResource, H
     RDCERR("Don't support opening shared resources during replay.");
     return E_NOTIMPL;
   }
-
-  if(ppResource == NULL)
-    return E_INVALIDARG;
 
   bool isDXGIRes = (ReturnedInterface == __uuidof(IDXGIResource) ? true : false);
   bool isRes = (ReturnedInterface == __uuidof(ID3D11Resource) ? true : false);
@@ -3298,203 +3309,188 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(bool externalResource, H
 
   if(isDXGIRes || isRes || isBuf || isTex1D || isTex2D || isTex3D)
   {
-    void *res = NULL;
-    HRESULT hr;
+    void *res = *ppResource;
+    HRESULT hr = S_OK;
 
-    if(externalResource)
+    if(isDXGIRes)
     {
-      res = *ppResource;
-      SERIALISE_TIME_CALL(hr = S_OK);
-    }
-    else
-    {
-      SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, &res));
+      IDXGIResource *dxgiRes = (IDXGIResource *)res;
+
+      ID3D11Resource *d3d11Res = NULL;
+      hr = dxgiRes->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11Res);
+
+      // if we can't get a d3d11Res then we can't properly wrap this resource,
+      // whatever it is.
+      if(FAILED(hr) || d3d11Res == NULL)
+      {
+        SAFE_RELEASE(d3d11Res);
+        SAFE_RELEASE(dxgiRes);
+        return E_NOINTERFACE;
+      }
+
+      // release this interface
+      SAFE_RELEASE(dxgiRes);
+
+      // and use this one, so it'll be casted back below
+      res = (void *)d3d11Res;
+      isRes = true;
     }
 
-    if(FAILED(hr))
+    SCOPED_LOCK(m_D3DLock);
+
+    ResourceId wrappedID;
+
+    if(isRes)
     {
-      IUnknown *unk = (IUnknown *)res;
-      SAFE_RELEASE(unk);
-      return hr;
+      ID3D11Resource *resource = (ID3D11Resource *)res;
+      D3D11_RESOURCE_DIMENSION dim;
+      resource->GetType(&dim);
+
+      if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
+      {
+        res = (ID3D11Buffer *)(ID3D11Resource *)res;
+        isBuf = true;
+      }
+      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+      {
+        res = (ID3D11Texture1D *)(ID3D11Resource *)res;
+        isTex1D = true;
+      }
+      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+      {
+        res = (ID3D11Texture2D *)(ID3D11Resource *)res;
+        isTex2D = true;
+      }
+      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D)
+      {
+        res = (ID3D11Texture3D *)(ID3D11Resource *)res;
+        isTex3D = true;
+      }
     }
-    else
+
+    ID3D11Resource *realRes = NULL;
+
+    void *ppvWrapped = NULL;
+
+    if(isBuf)
     {
+      WrappedID3D11Buffer *w = new WrappedID3D11Buffer((ID3D11Buffer *)res, 0, this);
+      wrappedID = w->GetResourceID();
+
+      realRes = w->GetReal();
+
+      ppvWrapped = (ID3D11Buffer *)w;
+
       if(isDXGIRes)
       {
-        IDXGIResource *dxgiRes = (IDXGIResource *)res;
-
-        ID3D11Resource *d3d11Res = NULL;
-        hr = dxgiRes->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11Res);
-
-        // if we can't get a d3d11Res then we can't properly wrap this resource,
-        // whatever it is.
-        if(FAILED(hr) || d3d11Res == NULL)
-        {
-          SAFE_RELEASE(d3d11Res);
-          SAFE_RELEASE(dxgiRes);
-          return E_NOINTERFACE;
-        }
-
-        // release this interface
-        SAFE_RELEASE(dxgiRes);
-
-        // and use this one, so it'll be casted back below
-        res = (void *)d3d11Res;
-        isRes = true;
+        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->Release();
       }
-
-      SCOPED_LOCK(m_D3DLock);
-
-      ResourceId wrappedID;
-
-      if(isRes)
+      else if(isRes)
       {
-        ID3D11Resource *resource = (ID3D11Resource *)res;
-        D3D11_RESOURCE_DIMENSION dim;
-        resource->GetType(&dim);
-
-        if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
-        {
-          res = (ID3D11Buffer *)(ID3D11Resource *)res;
-          isBuf = true;
-        }
-        else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
-        {
-          res = (ID3D11Texture1D *)(ID3D11Resource *)res;
-          isTex1D = true;
-        }
-        else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
-        {
-          res = (ID3D11Texture2D *)(ID3D11Resource *)res;
-          isTex2D = true;
-        }
-        else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D)
-        {
-          res = (ID3D11Texture3D *)(ID3D11Resource *)res;
-          isTex3D = true;
-        }
+        *ppResource = (ID3D11Resource *)w;
       }
-
-      ID3D11Resource *realRes = NULL;
-
-      void *ppvWrapped = NULL;
-
-      if(isBuf)
+      else
       {
-        WrappedID3D11Buffer *w = new WrappedID3D11Buffer((ID3D11Buffer *)res, 0, this);
-        wrappedID = w->GetResourceID();
-
-        realRes = w->GetReal();
-
-        ppvWrapped = (ID3D11Buffer *)w;
-
-        if(isDXGIRes)
-        {
-          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
-          w->Release();
-        }
-        else if(isRes)
-        {
-          *ppResource = (ID3D11Resource *)w;
-        }
-        else
-        {
-          *ppResource = (ID3D11Buffer *)w;
-        }
+        *ppResource = (ID3D11Buffer *)w;
       }
-      else if(isTex1D)
-      {
-        WrappedID3D11Texture1D *w = new WrappedID3D11Texture1D((ID3D11Texture1D *)res, this);
-        wrappedID = w->GetResourceID();
-
-        realRes = w->GetReal();
-
-        ppvWrapped = (ID3D11Texture1D *)w;
-
-        if(isDXGIRes)
-        {
-          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
-          w->Release();
-        }
-        else if(isRes)
-        {
-          *ppResource = (ID3D11Resource *)w;
-        }
-        else
-        {
-          *ppResource = (ID3D11Texture1D *)w;
-        }
-      }
-      else if(isTex2D)
-      {
-        WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1((ID3D11Texture2D *)res, this);
-        wrappedID = w->GetResourceID();
-
-        realRes = w->GetReal();
-
-        ppvWrapped = (ID3D11Texture2D *)w;
-
-        if(isDXGIRes)
-        {
-          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
-          w->Release();
-        }
-        else if(isRes)
-        {
-          *ppResource = (ID3D11Resource *)w;
-        }
-        else
-        {
-          *ppResource = (ID3D11Texture2D *)w;
-        }
-      }
-      else if(isTex3D)
-      {
-        WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1((ID3D11Texture3D *)res, this);
-        wrappedID = w->GetResourceID();
-
-        realRes = w->GetReal();
-
-        ppvWrapped = (ID3D11Texture3D *)w;
-
-        if(isDXGIRes)
-        {
-          w->QueryInterface(__uuidof(IDXGIResource), ppResource);
-          w->Release();
-        }
-        else if(isRes)
-        {
-          *ppResource = (ID3D11Resource *)w;
-        }
-        else
-        {
-          *ppResource = (ID3D11Texture3D *)w;
-        }
-      }
-
-      Chunk *chunk = NULL;
-
-      {
-        USE_SCRATCH_SERIALISER();
-        SCOPED_SERIALISE_CHUNK(externalResource ? D3D11Chunk::ExternalDXGIResource
-                                                : D3D11Chunk::OpenSharedResource);
-        Serialise_OpenSharedResource(GET_SERIALISER, hResource, ReturnedInterface, &ppvWrapped);
-
-        chunk = scope.Get();
-      }
-
-      // don't know where this came from or who might modify it at any point.
-      GetResourceManager()->MarkDirtyResource(wrappedID);
-
-      D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(wrappedID);
-      RDCASSERT(record);
-
-      record->AddChunk(chunk);
-      record->SetDataPtr(chunk->GetData());
     }
+    else if(isTex1D)
+    {
+      WrappedID3D11Texture1D *w = new WrappedID3D11Texture1D((ID3D11Texture1D *)res, this);
+      wrappedID = w->GetResourceID();
+
+      realRes = w->GetReal();
+
+      ppvWrapped = (ID3D11Texture1D *)w;
+
+      if(isDXGIRes)
+      {
+        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->Release();
+      }
+      else if(isRes)
+      {
+        *ppResource = (ID3D11Resource *)w;
+      }
+      else
+      {
+        *ppResource = (ID3D11Texture1D *)w;
+      }
+    }
+    else if(isTex2D)
+    {
+      WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1((ID3D11Texture2D *)res, this);
+      wrappedID = w->GetResourceID();
+
+      realRes = w->GetReal();
+
+      ppvWrapped = (ID3D11Texture2D *)w;
+
+      if(isDXGIRes)
+      {
+        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->Release();
+      }
+      else if(isRes)
+      {
+        *ppResource = (ID3D11Resource *)w;
+      }
+      else
+      {
+        *ppResource = (ID3D11Texture2D *)w;
+      }
+    }
+    else if(isTex3D)
+    {
+      WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1((ID3D11Texture3D *)res, this);
+      wrappedID = w->GetResourceID();
+
+      realRes = w->GetReal();
+
+      ppvWrapped = (ID3D11Texture3D *)w;
+
+      if(isDXGIRes)
+      {
+        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->Release();
+      }
+      else if(isRes)
+      {
+        *ppResource = (ID3D11Resource *)w;
+      }
+      else
+      {
+        *ppResource = (ID3D11Texture3D *)w;
+      }
+    }
+
+    Chunk *chunk = NULL;
+
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(chunkType);
+      Serialise_OpenSharedResource(GET_SERIALISER, 0, ReturnedInterface, &ppvWrapped);
+
+      chunk = scope.Get();
+    }
+
+    // don't know where this came from or who might modify it at any point.
+    GetResourceManager()->MarkDirtyResource(wrappedID);
+
+    D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(wrappedID);
+    RDCASSERT(record);
+
+    record->AddChunk(chunk);
+    record->SetDataPtr(chunk->GetData());
 
     return S_OK;
   }
+
+  RDCERR("Unknown OpenSharedResourceInternal GUID: %s", ToStr(ReturnedInterface).c_str());
+
+  IUnknown *unk = (IUnknown *)*ppResource;
+  SAFE_RELEASE(unk);
 
   return E_NOINTERFACE;
 }

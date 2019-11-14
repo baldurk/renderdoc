@@ -1031,6 +1031,8 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
     case D3D11Chunk::SetExceptionMode: return Serialise_SetExceptionMode(ser, 0);
     case D3D11Chunk::ExternalDXGIResource:
     case D3D11Chunk::OpenSharedResource:
+    case D3D11Chunk::OpenSharedResource1:
+    case D3D11Chunk::OpenSharedResourceByName:
     {
       IID nul;
       return Serialise_OpenSharedResource(ser, 0, nul, NULL);
@@ -1518,8 +1520,10 @@ IDXGIResource *WrappedID3D11Device::WrapExternalDXGIResource(IDXGIResource *res)
     return ret;
   }
 
-  void *voidRes = (void *)res;
-  OpenSharedResourceInternal(true, 0, __uuidof(IDXGIResource), &voidRes);
+  void *voidRes;
+  // duration will be meaningless but at least we can get timestamp.
+  SERIALISE_TIME_CALL(voidRes = (void *)res);
+  OpenSharedResourceInternal(D3D11Chunk::ExternalDXGIResource, __uuidof(IDXGIResource), &voidRes);
   return (IDXGIResource *)voidRes;
 }
 
