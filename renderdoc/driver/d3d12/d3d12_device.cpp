@@ -617,6 +617,12 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return hr;
     }
   }
+  else if(riid == __uuidof(ID3D12Device))
+  {
+    AddRef();
+    *ppvObject = (ID3D12Device *)this;
+    return S_OK;
+  }
   else if(riid == __uuidof(ID3D12Device1))
   {
     if(m_pDevice1)
