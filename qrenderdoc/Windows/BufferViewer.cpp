@@ -2181,7 +2181,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     ui->viewIndex->setValue(0);
   }
 
-  QPointer<BufferViewer> me;
+  QPointer<BufferViewer> me(this);
 
   m_Ctx.Replay().AsyncInvoke([this, me, bufdata](IReplayController *r) {
 
@@ -2332,7 +2332,7 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
     bbox->input[1] = bufdata->vsoutConfig;
     bbox->input[2] = bufdata->vsoutConfig;
 
-    QPointer<BufferViewer> me;
+    QPointer<BufferViewer> me(this);
 
     // fire up a thread to calculate the bounding box
     LambdaThread *thread = new LambdaThread([this, me, bbox] {
@@ -2869,7 +2869,7 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
   if((e->buttons() & Qt::RightButton) && m_Output)
   {
-    QPointer<BufferViewer> me;
+    QPointer<BufferViewer> me(this);
 
     m_Ctx.Replay().AsyncInvoke(lit("PickVertex"), [this, me, curpos](IReplayController *r) {
       if(!me)
