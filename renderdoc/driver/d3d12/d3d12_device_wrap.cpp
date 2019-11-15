@@ -1819,7 +1819,7 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
       Serialise_CreateFence(ser, InitialValue, Flags, riid, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
-      record->type = Resource_Resource;
+      record->type = Resource_Fence;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
@@ -2270,15 +2270,55 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 }
 
 template <typename SerialiserType>
-bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE NTHandle,
-                                                     REFIID riid, void **ppvObj)
+bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE, REFIID riid,
+                                                     void **ppvObj)
 {
   SERIALISE_ELEMENT_LOCAL(ResourceRIID, riid);
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  bool isRes = (ResourceRIID == __uuidof(ID3D12Resource) ? true : false);
-  if(isRes)
+  bool isRes = ResourceRIID == __uuidof(ID3D12Resource) || ResourceRIID == __uuidof(ID3D12Resource1);
+  bool isFence = ResourceRIID == __uuidof(ID3D12Fence) || ResourceRIID == __uuidof(ID3D12Fence1);
+  if(isFence)
+  {
+    ID3D12Fence *fence = NULL;
+    if(ser.IsWriting())
+    {
+      fence = (ID3D12Fence *)(ID3D12DeviceChild *)*ppvObj;
+      if(ResourceRIID == __uuidof(ID3D12Fence1))
+        fence = (ID3D12Fence1 *)(ID3D12DeviceChild *)*ppvObj;
+    }
+
+    SERIALISE_ELEMENT_LOCAL(resourceId, GetResID(fence));
+
+    UINT64 fakeInitialValue = 0;
+    D3D12_FENCE_FLAGS fakeFlags = D3D12_FENCE_FLAG_NONE;
+
+    // maybe in future this can be determined?
+    SERIALISE_ELEMENT_LOCAL(initialValue, fakeInitialValue);
+    SERIALISE_ELEMENT_LOCAL(flags, fakeFlags);
+
+    if(IsReplayingAndReading())
+    {
+      HRESULT hr;
+      ID3D12Fence *ret;
+      hr = m_pDevice->CreateFence(initialValue, flags, __uuidof(ID3D12Fence), (void **)&ret);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        return false;
+      }
+      else
+      {
+        ret = new WrappedID3D12Fence1(ret, this);
+
+        GetResourceManager()->AddLiveResource(resourceId, ret);
+      }
+
+      AddResource(resourceId, ResourceType::Sync, "Fence");
+    }
+  }
+  else if(isRes)
   {
     D3D12_RESOURCE_DESC desc;
     D3D12_HEAP_PROPERTIES heapProperties;
@@ -2287,7 +2327,9 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
     ID3D12Resource *res = NULL;
     if(ser.IsWriting())
     {
-      res = (ID3D12Resource *)*ppvObj;
+      res = (ID3D12Resource *)(ID3D12DeviceChild *)*ppvObj;
+      if(ResourceRIID == __uuidof(ID3D12Resource1))
+        res = (ID3D12Resource1 *)(ID3D12DeviceChild *)*ppvObj;
       desc = res->GetDesc();
       res->GetHeapProperties(&heapProperties, &heapFlags);
     }
@@ -2307,8 +2349,9 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
 
       HRESULT hr;
       ID3D12Resource *ret;
-      hr = m_pDevice->CreateCommittedResource(&heapProperties, heapFlags, &desc, InitialResourceState,
-                                              pOptimizedClearValue, ResourceRIID, (void **)&ret);
+      hr = m_pDevice->CreateCommittedResource(&heapProperties, heapFlags, &desc,
+                                              InitialResourceState, pOptimizedClearValue,
+                                              __uuidof(ID3D12Resource), (void **)&ret);
       if(FAILED(hr))
       {
         RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
@@ -2376,11 +2419,24 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
-  return OpenSharedHandleInternal(false, NTHandle, riid, ppvObj);
+  if(ppvObj == NULL)
+    return E_INVALIDARG;
+
+  HRESULT hr;
+
+  SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedHandle(NTHandle, riid, ppvObj));
+
+  if(FAILED(hr))
+  {
+    IUnknown *unk = (IUnknown *)*ppvObj;
+    SAFE_RELEASE(unk);
+    return hr;
+  }
+
+  return OpenSharedHandleInternal(D3D12Chunk::Device_OpenSharedHandle, riid, ppvObj);
 }
 
-HRESULT WrappedID3D12Device::OpenSharedHandleInternal(bool externalResource, HANDLE NTHandle,
-                                                      REFIID riid, void **ppvObj)
+HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFIID riid, void **ppvObj)
 {
   if(IsReplayMode(m_State))
   {
@@ -2388,85 +2444,94 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(bool externalResource, HAN
     return E_NOTIMPL;
   }
 
-  if(ppvObj == NULL)
-    return E_INVALIDARG;
-
-  bool isDXGIRes = (riid == __uuidof(IDXGIResource) ? true : false);
-  bool isRes = (riid == __uuidof(ID3D12Resource) ? true : false);
-  if(isDXGIRes || isRes)
+  bool isDXGIRes = riid == __uuidof(IDXGIResource) || riid == __uuidof(IDXGIResource1);
+  bool isRes = riid == __uuidof(ID3D12Resource) || riid == __uuidof(ID3D12Resource1);
+  bool isFence = riid == __uuidof(ID3D12Fence) || riid == __uuidof(ID3D12Fence1);
+  if(isDXGIRes || isRes || isFence)
   {
-    void *ret = NULL;
-    HRESULT hr;
+    void *ret = *ppvObj;
+    HRESULT hr = S_OK;
 
-    if(externalResource)
+    if(isDXGIRes)
     {
-      ret = *ppvObj;
-      SERIALISE_TIME_CALL(hr = S_OK);
-    }
-    else
-    {
-      SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedHandle(NTHandle, riid, &ret));
-    }
+      IDXGIResource *dxgiRes = (IDXGIResource *)ret;
+      if(riid == __uuidof(IDXGIResource1))
+        dxgiRes = (IDXGIResource1 *)ret;
 
-    if(FAILED(hr))
-    {
-      IUnknown *unk = (IUnknown *)ret;
-      SAFE_RELEASE(unk);
-      return hr;
-    }
-    else
-    {
-      if(isDXGIRes)
+      ID3D12Resource *d3d12Res = NULL;
+      hr = dxgiRes->QueryInterface(__uuidof(ID3D12Resource), (void **)&d3d12Res);
+
+      // if we can't get a d3d11Res then we can't properly wrap this resource,
+      // whatever it is.
+      if(FAILED(hr) || d3d12Res == NULL)
       {
-        IDXGIResource *dxgiRes = (IDXGIResource *)ret;
-
-        ID3D12Resource *d3d12Res = NULL;
-        hr = dxgiRes->QueryInterface(__uuidof(ID3D12Resource), (void **)&d3d12Res);
-
-        // if we can't get a d3d11Res then we can't properly wrap this resource,
-        // whatever it is.
-        if(FAILED(hr) || d3d12Res == NULL)
-        {
-          SAFE_RELEASE(d3d12Res);
-          SAFE_RELEASE(dxgiRes);
-          return E_NOINTERFACE;
-        }
-
-        // release this interface
+        SAFE_RELEASE(d3d12Res);
         SAFE_RELEASE(dxgiRes);
-
-        // and use this one, so it'll be casted back below
-        ret = (void *)d3d12Res;
-        isRes = true;
+        return E_NOINTERFACE;
       }
 
+      // release this interface
+      SAFE_RELEASE(dxgiRes);
+
+      // and use this one, so it'll be casted back below
+      ret = (void *)d3d12Res;
+      isRes = true;
+    }
+
+    ID3D12DeviceChild *wrappedDeviceChild = NULL;
+    D3D12ResourceRecord *record = NULL;
+
+    if(isFence)
+    {
+      ID3D12Fence *real = (ID3D12Fence *)ret;
+      if(riid == __uuidof(ID3D12Fence1))
+        real = (ID3D12Fence1 *)ret;
+
+      WrappedID3D12Fence1 *wrapped = new WrappedID3D12Fence1(real, this);
+
+      wrappedDeviceChild = wrapped;
+
+      *ppvObj = (ID3D12Fence *)wrapped;
+      if(riid == __uuidof(ID3D12Fence1))
+        *ppvObj = (ID3D12Fence1 *)wrapped;
+
+      record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Fence;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+    }
+    else if(isRes)
+    {
       ID3D12Resource *real = (ID3D12Resource *)ret;
+      if(riid == __uuidof(ID3D12Resource1))
+        real = (ID3D12Resource1 *)ret;
 
       WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(real, this);
 
+      wrappedDeviceChild = wrapped;
+
       if(isDXGIRes)
-        wrapped->QueryInterface(__uuidof(IDXGIResource), ppvObj);
+      {
+        wrapped->QueryInterface(riid, ppvObj);
+        wrapped->Release();
+      }
       else
+      {
         *ppvObj = (ID3D12Resource *)wrapped;
-
-      CACHE_THREAD_SERIALISER();
-
-      SCOPED_SERIALISE_CHUNK(externalResource ? D3D12Chunk::Device_ExternalDXGIResource
-                                              : D3D12Chunk::Device_OpenSharedHandle);
-      Serialise_OpenSharedHandle(ser, NTHandle, __uuidof(ID3D12Resource), (void **)&wrapped);
+        if(riid == __uuidof(ID3D12Resource1))
+          *ppvObj = (ID3D12Resource1 *)wrapped;
+      }
 
       D3D12_RESOURCE_DESC desc = wrapped->GetDesc();
       D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_COMMON;
 
-      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Resource;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
       record->m_MapsCount = GetNumSubresources(this, &desc);
       record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
-
-      record->AddChunk(scope.Get());
 
       GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
 
@@ -2476,10 +2541,22 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(bool externalResource, HAN
 
         states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
       }
-
-      return S_OK;
     }
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(chunkType);
+    Serialise_OpenSharedHandle(ser, 0, riid, (void **)&wrappedDeviceChild);
+
+    record->AddChunk(scope.Get());
+
+    return S_OK;
   }
+
+  RDCERR("Unknown OpenSharedResourceInternal GUID: %s", ToStr(riid).c_str());
+
+  IUnknown *unk = (IUnknown *)*ppvObj;
+  SAFE_RELEASE(unk);
 
   return E_NOINTERFACE;
 }

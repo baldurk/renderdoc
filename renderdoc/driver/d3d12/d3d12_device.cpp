@@ -1185,7 +1185,8 @@ IDXGIResource *WrappedID3D12Device::WrapExternalDXGIResource(IDXGIResource *res)
   }
 
   void *voidRes = (void *)res;
-  OpenSharedHandleInternal(true, 0, __uuidof(IDXGIResource), &voidRes);
+  OpenSharedHandleInternal(D3D12Chunk::Device_ExternalDXGIResource, __uuidof(IDXGIResource),
+                           &voidRes);
   return (IDXGIResource *)voidRes;
 }
 

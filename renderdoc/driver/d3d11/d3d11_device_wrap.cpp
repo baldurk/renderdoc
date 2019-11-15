@@ -3300,12 +3300,25 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     return E_NOTIMPL;
   }
 
-  bool isDXGIRes = (ReturnedInterface == __uuidof(IDXGIResource) ? true : false);
-  bool isRes = (ReturnedInterface == __uuidof(ID3D11Resource) ? true : false);
-  bool isBuf = (ReturnedInterface == __uuidof(ID3D11Buffer) ? true : false);
-  bool isTex1D = (ReturnedInterface == __uuidof(ID3D11Texture1D) ? true : false);
-  bool isTex2D = (ReturnedInterface == __uuidof(ID3D11Texture2D) ? true : false);
-  bool isTex3D = (ReturnedInterface == __uuidof(ID3D11Texture3D) ? true : false);
+  // fences aren't serialised
+  if(ReturnedInterface == __uuidof(ID3D11Fence))
+  {
+    WrappedID3D11Fence *w = new WrappedID3D11Fence((ID3D11Fence *)*ppResource, this);
+
+    *ppResource = (ID3D11Fence *)w;
+
+    return S_OK;
+  }
+
+  bool isDXGIRes =
+      ReturnedInterface == __uuidof(IDXGIResource) || ReturnedInterface == __uuidof(IDXGIResource1);
+  bool isRes = ReturnedInterface == __uuidof(ID3D11Resource);
+  bool isBuf = ReturnedInterface == __uuidof(ID3D11Buffer);
+  bool isTex1D = ReturnedInterface == __uuidof(ID3D11Texture1D);
+  bool isTex2D = ReturnedInterface == __uuidof(ID3D11Texture2D) ||
+                 ReturnedInterface == __uuidof(ID3D11Texture2D1);
+  bool isTex3D = ReturnedInterface == __uuidof(ID3D11Texture3D) ||
+                 ReturnedInterface == __uuidof(ID3D11Texture3D1);
 
   if(isDXGIRes || isRes || isBuf || isTex1D || isTex2D || isTex3D)
   {
@@ -3315,6 +3328,9 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     if(isDXGIRes)
     {
       IDXGIResource *dxgiRes = (IDXGIResource *)res;
+
+      if(ReturnedInterface == __uuidof(IDXGIResource1))
+        dxgiRes = (IDXGIResource1 *)res;
 
       ID3D11Resource *d3d11Res = NULL;
       hr = dxgiRes->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11Res);
@@ -3368,8 +3384,6 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       }
     }
 
-    ID3D11Resource *realRes = NULL;
-
     void *ppvWrapped = NULL;
 
     if(isBuf)
@@ -3377,13 +3391,11 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       WrappedID3D11Buffer *w = new WrappedID3D11Buffer((ID3D11Buffer *)res, 0, this);
       wrappedID = w->GetResourceID();
 
-      realRes = w->GetReal();
-
       ppvWrapped = (ID3D11Buffer *)w;
 
       if(isDXGIRes)
       {
-        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->QueryInterface(ReturnedInterface, ppResource);
         w->Release();
       }
       else if(isRes)
@@ -3400,13 +3412,11 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       WrappedID3D11Texture1D *w = new WrappedID3D11Texture1D((ID3D11Texture1D *)res, this);
       wrappedID = w->GetResourceID();
 
-      realRes = w->GetReal();
-
       ppvWrapped = (ID3D11Texture1D *)w;
 
       if(isDXGIRes)
       {
-        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->QueryInterface(ReturnedInterface, ppResource);
         w->Release();
       }
       else if(isRes)
@@ -3420,16 +3430,18 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     }
     else if(isTex2D)
     {
-      WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1((ID3D11Texture2D *)res, this);
-      wrappedID = w->GetResourceID();
+      ID3D11Texture2D *tex2d = (ID3D11Texture2D *)res;
+      if(ReturnedInterface == __uuidof(ID3D11Texture2D1))
+        tex2d = (ID3D11Texture2D1 *)res;
 
-      realRes = w->GetReal();
+      WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1(tex2d, this);
+      wrappedID = w->GetResourceID();
 
       ppvWrapped = (ID3D11Texture2D *)w;
 
       if(isDXGIRes)
       {
-        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->QueryInterface(ReturnedInterface, ppResource);
         w->Release();
       }
       else if(isRes)
@@ -3439,20 +3451,24 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       else
       {
         *ppResource = (ID3D11Texture2D *)w;
+        if(ReturnedInterface == __uuidof(ID3D11Texture2D1))
+          *ppResource = (ID3D11Texture2D1 *)w;
       }
     }
     else if(isTex3D)
     {
-      WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1((ID3D11Texture3D *)res, this);
-      wrappedID = w->GetResourceID();
+      ID3D11Texture3D *tex3d = (ID3D11Texture3D *)res;
+      if(ReturnedInterface == __uuidof(ID3D11Texture3D1))
+        tex3d = (ID3D11Texture3D1 *)res;
 
-      realRes = w->GetReal();
+      WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1(tex3d, this);
+      wrappedID = w->GetResourceID();
 
       ppvWrapped = (ID3D11Texture3D *)w;
 
       if(isDXGIRes)
       {
-        w->QueryInterface(__uuidof(IDXGIResource), ppResource);
+        w->QueryInterface(ReturnedInterface, ppResource);
         w->Release();
       }
       else if(isRes)
@@ -3462,6 +3478,8 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       else
       {
         *ppResource = (ID3D11Texture3D *)w;
+        if(ReturnedInterface == __uuidof(ID3D11Texture3D1))
+          *ppResource = (ID3D11Texture3D1 *)w;
       }
     }
 
