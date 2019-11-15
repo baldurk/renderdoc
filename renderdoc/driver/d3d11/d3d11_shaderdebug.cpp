@@ -2215,15 +2215,17 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
   {
+    const SigParameter &sig = dxbc->GetReflection()->InputSig[i];
+
     extractHlsl += "  ";
 
     bool included = true;
 
     // handled specially to account for SV_ ordering
-    if(dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::PrimitiveIndex ||
-       dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::MSAACoverage ||
-       dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::IsFrontFace ||
-       dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::MSAASampleIndex)
+    if(sig.systemValue == ShaderBuiltin::PrimitiveIndex ||
+       sig.systemValue == ShaderBuiltin::MSAACoverage ||
+       sig.systemValue == ShaderBuiltin::IsFrontFace ||
+       sig.systemValue == ShaderBuiltin::MSAASampleIndex)
     {
       extractHlsl += "//";
       included = false;
@@ -2233,17 +2235,16 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     for(size_t a = 0; a < arrays.size(); a++)
     {
-      if(dxbc->GetReflection()->InputSig[i].semanticName == arrays[a].first &&
-         arrays[a].second.first <= dxbc->GetReflection()->InputSig[i].semanticIndex &&
-         arrays[a].second.second >= dxbc->GetReflection()->InputSig[i].semanticIndex)
+      if(sig.semanticName == arrays[a].first && arrays[a].second.first <= sig.semanticIndex &&
+         arrays[a].second.second >= sig.semanticIndex)
       {
         extractHlsl += "//";
         included = false;
-        arrayIndex = dxbc->GetReflection()->InputSig[i].semanticIndex - arrays[a].second.first;
+        arrayIndex = sig.semanticIndex - arrays[a].second.first;
       }
     }
 
-    int missingreg = int(dxbc->GetReflection()->InputSig[i].regIndex) - int(nextreg);
+    int missingreg = int(sig.regIndex) - int(nextreg);
 
     // fill in holes from output sig of previous shader if possible, to try and
     // ensure the same register order
@@ -2297,15 +2298,15 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       }
     }
 
-    nextreg = dxbc->GetReflection()->InputSig[i].regIndex + 1;
+    nextreg = sig.regIndex + 1;
 
-    if(dxbc->GetReflection()->InputSig[i].compType == CompType::Float)
+    if(sig.compType == CompType::Float)
     {
       // if we're packed with ints on either side, we must be nointerpolation
       bool nointerp = false;
       for(size_t j = 0; j < dxbc->GetReflection()->InputSig.size(); j++)
       {
-        if(dxbc->GetReflection()->InputSig[i].regIndex == dxbc->GetReflection()->InputSig[j].regIndex &&
+        if(sig.regIndex == dxbc->GetReflection()->InputSig[j].regIndex &&
            dxbc->GetReflection()->InputSig[j].compType != CompType::Float)
         {
           nointerp = true;
@@ -2318,19 +2319,17 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
       extractHlsl += "float";
     }
-    else if(dxbc->GetReflection()->InputSig[i].compType == CompType::SInt)
+    else if(sig.compType == CompType::SInt)
       extractHlsl += "nointerpolation int";
-    else if(dxbc->GetReflection()->InputSig[i].compType == CompType::UInt)
+    else if(sig.compType == CompType::UInt)
       extractHlsl += "nointerpolation uint";
     else
-      RDCERR("Unexpected input signature type: %d", dxbc->GetReflection()->InputSig[i].compType);
+      RDCERR("Unexpected input signature type: %d", sig.compType);
 
-    int numCols = (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x1 ? 1 : 0) +
-                  (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x2 ? 1 : 0) +
-                  (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x4 ? 1 : 0) +
-                  (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x8 ? 1 : 0);
+    int numCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
+                  (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
 
-    std::string name = dxbc->GetReflection()->InputSig[i].semanticIdxName;
+    std::string name = sig.semanticIdxName;
 
     // arrays of interpolators are handled really weirdly. They use cbuffer
     // packing rules where each new value is in a new register (rather than
@@ -2352,21 +2351,18 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     int arrayLength = 0;
 
-    if(included && numCols <= 2 && dxbc->GetReflection()->InputSig[i].regChannelMask <= 0x3)
+    if(included && numCols <= 2 && (sig.regChannelMask & 0x1))
     {
-      uint32_t nextIdx = dxbc->GetReflection()->InputSig[i].semanticIndex + 1;
+      uint32_t nextIdx = sig.semanticIndex + 1;
 
       for(size_t j = i + 1; j < dxbc->GetReflection()->InputSig.size(); j++)
       {
         // if we've found the 'next' semantic
-        if(dxbc->GetReflection()->InputSig[i].semanticName ==
-               dxbc->GetReflection()->InputSig[j].semanticName &&
+        if(sig.semanticName == dxbc->GetReflection()->InputSig[j].semanticName &&
            nextIdx == dxbc->GetReflection()->InputSig[j].semanticIndex)
         {
-          int jNumCols = (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x1 ? 1 : 0) +
-                         (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x2 ? 1 : 0) +
-                         (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x4 ? 1 : 0) +
-                         (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x8 ? 1 : 0);
+          int jNumCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
+                         (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
 
           // if it's the same size, and it's at the start of the next register
           if(jNumCols == numCols && dxbc->GetReflection()->InputSig[j].regChannelMask <= 0x3)
@@ -2385,9 +2381,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       }
 
       if(arrayLength > 0)
-        arrays.push_back(make_rdcpair(
-            dxbc->GetReflection()->InputSig[i].semanticName,
-            make_rdcpair(dxbc->GetReflection()->InputSig[i].semanticIndex, nextIdx - 1)));
+        arrays.push_back(make_rdcpair(sig.semanticName, make_rdcpair(sig.semanticIndex, nextIdx - 1)));
     }
 
     if(included)
@@ -2402,13 +2396,11 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     // Note we have to search *backwards* because we need to know if this register should have
     // been packed into the previous register, but wasn't. float/float2 can be packed after an
     // array just fine.
-    if(included && i > 0 && arrayLength == 0 && numCols <= 2 &&
-       dxbc->GetReflection()->InputSig[i].regChannelMask <= 0x3)
+    if(included && i > 0 && arrayLength == 0 && numCols <= 2 && sig.regChannelMask <= 0x3)
     {
       const SigParameter &prev = dxbc->GetReflection()->InputSig[i - 1];
 
-      if(prev.regIndex != dxbc->GetReflection()->InputSig[i].regIndex && prev.compCount <= 2 &&
-         prev.regChannelMask <= 0x3)
+      if(prev.regIndex != sig.regIndex && prev.compCount <= 2 && prev.regChannelMask <= 0x3)
         arrayLength = 1;
     }
 
@@ -2422,8 +2414,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     // To prevent this, we look forward and backward to check that we aren't expecting to pack
     // with anything, and if not then we just make it a 1-length array to ensure no packing.
     // Note the regChannelMask & 0x1 means it is using .x, so it's not the tail-end of a pack
-    if(included && arrayLength == 0 && numCols <= 2 &&
-       (dxbc->GetReflection()->InputSig[i].regChannelMask & 0x1))
+    if(included && arrayLength == 0 && numCols <= 2 && (sig.regChannelMask & 0x1))
     {
       if(i == dxbc->GetReflection()->InputSig.size() - 1)
       {
@@ -2447,7 +2438,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     if(arrayLength > 0)
       inputVarNames[i] += StringFormat::Fmt("[%d]", RDCMAX(0, arrayIndex));
 
-    if(included && dxbc->GetReflection()->InputSig[i].compType == CompType::Float)
+    if(included && sig.compType == CompType::Float)
     {
       if(arrayLength == 0)
       {
@@ -2462,14 +2453,11 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
     extractHlsl += ";\n";
 
-    int firstElem =
-        dxbc->GetReflection()->InputSig[i].regChannelMask & 0x1
-            ? 0
-            : dxbc->GetReflection()->InputSig[i].regChannelMask & 0x2
-                  ? 1
-                  : dxbc->GetReflection()->InputSig[i].regChannelMask & 0x4
-                        ? 2
-                        : dxbc->GetReflection()->InputSig[i].regChannelMask & 0x8 ? 3 : -1;
+    int firstElem = sig.regChannelMask & 0x1 ? 0 : sig.regChannelMask & 0x2
+                                                       ? 1
+                                                       : sig.regChannelMask & 0x4
+                                                             ? 2
+                                                             : sig.regChannelMask & 0x8 ? 3 : -1;
 
     // arrays get added all at once (because in the struct data, they are contiguous even if
     // in the input signature they're not).
@@ -2478,16 +2466,14 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       if(arrayLength == 0)
       {
         initialValues.push_back(
-            PSInputElement(dxbc->GetReflection()->InputSig[i].regIndex, firstElem, numCols,
-                           dxbc->GetReflection()->InputSig[i].systemValue, included));
+            PSInputElement(sig.regIndex, firstElem, numCols, sig.systemValue, included));
       }
       else
       {
         for(int a = 0; a < arrayLength; a++)
         {
           initialValues.push_back(
-              PSInputElement(dxbc->GetReflection()->InputSig[i].regIndex + a, firstElem, numCols,
-                             dxbc->GetReflection()->InputSig[i].systemValue, included));
+              PSInputElement(sig.regIndex + a, firstElem, numCols, sig.systemValue, included));
         }
       }
     }
