@@ -2300,7 +2300,10 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     depth = 1;
     arraysize = texDetails.depth;
     if(texType == eGL_TEXTURE_1D_ARRAY)
+    {
+      height = 1;
       arraysize = texDetails.height;
+    }
   }
 
   if(params.remap != RemapTexture::NoRemap)
