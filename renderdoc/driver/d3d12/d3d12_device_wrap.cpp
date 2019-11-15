@@ -132,6 +132,17 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
 
     m_Queues.push_back(wrapped);
 
+    bool capframe = false;
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      capframe = IsActiveCapturing(m_State);
+    }
+
+    // while capturing don't allow any queues to be freed, by adding another refcount, since we
+    // gather any commands submitted to them at the end of the capture.
+    if(capframe)
+      wrapped->AddRef();
+
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }
 

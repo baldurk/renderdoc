@@ -1756,6 +1756,10 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
       m_HeaderChunk = scope.Get();
     }
 
+    // keep all queues alive during the capture, by adding a refcount
+    for(auto it = m_Queues.begin(); it != m_Queues.end(); ++it)
+      (*it)->AddRef();
+
     m_State = CaptureState::ActiveCapturing;
   }
 
@@ -2057,7 +2061,12 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   SAFE_DELETE(m_HeaderChunk);
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
+  {
     (*it)->ClearAfterCapture();
+
+    // remove the reference held during capture, potentially releasing the queue.
+    (*it)->Release();
+  }
 
   GetResourceManager()->MarkUnwrittenResources();
 
