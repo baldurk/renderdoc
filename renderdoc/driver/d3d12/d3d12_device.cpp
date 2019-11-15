@@ -40,6 +40,9 @@
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
+Threading::CriticalSection WrappedID3D12Device::m_DeviceWrappersLock;
+std::map<ID3D12Device *, WrappedID3D12Device *> WrappedID3D12Device::m_DeviceWrappers;
+
 void WrappedID3D12Device::RemoveQueue(WrappedID3D12CommandQueue *queue)
 {
   auto it = std::remove_if(m_Queues.begin(), m_Queues.end(),
@@ -445,6 +448,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     RDCDEBUG("Couldn't get ID3D12InfoQueue.");
   }
 
+  {
+    SCOPED_LOCK(m_DeviceWrappersLock);
+    m_DeviceWrappers[m_pDevice] = this;
+  }
+
   if(!RenderDoc::Inst().IsReplayApp())
   {
     FirstFrame(NULL);
@@ -453,6 +461,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
 WrappedID3D12Device::~WrappedID3D12Device()
 {
+  {
+    SCOPED_LOCK(m_DeviceWrappersLock);
+    m_DeviceWrappers.erase(m_pDevice);
+  }
+
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
   if(!m_InternalCmds.pendingcmds.empty())
@@ -528,6 +541,23 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+}
+
+WrappedID3D12Device *WrappedID3D12Device::Create(ID3D12Device *realDevice, D3D12InitParams params,
+                                                 bool enabledDebugLayer)
+{
+  {
+    SCOPED_LOCK(m_DeviceWrappersLock);
+
+    auto it = m_DeviceWrappers.find(realDevice);
+    if(it != m_DeviceWrappers.end())
+    {
+      it->second->AddRef();
+      return it->second;
+    }
+  }
+
+  return new WrappedID3D12Device(realDevice, params, enabledDebugLayer);
 }
 
 HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)

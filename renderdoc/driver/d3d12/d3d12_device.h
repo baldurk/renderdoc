@@ -506,6 +506,9 @@ private:
 
   bool m_debugLayerEnabled;
 
+  static Threading::CriticalSection m_DeviceWrappersLock;
+  static std::map<ID3D12Device *, WrappedID3D12Device *> m_DeviceWrappers;
+
 public:
   static const int AllocPoolCount = 4;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Device, AllocPoolCount);
@@ -513,6 +516,9 @@ public:
   WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params, bool enabledDebugLayer);
   bool IsDebugLayerEnabled() const { return m_debugLayerEnabled; }
   virtual ~WrappedID3D12Device();
+
+  static WrappedID3D12Device *Create(ID3D12Device *realDevice, D3D12InitParams params,
+                                     bool enabledDebugLayer);
 
   UINT GetUnwrappedDescriptorIncrement(D3D12_DESCRIPTOR_HEAP_TYPE type)
   {
