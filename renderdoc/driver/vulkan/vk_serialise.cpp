@@ -1002,6 +1002,20 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
                                                                                                        \
+  /* VK_KHR_separate_depth_stencil_layouts */                                                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR)     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR)                       \
+                                                                                                       \
+  /* VK_KHR_performance_query */                                                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_PROPERTIES_KHR)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_CREATE_INFO_KHR)                          \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR)                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR)                                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_KHR)                                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_DESCRIPTION_KHR)                             \
+                                                                                                       \
   /* VK_INTEL_performance_query */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_INITIALIZE_PERFORMANCE_API_INFO_INTEL)                           \
