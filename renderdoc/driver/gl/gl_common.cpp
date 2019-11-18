@@ -2058,7 +2058,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
     }
 
     GL.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
-    if(edata[0] == eGL_SRGB)
+    if(edata[0] == eGL_SRGB || fmt == eGL_SR8_EXT || fmt == eGL_SRG8_EXT)
       ret.compType = CompType::UNormSRGB;
   }
   else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
@@ -2302,7 +2302,11 @@ GLenum MakeGLFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 2)
   {
-    if(fmt.compByteWidth == 4)
+    if(fmt.SRGBCorrected())
+    {
+      ret = eGL_SRG8_EXT;
+    }
+    else if(fmt.compByteWidth == 4)
     {
       if(fmt.compType == CompType::Float)
         ret = eGL_RG32F;
@@ -2348,7 +2352,11 @@ GLenum MakeGLFormat(ResourceFormat fmt)
   }
   else if(fmt.compCount == 1)
   {
-    if(fmt.compByteWidth == 4)
+    if(fmt.SRGBCorrected())
+    {
+      ret = eGL_SR8_EXT;
+    }
+    else if(fmt.compByteWidth == 4)
     {
       if(fmt.compType == CompType::Float)
         ret = eGL_R32F;
@@ -2502,10 +2510,12 @@ TEST_CASE("GL formats", "[format][gl]")
       eGL_R8_SNORM,
       eGL_R8UI,
       eGL_R8I,
+      eGL_SR8_EXT,
       eGL_RG8,
       eGL_RG8_SNORM,
       eGL_RG8UI,
       eGL_RG8I,
+      eGL_SRG8_EXT,
       eGL_RGB8,
       eGL_RGB8_SNORM,
       eGL_RGB8UI,
@@ -2678,7 +2688,7 @@ TEST_CASE("GL formats", "[format][gl]")
       if(fmt.type != ResourceFormatType::Regular)
         continue;
 
-      INFO("Format is " << f);
+      INFO("Format is " << ToStr(f));
 
       uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
 

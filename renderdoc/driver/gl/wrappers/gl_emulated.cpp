@@ -890,10 +890,12 @@ static const format_data formats[] = {
     // colour formats
     {eGL_R8, eGL_UNSIGNED_NORMALIZED, 1, 8, 0, 0},
     {eGL_R8_SNORM, eGL_SIGNED_NORMALIZED, 1, 8, 0, 0},
+    {eGL_SR8_EXT, eGL_UNSIGNED_NORMALIZED, 1, 8, 0, 0},
     {eGL_R16, eGL_UNSIGNED_NORMALIZED, 1, 16, 0, 0},
     {eGL_R16_SNORM, eGL_SIGNED_NORMALIZED, 1, 16, 0, 0},
     {eGL_RG8, eGL_UNSIGNED_NORMALIZED, 2, 8, 0, 0},
     {eGL_RG8_SNORM, eGL_SIGNED_NORMALIZED, 2, 8, 0, 0},
+    {eGL_SRG8_EXT, eGL_UNSIGNED_NORMALIZED, 2, 8, 0, 0},
     {eGL_RG16, eGL_UNSIGNED_NORMALIZED, 2, 16, 0, 0},
     {eGL_RG16_SNORM, eGL_SIGNED_NORMALIZED, 2, 16, 0, 0},
     {eGL_RGB4, eGL_UNSIGNED_NORMALIZED, 3, 4, 0, 0},
@@ -1022,7 +1024,8 @@ void APIENTRY _glGetInternalformativ(GLenum target, GLenum internalformat, GLenu
 
   if(pname == eGL_COLOR_ENCODING)
   {
-    if(internalformat == eGL_SRGB8 || internalformat == eGL_SRGB8_ALPHA8 ||
+    if(internalformat == eGL_SR8_EXT || internalformat == eGL_SRG8_EXT ||
+       internalformat == eGL_SRGB8 || internalformat == eGL_SRGB8_ALPHA8 ||
        internalformat == eGL_SRGB_ALPHA)
       *params = eGL_SRGB;
     else

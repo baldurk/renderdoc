@@ -241,6 +241,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_texture_snorm");
   m_GLExtensions.push_back("GL_EXT_texture_sRGB");
   m_GLExtensions.push_back("GL_EXT_texture_sRGB_decode");
+  m_GLExtensions.push_back("GL_EXT_texture_sRGB_R8");
   m_GLExtensions.push_back("GL_EXT_texture_swizzle");
   m_GLExtensions.push_back("GL_EXT_texture3D");
   m_GLExtensions.push_back("GL_EXT_timer_query");

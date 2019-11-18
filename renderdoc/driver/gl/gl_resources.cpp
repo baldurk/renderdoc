@@ -362,6 +362,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
   {
     case eGL_R8:
     case eGL_R8_SNORM:
+    case eGL_SR8_EXT:
     case eGL_R16:
     case eGL_R16_SNORM:
     case eGL_R16F:
@@ -381,6 +382,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RED_INTEGER: return eGL_RED_INTEGER;
     case eGL_RG8:
     case eGL_RG8_SNORM:
+    case eGL_SRG8_EXT:
     case eGL_RG16:
     case eGL_RG16_SNORM:
     case eGL_RG16F:
@@ -478,6 +480,8 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_BGRA8_EXT:
     case eGL_SRGB8_ALPHA8:
     case eGL_SRGB8:
+    case eGL_SRG8_EXT:
+    case eGL_SR8_EXT:
     case eGL_SRGB_ALPHA:
     case eGL_SRGB:
     case eGL_RED:
