@@ -2629,8 +2629,12 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     RDCDEBUG("Doing manual blit from %s to allow readback", ToStr(format).c_str());
 
     GLenum remapformat = eGL_RED;
+    GLenum internalformat = eGL_R8;
     if(format == eGL_LUMINANCE_ALPHA)
+    {
       remapformat = eGL_RG;
+      internalformat = eGL_RG8;
+    }
 
     GLint baseLevel = 0;
     GLint maxLevel = 0;
@@ -2648,7 +2652,8 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
     // allocate the R8 texture
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexImage2D(target, 0, eGL_R8, width, height, 0, remapformat, eGL_UNSIGNED_BYTE, NULL);
+    GL.glTexImage2D(target, 0, internalformat, width, height, 0, remapformat, eGL_UNSIGNED_BYTE,
+                    NULL);
 
     // render to it
     GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
