@@ -1810,10 +1810,43 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
   {
     switch(fmt)
     {
+      // BC1
       case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT: ret.compCount = 3; break;
       case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: ret.compCount = 4; break;
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+        ret.compCount = 4;
+        break;
+
+      // BC2
+      case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+        ret.compCount = 4;
+        break;
+
+      // BC3
+      case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+      case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+        ret.compCount = 4;
+        break;
+      // BC4
+      case eGL_COMPRESSED_RED_RGTC1:
+      case eGL_COMPRESSED_SIGNED_RED_RGTC1:
+        ret.compCount = 1;
+        break;
+      // BC5
+      case eGL_COMPRESSED_RG_RGTC2:
+      case eGL_COMPRESSED_SIGNED_RG_RGTC2:
+        ret.compCount = 2;
+        break;
+      // BC6
+      case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
+      case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
+        ret.compCount = 3;
+        break;
+      // BC7
+      case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
+      case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: ret.compCount = 4; break;
 
       case eGL_COMPRESSED_RGBA8_ETC2_EAC:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC: ret.compCount = 4; break;
