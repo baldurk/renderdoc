@@ -1690,34 +1690,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
     }
   }
 
-  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
-  {
-    const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
-
-    if(decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
-       decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
-    {
-      uint32_t slot = (uint32_t)decl.operand.indices[0].index;
-
-      if(global.groupshared.size() <= slot)
-      {
-        global.groupshared.resize(slot + 1);
-
-        ShaderDebug::GlobalState::groupsharedMem &mem = global.groupshared[slot];
-
-        mem.structured =
-            (decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
-
-        mem.count = decl.count;
-        if(mem.structured)
-          mem.bytestride = decl.stride;
-        else
-          mem.bytestride = 4;    // raw groupshared is implicitly uint32s
-
-        mem.data.resize(mem.bytestride * mem.count);
-      }
-    }
-  }
+  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
 }
 
 ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
