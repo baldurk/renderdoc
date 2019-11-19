@@ -579,7 +579,8 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
             tr("<html>Error launching %1 for capture.\n\n"
                "Something went wrong connecting to the debugger on the Android device.\n\n"
                "This can happen if the package is not "
-               "marked as debuggable, or if another android tool such as Android Studio "
+               "marked as debuggable, if the intent arguments are badly specified, "
+               "or if another android tool such as Android Studio "
                "is interfering with the debug connection.\n\n"
                "Close <b>all</b> instances of Android Studio or other Android programs "
                "and try again.</html>")
