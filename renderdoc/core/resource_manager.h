@@ -310,6 +310,9 @@ struct ResourceRecord
   ~ResourceRecord() { SAFE_DELETE(m_ChunkLock); }
   void AddParent(ResourceRecord *r)
   {
+    if(r == this)
+      return;
+
     if(Parents.find(r) == Parents.end())
     {
       r->AddRef();
