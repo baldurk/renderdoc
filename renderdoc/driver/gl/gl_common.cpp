@@ -755,7 +755,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   }
 
   // don't have a test for this, just have to enable it all the time, for now.
-  VendorCheck[VendorCheck_NV_avoid_D32S8_copy] = true;
+  VendorCheck[VendorCheck_NV_avoid_D32S8_copy] = false;
 
   // On 32-bit calling this function could actually lead to crashes (issues with
   // esp being saved across the call), so since the work-around is low-cost of just
