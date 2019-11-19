@@ -1275,6 +1275,22 @@ void CaptureDialog::TriggerCapture()
 
     PopulateMostRecent();
 
+    if(m_Ctx.Replay().CurrentRemote().Protocol() &&
+       m_Ctx.Replay().CurrentRemote().Protocol()->GetProtocolName() == "adb")
+    {
+      cmdLine = cmdLine.trimmed();
+
+      if(!cmdLine.isEmpty() && cmdLine[0] != QLatin1Char('-'))
+      {
+        RDDialog::critical(this, tr("Invalid intent arguments"),
+                           tr("Invalid intent arguments: %1\n"
+                              "The intent arguments must include the full parameters e.g. "
+                              "--es args \"my arguments\"")
+                               .arg(cmdLine));
+        return;
+      }
+    }
+
     m_CaptureCallback(exe, workingDir, cmdLine, Settings().environment, Settings().options,
                       [this](LiveCapture *live) {
                         if(ui->queueFrameCap->isChecked())
