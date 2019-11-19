@@ -988,12 +988,16 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     m_Type = m_DXBCByteCode->GetShaderType();
     m_Version.Major = m_DXBCByteCode->GetMajorVersion();
     m_Version.Minor = m_DXBCByteCode->GetMinorVersion();
+
+    m_DXBCByteCode->SetReflection(m_Reflection);
   }
   else if(m_DXILByteCode)
   {
     m_Type = m_DXILByteCode->GetShaderType();
     m_Version.Major = m_DXILByteCode->GetMajorVersion();
     m_Version.Minor = m_DXILByteCode->GetMinorVersion();
+
+    // m_DXILByteCode->SetReflection(m_Reflection);
   }
 
   // if reflection information was stripped, attempt to reverse engineer basic info from
