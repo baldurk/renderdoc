@@ -310,8 +310,14 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       special.SetBGRAOrder(true);
       special.type = ResourceFormatType::R4G4B4A4;
       return special;
-    case DXGI_FORMAT_D24_UNORM_S8_UINT: special.type = ResourceFormatType::D24S8; return special;
-    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: special.type = ResourceFormatType::D32S8; return special;
+    case DXGI_FORMAT_D24_UNORM_S8_UINT:
+      special.compType = CompType::Depth;
+      special.type = ResourceFormatType::D24S8;
+      return special;
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+      special.compType = CompType::Depth;
+      special.type = ResourceFormatType::D32S8;
+      return special;
     case DXGI_FORMAT_YUY2:
       special.type = ResourceFormatType::YUV8;
       special.compByteWidth = 1;
@@ -391,6 +397,7 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return fmt16;
     case DXGI_FORMAT_R16G16_FLOAT: fmt16.compCount = 2; return fmt16;
 
+    case DXGI_FORMAT_D16_UNORM: fmt16.compType = CompType::Depth; return fmt16;
     case DXGI_FORMAT_R16_UINT: fmt16.compType = CompType::UInt; return fmt16;
     case DXGI_FORMAT_R16_SINT: fmt16.compType = CompType::SInt; return fmt16;
     case DXGI_FORMAT_R16_UNORM: fmt16.compType = CompType::UNorm; return fmt16;
@@ -615,6 +622,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
     {
       switch(format.compType)
       {
+        case CompType::Depth: return DXGI_FORMAT_D16_UNORM;
         case CompType::UInt: return DXGI_FORMAT_R16_UINT;
         case CompType::SInt: return DXGI_FORMAT_R16_SINT;
         case CompType::UNorm: return DXGI_FORMAT_R16_UNORM;
