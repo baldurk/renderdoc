@@ -3578,7 +3578,17 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
 
 bool D3D11Replay::IsTextureSupported(const TextureDescription &tex)
 {
-  return MakeDXGIFormat(tex.format) != DXGI_FORMAT_UNKNOWN;
+  DXGI_FORMAT f = MakeDXGIFormat(tex.format);
+
+  if(f == DXGI_FORMAT_UNKNOWN)
+    return false;
+
+  // if we get a typeless format back for a non-typeless format descriptor then we don't support
+  // this component type.
+  if(IsTypelessFormat(f) && tex.format.compType != CompType::Typeless)
+    return false;
+
+  return true;
 }
 
 bool D3D11Replay::NeedRemapForFetch(const ResourceFormat &format)
