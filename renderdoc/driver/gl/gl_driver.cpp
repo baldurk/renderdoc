@@ -236,6 +236,7 @@ void WrappedOpenGL::BuildGLExtensions()
   m_GLExtensions.push_back("GL_EXT_texture_integer");
   m_GLExtensions.push_back("GL_EXT_texture_lod_bias");
   m_GLExtensions.push_back("GL_EXT_texture_mirror_clamp");
+  m_GLExtensions.push_back("GL_EXT_texture_shadow_lod");
   m_GLExtensions.push_back("GL_EXT_texture_shared_exponent");
   m_GLExtensions.push_back("GL_EXT_texture_snorm");
   m_GLExtensions.push_back("GL_EXT_texture_sRGB");
@@ -292,7 +293,6 @@ void WrappedOpenGL::BuildGLExtensions()
   * GL_EXT_external_buffer
   * GL_EXT_window_rectangles
   * GL_EXT_texture_sRGB_R8
-  * GL_EXT_texture_shadow_lod
   * GL_EXT_shader_framebuffer_fetch
   * GL_EXT_shader_framebuffer_fetch_non_coherent
   * GL_EXT_multiview_timer_query
@@ -390,33 +390,48 @@ void WrappedOpenGL::BuildGLESExtensions()
 {
   m_GLESExtensions.push_back("GL_ARM_rgba8");
   m_GLESExtensions.push_back("GL_EXT_base_instance");
+  m_GLESExtensions.push_back("GL_EXT_blend_func_extended");
   m_GLESExtensions.push_back("GL_EXT_blend_minmax");
   m_GLESExtensions.push_back("GL_EXT_buffer_storage");
+  m_GLESExtensions.push_back("GL_EXT_clear_texture");
+  m_GLESExtensions.push_back("GL_EXT_clip_control");
   m_GLESExtensions.push_back("GL_EXT_clip_cull_distance");
   m_GLESExtensions.push_back("GL_EXT_color_buffer_float");
   m_GLESExtensions.push_back("GL_EXT_color_buffer_half_float");
+  m_GLESExtensions.push_back("GL_EXT_conservative_depth");
   m_GLESExtensions.push_back("GL_EXT_copy_image");
   m_GLESExtensions.push_back("GL_EXT_debug_label");
   m_GLESExtensions.push_back("GL_EXT_debug_marker");
+  m_GLESExtensions.push_back("GL_EXT_depth_clamp");
   m_GLESExtensions.push_back("GL_EXT_discard_framebuffer");
   m_GLESExtensions.push_back("GL_EXT_disjoint_timer_query");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
   m_GLESExtensions.push_back("GL_EXT_draw_elements_base_vertex");
   m_GLESExtensions.push_back("GL_EXT_draw_instanced");
+  m_GLESExtensions.push_back("GL_EXT_draw_transform_feedback");
+  m_GLESExtensions.push_back("GL_EXT_float_blend");
+  m_GLESExtensions.push_back("GL_EXT_frag_depth");
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
   m_GLESExtensions.push_back("GL_EXT_geometry_shader");
   m_GLESExtensions.push_back("GL_EXT_gpu_shader5");
+  m_GLESExtensions.push_back("GL_EXT_instanced_arrays");
+  m_GLESExtensions.push_back("GL_EXT_map_buffer_range");
   m_GLESExtensions.push_back("GL_EXT_memory_object");
   m_GLESExtensions.push_back("GL_EXT_memory_object_fd");
   m_GLESExtensions.push_back("GL_EXT_memory_object_win32");
   m_GLESExtensions.push_back("GL_EXT_multisampled_render_to_texture");
   m_GLESExtensions.push_back("GL_EXT_multi_draw_arrays");
+  m_GLESExtensions.push_back("GL_EXT_multi_draw_indirect");
+  m_GLESExtensions.push_back("GL_EXT_multisample_compatibility");
+  m_GLESExtensions.push_back("GL_EXT_multisampled_render_to_texture2");
+  m_GLESExtensions.push_back("GL_EXT_occlusion_query_boolean");
   m_GLESExtensions.push_back("GL_EXT_polygon_offset_clamp");
   m_GLESExtensions.push_back("GL_EXT_post_depth_coverage");
   m_GLESExtensions.push_back("GL_EXT_primitive_bounding_box");
   m_GLESExtensions.push_back("GL_EXT_pvrtc_sRGB");
   m_GLESExtensions.push_back("GL_EXT_raster_multisample");
+  m_GLESExtensions.push_back("GL_EXT_render_snorm");
   m_GLESExtensions.push_back("GL_EXT_robustness");
   m_GLESExtensions.push_back("GL_EXT_semaphore");
   m_GLESExtensions.push_back("GL_EXT_semaphore_fd");
@@ -446,8 +461,11 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_texture_filter_minmax");
   m_GLESExtensions.push_back("GL_EXT_texture_format_BGRA8888");
   m_GLESExtensions.push_back("GL_EXT_texture_lod_bias");
+  m_GLESExtensions.push_back("GL_EXT_texture_mirror_clamp_to_edge");
   m_GLESExtensions.push_back("GL_EXT_texture_norm16");
+  m_GLESExtensions.push_back("GL_EXT_texture_query_lod");
   m_GLESExtensions.push_back("GL_EXT_texture_rg");
+  m_GLESExtensions.push_back("GL_EXT_texture_shadow_lod");
   m_GLESExtensions.push_back("GL_EXT_texture_sRGB_decode");
   m_GLESExtensions.push_back("GL_EXT_texture_sRGB_R8");
   m_GLESExtensions.push_back("GL_EXT_texture_sRGB_RG8");
@@ -467,6 +485,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_ldr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_sliced_3d");
   m_GLESExtensions.push_back("GL_NV_viewport_array");
+  m_GLESExtensions.push_back("GL_OES_blend_equation_separate");
+  m_GLESExtensions.push_back("GL_OES_blend_func_separate");
+  m_GLESExtensions.push_back("GL_OES_blend_subtract");
   m_GLESExtensions.push_back("GL_OES_compressed_ETC1_RGB8_texture");
   m_GLESExtensions.push_back("GL_OES_copy_image");
   m_GLESExtensions.push_back("GL_OES_depth24");
@@ -475,7 +496,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_depth_texture_cube_map");
   m_GLESExtensions.push_back("GL_OES_draw_buffers_indexed");
   m_GLESExtensions.push_back("GL_OES_draw_elements_base_vertex");
+  m_GLESExtensions.push_back("GL_OES_element_index_uint");
   m_GLESExtensions.push_back("GL_OES_fbo_render_mipmap");
+  m_GLESExtensions.push_back("GL_OES_framebuffer_object");
   m_GLESExtensions.push_back("GL_OES_geometry_shader");
   m_GLESExtensions.push_back("GL_OES_gpu_shader5");
   m_GLESExtensions.push_back("GL_OES_mapbuffer");
@@ -489,11 +512,13 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_border_clamp");
   m_GLESExtensions.push_back("GL_OES_texture_buffer");
   m_GLESExtensions.push_back("GL_OES_texture_compression_astc");
+  m_GLESExtensions.push_back("GL_OES_texture_cube_map");
   m_GLESExtensions.push_back("GL_OES_texture_cube_map_array");
   m_GLESExtensions.push_back("GL_OES_texture_float");
   m_GLESExtensions.push_back("GL_OES_texture_float_linear");
   m_GLESExtensions.push_back("GL_OES_texture_half_float");
   m_GLESExtensions.push_back("GL_OES_texture_half_float_linear");
+  m_GLESExtensions.push_back("GL_OES_texture_mirrored_repeat");
   m_GLESExtensions.push_back("GL_OES_texture_npot");
   m_GLESExtensions.push_back("GL_OES_texture_stencil8");
   m_GLESExtensions.push_back("GL_OES_texture_storage_multisample_2d_array");
@@ -522,32 +547,17 @@ void WrappedOpenGL::BuildGLESExtensions()
 
   As above - only OES, KHR, and EXT extensions listed
 
-  * GL_EXT_blend_func_extended
-  * GL_EXT_clear_texture
-  * GL_EXT_clip_control
   * GL_EXT_compressed_ETC1_RGB8_sub_texture
-  * GL_EXT_conservative_depth
-  * GL_EXT_depth_clamp
-  * GL_EXT_draw_transform_feedback
   * GL_EXT_EGL_image_array
   * GL_EXT_EGL_image_external_wrap_modes
   * GL_EXT_EGL_image_storage
   * GL_EXT_external_buffer
-  * GL_EXT_float_blend
-  * GL_EXT_frag_depth
-  * GL_EXT_instanced_arrays
-  * GL_EXT_map_buffer_range
-  * GL_EXT_multi_draw_indirect
-  * GL_EXT_multisample_compatibility
-  * GL_EXT_multisampled_render_to_texture2
   * GL_EXT_multiview_draw_buffers
   * GL_EXT_multiview_tessellation_geometry_shader
   * GL_EXT_multiview_texture_multisample
   * GL_EXT_multiview_timer_query
-  * GL_EXT_occlusion_query_boolean
   * GL_EXT_protected_textures
   * GL_EXT_read_format_bgra
-  * GL_EXT_render_snorm
   * GL_EXT_shader_framebuffer_fetch_non_coherent
   * GL_EXT_shader_pixel_local_storage
   * GL_EXT_shader_pixel_local_storage2
@@ -556,15 +566,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   * GL_EXT_tessellation_point_size
   * GL_EXT_texture_compression_astc_decode_mode_rgb9e5
   * GL_EXT_texture_format_sRGB_override
-  * GL_EXT_texture_mirror_clamp_to_edge
-  * GL_EXT_texture_query_lod
-  * GL_EXT_texture_shadow_lod
   * GL_EXT_unpack_subimage
   * GL_EXT_window_rectangles
   * GL_EXT_YUV_target
-  * GL_OES_blend_equation_separate
-  * GL_OES_blend_func_separate
-  * GL_OES_blend_subtract
   * GL_OES_byte_coordinates
   * GL_OES_compressed_paletted_texture
   * GL_OES_draw_texture
@@ -572,11 +576,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   * GL_OES_EGL_image_external
   * GL_OES_EGL_image_external_essl3
   * GL_OES_EGL_sync
-  * GL_OES_element_index_uint
   * GL_OES_extended_matrix_palette
   * GL_OES_fixed_point
   * GL_OES_fragment_precision_high
-  * GL_OES_framebuffer_object
   * GL_OES_get_program_binary
   * GL_OES_matrix_get
   * GL_OES_matrix_palette
@@ -595,9 +597,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   * GL_OES_stencil4
   * GL_OES_stencil8
   * GL_OES_surfaceless_context
-  * GL_OES_texture_cube_map
   * GL_OES_texture_env_crossbar
-  * GL_OES_texture_mirrored_repeat
   * GL_OES_vertex_type_10_10_10_2
 
   ************************************************************************/
