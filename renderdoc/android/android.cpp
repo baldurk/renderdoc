@@ -1072,13 +1072,6 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
       Android::adbExecCommand(
           m_deviceID, StringFormat::Fmt("shell am start -S -D -n %s/%s %s", packageName.c_str(),
                                         activityName.c_str(), intentArgs.c_str()));
-
-      // adb shell ps | grep $PACKAGE | awk '{print $2}')
-      pid = Android::GetCurrentPID(m_deviceID, packageName);
-
-      if(pid == 0)
-        RDCERR("Couldn't get PID when launching %s with activity %s", packageName.c_str(),
-               activityName.c_str());
     }
     else
     {
@@ -1091,6 +1084,18 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
       // don't connect JDWP
       jdwpPort = 0;
+    }
+
+    // adb shell ps | grep $PACKAGE | awk '{print $2}')
+    pid = Android::GetCurrentPID(m_deviceID, packageName);
+
+    if(pid == 0)
+    {
+      RDCERR("Couldn't get PID when launching %s with activity %s and intent args %s",
+             packageName.c_str(), activityName.c_str(), intentArgs.c_str());
+      ret.status = ReplayStatus::InjectionFailed;
+      ret.ident = 0;
+      return;
     }
 
     Android::adbForwardPorts(m_portbase, m_deviceID, jdwpPort, pid, false);
