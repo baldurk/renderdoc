@@ -57,6 +57,8 @@ public:
       srvs[i].firstElement = srvs[i].numElements = 0;
   }
 
+  void PopulateGroupshared(const DXBCBytecode::Program *pBytecode);
+
   struct ViewFmt
   {
     int byteWidth = 0;

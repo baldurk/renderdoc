@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "driver/shaders/dxbc/dxbc_debug.h"
+#include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_resources.h"
 
@@ -117,10 +118,210 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   return false;
 }
 
+bool IsShaderParameterVisible(DXBC::ShaderType shaderType, D3D12_SHADER_VISIBILITY shaderVisibility)
+{
+  if(shaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
+    return true;
+
+  if(shaderType == DXBC::ShaderType::Vertex && shaderVisibility == D3D12_SHADER_VISIBILITY_VERTEX)
+    return true;
+
+  if(shaderType == DXBC::ShaderType::Pixel && shaderVisibility == D3D12_SHADER_VISIBILITY_PIXEL)
+    return true;
+
+  return false;
+}
+
 void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global,
                                                 DXBC::DXBCContainer *dxbc)
 {
-  RDCUNIMPLEMENTED("CreateShaderGlobalState not yet implemented for D3D12");
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  // Get the root signature
+  const D3D12RenderState::RootSignature *pRootSignature = NULL;
+  if(dxbc->m_Type == DXBC::ShaderType::Compute)
+  {
+    if(rs.compute.rootsig != ResourceId())
+    {
+      pRootSignature = &rs.compute;
+    }
+  }
+  else if(rs.graphics.rootsig != ResourceId())
+  {
+    pRootSignature = &rs.graphics;
+  }
+
+  if(pRootSignature)
+  {
+    WrappedID3D12RootSignature *pD3D12RootSig =
+        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+
+    size_t numParams = RDCMIN(pD3D12RootSig->sig.params.size(), pRootSignature->sigelems.size());
+    for(size_t i = 0; i < numParams; ++i)
+    {
+      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.params[i];
+      const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
+      if(IsShaderParameterVisible(dxbc->m_Type, param.ShaderVisibility))
+      {
+        // Note that constant buffers are not handled as part of the shader global state
+
+        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV)
+        {
+          UINT shaderReg = param.Descriptor.ShaderRegister;
+          ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+          D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+
+          // TODO: Root buffers can be 32-bit UINT/SINT/FLOAT. Using UINT for now, but the
+          // resource desc format or the DXBC reflection info might be more correct.
+          ShaderDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, global.srvs[shaderReg].format);
+          global.srvs[shaderReg].firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
+          global.srvs[shaderReg].numElements =
+              (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
+
+          if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+            GetBufferData(pResource, 0, 0, global.srvs[shaderReg].data);
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV)
+        {
+          UINT shaderReg = param.Descriptor.ShaderRegister;
+          ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+          D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+
+          // TODO: Root buffers can be 32-bit UINT/SINT/FLOAT. Using UINT for now, but the
+          // resource desc format or the DXBC reflection info might be more correct.
+          ShaderDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, global.uavs[shaderReg].format);
+          global.uavs[shaderReg].firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
+          global.uavs[shaderReg].numElements =
+              (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
+
+          if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+            GetBufferData(pResource, 0, 0, global.uavs[shaderReg].data);
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
+                element.type == eRootTable)
+        {
+          UINT prevTableOffset = 0;
+          WrappedID3D12DescriptorHeap *heap =
+              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+
+          size_t numRanges = param.ranges.size();
+          for(size_t r = 0; r < numRanges; ++r)
+          {
+            const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
+
+            UINT offset = range.OffsetInDescriptorsFromTableStart;
+            if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+              offset = prevTableOffset;
+
+            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+            desc += element.offset;
+            desc += offset;
+
+            UINT numDescriptors = range.NumDescriptors;
+            if(numDescriptors == UINT_MAX)
+            {
+              // Find out how many descriptors are left after
+              numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
+
+              // TODO: Should we look up the bind point in the D3D12 state to try to get
+              // a better guess at the number of descriptors?
+            }
+
+            prevTableOffset = offset + numDescriptors;
+
+            UINT shaderReg = range.BaseShaderRegister;
+
+            if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+            {
+              for(UINT n = 0; n < numDescriptors; ++n, ++shaderReg)
+              {
+                if(desc)
+                {
+                  ResourceId srvId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+
+                  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                  if(srvDesc.Format != DXGI_FORMAT_UNKNOWN)
+                  {
+                    ShaderDebug::FillViewFmt(srvDesc.Format, global.srvs[shaderReg].format);
+                  }
+                  else
+                  {
+                    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                    if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+                    {
+                      global.srvs[shaderReg].format.stride = srvDesc.Buffer.StructureByteStride;
+
+                      // If we didn't get a type from the SRV description, try to pull it from the
+                      // shader reflection info
+                      ShaderDebug::LookupSRVFormatFromShaderReflection(
+                          *dxbc->GetReflection(), (uint32_t)shaderReg, global.srvs[shaderReg].format);
+                    }
+                  }
+
+                  if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
+                  {
+                    global.srvs[shaderReg].firstElement = (uint32_t)srvDesc.Buffer.FirstElement;
+                    global.srvs[shaderReg].numElements = srvDesc.Buffer.NumElements;
+
+                    GetBufferData(pResource, 0, 0, global.srvs[shaderReg].data);
+                  }
+                  // Textures are sampled via a pixel shader, so there's no need to copy their data
+
+                  desc++;
+                }
+              }
+            }
+            else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+            {
+              for(UINT n = 0; n < numDescriptors; ++n, ++shaderReg)
+              {
+                if(desc)
+                {
+                  ResourceId uavId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
+
+                  // TODO: Need to fetch counter resource if applicable
+
+                  D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
+                  if(uavDesc.Format != DXGI_FORMAT_UNKNOWN)
+                  {
+                    ShaderDebug::FillViewFmt(uavDesc.Format, global.uavs[shaderReg].format);
+                  }
+                  else
+                  {
+                    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                    if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+                    {
+                      global.uavs[shaderReg].format.stride = uavDesc.Buffer.StructureByteStride;
+
+                      // TODO: Try looking up UAV from shader reflection info?
+                    }
+                  }
+
+                  if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+                  {
+                    global.uavs[shaderReg].firstElement = (uint32_t)uavDesc.Buffer.FirstElement;
+                    global.uavs[shaderReg].numElements = uavDesc.Buffer.NumElements;
+
+                    GetBufferData(pResource, 0, 0, global.uavs[shaderReg].data);
+                  }
+                  else
+                  {
+                    // TODO: Handle texture resources in UAVs - need to copy/map to fetch the data
+                    global.uavs[shaderReg].tex = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
 }
 
 ShaderDebugTrace D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,

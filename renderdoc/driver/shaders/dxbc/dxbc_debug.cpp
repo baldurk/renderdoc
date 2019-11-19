@@ -3985,6 +3985,38 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
   return s;
 }
 
+void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
+{
+  for(size_t i = 0; i < pBytecode->GetNumDeclarations(); i++)
+  {
+    const DXBCBytecode::Declaration &decl = pBytecode->GetDeclaration(i);
+
+    if(decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
+       decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+    {
+      uint32_t slot = (uint32_t)decl.operand.indices[0].index;
+
+      if(groupshared.size() <= slot)
+      {
+        groupshared.resize(slot + 1);
+
+        groupsharedMem &mem = groupshared[slot];
+
+        mem.structured =
+            (decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
+
+        mem.count = decl.count;
+        if(mem.structured)
+          mem.bytestride = decl.stride;
+        else
+          mem.bytestride = 4;    // raw groupshared is implicitly uint32s
+
+        mem.data.resize(mem.bytestride * mem.count);
+      }
+    }
+  }
+}
+
 void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
                                     int quadIdx, DXBC::DXBCContainer *dxbc,
                                     const ShaderReflection &refl, bytebuf *cbufData)
