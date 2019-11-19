@@ -295,11 +295,11 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return special;
     case DXGI_FORMAT_R11G11B10_FLOAT: special.type = ResourceFormatType::R11G11B10; return special;
     case DXGI_FORMAT_B5G6R5_UNORM:
-      fmt8.SetBGRAOrder(true);
+      special.SetBGRAOrder(true);
       special.type = ResourceFormatType::R5G6B5;
       return special;
     case DXGI_FORMAT_B5G5R5A1_UNORM:
-      fmt8.SetBGRAOrder(true);
+      special.SetBGRAOrder(true);
       special.type = ResourceFormatType::R5G5B5A1;
       return special;
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
@@ -307,7 +307,7 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return special;
     case DXGI_FORMAT_A8_UNORM: special.type = ResourceFormatType::A8; return special;
     case DXGI_FORMAT_B4G4R4A4_UNORM:
-      fmt8.SetBGRAOrder(true);
+      special.SetBGRAOrder(true);
       special.type = ResourceFormatType::R4G4B4A4;
       return special;
     case DXGI_FORMAT_D24_UNORM_S8_UINT: special.type = ResourceFormatType::D24S8; return special;
