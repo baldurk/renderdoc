@@ -743,6 +743,26 @@ void D3D12GraphicsTest::SetBufferData(ID3D12ResourcePtr buffer, D3D12_RESOURCE_S
   m_Alloc->Reset();
 }
 
+void D3D12GraphicsTest::pushMarker(ID3D12GraphicsCommandListPtr cmd, const std::string &name)
+{
+  // D3D debug layer spams un-mutable errors if we call this. Don't do anything unless renderdoc is
+  // attached
+  if(rdoc)
+    cmd->BeginEvent(1, name.data(), (UINT)name.size());
+}
+
+void D3D12GraphicsTest::setMarker(ID3D12GraphicsCommandListPtr cmd, const std::string &name)
+{
+  if(rdoc)
+    cmd->SetMarker(1, name.data(), (UINT)name.size());
+}
+
+void D3D12GraphicsTest::popMarker(ID3D12GraphicsCommandListPtr cmd)
+{
+  if(rdoc)
+    cmd->EndEvent();
+}
+
 void D3D12GraphicsTest::ResourceBarrier(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr res,
                                         D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
