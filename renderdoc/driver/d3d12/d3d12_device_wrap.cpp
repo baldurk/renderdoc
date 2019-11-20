@@ -2709,15 +2709,22 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
   }
   if(Feature == D3D12_FEATURE_D3D12_OPTIONS5)
   {
-    D3D12_FEATURE_DATA_D3D12_OPTIONS5 *opts =
-        (D3D12_FEATURE_DATA_D3D12_OPTIONS5 *)pFeatureSupportData;
-    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5))
-      return E_INVALIDARG;
+    HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 
-    // don't support raytracing
-    opts->RaytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+    if(SUCCEEDED(hr))
+    {
+      D3D12_FEATURE_DATA_D3D12_OPTIONS5 *opts =
+          (D3D12_FEATURE_DATA_D3D12_OPTIONS5 *)pFeatureSupportData;
+      if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5))
+        return E_INVALIDARG;
 
-    return S_OK;
+      // don't support raytracing
+      opts->RaytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+
+      return S_OK;
+    }
+
+    return hr;
   }
   return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
