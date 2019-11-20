@@ -971,8 +971,8 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
                                     ToStr(GetResourceManager()->GetOriginalID(dstid)).c_str());
       draw.flags |= DrawFlags::Copy;
 
-      draw.copySource = srcid;
-      draw.copyDestination = dstid;
+      draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+      draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
       AddDrawcall(draw, true);
 
