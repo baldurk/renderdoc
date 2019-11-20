@@ -330,7 +330,12 @@ Usage: %s Test_Name [test_options]
 
   std::string testchoice;
 
-  if(argc >= 2)
+  if(tests.size() == 1)
+  {
+    // if there's only one test we've probably hardcoded this for a repro. Launch it
+    testchoice = tests[0].Name;
+  }
+  else if(argc >= 2)
   {
     testchoice = argv[1];
   }
