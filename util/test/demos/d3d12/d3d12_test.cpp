@@ -141,6 +141,14 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
   else if(!factory)
     Avail = "Couldn't create DXGI factory";
 
+  for(int i = 0; i < argc; i++)
+  {
+    if(!strcmp(argv[i], "--gpuva") || !strcmp(argv[i], "--debug-gpu"))
+    {
+      gpuva = true;
+    }
+  }
+
   m_Factory = factory;
 }
 
@@ -191,6 +199,14 @@ bool D3D12GraphicsTest::Init()
     if(SUCCEEDED(hr) && d3d12Debug)
     {
       d3d12Debug->EnableDebugLayer();
+
+      if(gpuva)
+      {
+        ID3D12Debug1Ptr debug1 = d3d12Debug;
+
+        if(debug1)
+          debug1->SetEnableGPUBasedValidation(true);
+      }
     }
   }
 
