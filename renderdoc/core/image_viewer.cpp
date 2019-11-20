@@ -60,6 +60,7 @@ public:
 
     m_PipelineState.outputMerger.renderTargets.resize(1);
     m_PipelineState.outputMerger.renderTargets[0].resourceResourceId = m_TextureID;
+    m_PipelineState.outputMerger.renderTargets[0].viewFormat = m_TexDetails.format;
   }
 
   virtual ~ImageViewer()
@@ -170,7 +171,7 @@ public:
   }
   const std::vector<ResourceDescription> &GetResources() { return m_Resources; }
   std::vector<ResourceId> GetTextures() { return {m_TextureID}; }
-  TextureDescription GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
+  TextureDescription GetTexture(ResourceId id) { return m_TexDetails; }
   void GetTextureData(ResourceId tex, const Subresource &sub, const GetTextureDataParams &params,
                       bytebuf &data)
   {
@@ -524,16 +525,18 @@ void ImageViewer::RefreshFile()
 
   bool dds = false;
 
+  FileIO::fseek64(f, 0, SEEK_END);
+  uint64_t fileSize = FileIO::ftell64(f);
+  FileIO::fseek64(f, 0, SEEK_SET);
+
   if(is_exr_file(f))
   {
     texDetails.format = rgba32_float;
 
-    FileIO::fseek64(f, 0, SEEK_END);
-    uint64_t size = FileIO::ftell64(f);
     FileIO::fseek64(f, 0, SEEK_SET);
 
     std::vector<byte> buffer;
-    buffer.resize((size_t)size);
+    buffer.resize((size_t)fileSize);
 
     FileIO::fread(buffer.data(), 1, buffer.size(), f);
 
@@ -746,6 +749,10 @@ void ImageViewer::RefreshFile()
 
   if(m_TextureID == ResourceId())
     RDCERR("Couldn't create proxy texture for image file");
+
+  m_TexDetails = texDetails;
+  m_TexDetails.resourceId = m_TextureID;
+  m_TexDetails.byteSize = fileSize;
 
   if(!dds)
   {
