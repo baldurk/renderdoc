@@ -250,8 +250,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
     ID3D12Resource *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
-      m_pDevice4->CreateCommittedResource1(&props, HeapFlags, &desc, InitialResourceState,
-                                           pOptimizedClearValue, NULL, guid, (void **)&ret);
+      hr = m_pDevice4->CreateCommittedResource1(&props, HeapFlags, &desc, InitialResourceState,
+                                                pOptimizedClearValue, NULL, guid, (void **)&ret);
     else
       RDCERR("Replaying a without D3D12.4 available");
 
