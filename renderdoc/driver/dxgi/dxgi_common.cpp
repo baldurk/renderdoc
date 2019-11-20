@@ -1119,6 +1119,8 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeHint)
         return DXGI_FORMAT_R8G8B8A8_SINT;
       if(typeHint == CompType::SNorm)
         return DXGI_FORMAT_R8G8B8A8_SNORM;
+      if(typeHint == CompType::UNormSRGB)
+        return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       return DXGI_FORMAT_R8G8B8A8_UNORM;
     }
 
@@ -1236,12 +1238,20 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeHint)
       return typeHint == CompType::SNorm ? DXGI_FORMAT_BC6H_SF16 : DXGI_FORMAT_BC6H_UF16;
 
     // these formats have only one valid non-typeless format (ignoring SRGB)
-    case DXGI_FORMAT_B8G8R8A8_TYPELESS: return DXGI_FORMAT_B8G8R8A8_UNORM;
-    case DXGI_FORMAT_B8G8R8X8_TYPELESS: return DXGI_FORMAT_B8G8R8X8_UNORM;
-    case DXGI_FORMAT_BC1_TYPELESS: return DXGI_FORMAT_BC1_UNORM;
-    case DXGI_FORMAT_BC2_TYPELESS: return DXGI_FORMAT_BC2_UNORM;
-    case DXGI_FORMAT_BC3_TYPELESS: return DXGI_FORMAT_BC3_UNORM;
-    case DXGI_FORMAT_BC7_TYPELESS: return DXGI_FORMAT_BC7_UNORM;
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB
+                                             : DXGI_FORMAT_B8G8R8A8_UNORM;
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_B8G8R8X8_UNORM_SRGB
+                                             : DXGI_FORMAT_B8G8R8X8_UNORM;
+    case DXGI_FORMAT_BC1_TYPELESS:
+      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
+    case DXGI_FORMAT_BC2_TYPELESS:
+      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
+    case DXGI_FORMAT_BC3_TYPELESS:
+      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
+    case DXGI_FORMAT_BC7_TYPELESS:
+      return typeHint == CompType::UNormSRGB ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
 
     default: break;
   }
