@@ -122,7 +122,7 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
 
         adapter = ChooseD3DAdapter(factory, argc, argv, warp);
 
-        if(warp && d3d12on7)
+        if(warp && !d3d12on7)
         {
           IDXGIFactory4Ptr factory4 = factory;
           if(factory4)
