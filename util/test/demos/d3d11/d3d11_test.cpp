@@ -613,14 +613,14 @@ ID3D11ComputeShaderPtr D3D11GraphicsTest::CreateCS(ID3DBlobPtr blob)
   return ret;
 }
 
-ID3D11GeometryShaderPtr D3D11GraphicsTest::CreateGS(ID3DBlobPtr blob,
-                                                    const std::vector<D3D11_SO_DECLARATION_ENTRY> &sodecl,
-                                                    const std::vector<UINT> &strides)
+ID3D11GeometryShaderPtr D3D11GraphicsTest::CreateGS(
+    ID3DBlobPtr blob, const std::vector<D3D11_SO_DECLARATION_ENTRY> &sodecl,
+    const std::vector<UINT> &strides, UINT rastStream)
 {
   ID3D11GeometryShaderPtr ret;
   CHECK_HR(dev->CreateGeometryShaderWithStreamOutput(blob->GetBufferPointer(), blob->GetBufferSize(),
                                                      &sodecl[0], (UINT)sodecl.size(), &strides[0],
-                                                     (UINT)strides.size(), 0, NULL, &ret));
+                                                     (UINT)strides.size(), rastStream, NULL, &ret));
   return ret;
 }
 

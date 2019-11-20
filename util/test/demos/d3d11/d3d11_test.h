@@ -78,7 +78,7 @@ struct D3D11GraphicsTest : public GraphicsTest
   ID3D11GeometryShaderPtr CreateGS(ID3DBlobPtr blob);
   ID3D11GeometryShaderPtr CreateGS(ID3DBlobPtr blob,
                                    const std::vector<D3D11_SO_DECLARATION_ENTRY> &sodecl,
-                                   const std::vector<UINT> &strides);
+                                   const std::vector<UINT> &strides, UINT rastStream = 0);
 
   ID3DBlobPtr SetBlobPath(std::string name, ID3DBlob *blob);
   void SetBlobPath(std::string name, ID3D11DeviceChild *shader);
