@@ -1281,6 +1281,7 @@ GLReplay::TextureSamplerState GLReplay::SetSamplerParams(GLenum target, GLuint t
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&ret.magFilter);
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&ret.wrapS);
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&ret.wrapT);
+  GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_R, (GLint *)&ret.wrapR);
   GL.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&ret.compareMode);
 
   // disable depth comparison
@@ -1291,6 +1292,7 @@ GLReplay::TextureSamplerState GLReplay::SetSamplerParams(GLenum target, GLuint t
   GLenum param = eGL_CLAMP_TO_EDGE;
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&param);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&param);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_R, (GLint *)&param);
 
   // depending on the mode, set min/mag filter
   GLenum minFilter = eGL_NEAREST;
@@ -1326,6 +1328,7 @@ void GLReplay::RestoreSamplerParams(GLenum target, GLuint texname, TextureSample
 
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_S, (GLint *)&state.wrapS);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_T, (GLint *)&state.wrapT);
+  GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_WRAP_R, (GLint *)&state.wrapR);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&state.minFilter);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&state.magFilter);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state.compareMode);
