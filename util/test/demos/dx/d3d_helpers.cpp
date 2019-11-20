@@ -131,7 +131,8 @@ IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv,
 
       if(needle == "warp")
       {
-        adapter = warp;
+        warp = true;
+        adapter = NULL;
         break;
       }
 
