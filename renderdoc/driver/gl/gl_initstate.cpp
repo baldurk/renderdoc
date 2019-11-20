@@ -1030,39 +1030,6 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   SetInitialContents(origid, initContents);
 }
 
-void GLResourceManager::Force_ReferenceViews()
-{
-  // don't need to force anything if we're already including all resources
-  if(RenderDoc::Inst().GetCaptureOptions().refAllResources)
-    return;
-
-  for(auto recordit = m_ResourceRecords.begin(); recordit != m_ResourceRecords.end(); ++recordit)
-  {
-    GLResourceRecord *record = recordit->second;
-
-    // if this resource has some viewers, check to see if they were referenced by the frame but we
-    // weren't, and force our own reference as well so that our initial states are included
-    if(record && !record->viewTextures.empty())
-    {
-      // if this data resource was referenced already, just skip
-      if(m_FrameReferencedResources.find(record->GetResourceID()) != m_FrameReferencedResources.end())
-        continue;
-
-      // see if any of our viewers were referenced
-      for(auto it = record->viewTextures.begin(); it != record->viewTextures.end(); ++it)
-      {
-        // if so, return true to force our inclusion, for the benefit of the view
-        if(m_FrameReferencedResources.find(*it) != m_FrameReferencedResources.end())
-        {
-          RDCDEBUG("Forcing inclusion of %llu for %llu", record->GetResourceID(), *it);
-          MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_ReadBeforeWrite);
-          break;
-        }
-      }
-    }
-  }
-}
-
 uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLInitialContents &initial)
 {
   if(initial.type == eResBuffer)

@@ -204,17 +204,35 @@ public:
 
   using ResourceManager::MarkResourceFrameReferenced;
 
+  void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
+  {
+    GLResourceRecord *record = GetResourceRecord(id);
+    if(record && record->viewSource != ResourceId())
+      ResourceManager::MarkResourceFrameReferenced(record->viewSource, refType);
+
+    ResourceManager::MarkResourceFrameReferenced(id, refType);
+  }
+
   void MarkResourceFrameReferenced(GLResource res, FrameRefType refType)
   {
     // we allow VAO 0 as a special case
     if(res.name == 0 && res.Namespace != eResVertexArray)
       return;
-    ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
+    GLResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
   }
 
-  using ResourceManager::MarkDirtyResource;
+  void MarkDirtyResource(ResourceId id)
+  {
+    GLResourceRecord *record = GetResourceRecord(id);
+    if(record && record->viewSource != ResourceId())
+      ResourceManager::MarkDirtyResource(record->viewSource);
 
-  void MarkDirtyResource(GLResource res) { return ResourceManager::MarkDirtyResource(GetID(res)); }
+    return ResourceManager::MarkDirtyResource(id);
+  }
+  void MarkDirtyResource(GLResource res)
+  {
+    return GLResourceManager::MarkDirtyResource(GetID(res));
+  }
   // Mark resource as dirty and write-referenced.
   // Write-referenced resources are used to track resource "age".
   void MarkDirtyWithWriteReference(GLResource res)
@@ -248,8 +266,6 @@ public:
   void MarkFBOReferenced(GLResource res, FrameRefType ref);
 
   bool IsResourceTrackedForPersistency(const GLResource &res);
-
-  void Force_ReferenceViews();
 
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId id, GLResourceRecord *record,

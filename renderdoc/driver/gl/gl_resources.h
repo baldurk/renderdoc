@@ -256,12 +256,12 @@ struct GLResourceRecord : public ResourceRecord
   GLenum datatype;
   GLenum usage;
 
-  // for texture buffers and texture views, this points from the data texture (or buffer)
-  // to the view texture. When preparing resource initial states, we force initial states
-  // for anything that is viewed if the viewer is frame referenced. Otherwise we might
-  // lose the underlying data for the view.
-  // Since it's 1-to-many, we keep a set here.
-  std::set<ResourceId> viewTextures;
+  // for texture buffers, this points from the texture to the real buffer, for texture views this
+  // points to the texture that's being viewed (the actual data source).
+  // When we mark a resource as dirty or frame referenced, we also mark the underlyingData resource
+  // the same, so that if we dirty the texture then we dirty the buffer/real texture, and so that if
+  // the texture is used then we bring the buffer/real texture into the frame.
+  ResourceId viewSource;
 
   GLResource Resource;
 
