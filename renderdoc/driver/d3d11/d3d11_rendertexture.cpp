@@ -151,7 +151,8 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
       details.texType = eTexType_2DMS;
     }
 
-    if(mode == TEXDISPLAY_DEPTH_TARGET || IsDepthFormat(details.texFmt))
+    if(mode == TEXDISPLAY_DEPTH_TARGET || IsDepthFormat(details.texFmt) ||
+       IsDepthFormat(GetTypedFormat(details.texFmt, typeHint)))
     {
       details.texType = eTexType_Depth;
       details.texFmt = GetTypedFormat(details.texFmt, typeHint);
@@ -390,6 +391,7 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
       RDCERR("Failed to create cache SRV 0, type %d HRESULT: %s", details.texType, ToStr(hr).c_str());
   }
 
+  details.srvFormat = srvFormat;
   details.srv[details.texType] = cache.srv[0];
 
   if(IsYUVFormat(srvFormat))
@@ -759,7 +761,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
     srvOffset = 20;
   }
-  if(!IsSRGBFormat(details.texFmt) && cfg.linearDisplayAsGamma)
+  if(!IsSRGBFormat(details.texFmt) && !IsSRGBFormat(details.srvFormat) && cfg.linearDisplayAsGamma)
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
   }

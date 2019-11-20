@@ -57,7 +57,7 @@ struct TextureShaderDetails
 {
   TextureShaderDetails()
   {
-    texFmt = DXGI_FORMAT_UNKNOWN;
+    texFmt = srvFormat = DXGI_FORMAT_UNKNOWN;
     texWidth = 0;
     texHeight = 0;
     texDepth = 0;
@@ -75,7 +75,7 @@ struct TextureShaderDetails
     RDCEraseEl(srv);
   }
 
-  DXGI_FORMAT texFmt;
+  DXGI_FORMAT texFmt, srvFormat;
   UINT texWidth;
   UINT texHeight;
   UINT texDepth;
