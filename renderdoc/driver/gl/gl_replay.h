@@ -80,6 +80,16 @@ struct GLPostVSData
   }
 };
 
+enum TexDisplayFlags
+{
+  eTexDisplay_None = 0x0,
+  eTexDisplay_BlendAlpha = 0x1,
+  eTexDisplay_MipShift = 0x2,
+  eTexDisplay_RemapFloat = 0x4,
+  eTexDisplay_RemapUInt = 0x8,
+  eTexDisplay_RemapSInt = 0x10,
+};
+
 class GLReplay : public IReplayDriver
 {
 public:
@@ -183,14 +193,8 @@ public:
                          std::string *errors);
   void FreeCustomShader(ResourceId id);
 
-  enum TexDisplayFlags
-  {
-    eTexDisplay_BlendAlpha = 0x1,
-    eTexDisplay_MipShift = 0x2,
-  };
-
   bool RenderTexture(TextureDisplay cfg);
-  bool RenderTextureInternal(TextureDisplay cfg, int flags);
+  bool RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags);
 
   void RenderCheckerboard();
 
@@ -330,6 +334,7 @@ private:
 
     GLuint texDisplayVertexShader;
     GLuint texDisplayProg[3];    // float/uint/sint
+    GLuint texRemapProg[3];      // float/uint/sint
 
     GLuint customFBO;
     GLuint customTex;

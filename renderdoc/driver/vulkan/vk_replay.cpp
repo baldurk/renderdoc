@@ -2020,7 +2020,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const S
           &clearval,
       };
 
-      RenderTextureInternal(texDisplay, rpbegin, eTexDisplay_F32Render | eTexDisplay_MipShift);
+      RenderTextureInternal(texDisplay, rpbegin, eTexDisplay_32Render | eTexDisplay_MipShift);
     }
 
     VkDevice dev = m_pDriver->GetDev();
@@ -2889,17 +2889,27 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     else if(params.remap == RemapTexture::RGBA16)
     {
       imCreateInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-      renderFlags = eTexDisplay_F16Render;
+      renderFlags = eTexDisplay_16Render;
     }
     else if(params.remap == RemapTexture::RGBA32)
     {
       imCreateInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-      renderFlags = eTexDisplay_F32Render;
+      renderFlags = eTexDisplay_32Render;
     }
     else
     {
       RDCERR("Unsupported remap format: %u", params.remap);
     }
+
+    if(params.typeCast != CompType::Typeless)
+      imCreateInfo.format = GetViewCastedFormat(imCreateInfo.format, params.typeCast);
+
+    if(IsUIntFormat(imCreateInfo.format))
+      renderFlags |= eTexDisplay_RemapUInt;
+    else if(IsSIntFormat(imCreateInfo.format))
+      renderFlags |= eTexDisplay_RemapSInt;
+    else
+      renderFlags |= eTexDisplay_RemapFloat;
 
     // force to 1 array slice, 1 mip
     imCreateInfo.arrayLayers = 1;
@@ -2907,6 +2917,10 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // force to 2D
     imCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     imCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    // we'll need to cast to remap the stencil part
+    if(IsDepthAndStencilFormat(imInfo.format))
+      imCreateInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
     imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width >> s.mip);
     imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height >> s.mip);
@@ -2997,8 +3011,18 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &tmpRP);
 
     numFBs = imCreateInfo.arrayLayers;
-    tmpFB = new VkFramebuffer[numFBs];
-    tmpView = new VkImageView[numFBs];
+
+    // we'll need twice as many temp views/FBs for stencil views
+    if(IsDepthAndStencilFormat(imInfo.format))
+    {
+      tmpFB = new VkFramebuffer[numFBs * 2];
+      tmpView = new VkImageView[numFBs * 2];
+    }
+    else
+    {
+      tmpFB = new VkFramebuffer[numFBs];
+      tmpView = new VkImageView[numFBs];
+    }
 
     int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
@@ -3030,7 +3054,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.resourceId = tex;
-      texDisplay.typeCast = CompType::Typeless;
+      texDisplay.typeCast = params.typeCast;
       texDisplay.rawOutput = false;
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;
@@ -3049,7 +3073,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
           },
       };
 
-      vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i]);
+      vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       VkFramebufferCreateInfo fbinfo = {
           VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -3085,8 +3110,18 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       // for textures with stencil, do another draw to copy the stencil
       if(isStencil)
       {
+        viewInfo.format = GetViewCastedFormat(viewInfo.format, CompType::UInt);
+
+        vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i + numFBs]);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        fbinfo.pAttachments = &tmpView[i + numFBs];
+        vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &tmpFB[i + numFBs]);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        rpbegin.framebuffer = tmpFB[i + numFBs];
+
         texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
-        RenderTextureInternal(texDisplay, rpbegin, renderFlags | eTexDisplay_GreenOnly);
+        RenderTextureInternal(texDisplay, rpbegin, (renderFlags & ~eTexDisplay_RemapFloat) |
+                                                       eTexDisplay_RemapUInt | eTexDisplay_GreenOnly);
       }
     }
 
@@ -3693,7 +3728,16 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   data.resize(dataSize);
 
-  if(isDepth && isStencil)
+  if(params.remap == RemapTexture::RGBA32 && IsDepthAndStencilFormat(imInfo.format))
+  {
+    memcpy(data.data(), pData, dataSize);
+
+    Vec4f *output = (Vec4f *)data.data();
+    Vec4u *input = (Vec4u *)pData;
+    for(size_t i = 0; i < dataSize / sizeof(Vec4u); i++)
+      output[i].y = float(input[i].y) / 255.0f;
+  }
+  else if(isDepth && isStencil)
   {
     size_t pixelCount =
         imCreateInfo.extent.width * imCreateInfo.extent.height * imCreateInfo.extent.depth;
@@ -3788,6 +3832,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(tmpFB != NULL)
   {
+    if(IsDepthAndStencilFormat(imInfo.format))
+      numFBs *= 2;
+
     for(uint32_t i = 0; i < numFBs; i++)
     {
       vt->DestroyFramebuffer(Unwrap(dev), tmpFB[i], NULL);

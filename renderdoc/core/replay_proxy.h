@@ -249,10 +249,10 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(cfg.resourceId, cfg.subresource);
-      if(cfg.resourceId == ResourceId() || m_ProxyTextures[cfg.resourceId] == ResourceId())
+      EnsureTexCached(cfg.resourceId, cfg.typeCast, cfg.subresource);
+
+      if(cfg.resourceId == ResourceId())
         return false;
-      cfg.resourceId = m_ProxyTextures[cfg.resourceId];
 
       // due to OpenGL having origin bottom-left compared to the rest of the world,
       // we need to flip going in or out of GL.
@@ -273,11 +273,10 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texture, sub);
-      if(texture == ResourceId() || m_ProxyTextures[texture] == ResourceId())
-        return;
+      EnsureTexCached(texture, typeCast, sub);
 
-      texture = m_ProxyTextures[texture];
+      if(texture == ResourceId())
+        return;
 
       // due to OpenGL having origin bottom-left compared to the rest of the world,
       // we need to flip going in or out of GL.
@@ -300,10 +299,12 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texid, sub);
-      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
+      EnsureTexCached(texid, typeCast, sub);
+
+      if(texid == ResourceId())
         return false;
-      return m_Proxy->GetMinMax(m_ProxyTextures[texid], sub, typeCast, minval, maxval);
+
+      return m_Proxy->GetMinMax(texid, sub, typeCast, minval, maxval);
     }
 
     return false;
@@ -314,11 +315,12 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texid, sub);
-      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
+      EnsureTexCached(texid, typeCast, sub);
+
+      if(texid == ResourceId())
         return false;
-      return m_Proxy->GetHistogram(m_ProxyTextures[texid], sub, typeCast, minval, maxval, channels,
-                                   histogram);
+
+      return m_Proxy->GetHistogram(texid, sub, typeCast, minval, maxval, channels, histogram);
     }
 
     return false;
@@ -436,10 +438,11 @@ public:
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texid, sub);
-      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
+      EnsureTexCached(texid, typeCast, sub);
+
+      if(texid == ResourceId())
         return ResourceId();
-      texid = m_ProxyTextures[texid];
+
       ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, sub, typeCast);
       m_LocalTextures.insert(customResourceId);
       m_ProxyTextures[customResourceId] = customResourceId;
@@ -572,7 +575,7 @@ public:
   }
 
 private:
-  void EnsureTexCached(ResourceId texid, const Subresource &sub);
+  void EnsureTexCached(ResourceId &texid, CompType typeCast, const Subresource &sub);
   void RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureDataParams &params);
   void EnsureBufCached(ResourceId bufid);
   IMPLEMENT_FUNCTION_PROXIED(bool, NeedRemapForFetch, const ResourceFormat &format);
@@ -609,7 +612,6 @@ private:
     ProxyTextureProperties() {}
     // Create a proxy Id with the default get-data parameters.
     ProxyTextureProperties(ResourceId proxyid) : id(proxyid) {}
-    operator ResourceId() const { return id; }
     bool operator==(const ResourceId &other) const { return id == other; }
   };
   // this cache only exists on the client side, with the proxy renderer. It contains the created

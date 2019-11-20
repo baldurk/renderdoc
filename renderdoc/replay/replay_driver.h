@@ -43,30 +43,19 @@ enum class RemapTexture : uint32_t
   NoRemap,
   RGBA8,
   RGBA16,
-  RGBA32,
-  D32S8
+  RGBA32
 };
 
 DECLARE_REFLECTION_ENUM(RemapTexture);
 
 struct GetTextureDataParams
 {
-  bool forDiskSave;
-  CompType typeCast;
-  bool resolve;
-  RemapTexture remap;
-  float blackPoint;
-  float whitePoint;
-
-  GetTextureDataParams()
-      : forDiskSave(false),
-        typeCast(CompType::Typeless),
-        resolve(false),
-        remap(RemapTexture::NoRemap),
-        blackPoint(0.0f),
-        whitePoint(1.0f)
-  {
-  }
+  bool forDiskSave = false;
+  CompType typeCast = CompType::Typeless;
+  bool resolve = false;
+  RemapTexture remap = RemapTexture::NoRemap;
+  float blackPoint = 0.0f;
+  float whitePoint = 1.0f;
 };
 
 DECLARE_REFLECTION_STRUCT(GetTextureDataParams);

@@ -1830,6 +1830,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         0xf,    // writeMask
     };
 
+    ConciseGraphicsPipeline texRemapInfo = texDisplayInfo;
+
     CREATE_OBJECT(Pipeline, texDisplayInfo);
 
     texDisplayInfo.renderPass = RGBA32RP;
@@ -1844,8 +1846,42 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     texDisplayInfo.dstBlend = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     CREATE_OBJECT(BlendPipeline, texDisplayInfo);
 
+    VkFormat formats[3] = {VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R16G16B16A16_UINT,
+                           VK_FORMAT_R32G32B32A32_UINT};
+    CompType cast[3] = {CompType::Float, CompType::UInt, CompType::SInt};
+    BuiltinShader shaders[3] = {BuiltinShader::TexRemapFloat, BuiltinShader::TexRemapUInt,
+                                BuiltinShader::TexRemapSInt};
+
+    for(int f = 0; f < 3; f++)
+    {
+      for(int i = 0; i < 3; i++)
+      {
+        texRemapInfo.fragment = shaderCache->GetBuiltinModule(shaders[i]);
+
+        CREATE_OBJECT(texRemapInfo.renderPass, GetViewCastedFormat(formats[f], cast[i]));
+
+        CREATE_OBJECT(RemapPipeline[f][i][0], texRemapInfo);
+
+        driver->vkDestroyRenderPass(driver->GetDev(), texRemapInfo.renderPass, NULL);
+      }
+    }
+
     // make versions that only write to green, for doing two-pass stencil writes
-    texDisplayInfo.writeMask = 0x2;
+    texRemapInfo.writeMask = texDisplayInfo.writeMask = 0x2;
+
+    for(int f = 0; f < 3; f++)
+    {
+      for(int i = 0; i < 3; i++)
+      {
+        texRemapInfo.fragment = shaderCache->GetBuiltinModule(shaders[i]);
+
+        CREATE_OBJECT(texRemapInfo.renderPass, GetViewCastedFormat(formats[f], cast[i]));
+
+        CREATE_OBJECT(RemapPipeline[f][i][1], texRemapInfo);
+
+        driver->vkDestroyRenderPass(driver->GetDev(), texRemapInfo.renderPass, NULL);
+      }
+    }
 
     texDisplayInfo.renderPass = SRGBA8RP;
     CREATE_OBJECT(PipelineGreenOnly, texDisplayInfo);
@@ -2073,6 +2109,10 @@ void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
   driver->vkDestroyPipeline(driver->GetDev(), BlendPipeline, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), F16Pipeline, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), F32Pipeline, NULL);
+  for(size_t f = 0; f < 3; f++)
+    for(size_t i = 0; i < 3; i++)
+      for(size_t g = 0; g < 2; g++)
+        driver->vkDestroyPipeline(driver->GetDev(), RemapPipeline[f][i][g], NULL);
 
   driver->vkDestroyPipeline(driver->GetDev(), PipelineGreenOnly, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), F16PipelineGreenOnly, NULL);

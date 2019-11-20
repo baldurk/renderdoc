@@ -112,6 +112,7 @@ RESOURCE_mesh_hlsl         TYPE_EMBED   "hlsl/mesh.hlsl"
 RESOURCE_texdisplay_hlsl   TYPE_EMBED   "hlsl/texdisplay.hlsl"
 RESOURCE_pixelhistory_hlsl TYPE_EMBED   "hlsl/pixelhistory.hlsl"
 RESOURCE_quadoverdraw_hlsl TYPE_EMBED   "hlsl/quadoverdraw.hlsl"
+RESOURCE_texremap_hlsl     TYPE_EMBED   "hlsl/texremap.hlsl"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 
@@ -143,6 +144,7 @@ RESOURCE_glsl_gles_texsample_h  TYPE_EMBED   "glsl/gles_texsample.h"
 RESOURCE_glsl_gltext_vert       TYPE_EMBED   "glsl/gltext.vert"
 RESOURCE_glsl_gltext_frag       TYPE_EMBED   "glsl/gltext.frag"
 RESOURCE_glsl_glsl_globals_h    TYPE_EMBED   "glsl/glsl_globals.h"
+RESOURCE_glsl_texremap_frag     TYPE_EMBED   "glsl/texremap.frag"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

@@ -467,6 +467,14 @@ void GLReplay::InitDebugData()
     BindUBO(DebugData.texDisplayProg[i], "TexDisplayUBOData", 0);
     BindUBO(DebugData.texDisplayProg[i], "HeatmapData", 1);
     ConfigureTexDisplayProgramBindings(DebugData.texDisplayProg[i]);
+
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_texremap_frag), shaderType, glslBaseVer,
+                            defines + texSampleDefines);
+
+    DebugData.texRemapProg[i] = CreateShaderProgram(vs, fs);
+
+    BindUBO(DebugData.texRemapProg[i], "TexDisplayUBOData", 0);
+    ConfigureTexDisplayProgramBindings(DebugData.texRemapProg[i]);
   }
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
@@ -1182,8 +1190,12 @@ void GLReplay::DeleteDebugData()
   if(DebugData.texDisplayVertexShader)
     drv.glDeleteShader(DebugData.texDisplayVertexShader);
   for(int i = 0; i < 3; i++)
+  {
     if(DebugData.texDisplayProg[i])
       drv.glDeleteProgram(DebugData.texDisplayProg[i]);
+    if(DebugData.texRemapProg[i])
+      drv.glDeleteProgram(DebugData.texRemapProg[i]);
+  }
 
   if(DebugData.checkerProg)
     drv.glDeleteProgram(DebugData.checkerProg);

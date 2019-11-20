@@ -52,6 +52,9 @@ enum class BuiltinShader
   Array2MSCS,
   DepthMS2ArrayFS,
   DepthArray2MSFS,
+  TexRemapFloat,
+  TexRemapUInt,
+  TexRemapSInt,
   Count,
 };
 

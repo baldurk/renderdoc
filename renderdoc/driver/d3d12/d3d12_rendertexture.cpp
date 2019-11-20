@@ -673,11 +673,31 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     {
       list->SetPipelineState(customPSO);
     }
+    else if(flags & (eTexDisplay_RemapFloat | eTexDisplay_RemapUInt | eTexDisplay_RemapSInt))
+    {
+      int i = 0;
+      if(flags & eTexDisplay_RemapFloat)
+        i = 0;
+      else if(flags & eTexDisplay_RemapUInt)
+        i = 1;
+      else if(flags & eTexDisplay_RemapSInt)
+        i = 2;
+
+      int f = 0;
+      if(flags & eTexDisplay_32Render)
+        f = 2;
+      else if(flags & eTexDisplay_16Render)
+        f = 1;
+      else
+        f = 0;
+
+      list->SetPipelineState(m_TexRender.m_TexRemapPipe[f][i]);
+    }
     else if(cfg.rawOutput || !blendAlpha || cfg.customShaderId != ResourceId())
     {
-      if(flags & eTexDisplay_F32Render)
+      if(flags & eTexDisplay_32Render)
         list->SetPipelineState(m_TexRender.F32Pipe);
-      else if(flags & eTexDisplay_F16Render)
+      else if(flags & eTexDisplay_16Render)
         list->SetPipelineState(m_TexRender.F16Pipe);
       else if(flags & eTexDisplay_LinearRender)
         list->SetPipelineState(m_TexRender.LinearPipe);

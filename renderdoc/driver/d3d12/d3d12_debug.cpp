@@ -1046,6 +1046,52 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
     }
 
     SAFE_RELEASE(TexDisplayPS);
+
+    hlsl = GetEmbeddedResource(texremap_hlsl);
+
+    ID3DBlob *TexRemap[3] = {};
+    DXGI_FORMAT formats[3] = {
+        DXGI_FORMAT_R8G8B8A8_TYPELESS, DXGI_FORMAT_R16G16B16A16_TYPELESS,
+        DXGI_FORMAT_R32G32B32A32_TYPELESS,
+    };
+
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapFloat",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexRemap[0]);
+    RDCASSERT(TexRemap[0]);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapUInt",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexRemap[1]);
+    RDCASSERT(TexRemap[1]);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapSInt",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexRemap[2]);
+    RDCASSERT(TexRemap[2]);
+
+    for(int f = 0; f < 3; f++)
+    {
+      for(int i = 0; i < 3; i++)
+      {
+        pipeDesc.PS.BytecodeLength = TexRemap[i]->GetBufferSize();
+        pipeDesc.PS.pShaderBytecode = TexRemap[i]->GetBufferPointer();
+
+        if(i == 0)
+          pipeDesc.RTVFormats[0] = GetFloatTypedFormat(formats[f]);
+        else if(i == 1)
+          pipeDesc.RTVFormats[0] = GetUIntTypedFormat(formats[f]);
+        else
+          pipeDesc.RTVFormats[0] = GetSIntTypedFormat(formats[f]);
+
+        hr = device->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                 (void **)&m_TexRemapPipe[f][i]);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't create m_TexRemapPipe for %s! HRESULT: %s",
+                 ToStr(pipeDesc.RTVFormats[0]).c_str(), ToStr(hr).c_str());
+        }
+      }
+    }
+
+    for(int i = 0; i < 3; i++)
+      SAFE_RELEASE(TexRemap[i]);
   }
 
   shaderCache->SetCaching(false);
@@ -1060,6 +1106,13 @@ void D3D12Replay::TextureRendering::Release()
   SAFE_RELEASE(F32Pipe);
   SAFE_RELEASE(RootSig);
   SAFE_RELEASE(VS);
+  for(int f = 0; f < 3; f++)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      SAFE_RELEASE(m_TexRemapPipe[f][i]);
+    }
+  }
 }
 
 void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12DebugManager *debug)

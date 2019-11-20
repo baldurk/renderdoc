@@ -236,6 +236,18 @@ struct DynamicUsedBinds
   std::vector<BindIdx> used;
 };
 
+enum TexDisplayFlags
+{
+  eTexDisplay_16Render = 0x1,
+  eTexDisplay_32Render = 0x2,
+  eTexDisplay_BlendAlpha = 0x4,
+  eTexDisplay_MipShift = 0x8,
+  eTexDisplay_GreenOnly = 0x10,
+  eTexDisplay_RemapFloat = 0x20,
+  eTexDisplay_RemapUInt = 0x40,
+  eTexDisplay_RemapSInt = 0x80,
+};
+
 class VulkanReplay : public IReplayDriver
 {
 public:
@@ -494,15 +506,6 @@ private:
   WrappedVulkan *m_pDriver = NULL;
   VkDevice m_Device = VK_NULL_HANDLE;
 
-  enum TexDisplayFlags
-  {
-    eTexDisplay_F16Render = 0x1,
-    eTexDisplay_F32Render = 0x2,
-    eTexDisplay_BlendAlpha = 0x4,
-    eTexDisplay_MipShift = 0x8,
-    eTexDisplay_GreenOnly = 0x10,
-  };
-
   // General use/misc items that are used in many places
   struct GeneralMisc
   {
@@ -536,6 +539,8 @@ private:
     VkPipeline BlendPipeline = VK_NULL_HANDLE;
     VkPipeline F16Pipeline = VK_NULL_HANDLE;
     VkPipeline F32Pipeline = VK_NULL_HANDLE;
+    // for each of 8-bit, 16-bit, 32-bit and float, uint, sint, and for normal/green-only
+    VkPipeline RemapPipeline[3][3][2] = {};
 
     VkPipeline PipelineGreenOnly = VK_NULL_HANDLE;
     VkPipeline F16PipelineGreenOnly = VK_NULL_HANDLE;

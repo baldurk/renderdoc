@@ -2221,8 +2221,13 @@ GLenum MakeGLFormat(ResourceFormat fmt)
       case ResourceFormatType::R4G4B4A4: ret = eGL_RGBA4; break;
       case ResourceFormatType::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
       case ResourceFormatType::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
-      case ResourceFormatType::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
-      case ResourceFormatType::PVRTC: RDCERR("PVRTC can't be decoded unambiguously"); break;
+      case ResourceFormatType::D16S8: return eGL_NONE; break;
+      case ResourceFormatType::ASTC:
+        RDCWARN("ASTC can't be decoded unambiguously");
+        return eGL_NONE;
+      case ResourceFormatType::PVRTC:
+        RDCWARN("PVRTC can't be decoded unambiguously");
+        return eGL_NONE;
       case ResourceFormatType::S8: ret = eGL_STENCIL_INDEX8; break;
       case ResourceFormatType::A8: ret = eGL_ALPHA8_EXT; break;
       case ResourceFormatType::Undefined: return eGL_NONE;

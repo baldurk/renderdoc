@@ -449,11 +449,13 @@ TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id, CompType
   return details;
 }
 
-bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
+bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 {
   TexDisplayVSCBuffer vertexData = {};
   TexDisplayPSCBuffer pixelData = {};
   HeatmapData heatmapData = {};
+
+  bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
 
   {
     if(cfg.overlay == DebugOverlay::QuadOverdrawDraw || cfg.overlay == DebugOverlay::QuadOverdrawPass)
@@ -785,16 +787,24 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
     m_pImmediateContext->RSSetState(m_General.RasterState);
 
-    if(customPS == NULL)
-    {
-      m_pImmediateContext->PSSetShader(m_TexRender.TexDisplayPS, NULL, 0);
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuffer);
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &psHeatCBuffer);
-    }
-    else
+    if(customPS)
     {
       m_pImmediateContext->PSSetShader(customPS, NULL, 0);
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &customBuff);
+    }
+    else
+    {
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &psCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(1, 1, &psHeatCBuffer);
+
+      if(flags & eTexDisplay_RemapFloat)
+        m_pImmediateContext->PSSetShader(m_TexRender.TexRemapPS[0], NULL, 0);
+      else if(flags & eTexDisplay_RemapUInt)
+        m_pImmediateContext->PSSetShader(m_TexRender.TexRemapPS[1], NULL, 0);
+      else if(flags & eTexDisplay_RemapSInt)
+        m_pImmediateContext->PSSetShader(m_TexRender.TexRemapPS[2], NULL, 0);
+      else
+        m_pImmediateContext->PSSetShader(m_TexRender.TexDisplayPS, NULL, 0);
     }
 
     ID3D11UnorderedAccessView *NullUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};

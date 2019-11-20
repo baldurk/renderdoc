@@ -85,6 +85,12 @@ static const BuiltinShaderConfig builtinShaders[] = {
      rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
+    {BuiltinShader::TexRemapFloat, EmbeddedResource(glsl_texremap_frag),
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
+    {BuiltinShader::TexRemapUInt, EmbeddedResource(glsl_texremap_frag),
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
+    {BuiltinShader::TexRemapSInt, EmbeddedResource(glsl_texremap_frag),
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
@@ -179,8 +185,17 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(config.stage == rdcspv::ShaderStage::Geometry && !features.geometryShader)
       continue;
 
-    src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430,
-                             m_GlobalDefines);
+    std::string defines = m_GlobalDefines;
+
+    if(config.builtin == BuiltinShader::TexRemapFloat)
+      defines += std::string("#define UINT_TEX 0\n#define SINT_TEX 0\n");
+    else if(config.builtin == BuiltinShader::TexRemapUInt)
+      defines += std::string("#define UINT_TEX 1\n#define SINT_TEX 0\n");
+    else if(config.builtin == BuiltinShader::TexRemapSInt)
+      defines += std::string("#define UINT_TEX 0\n#define SINT_TEX 1\n");
+
+    src =
+        GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430, defines);
 
     compileSettings.stage = config.stage;
     std::string err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);

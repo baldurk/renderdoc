@@ -34,10 +34,10 @@
 
 bool GLReplay::RenderTexture(TextureDisplay cfg)
 {
-  return RenderTextureInternal(cfg, eTexDisplay_BlendAlpha | eTexDisplay_MipShift);
+  return RenderTextureInternal(cfg, TexDisplayFlags(eTexDisplay_BlendAlpha | eTexDisplay_MipShift));
 }
 
-bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
+bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 {
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
   const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
@@ -353,7 +353,14 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   }
 
   drv.glBindProgramPipeline(0);
-  drv.glUseProgram(DebugData.texDisplayProg[intIdx]);
+  if(flags & eTexDisplay_RemapFloat)
+    drv.glUseProgram(DebugData.texRemapProg[0]);
+  else if(flags & eTexDisplay_RemapUInt)
+    drv.glUseProgram(DebugData.texRemapProg[1]);
+  else if(flags & eTexDisplay_RemapSInt)
+    drv.glUseProgram(DebugData.texRemapProg[2]);
+  else
+    drv.glUseProgram(DebugData.texDisplayProg[intIdx]);
 
   GLuint customProgram = 0;
 

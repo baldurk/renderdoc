@@ -2318,6 +2318,9 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     else if(params.remap == RemapTexture::RGBA32)
       remapFormat = eGL_RGBA32F;
 
+    if(params.typeCast != CompType::Typeless)
+      remapFormat = GetViewCastedFormat(remapFormat, params.typeCast);
+
     if(intFormat != remapFormat)
     {
       MakeCurrentReplayContext(m_DebugCtx);
@@ -2364,6 +2367,15 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
       GLenum baseFormat = !IsCompressedFormat(intFormat) ? GetBaseFormat(intFormat) : eGL_RGBA;
 
+      TexDisplayFlags flags = eTexDisplay_None;
+
+      if(IsUIntFormat(intFormat))
+        flags = eTexDisplay_RemapUInt;
+      else if(IsSIntFormat(intFormat))
+        flags = eTexDisplay_RemapSInt;
+      else
+        flags = eTexDisplay_RemapFloat;
+
       for(GLsizei d = 0; d < (newtarget == eGL_TEXTURE_3D ? depth : 1); d++)
       {
         TextureDisplay texDisplay;
@@ -2381,7 +2393,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         texDisplay.rangeMax = params.whitePoint;
         texDisplay.scale = 1.0f;
         texDisplay.resourceId = tex;
-        texDisplay.typeCast = CompType::Typeless;
+        texDisplay.typeCast = params.typeCast;
         texDisplay.rawOutput = false;
         texDisplay.xOffset = 0;
         texDisplay.yOffset = 0;
@@ -2405,7 +2417,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
           drv.glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
         }
 
-        RenderTextureInternal(texDisplay, 0);
+        RenderTextureInternal(texDisplay, flags);
 
         drv.glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
       }
@@ -2440,7 +2452,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         drv.glGetBooleanv(eGL_COLOR_WRITEMASK, color_mask);
         drv.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
 
-        RenderTextureInternal(texDisplay, 0);
+        RenderTextureInternal(texDisplay, flags);
 
         drv.glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
       }

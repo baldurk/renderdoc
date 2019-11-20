@@ -2151,62 +2151,87 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     switch(tex.format.type)
     {
       case ResourceFormatType::S8:
-      case ResourceFormatType::D16S8: params.remap = RemapTexture::D32S8; break;
-      case ResourceFormatType::ASTC: params.remap = RemapTexture::RGBA16; break;
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::D24S8:
+      case ResourceFormatType::D32S8:
+        tex.format.compType = CompType::Float;
+        params.remap = RemapTexture::RGBA32;
+        tex.creationFlags &= ~TextureCategory::DepthTarget;
+        break;
+      case ResourceFormatType::A8:
+        tex.format.compType = CompType::UNorm;
+        params.remap = RemapTexture::RGBA8;
+        break;
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
+        tex.format.compType = CompType::UNorm;
+        params.remap = RemapTexture::RGBA8;
+        break;
+      case ResourceFormatType::BC6:
+        tex.format.compType = CompType::Float;
+        params.remap = RemapTexture::RGBA16;
+        break;
+      case ResourceFormatType::BC7:
+        tex.format.compType = CompType::UNorm;
+        params.remap = RemapTexture::RGBA16;
+        break;
+      case ResourceFormatType::ASTC:
+        tex.format.compType = CompType::Float;
+        params.remap = RemapTexture::RGBA16;
+        break;
       case ResourceFormatType::EAC:
       case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1:
+      case ResourceFormatType::R4G4:
       case ResourceFormatType::R4G4B4A4:
       case ResourceFormatType::ETC2: params.remap = RemapTexture::RGBA8; break;
+      case ResourceFormatType::R10G10B10A2: params.remap = RemapTexture::RGBA16; break;
       default:
         RDCERR("Don't know how to remap resource format type %u, falling back to RGBA32",
                tex.format.type);
+        tex.format.compType = CompType::Float;
         params.remap = RemapTexture::RGBA32;
         break;
     }
-    tex.format.type = ResourceFormatType::Regular;
   }
   else
   {
-    if(tex.format.compByteWidth == 4)
-      params.remap = RemapTexture::RGBA32;
+    if(tex.format.compByteWidth == 1)
+      params.remap = RemapTexture::RGBA8;
     else if(tex.format.compByteWidth == 2)
       params.remap = RemapTexture::RGBA16;
-    else if(tex.format.compByteWidth == 1)
-      params.remap = RemapTexture::RGBA8;
+    else
+      params.remap = RemapTexture::RGBA32;
+
+    if(tex.format.compType == CompType::Depth)
+      tex.format.compType = CompType::Float;
   }
 
-  // since the texture type is unsupported, remove the BGRAOrder() flag and remap it to RGBA
-  if(tex.format.BGRAOrder() && m_APIProps.localRenderer == GraphicsAPI::OpenGL)
-    tex.format.SetBGRAOrder(false);
+  tex.format.SetBGRAOrder(false);
+  tex.format.type = ResourceFormatType::Regular;
+  tex.format.compCount = 4;
 
   switch(params.remap)
   {
     case RemapTexture::NoRemap: RDCERR("IsTextureSupported == false, but we have no remap"); break;
-    case RemapTexture::RGBA8:
-      tex.format.compCount = 4;
-      tex.format.compByteWidth = 1;
-      if(tex.format.compType != CompType::UNormSRGB)
-        tex.format.compType = CompType::UNorm;
-      // Range adaptation is only needed when remapping a higher precision format down to RGBA8.
-      params.whitePoint = 1.0f;
-      break;
-    case RemapTexture::RGBA16:
-      tex.format.compCount = 4;
-      tex.format.compByteWidth = 2;
-      tex.format.compType = CompType::Float;
-      break;
-    case RemapTexture::RGBA32:
-      tex.format.compCount = 4;
-      tex.format.compByteWidth = 4;
-      tex.format.compType = CompType::Float;
-      break;
-    case RemapTexture::D32S8: RDCERR("Remapping depth/stencil formats not implemented."); break;
+    case RemapTexture::RGBA8: tex.format.compByteWidth = 1; break;
+    case RemapTexture::RGBA16: tex.format.compByteWidth = 2; break;
+    case RemapTexture::RGBA32: tex.format.compByteWidth = 4; break;
   }
 }
 
-void ReplayProxy::EnsureTexCached(ResourceId texid, const Subresource &sub)
+void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType typeCast, const Subresource &sub)
 {
   if(m_Reader.IsErrored() || m_Writer.IsErrored())
+    return;
+
+  if(m_LocalTextures.find(texid) != m_LocalTextures.end())
+    return;
+
+  if(texid == ResourceId())
     return;
 
   TextureCacheEntry entry = {texid, sub};
@@ -2227,12 +2252,11 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, const Subresource &sub)
     }
   }
 
-  if(m_LocalTextures.find(texid) != m_LocalTextures.end())
-    return;
+  auto proxyit = m_ProxyTextures.find(texid);
 
   if(m_TextureProxyCache.find(entry) == m_TextureProxyCache.end())
   {
-    if(m_ProxyTextures.find(texid) == m_ProxyTextures.end())
+    if(proxyit == m_ProxyTextures.end())
     {
       TextureDescription tex = GetTexture(texid);
 
@@ -2241,10 +2265,10 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, const Subresource &sub)
 
       proxy.id = m_Proxy->CreateProxyTexture(tex);
       proxy.msSamp = RDCMAX(1U, tex.msSamp);
-      m_ProxyTextures[texid] = proxy;
+      proxyit = m_ProxyTextures.insert(std::make_pair(texid, proxy)).first;
     }
 
-    const ProxyTextureProperties &proxy = m_ProxyTextures[texid];
+    const ProxyTextureProperties &proxy = proxyit->second;
 
     for(uint32_t sample = 0; sample < proxy.msSamp; sample++)
     {
@@ -2253,10 +2277,14 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, const Subresource &sub)
 
       TextureCacheEntry sampleArrayEntry = {texid, s};
 
+      GetTextureDataParams params = proxy.params;
+
+      params.typeCast = typeCast;
+
 #if ENABLED(TRANSFER_RESOURCE_CONTENTS_DELTAS)
-      CacheTextureData(texid, s, proxy.params);
+      CacheTextureData(texid, s, params);
 #else
-      GetTextureData(texid, s, proxy.params, m_ProxyTextureData[entry]);
+      GetTextureData(texid, s, params, m_ProxyTextureData[entry]);
 #endif
 
       auto it = m_ProxyTextureData.find(sampleArrayEntry);
@@ -2266,6 +2294,9 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, const Subresource &sub)
 
     m_TextureProxyCache.insert(entry);
   }
+
+  // change texid to the proxy texture's ID for passing to our proxy renderer
+  texid = proxyit->second.id;
 }
 
 void ReplayProxy::EnsureBufCached(ResourceId bufid)

@@ -1633,7 +1633,7 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
     texDisplay.xOffset = -float(x << sub.mip);
     texDisplay.yOffset = -float(y << sub.mip);
 
-    RenderTextureInternal(texDisplay, false);
+    RenderTextureInternal(texDisplay, eTexDisplay_None);
   }
 
   D3D11_BOX box;
@@ -1962,16 +1962,17 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
-        desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                                                : DXGI_FORMAT_R8G8B8A8_UNORM;
+        if(IsSRGBFormat(desc.Format) && params.typeCast == CompType::Typeless)
+          desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
-        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA32)
       {
-        desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, params.typeCast);
       }
 
       desc.ArraySize = 1;
@@ -2037,6 +2038,15 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       m_pImmediateContext->RSSetViewports(1, &viewport);
       SetOutputDimensions(desc.Width, 1);
 
+      TexDisplayFlags flags = eTexDisplay_None;
+
+      if(IsUIntFormat(desc.Format))
+        flags = eTexDisplay_RemapUInt;
+      else if(IsIntFormat(desc.Format))
+        flags = eTexDisplay_RemapSInt;
+      else
+        flags = eTexDisplay_RemapFloat;
+
       {
         TextureDisplay texDisplay;
 
@@ -2060,7 +2070,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         // scale here
         texDisplay.scale = 1.0f / float(1 << sub.mip);
 
-        RenderTextureInternal(texDisplay, false);
+        RenderTextureInternal(texDisplay, flags);
       }
 
       m_pImmediateContext->CopyResource(d, rtTex);
@@ -2111,17 +2121,18 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
-        desc.Format = (IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor)
-                          ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                          : DXGI_FORMAT_R8G8B8A8_UNORM;
+        if((IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor) &&
+           params.typeCast == CompType::Typeless)
+          desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
-        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA32)
       {
-        desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, params.typeCast);
       }
 
       desc.ArraySize = 1;
@@ -2188,6 +2199,15 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       SetOutputDimensions(desc.Width, desc.Height);
       m_pImmediateContext->RSSetViewports(1, &viewport);
 
+      TexDisplayFlags flags = eTexDisplay_None;
+
+      if(IsUIntFormat(desc.Format))
+        flags = eTexDisplay_RemapUInt;
+      else if(IsIntFormat(desc.Format))
+        flags = eTexDisplay_RemapSInt;
+      else
+        flags = eTexDisplay_RemapFloat;
+
       {
         TextureDisplay texDisplay;
 
@@ -2212,7 +2232,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         // scale here
         texDisplay.scale = 1.0f / float(1 << sub.mip);
 
-        RenderTextureInternal(texDisplay, false);
+        RenderTextureInternal(texDisplay, flags);
       }
 
       m_pImmediateContext->CopyResource(d, rtTex);
@@ -2277,16 +2297,17 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
-        desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                                                : DXGI_FORMAT_R8G8B8A8_UNORM;
+        if(IsSRGBFormat(desc.Format) && params.typeCast == CompType::Typeless)
+          desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
-        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA32)
       {
-        desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, params.typeCast);
       }
     }
 
@@ -2336,6 +2357,15 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
           0, 0, (float)desc.Width, (float)desc.Height, 0.0f, 1.0f,
       };
 
+      TexDisplayFlags flags = eTexDisplay_None;
+
+      if(IsUIntFormat(desc.Format))
+        flags = eTexDisplay_RemapUInt;
+      else if(IsIntFormat(desc.Format))
+        flags = eTexDisplay_RemapSInt;
+      else
+        flags = eTexDisplay_RemapFloat;
+
       for(UINT i = 0; i < (desc.Depth >> sub.mip); i++)
       {
         rtvDesc.Texture3D.FirstWSlice = i;
@@ -2380,7 +2410,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         // scale here
         texDisplay.scale = 1.0f / float(1 << sub.mip);
 
-        RenderTextureInternal(texDisplay, false);
+        RenderTextureInternal(texDisplay, flags);
 
         SAFE_RELEASE(wrappedrtv);
       }
@@ -2627,7 +2657,7 @@ void D3D11Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf sourc
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)
 {
-  return RenderTextureInternal(cfg, true);
+  return RenderTextureInternal(cfg, eTexDisplay_BlendAlpha);
 }
 
 void D3D11Replay::RenderCheckerboard()
@@ -3308,7 +3338,7 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   SetOutputDimensions(RDCMAX(1U, details.texWidth >> sub.mip),
                       RDCMAX(1U, details.texHeight >> sub.mip));
 
-  RenderTextureInternal(disp, true);
+  RenderTextureInternal(disp, eTexDisplay_BlendAlpha);
 
   return m_CustomShaderResourceId;
 }
@@ -3347,7 +3377,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
       desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 
     desc.CPUAccessFlags = 0;
-    desc.Format = MakeDXGIFormat(templateTex.format);
+    desc.Format = GetTypelessFormat(MakeDXGIFormat(templateTex.format));
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
@@ -3361,9 +3391,6 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     }
 
     resource = throwaway;
-
-    if(templateTex.creationFlags & TextureCategory::DepthTarget)
-      desc.Format = GetTypelessFormat(desc.Format);
 
     ret = ((WrappedID3D11Texture1D *)throwaway)->GetResourceID();
 
@@ -3379,7 +3406,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
     desc.CPUAccessFlags = 0;
-    desc.Format = MakeDXGIFormat(templateTex.format);
+    desc.Format = GetTypelessFormat(MakeDXGIFormat(templateTex.format));
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
@@ -3388,11 +3415,8 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     desc.SampleDesc.Count = RDCMAX(1U, templateTex.msSamp);
     desc.SampleDesc.Quality = templateTex.msQual;
 
-    if(templateTex.creationFlags & TextureCategory::DepthTarget || IsDepthFormat(desc.Format))
-    {
+    if(IsDepthFormat(desc.Format))
       desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-      desc.Format = GetTypelessFormat(desc.Format);
-    }
 
     if(templateTex.cubemap)
       desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
@@ -3421,7 +3445,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
       desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 
     desc.CPUAccessFlags = 0;
-    desc.Format = MakeDXGIFormat(templateTex.format);
+    desc.Format = GetTypelessFormat(MakeDXGIFormat(templateTex.format));
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;

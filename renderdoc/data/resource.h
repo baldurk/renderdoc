@@ -15,6 +15,7 @@
 #define RESOURCE_texdisplay_hlsl    108
 #define RESOURCE_pixelhistory_hlsl  109
 #define RESOURCE_quadoverdraw_hlsl  110
+#define RESOURCE_texremap_hlsl      111
 
 #define RESOURCE_sourcecodepro_ttf  301
 
@@ -46,6 +47,7 @@
 #define RESOURCE_glsl_gltext_vert       429
 #define RESOURCE_glsl_gltext_frag       430
 #define RESOURCE_glsl_glsl_globals_h    440
+#define RESOURCE_glsl_texremap_frag     441
 
 // Next default values for new objects
 // 

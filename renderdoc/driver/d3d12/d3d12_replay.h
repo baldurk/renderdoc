@@ -43,9 +43,12 @@ enum TexDisplayFlags
 {
   eTexDisplay_None = 0,
   eTexDisplay_LinearRender = 0x1,
-  eTexDisplay_F16Render = 0x2,
-  eTexDisplay_F32Render = 0x4,
+  eTexDisplay_16Render = 0x2,
+  eTexDisplay_32Render = 0x4,
   eTexDisplay_BlendAlpha = 0x8,
+  eTexDisplay_RemapFloat = 0x10,
+  eTexDisplay_RemapUInt = 0x20,
+  eTexDisplay_RemapSInt = 0x40,
 };
 
 class D3D12Replay : public IReplayDriver
@@ -354,6 +357,8 @@ private:
     ID3D12PipelineState *F16Pipe = NULL;
     ID3D12PipelineState *F32Pipe = NULL;
     ID3D12PipelineState *BlendPipe = NULL;
+    // for each of 8-bit, 16-bit, 32-bit and float, uint, sint
+    ID3D12PipelineState *m_TexRemapPipe[3][3] = {};
   } m_TexRender;
 
   struct OverlayRendering

@@ -2182,7 +2182,7 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
     texDisplay.yOffset = -float(y << sub.mip);
 
     RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,
-                          eTexDisplay_F32Render);
+                          eTexDisplay_32Render);
   }
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
@@ -3058,16 +3058,17 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   {
     if(params.remap == RemapTexture::RGBA8)
     {
-      copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                                                      : DXGI_FORMAT_R8G8B8A8_UNORM;
+      if(IsSRGBFormat(copyDesc.Format) && params.typeCast == CompType::Typeless)
+        copyDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
     }
     else if(params.remap == RemapTexture::RGBA16)
     {
-      copyDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, params.typeCast);
     }
     else if(params.remap == RemapTexture::RGBA32)
     {
-      copyDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, params.typeCast);
     }
 
     // force to 1 mip
@@ -3092,10 +3093,17 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     TexDisplayFlags flags =
         IsSRGBFormat(copyDesc.Format) ? eTexDisplay_None : eTexDisplay_LinearRender;
 
-    if(copyDesc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT)
-      flags = eTexDisplay_F16Render;
-    else if(copyDesc.Format == DXGI_FORMAT_R32G32B32A32_FLOAT)
-      flags = eTexDisplay_F32Render;
+    if(GetTypelessFormat(copyDesc.Format) == DXGI_FORMAT_R16G16B16A16_TYPELESS)
+      flags = eTexDisplay_16Render;
+    else if(GetTypelessFormat(copyDesc.Format) == DXGI_FORMAT_R32G32B32A32_TYPELESS)
+      flags = eTexDisplay_32Render;
+
+    if(IsUIntFormat(copyDesc.Format))
+      flags = TexDisplayFlags(flags | eTexDisplay_RemapUInt);
+    else if(IsIntFormat(copyDesc.Format))
+      flags = TexDisplayFlags(flags | eTexDisplay_RemapSInt);
+    else
+      flags = TexDisplayFlags(flags | eTexDisplay_RemapFloat);
 
     uint32_t loopCount = 1;
 
@@ -3141,7 +3149,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       texDisplay.rangeMin = params.blackPoint;
       texDisplay.rangeMax = params.whitePoint;
       texDisplay.resourceId = tex;
-      texDisplay.typeCast = CompType::Typeless;
+      texDisplay.typeCast = params.typeCast;
       texDisplay.rawOutput = false;
       texDisplay.xOffset = 0;
       texDisplay.yOffset = 0;

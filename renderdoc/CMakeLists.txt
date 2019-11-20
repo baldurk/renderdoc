@@ -376,6 +376,7 @@ set(data
     data/glsl/quadresolve.frag
     data/glsl/quadwrite.frag
     data/glsl/texdisplay.frag
+    data/glsl/texremap.frag
     data/glsl/gl_texsample.h
     data/glsl/gles_texsample.h
     data/glsl/vk_texsample.h

@@ -152,9 +152,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 {
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
   const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
-  const bool f16render = (flags & eTexDisplay_F16Render) != 0;
+  const bool f16render = (flags & eTexDisplay_16Render) != 0;
   const bool greenonly = (flags & eTexDisplay_GreenOnly) != 0;
-  const bool f32render = (flags & eTexDisplay_F32Render) != 0;
+  const bool f32render = (flags & eTexDisplay_32Render) != 0;
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -545,6 +545,26 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     {
       GetDebugManager()->CreateCustomShaderPipeline(cfg.customShaderId, m_TexRender.PipeLayout);
       pipe = GetDebugManager()->GetCustomPipeline();
+    }
+    else if(flags & (eTexDisplay_RemapFloat | eTexDisplay_RemapUInt | eTexDisplay_RemapSInt))
+    {
+      int i = 0;
+      if(flags & eTexDisplay_RemapFloat)
+        i = 0;
+      else if(flags & eTexDisplay_RemapUInt)
+        i = 1;
+      else if(flags & eTexDisplay_RemapSInt)
+        i = 2;
+
+      int f = 0;
+      if(flags & eTexDisplay_32Render)
+        f = 2;
+      else if(flags & eTexDisplay_16Render)
+        f = 1;
+      else
+        f = 0;
+
+      pipe = m_TexRender.RemapPipeline[f][i][greenonly ? 1 : 0];
     }
     else if(f16render)
     {

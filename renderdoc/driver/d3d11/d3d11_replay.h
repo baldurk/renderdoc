@@ -86,6 +86,15 @@ struct D3D11PostVSData
   }
 };
 
+enum TexDisplayFlags
+{
+  eTexDisplay_None = 0,
+  eTexDisplay_BlendAlpha = 0x1,
+  eTexDisplay_RemapFloat = 0x2,
+  eTexDisplay_RemapUInt = 0x4,
+  eTexDisplay_RemapSInt = 0x8,
+};
+
 class D3D11Replay : public IReplayDriver
 {
 public:
@@ -277,7 +286,7 @@ private:
 
   void SerializeImmediateContext();
 
-  bool RenderTextureInternal(TextureDisplay cfg, bool blendAlpha);
+  bool RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags);
 
   void CreateCustomShaderTex(uint32_t w, uint32_t h);
 
@@ -366,6 +375,7 @@ private:
     ID3D11BlendState *BlendState = NULL;
     ID3D11VertexShader *TexDisplayVS = NULL;
     ID3D11PixelShader *TexDisplayPS = NULL;
+    ID3D11PixelShader *TexRemapPS[3] = {};
   } m_TexRender;
 
   struct OverlayRendering

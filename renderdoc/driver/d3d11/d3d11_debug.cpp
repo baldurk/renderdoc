@@ -481,6 +481,14 @@ void D3D11Replay::TextureRendering::Init(WrappedID3D11Device *device)
   }
 
   {
+    std::string hlsl = GetEmbeddedResource(texremap_hlsl);
+
+    TexRemapPS[0] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapFloat", "ps_5_0");
+    TexRemapPS[1] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapUInt", "ps_5_0");
+    TexRemapPS[2] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapSInt", "ps_5_0");
+  }
+
+  {
     D3D11_BLEND_DESC blendDesc;
     RDCEraseEl(blendDesc);
 
@@ -539,6 +547,8 @@ void D3D11Replay::TextureRendering::Release()
   SAFE_RELEASE(BlendState);
   SAFE_RELEASE(TexDisplayVS);
   SAFE_RELEASE(TexDisplayPS);
+  for(int i = 0; i < 3; i++)
+    SAFE_RELEASE(TexRemapPS[i]);
 }
 
 void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
