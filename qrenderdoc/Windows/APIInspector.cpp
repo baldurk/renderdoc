@@ -58,6 +58,7 @@ APIInspector::~APIInspector()
 
 void APIInspector::OnCaptureLoaded()
 {
+  OnSelectedEventChanged(m_Ctx.CurSelectedEvent());
 }
 
 void APIInspector::OnCaptureClosed()
