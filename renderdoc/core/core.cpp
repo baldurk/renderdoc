@@ -668,7 +668,10 @@ IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
         return defaultit->second;
     }
 
-    RDCERR("Couldn't find matching frame capturer for device %p window %p", dev, wnd);
+    RDCERR(
+        "Couldn't find matching frame capturer for device %p window %p "
+        "from %zu device frame capturers and %zu frame capturers",
+        dev, wnd, m_DeviceFrameCapturers.size(), m_WindowFrameCapturers.size());
     return NULL;
   }
 
@@ -1604,33 +1607,49 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
 
 void RenderDoc::AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap)
 {
+  if(IsReplayApp())
+    return;
+
   if(dev == NULL || cap == NULL)
   {
-    RDCERR("Invalid FrameCapturer combination: %#p / %#p", dev, cap);
+    RDCERR("Invalid FrameCapturer %#p for device: %#p", cap, dev);
     return;
   }
+
+  RDCLOG("Adding %s device frame capturer for %#p", ToStr(cap->GetFrameCaptureDriver()).c_str(), dev);
 
   m_DeviceFrameCapturers[dev] = cap;
 }
 
 void RenderDoc::RemoveDeviceFrameCapturer(void *dev)
 {
+  if(IsReplayApp())
+    return;
+
   if(dev == NULL)
   {
     RDCERR("Invalid device pointer: %#p", dev);
     return;
   }
 
+  RDCLOG("Removing device frame capturer for %#p", dev);
+
   m_DeviceFrameCapturers.erase(dev);
 }
 
 void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
 {
+  if(IsReplayApp())
+    return;
+
   if(dev == NULL || wnd == NULL || cap == NULL)
   {
-    RDCERR("Invalid FrameCapturer combination: %#p / %#p", wnd, cap);
+    RDCERR("Invalid FrameCapturer %#p for combination: %#p / %#p", cap, dev, wnd);
     return;
   }
+
+  RDCLOG("Adding %s frame capturer for %#p / %#p", ToStr(cap->GetFrameCaptureDriver()).c_str(), dev,
+         wnd);
 
   DeviceWnd dw(dev, wnd);
 
@@ -1654,7 +1673,12 @@ void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
 
 void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 {
+  if(IsReplayApp())
+    return;
+
   DeviceWnd dw(dev, wnd);
+
+  RDCLOG("Removing frame capturer for %#p / %#p", dev, wnd);
 
   auto it = m_WindowFrameCapturers.find(dw);
   if(it != m_WindowFrameCapturers.end())

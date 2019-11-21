@@ -826,6 +826,7 @@ private:
 
   bool IsDrawInRenderPass();
 
+  RDCDriver GetFrameCaptureDriver() { return RDCDriver::Vulkan; }
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
   bool DiscardFrameCapture(void *dev, void *wnd);

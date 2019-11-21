@@ -45,6 +45,8 @@ struct RDCThumb;
 bool is_exr_file(FILE *f);
 void LogReplayOptions(const ReplayOptions &opts);
 
+enum class RDCDriver : uint32_t;
+
 struct ICrashHandler
 {
   virtual ~ICrashHandler() {}
@@ -54,6 +56,7 @@ struct ICrashHandler
 
 struct IFrameCapturer
 {
+  virtual RDCDriver GetFrameCaptureDriver() = 0;
   virtual void StartFrameCapture(void *dev, void *wnd) = 0;
   virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
   virtual bool DiscardFrameCapture(void *dev, void *wnd) = 0;

@@ -649,6 +649,7 @@ public:
   void GPUSync(ID3D12CommandQueue *queue = NULL, ID3D12Fence *fence = NULL);
   void GPUSyncAllQueues();
 
+  RDCDriver GetFrameCaptureDriver() { return RDCDriver::D3D12; }
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
   bool DiscardFrameCapture(void *dev, void *wnd);

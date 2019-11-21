@@ -459,6 +459,7 @@ public:
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
 
+  RDCDriver GetFrameCaptureDriver() { return RDCDriver::D3D11; }
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
   bool DiscardFrameCapture(void *dev, void *wnd);
