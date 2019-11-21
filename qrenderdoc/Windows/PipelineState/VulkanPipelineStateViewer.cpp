@@ -2046,14 +2046,13 @@ void VulkanPipelineStateViewer::setState()
     if(stage == NULL || stage->resourceId == ResourceId())
       continue;
 
-    ShaderReflection *shaderDetails = stage->reflection;
-
     ResourceId pipe = stage->stage == ShaderStage::Compute ? state.compute.pipelineResourceId
                                                            : state.graphics.pipelineResourceId;
 
-    b->setEnabled(shaderDetails && pipe != ResourceId());
+    b->setEnabled(stage->reflection && pipe != ResourceId());
 
-    m_Common.SetupShaderEditButton(b, pipe, stage->resourceId, shaderDetails);
+    m_Common.SetupShaderEditButton(b, pipe, stage->resourceId, stage->bindpointMapping,
+                                   stage->reflection);
   }
 
   bool xfbSet = false;

@@ -1532,7 +1532,8 @@ void D3D11PipelineStateViewer::setState()
 
     b->setEnabled(stage->reflection != NULL);
 
-    m_Common.SetupShaderEditButton(b, ResourceId(), stage->resourceId, stage->reflection);
+    m_Common.SetupShaderEditButton(b, ResourceId(), stage->resourceId, stage->bindpointMapping,
+                                   stage->reflection);
   }
 
   ui->iaBytecodeViewButton->setEnabled(true);

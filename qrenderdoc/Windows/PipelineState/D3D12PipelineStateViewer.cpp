@@ -1550,7 +1550,8 @@ void D3D12PipelineStateViewer::setState()
 
     b->setEnabled(stage->reflection && state.pipelineResourceId != ResourceId());
 
-    m_Common.SetupShaderEditButton(b, state.pipelineResourceId, stage->resourceId, stage->reflection);
+    m_Common.SetupShaderEditButton(b, state.pipelineResourceId, stage->resourceId,
+                                   stage->bindpointMapping, stage->reflection);
   }
 
   bool streamoutSet = false;

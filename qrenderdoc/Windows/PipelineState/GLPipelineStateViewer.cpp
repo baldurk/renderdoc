@@ -1486,11 +1486,10 @@ void GLPipelineStateViewer::setState()
     if(stage == NULL || stage->shaderResourceId == ResourceId())
       continue;
 
-    ShaderReflection *shaderDetails = stage->reflection;
+    b->setEnabled(stage->reflection != NULL);
 
-    b->setEnabled(shaderDetails != NULL);
-
-    m_Common.SetupShaderEditButton(b, ResourceId(), stage->shaderResourceId, shaderDetails);
+    m_Common.SetupShaderEditButton(b, ResourceId(), stage->shaderResourceId,
+                                   stage->bindpointMapping, stage->reflection);
   }
 
   vs = ui->xfbBuffers->verticalScrollBar()->value();

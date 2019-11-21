@@ -68,6 +68,7 @@ public:
   void setPersistData(const QVariant &persistData);
 
   void SetupShaderEditButton(QToolButton *button, ResourceId pipelineId, ResourceId shaderId,
+                             const ShaderBindpointMapping &bindpointMapping,
                              const ShaderReflection *shaderDetails);
 
   QString GenerateBufferFormatter(const ShaderResource &res, const ResourceFormat &viewFormat,
@@ -96,7 +97,8 @@ private:
   QString declareStruct(QList<QString> &declaredStructs, const QString &name,
                         const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
 
-  QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
+  QString GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,
+                           const ShaderReflection *shaderDetails, const QString &entryFunc);
   IShaderViewer *EditShader(ResourceId id, ShaderStage shaderType, const rdcstr &entry,
                             ShaderCompileFlags compileFlags, ShaderEncoding encoding,
                             const rdcstrpairs &files);
