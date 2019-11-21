@@ -730,6 +730,15 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     GetResourceManager()->MarkDirtyResource(id);
 
     record->AddChunk(chunk);
+
+    // we need initial contents for programs to know any initial bindings potentially if they change
+    // over the frame, and for uniform location remapping.
+    // We just inject a call to prepare the initial contents now, any other post-create data setting
+    // will be replayed as expected.
+    if(IsActiveCapturing(m_State))
+    {
+      GetResourceManager()->ContextPrepare_InitialState(res);
+    }
   }
   else
   {
