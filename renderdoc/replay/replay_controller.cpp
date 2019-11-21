@@ -1282,10 +1282,15 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     {
       dds_data ddsData;
 
+      ResourceFormat saveFmt = td.format;
+      // use typeCast to inform typeless saving, otherwise it will get lost
+      if(saveFmt.compType == CompType::Typeless)
+        saveFmt.compType = sd.typeHint;
+
       ddsData.width = td.width;
       ddsData.height = td.height;
       ddsData.depth = td.depth;
-      ddsData.format = td.format;
+      ddsData.format = saveFmt;
       ddsData.mips = numMips;
       ddsData.slices = numSlices / td.depth;
       ddsData.subdata = &subdata[0];
