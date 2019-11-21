@@ -100,7 +100,7 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
       case DXGI_FORMAT_D16_UNORM:
       case DXGI_FORMAT_R16_TYPELESS:
         dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
-        srvDesc.Format = DXGI_FORMAT_R16_FLOAT;
+        srvDesc.Format = DXGI_FORMAT_R16_UNORM;
         break;
     }
   }
@@ -364,7 +364,7 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
       case DXGI_FORMAT_D16_UNORM:
       case DXGI_FORMAT_R16_TYPELESS:
         dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
-        srvDesc.Format = DXGI_FORMAT_R16_FLOAT;
+        srvDesc.Format = DXGI_FORMAT_R16_UNORM;
         break;
     }
   }
