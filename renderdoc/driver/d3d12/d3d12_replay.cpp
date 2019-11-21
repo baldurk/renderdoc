@@ -2999,6 +2999,10 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     return;
   }
 
+  D3D12MarkerRegion region(
+      m_pDevice->GetQueue(),
+      StringFormat::Fmt("GetTextureData(%u, %u, remap=%d)", mip, arrayIdx, params.remap));
+
   HRESULT hr = S_OK;
 
   D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
@@ -3015,7 +3019,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   defaultHeap.CreationNodeMask = 1;
   defaultHeap.VisibleNodeMask = 1;
 
-  bool isDepth = IsDepthFormat(resDesc.Format);
+  bool isDepth = IsDepthFormat(resDesc.Format) ||
+                 (resDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
   bool isStencil = IsDepthAndStencilFormat(resDesc.Format);
 
   UINT sampleCount = copyDesc.SampleDesc.Count;
