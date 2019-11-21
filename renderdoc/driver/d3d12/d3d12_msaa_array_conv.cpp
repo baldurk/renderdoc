@@ -33,6 +33,8 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
 {
   // this function operates during capture so we work on unwrapped objects
 
+  D3D12MarkerRegion renderoverlay(m_pDevice->GetQueue(), "CopyTex2DMSToArray");
+
   D3D12_RESOURCE_DESC descMS = srcMS->GetDesc();
   D3D12_RESOURCE_DESC descArr = destArray->GetDesc();
 
@@ -294,6 +296,8 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
 {
   bool singleSliceMode = (selectedSlice != ~0U);
 
+  D3D12MarkerRegion renderoverlay(m_pDevice->GetQueue(), "CopyArrayToTex2DMS");
+
   D3D12_RESOURCE_DESC descArr = srcArray->GetDesc();
   D3D12_RESOURCE_DESC descMS = destMS->GetDesc();
 
@@ -520,8 +524,6 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
 
     dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
     dsvDesc.Texture2DMSArray.ArraySize = 1;
-    m_pDevice->CreateDepthStencilView(destMS, &dsvDesc, dsv);
-    list->OMSetRenderTargets(0, NULL, FALSE, &dsv);
     list->SetPipelineState(psoStencil);
 
     // loop over every array slice in MS texture
@@ -530,7 +532,10 @@ void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resourc
       if(singleSliceMode)
         slice = selectedSlice;
 
-      dsvDesc.Texture2DArray.FirstArraySlice = slice;
+      dsvDesc.Texture2DMSArray.FirstArraySlice = slice;
+
+      m_pDevice->CreateDepthStencilView(destMS, &dsvDesc, dsv);
+      list->OMSetRenderTargets(0, NULL, FALSE, &dsv);
 
       // loop over every stencil value (in theory we could use SV_StencilRef, but it's optional
       // and would mean a different shader)
