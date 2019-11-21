@@ -345,7 +345,7 @@ private:
   D3D11ResourceRecord *m_DeviceRecord;
 
   CaptureState m_State;
-  bool m_AppControlledCapture;
+  bool m_AppControlledCapture = false;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
@@ -374,10 +374,12 @@ private:
 
   std::map<IDXGISwapper *, ID3D11RenderTargetView *> m_SwapChains;
 
-  uint32_t m_FrameCounter;
-  uint32_t m_FailedFrame;
+  IDXGISwapper *m_LastSwap = NULL;
+
+  uint32_t m_FrameCounter = 0;
+  uint32_t m_FailedFrame = 0;
   CaptureFailReason m_FailedReason;
-  uint32_t m_Failures;
+  uint32_t m_Failures = 0;
 
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;

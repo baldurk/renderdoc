@@ -34,8 +34,6 @@ WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device, HWND wnd)
       m_device(device),
       m_DebugManager(NULL)
 {
-  m_FrameCounter = 0;
-
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
   m_SoftRefCounter.Release();

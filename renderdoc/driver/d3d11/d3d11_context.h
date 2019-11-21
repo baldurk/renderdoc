@@ -176,8 +176,6 @@ private:
     RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D11, false);
   }
 
-  bool m_PresentChunk;
-
   ResourceId m_FakeContext;
 
   bool m_DoStateVerify;
@@ -212,6 +210,7 @@ private:
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
   uint32_t m_CurEventID, m_CurDrawcallID;
+  D3D11Chunk m_LastChunk;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
@@ -287,7 +286,7 @@ public:
   void MarkDirtyResource(ResourceId id);
 
   // insert a fake chunk just to store these parameters
-  void Present(UINT SyncInterval, UINT Flags);
+  IMPLEMENT_FUNCTION_SERIALISED(void, Present, UINT SyncInterval, UINT Flags);
 
   void CleanupCapture();
   bool ShadowStorageInUse(D3D11ResourceRecord *record);

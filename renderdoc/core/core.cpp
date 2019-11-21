@@ -857,7 +857,10 @@ std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, in
       {
         if(now - m_Captures[i].timestamp < 20)
         {
-          overlayText += StringFormat::Fmt("Captured frame %d.\n", m_Captures[i].frameNumber);
+          if(m_Captures[i].frameNumber == ~0U)
+            overlayText += "Captured user-defined capture.\n";
+          else
+            overlayText += StringFormat::Fmt("Captured frame %d.\n", m_Captures[i].frameNumber);
         }
       }
     }
@@ -1061,7 +1064,12 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
 {
   RDCFile *ret = new RDCFile;
 
-  m_CurrentLogFile = StringFormat::Fmt("%s_frame%u.rdc", m_CaptureFileTemplate.c_str(), frameNum);
+  std::string suffix = StringFormat::Fmt("_frame%u", frameNum);
+
+  if(frameNum == ~0U)
+    suffix = "_capture";
+
+  m_CurrentLogFile = StringFormat::Fmt("%s%s.rdc", m_CaptureFileTemplate.c_str(), suffix.c_str());
 
   // make sure we don't stomp another capture if we make multiple captures in the same frame.
   {
@@ -1072,7 +1080,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
           }) != m_Captures.end())
     {
       m_CurrentLogFile =
-          StringFormat::Fmt("%s_frame%u_%d.rdc", m_CaptureFileTemplate.c_str(), frameNum, altnum);
+          StringFormat::Fmt("%s%s_%d.rdc", m_CaptureFileTemplate.c_str(), suffix.c_str(), altnum);
       altnum++;
     }
   }

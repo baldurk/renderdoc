@@ -116,10 +116,6 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
 
   m_Replay.SetDriver(this);
 
-  m_FrameCounter = 0;
-
-  m_AppControlledCapture = false;
-
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
   tempMemoryTLSSlot = Threading::AllocateTLSSlot();
   debugMessageSinkTLSSlot = Threading::AllocateTLSSlot();
@@ -1334,13 +1330,13 @@ VkResult WrappedVulkan::GetProvidedInstanceExtensionProperties(uint32_t *pProper
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_CaptureScope(SerialiserType &ser)
 {
-  SERIALISE_ELEMENT(m_FrameCounter);
+  SERIALISE_ELEMENT_LOCAL(frameNumber, m_CapturedFrames.back().frameNumber);
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
+    m_FrameRecord.frameInfo.frameNumber = frameNumber;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
   }
 
@@ -1366,6 +1362,7 @@ void WrappedVulkan::FirstFrame()
     RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = 0;
   }
 }
 
@@ -1481,10 +1478,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   m_SubmitCounter = 0;
 
-  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
-
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter;
+  frame.frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
@@ -1566,7 +1561,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
                                                     (*it)->memSize, eFrameRef_ReadBeforeWrite);
   }
 
-  RDCLOG("Starting capture, frame %u", m_FrameCounter);
+  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
@@ -1592,7 +1587,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     }
   }
 
-  RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+  RDCLOG("Finished capture, Frame %u", m_CapturedFrames.back().frameNumber);
 
   VkImage backbuffer = VK_NULL_HANDLE;
   VkResourceRecord *swaprecord = NULL;
@@ -2029,6 +2024,7 @@ void WrappedVulkan::Present(void *dev, void *wnd)
   bool activeWindow = wnd == NULL || RenderDoc::Inst().IsActiveWindow(dev, wnd);
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
+
   if(!activeWindow)
     return;
 
@@ -2040,6 +2036,7 @@ void WrappedVulkan::Present(void *dev, void *wnd)
     RenderDoc::Inst().StartFrameCapture(dev, wnd);
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = m_FrameCounter;
   }
 }
 
@@ -2364,6 +2361,8 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     // break out if we were only executing one event
     if(IsActiveReplaying(m_State) && startEventID == endEventID)
       break;
+
+    m_LastChunk = chunktype;
 
     // increment root event ID either if we didn't just replay a cmd
     // buffer event, OR if we are doing a frame sub-section replay,
@@ -2992,6 +2991,9 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       std::vector<ImgRefsPair> data;
       return GetResourceManager()->Serialise_ImageRefs(ser, data);
     }
+    case VulkanChunk::vkQueuePresentKHR:
+      return Serialise_vkQueuePresentKHR(ser, VK_NULL_HANDLE, NULL);
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
@@ -3024,15 +3026,18 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 
         SERIALISE_CHECK_READ_ERRORS();
 
-        if(IsLoading(m_State))
+        if(PresentedImage != ResourceId())
+          m_LastPresentedImage = PresentedImage;
+
+        if(IsLoading(m_State) && m_LastChunk != VulkanChunk::vkQueuePresentKHR)
         {
           AddEvent();
 
           DrawcallDescription draw;
-          draw.name = "vkQueuePresentKHR()";
+          draw.name = "End of Capture";
           draw.flags |= DrawFlags::Present;
 
-          draw.copyDestination = PresentedImage;
+          draw.copyDestination = m_LastPresentedImage;
 
           AddDrawcall(draw, true);
         }

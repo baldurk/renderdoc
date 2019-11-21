@@ -178,6 +178,8 @@ CGLError GL_EXPORT_NAME(CGLFlushDrawable)(CGLContextObj ctx)
 
     CGL.CGLGetSurface(ctx, &conn, &window, &surface);
 
+    gl_CurChunk = GLChunk::CGLFlushDrawable;
+
     cglhook.driver.SwapBuffers(WindowingSystem::MacOS, (void *)(uintptr_t)window);
   }
 

@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1105, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1106, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -191,6 +191,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(List_RSSetShadingRateImage,
                                "ID3D12GraphicsCommandList5::RSSetShadingRateImage");
     STRINGISE_ENUM_CLASS_NAMED(Device_ExternalDXGIResource, "External DXGI Resource import");
+    STRINGISE_ENUM_CLASS_NAMED(Swapchain_Present, "IDXGISwapChain::Present");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

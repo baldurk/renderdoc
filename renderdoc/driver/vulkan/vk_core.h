@@ -278,7 +278,7 @@ private:
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
   CaptureState m_State;
-  bool m_AppControlledCapture;
+  bool m_AppControlledCapture = false;
 
   bool m_MarkedActive = false;
   uint32_t m_SubmitCounter = 0;
@@ -350,7 +350,7 @@ private:
 
   std::vector<WindowingSystem> m_SupportedWindowSystems;
 
-  uint32_t m_FrameCounter;
+  uint32_t m_FrameCounter = 0;
 
   std::vector<FrameDescription> m_CapturedFrames;
   FrameRecord m_FrameRecord;
@@ -861,6 +861,9 @@ private:
   SDChunkMetaData m_ChunkMetadata;
   uint32_t m_RootEventID, m_RootDrawcallID;
   uint32_t m_FirstEventID, m_LastEventID;
+  VulkanChunk m_LastChunk;
+
+  ResourceId m_LastPresentedImage;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 

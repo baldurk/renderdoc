@@ -2163,6 +2163,15 @@ enum class GLChunk : uint32_t
   glBlendEquationARB,
   glPrimitiveBoundingBoxARB,
 
+  SwapBuffers,
+  wglSwapBuffers,
+  glXSwapBuffers,
+  CGLFlushDrawable,
+  eglSwapBuffers,
+  eglPostSubBufferNV,
+  eglSwapBuffersWithDamageEXT,
+  eglSwapBuffersWithDamageKHR,
+
   Max,
 };
 

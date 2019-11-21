@@ -45,6 +45,15 @@ rdcstr DoStringise(const GLChunk &el)
 
     STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal: Coherent Mapped Memory Write");
 
+    STRINGISE_ENUM_CLASS(SwapBuffers);
+    STRINGISE_ENUM_CLASS(wglSwapBuffers);
+    STRINGISE_ENUM_CLASS(glXSwapBuffers);
+    STRINGISE_ENUM_CLASS(CGLFlushDrawable);
+    STRINGISE_ENUM_CLASS(eglSwapBuffers);
+    STRINGISE_ENUM_CLASS(eglPostSubBufferNV);
+    STRINGISE_ENUM_CLASS(eglSwapBuffersWithDamageEXT);
+    STRINGISE_ENUM_CLASS(eglSwapBuffersWithDamageKHR);
+
 // re-use list of GL functions as chunks. Many of these will be aliased. This may not appear in the
 // same order as the definition, but that's OK.
 #define StringiseFunction(function, alias) STRINGISE_ENUM_CLASS_NAMED(alias, STRINGIZE(alias));

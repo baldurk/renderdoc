@@ -424,10 +424,13 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     ret.creationFlags |= TextureCategory::ShaderReadWrite;
 
-  if(ret.resourceId == m_pDevice->GetQueue()->GetBackbufferResourceID())
   {
-    ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, CompType::UNorm));
-    ret.creationFlags |= TextureCategory::SwapBuffer;
+    auto resit = m_ResourceIdx.find(ret.resourceId);
+    if(resit != m_ResourceIdx.end() && m_Resources[resit->second].type == ResourceType::SwapchainImage)
+    {
+      ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, CompType::UNorm));
+      ret.creationFlags |= TextureCategory::SwapBuffer;
+    }
   }
 
   return ret;

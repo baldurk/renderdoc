@@ -172,7 +172,7 @@ struct GraphicsTest
 
   bool FrameLimit();
 
-  int curFrame = 0;
+  int curFrame = -1;
 
   const char *screenTitle = "RenderDoc test program";
 

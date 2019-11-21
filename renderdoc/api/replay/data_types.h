@@ -1060,7 +1060,12 @@ struct FrameStatistics
 
 DECLARE_REFLECTION_STRUCT(FrameStatistics);
 
-DOCUMENT("Contains frame-level global information");
+DOCUMENT(R"(Contains frame-level global information
+
+.. data:: NoFrameNumber
+
+  No frame number is available.
+)");
 struct FrameDescription
 {
   DOCUMENT("");
@@ -1080,7 +1085,8 @@ struct FrameDescription
 this counts the frame number when the capture was made.
 
 .. note:: This value is only accurate if the capture was triggered through the default mechanism, if
-  it was triggered from the application API it doesn't correspond to anything.
+  it was triggered from the application API it doesn't correspond to anything and will be set to
+  :data:`NoFrameNumber`.
 )");
   uint32_t frameNumber;
 
@@ -1111,6 +1117,8 @@ this counts the frame number when the capture was made.
 
   DOCUMENT("A list of debug messages that are not associated with any particular event.");
   rdcarray<DebugMessage> debugMessages;
+
+  static const uint32_t NoFrameNumber = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(FrameDescription);

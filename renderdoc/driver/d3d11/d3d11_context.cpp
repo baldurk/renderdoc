@@ -162,8 +162,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_FailureReason = CaptureSucceeded;
   m_EmptyCommandList = true;
 
-  m_PresentChunk = false;
-
   m_DrawcallStack.push_back(&m_ParentDrawcall);
 
   m_CurEventID = 0;
@@ -543,15 +541,47 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
   m_ContextRecord->AddChunk(scope.Get());
 }
 
-void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
+template <typename SerialiserType>
+bool WrappedID3D11DeviceContext::Serialise_Present(SerialiserType &ser, UINT SyncInterval, UINT Flags)
 {
-  WriteSerialiser &ser = m_ScratchSerialiser;
-  SCOPED_SERIALISE_CHUNK(D3D11Chunk::SwapchainPresent);
-  SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
+  // we don't do anything with these parameters, they're just here to store
+  // them for user benefits
   SERIALISE_ELEMENT(SyncInterval);
   SERIALISE_ELEMENT(Flags);
 
-  m_ContextRecord->AddChunk(scope.Get());
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading() && IsLoading(m_State))
+  {
+    AddEvent();
+
+    DrawcallDescription draw;
+
+    draw.copyDestination = m_pDevice->GetBackbufferResourceID();
+
+    draw.name = StringFormat::Fmt("Present(%s)", ToStr(draw.copyDestination).c_str());
+    draw.flags |= DrawFlags::Present;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
+{
+  SERIALISE_TIME_CALL();
+
+  if(IsActiveCapturing(m_State))
+  {
+    USE_SCRATCH_SERIALISER();
+    GET_SERIALISER.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D11Chunk::SwapchainPresent);
+    SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
+    Serialise_Present(ser, SyncInterval, Flags);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
 }
 
 bool WrappedID3D11DeviceContext::ShadowStorageInUse(D3D11ResourceRecord *record)
@@ -827,34 +857,17 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
       ret = Serialise_SwapDeviceContextState(ser, NULL, NULL);
       break;
 
-    case D3D11Chunk::SwapchainPresent:
-    {
-      // we don't do anything with these parameters, they're just here to store
-      // them for user benefits
-      UINT SyncInterval = 0, Flags = 0;
-      SERIALISE_ELEMENT(SyncInterval);
-      SERIALISE_ELEMENT(Flags);
-
-      SERIALISE_CHECK_READ_ERRORS();
-
-      ret = true;
-
-      m_PresentChunk = true;
-      break;
-    }
+    case D3D11Chunk::SwapchainPresent: ret = Serialise_Present(ser, 0, 0); break;
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
 
       if(system == SystemChunk::CaptureEnd)
       {
-        if(IsLoading(m_State))
+        if(IsLoading(m_State) && m_LastChunk != D3D11Chunk::SwapchainPresent)
         {
-          if(!m_PresentChunk)
-            AddEvent();
-
           DrawcallDescription draw;
-          draw.name = "End of Frame";
+          draw.name = "End of Capture";
           draw.flags |= DrawFlags::Present;
 
           draw.copyDestination = m_pDevice->GetBackbufferResourceID();
@@ -1200,6 +1213,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;
 
+    m_LastChunk = chunktype;
     m_CurEventID++;
   }
 

@@ -444,6 +444,8 @@ HOOK_EXPORT void glXSwapBuffers_renderdoc_hooked(Display *dpy, GLXDrawable drawa
     glxhook.UpdateWindowSize(data, dpy, drawable);
   }
 
+  gl_CurChunk = GLChunk::glXSwapBuffers;
+
   glxhook.driver.SwapBuffers(WindowingSystem::Xlib, (void *)drawable);
 
   GLX.glXSwapBuffers(dpy, drawable);

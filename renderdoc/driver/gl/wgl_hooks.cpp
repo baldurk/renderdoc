@@ -52,7 +52,7 @@ public:
   std::set<HGLRC> contexts;
 
   void RefreshWindowParameters(const GLWindowingData &data);
-  void ProcessSwapBuffers(HDC dc);
+  void ProcessSwapBuffers(GLChunk src, HDC dc);
   void PopulateFromContext(HDC dc, HGLRC rc);
   GLInitParams GetInitParamsForDC(HDC dc);
 } wglhook;
@@ -161,7 +161,7 @@ void WGLHook::RefreshWindowParameters(const GLWindowingData &data)
   }
 }
 
-void WGLHook::ProcessSwapBuffers(HDC dc)
+void WGLHook::ProcessSwapBuffers(GLChunk src, HDC dc)
 {
   if(eglDisabled)
     return;
@@ -178,6 +178,8 @@ void WGLHook::ProcessSwapBuffers(HDC dc)
     data.ctx = WGL.wglGetCurrentContext();
 
     RefreshWindowParameters(data);
+
+    gl_CurChunk = src;
 
     {
       SCOPED_LOCK(glLock);
@@ -448,7 +450,7 @@ static BOOL WINAPI SwapBuffers_hooked(HDC dc)
 {
   SCOPED_LOCK(glLock);
 
-  wglhook.ProcessSwapBuffers(dc);
+  wglhook.ProcessSwapBuffers(GLChunk::SwapBuffers, dc);
 
   wglhook.swapRecurse = true;
   BOOL ret = WGL.SwapBuffers(dc);
@@ -461,7 +463,7 @@ static BOOL WINAPI wglSwapBuffers_hooked(HDC dc)
 {
   SCOPED_LOCK(glLock);
 
-  wglhook.ProcessSwapBuffers(dc);
+  wglhook.ProcessSwapBuffers(GLChunk::wglSwapBuffers, dc);
 
   wglhook.swapRecurse = true;
   BOOL ret = WGL.wglSwapBuffers(dc);
@@ -474,7 +476,7 @@ static BOOL WINAPI wglSwapLayerBuffers_hooked(HDC dc, UINT planes)
 {
   SCOPED_LOCK(glLock);
 
-  wglhook.ProcessSwapBuffers(dc);
+  wglhook.ProcessSwapBuffers(GLChunk::wglSwapBuffers, dc);
 
   wglhook.swapRecurse = true;
   BOOL ret = WGL.wglSwapLayerBuffers(dc, planes);
@@ -488,7 +490,7 @@ static BOOL WINAPI wglSwapMultipleBuffers_hooked(UINT numSwaps, CONST WGLSWAP *p
   SCOPED_LOCK(glLock);
 
   for(UINT i = 0; pSwaps && i < numSwaps; i++)
-    wglhook.ProcessSwapBuffers(pSwaps[i].hdc);
+    wglhook.ProcessSwapBuffers(GLChunk::wglSwapBuffers, pSwaps[i].hdc);
 
   wglhook.swapRecurse = true;
   BOOL ret = WGL.wglSwapMultipleBuffers(numSwaps, pSwaps);

@@ -630,15 +630,12 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_SectionVersion = GLInitParams::CurrentVersion;
 
-  m_FrameCounter = 0;
   m_NoCtxFrames = 0;
   m_FailedFrame = 0;
   m_FailedReason = CaptureSucceeded;
   m_Failures = 0;
   m_SuccessfulCapture = true;
   m_FailureReason = CaptureSucceeded;
-
-  m_AppControlledCapture = false;
 
   m_UsesVRMarkers = false;
 
@@ -2056,6 +2053,18 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     m_BackbufferImages[windowHandle] = SaveBackbufferImage();
   }
 
+  if(IsActiveCapturing(m_State) && gl_CurChunk != GLChunk::Max)
+  {
+    SERIALISE_TIME_CALL();
+
+    USE_SCRATCH_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_Present(ser);
+
+    GetContextRecord()->AddChunk(scope.Get());
+  }
+
   RenderDoc::Inst().AddActiveDriver(GetDriverType(), true);
 
   if(!activeWindow)
@@ -2074,6 +2083,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     RenderDoc::Inst().StartFrameCapture(ctxdata.ctx, windowHandle);
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = m_FrameCounter;
   }
 }
 
@@ -2136,10 +2146,8 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   GLWindowingData switchctx = prevctx;
   MakeValidContextCurrent(switchctx, wnd);
 
-  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
-
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter;
+  frame.frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
@@ -2169,7 +2177,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
     m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
   }
 
-  RDCLOG("Starting capture, frame %u", m_FrameCounter);
+  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
@@ -2187,7 +2195,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
   if(HasSuccessfulCapture(reason))
   {
-    RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+    RDCLOG("Finished capture, Frame %u", m_CapturedFrames.back().frameNumber);
 
     m_Failures = 0;
     m_FailedFrame = 0;
@@ -2366,7 +2374,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       default: break;
     }
 
-    RDCLOG("Failed to capture, frame %u: %s", m_FrameCounter, reasonString);
+    RDCLOG("Failed to capture, frame %u: %s", m_CapturedFrames.back().frameNumber, reasonString);
 
     m_Failures++;
 
@@ -2374,7 +2382,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     {
       ContextData &ctxdata = GetCtxData();
 
-      RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
+      RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s",
+                        m_CapturedFrames.back().frameNumber, reasonString);
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the
@@ -2384,7 +2393,9 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
         ClearGLErrors();
     }
 
-    m_CapturedFrames.back().frameNumber = m_FrameCounter;
+    uint32_t failedFrame = m_CapturedFrames.back().frameNumber;
+
+    m_CapturedFrames.back().frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
 
     CleanupCapture();
 
@@ -2410,7 +2421,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
       FreeCaptureData();
 
-      m_FailedFrame = m_FrameCounter;
+      m_FailedFrame = failedFrame;
       m_FailedReason = reason;
 
       m_State = CaptureState::BackgroundCapturing;
@@ -2494,6 +2505,7 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
     RenderDoc::Inst().StartFrameCapture(ctx, NULL);
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = 0;
   }
 }
 
@@ -2556,15 +2568,44 @@ RenderDoc::FramePixels *WrappedOpenGL::SaveBackbufferImage()
 }
 
 template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_Present(SerialiserType &ser)
+{
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading() && IsLoading(m_State))
+  {
+    AddEvent();
+
+    DrawcallDescription draw;
+
+    GLuint col = 0;
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(m_CurrentDefaultFBO, eGL_COLOR_ATTACHMENT0,
+                                                     eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                     (GLint *)&col);
+
+    draw.copyDestination =
+        GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(TextureRes(GetCtx(), col)));
+
+    draw.name =
+        StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(draw.copyDestination).c_str());
+    draw.flags |= DrawFlags::Present;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_CaptureScope(SerialiserType &ser)
 {
-  SERIALISE_ELEMENT(m_FrameCounter);
+  SERIALISE_ELEMENT_LOCAL(frameNumber, m_CapturedFrames.back().frameNumber);
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
-    m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
+    m_FrameRecord.frameInfo.frameNumber = frameNumber;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
   }
 
@@ -3190,12 +3231,19 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     }
     else if(system == SystemChunk::CaptureEnd)
     {
-      if(IsLoading(m_State))
+      bool lastSwap =
+          m_LastChunk == GLChunk::SwapBuffers || m_LastChunk == GLChunk::wglSwapBuffers ||
+          m_LastChunk == GLChunk::glXSwapBuffers || m_LastChunk == GLChunk::CGLFlushDrawable ||
+          m_LastChunk == GLChunk::eglSwapBuffers || m_LastChunk == GLChunk::eglPostSubBufferNV ||
+          m_LastChunk == GLChunk::eglSwapBuffersWithDamageEXT ||
+          m_LastChunk == GLChunk::eglSwapBuffersWithDamageKHR;
+
+      if(IsLoading(m_State) && !lastSwap)
       {
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = "SwapBuffers()";
+        draw.name = "End of Capture";
         draw.flags |= DrawFlags::Present;
 
         GLuint col = 0;
@@ -4386,6 +4434,16 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glReleaseKeyedMutexWin32EXT:
       return Serialise_glReleaseKeyedMutexWin32EXT(ser, 0, 0);
 
+    case GLChunk::SwapBuffers:
+    case GLChunk::wglSwapBuffers:
+    case GLChunk::glXSwapBuffers:
+    case GLChunk::CGLFlushDrawable:
+    case GLChunk::eglSwapBuffers:
+    case GLChunk::eglPostSubBufferNV:
+    case GLChunk::eglSwapBuffersWithDamageEXT:
+    case GLChunk::eglSwapBuffersWithDamageKHR:
+      return Serialise_Present(ser);
+
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
     // where and how they're called).
@@ -4854,6 +4912,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;
 
+    m_LastChunk = chunktype;
     m_CurEventID++;
   }
 

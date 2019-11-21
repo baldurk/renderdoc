@@ -264,12 +264,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_Replay.SetDevice(this);
 
-  m_AppControlledCapture = false;
-
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
   tempMemoryTLSSlot = Threading::AllocateTLSSlot();
-
-  m_FrameCounter = 0;
 
   m_HeaderChunk = NULL;
 
@@ -354,7 +350,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_DeviceRecord = NULL;
 
   m_Queue = NULL;
-  m_LastSwap = NULL;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -947,6 +942,7 @@ void WrappedID3D12Device::FirstFrame(IDXGISwapper *swapper)
     RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapper ? swapper->GetHWND() : NULL);
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = 0;
   }
 }
 
@@ -1613,6 +1609,24 @@ HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandL
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D12, true);
 
+  // serialise the present call, even for inactive windows
+  if(IsActiveCapturing(m_State))
+  {
+    SERIALISE_TIME_CALL();
+
+    ID3D12Resource *backbuffer = NULL;
+
+    if(swapper != NULL)
+      backbuffer = (ID3D12Resource *)swapper->GetBackbuffers()[swapper->GetLastPresentedBuffer()];
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Swapchain_Present);
+    Serialise_Present(ser, backbuffer, SyncInterval, Flags);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+  }
+
   if(!activeWindow)
     return S_OK;
 
@@ -1629,21 +1643,62 @@ HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandL
     RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapper->GetHWND());
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = m_FrameCounter;
   }
 
   return S_OK;
 }
 
 template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_Present(SerialiserType &ser, ID3D12Resource *PresentedImage,
+                                            UINT SyncInterval, UINT Flags)
+{
+  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(PresentedImage))
+      .TypedAs("ID3D12Resource *"_lit);
+
+  // we don't do anything with these parameters, they're just here to store
+  // them for user benefits
+  SERIALISE_ELEMENT(SyncInterval);
+  SERIALISE_ELEMENT(Flags);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading() && IsLoading(m_State))
+  {
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+    cmd.AddEvent();
+
+    DrawcallDescription draw;
+
+    draw.name = StringFormat::Fmt("Present(%s)", ToStr(PresentedBackbuffer).c_str());
+    draw.flags |= DrawFlags::Present;
+
+    cmd.m_LastPresentedImage = PresentedBackbuffer;
+    draw.copyDestination = PresentedBackbuffer;
+
+    cmd.AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+template bool WrappedID3D12Device::Serialise_Present(ReadSerialiser &ser,
+                                                     ID3D12Resource *PresentedImage,
+                                                     UINT SyncInterval, UINT Flags);
+template bool WrappedID3D12Device::Serialise_Present(WriteSerialiser &ser,
+                                                     ID3D12Resource *PresentedImage,
+                                                     UINT SyncInterval, UINT Flags);
+
+template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 {
-  SERIALISE_ELEMENT(m_FrameCounter);
+  SERIALISE_ELEMENT_LOCAL(frameNumber, m_CapturedFrames.back().frameNumber);
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayMode(m_State))
   {
-    m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
+    m_FrameRecord.frameInfo.frameNumber = frameNumber;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
   }
 
@@ -1681,14 +1736,14 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
 template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(ReadSerialiser &ser);
 template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(WriteSerialiser &ser);
 
-void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
+void WrappedID3D12Device::EndCaptureFrame()
 {
   WriteSerialiser &ser = GetThreadSerialiser();
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
-  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage))
-      .TypedAs("ID3D12Resource *"_lit);
+  // here for compatibility reasons, this used to store the presented Resource.
+  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, ResourceId()).Hidden();
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }
@@ -1702,10 +1757,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
   m_SubmitCounter = 0;
 
-  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
-
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter;
+  frame.frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
@@ -1765,7 +1818,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
 
-  RDCLOG("Starting capture, frame %u", m_FrameCounter);
+  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
@@ -1795,7 +1848,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     }
   }
 
-  RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+  RDCLOG("Finished capture, Frame %u", m_CapturedFrames.back().frameNumber);
 
   ID3D12Resource *backbuffer = NULL;
 
@@ -1813,7 +1866,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   // transition back to IDLE and readback initial states atomically
   {
     SCOPED_WRITELOCK(m_CapTransitionLock);
-    EndCaptureFrame(backbuffer);
+    EndCaptureFrame();
 
     m_State = CaptureState::BackgroundCapturing;
 

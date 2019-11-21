@@ -706,6 +706,8 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       // Just in case it gets exported and imported, completely ignore it.
       return true;
 
+    case D3D12Chunk::Swapchain_Present: ret = m_pDevice->Serialise_Present(ser, NULL, 0, 0); break;
+
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
@@ -716,17 +718,18 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
         SERIALISE_CHECK_READ_ERRORS();
 
-        m_BackbufferID = PresentedImage;
+        if(PresentedImage != ResourceId())
+          m_Cmd.m_LastPresentedImage = PresentedImage;
 
-        if(IsLoading(m_State))
+        if(IsLoading(m_State) && m_Cmd.m_LastChunk != D3D12Chunk::Swapchain_Present)
         {
           m_Cmd.AddEvent();
 
           DrawcallDescription draw;
-          draw.name = "Present()";
+          draw.name = "End of Capture";
           draw.flags |= DrawFlags::Present;
 
-          draw.copyDestination = m_BackbufferID;
+          draw.copyDestination = m_Cmd.m_LastPresentedImage;
 
           m_Cmd.AddDrawcall(draw, true);
         }
@@ -894,6 +897,8 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     // break out if we were only executing one event
     if(IsActiveReplaying(m_State) && startEventID == endEventID)
       break;
+
+    m_Cmd.m_LastChunk = context;
 
     // increment root event ID either if we didn't just replay a cmd
     // buffer event, OR if we are doing a frame sub-section replay,

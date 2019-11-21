@@ -355,10 +355,30 @@ void LiveCapture::saveCapture_triggered()
       if(path.endsWith(lit(".rdc")))
         path.chop(4);
 
+      // don't save duplicates if we have multiple captures from the same frame (possible if the
+      // application is not presenting at all and using the API to capture)
+      QMap<uint32_t, uint32_t> existingFiles;
+
       for(QListWidgetItem *item : ui->captures->selectedItems())
       {
         Capture *cap = GetCapture(item);
-        saveCapture(cap, QFormatStr("%1-frame%2.rdc").arg(path).arg(cap->frameNumber));
+
+        QString filename = QFormatStr("%1-frame%2").arg(path).arg(cap->frameNumber);
+        if(cap->frameNumber == ~0U)
+          filename = QFormatStr("%1-capture").arg(path);
+
+        if(existingFiles.contains(cap->frameNumber))
+        {
+          filename += QFormatStr("_%1").arg(existingFiles[cap->frameNumber]);
+          existingFiles[cap->frameNumber]++;
+        }
+        else
+        {
+          // start on 2 next time
+          existingFiles[cap->frameNumber] = 2;
+        }
+
+        saveCapture(cap, QFormatStr("%1.rdc").arg(filename));
       }
     }
   }
@@ -652,8 +672,12 @@ QString LiveCapture::MakeText(Capture *cap)
     text += tr(" (Remote)");
 
   text += lit("\n") + cap->api;
-  text += tr("\nFrame #%1 ").arg(cap->frameNumber) +
-          cap->timestamp.toString(lit("yyyy-MM-dd HH:mm:ss"));
+  if(cap->frameNumber == ~0U)
+    text += tr("\nUser-defined Capture ");
+  else
+    text += tr("\nFrame #%1 ").arg(cap->frameNumber);
+
+  text += cap->timestamp.toString(lit("yyyy-MM-dd HH:mm:ss"));
 
   return text;
 }
@@ -687,10 +711,14 @@ bool LiveCapture::checkAllowClose()
 
     if(!suppressRemoteWarning && !notoall)
     {
+      QString frameName = tr("Frame #%1").arg(cap->frameNumber);
+      if(cap->frameNumber == ~0U)
+        frameName = tr("User-defined Capture");
+
       res = RDDialog::question(this, tr("Unsaved capture"),
-                               tr("Save this capture '%1 Frame #%2' at %3?")
+                               tr("Save this capture '%1 %2' at %3?")
                                    .arg(cap->name)
-                                   .arg(cap->frameNumber)
+                                   .arg(frameName)
                                    .arg(cap->timestamp.toString(lit("HH:mm:ss"))),
                                msgFlags);
 

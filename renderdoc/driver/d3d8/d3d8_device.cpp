@@ -37,8 +37,6 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
       m_DebugManager(NULL),
       m_PresentParameters(*pPresentationParameters)
 {
-  m_FrameCounter = 0;
-
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
   m_SoftRefCounter.Release();

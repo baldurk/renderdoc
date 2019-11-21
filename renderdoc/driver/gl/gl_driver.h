@@ -119,7 +119,7 @@ private:
 
   // internals
   CaptureState m_State;
-  bool m_AppControlledCapture;
+  bool m_AppControlledCapture = false;
 
   bool m_MarkedActive = false;
 
@@ -182,7 +182,7 @@ private:
   void AddResourceCurChunk(ResourceId id);
   void AddResourceInitChunk(GLResource res);
 
-  uint32_t m_FrameCounter;
+  uint32_t m_FrameCounter = 0;
   uint32_t m_NoCtxFrames;
   uint32_t m_FailedFrame;
   CaptureFailReason m_FailedReason;
@@ -240,6 +240,7 @@ private:
   uint32_t m_CurEventID, m_CurDrawcallID;
   uint32_t m_FirstEventID;
   uint32_t m_LastEventID;
+  GLChunk m_LastChunk;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
@@ -287,6 +288,9 @@ private:
   void AddUsage(const DrawcallDescription &d);
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
   void AddEvent();
+
+  template <typename SerialiserType>
+  bool Serialise_Present(SerialiserType &ser);
 
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);

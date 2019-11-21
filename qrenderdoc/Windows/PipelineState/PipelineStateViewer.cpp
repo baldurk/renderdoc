@@ -369,7 +369,9 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
           xml.writeStartElement(lit("h3"));
           {
-            QString context = tr("Frame %1").arg(m_Ctx.FrameInfo().frameNumber);
+            uint32_t frameNumber = m_Ctx.FrameInfo().frameNumber;
+
+            QString context = frameNumber == ~0U ? tr("Capture") : tr("Frame %1").arg(frameNumber);
 
             const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 

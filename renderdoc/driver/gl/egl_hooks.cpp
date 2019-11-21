@@ -502,6 +502,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
 
     SurfaceConfig cfg = eglhook.windows[surface];
 
+    gl_CurChunk = GLChunk::eglSwapBuffers;
+
     eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
   }
 
@@ -534,6 +536,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglPostSubBufferNV_renderdoc_hooked(EGLDispla
   if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
   {
     SurfaceConfig cfg = eglhook.windows[surface];
+
+    gl_CurChunk = GLChunk::eglPostSubBufferNV;
 
     eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
   }
@@ -568,6 +572,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageEXT_renderdoc_hooked(
   {
     SurfaceConfig cfg = eglhook.windows[surface];
 
+    gl_CurChunk = GLChunk::eglSwapBuffersWithDamageEXT;
+
     eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
   }
 
@@ -600,6 +606,8 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageKHR_renderdoc_hooked(
   if(!eglhook.driver.UsesVRFrameMarkers() && !eglhook.swapping)
   {
     SurfaceConfig cfg = eglhook.windows[surface];
+
+    gl_CurChunk = GLChunk::eglSwapBuffersWithDamageKHR;
 
     eglhook.driver.SwapBuffers(cfg.system, cfg.wnd);
   }

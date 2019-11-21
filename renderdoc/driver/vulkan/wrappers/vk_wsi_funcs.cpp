@@ -670,6 +670,49 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue queue,
+                                                const VkPresentInfoKHR *pPresentInfo)
+{
+  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT_LOCAL(PresentInfo, *pPresentInfo);
+
+  ResourceId PresentedImage;
+
+  if(ser.IsWriting())
+  {
+    VkResourceRecord *swaprecord = GetRecord(pPresentInfo->pSwapchains[0]);
+
+    SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+
+    PresentedImage = GetResID(swapInfo.images[pPresentInfo->pImageIndices[0]].im);
+  }
+
+  // we don't have all the information we need about swapchains on replay to get the presented image
+  // just from the PresentInfo struct, so we hide it away here
+  SERIALISE_ELEMENT(PresentedImage).Hidden();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    AddEvent();
+
+    DrawcallDescription draw;
+
+    draw.name = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
+    draw.flags |= DrawFlags::Present;
+
+    m_LastPresentedImage = draw.copyDestination = PresentedImage;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
 VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR *pPresentInfo)
 {
   AdvanceFrame();
@@ -831,7 +874,18 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     }
   }
 
-  VkResult vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo);
+  VkResult vkr;
+  SERIALISE_TIME_CALL(vkr = ObjDisp(queue)->QueuePresentKHR(Unwrap(queue), &unwrappedInfo));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueuePresentKHR);
+    Serialise_vkQueuePresentKHR(ser, queue, pPresentInfo);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+  }
 
   Present(LayerDisp(m_Instance), swapInfo.wndHandle);
 
@@ -1130,3 +1184,6 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR, VkDevice device,
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkGetSwapchainImagesKHR, VkDevice device,
                                 VkSwapchainKHR swapchain, uint32_t *pSwapchainImageCount,
                                 VkImage *pSwapchainImages);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueuePresentKHR, VkQueue queue,
+                                const VkPresentInfoKHR *pPresentInfo);

@@ -338,6 +338,9 @@ struct D3D12CommandData
   SDChunkMetaData m_ChunkMetadata;
   uint32_t m_RootEventID, m_RootDrawcallID;
   uint32_t m_FirstEventID, m_LastEventID;
+  D3D12Chunk m_LastChunk;
+
+  ResourceId m_LastPresentedImage;
 
   SDFile *m_StructuredFile;
 

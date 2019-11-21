@@ -590,6 +590,7 @@ enum class VulkanChunk : uint32_t
   vkGetSemaphoreCounterValueKHR,
   vkWaitSemaphoresKHR,
   vkSignalSemaphoreKHR,
+  vkQueuePresentKHR,
   Max,
 };
 

@@ -293,6 +293,11 @@ void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
 {
   if(strstr(buf, "vr-marker,frame_end,type,application") != NULL)
   {
+    PUSH_CURRENT_CHUNK;
+
+    // don't serialise this present as a separate chunk
+    gl_CurChunk = GLChunk::Max;
+
     SwapBuffers(WindowingSystem::Headless, (void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
     m_UsesVRMarkers = true;
 

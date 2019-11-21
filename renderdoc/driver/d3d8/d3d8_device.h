@@ -228,7 +228,7 @@ private:
   RefCounter8 m_SoftRefCounter;
   bool m_Alive;
 
-  uint32_t m_FrameCounter;
+  uint32_t m_FrameCounter = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////

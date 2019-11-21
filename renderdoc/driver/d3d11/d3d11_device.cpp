@@ -101,14 +101,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_WrappedMultithread.m_pDevice = this;
   m_WrappedVideo.m_pDevice = this;
 
-  m_FrameCounter = 0;
-  m_FailedFrame = 0;
   m_FailedReason = CaptureSucceeded;
-  m_Failures = 0;
 
   m_ChunkAtomic = 0;
-
-  m_AppControlledCapture = false;
 
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -1084,13 +1079,13 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
 {
-  SERIALISE_ELEMENT(m_FrameCounter);
+  SERIALISE_ELEMENT_LOCAL(frameNumber, m_CapturedFrames.back().frameNumber);
 
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayMode(m_State))
   {
-    m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
+    m_FrameRecord.frameInfo.frameNumber = frameNumber;
 
     FrameStatistics &stats = m_FrameRecord.frameInfo.stats;
     RDCEraseEl(stats);
@@ -1566,10 +1561,10 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
   m_FailedFrame = 0;
   m_FailedReason = CaptureSucceeded;
 
-  m_FrameCounter = RDCMAX((uint32_t)m_CapturedFrames.size(), m_FrameCounter);
-
   FrameDescription frame;
-  frame.frameNumber = m_FrameCounter;
+  // for app-controlled captures the frame number is meaningless, so set it here here first. We'll
+  // update it with the actual frame counter when we un-set m_AppControlledCapture.
+  frame.frameNumber = ~0U;
   frame.captureTime = Timing::GetUnixTimestamp();
   m_CapturedFrames.push_back(frame);
 
@@ -1603,7 +1598,7 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
   if(m_pInfoQueue)
     m_pInfoQueue->ClearStoredMessages();
 
-  RDCLOG("Starting capture, frame %u", m_FrameCounter);
+  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
@@ -1637,7 +1632,10 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
   if(m_pImmediateContext->HasSuccessfulCapture(reason))
   {
-    RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+    RDCLOG("Finished capture, Frame %u", m_CapturedFrames.back().frameNumber);
+
+    if(swapper == NULL)
+      swapper = m_LastSwap;
 
     m_Failures = 0;
     m_FailedFrame = 0;
@@ -1906,7 +1904,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       default: break;
     }
 
-    RDCLOG("Failed to capture, frame %u: %s", m_FrameCounter, reasonString);
+    RDCLOG("Failed to capture, frame %u: %s", m_CapturedFrames.back().frameNumber, reasonString);
 
     m_Failures++;
 
@@ -1923,14 +1921,16 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
         m_TextRenderer->SetOutputDimensions(swapper->GetWidth(), swapper->GetHeight());
         m_TextRenderer->SetOutputWindow(swapper->GetHWND());
 
-        m_TextRenderer->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter,
-                                   reasonString);
+        m_TextRenderer->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s",
+                                   m_CapturedFrames.back().frameNumber, reasonString);
       }
 
       old.ApplyState(m_pImmediateContext);
     }
 
-    m_CapturedFrames.back().frameNumber = m_FrameCounter;
+    uint32_t failedFrame = m_CapturedFrames.back().frameNumber;
+
+    m_CapturedFrames.back().frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
 
     m_pImmediateContext->CleanupCapture();
 
@@ -1973,7 +1973,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
       GetResourceManager()->FreeCaptureData();
 
-      m_FailedFrame = m_FrameCounter;
+      m_FailedFrame = failedFrame;
       m_FailedReason = reason;
 
       m_State = CaptureState::BackgroundCapturing;
@@ -2180,6 +2180,7 @@ void WrappedID3D11Device::FirstFrame(IDXGISwapper *swapper)
     RenderDoc::Inst().StartFrameCapture((ID3D11Device *)this, swapper->GetHWND());
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = 0;
   }
 }
 
@@ -2200,6 +2201,8 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
   m_pImmediateContext->BeginFrame();
 
   bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D11Device *)this, swapper->GetHWND());
+
+  m_LastSwap = swapper;
 
   if(IsBackgroundCapturing(m_State))
   {
@@ -2243,14 +2246,16 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D11, true);
 
+  // serialise the present call, even for inactive windows
+  if(IsActiveCapturing(m_State))
+    m_pImmediateContext->Present(SyncInterval, Flags);
+
   if(!activeWindow)
     return S_OK;
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
   {
-    m_pImmediateContext->Present(SyncInterval, Flags);
-
     RenderDoc::Inst().EndFrameCapture((ID3D11Device *)this, swapper->GetHWND());
   }
 
@@ -2259,6 +2264,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
     RenderDoc::Inst().StartFrameCapture((ID3D11Device *)this, swapper->GetHWND());
 
     m_AppControlledCapture = false;
+    m_CapturedFrames.back().frameNumber = m_FrameCounter;
   }
 
   return S_OK;

@@ -187,7 +187,12 @@ void TimelineBar::OnCaptureClosed()
 
 void TimelineBar::OnCaptureLoaded()
 {
-  setWindowTitle(tr("Timeline - Frame #%1").arg(m_Ctx.FrameInfo().frameNumber));
+  uint32_t frameNumber = m_Ctx.FrameInfo().frameNumber;
+
+  if(frameNumber != ~0U)
+    setWindowTitle(tr("Timeline - Frame #%1").arg(frameNumber));
+  else
+    setWindowTitle(tr("Timeline - Capture"));
 
   processDraws(m_RootMarkers, m_RootDraws, m_Ctx.CurDrawcalls());
 

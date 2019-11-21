@@ -431,14 +431,14 @@ private:
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
-  uint32_t m_FrameCounter;
+  uint32_t m_FrameCounter = 0;
   std::vector<FrameDescription> m_CapturedFrames;
   FrameRecord m_FrameRecord;
   std::vector<DrawcallDescription *> m_Drawcalls;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
-  bool m_AppControlledCapture;
+  bool m_AppControlledCapture = false;
 
   bool m_InvalidPSO = false;
 
@@ -492,7 +492,7 @@ private:
   std::map<IDXGISwapper *, SwapPresentInfo> m_SwapChains;
   std::map<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
-  IDXGISwapper *m_LastSwap;
+  IDXGISwapper *m_LastSwap = NULL;
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS m_D3D12Opts;
   D3D12_FEATURE_DATA_D3D12_OPTIONS1 m_D3D12Opts1;
@@ -502,7 +502,7 @@ private:
 
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
-  void EndCaptureFrame(ID3D12Resource *presentImage);
+  void EndCaptureFrame();
 
   bool m_debugLayerEnabled;
 
@@ -652,6 +652,10 @@ public:
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
   bool DiscardFrameCapture(void *dev, void *wnd);
+
+  template <typename SerialiserType>
+  bool Serialise_Present(SerialiserType &ser, ID3D12Resource *PresentedImage, UINT SyncInterval,
+                         UINT Flags);
 
   template <typename SerialiserType>
   bool Serialise_BeginCaptureFrame(SerialiserType &ser);

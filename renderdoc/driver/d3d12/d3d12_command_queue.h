@@ -133,7 +133,6 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   D3D12CommandData m_Cmd;
 
   ResourceId m_PrevQueueId;
-  ResourceId m_BackbufferID;
 
   bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
 
@@ -155,7 +154,6 @@ public:
   D3D12DrawcallTreeNode &GetParentDrawcall() { return m_Cmd.m_ParentDrawcall; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Cmd.m_Events.back().eventId; }
-  ResourceId GetBackbufferResourceID() { return m_BackbufferID; }
   void ClearAfterCapture();
 
   ReplayStatus ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,

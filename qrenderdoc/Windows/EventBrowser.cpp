@@ -238,11 +238,15 @@ EventBrowser::~EventBrowser()
 
 void EventBrowser::OnCaptureLoaded()
 {
-  RDTreeWidgetItem *frame = new RDTreeWidgetItem(
-      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString()});
+  uint32_t frameNumber = m_Ctx.FrameInfo().frameNumber;
+
+  QString rootName =
+      frameNumber == ~0U ? tr("User-defined Capture") : tr("Frame #%1").arg(frameNumber);
+
+  RDTreeWidgetItem *frame = new RDTreeWidgetItem({rootName, QString(), QString(), QString()});
 
   RDTreeWidgetItem *framestart =
-      new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit("0"), QString()});
+      new RDTreeWidgetItem({tr("Capture Start"), lit("0"), lit("0"), QString()});
   framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
 
   frame->addChild(framestart);
