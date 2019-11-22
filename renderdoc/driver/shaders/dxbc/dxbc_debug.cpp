@@ -1532,6 +1532,8 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
     {
       s.name = "Immediate";
 
+      flushable = false;
+
       if(oper.numComponents == NUMCOMPS_1)
       {
         s.rows = 1;

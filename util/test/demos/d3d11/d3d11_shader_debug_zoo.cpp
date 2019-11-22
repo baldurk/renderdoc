@@ -100,6 +100,7 @@ struct MyStruct
 Buffer<float> test : register(t0);
 ByteAddressBuffer byterotest : register(t1);
 StructuredBuffer<MyStruct> structrotest : register(t2);
+Texture2D<float> dimtex : register(t3);
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
 
@@ -503,6 +504,24 @@ float4 main(v2f IN) : SV_Target0
 
     return float4(read.a, read.e, read.d.b[z2+0], read.d.c);
   }
+  if(IN.tri == 56)
+  {
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex.GetDimensions(0, width, height, numLevels);
+    return float4(width, height, numLevels, 0.0f);
+  }
+  if(IN.tri == 57)
+  {
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex.GetDimensions(2, width, height, numLevels);
+    return float4(width, height, numLevels, 0.0f);
+  }
+  if(IN.tri == 58)
+  {
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex.GetDimensions(10, width, height, numLevels);
+    return float4(width, height, numLevels, 0.0f);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -579,6 +598,9 @@ float4 main(v2f IN) : SV_Target0
     ID3D11BufferPtr srvBuf = MakeBuffer().SRV().Data(testdata);
     ID3D11ShaderResourceViewPtr srv = MakeSRV(srvBuf).Format(DXGI_FORMAT_R32_FLOAT);
 
+    ID3D11Texture2DPtr testTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 16, 16).Mips(3).SRV();
+    ID3D11ShaderResourceViewPtr testSRV = MakeSRV(testTex);
+
     ID3D11BufferPtr rawBuf = MakeBuffer().SRV().ByteAddressed().Data(testdata);
     ID3D11ShaderResourceViewPtr rawsrv =
         MakeSRV(rawBuf).Format(DXGI_FORMAT_R32_TYPELESS).FirstElement(4).NumElements(12);
@@ -599,9 +621,11 @@ float4 main(v2f IN) : SV_Target0
     ID3D11UnorderedAccessViewPtr structuav =
         MakeUAV(structBuf2).Format(DXGI_FORMAT_UNKNOWN).FirstElement(3).NumElements(5);
 
-    ctx->PSSetShaderResources(0, 1, &srv.GetInterfacePtr());
-    ctx->PSSetShaderResources(1, 1, &rawsrv.GetInterfacePtr());
-    ctx->PSSetShaderResources(2, 1, &structsrv.GetInterfacePtr());
+    ID3D11ShaderResourceView *srvs[] = {
+        srv, rawsrv, structsrv, testSRV,
+    };
+
+    ctx->PSSetShaderResources(0, ARRAY_COUNT(srvs), srvs);
 
     while(Running())
     {
