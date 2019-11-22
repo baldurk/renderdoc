@@ -80,9 +80,9 @@ void fragmain(in float4 incol : COL, out float4 ocol : SV_Target0)
     };
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(vertex, ShaderLang::hlsl, ShaderStage::vert, "vertmain",
+        CompileShaderModule(vertex, ShaderLang::hlsl, ShaderStage::vert, "vertmain", {},
                             SPIRVTarget::vulkan11),
-        CompileShaderModule(pixel, ShaderLang::hlsl, ShaderStage::frag, "fragmain",
+        CompileShaderModule(pixel, ShaderLang::hlsl, ShaderStage::frag, "fragmain", {},
                             SPIRVTarget::vulkan11),
     };
 

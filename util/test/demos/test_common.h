@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <algorithm>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -71,7 +72,8 @@ enum class ShaderStage
 bool InternalSpvCompiler();
 bool SpvCompilationSupported();
 std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTarget target,
-                                         ShaderLang lang, ShaderStage stage, const char *entry_point);
+                                         ShaderLang lang, ShaderStage stage, const char *entry_point,
+                                         const std::map<std::string, std::string> &macros = {});
 
 struct Vec2f
 {

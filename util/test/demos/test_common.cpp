@@ -233,7 +233,8 @@ bool SpvCompilationSupported()
 }
 
 std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTarget target,
-                                         ShaderLang lang, ShaderStage stage, const char *entry_point)
+                                         ShaderLang lang, ShaderStage stage, const char *entry_point,
+                                         const std::map<std::string, std::string> &macros)
 {
   std::vector<uint32_t> ret;
 
@@ -267,6 +268,10 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     else if(target == SPIRVTarget::vulkan11)
       shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan,
                                              shaderc_env_version_vulkan_1_1);
+
+    for(auto it : macros)
+      shaderc_compile_options_add_macro_definition(opts, it.first.c_str(), it.first.length(),
+                                                   it.second.c_str(), it.second.length());
 
     shaderc_compilation_result_t res = shaderc_compile_into_spv(
         shaderc, source_text.c_str(), source_text.size(), shader_kind, "inshader", entry_point, opts);
@@ -309,6 +314,9 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     command_line += " -x glsl";
   else if(lang == ShaderLang::hlsl)
     command_line += " -x hlsl";
+
+  for(auto it : macros)
+    command_line += " -D" + it.first + "=" + it.second;
 
   switch(stage)
   {

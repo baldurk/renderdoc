@@ -190,10 +190,10 @@ struct VulkanGraphicsTest : public GraphicsTest
               VkQueue q = VK_NULL_HANDLE);
   void Present(VulkanWindow *window = NULL, VkQueue q = VK_NULL_HANDLE);
 
-  VkPipelineShaderStageCreateInfo CompileShaderModule(const std::string &source_text,
-                                                      ShaderLang lang, ShaderStage stage,
-                                                      const char *entry_point = "main",
-                                                      SPIRVTarget target = SPIRVTarget::vulkan);
+  VkPipelineShaderStageCreateInfo CompileShaderModule(
+      const std::string &source_text, ShaderLang lang, ShaderStage stage,
+      const char *entry_point = "main", const std::map<std::string, std::string> &macros = {},
+      SPIRVTarget target = SPIRVTarget::vulkan);
   VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                                    VulkanWindow *window = NULL);
 

@@ -22,7 +22,6 @@
 * THE SOFTWARE.
 ******************************************************************************/
 
-#include <map>
 #include "../test_common.h"
 
 #define VMA_IMPLEMENTATION
@@ -620,11 +619,12 @@ void VulkanGraphicsTest::Present(VulkanWindow *window, VkQueue q)
 
 VkPipelineShaderStageCreateInfo VulkanGraphicsTest::CompileShaderModule(
     const std::string &source_text, ShaderLang lang, ShaderStage stage, const char *entry_point,
-    SPIRVTarget target)
+    const std::map<std::string, std::string> &macros, SPIRVTarget target)
 {
   VkShaderModule ret = VK_NULL_HANDLE;
 
-  std::vector<uint32_t> spirv = ::CompileShaderToSpv(source_text, target, lang, stage, entry_point);
+  std::vector<uint32_t> spirv =
+      ::CompileShaderToSpv(source_text, target, lang, stage, entry_point, macros);
 
   if(spirv.empty())
     return {};
