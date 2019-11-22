@@ -310,8 +310,6 @@ bool State::OperationFlushing(const DXBCBytecode::OpcodeType &op) const
       return true;
 
     // unclear if these flush and it's unlikely denorms will come up, so conservatively flush
-    case OPCODE_RESINFO:
-    case OPCODE_BUFINFO:
     case OPCODE_SAMPLE_INFO:
     case OPCODE_SAMPLE_POS:
     case OPCODE_EVAL_CENTROID:
@@ -327,6 +325,8 @@ bool State::OperationFlushing(const DXBCBytecode::OpcodeType &op) const
       return true;
 
     // operations that don't work on floats don't flush
+    case OPCODE_RESINFO:
+    case OPCODE_BUFINFO:
     case OPCODE_LOOP:
     case OPCODE_CONTINUE:
     case OPCODE_CONTINUEC:

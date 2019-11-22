@@ -523,6 +523,34 @@ float4 main(v2f IN) : SV_Target0
     return float4(width, height, numLevels, 0.0f);
   }
 
+  if(IN.tri == 59)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed mips
+    uint z = intval - IN.tri - 7;
+
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex.GetDimensions(z, width, height, numLevels);
+    return float4(width, height, numLevels, 0.0f);
+  }
+  if(IN.tri == 60)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed mips
+    uint z = intval - IN.tri - 7;
+
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex.GetDimensions(z+2, width, height, numLevels);
+    return float4(width, height, numLevels, 0.0f);
+  }
+  if(IN.tri == 61)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed mips
+    uint z = intval - IN.tri - 7;
+
+    uint width = 0, height = 0, numLevels = 0;
+    dimtex.GetDimensions(z+10, width, height, numLevels);
+    return float4(width, height, numLevels, 0.0f);
+  }
+
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
 
