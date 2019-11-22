@@ -193,6 +193,13 @@ void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
                                          uint32_t shaderRegister, GlobalState::ViewFmt &viewFmt);
 
+void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
+                                       const DXBC::Reflection &prevStageDxbc,
+                                       std::vector<PSInputElement> &initialValues,
+                                       std::vector<std::string> &floatInputs,
+                                       std::vector<std::string> &inputVarNames,
+                                       std::string &psInputDefinition, int &structureStride);
+
 struct SampleGatherResourceData
 {
   DXBCBytecode::ResourceDimension dim;

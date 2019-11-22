@@ -4535,6 +4535,312 @@ void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
   }
 }
 
+void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
+                                       const DXBC::Reflection &prevStageDxbc,
+                                       std::vector<PSInputElement> &initialValues,
+                                       std::vector<std::string> &floatInputs,
+                                       std::vector<std::string> &inputVarNames,
+                                       std::string &psInputDefinition, int &structureStride)
+{
+  // When debugging a pixel shader, we need to get the initial values of each pixel shader
+  // input for the pixel that we are debugging, from whichever the previous shader stage was
+  // configured in the pipeline. This function returns the input element definitions, other
+  // associated data, the HLSL definition to use when gathering pixel shader initial values,
+  // and the stride of that HLSL structure.
+
+  // This function does not provide any HLSL definitions for additional metadata that may be
+  // needed for gathering initial values, such as primitive ID, and also does not provide the
+  // shader function body.
+
+  initialValues.clear();
+  floatInputs.clear();
+  inputVarNames.clear();
+  psInputDefinition = "struct PSInput\n{\n";
+  structureStride = 0;
+
+  if(psDxbc.InputSig.empty())
+  {
+    psInputDefinition += "float4 input_dummy : SV_Position;\n";
+
+    initialValues.push_back(PSInputElement(-1, 0, 4, ShaderBuiltin::Undefined, true));
+
+    structureStride += 4;
+  }
+
+  // name, pair<start semantic index, end semantic index>
+  std::vector<rdcpair<rdcstr, rdcpair<uint32_t, uint32_t>>> arrays;
+
+  uint32_t nextreg = 0;
+
+  size_t numInputs = psDxbc.InputSig.size();
+  inputVarNames.resize(numInputs);
+
+  for(size_t i = 0; i < numInputs; i++)
+  {
+    const SigParameter &sig = psDxbc.InputSig[i];
+
+    psInputDefinition += "  ";
+
+    bool included = true;
+
+    // handled specially to account for SV_ ordering
+    if(sig.systemValue == ShaderBuiltin::PrimitiveIndex ||
+       sig.systemValue == ShaderBuiltin::MSAACoverage ||
+       sig.systemValue == ShaderBuiltin::IsFrontFace ||
+       sig.systemValue == ShaderBuiltin::MSAASampleIndex)
+    {
+      psInputDefinition += "//";
+      included = false;
+    }
+
+    int arrayIndex = -1;
+
+    for(size_t a = 0; a < arrays.size(); a++)
+    {
+      if(sig.semanticName == arrays[a].first && arrays[a].second.first <= sig.semanticIndex &&
+         arrays[a].second.second >= sig.semanticIndex)
+      {
+        psInputDefinition += "//";
+        included = false;
+        arrayIndex = sig.semanticIndex - arrays[a].second.first;
+      }
+    }
+
+    int missingreg = int(sig.regIndex) - int(nextreg);
+
+    // fill in holes from output sig of previous shader if possible, to try and
+    // ensure the same register order
+    for(int dummy = 0; dummy < missingreg; dummy++)
+    {
+      bool filled = false;
+
+      size_t numPrevOutputs = prevStageDxbc.OutputSig.size();
+      for(size_t os = 0; os < numPrevOutputs; os++)
+      {
+        if(prevStageDxbc.OutputSig[os].regIndex == nextreg + dummy)
+        {
+          filled = true;
+
+          if(prevStageDxbc.OutputSig[os].compType == CompType::Float)
+            psInputDefinition += "float";
+          else if(prevStageDxbc.OutputSig[os].compType == CompType::SInt)
+            psInputDefinition += "int";
+          else if(prevStageDxbc.OutputSig[os].compType == CompType::UInt)
+            psInputDefinition += "uint";
+          else
+            RDCERR("Unexpected input signature type: %d", prevStageDxbc.OutputSig[os].compType);
+
+          int numCols = (prevStageDxbc.OutputSig[os].regChannelMask & 0x1 ? 1 : 0) +
+                        (prevStageDxbc.OutputSig[os].regChannelMask & 0x2 ? 1 : 0) +
+                        (prevStageDxbc.OutputSig[os].regChannelMask & 0x4 ? 1 : 0) +
+                        (prevStageDxbc.OutputSig[os].regChannelMask & 0x8 ? 1 : 0);
+
+          structureStride += 4 * numCols;
+
+          initialValues.push_back(PSInputElement(-1, 0, numCols, ShaderBuiltin::Undefined, true));
+
+          std::string name = prevStageDxbc.OutputSig[os].semanticIdxName;
+
+          psInputDefinition += ToStr((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
+        }
+      }
+
+      if(!filled)
+      {
+        std::string dummy_reg = "dummy_register";
+        dummy_reg += ToStr((uint32_t)nextreg + dummy);
+        psInputDefinition += "float4 var_" + dummy_reg + " : semantic_" + dummy_reg + ";\n";
+
+        initialValues.push_back(PSInputElement(-1, 0, 4, ShaderBuiltin::Undefined, true));
+
+        structureStride += 4 * sizeof(float);
+      }
+    }
+
+    nextreg = sig.regIndex + 1;
+
+    if(sig.compType == CompType::Float)
+    {
+      // if we're packed with ints on either side, we must be nointerpolation
+      bool nointerp = false;
+      for(size_t j = 0; j < numInputs; j++)
+      {
+        if(sig.regIndex == psDxbc.InputSig[j].regIndex &&
+           psDxbc.InputSig[j].compType != CompType::Float)
+        {
+          nointerp = true;
+          break;
+        }
+      }
+
+      if(nointerp)
+        psInputDefinition += "nointerpolation ";
+
+      psInputDefinition += "float";
+    }
+    else if(sig.compType == CompType::SInt)
+      psInputDefinition += "nointerpolation int";
+    else if(sig.compType == CompType::UInt)
+      psInputDefinition += "nointerpolation uint";
+    else
+      RDCERR("Unexpected input signature type: %d", sig.compType);
+
+    int numCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
+                  (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
+
+    std::string name = sig.semanticIdxName;
+
+    // arrays of interpolators are handled really weirdly. They use cbuffer
+    // packing rules where each new value is in a new register (rather than
+    // e.g. 2 x float2 in a single register), but that's pointless because
+    // you can't dynamically index into input registers.
+    // If we declare those elements as a non-array, the float2s or floats
+    // will be packed into registers and won't match up to the previous
+    // shader.
+    // HOWEVER to add an extra bit of fun, fxc will happily pack other
+    // parameters not in the array into spare parts of the registers.
+    //
+    // So I think the upshot is that we can detect arrays reliably by
+    // whenever we encounter a float or float2 at the start of a register,
+    // search forward to see if the next register has an element that is the
+    // same semantic name and one higher semantic index. If so, there's an
+    // array, so keep searching to enumerate its length.
+    // I think this should be safe if the packing just happens to place those
+    // registers together.
+
+    int arrayLength = 0;
+
+    if(included && numCols <= 2 && (sig.regChannelMask & 0x1))
+    {
+      uint32_t nextIdx = sig.semanticIndex + 1;
+
+      for(size_t j = i + 1; j < numInputs; j++)
+      {
+        // if we've found the 'next' semantic
+        if(sig.semanticName == psDxbc.InputSig[j].semanticName &&
+           nextIdx == psDxbc.InputSig[j].semanticIndex)
+        {
+          int jNumCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
+                         (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
+
+          // if it's the same size, and it's at the start of the next register
+          if(jNumCols == numCols && psDxbc.InputSig[j].regChannelMask <= 0x3)
+          {
+            if(arrayLength == 0)
+              arrayLength = 2;
+            else
+              arrayLength++;
+
+            // continue searching now
+            nextIdx++;
+            j = i + 1;
+            continue;
+          }
+        }
+      }
+
+      if(arrayLength > 0)
+        arrays.push_back(make_rdcpair(sig.semanticName, make_rdcpair(sig.semanticIndex, nextIdx - 1)));
+    }
+
+    if(included)
+    {
+      // in UAV structs, arrays are packed tightly, so just multiply by arrayLength
+      structureStride += 4 * numCols * RDCMAX(1, arrayLength);
+    }
+
+    // as another side effect of the above, an element declared as a 1-length array won't be
+    // detected but it WILL be put in its own register (not packed together), so detect this
+    // case too.
+    // Note we have to search *backwards* because we need to know if this register should have
+    // been packed into the previous register, but wasn't. float/float2 can be packed after an
+    // array just fine.
+    if(included && i > 0 && arrayLength == 0 && numCols <= 2 && sig.regChannelMask <= 0x3)
+    {
+      const SigParameter &prev = psDxbc.InputSig[i - 1];
+
+      if(prev.regIndex != sig.regIndex && prev.compCount <= 2 && prev.regChannelMask <= 0x3)
+        arrayLength = 1;
+    }
+
+    // The compiler is also really annoying and will go to great lengths to rearrange elements
+    // and screw up our declaration, to pack things together. E.g.:
+    // float2 a : TEXCOORD1;
+    // float4 b : TEXCOORD2;
+    // float4 c : TEXCOORD3;
+    // float2 d : TEXCOORD4;
+    // the compiler will move d up and pack it into the last two components of a.
+    // To prevent this, we look forward and backward to check that we aren't expecting to pack
+    // with anything, and if not then we just make it a 1-length array to ensure no packing.
+    // Note the regChannelMask & 0x1 means it is using .x, so it's not the tail-end of a pack
+    if(included && arrayLength == 0 && numCols <= 2 && (sig.regChannelMask & 0x1))
+    {
+      if(i == numInputs - 1)
+      {
+        // the last element is never packed
+        arrayLength = 1;
+      }
+      else
+      {
+        // if the next reg is using .x, it wasn't packed with us
+        if(psDxbc.InputSig[i + 1].regChannelMask & 0x1)
+          arrayLength = 1;
+      }
+    }
+
+    psInputDefinition += ToStr((uint32_t)numCols) + " input_" + name;
+    if(arrayLength > 0)
+      psInputDefinition += "[" + ToStr(arrayLength) + "]";
+    psInputDefinition += " : " + name;
+
+    inputVarNames[i] = "input_" + name;
+    if(arrayLength > 0)
+      inputVarNames[i] += StringFormat::Fmt("[%d]", RDCMAX(0, arrayIndex));
+
+    if(included && sig.compType == CompType::Float)
+    {
+      if(arrayLength == 0)
+      {
+        floatInputs.push_back("input_" + name);
+      }
+      else
+      {
+        for(int a = 0; a < arrayLength; a++)
+          floatInputs.push_back("input_" + name + "[" + ToStr(a) + "]");
+      }
+    }
+
+    psInputDefinition += ";\n";
+
+    int firstElem = sig.regChannelMask & 0x1 ? 0 : sig.regChannelMask & 0x2
+                                                       ? 1
+                                                       : sig.regChannelMask & 0x4
+                                                             ? 2
+                                                             : sig.regChannelMask & 0x8 ? 3 : -1;
+
+    // arrays get added all at once (because in the struct data, they are contiguous even if
+    // in the input signature they're not).
+    if(arrayIndex < 0)
+    {
+      if(arrayLength == 0)
+      {
+        initialValues.push_back(
+            PSInputElement(sig.regIndex, firstElem, numCols, sig.systemValue, included));
+      }
+      else
+      {
+        for(int a = 0; a < arrayLength; a++)
+        {
+          initialValues.push_back(
+              PSInputElement(sig.regIndex + a, firstElem, numCols, sig.systemValue, included));
+        }
+      }
+    }
+  }
+
+  psInputDefinition += "};\n\n";
+}
+
 };    // namespace ShaderDebug
 
 #if ENABLED(ENABLE_UNIT_TESTS)
