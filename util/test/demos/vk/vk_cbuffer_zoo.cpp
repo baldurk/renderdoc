@@ -528,7 +528,7 @@ float4 main() : SV_Target0
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
 
     AllocatedImage img(
-        allocator,
+        this,
         vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
                              VK_FORMAT_R32G32B32A32_SFLOAT,
                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
@@ -592,8 +592,8 @@ float4 main() : SV_Target0
     VkPipeline hlslpipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -604,8 +604,8 @@ float4 main() : SV_Target0
       cbufferdata[i] = Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
     AllocatedBuffer cb(
-        allocator, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(cbufferdata);

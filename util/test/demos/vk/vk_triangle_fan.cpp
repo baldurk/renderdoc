@@ -128,7 +128,7 @@ void main()
         {Vec3f(0.8f, 0.0f - 0.75f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
+    AllocatedBuffer vb(this,
                        vkh::BufferCreateInfo(sizeof(verts), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -136,7 +136,7 @@ void main()
     vb.upload(verts);
 
     uint32_t indices[13] = {0, 1, 2, 3, 4, 5, ~0U, 6, 7, 8, 9, 10, 11};
-    AllocatedBuffer ib(allocator,
+    AllocatedBuffer ib(this,
                        vkh::BufferCreateInfo(sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));

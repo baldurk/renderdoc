@@ -94,9 +94,8 @@ void fragmain(in float4 incol : COL, out float4 ocol : SV_Target0)
         {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
-                       vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(tri);

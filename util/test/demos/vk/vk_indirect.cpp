@@ -233,7 +233,7 @@ void main()
         {Vec3f(0.1f, -0.2f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
+    AllocatedBuffer vb(this,
                        vkh::BufferCreateInfo(sizeof(vbdata), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -241,7 +241,7 @@ void main()
     vb.upload(vbdata);
 
     uint32_t indices[18] = {6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
-    AllocatedBuffer ib(allocator,
+    AllocatedBuffer ib(this,
                        vkh::BufferCreateInfo(sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -250,7 +250,7 @@ void main()
 
     VkDeviceSize ssbo_size = 16 * 1024;
 
-    AllocatedBuffer ssbo(allocator,
+    AllocatedBuffer ssbo(this,
                          vkh::BufferCreateInfo(ssbo_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                                               VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                                               VK_BUFFER_USAGE_TRANSFER_DST_BIT),

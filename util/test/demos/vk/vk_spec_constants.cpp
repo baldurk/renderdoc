@@ -115,8 +115,8 @@ void main()
     };
 
     AllocatedBuffer cb(
-        allocator, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(cbufferdata);
@@ -130,8 +130,8 @@ void main()
                 });
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);

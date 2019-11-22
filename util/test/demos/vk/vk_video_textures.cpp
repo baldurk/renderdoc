@@ -273,7 +273,7 @@ void main()
         {Vec3f(1.0f, 1.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
+    AllocatedBuffer vb(this,
                        vkh::BufferCreateInfo(sizeof(verts), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -311,8 +311,8 @@ void main()
     TextureData textures[20] = {};
     uint32_t texidx = 0;
 
-    AllocatedBuffer uploadBuf(allocator, vkh::BufferCreateInfo(rgba8.width * rgba8.height * 16,
-                                                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.width * rgba8.height * 16,
+                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     auto make_tex = [&](const char *name, uint32_t subsampling, VkFormat texFmt, VkFormat viewFmt,
@@ -384,18 +384,19 @@ void main()
         TextureData &t = textures[texidx];
         t.name = name;
 
-        t.tex.create(allocator, vkh::ImageCreateInfo(
-                                    rgba8.width, rgba8.height, 0, texFmt,
-                                    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 1,
-                                    1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT),
-                     VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+        t.tex = AllocatedImage(
+            this,
+            vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, texFmt,
+                                 VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 1, 1,
+                                 VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT),
+            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
         Vec4i cbdata[2] = {
             Vec4i(rgba8.width, rgba8.height, horizDownsampleFactor, vertDownsampleFactor), config,
         };
 
-        t.cb.create(allocator,
-                    vkh::BufferCreateInfo(sizeof(cbdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
-                    VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+        t.cb = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(sizeof(cbdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
+            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
         t.cb.upload(cbdata);
 

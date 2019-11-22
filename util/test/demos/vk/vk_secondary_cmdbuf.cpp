@@ -83,7 +83,7 @@ void main()
     VkRect2D size = mainWindow->scissor;
 
     AllocatedImage img(
-        allocator,
+        this,
         vkh::ImageCreateInfo(size.extent.width, size.extent.height, 0, VK_FORMAT_R8G8B8A8_SRGB,
                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
@@ -146,7 +146,7 @@ void main()
         {Vec3f(0.75f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
+    AllocatedBuffer vb(this,
                        vkh::BufferCreateInfo(sizeof(TwoTris), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));

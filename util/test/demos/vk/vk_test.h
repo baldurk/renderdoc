@@ -33,35 +33,21 @@
 #include "vk_helpers.h"
 #include "vk_test.h"
 
+struct VulkanGraphicsTest;
+
 struct AllocatedBuffer
 {
-  VmaAllocator allocator;
-  VkBuffer buffer;
-  VmaAllocation alloc;
+  VulkanGraphicsTest *test = NULL;
+  VmaAllocator allocator = NULL;
+  VkBuffer buffer = VK_NULL_HANDLE;
+  VmaAllocation alloc = {};
 
   AllocatedBuffer() {}
-  AllocatedBuffer(VmaAllocator allocator, const VkBufferCreateInfo &bufInfo,
-                  const VmaAllocationCreateInfo &allocInfo)
-  {
-    create(allocator, bufInfo, allocInfo);
-  }
-  AllocatedBuffer(const AllocatedBuffer &) = delete;
-  AllocatedBuffer &operator=(const AllocatedBuffer &) = delete;
+  AllocatedBuffer(VulkanGraphicsTest *test, const VkBufferCreateInfo &bufInfo,
+                  const VmaAllocationCreateInfo &allocInfo);
 
-  void create(VmaAllocator vma, const VkBufferCreateInfo &bufInfo,
-              const VmaAllocationCreateInfo &allocInfo)
-  {
-    allocator = vma;
-    VkBuffer buf;
-    vmaCreateBuffer(allocator, &bufInfo, &allocInfo, &buf, &alloc, NULL);
-    buffer = VkBuffer(buf);
-  }
+  void free();
 
-  ~AllocatedBuffer()
-  {
-    if(buffer != VK_NULL_HANDLE)
-      vmaDestroyBuffer(allocator, (VkBuffer)buffer, alloc);
-  }
   template <typename T, size_t N>
   void upload(const T (&data)[N])
   {
@@ -92,33 +78,16 @@ struct AllocatedBuffer
 
 struct AllocatedImage
 {
-  VmaAllocator allocator;
-  VkImage image;
-  VmaAllocation alloc;
+  VulkanGraphicsTest *test = NULL;
+  VmaAllocator allocator = NULL;
+  VkImage image = VK_NULL_HANDLE;
+  VmaAllocation alloc = {};
 
   AllocatedImage() {}
-  AllocatedImage(VmaAllocator allocator, const VkImageCreateInfo &imgInfo,
-                 const VmaAllocationCreateInfo &allocInfo)
-  {
-    create(allocator, imgInfo, allocInfo);
-  }
-  AllocatedImage(const AllocatedImage &) = delete;
-  AllocatedImage &operator=(const AllocatedImage &) = delete;
+  AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo &imgInfo,
+                 const VmaAllocationCreateInfo &allocInfo);
 
-  void create(VmaAllocator vma, const VkImageCreateInfo &imgInfo,
-              const VmaAllocationCreateInfo &allocInfo)
-  {
-    allocator = vma;
-    VkImage img;
-    vmaCreateImage(allocator, &imgInfo, &allocInfo, &img, &alloc, NULL);
-    image = VkImage(img);
-  }
-
-  ~AllocatedImage()
-  {
-    if(image != VK_NULL_HANDLE)
-      vmaDestroyImage(allocator, (VkImage)image, alloc);
-  }
+  void free();
 };
 
 #define CHECK_VKR(cmd)                                                               \
@@ -292,6 +261,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkBufferView> bufferviews;
   std::vector<VkPipelineLayout> pipelayouts;
   std::vector<VkDescriptorSetLayout> setlayouts;
+
+  std::vector<VkImage> images;
+  std::vector<VkBuffer> buffers;
 
   VulkanWindow *mainWindow = NULL;
 

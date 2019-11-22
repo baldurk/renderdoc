@@ -299,8 +299,8 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -349,8 +349,8 @@ void main()
     cbufferdata.s = 19472;    // 16.25f
 
     AllocatedBuffer cb(
-        allocator, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(&cbufferdata, sizeof(cbufferdata));

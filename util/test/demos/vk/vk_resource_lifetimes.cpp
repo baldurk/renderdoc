@@ -128,8 +128,8 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -138,23 +138,23 @@ void main()
     LoadXPM(SmileyTexture, rgba8);
 
     AllocatedImage smiley(
-        allocator, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView smileyview = createImageView(
         vkh::ImageViewCreateInfo(smiley.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
 
-    AllocatedImage badimg(allocator, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                                              VK_IMAGE_USAGE_SAMPLED_BIT),
-                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage badimg(
+        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView badview = createImageView(
         vkh::ImageViewCreateInfo(badimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
 
-    AllocatedBuffer uploadBuf(allocator, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
-                                                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
+                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                               VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
@@ -195,7 +195,7 @@ void main()
     }
 
     Vec4f flags = {};
-    AllocatedBuffer badcb(allocator,
+    AllocatedBuffer badcb(this,
                           vkh::BufferCreateInfo(sizeof(flags), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));

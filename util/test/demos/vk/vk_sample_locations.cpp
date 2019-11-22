@@ -98,12 +98,11 @@ void main()
 
     // create multi-sampled image
     AllocatedImage msaaimg(
-        allocator,
-        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                             mainWindow->format,
-                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                 VK_IMAGE_USAGE_SAMPLED_BIT,
-                             1, 1, VK_SAMPLE_COUNT_4_BIT),
+        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
+                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                   1, 1, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView msview = createImageView(
@@ -164,8 +163,8 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);

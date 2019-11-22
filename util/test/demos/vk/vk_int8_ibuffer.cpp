@@ -128,7 +128,7 @@ void main()
         {Vec3f(0.4f, -0.2f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
+    AllocatedBuffer vb(this,
                        vkh::BufferCreateInfo(sizeof(strip), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -146,9 +146,8 @@ void main()
         8, 9, 10, 11, 12, 13, 14, 15,
     };
 
-    AllocatedBuffer ib(allocator,
-                       vkh::BufferCreateInfo(sizeof(idx), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer ib(this, vkh::BufferCreateInfo(sizeof(idx), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     ib.upload(idx);

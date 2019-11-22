@@ -101,8 +101,8 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -128,10 +128,10 @@ void main()
 
       setName(preinitImg, "Image:Preinitialised");
 
-      AllocatedImage undefImg(allocator, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                                                  VK_IMAGE_USAGE_SAMPLED_BIT),
-                              VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+      AllocatedImage undefImg(
+          this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
       setName(undefImg.image, "Image:Undefined");
 

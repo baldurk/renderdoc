@@ -538,6 +538,12 @@ void VulkanGraphicsTest::Shutdown()
     for(VkDescriptorSetLayout layout : setlayouts)
       vkDestroyDescriptorSetLayout(device, layout, NULL);
 
+    for(VkImage img : images)
+      vkDestroyImage(device, img, NULL);
+
+    for(VkBuffer buf : buffers)
+      vkDestroyBuffer(device, buf, NULL);
+
     delete mainWindow;
 
     vkDestroyDevice(device, NULL);
@@ -1145,4 +1151,36 @@ template <>
 VkFormat vkh::_FormatFromObj<Vec2f>()
 {
   return VK_FORMAT_R32G32_SFLOAT;
+}
+
+AllocatedImage::AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo &imgInfo,
+                               const VmaAllocationCreateInfo &allocInfo)
+{
+  this->test = test;
+  allocator = test->allocator;
+  vmaCreateImage(allocator, &imgInfo, &allocInfo, &image, &alloc, NULL);
+
+  test->images.push_back(image);
+}
+
+void AllocatedImage::free()
+{
+  vmaFreeMemory(allocator, alloc);
+  test->images.erase(std::find(test->images.begin(), test->images.end(), image));
+}
+
+AllocatedBuffer::AllocatedBuffer(VulkanGraphicsTest *test, const VkBufferCreateInfo &bufInfo,
+                                 const VmaAllocationCreateInfo &allocInfo)
+{
+  this->test = test;
+  allocator = test->allocator;
+  vmaCreateBuffer(allocator, &bufInfo, &allocInfo, &buffer, &alloc, NULL);
+
+  test->buffers.push_back(buffer);
+}
+
+void AllocatedBuffer::free()
+{
+  vmaFreeMemory(allocator, alloc);
+  test->buffers.erase(std::find(test->buffers.begin(), test->buffers.end(), buffer));
 }

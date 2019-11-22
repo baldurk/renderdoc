@@ -159,8 +159,7 @@ void main()
 
     vkh::BufferCreateInfo bufinfo(0x100000, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT);
 
-    AllocatedBuffer databuf(allocator, bufinfo,
-                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer databuf(this, bufinfo, VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     // north-facing primary colours triangle
     const DefaultA2V tri1[3] = {

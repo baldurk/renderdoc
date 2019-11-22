@@ -152,8 +152,8 @@ void main()
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        allocator, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
@@ -161,16 +161,16 @@ void main()
     Vec4f cbufferdata = Vec4f(0.0f, 0.2f, 0.75f, 0.8f);
 
     AllocatedBuffer cb(
-        allocator, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cb.upload(&cbufferdata, sizeof(cbufferdata));
 
-    AllocatedImage img(allocator, vkh::ImageCreateInfo(
-                                      4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage img(
+        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView imgview = createImageView(
         vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));

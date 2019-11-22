@@ -108,16 +108,15 @@ void main()
         {Vec3f(val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
-                       vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(tri);
 
     AllocatedBuffer copy_src(
-        allocator, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(
+                  sizeof(tri), VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     copy_src.upload(tri);

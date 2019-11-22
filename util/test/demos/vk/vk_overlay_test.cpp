@@ -154,7 +154,7 @@ void main()
         v.pos.y = -v.pos.y;
     }
 
-    AllocatedBuffer vb(allocator,
+    AllocatedBuffer vb(this,
                        vkh::BufferCreateInfo(sizeof(VBData), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
@@ -162,11 +162,11 @@ void main()
     vb.upload(VBData);
 
     // create depth-stencil image
-    AllocatedImage depthimg(
-        allocator, vkh::ImageCreateInfo(
-                       mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
-                       VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage depthimg(this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                                       mainWindow->scissor.extent.height, 0,
+                                                       VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
         depthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},

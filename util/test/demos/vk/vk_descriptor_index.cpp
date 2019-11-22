@@ -341,17 +341,16 @@ void main()
         {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, right), Vec2f(1.0f, 0.0f)},
     };
 
-    AllocatedBuffer vb(allocator,
-                       vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(tri);
 
-    AllocatedImage img(allocator, vkh::ImageCreateInfo(
-                                      4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage img(
+        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(img.image, "Colour Tex");
 
@@ -363,17 +362,17 @@ void main()
       pixels[i] = RANDF(0.2f, 1.0f);
 
     AllocatedBuffer uploadBuf(
-        allocator, vkh::BufferCreateInfo(sizeof(pixels), VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+        this, vkh::BufferCreateInfo(sizeof(pixels), VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     uploadBuf.upload(pixels);
 
     // create an image with black contents for all the indices we aren't using
 
-    AllocatedImage badimg(allocator, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                                              VK_IMAGE_USAGE_SAMPLED_BIT),
-                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage badimg(
+        this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     setName(badimg.image, "Black Tex");
 
@@ -480,7 +479,7 @@ void main()
 
     vkh::updateDescriptorSets(device, ups);
 
-    AllocatedBuffer ssbo(allocator,
+    AllocatedBuffer ssbo(this,
                          vkh::BufferCreateInfo(1024 * 1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
