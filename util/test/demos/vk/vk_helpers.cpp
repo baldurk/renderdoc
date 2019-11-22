@@ -167,6 +167,16 @@ GraphicsPipelineCreateInfo::GraphicsPipelineCreateInfo()
 
   depthStencilState = VkPipelineDepthStencilStateCreateInfo();
   depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+  depthStencilState.minDepthBounds = 0.0f;
+  depthStencilState.maxDepthBounds = 1.0f;
+  depthStencilState.front.compareMask = 0xff;
+  depthStencilState.front.writeMask = 0xff;
+  depthStencilState.front.compareOp = VK_COMPARE_OP_EQUAL;
+  depthStencilState.front.passOp = VK_STENCIL_OP_REPLACE;
+  depthStencilState.front.failOp = VK_STENCIL_OP_KEEP;
+  depthStencilState.front.depthFailOp = VK_STENCIL_OP_KEEP;
+  depthStencilState.back = depthStencilState.front;
 
   colorBlendState.attachments.push_back({
       // blendEnable
