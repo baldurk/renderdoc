@@ -3735,6 +3735,10 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       return Serialise_glFramebufferReadBufferEXT(ser, 0, eGL_NONE);
     case GLChunk::glBindFramebufferEXT:
     case GLChunk::glBindFramebuffer: return Serialise_glBindFramebuffer(ser, eGL_NONE, 0);
+    case GLChunk::glDiscardFramebufferEXT:
+    case GLChunk::glInvalidateFramebuffer:
+    case GLChunk::glInvalidateNamedFramebufferData:
+      return Serialise_glInvalidateNamedFramebufferData(ser, 0, 0, 0);
     case GLChunk::glDrawBuffer:
     case GLChunk::glNamedFramebufferDrawBuffer:
     case GLChunk::glFramebufferDrawBufferEXT:
@@ -4727,11 +4731,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glProgramBinary:
     case GLChunk::glReleaseShaderCompiler:
     case GLChunk::glFrameTerminatorGREMEDY:
-    case GLChunk::glDiscardFramebufferEXT:
     case GLChunk::glInvalidateBufferData:
     case GLChunk::glInvalidateBufferSubData:
-    case GLChunk::glInvalidateFramebuffer:
-    case GLChunk::glInvalidateNamedFramebufferData:
     case GLChunk::glInvalidateNamedFramebufferSubData:
     case GLChunk::glInvalidateSubFramebuffer:
     case GLChunk::glInvalidateTexImage:

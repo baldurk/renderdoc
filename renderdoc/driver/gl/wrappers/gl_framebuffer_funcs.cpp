@@ -1708,12 +1708,34 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
   }
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &ser,
+                                                               GLuint framebufferHandle,
+                                                               GLsizei numAttachments,
+                                                               const GLenum *attachments)
+{
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(numAttachments);
+  SERIALISE_ELEMENT_ARRAY(attachments, numAttachments);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_CurrentDefaultFBO;
+
+    GL.glInvalidateNamedFramebufferData(framebuffer.name, numAttachments, attachments);
+  }
+
+  return true;
+}
+
 void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachments,
                                             const GLenum *attachments)
 {
-  GL.glInvalidateFramebuffer(target, numAttachments, attachments);
-
-  if(IsBackgroundCapturing(m_State))
+  SERIALISE_TIME_CALL(GL.glInvalidateFramebuffer(target, numAttachments, attachments));
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1728,7 +1750,21 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
         record = GetCtxData().m_ReadFramebufferRecord;
     }
 
-    if(record)
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      if(record)
+        Serialise_glInvalidateNamedFramebufferData(ser, record->Resource.name, numAttachments,
+                                                   attachments);
+      else
+        Serialise_glInvalidateNamedFramebufferData(ser, 0, numAttachments, attachments);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      if(record)
+        GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    }
+    else if(record)
     {
       record->MarkParentsDirty(GetResourceManager());
     }
@@ -1740,9 +1776,9 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
 void WrappedOpenGL::glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
                                             const GLenum *attachments)
 {
-  GL.glDiscardFramebufferEXT(target, numAttachments, attachments);
+  SERIALISE_TIME_CALL(GL.glDiscardFramebufferEXT(target, numAttachments, attachments));
 
-  if(IsBackgroundCapturing(m_State))
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1757,7 +1793,21 @@ void WrappedOpenGL::glDiscardFramebufferEXT(GLenum target, GLsizei numAttachment
         record = GetCtxData().m_ReadFramebufferRecord;
     }
 
-    if(record)
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      if(record)
+        Serialise_glInvalidateNamedFramebufferData(ser, record->Resource.name, numAttachments,
+                                                   attachments);
+      else
+        Serialise_glInvalidateNamedFramebufferData(ser, 0, numAttachments, attachments);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      if(record)
+        GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    }
+    else if(record)
     {
       record->MarkParentsDirty(GetResourceManager());
     }
@@ -1767,15 +1817,31 @@ void WrappedOpenGL::glDiscardFramebufferEXT(GLenum target, GLsizei numAttachment
 void WrappedOpenGL::glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei numAttachments,
                                                      const GLenum *attachments)
 {
-  GL.glInvalidateNamedFramebufferData(framebuffer, numAttachments, attachments);
+  SERIALISE_TIME_CALL(GL.glInvalidateNamedFramebufferData(framebuffer, numAttachments, attachments));
 
-  if(IsBackgroundCapturing(m_State))
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
-    if(record)
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      if(record)
+        Serialise_glInvalidateNamedFramebufferData(ser, record->Resource.name, numAttachments,
+                                                   attachments);
+      else
+        Serialise_glInvalidateNamedFramebufferData(ser, 0, numAttachments, attachments);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      if(record)
+        GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    }
+    else if(record)
+    {
       record->MarkParentsDirty(GetResourceManager());
+    }
   }
 }
 
@@ -2769,6 +2835,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferParameteriEXT, GLuint fr
 INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferReadBufferEXT, GLuint framebufferHandle,
                                 GLenum mode);
 INSTANTIATE_FUNCTION_SERIALISED(void, glBindFramebuffer, GLenum target, GLuint framebufferHandle);
+INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferData, GLuint framebufferHandle,
+                                GLsizei numAttachments, const GLenum *attachments);
 INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferDrawBufferEXT, GLuint framebufferHandle,
                                 GLenum buf);
 INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferDrawBuffersEXT, GLuint framebufferHandle,

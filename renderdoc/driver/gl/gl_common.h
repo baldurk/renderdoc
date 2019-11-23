@@ -709,6 +709,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(43, 31, ARB_compute_shader)                       \
   EXT_TO_CHECK(43, 32, ARB_copy_image)                           \
   EXT_TO_CHECK(43, 30, ARB_ES3_compatibility)                    \
+  EXT_TO_CHECK(43, 30, ARB_invalidate_subdata)                   \
   EXT_TO_CHECK(43, 99, ARB_internalformat_query2)                \
   EXT_TO_CHECK(43, 31, ARB_program_interface_query)              \
   EXT_TO_CHECK(43, 31, ARB_shader_storage_buffer_object)         \
@@ -756,7 +757,8 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, NV_read_depth_stencil)                    \
   EXT_TO_CHECK(99, 99, EXT_disjoint_timer_query)                 \
   EXT_TO_CHECK(99, 99, EXT_multisampled_render_to_texture)       \
-  EXT_TO_CHECK(99, 99, OVR_multiview)
+  EXT_TO_CHECK(99, 99, OVR_multiview)                            \
+  EXT_TO_CHECK(99, 99, EXT_discard_framebuffer)
 
 // GL extensions equivalents
 // Either promoted extensions from EXT to ARB, or

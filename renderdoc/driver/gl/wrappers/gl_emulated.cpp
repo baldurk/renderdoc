@@ -314,6 +314,25 @@ void APIENTRY _glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum atta
   GL.glFramebufferRenderbuffer(eGL_DRAW_FRAMEBUFFER, attachment, renderbuffertarget, renderbuffer);
 }
 
+void APIENTRY _glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei numAttachments,
+                                                const GLenum *attachments)
+{
+  if(HasExt[ARB_invalidate_subdata])
+  {
+    PushPopFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer);
+    GL.glInvalidateFramebuffer(eGL_DRAW_FRAMEBUFFER, numAttachments, attachments);
+  }
+  else if(HasExt[EXT_discard_framebuffer])
+  {
+    PushPopFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer);
+    GL.glDiscardFramebufferEXT(eGL_DRAW_FRAMEBUFFER, numAttachments, attachments);
+  }
+  else
+  {
+    RDCERR("No support for framebuffer invalidate on GL %d", GLCoreVersion);
+  }
+}
+
 #pragma endregion
 
 #pragma region Renderbuffers
@@ -3313,6 +3332,7 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glBlitNamedFramebuffer)
     EMULATE_FUNC(glVertexArrayElementBuffer);
     EMULATE_FUNC(glVertexArrayVertexBuffers)
+    EMULATE_FUNC(glInvalidateNamedFramebufferData);
   }
 }
 

@@ -913,6 +913,8 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawBuffer, GLenum buf);
   IMPLEMENT_FUNCTION_SERIALISED(void, glDrawBuffers, GLsizei n, const GLenum *bufs);
   IMPLEMENT_FUNCTION_SERIALISED(void, glBindFramebuffer, GLenum target, GLuint framebuffer);
+  IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferData, GLuint framebufferHandle,
+                                GLsizei numAttachments, const GLenum *attachments);
   IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture, GLenum target, GLenum attachment,
                                 GLuint texture, GLint level);
   IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture1D, GLenum target, GLenum attachment,
@@ -2241,9 +2243,6 @@ public:
                                 GLuint buffer);
   IMPLEMENT_FUNCTION_SERIALISED(void, glTransformFeedbackBufferRange, GLuint xfb, GLuint index,
                                 GLuint buffer, GLintptr offset, GLsizeiptr size);
-
-  IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferData, GLuint framebuffer,
-                                GLsizei numAttachments, const GLenum *attachments);
   IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferSubData, GLuint framebuffer,
                                 GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y,
                                 GLsizei width, GLsizei height);
