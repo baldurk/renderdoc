@@ -1062,7 +1062,7 @@ void VulkanWindow::Submit(int index, int totalSubmits, const std::vector<VkComma
   for(const VkCommandBuffer &cmd : seccmds)
     pendingCommandBuffers[1].push_back(std::make_pair(cmd, fence));
 
-  vkQueueSubmit(q, 1, &submit, fence);
+  CHECK_VKR(vkQueueSubmit(q, 1, &submit, fence));
 }
 
 void VulkanWindow::Present(VkQueue queue)
@@ -1076,6 +1076,11 @@ void VulkanWindow::Present(VkQueue queue)
   {
     DestroySwapchain();
     CreateSwapchain();
+  }
+  else if(vkr != VK_SUCCESS)
+  {
+    VkResult queuePresentError = vkr;
+    CHECK_VKR(queuePresentError);
   }
 
   std::set<VkFence> doneFences;
