@@ -93,6 +93,7 @@ elseif(ENABLE_GGP)
     add_definitions(-DVK_USE_PLATFORM_GGP)
 
     set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
+    set(VULKAN_ENABLE_VAR "ENABLE_RENDERDOC_VULKAN_CAPTURE")
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
     set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
@@ -116,6 +117,7 @@ elseif(UNIX)
     endif()
 
     set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
+    set(VULKAN_ENABLE_VAR "ENABLE_RENDERDOC_VULKAN_CAPTURE")
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
     set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)

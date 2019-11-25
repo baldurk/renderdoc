@@ -594,6 +594,35 @@
   <ItemGroup>
     <Natvis Include="renderdoc.natvis" />
   </ItemGroup>
+  <Target Name="_jsonProcess" BeforeTargets="PrepareForBuild">
+    <!-- Read the version.h -->
+    <PropertyGroup>
+      <VersionFile>$([System.IO.File]::ReadAllText('$(SolutionDir)renderdoc/api/replay/version.h').Trim())</VersionFile>
+    </PropertyGroup>
+    <!-- Extract the major and minor lines -->
+    <PropertyGroup>
+      <!-- Find the start of the line -->
+      <MajorVersionStart>$(VersionFile.IndexOf('#define RENDERDOC_VERSION_MAJOR'))</MajorVersionStart>
+      <!-- Take the rest of the file and split it by newline to get an array of lines,
+           Take the first line and split it by space
+           Take the third item. This is #define MAJOR foo
+                                            0     1    2
+      -->
+      <MajorVersion>$(VersionFile.Substring($(MajorVersionStart)).Split('
+')[0].Split(' ')[2])</MajorVersion>
+      <MinorVersionStart>$(VersionFile.IndexOf('#define RENDERDOC_VERSION_MINOR'))</MinorVersionStart>
+      <MinorVersion>$(VersionFile.Substring($(MinorVersionStart)).Split('
+')[0].Split(' ')[2])</MinorVersion>
+    </PropertyGroup>
+    <Message Text="Processing layer JSON file for RenderDoc $(MajorVersion).$(MinorVersion)" Importance="High" />
+    <!-- Read the template json, replace the major/minor versions -->
+    <PropertyGroup>
+      <VulkanEnableVar>ENABLE_VULKAN_$(ProjectName)_CAPTURE</VulkanEnableVar>
+      <JSONContents>$([System.IO.File]::ReadAllText('$(SolutionDir)renderdoc/driver/vulkan/renderdoc.json').Replace('@RENDERDOC_VERSION_MAJOR@', '$(MajorVersion)').Replace('@RENDERDOC_VERSION_MINOR@', '$(MinorVersion)').Replace('@VULKAN_LAYER_MODULE_PATH@', '.\\$(ProjectName).dll').Replace('@VULKAN_ENABLE_VAR@', $(VulkanEnableVar.ToUpper())))</JSONContents>
+    </PropertyGroup>
+    <!-- Write it out to the output directory -->
+    <WriteLinesToFile File="$(OutDir)$(ProjectName).json" Lines="$(JSONContents)" Overwrite="true" />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="driver\d3d11\renderdoc_d3d11.vcxproj">
       <Project>{f1e59a05-60d4-4927-9e57-dd191eae90ef}</Project>

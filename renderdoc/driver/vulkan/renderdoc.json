@@ -34,7 +34,7 @@
       }
     ],
     "enable_environment": {
-      "ENABLE_VULKAN_RENDERDOC_CAPTURE": "1"
+      "@VULKAN_ENABLE_VAR@": "1"
     },
     "disable_environment": {
       "DISABLE_VULKAN_RENDERDOC_CAPTURE_@RENDERDOC_VERSION_MAJOR@_@RENDERDOC_VERSION_MINOR@": "1"

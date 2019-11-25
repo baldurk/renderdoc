@@ -58,6 +58,19 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(EnvironmentModification(
         EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
 
+#if ENABLED(RDOC_WIN32)
+    // on windows support self-hosted capture by checking our filename and tweaking the env var we
+    // set
+    std::string module_name;
+    FileIO::GetLibraryFilename(module_name);
+    module_name = strupper(get_basename(module_name.substr(0, module_name.rfind('.'))));
+    if(module_name != "RENDERDOC")
+    {
+      Process::RegisterEnvironmentModification(EnvironmentModification(
+          EnvMod::Set, EnvSep::NoSep, ("ENABLE_VULKAN_" + module_name + "_CAPTURE").c_str(), "1"));
+    }
+#endif
+
     // check options to set further variables, and apply
     OptionsUpdated();
   }
