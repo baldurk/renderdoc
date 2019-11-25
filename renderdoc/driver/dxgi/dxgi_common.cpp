@@ -1997,6 +1997,9 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
       case ResourceFormatType::BC6: ret = DXGI_FORMAT_BC6H_UF16; break;
       case ResourceFormatType::BC7: ret = DXGI_FORMAT_BC7_UNORM; break;
       case ResourceFormatType::R10G10B10A2:
+        // only support rgba order
+        if(fmt.BGRAOrder())
+          return DXGI_FORMAT_UNKNOWN;
         if(fmt.compType == CompType::UNorm)
           ret = DXGI_FORMAT_R10G10B10A2_UNORM;
         else if(fmt.compType == CompType::Float)
@@ -2153,14 +2156,26 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
     else
       return DXGI_FORMAT_UNKNOWN;
 
+    // only support 8-bit UNORM for BGRA order
     if(fmt.BGRAOrder())
-      ret = DXGI_FORMAT_B8G8R8A8_UNORM;
+    {
+      if(fmt.compByteWidth == 1 && fmt.compType == CompType::UNorm)
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+      else if(fmt.compByteWidth == 1 && fmt.compType == CompType::UNormSRGB)
+        return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+      else
+        return DXGI_FORMAT_UNKNOWN;
+    }
   }
   else if(fmt.compCount == 3)
   {
     if(fmt.compByteWidth == 4)
       ret = DXGI_FORMAT_R32G32B32_TYPELESS;
     else
+      return DXGI_FORMAT_UNKNOWN;
+
+    // only support RGBA order
+    if(fmt.BGRAOrder())
       return DXGI_FORMAT_UNKNOWN;
   }
   else if(fmt.compCount == 2)
@@ -2173,6 +2188,10 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
       ret = DXGI_FORMAT_R8G8_TYPELESS;
     else
       return DXGI_FORMAT_UNKNOWN;
+
+    // only support RGBA order
+    if(fmt.BGRAOrder())
+      return DXGI_FORMAT_UNKNOWN;
   }
   else if(fmt.compCount == 1)
   {
@@ -2183,6 +2202,10 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
     else if(fmt.compByteWidth == 1)
       ret = DXGI_FORMAT_R8_TYPELESS;
     else
+      return DXGI_FORMAT_UNKNOWN;
+
+    // only support RGBA order
+    if(fmt.BGRAOrder())
       return DXGI_FORMAT_UNKNOWN;
   }
   else
