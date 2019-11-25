@@ -3304,6 +3304,17 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
 bool GLReplay::IsTextureSupported(const TextureDescription &tex)
 {
+  // these formats are inconsistently laid out between APIs, always remap if the remote API is
+  // different
+  switch(tex.format.type)
+  {
+    case ResourceFormatType::R4G4:
+    case ResourceFormatType::R4G4B4A4:
+    case ResourceFormatType::R5G6B5:
+    case ResourceFormatType::R5G5B5A1: return false;
+    default: break;
+  }
+
   // We couldn't create proxy textures for ASTC textures (see MakeGLFormat). So we give back false
   // and let RemapProxyTextureIfNeeded to set remap type for them.
   if(tex.format.type == ResourceFormatType::ASTC)
@@ -3318,8 +3329,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   if(tex.format.BGRAOrder())
     return IsGLES && HasExt[EXT_texture_format_BGRA8888];
 
-  // don't support 3D block compressed textures
-  if(tex.dimension == 3 &&
+  // don't support 1D/3D block compressed textures
+  if(tex.dimension != 2 &&
      (tex.format.type == ResourceFormatType::BC1 || tex.format.type == ResourceFormatType::BC2 ||
       tex.format.type == ResourceFormatType::BC1 || tex.format.type == ResourceFormatType::BC2 ||
       tex.format.type == ResourceFormatType::BC3 || tex.format.type == ResourceFormatType::BC4 ||
@@ -3327,6 +3338,50 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
       tex.format.type == ResourceFormatType::BC7 || tex.format.type == ResourceFormatType::ASTC ||
       tex.format.type == ResourceFormatType::ETC2 || tex.format.type == ResourceFormatType::EAC))
     return false;
+
+  GLenum fmt = MakeGLFormat(tex.format);
+
+  if(fmt == eGL_NONE)
+    return false;
+
+  GLenum target = eGL_TEXTURE_2D;
+
+  switch(tex.type)
+  {
+    case TextureType::Unknown: break;
+    case TextureType::Buffer:
+    case TextureType::Texture1D: target = eGL_TEXTURE_1D; break;
+    case TextureType::Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
+    case TextureType::TextureRect:
+    case TextureType::Texture2D: target = eGL_TEXTURE_2D; break;
+    case TextureType::Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
+    case TextureType::Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
+    case TextureType::Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+    case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
+    case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
+    case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+    case TextureType::Count: RDCERR("Invalid texture dimension"); break;
+  }
+
+  GLint supported = 0, fragment = 0;
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 4, &supported);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 4, &fragment);
+
+  // check the texture is supported
+  if(supported == 0 || fragment == 0)
+    return false;
+
+  // for multisampled textures it must be in a view compatibility class, to let us copy to/from the
+  // MSAA texture.
+  if(tex.msSamp > 1 && !IsDepthStencilFormat(fmt))
+  {
+    GLenum viewClass = eGL_NONE;
+    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS,
+                                     sizeof(GLenum), (GLint *)&viewClass);
+
+    if(viewClass == eGL_NONE)
+      return false;
+  }
 
   return true;
 }

@@ -3604,6 +3604,16 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
 
 bool D3D11Replay::IsTextureSupported(const TextureDescription &tex)
 {
+  // these formats are inconsistently laid out between APIs, always remap
+  switch(tex.format.type)
+  {
+    case ResourceFormatType::R4G4:
+    case ResourceFormatType::R4G4B4A4:
+    case ResourceFormatType::R5G6B5:
+    case ResourceFormatType::R5G5B5A1: return false;
+    default: break;
+  }
+
   DXGI_FORMAT f = MakeDXGIFormat(tex.format);
 
   if(f == DXGI_FORMAT_UNKNOWN)
@@ -3612,6 +3622,30 @@ bool D3D11Replay::IsTextureSupported(const TextureDescription &tex)
   // if we get a typeless format back for a non-typeless format descriptor then we don't support
   // this component type.
   if(IsTypelessFormat(f) && tex.format.compType != CompType::Typeless)
+    return false;
+
+  if(!IsDepthFormat(f))
+    f = GetTypelessFormat(f);
+  else
+    f = GetDepthTypedFormat(f);
+
+  // CheckFormatSupport doesn't like returning MSAA support for typeless formats, if we're thinking
+  // about MSAA ensure we query a typed format.
+  if(tex.msSamp > 1)
+    f = GetTypedFormat(f);
+
+  UINT supp = 0;
+  m_pDevice->CheckFormatSupport(f, &supp);
+
+  if(tex.dimension == 1 && (supp & D3D11_FORMAT_SUPPORT_TEXTURE1D) == 0)
+    return false;
+  if(tex.dimension == 2 && (supp & D3D11_FORMAT_SUPPORT_TEXTURE2D) == 0)
+    return false;
+  if(tex.dimension == 3 && (supp & D3D11_FORMAT_SUPPORT_TEXTURE3D) == 0)
+    return false;
+  if(tex.msSamp > 1 &&
+     (supp &
+      (D3D11_FORMAT_SUPPORT_MULTISAMPLE_LOAD | D3D11_FORMAT_SUPPORT_MULTISAMPLE_RENDERTARGET)) == 0)
     return false;
 
   return true;
