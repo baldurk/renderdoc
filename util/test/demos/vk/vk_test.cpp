@@ -218,8 +218,9 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
               std::string haystack = strlower(physProps[p].deviceName);
 
               if(haystack.find(needle) != std::string::npos ||
-                 (nv && physProps[p].vendorID == 0x10DE) || (amd && physProps[p].vendorID == 0x1002) ||
-                 (intel && physProps[p].vendorID == 0x8086))
+                 (nv && physProps[p].vendorID == PCI_VENDOR_NV) ||
+                 (amd && physProps[p].vendorID == PCI_VENDOR_AMD) ||
+                 (intel && physProps[p].vendorID == PCI_VENDOR_INTEL))
               {
                 selectedPhys = physDevices[p];
                 break;

@@ -48,6 +48,10 @@ typedef uint8_t byte;
 #define CONCAT2(a, b) a##b
 #define CONCAT(a, b) CONCAT2(a, b)
 
+#define PCI_VENDOR_NV 0x10DE
+#define PCI_VENDOR_AMD 0x1002
+#define PCI_VENDOR_INTEL 0x8086
+
 enum class SPIRVTarget
 {
   opengl,

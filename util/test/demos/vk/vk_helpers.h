@@ -31,6 +31,13 @@
 #include <algorithm>
 #include <vector>
 
+// nvidia uses its own version packing:
+//   10 |  8  |        8       |       6
+// major|minor|secondary_branch|tertiary_branch
+#define VK_MAKE_VERSION_NV(major, minor, secondary_branch, tertiary_branch)        \
+  (((major) << (8 + 8 + 6)) | ((minor) << (8 + 6)) | ((secondary_branch) << (6)) | \
+   ((tertiary_branch) << (0)))
+
 namespace vkh
 {
 const char *result_str(VkResult vkr);

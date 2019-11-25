@@ -144,9 +144,10 @@ IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv,
       {
         std::string haystack = strlower(Wide2UTF8(adapters[a].desc.Description));
 
-        if(haystack.find(needle) != std::string::npos || (nv && adapters[a].desc.VendorId == 0x10DE) ||
-           (amd && adapters[a].desc.VendorId == 0x1002) ||
-           (intel && adapters[a].desc.VendorId == 0x8086))
+        if(haystack.find(needle) != std::string::npos ||
+           (nv && adapters[a].desc.VendorId == PCI_VENDOR_NV) ||
+           (amd && adapters[a].desc.VendorId == PCI_VENDOR_AMD) ||
+           (intel && adapters[a].desc.VendorId == PCI_VENDOR_INTEL))
         {
           adapter = adapters[a].adapter;
           break;
