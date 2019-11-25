@@ -2815,6 +2815,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   if(!layouts.isMemoryBound)
     return;
 
+  VkMarkerRegion region(StringFormat::Fmt("GetTextureData(%u, %u, %u, remap=%d)", sub.mip,
+                                          sub.slice, sub.sample, params.remap));
+
   Subresource s = sub;
 
   VkImageCreateInfo imCreateInfo = {
