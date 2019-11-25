@@ -475,18 +475,23 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
       case ResourceFormatType::BC7:
         return format.SRGBCorrected() ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
       case ResourceFormatType::R10G10B10A2:
+        if(format.BGRAOrder())
+          return DXGI_FORMAT_UNKNOWN;
         return format.compType == CompType::UInt ? DXGI_FORMAT_R10G10B10A2_UINT
                                                  : DXGI_FORMAT_R10G10B10A2_UNORM;
       case ResourceFormatType::R11G11B10: return DXGI_FORMAT_R11G11B10_FLOAT;
       case ResourceFormatType::R5G6B5:
-        RDCASSERT(format.BGRAOrder());
+        if(!format.BGRAOrder())
+          return DXGI_FORMAT_UNKNOWN;
         return DXGI_FORMAT_B5G6R5_UNORM;
       case ResourceFormatType::R5G5B5A1:
-        RDCASSERT(format.BGRAOrder());
+        if(!format.BGRAOrder())
+          return DXGI_FORMAT_UNKNOWN;
         return DXGI_FORMAT_B5G5R5A1_UNORM;
       case ResourceFormatType::R9G9B9E5: return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
       case ResourceFormatType::R4G4B4A4:
-        RDCASSERT(format.BGRAOrder());
+        if(!format.BGRAOrder())
+          return DXGI_FORMAT_UNKNOWN;
         return DXGI_FORMAT_B4G4R4A4_UNORM;
       case ResourceFormatType::D24S8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
       case ResourceFormatType::D32S8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
@@ -778,6 +783,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
   // special case a couple of formats to write out non-DX10 style, for
   // backwards compatibility
   if(data.format.compByteWidth == 1 && data.format.compCount == 4 &&
+     data.format.type == ResourceFormatType::Regular &&
      (data.format.compType == CompType::UNorm || data.format.compType == CompType::UNormSRGB))
   {
     header.ddspf.dwFlags = DDPF_RGBA;
