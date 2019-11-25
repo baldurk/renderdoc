@@ -2495,7 +2495,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
             "is not. Disabling");
 
         auto it = std::find(Extensions.begin(), Extensions.end(),
-                            VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
+                            VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
         RDCASSERT(it != Extensions.end());
         Extensions.erase(it);
       }
