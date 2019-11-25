@@ -826,10 +826,19 @@ enum VendorCheckEnum
 };
 extern bool VendorCheck[VendorCheck_Count];
 
+enum class ShaderType;
+
 // fills out the extension supported array and the version-specific checks above
 void DoVendorChecks(GLPlatform &platform, GLWindowingData context);
 void GetContextVersion(bool &ctxGLES, int &ctxVersion);
 void FetchEnabledExtensions();
+void GetGLSLVersions(ShaderType &shaderType, int &glslVersion, int &glslBaseVer, int &glslCSVer);
+
+GLuint CreateShader(GLenum shaderType, const std::string &src);
+GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src);
+GLuint CreateShaderProgram(const std::string &vs, const std::string &fs, const std::string &gs = "");
+GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs = 0);
+GLuint CreateCShaderProgram(const std::string &cs);
 
 // verify that we got a replay context that we can work with
 bool CheckReplayContext();

@@ -249,16 +249,6 @@ private:
   bool CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint fragShader,
                             GLuint fragShaderSPIRV);
 
-  void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
-                          GLint arraySize, GLint samples, GLenum intFormat, uint32_t selectedSlice);
-  void CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
-                          GLint arraySize, GLint samples, GLenum intFormat);
-  void CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
-                               GLint arraySize, GLint samples, GLenum intFormat,
-                               uint32_t selectedSlice);
-  void CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
-                               GLint arraySize, GLint samples, GLenum intFormat);
-
   struct OutputWindow : public GLWindowingData
   {
     OutputWindow(const GLWindowingData &data) : GLWindowingData(data) {}
@@ -347,9 +337,6 @@ private:
     uint32_t pickIBSize, pickVBSize;
     GLuint pickResultBuf;
 
-    GLuint MS2Array, Array2MS;
-    GLuint DepthMS2Array, DepthArray2MS;
-
     GLuint checkerProg;
 
     GLuint fixedcolFragShader;
@@ -418,13 +405,6 @@ private:
 
   void FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
                   const std::vector<GPUCounter> &counters);
-
-  GLuint CreateShader(GLenum shaderType, const std::string &src);
-  GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src);
-  GLuint CreateShaderProgram(const std::string &vs, const std::string &fs,
-                             const std::string &gs = "");
-  GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs = 0);
-  GLuint CreateCShaderProgram(const std::string &cs);
 
   void InitOutputWindow(OutputWindow &outwin);
   void CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth);

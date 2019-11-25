@@ -22,12 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-enum ShaderType
+enum class ShaderType
 {
-  eShaderGLSL,
-  eShaderGLSLES,
-  eShaderVulkan,
-  eShaderGLSPIRV,
+  GLSL,
+  GLSLES,
+  Vulkan,
+  GLSPIRV,
 };
 
 #include <functional>

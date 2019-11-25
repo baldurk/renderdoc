@@ -712,6 +712,8 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion,
   m_SectionVersion = sectionVersion;
   m_GlobalInitParams = params;
   m_ReplayOptions = opts;
+
+  m_ArrayMS.Create();
 }
 
 void WrappedOpenGL::MarkReferencedWhileCapturing(GLResourceRecord *record, FrameRefType refType)
@@ -925,6 +927,8 @@ WrappedOpenGL::~WrappedOpenGL()
   if(m_IndirectBuffer)
     GL.glDeleteBuffers(1, &m_IndirectBuffer);
 
+  m_ArrayMS.Destroy();
+
   SAFE_DELETE(m_FrameReader);
 
   GetResourceManager()->ClearReferencedResources();
@@ -1025,6 +1029,7 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 
   if(ctxdata.built && ctxdata.ready)
   {
+    ctxdata.ArrayMS.Destroy();
     if(ctxdata.Program)
       GL.glDeleteProgram(ctxdata.Program);
     if(ctxdata.ArrayBuffer)

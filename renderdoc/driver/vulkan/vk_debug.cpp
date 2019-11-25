@@ -2598,8 +2598,8 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
       defines += std::string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
       defines += std::string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
 
-      glsl =
-          GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), eShaderVulkan, 430, defines);
+      glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), ShaderType::Vulkan, 430,
+                                defines);
 
       err = shaderCache->GetSPIRVBlob(compileSettings, glsl, histogram);
       if(!err.empty())
@@ -2609,8 +2609,8 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
         histogram = NULL;
       }
 
-      glsl =
-          GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), eShaderVulkan, 430, defines);
+      glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), ShaderType::Vulkan, 430,
+                                defines);
 
       err = shaderCache->GetSPIRVBlob(compileSettings, glsl, minmaxtile);
       if(!err.empty())
@@ -2625,8 +2625,8 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
       if(t == 1)
       {
-        glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), eShaderVulkan, 430,
-                                  defines);
+        glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), ShaderType::Vulkan,
+                                  430, defines);
 
         err = shaderCache->GetSPIRVBlob(compileSettings, glsl, minmaxresult);
         if(!err.empty())

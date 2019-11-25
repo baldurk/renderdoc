@@ -74,7 +74,7 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   std::string combined;
 
-  if(type == eShaderGLSLES)
+  if(type == ShaderType::GLSLES)
   {
     if(version == 100)
       combined = "#version 100\n";    // no es suffix
@@ -95,11 +95,11 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   combined += include_ext;
 
-  if(type == eShaderGLSLES)
+  if(type == ShaderType::GLSLES)
     combined +=
         "#define OPENGL 1\n"
         "#define OPENGL_ES 1\n";
-  else if(type == eShaderGLSL)
+  else if(type == ShaderType::GLSL)
     combined +=
         "#define OPENGL 1\n"
         "#define OPENGL_CORE 1\n";
@@ -110,9 +110,9 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   const char *c_src = combined.c_str();
   glslang::EShClient client =
-      type == eShaderVulkan ? glslang::EShClientVulkan : glslang::EShClientOpenGL;
+      type == ShaderType::Vulkan ? glslang::EShClientVulkan : glslang::EShClientOpenGL;
   glslang::EShTargetClientVersion targetversion =
-      type == eShaderVulkan ? glslang::EShTargetVulkan_1_0 : glslang::EShTargetOpenGL_450;
+      type == ShaderType::Vulkan ? glslang::EShTargetVulkan_1_0 : glslang::EShTargetOpenGL_450;
 
   sh.setStrings(&c_src, 1);
   sh.setEnvInput(glslang::EShSourceGlsl, EShLangFragment, client, 100);
@@ -123,9 +123,9 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   EShMessages flags = EShMsgOnlyPreprocessor;
 
-  if(type == eShaderVulkan)
+  if(type == ShaderType::Vulkan)
     flags = EShMessages(flags | EShMsgSpvRules | EShMsgVulkanRules);
-  else if(type == eShaderGLSPIRV)
+  else if(type == ShaderType::GLSPIRV)
     flags = EShMessages(flags | EShMsgSpvRules);
 
   std::string ret;
@@ -174,7 +174,7 @@ void TestGLSLReflection(ShaderType testType, ReflectionMaker compile)
   REQUIRE(size >= min);               \
   CHECK(size == min);
 
-  if(testType == ShaderType::eShaderGLSL || testType == ShaderType::eShaderGLSPIRV)
+  if(testType == ShaderType::GLSL || testType == ShaderType::GLSPIRV)
   {
     // test GL only features
 
@@ -196,7 +196,7 @@ void main() {
       ShaderBindpointMapping mapping;
       compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
-      if(testType == ShaderType::eShaderGLSPIRV)
+      if(testType == ShaderType::GLSPIRV)
         CHECK(refl.encoding == ShaderEncoding::SPIRV);
       else
         CHECK(refl.encoding == ShaderEncoding::GLSL);
@@ -299,7 +299,7 @@ void main() {
       }
     };
   }
-  else if(testType == ShaderType::eShaderVulkan)
+  else if(testType == ShaderType::Vulkan)
   {
     // test Vulkan only features
 
@@ -598,7 +598,7 @@ void main() {
 
     CHECK(refl.debugInfo.files[0].contents == source);
 
-    if(testType == eShaderGLSL)
+    if(testType == ShaderType::GLSL)
     {
       CHECK(refl.debugInfo.files[0].filename == "main.glsl");
     }
@@ -610,7 +610,7 @@ void main() {
 
       CHECK(refl.debugInfo.compileFlags.flags[0].name == "@cmdline");
 
-      if(testType == eShaderGLSPIRV)
+      if(testType == ShaderType::GLSPIRV)
         CHECK(refl.debugInfo.compileFlags.flags[0].value ==
               " --client opengl100 --target-env opengl --entry-point main");
       else
@@ -798,7 +798,7 @@ void main() {
     REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 1);
     {
       // blocks get different reflected names in SPIR-V
-      const rdcstr ubo_name = testType == ShaderType::eShaderGLSL ? "ubo_block" : "ubo_root";
+      const rdcstr ubo_name = testType == ShaderType::GLSL ? "ubo_block" : "ubo_root";
 
       CHECK(refl.constantBlocks[0].name == ubo_name);
       {
@@ -810,16 +810,15 @@ void main() {
         CHECK(cblock.byteSize == 272);
 
         // GLSL reflects out a root structure
-        if(testType == ShaderType::eShaderGLSL)
+        if(testType == ShaderType::GLSL)
         {
           REQUIRE_ARRAY_SIZE(cblock.variables.size(), 1);
 
           CHECK(cblock.variables[0].name == ubo_name);
         }
 
-        const rdcarray<ShaderConstant> &ubo_root = testType == ShaderType::eShaderGLSL
-                                                       ? cblock.variables[0].type.members
-                                                       : cblock.variables;
+        const rdcarray<ShaderConstant> &ubo_root =
+            testType == ShaderType::GLSL ? cblock.variables[0].type.members : cblock.variables;
 
         REQUIRE_ARRAY_SIZE(ubo_root.size(), 7);
         {
@@ -1101,7 +1100,7 @@ void main() {
     REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 2);
     {
       // blocks get different reflected names in SPIR-V
-      const rdcstr ssbo_name = testType == ShaderType::eShaderGLSL ? "ssbo" : "ssbo_root";
+      const rdcstr ssbo_name = testType == ShaderType::GLSL ? "ssbo" : "ssbo_root";
 
       CHECK(refl.readWriteResources[0].name == ssbo_name);
       {
@@ -1648,8 +1647,8 @@ void main()
     REQUIRE_ARRAY_SIZE(refl.inputSignature.size(), 2);
     {
       // blocks get different reflected names in SPIR-V
-      const rdcstr gl_in_name = testType == ShaderType::eShaderGLSL ? "gl_PerVertex" : "gl_in";
-      const rdcstr block_name = testType == ShaderType::eShaderGLSL ? "block" : "In";
+      const rdcstr gl_in_name = testType == ShaderType::GLSL ? "gl_PerVertex" : "gl_in";
+      const rdcstr block_name = testType == ShaderType::GLSL ? "block" : "In";
 
       CHECK(refl.inputSignature[0].varName == (gl_in_name + ".gl_Position"));
       {
@@ -1680,7 +1679,7 @@ void main()
 
     REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 2);
     {
-      const rdcstr block_name = testType == ShaderType::eShaderGLSL ? "block" : "Out";
+      const rdcstr block_name = testType == ShaderType::GLSL ? "block" : "Out";
 
       CHECK(refl.outputSignature[0].varName.contains("gl_Position"));
       {
@@ -1739,8 +1738,8 @@ void main() {
     compile(ShaderStage::Fragment, source, "main", refl, mapping);
 
     // GLSL 'expands' these arrays
-    size_t countRO = (testType == ShaderType::eShaderGLSL ? 7 : 1);
-    size_t arraySizeRO = (testType == ShaderType::eShaderGLSL ? 1 : 7);
+    size_t countRO = (testType == ShaderType::GLSL ? 7 : 1);
+    size_t arraySizeRO = (testType == ShaderType::GLSL ? 1 : 7);
 
     REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
 
@@ -1749,7 +1748,7 @@ void main() {
       for(size_t i = 0; i < countRO; i++)
       {
         const rdcstr ro_name =
-            (testType == ShaderType::eShaderGLSL ? StringFormat::Fmt("tex2D[%zu]", i) : "tex2D");
+            (testType == ShaderType::GLSL ? StringFormat::Fmt("tex2D[%zu]", i) : "tex2D");
 
         CHECK(refl.readOnlyResources[i].name == ro_name);
         {
@@ -1775,8 +1774,8 @@ void main() {
       }
     }
 
-    size_t countRW = (testType == ShaderType::eShaderGLSL ? 5 : 1);
-    size_t arraySizeRW = (testType == ShaderType::eShaderGLSL ? 1 : 5);
+    size_t countRW = (testType == ShaderType::GLSL ? 5 : 1);
+    size_t arraySizeRW = (testType == ShaderType::GLSL ? 1 : 5);
 
     REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), countRW);
     {
@@ -1784,7 +1783,7 @@ void main() {
       {
         // blocks get different reflected names in SPIR-V
         const rdcstr ssbo_name =
-            (testType == ShaderType::eShaderGLSL ? StringFormat::Fmt("ssbo[%zu]", i) : "ssbo_root");
+            (testType == ShaderType::GLSL ? StringFormat::Fmt("ssbo[%zu]", i) : "ssbo_root");
 
         CHECK(refl.readWriteResources[i].name == ssbo_name);
         {
@@ -1799,7 +1798,7 @@ void main() {
           // glslang with the fix
           const ShaderVariableType *varType = &res.variableType;
 
-          if(testType == ShaderType::eShaderGLSL && res.variableType.members.size() != 2)
+          if(testType == ShaderType::GLSL && res.variableType.members.size() != 2)
           {
             REQUIRE(varType->members.size() == 1);
             REQUIRE(varType->members[0].name == "a");

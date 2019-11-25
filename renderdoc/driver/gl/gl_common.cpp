@@ -1191,6 +1191,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x1F)
     return true;
 
+  // 0x20 -> 0x21 - added multisampled texture initial data
+  if(ver == 0x20)
+    return true;
+
   return false;
 }
 

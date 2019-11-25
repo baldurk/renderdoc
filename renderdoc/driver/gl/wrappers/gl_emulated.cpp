@@ -3602,7 +3602,7 @@ void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
 
 TEST_CASE("Validate ARB_program_interface_query emulation", "[opengl][glslang][reflection]")
 {
-  TestGLSLReflection(ShaderType::eShaderGLSL, MakeOfflineShaderReflection);
+  TestGLSLReflection(ShaderType::GLSL, MakeOfflineShaderReflection);
 
   SECTION("shader stage references")
   {

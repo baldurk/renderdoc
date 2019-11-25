@@ -885,6 +885,23 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAG_FILTER,
                                    (GLint *)&state.magFilter);
       }
+
+      // if this is an MSAA texture we now need to unpack to an array, ready to serialise
+      if(ms)
+      {
+        GLuint oldtex = 0;
+        GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint *)&oldtex);
+
+        GLuint msaaTex = tex;
+
+        m_Driver->CopyTex2DMSToArray(tex, msaaTex, details.width, details.height, details.depth,
+                                     details.samples, details.internalFormat);
+
+        // destroy the MSAA texture, we don't need it anymore
+        GL.glDeleteTextures(1, &msaaTex);
+
+        GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, oldtex);
+      }
     }
 
     initContents.resource = GLResource(res.ContextShareGroup, eResTexture, tex);
@@ -970,6 +987,9 @@ uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLIniti
 
       if(TextureState.type == eGL_TEXTURE_CUBE_MAP_ARRAY || TextureState.type == eGL_TEXTURE_2D_ARRAY)
         d = TextureState.depth;
+
+      if(TextureState.samples > 1)
+        d = RDCMAX(1U, TextureState.depth) * TextureState.samples;
 
       if(TextureState.type == eGL_TEXTURE_1D_ARRAY)
         h = TextureState.height;
@@ -1430,28 +1450,14 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
         GLuint tex = 0;
         GLuint prevtex = 0;
+        GLuint prevArrayTex = 0;
+        GLuint msaaTex = 0;
 
         // push the texture binding
         if(!IsStructuredExporting(m_State) && !ser.IsErrored())
+        {
           GL.glGetIntegerv(TextureBinding(TextureState.type), (GLint *)&prevtex);
-
-        // create texture of identical format/size as the live resource to store initial contents
-        if(IsReplayingAndReading() && !ser.IsErrored())
-        {
-          GL.glGenTextures(1, &tex);
-          GL.glBindTexture(TextureState.type, tex);
-
-          m_Driver->CreateTextureImage(tex, TextureState.internalformat, details.internalFormatHint,
-                                       TextureState.type, TextureState.dim, TextureState.width,
-                                       TextureState.height, TextureState.depth,
-                                       TextureState.samples, TextureState.mips);
-        }
-        else if(ser.IsWriting())
-        {
-          // on writing, bind the prepared texture with initial contents to grab
-          tex = initial->resource.name;
-
-          GL.glBindTexture(TextureState.type, tex);
+          GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint *)&prevArrayTex);
         }
 
         // multisample textures have no mips
@@ -1459,11 +1465,78 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
            TextureState.type == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
           TextureState.mips = 1;
 
+        bool hasInitialData = true;
+
         if(TextureState.samples > 1)
         {
-          GLNOTIMP("Not implemented - initial states of multisampled textures");
+          // multisampled initial data was added in 0x21, before then, multisampled textures had no
+          // initial data.
+          hasInitialData = ser.VersionAtLeast(0x21);
         }
-        else
+
+        uint32_t copySlices = RDCMAX(1U, TextureState.depth);
+        uint32_t texDim = TextureState.dim;
+
+        // create texture of identical format/size as the live resource to store initial contents
+        if(IsReplayingAndReading() && !ser.IsErrored())
+        {
+          GL.glGenTextures(1, &tex);
+          GL.glBindTexture(TextureState.type, tex);
+
+          // create MSAA texture we'll use for applying
+          m_Driver->CreateTextureImage(tex, TextureState.internalformat, details.internalFormatHint,
+                                       TextureState.type, TextureState.dim, TextureState.width,
+                                       TextureState.height, TextureState.depth,
+                                       TextureState.samples, TextureState.mips);
+
+          // create intermediary array for serialising
+          if(TextureState.samples > 1)
+          {
+            msaaTex = tex;
+
+            GL.glGenTextures(1, &tex);
+            GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
+
+            copySlices = RDCMAX(1U, TextureState.depth) * TextureState.samples;
+            texDim = 3;
+
+            GL.glTextureParameteriEXT(tex, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+            GL.glTextureParameteriEXT(tex, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+            GL.glTextureParameteriEXT(tex, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+            GL.glTextureParameteriEXT(tex, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S,
+                                      eGL_CLAMP_TO_EDGE);
+            GL.glTextureParameteriEXT(tex, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T,
+                                      eGL_CLAMP_TO_EDGE);
+
+            // must use immutable tex storage here, for MSAA<->Array copies
+            GL.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, 1, TextureState.internalformat,
+                                     TextureState.width, TextureState.height, copySlices);
+
+            // read back from the array we prepared
+            targets[0] = eGL_TEXTURE_2D_ARRAY;
+          }
+        }
+        else if(ser.IsWriting())
+        {
+          // on writing, bind the prepared texture with initial contents to grab
+          tex = initial->resource.name;
+
+          // if this is an MSAA texture, we prepared an array to serialise
+          if(TextureState.samples > 1)
+          {
+            GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
+
+            copySlices = RDCMAX(1U, TextureState.depth) * TextureState.samples;
+
+            targets[0] = eGL_TEXTURE_2D_ARRAY;
+          }
+          else
+          {
+            GL.glBindTexture(TextureState.type, tex);
+          }
+        }
+
+        if(hasInitialData)
         {
           GLenum fmt = eGL_NONE;
           GLenum type = eGL_NONE;
@@ -1480,8 +1553,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
           {
             fmt = GetBaseFormat(TextureState.internalformat);
             type = GetDataType(TextureState.internalformat);
-            size = (uint32_t)GetByteSize(TextureState.width, TextureState.height,
-                                         TextureState.depth, fmt, type);
+            size = (uint32_t)GetByteSize(TextureState.width, TextureState.height, copySlices, fmt,
+                                         type);
           }
 
           // on read and write, we allocate a single buffer big enough for all mips and re-use it
@@ -1495,11 +1568,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
             uint32_t h = RDCMAX(TextureState.height >> i, 1U);
             uint32_t d = RDCMAX(TextureState.depth >> i, 1U);
 
-            if(TextureState.type == eGL_TEXTURE_CUBE_MAP_ARRAY ||
-               TextureState.type == eGL_TEXTURE_2D_ARRAY)
-              d = TextureState.depth;
+            if(targets[0] == eGL_TEXTURE_CUBE_MAP_ARRAY || targets[0] == eGL_TEXTURE_2D_ARRAY)
+              d = copySlices;
 
-            if(TextureState.type == eGL_TEXTURE_1D_ARRAY)
+            if(targets[0] == eGL_TEXTURE_1D_ARRAY)
               h = TextureState.height;
 
             // calculate the actual byte size of this mip
@@ -1545,27 +1617,27 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
                     memcpy(details.compressedData[i].data() + startOffs, scratchBuf, size);
                   }
 
-                  if(TextureState.dim == 1)
+                  if(texDim == 1)
                     GL.glCompressedTextureSubImage1DEXT(tex, targets[trg], i, 0, w,
                                                         TextureState.internalformat, (GLsizei)size,
                                                         scratchBuf);
-                  else if(TextureState.dim == 2)
+                  else if(texDim == 2)
                     GL.glCompressedTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, w, h,
                                                         TextureState.internalformat, (GLsizei)size,
                                                         scratchBuf);
-                  else if(TextureState.dim == 3)
+                  else if(texDim == 3)
                     GL.glCompressedTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, w, h, d,
                                                         TextureState.internalformat, (GLsizei)size,
                                                         scratchBuf);
                 }
                 else
                 {
-                  if(TextureState.dim == 1)
+                  if(texDim == 1)
                     GL.glTextureSubImage1DEXT(tex, targets[trg], i, 0, w, fmt, type, scratchBuf);
-                  else if(TextureState.dim == 2)
+                  else if(texDim == 2)
                     GL.glTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, w, h, fmt, type,
                                               scratchBuf);
-                  else if(TextureState.dim == 3)
+                  else if(texDim == 3)
                     GL.glTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, w, h, d, fmt, type,
                                               scratchBuf);
                 }
@@ -1579,7 +1651,22 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
         // restore the previous texture binding
         if(!IsStructuredExporting(m_State) && !ser.IsErrored())
+        {
           GL.glBindTexture(TextureState.type, prevtex);
+          GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, prevArrayTex);
+        }
+
+        // the array texture has been serialised. If we're reading, copy back into the MSAA texture
+        // and destroy the temp array texture
+        if(IsReplayingAndReading() && TextureState.samples > 1)
+        {
+          m_Driver->CopyArrayToTex2DMS(msaaTex, tex, TextureState.width, TextureState.height,
+                                       TextureState.depth, TextureState.samples,
+                                       TextureState.internalformat, ~0U);
+
+          GL.glDeleteTextures(1, &tex);
+          tex = msaaTex;
+        }
 
         initContents.resource = TextureRes(m_Driver->GetCtx(), tex);
       }

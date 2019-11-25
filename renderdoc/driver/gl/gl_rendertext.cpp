@@ -173,13 +173,13 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 
         if(IsGLES)
         {
-          shaderType = eShaderGLSLES;
+          shaderType = ShaderType::GLSLES;
           glslVersion = 100;
           fragDefines = "precision highp float;";
         }
         else
         {
-          shaderType = eShaderGLSL;
+          shaderType = ShaderType::GLSL;
           glslVersion = 110;
 
 #if ENABLED(RDOC_APPLE)
@@ -268,6 +268,8 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 
         GL.glDeleteShader(vert);
         GL.glDeleteShader(frag);
+
+        ArrayMS.Create();
       }
     }
 

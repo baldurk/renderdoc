@@ -2533,7 +2533,10 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     // copy multisampled texture to an array. This creates tempTex and returns it in that variable,
     // for us to own
-    CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
+    m_pDriver->CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
+
+    // CopyTex2DMSToArray is unwrapped, so register the resource here now
+    m_pDriver->GetResourceManager()->RegisterResource(TextureRes(m_pDriver->GetCtx(), tempTex));
 
     // rewrite the variables to temporary texture
     texType = eGL_TEXTURE_2D_ARRAY;
@@ -3291,8 +3294,8 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
                                  height, 1, baseformat, datatype, data);
 
       // copy this slice into the 2D MSAA texture
-      CopyArrayToTex2DMS(tex, uploadTex, width, height, texdetails.depth, texdetails.samples,
-                         texdetails.internalFormat, unpackedSlice);
+      m_pDriver->CopyArrayToTex2DMS(tex, uploadTex, width, height, texdetails.depth,
+                                    texdetails.samples, texdetails.internalFormat, unpackedSlice);
 
       // delete the temporary texture
       drv.glDeleteTextures(1, &uploadTex);

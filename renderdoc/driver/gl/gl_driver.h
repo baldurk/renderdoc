@@ -60,7 +60,7 @@ struct GLInitParams
   rdcstr renderer, version;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x20;
+  static const uint64_t CurrentVersion = 0x21;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -127,6 +127,21 @@ private:
 
   GLReplay m_Replay;
   RDCDriver m_DriverType;
+
+  struct ArrayMSPrograms
+  {
+    void Create();
+    void Destroy();
+
+    GLuint MS2Array = 0, Array2MS = 0;
+    GLuint DepthMS2Array = 0, DepthArray2MS = 0;
+  };
+
+  void CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
+                               GLint arraySize, GLint samples, GLenum intFormat,
+                               uint32_t selectedSlice);
+  void CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
+                               GLint arraySize, GLint samples, GLenum intFormat);
 
   uint64_t m_SectionVersion;
   GLInitParams m_GlobalInitParams;
@@ -231,6 +246,13 @@ private:
   std::vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
+  ArrayMSPrograms m_ArrayMS;
+
+  const ArrayMSPrograms &GetArrayMS()
+  {
+    return IsReplayMode(m_State) ? m_ArrayMS : GetCtxData().ArrayMS;
+  }
+
   bool HasNonDebugMarkers();
 
   bool m_ReplayMarkers = true;
@@ -316,6 +338,11 @@ private:
   void CleanupCapture();
   void FreeCaptureData();
 
+  void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
+                          GLint arraySize, GLint samples, GLenum intFormat, uint32_t selectedSlice);
+  void CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
+                          GLint arraySize, GLint samples, GLenum intFormat);
+
   struct ContextData
   {
     ContextData()
@@ -386,6 +413,8 @@ private:
     GLuint ArrayBuffer;
     GLuint GlyphTexture;
     GLuint DummyVAO;
+
+    ArrayMSPrograms ArrayMS;
 
     float CharSize;
     float CharAspect;

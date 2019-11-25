@@ -262,7 +262,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
 
   if(IsGLES)
   {
-    shaderType = eShaderGLSLES;
+    shaderType = ShaderType::GLSLES;
 
     // default to 100 just in case something is broken
     glslVer = 100;
@@ -289,7 +289,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
   {
     // Desktop GL is vastly better, it can link any program so we just default to 150
     glslVer = 150;
-    shaderType = eShaderGLSL;
+    shaderType = ShaderType::GLSL;
   }
 
   // this is always compatible.
@@ -300,7 +300,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
   }
 
   // this is not supported on GLES
-  if(shaderType == eShaderGLSL)
+  if(shaderType == ShaderType::GLSL)
   {
     std::string defines = "";
 

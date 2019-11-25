@@ -22,21 +22,98 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "data/glsl_shaders.h"
 #include "maths/matrix.h"
 #include "gl_driver.h"
 
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
-void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
-                                  GLint arraySize, GLint samples, GLenum intFormat)
+void WrappedOpenGL::ArrayMSPrograms::Create()
 {
-  WrappedOpenGL &drv = *m_pDriver;
+  std::string cs, vs, fs;
+
+  ShaderType shaderType;
+  int glslVersion;
+  int glslBaseVer;
+  int glslCSVer;    // compute shader
+
+  GetGLSLVersions(shaderType, glslVersion, glslBaseVer, glslCSVer);
+
+  if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_image_load_store] &&
+     HasExt[ARB_texture_multisample])
+  {
+    cs = GenerateGLSLShader(GetEmbeddedResource(glsl_ms2array_comp), shaderType, glslCSVer);
+    MS2Array = CreateCShaderProgram(cs);
+
+    // GLES doesn't have multisampled image load/store even with any extension
+    Array2MS = 0;
+    if(!IsGLES)
+    {
+      cs = GenerateGLSLShader(GetEmbeddedResource(glsl_array2ms_comp), shaderType, glslCSVer);
+      Array2MS = CreateCShaderProgram(cs);
+    }
+  }
+  else
+  {
+    MS2Array = 0;
+    Array2MS = 0;
+    RDCWARN(
+        "GL_ARB_compute_shader or ARB_shader_image_load_store or ARB_texture_multisample not "
+        "supported, disabling 2DMS save/load.");
+  }
+
+  DepthArray2MS = DepthMS2Array = 0;
+
+  if(HasExt[ARB_texture_multisample])
+  {
+    vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
+
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depthms2arr_frag), shaderType, glslBaseVer);
+    DepthMS2Array = CreateShaderProgram(vs, fs);
+
+    GL.glUseProgram(DepthMS2Array);
+
+    GL.glUniform1i(GL.glGetUniformLocation(DepthMS2Array, "srcDepthMS"), 0);
+    GL.glUniform1i(GL.glGetUniformLocation(DepthMS2Array, "srcStencilMS"), 1);
+
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_deptharr2ms_frag), shaderType, glslBaseVer);
+    DepthArray2MS = CreateShaderProgram(vs, fs);
+
+    GL.glUseProgram(DepthArray2MS);
+
+    GL.glUniform1i(GL.glGetUniformLocation(DepthArray2MS, "srcDepthArray"), 0);
+    GL.glUniform1i(GL.glGetUniformLocation(DepthArray2MS, "srcStencilArray"), 1);
+  }
+  else
+  {
+    MS2Array = 0;
+    Array2MS = 0;
+    RDCWARN("GL_ARB_texture_multisample not supported, disabling 2DMS depth-stencil save/load.");
+  }
+}
+
+void WrappedOpenGL::ArrayMSPrograms::Destroy()
+{
+  if(MS2Array)
+    GL.glDeleteProgram(MS2Array);
+  if(Array2MS)
+    GL.glDeleteProgram(Array2MS);
+  if(DepthMS2Array)
+    GL.glDeleteProgram(DepthMS2Array);
+  if(DepthArray2MS)
+    GL.glDeleteProgram(DepthArray2MS);
+}
+
+void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
+                                       GLint arraySize, GLint samples, GLenum intFormat)
+{
+  const ArrayMSPrograms &arrms = GetArrayMS();
 
   // create temporary texture array, which we'll initialise to be the width/height in same format,
   // with the same number of array slices as multi samples.
-  drv.glGenTextures(1, &destArray);
-  drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, destArray);
+  GL.glGenTextures(1, &destArray);
+  GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, destArray);
 
   bool failed = false;
 
@@ -61,20 +138,25 @@ void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, 
     failed = true;
   }
 
+  if(!arrms.MS2Array || (IsDepthStencilFormat(intFormat) && !arrms.DepthMS2Array))
+  {
+    failed = true;
+  }
+
   if(failed)
   {
     // create using the non-storage API which is always available, so the texture is at least valid
     // (but with undefined/empty contents).
-    drv.glTextureImage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
-                            arraySize * samples, 0, GetBaseFormat(intFormat),
-                            GetDataType(intFormat), NULL);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glTextureImage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
+                           arraySize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
+                           NULL);
+    GL.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     return;
   }
 
   // initialise the texture using texture storage, as required for texture views.
-  drv.glTextureStorage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height,
-                            arraySize * samples);
+  GL.glTextureStorage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height,
+                           arraySize * samples);
 
   if(IsDepthStencilFormat(intFormat))
   {
@@ -85,11 +167,11 @@ void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, 
   GLMarkerRegion renderoverlay("CopyTex2DMSToArray");
 
   GLRenderState rs;
-  rs.FetchState(m_pDriver);
+  rs.FetchState(this);
 
   GLenum viewClass;
-  drv.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
-                            sizeof(GLenum), (GLint *)&viewClass);
+  GL.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
+                           sizeof(GLenum), (GLint *)&viewClass);
 
   GLenum fmt = eGL_R32UI;
   if(viewClass == eGL_VIEW_CLASS_8_BITS)
@@ -100,55 +182,52 @@ void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, 
     fmt = eGL_RGB8UI;
   else if(viewClass == eGL_VIEW_CLASS_32_BITS)
     fmt = eGL_RGBA8UI;
-  else if(viewClass == eGL_VIEW_CLASS_48_BITS)
-    fmt = eGL_RGB16UI;
   else if(viewClass == eGL_VIEW_CLASS_64_BITS)
     fmt = eGL_RG32UI;
-  else if(viewClass == eGL_VIEW_CLASS_96_BITS)
-    fmt = eGL_RGB32UI;
   else if(viewClass == eGL_VIEW_CLASS_128_BITS)
     fmt = eGL_RGBA32UI;
+  else
+    return;
 
   GLuint texs[2];
-  drv.glGenTextures(2, texs);
-  drv.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, fmt, 0, 1, 0, arraySize * samples);
-  drv.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, fmt, 0, 1, 0, arraySize);
+  GL.glGenTextures(2, texs);
+  GL.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, fmt, 0, 1, 0, arraySize * samples);
+  GL.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, fmt, 0, 1, 0, arraySize);
 
-  drv.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
-  drv.glActiveTexture(eGL_TEXTURE0);
-  drv.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+  GL.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
+  GL.glActiveTexture(eGL_TEXTURE0);
+  GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
+  GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+  GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
-  drv.glUseProgram(DebugData.MS2Array);
+  GL.glUseProgram(arrms.MS2Array);
 
-  GLint loc = drv.glGetUniformLocation(DebugData.MS2Array, "mscopy");
+  GLint loc = GL.glGetUniformLocation(arrms.MS2Array, "mscopy");
   if(loc >= 0)
   {
-    drv.glProgramUniform4i(DebugData.MS2Array, loc, samples, 0, 0, 0);
+    GL.glProgramUniform4i(arrms.MS2Array, loc, samples, 0, 0, 0);
 
-    drv.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
+    GL.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
   }
-  drv.glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  GL.glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  drv.glDeleteTextures(2, texs);
+  GL.glDeleteTextures(2, texs);
 
-  rs.ApplyState(m_pDriver);
+  rs.ApplyState(this);
 }
 
-void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
-                                       GLint arraySize, GLint samples, GLenum intFormat)
+void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width,
+                                            GLint height, GLint arraySize, GLint samples,
+                                            GLenum intFormat)
 {
   GLMarkerRegion renderoverlay("CopyDepthTex2DMSToArray");
 
-  WrappedOpenGL &drv = *m_pDriver;
+  WrappedOpenGL &drv = *this;
+
+  const ArrayMSPrograms &arrms = GetArrayMS();
 
   GLRenderState rs;
-  rs.FetchState(m_pDriver);
+  rs.FetchState(this);
 
   GLuint texs[3];
   drv.glGenTextures(3, texs);
@@ -164,7 +243,7 @@ void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
   drv.glDrawBuffers(0, NULL);
 
-  drv.glUseProgram(DebugData.DepthMS2Array);
+  drv.glUseProgram(arrms.DepthMS2Array);
   drv.glViewport(0, 0, width, height);
 
   drv.glDisable(eGL_CULL_FACE);
@@ -229,7 +308,7 @@ void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
                         eGL_STENCIL_INDEX);
   }
 
-  GLint loc = drv.glGetUniformLocation(DebugData.DepthMS2Array, "mscopy");
+  GLint loc = drv.glGetUniformLocation(arrms.DepthMS2Array, "mscopy");
   if(loc >= 0)
   {
     for(GLint i = 0; i < arraySize * samples; i++)
@@ -242,7 +321,7 @@ void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
 
         drv.glStencilFunc(eGL_ALWAYS, int(s), 0xff);
 
-        drv.glProgramUniform4i(DebugData.DepthMS2Array, loc, samples, i % samples, i / samples,
+        drv.glProgramUniform4i(arrms.DepthMS2Array, loc, samples, i % samples, i / samples,
                                currentStencil);
 
         drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
@@ -253,14 +332,16 @@ void GLReplay::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
   drv.glDeleteFramebuffers(1, &fbo);
   drv.glDeleteTextures(3, texs);
 
-  rs.ApplyState(m_pDriver);
+  rs.ApplyState(this);
 }
 
-void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
-                                  GLint arraySize, GLint samples, GLenum intFormat,
-                                  uint32_t selectedSlice)
+void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
+                                       GLint arraySize, GLint samples, GLenum intFormat,
+                                       uint32_t selectedSlice)
 {
-  WrappedOpenGL &drv = *m_pDriver;
+  WrappedOpenGL &drv = *this;
+
+  const ArrayMSPrograms &arrms = GetArrayMS();
 
   if(!HasExt[ARB_compute_shader])
   {
@@ -283,6 +364,11 @@ void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, G
     return;
   }
 
+  if(!arrms.Array2MS || (IsDepthStencilFormat(intFormat) && !arrms.DepthArray2MS))
+  {
+    return;
+  }
+
   if(IsDepthStencilFormat(intFormat))
   {
     CopyDepthArrayToTex2DMS(destMS, srcArray, width, height, arraySize, samples, intFormat,
@@ -295,7 +381,7 @@ void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, G
   bool singleSliceMode = (selectedSlice != ~0U);
 
   GLRenderState rs;
-  rs.FetchState(m_pDriver);
+  rs.FetchState(this);
 
   GLenum viewClass;
   drv.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
@@ -310,14 +396,12 @@ void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, G
     fmt = eGL_RGB8UI;
   else if(viewClass == eGL_VIEW_CLASS_32_BITS)
     fmt = eGL_RGBA8UI;
-  else if(viewClass == eGL_VIEW_CLASS_48_BITS)
-    fmt = eGL_RGB16UI;
   else if(viewClass == eGL_VIEW_CLASS_64_BITS)
     fmt = eGL_RG32UI;
-  else if(viewClass == eGL_VIEW_CLASS_96_BITS)
-    fmt = eGL_RGB32UI;
   else if(viewClass == eGL_VIEW_CLASS_128_BITS)
     fmt = eGL_RGBA32UI;
+  else
+    return;
 
   GLuint texs[2];
   drv.glGenTextures(2, texs);
@@ -334,22 +418,22 @@ void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, G
   drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
   drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
-  drv.glUseProgram(DebugData.Array2MS);
+  drv.glUseProgram(arrms.Array2MS);
 
-  GLint loc = drv.glGetUniformLocation(DebugData.Array2MS, "mscopy");
+  GLint loc = drv.glGetUniformLocation(arrms.Array2MS, "mscopy");
   if(loc >= 0)
   {
     if(singleSliceMode)
     {
       GLint sampleOffset = (selectedSlice % samples);
       GLint sliceOffset = (selectedSlice / samples);
-      drv.glProgramUniform4i(DebugData.Array2MS, loc, samples, sampleOffset, sliceOffset, 0);
+      drv.glProgramUniform4i(arrms.Array2MS, loc, samples, sampleOffset, sliceOffset, 0);
 
       drv.glDispatchCompute((GLuint)width, (GLuint)height, 1);
     }
     else
     {
-      drv.glProgramUniform4i(DebugData.Array2MS, loc, samples, 0, 0, 0);
+      drv.glProgramUniform4i(arrms.Array2MS, loc, samples, 0, 0, 0);
 
       drv.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
     }
@@ -358,21 +442,23 @@ void GLReplay::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, G
 
   drv.glDeleteTextures(2, texs);
 
-  rs.ApplyState(m_pDriver);
+  rs.ApplyState(this);
 }
 
-void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
-                                       GLint arraySize, GLint samples, GLenum intFormat,
-                                       uint32_t selectedSlice)
+void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width,
+                                            GLint height, GLint arraySize, GLint samples,
+                                            GLenum intFormat, uint32_t selectedSlice)
 {
   GLMarkerRegion renderoverlay("CopyDepthArrayToTex2DMS");
 
   bool singleSliceMode = (selectedSlice != ~0U);
 
-  WrappedOpenGL &drv = *m_pDriver;
+  WrappedOpenGL &drv = *this;
+
+  const ArrayMSPrograms &arrms = GetArrayMS();
 
   GLRenderState rs;
-  rs.FetchState(m_pDriver);
+  rs.FetchState(this);
 
   GLuint texs[3];
   drv.glGenTextures(3, texs);
@@ -387,7 +473,7 @@ void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
   drv.glDrawBuffers(0, NULL);
 
-  drv.glUseProgram(DebugData.DepthArray2MS);
+  drv.glUseProgram(arrms.DepthArray2MS);
   drv.glViewport(0, 0, width, height);
 
   drv.glDisable(eGL_CULL_FACE);
@@ -452,7 +538,7 @@ void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
     drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
   }
 
-  GLint loc = drv.glGetUniformLocation(DebugData.DepthArray2MS, "mscopy");
+  GLint loc = drv.glGetUniformLocation(arrms.DepthArray2MS, "mscopy");
   if(loc >= 0)
   {
     for(GLint i = 0; i < arraySize; i++)
@@ -471,7 +557,7 @@ void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
 
         drv.glStencilFunc(eGL_ALWAYS, int(s), 0xff);
 
-        drv.glProgramUniform4i(DebugData.DepthArray2MS, loc, samples, 0, i, currentStencil);
+        drv.glProgramUniform4i(arrms.DepthArray2MS, loc, samples, 0, i, currentStencil);
 
         drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
       }
@@ -484,5 +570,5 @@ void GLReplay::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
   drv.glDeleteFramebuffers(1, &fbo);
   drv.glDeleteTextures(3, texs);
 
-  rs.ApplyState(m_pDriver);
+  rs.ApplyState(this);
 }

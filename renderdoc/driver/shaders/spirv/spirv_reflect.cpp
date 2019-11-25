@@ -2195,7 +2195,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
 TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
 {
-  ShaderType type = ShaderType::eShaderVulkan;
+  ShaderType type = ShaderType::Vulkan;
   auto compiler = [&type](ShaderStage stage, const std::string &source, const std::string &entryPoint,
                           ShaderReflection &refl, ShaderBindpointMapping &mapping) {
 
@@ -2203,7 +2203,7 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
     RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
     std::vector<uint32_t> spirv;
-    rdcspv::CompilationSettings settings(type == ShaderType::eShaderVulkan
+    rdcspv::CompilationSettings settings(type == ShaderType::Vulkan
                                              ? rdcspv::InputLanguage::VulkanGLSL
                                              : rdcspv::InputLanguage::OpenGLGLSL,
                                          rdcspv::ShaderStage(stage));
@@ -2218,20 +2218,20 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
     spv.Parse(spirv);
 
     SPIRVPatchData patchData;
-    spv.MakeReflection(type == ShaderType::eShaderVulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,
+    spv.MakeReflection(type == ShaderType::Vulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,
                        stage, entryPoint, {}, refl, mapping, patchData);
   };
 
   // test both Vulkan and GL SPIR-V reflection
   SECTION("Vulkan GLSL reflection")
   {
-    type = ShaderType::eShaderVulkan;
+    type = ShaderType::Vulkan;
     TestGLSLReflection(type, compiler);
   };
 
   SECTION("OpenGL GLSL reflection")
   {
-    type = ShaderType::eShaderGLSPIRV;
+    type = ShaderType::GLSPIRV;
     TestGLSLReflection(type, compiler);
   };
 }

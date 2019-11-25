@@ -39,7 +39,25 @@
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
-GLuint GLReplay::CreateShader(GLenum shaderType, const std::string &src)
+void GetGLSLVersions(ShaderType &shaderType, int &glslVersion, int &glslBaseVer, int &glslCSVer)
+{
+  if(IsGLES)
+  {
+    shaderType = ShaderType::GLSLES;
+    glslVersion = glslBaseVer = glslCSVer = 310;
+
+    if(GLCoreVersion >= 32)
+      glslVersion = glslBaseVer = glslCSVer = 320;
+  }
+  else
+  {
+    shaderType = ShaderType::GLSL;
+    glslVersion = glslBaseVer = 150;
+    glslCSVer = 420;
+  }
+}
+
+GLuint CreateShader(GLenum shaderType, const std::string &src)
 {
   GLuint ret = GL.glCreateShader(shaderType);
 
@@ -61,7 +79,7 @@ GLuint GLReplay::CreateShader(GLenum shaderType, const std::string &src)
   return ret;
 }
 
-GLuint GLReplay::CreateSPIRVShader(GLenum shaderType, const std::string &src)
+GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src)
 {
   if(!HasExt[ARB_gl_spirv])
   {
@@ -101,13 +119,8 @@ GLuint GLReplay::CreateSPIRVShader(GLenum shaderType, const std::string &src)
   return ret;
 }
 
-GLuint GLReplay::CreateCShaderProgram(const std::string &src)
+GLuint CreateCShaderProgram(const std::string &src)
 {
-  if(m_pDriver == NULL)
-    return 0;
-
-  MakeCurrentReplayContext(m_DebugCtx);
-
   GLuint cs = CreateShader(eGL_COMPUTE_SHADER, src);
   if(cs == 0)
     return 0;
@@ -134,7 +147,7 @@ GLuint GLReplay::CreateCShaderProgram(const std::string &src)
   return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs)
+GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs)
 {
   GLuint ret = GL.glCreateProgram();
 
@@ -157,14 +170,9 @@ GLuint GLReplay::CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs)
   return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(const std::string &vsSrc, const std::string &fsSrc,
-                                     const std::string &gsSrc)
+GLuint CreateShaderProgram(const std::string &vsSrc, const std::string &fsSrc,
+                           const std::string &gsSrc)
 {
-  if(m_pDriver == NULL)
-    return 0;
-
-  MakeCurrentReplayContext(m_DebugCtx);
-
   GLuint vs = 0;
   GLuint fs = 0;
   GLuint gs = 0;
@@ -366,21 +374,17 @@ void GLReplay::InitDebugData()
   std::string gs;
   std::string cs;
 
+  ShaderType shaderType;
   int glslVersion;
   int glslBaseVer;
   int glslCSVer;    // compute shader
-  ShaderType shaderType;
+
+  GetGLSLVersions(shaderType, glslVersion, glslBaseVer, glslCSVer);
 
   std::string texSampleDefines;
 
   if(IsGLES)
   {
-    glslVersion = glslBaseVer = glslCSVer = 310;
-    shaderType = eShaderGLSLES;
-
-    if(GLCoreVersion >= 32)
-      glslVersion = glslBaseVer = glslCSVer = 320;
-
     if(HasExt[OES_texture_cube_map_array] || HasExt[EXT_texture_cube_map_array] || GLCoreVersion >= 32)
       texSampleDefines += "#define TEXSAMPLE_CUBE_ARRAY 1\n";
 
@@ -399,10 +403,6 @@ void GLReplay::InitDebugData()
   }
   else
   {
-    glslVersion = glslBaseVer = 150;
-    glslCSVer = 420;
-    shaderType = eShaderGLSL;
-
     if(HasExt[ARB_texture_cube_map_array])
       texSampleDefines +=
           "#define TEXSAMPLE_CUBE_ARRAY 1\n"
@@ -432,7 +432,7 @@ void GLReplay::InitDebugData()
   {
     // SPIR-V shaders are always generated as desktop GL 430, for ease
     std::string source =
-        GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), eShaderGLSPIRV, 430);
+        GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), ShaderType::GLSPIRV, 430);
     DebugData.fixedcolFragShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, source);
 
     if(HasExt[ARB_gpu_shader5] && HasExt[ARB_shader_image_load_store])
@@ -445,8 +445,8 @@ void GLReplay::InitDebugData()
         defines += "#define dFdyFine dFdy\n\n";
       }
 
-      source =
-          GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), eShaderGLSPIRV, 430, defines);
+      source = GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), ShaderType::GLSPIRV,
+                                  430, defines);
       DebugData.quadoverdrawFragShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, source);
     }
   }
@@ -871,65 +871,6 @@ void GLReplay::InitDebugData()
                              eGL_DYNAMIC_READ);
   }
 
-  if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_image_load_store] &&
-     HasExt[ARB_texture_multisample])
-  {
-    cs = GenerateGLSLShader(GetEmbeddedResource(glsl_ms2array_comp), shaderType, glslCSVer);
-    DebugData.MS2Array = CreateCShaderProgram(cs);
-
-    // GLES doesn't have multisampled image load/store even with any extension
-    DebugData.Array2MS = 0;
-    if(!IsGLES)
-    {
-      cs = GenerateGLSLShader(GetEmbeddedResource(glsl_array2ms_comp), shaderType, glslCSVer);
-      DebugData.Array2MS = CreateCShaderProgram(cs);
-    }
-  }
-  else
-  {
-    DebugData.MS2Array = 0;
-    DebugData.Array2MS = 0;
-    RDCWARN(
-        "GL_ARB_compute_shader or ARB_shader_image_load_store or ARB_texture_multisample not "
-        "supported, disabling 2DMS save/load.");
-    m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
-                               MessageSource::RuntimeWarning,
-                               "GL_ARB_compute_shader or ARB_shader_image_load_store not "
-                               "supported, disabling 2DMS save/load.");
-  }
-
-  DebugData.DepthArray2MS = DebugData.DepthMS2Array = 0;
-
-  if(HasExt[ARB_texture_multisample])
-  {
-    vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
-
-    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depthms2arr_frag), shaderType, glslBaseVer);
-    DebugData.DepthMS2Array = CreateShaderProgram(vs, fs);
-
-    GL.glUseProgram(DebugData.DepthMS2Array);
-
-    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthMS2Array, "srcDepthMS"), 0);
-    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthMS2Array, "srcStencilMS"), 1);
-
-    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_deptharr2ms_frag), shaderType, glslBaseVer);
-    DebugData.DepthArray2MS = CreateShaderProgram(vs, fs);
-
-    GL.glUseProgram(DebugData.DepthArray2MS);
-
-    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthArray2MS, "srcDepthArray"), 0);
-    GL.glUniform1i(GL.glGetUniformLocation(DebugData.DepthArray2MS, "srcStencilArray"), 1);
-  }
-  else
-  {
-    DebugData.MS2Array = 0;
-    DebugData.Array2MS = 0;
-    RDCWARN("GL_ARB_texture_multisample not supported, disabling 2DMS depth-stencil save/load.");
-    m_pDriver->AddDebugMessage(
-        MessageCategory::Portability, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-        "GL_ARB_texture_multisample not supported, disabling 2DMS depth-stencil save/load.");
-  }
-
   if(HasExt[ARB_compute_shader])
   {
     cs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_comp), shaderType, glslCSVer);
@@ -1255,16 +1196,6 @@ void GLReplay::DeleteDebugData()
   drv.glDeleteBuffers(1, &DebugData.pickIBBuf);
   drv.glDeleteBuffers(1, &DebugData.pickVBBuf);
   drv.glDeleteBuffers(1, &DebugData.pickResultBuf);
-
-  if(DebugData.Array2MS)
-    drv.glDeleteProgram(DebugData.Array2MS);
-  if(DebugData.MS2Array)
-    drv.glDeleteProgram(DebugData.MS2Array);
-
-  if(DebugData.DepthArray2MS)
-    drv.glDeleteProgram(DebugData.DepthArray2MS);
-  if(DebugData.DepthMS2Array)
-    drv.glDeleteProgram(DebugData.DepthMS2Array);
 
   drv.glDeleteBuffers(1, &DebugData.minmaxTileResult);
   drv.glDeleteBuffers(1, &DebugData.minmaxResult);

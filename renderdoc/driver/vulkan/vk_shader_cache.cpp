@@ -194,8 +194,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     else if(config.builtin == BuiltinShader::TexRemapSInt)
       defines += std::string("#define UINT_TEX 0\n#define SINT_TEX 1\n");
 
-    src =
-        GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), eShaderVulkan, 430, defines);
+    src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), ShaderType::Vulkan, 430,
+                             defines);
 
     compileSettings.stage = config.stage;
     std::string err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);
