@@ -262,8 +262,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkPipelineLayout> pipelayouts;
   std::vector<VkDescriptorSetLayout> setlayouts;
 
-  std::vector<VkImage> images;
-  std::vector<VkBuffer> buffers;
+  std::map<VkImage, VmaAllocation> imageAllocs;
+  std::map<VkBuffer, VmaAllocation> bufferAllocs;
 
   VulkanWindow *mainWindow = NULL;
 

@@ -504,8 +504,6 @@ VulkanWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *
 
 void VulkanGraphicsTest::Shutdown()
 {
-  vmaDestroyAllocator(allocator);
-
   if(device)
   {
     vkDeviceWaitIdle(device);
@@ -537,11 +535,13 @@ void VulkanGraphicsTest::Shutdown()
     for(VkDescriptorSetLayout layout : setlayouts)
       vkDestroyDescriptorSetLayout(device, layout, NULL);
 
-    for(VkImage img : images)
-      vkDestroyImage(device, img, NULL);
+    for(auto it : imageAllocs)
+      vmaDestroyImage(allocator, it.first, it.second);
 
-    for(VkBuffer buf : buffers)
-      vkDestroyBuffer(device, buf, NULL);
+    for(auto it : bufferAllocs)
+      vmaDestroyBuffer(allocator, it.first, it.second);
+
+    vmaDestroyAllocator(allocator);
 
     delete mainWindow;
 
@@ -1165,13 +1165,13 @@ AllocatedImage::AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo
   allocator = test->allocator;
   vmaCreateImage(allocator, &imgInfo, &allocInfo, &image, &alloc, NULL);
 
-  test->images.push_back(image);
+  test->imageAllocs[image] = alloc;
 }
 
 void AllocatedImage::free()
 {
   vmaFreeMemory(allocator, alloc);
-  test->images.erase(std::find(test->images.begin(), test->images.end(), image));
+  test->imageAllocs.erase(image);
 }
 
 AllocatedBuffer::AllocatedBuffer(VulkanGraphicsTest *test, const VkBufferCreateInfo &bufInfo,
@@ -1181,11 +1181,11 @@ AllocatedBuffer::AllocatedBuffer(VulkanGraphicsTest *test, const VkBufferCreateI
   allocator = test->allocator;
   vmaCreateBuffer(allocator, &bufInfo, &allocInfo, &buffer, &alloc, NULL);
 
-  test->buffers.push_back(buffer);
+  test->bufferAllocs[buffer] = alloc;
 }
 
 void AllocatedBuffer::free()
 {
   vmaFreeMemory(allocator, alloc);
-  test->buffers.erase(std::find(test->buffers.begin(), test->buffers.end(), buffer));
+  test->bufferAllocs.erase(buffer);
 }
