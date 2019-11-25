@@ -705,12 +705,12 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
         ret = fmt.BGRAOrder() ? "B10G10R10A2" : "R10G10B10A2";
         break;
       case ResourceFormatType::R11G11B10: return "R11G11B10_FLOAT";
-      case ResourceFormatType::R5G6B5: return fmt.BGRAOrder() ? "R5G6B5_UNORM" : "B5G6R5_UNORM";
+      case ResourceFormatType::R5G6B5: return fmt.BGRAOrder() ? "B5G6R5_UNORM" : "R5G6B5_UNORM";
       case ResourceFormatType::R5G5B5A1:
-        return fmt.BGRAOrder() ? "R5G5B5A1_UNORM" : "B5G5R5A1_UNORM";
+        return fmt.BGRAOrder() ? "B5G5R5A1_UNORM" : "R5G5B5A1_UNORM";
       case ResourceFormatType::R9G9B9E5: return "R9G9B9E5_FLOAT";
       case ResourceFormatType::R4G4B4A4:
-        return fmt.BGRAOrder() ? "R4G4B4A4_UNORM" : "B4G4R4A4_UNORM";
+        return fmt.BGRAOrder() ? "B4G4R4A4_UNORM" : "R4G4B4A4_UNORM";
       case ResourceFormatType::R4G4: return "R4G4_UNORM";
       case ResourceFormatType::D16S8:
         return fmt.compType == CompType::Typeless ? "D16S8_TYPELESS" : "D16S8";
