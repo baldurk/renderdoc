@@ -914,16 +914,19 @@ void TextureViewer::UI_UpdateStatusText()
 
   TextureDescription &tex = *texptr;
 
-  bool dsv = (tex.creationFlags & TextureCategory::DepthTarget) ||
-             (tex.format.compType == CompType::Depth);
-  bool uintTex = (tex.format.compType == CompType::UInt);
-  bool sintTex = (tex.format.compType == CompType::SInt);
+  CompType compType = tex.format.compType;
 
-  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::UInt)
-    uintTex = true;
+  const bool yuv =
+      (tex.format.type == ResourceFormatType::YUV8 || tex.format.type == ResourceFormatType::YUV10 ||
+       tex.format.type == ResourceFormatType::YUV12 || tex.format.type == ResourceFormatType::YUV16);
 
-  if(tex.format.compType == CompType::Typeless && m_TexDisplay.typeCast == CompType::SInt)
-    sintTex = true;
+  if(tex.format.compType != m_TexDisplay.typeCast && m_TexDisplay.typeCast != CompType::Typeless &&
+     !yuv)
+    compType = m_TexDisplay.typeCast;
+
+  bool dsv = (tex.creationFlags & TextureCategory::DepthTarget) || (compType == CompType::Depth);
+  bool uintTex = (compType == CompType::UInt);
+  bool sintTex = (compType == CompType::SInt);
 
   if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
      m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
