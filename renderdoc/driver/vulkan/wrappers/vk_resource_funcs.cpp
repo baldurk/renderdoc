@@ -720,7 +720,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     MappedData = state->mappedPtr + (size_t)MemRange.offset;
   }
 
-  if(IsReplayingAndReading() && MemRange.memory != VK_NULL_HANDLE)
+  if(IsReplayingAndReading() && MemRange.memory != VK_NULL_HANDLE && MemRange.size > 0)
   {
     VkResult ret =
         ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(MemRange.memory), MemRange.offset,
@@ -733,7 +733,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   // directly into upload memory
   ser.Serialise("MappedData"_lit, MappedData, memRangeSize, SerialiserFlags::NoFlags);
 
-  if(IsReplayingAndReading() && MappedData && MemRange.memory != VK_NULL_HANDLE)
+  if(IsReplayingAndReading() && MappedData && MemRange.memory != VK_NULL_HANDLE && MemRange.size > 0)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(MemRange.memory));
 
   SERIALISE_CHECK_READ_ERRORS();
