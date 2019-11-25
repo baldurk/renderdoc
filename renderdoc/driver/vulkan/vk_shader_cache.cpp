@@ -129,7 +129,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   VkDriverInfo driverVersion = driver->GetDriverInfo();
   const VkPhysicalDeviceFeatures &features = driver->GetDeviceFeatures();
 
-  m_GlobalDefines = "";
+  m_GlobalDefines = "#define HAS_BIT_CONVERSION 1\n";
   if(driverVersion.TexelFetchBrokenDriver())
     m_GlobalDefines += "#define NO_TEXEL_FETCH\n";
   if(driverVersion.RunningOnMetal())
