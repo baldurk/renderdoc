@@ -3471,6 +3471,8 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
 
   m_ProxyResources.push_back(resource);
 
+  m_ProxyTypeCastDefault[ret] = templateTex.format.compType;
+
   return ret;
 }
 

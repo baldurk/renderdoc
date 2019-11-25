@@ -297,6 +297,7 @@ private:
   }
 
   std::vector<ID3D11Resource *> m_ProxyResources;
+  std::map<ResourceId, CompType> m_ProxyTypeCastDefault;
 
   struct OutputWindow
   {

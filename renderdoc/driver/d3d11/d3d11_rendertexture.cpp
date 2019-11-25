@@ -506,8 +506,20 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
 
   pixelData.FlipY = cfg.flipY ? 1 : 0;
 
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(cfg.resourceId, cfg.typeCast,
-                                                                     cfg.rawOutput ? true : false);
+  CompType typeCast = cfg.typeCast;
+
+  // we create all proxy textures as typeless to allow us to cast, but that means if the remote API
+  // gave us a typed texture and then wants to view it 'typeless' (i.e. as it was created) we need
+  // to restore that type here.
+  if(typeCast == CompType::Typeless)
+  {
+    auto it = m_ProxyTypeCastDefault.find(cfg.resourceId);
+    if(it != m_ProxyTypeCastDefault.end())
+      typeCast = it->second;
+  }
+
+  TextureShaderDetails details =
+      GetDebugManager()->GetShaderDetails(cfg.resourceId, typeCast, cfg.rawOutput ? true : false);
 
   int sampleIdx = (int)RDCCLAMP(cfg.subresource.sample, 0U, details.sampleCount - 1);
 
@@ -752,14 +764,12 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
 
   int srvOffset = 0;
 
-  if(IsUIntFormat(details.texFmt) ||
-     (IsTypelessFormat(details.texFmt) && cfg.typeCast == CompType::UInt))
+  if(IsUIntFormat(details.texFmt) || (IsTypelessFormat(details.texFmt) && typeCast == CompType::UInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
     srvOffset = 10;
   }
-  if(IsIntFormat(details.texFmt) ||
-     (IsTypelessFormat(details.texFmt) && cfg.typeCast == CompType::SInt))
+  if(IsIntFormat(details.texFmt) || (IsTypelessFormat(details.texFmt) && typeCast == CompType::SInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
     srvOffset = 20;
