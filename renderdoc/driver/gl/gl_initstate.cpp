@@ -576,7 +576,16 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat,
   {
     return;
   }
-  else if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
+
+  GLuint ppb = 0, pub = 0;
+
+  GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&ppb);
+  GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pub);
+
+  GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
+  if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
   {
     GL.glTextureStorage2DMultisampleEXT(tex, textype, samples, internalFormat, width, height,
                                         GL_TRUE);
@@ -688,6 +697,9 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat,
     details.internalFormat = internalFormat;
     details.mipsValid = (1 << mips) - 1;
   }
+
+  GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
+  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
 }
 
 void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
