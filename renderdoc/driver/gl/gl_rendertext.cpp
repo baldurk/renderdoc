@@ -72,10 +72,20 @@ void WrappedOpenGL::ContextData::CreateDebugData()
     float maxheight = float(ascent) * stbtt_ScaleForPixelHeight(&f, charPixelHeight);
 
     {
+      PixelPackState pack;
       PixelUnpackState unpack;
+      GLuint pixelPackBuffer = 0;
+      GLuint pixelUnpackBuffer = 0;
 
+      GL.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&pixelPackBuffer);
+      GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pixelUnpackBuffer);
+      GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
+      pack.Fetch(false);
       unpack.Fetch(false);
 
+      ResetPixelPackState(false, 1);
       ResetPixelUnpackState(false, 1);
 
       GLuint curtex = 0;
@@ -95,7 +105,11 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 
       GL.glBindTexture(eGL_TEXTURE_2D, curtex);
 
+      pack.Apply(false);
       unpack.Apply(false);
+
+      GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, pixelPackBuffer);
+      GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
     }
 
     delete[] buf;
