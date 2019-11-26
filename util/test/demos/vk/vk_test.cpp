@@ -1171,7 +1171,7 @@ AllocatedImage::AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo
 
 void AllocatedImage::free()
 {
-  vmaFreeMemory(allocator, alloc);
+  vmaDestroyImage(allocator, image, alloc);
   test->imageAllocs.erase(image);
 }
 
@@ -1187,6 +1187,6 @@ AllocatedBuffer::AllocatedBuffer(VulkanGraphicsTest *test, const VkBufferCreateI
 
 void AllocatedBuffer::free()
 {
-  vmaFreeMemory(allocator, alloc);
+  vmaDestroyBuffer(allocator, buffer, alloc);
   test->bufferAllocs.erase(buffer);
 }

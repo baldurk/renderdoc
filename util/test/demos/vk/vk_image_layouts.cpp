@@ -235,6 +235,8 @@ void main()
 
       vkDestroyImage(device, preinitImg, NULL);
       vkFreeMemory(device, preinitMem, NULL);
+
+      undefImg.free();
     }
 
     return 0;
