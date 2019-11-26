@@ -864,6 +864,9 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
                                     &outw.curidx);
     }
 
+    if(vkr == VK_SUBOPTIMAL_KHR)
+      vkr = VK_SUCCESS;
+
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     VkSubmitInfo submitInfo = {
