@@ -4214,20 +4214,27 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
       // transition buffer to COPY_SOURCE/COPY_DEST, copy, and back to INDIRECT_ARG
       D3D12_RESOURCE_BARRIER barriers[2] = {};
-      barriers[0].Transition.pResource = Unwrap(pArgumentBuffer);
+      barriers[0].Transition.pResource = Unwrap(exec.argBuf);
       barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-      barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-      barriers[1].Transition.pResource = Unwrap(exec.argBuf);
+      barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+      barriers[1].Transition.pResource = Unwrap(pArgumentBuffer);
       barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-      barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-      cracked->ResourceBarrier(2, barriers);
+      barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      UINT barrierCount = 2;
+
+      if(m_pDevice->GetSubresourceStates(GetResID(pArgumentBuffer))[0] &
+         D3D12_RESOURCE_STATE_COPY_SOURCE)
+        barrierCount = 1;
+
+      cracked->ResourceBarrier(barrierCount, barriers);
 
       cracked->CopyBufferRegion(Unwrap(exec.argBuf), exec.argOffs, Unwrap(pArgumentBuffer),
                                 ArgumentBufferOffset, comSig->sig.ByteStride * MaxCommandCount);
 
       std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
       std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
-      cracked->ResourceBarrier(2, barriers);
+      cracked->ResourceBarrier(barrierCount, barriers);
 
       cracked->Close();
 
