@@ -473,6 +473,8 @@ struct RemoteServerCommand : public Command
   {
     std::string host = parser.get<std::string>("host");
 
+    m_Env.enumerateGPUs = true;
+
     RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
 
     std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << "..."
@@ -1169,8 +1171,11 @@ struct EmbeddedSectionCommand : public Command
 
 REPLAY_PROGRAM_MARKER()
 
-int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
+int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
 {
+  // we don't need this in renderdoccmd.
+  env.enumerateGPUs = false;
+
   try
   {
     // add basic commands, and common aliases
@@ -1330,7 +1335,7 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
   }
 }
 
-int renderdoccmd(const GlobalEnvironment &env, int argc, char **c_argv)
+int renderdoccmd(GlobalEnvironment &env, int argc, char **c_argv)
 {
   std::vector<std::string> argv;
   argv.resize(argc);

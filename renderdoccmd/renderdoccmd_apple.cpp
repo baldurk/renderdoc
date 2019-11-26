@@ -51,5 +51,7 @@ int main(int argc, char *argv[])
 
   // process any apple-specific arguments here
 
-  return renderdoccmd(GlobalEnvironment(), argc, argv);
+  GlobalEnvironment env;
+
+  return renderdoccmd(env, argc, argv);
 }

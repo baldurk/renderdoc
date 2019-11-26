@@ -509,111 +509,114 @@ void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const std::vecto
       RDCDEBUG("[%u]: %s", (uint32_t)i, args[i].c_str());
   }
 
-  m_AvailableGPUThread = Threading::CreateThread([this]() {
-    for(GraphicsAPI api : {GraphicsAPI::D3D11, GraphicsAPI::D3D12, GraphicsAPI::Vulkan})
-    {
-      RDCDriver driverType = RDCDriver::Unknown;
-
-      switch(api)
+  if(env.enumerateGPUs)
+  {
+    m_AvailableGPUThread = Threading::CreateThread([this]() {
+      for(GraphicsAPI api : {GraphicsAPI::D3D11, GraphicsAPI::D3D12, GraphicsAPI::Vulkan})
       {
-        case GraphicsAPI::D3D11: driverType = RDCDriver::D3D11; break;
-        case GraphicsAPI::D3D12: driverType = RDCDriver::D3D12; break;
-        case GraphicsAPI::OpenGL: break;
-        case GraphicsAPI::Vulkan: driverType = RDCDriver::Vulkan; break;
-      }
+        RDCDriver driverType = RDCDriver::Unknown;
 
-      if(driverType == RDCDriver::Unknown || !HasReplayDriver(driverType))
-        continue;
-
-      IReplayDriver *driver = NULL;
-      ReplayStatus status = m_ReplayDriverProviders[driverType](NULL, ReplayOptions(), &driver);
-
-      if(status == ReplayStatus::Succeeded)
-      {
-        rdcarray<GPUDevice> gpus = driver->GetAvailableGPUs();
-
-        for(const GPUDevice &newgpu : gpus)
+        switch(api)
         {
-          bool addnew = true;
-
-          for(GPUDevice &oldgpu : m_AvailableGPUs)
-          {
-            // if we have this GPU listed already, just add its API to the previous list
-            if(oldgpu == newgpu)
-            {
-              oldgpu.apis.push_back(api);
-              addnew = false;
-            }
-          }
-
-          if(addnew)
-            m_AvailableGPUs.push_back(newgpu);
+          case GraphicsAPI::D3D11: driverType = RDCDriver::D3D11; break;
+          case GraphicsAPI::D3D12: driverType = RDCDriver::D3D12; break;
+          case GraphicsAPI::OpenGL: break;
+          case GraphicsAPI::Vulkan: driverType = RDCDriver::Vulkan; break;
         }
-      }
-      else
-      {
-        RDCWARN("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
-                ToStr(status).c_str());
-      }
 
-      if(driver)
-        driver->Shutdown();
-    }
-
-    // we now have a list of GPUs, however we might have some duplicates if some APIs have
-    // multiple drivers for a single device. To compact this list, for each GPU with no driver
-    // we find all matching multi-drive GPUs and merge it into all matching copies.
-    bool hasDriverNames = false;
-    for(size_t i = 0; i < m_AvailableGPUs.size(); i++)
-      hasDriverNames |= !m_AvailableGPUs[i].driver.empty();
-
-    if(hasDriverNames)
-    {
-      for(size_t i = 0; i < m_AvailableGPUs.size();)
-      {
-        bool applied = false;
-
-        if(!m_AvailableGPUs[i].driver.empty())
-        {
-          i++;
+        if(driverType == RDCDriver::Unknown || !HasReplayDriver(driverType))
           continue;
-        }
 
-        // scan all subsequent GPUs, if we find a duplicate, merge the APIs
-        for(size_t j = i + 1; j < m_AvailableGPUs.size(); j++)
+        IReplayDriver *driver = NULL;
+        ReplayStatus status = m_ReplayDriverProviders[driverType](NULL, ReplayOptions(), &driver);
+
+        if(status == ReplayStatus::Succeeded)
         {
-          if(m_AvailableGPUs[i].vendor == m_AvailableGPUs[j].vendor &&
-             m_AvailableGPUs[i].deviceID == m_AvailableGPUs[j].deviceID)
+          rdcarray<GPUDevice> gpus = driver->GetAvailableGPUs();
+
+          for(const GPUDevice &newgpu : gpus)
           {
-            RDCASSERT(!m_AvailableGPUs[j].driver.empty());
-            for(GraphicsAPI a : m_AvailableGPUs[i].apis)
-            {
-              if(m_AvailableGPUs[j].apis.indexOf(a) == -1)
-                m_AvailableGPUs[j].apis.push_back(a);
-            }
-            applied = true;
-          }
-        }
+            bool addnew = true;
 
-        // we "applied" this GPU to all its driver-based duplicates, so we can remove it now
-        if(applied)
-        {
-          m_AvailableGPUs.erase(i);
+            for(GPUDevice &oldgpu : m_AvailableGPUs)
+            {
+              // if we have this GPU listed already, just add its API to the previous list
+              if(oldgpu == newgpu)
+              {
+                oldgpu.apis.push_back(api);
+                addnew = false;
+              }
+            }
+
+            if(addnew)
+              m_AvailableGPUs.push_back(newgpu);
+          }
         }
         else
         {
-          i++;
+          RDCWARN("Couldn't create proxy replay driver for %s: %s", ToStr(driverType).c_str(),
+                  ToStr(status).c_str());
+        }
+
+        if(driver)
+          driver->Shutdown();
+      }
+
+      // we now have a list of GPUs, however we might have some duplicates if some APIs have
+      // multiple drivers for a single device. To compact this list, for each GPU with no driver
+      // we find all matching multi-drive GPUs and merge it into all matching copies.
+      bool hasDriverNames = false;
+      for(size_t i = 0; i < m_AvailableGPUs.size(); i++)
+        hasDriverNames |= !m_AvailableGPUs[i].driver.empty();
+
+      if(hasDriverNames)
+      {
+        for(size_t i = 0; i < m_AvailableGPUs.size();)
+        {
+          bool applied = false;
+
+          if(!m_AvailableGPUs[i].driver.empty())
+          {
+            i++;
+            continue;
+          }
+
+          // scan all subsequent GPUs, if we find a duplicate, merge the APIs
+          for(size_t j = i + 1; j < m_AvailableGPUs.size(); j++)
+          {
+            if(m_AvailableGPUs[i].vendor == m_AvailableGPUs[j].vendor &&
+               m_AvailableGPUs[i].deviceID == m_AvailableGPUs[j].deviceID)
+            {
+              RDCASSERT(!m_AvailableGPUs[j].driver.empty());
+              for(GraphicsAPI a : m_AvailableGPUs[i].apis)
+              {
+                if(m_AvailableGPUs[j].apis.indexOf(a) == -1)
+                  m_AvailableGPUs[j].apis.push_back(a);
+              }
+              applied = true;
+            }
+          }
+
+          // we "applied" this GPU to all its driver-based duplicates, so we can remove it now
+          if(applied)
+          {
+            m_AvailableGPUs.erase(i);
+          }
+          else
+          {
+            i++;
+          }
         }
       }
-    }
 
-    // sort the APIs list in each GPU, and sort the GPUs
-    std::sort(m_AvailableGPUs.begin(), m_AvailableGPUs.end());
-    for(GPUDevice &dev : m_AvailableGPUs)
-    {
-      std::sort(dev.apis.begin(), dev.apis.end());
-    }
-  });
+      // sort the APIs list in each GPU, and sort the GPUs
+      std::sort(m_AvailableGPUs.begin(), m_AvailableGPUs.end());
+      for(GPUDevice &dev : m_AvailableGPUs)
+      {
+        std::sort(dev.apis.begin(), dev.apis.end());
+      }
+    });
+  }
 }
 
 bool RenderDoc::MatchClosestWindow(void *&dev, void *&wnd)

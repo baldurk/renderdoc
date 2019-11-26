@@ -417,7 +417,8 @@ void *cmdthread(void *)
   {
     ANDROID_LOG("Entering cmd thread");
     m_CmdLock.lock();
-    renderdoccmd(GlobalEnvironment(), args);
+    GlobalEnvironment env;
+    renderdoccmd(env, args);
     m_CmdLock.unlock();
     ANDROID_LOG("Exiting cmd thread");
   }

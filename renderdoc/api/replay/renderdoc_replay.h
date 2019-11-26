@@ -608,6 +608,12 @@ struct GlobalEnvironment
   DOCUMENT(
       "The handle to the X display to use internally. If left ``NULL``, wayland cannot be used.");
   wl_display *waylandDisplay = NULL;
+
+  DOCUMENT(R"(Whether to enumerate available GPUs. If the replay program is only being used for
+internal operation where enumerating GPUs would be too expensive or problematic, it can be disabled
+here.
+)");
+  bool enumerateGPUs = true;
 };
 
 DOCUMENT("The result of executing or injecting into a program.")
