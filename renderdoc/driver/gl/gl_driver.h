@@ -407,6 +407,8 @@ private:
 
     GLResourceRecord *GetActiveTexRecord(GLenum target)
     {
+      if(IsProxyTarget(target))
+        return NULL;
       return m_TextureRecord[TextureIdx(target)][m_TextureUnit];
     }
     void SetActiveTexRecord(GLenum target, GLResourceRecord *record)
