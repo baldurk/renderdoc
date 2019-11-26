@@ -157,8 +157,8 @@ struct ToolPathCache
 
 static ToolPathCache &getCache()
 {
-  static ToolPathCache cache;
-  return cache;
+  static ToolPathCache *cache = new ToolPathCache;
+  return *cache;
 }
 
 std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist)
