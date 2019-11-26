@@ -619,10 +619,13 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS,
                                     (GLint *)&state.seamless);
 
-    GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_BASE_LEVEL,
-                                  (GLint *)&state.baseLevel);
-    GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
-                                  (GLint *)&state.maxLevel);
+    if(details.curType != eGL_TEXTURE_RECTANGLE)
+    {
+      GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_BASE_LEVEL,
+                                    (GLint *)&state.baseLevel);
+      GL.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
+                                    (GLint *)&state.maxLevel);
+    }
 
     if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
@@ -875,8 +878,11 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
       }
 
-      GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
-                                 (GLint *)&state.maxLevel);
+      if(details.curType != eGL_TEXTURE_RECTANGLE)
+      {
+        GL.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
+                                   (GLint *)&state.maxLevel);
+      }
 
       if(!ms)
       {
@@ -2015,10 +2021,13 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
         GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS,
                                    (GLint *)&state.seamless);
 
-      GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL,
-                                 (GLint *)&state.baseLevel);
-      GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
-                                 (GLint *)&state.maxLevel);
+      if(details.curType != eGL_TEXTURE_RECTANGLE)
+      {
+        GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL,
+                                   (GLint *)&state.baseLevel);
+        GL.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
+                                   (GLint *)&state.maxLevel);
+      }
 
       // assume that emulated (luminance, alpha-only etc) textures are not swizzled
       if(!details.emulated && (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
