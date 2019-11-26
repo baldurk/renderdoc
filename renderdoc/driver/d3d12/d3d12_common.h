@@ -75,15 +75,21 @@ inline std::string DecodeMarkerString(UINT Metadata, const void *pData, UINT Siz
 {
   std::string MarkerText = "";
 
+  // There may be a space appended to the marker string - see D3D12MarkerRegion::Begin
+  // If we encounter this extra space (or a null terminator), remove it.
   if(Metadata == PIX_EVENT_UNICODE_VERSION)
   {
     const wchar_t *w = (const wchar_t *)pData;
-    MarkerText = StringFormat::Wide2UTF8(std::wstring(w, w + Size));
+    MarkerText = StringFormat::Wide2UTF8(std::wstring(w, w + Size / sizeof(wchar_t)));
+    if(!MarkerText.empty() && (MarkerText.back() == ' ' || MarkerText.back() == 0))
+      MarkerText.pop_back();
   }
   else if(Metadata == PIX_EVENT_ANSI_VERSION)
   {
     const char *c = (const char *)pData;
     MarkerText = std::string(c, c + Size);
+    if(!MarkerText.empty() && (MarkerText.back() == ' ' || MarkerText.back() == 0))
+      MarkerText.pop_back();
   }
   else if(Metadata == PIX_EVENT_PIX3BLOB_VERSION)
   {

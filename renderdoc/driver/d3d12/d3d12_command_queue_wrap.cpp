@@ -792,8 +792,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
     WrappedID3D12GraphicsCommandList *list = (WrappedID3D12GraphicsCommandList *)pOpenCommandList;
 
     // add a marker
-    const char str[] = "ID3D12CommandQueueDownlevel::Present()";
-    list->SetMarker(PIX_EVENT_ANSI_VERSION, str, sizeof(str) - 1);
+    D3D12MarkerRegion::Set(list, "ID3D12CommandQueueDownlevel::Present()");
 
     // the list is implicitly closed, serialise that
     D3D12ResourceRecord *listRecord = GetRecord(list);

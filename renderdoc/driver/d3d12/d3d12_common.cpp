@@ -56,8 +56,13 @@ void D3D12MarkerRegion::Begin(ID3D12GraphicsCommandList *list, const std::string
 {
   if(list)
   {
+    // Some debuggers (but not all) will assume the event string is null-terminated, and
+    // display one less character than specified by the size. Append a space to pad the
+    // output without visibly changing the event marker for other debuggers.
     std::wstring text = StringFormat::UTF82Wide(marker);
-    list->BeginEvent(0, text.c_str(), (UINT)text.size());
+    text.append(L" ");
+    UINT size = (UINT)text.size() * sizeof(wchar_t);
+    list->BeginEvent(0, text.c_str(), size);
   }
 }
 
@@ -66,7 +71,9 @@ void D3D12MarkerRegion::Begin(ID3D12CommandQueue *queue, const std::string &mark
   if(queue)
   {
     std::wstring text = StringFormat::UTF82Wide(marker);
-    queue->BeginEvent(0, text.c_str(), (UINT)text.size());
+    text.append(L" ");
+    UINT size = (UINT)text.size() * sizeof(wchar_t);
+    queue->BeginEvent(0, text.c_str(), size);
   }
 }
 
@@ -75,7 +82,9 @@ void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const std::string &
   if(list)
   {
     std::wstring text = StringFormat::UTF82Wide(marker);
-    list->SetMarker(0, text.c_str(), (UINT)text.size());
+    text.append(L" ");
+    UINT size = (UINT)text.size() * sizeof(wchar_t);
+    list->SetMarker(0, text.c_str(), size);
   }
 }
 
@@ -84,7 +93,9 @@ void D3D12MarkerRegion::Set(ID3D12CommandQueue *queue, const std::string &marker
   if(queue)
   {
     std::wstring text = StringFormat::UTF82Wide(marker);
-    queue->SetMarker(0, text.c_str(), (UINT)text.size());
+    text.append(L" ");
+    UINT size = (UINT)text.size() * sizeof(wchar_t);
+    queue->SetMarker(0, text.c_str(), size);
   }
 }
 
