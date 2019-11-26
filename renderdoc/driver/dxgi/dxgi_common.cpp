@@ -2163,6 +2163,8 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
         return DXGI_FORMAT_B8G8R8A8_UNORM;
       else if(fmt.compByteWidth == 1 && fmt.compType == CompType::UNormSRGB)
         return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+      else if(fmt.compByteWidth == 1 && fmt.compType == CompType::Typeless)
+        return DXGI_FORMAT_B8G8R8A8_TYPELESS;
       else
         return DXGI_FORMAT_UNKNOWN;
     }
