@@ -460,11 +460,30 @@ void main()
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     GLenum format = GL_RGBA;
-    GLenum type = GL_UNSIGNED_BYTE;
-    if(test.fmt.cfg.componentBytes == 2)
-      type = GL_UNSIGNED_SHORT;
-    else if(test.fmt.cfg.componentBytes == 2)
-      type = GL_UNSIGNED_INT;
+    GLenum type;
+
+    if(test.fmt.cfg.data == DataType::UInt || test.fmt.cfg.data == DataType::UNorm)
+    {
+      type = GL_UNSIGNED_BYTE;
+      if(test.fmt.cfg.componentBytes == 2)
+        type = GL_UNSIGNED_SHORT;
+      else if(test.fmt.cfg.componentBytes == 4)
+        type = GL_UNSIGNED_INT;
+    }
+    else if(test.fmt.cfg.data == DataType::SInt || test.fmt.cfg.data == DataType::SNorm)
+    {
+      type = GL_BYTE;
+      if(test.fmt.cfg.componentBytes == 2)
+        type = GL_SHORT;
+      else if(test.fmt.cfg.componentBytes == 4)
+        type = GL_INT;
+    }
+    else
+    {
+      type = GL_FLOAT;
+      if(test.fmt.cfg.componentBytes == 2)
+        type = GL_HALF_FLOAT;
+    }
 
     bool isInt = (test.fmt.cfg.data == DataType::SInt || test.fmt.cfg.data == DataType::UInt);
     if(test.fmt.cfg.componentCount == 4)
