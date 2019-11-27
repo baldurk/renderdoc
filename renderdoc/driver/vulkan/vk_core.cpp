@@ -1257,6 +1257,36 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         continue;
       }
 
+      if(!strcmp(it->extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME))
+      {
+        // require GPDP2
+        if(instDevInfo->ext_KHR_get_physical_device_properties2)
+        {
+          VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufaddr = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR};
+          VkPhysicalDeviceFeatures2 base = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+          base.pNext = &bufaddr;
+          ObjDisp(physDev)->GetPhysicalDeviceFeatures2(Unwrap(physDev), &base);
+
+          if(bufaddr.bufferDeviceAddressCaptureReplay)
+          {
+            // supported
+            ++it;
+            continue;
+          }
+          else
+          {
+            RDCWARN(
+                "VkPhysicalDeviceBufferDeviceAddressFeaturesKHR.bufferDeviceAddressCaptureReplay "
+                "is false, can't support capture of VK_KHR_buffer_device_address");
+          }
+        }
+
+        // if it wasn't supported, remove the extension
+        it = filtered.erase(it);
+        continue;
+      }
+
       ++it;
     }
 

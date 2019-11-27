@@ -453,7 +453,8 @@
   DeclExt(EXT_line_rasterization);              \
   DeclExt(GOOGLE_display_timing);               \
   DeclExt(KHR_timeline_semaphore);              \
-  DeclExt(KHR_performance_query);
+  DeclExt(KHR_performance_query);               \
+  DeclExt(KHR_buffer_device_address);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -541,7 +542,8 @@
   CheckExt(EXT_line_rasterization, VKXX);             \
   CheckExt(GOOGLE_display_timing, VKXX);              \
   CheckExt(KHR_timeline_semaphore, VKXX);             \
-  CheckExt(KHR_performance_query, VKXX);
+  CheckExt(KHR_performance_query, VKXX);              \
+  CheckExt(KHR_buffer_device_address, VKXX);
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -695,6 +697,9 @@
   HookInitExtension(KHR_timeline_semaphore, SignalSemaphoreKHR);                                   \
   HookInitExtension(KHR_performance_query, AcquireProfilingLockKHR);                               \
   HookInitExtension(KHR_performance_query, ReleaseProfilingLockKHR);                               \
+  HookInitExtension(KHR_buffer_device_address, GetBufferDeviceAddressKHR);                         \
+  HookInitExtension(KHR_buffer_device_address, GetBufferOpaqueCaptureAddressKHR);                  \
+  HookInitExtension(KHR_buffer_device_address, GetDeviceMemoryOpaqueCaptureAddressKHR);            \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1307,4 +1312,10 @@
   HookDefine2(VkResult, vkAcquireProfilingLockKHR, VkDevice, device,                                 \
               const VkAcquireProfilingLockInfoKHR *, pInfo);                                         \
   HookDefine1(void, vkReleaseProfilingLockKHR, VkDevice, device);                                    \
+  HookDefine2(VkDeviceAddress, vkGetBufferDeviceAddressKHR, VkDevice, device,                        \
+              VkBufferDeviceAddressInfoKHR *, pInfo);                                                \
+  HookDefine2(uint64_t, vkGetBufferOpaqueCaptureAddressKHR, VkDevice, device,                        \
+              VkBufferDeviceAddressInfoKHR *, pInfo);                                                \
+  HookDefine2(uint64_t, vkGetDeviceMemoryOpaqueCaptureAddressKHR, VkDevice, device,                  \
+              VkDeviceMemoryOpaqueCaptureAddressInfoKHR *, pInfo);                                   \
   HookDefine_PlatformSpecific()

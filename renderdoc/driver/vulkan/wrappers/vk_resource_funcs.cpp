@@ -395,6 +395,16 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
   UnwrapNextChain(m_State, "VkMemoryAllocateInfo", tempMem, (VkBaseInStructure *)&unwrapped);
 
+  VkMemoryAllocateFlagsInfo *memFlags = (VkMemoryAllocateFlagsInfo *)FindNextStruct(
+      &unwrapped, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO);
+
+  // since the application must specify VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR itself, we can
+  // assume the struct is present and just add the capture-replay flag to allow us to specify the
+  // address on replay. We ensured the physical device can support this feature (and it was enabled)
+  // when whitelisting the extension and creating the device.
+  if(memFlags && (memFlags->flags & VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR))
+    memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &unwrapped, pAllocator, pMemory));
@@ -411,18 +421,46 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     {
       Chunk *chunk = NULL;
 
-      {
-        CACHE_THREAD_SERIALISER();
-
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateMemory);
-        Serialise_vkAllocateMemory(ser, device, &info, NULL, pMemory);
-
-        chunk = scope.Get();
-      }
+      VkMemoryAllocateInfo serialisedInfo = info;
+      VkMemoryOpaqueCaptureAddressAllocateInfoKHR memoryDeviceAddress = {
+          VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO_KHR,
+      };
 
       // create resource record for gpu memory
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pMemory);
       RDCASSERT(record);
+
+      memFlags = (VkMemoryAllocateFlagsInfo *)FindNextStruct(
+          &serialisedInfo, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO);
+
+      if(memFlags && (memFlags->flags & VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR))
+      {
+        VkDeviceMemoryOpaqueCaptureAddressInfoKHR getInfo = {
+            VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO_KHR, NULL, Unwrap(*pMemory),
+        };
+
+        memoryDeviceAddress.opaqueCaptureAddress =
+            ObjDisp(device)->GetDeviceMemoryOpaqueCaptureAddressKHR(Unwrap(device), &getInfo);
+
+        // we explicitly DON'T assert on this, because some drivers will only need the device
+        // address specified at allocate time.
+        // RDCASSERT(memoryDeviceAddress.opaqueCaptureAddress);
+
+        // push this struct onto the start of the chain
+        memoryDeviceAddress.pNext = serialisedInfo.pNext;
+        serialisedInfo.pNext = &memoryDeviceAddress;
+
+        memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+      }
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateMemory);
+        Serialise_vkAllocateMemory(ser, device, &serialisedInfo, NULL, pMemory);
+
+        chunk = scope.Get();
+      }
 
       record->AddChunk(chunk);
 
@@ -1115,8 +1153,8 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
   // If we're using this buffer for device addresses, ensure we force on capture replay bit.
   // We ensured the physical device can support this feature before whitelisting the extension.
-  if(adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT)
-    adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT;
+  if(adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR)
+    adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
 
@@ -1135,34 +1173,56 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
       Chunk *chunk = NULL;
 
       VkBufferCreateInfo serialisedCreateInfo = *pCreateInfo;
-      VkBufferDeviceAddressCreateInfoEXT bufferDeviceAddress = {
+      VkBufferDeviceAddressCreateInfoEXT bufferDeviceAddressEXT = {
           VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,
+      };
+      VkBufferOpaqueCaptureAddressCreateInfoKHR bufferDeviceAddressKHR = {
+          VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO_KHR,
       };
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pBuffer);
       record->memSize = pCreateInfo->size;
 
-      // if we're using VK_EXT_buffer_device_address, we fetch the device address that's been
+      // if we're using VK_[KHR|EXT]_buffer_device_address, we fetch the device address that's been
       // allocated and insert it into the next chain and patch the flags so that it replays
       // naturally.
-      if(GetRecord(device)->instDevInfo->ext_EXT_buffer_device_address &&
-         (pCreateInfo->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT) != 0)
+      if((pCreateInfo->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR) != 0)
       {
-        VkBufferDeviceAddressInfoEXT getInfo = {
-            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT, NULL, Unwrap(*pBuffer),
+        VkBufferDeviceAddressInfoKHR getInfo = {
+            VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR, NULL, Unwrap(*pBuffer),
         };
 
-        bufferDeviceAddress.deviceAddress =
-            ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
+        if(GetExtensions(GetRecord(device)).ext_KHR_buffer_device_address)
+        {
+          bufferDeviceAddressKHR.opaqueCaptureAddress =
+              ObjDisp(device)->GetBufferOpaqueCaptureAddressKHR(Unwrap(device), &getInfo);
 
-        RDCASSERT(bufferDeviceAddress.deviceAddress);
+          // we explicitly DON'T assert on this, because some drivers will only need the device
+          // address specified at allocate time.
+          // RDCASSERT(bufferDeviceAddressKHR.opaqueCaptureAddress);
 
-        // push this struct onto the start of the chain
-        bufferDeviceAddress.pNext = serialisedCreateInfo.pNext;
-        serialisedCreateInfo.pNext = &bufferDeviceAddress;
+          // push this struct onto the start of the chain
+          bufferDeviceAddressKHR.pNext = serialisedCreateInfo.pNext;
+          serialisedCreateInfo.pNext = &bufferDeviceAddressKHR;
+        }
+        else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
+        {
+          bufferDeviceAddressEXT.deviceAddress =
+              ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
 
-        // tell the driver we're giving it a pre-allocated address to use
-        serialisedCreateInfo.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT;
+          RDCASSERT(bufferDeviceAddressEXT.deviceAddress);
+
+          // push this struct onto the start of the chain
+          bufferDeviceAddressEXT.pNext = serialisedCreateInfo.pNext;
+          serialisedCreateInfo.pNext = &bufferDeviceAddressEXT;
+        }
+        else
+        {
+          RDCERR("Device address bit specified but no device address extension enabled");
+        }
+
+        // tell the driver on replay that we're giving it a pre-allocated address to use
+        serialisedCreateInfo.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
 
         // this buffer must be forced to be in any captures, since we can't track when it's used by
         // address

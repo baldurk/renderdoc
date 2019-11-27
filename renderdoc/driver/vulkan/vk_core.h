@@ -2208,4 +2208,11 @@ public:
       const VkQueryPoolPerformanceCreateInfoKHR *pPerformanceQueryCreateInfo, uint32_t *pNumPasses);
   VkResult vkAcquireProfilingLockKHR(VkDevice device, const VkAcquireProfilingLockInfoKHR *pInfo);
   void vkReleaseProfilingLockKHR(VkDevice device);
+
+  // VK_KHR_buffer_device_address
+
+  VkDeviceAddress vkGetBufferDeviceAddressKHR(VkDevice device, VkBufferDeviceAddressInfoKHR *pInfo);
+  uint64_t vkGetBufferOpaqueCaptureAddressKHR(VkDevice device, VkBufferDeviceAddressInfoKHR *pInfo);
+  uint64_t vkGetDeviceMemoryOpaqueCaptureAddressKHR(VkDevice device,
+                                                    VkDeviceMemoryOpaqueCaptureAddressInfoKHR *pInfo);
 };

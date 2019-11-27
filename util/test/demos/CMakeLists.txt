@@ -7,15 +7,16 @@ set(VULKAN_SRC
         vk/vk_helpers.cpp
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
-        vk/vk_buffer_address.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_descriptor_index.cpp
         vk/vk_discard_rects.cpp
         vk/vk_draw_zoo.cpp
+        vk/vk_ext_buffer_address.cpp
         vk/vk_image_layouts.cpp
         vk/vk_imageless_framebuffer.cpp
         vk/vk_indirect.cpp
         vk/vk_int8_ibuffer.cpp
+        vk/vk_khr_buffer_address.cpp
         vk/vk_line_raster.cpp
         vk/vk_misaligned_dirty.cpp
         vk/vk_multi_thread_windows.cpp

@@ -37,7 +37,7 @@ struct feedbackData
 
 void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
                     const std::map<rdcspv::Binding, feedbackData> &offsetMap, VkDeviceAddress addr,
-                    std::vector<uint32_t> &modSpirv)
+                    bool bufferAddressKHR, std::vector<uint32_t> &modSpirv)
 {
   rdcspv::Editor editor(modSpirv);
 
@@ -129,22 +129,23 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   if(useBufferAddress)
   {
     // add the extension
-    editor.AddExtension("SPV_EXT_physical_storage_buffer");
+    editor.AddExtension(bufferAddressKHR ? "SPV_KHR_physical_storage_buffer"
+                                         : "SPV_EXT_physical_storage_buffer");
 
     // change the memory model to physical storage buffer 64
     rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
     rdcspv::OpMemoryModel model(it);
-    model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64EXT;
+    model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64;
     it = model;
 
     // add capabilities
-    editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddressesEXT);
+    editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
     editor.AddCapability(rdcspv::Capability::Int64);
 
     // declare the address constants and make our pointers physical storage buffer pointers
     bufferAddressConst = editor.AddConstantImmediate<uint64_t>(addr);
     uint32ptrtype =
-        editor.DeclareType(rdcspv::Pointer(uint32ID, rdcspv::StorageClass::PhysicalStorageBufferEXT));
+        editor.DeclareType(rdcspv::Pointer(uint32ID, rdcspv::StorageClass::PhysicalStorageBuffer));
 
     editor.SetName(bufferAddressConst, "__rd_feedbackAddress");
 
@@ -526,8 +527,11 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   // if it actually has any data in it later.
   DynamicUsedBinds &result = m_BindlessFeedback.Usage[eventId];
 
-  bool useBufferAddress =
-      ObjDisp(m_Device)->GetBufferDeviceAddressEXT && m_pDriver->GetDeviceFeatures().shaderInt64;
+  bool useBufferAddress = (m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address ||
+                           m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address) &&
+                          m_pDriver->GetDeviceFeatures().shaderInt64;
+
+  bool useBufferAddressKHR = m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address;
 
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
@@ -622,10 +626,16 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   if(useBufferAddress)
   {
-    VkBufferDeviceAddressInfoEXT getAddressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT};
+    RDCCOMPILE_ASSERT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR ==
+                          VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT,
+                      "KHR and EXT buffer_device_address should be interchangeable here.");
+    VkBufferDeviceAddressInfoKHR getAddressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR};
     getAddressInfo.buffer = m_BindlessFeedback.FeedbackBuffer.buf;
 
-    bufferAddress = m_pDriver->vkGetBufferDeviceAddressEXT(dev, &getAddressInfo);
+    if(useBufferAddressKHR)
+      bufferAddress = m_pDriver->vkGetBufferDeviceAddressKHR(dev, &getAddressInfo);
+    else
+      bufferAddress = m_pDriver->vkGetBufferDeviceAddressEXT(dev, &getAddressInfo);
   }
   else
   {
@@ -704,7 +714,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
-    AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, bufferAddress, modSpirv);
+    AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, bufferAddress,
+                   useBufferAddressKHR, modSpirv);
 
     moduleCreateInfo.pCode = modSpirv.data();
     moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
@@ -729,7 +740,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
       AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, bufferAddress,
-                     modSpirv);
+                     useBufferAddressKHR, modSpirv);
 
       moduleCreateInfo.pCode = modSpirv.data();
       moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);

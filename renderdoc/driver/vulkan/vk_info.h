@@ -414,7 +414,6 @@ struct VulkanCreationInfo
 
     VkBufferUsageFlags usage;
     uint64_t size;
-    uint64_t gpuAddress;
   };
   std::map<ResourceId, Buffer> m_Buffer;
 

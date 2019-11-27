@@ -180,7 +180,7 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
     bufInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
   if(flags & eGPUBufferAddressable)
-    bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT;
+    bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
 
   VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);

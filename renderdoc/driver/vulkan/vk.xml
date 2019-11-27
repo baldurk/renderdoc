@@ -154,7 +154,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 128</type>
+#define <name>VK_HEADER_VERSION</name> 129</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -3865,6 +3865,13 @@ typedef void <name>CAMetalLayer</name>;
             <member>const <type>void</type>*                        <name>pNext</name></member>
             <member><type>float</type>                              <name>priority</name></member>
         </type>
+        <type category="struct" name="VkPhysicalDeviceBufferDeviceAddressFeaturesKHR" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkBool32</type>                           <name>bufferDeviceAddress</name></member>
+            <member><type>VkBool32</type>                           <name>bufferDeviceAddressCaptureReplay</name></member>
+            <member><type>VkBool32</type>                           <name>bufferDeviceAddressMultiDevice</name></member>
+        </type>
         <type category="struct" name="VkPhysicalDeviceBufferDeviceAddressFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
@@ -3872,11 +3879,17 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>VkBool32</type>                           <name>bufferDeviceAddressCaptureReplay</name></member>
             <member><type>VkBool32</type>                           <name>bufferDeviceAddressMultiDevice</name></member>
         </type>
-        <type category="struct" name="VkPhysicalDeviceBufferAddressFeaturesEXT" alias="VkPhysicalDeviceBufferDeviceAddressFeaturesEXT"/>
-        <type category="struct" name="VkBufferDeviceAddressInfoEXT">
-            <member values="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
+        <type category="struct" name="VkPhysicalDeviceBufferAddressFeaturesEXT"       alias="VkPhysicalDeviceBufferDeviceAddressFeaturesEXT"/>
+        <type category="struct" name="VkBufferDeviceAddressInfoKHR">
+            <member values="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                                            <name>pNext</name></member>
             <member><type>VkBuffer</type>                                               <name>buffer</name></member>
+        </type>
+        <type category="struct" name="VkBufferDeviceAddressInfoEXT" alias="VkBufferDeviceAddressInfoKHR"/>
+        <type category="struct" name="VkBufferOpaqueCaptureAddressCreateInfoKHR" structextends="VkBufferCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*                      <name>pNext</name></member>
+            <member><type>uint64_t</type>                         <name>opaqueCaptureAddress</name></member>
         </type>
         <type category="struct" name="VkBufferDeviceAddressCreateInfoEXT" structextends="VkBufferCreateInfo">
             <member values="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
@@ -4245,6 +4258,16 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member><type>void</type>*                  <name>pNext</name></member>
             <member><type>uint32_t</type>               <name>requiredSubgroupSize</name></member>
+        </type>
+        <type category="struct" name="VkMemoryOpaqueCaptureAddressAllocateInfoKHR" structextends="VkMemoryAllocateInfo">
+            <member values="VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*                   <name>pNext</name></member>
+            <member><type>uint64_t</type>                      <name>opaqueCaptureAddress</name></member>
+        </type>
+        <type category="struct" name="VkDeviceMemoryOpaqueCaptureAddressInfoKHR">
+            <member values="VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO_KHR"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*                      <name>pNext</name></member>
+            <member><type>VkDeviceMemory</type>                   <name>memory</name></member>
         </type>
         <type category="struct" name="VkPhysicalDeviceLineRasterizationFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
@@ -5740,7 +5763,7 @@ typedef void <name>CAMetalLayer</name>;
                 <param>all sname:VkQueue objects created from pname:device</param>
             </implicitexternsyncparams>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_TOO_MANY_OBJECTS,VK_ERROR_INVALID_EXTERNAL_HANDLE">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_TOO_MANY_OBJECTS,VK_ERROR_INVALID_EXTERNAL_HANDLE,VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR">
             <proto><type>VkResult</type> <name>vkAllocateMemory</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkMemoryAllocateInfo</type>* <name>pAllocateInfo</name></param>
@@ -5791,7 +5814,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkBuffer</type> <name>buffer</name></param>
             <param><type>VkMemoryRequirements</type>* <name>pMemoryRequirements</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR">
             <proto><type>VkResult</type> <name>vkBindBufferMemory</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkBuffer</type> <name>buffer</name></param>
@@ -5940,7 +5963,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>uint32_t</type> <name>firstQuery</name></param>
             <param><type>uint32_t</type> <name>queryCount</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_INVALID_DEVICE_ADDRESS_EXT">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR">
             <proto><type>VkResult</type> <name>vkCreateBuffer</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkBufferCreateInfo</type>* <name>pCreateInfo</name></param>
@@ -7127,7 +7150,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkPeerMemoryFeatureFlags</type>* <name>pPeerMemoryFeatures</name></param>
         </command>
         <command name="vkGetDeviceGroupPeerMemoryFeaturesKHR"                  alias="vkGetDeviceGroupPeerMemoryFeatures"/>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR">
             <proto><type>VkResult</type> <name>vkBindBufferMemory2</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>uint32_t</type> <name>bindInfoCount</name></param>
@@ -7886,10 +7909,16 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkImageDrmFormatModifierPropertiesEXT</type>* <name>pProperties</name></param>
         </command>
         <command>
-            <proto><type>VkDeviceAddress</type> <name>vkGetBufferDeviceAddressEXT</name></proto>
+            <proto><type>uint64_t</type> <name>vkGetBufferOpaqueCaptureAddressKHR</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
-            <param>const <type>VkBufferDeviceAddressInfoEXT</type>* <name>pInfo</name></param>
+            <param>const <type>VkBufferDeviceAddressInfoKHR</type>* <name>pInfo</name></param>
         </command>
+        <command>
+            <proto><type>VkDeviceAddress</type> <name>vkGetBufferDeviceAddressKHR</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkBufferDeviceAddressInfoKHR</type>* <name>pInfo</name></param>
+        </command>
+        <command name="vkGetBufferDeviceAddressEXT"        alias="vkGetBufferDeviceAddressKHR"/>
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkCreateHeadlessSurfaceEXT</name></proto>
             <param><type>VkInstance</type> <name>instance</name></param>
@@ -7948,6 +7977,11 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkPerformanceParameterTypeINTEL</type> <name>parameter</name></param>
             <param><type>VkPerformanceValueINTEL</type>* <name>pValue</name></param>
+        </command>
+        <command>
+            <proto><type>uint64_t</type> <name>vkGetDeviceMemoryOpaqueCaptureAddressKHR</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkDeviceMemoryOpaqueCaptureAddressInfoKHR</type>* <name>pInfo</name></param>
         </command>
         <command successcodes="VK_SUCCESS,VK_INCOMPLETE" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkGetPipelineExecutablePropertiesKHR</name></proto>
@@ -10367,6 +10401,7 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="0"                                             name="VK_NV_EXTENSION_151_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_151&quot;"               name="VK_NV_EXTENSION_151_EXTENSION_NAME"/>
                 <enum bitpos="11" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT_NV"/>
+                <enum bitpos="29" extends="VkFormatFeatureFlagBits"         name="VK_FORMAT_FEATURE_RESERVED_29_BIT_NV"/>
             </require>
         </extension>
         <extension name="VK_NV_extension_152" number="152" author="NV" contact="Jeff Bolz @jeffbolznv" supported="disabled">
@@ -11399,17 +11434,17 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_MESA_extension_244&quot;"              name="VK_MESA_EXTENSION_244_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_buffer_device_address" number="245" type="device" requires="VK_KHR_get_physical_device_properties2" author="NV" contact="Jeff Bolz @jeffbolznv" supported="vulkan">
+        <extension name="VK_EXT_buffer_device_address" number="245" type="device" requires="VK_KHR_get_physical_device_properties2" author="NV" contact="Jeff Bolz @jeffbolznv"  deprecatedby="VK_KHR_buffer_device_address" supported="vulkan">
             <require>
                 <enum value="2"                                             name="VK_EXT_BUFFER_DEVICE_ADDRESS_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_buffer_device_address&quot;"      name="VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT"/>
-                <enum            extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT" alias="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT"/>
-                <enum offset="1" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT"/>
+                <enum extends="VkStructureType"                             name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT" alias="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT"/>
+                <enum extends="VkStructureType"                             name="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT" alias="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR"/>
                 <enum offset="2" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT"/>
-                <enum bitpos="17" extends="VkBufferUsageFlagBits"           name="VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT"/>
-                <enum bitpos="4"  extends="VkBufferCreateFlagBits"          name="VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT"/>
-                <enum offset="0" dir="-" extends="VkResult"                 name="VK_ERROR_INVALID_DEVICE_ADDRESS_EXT"/>
+                <enum extends="VkBufferUsageFlagBits"                       name="VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT" alias="VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR"/>
+                <enum extends="VkBufferCreateFlagBits"                      name="VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT" alias="VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR"/>
+                <enum extends="VkResult"                                    name="VK_ERROR_INVALID_DEVICE_ADDRESS_EXT" alias="VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR"/>
                 <type name="VkPhysicalDeviceBufferAddressFeaturesEXT"/>
                 <type name="VkPhysicalDeviceBufferDeviceAddressFeaturesEXT"/>
                 <type name="VkBufferDeviceAddressInfoEXT"/>
@@ -11540,10 +11575,28 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkCreateHeadlessSurfaceEXT"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_258" number="258" author="EXT" contact="Jan-Harald Fredriksen @janharaldfredriksen-arm" supported="disabled">
+        <extension name="VK_KHR_buffer_device_address" number="258" type="device" requires="VK_KHR_get_physical_device_properties2" author="KHR" contact="Jeff Bolz @jeffbolznv" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_258_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_258&quot;"              name="VK_EXT_EXTENSION_258_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_KHR_BUFFER_DEVICE_ADDRESS_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_buffer_device_address&quot;"      name="VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR"/>
+                <enum offset="1" extends="VkStructureType" extnumber="245"  name="VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR"/>
+                <enum offset="2" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO_KHR"/>
+                <enum offset="3" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO_KHR"/>
+                <enum offset="4" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO_KHR"/>
+                <enum bitpos="17" extends="VkBufferUsageFlagBits"           name="VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR"/>
+                <enum bitpos="4"  extends="VkBufferCreateFlagBits"          name="VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR"/>
+                <enum bitpos="1" extends="VkMemoryAllocateFlagBits"         name="VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR"/>
+                <enum bitpos="2" extends="VkMemoryAllocateFlagBits"         name="VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR"/>
+                <enum offset="0" dir="-" extends="VkResult" extnumber="245" name="VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR"/>
+                <type name="VkPhysicalDeviceBufferDeviceAddressFeaturesKHR"/>
+                <type name="VkBufferDeviceAddressInfoKHR"/>
+                <type name="VkBufferOpaqueCaptureAddressCreateInfoKHR"/>
+                <type name="VkMemoryOpaqueCaptureAddressAllocateInfoKHR"/>
+                <type name="VkDeviceMemoryOpaqueCaptureAddressInfoKHR"/>
+                <command name="vkGetBufferDeviceAddressKHR"/>
+                <command name="vkGetBufferOpaqueCaptureAddressKHR"/>
+                <command name="vkGetDeviceMemoryOpaqueCaptureAddressKHR"/>
             </require>
         </extension>
         <extension name="VK_EXT_extension_259" number="259" author="EXT" contact="Jeff Leger @jackohound" supported="disabled">
@@ -11832,6 +11885,24 @@ typedef void <name>CAMetalLayer</name>;
                 <enum bitpos="9"  extends="VkPipelineCreateFlagBits"    name="VK_PIPELINE_CREATE_RESERVED_9_BIT_EXT"/>
                 <enum bitpos="10" extends="VkPipelineCreateFlagBits"    name="VK_PIPELINE_CREATE_RESERVED_10_BIT_EXT"/>
                 <enum extends="VkResult" offset="0"                     name="VK_RESULT_EXT_298_RESERVED_VALUE_0_EXT"/>
+            </require>
+        </extension>
+        <extension name="VK_KHR_extension_299" number="299" author="KHR" contact="Mark Bellamy @mark.bellamy_arm" supported="disabled">
+            <require>
+                <enum value="0"                                         name="VK_KHR_EXTENSION_299_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_299&quot;"          name="VK_KHR_EXTENSION_299_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_KHR_extension_300" number="300" author="KHR" contact="Aidan Fabius @afabius" supported="disabled">
+            <require>
+                <enum value="0"                                         name="VK_KHR_EXTENSION_300_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_300&quot;"          name="VK_KHR_EXTENSION_300_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_301" number="301" author="NV" contact="Kedarnath Thangudu @kthangudu" supported="disabled">
+            <require>
+                <enum value="0"                                         name="VK_NV_EXTENSION_301_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_301&quot;"           name="VK_NV_EXTENSION_301_EXTENSION_NAME"/>
             </require>
         </extension>
     </extensions>

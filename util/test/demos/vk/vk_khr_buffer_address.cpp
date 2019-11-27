@@ -30,9 +30,10 @@
 #if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || \
     defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
 
-RD_TEST(VK_Buffer_Address, VulkanGraphicsTest)
+RD_TEST(VK_KHR_Buffer_Address, VulkanGraphicsTest)
 {
-  static constexpr const char *Description = "Test capture and replay of VK_EXT_buffer_reference";
+  static constexpr const char *Description =
+      "Test capture and replay of VK_KHR_buffer_device_address";
 
   // should match definition below in GLSL
   struct DrawData
@@ -116,7 +117,7 @@ void main()
 
   void Prepare(int argc, char **argv)
   {
-    devExts.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+    devExts.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
     devExts.push_back(VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
@@ -124,8 +125,8 @@ void main()
     if(!Avail.empty())
       return;
 
-    static VkPhysicalDeviceBufferAddressFeaturesEXT bufaddrFeatures = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,
+    static VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufaddrFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
     };
 
     getPhysFeatures2(&bufaddrFeatures);
@@ -157,9 +158,38 @@ void main()
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    vkh::BufferCreateInfo bufinfo(0x100000, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT);
+    vkh::BufferCreateInfo bufinfo(0x100000, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR);
 
-    AllocatedBuffer databuf(this, bufinfo, VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    VkMemoryAllocateInfo memoryAllocateInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    VkMemoryAllocateFlagsInfo memoryAllocateFlags = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
+
+    memoryAllocateFlags.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+    memoryAllocateInfo.pNext = &memoryAllocateFlags;
+
+    const VkPhysicalDeviceMemoryProperties *memProps = NULL;
+    vmaGetMemoryProperties(allocator, &memProps);
+
+    VkBuffer databuf;
+    vkCreateBuffer(device, bufinfo, NULL, &databuf);
+
+    VkMemoryRequirements mrq;
+    vkGetBufferMemoryRequirements(device, databuf, &mrq);
+
+    memoryAllocateInfo.allocationSize = mrq.size;
+
+    for(uint32_t i = 0; i < memProps->memoryTypeCount; i++)
+    {
+      if((mrq.memoryTypeBits & (1u << i)) &&
+         (memProps->memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+      {
+        memoryAllocateInfo.memoryTypeIndex = i;
+        break;
+      }
+    }
+
+    VkDeviceMemory databufMem;
+    vkAllocateMemory(device, &memoryAllocateInfo, NULL, &databufMem);
+    vkBindBufferMemory(device, databuf, databufMem, 0);
 
     // north-facing primary colours triangle
     const DefaultA2V tri1[3] = {
@@ -175,13 +205,14 @@ void main()
         {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(1.0f, 1.0f, 0.4f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
-    VkBufferDeviceAddressInfoEXT info = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT};
-    info.buffer = databuf.buffer;
+    VkBufferDeviceAddressInfoKHR info = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR};
+    info.buffer = databuf;
 
-    VkDeviceAddress baseAddr = vkGetBufferDeviceAddressEXT(device, &info);
+    VkDeviceAddress baseAddr = vkGetBufferDeviceAddressKHR(device, &info);
     byte *gpuptr = (byte *)baseAddr;    // not a valid cpu pointer but useful for avoiding casting
 
-    byte *cpuptr = databuf.map();
+    byte *cpuptr = NULL;
+    vkMapMemory(device, databufMem, 0, mrq.size, 0, (void **)&cpuptr);
 
     // put triangle data first
     memcpy(cpuptr, tri1, sizeof(tri1));
@@ -273,7 +304,11 @@ void main()
       time += 0.1f;
     }
 
-    databuf.unmap();
+    CHECK_VKR(vkDeviceWaitIdle(device));
+
+    vkDestroyBuffer(device, databuf, NULL);
+    vkUnmapMemory(device, databufMem);
+    vkFreeMemory(device, databufMem, NULL);
 
     return 0;
   }

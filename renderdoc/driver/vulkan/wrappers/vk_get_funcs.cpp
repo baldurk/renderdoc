@@ -760,3 +760,27 @@ VkResult WrappedVulkan::vkGetPipelineExecutableInternalRepresentationsKHR(
   return ObjDisp(device)->GetPipelineExecutableInternalRepresentationsKHR(
       Unwrap(device), &unwrappedInfo, pInternalRepresentationCount, pInternalRepresentations);
 }
+
+VkDeviceAddress WrappedVulkan::vkGetBufferDeviceAddressKHR(VkDevice device,
+                                                           VkBufferDeviceAddressInfoKHR *pInfo)
+{
+  VkBufferDeviceAddressInfoKHR unwrappedInfo = *pInfo;
+  unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+  return ObjDisp(device)->GetBufferDeviceAddressKHR(Unwrap(device), &unwrappedInfo);
+}
+
+uint64_t WrappedVulkan::vkGetBufferOpaqueCaptureAddressKHR(VkDevice device,
+                                                           VkBufferDeviceAddressInfoKHR *pInfo)
+{
+  VkBufferDeviceAddressInfoKHR unwrappedInfo = *pInfo;
+  unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+  return ObjDisp(device)->GetBufferOpaqueCaptureAddressKHR(Unwrap(device), &unwrappedInfo);
+}
+
+uint64_t WrappedVulkan::vkGetDeviceMemoryOpaqueCaptureAddressKHR(
+    VkDevice device, VkDeviceMemoryOpaqueCaptureAddressInfoKHR *pInfo)
+{
+  VkDeviceMemoryOpaqueCaptureAddressInfoKHR unwrappedInfo = *pInfo;
+  unwrappedInfo.memory = Unwrap(unwrappedInfo.memory);
+  return ObjDisp(device)->GetDeviceMemoryOpaqueCaptureAddressKHR(Unwrap(device), &unwrappedInfo);
+}

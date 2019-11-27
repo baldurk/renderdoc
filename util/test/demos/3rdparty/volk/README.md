@@ -1,1 +1,1 @@
-volk from https://github.com/zeux/volk at commit 4cdddd9b251151a1e84cfcabc183f741ada1a358
+volk from https://github.com/zeux/volk at commit b1128a0df781cb41f47342925177fdf5b8d112bd

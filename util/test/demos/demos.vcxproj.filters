@@ -246,9 +246,6 @@
     <ClCompile Include="vk\vk_adv_cbuffer_zoo.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk_buffer_address.cpp">
-      <Filter>Vulkan\demos</Filter>
-    </ClCompile>
     <ClCompile Include="vk\vk_descriptor_index.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
@@ -359,6 +356,12 @@
       <Filter>D3D12\demos</Filter>
     </ClCompile>
     <ClCompile Include="vk\vk_texture_zoo.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_ext_buffer_address.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_khr_buffer_address.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
   </ItemGroup>

@@ -514,6 +514,11 @@ struct VkDevDispatchTable
   PFN_vkWaitSemaphoresKHR WaitSemaphoresKHR;
   PFN_vkSignalSemaphoreKHR SignalSemaphoreKHR;
 
+  // VK_KHR_buffer_device_address
+  PFN_vkGetBufferDeviceAddressKHR GetBufferDeviceAddressKHR;
+  PFN_vkGetBufferOpaqueCaptureAddressKHR GetBufferOpaqueCaptureAddressKHR;
+  PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR GetDeviceMemoryOpaqueCaptureAddressKHR;
+
   // VK_KHR_pipeline_executable_properties
   PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
   PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;
