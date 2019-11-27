@@ -696,7 +696,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   }
   else
   {
-    if(sd.sample.sampleIndex >= 0)
+    if(sd.sample.sampleIndex != ~0U)
       sd.sample.sampleIndex = RDCCLAMP((uint32_t)sd.sample.sampleIndex, 0U, td.msSamp);
   }
 
