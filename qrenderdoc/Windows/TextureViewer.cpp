@@ -3677,7 +3677,10 @@ void TextureViewer::on_saveTex_clicked()
         [this, &id](IReplayController *r) { id = m_Output->GetCustomShaderTexID(); });
 
     if(id != ResourceId())
+    {
       m_SaveConfig.resourceId = id;
+      m_SaveConfig.typeCast = CompType::Typeless;
+    }
   }
 
   ResourceId overlayTexID;
@@ -3697,6 +3700,7 @@ void TextureViewer::on_saveTex_clicked()
   if(saveDialog.saveOverlayInstead())
   {
     m_SaveConfig.resourceId = overlayTexID;
+    m_SaveConfig.typeCast = CompType::Typeless;
 
     if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
        m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
