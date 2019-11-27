@@ -2452,6 +2452,9 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         drv.glGetBooleanv(eGL_COLOR_WRITEMASK, color_mask);
         drv.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
 
+        flags = TexDisplayFlags(
+            flags & ~(eTexDisplay_RemapFloat | eTexDisplay_RemapUInt | eTexDisplay_RemapSInt));
+
         RenderTextureInternal(texDisplay, flags);
 
         drv.glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
