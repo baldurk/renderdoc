@@ -69,6 +69,8 @@ void main(void)
   color_out = SampleTextureFloat4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
                                   texdisplay.SampleIdx, texdisplay.TextureResolutionPS,
                                   texdisplay.YUVDownsampleRate, texdisplay.YUVAChannels);
+
+  color_out = ((color_out - texdisplay.RangeMinimum) * texdisplay.InverseRangeSize);
 #endif
 
   if(texdisplay.Channels == vec4(1, 0, 0, 0))
