@@ -2914,6 +2914,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       bool load = true;
 
+      uint8_t resComps[4] = {0, 1, 2, 3};
+
       if(op.operation == OPCODE_STORE_UAV_TYPED || op.operation == OPCODE_STORE_RAW ||
          op.operation == OPCODE_STORE_STRUCTURED)
       {
@@ -2930,6 +2932,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           resIndex = (uint32_t)op.operands[3].indices[0].index;
           srv = (op.operands[3].type == TYPE_RESOURCE);
           gsm = (op.operands[3].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          memcpy(resComps, op.operands[3].comps, sizeof(resComps));
 
           stride = op.stride;
         }
@@ -2979,6 +2982,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           resIndex = (uint32_t)op.operands[2].indices[0].index;
           gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          memcpy(resComps, op.operands[2].comps, sizeof(resComps));
         }
         else
         {
@@ -3119,7 +3123,19 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
         if(load)
         {
-          ShaderVariable fetch = TypedUAVLoad(fmt, data);
+          ShaderVariable result = TypedUAVLoad(fmt, data);
+
+          // apply the swizzle on the resource operand
+          ShaderVariable fetch("", 0U, 0U, 0U, 0U);
+
+          for(int c = 0; c < 4; c++)
+          {
+            uint8_t comp = resComps[c];
+            if(comp == 0xff)
+              comp = 0;
+
+            fetch.value.uv[c] = result.value.uv[comp];
+          }
 
           if(op.operation != OPCODE_LD_RAW && op.operation != OPCODE_LD_STRUCTURED)
           {
