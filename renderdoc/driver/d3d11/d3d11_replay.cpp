@@ -2121,10 +2121,10 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       if(params.remap == RemapTexture::RGBA8)
       {
+        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
         if((IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor) &&
            params.typeCast == CompType::Typeless)
           desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        desc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
       }
       else if(params.remap == RemapTexture::RGBA16)
       {
