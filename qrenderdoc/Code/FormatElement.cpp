@@ -119,32 +119,23 @@ struct StructFormatData
 
 FormatElement::FormatElement()
 {
-  buffer = 0;
   offset = 0;
-  perinstance = false;
-  instancerate = 1;
   rowmajor = false;
   matrixdim = 0;
   hex = false;
   rgb = false;
-  systemValue = ShaderBuiltin::Undefined;
 }
 
-FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate,
-                             bool rowMat, uint matDim, ResourceFormat f, bool hexDisplay,
-                             bool rgbDisplay)
+FormatElement::FormatElement(const QString &Name, uint offs, bool rowMat, uint matDim,
+                             ResourceFormat f, bool hexDisplay, bool rgbDisplay)
 {
   name = Name;
-  buffer = buf;
   offset = offs;
   format = f;
-  perinstance = perInst;
-  instancerate = instRate;
   rowmajor = rowMat;
   matrixdim = matDim;
   hex = hexDisplay;
   rgb = rgbDisplay;
-  systemValue = ShaderBuiltin::Undefined;
 }
 
 QList<FormatElement> FormatElement::ParseFormatString(const QString &formatString, uint64_t maxLen,
@@ -474,7 +465,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
     if(arrayCount == 1)
     {
-      FormatElement elem(name, 0, cur->offset, false, 1, row_major, matrixCount, fmt, hex, rgb);
+      FormatElement elem(name, cur->offset, row_major, matrixCount, fmt, hex, rgb);
 
       uint32_t advance = elem.byteSize();
 
@@ -508,8 +499,8 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
       for(uint a = 0; a < arrayCount; a++)
       {
-        FormatElement elem(QFormatStr("%1[%2]").arg(name).arg(a), 0, cur->offset, false, 1,
-                           row_major, matrixCount, fmt, hex, rgb);
+        FormatElement elem(QFormatStr("%1[%2]").arg(name).arg(a), cur->offset, row_major,
+                           matrixCount, fmt, hex, rgb);
 
         cur->elems.push_back(elem);
 
@@ -545,7 +536,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     if(maxLen > 0 && maxLen < 4)
       fmt.compByteWidth = 1;
 
-    root.elems.push_back(FormatElement(lit("data"), 0, 0, false, 1, false, 1, fmt, true, false));
+    root.elems.push_back(FormatElement(lit("data"), 0, false, 1, fmt, true, false));
   }
 
   return root.elems;

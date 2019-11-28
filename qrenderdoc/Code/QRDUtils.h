@@ -80,8 +80,8 @@ struct FormatElement
 
 public:
   FormatElement();
-  FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate, bool rowMat,
-                uint matDim, ResourceFormat f, bool hexDisplay, bool rgbDisplay);
+  FormatElement(const QString &Name, uint offs, bool rowMat, uint matDim, ResourceFormat f,
+                bool hexDisplay, bool rgbDisplay);
 
   static QList<FormatElement> ParseFormatString(const QString &formatString, uint64_t maxLen,
                                                 bool tightPacking, QString &errors);
@@ -95,13 +95,10 @@ public:
 
   QString name;
   ResourceFormat format;
-  ShaderBuiltin systemValue;
-  int buffer;
   uint32_t offset;
-  int instancerate;
   uint32_t matrixdim;
-  bool perinstance;
   bool rowmajor;
+
   bool hex, rgb;
 };
 
