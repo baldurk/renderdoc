@@ -1219,7 +1219,7 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatEleme
     d.el = &el;
     d.prop = &prop;
 
-    d.byteSize = el.byteSize();
+    d.byteSize = prop.format.ElementSize() * el.matrixdim;
     d.nulls = QByteArray(d.byteSize, '\0');
 
     if(prop.instancerate > 0)
@@ -2239,8 +2239,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       {
         // calculate tight stride
         buf->stride = 0;
-        for(const FormatElement &el : bufdata->vsinConfig.columns)
-          buf->stride += el.byteSize();
+        for(int i = 0; i < bufdata->vsinConfig.props.count(); i++)
+          buf->stride += bufdata->vsinConfig.props[i].format.ElementSize() *
+                         bufdata->vsinConfig.columns[i].matrixdim;
 
         buf->stride = qMax((size_t)1, buf->stride);
 
@@ -3375,7 +3376,7 @@ void BufferViewer::processFormat(const QString &format)
 
   uint32_t stride = 0;
   for(const FormatElement &el : cols)
-    stride += el.byteSize();
+    stride += el.format.ElementSize() * el.matrixdim;
 
   stride = qMax(1U, stride);
 

@@ -90,8 +90,6 @@ public:
 
   ShaderVariable GetShaderVar(const byte *&data, const byte *end) const;
 
-  uint32_t byteSize() const;
-
   QString name;
   ResourceFormat format;
   uint32_t offset;

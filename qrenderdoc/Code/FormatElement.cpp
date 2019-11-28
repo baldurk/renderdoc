@@ -383,7 +383,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     {
       FormatElement elem(name, cur->offset, row_major, matrixCount, fmt, hex, rgb);
 
-      uint32_t advance = elem.byteSize();
+      uint32_t advance = fmt.ElementSize() * matrixCount;
 
       if(!tightPacking)
       {
@@ -392,7 +392,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
         // cbuffer packing doesn't allow elements to cross float4 boundaries, nudge up if this was
         // the case
-        if(cur->offset / 16 != (cur->offset + elem.byteSize() - 1) / 16)
+        if(cur->offset / 16 != (cur->offset + fmt.ElementSize() * matrixCount - 1) / 16)
         {
           elem.offset = cur->offset = (cur->offset + 0xFU) & (~0xFU);
         }
@@ -420,7 +420,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
         cur->elems.push_back(elem);
 
-        uint32_t advance = elem.byteSize();
+        uint32_t advance = fmt.ElementSize() * matrixCount;
 
         // cbuffer packing each array element is always float4 aligned
         if(!tightPacking)
@@ -670,20 +670,6 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
   }
 
   return ret;
-}
-
-uint32_t FormatElement::byteSize() const
-{
-  uint32_t vecSize = format.compByteWidth * format.compCount;
-
-  if(format.type == ResourceFormatType::R5G5B5A1 || format.type == ResourceFormatType::R5G6B5 ||
-     format.type == ResourceFormatType::R4G4B4A4)
-    vecSize = 2;
-
-  if(format.type == ResourceFormatType::R10G10B10A2 || format.type == ResourceFormatType::R11G11B10)
-    vecSize = 4;
-
-  return vecSize * matrixdim;
 }
 
 static QVariant interpret(const ResourceFormat &f, uint16_t comp)

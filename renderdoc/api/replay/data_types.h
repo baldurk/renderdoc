@@ -284,6 +284,70 @@ Invalid values will result in 1 being set.
       flags |= ResourceFormat_3Planes;
   }
 
+  DOCUMENT(R"(Return the size of a single element in this format, usually a pixel. For regular sized
+formats this is just :data:`compByteWidth` times :data:`compCount`, for special packed formats it's
+the tightly packed size of a single element, with no padding.
+
+Block-compressed formats define an 'element' as a whole block of texels.
+
+YUV formats where texel size varies depending on subsampling will return the size of a decompressed
+texel.
+
+:return: The size of an element
+:rtype: int
+)");
+  uint32_t ElementSize() const
+  {
+    switch(type)
+    {
+      case ResourceFormatType::Undefined: break;
+      case ResourceFormatType::Regular: return compByteWidth * compCount;
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC4:
+        return 8;    // 8 bytes for 4x4 block
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7:
+        return 16;    // 16 bytes for 4x4 block
+      case ResourceFormatType::ETC2: return 8;
+      case ResourceFormatType::EAC:
+        if(compCount == 1)
+          return 8;    // single channel R11 EAC
+        else if(compCount == 2)
+          return 16;    // two channel RG11 EAC
+        else
+          return 16;    // RGBA8 EAC
+      case ResourceFormatType::ASTC:
+        return 16;    // ASTC is always 128 bits per block
+      case ResourceFormatType::R10G10B10A2:
+      case ResourceFormatType::R11G11B10:
+      case ResourceFormatType::R9G9B9E5: return 4;
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1:
+      case ResourceFormatType::R4G4B4A4: return 2;
+      case ResourceFormatType::R4G4: return 1;
+      case ResourceFormatType::D16S8:
+        return 3;    // we define the size as tightly packed, so 3 bytes.
+      case ResourceFormatType::D24S8: return 4;
+      case ResourceFormatType::D32S8:
+        return 5;    // we define the size as tightly packed, so 5 bytes.
+      case ResourceFormatType::S8:
+      case ResourceFormatType::A8:
+        return 1;
+      // can't give a sensible answer for YUV formats as the texel varies.
+      case ResourceFormatType::YUV8: return compCount;
+      case ResourceFormatType::YUV10:
+      case ResourceFormatType::YUV12:
+      case ResourceFormatType::YUV16: return compCount * 2;
+      case ResourceFormatType::PVRTC:
+        return 8;    // our representation can't differentiate 2bpp from 4bpp, so guess
+    }
+
+    return 0;
+  }
+
   ResourceFormatType type;
 
   DOCUMENT("The :class:`type <CompType>` of each component.");
