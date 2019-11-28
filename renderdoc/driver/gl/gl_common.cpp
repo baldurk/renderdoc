@@ -1870,6 +1870,35 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
       case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2: ret.compCount = 4; break;
 
+      case eGL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR: ret.compCount = 4; break;
+
       default: break;
     }
 
@@ -2002,15 +2031,36 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
   // handle certain non compressed but special formats
   switch(fmt)
   {
-    case eGL_R11F_G11F_B10F: ret.type = ResourceFormatType::R11G11B10; break;
-    case eGL_RGB565: ret.type = ResourceFormatType::R5G6B5; break;
-    case eGL_RGB5_A1: ret.type = ResourceFormatType::R5G5B5A1; break;
-    case eGL_RGB9_E5: ret.type = ResourceFormatType::R9G9B9E5; break;
-    case eGL_RGBA4: ret.type = ResourceFormatType::R4G4B4A4; break;
+    case eGL_R11F_G11F_B10F:
+      ret.type = ResourceFormatType::R11G11B10;
+      ret.compType = CompType::Float;
+      ret.compCount = 3;
+      break;
+    case eGL_RGB565:
+      ret.type = ResourceFormatType::R5G6B5;
+      ret.compType = CompType::UNorm;
+      ret.compCount = 3;
+      break;
+    case eGL_RGB5_A1:
+      ret.type = ResourceFormatType::R5G5B5A1;
+      ret.compType = CompType::UNorm;
+      ret.compCount = 4;
+      break;
+    case eGL_RGB9_E5:
+      ret.type = ResourceFormatType::R9G9B9E5;
+      ret.compType = CompType::Float;
+      ret.compCount = 3;
+      break;
+    case eGL_RGBA4:
+      ret.type = ResourceFormatType::R4G4B4A4;
+      ret.compType = CompType::UNorm;
+      ret.compCount = 4;
+      break;
     case eGL_RGB10_A2:
     case eGL_RGB10_A2UI:
       ret.type = ResourceFormatType::R10G10B10A2;
       ret.compType = fmt == eGL_RGB10_A2 ? CompType::UNorm : CompType::UInt;
+      ret.compCount = 4;
       break;
     default: break;
   }
