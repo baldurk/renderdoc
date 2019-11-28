@@ -335,13 +335,35 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
             }),
         })
 
+        # float2 dummy13;
+        var_check.check('dummy13')
+
+        # float al;
+        var_check.check('al').rows(1).cols(1).value([500.0])
+
+        # struct float2_struct
+        # {
+        #   float x, y;
+        # };
+        # float2_struct am;
+        var_check.check('am').rows(0).cols(0).members({
+            'x': lambda y: y.rows(1).cols(1).value([504.0]),
+            'y': lambda y: y.rows(1).cols(1).value([505.0]),
+        })
+
+        # float an;
+        var_check.check('an').rows(1).cols(1).value([506.0])
+
+        # float4 gldummy4;
+        var_check.check('gldummy4')
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([496.0, 497.0, 498.0, 499.0])
+        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
 
         var_check.done()
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [496.1, 497.0, 498.0, 499.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
 
         rdtest.log.success("Picked value is as expected")

@@ -327,14 +327,33 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
             }),
         })
 
-        # vec4 test;
-        var_check.check('test').rows(1).cols(4).value([496.0, 497.0, 498.0, 499.0])
+        # vec4 dummy12;
+        var_check.check('dummy12')
+
+        # float al;
+        var_check.check('al').rows(1).cols(1).value([500.0])
+
+        # struct float2_struct
+        # {
+        #   float x, y;
+        # };
+        # float2_struct am;
+        var_check.check('am').rows(0).cols(0).members({
+            'x': lambda y: y.rows(1).cols(1).value([504.0]),
+            'y': lambda y: y.rows(1).cols(1).value([505.0]),
+        })
+
+        # float an;
+        var_check.check('an').rows(1).cols(1).value([508.0])
+
+        # float4 test;
+        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
 
         var_check.done()
 
         rdtest.log.success("GLSL CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [496.1, 497.0, 498.0, 499.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
 
         rdtest.log.success("GLSL picked value is as expected")
 
@@ -704,13 +723,32 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
             }),
         })
 
+        # float4 dummy14;
+        var_check.check('dummy14')
+
+        # float al;
+        var_check.check('al').rows(1).cols(1).value([500.0])
+
+        # struct float2_struct
+        # {
+        #   float x, y;
+        # };
+        # float2_struct am;
+        var_check.check('am').rows(0).cols(0).members({
+            'x': lambda y: y.rows(1).cols(1).value([504.0]),
+            'y': lambda y: y.rows(1).cols(1).value([505.0]),
+        })
+
+        # float an;
+        var_check.check('an').rows(1).cols(1).value([508.0])
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([496.0, 497.0, 498.0, 499.0])
+        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
 
         var_check.done()
 
         rdtest.log.success("HLSL CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [496.1, 497.0, 498.0, 499.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
 
         rdtest.log.success("HLSL picked value is as expected")

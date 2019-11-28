@@ -36,6 +36,8 @@ struct float3_1 { float3 a; float b; };
 
 struct nested { float3_1 a; float4 b[4]; float3_1 c[4]; };
 
+struct float2_struct { float x; float y; };
+
 struct nested_with_padding
 {
   float a;                              // 0, <1, 2, 3>
@@ -239,7 +241,19 @@ cbuffer consts : register(b0)
                                           
   nested_with_padding ak[2];              // 440 - 467, 468 - 495
 
-  float4 test;                            // {496, 497, 498, 499}
+  float4 dummy13;                         // forces no trailing overlap with ak
+
+  float al;                               // {500}, <501, 502, 503>
+
+  // struct is always float4 aligned, can't be packed with al
+  float2_struct am;                       // {504, 505}, <506, 507>
+
+  // struct allows trailing things into padding
+  float an;                               // {506}
+
+  float4 gldummy4;                        // account for an not overlapping in GL/VK
+
+  float4 test;                            // {512, 513, 514, 515}
 };
 
 // this comes from root signature constants

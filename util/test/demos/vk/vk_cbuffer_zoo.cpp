@@ -70,6 +70,8 @@ struct vec3_1 { vec3 a; float b; };
 
 struct nested { vec3_1 a; vec4 b[4]; vec3_1 c[4]; };
 
+struct float2_struct { float x; float y; };
+
 struct nested_with_padding
 {
   float a;                              // 0, <1, 2, 3>
@@ -269,7 +271,17 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
 
   nested_with_padding ak[2];            // 440 - 467, 468 - 495
 
-  vec4 test;                            // {496, 497, 498, 499}
+  vec4 dummy12;                         // forces no trailing overlap with ak
+
+  float al;                             // {500}, <501, 502, 503>
+
+  // struct is always float4 aligned, can't be packed with al
+  float2_struct am;                     // {504, 505}, <506, 507>
+
+  // struct doesn't allow trailing things into padding
+  float an;                             // {508}
+
+  vec4 test;                            // {512, 513, 514, 515}
 };
 
 layout (constant_id = 0) const int A = 10;
@@ -288,6 +300,8 @@ void main()
 struct float3_1 { float3 a; float b; };
 
 struct nested { float3_1 a; float4 b[4]; float3_1 c[4]; };
+
+struct float2_struct { float x; float y; };
 
 struct nested_with_padding
 {
@@ -496,9 +510,19 @@ layout(set = 0, binding = 0) cbuffer consts
                                           //         <435, 439>
                                           // }
                                           
-  nested_with_padding ak[2];              // 440 - 467, 468 - 495
+  nested_with_padding ak[2];              // 440 - 467, 468 - 494
+  
+  float4 dummy14;                         // forces no trailing overlap with ak
 
-  float4 test;                            // {496, 497, 498, 499}
+  float al;                               // {500}, <501, 502, 503>
+
+  // struct is always float4 aligned, can't be packed with al
+  float2_struct am;                       // {504, 505}, <506, 507>
+
+  // struct doesn't allow trailing things into padding
+  float an;                               // {508}
+
+  float4 test;                            // {512, 513, 514, 515}
 };
 
 float4 main() : SV_Target0
