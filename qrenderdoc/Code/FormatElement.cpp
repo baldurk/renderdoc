@@ -379,11 +379,24 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       fmt.compByteWidth = width;
     }
 
+    uint32_t advance = fmt.ElementSize() * matrixCount;
+    if(!tightPacking && matrixCount > 1)
+    {
+      if(!row_major)
+      {
+        advance = fmt.ElementSize() * 4;
+      }
+      else
+      {
+        ResourceFormat fmtpadded = fmt;
+        fmtpadded.compCount = 4;
+        advance = fmtpadded.ElementSize() * matrixCount;
+      }
+    }
+
     if(arrayCount == 1)
     {
       FormatElement elem(name, cur->offset, row_major, matrixCount, fmt, hex, rgb);
-
-      uint32_t advance = fmt.ElementSize() * matrixCount;
 
       if(!tightPacking)
       {
@@ -419,8 +432,6 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
                            matrixCount, fmt, hex, rgb);
 
         cur->elems.push_back(elem);
-
-        uint32_t advance = fmt.ElementSize() * matrixCount;
 
         // cbuffer packing each array element is always float4 aligned
         if(!tightPacking)
@@ -634,16 +645,23 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
   ret.rows = qMin(matrixdim, 4U);
 
   ret.displayAsHex = hex;
+  ret.rowMajor = rowmajor;
+
+  memset(ret.value.dv, 0, sizeof(ret.value.dv));
+
+  int src = 0;
 
   for(uint32_t row = 0; row < ret.rows; row++)
   {
     for(uint32_t col = 0; col < ret.columns; col++)
     {
       uint32_t dst = row * ret.columns + col;
-      uint32_t src = row * format.compCount + col;
 
-      // if we partially read a failure, reset the variable and return
-      if((int)src >= objs.size())
+      if(!ret.rowMajor && ret.rows > 1)
+        dst = col * ret.columns + row;
+
+      // if we are about to read out of bounds, reset the variable and return
+      if(src >= objs.size())
       {
         ret.name = "-";
         memset(ret.value.dv, 0, sizeof(ret.value.dv));
@@ -652,10 +670,12 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
 
       const QVariant &o = objs[src];
 
+      src++;
+
       if(ret.type == VarType::Double)
         ret.value.dv[dst] = o.toDouble();
       if(ret.type == VarType::Float || ret.type == VarType::Half)
-        ret.value.dv[dst] = o.toFloat();
+        ret.value.fv[dst] = o.toFloat();
       else if(ret.type == VarType::ULong)
         ret.value.u64v[dst] = o.toULongLong();
       else if(ret.type == VarType::SLong)
