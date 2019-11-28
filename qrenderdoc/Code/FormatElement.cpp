@@ -27,90 +27,6 @@
 #include <QtMath>
 #include "QRDUtils.h"
 
-static QVariant interpret(const ResourceFormat &f, uint16_t comp)
-{
-  if(f.compByteWidth != 2 || f.compType == CompType::Float)
-    return QVariant();
-
-  if(f.compType == CompType::SInt)
-  {
-    return (int16_t)comp;
-  }
-  else if(f.compType == CompType::UInt)
-  {
-    return comp;
-  }
-  else if(f.compType == CompType::SScaled)
-  {
-    return (float)((int16_t)comp);
-  }
-  else if(f.compType == CompType::UScaled)
-  {
-    return (float)comp;
-  }
-  else if(f.compType == CompType::UNorm || f.compType == CompType::UNormSRGB)
-  {
-    return (float)comp / (float)0xffff;
-  }
-  else if(f.compType == CompType::SNorm)
-  {
-    int16_t cast = (int16_t)comp;
-
-    float ret = -1.0f;
-
-    if(cast == -32768)
-      ret = -1.0f;
-    else
-      ret = ((float)cast) / 32767.0f;
-
-    return ret;
-  }
-
-  return QVariant();
-}
-
-static QVariant interpret(const ResourceFormat &f, byte comp)
-{
-  if(f.compByteWidth != 1 || f.compType == CompType::Float)
-    return QVariant();
-
-  if(f.compType == CompType::SInt)
-  {
-    return (int8_t)comp;
-  }
-  else if(f.compType == CompType::UInt)
-  {
-    return comp;
-  }
-  else if(f.compType == CompType::SScaled)
-  {
-    return (float)((int8_t)comp);
-  }
-  else if(f.compType == CompType::UScaled)
-  {
-    return (float)comp;
-  }
-  else if(f.compType == CompType::UNorm || f.compType == CompType::UNormSRGB)
-  {
-    return ((float)comp) / 255.0f;
-  }
-  else if(f.compType == CompType::SNorm)
-  {
-    int8_t cast = (int8_t)comp;
-
-    float ret = -1.0f;
-
-    if(cast == -128)
-      ret = -1.0f;
-    else
-      ret = ((float)cast) / 127.0f;
-
-    return ret;
-  }
-
-  return QVariant();
-}
-
 struct StructFormatData
 {
   QList<FormatElement> elems;
@@ -660,343 +576,9 @@ QString FormatElement::GenerateTextureBufferFormat(const TextureDescription &tex
   return QFormatStr("%1 %2[%3];").arg(baseType).arg(varName).arg(w);
 }
 
-template <typename T>
-inline T readObj(const byte *&data, const byte *end, bool &ok)
-{
-  if(data + sizeof(T) > end)
-  {
-    ok = false;
-    return T();
-  }
-
-  T ret = *(T *)data;
-
-  data += sizeof(T);
-
-  return ret;
-}
-
-QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) const
-{
-  QVariantList ret;
-
-  bool ok = true;
-
-  if(format.type == ResourceFormatType::R5G5B5A1)
-  {
-    uint16_t packed = readObj<uint16_t>(data, end, ok);
-
-    ret.push_back((float)((packed >> 0) & 0x1f) / 31.0f);
-    ret.push_back((float)((packed >> 5) & 0x1f) / 31.0f);
-    ret.push_back((float)((packed >> 10) & 0x1f) / 31.0f);
-    ret.push_back(((packed & 0x8000) > 0) ? 1.0f : 0.0f);
-
-    if(format.BGRAOrder())
-    {
-      QVariant tmp = ret[2];
-      ret[2] = ret[0];
-      ret[0] = tmp;
-    }
-  }
-  else if(format.type == ResourceFormatType::R5G6B5)
-  {
-    uint16_t packed = readObj<uint16_t>(data, end, ok);
-
-    ret.push_back((float)((packed >> 0) & 0x1f) / 31.0f);
-    ret.push_back((float)((packed >> 5) & 0x3f) / 63.0f);
-    ret.push_back((float)((packed >> 11) & 0x1f) / 31.0f);
-
-    if(format.BGRAOrder())
-    {
-      QVariant tmp = ret[2];
-      ret[2] = ret[0];
-      ret[0] = tmp;
-    }
-  }
-  else if(format.type == ResourceFormatType::R4G4B4A4)
-  {
-    uint16_t packed = readObj<uint16_t>(data, end, ok);
-
-    ret.push_back((float)((packed >> 0) & 0xf) / 15.0f);
-    ret.push_back((float)((packed >> 4) & 0xf) / 15.0f);
-    ret.push_back((float)((packed >> 8) & 0xf) / 15.0f);
-    ret.push_back((float)((packed >> 12) & 0xf) / 15.0f);
-
-    if(format.BGRAOrder())
-    {
-      QVariant tmp = ret[2];
-      ret[2] = ret[0];
-      ret[0] = tmp;
-    }
-  }
-  else if(format.type == ResourceFormatType::R10G10B10A2)
-  {
-    // allow for vectors of this format - for raw buffer viewer
-    for(int i = 0; i < int(format.compCount / 4); i++)
-    {
-      uint32_t packed = readObj<uint32_t>(data, end, ok);
-
-      uint32_t r = (packed >> 0) & 0x3ff;
-      uint32_t g = (packed >> 10) & 0x3ff;
-      uint32_t b = (packed >> 20) & 0x3ff;
-      uint32_t a = (packed >> 30) & 0x003;
-
-      if(format.BGRAOrder())
-      {
-        uint32_t tmp = b;
-        b = r;
-        r = tmp;
-      }
-
-      if(format.compType == CompType::UInt)
-      {
-        ret.push_back(r);
-        ret.push_back(g);
-        ret.push_back(b);
-        ret.push_back(a);
-      }
-      else if(format.compType == CompType::UScaled)
-      {
-        ret.push_back((float)r);
-        ret.push_back((float)g);
-        ret.push_back((float)b);
-        ret.push_back((float)a);
-      }
-      else if(format.compType == CompType::SInt || format.compType == CompType::SScaled ||
-              format.compType == CompType::SNorm)
-      {
-        int ir, ig, ib, ia;
-
-        // interpret RGB as 10-bit signed integers
-        if(r <= 511)
-          ir = (int)r;
-        else
-          ir = ((int)r) - 1024;
-
-        if(g <= 511)
-          ig = (int)g;
-        else
-          ig = ((int)g) - 1024;
-
-        if(b <= 511)
-          ib = (int)b;
-        else
-          ib = ((int)b) - 1024;
-
-        // 2-bit signed integer
-        if(a <= 1)
-          ia = (int)a;
-        else
-          ia = ((int)a) - 4;
-
-        if(format.compType == CompType::SInt)
-        {
-          ret.push_back(ir);
-          ret.push_back(ig);
-          ret.push_back(ib);
-          ret.push_back(ia);
-        }
-        else if(format.compType == CompType::SScaled)
-        {
-          ret.push_back((float)ir);
-          ret.push_back((float)ig);
-          ret.push_back((float)ib);
-          ret.push_back((float)ia);
-        }
-        else if(format.compType == CompType::SNorm)
-        {
-          if(ir == -512)
-            ir = -511;
-          if(ig == -512)
-            ig = -511;
-          if(ib == -512)
-            ib = -511;
-          if(ia == -2)
-            ia = -1;
-
-          ret.push_back((float)ir / 511.0f);
-          ret.push_back((float)ig / 511.0f);
-          ret.push_back((float)ib / 511.0f);
-          ret.push_back((float)ia / 1.0f);
-        }
-      }
-      else
-      {
-        ret.push_back((float)r / 1023.0f);
-        ret.push_back((float)g / 1023.0f);
-        ret.push_back((float)b / 1023.0f);
-        ret.push_back((float)a / 3.0f);
-      }
-    }
-  }
-  else if(format.type == ResourceFormatType::R11G11B10)
-  {
-    uint32_t packed = readObj<uint32_t>(data, end, ok);
-
-    uint32_t mantissas[] = {
-        (packed >> 0) & 0x3f, (packed >> 11) & 0x3f, (packed >> 22) & 0x1f,
-    };
-    int32_t exponents[] = {
-        int32_t(packed >> 6) & 0x1f, int32_t(packed >> 17) & 0x1f, int32_t(packed >> 27) & 0x1f,
-    };
-    static const uint32_t leadbit[] = {
-        0x40, 0x40, 0x20,
-    };
-
-    for(int i = 0; i < 3; i++)
-    {
-      if(mantissas[i] == 0 && exponents[i] == 0)
-      {
-        ret.push_back((float)0.0f);
-      }
-      else
-      {
-        if(exponents[i] == 0x1f)
-        {
-          // no sign bit, can't be negative infinity
-          if(mantissas[i] == 0)
-            ret.push_back((float)qInf());
-          else
-            ret.push_back((float)qQNaN());
-        }
-        else if(exponents[i] != 0)
-        {
-          // normal value, add leading bit
-          uint32_t combined = leadbit[i] | mantissas[i];
-
-          // calculate value
-          ret.push_back(((float)combined / (float)leadbit[i]) *
-                        qPow(2.0f, (float)exponents[i] - 15.0f));
-        }
-        else if(exponents[i] == 0)
-        {
-          // we know xMantissa isn't 0 also, or it would have been caught above so
-          // this is a subnormal value, pretend exponent is 1 and don't add leading bit
-
-          ret.push_back(((float)mantissas[i] / (float)leadbit[i]) * qPow(2.0f, (float)1.0f - 15.0f));
-        }
-      }
-    }
-  }
-  else
-  {
-    int dim = (int)(qMax(matrixdim, 1U) * format.compCount);
-
-    for(int i = 0; i < dim; i++)
-    {
-      if(format.compType == CompType::Float)
-      {
-        if(format.compByteWidth == 8)
-          ret.push_back(readObj<double>(data, end, ok));
-        else if(format.compByteWidth == 4)
-          ret.push_back(readObj<float>(data, end, ok));
-        else if(format.compByteWidth == 2)
-          ret.push_back(RENDERDOC_HalfToFloat(readObj<uint16_t>(data, end, ok)));
-      }
-      else if(format.compType == CompType::SInt)
-      {
-        if(format.compByteWidth == 8)
-          ret.push_back((qlonglong)readObj<int64_t>(data, end, ok));
-        else if(format.compByteWidth == 4)
-          ret.push_back((int)readObj<int32_t>(data, end, ok));
-        else if(format.compByteWidth == 2)
-          ret.push_back((int)readObj<int16_t>(data, end, ok));
-        else if(format.compByteWidth == 1)
-          ret.push_back((int)readObj<int8_t>(data, end, ok));
-      }
-      else if(format.compType == CompType::UInt)
-      {
-        if(format.compByteWidth == 8)
-          ret.push_back((qulonglong)readObj<uint64_t>(data, end, ok));
-        else if(format.compByteWidth == 4)
-          ret.push_back((uint32_t)readObj<uint32_t>(data, end, ok));
-        else if(format.compByteWidth == 2)
-          ret.push_back((uint32_t)readObj<uint16_t>(data, end, ok));
-        else if(format.compByteWidth == 1)
-          ret.push_back((uint32_t)readObj<uint8_t>(data, end, ok));
-      }
-      else if(format.compType == CompType::UScaled)
-      {
-        if(format.compByteWidth == 4)
-          ret.push_back((float)readObj<uint32_t>(data, end, ok));
-        else if(format.compByteWidth == 2)
-          ret.push_back((float)readObj<uint16_t>(data, end, ok));
-        else if(format.compByteWidth == 1)
-          ret.push_back((float)readObj<uint8_t>(data, end, ok));
-      }
-      else if(format.compType == CompType::SScaled)
-      {
-        if(format.compByteWidth == 4)
-          ret.push_back((float)readObj<int32_t>(data, end, ok));
-        else if(format.compByteWidth == 2)
-          ret.push_back((float)readObj<int16_t>(data, end, ok));
-        else if(format.compByteWidth == 1)
-          ret.push_back((float)readObj<int8_t>(data, end, ok));
-      }
-      else if(format.compType == CompType::Depth)
-      {
-        if(format.compByteWidth == 4)
-        {
-          // 32-bit depth is native floats
-          ret.push_back(readObj<float>(data, end, ok));
-        }
-        else if(format.compByteWidth == 3)
-        {
-          // 32-bit depth is normalised, masked against non-stencil bits
-          uint32_t f = readObj<uint32_t>(data, end, ok);
-          f &= 0x00ffffff;
-          ret.push_back((float)f / (float)0x00ffffff);
-        }
-        else if(format.compByteWidth == 2)
-        {
-          // 16-bit depth is normalised
-          float f = (float)readObj<uint16_t>(data, end, ok);
-          ret.push_back(f / (float)0x0000ffff);
-        }
-      }
-      else if(format.compType == CompType::Double)
-      {
-        ret.push_back(readObj<double>(data, end, ok));
-      }
-      else
-      {
-        // unorm/snorm
-
-        if(format.compByteWidth == 4)
-        {
-          // should never hit this - no 32bit unorm/snorm type
-          qCritical() << "Unexpected 4-byte unorm/snorm value";
-          ret.push_back((float)readObj<uint32_t>(data, end, ok) / (float)0xffffffff);
-        }
-        else if(format.compByteWidth == 2)
-        {
-          ret.push_back(interpret(format, readObj<uint16_t>(data, end, ok)));
-        }
-        else if(format.compByteWidth == 1)
-        {
-          ret.push_back(interpret(format, readObj<uint8_t>(data, end, ok)));
-        }
-      }
-    }
-
-    if(format.BGRAOrder())
-    {
-      QVariant tmp = ret[2];
-      ret[2] = ret[0];
-      ret[0] = tmp;
-    }
-  }
-
-  // we read off the end, return empty set
-  if(!ok)
-    ret.clear();
-
-  return ret;
-}
-
 ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) const
 {
-  QVariantList objs = GetVariants(data, end);
+  QVariantList objs = GetVariants(format, matrixdim, data, end);
 
   ShaderVariable ret;
 
@@ -1102,6 +684,425 @@ uint32_t FormatElement::byteSize() const
     vecSize = 4;
 
   return vecSize * matrixdim;
+}
+
+static QVariant interpret(const ResourceFormat &f, uint16_t comp)
+{
+  if(f.compByteWidth != 2 || f.compType == CompType::Float)
+    return QVariant();
+
+  if(f.compType == CompType::SInt)
+  {
+    return (int16_t)comp;
+  }
+  else if(f.compType == CompType::UInt)
+  {
+    return comp;
+  }
+  else if(f.compType == CompType::SScaled)
+  {
+    return (float)((int16_t)comp);
+  }
+  else if(f.compType == CompType::UScaled)
+  {
+    return (float)comp;
+  }
+  else if(f.compType == CompType::UNorm || f.compType == CompType::UNormSRGB)
+  {
+    return (float)comp / (float)0xffff;
+  }
+  else if(f.compType == CompType::SNorm)
+  {
+    int16_t cast = (int16_t)comp;
+
+    float ret = -1.0f;
+
+    if(cast == -32768)
+      ret = -1.0f;
+    else
+      ret = ((float)cast) / 32767.0f;
+
+    return ret;
+  }
+
+  return QVariant();
+}
+
+static QVariant interpret(const ResourceFormat &f, byte comp)
+{
+  if(f.compByteWidth != 1 || f.compType == CompType::Float)
+    return QVariant();
+
+  if(f.compType == CompType::SInt)
+  {
+    return (int8_t)comp;
+  }
+  else if(f.compType == CompType::UInt)
+  {
+    return comp;
+  }
+  else if(f.compType == CompType::SScaled)
+  {
+    return (float)((int8_t)comp);
+  }
+  else if(f.compType == CompType::UScaled)
+  {
+    return (float)comp;
+  }
+  else if(f.compType == CompType::UNorm || f.compType == CompType::UNormSRGB)
+  {
+    return ((float)comp) / 255.0f;
+  }
+  else if(f.compType == CompType::SNorm)
+  {
+    int8_t cast = (int8_t)comp;
+
+    float ret = -1.0f;
+
+    if(cast == -128)
+      ret = -1.0f;
+    else
+      ret = ((float)cast) / 127.0f;
+
+    return ret;
+  }
+
+  return QVariant();
+}
+
+template <typename T>
+inline T readObj(const byte *&data, const byte *end, bool &ok)
+{
+  if(data + sizeof(T) > end)
+  {
+    ok = false;
+    return T();
+  }
+
+  T ret = *(T *)data;
+
+  data += sizeof(T);
+
+  return ret;
+}
+
+QVariantList GetVariants(ResourceFormat rowFormat, uint32_t rowCount, const byte *&data,
+                         const byte *end)
+{
+  QVariantList ret;
+
+  bool ok = true;
+
+  if(rowFormat.type == ResourceFormatType::R5G5B5A1)
+  {
+    uint16_t packed = readObj<uint16_t>(data, end, ok);
+
+    ret.push_back((float)((packed >> 0) & 0x1f) / 31.0f);
+    ret.push_back((float)((packed >> 5) & 0x1f) / 31.0f);
+    ret.push_back((float)((packed >> 10) & 0x1f) / 31.0f);
+    ret.push_back(((packed & 0x8000) > 0) ? 1.0f : 0.0f);
+
+    if(rowFormat.BGRAOrder())
+    {
+      QVariant tmp = ret[2];
+      ret[2] = ret[0];
+      ret[0] = tmp;
+    }
+  }
+  else if(rowFormat.type == ResourceFormatType::R5G6B5)
+  {
+    uint16_t packed = readObj<uint16_t>(data, end, ok);
+
+    ret.push_back((float)((packed >> 0) & 0x1f) / 31.0f);
+    ret.push_back((float)((packed >> 5) & 0x3f) / 63.0f);
+    ret.push_back((float)((packed >> 11) & 0x1f) / 31.0f);
+
+    if(rowFormat.BGRAOrder())
+    {
+      QVariant tmp = ret[2];
+      ret[2] = ret[0];
+      ret[0] = tmp;
+    }
+  }
+  else if(rowFormat.type == ResourceFormatType::R4G4B4A4)
+  {
+    uint16_t packed = readObj<uint16_t>(data, end, ok);
+
+    ret.push_back((float)((packed >> 0) & 0xf) / 15.0f);
+    ret.push_back((float)((packed >> 4) & 0xf) / 15.0f);
+    ret.push_back((float)((packed >> 8) & 0xf) / 15.0f);
+    ret.push_back((float)((packed >> 12) & 0xf) / 15.0f);
+
+    if(rowFormat.BGRAOrder())
+    {
+      QVariant tmp = ret[2];
+      ret[2] = ret[0];
+      ret[0] = tmp;
+    }
+  }
+  else if(rowFormat.type == ResourceFormatType::R10G10B10A2)
+  {
+    // allow for vectors of this format - for raw buffer viewer
+    for(int i = 0; i < int(rowFormat.compCount / 4); i++)
+    {
+      uint32_t packed = readObj<uint32_t>(data, end, ok);
+
+      uint32_t r = (packed >> 0) & 0x3ff;
+      uint32_t g = (packed >> 10) & 0x3ff;
+      uint32_t b = (packed >> 20) & 0x3ff;
+      uint32_t a = (packed >> 30) & 0x003;
+
+      if(rowFormat.BGRAOrder())
+      {
+        uint32_t tmp = b;
+        b = r;
+        r = tmp;
+      }
+
+      if(rowFormat.compType == CompType::UInt)
+      {
+        ret.push_back(r);
+        ret.push_back(g);
+        ret.push_back(b);
+        ret.push_back(a);
+      }
+      else if(rowFormat.compType == CompType::UScaled)
+      {
+        ret.push_back((float)r);
+        ret.push_back((float)g);
+        ret.push_back((float)b);
+        ret.push_back((float)a);
+      }
+      else if(rowFormat.compType == CompType::SInt || rowFormat.compType == CompType::SScaled ||
+              rowFormat.compType == CompType::SNorm)
+      {
+        int ir, ig, ib, ia;
+
+        // interpret RGB as 10-bit signed integers
+        if(r <= 511)
+          ir = (int)r;
+        else
+          ir = ((int)r) - 1024;
+
+        if(g <= 511)
+          ig = (int)g;
+        else
+          ig = ((int)g) - 1024;
+
+        if(b <= 511)
+          ib = (int)b;
+        else
+          ib = ((int)b) - 1024;
+
+        // 2-bit signed integer
+        if(a <= 1)
+          ia = (int)a;
+        else
+          ia = ((int)a) - 4;
+
+        if(rowFormat.compType == CompType::SInt)
+        {
+          ret.push_back(ir);
+          ret.push_back(ig);
+          ret.push_back(ib);
+          ret.push_back(ia);
+        }
+        else if(rowFormat.compType == CompType::SScaled)
+        {
+          ret.push_back((float)ir);
+          ret.push_back((float)ig);
+          ret.push_back((float)ib);
+          ret.push_back((float)ia);
+        }
+        else if(rowFormat.compType == CompType::SNorm)
+        {
+          if(ir == -512)
+            ir = -511;
+          if(ig == -512)
+            ig = -511;
+          if(ib == -512)
+            ib = -511;
+          if(ia == -2)
+            ia = -1;
+
+          ret.push_back((float)ir / 511.0f);
+          ret.push_back((float)ig / 511.0f);
+          ret.push_back((float)ib / 511.0f);
+          ret.push_back((float)ia / 1.0f);
+        }
+      }
+      else
+      {
+        ret.push_back((float)r / 1023.0f);
+        ret.push_back((float)g / 1023.0f);
+        ret.push_back((float)b / 1023.0f);
+        ret.push_back((float)a / 3.0f);
+      }
+    }
+  }
+  else if(rowFormat.type == ResourceFormatType::R11G11B10)
+  {
+    uint32_t packed = readObj<uint32_t>(data, end, ok);
+
+    uint32_t mantissas[] = {
+        (packed >> 0) & 0x3f, (packed >> 11) & 0x3f, (packed >> 22) & 0x1f,
+    };
+    int32_t exponents[] = {
+        int32_t(packed >> 6) & 0x1f, int32_t(packed >> 17) & 0x1f, int32_t(packed >> 27) & 0x1f,
+    };
+    static const uint32_t leadbit[] = {
+        0x40, 0x40, 0x20,
+    };
+
+    for(int i = 0; i < 3; i++)
+    {
+      if(mantissas[i] == 0 && exponents[i] == 0)
+      {
+        ret.push_back((float)0.0f);
+      }
+      else
+      {
+        if(exponents[i] == 0x1f)
+        {
+          // no sign bit, can't be negative infinity
+          if(mantissas[i] == 0)
+            ret.push_back((float)qInf());
+          else
+            ret.push_back((float)qQNaN());
+        }
+        else if(exponents[i] != 0)
+        {
+          // normal value, add leading bit
+          uint32_t combined = leadbit[i] | mantissas[i];
+
+          // calculate value
+          ret.push_back(((float)combined / (float)leadbit[i]) *
+                        qPow(2.0f, (float)exponents[i] - 15.0f));
+        }
+        else if(exponents[i] == 0)
+        {
+          // we know xMantissa isn't 0 also, or it would have been caught above so
+          // this is a subnormal value, pretend exponent is 1 and don't add leading bit
+
+          ret.push_back(((float)mantissas[i] / (float)leadbit[i]) * qPow(2.0f, (float)1.0f - 15.0f));
+        }
+      }
+    }
+  }
+  else
+  {
+    int dim = (int)(qMax(rowCount, 1U) * rowFormat.compCount);
+
+    for(int i = 0; i < dim; i++)
+    {
+      if(rowFormat.compType == CompType::Float)
+      {
+        if(rowFormat.compByteWidth == 8)
+          ret.push_back(readObj<double>(data, end, ok));
+        else if(rowFormat.compByteWidth == 4)
+          ret.push_back(readObj<float>(data, end, ok));
+        else if(rowFormat.compByteWidth == 2)
+          ret.push_back(RENDERDOC_HalfToFloat(readObj<uint16_t>(data, end, ok)));
+      }
+      else if(rowFormat.compType == CompType::SInt)
+      {
+        if(rowFormat.compByteWidth == 8)
+          ret.push_back((qlonglong)readObj<int64_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 4)
+          ret.push_back((int)readObj<int32_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 2)
+          ret.push_back((int)readObj<int16_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 1)
+          ret.push_back((int)readObj<int8_t>(data, end, ok));
+      }
+      else if(rowFormat.compType == CompType::UInt)
+      {
+        if(rowFormat.compByteWidth == 8)
+          ret.push_back((qulonglong)readObj<uint64_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 4)
+          ret.push_back((uint32_t)readObj<uint32_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 2)
+          ret.push_back((uint32_t)readObj<uint16_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 1)
+          ret.push_back((uint32_t)readObj<uint8_t>(data, end, ok));
+      }
+      else if(rowFormat.compType == CompType::UScaled)
+      {
+        if(rowFormat.compByteWidth == 4)
+          ret.push_back((float)readObj<uint32_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 2)
+          ret.push_back((float)readObj<uint16_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 1)
+          ret.push_back((float)readObj<uint8_t>(data, end, ok));
+      }
+      else if(rowFormat.compType == CompType::SScaled)
+      {
+        if(rowFormat.compByteWidth == 4)
+          ret.push_back((float)readObj<int32_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 2)
+          ret.push_back((float)readObj<int16_t>(data, end, ok));
+        else if(rowFormat.compByteWidth == 1)
+          ret.push_back((float)readObj<int8_t>(data, end, ok));
+      }
+      else if(rowFormat.compType == CompType::Depth)
+      {
+        if(rowFormat.compByteWidth == 4)
+        {
+          // 32-bit depth is native floats
+          ret.push_back(readObj<float>(data, end, ok));
+        }
+        else if(rowFormat.compByteWidth == 3)
+        {
+          // 32-bit depth is normalised, masked against non-stencil bits
+          uint32_t f = readObj<uint32_t>(data, end, ok);
+          f &= 0x00ffffff;
+          ret.push_back((float)f / (float)0x00ffffff);
+        }
+        else if(rowFormat.compByteWidth == 2)
+        {
+          // 16-bit depth is normalised
+          float f = (float)readObj<uint16_t>(data, end, ok);
+          ret.push_back(f / (float)0x0000ffff);
+        }
+      }
+      else if(rowFormat.compType == CompType::Double)
+      {
+        ret.push_back(readObj<double>(data, end, ok));
+      }
+      else
+      {
+        // unorm/snorm
+
+        if(rowFormat.compByteWidth == 4)
+        {
+          // should never hit this - no 32bit unorm/snorm type
+          qCritical() << "Unexpected 4-byte unorm/snorm value";
+          ret.push_back((float)readObj<uint32_t>(data, end, ok) / (float)0xffffffff);
+        }
+        else if(rowFormat.compByteWidth == 2)
+        {
+          ret.push_back(interpret(rowFormat, readObj<uint16_t>(data, end, ok)));
+        }
+        else if(rowFormat.compByteWidth == 1)
+        {
+          ret.push_back(interpret(rowFormat, readObj<uint8_t>(data, end, ok)));
+        }
+      }
+    }
+
+    if(rowFormat.BGRAOrder())
+    {
+      QVariant tmp = ret[2];
+      ret[2] = ret[0];
+      ret[0] = tmp;
+    }
+  }
+
+  // we read off the end, return empty set
+  if(!ok)
+    ret.clear();
+
+  return ret;
 }
 
 QString TypeString(const ShaderVariable &v)

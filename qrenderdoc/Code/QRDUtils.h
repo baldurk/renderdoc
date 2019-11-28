@@ -88,7 +88,6 @@ public:
 
   static QString GenerateTextureBufferFormat(const TextureDescription &tex);
 
-  QVariantList GetVariants(const byte *&data, const byte *end) const;
   ShaderVariable GetShaderVar(const byte *&data, const byte *end) const;
 
   uint32_t byteSize() const;
@@ -101,6 +100,9 @@ public:
 
   bool hex, rgb;
 };
+
+QVariantList GetVariants(ResourceFormat rowFormat, uint32_t rowCount, const byte *&data,
+                         const byte *end);
 
 QString TypeString(const ShaderVariable &v);
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type = VarType::Unknown);

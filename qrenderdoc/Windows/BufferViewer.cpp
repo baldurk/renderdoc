@@ -336,6 +336,7 @@ struct BufferData
 
 struct BufferElementProperties
 {
+  ResourceFormat format;
   int buffer = 0;
   ShaderBuiltin systemValue = ShaderBuiltin::Undefined;
   bool perinstance = false;
@@ -631,8 +632,9 @@ public:
         else
         {
           const FormatElement &el = elementForColumn(section);
+          const BufferElementProperties &prop = propForColumn(section);
 
-          if(el.format.compCount == 1 || role == columnGroupRole)
+          if(prop.format.compCount == 1 || role == columnGroupRole)
             return el.name;
 
           QChar comps[] = {QLatin1Char('x'), QLatin1Char('y'), QLatin1Char('z'), QLatin1Char('w')};
@@ -742,7 +744,7 @@ public:
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = el.GetVariants(data, end);
+            QVariantList list = GetVariants(prop.format, el.matrixdim, data, end);
 
             if(!list.isEmpty())
             {
@@ -837,7 +839,7 @@ public:
           const BufferElementProperties &prop = propForColumn(col);
 
           if(useGenerics(col))
-            return interpretGeneric(col, el);
+            return interpretGeneric(col, el, prop);
 
           uint32_t instIdx = 0;
           if(prop.instancerate > 0)
@@ -857,14 +859,14 @@ public:
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = el.GetVariants(data, end);
+            QVariantList list = GetVariants(prop.format, el.matrixdim, data, end);
 
             int comp = componentForIndex(col);
 
             if(comp < list.count())
             {
               uint32_t rowdim = el.matrixdim;
-              uint32_t coldim = el.format.compCount;
+              uint32_t coldim = prop.format.compCount;
 
               if(rowdim == 1)
               {
@@ -880,7 +882,7 @@ public:
                 if(RichResourceTextCheck(v))
                   return v;
 
-                return interpretVariant(v, el);
+                return interpretVariant(v, el, prop);
               }
               else
               {
@@ -892,9 +894,9 @@ public:
                     ret += lit("\n");
 
                   if(el.rowmajor)
-                    ret += interpretVariant(list[comp + r * coldim], el);
+                    ret += interpretVariant(list[comp + r * coldim], el, prop);
                   else
-                    ret += interpretVariant(list[r + comp * rowdim], el);
+                    ret += interpretVariant(list[r + comp * rowdim], el, prop);
                 }
 
                 return ret;
@@ -1052,42 +1054,9 @@ private:
 
     for(int i = 0; i < config.columns.count(); i++)
     {
-      FormatElement &fmt = config.columns[i];
+      const BufferElementProperties &prop = config.props[i];
 
-      uint32_t compCount;
-
-      switch(fmt.format.type)
-      {
-        case ResourceFormatType::BC6:
-        case ResourceFormatType::ETC2:
-        case ResourceFormatType::R11G11B10:
-        case ResourceFormatType::R5G6B5:
-        case ResourceFormatType::R9G9B9E5: compCount = 3; break;
-        case ResourceFormatType::BC1:
-        case ResourceFormatType::BC7:
-        case ResourceFormatType::BC3:
-        case ResourceFormatType::BC2:
-        case ResourceFormatType::R10G10B10A2:
-        case ResourceFormatType::R5G5B5A1:
-        case ResourceFormatType::R4G4B4A4:
-        case ResourceFormatType::ASTC: compCount = 4; break;
-        case ResourceFormatType::BC5:
-        case ResourceFormatType::R4G4:
-        case ResourceFormatType::D16S8:
-        case ResourceFormatType::D24S8:
-        case ResourceFormatType::D32S8: compCount = 2; break;
-        case ResourceFormatType::BC4:
-        case ResourceFormatType::S8:
-        case ResourceFormatType::A8: compCount = 1; break;
-        case ResourceFormatType::YUV8:
-        case ResourceFormatType::YUV10:
-        case ResourceFormatType::YUV12:
-        case ResourceFormatType::YUV16:
-        case ResourceFormatType::EAC:
-        default: compCount = fmt.format.compCount;
-      }
-
-      for(uint32_t c = 0; c < compCount; c++)
+      for(uint32_t c = 0; c < prop.format.compCount; c++)
       {
         columnLookup.push_back(i);
         componentLookup.push_back((int)c);
@@ -1096,7 +1065,7 @@ private:
   }
 
   QString outOfBounds() const { return lit("---"); }
-  QString interpretGeneric(int col, const FormatElement &el) const
+  QString interpretGeneric(int col, const FormatElement &el, const BufferElementProperties &prop) const
   {
     int comp = componentForIndex(col);
 
@@ -1104,24 +1073,25 @@ private:
 
     if(col < config.generics.size())
     {
-      if(el.format.compType == CompType::Float)
+      if(prop.format.compType == CompType::Float)
       {
-        return interpretVariant(QVariant(config.generics[col].floatValue[comp]), el);
+        return interpretVariant(QVariant(config.generics[col].floatValue[comp]), el, prop);
       }
-      else if(el.format.compType == CompType::SInt)
+      else if(prop.format.compType == CompType::SInt)
       {
-        return interpretVariant(QVariant(config.generics[col].intValue[comp]), el);
+        return interpretVariant(QVariant(config.generics[col].intValue[comp]), el, prop);
       }
-      else if(el.format.compType == CompType::UInt)
+      else if(prop.format.compType == CompType::UInt)
       {
-        return interpretVariant(QVariant(config.generics[col].uintValue[comp]), el);
+        return interpretVariant(QVariant(config.generics[col].uintValue[comp]), el, prop);
       }
     }
 
     return outOfBounds();
   }
 
-  QString interpretVariant(const QVariant &v, const FormatElement &el) const
+  QString interpretVariant(const QVariant &v, const FormatElement &el,
+                           const BufferElementProperties &prop) const
   {
     QString ret;
 
@@ -1158,8 +1128,8 @@ private:
     else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
     {
       uint u = v.toUInt();
-      if(el.hex && el.format.type == ResourceFormatType::Regular)
-        ret = Formatter::HexFormat(u, el.format.compByteWidth);
+      if(el.hex && prop.format.type == ResourceFormatType::Regular)
+        ret = Formatter::HexFormat(u, prop.format.compByteWidth);
       else
         ret = Formatter::Format(u, el.hex);
     }
@@ -1289,10 +1259,6 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     BufferElementProperties p;
 
     f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
-    f.format.compByteWidth = sizeof(float);
-    f.format.compCount = sig.compCount;
-    f.format.compType = sig.compType;
-    f.format.type = ResourceFormatType::Regular;
     f.rowmajor = false;
     f.matrixdim = 1;
 
@@ -1300,6 +1266,10 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     p.perinstance = false;
     p.instancerate = 1;
     p.systemValue = sig.systemValue;
+    p.format.type = ResourceFormatType::Regular;
+    p.format.compByteWidth = sizeof(float);
+    p.format.compCount = sig.compCount;
+    p.format.compType = sig.compType;
 
     if(sig.systemValue == ShaderBuiltin::Position)
       posidx = i;
@@ -1320,10 +1290,13 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
 
   i = 0;
   uint32_t offset = 0;
-  for(FormatElement &sig : columns)
+  for(i = 0; i < columns.count(); i++)
   {
-    uint numComps = sig.format.compCount;
-    uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
+    BufferElementProperties &prop = props[i];
+    FormatElement &sig = columns[i];
+
+    uint numComps = prop.format.compCount;
+    uint elemSize = prop.format.compType == CompType::Double ? 8U : 4U;
 
     if(ctx.CurPipelineState().HasAlignedPostVSData(
            shader->stage == ShaderStage::Vertex ? MeshDataStage::VSOut : MeshDataStage::GSOut))
@@ -1367,6 +1340,7 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     p.buffer = a.vertexBuffer;
     p.perinstance = a.perInstance;
     p.instancerate = a.instanceRate;
+    p.format = a.format;
 
     bufdata->vsinConfig.genericsEnabled[bufdata->vsinConfig.columns.size()] = false;
 
@@ -2025,8 +1999,8 @@ void BufferViewer::meshHeaderMenu(MeshDataStage stage, const QPoint &pos)
   m_CurView = tableForStage(stage);
   m_ContextColumn = modelForStage(stage)->elementIndexForColumn(col);
 
-  m_SelectSecondAlphaColumn->setEnabled(
-      modelForStage(stage)->elementForColumn(col).format.compCount == 4);
+  m_SelectSecondAlphaColumn->setEnabled(modelForStage(stage)->propForColumn(col).format.compCount ==
+                                        4);
 
   m_HeaderMenu->popup(tableForStage(stage)->horizontalHeader()->mapToGlobal(pos));
 }
@@ -2424,11 +2398,11 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
     {
       FloatVector maxvec(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
 
-      if(s.columns[i].format.compCount == 1)
+      if(s.props[i].format.compCount == 1)
         maxvec.y = maxvec.z = maxvec.w = 0.0;
-      else if(s.columns[i].format.compCount == 2)
+      else if(s.props[i].format.compCount == 2)
         maxvec.z = maxvec.w = 0.0;
-      else if(s.columns[i].format.compCount == 3)
+      else if(s.props[i].format.compCount == 3)
         maxvec.w = 0.0;
 
       minOutputList.push_back(maxvec);
@@ -2470,7 +2444,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
           if(!prop->perinstance)
             bytes += d.stride * idx;
 
-          QVariantList list = el->GetVariants(bytes, d.end);
+          QVariantList list = GetVariants(prop->format, el->matrixdim, bytes, d.end);
 
           for(int comp = 0; comp < 4 && comp < list.count(); comp++)
           {
@@ -2528,7 +2502,7 @@ void BufferViewer::UI_UpdateBoundingBoxLabels(int compCount)
       int posEl = model->posColumn();
       if(posEl >= 0 && posEl < model->getConfig().columns.count())
       {
-        compCount = model->getConfig().columns[posEl].format.compCount;
+        compCount = model->getConfig().props[posEl].format.compCount;
       }
     }
   }
@@ -2667,7 +2641,7 @@ void BufferViewer::UI_CalculateMeshFormats()
           m_VSInPosition.vertexByteOffset = 0;
         }
 
-        m_VSInPosition.format = el.format;
+        m_VSInPosition.format = prop.format;
       }
 
       elIdx = m_ModelVSIn->secondaryColumn();
@@ -2694,7 +2668,7 @@ void BufferViewer::UI_CalculateMeshFormats()
           m_VSInSecondary.vertexByteOffset = 0;
         }
 
-        m_VSInSecondary.format = el.format;
+        m_VSInSecondary.format = prop.format;
         m_VSInSecondary.showAlpha = m_ModelVSIn->secondaryAlpha();
       }
     }
@@ -2885,7 +2859,7 @@ void BufferViewer::UpdateCurrentMeshConfig()
       m_Config.maxBounds = bbox.bounds[stage].Max[posEl];
       m_Config.showBBox = !isCurrentRasterOut();
 
-      int compCount = model->getConfig().columns[posEl].format.compCount;
+      int compCount = model->getConfig().props[posEl].format.compCount;
 
       UI_UpdateBoundingBoxLabels(compCount);
     }
@@ -3211,17 +3185,21 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
 
   BufferConfiguration bufconfig;
 
+  BufferElementProperties floatProp, intProp;
+  floatProp.format = floatFmt;
+  intProp.format = intFmt;
+
   bufconfig.columns.clear();
   bufconfig.columns.push_back(FormatElement(headerText, 0, false, maxNumRows, floatFmt, false, false));
-  bufconfig.props.push_back({});
+  bufconfig.props.push_back(floatProp);
   bufconfig.columns.push_back(FormatElement(headerText, 4, false, 1, floatFmt, false, false));
-  bufconfig.props.push_back({});
+  bufconfig.props.push_back(floatProp);
   bufconfig.columns.push_back(FormatElement(headerText, 8, false, 1, floatFmt, false, false));
-  bufconfig.props.push_back({});
+  bufconfig.props.push_back(floatProp);
   bufconfig.columns.push_back(FormatElement(headerText, 12, false, 1, intFmt, true, false));
-  bufconfig.props.push_back({});
+  bufconfig.props.push_back(intProp);
   bufconfig.columns.push_back(FormatElement(headerText, 16, false, 1, intFmt, false, false));
-  bufconfig.props.push_back({});
+  bufconfig.props.push_back(intProp);
 
   bufconfig.numRows = 2;
   bufconfig.unclampedNumRows = 0;
