@@ -1604,7 +1604,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
                                               eFrameRef_Read);
 
     std::vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
-        GetWrapped(m_CurCompRootSig)->sig.params[RootParameterIndex].ranges;
+        GetWrapped(m_CurCompRootSig)->sig.Parameters[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
     UINT HeapNumDescriptors = base->GetHeap()->GetNumDescriptors();
@@ -2168,7 +2168,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
                                               eFrameRef_Read);
 
     std::vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
-        GetWrapped(m_CurGfxRootSig)->sig.params[RootParameterIndex].ranges;
+        GetWrapped(m_CurGfxRootSig)->sig.Parameters[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
     UINT HeapNumDescriptors = base->GetHeap()->GetNumDescriptors();

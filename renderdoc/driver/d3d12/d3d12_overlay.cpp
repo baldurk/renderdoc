@@ -93,14 +93,14 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
       range.OffsetInDescriptorsFromTableStart = 0;
 
-      modsig.params.push_back(D3D12RootSignatureParameter());
-      D3D12RootSignatureParameter &param = modsig.params.back();
+      modsig.Parameters.push_back(D3D12RootSignatureParameter());
+      D3D12RootSignatureParameter &param = modsig.Parameters.back();
       param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
       param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
       param.DescriptorTable.NumDescriptorRanges = 1;
       param.DescriptorTable.pDescriptorRanges = &range;
 
-      cache.sigElem = uint32_t(modsig.params.size() - 1);
+      cache.sigElem = uint32_t(modsig.Parameters.size() - 1);
 
       ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
 

@@ -249,13 +249,13 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
     ret.Flags = desc->Flags;
 
-    ret.params.resize(desc->NumParameters);
+    ret.Parameters.resize(desc->NumParameters);
 
     ret.dwordLength = 0;
 
-    for(size_t i = 0; i < ret.params.size(); i++)
+    for(size_t i = 0; i < ret.Parameters.size(); i++)
     {
-      ret.params[i].MakeFrom(desc->pParameters[i], ret.maxSpaceIndex);
+      ret.Parameters[i].MakeFrom(desc->pParameters[i], ret.maxSpaceIndex);
 
       // Descriptor tables cost 1 DWORD each.
       // Root constants cost 1 DWORD each, since they are 32-bit values.
@@ -270,10 +270,11 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
     if(desc->NumStaticSamplers > 0)
     {
-      ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+      ret.StaticSamplers.assign(desc->pStaticSamplers,
+                                desc->pStaticSamplers + desc->NumStaticSamplers);
 
-      for(size_t i = 0; i < ret.samplers.size(); i++)
-        ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.samplers[i].RegisterSpace + 1);
+      for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
+        ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
     }
 
     SAFE_RELEASE(deser);
@@ -307,13 +308,13 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
   ret.Flags = desc->Flags;
 
-  ret.params.resize(desc->NumParameters);
+  ret.Parameters.resize(desc->NumParameters);
 
   ret.dwordLength = 0;
 
-  for(size_t i = 0; i < ret.params.size(); i++)
+  for(size_t i = 0; i < ret.Parameters.size(); i++)
   {
-    ret.params[i].MakeFrom(desc->pParameters[i], ret.maxSpaceIndex);
+    ret.Parameters[i].MakeFrom(desc->pParameters[i], ret.maxSpaceIndex);
 
     // Descriptor tables cost 1 DWORD each.
     // Root constants cost 1 DWORD each, since they are 32-bit values.
@@ -328,10 +329,10 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
   if(desc->NumStaticSamplers > 0)
   {
-    ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+    ret.StaticSamplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
 
-    for(size_t i = 0; i < ret.samplers.size(); i++)
-      ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.samplers[i].RegisterSpace + 1);
+    for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
+      ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
   }
 
   SAFE_RELEASE(deser);
@@ -480,12 +481,12 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1>
 ID3DBlob *D3D12ShaderCache::MakeRootSig(const D3D12RootSignature &rootsig)
 {
   std::vector<D3D12_ROOT_PARAMETER1> params;
-  params.resize(rootsig.params.size());
+  params.resize(rootsig.Parameters.size());
   for(size_t i = 0; i < params.size(); i++)
-    params[i] = rootsig.params[i];
+    params[i] = rootsig.Parameters[i];
 
-  return MakeRootSig(params, rootsig.Flags, (UINT)rootsig.samplers.size(),
-                     rootsig.samplers.empty() ? NULL : &rootsig.samplers[0]);
+  return MakeRootSig(params, rootsig.Flags, (UINT)rootsig.StaticSamplers.size(),
+                     rootsig.StaticSamplers.empty() ? NULL : &rootsig.StaticSamplers[0]);
 }
 
 ID3DBlob *D3D12ShaderCache::MakeFixedColShader(float overlayConsts[4])

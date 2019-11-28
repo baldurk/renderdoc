@@ -913,9 +913,9 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   dstSpaces.clear();
   dstSpaces.reserve(8);
 
-  for(size_t rootEl = 0; rootEl < sig->sig.params.size(); rootEl++)
+  for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
   {
-    const D3D12RootSignatureParameter &p = sig->sig.params[rootEl];
+    const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
 
     if(p.ShaderVisibility != D3D12_SHADER_VISIBILITY_ALL && p.ShaderVisibility != visibility)
       continue;
@@ -1209,9 +1209,9 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
   }
 
-  for(size_t i = 0; i < sig->sig.samplers.size(); i++)
+  for(size_t i = 0; i < sig->sig.StaticSamplers.size(); i++)
   {
-    D3D12_STATIC_SAMPLER_DESC &sampDesc = sig->sig.samplers[i];
+    D3D12_STATIC_SAMPLER_DESC &sampDesc = sig->sig.StaticSamplers[i];
 
     if(sampDesc.ShaderVisibility != D3D12_SHADER_VISIBILITY_ALL &&
        sampDesc.ShaderVisibility != visibility)
@@ -2747,15 +2747,15 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
 
   bytebuf rootData;
 
-  for(size_t i = 0; sig && i < sig->sig.params.size(); i++)
+  for(size_t i = 0; sig && i < sig->sig.Parameters.size(); i++)
   {
-    const D3D12RootSignatureParameter &p = sig->sig.params[i];
+    const D3D12RootSignatureParameter &p = sig->sig.Parameters[i];
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
        p.Constants.RegisterSpace == (UINT)bind.bindset &&
        p.Constants.ShaderRegister == (UINT)bind.bind)
     {
-      size_t dstSize = sig->sig.params[i].Constants.Num32BitValues * sizeof(uint32_t);
+      size_t dstSize = sig->sig.Parameters[i].Constants.Num32BitValues * sizeof(uint32_t);
       rootData.resize(dstSize);
 
       if(i < sigElems->size())

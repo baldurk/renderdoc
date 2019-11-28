@@ -104,6 +104,97 @@ void DoSerialiseViaResourceId(SerialiserType &ser, Interface *&el)
 
 SERIALISE_D3D_INTERFACES();
 
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_DESCRIPTOR_RANGE1 &el)
+{
+  SERIALISE_MEMBER(RangeType);
+  SERIALISE_MEMBER(NumDescriptors);
+  SERIALISE_MEMBER(BaseShaderRegister);
+  SERIALISE_MEMBER(RegisterSpace);
+  SERIALISE_MEMBER(Flags);
+  SERIALISE_MEMBER(OffsetInDescriptorsFromTableStart);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_ROOT_DESCRIPTOR_TABLE1 &el)
+{
+  SERIALISE_MEMBER(NumDescriptorRanges);
+  SERIALISE_MEMBER_ARRAY(pDescriptorRanges, NumDescriptorRanges);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_ROOT_CONSTANTS &el)
+{
+  SERIALISE_MEMBER(ShaderRegister);
+  SERIALISE_MEMBER(RegisterSpace);
+  SERIALISE_MEMBER(Num32BitValues);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_ROOT_DESCRIPTOR1 &el)
+{
+  SERIALISE_MEMBER(ShaderRegister);
+  SERIALISE_MEMBER(RegisterSpace);
+  SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_STATIC_SAMPLER_DESC &el)
+{
+  SERIALISE_MEMBER(Filter);
+  SERIALISE_MEMBER(AddressU);
+  SERIALISE_MEMBER(AddressV);
+  SERIALISE_MEMBER(AddressW);
+  SERIALISE_MEMBER(MipLODBias);
+  SERIALISE_MEMBER(MaxAnisotropy);
+  SERIALISE_MEMBER(ComparisonFunc);
+  SERIALISE_MEMBER(BorderColor);
+  SERIALISE_MEMBER(MinLOD);
+  SERIALISE_MEMBER(MaxLOD);
+  SERIALISE_MEMBER(ShaderRegister);
+  SERIALISE_MEMBER(RegisterSpace);
+  SERIALISE_MEMBER(ShaderVisibility);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12RootSignatureParameter &el)
+{
+  RDCASSERTMSG(
+      "root signature parameter serialisation is only supported for structured serialisers",
+      ser.IsDummy());
+
+  SERIALISE_MEMBER(ParameterType);
+  switch(el.ParameterType)
+  {
+    case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+    {
+      SERIALISE_MEMBER(DescriptorTable);
+      break;
+    }
+    case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+    {
+      SERIALISE_MEMBER(Constants);
+      break;
+    }
+    case D3D12_ROOT_PARAMETER_TYPE_CBV:
+    case D3D12_ROOT_PARAMETER_TYPE_SRV:
+    case D3D12_ROOT_PARAMETER_TYPE_UAV:
+    {
+      SERIALISE_MEMBER(Descriptor);
+      break;
+    }
+  }
+  SERIALISE_MEMBER(ShaderVisibility);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12RootSignature &el)
+{
+  SERIALISE_MEMBER(Flags);
+  SERIALISE_MEMBER(Parameters);
+  SERIALISE_MEMBER(StaticSamplers);
+}
+
 // similarly we serialise handles, buffer locations, through Id + indices
 
 template <class SerialiserType>
@@ -1384,6 +1475,7 @@ void DoSerialise(SerialiserType &ser, D3D12_DISPATCH_ARGUMENTS &el)
   SERIALISE_MEMBER(ThreadGroupCountZ);
 }
 
+INSTANTIATE_SERIALISE_TYPE(D3D12RootSignature);
 INSTANTIATE_SERIALISE_TYPE(PortableHandle);
 INSTANTIATE_SERIALISE_TYPE(D3D12_CPU_DESCRIPTOR_HANDLE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_GPU_DESCRIPTOR_HANDLE);

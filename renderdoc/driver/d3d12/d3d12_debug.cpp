@@ -1642,44 +1642,44 @@ void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t 
   // because then then the root signature indices wouldn't match up as expected. Instead move them
   // into the specified register space so that another register space (commonly space0) can be used
   // for other purposes.
-  size_t numParams = sig.params.size();
+  size_t numParams = sig.Parameters.size();
   for(size_t i = 0; i < numParams; i++)
   {
-    if(sig.params[i].ShaderVisibility == visibility ||
-       sig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
+    if(sig.Parameters[i].ShaderVisibility == visibility ||
+       sig.Parameters[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
     {
-      D3D12_ROOT_PARAMETER_TYPE rootType = sig.params[i].ParameterType;
+      D3D12_ROOT_PARAMETER_TYPE rootType = sig.Parameters[i].ParameterType;
       if(rootType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
       {
-        size_t numRanges = sig.params[i].ranges.size();
+        size_t numRanges = sig.Parameters[i].ranges.size();
         for(size_t r = 0; r < numRanges; r++)
         {
-          D3D12_DESCRIPTOR_RANGE_TYPE rangeType = sig.params[i].ranges[r].RangeType;
+          D3D12_DESCRIPTOR_RANGE_TYPE rangeType = sig.Parameters[i].ranges[r].RangeType;
           if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && type == D3D12DescriptorType::CBV)
           {
-            sig.params[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && type == D3D12DescriptorType::SRV)
           {
-            sig.params[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV && type == D3D12DescriptorType::UAV)
           {
-            sig.params[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
           }
         }
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_CBV && type == D3D12DescriptorType::CBV)
       {
-        sig.params[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_SRV && type == D3D12DescriptorType::SRV)
       {
-        sig.params[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_UAV && type == D3D12DescriptorType::UAV)
       {
-        sig.params[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
       }
     }
   }

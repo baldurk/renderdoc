@@ -157,10 +157,10 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
     WrappedID3D12RootSignature *pD3D12RootSig =
         rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
 
-    size_t numParams = RDCMIN(pD3D12RootSig->sig.params.size(), pRootSignature->sigelems.size());
+    size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
     for(size_t i = 0; i < numParams; ++i)
     {
-      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.params[i];
+      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.Parameters[i];
       const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
       if(IsShaderParameterVisible(dxbc->m_Type, param.ShaderVisibility))
       {

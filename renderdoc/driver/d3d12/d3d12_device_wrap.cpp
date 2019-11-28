@@ -914,6 +914,13 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
         wrapped->sig =
             GetShaderCache()->GetRootSig(pBlobWithRootSignature, (size_t)blobLengthInBytes);
 
+        {
+          StructuredSerialiser structuriser(ser.GetStructuredFile().chunks.back(), &GetChunkName);
+          structuriser.SetUserData(GetResourceManager());
+
+          structuriser.Serialise("UnpackedSignature"_lit, wrapped->sig);
+        }
+
         GetResourceManager()->AddLiveResource(pRootSignature, ret);
       }
 

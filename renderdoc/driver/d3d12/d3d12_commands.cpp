@@ -1573,12 +1573,12 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
     WrappedID3D12RootSignature *sig =
         m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootdata->rootsig);
 
-    for(size_t rootEl = 0; rootEl < sig->sig.params.size(); rootEl++)
+    for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
     {
       if(rootEl >= rootdata->sigelems.size())
         break;
 
-      const D3D12RootSignatureParameter &p = sig->sig.params[rootEl];
+      const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
       const D3D12RenderState::SignatureElement &el = rootdata->sigelems[rootEl];
 
       ResourceUsage cb = ResourceUsage::CS_Constants;
