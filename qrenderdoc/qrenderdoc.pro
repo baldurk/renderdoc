@@ -168,7 +168,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/CaptureContext.cpp \
     Code/ScintillaSyntax.cpp \
     Code/QRDUtils.cpp \
-    Code/FormatElement.cpp \
+    Code/BufferFormatter.cpp \
     Code/Resources.cpp \
     Code/RGPInterop.cpp \
     Code/pyrenderdoc/PythonContext.cpp \

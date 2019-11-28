@@ -122,7 +122,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   if(reflection == NULL || m_slot >= reflection->constantBlocks.size())
   {
     // save expansion before clearing
-    if(m_formatOverride.empty())
+    if(m_formatOverride.type.members.empty())
     {
       RDTreeViewExpansionState &prevShaderExpansionState =
           ui->variables->getInternalExpansion(qHash(ToQStr(prevShader)));
@@ -133,7 +133,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
     return;
   }
 
-  if(!m_formatOverride.empty())
+  if(!m_formatOverride.type.members.empty())
   {
     m_Ctx.Replay().AsyncInvoke([this, offs, size, wasEmpty](IReplayController *r) {
       bytebuf data = r->GetBufferData(m_cbuffer, offs, size);
@@ -265,14 +265,14 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
 {
   if(format.isEmpty())
   {
-    m_formatOverride.clear();
+    m_formatOverride = ShaderConstant();
     ui->formatSpecifier->setErrors(QString());
   }
   else
   {
     QString errors;
 
-    m_formatOverride = FormatElement::ParseFormatString(format, 0, false, errors);
+    m_formatOverride = BufferFormatter::ParseFormatString(format, 0, false, errors);
     ui->formatSpecifier->setErrors(errors);
   }
 
@@ -348,17 +348,7 @@ void ConstantBufferPreviewer::updateLabels()
 
 rdcarray<ShaderVariable> ConstantBufferPreviewer::applyFormatOverride(const bytebuf &bytes)
 {
-  QVector<ShaderVariable> variables;
+  ShaderVariable var = InterpretShaderVar(m_formatOverride, bytes.begin(), bytes.end());
 
-  variables.resize(m_formatOverride.length());
-
-  for(int i = 0; i < m_formatOverride.length(); i++)
-  {
-    const byte *b = bytes.begin() + m_formatOverride[i].offset;
-    variables[i] = m_formatOverride[i].GetShaderVar(b, bytes.end());
-  }
-
-  rdcarray<ShaderVariable> ret;
-  ret = variables.toStdVector();
-  return ret;
+  return var.members;
 }

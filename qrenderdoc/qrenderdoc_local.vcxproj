@@ -574,7 +574,7 @@
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="Code\FormatElement.cpp" />
+    <ClCompile Include="Code\BufferFormatter.cpp" />
     <ClCompile Include="Code\Interface\Analytics.cpp" />
     <ClCompile Include="Code\Interface\PersistantConfig.cpp" />
     <ClCompile Include="Code\Interface\QRDInterface.cpp" />

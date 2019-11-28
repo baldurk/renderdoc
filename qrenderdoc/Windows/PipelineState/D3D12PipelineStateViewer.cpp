@@ -1845,7 +1845,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     if(tex->type == TextureType::Buffer)
     {
       IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(
-          tex->resourceId, Subresource(), FormatElement::GenerateTextureBufferFormat(*tex));
+          tex->resourceId, Subresource(), BufferFormatter::GetTextureFormatString(*tex));
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
@@ -1920,7 +1920,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(shaderRes)
     {
-      format = m_Common.GenerateBufferFormatter(*shaderRes, view.res.viewFormat, offs);
+      format = BufferFormatter::GetBufferFormatString(*shaderRes, view.res.viewFormat, offs);
 
       if(view.res.bufferFlags & D3DBufferViewFlags::Raw)
         format = lit("xint");

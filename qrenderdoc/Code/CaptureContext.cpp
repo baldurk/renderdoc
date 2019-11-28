@@ -736,6 +736,8 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
   {
     m_CaptureTemporary = temporary;
 
+    BufferFormatter::Init(m_APIProps.pipelineType);
+
     m_CaptureMods = CaptureModifications::NoModifications;
 
     rdcarray<ICaptureViewer *> viewers(m_CaptureViewers);

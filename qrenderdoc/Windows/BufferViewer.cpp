@@ -356,8 +356,8 @@ struct BufferConfiguration
   BufferData *indices = NULL;
   int32_t baseVertex = 0;
 
-  QList<FormatElement> columns;
-  QList<BufferElementProperties> props;
+  rdcarray<ShaderConstant> columns;
+  rdcarray<BufferElementProperties> props;
 
   QVector<PixelValue> generics;
   QVector<bool> genericsEnabled;
@@ -450,12 +450,12 @@ struct BufferConfiguration
       // look for an exact match
       for(int i = 0; posEl == -1 && i < columns.count(); i++)
       {
-        const FormatElement &el = columns[i];
+        const ShaderConstant &el = columns[i];
 
-        if(el.name.compare(lit("POSITION"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("POSITION0"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("POS"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("POS0"), Qt::CaseInsensitive) == 0)
+        if(QString(el.name).compare(lit("POSITION"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("POSITION0"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("POS"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("POS0"), Qt::CaseInsensitive) == 0)
         {
           posEl = i;
           break;
@@ -465,9 +465,9 @@ struct BufferConfiguration
       // try anything containing position
       for(int i = 0; posEl == -1 && i < columns.count(); i++)
       {
-        const FormatElement &el = columns[i];
+        const ShaderConstant &el = columns[i];
 
-        if(el.name.contains(lit("POSITION"), Qt::CaseInsensitive))
+        if(QString(el.name).contains(lit("POSITION"), Qt::CaseInsensitive))
         {
           posEl = i;
           break;
@@ -477,9 +477,9 @@ struct BufferConfiguration
       // OK last resort, just look for 'pos'
       for(int i = 0; posEl == -1 && i < columns.count(); i++)
       {
-        const FormatElement &el = columns[i];
+        const ShaderConstant &el = columns[i];
 
-        if(el.name.contains(lit("POS"), Qt::CaseInsensitive))
+        if(QString(el.name).contains(lit("POS"), Qt::CaseInsensitive))
         {
           posEl = i;
           break;
@@ -505,14 +505,14 @@ struct BufferConfiguration
       // prioritise TEXCOORD over general COLOR
       for(int i = 0; i < columns.count(); i++)
       {
-        const FormatElement &el = columns[i];
+        const ShaderConstant &el = columns[i];
 
-        if(el.name.compare(lit("TEXCOORD"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("TEXCOORD0"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("TEX"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("TEX0"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("UV"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("UV0"), Qt::CaseInsensitive) == 0)
+        if(QString(el.name).compare(lit("TEXCOORD"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("TEXCOORD0"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("TEX"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("TEX0"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("UV"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("UV0"), Qt::CaseInsensitive) == 0)
         {
           secondEl = i;
           break;
@@ -521,12 +521,12 @@ struct BufferConfiguration
 
       for(int i = 0; secondEl == -1 && i < columns.count(); i++)
       {
-        const FormatElement &el = columns[i];
+        const ShaderConstant &el = columns[i];
 
-        if(el.name.compare(lit("COLOR"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("COLOR0"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("COL"), Qt::CaseInsensitive) == 0 ||
-           el.name.compare(lit("COL0"), Qt::CaseInsensitive) == 0)
+        if(QString(el.name).compare(lit("COLOR"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("COLOR0"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("COL"), Qt::CaseInsensitive) == 0 ||
+           QString(el.name).compare(lit("COL0"), Qt::CaseInsensitive) == 0)
         {
           secondEl = i;
           break;
@@ -631,7 +631,7 @@ public:
         }
         else
         {
-          const FormatElement &el = elementForColumn(section);
+          const ShaderConstant &el = elementForColumn(section);
           const BufferElementProperties &prop = propForColumn(section);
 
           if(prop.format.compCount == 1 || role == columnGroupRole)
@@ -731,20 +731,21 @@ public:
         }
         else
         {
-          const FormatElement &el = elementForColumn(col);
+          const ShaderConstant &el = elementForColumn(col);
           const BufferElementProperties &prop = propForColumn(col);
 
-          if(el.rgb && prop.buffer < config.buffers.size())
+          if(el.type.descriptor.displayAsRGB && prop.buffer < config.buffers.size())
           {
             const byte *data = config.buffers[prop.buffer]->data();
             const byte *end = config.buffers[prop.buffer]->end();
 
             data += config.buffers[prop.buffer]->stride * row;
-            data += el.offset;
+            data += el.byteOffset;
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = GetVariants(prop.format, el.matrixdim, data, end);
+            QVariantList list = GetVariants(prop.format, el.type.descriptor.rows,
+                                            el.type.descriptor.matrixByteStride, data, end);
 
             if(!list.isEmpty())
             {
@@ -835,7 +836,7 @@ public:
             return idx;
           }
 
-          const FormatElement &el = elementForColumn(col);
+          const ShaderConstant &el = elementForColumn(col);
           const BufferElementProperties &prop = propForColumn(col);
 
           if(useGenerics(col))
@@ -855,24 +856,25 @@ public:
             else
               data += config.buffers[prop.buffer]->stride * instIdx;
 
-            data += el.offset;
+            data += el.byteOffset;
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = GetVariants(prop.format, el.matrixdim, data, end);
+            QVariantList list = GetVariants(prop.format, el.type.descriptor.rows,
+                                            el.type.descriptor.matrixByteStride, data, end);
 
             int comp = componentForIndex(col);
 
             if(comp < list.count())
             {
-              uint32_t rowdim = el.matrixdim;
-              uint32_t coldim = prop.format.compCount;
+              uint32_t rowdim = el.type.descriptor.rows;
+              uint32_t coldim = el.type.descriptor.columns;
 
               if(rowdim == 1)
               {
                 QVariant v;
 
-                if(el.rowmajor)
+                if(el.type.descriptor.rowMajorStorage)
                   v = list[comp];
                 else
                   v = list[comp * rowdim];
@@ -893,7 +895,7 @@ public:
                   if(r > 0)
                     ret += lit("\n");
 
-                  if(el.rowmajor)
+                  if(el.type.descriptor.rowMajorStorage)
                     ret += interpretVariant(list[comp + r * coldim], el, prop);
                   else
                     ret += interpretVariant(list[r + comp * rowdim], el, prop);
@@ -969,7 +971,7 @@ public:
     return columnLookup[col - reservedColumnCount()];
   }
 
-  const FormatElement &elementForColumn(int col) const
+  const ShaderConstant &elementForColumn(int col) const
   {
     return config.columns[columnLookup[col - reservedColumnCount()]];
   }
@@ -1065,7 +1067,7 @@ private:
   }
 
   QString outOfBounds() const { return lit("---"); }
-  QString interpretGeneric(int col, const FormatElement &el, const BufferElementProperties &prop) const
+  QString interpretGeneric(int col, const ShaderConstant &el, const BufferElementProperties &prop) const
   {
     int comp = componentForIndex(col);
 
@@ -1090,7 +1092,7 @@ private:
     return outOfBounds();
   }
 
-  QString interpretVariant(const QVariant &v, const FormatElement &el,
+  QString interpretVariant(const QVariant &v, const ShaderConstant &el,
                            const BufferElementProperties &prop) const
   {
     QString ret;
@@ -1128,10 +1130,10 @@ private:
     else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
     {
       uint u = v.toUInt();
-      if(el.hex && prop.format.type == ResourceFormatType::Regular)
+      if(el.type.descriptor.displayAsHex && prop.format.type == ResourceFormatType::Regular)
         ret = Formatter::HexFormat(u, prop.format.compByteWidth);
       else
-        ret = Formatter::Format(u, el.hex);
+        ret = Formatter::Format(u, el.type.descriptor.displayAsHex);
     }
     else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
     {
@@ -1143,7 +1145,7 @@ private:
     }
     else if(vt == QMetaType::ULongLong)
     {
-      ret = Formatter::Format((uint64_t)v.toULongLong(), el.hex);
+      ret = Formatter::Format((uint64_t)v.toULongLong(), el.type.descriptor.displayAsHex);
     }
     else if(vt == QMetaType::LongLong)
     {
@@ -1164,7 +1166,7 @@ private:
 
 struct CachedElData
 {
-  const FormatElement *el = NULL;
+  const ShaderConstant *el = NULL;
   const BufferElementProperties *prop = NULL;
 
   const byte *data = NULL;
@@ -1203,15 +1205,15 @@ struct CalcBoundingBoxData
   BBoxData output;
 };
 
-void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatElement> &columns,
-                           const QList<BufferElementProperties> &props,
+void CacheDataForIteration(QVector<CachedElData> &cache, const rdcarray<ShaderConstant> &columns,
+                           const rdcarray<BufferElementProperties> &props,
                            const QList<BufferData *> buffers, uint32_t inst)
 {
   cache.reserve(columns.count());
 
   for(int col = 0; col < columns.count(); col++)
   {
-    const FormatElement &el = columns[col];
+    const ShaderConstant &el = columns[col];
     const BufferElementProperties &prop = props[col];
 
     CachedElData d;
@@ -1219,7 +1221,7 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatEleme
     d.el = &el;
     d.prop = &prop;
 
-    d.byteSize = prop.format.ElementSize() * el.matrixdim;
+    d.byteSize = prop.format.ElementSize() * el.type.descriptor.rows;
     d.nulls = QByteArray(d.byteSize, '\0');
 
     if(prop.instancerate > 0)
@@ -1232,7 +1234,7 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatEleme
 
       d.stride = buffers[prop.buffer]->stride;
 
-      d.data += el.offset;
+      d.data += el.byteOffset;
 
       if(prop.perinstance)
         d.data += d.stride * d.instIdx;
@@ -1243,8 +1245,8 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatEleme
 }
 
 static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflection *shader,
-                                      QList<FormatElement> &columns,
-                                      QList<BufferElementProperties> &props)
+                                      rdcarray<ShaderConstant> &columns,
+                                      rdcarray<BufferElementProperties> &props)
 {
   if(!shader)
     return;
@@ -1255,12 +1257,11 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
   int i = 0, posidx = -1;
   for(const SigParameter &sig : shader->outputSignature)
   {
-    FormatElement f;
+    ShaderConstant f;
     BufferElementProperties p;
 
     f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
-    f.rowmajor = false;
-    f.matrixdim = 1;
+    f.type.descriptor.columns = sig.compCount;
 
     p.buffer = 0;
     p.perinstance = false;
@@ -1293,7 +1294,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
   for(i = 0; i < columns.count(); i++)
   {
     BufferElementProperties &prop = props[i];
-    FormatElement &sig = columns[i];
+    ShaderConstant &el = columns[i];
 
     uint numComps = prop.format.compCount;
     uint elemSize = prop.format.compType == CompType::Double ? 8U : 4U;
@@ -1307,7 +1308,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
         offset = AlignUp(offset, 4U * elemSize);
     }
 
-    sig.offset = offset;
+    el.byteOffset = offset;
 
     offset += numComps * elemSize;
   }
@@ -1331,10 +1332,9 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     if(!a.used)
       continue;
 
-    FormatElement f(a.name, a.byteOffset,
-                    false,    // row major matrix
-                    1,        // matrix dimension
-                    a.format, false, false);
+    ShaderConstant f;
+    f.name = a.name;
+    f.byteOffset = a.byteOffset;
 
     BufferElementProperties p;
     p.buffer = a.vertexBuffer;
@@ -1342,12 +1342,12 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     p.instancerate = a.instanceRate;
     p.format = a.format;
 
-    bufdata->vsinConfig.genericsEnabled[bufdata->vsinConfig.columns.size()] = false;
+    bufdata->vsinConfig.genericsEnabled[bufdata->vsinConfig.columns.count()] = false;
 
     if(a.genericEnabled)
     {
-      bufdata->vsinConfig.genericsEnabled[bufdata->vsinConfig.columns.size()] = true;
-      bufdata->vsinConfig.generics[bufdata->vsinConfig.columns.size()] = a.genericValue;
+      bufdata->vsinConfig.genericsEnabled[bufdata->vsinConfig.columns.count()] = true;
+      bufdata->vsinConfig.generics[bufdata->vsinConfig.columns.count()] = a.genericValue;
     }
 
     bufdata->vsinConfig.columns.push_back(f);
@@ -1514,16 +1514,16 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
     uint32_t maxAttrOffset = 0;
 
-    for(int c = 0; c < data->vsinConfig.columns.size(); c++)
+    for(int c = 0; c < data->vsinConfig.columns.count(); c++)
     {
-      const FormatElement &col = data->vsinConfig.columns[c];
+      const ShaderConstant &col = data->vsinConfig.columns[c];
       const BufferElementProperties &prop = data->vsinConfig.props[c];
 
       if(prop.buffer == vbIdx)
       {
         used = true;
 
-        maxAttrOffset = qMax(maxAttrOffset, col.offset);
+        maxAttrOffset = qMax(maxAttrOffset, col.byteOffset);
 
         if(prop.perinstance)
           pi = true;
@@ -1645,6 +1645,70 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     // ref passes to model
     data->gsoutConfig.buffers.push_back(postgs);
   }
+}
+
+static int MaxNumRows(const ShaderConstant &c)
+{
+  int ret = c.type.descriptor.rows;
+
+  for(const ShaderConstant &child : c.type.members)
+    ret = qMax(ret, MaxNumRows(child));
+
+  return ret;
+}
+
+static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
+                           rdcarray<ShaderConstant> &columns,
+                           rdcarray<BufferElementProperties> &props)
+{
+  bool isArray = constant.type.descriptor.elements > 1;
+
+  rdcstr baseName = constant.name;
+
+  if(!prefix.isEmpty())
+    baseName = prefix + "." + baseName;
+
+  if(constant.type.members.isEmpty())
+  {
+    BufferElementProperties prop;
+    prop.format = GetInterpretedResourceFormat(constant);
+
+    ShaderConstant c = constant;
+
+    if(isArray)
+    {
+      for(uint32_t a = 0; a < constant.type.descriptor.elements; a++)
+      {
+        c.name = QFormatStr("%1[%2]").arg(baseName).arg(a);
+        columns.push_back(c);
+        props.push_back(prop);
+      }
+    }
+    else
+    {
+      c.name = baseName;
+      columns.push_back(c);
+      props.push_back(prop);
+    }
+
+    return;
+  }
+
+  // struct, expand by members
+  for(uint32_t a = 0; a < qMax(1U, constant.type.descriptor.elements); a++)
+  {
+    for(const ShaderConstant &child : constant.type.members)
+    {
+      UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName), child,
+                     columns, props);
+    }
+  }
+}
+
+static void UnrollConstant(const ShaderConstant &constant, rdcarray<ShaderConstant> &columns,
+                           rdcarray<BufferElementProperties> &props)
+{
+  UnrollConstant("", constant, columns, props);
 }
 
 BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
@@ -2158,9 +2222,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       len = 0;
 
     QString errors;
-    bufdata->vsinConfig.columns = FormatElement::ParseFormatString(m_Format, len, true, errors);
-    for(int i = 0; i < bufdata->vsinConfig.columns.size(); i++)
-      bufdata->vsinConfig.props.push_back({});
+    ShaderConstant constant = BufferFormatter::ParseFormatString(m_Format, len, true, errors);
+
+    UnrollConstant(constant, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
 
     ClearModels();
   }
@@ -2241,7 +2305,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         buf->stride = 0;
         for(int i = 0; i < bufdata->vsinConfig.props.count(); i++)
           buf->stride += bufdata->vsinConfig.props[i].format.ElementSize() *
-                         bufdata->vsinConfig.columns[i].matrixdim;
+                         bufdata->vsinConfig.columns[i].type.descriptor.rows;
 
         buf->stride = qMax((size_t)1, buf->stride);
 
@@ -2432,7 +2496,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
       for(int col = 0; col < s.columns.count(); col++)
       {
         const CachedElData &d = cache[col];
-        const FormatElement *el = d.el;
+        const ShaderConstant *el = d.el;
         const BufferElementProperties *prop = d.prop;
 
         float *minOut = (float *)&minOutputList[col];
@@ -2445,7 +2509,8 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
           if(!prop->perinstance)
             bytes += d.stride * idx;
 
-          QVariantList list = GetVariants(prop->format, el->matrixdim, bytes, d.end);
+          QVariantList list = GetVariants(prop->format, el->type.descriptor.rows,
+                                          el->type.descriptor.matrixByteStride, bytes, d.end);
 
           for(int comp = 0; comp < 4 && comp < list.count(); comp++)
           {
@@ -2622,7 +2687,7 @@ void BufferViewer::UI_CalculateMeshFormats()
         m_VSInPosition.indexByteStride = 4U;
 
       {
-        const FormatElement &el = vsinConfig.columns[elIdx];
+        const ShaderConstant &el = vsinConfig.columns[elIdx];
         const BufferElementProperties &prop = vsinConfig.props[elIdx];
 
         m_VSInPosition.instanced = prop.perinstance;
@@ -2632,7 +2697,7 @@ void BufferViewer::UI_CalculateMeshFormats()
         {
           m_VSInPosition.vertexResourceId = vbs[prop.buffer].resourceId;
           m_VSInPosition.vertexByteStride = vbs[prop.buffer].byteStride;
-          m_VSInPosition.vertexByteOffset = vbs[prop.buffer].byteOffset + el.offset +
+          m_VSInPosition.vertexByteOffset = vbs[prop.buffer].byteOffset + el.byteOffset +
                                             draw->vertexOffset * m_VSInPosition.vertexByteStride;
         }
         else
@@ -2649,7 +2714,7 @@ void BufferViewer::UI_CalculateMeshFormats()
 
       if(elIdx >= 0 && elIdx < vsinConfig.columns.count())
       {
-        const FormatElement &el = vsinConfig.columns[elIdx];
+        const ShaderConstant &el = vsinConfig.columns[elIdx];
         const BufferElementProperties &prop = vsinConfig.props[elIdx];
 
         m_VSInSecondary.instanced = prop.perinstance;
@@ -2659,7 +2724,7 @@ void BufferViewer::UI_CalculateMeshFormats()
         {
           m_VSInSecondary.vertexResourceId = vbs[prop.buffer].resourceId;
           m_VSInSecondary.vertexByteStride = vbs[prop.buffer].byteStride;
-          m_VSInSecondary.vertexByteOffset = vbs[prop.buffer].byteOffset + el.offset +
+          m_VSInSecondary.vertexByteOffset = vbs[prop.buffer].byteOffset + el.byteOffset +
                                              draw->vertexOffset * m_VSInSecondary.vertexByteStride;
         }
         else
@@ -2685,11 +2750,11 @@ void BufferViewer::UI_CalculateMeshFormats()
       if(elIdx < 0 || elIdx >= vsoutConfig.columns.count())
         elIdx = 0;
 
-      const FormatElement &el = vsoutConfig.columns[elIdx];
+      const ShaderConstant &el = vsoutConfig.columns[elIdx];
       const BufferElementProperties &prop = vsoutConfig.props[elIdx];
 
       m_PostVSPosition = m_PostVS;
-      m_PostVSPosition.vertexByteOffset += el.offset;
+      m_PostVSPosition.vertexByteOffset += el.byteOffset;
       m_PostVSPosition.unproject = prop.systemValue == ShaderBuiltin::Position;
 
       // if geometry/tessellation is enabled, don't unproject VS output data
@@ -2702,7 +2767,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       if(elIdx >= 0 && elIdx < vsoutConfig.columns.count())
       {
         m_PostVSSecondary = m_PostVS;
-        m_PostVSSecondary.vertexByteOffset += vsoutConfig.columns[elIdx].offset;
+        m_PostVSSecondary.vertexByteOffset += vsoutConfig.columns[elIdx].byteOffset;
         m_PostVSSecondary.showAlpha = m_ModelVSOut->secondaryAlpha();
       }
     }
@@ -2721,11 +2786,11 @@ void BufferViewer::UI_CalculateMeshFormats()
       if(elIdx < 0 || elIdx >= gsoutConfig.columns.count())
         elIdx = 0;
 
-      const FormatElement &el = gsoutConfig.columns[elIdx];
+      const ShaderConstant &el = gsoutConfig.columns[elIdx];
       const BufferElementProperties &prop = gsoutConfig.props[elIdx];
 
       m_PostGSPosition = m_PostGS;
-      m_PostGSPosition.vertexByteOffset += el.offset;
+      m_PostGSPosition.vertexByteOffset += el.byteOffset;
       m_PostGSPosition.unproject = prop.systemValue == ShaderBuiltin::Position;
 
       elIdx = m_ModelGSOut->secondaryColumn();
@@ -2733,7 +2798,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       if(elIdx >= 0 && elIdx < gsoutConfig.columns.count())
       {
         m_PostGSSecondary = m_PostGS;
-        m_PostGSSecondary.vertexByteOffset += gsoutConfig.columns[elIdx].offset;
+        m_PostGSSecondary.vertexByteOffset += gsoutConfig.columns[elIdx].byteOffset;
         m_PostGSSecondary.showAlpha = m_ModelGSOut->secondaryAlpha();
       }
     }
@@ -3190,16 +3255,35 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
   floatProp.format = floatFmt;
   intProp.format = intFmt;
 
+  ShaderConstant elem;
+  elem.name = headerText;
+  elem.byteOffset = 0;
+  elem.type.descriptor.rows = maxNumRows;
+
   bufconfig.columns.clear();
-  bufconfig.columns.push_back(FormatElement(headerText, 0, false, maxNumRows, floatFmt, false, false));
+
+  bufconfig.columns.push_back(elem);
   bufconfig.props.push_back(floatProp);
-  bufconfig.columns.push_back(FormatElement(headerText, 4, false, 1, floatFmt, false, false));
+
+  elem.type.descriptor.rows = 1;
+  elem.byteOffset = 4;
+
+  bufconfig.columns.push_back(elem);
   bufconfig.props.push_back(floatProp);
-  bufconfig.columns.push_back(FormatElement(headerText, 8, false, 1, floatFmt, false, false));
+
+  elem.byteOffset = 8;
+
+  bufconfig.columns.push_back(elem);
   bufconfig.props.push_back(floatProp);
-  bufconfig.columns.push_back(FormatElement(headerText, 12, false, 1, intFmt, true, false));
+
+  elem.byteOffset = 12;
+
+  bufconfig.columns.push_back(elem);
   bufconfig.props.push_back(intProp);
-  bufconfig.columns.push_back(FormatElement(headerText, 16, false, 1, intFmt, false, false));
+
+  elem.byteOffset = 16;
+
+  bufconfig.columns.push_back(elem);
   bufconfig.props.push_back(intProp);
 
   bufconfig.numRows = 2;
@@ -3359,14 +3443,9 @@ void BufferViewer::processFormat(const QString &format)
   if(len == UINT64_MAX)
     len = 0;
 
-  QList<FormatElement> cols = FormatElement::ParseFormatString(format, len, true, errors);
+  ShaderConstant cols = BufferFormatter::ParseFormatString(format, len, true, errors);
 
-  int maxNumRows = 1;
-
-  for(const FormatElement &c : cols)
-    maxNumRows = qMax(maxNumRows, (int)c.matrixdim);
-
-  CalcColumnWidth(maxNumRows);
+  CalcColumnWidth(MaxNumRows(cols));
 
   ClearModels();
 
@@ -3374,11 +3453,7 @@ void BufferViewer::processFormat(const QString &format)
 
   ui->formatSpecifier->setFormat(format);
 
-  uint32_t stride = 0;
-  for(const FormatElement &el : cols)
-    stride += el.format.ElementSize() * el.matrixdim;
-
-  stride = qMax(1U, stride);
+  uint32_t stride = qMax(1U, cols.type.descriptor.arrayByteStride);
 
   ui->byteRangeStart->setSingleStep((int)stride);
   ui->byteRangeLength->setSingleStep((int)stride);
@@ -3496,7 +3571,7 @@ void BufferViewer::exportData(const BufferExport &params)
           for(int col = 0; col < cache.count(); col++)
           {
             const CachedElData &d = cache[col];
-            const FormatElement *el = d.el;
+            const ShaderConstant *el = d.el;
             const BufferElementProperties *prop = d.prop;
 
             if(d.data)

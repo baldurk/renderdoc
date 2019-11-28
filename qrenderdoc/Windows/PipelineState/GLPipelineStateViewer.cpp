@@ -2144,7 +2144,7 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
       if(tex->type == TextureType::Buffer)
       {
         IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(
-            tex->resourceId, Subresource(), FormatElement::GenerateTextureBufferFormat(*tex));
+            tex->resourceId, Subresource(), BufferFormatter::GetTextureFormatString(*tex));
 
         m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
       }
@@ -2165,7 +2165,7 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
 
     const ShaderResource &shaderRes = stage->reflection->readWriteResources[buf.bindPoint];
 
-    QString format = m_Common.GenerateBufferFormatter(shaderRes, ResourceFormat(), buf.offset);
+    QString format = BufferFormatter::GetBufferFormatString(shaderRes, ResourceFormat(), buf.offset);
 
     if(buf.ID != ResourceId())
     {

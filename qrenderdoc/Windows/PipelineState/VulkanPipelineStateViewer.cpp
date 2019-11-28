@@ -2540,7 +2540,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
       if(tex->type == TextureType::Buffer)
       {
         IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(
-            tex->resourceId, Subresource(), FormatElement::GenerateTextureBufferFormat(*tex));
+            tex->resourceId, Subresource(), BufferFormatter::GetTextureFormatString(*tex));
 
         m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
       }
@@ -2569,7 +2569,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
                                             ? stage->reflection->readWriteResources[buf.bindPoint]
                                             : stage->reflection->readOnlyResources[buf.bindPoint];
 
-      format = m_Common.GenerateBufferFormatter(shaderRes, buf.fmt, buf.offset);
+      format = BufferFormatter::GetBufferFormatString(shaderRes, buf.fmt, buf.offset);
     }
 
     if(buf.ID != ResourceId())

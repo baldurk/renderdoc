@@ -635,6 +635,12 @@ struct ShaderVariableDescriptor
       return name < o.name;
     return false;
   }
+  DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
+  rdcstr name;
+  DOCUMENT("The number of elements in the array, or 1 if it's not an array.");
+  uint32_t elements = 1;
+  DOCUMENT("The number of bytes between the start of one element in the array and the next.");
+  uint32_t arrayByteStride = 0;
   DOCUMENT("The :class:`VarType` that this basic constant stores.");
   VarType type = VarType::Unknown;
   DOCUMENT("The number of rows in this matrix.");
@@ -645,12 +651,12 @@ struct ShaderVariableDescriptor
   uint8_t matrixByteStride = 0;
   DOCUMENT("``True`` if the matrix is stored as row major instead of column major.");
   bool rowMajorStorage = false;
-  DOCUMENT("The number of elements in the array, or 1 if it's not an array.");
-  uint32_t elements = 1;
-  DOCUMENT("The number of bytes between the start of one element in the array and the next.");
-  uint32_t arrayByteStride = 0;
-  DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
-  rdcstr name;
+  DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
+  bool displayAsHex = false;
+  DOCUMENT(R"(``True`` if the contents of this variable should be displayed as RGB color (where 
+possible).
+)");
+  bool displayAsRGB = false;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderVariableDescriptor);

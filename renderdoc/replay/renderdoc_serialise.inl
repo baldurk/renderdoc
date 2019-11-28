@@ -181,6 +181,8 @@ void DoSerialise(SerialiserType &ser, ShaderVariableDescriptor &el)
   SERIALISE_MEMBER(elements);
   SERIALISE_MEMBER(arrayByteStride);
   SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(displayAsHex);
+  SERIALISE_MEMBER(displayAsRGB);
 
   SIZE_CHECK(40);
 }

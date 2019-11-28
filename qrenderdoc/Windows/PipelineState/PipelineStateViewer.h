@@ -71,9 +71,6 @@ public:
                              const ShaderBindpointMapping &bindpointMapping,
                              const ShaderReflection *shaderDetails);
 
-  QString GenerateBufferFormatter(const ShaderResource &res, const ResourceFormat &viewFormat,
-                                  uint64_t &baseByteOffset);
-
   QString GetVBufferFormatString(uint32_t slot);
 
   void setTopologyDiagram(QLabel *diagram, Topology topo);

@@ -34,7 +34,7 @@ class ConstantBufferPreviewer;
 
 class QTextStream;
 class RDTreeWidgetItem;
-struct FormatElement;
+struct BufferFormatter;
 
 class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ICaptureViewer
 {
@@ -89,5 +89,5 @@ private:
 
   static QList<ConstantBufferPreviewer *> m_Previews;
 
-  QList<FormatElement> m_formatOverride;
+  ShaderConstant m_formatOverride;
 };

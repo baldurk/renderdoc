@@ -369,9 +369,6 @@
     <ClCompile Include="Windows\Dialogs\VirtualFileDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="Code\FormatElement.cpp">
-      <Filter>Code</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\DebugMessageView.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
@@ -728,6 +725,9 @@
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_ReplayOptionsSelector.cpp">
       <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\BufferFormatter.cpp">
+      <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

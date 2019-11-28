@@ -3622,7 +3622,7 @@ void TextureViewer::on_viewTexBuffer_clicked()
   {
     IBufferViewer *viewer =
         m_Ctx.ViewTextureAsBuffer(texptr->resourceId, m_TexDisplay.subresource,
-                                  FormatElement::GenerateTextureBufferFormat(*texptr));
+                                  BufferFormatter::GetTextureFormatString(*texptr));
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }

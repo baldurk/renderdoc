@@ -186,7 +186,7 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 
   An unknown type.
 )");
-enum class VarType : uint32_t
+enum class VarType : uint8_t
 {
   Float = 0,
   Double,
@@ -199,10 +199,29 @@ enum class VarType : uint32_t
   ULong,
   SByte,
   UByte,
-  Unknown = ~0U,
+  Unknown = 0xFF,
 };
 
 DECLARE_REFLECTION_ENUM(VarType);
+
+DOCUMENT(R"(Get the byte size of a variable type.
+
+:param VarType type: The variable type
+:return: The size in bytes of this type
+:rtype: int
+)");
+constexpr uint32_t VarTypeByteSize(VarType type)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return (type == VarType::UByte  || type == VarType::SByte) ? 1
+       : (type == VarType::Half   || type == VarType::UShort || type == VarType::SShort) ? 2
+       : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt  ) ? 4
+       : (type == VarType::Double || type == VarType::ULong  || type == VarType::SLong ) ? 8
+       : 0;
+  // clang-format on
+}
 
 DOCUMENT(R"(Represents the component type of a channel in a texture or element in a structure.
 

@@ -74,33 +74,37 @@ inline QMetaType::Type GetVariantMetatype(const QVariant &v)
   return (QMetaType::Type)v.type();
 }
 
-struct FormatElement
+struct BufferFormatter
 {
-  Q_DECLARE_TR_FUNCTIONS(FormatElement);
+  Q_DECLARE_TR_FUNCTIONS(BufferFormatter);
+
+  static GraphicsAPI m_API;
+
+  static QString DeclareStruct(QList<QString> &declaredStructs, const QString &name,
+                               const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
 
 public:
-  FormatElement();
-  FormatElement(const QString &Name, uint offs, bool rowMat, uint matDim, ResourceFormat f,
-                bool hexDisplay, bool rgbDisplay);
+  BufferFormatter() = default;
 
-  static QList<FormatElement> ParseFormatString(const QString &formatString, uint64_t maxLen,
-                                                bool tightPacking, QString &errors);
+  static void Init(GraphicsAPI api) { m_API = api; }
+  static ShaderConstant ParseFormatString(const QString &formatString, uint64_t maxLen,
+                                          bool tightPacking, QString &errors);
 
-  static QString GenerateTextureBufferFormat(const TextureDescription &tex);
+  static QString GetTextureFormatString(const TextureDescription &tex);
+  static QString GetBufferFormatString(const ShaderResource &res, const ResourceFormat &viewFormat,
+                                       uint64_t &baseByteOffset);
 
-  ShaderVariable GetShaderVar(const byte *&data, const byte *end) const;
-
-  QString name;
-  ResourceFormat format;
-  uint32_t offset;
-  uint32_t matrixdim;
-  bool rowmajor;
-
-  bool hex, rgb;
+  static QString DeclareStruct(const QString &name, const rdcarray<ShaderConstant> &members,
+                               uint32_t requiredByteStride);
+  static QString DeclarePaddingBytes(uint32_t bytes);
 };
 
-QVariantList GetVariants(ResourceFormat rowFormat, uint32_t rowCount, const byte *&data,
-                         const byte *end);
+QVariantList GetVariants(ResourceFormat rowFormat, uint32_t rowCount, uint32_t rowByteStride,
+                         const byte *&data, const byte *end);
+ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem);
+void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType interpretType,
+                                  CompType interpretCompType);
+ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, const byte *end);
 
 QString TypeString(const ShaderVariable &v);
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type = VarType::Unknown);
