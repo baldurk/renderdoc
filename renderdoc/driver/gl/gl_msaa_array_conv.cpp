@@ -231,6 +231,10 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
   GLRenderState rs;
   rs.FetchState(this);
 
+  GLuint vao = 0;
+  drv.glGenVertexArrays(1, &vao);
+  drv.glBindVertexArray(vao);
+
   GLuint texs[3];
   drv.glGenTextures(3, texs);
   drv.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, intFormat, 0, 1, 0,
@@ -331,10 +335,11 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
     }
   }
 
+  rs.ApplyState(this);
+
+  drv.glDeleteVertexArrays(1, &vao);
   drv.glDeleteFramebuffers(1, &fbo);
   drv.glDeleteTextures(3, texs);
-
-  rs.ApplyState(this);
 }
 
 void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
@@ -464,6 +469,10 @@ void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLin
   GLRenderState rs;
   rs.FetchState(this);
 
+  GLuint vao = 0;
+  drv.glGenVertexArrays(1, &vao);
+  drv.glBindVertexArray(vao);
+
   GLuint texs[3];
   drv.glGenTextures(3, texs);
   drv.glTextureView(texs[0], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, destMS, intFormat, 0, 1, 0, arraySize);
@@ -571,8 +580,9 @@ void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLin
     }
   }
 
+  rs.ApplyState(this);
+
+  drv.glDeleteVertexArrays(1, &vao);
   drv.glDeleteFramebuffers(1, &fbo);
   drv.glDeleteTextures(3, texs);
-
-  rs.ApplyState(this);
 }
