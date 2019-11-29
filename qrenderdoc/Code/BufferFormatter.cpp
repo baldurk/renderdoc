@@ -830,14 +830,12 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     const ShaderConstant *lastChild = &members.back();
 
     structStart += lastChild->byteOffset;
-    structStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
-                   lastChild->type.descriptor.arrayByteStride;
     while(!lastChild->type.members.isEmpty())
     {
-      lastChild = &lastChild->type.members.back();
-      structStart += lastChild->byteOffset;
       structStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
                      lastChild->type.descriptor.arrayByteStride;
+      lastChild = &lastChild->type.members.back();
+      structStart += lastChild->byteOffset;
     }
 
     uint32_t size = lastChild->type.descriptor.rows * lastChild->type.descriptor.columns;
