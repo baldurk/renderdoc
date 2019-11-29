@@ -179,11 +179,11 @@ struct View
   bool operator==(const View &o) const
   {
     return viewResourceId == o.viewResourceId && resourceResourceId == o.resourceResourceId &&
-           type == o.type && viewFormat == o.viewFormat && structured == o.structured &&
-           bufferStructCount == o.bufferStructCount && elementByteSize == o.elementByteSize &&
-           firstElement == o.firstElement && numElements == o.numElements &&
-           bufferFlags == o.bufferFlags && firstMip == o.firstMip && numMips == o.numMips &&
-           numSlices == o.numSlices && firstSlice == o.firstSlice;
+           counterResourceId == o.counterResourceId && type == o.type && viewFormat == o.viewFormat &&
+           structured == o.structured && bufferStructCount == o.bufferStructCount &&
+           elementByteSize == o.elementByteSize && firstElement == o.firstElement &&
+           numElements == o.numElements && bufferFlags == o.bufferFlags && firstMip == o.firstMip &&
+           numMips == o.numMips && numSlices == o.numSlices && firstSlice == o.firstSlice;
   }
   bool operator<(const View &o) const
   {
@@ -191,6 +191,8 @@ struct View
       return viewResourceId < o.viewResourceId;
     if(!(resourceResourceId == o.resourceResourceId))
       return resourceResourceId < o.resourceResourceId;
+    if(!(counterResourceId == o.counterResourceId))
+      return counterResourceId < o.counterResourceId;
     if(!(type == o.type))
       return type < o.type;
     if(!(viewFormat == o.viewFormat))
@@ -222,6 +224,9 @@ struct View
 
   DOCUMENT("The :class:`ResourceId` of the underlying resource the view refers to.");
   ResourceId resourceResourceId;
+
+  DOCUMENT("The :class:`ResourceId` of the resource where the hidden buffer counter is stored.");
+  ResourceId counterResourceId;
 
   DOCUMENT("The :class:`TextureType` of the view type.");
   TextureType type;

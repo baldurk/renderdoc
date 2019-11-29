@@ -1044,6 +1044,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::View &el)
 {
   SERIALISE_MEMBER(viewResourceId);
   SERIALISE_MEMBER(resourceResourceId);
+  SERIALISE_MEMBER(counterResourceId);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(viewFormat);
 
@@ -1059,7 +1060,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::View &el)
   SERIALISE_MEMBER(firstSlice);
   SERIALISE_MEMBER(numSlices);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
@@ -1193,7 +1194,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::OutputMerger &el)
   SERIALISE_MEMBER(depthReadOnly);
   SERIALISE_MEMBER(stencilReadOnly);
 
-  SIZE_CHECK(272);
+  SIZE_CHECK(280);
 }
 
 template <typename SerialiserType>
@@ -1225,7 +1226,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
 
   SERIALISE_MEMBER(predication);
 
-  SIZE_CHECK(2072);
+  SIZE_CHECK(2080);
 }
 
 #pragma endregion D3D11 pipeline state

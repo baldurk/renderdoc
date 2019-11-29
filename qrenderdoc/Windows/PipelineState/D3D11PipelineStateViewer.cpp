@@ -702,9 +702,9 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
                        .arg(buf->length / r.elementByteSize);
       }
 
-      if(r.bufferFlags & (D3DBufferViewFlags::Append | D3DBufferViewFlags::Counter))
+      if(r.counterResourceId != ResourceId())
       {
-        typeName += tr(" (Count: %1)").arg(r.bufferStructCount);
+        typeName += tr(" (%1: %2)").arg(ToQStr(r.counterResourceId)).arg(r.bufferStructCount);
       }
 
       // get the buffer type, whether it's just a basic type or a complex struct

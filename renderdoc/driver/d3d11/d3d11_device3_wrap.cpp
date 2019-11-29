@@ -24,6 +24,7 @@
 
 #include "d3d11_device.h"
 #include "d3d11_context.h"
+#include "d3d11_debug.h"
 #include "d3d11_resources.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -650,6 +651,19 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
 
     AddResource(pView, ResourceType::View, "Unordered Access View");
     DerivedResource(pResource, pView);
+
+    {
+      D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+      ret->GetDesc(&desc);
+
+      if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
+         (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
+      {
+        ResourceId counterBuffer = GetDebugManager()->AddCounterUAVBuffer(ret);
+        AddResource(counterBuffer, ResourceType::Buffer, "UAV Counter");
+        DerivedResource(ret, counterBuffer);
+      }
+    }
   }
 
   return true;

@@ -613,6 +613,8 @@ std::vector<ResourceId> D3D11Replay::GetBuffers()
     ret.push_back(it->first);
   }
 
+  GetDebugManager()->GetCounterBuffers(ret);
+
   return ret;
 }
 
@@ -620,6 +622,16 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 {
   BufferDescription ret = {};
   ret.resourceId = ResourceId();
+
+  if(GetDebugManager()->GetCounterBufferUAV(id))
+  {
+    // no original ID for this one
+    ret.resourceId = id;
+    ret.length = 4;
+    ret.gpuAddress = 0;
+    ret.creationFlags = BufferCategory::ReadWrite;
+    return ret;
+  }
 
   auto it = WrappedID3D11Buffer::m_BufferList.find(id);
 
@@ -952,10 +964,14 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           view.elementByteSize =
               desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
+          view.counterResourceId = ResourceId();
+
           if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
              (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
           {
             view.bufferStructCount = GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
+
+            view.counterResourceId = GetDebugManager()->GetCounterBufferID(rs->CSUAVs[s]);
           }
 
           view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
@@ -1250,6 +1266,8 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
            (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
         {
           view.bufferStructCount = GetDebugManager()->GetStructCount(rs->OM.UAVs[s]);
+
+          view.counterResourceId = GetDebugManager()->GetCounterBufferID(rs->OM.UAVs[s]);
         }
 
         view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
@@ -1585,6 +1603,9 @@ std::vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
 
 ResourceId D3D11Replay::GetLiveID(ResourceId id)
 {
+  ID3D11UnorderedAccessView *counterUAV = GetDebugManager()->GetCounterBufferUAV(id);
+  if(counterUAV)
+    return id;
   if(!m_pDevice->GetResourceManager()->HasLiveResource(id))
     return ResourceId();
   return m_pDevice->GetResourceManager()->GetLiveID(id);
@@ -1911,6 +1932,20 @@ bool D3D11Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
 
 void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData)
 {
+  ID3D11UnorderedAccessView *counterUAV = GetDebugManager()->GetCounterBufferUAV(buff);
+  if(counterUAV)
+  {
+    uint32_t count = GetDebugManager()->GetStructCount(counterUAV);
+
+    // copy the uint first
+    retData.resize(4U);
+    memcpy(retData.data(), &count, retData.size());
+
+    // remove offset bytes, up to 4
+    retData.erase(0, RDCMIN(4ULL, offset));
+    return;
+  }
+
   auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
 
   if(it == WrappedID3D11Buffer::m_BufferList.end())

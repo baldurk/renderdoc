@@ -422,6 +422,14 @@ void D3D11DebugManager::RenderForPredicate()
   m_pImmediateContext->Draw(3, 0);
 }
 
+ResourceId D3D11DebugManager::AddCounterUAVBuffer(ID3D11UnorderedAccessView *uav)
+{
+  ResourceId ret = ResourceIDGen::GetNewUniqueID();
+  m_CounterBufferToUAV[ret] = uav;
+  m_UAVToCounterBuffer[uav] = ret;
+  return ret;
+}
+
 void D3D11Replay::GeneralMisc::Init(WrappedID3D11Device *device)
 {
   D3D11ShaderCache *shaderCache = device->GetShaderCache();

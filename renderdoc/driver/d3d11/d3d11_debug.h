@@ -104,6 +104,27 @@ public:
 
   void RenderForPredicate();
 
+  ResourceId AddCounterUAVBuffer(ID3D11UnorderedAccessView *uav);
+  ResourceId GetCounterBufferID(ID3D11UnorderedAccessView *uav)
+  {
+    auto it = m_UAVToCounterBuffer.find(uav);
+    if(it != m_UAVToCounterBuffer.end())
+      return it->second;
+    return ResourceId();
+  }
+  ID3D11UnorderedAccessView *GetCounterBufferUAV(ResourceId id)
+  {
+    auto it = m_CounterBufferToUAV.find(id);
+    if(it != m_CounterBufferToUAV.end())
+      return it->second;
+    return NULL;
+  }
+  void GetCounterBuffers(std::vector<ResourceId> &ret)
+  {
+    for(auto pair : m_CounterBufferToUAV)
+      ret.push_back(pair.first);
+  }
+
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
   void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, bytebuf &retData);
 
@@ -157,6 +178,9 @@ private:
   static const uint32_t STAGE_BUFFER_BYTE_SIZE = 4 * 1024 * 1024;
 
   std::list<CacheElem> m_ShaderItemCache;
+
+  std::map<ResourceId, ID3D11UnorderedAccessView *> m_CounterBufferToUAV;
+  std::map<ID3D11UnorderedAccessView *, ResourceId> m_UAVToCounterBuffer;
 
   WrappedID3D11Device *m_pDevice = NULL;
   WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
