@@ -1600,9 +1600,9 @@ public:
     {
       aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       baseMipLevel = 0;
-      levelCount = 1;
+      packedLevelCount = 1;
       baseArrayLayer = 0;
-      layerCount = 1;
+      packedLayerCount = 1;
       packedViewType = 7;
     }
 
@@ -1613,14 +1613,14 @@ public:
       baseArrayLayer = range.baseArrayLayer;
 
       if(range.levelCount == VK_REMAINING_MIP_LEVELS)
-        levelCount = MipMaxValue;
+        packedLevelCount = MipMaxValue;
       else
-        levelCount = range.levelCount;
+        packedLevelCount = range.levelCount;
 
       if(range.layerCount == VK_REMAINING_ARRAY_LAYERS)
-        layerCount = SliceMaxValue;
+        packedLayerCount = SliceMaxValue;
       else
-        layerCount = range.layerCount;
+        packedLayerCount = range.layerCount;
 
       return *this;
     }
@@ -1632,17 +1632,8 @@ public:
       ret.aspectMask = (VkImageAspectFlags)aspectMask;
       ret.baseMipLevel = baseMipLevel;
       ret.baseArrayLayer = baseArrayLayer;
-
-      if(levelCount == MipMaxValue)
-        ret.levelCount = VK_REMAINING_MIP_LEVELS;
-      else
-        ret.levelCount = levelCount;
-
-      if(layerCount == SliceMaxValue)
-        ret.layerCount = VK_REMAINING_ARRAY_LAYERS;
-      else
-        ret.layerCount = layerCount;
-
+      ret.levelCount = levelCount();
+      ret.layerCount = layerCount();
       return ret;
     }
 
@@ -1662,6 +1653,36 @@ public:
         packedViewType = 7;
     }
 
+    inline uint32_t levelCount() const
+    {
+      if(packedLevelCount == MipMaxValue)
+        return VK_REMAINING_MIP_LEVELS;
+      else
+        return packedLevelCount;
+    }
+    inline void setLevelCount(uint32_t levelCount)
+    {
+      if(levelCount == VK_REMAINING_MIP_LEVELS)
+        packedLevelCount = MipMaxValue;
+      else
+        packedLevelCount = levelCount;
+    }
+
+    inline uint32_t layerCount() const
+    {
+      if(packedLayerCount == SliceMaxValue)
+        return VK_REMAINING_ARRAY_LAYERS;
+      else
+        return packedLayerCount;
+    }
+    inline void setLayerCount(uint32_t layerCount)
+    {
+      if(layerCount == VK_REMAINING_ARRAY_LAYERS)
+        packedLayerCount = SliceMaxValue;
+      else
+        packedLayerCount = layerCount;
+    }
+
     // View type (VkImageViewType).
     // Values <= 6, fits in 3 bits; 7 encodes an unknown/uninitialized view type.
     // Stored as uint32_t instead of VkImageViewType to prevent signed extension.
@@ -1674,7 +1695,7 @@ public:
     // note we also need to pack in VK_REMAINING_MIPS etc so we can't
     // necessarily use the maximum levelCount value (64)
     uint32_t baseMipLevel : 6;
-    uint32_t levelCount : 6;
+    uint32_t packedLevelCount : 6;
 
     static const uint32_t MipMaxValue = 0x3f;
 
@@ -1682,7 +1703,7 @@ public:
     // future proof than above, but at time of writing typical
     // maxImageArrayLayers is 2048.
     uint32_t baseArrayLayer : 16;
-    uint32_t layerCount : 16;
+    uint32_t packedLayerCount : 16;
 
     static const uint32_t SliceMaxValue = 0xffff;
   } viewRange;
