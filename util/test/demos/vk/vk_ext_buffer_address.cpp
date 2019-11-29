@@ -76,6 +76,7 @@ layout(buffer_reference, scalar, buffer_reference_align = 16) buffer DrawData {
   vec4 tint;
   vec2 offset;
   vec2 scale;
+  vec2 padding;
 };
 
 layout(push_constant) uniform PushData {
