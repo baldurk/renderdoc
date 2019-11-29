@@ -25,7 +25,9 @@
 #include "ResourceInspector.h"
 #include <QCollator>
 #include <QKeyEvent>
+#include <QMenu>
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
+#include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
 #include "ui_ResourceInspector.h"
 
@@ -127,6 +129,10 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
   ui->initChunks->setFont(Formatter::PreferredFont());
   ui->relatedResources->setFont(Formatter::PreferredFont());
   ui->resourceUsage->setFont(Formatter::PreferredFont());
+
+  ui->initChunks->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(ui->initChunks, &RDTreeWidget::customContextMenuRequested, this,
+                   &ResourceInspector::initChunks_contextMenu);
 
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
@@ -439,6 +445,33 @@ void ResourceInspector::resource_doubleClicked(const QModelIndex &index)
   Inspect(id);
 
   HighlightUsage();
+}
+
+void ResourceInspector::initChunks_contextMenu(const QPoint &pos)
+{
+  RDTreeWidgetItem *item = ui->initChunks->itemAt(pos);
+
+  QMenu contextMenu(this);
+
+  QAction expandAll(tr("&Expand All"), this);
+  QAction collapseAll(tr("&Collapse All"), this);
+
+  contextMenu.addAction(&expandAll);
+  contextMenu.addAction(&collapseAll);
+
+  expandAll.setIcon(Icons::arrow_out());
+  collapseAll.setIcon(Icons::arrow_in());
+
+  expandAll.setEnabled(item && item->childCount() > 0);
+  collapseAll.setEnabled(item && item->childCount() > 0);
+
+  QObject::connect(&expandAll, &QAction::triggered,
+                   [this, item]() { ui->initChunks->expandAllItems(item); });
+
+  QObject::connect(&collapseAll, &QAction::triggered,
+                   [this, item]() { ui->initChunks->collapseAllItems(item); });
+
+  RDDialog::show(&contextMenu, ui->initChunks->viewport()->mapToGlobal(pos));
 }
 
 void ResourceInspector::on_viewContents_clicked()
