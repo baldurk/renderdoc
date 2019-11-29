@@ -1942,7 +1942,7 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
     memcpy(retData.data(), &count, retData.size());
 
     // remove offset bytes, up to 4
-    retData.erase(0, RDCMIN(4ULL, offset));
+    retData.erase(0, (size_t)RDCMIN(4ULL, offset));
     return;
   }
 
