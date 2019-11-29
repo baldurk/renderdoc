@@ -2739,11 +2739,17 @@ void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum
 
   if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
   {
+    // we need a sized format for storage functions
+    internalFormat = GetSizedFormat(internalFormat);
+
     GL.glTextureStorage2DMultisampleEXT(tex, textype, samples, internalFormat, width, height,
                                         GL_TRUE);
   }
   else if(textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
   {
+    // we need a sized format for storage functions
+    internalFormat = GetSizedFormat(internalFormat);
+
     GL.glTextureStorage3DMultisampleEXT(tex, textype, samples, internalFormat, width, height, depth,
                                         GL_TRUE);
   }

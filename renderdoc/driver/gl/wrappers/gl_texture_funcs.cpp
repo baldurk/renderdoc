@@ -4485,6 +4485,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(SerialiserType &s
     GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(texture.name, target, internalformat, dummy);
 
+    // if we promoted glTexImage2DMultisample to storage, we need a sized format
+    internalformat = GetSizedFormat(internalformat);
+
     ResourceId liveId = GetResourceManager()->GetID(texture);
     m_Textures[liveId].width = width;
     m_Textures[liveId].height = height;
@@ -4659,6 +4662,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(SerialiserType &s
   {
     GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(texture.name, target, internalformat, dummy);
+
+    // if we promoted glTexImage3DMultisample to storage, we need a sized format
+    internalformat = GetSizedFormat(internalformat);
 
     ResourceId liveId = GetResourceManager()->GetID(texture);
     m_Textures[liveId].width = width;

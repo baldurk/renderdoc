@@ -455,7 +455,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_STENCIL_INDEX4:
     case eGL_STENCIL_INDEX8:
     case eGL_STENCIL_INDEX16:
-    case eGL_STENCIL: return eGL_STENCIL;
+    case eGL_STENCIL: return eGL_STENCIL_INDEX;
     default: break;
   }
 
@@ -891,6 +891,28 @@ bool EmulateLuminanceFormat(GLuint tex, GLenum target, GLenum &internalFormat, G
   return true;
 }
 
+GLenum GetSizedFormat(GLenum internalformat)
+{
+  switch(internalformat)
+  {
+    case eGL_DEPTH_COMPONENT: internalformat = eGL_DEPTH_COMPONENT32F; break;
+    case eGL_DEPTH_STENCIL: internalformat = eGL_DEPTH32F_STENCIL8; break;
+    case eGL_STENCIL:
+    case eGL_STENCIL_INDEX: internalformat = eGL_STENCIL_INDEX8; break;
+    case eGL_RGBA: internalformat = eGL_RGBA8; break;
+    case eGL_RGBA_INTEGER: internalformat = eGL_RGBA8I; break;
+    case eGL_RGB: internalformat = eGL_RGB8; break;
+    case eGL_RGB_INTEGER: internalformat = eGL_RGB8I; break;
+    case eGL_RG: internalformat = eGL_RG8; break;
+    case eGL_RG_INTEGER: internalformat = eGL_RG8I; break;
+    case eGL_RED: internalformat = eGL_R8; break;
+    case eGL_RED_INTEGER: internalformat = eGL_R8I; break;
+    default: break;
+  }
+
+  return internalformat;
+}
+
 bool IsCompressedFormat(GLenum internalFormat)
 {
   switch(internalFormat)
@@ -979,7 +1001,7 @@ bool IsDepthStencilFormat(GLenum internalFormat)
 
   GLenum fmt = GetBaseFormat(internalFormat);
 
-  return (fmt == eGL_DEPTH_COMPONENT || fmt == eGL_STENCIL || fmt == eGL_DEPTH_STENCIL);
+  return (fmt == eGL_DEPTH_COMPONENT || fmt == eGL_STENCIL_INDEX || fmt == eGL_DEPTH_STENCIL);
 }
 
 bool IsUIntFormat(GLenum internalFormat)

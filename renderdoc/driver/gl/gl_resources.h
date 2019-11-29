@@ -37,6 +37,7 @@ void GetTextureSwizzle(GLuint tex, GLenum target, GLenum *swizzleRGBA);
 void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA);
 
 bool EmulateLuminanceFormat(GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat);
+GLenum GetSizedFormat(GLenum internalFormat);
 
 inline void EmulateGLClamp(GLenum pname, GLenum param)
 {

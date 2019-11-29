@@ -1515,7 +1515,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
                                       eGL_CLAMP_TO_EDGE);
 
             // must use immutable tex storage here, for MSAA<->Array copies
-            GL.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, 1, TextureState.internalformat,
+            GL.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, 1,
+                                     GetSizedFormat(TextureState.internalformat),
                                      TextureState.width, TextureState.height, copySlices);
 
             // read back from the array we prepared

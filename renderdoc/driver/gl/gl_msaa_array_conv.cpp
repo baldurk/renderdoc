@@ -110,6 +110,8 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
 {
   const ArrayMSPrograms &arrms = GetArrayMS();
 
+  intFormat = GetSizedFormat(intFormat);
+
   // create temporary texture array, which we'll initialise to be the width/height in same format,
   // with the same number of array slices as multi samples.
   GL.glGenTextures(1, &destArray);
@@ -267,11 +269,11 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
       numStencil = 256;
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
       break;
-    case eGL_DEPTH:
+    case eGL_DEPTH_COMPONENT:
       numStencil = 1;
       attach = eGL_DEPTH_ATTACHMENT;
       break;
-    case eGL_STENCIL:
+    case eGL_STENCIL_INDEX:
       numStencil = 256;
       attach = eGL_STENCIL_ATTACHMENT;
       break;
@@ -340,6 +342,8 @@ void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
                                        uint32_t selectedSlice)
 {
   WrappedOpenGL &drv = *this;
+
+  intFormat = GetSizedFormat(intFormat);
 
   const ArrayMSPrograms &arrms = GetArrayMS();
 
@@ -499,11 +503,11 @@ void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLin
       numStencil = 256;
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
       break;
-    case eGL_DEPTH:
+    case eGL_DEPTH_COMPONENT:
       numStencil = 1;
       attach = eGL_DEPTH_ATTACHMENT;
       break;
-    case eGL_STENCIL:
+    case eGL_STENCIL_INDEX:
       numStencil = 256;
       attach = eGL_STENCIL_ATTACHMENT;
       break;
