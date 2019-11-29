@@ -26,6 +26,8 @@
 
 #include <QWidget>
 
+struct ICaptureContext;
+
 namespace Ui
 {
 class BufferFormatSpecifier;
@@ -38,6 +40,8 @@ class BufferFormatSpecifier : public QWidget
 public:
   explicit BufferFormatSpecifier(QWidget *parent = 0);
   ~BufferFormatSpecifier();
+
+  void setContext(ICaptureContext *ctx);
 
 signals:
   void processFormat(const QString &format);
@@ -53,4 +57,5 @@ private slots:
 
 private:
   Ui::BufferFormatSpecifier *ui;
+  ICaptureContext *m_Ctx;
 };

@@ -41,7 +41,15 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
 
 BufferFormatSpecifier::~BufferFormatSpecifier()
 {
+  if(m_Ctx)
+    m_Ctx->Config().BufferFormatter_ShowHelp = ui->helpText->isVisible();
   delete ui;
+}
+
+void BufferFormatSpecifier::setContext(ICaptureContext *ctx)
+{
+  m_Ctx = ctx;
+  showHelp(m_Ctx->Config().BufferFormatter_ShowHelp);
 }
 
 void BufferFormatSpecifier::toggleHelp()

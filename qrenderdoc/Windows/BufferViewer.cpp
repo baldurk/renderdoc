@@ -1730,6 +1730,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   m_MeshView = meshview;
 
+  ui->formatSpecifier->setContext(&m_Ctx);
+
   m_Flycam = new FlycamWrapper();
   m_Arcball = new ArcballWrapper();
   m_CurrentCamera = m_Arcball;

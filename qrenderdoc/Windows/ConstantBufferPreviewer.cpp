@@ -43,7 +43,7 @@ ConstantBufferPreviewer::ConstantBufferPreviewer(ICaptureContext &ctx, const Sha
   QObject::connect(ui->formatSpecifier, &BufferFormatSpecifier::processFormat, this,
                    &ConstantBufferPreviewer::processFormat);
 
-  ui->formatSpecifier->showHelp(false);
+  ui->formatSpecifier->setContext(&m_Ctx);
 
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});

@@ -308,6 +308,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                  \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, BufferFormatter_ShowHelp, true)                   \
+                                                                                           \
   CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds) \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_AddFake, true)                       \
@@ -550,6 +552,12 @@ For more information about some of these settings that are user-facing see
   proxy should be used.
 
   Defaults to ``-1``.
+
+.. data:: BufferFormatter_ShowHelp
+
+  ``True`` if the buffer formatter's help section should be shown.
+
+  Defaults to ``True``.
 
 .. data:: EventBrowser_TimeUnit
 

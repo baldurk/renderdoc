@@ -75,7 +75,10 @@
    <item row="0" column="0" colspan="2">
     <widget class="QLabel" name="helpText">
      <property name="text">
-      <string>Type in a buffer format declaration, including struct definitions. Comments and {} braces are skipped, : semantics are ignored.
+      <string>Type in a buffer format declaration. C and C++ comments are skipped, semantics are ignored.
+
+Structs can be defined and nested, and if no variables are 'loose' the last struct specified will be used.
+
 Declare each element as an hlsl/glsl variable, e.g: &quot;float4 first; float2 second; uint2 third;&quot; or vec4/vec2.
 
 Basic types accepted: bool, byte, short, int, half, float, double.
