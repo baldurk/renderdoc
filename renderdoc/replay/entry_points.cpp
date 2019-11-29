@@ -376,9 +376,18 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *me
   free((void *)mem);
 }
 
+// not exported, this is needed for calling from the container allocate functions
+void RENDERDOC_OutOfMemory(uint64_t sz)
+{
+  RDCFATAL("Allocation failed for %llu bytes", sz);
+}
+
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
 {
-  return malloc((size_t)sz);
+  void *ret = malloc((size_t)sz);
+  if(ret == NULL)
+    RENDERDOC_OutOfMemory(sz);
+  return ret;
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *URL,

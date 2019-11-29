@@ -50,6 +50,10 @@ inline rdcliteral operator"" _lit(const char *str, size_t len)
   return rdcliteral(str, len);
 }
 
+#ifdef RENDERDOC_EXPORTS
+void RENDERDOC_OutOfMemory(uint64_t sz);
+#endif
+
 DOCUMENT("");
 class rdcstr
 {
@@ -128,11 +132,15 @@ private:
   DOCUMENT("");
   static char *allocate(size_t count)
   {
+    char *ret = NULL;
 #ifdef RENDERDOC_EXPORTS
-    return (char *)malloc(count);
+    ret = (char *)malloc(count);
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(count);
 #else
-    return (char *)RENDERDOC_AllocArrayMem(count);
+    ret = (char *)RENDERDOC_AllocArrayMem(count);
 #endif
+    return ret;
   }
   static void deallocate(const char *p)
   {

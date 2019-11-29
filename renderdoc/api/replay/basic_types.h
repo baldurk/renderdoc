@@ -267,6 +267,10 @@ struct ItemDestroyHelper<T, true>
   static void destroyRange(T *first, size_t itemCount) {}
 };
 
+#ifdef RENDERDOC_EXPORTS
+void RENDERDOC_OutOfMemory(uint64_t sz);
+#endif
+
 template <typename T>
 struct rdcarray
 {
@@ -279,11 +283,15 @@ protected:
   // memory management, in a dll safe way
   static T *allocate(size_t count)
   {
+    T *ret = NULL;
 #ifdef RENDERDOC_EXPORTS
-    return (T *)malloc(count * sizeof(T));
+    ret = (T *)malloc(count * sizeof(T));
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(count * sizeof(T));
 #else
-    return (T *)RENDERDOC_AllocArrayMem(count * sizeof(T));
+    ret = (T *)RENDERDOC_AllocArrayMem(count * sizeof(T));
 #endif
+    return ret;
   }
   static void deallocate(const T *p)
   {
