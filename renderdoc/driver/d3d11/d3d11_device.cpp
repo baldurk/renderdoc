@@ -1241,10 +1241,8 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
   if(!IsStructuredExporting(m_State))
   {
     SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
-  }
 
-  // propagate any UAV names onto counter buffers
-  {
+    // propagate any UAV names onto counter buffers
     std::vector<ResourceId> counterBuffers;
     GetDebugManager()->GetCounterBuffers(counterBuffers);
 
