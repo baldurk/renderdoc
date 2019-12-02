@@ -527,7 +527,7 @@ struct ReplayCommand : public Command
   }
   virtual const char *Description()
   {
-    return "Replay the log file and show the backbuffer on a preview window.";
+    return "Replay a capture and show the backbuffer on a preview window.";
   }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
