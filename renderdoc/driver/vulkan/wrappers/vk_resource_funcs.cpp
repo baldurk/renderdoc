@@ -1497,11 +1497,11 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       // to take a slower path that uses drawing
       if(!IsDepthOrStencilFormat(CreateInfo.format))
       {
-        // only add STORAGE_BIT if we have an MS2Array pipeline. If it failed to create due to lack
+        // only add STORAGE_BIT if we have an Array2MS pipeline. If it failed to create due to lack
         // of capability or because we disabled it as a workaround then we don't need this
         // capability (and it might be the bug we're trying to work around by disabling the
         // pipeline)
-        if(GetDebugManager()->IsMS2ArraySupported())
+        if(GetDebugManager()->IsArray2MSSupported())
           CreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else
@@ -1650,7 +1650,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       {
         // need to check the debug manager here since we might be creating this internal image from
         // its constructor
-        if(GetDebugManager() && GetDebugManager()->IsMS2ArraySupported())
+        if(GetDebugManager() && GetDebugManager()->IsArray2MSSupported())
           createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else
