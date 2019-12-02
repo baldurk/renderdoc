@@ -199,7 +199,7 @@ void VulkanResourceManager::RecordBarriers(std::vector<rdcpair<ResourceId, Image
 
     if(id == ResourceId())
     {
-      RDCERR("Couldn't get ID for image %p in barrier", t.image);
+      RDCERR("Couldn't get ID for image %p in barrier", GetWrapped(t.image));
       continue;
     }
 
@@ -490,7 +490,7 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
             start = nextDWord;
           }
         }
-        RDCASSERT("MemRefInterval starts must be increasing", start >= last);
+        RDCASSERTMSG("MemRefInterval starts must be increasing", start >= last);
 
         if(last < start)
           it_ints->split(start);

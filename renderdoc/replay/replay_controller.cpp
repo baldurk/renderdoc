@@ -643,7 +643,7 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
 
   if(liveId == ResourceId())
   {
-    RDCERR("Couldn't get Live ID for %llu getting buffer data", buff);
+    RDCERR("Couldn't get Live ID for %s getting buffer data", ToStr(buff).c_str());
     return retData;
   }
 
@@ -662,7 +662,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 
   if(liveId == ResourceId())
   {
-    RDCERR("Couldn't get Live ID for %llu getting texture data", tex);
+    RDCERR("Couldn't get Live ID for %s getting texture data", ToStr(tex).c_str());
     return ret;
   }
 
@@ -680,7 +680,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
   if(liveid == ResourceId())
   {
-    RDCERR("Couldn't get Live ID for %llu getting texture data", sd.resourceId);
+    RDCERR("Couldn't get Live ID for %s getting texture data", ToStr(sd.resourceId).c_str());
     return false;
   }
 
@@ -1168,15 +1168,15 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
           case 4:
             memcpy(&subdata[0][(y * td.width + x) * pixelStride + 3 * compWidth], &max,
                    td.format.compByteWidth);
-          // deliberate fallthrough
+            DELIBERATE_FALLTHROUGH();
           case 3:
             memcpy(&subdata[0][(y * td.width + x) * pixelStride + 2 * compWidth], &val,
                    td.format.compByteWidth);
-          // deliberate fallthrough
+            DELIBERATE_FALLTHROUGH();
           case 2:
             memcpy(&subdata[0][(y * td.width + x) * pixelStride + 1 * compWidth], &val,
                    td.format.compByteWidth);
-          // deliberate fallthrough
+            DELIBERATE_FALLTHROUGH();
           case 1:
             memcpy(&subdata[0][(y * td.width + x) * pixelStride + 0 * compWidth], &val,
                    td.format.compByteWidth);
@@ -1570,7 +1570,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
     {
       if(x >= m_Textures[t].width || y >= m_Textures[t].height)
       {
-        RDCDEBUG("PixelHistory out of bounds on %llu (%u,%u) vs (%u,%u)", target, x, y,
+        RDCDEBUG("PixelHistory out of bounds on %s (%u,%u) vs (%u,%u)", ToStr(target).c_str(), x, y,
                  m_Textures[t].width, m_Textures[t].height);
         return ret;
       }
@@ -1659,7 +1659,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 
   if(events.empty())
   {
-    RDCDEBUG("Target %llu not written to before %u", target, m_EventID);
+    RDCDEBUG("Target %s not written to before %u", ToStr(target).c_str(), m_EventID);
     return ret;
   }
 

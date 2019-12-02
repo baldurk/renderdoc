@@ -456,21 +456,17 @@ Topology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPo
   switch(Topo)
   {
     default: break;
-    case VK_PRIMITIVE_TOPOLOGY_POINT_LIST: return Topology::PointList; break;
-    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST: return Topology::LineList; break;
-    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP: return Topology::LineStrip; break;
-    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST: return Topology::TriangleList; break;
-    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP: return Topology::TriangleStrip; break;
-    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN: return Topology::TriangleFan; break;
-    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY: return Topology::LineList_Adj; break;
-    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY: return Topology::LineStrip_Adj; break;
-    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY:
-      return Topology::TriangleList_Adj;
-      break;
-    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
-      return Topology::TriangleStrip_Adj;
-      break;
-    case VK_PRIMITIVE_TOPOLOGY_PATCH_LIST: return PatchList_Topology(patchControlPoints); break;
+    case VK_PRIMITIVE_TOPOLOGY_POINT_LIST: return Topology::PointList;
+    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST: return Topology::LineList;
+    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP: return Topology::LineStrip;
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST: return Topology::TriangleList;
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP: return Topology::TriangleStrip;
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN: return Topology::TriangleFan;
+    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY: return Topology::LineList_Adj;
+    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY: return Topology::LineStrip_Adj;
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY: return Topology::TriangleList_Adj;
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY: return Topology::TriangleStrip_Adj;
+    case VK_PRIMITIVE_TOPOLOGY_PATCH_LIST: return PatchList_Topology(patchControlPoints);
   }
 
   return Topology::Unknown;
@@ -859,11 +855,11 @@ FrameRefType GetRefType(VkDescriptorType descType)
     case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return eFrameRef_Read; break;
+    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return eFrameRef_Read;
     case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
     case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return eFrameRef_ReadBeforeWrite; break;
+    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return eFrameRef_ReadBeforeWrite;
     default: RDCERR("Unexpected descriptor type");
   }
 

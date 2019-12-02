@@ -532,7 +532,7 @@ void Reflector::PostParse()
       }
       else if(type.type == DataType::StructType)
       {
-        type.name = StringFormat::Fmt("struct%u", type.id);
+        type.name = StringFormat::Fmt("struct%u", type.id.value());
       }
       else if(type.type == DataType::ArrayType)
       {
@@ -549,7 +549,7 @@ void Reflector::PostParse()
 
           // if not, it might be a spec constant, use the fallback
           if(lengthName.empty())
-            lengthName = StringFormat::Fmt("_%u", type.length);
+            lengthName = StringFormat::Fmt("_%u", type.length.value());
         }
 
         rdcstr basename = dataTypes[type.InnerType()].name;
@@ -614,7 +614,7 @@ void Reflector::PostParse()
       }
       else if(type.type == DataType::SamplerType)
       {
-        type.name = StringFormat::Fmt("sampler", type.id);
+        type.name = StringFormat::Fmt("sampler", type.id.value());
       }
       else if(type.type == DataType::SampledImageType)
       {
@@ -827,7 +827,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
       // otherwise fall back to naming after the ID
       if(name.empty())
-        name = StringFormat::Fmt("sig%u", global.id);
+        name = StringFormat::Fmt("sig%u", global.id.value());
 
       const bool used = usedIds.find(global.id) != usedIds.end();
 
@@ -968,7 +968,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         if(res.name.empty())
           res.name = varType->name;
         if(res.name.empty())
-          res.name = StringFormat::Fmt("atomic%u", global.id);
+          res.name = StringFormat::Fmt("atomic%u", global.id.value());
         res.resType = TextureType::Buffer;
 
         res.variableType.descriptor.columns = 1;
@@ -995,7 +995,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
         res.name = strings[global.id];
         if(res.name.empty())
-          res.name = StringFormat::Fmt("res%u", global.id);
+          res.name = StringFormat::Fmt("res%u", global.id.value());
 
         if(varType->type == DataType::SamplerType)
         {
@@ -1083,7 +1083,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             res.isTexture = false;
             res.name = strings[global.id];
             if(res.name.empty())
-              res.name = StringFormat::Fmt("ssbo%u", global.id);
+              res.name = StringFormat::Fmt("ssbo%u", global.id.value());
             res.resType = TextureType::Buffer;
 
             res.variableType.descriptor.columns = 0;
@@ -1104,7 +1104,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
             cblock.name = strings[global.id];
             if(cblock.name.empty())
-              cblock.name = StringFormat::Fmt("uniforms%u", global.id);
+              cblock.name = StringFormat::Fmt("uniforms%u", global.id.value());
             cblock.bufferBacked = !pushConst;
 
             MakeConstantBlockVariables(*varType, 0, 0, cblock.variables, pointerTypes, specInfo);
@@ -1381,7 +1381,7 @@ ShaderVariable Reflector::EvaluateConstant(Id constID, const std::vector<SpecCon
 
   if(it == constants.end())
   {
-    RDCERR("Lookup of unknown constant %u", constID);
+    RDCERR("Lookup of unknown constant %u", constID.value());
     return ShaderVariable("unknown", 0, 0, 0, 0);
   }
 

@@ -36,6 +36,7 @@ struct Viewport
   {
   }
   Viewport(const Viewport &) = default;
+  Viewport &operator=(const Viewport &) = default;
 
   bool operator==(const Viewport &o) const
   {
@@ -86,6 +87,7 @@ struct Scissor
   {
   }
   Scissor(const Scissor &) = default;
+  Scissor &operator=(const Scissor &) = default;
 
   bool operator==(const Scissor &o) const
   {
@@ -125,6 +127,7 @@ struct BlendEquation
   DOCUMENT("");
   BlendEquation() = default;
   BlendEquation(const BlendEquation &) = default;
+  BlendEquation &operator=(const BlendEquation &) = default;
 
   bool operator==(const BlendEquation &o) const
   {
@@ -156,6 +159,7 @@ struct ColorBlend
   DOCUMENT("");
   ColorBlend() = default;
   ColorBlend(const ColorBlend &) = default;
+  ColorBlend &operator=(const ColorBlend &) = default;
 
   bool operator==(const ColorBlend &o) const
   {
@@ -206,6 +210,7 @@ struct StencilFace
   DOCUMENT("");
   StencilFace() = default;
   StencilFace(const StencilFace &) = default;
+  StencilFace &operator=(const StencilFace &) = default;
 
   DOCUMENT("The :class:`StencilOperation` to apply if the stencil-test fails.");
   StencilOperation failOperation = StencilOperation::Keep;
@@ -246,6 +251,7 @@ struct BoundResource
     typeCast = CompType::Typeless;
   }
   BoundResource(const BoundResource &) = default;
+  BoundResource &operator=(const BoundResource &) = default;
 
   bool operator==(const BoundResource &o) const
   {
@@ -292,6 +298,7 @@ struct BoundResourceArray
   DOCUMENT("");
   BoundResourceArray() = default;
   BoundResourceArray(const BoundResourceArray &) = default;
+  BoundResourceArray &operator=(const BoundResourceArray &) = default;
   BoundResourceArray(Bindpoint b) : bindPoint(b) {}
   BoundResourceArray(Bindpoint b, const rdcarray<BoundResource> &r) : bindPoint(b), resources(r)
   {
@@ -323,6 +330,7 @@ struct BoundVBuffer
   DOCUMENT("");
   BoundVBuffer() = default;
   BoundVBuffer(const BoundVBuffer &) = default;
+  BoundVBuffer &operator=(const BoundVBuffer &) = default;
 
   bool operator==(const BoundVBuffer &o) const
   {
@@ -354,6 +362,7 @@ struct BoundCBuffer
   DOCUMENT("");
   BoundCBuffer() = default;
   BoundCBuffer(const BoundCBuffer &) = default;
+  BoundCBuffer &operator=(const BoundCBuffer &) = default;
 
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
   ResourceId resourceId;
@@ -371,6 +380,7 @@ struct VertexInputAttribute
   DOCUMENT("");
   VertexInputAttribute() = default;
   VertexInputAttribute(const VertexInputAttribute &) = default;
+  VertexInputAttribute &operator=(const VertexInputAttribute &) = default;
 
   bool operator==(const VertexInputAttribute &o) const
   {

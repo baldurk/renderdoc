@@ -110,7 +110,7 @@ add_definitions(-DAMD_EXTENSIONS)
 add_definitions(-DNV_EXTENSIONS)
 
 set_property(SOURCE ${glslang_sources}
-    PROPERTY COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing")
+    PROPERTY COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-unreachable-code-break")
 
 # GCC 7.0 and above needs -Wno-implicit-fallthrough on these files
 if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)

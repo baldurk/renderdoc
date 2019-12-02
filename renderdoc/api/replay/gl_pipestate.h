@@ -40,6 +40,7 @@ struct VertexAttribute
   DOCUMENT("");
   VertexAttribute() = default;
   VertexAttribute(const VertexAttribute &) = default;
+  VertexAttribute &operator=(const VertexAttribute &) = default;
 
   bool operator==(const VertexAttribute &o) const
   {
@@ -83,6 +84,7 @@ struct VertexBuffer
   DOCUMENT("");
   VertexBuffer() = default;
   VertexBuffer(const VertexBuffer &) = default;
+  VertexBuffer &operator=(const VertexBuffer &) = default;
 
   bool operator==(const VertexBuffer &o) const
   {
@@ -124,6 +126,7 @@ struct VertexInput
   DOCUMENT("");
   VertexInput() = default;
   VertexInput(const VertexInput &) = default;
+  VertexInput &operator=(const VertexInput &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the vertex array object that's bound.");
   ResourceId vertexArrayObject;
@@ -154,6 +157,7 @@ struct Shader
   DOCUMENT("");
   Shader() = default;
   Shader(const Shader &) = default;
+  Shader &operator=(const Shader &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the shader object itself.");
   ResourceId shaderResourceId;
@@ -181,6 +185,7 @@ struct FixedVertexProcessing
   DOCUMENT("");
   FixedVertexProcessing() = default;
   FixedVertexProcessing(const FixedVertexProcessing &) = default;
+  FixedVertexProcessing &operator=(const FixedVertexProcessing &) = default;
 
   DOCUMENT("A list of ``float`` giving the default inner level of tessellation.");
   float defaultInnerLevel[2] = {0.0f, 0.0f};
@@ -209,6 +214,7 @@ struct Texture
   DOCUMENT("");
   Texture() = default;
   Texture(const Texture &) = default;
+  Texture &operator=(const Texture &) = default;
 
   bool operator==(const Texture &o) const
   {
@@ -268,6 +274,7 @@ struct Sampler
   DOCUMENT("");
   Sampler() = default;
   Sampler(const Sampler &) = default;
+  Sampler &operator=(const Sampler &) = default;
 
   bool operator==(const Sampler &o) const
   {
@@ -356,6 +363,7 @@ struct Buffer
   DOCUMENT("");
   Buffer() = default;
   Buffer(const Buffer &) = default;
+  Buffer &operator=(const Buffer &) = default;
 
   bool operator==(const Buffer &o) const
   {
@@ -385,6 +393,7 @@ struct ImageLoadStore
   DOCUMENT("");
   ImageLoadStore() = default;
   ImageLoadStore(const ImageLoadStore &) = default;
+  ImageLoadStore &operator=(const ImageLoadStore &) = default;
 
   bool operator==(const ImageLoadStore &o) const
   {
@@ -438,6 +447,7 @@ struct Feedback
   DOCUMENT("");
   Feedback() = default;
   Feedback(const Feedback &) = default;
+  Feedback &operator=(const Feedback &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the transform feedback binding.");
   ResourceId feedbackResourceId;
@@ -459,6 +469,7 @@ struct RasterizerState
   DOCUMENT("");
   RasterizerState() = default;
   RasterizerState(const RasterizerState &) = default;
+  RasterizerState &operator=(const RasterizerState &) = default;
 
   DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
@@ -524,6 +535,7 @@ struct Rasterizer
   DOCUMENT("");
   Rasterizer() = default;
   Rasterizer(const Rasterizer &) = default;
+  Rasterizer &operator=(const Rasterizer &) = default;
 
   DOCUMENT("A list of :class:`Viewport` with the bound viewports.");
   rdcarray<Viewport> viewports;
@@ -541,6 +553,7 @@ struct DepthState
   DOCUMENT("");
   DepthState() = default;
   DepthState(const DepthState &) = default;
+  DepthState &operator=(const DepthState &) = default;
 
   DOCUMENT("``True`` if depth testing should be performed.");
   bool depthEnable = false;
@@ -562,6 +575,7 @@ struct StencilState
   DOCUMENT("");
   StencilState() = default;
   StencilState(const StencilState &) = default;
+  StencilState &operator=(const StencilState &) = default;
 
   DOCUMENT("``True`` if stencil operations should be performed.");
   bool stencilEnable = false;
@@ -578,6 +592,7 @@ struct Attachment
   DOCUMENT("");
   Attachment() = default;
   Attachment(const Attachment &) = default;
+  Attachment &operator=(const Attachment &) = default;
 
   bool operator==(const Attachment &o) const
   {
@@ -620,6 +635,7 @@ struct FBO
   DOCUMENT("");
   FBO() = default;
   FBO(const FBO &) = default;
+  FBO &operator=(const FBO &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the framebuffer.");
   ResourceId resourceId;
@@ -642,6 +658,7 @@ struct BlendState
   DOCUMENT("");
   BlendState() = default;
   BlendState(const BlendState &) = default;
+  BlendState &operator=(const BlendState &) = default;
 
   DOCUMENT("A list of :class:`ColorBlend` describing the blend operations for each target.");
   rdcarray<ColorBlend> blends;
@@ -656,6 +673,7 @@ struct FrameBuffer
   DOCUMENT("");
   FrameBuffer() = default;
   FrameBuffer(const FrameBuffer &) = default;
+  FrameBuffer &operator=(const FrameBuffer &) = default;
 
   DOCUMENT(
       "``True`` if sRGB correction should be applied when writing to an sRGB-formatted texture.");
@@ -678,6 +696,7 @@ struct Hints
   DOCUMENT("");
   Hints() = default;
   Hints(const Hints &) = default;
+  Hints &operator=(const Hints &) = default;
 
   DOCUMENT("A :class:`QualityHint` with the derivatives hint.");
   QualityHint derivatives = QualityHint::DontCare;

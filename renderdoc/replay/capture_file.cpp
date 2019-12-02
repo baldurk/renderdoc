@@ -300,10 +300,10 @@ ReplayStatus CaptureFile::Init()
 
   switch(m_RDC->ErrorCode())
   {
-    case ContainerError::FileNotFound: return ReplayStatus::FileNotFound; break;
-    case ContainerError::FileIO: return ReplayStatus::FileIOFailed; break;
-    case ContainerError::Corrupt: return ReplayStatus::FileCorrupted; break;
-    case ContainerError::UnsupportedVersion: return ReplayStatus::FileIncompatibleVersion; break;
+    case ContainerError::FileNotFound: return ReplayStatus::FileNotFound;
+    case ContainerError::FileIO: return ReplayStatus::FileIOFailed;
+    case ContainerError::Corrupt: return ReplayStatus::FileCorrupted;
+    case ContainerError::UnsupportedVersion: return ReplayStatus::FileIncompatibleVersion;
     case ContainerError::NoError:
     {
       RDCDriver driverType = m_RDC->GetDriver();
@@ -457,8 +457,8 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, co
   {
     switch(output.ErrorCode())
     {
-      case ContainerError::FileNotFound: return ReplayStatus::FileNotFound; break;
-      case ContainerError::FileIO: return ReplayStatus::FileIOFailed; break;
+      case ContainerError::FileNotFound: return ReplayStatus::FileNotFound;
+      case ContainerError::FileIO: return ReplayStatus::FileIOFailed;
       default: break;
     }
     return ReplayStatus::InternalError;

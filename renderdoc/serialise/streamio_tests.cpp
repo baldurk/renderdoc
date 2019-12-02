@@ -249,15 +249,15 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
     });
 
     recvThread = Threading::CreateThread([&threadB, &reader, &receivedValues]() {
-      uint64_t vals[10];
+      uint64_t tmp[10];
 
-      reader.Read(vals);
+      reader.Read(tmp);
 
       // keep reading indefinitely until we hit an error (i.e. socket disconnected)
       while(!reader.IsErrored())
       {
-        receivedValues.insert(receivedValues.end(), vals, vals + ARRAY_COUNT(vals));
-        reader.Read(vals);
+        receivedValues.insert(receivedValues.end(), tmp, tmp + ARRAY_COUNT(tmp));
+        reader.Read(tmp);
       }
 
       Atomic::Inc32(&threadB);

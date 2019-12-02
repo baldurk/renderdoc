@@ -439,7 +439,7 @@ struct AndroidRemoteServer : public RemoteServer
   {
   }
 
-  virtual ~AndroidRemoteServer()
+  virtual ~AndroidRemoteServer() override
   {
     if(m_LogcatThread)
       m_LogcatThread->Finish();

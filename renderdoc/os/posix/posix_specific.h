@@ -30,6 +30,25 @@
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
 
+// this works on all supported clang versions
+#if defined(__clang__)
+
+#define DELIBERATE_FALLTHROUGH() [[clang::fallthrough]]
+
+// works on GCC 7.0 and up. Before then there was no warning, so we're fine
+#elif defined(__GNUC__) && (__GNUC__ >= 7)
+
+#define DELIBERATE_FALLTHROUGH() __attribute__((fallthrough))
+
+#else
+
+#define DELIBERATE_FALLTHROUGH() \
+  do                             \
+  {                              \
+  } while(0)
+
+#endif
+
 #define OS_DEBUG_BREAK() raise(SIGTRAP)
 
 #if ENABLED(RDOC_APPLE)

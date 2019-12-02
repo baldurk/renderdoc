@@ -3244,13 +3244,13 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
       GL.glUnmapBuffer(eGL_PIXEL_UNPACK_BUFFER);
 
     if(!error.empty())
-      RDCWARN("StoreCompressedTexData: Unexpected %s (tex:%llu, target:%s)", error.c_str(), texId,
-              ToStr(target).c_str());
+      RDCWARN("StoreCompressedTexData: Unexpected %s (tex:%s, target:%s)", error.c_str(),
+              ToStr(texId).c_str(), ToStr(target).c_str());
   }
   else
   {
-    RDCWARN("StoreCompressedTexData: No source pixels to copy from (tex:%llu, target:%s)", texId,
-            ToStr(target).c_str());
+    RDCWARN("StoreCompressedTexData: No source pixels to copy from (tex:%s, target:%s)",
+            ToStr(texId).c_str(), ToStr(target).c_str());
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);

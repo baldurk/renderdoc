@@ -1311,7 +1311,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
     if(m_ImageLayouts.find(liveid) == m_ImageLayouts.end())
     {
-      RDCERR("Couldn't find image info for %llu", id);
+      RDCERR("Couldn't find image info for %s", ToStr(id).c_str());
       GetResourceManager()->SetInitialContents(
           id, VkInitialContents(type, VkInitialContents::ClearColorImage));
       return;
@@ -2232,13 +2232,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
     if(dstBuf == VK_NULL_HANDLE)
     {
-      RDCERR("Whole memory buffer not present for %llu", id);
+      RDCERR("Whole memory buffer not present for %s", ToStr(id).c_str());
       return;
     }
 
     if(resetReq.size() == 1 && resetReq.begin()->value() == eInitReq_None)
     {
-      RDCDEBUG("Apply_InitialState (Mem %llu): skipped", orig);
+      RDCDEBUG("Apply_InitialState (Mem %s): skipped", ToStr(orig).c_str());
       return;    // no copy or clear required
     }
 
@@ -2268,7 +2268,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         default: break;
       }
     }
-    RDCDEBUG("Apply_InitialState (Mem %llu): %d fills, %d copies", orig, fillCount, regions.size());
+    RDCDEBUG("Apply_InitialState (Mem %s): %d fills, %d copies", ToStr(orig).c_str(), fillCount,
+             regions.size());
     if(regions.size() > 0)
       ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf),
                                   (uint32_t)regions.size(), regions.data());

@@ -65,9 +65,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: resType = RESTYPE_TEX1D; break;
-    default:
-      RDCWARN("Unexpected texture type");
-    // fall through
+    default: RDCWARN("Unexpected texture type"); DELIBERATE_FALLTHROUGH();
     case eGL_TEXTURE_2D: resType = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: resType = RESTYPE_TEX2DMS; break;
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: resType = RESTYPE_TEX2DMSARRAY; break;
@@ -331,7 +329,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
         case eGL_STENCIL_INDEX4: rangeScale = 16.0f; break;
         default:
           RDCWARN("Unexpected raw format for stencil visualization");
-        // fall through
+          DELIBERATE_FALLTHROUGH();
         case eGL_DEPTH24_STENCIL8:
         case eGL_DEPTH32F_STENCIL8:
         case eGL_DEPTH_STENCIL:

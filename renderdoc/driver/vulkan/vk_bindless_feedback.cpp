@@ -409,7 +409,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
             if(indexType == rdcspv::Id())
             {
-              RDCERR("Unknown type for ID %u, defaulting to uint32_t", index);
+              RDCERR("Unknown type for ID %u, defaulting to uint32_t", index.value());
               indexType = uint32ID;
             }
 
@@ -422,7 +422,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             }
             else
             {
-              RDCERR("Unknown index type ID %u, defaulting to uint32_t", indexType);
+              RDCERR("Unknown index type ID %u, defaulting to uint32_t", indexType.value());
             }
 
             // if it's signed, bitcast it to unsigned

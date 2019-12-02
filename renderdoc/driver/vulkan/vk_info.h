@@ -89,6 +89,19 @@ struct DescSetLayout
         memcpy(immutableSampler, b.immutableSampler, sizeof(ResourceId) * descriptorCount);
       }
     }
+    const Binding &operator=(const Binding &b)
+    {
+      descriptorType = b.descriptorType;
+      descriptorCount = b.descriptorCount;
+      stageFlags = b.stageFlags;
+      SAFE_DELETE_ARRAY(immutableSampler);
+      if(b.immutableSampler)
+      {
+        immutableSampler = new ResourceId[descriptorCount];
+        memcpy(immutableSampler, b.immutableSampler, sizeof(ResourceId) * descriptorCount);
+      }
+      return *this;
+    }
     ~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
     VkDescriptorType descriptorType;
     uint32_t descriptorCount;

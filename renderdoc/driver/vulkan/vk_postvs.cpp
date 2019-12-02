@@ -2682,7 +2682,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
     default:
       RDCERR("Unexpected output topology %s",
              ToStr(pipeInfo.shaders[stageIndex].patchData->outTopo).c_str());
-    // deliberate fallthrough
+      DELIBERATE_FALLTHROUGH();
     case Topology::TriangleList:
     case Topology::TriangleStrip:
       m_PostVS.Data[eventId].gsout.topo = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;

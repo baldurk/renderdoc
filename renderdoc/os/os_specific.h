@@ -453,6 +453,8 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 // OS_DEBUG_BREAK() - instruction that debugbreaks the debugger - define instead of function to
 // preserve callstacks
 // EndianSwapXX() for XX = 16, 32, 64
+// DELIBERATE_FALLTHROUGH(); - maps either to something to silence deliberate fallthrough warnings,
+// or an empty string, depending on compiler support
 
 #if ENABLED(RDOC_WIN32)
 #include "win32/win32_specific.h"

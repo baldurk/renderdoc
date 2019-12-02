@@ -196,8 +196,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
     // before executing this, as we don't have the sync information to properly sync.
     if(m_PrevQueue != queue)
     {
-      RDCDEBUG("Previous queue execution was on queue %llu, now executing %llu, syncing GPU",
-               GetResID(m_PrevQueue), GetResID(queue));
+      RDCDEBUG("Previous queue execution was on queue %s, now executing %s, syncing GPU",
+               ToStr(GetResID(m_PrevQueue)).c_str(), ToStr(GetResID(queue)).c_str());
       if(m_PrevQueue != VK_NULL_HANDLE)
         ObjDisp(m_PrevQueue)->QueueWaitIdle(Unwrap(m_PrevQueue));
 
@@ -394,8 +394,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
               VkCommandBuffer cmd = RerecordCmdBuf(cmdId);
               ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("Queue Submit re-recorded replay of %llu, using %llu (%u -> %u <= %u)",
-                       cmdId, rerecord, eid, end, m_LastEventID);
+              RDCDEBUG("Queue Submit re-recorded replay of %s, using %s (%u -> %u <= %u)",
+                       ToStr(cmdId).c_str(), ToStr(rerecord).c_str(), eid, end, m_LastEventID);
 #endif
               rerecordedCmds.push_back(Unwrap(cmd));
 
@@ -406,7 +406,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
             else
             {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("Queue not submitting %llu", cmdId);
+              RDCDEBUG("Queue not submitting %s", ToStr(cmdId).c_str());
 #endif
             }
 
@@ -960,8 +960,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           // only need to flush memory that could affect this submitted batch of work
           if(refdIDs.find(record->GetResourceID()) == refdIDs.end())
           {
-            RDCDEBUG("Map of memory %llu not referenced in this queue - not flushing",
-                     record->GetResourceID());
+            RDCDEBUG("Map of memory %s not referenced in this queue - not flushing",
+                     ToStr(record->GetResourceID()).c_str());
             continue;
           }
 
@@ -1007,8 +1007,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             VkDevice dev = GetDev();
 
             {
-              RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", record->GetResourceID(),
-                     (uint64_t)diffStart, (uint64_t)diffEnd);
+              RDCLOG("Persistent map flush forced for %s (%llu -> %llu)",
+                     ToStr(record->GetResourceID()).c_str(), (uint64_t)diffStart, (uint64_t)diffEnd);
               VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL,
                                            (VkDeviceMemory)(uint64_t)record->Resource,
                                            state.mapOffset + diffStart, diffEnd - diffStart};
@@ -1020,7 +1020,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           }
           else
           {
-            RDCDEBUG("Persistent map flush not needed for %llu", record->GetResourceID());
+            RDCDEBUG("Persistent map flush not needed for %s",
+                     ToStr(record->GetResourceID()).c_str());
           }
         }
       }

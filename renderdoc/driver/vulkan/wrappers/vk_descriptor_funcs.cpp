@@ -395,9 +395,10 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
     if(ret != VK_SUCCESS)
     {
       RDCWARN(
-          "Failed to allocate descriptor set %llu from pool %llu on replay. Assuming pool was "
+          "Failed to allocate descriptor set %s from pool %s on replay. Assuming pool was "
           "reset and re-used mid-capture, so overflowing.",
-          DescriptorSet, GetResourceManager()->GetOriginalID(GetResID(AllocateInfo.descriptorPool)));
+          ToStr(DescriptorSet).c_str(),
+          ToStr(GetResourceManager()->GetOriginalID(GetResID(AllocateInfo.descriptorPool))).c_str());
 
       VulkanCreationInfo::DescSetPool &poolInfo =
           m_CreationInfo.m_DescSetPool[GetResID(AllocateInfo.descriptorPool)];

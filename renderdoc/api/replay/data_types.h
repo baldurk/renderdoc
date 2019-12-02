@@ -34,6 +34,7 @@ struct FloatVector
   FloatVector() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
   FloatVector(const FloatVector &) = default;
   FloatVector(float X, float Y, float Z, float W) : x(X), y(Y), z(Z), w(W) {}
+  FloatVector &operator=(const FloatVector &) = default;
 #if defined(RENDERDOC_QT_COMPAT)
   FloatVector(const QColor &col) : x(col.redF()), y(col.greenF()), z(col.blueF()), w(col.alphaF())
   {
@@ -75,6 +76,7 @@ struct PathEntry
   PathEntry() : flags(PathProperty::NoFlags), lastmod(0), size(0) {}
   PathEntry(const PathEntry &) = default;
   PathEntry(const char *fn, PathProperty f) : filename(fn), flags(f), lastmod(0), size(0) {}
+  PathEntry &operator=(const PathEntry &) = default;
   bool operator==(const PathEntry &o) const
   {
     return filename == o.filename && flags == o.flags && lastmod == o.lastmod && size == o.size;
@@ -112,6 +114,7 @@ struct SectionProperties
   DOCUMENT("");
   SectionProperties() = default;
   SectionProperties(const SectionProperties &) = default;
+  SectionProperties &operator=(const SectionProperties &) = default;
 
   DOCUMENT("The name of this section.");
   rdcstr name;
@@ -154,6 +157,7 @@ struct ResourceFormat
     flags = 0;
   }
   ResourceFormat(const ResourceFormat &) = default;
+  ResourceFormat &operator=(const ResourceFormat &) = default;
 
   bool operator==(const ResourceFormat &r) const
   {
@@ -386,6 +390,7 @@ struct TextureFilter
   DOCUMENT("");
   TextureFilter() = default;
   TextureFilter(const TextureFilter &) = default;
+  TextureFilter &operator=(const TextureFilter &) = default;
 
   bool operator==(const TextureFilter &o) const
   {
@@ -421,6 +426,7 @@ struct ResourceDescription
   DOCUMENT("");
   ResourceDescription() = default;
   ResourceDescription(const ResourceDescription &) = default;
+  ResourceDescription &operator=(const ResourceDescription &) = default;
 
   bool operator==(const ResourceDescription &o) const { return resourceId == o.resourceId; }
   bool operator<(const ResourceDescription &o) const { return resourceId < o.resourceId; }
@@ -481,6 +487,7 @@ struct BufferDescription
   DOCUMENT("");
   BufferDescription() = default;
   BufferDescription(const BufferDescription &) = default;
+  BufferDescription &operator=(const BufferDescription &) = default;
 
   bool operator==(const BufferDescription &o) const
   {
@@ -520,6 +527,7 @@ struct TextureDescription
   DOCUMENT("");
   TextureDescription() = default;
   TextureDescription(const TextureDescription &) = default;
+  TextureDescription &operator=(const TextureDescription &) = default;
 
   bool operator==(const TextureDescription &o) const
   {
@@ -612,6 +620,7 @@ struct APIEvent
   DOCUMENT("");
   APIEvent() = default;
   APIEvent(const APIEvent &) = default;
+  APIEvent &operator=(const APIEvent &) = default;
 
   bool operator==(const APIEvent &o) const { return eventId == o.eventId; }
   bool operator<(const APIEvent &o) const { return eventId < o.eventId; }
@@ -653,6 +662,7 @@ struct DebugMessage
   DOCUMENT("");
   DebugMessage() = default;
   DebugMessage(const DebugMessage &) = default;
+  DebugMessage &operator=(const DebugMessage &) = default;
 
   bool operator==(const DebugMessage &o) const
   {
@@ -730,6 +740,7 @@ struct ConstantBindStats
   DOCUMENT("");
   ConstantBindStats() = default;
   ConstantBindStats(const ConstantBindStats &) = default;
+  ConstantBindStats &operator=(const ConstantBindStats &) = default;
 
   static const BucketRecordType BucketType = BucketRecordType::Pow2;
   static const size_t BucketCount = 31;
@@ -758,6 +769,7 @@ struct SamplerBindStats
   DOCUMENT("");
   SamplerBindStats() = default;
   SamplerBindStats(const SamplerBindStats &) = default;
+  SamplerBindStats &operator=(const SamplerBindStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -780,6 +792,7 @@ struct ResourceBindStats
   DOCUMENT("");
   ResourceBindStats() = default;
   ResourceBindStats(const ResourceBindStats &) = default;
+  ResourceBindStats &operator=(const ResourceBindStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -817,6 +830,7 @@ struct ResourceUpdateStats
   DOCUMENT("");
   ResourceUpdateStats() = default;
   ResourceUpdateStats(const ResourceUpdateStats &) = default;
+  ResourceUpdateStats &operator=(const ResourceUpdateStats &) = default;
 
   static const BucketRecordType BucketType = BucketRecordType::Pow2;
   static const size_t BucketCount = 31;
@@ -861,6 +875,7 @@ struct DrawcallStats
   DOCUMENT("");
   DrawcallStats() = default;
   DrawcallStats(const DrawcallStats &) = default;
+  DrawcallStats &operator=(const DrawcallStats &) = default;
 
   static const BucketRecordType BucketType = BucketRecordType::Linear;
   static const size_t BucketSize = 1;
@@ -885,6 +900,7 @@ struct DispatchStats
   DOCUMENT("");
   DispatchStats() = default;
   DispatchStats(const DispatchStats &) = default;
+  DispatchStats &operator=(const DispatchStats &) = default;
 
   DOCUMENT("How many dispatch calls were made.");
   uint32_t calls;
@@ -901,6 +917,7 @@ struct IndexBindStats
   DOCUMENT("");
   IndexBindStats() = default;
   IndexBindStats(const IndexBindStats &) = default;
+  IndexBindStats &operator=(const IndexBindStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -920,6 +937,7 @@ struct VertexBindStats
   DOCUMENT("");
   VertexBindStats() = default;
   VertexBindStats(const VertexBindStats &) = default;
+  VertexBindStats &operator=(const VertexBindStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -943,6 +961,7 @@ struct LayoutBindStats
   DOCUMENT("");
   LayoutBindStats() = default;
   LayoutBindStats(const LayoutBindStats &) = default;
+  LayoutBindStats &operator=(const LayoutBindStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -962,6 +981,7 @@ struct ShaderChangeStats
   DOCUMENT("");
   ShaderChangeStats() = default;
   ShaderChangeStats(const ShaderChangeStats &) = default;
+  ShaderChangeStats &operator=(const ShaderChangeStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -984,6 +1004,7 @@ struct BlendStats
   DOCUMENT("");
   BlendStats() = default;
   BlendStats(const BlendStats &) = default;
+  BlendStats &operator=(const BlendStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -1006,6 +1027,7 @@ struct DepthStencilStats
   DOCUMENT("");
   DepthStencilStats() = default;
   DepthStencilStats(const DepthStencilStats &) = default;
+  DepthStencilStats &operator=(const DepthStencilStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -1028,6 +1050,7 @@ struct RasterizationStats
   DOCUMENT("");
   RasterizationStats() = default;
   RasterizationStats(const RasterizationStats &) = default;
+  RasterizationStats &operator=(const RasterizationStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -1056,6 +1079,7 @@ struct OutputTargetStats
   DOCUMENT("");
   OutputTargetStats() = default;
   OutputTargetStats(const OutputTargetStats &) = default;
+  OutputTargetStats &operator=(const OutputTargetStats &) = default;
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -1081,6 +1105,7 @@ struct FrameStatistics
   DOCUMENT("");
   FrameStatistics() = default;
   FrameStatistics(const FrameStatistics &) = default;
+  FrameStatistics &operator=(const FrameStatistics &) = default;
 
   DOCUMENT("``True`` if the statistics in this structure are valid.");
   bool recorded;
@@ -1150,6 +1175,7 @@ struct FrameDescription
   {
   }
   FrameDescription(const FrameDescription &) = default;
+  FrameDescription &operator=(const FrameDescription &) = default;
 
   DOCUMENT(R"(Starting from frame #1 defined as the time from application startup to first present,
 this counts the frame number when the capture was made.
@@ -1202,6 +1228,7 @@ struct EventUsage
   EventUsage(const EventUsage &) = default;
   EventUsage(uint32_t e, ResourceUsage u) : eventId(e), usage(u) {}
   EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventId(e), usage(u), view(v) {}
+  EventUsage &operator=(const EventUsage &) = default;
   bool operator<(const EventUsage &o) const
   {
     if(!(eventId == o.eventId))
@@ -1228,6 +1255,7 @@ struct DrawcallDescription
   DOCUMENT("");
   DrawcallDescription() { Reset(); }
   DrawcallDescription(const DrawcallDescription &) = default;
+  DrawcallDescription &operator=(const DrawcallDescription &) = default;
 
   DOCUMENT("Resets the drawcall back to a default/empty state.");
   void Reset()
@@ -1367,6 +1395,7 @@ struct APIProperties
   DOCUMENT("");
   APIProperties() = default;
   APIProperties(const APIProperties &) = default;
+  APIProperties &operator=(const APIProperties &) = default;
 
   DOCUMENT("The :class:`GraphicsAPI` of the actual log/capture.");
   GraphicsAPI pipelineType = GraphicsAPI::D3D11;
@@ -1408,6 +1437,11 @@ DECLARE_REFLECTION_STRUCT(APIProperties);
 DOCUMENT("Gives information about the driver for this API.");
 struct DriverInformation
 {
+  DOCUMENT("");
+  DriverInformation() = default;
+  DriverInformation(const DriverInformation &) = default;
+  DriverInformation &operator=(const DriverInformation &) = default;
+
   DOCUMENT("The :class:`GPUVendor` that provides this driver");
   GPUVendor vendor;
 
@@ -1431,6 +1465,7 @@ struct Uuid
 
   Uuid() { words[0] = words[1] = words[2] = words[3] = 0; }
   Uuid(const Uuid &) = default;
+  Uuid &operator=(const Uuid &) = default;
 
   DOCUMENT("Compares two ``Uuid`` objects for less-than.");
   bool operator<(const Uuid &rhs) const
@@ -1452,6 +1487,7 @@ struct CounterDescription
   DOCUMENT("");
   CounterDescription() = default;
   CounterDescription(const CounterDescription &) = default;
+  CounterDescription &operator=(const CounterDescription &) = default;
 
   DOCUMENT(R"(The :class:`GPUCounter` this counter represents.
 
@@ -1543,6 +1579,7 @@ struct CounterResult
     value.u64 = data;
   }
 #endif
+  CounterResult &operator=(const CounterResult &) = default;
 
   DOCUMENT("Compares two ``CounterResult`` objects for less-than.");
   bool operator<(const CounterResult &o) const
@@ -1607,6 +1644,7 @@ struct Subresource
   {
   }
   Subresource(const Subresource &) = default;
+  Subresource &operator=(const Subresource &) = default;
 
   bool operator==(const Subresource &o) const
   {
@@ -1647,6 +1685,7 @@ struct ModificationValue
   DOCUMENT("");
   ModificationValue() = default;
   ModificationValue(const ModificationValue &) = default;
+  ModificationValue &operator=(const ModificationValue &) = default;
 
   bool operator==(const ModificationValue &o) const
   {
@@ -1680,6 +1719,7 @@ struct PixelModification
   DOCUMENT("");
   PixelModification() = default;
   PixelModification(const PixelModification &) = default;
+  PixelModification &operator=(const PixelModification &) = default;
 
   bool operator==(const PixelModification &o) const
   {
@@ -1794,6 +1834,7 @@ struct Thumbnail
   DOCUMENT("");
   Thumbnail() = default;
   Thumbnail(const Thumbnail &) = default;
+  Thumbnail &operator=(const Thumbnail &) = default;
 
   DOCUMENT("The :class:`FileType` of the data in the thumbnail.");
   FileType type = FileType::Raw;

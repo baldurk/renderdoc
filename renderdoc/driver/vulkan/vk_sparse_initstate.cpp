@@ -749,7 +749,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, const VkIniti
     if(dstBuf != VK_NULL_HANDLE)
       ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
     else
-      RDCERR("Whole memory buffer not present for %llu", id);
+      RDCERR("Whole memory buffer not present for %s", ToStr(id).c_str());
   }
 
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -846,7 +846,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, const VkInitial
       if(!info.pageBinds[a])
         continue;
 
-      imgBinds[bindsparse.imageBindCount].image = im->real.As<VkImage>(),
+      imgBinds[bindsparse.imageBindCount].image = im->real.As<VkImage>();
       imgBinds[bindsparse.imageBindCount].bindCount = info.pageCount[a];
       imgBinds[bindsparse.imageBindCount].pBinds = info.pageBinds[a];
 
@@ -886,7 +886,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, const VkInitial
     if(dstBuf != VK_NULL_HANDLE)
       ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
     else
-      RDCERR("Whole memory buffer not present for %llu", id);
+      RDCERR("Whole memory buffer not present for %s", ToStr(id).c_str());
   }
 
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));

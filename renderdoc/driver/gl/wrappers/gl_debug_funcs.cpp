@@ -305,7 +305,8 @@ void WrappedOpenGL::HandleVRFrameMarkers(const GLchar *buf, GLsizei length)
     {
       m_AcceptedCtx.clear();
       m_AcceptedCtx.insert(GetCtx().ctx);
-      RDCDEBUG("Only resource ID accepted is %llu", GetCtxData().m_ContextDataResourceID);
+      RDCDEBUG("Only resource ID accepted is %s",
+               ToStr(GetCtxData().m_ContextDataResourceID).c_str());
     }
   }
 }

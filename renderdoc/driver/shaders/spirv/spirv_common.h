@@ -198,7 +198,7 @@ public:
     if(it != std::map<Id, T>::end())
       return it->second;
 
-    RDCERR("Lookup of invalid Id %u expected in SparseIdMap", id);
+    RDCERR("Lookup of invalid Id %u expected in SparseIdMap", id.value());
     return dummy;
   }
 

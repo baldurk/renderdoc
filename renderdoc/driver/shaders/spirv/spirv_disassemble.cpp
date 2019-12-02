@@ -139,7 +139,7 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
       return ret;
 
     // if we *still* have nothing, just stringise the id itself
-    return StringFormat::Fmt("_%u", id);
+    return StringFormat::Fmt("_%u", id.value());
   };
   auto constIntVal = [this](Id id) { return EvaluateConstant(id, {}).value.u.x; };
   auto declName = [this, &idName, &usedNames, &dynamicNames](Id typeId, Id id) -> rdcstr {
@@ -148,7 +148,7 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
 
     rdcstr ret = dataTypes[typeId].name;
     if(ret.empty())
-      ret = StringFormat::Fmt("type%u", typeId);
+      ret = StringFormat::Fmt("type%u", typeId.value());
 
     if(id == Id())
       return ret;
@@ -156,7 +156,7 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
     rdcstr basename = strings[id];
     if(basename.empty())
     {
-      return ret + " " + StringFormat::Fmt("_%u", id);
+      return ret + " " + StringFormat::Fmt("_%u", id.value());
     }
 
     rdcstr name = basename;
@@ -485,6 +485,7 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
               binary = true;
               ret += StringiseBinaryOperation(idName, op, Id::fromWord(it.word(4)),
                                               Id::fromWord(it.word(5)));
+              break;
             default: break;
           }
 
@@ -968,7 +969,7 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
               else
               {
                 if(strings[otherLabel].empty())
-                  dynamicNames[otherLabel] = StringFormat::Fmt("_continue%u", otherLabel);
+                  dynamicNames[otherLabel] = StringFormat::Fmt("_continue%u", otherLabel.value());
                 ret += StringFormat::Fmt("if(%s%s) goto %s;", negate,
                                          idName(decoded.condition).c_str(),
                                          idName(otherLabel).c_str());

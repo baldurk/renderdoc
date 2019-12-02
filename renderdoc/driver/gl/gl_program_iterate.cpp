@@ -1170,7 +1170,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
             if(IsGLES || IsDstProgramSPIRV)
               // Image uniforms cannot be re-assigned in GLES or with SPIR-V programs.
               break;
-          // deliberate fall-through
+            DELIBERATE_FALLTHROUGH();
           // treat all samplers as just an int (since they just store their binding value)
           case eGL_SAMPLER_1D:
           case eGL_SAMPLER_2D:

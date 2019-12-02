@@ -112,13 +112,7 @@
 }
 
 // ignore some operators SWIG doesn't have to worry about
-%ignore SDType::operator=;
-%ignore StructuredObjectList::swap;
-%ignore StructuredChunkList::swap;
-%ignore StructuredObjectList::operator=;
-%ignore StructuredObjectList::operator=;
-%ignore StructuredChunkList::operator=;
-%ignore StructuredBufferList::operator=;
+%ignore *::operator=;
 
 // these objects return a new copy which the python caller should own.
 %newobject SDObject::Duplicate;

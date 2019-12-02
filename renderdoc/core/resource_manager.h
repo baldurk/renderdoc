@@ -982,7 +982,7 @@ void ResourceManager<Configuration>::Prepare_ResourceIfActivePostponed(ResourceI
   if(!IsActiveCapturing(m_State) || !IsResourcePostponed(id))
     return;
 
-  RDCDEBUG("Preparing resource %llu after it has been postponed.", id);
+  RDCDEBUG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
   Prepare_ResourceInitialStateIfNeeded(id);
 }
 
@@ -1219,7 +1219,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     prepared++;
 
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
-    RDCDEBUG("Prepare Resource %llu", id);
+    RDCDEBUG("Prepare Resource %s", ToStr(id).c_str());
 #endif
 
     Prepare_InitialState(res);
@@ -1252,7 +1252,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
        !RenderDoc::Inst().GetCaptureOptions().refAllResources)
     {
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
-      RDCDEBUG("Dirty tesource %llu is GPU dirty but not referenced - skipping", id);
+      RDCDEBUG("Dirty tesource %s is GPU dirty but not referenced - skipping", ToStr(id).c_str());
 #endif
       skipped++;
       continue;
@@ -1263,7 +1263,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     if(record == NULL)
     {
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
-      RDCDEBUG("Resource %llu has no resource record - skipping", id);
+      RDCDEBUG("Resource %s has no resource record - skipping", ToStr(id).c_str());
 #endif
       continue;
     }
@@ -1271,13 +1271,13 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
     if(record->InternalResource)
     {
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
-      RDCDEBUG("Resource %llu is special - skipping", id);
+      RDCDEBUG("Resource %s is special - skipping", ToStr(id).c_str());
 #endif
       continue;
     }
 
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
-    RDCDEBUG("Serialising dirty Resource %llu", id);
+    RDCDEBUG("Serialising dirty Resource %s", ToStr(id).c_str());
 #endif
 
     // Load postponed resource if needed.
@@ -1524,7 +1524,7 @@ void ResourceManager<Configuration>::AddLiveResource(ResourceId origid, WrappedR
 
   if(m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
   {
-    RDCERR("Releasing live resource for duplicate creation: %llu", origid);
+    RDCERR("Releasing live resource for duplicate creation: %s", ToStr(origid).c_str());
     ResourceTypeRelease(m_LiveResourceMap[origid]);
     m_LiveResourceMap.erase(origid);
   }

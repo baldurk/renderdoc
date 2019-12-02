@@ -989,9 +989,7 @@ dds_data load_dds_from_file(FILE *f)
       case MAKE_FOURCC('G', 'R', 'G', 'B'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_G8R8_G8B8_UNORM);
         break;
-      case MAKE_FOURCC('U', 'Y', 'V', 'Y'):
-        bgrSwap = true;
-      // deliberate fall-through
+      case MAKE_FOURCC('U', 'Y', 'V', 'Y'): bgrSwap = true; DELIBERATE_FALLTHROUGH();
       case MAKE_FOURCC('Y', 'U', 'Y', '2'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_YUY2);
         break;
@@ -1047,7 +1045,7 @@ dds_data load_dds_from_file(FILE *f)
         bytesPerPixel = 2;
         break;
       }
-    // deliberate fall-through
+      DELIBERATE_FALLTHROUGH();
     case ResourceFormatType::YUV10:
     case ResourceFormatType::YUV12:
     case ResourceFormatType::YUV16:

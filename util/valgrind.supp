@@ -93,6 +93,20 @@
   obj:*libdbus-1.so*
 }
 {
+  GTKLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libgtk-3.so*
+}
+{
+  ResourcesLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  fun:_ZN9Resources10InitialiseEv
+}
+{
    QtPostEventLeak
    Memcheck:Leak
    match-leak-kinds: all

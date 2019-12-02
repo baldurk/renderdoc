@@ -308,29 +308,11 @@ void PatchTriangleFanRestartIndexBufer(std::vector<uint32_t> &patchedIndices, ui
 
       // output 3 dummy degenerate triangles so vertex ID mapping is easy
       // we rotate the triangles so the important vertex is last in each.
-      newIndices.push_back(restartIndex);
-      newIndices.push_back(restartIndex);
-      newIndices.push_back(restartIndex);
-
-      if(1)
+      for(size_t dummy = 0; dummy < 3; dummy++)
       {
         newIndices.push_back(restartIndex);
         newIndices.push_back(restartIndex);
         newIndices.push_back(restartIndex);
-
-        newIndices.push_back(restartIndex);
-        newIndices.push_back(restartIndex);
-        newIndices.push_back(restartIndex);
-      }
-      else
-      {
-        newIndices.push_back(next[0]);
-        newIndices.push_back(next[1]);
-        newIndices.push_back(firstIndex);
-
-        newIndices.push_back(next[1]);
-        newIndices.push_back(firstIndex);
-        newIndices.push_back(next[0]);
       }
     }
   }

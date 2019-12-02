@@ -351,7 +351,7 @@ void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, byt
 {
   if(m_pDriver->m_Buffers.find(buff) == m_pDriver->m_Buffers.end())
   {
-    RDCWARN("Requesting data for non-existant buffer %llu", buff);
+    RDCWARN("Requesting data for non-existant buffer %s", ToStr(buff).c_str());
     return;
   }
 
@@ -439,7 +439,7 @@ void GLReplay::CacheTexture(ResourceId id)
   if(res.resource.Namespace == eResUnknown || res.curType == eGL_NONE)
   {
     if(res.resource.Namespace == eResUnknown)
-      RDCERR("Details for invalid texture id %llu requested", id);
+      RDCERR("Details for invalid texture id %s requested", ToStr(id).c_str());
 
     tex.format = ResourceFormat();
     tex.dimension = 1;
@@ -687,7 +687,7 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
 
   if(res.resource.Namespace == eResUnknown)
   {
-    RDCERR("Details for invalid buffer id %llu requested", id);
+    RDCERR("Details for invalid buffer id %s requested", ToStr(id).c_str());
     RDCEraseEl(ret);
     return ret;
   }
@@ -1585,7 +1585,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   {
     default:
       RDCWARN("Unexpected value for POLYGON_MODE %x", rs.PolygonMode);
-    // fall through
+      DELIBERATE_FALLTHROUGH();
     case eGL_FILL:
       pipe.rasterizer.state.fillMode = FillMode::Solid;
       polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
@@ -1616,9 +1616,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   {
     switch(rs.CullFace)
     {
-      default:
-        RDCWARN("Unexpected value for CULL_FACE %x", rs.CullFace);
-      // fall through
+      default: RDCWARN("Unexpected value for CULL_FACE %x", rs.CullFace); DELIBERATE_FALLTHROUGH();
       case eGL_BACK: pipe.rasterizer.state.cullMode = CullMode::Back; break;
       case eGL_FRONT: pipe.rasterizer.state.cullMode = CullMode::Front; break;
       case eGL_FRONT_AND_BACK: pipe.rasterizer.state.cullMode = CullMode::FrontAndBack; break;
@@ -2095,7 +2093,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
               case VarType::Half:
                 RDCERR("Unexpected base variable type %s, treating as float",
                        ToStr(var.type).c_str());
-              // deliberate fall-through
+                DELIBERATE_FALLTHROUGH();
               case VarType::Float:
                 GL.glGetUniformfv(prog, location, (float *)uniformData.data());
                 break;
@@ -2140,7 +2138,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
                 case VarType::Half:
                   RDCERR("Unexpected base variable type %s, treating as float",
                          ToStr(var.type).c_str());
-                // deliberate fall-through
+                  DELIBERATE_FALLTHROUGH();
                 case VarType::Float:
                   GL.glGetUniformfv(prog, location + a, (float *)uniformData.data());
                   break;
@@ -2279,7 +2277,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(texType == eGL_NONE)
   {
-    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    RDCERR("Trying to get texture data for unknown ID %s!", ToStr(tex).c_str());
     return;
   }
 

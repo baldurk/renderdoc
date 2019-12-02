@@ -228,6 +228,7 @@ struct SDChunkMetaData
   DOCUMENT("");
   SDChunkMetaData() = default;
   SDChunkMetaData(const SDChunkMetaData &) = default;
+  SDChunkMetaData &operator=(const SDChunkMetaData &) = default;
 
   DOCUMENT("The internal chunk ID - unique given a particular driver in use.");
   uint32_t chunkID = 0;
@@ -664,7 +665,7 @@ inline SDObject *makeSDInt32(const char *name, int32_t val)
   SDObject *ret = new SDObject(name, "int32_t"_lit);
   ret->type.basetype = SDBasic::SignedInteger;
   ret->type.byteSize = 4;
-  ret->data.basic.u = val;
+  ret->data.basic.i = val;
   return ret;
 }
 

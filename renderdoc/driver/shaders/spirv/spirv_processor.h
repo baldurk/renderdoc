@@ -493,6 +493,8 @@ class Processor
 public:
   Processor();
   ~Processor();
+  Processor(const Processor &o) = default;
+  Processor &operator=(const Processor &o) = default;
 
   // accessors to structs/vectors of data
   const std::vector<EntryPoint> &GetEntries() { return entries; }

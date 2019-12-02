@@ -168,6 +168,12 @@ if(CMAKE_COMPILER_IS_GNUCXX)
         "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation\n")
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    file(APPEND
+        ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+        "QMAKE_CXXFLAGS+=-Wno-comma\n")
+endif()
+
 if(ENABLE_WAYLAND)
     message(WARNING "!!!! Using the Wayland Qt platform in qrenderdoc is NOT SUPPORTED !!!!")
     file(APPEND

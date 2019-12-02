@@ -186,6 +186,10 @@ struct OptionalResources<Serialiser<SerialiserMode::Writing>>
   {
   }
   ~OptionalResources<Serialiser<SerialiserMode::Writing>>() {}
+  OptionalResources<Serialiser<SerialiserMode::Writing>>(
+      const OptionalResources<Serialiser<SerialiserMode::Writing>> &) = default;
+  OptionalResources<Serialiser<SerialiserMode::Writing>> &operator=(
+      const OptionalResources<Serialiser<SerialiserMode::Writing>> &) = default;
 };
 
 template <>
@@ -196,6 +200,10 @@ struct OptionalResources<Serialiser<SerialiserMode::Reading>>
     Counter++;
   }
   ~OptionalResources<Serialiser<SerialiserMode::Reading>>() { Counter--; }
+  OptionalResources<Serialiser<SerialiserMode::Reading>>(
+      const OptionalResources<Serialiser<SerialiserMode::Reading>> &) = default;
+  OptionalResources<Serialiser<SerialiserMode::Reading>> &operator=(
+      const OptionalResources<Serialiser<SerialiserMode::Reading>> &) = default;
   static int Counter;
 };
 
@@ -244,8 +252,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
       {
         // It can be OK for a resource to have no live equivalent if the capture decided its not
         // needed, which some APIs do fairly often.
-        RDCWARN("Capture may be missing reference to %s resource (%llu).", TypeName<type>().c_str(),
-                id);
+        RDCWARN("Capture may be missing reference to %s resource (%s).", TypeName<type>().c_str(),
+                ToStr(id).c_str());
       }
     }
   }

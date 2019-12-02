@@ -107,8 +107,8 @@
 
 // needs to be declared up here for reference in basic_types
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
-typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(const void *mem);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(void *mem);
+typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(void *mem);
 
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz);
 typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
@@ -601,6 +601,7 @@ struct GlobalEnvironment
   DOCUMENT("");
   GlobalEnvironment() = default;
   GlobalEnvironment(const GlobalEnvironment &) = default;
+  GlobalEnvironment &operator=(const GlobalEnvironment &) = default;
 
   DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
   Display *xlibDisplay = NULL;
@@ -622,6 +623,7 @@ struct ExecuteResult
   DOCUMENT("");
   ExecuteResult() = default;
   ExecuteResult(const ExecuteResult &) = default;
+  ExecuteResult &operator=(const ExecuteResult &) = default;
 
   DOCUMENT(
       "The :class:`ReplayStatus` resulting from the operation, indicating success or failure.");

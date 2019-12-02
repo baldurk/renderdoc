@@ -46,11 +46,11 @@ public:
   void Set(uint64_t *calls, size_t num)
   {
     numLevels = num;
-    for(int i = 0; i < numLevels; i++)
+    for(size_t i = 0; i < numLevels; i++)
       addrs[i] = calls[i];
   }
 
-  size_t NumLevels() const { return size_t(numLevels); }
+  size_t NumLevels() const { return numLevels; }
   const uint64_t *GetAddrs() const { return addrs; }
 private:
   LinuxCallstack(const Callstack::Stackwalk &other);
@@ -59,7 +59,11 @@ private:
   {
     void *addrs_ptr[ARRAY_COUNT(addrs)];
 
-    numLevels = backtrace(addrs_ptr, ARRAY_COUNT(addrs));
+    int ret = backtrace(addrs_ptr, ARRAY_COUNT(addrs));
+
+    numLevels = 0;
+    if(ret > 0)
+      numLevels = (size_t)ret;
 
     int offs = 0;
     // if we want to trim levels of the stack, we can do that here
@@ -70,12 +74,12 @@ private:
       numLevels--;
     }
 
-    for(int i = 0; i < numLevels; i++)
+    for(size_t i = 0; i < numLevels; i++)
       addrs[i] = (uint64_t)addrs_ptr[i + offs];
   }
 
   uint64_t addrs[128];
-  int numLevels;
+  size_t numLevels;
 };
 
 namespace Callstack

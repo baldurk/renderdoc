@@ -160,7 +160,7 @@ static void HexDecode(const char *str, const char *end, std::vector<byte> &out)
   {
     if(IsHex(str[0]) && IsHex(str[1]))
     {
-      out.push_back((FromHex(str[0]) << 4) | FromHex(str[1]));
+      out.push_back(byte((FromHex(str[0]) << 4) | FromHex(str[1])));
 
       str += 2;
 

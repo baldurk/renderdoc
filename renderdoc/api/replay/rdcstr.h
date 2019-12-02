@@ -141,12 +141,12 @@ private:
 #endif
     return ret;
   }
-  static void deallocate(const char *p)
+  static void deallocate(char *p)
   {
 #ifdef RENDERDOC_EXPORTS
     free((void *)p);
 #else
-    RENDERDOC_FreeArrayMem((const void *)p);
+    RENDERDOC_FreeArrayMem((void *)p);
 #endif
   }
 

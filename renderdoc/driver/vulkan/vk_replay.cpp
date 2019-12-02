@@ -2806,7 +2806,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(m_pDriver->m_CreationInfo.m_Image.find(tex) == m_pDriver->m_CreationInfo.m_Image.end())
   {
-    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    RDCERR("Trying to get texture data for unknown ID %s!", ToStr(tex).c_str());
     return;
   }
 

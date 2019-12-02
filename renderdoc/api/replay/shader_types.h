@@ -35,6 +35,7 @@ struct FloatVecVal
   DOCUMENT("");
   FloatVecVal() = default;
   FloatVecVal(const FloatVecVal &) = default;
+  FloatVecVal &operator=(const FloatVecVal &) = default;
 
   DOCUMENT("The x component.");
   float x;
@@ -52,6 +53,7 @@ struct DoubleVecVal
   DOCUMENT("");
   DoubleVecVal() = default;
   DoubleVecVal(const DoubleVecVal &) = default;
+  DoubleVecVal &operator=(const DoubleVecVal &) = default;
 
   DOCUMENT("The x component.");
   double x;
@@ -69,6 +71,7 @@ struct IntVecVal
   DOCUMENT("");
   IntVecVal() = default;
   IntVecVal(const IntVecVal &) = default;
+  IntVecVal &operator=(const IntVecVal &) = default;
 
   DOCUMENT("The x component.");
   int32_t x;
@@ -86,6 +89,7 @@ struct UIntVecVal
   DOCUMENT("");
   UIntVecVal() = default;
   UIntVecVal(const UIntVecVal &) = default;
+  UIntVecVal &operator=(const UIntVecVal &) = default;
 
   DOCUMENT("The x component.");
   uint32_t x;
@@ -103,6 +107,7 @@ struct PointerVal
   DOCUMENT("");
   PointerVal() = default;
   PointerVal(const PointerVal &) = default;
+  PointerVal &operator=(const PointerVal &) = default;
 
   DOCUMENT("The actual pointer value itself.");
   uint64_t pointer;
@@ -166,6 +171,7 @@ struct ShaderVariable
       value.uv[i] = 0;
   }
   ShaderVariable(const ShaderVariable &) = default;
+  ShaderVariable &operator=(const ShaderVariable &) = default;
   ShaderVariable(const char *n, float x, float y, float z, float w)
   {
     name = n;
@@ -321,6 +327,7 @@ struct RegisterRange
   DOCUMENT("");
   RegisterRange() = default;
   RegisterRange(const RegisterRange &) = default;
+  RegisterRange &operator=(const RegisterRange &) = default;
 
   bool operator==(const RegisterRange &o) const
   {
@@ -364,6 +371,7 @@ struct LocalVariableMapping
   DOCUMENT("");
   LocalVariableMapping() = default;
   LocalVariableMapping(const LocalVariableMapping &) = default;
+  LocalVariableMapping &operator=(const LocalVariableMapping &) = default;
 
   bool operator==(const LocalVariableMapping &o) const
   {
@@ -423,6 +431,7 @@ struct LineColumnInfo
   DOCUMENT("");
   LineColumnInfo() = default;
   LineColumnInfo(const LineColumnInfo &) = default;
+  LineColumnInfo &operator=(const LineColumnInfo &) = default;
 
   bool operator==(const LineColumnInfo &o) const
   {
@@ -483,6 +492,7 @@ struct ShaderDebugState
   DOCUMENT("");
   ShaderDebugState() = default;
   ShaderDebugState(const ShaderDebugState &) = default;
+  ShaderDebugState &operator=(const ShaderDebugState &) = default;
 
   bool operator==(const ShaderDebugState &o) const
   {
@@ -541,6 +551,7 @@ struct ShaderDebugTrace
   DOCUMENT("");
   ShaderDebugTrace() = default;
   ShaderDebugTrace(const ShaderDebugTrace &) = default;
+  ShaderDebugTrace &operator=(const ShaderDebugTrace &) = default;
 
   DOCUMENT("The input variables for this shader as a list of :class:`ShaderValue`.");
   rdcarray<ShaderVariable> inputs;
@@ -579,6 +590,7 @@ struct SigParameter
   DOCUMENT("");
   SigParameter() = default;
   SigParameter(const SigParameter &) = default;
+  SigParameter &operator=(const SigParameter &) = default;
 
   bool operator==(const SigParameter &o) const
   {
@@ -675,6 +687,7 @@ struct ShaderVariableDescriptor
   DOCUMENT("");
   ShaderVariableDescriptor() = default;
   ShaderVariableDescriptor(const ShaderVariableDescriptor &) = default;
+  ShaderVariableDescriptor &operator=(const ShaderVariableDescriptor &) = default;
 
   bool operator==(const ShaderVariableDescriptor &o) const
   {
@@ -737,6 +750,7 @@ struct ShaderVariableType
   DOCUMENT("");
   ShaderVariableType() = default;
   ShaderVariableType(const ShaderVariableType &) = default;
+  ShaderVariableType &operator=(const ShaderVariableType &) = default;
 
   bool operator==(const ShaderVariableType &o) const
   {
@@ -765,6 +779,7 @@ struct ShaderConstant
   DOCUMENT("");
   ShaderConstant() = default;
   ShaderConstant(const ShaderConstant &) = default;
+  ShaderConstant &operator=(const ShaderConstant &) = default;
 
   bool operator==(const ShaderConstant &o) const
   {
@@ -805,6 +820,7 @@ struct ConstantBlock
   DOCUMENT("");
   ConstantBlock() = default;
   ConstantBlock(const ConstantBlock &) = default;
+  ConstantBlock &operator=(const ConstantBlock &) = default;
 
   bool operator==(const ConstantBlock &o) const
   {
@@ -855,6 +871,7 @@ struct ShaderSampler
   DOCUMENT("");
   ShaderSampler() = default;
   ShaderSampler(const ShaderSampler &) = default;
+  ShaderSampler &operator=(const ShaderSampler &) = default;
 
   bool operator==(const ShaderSampler &o) const
   {
@@ -890,6 +907,7 @@ struct ShaderResource
   DOCUMENT("");
   ShaderResource() = default;
   ShaderResource(const ShaderResource &) = default;
+  ShaderResource &operator=(const ShaderResource &) = default;
 
   bool operator==(const ShaderResource &o) const
   {
@@ -942,6 +960,7 @@ struct ShaderEntryPoint
 {
   ShaderEntryPoint() = default;
   ShaderEntryPoint(const ShaderEntryPoint &) = default;
+  ShaderEntryPoint &operator=(const ShaderEntryPoint &) = default;
   ShaderEntryPoint(const rdcstr &n, ShaderStage s) : name(n), stage(s) {}
   DOCUMENT("");
   bool operator==(const ShaderEntryPoint &o) const { return name == o.name && stage == o.stage; }
@@ -968,6 +987,7 @@ struct ShaderCompileFlag
   DOCUMENT("");
   ShaderCompileFlag() = default;
   ShaderCompileFlag(const ShaderCompileFlag &) = default;
+  ShaderCompileFlag &operator=(const ShaderCompileFlag &) = default;
 
   bool operator==(const ShaderCompileFlag &o) const { return name == o.name && value == o.value; }
   bool operator<(const ShaderCompileFlag &o) const
@@ -993,6 +1013,7 @@ struct ShaderCompileFlags
   DOCUMENT("");
   ShaderCompileFlags() = default;
   ShaderCompileFlags(const ShaderCompileFlags &) = default;
+  ShaderCompileFlags &operator=(const ShaderCompileFlags &) = default;
 
   DOCUMENT(R"(A list of :class:`ShaderCompileFlag`.
 
@@ -1009,6 +1030,7 @@ struct ShaderSourceFile
   DOCUMENT("");
   ShaderSourceFile() = default;
   ShaderSourceFile(const ShaderSourceFile &) = default;
+  ShaderSourceFile &operator=(const ShaderSourceFile &) = default;
 
   bool operator==(const ShaderSourceFile &o) const
   {
@@ -1040,6 +1062,7 @@ struct ShaderDebugInfo
 {
   ShaderDebugInfo() {}
   ShaderDebugInfo(const ShaderDebugInfo &) = default;
+  ShaderDebugInfo &operator=(const ShaderDebugInfo &) = default;
 
   DOCUMENT("A :class:`ShaderCompileFlags` containing the flags used to compile this shader.");
   ShaderCompileFlags compileFlags;
@@ -1067,6 +1090,7 @@ struct ShaderReflection
   DOCUMENT("");
   ShaderReflection() = default;
   ShaderReflection(const ShaderReflection &) = default;
+  ShaderReflection &operator=(const ShaderReflection &) = default;
 
   DOCUMENT("The :class:`ResourceId` of this shader.");
   ResourceId resourceId;
@@ -1134,6 +1158,7 @@ struct Bindpoint
     arraySize = 1;
   }
   Bindpoint(const Bindpoint &) = default;
+  Bindpoint &operator=(const Bindpoint &) = default;
 
   Bindpoint(int32_t s, int32_t b)
   {
@@ -1206,6 +1231,7 @@ struct ShaderBindpointMapping
   DOCUMENT("");
   ShaderBindpointMapping() = default;
   ShaderBindpointMapping(const ShaderBindpointMapping &) = default;
+  ShaderBindpointMapping &operator=(const ShaderBindpointMapping &) = default;
 
   DOCUMENT(R"(This maps input attributes as a simple swizzle on the
 :data:`ShaderReflection.inputSignature` indices for APIs where this mapping is mutable at runtime.

@@ -4083,7 +4083,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
     {
       default:
         RDCWARN("Unexpected format %x, defaulting to single component", format);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_RED:
       case eGL_RED_INTEGER:
       case eGL_GREEN_INTEGER:
@@ -4113,7 +4113,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
       case eGL_FLOAT: s *= 4; break;
       default:
         RDCWARN("Unexpected type %x, defaulting to 1 byte type", type);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_UNSIGNED_BYTE_3_3_2:
       case eGL_UNSIGNED_BYTE_2_3_3_REV: s = 1; break;
       case eGL_UNSIGNED_SHORT_5_6_5:
@@ -4237,7 +4237,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
     {
       default:
         RDCWARN("Unexpected format %x, defaulting to single component", format);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_RED:
       case eGL_RED_INTEGER:
       case eGL_GREEN_INTEGER:
@@ -4267,7 +4267,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
       case eGL_FLOAT: s *= 4; break;
       default:
         RDCWARN("Unexpected type %x, defaulting to 1 byte type", type);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_UNSIGNED_BYTE_3_3_2:
       case eGL_UNSIGNED_BYTE_2_3_3_REV: s = 1; break;
       case eGL_UNSIGNED_SHORT_5_6_5:
@@ -4545,7 +4545,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
     {
       default:
         RDCWARN("Unexpected format %x, defaulting to single component", format);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_RED:
       case eGL_RED_INTEGER:
       case eGL_GREEN_INTEGER:
@@ -4575,7 +4575,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
       case eGL_FLOAT: s *= 4; break;
       default:
         RDCWARN("Unexpected type %x, defaulting to 1 byte type", type);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_UNSIGNED_BYTE_3_3_2:
       case eGL_UNSIGNED_BYTE_2_3_3_REV: s = 1; break;
       case eGL_UNSIGNED_SHORT_5_6_5:
@@ -4659,7 +4659,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
     {
       default:
         RDCWARN("Unexpected format %x, defaulting to single component", format);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_RED:
       case eGL_RED_INTEGER:
       case eGL_GREEN_INTEGER:
@@ -4689,7 +4689,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
       case eGL_FLOAT: s *= 4; break;
       default:
         RDCWARN("Unexpected type %x, defaulting to 1 byte type", type);
-      // fall through
+        DELIBERATE_FALLTHROUGH();
       case eGL_UNSIGNED_BYTE_3_3_2:
       case eGL_UNSIGNED_BYTE_2_3_3_REV: s = 1; break;
       case eGL_UNSIGNED_SHORT_5_6_5:

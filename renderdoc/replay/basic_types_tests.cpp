@@ -600,9 +600,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
 
   SECTION("Empty string after containing data")
   {
-    rdcstr test;
-
-    auto lambda = [](rdcstr test, const char *str) {
+    auto lambda = [](rdcstr test, const char *c_str) {
       test.clear();
 
       CHECK(test.size() == 0);

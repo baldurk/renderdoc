@@ -499,9 +499,7 @@ void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &r
       id = WrappedID3D12Resource1::GetResIDFromAddr(data.nonsamp.cbv.BufferLocation);
       break;
     case D3D12DescriptorType::SRV: id = data.nonsamp.resource; break;
-    case D3D12DescriptorType::UAV:
-      id2 = data.nonsamp.counterResource;
-    // deliberate fall-through
+    case D3D12DescriptorType::UAV: id2 = data.nonsamp.counterResource; DELIBERATE_FALLTHROUGH();
     case D3D12DescriptorType::RTV:
     case D3D12DescriptorType::DSV:
       ref = eFrameRef_PartialWrite;

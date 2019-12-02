@@ -646,7 +646,8 @@ public:
     Serialise(name, str, flags);
     if(str.length() >= N)
     {
-      RDCWARN("Serialising string too large for fixed-size array '%s', will be truncated", name);
+      RDCWARN("Serialising string too large for fixed-size array '%s', will be truncated",
+              name.c_str());
       memcpy(el, str.c_str(), N - 1);
       el[N - 1] = 0;
     }

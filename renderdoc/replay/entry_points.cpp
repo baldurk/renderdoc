@@ -371,9 +371,9 @@ RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification
   return Process::InjectIntoProcess(pid, env, capturefile, opts, waitForExit != 0);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(void *mem)
 {
-  free((void *)mem);
+  free(mem);
 }
 
 // not exported, this is needed for calling from the container allocate functions

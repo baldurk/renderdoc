@@ -34,6 +34,7 @@ struct BindingElement
   DOCUMENT("");
   BindingElement() = default;
   BindingElement(const BindingElement &) = default;
+  BindingElement &operator=(const BindingElement &) = default;
 
   bool operator==(const BindingElement &o) const
   {
@@ -217,6 +218,7 @@ struct DescriptorBinding
   DOCUMENT("");
   DescriptorBinding() = default;
   DescriptorBinding(const DescriptorBinding &) = default;
+  DescriptorBinding &operator=(const DescriptorBinding &) = default;
 
   bool operator==(const DescriptorBinding &o) const
   {
@@ -264,6 +266,7 @@ struct DescriptorSet
   DOCUMENT("");
   DescriptorSet() = default;
   DescriptorSet(const DescriptorSet &) = default;
+  DescriptorSet &operator=(const DescriptorSet &) = default;
 
   bool operator==(const DescriptorSet &o) const
   {
@@ -302,6 +305,7 @@ struct Pipeline
   DOCUMENT("");
   Pipeline() = default;
   Pipeline(const Pipeline &) = default;
+  Pipeline &operator=(const Pipeline &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the pipeline object.");
   ResourceId pipelineResourceId;
@@ -320,6 +324,7 @@ struct IndexBuffer
   DOCUMENT("");
   IndexBuffer() = default;
   IndexBuffer(const IndexBuffer &) = default;
+  IndexBuffer &operator=(const IndexBuffer &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the index buffer.");
   ResourceId resourceId;
@@ -334,6 +339,7 @@ struct InputAssembly
   DOCUMENT("");
   InputAssembly() = default;
   InputAssembly(const InputAssembly &) = default;
+  InputAssembly &operator=(const InputAssembly &) = default;
 
   DOCUMENT("``True`` if primitive restart is enabled for strip primitives.");
   bool primitiveRestartEnable = false;
@@ -348,6 +354,7 @@ struct VertexAttribute
   DOCUMENT("");
   VertexAttribute() = default;
   VertexAttribute(const VertexAttribute &) = default;
+  VertexAttribute &operator=(const VertexAttribute &) = default;
 
   bool operator==(const VertexAttribute &o) const
   {
@@ -384,6 +391,7 @@ struct VertexBinding
   DOCUMENT("");
   VertexBinding() = default;
   VertexBinding(const VertexBinding &) = default;
+  VertexBinding &operator=(const VertexBinding &) = default;
 
   bool operator==(const VertexBinding &o) const
   {
@@ -424,6 +432,7 @@ struct VertexBuffer
   DOCUMENT("");
   VertexBuffer() = default;
   VertexBuffer(const VertexBuffer &) = default;
+  VertexBuffer &operator=(const VertexBuffer &) = default;
 
   bool operator==(const VertexBuffer &o) const
   {
@@ -449,6 +458,7 @@ struct VertexInput
   DOCUMENT("");
   VertexInput() = default;
   VertexInput(const VertexInput &) = default;
+  VertexInput &operator=(const VertexInput &) = default;
 
   DOCUMENT("A list of :class:`VKVertexAttribute` with the vertex attributes.");
   rdcarray<VertexAttribute> attributes;
@@ -464,6 +474,7 @@ struct SpecializationConstant
   DOCUMENT("");
   SpecializationConstant() = default;
   SpecializationConstant(const SpecializationConstant &) = default;
+  SpecializationConstant &operator=(const SpecializationConstant &) = default;
 
   bool operator==(const SpecializationConstant &o) const
   {
@@ -489,6 +500,7 @@ struct Shader
   DOCUMENT("");
   Shader() = default;
   Shader(const Shader &) = default;
+  Shader &operator=(const Shader &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the shader module object.");
   ResourceId resourceId;
@@ -516,6 +528,7 @@ struct Tessellation
   DOCUMENT("");
   Tessellation() = default;
   Tessellation(const Tessellation &) = default;
+  Tessellation &operator=(const Tessellation &) = default;
 
   DOCUMENT("The number of control points in each input patch.");
   uint32_t numControlPoints = 0;
@@ -530,6 +543,7 @@ struct XFBBuffer
   DOCUMENT("");
   XFBBuffer() = default;
   XFBBuffer(const XFBBuffer &) = default;
+  XFBBuffer &operator=(const XFBBuffer &) = default;
 
   bool operator==(const XFBBuffer &o) const
   {
@@ -580,6 +594,7 @@ struct TransformFeedback
   DOCUMENT("");
   TransformFeedback() = default;
   TransformFeedback(const TransformFeedback &) = default;
+  TransformFeedback &operator=(const TransformFeedback &) = default;
 
   DOCUMENT("The bound transform feedback buffers.");
   rdcarray<XFBBuffer> buffers;
@@ -591,6 +606,7 @@ struct RenderArea
   DOCUMENT("");
   RenderArea() = default;
   RenderArea(const RenderArea &) = default;
+  RenderArea &operator=(const RenderArea &) = default;
   bool operator==(const RenderArea &o) const
   {
     return x == o.x && y == o.y && width == o.width && height == o.height;
@@ -624,6 +640,7 @@ struct ViewportScissor
   DOCUMENT("");
   ViewportScissor() = default;
   ViewportScissor(const ViewportScissor &) = default;
+  ViewportScissor &operator=(const ViewportScissor &) = default;
 
   bool operator==(const ViewportScissor &o) const { return vp == o.vp && scissor == o.scissor; }
   bool operator<(const ViewportScissor &o) const
@@ -646,6 +663,7 @@ struct ViewState
   DOCUMENT("");
   ViewState() = default;
   ViewState(const ViewState &) = default;
+  ViewState &operator=(const ViewState &) = default;
 
   DOCUMENT("A list of :class:`VKViewportScissor`.");
   rdcarray<ViewportScissor> viewportScissors;
@@ -672,6 +690,7 @@ struct Rasterizer
   DOCUMENT("");
   Rasterizer() = default;
   Rasterizer(const Rasterizer &) = default;
+  Rasterizer &operator=(const Rasterizer &) = default;
 
   DOCUMENT(R"(``True`` if pixels outside of the near and far depth planes should be clamped and
 to ``0.0`` to ``1.0``.
@@ -730,6 +749,7 @@ struct SampleLocations
   DOCUMENT("");
   SampleLocations() = default;
   SampleLocations(const SampleLocations &) = default;
+  SampleLocations &operator=(const SampleLocations &) = default;
 
   DOCUMENT("The width in pixels of the region configured.");
   uint32_t gridWidth = 1;
@@ -749,6 +769,7 @@ struct MultiSample
   DOCUMENT("");
   MultiSample() = default;
   MultiSample(const MultiSample &) = default;
+  MultiSample &operator=(const MultiSample &) = default;
 
   DOCUMENT("How many samples to use when rasterizing.");
   uint32_t rasterSamples = 0;
@@ -768,6 +789,7 @@ struct ColorBlendState
   DOCUMENT("");
   ColorBlendState() = default;
   ColorBlendState(const ColorBlendState &) = default;
+  ColorBlendState &operator=(const ColorBlendState &) = default;
 
   DOCUMENT("``True`` if alpha-to-coverage should be used when blending to an MSAA target.");
   bool alphaToCoverageEnable = false;
@@ -787,6 +809,7 @@ struct DepthStencil
   DOCUMENT("");
   DepthStencil() = default;
   DepthStencil(const DepthStencil &) = default;
+  DepthStencil &operator=(const DepthStencil &) = default;
 
   DOCUMENT("``True`` if depth testing should be performed.");
   bool depthTestEnable = false;
@@ -817,6 +840,7 @@ struct RenderPass
   DOCUMENT("");
   RenderPass() = default;
   RenderPass(const RenderPass &) = default;
+  RenderPass &operator=(const RenderPass &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the render pass.");
   ResourceId resourceId;
@@ -858,6 +882,7 @@ struct Attachment
   DOCUMENT("");
   Attachment() = default;
   Attachment(const Attachment &) = default;
+  Attachment &operator=(const Attachment &) = default;
 
   bool operator==(const Attachment &o) const
   {
@@ -918,6 +943,7 @@ struct Framebuffer
   DOCUMENT("");
   Framebuffer() = default;
   Framebuffer(const Framebuffer &) = default;
+  Framebuffer &operator=(const Framebuffer &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the framebuffer object.");
   ResourceId resourceId;
@@ -939,6 +965,7 @@ struct CurrentPass
   DOCUMENT("");
   CurrentPass() = default;
   CurrentPass(const CurrentPass &) = default;
+  CurrentPass &operator=(const CurrentPass &) = default;
 
   DOCUMENT("The :class:`VKRenderPass` that is currently active.");
   RenderPass renderpass;
@@ -954,6 +981,7 @@ struct ImageLayout
   DOCUMENT("");
   ImageLayout() = default;
   ImageLayout(const ImageLayout &) = default;
+  ImageLayout &operator=(const ImageLayout &) = default;
 
   bool operator==(const ImageLayout &o) const
   {
@@ -992,6 +1020,7 @@ struct ImageData
   DOCUMENT("");
   ImageData() = default;
   ImageData(const ImageData &) = default;
+  ImageData &operator=(const ImageData &) = default;
 
   bool operator==(const ImageData &o) const { return resourceId == o.resourceId; }
   bool operator<(const ImageData &o) const
@@ -1013,6 +1042,7 @@ struct ConditionalRendering
   DOCUMENT("");
   ConditionalRendering() = default;
   ConditionalRendering(const ConditionalRendering &) = default;
+  ConditionalRendering &operator=(const ConditionalRendering &) = default;
 
   DOCUMENT(
       "The :class:`ResourceId` of the buffer containing the predicate for conditional rendering.");

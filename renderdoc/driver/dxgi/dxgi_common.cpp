@@ -243,8 +243,8 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
       ret = ret + ret / 2;
       break;
     case DXGI_FORMAT_P010:
-    // 10-bit formats are stored identically to 16-bit formats
-    // deliberate fallthrough
+      // 10-bit formats are stored identically to 16-bit formats
+      DELIBERATE_FALLTHROUGH();
     case DXGI_FORMAT_P016:
       // 4:2:0 planar but 16-bit, so pixelCount*2 + (pixelCount*2) / 2
       ret *= 2;
@@ -260,8 +260,8 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
       ret *= 2;
       break;
     case DXGI_FORMAT_Y210:
-    // 10-bit formats are stored identically to 16-bit formats
-    // deliberate fallthrough
+      // 10-bit formats are stored identically to 16-bit formats
+      DELIBERATE_FALLTHROUGH();
     case DXGI_FORMAT_Y216:
       // 4:2:2 packed 16-bit
       ret *= 4;
@@ -272,9 +272,9 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
       ret = ret + ret / 2;
       break;
     case DXGI_FORMAT_AI44:
-    // special format, 1 byte per pixel, palletised values in 4 most significant bits, alpha in 4
-    // least significant bits.
-    // deliberate fallthrough
+      // special format, 1 byte per pixel, palletised values in 4 most significant bits, alpha in 4
+      // least significant bits.
+      DELIBERATE_FALLTHROUGH();
     case DXGI_FORMAT_IA44:
       // same as above but swapped MSB/LSB
       break;
@@ -339,8 +339,8 @@ UINT GetRowPitch(int Width, DXGI_FORMAT Format, int mip)
       // pixel - 1 byte luma each, and half subsampled chroma U/V in 1 byte total per pixel.
       break;
     case DXGI_FORMAT_P010:
-    // 10-bit formats are stored identically to 16-bit formats
-    // deliberate fallthrough
+      // 10-bit formats are stored identically to 16-bit formats
+      DELIBERATE_FALLTHROUGH();
     case DXGI_FORMAT_P016:
       // Similar to NV12 but 16-bit elements
       ret *= 2;
@@ -354,8 +354,8 @@ UINT GetRowPitch(int Width, DXGI_FORMAT Format, int mip)
       ret *= 2;
       break;
     case DXGI_FORMAT_Y210:
-    // 10-bit formats are stored identically to 16-bit formats
-    // deliberate fallthrough
+      // 10-bit formats are stored identically to 16-bit formats
+      DELIBERATE_FALLTHROUGH();
     case DXGI_FORMAT_Y216:
       // 4:2:2 packed 16-bit
       ret *= 4;
@@ -366,9 +366,9 @@ UINT GetRowPitch(int Width, DXGI_FORMAT Format, int mip)
       ret = ret;
       break;
     case DXGI_FORMAT_AI44:
-    // special format, 1 byte per pixel, palletised values in 4 most significant bits, alpha in 4
-    // least significant bits.
-    // deliberate fallthrough
+      // special format, 1 byte per pixel, palletised values in 4 most significant bits, alpha in 4
+      // least significant bits.
+      DELIBERATE_FALLTHROUGH();
     case DXGI_FORMAT_IA44:
       // same as above but swapped MSB/LSB
       break;

@@ -459,7 +459,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   rs.pNext = NULL;
 
   rs.depthClampEnable = pipeInfo.depthClampEnable;
-  rs.rasterizerDiscardEnable = pipeInfo.rasterizerDiscardEnable,
+  rs.rasterizerDiscardEnable = pipeInfo.rasterizerDiscardEnable;
   rs.polygonMode = pipeInfo.polygonMode;
   rs.cullMode = pipeInfo.cullMode;
   rs.frontFace = pipeInfo.frontFace;

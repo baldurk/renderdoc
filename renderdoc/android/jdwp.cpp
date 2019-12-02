@@ -42,8 +42,8 @@ void InjectVulkanLayerSearchPath(Connection &conn, threadID thread, int32_t slot
 
   if(!stringClass || !stringConcat)
   {
-    RDCERR("Couldn't find java.lang.String (%llu) or java.lang.String.concat() (%llu)", stringClass,
-           stringConcat);
+    RDCERR("Couldn't find java.lang.String (%llu) or java.lang.String.concat() (%llu)",
+           (uint64_t)stringClass, (uint64_t)stringConcat);
     return;
   }
 
@@ -247,8 +247,8 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
       // (re-suspended) when the first event occurs that matches the filter function
       Event evData =
           conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, vulkanLoaderClass}},
-                            [vulkanLoaderMethod](const Event &evData) {
-                              return evData.MethodEntry.location.meth == vulkanLoaderMethod;
+                            [vulkanLoaderMethod](const Event &ev) {
+                              return ev.MethodEntry.location.meth == vulkanLoaderMethod;
                             });
 
       // if we successfully hit the event, try to inject
@@ -290,10 +290,9 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 
   // wait until we hit the constructor of android.app.Application
   {
-    Event evData = conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, androidApp}},
-                                     [appConstruct](const Event &evData) {
-                                       return evData.MethodEntry.location.meth == appConstruct;
-                                     });
+    Event evData = conn.WaitForEvent(
+        EventKind::MethodEntry, {{ModifierKind::ClassOnly, androidApp}},
+        [appConstruct](const Event &ev) { return ev.MethodEntry.location.meth == appConstruct; });
 
     if(evData.eventKind == EventKind::MethodEntry)
       thread = evData.MethodEntry.thread;
@@ -371,11 +370,9 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   {
     thread = 0;
 
-    Event evData =
-        conn.WaitForEvent(EventKind::MethodEntry, {{ModifierKind::ClassOnly, onCreateClass}},
-                          [onCreateMethod](const Event &evData) {
-                            return evData.MethodEntry.location.meth == onCreateMethod;
-                          });
+    Event evData = conn.WaitForEvent(
+        EventKind::MethodEntry, {{ModifierKind::ClassOnly, onCreateClass}},
+        [onCreateMethod](const Event &ev) { return ev.MethodEntry.location.meth == onCreateMethod; });
 
     if(evData.eventKind == EventKind::MethodEntry)
       thread = evData.MethodEntry.thread;
@@ -403,7 +400,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   if(getRuntime == 0 || load == 0)
   {
     RDCERR("Couldn't find java.lang.Runtime.getRuntime() %llu or java.lang.Runtime.load() %llu",
-           getRuntime, load);
+           (uint64_t)getRuntime, (uint64_t)load);
     return false;
   }
 

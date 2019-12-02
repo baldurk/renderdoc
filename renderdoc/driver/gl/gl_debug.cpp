@@ -1409,9 +1409,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     {
       case eGL_STENCIL_INDEX1: rangeScale = 1.0f; break;
       case eGL_STENCIL_INDEX4: rangeScale = 16.0f; break;
-      default:
-        RDCWARN("Unexpected raw format for stencil visualization");
-      // fall through
+      default: RDCWARN("Unexpected raw format for stencil visualization"); DELIBERATE_FALLTHROUGH();
       case eGL_DEPTH24_STENCIL8:
       case eGL_DEPTH32F_STENCIL8:
       case eGL_DEPTH_STENCIL:
@@ -1456,9 +1454,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
-    default:
-      RDCWARN("Unexpected texture type");
-    // fall through
+    default: RDCWARN("Unexpected texture type"); DELIBERATE_FALLTHROUGH();
     case eGL_TEXTURE_2D: texSlot = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: texSlot = RESTYPE_TEX2DMS; break;
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: texSlot = RESTYPE_TEX2DMSARRAY; break;
@@ -1680,9 +1676,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
-    default:
-      RDCWARN("Unexpected texture type");
-    // fall through
+    default: RDCWARN("Unexpected texture type"); DELIBERATE_FALLTHROUGH();
     case eGL_TEXTURE_2D: texSlot = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: texSlot = RESTYPE_TEX2DMS; break;
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: texSlot = RESTYPE_TEX2DMSARRAY; break;
@@ -1759,7 +1753,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
         case eGL_STENCIL_INDEX4: rangeScale = 16.0f; break;
         default:
           RDCWARN("Unexpected raw format for stencil visualization");
-        // fall through
+          DELIBERATE_FALLTHROUGH();
         case eGL_DEPTH24_STENCIL8:
         case eGL_DEPTH32F_STENCIL8:
         case eGL_DEPTH_STENCIL:

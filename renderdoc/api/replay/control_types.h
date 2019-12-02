@@ -51,6 +51,7 @@ struct MeshFormat
     restartIndex = 0xffffffff;
   }
   MeshFormat(const MeshFormat &o) = default;
+  MeshFormat &operator=(const MeshFormat &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the index buffer that goes with this mesh element.");
   ResourceId indexResourceId;
@@ -119,6 +120,7 @@ struct MeshDisplay
   DOCUMENT("");
   MeshDisplay() = default;
   MeshDisplay(const MeshDisplay &) = default;
+  MeshDisplay &operator=(const MeshDisplay &) = default;
 
   DOCUMENT("The :class:`MeshDataStage` where this mesh data comes from.");
   MeshDataStage type;
@@ -194,6 +196,7 @@ struct TextureDisplay
   DOCUMENT("");
   TextureDisplay() = default;
   TextureDisplay(const TextureDisplay &) = default;
+  TextureDisplay &operator=(const TextureDisplay &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the texture to display.");
   ResourceId resourceId;
@@ -305,6 +308,7 @@ struct TextureComponentMapping
   DOCUMENT("");
   TextureComponentMapping() = default;
   TextureComponentMapping(const TextureComponentMapping &) = default;
+  TextureComponentMapping &operator=(const TextureComponentMapping &) = default;
 
   DOCUMENT("The value that should be mapped to ``0``");
   float blackPoint = 0.0f;
@@ -325,6 +329,7 @@ struct TextureSampleMapping
   DOCUMENT("");
   TextureSampleMapping() = default;
   TextureSampleMapping(const TextureSampleMapping &) = default;
+  TextureSampleMapping &operator=(const TextureSampleMapping &) = default;
 
   DOCUMENT(R"(
 ``True`` if the samples should be mapped to array slices. A multisampled array expands each slice
@@ -356,6 +361,7 @@ struct TextureSliceMapping
   DOCUMENT("");
   TextureSliceMapping() = default;
   TextureSliceMapping(const TextureSliceMapping &) = default;
+  TextureSliceMapping &operator=(const TextureSliceMapping &) = default;
 
   DOCUMENT(R"(
 Selects the (depth/array) slice to save.
@@ -402,6 +408,7 @@ struct TextureSave
   DOCUMENT("");
   TextureSave() = default;
   TextureSave(const TextureSave &) = default;
+  TextureSave &operator=(const TextureSave &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the texture to save.");
   ResourceId resourceId;
@@ -466,6 +473,7 @@ struct NewCaptureData
   DOCUMENT("");
   NewCaptureData() = default;
   NewCaptureData(const NewCaptureData &) = default;
+  NewCaptureData &operator=(const NewCaptureData &) = default;
 
   DOCUMENT("An identifier to use to refer to this capture.");
   uint32_t captureId = 0;
@@ -499,6 +507,7 @@ struct APIUseData
   DOCUMENT("");
   APIUseData() = default;
   APIUseData(const APIUseData &) = default;
+  APIUseData &operator=(const APIUseData &) = default;
 
   DOCUMENT("The name of the API.");
   rdcstr name;
@@ -518,6 +527,7 @@ struct BusyData
   DOCUMENT("");
   BusyData() = default;
   BusyData(const BusyData &) = default;
+  BusyData &operator=(const BusyData &) = default;
 
   DOCUMENT("The name of the client currently connected to the target.");
   rdcstr clientName;
@@ -531,6 +541,7 @@ struct NewChildData
   DOCUMENT("");
   NewChildData() = default;
   NewChildData(const NewChildData &) = default;
+  NewChildData &operator=(const NewChildData &) = default;
 
   DOCUMENT("The PID (Process ID) of the new child.");
   uint32_t processId = 0;
@@ -546,6 +557,7 @@ struct TargetControlMessage
   DOCUMENT("");
   TargetControlMessage() = default;
   TargetControlMessage(const TargetControlMessage &) = default;
+  TargetControlMessage &operator=(const TargetControlMessage &) = default;
 
   DOCUMENT("The :class:`type <TargetControlMessageType>` of message received");
   TargetControlMessageType type = TargetControlMessageType::Unknown;
@@ -581,6 +593,7 @@ struct EnvironmentModification
       : mod(m), sep(s), name(n), value(v)
   {
   }
+  EnvironmentModification &operator=(const EnvironmentModification &) = default;
 
   bool operator==(const EnvironmentModification &o) const
   {
@@ -616,6 +629,7 @@ struct CaptureFileFormat
   DOCUMENT("");
   CaptureFileFormat() = default;
   CaptureFileFormat(const CaptureFileFormat &) = default;
+  CaptureFileFormat &operator=(const CaptureFileFormat &) = default;
 
   bool operator==(const CaptureFileFormat &o) const
   {
@@ -671,6 +685,7 @@ struct GPUDevice
   DOCUMENT("");
   GPUDevice() = default;
   GPUDevice(const GPUDevice &) = default;
+  GPUDevice &operator=(const GPUDevice &) = default;
 
   bool operator==(const GPUDevice &o) const
   {
@@ -709,6 +724,7 @@ struct ReplayOptions
   DOCUMENT("");
   ReplayOptions() = default;
   ReplayOptions(const ReplayOptions &) = default;
+  ReplayOptions &operator=(const ReplayOptions &) = default;
 
   DOCUMENT(R"(Replay with API validation enabled and use debug messages from there, ignoring any
 that may be contained in the capture.

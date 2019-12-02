@@ -40,6 +40,7 @@ struct Layout
   DOCUMENT("");
   Layout() = default;
   Layout(const Layout &) = default;
+  Layout &operator=(const Layout &) = default;
 
   bool operator==(const Layout &o) const
   {
@@ -106,6 +107,7 @@ struct VertexBuffer
   DOCUMENT("");
   VertexBuffer() = default;
   VertexBuffer(const VertexBuffer &) = default;
+  VertexBuffer &operator=(const VertexBuffer &) = default;
 
   bool operator==(const VertexBuffer &o) const
   {
@@ -143,6 +145,7 @@ struct IndexBuffer
   DOCUMENT("");
   IndexBuffer() = default;
   IndexBuffer(const IndexBuffer &) = default;
+  IndexBuffer &operator=(const IndexBuffer &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the index buffer.");
   ResourceId resourceId;
@@ -160,6 +163,7 @@ struct InputAssembly
   DOCUMENT("");
   InputAssembly() = default;
   InputAssembly(const InputAssembly &) = default;
+  InputAssembly &operator=(const InputAssembly &) = default;
 
   DOCUMENT("A list of :class:`D3D12Layout` describing the input layout elements in this layout.");
   rdcarray<Layout> layouts;
@@ -185,6 +189,7 @@ struct View
   DOCUMENT("");
   View() = default;
   View(const View &) = default;
+  View &operator=(const View &) = default;
 
   bool operator==(const View &o) const
   {
@@ -292,6 +297,7 @@ struct Sampler
   DOCUMENT("");
   Sampler() = default;
   Sampler(const Sampler &) = default;
+  Sampler &operator=(const Sampler &) = default;
 
   bool operator==(const Sampler &o) const
   {
@@ -385,6 +391,7 @@ struct ConstantBuffer
   DOCUMENT("");
   ConstantBuffer() = default;
   ConstantBuffer(const ConstantBuffer &) = default;
+  ConstantBuffer &operator=(const ConstantBuffer &) = default;
 
   bool operator==(const ConstantBuffer &o) const
   {
@@ -436,6 +443,7 @@ struct RegisterSpace
   DOCUMENT("");
   RegisterSpace() = default;
   RegisterSpace(const RegisterSpace &) = default;
+  RegisterSpace &operator=(const RegisterSpace &) = default;
 
   bool operator==(const RegisterSpace &o) const
   {
@@ -474,6 +482,7 @@ struct Shader
   DOCUMENT("");
   Shader() = default;
   Shader(const Shader &) = default;
+  Shader &operator=(const Shader &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the shader object itself.");
   ResourceId resourceId;
@@ -512,6 +521,7 @@ struct StreamOutBind
   DOCUMENT("");
   StreamOutBind() = default;
   StreamOutBind(const StreamOutBind &) = default;
+  StreamOutBind &operator=(const StreamOutBind &) = default;
 
   bool operator==(const StreamOutBind &o) const
   {
@@ -556,6 +566,7 @@ struct StreamOut
   DOCUMENT("");
   StreamOut() = default;
   StreamOut(const StreamOut &) = default;
+  StreamOut &operator=(const StreamOut &) = default;
 
   DOCUMENT("A list of ``D3D12SOBind`` with the bound buffers.");
   rdcarray<StreamOutBind> outputs;
@@ -567,6 +578,7 @@ struct RasterizerState
   DOCUMENT("");
   RasterizerState() = default;
   RasterizerState(const RasterizerState &) = default;
+  RasterizerState &operator=(const RasterizerState &) = default;
 
   DOCUMENT("The polygon :class:`FillMode`.");
   FillMode fillMode = FillMode::Solid;
@@ -606,6 +618,7 @@ struct Rasterizer
   DOCUMENT("");
   Rasterizer() = default;
   Rasterizer(const Rasterizer &) = default;
+  Rasterizer &operator=(const Rasterizer &) = default;
 
   DOCUMENT("The mask determining which samples are written to.");
   uint32_t sampleMask = ~0U;
@@ -626,6 +639,7 @@ struct DepthStencilState
   DOCUMENT("");
   DepthStencilState() = default;
   DepthStencilState(const DepthStencilState &) = default;
+  DepthStencilState &operator=(const DepthStencilState &) = default;
 
   DOCUMENT("``True`` if depth testing should be performed.");
   bool depthEnable = false;
@@ -655,6 +669,7 @@ struct BlendState
   DOCUMENT("");
   BlendState() = default;
   BlendState(const BlendState &) = default;
+  BlendState &operator=(const BlendState &) = default;
 
   DOCUMENT("``True`` if alpha-to-coverage should be used when blending to an MSAA target.");
   bool alphaToCoverage = false;
@@ -677,6 +692,7 @@ struct OM
   DOCUMENT("");
   OM() = default;
   OM(const OM &) = default;
+  OM &operator=(const OM &) = default;
 
   DOCUMENT("A :class:`D3D12DepthStencilState` with the details of the depth-stencil state.");
   DepthStencilState depthStencilState;
@@ -705,6 +721,7 @@ struct ResourceState
   DOCUMENT("");
   ResourceState() = default;
   ResourceState(const ResourceState &) = default;
+  ResourceState &operator=(const ResourceState &) = default;
 
   bool operator==(const ResourceState &o) const { return name == o.name; }
   bool operator<(const ResourceState &o) const
@@ -723,6 +740,7 @@ struct ResourceData
   DOCUMENT("");
   ResourceData() = default;
   ResourceData(const ResourceData &) = default;
+  ResourceData &operator=(const ResourceData &) = default;
 
   bool operator==(const ResourceData &o) const
   {

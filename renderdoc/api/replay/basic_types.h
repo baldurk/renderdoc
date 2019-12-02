@@ -293,12 +293,12 @@ protected:
 #endif
     return ret;
   }
-  static void deallocate(const T *p)
+  static void deallocate(T *p)
   {
 #ifdef RENDERDOC_EXPORTS
     free((void *)p);
 #else
-    RENDERDOC_FreeArrayMem((const void *)p);
+    RENDERDOC_FreeArrayMem((void *)p);
 #endif
   }
 

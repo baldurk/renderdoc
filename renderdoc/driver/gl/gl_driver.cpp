@@ -1213,6 +1213,9 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
     {
       std::string name;
 
+      // also add a simple resource descriptor for the context
+      AddResource(Context, ResourceType::Device, "Context");
+
       if(m_CurrentDefaultFBO == 0)
       {
         // if we haven't created a default FBO yet this is the first. Give it a nice friendly name
@@ -1222,14 +1225,11 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
       {
         // if not, we have multiple FBOs and we want to distinguish them. Give the subsequent
         // backbuffers unique names
-        name = StringFormat::Fmt("Context %llu Backbuffer", Context);
+        name = GetReplay()->GetResourceDesc(Context).name + " Backbuffer";
       }
 
       GLuint fbo = 0;
       CreateReplayBackbuffer(InitParams, FBO, fbo, name);
-
-      // also add a simple resource descriptor for the context
-      AddResource(Context, ResourceType::Device, "Context");
     }
 
     m_CurrentDefaultFBO = GetResourceManager()->GetLiveResource(FBO).name;
@@ -2320,8 +2320,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
             GLResourceRecord *record = it->second.m_ContextDataRecord;
             if(record)
             {
-              RDCDEBUG("Getting Resource Record for context ID %llu with %zu chunks",
-                       it->second.m_ContextDataResourceID, record->NumChunks());
+              RDCDEBUG("Getting Resource Record for context ID %s with %zu chunks",
+                       ToStr(it->second.m_ContextDataResourceID).c_str(), record->NumChunks());
               record->Insert(recordlist);
             }
           }
@@ -2903,7 +2903,7 @@ void WrappedOpenGL::AttemptCapture()
   }
 
   {
-    RDCDEBUG("GL Context %llu Attempting capture", m_ContextResourceID);
+    RDCDEBUG("GL Context %s Attempting capture", ToStr(m_ContextResourceID).c_str());
 
     m_SuccessfulCapture = true;
     m_FailureReason = CaptureSucceeded;

@@ -280,8 +280,8 @@ std::vector<VariableSlot> Connection::GetLocalVariables(referenceTypeID type, me
 
   CommandData data = cmd.GetData();
   data.Read(argumentCount);    // unused for now
-  ReadVector<VariableSlot>(data, slots, [](CommandData &data, VariableSlot &s) {
-    data.Read(s.codeIndex).Read(s.name).Read(s.signature).Read(s.length).Read(s.slot);
+  ReadVector<VariableSlot>(data, slots, [](CommandData &d, VariableSlot &s) {
+    d.Read(s.codeIndex).Read(s.name).Read(s.signature).Read(s.length).Read(s.slot);
   });
   data.Done();
 
@@ -299,8 +299,8 @@ fieldID Connection::GetField(referenceTypeID type, const std::string &name,
 
   std::vector<Field> fields;
   CommandData data = cmd.GetData();
-  ReadVector<Field>(data, fields, [](CommandData &data, Field &f) {
-    data.Read(f.id).Read(f.name).Read(f.signature).Read(f.modBits);
+  ReadVector<Field>(data, fields, [](CommandData &d, Field &f) {
+    d.Read(f.id).Read(f.name).Read(f.signature).Read(f.modBits);
   });
   data.Done();
 
@@ -341,8 +341,8 @@ std::vector<StackFrame> Connection::GetCallStack(threadID thread)
 
   std::vector<StackFrame> ret;
   CommandData data = cmd.GetData();
-  ReadVector<StackFrame>(
-      data, ret, [](CommandData &data, StackFrame &f) { data.Read(f.id).Read(f.location); });
+  ReadVector<StackFrame>(data, ret,
+                         [](CommandData &d, StackFrame &f) { d.Read(f.id).Read(f.location); });
   data.Done();
 
   // simplify error handling, if the stack came back as nonsense then clear it
@@ -401,10 +401,10 @@ Event Connection::WaitForEvent(EventKind kind, const std::vector<EventFilter> &e
     // always suspend all threads
     data.Write((byte)kind).Write((byte)SuspendPolicy::All);
 
-    WriteVector<EventFilter>(data, eventFilters, [](CommandData &data, const EventFilter &f) {
-      data.Write((byte)f.modKind);
+    WriteVector<EventFilter>(data, eventFilters, [](CommandData &d, const EventFilter &f) {
+      d.Write((byte)f.modKind);
       if(f.modKind == ModifierKind::ClassOnly)
-        data.Write(f.ClassOnly);
+        d.Write(f.ClassOnly);
       else
         RDCERR("Unsupported event filter %d", f.modKind);
     });
@@ -444,7 +444,7 @@ Event Connection::WaitForEvent(EventKind kind, const std::vector<EventFilter> &e
     CommandData data = msg.GetData();
 
     data.Read((byte &)suspendPolicy);
-    ReadVector<Event>(data, events, [this](CommandData &data, Event &ev) { ReadEvent(data, ev); });
+    ReadVector<Event>(data, events, [this](CommandData &d, Event &ev) { ReadEvent(d, ev); });
     data.Done();
 
     // event arrived, we're now suspended
@@ -540,7 +540,7 @@ value Connection::InvokeInstance(threadID thread, classID clazz, methodID method
     data.Write(object).Write(thread).Write(clazz).Write(method);
   }
 
-  WriteVector<value>(data, arguments, [](CommandData &data, const value &v) { data.Write(v); });
+  WriteVector<value>(data, arguments, [](CommandData &d, const value &v) { d.Write(v); });
 
   data.Write((int32_t)options);
 
@@ -610,8 +610,8 @@ std::vector<Method> Connection::GetMethods(referenceTypeID searchClass)
 
   std::vector<Method> ret;
   CommandData data = cmd.GetData();
-  ReadVector<Method>(data, ret, [](CommandData &data, Method &m) {
-    data.Read(m.id).Read(m.name).Read(m.signature).Read(m.modBits);
+  ReadVector<Method>(data, ret, [](CommandData &d, Method &m) {
+    d.Read(m.id).Read(m.name).Read(m.signature).Read(m.modBits);
   });
   data.Done();
   return ret;

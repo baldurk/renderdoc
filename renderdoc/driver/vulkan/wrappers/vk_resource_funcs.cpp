@@ -207,11 +207,11 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
     }
 
     RDCERR(
-        "Trying to bind %s to memory %llu which is type %u, "
+        "Trying to bind %s to memory %s which is type %u, "
         "but only these types are allowed: %s\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
-        resourceName, memOrigId, memInfo.memoryTypeIndex, bitsString.c_str());
+        resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, bitsString.c_str());
     m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
@@ -220,11 +220,11 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
   if((memoryOffset % mrq.alignment) != 0)
   {
     RDCERR(
-        "Trying to bind %s to memory %llu which is type %u, "
+        "Trying to bind %s to memory %s which is type %u, "
         "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
-        resourceName, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
+        resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
     m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
@@ -233,11 +233,12 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
   if(mrq.size > memInfo.size - memoryOffset)
   {
     RDCERR(
-        "Trying to bind %s to memory %llu which is type %u, "
+        "Trying to bind %s to memory %s which is type %u, "
         "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
-        resourceName, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.size, memInfo.size);
+        resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.size,
+        memInfo.size);
     m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
@@ -325,7 +326,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
       }
       else
       {
-        RDCWARN("Can't create buffer covering memory allocation %llu", Memory);
+        RDCWARN("Can't create buffer covering memory allocation %s", ToStr(Memory).c_str());
         ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
 
         m_CreationInfo.m_Memory[live].wholeMemBuf = VK_NULL_HANDLE;
@@ -907,8 +908,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), &mrq);
 
-    bool ok = CheckMemoryRequirements(StringFormat::Fmt("Buffer %llu", resOrigId).c_str(),
-                                      GetResID(memory), memoryOffset, mrq);
+    bool ok = CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(memory),
+                                      memoryOffset, mrq);
 
     if(!ok)
       return false;
@@ -1008,8 +1009,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), &mrq);
 
-    bool ok = CheckMemoryRequirements(StringFormat::Fmt("Image %llu", resOrigId).c_str(),
-                                      GetResID(memory), memoryOffset, mrq);
+    bool ok = CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(), GetResID(memory),
+                                      memoryOffset, mrq);
 
     if(!ok)
       return false;
@@ -2017,7 +2018,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(bindInfo.buffer), &mrq);
 
-      bool ok = CheckMemoryRequirements(StringFormat::Fmt("Buffer %llu", resOrigId).c_str(),
+      bool ok = CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(),
                                         GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq);
 
       if(!ok)
@@ -2132,7 +2133,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(bindInfo.image), &mrq);
 
-      bool ok = CheckMemoryRequirements(StringFormat::Fmt("Image %llu", resOrigId).c_str(),
+      bool ok = CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(),
                                         GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq);
 
       if(!ok)

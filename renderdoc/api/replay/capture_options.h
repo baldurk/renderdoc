@@ -48,7 +48,7 @@ struct CaptureOptions
   {
     rdcstr optstr;
     optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-    byte *b = (byte *)this;
+    const byte *b = (const byte *)this;
     for(size_t i = 0; i < sizeof(CaptureOptions); i++)
     {
       optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
@@ -67,7 +67,7 @@ struct CaptureOptions
     // serialise from string with two chars per byte
     byte *b = (byte *)this;
     for(size_t i = 0; i < sizeof(CaptureOptions); i++)
-      *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
+      *(b++) = byte(((byte(str[i * 2 + 0] - 'a') & 0xf) << 4) | (byte(str[i * 2 + 1] - 'a') & 0xf));
   }
 
   DOCUMENT(R"(Allow the application to enable vsync.

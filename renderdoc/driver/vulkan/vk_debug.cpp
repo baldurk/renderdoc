@@ -1501,7 +1501,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
   if(res == VK_NULL_HANDLE)
   {
-    RDCERR("Getting buffer data for unknown buffer/memory %llu!", buff);
+    RDCERR("Getting buffer data for unknown buffer/memory %s!", ToStr(buff).c_str());
     return;
   }
 

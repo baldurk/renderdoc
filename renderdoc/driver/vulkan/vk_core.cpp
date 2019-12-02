@@ -1951,8 +1951,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       {
         m_CmdBufferRecords[i]->Insert(recordlist);
 
-        RDCDEBUG("Adding %u chunks to file serialiser from command buffer %llu",
-                 (uint32_t)recordlist.size(), m_CmdBufferRecords[i]->GetResourceID());
+        RDCDEBUG("Adding %u chunks to file serialiser from command buffer %s",
+                 (uint32_t)recordlist.size(), ToStr(m_CmdBufferRecords[i]->GetResourceID()).c_str());
       }
 
       m_FrameCaptureRecord->Insert(recordlist);
@@ -2584,402 +2584,283 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
   {
     case VulkanChunk::vkEnumeratePhysicalDevices:
       return Serialise_vkEnumeratePhysicalDevices(ser, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateDevice:
       return Serialise_vkCreateDevice(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkGetDeviceQueue:
       return Serialise_vkGetDeviceQueue(ser, VK_NULL_HANDLE, 0, 0, NULL);
-      break;
 
     case VulkanChunk::vkAllocateMemory:
       return Serialise_vkAllocateMemory(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkUnmapMemory:
       return Serialise_vkUnmapMemory(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
-      break;
     case VulkanChunk::vkFlushMappedMemoryRanges:
       return Serialise_vkFlushMappedMemoryRanges(ser, VK_NULL_HANDLE, 0, NULL);
-      break;
     case VulkanChunk::vkCreateCommandPool:
       return Serialise_vkCreateCommandPool(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkAllocateCommandBuffers:
       return Serialise_vkAllocateCommandBuffers(ser, VK_NULL_HANDLE, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateFramebuffer:
       return Serialise_vkCreateFramebuffer(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateRenderPass:
       return Serialise_vkCreateRenderPass(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateDescriptorPool:
       return Serialise_vkCreateDescriptorPool(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateDescriptorSetLayout:
       return Serialise_vkCreateDescriptorSetLayout(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateBuffer:
       return Serialise_vkCreateBuffer(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateBufferView:
       return Serialise_vkCreateBufferView(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateImage:
       return Serialise_vkCreateImage(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateImageView:
       return Serialise_vkCreateImageView(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateSampler:
       return Serialise_vkCreateSampler(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateShaderModule:
       return Serialise_vkCreateShaderModule(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreatePipelineLayout:
       return Serialise_vkCreatePipelineLayout(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreatePipelineCache:
       return Serialise_vkCreatePipelineCache(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateGraphicsPipelines:
       return Serialise_vkCreateGraphicsPipelines(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL,
                                                  NULL);
-      break;
     case VulkanChunk::vkCreateComputePipelines:
       return Serialise_vkCreateComputePipelines(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL,
                                                 NULL);
-      break;
     case VulkanChunk::vkGetSwapchainImagesKHR:
       return Serialise_vkGetSwapchainImagesKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, NULL, NULL);
-      break;
 
     case VulkanChunk::vkCreateSemaphore:
       return Serialise_vkCreateSemaphore(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkCreateFence:
     // these chunks re-use serialisation from vkCreateFence, but have separate chunks for user
     // identification
     case VulkanChunk::vkRegisterDeviceEventEXT:
     case VulkanChunk::vkRegisterDisplayEventEXT:
       return Serialise_vkCreateFence(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkGetFenceStatus:
       return Serialise_vkGetFenceStatus(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
-      break;
-    case VulkanChunk::vkResetFences:
-      return Serialise_vkResetFences(ser, VK_NULL_HANDLE, 0, NULL);
-      break;
+    case VulkanChunk::vkResetFences: return Serialise_vkResetFences(ser, VK_NULL_HANDLE, 0, NULL);
     case VulkanChunk::vkWaitForFences:
       return Serialise_vkWaitForFences(ser, VK_NULL_HANDLE, 0, NULL, VK_FALSE, 0);
-      break;
 
     case VulkanChunk::vkCreateEvent:
       return Serialise_vkCreateEvent(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkGetEventStatus:
       return Serialise_vkGetEventStatus(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
-      break;
-    case VulkanChunk::vkSetEvent:
-      return Serialise_vkSetEvent(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
-      break;
+    case VulkanChunk::vkSetEvent: return Serialise_vkSetEvent(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
     case VulkanChunk::vkResetEvent:
       return Serialise_vkResetEvent(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
-      break;
 
     case VulkanChunk::vkCreateQueryPool:
       return Serialise_vkCreateQueryPool(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
 
     case VulkanChunk::vkAllocateDescriptorSets:
       return Serialise_vkAllocateDescriptorSets(ser, VK_NULL_HANDLE, NULL, NULL);
-      break;
     case VulkanChunk::vkUpdateDescriptorSets:
       return Serialise_vkUpdateDescriptorSets(ser, VK_NULL_HANDLE, 0, NULL, 0, NULL);
-      break;
 
     case VulkanChunk::vkBeginCommandBuffer:
       return Serialise_vkBeginCommandBuffer(ser, VK_NULL_HANDLE, NULL);
-      break;
-    case VulkanChunk::vkEndCommandBuffer:
-      return Serialise_vkEndCommandBuffer(ser, VK_NULL_HANDLE);
-      break;
+    case VulkanChunk::vkEndCommandBuffer: return Serialise_vkEndCommandBuffer(ser, VK_NULL_HANDLE);
 
-    case VulkanChunk::vkQueueWaitIdle: return Serialise_vkQueueWaitIdle(ser, VK_NULL_HANDLE); break;
-    case VulkanChunk::vkDeviceWaitIdle:
-      return Serialise_vkDeviceWaitIdle(ser, VK_NULL_HANDLE);
-      break;
+    case VulkanChunk::vkQueueWaitIdle: return Serialise_vkQueueWaitIdle(ser, VK_NULL_HANDLE);
+    case VulkanChunk::vkDeviceWaitIdle: return Serialise_vkDeviceWaitIdle(ser, VK_NULL_HANDLE);
 
     case VulkanChunk::vkQueueSubmit:
       return Serialise_vkQueueSubmit(ser, VK_NULL_HANDLE, 0, NULL, VK_NULL_HANDLE);
-      break;
     case VulkanChunk::vkBindBufferMemory:
       return Serialise_vkBindBufferMemory(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
-      break;
     case VulkanChunk::vkBindImageMemory:
       return Serialise_vkBindImageMemory(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
-      break;
 
     case VulkanChunk::vkQueueBindSparse:
       return Serialise_vkQueueBindSparse(ser, VK_NULL_HANDLE, 0, NULL, VK_NULL_HANDLE);
-      break;
 
     case VulkanChunk::vkCmdBeginRenderPass:
       return Serialise_vkCmdBeginRenderPass(ser, VK_NULL_HANDLE, NULL, VK_SUBPASS_CONTENTS_MAX_ENUM);
-      break;
     case VulkanChunk::vkCmdNextSubpass:
       return Serialise_vkCmdNextSubpass(ser, VK_NULL_HANDLE, VK_SUBPASS_CONTENTS_MAX_ENUM);
-      break;
     case VulkanChunk::vkCmdExecuteCommands:
       return Serialise_vkCmdExecuteCommands(ser, VK_NULL_HANDLE, 0, NULL);
-      break;
-    case VulkanChunk::vkCmdEndRenderPass:
-      return Serialise_vkCmdEndRenderPass(ser, VK_NULL_HANDLE);
-      break;
+    case VulkanChunk::vkCmdEndRenderPass: return Serialise_vkCmdEndRenderPass(ser, VK_NULL_HANDLE);
 
     case VulkanChunk::vkCmdBindPipeline:
       return Serialise_vkCmdBindPipeline(ser, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM,
                                          VK_NULL_HANDLE);
-      break;
     case VulkanChunk::vkCmdSetViewport:
       return Serialise_vkCmdSetViewport(ser, VK_NULL_HANDLE, 0, 0, NULL);
-      break;
     case VulkanChunk::vkCmdSetScissor:
       return Serialise_vkCmdSetScissor(ser, VK_NULL_HANDLE, 0, 0, NULL);
-      break;
-    case VulkanChunk::vkCmdSetLineWidth:
-      return Serialise_vkCmdSetLineWidth(ser, VK_NULL_HANDLE, 0);
-      break;
+    case VulkanChunk::vkCmdSetLineWidth: return Serialise_vkCmdSetLineWidth(ser, VK_NULL_HANDLE, 0);
     case VulkanChunk::vkCmdSetDepthBias:
       return Serialise_vkCmdSetDepthBias(ser, VK_NULL_HANDLE, 0.0f, 0.0f, 0.0f);
-      break;
     case VulkanChunk::vkCmdSetBlendConstants:
       return Serialise_vkCmdSetBlendConstants(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkCmdSetDepthBounds:
       return Serialise_vkCmdSetDepthBounds(ser, VK_NULL_HANDLE, 0.0f, 0.0f);
-      break;
     case VulkanChunk::vkCmdSetStencilCompareMask:
       return Serialise_vkCmdSetStencilCompareMask(ser, VK_NULL_HANDLE, 0, 0);
-      break;
     case VulkanChunk::vkCmdSetStencilWriteMask:
       return Serialise_vkCmdSetStencilWriteMask(ser, VK_NULL_HANDLE, 0, 0);
-      break;
     case VulkanChunk::vkCmdSetStencilReference:
       return Serialise_vkCmdSetStencilReference(ser, VK_NULL_HANDLE, 0, 0);
-      break;
     case VulkanChunk::vkCmdBindDescriptorSets:
       return Serialise_vkCmdBindDescriptorSets(ser, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM,
                                                VK_NULL_HANDLE, 0, 0, NULL, 0, NULL);
-      break;
     case VulkanChunk::vkCmdBindIndexBuffer:
       return Serialise_vkCmdBindIndexBuffer(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
                                             VK_INDEX_TYPE_MAX_ENUM);
-      break;
     case VulkanChunk::vkCmdBindVertexBuffers:
       return Serialise_vkCmdBindVertexBuffers(ser, VK_NULL_HANDLE, 0, 0, NULL, NULL);
-      break;
     case VulkanChunk::vkCmdCopyBufferToImage:
       return Serialise_vkCmdCopyBufferToImage(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                               VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
-      break;
     case VulkanChunk::vkCmdCopyImageToBuffer:
       return Serialise_vkCmdCopyImageToBuffer(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                               VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, 0, NULL);
-      break;
     case VulkanChunk::vkCmdCopyImage:
       return Serialise_vkCmdCopyImage(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM,
                                       VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
-      break;
     case VulkanChunk::vkCmdBlitImage:
       return Serialise_vkCmdBlitImage(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM,
                                       VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL,
                                       VK_FILTER_MAX_ENUM);
-      break;
     case VulkanChunk::vkCmdResolveImage:
       return Serialise_vkCmdResolveImage(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                          VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE,
                                          VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
-      break;
     case VulkanChunk::vkCmdCopyBuffer:
       return Serialise_vkCmdCopyBuffer(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
-      break;
     case VulkanChunk::vkCmdUpdateBuffer:
       return Serialise_vkCmdUpdateBuffer(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, NULL);
-      break;
     case VulkanChunk::vkCmdFillBuffer:
       return Serialise_vkCmdFillBuffer(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
-      break;
     case VulkanChunk::vkCmdPushConstants:
       return Serialise_vkCmdPushConstants(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SHADER_STAGE_ALL,
                                           0, 0, NULL);
-      break;
     case VulkanChunk::vkCmdClearColorImage:
       return Serialise_vkCmdClearColorImage(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                             VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
-      break;
     case VulkanChunk::vkCmdClearDepthStencilImage:
       return Serialise_vkCmdClearDepthStencilImage(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                                    VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
-      break;
     case VulkanChunk::vkCmdClearAttachments:
       return Serialise_vkCmdClearAttachments(ser, VK_NULL_HANDLE, 0, NULL, 0, NULL);
-      break;
     case VulkanChunk::vkCmdPipelineBarrier:
       return Serialise_vkCmdPipelineBarrier(ser, VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL, 0, NULL,
                                             0, NULL);
-      break;
     case VulkanChunk::vkCmdWriteTimestamp:
       return Serialise_vkCmdWriteTimestamp(ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                                            VK_NULL_HANDLE, 0);
-      break;
     case VulkanChunk::vkCmdCopyQueryPoolResults:
       return Serialise_vkCmdCopyQueryPoolResults(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0,
                                                  VK_NULL_HANDLE, 0, 0, 0);
-      break;
     case VulkanChunk::vkCmdBeginQuery:
       return Serialise_vkCmdBeginQuery(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
-      break;
     case VulkanChunk::vkCmdEndQuery:
       return Serialise_vkCmdEndQuery(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
-      break;
     case VulkanChunk::vkCmdResetQueryPool:
       return Serialise_vkCmdResetQueryPool(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
-      break;
 
     case VulkanChunk::vkCmdSetEvent:
       return Serialise_vkCmdSetEvent(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-      break;
     case VulkanChunk::vkCmdResetEvent:
       return Serialise_vkCmdResetEvent(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-      break;
     case VulkanChunk::vkCmdWaitEvents:
       return Serialise_vkCmdWaitEvents(
           ser, VK_NULL_HANDLE, 0, NULL, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
           VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, NULL, 0, NULL, 0, NULL);
-      break;
 
-    case VulkanChunk::vkCmdDraw: return Serialise_vkCmdDraw(ser, VK_NULL_HANDLE, 0, 0, 0, 0); break;
+    case VulkanChunk::vkCmdDraw: return Serialise_vkCmdDraw(ser, VK_NULL_HANDLE, 0, 0, 0, 0);
     case VulkanChunk::vkCmdDrawIndirect:
       return Serialise_vkCmdDrawIndirect(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
-      break;
     case VulkanChunk::vkCmdDrawIndexed:
       return Serialise_vkCmdDrawIndexed(ser, VK_NULL_HANDLE, 0, 0, 0, 0, 0);
-      break;
     case VulkanChunk::vkCmdDrawIndexedIndirect:
       return Serialise_vkCmdDrawIndexedIndirect(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
-      break;
-    case VulkanChunk::vkCmdDispatch:
-      return Serialise_vkCmdDispatch(ser, VK_NULL_HANDLE, 0, 0, 0);
-      break;
+    case VulkanChunk::vkCmdDispatch: return Serialise_vkCmdDispatch(ser, VK_NULL_HANDLE, 0, 0, 0);
     case VulkanChunk::vkCmdDispatchIndirect:
       return Serialise_vkCmdDispatchIndirect(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
-      break;
 
     case VulkanChunk::vkCmdDebugMarkerBeginEXT:
       return Serialise_vkCmdDebugMarkerBeginEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkCmdDebugMarkerInsertEXT:
       return Serialise_vkCmdDebugMarkerInsertEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkCmdDebugMarkerEndEXT:
       return Serialise_vkCmdDebugMarkerEndEXT(ser, VK_NULL_HANDLE);
-      break;
     case VulkanChunk::vkDebugMarkerSetObjectNameEXT:
       return Serialise_vkDebugMarkerSetObjectNameEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::SetShaderDebugPath:
       return Serialise_SetShaderDebugPath(ser, VK_NULL_HANDLE, NULL);
-      break;
 
     case VulkanChunk::vkCreateSwapchainKHR:
       return Serialise_vkCreateSwapchainKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
 
     case VulkanChunk::vkCmdIndirectSubCommand:
       // this is a fake chunk generated at runtime as part of indirect draws.
       // Just in case it gets exported and imported, completely ignore it.
       return true;
-      break;
 
     case VulkanChunk::vkCmdPushDescriptorSetKHR:
       return Serialise_vkCmdPushDescriptorSetKHR(
           ser, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_GRAPHICS, VK_NULL_HANDLE, 0, 0, NULL);
-      break;
 
     case VulkanChunk::vkCmdPushDescriptorSetWithTemplateKHR:
       return Serialise_vkCmdPushDescriptorSetWithTemplateKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                                              VK_NULL_HANDLE, 0, NULL);
-      break;
 
     case VulkanChunk::vkCreateDescriptorUpdateTemplate:
       return Serialise_vkCreateDescriptorUpdateTemplate(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
     case VulkanChunk::vkUpdateDescriptorSetWithTemplate:
       return Serialise_vkUpdateDescriptorSetWithTemplate(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                                          VK_NULL_HANDLE, NULL);
-      break;
 
     case VulkanChunk::vkBindBufferMemory2:
       return Serialise_vkBindBufferMemory2(ser, VK_NULL_HANDLE, 0, NULL);
-      break;
     case VulkanChunk::vkBindImageMemory2:
       return Serialise_vkBindImageMemory2(ser, VK_NULL_HANDLE, 0, NULL);
-      break;
 
     case VulkanChunk::vkCmdWriteBufferMarkerAMD:
       return Serialise_vkCmdWriteBufferMarkerAMD(
           ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_NULL_HANDLE, 0, 0);
-      break;
 
     case VulkanChunk::vkSetDebugUtilsObjectNameEXT:
       return Serialise_vkSetDebugUtilsObjectNameEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkQueueBeginDebugUtilsLabelEXT:
       return Serialise_vkQueueBeginDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkQueueEndDebugUtilsLabelEXT:
       return Serialise_vkQueueEndDebugUtilsLabelEXT(ser, VK_NULL_HANDLE);
-      break;
     case VulkanChunk::vkQueueInsertDebugUtilsLabelEXT:
       return Serialise_vkQueueInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkCmdBeginDebugUtilsLabelEXT:
       return Serialise_vkCmdBeginDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
     case VulkanChunk::vkCmdEndDebugUtilsLabelEXT:
       return Serialise_vkCmdEndDebugUtilsLabelEXT(ser, VK_NULL_HANDLE);
-      break;
     case VulkanChunk::vkCmdInsertDebugUtilsLabelEXT:
       return Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, VK_NULL_HANDLE, NULL);
-      break;
 
     case VulkanChunk::vkCreateSamplerYcbcrConversion:
       return Serialise_vkCreateSamplerYcbcrConversion(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-      break;
 
     case VulkanChunk::vkCmdSetDeviceMask:
       return Serialise_vkCmdSetDeviceMask(ser, VK_NULL_HANDLE, 0);
-      break;
     case VulkanChunk::vkCmdDispatchBase:
       return Serialise_vkCmdDispatchBase(ser, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0);
-      break;
 
     case VulkanChunk::vkGetDeviceQueue2:
       return Serialise_vkGetDeviceQueue2(ser, VK_NULL_HANDLE, NULL, NULL);
-      break;
 
     case VulkanChunk::vkCmdDrawIndirectCountKHR:
       return Serialise_vkCmdDrawIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
                                                  VK_NULL_HANDLE, 0, 0, 0);
-      break;
     case VulkanChunk::vkCmdDrawIndexedIndirectCountKHR:
       return Serialise_vkCmdDrawIndexedIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
                                                         VK_NULL_HANDLE, 0, 0, 0);
-      break;
 
     case VulkanChunk::vkCreateRenderPass2KHR:
       return Serialise_vkCreateRenderPass2KHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
@@ -3019,10 +2900,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     }
     case VulkanChunk::vkResetQueryPoolEXT:
       return Serialise_vkResetQueryPoolEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
-      break;
     case VulkanChunk::vkCmdSetLineStippleEXT:
       return Serialise_vkCmdSetLineStippleEXT(ser, VK_NULL_HANDLE, 0, 0);
-      break;
     case VulkanChunk::ImageRefs:
     {
       std::vector<ImgRefsPair> data;
@@ -3658,7 +3537,7 @@ VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayInd
 
   if(it == m_RerecordCmds.end())
   {
-    RDCERR("Didn't generate re-record command for %llu", cmdid);
+    RDCERR("Didn't generate re-record command for %s", ToStr(cmdid).c_str());
     return NULL;
   }
 

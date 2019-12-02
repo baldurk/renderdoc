@@ -957,7 +957,7 @@ static TextureSwizzle Convert(VkComponentSwizzle s, int i)
 {
   switch(s)
   {
-    default: RDCWARN("Unexpected component swizzle value %d", (int)s);
+    default: RDCWARN("Unexpected component swizzle value %d", (int)s); DELIBERATE_FALLTHROUGH();
     case VK_COMPONENT_SWIZZLE_IDENTITY: break;
     case VK_COMPONENT_SWIZZLE_ZERO: return TextureSwizzle::Zero;
     case VK_COMPONENT_SWIZZLE_ONE: return TextureSwizzle::One;

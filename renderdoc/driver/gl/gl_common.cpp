@@ -61,17 +61,6 @@ bool CheckReplayContext()
   REQUIRE_FUNC(glGetStringi);
   REQUIRE_FUNC(glGetIntegerv);
 
-// we can't do without these extensions, but they should be present on any reasonable driver
-// as they should have minimal or no hardware requirement. They were present on mesa 10.6
-// for all drivers which dates to mid 2015.
-#undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, glesver, ext) ext,
-  enum
-  {
-    EXTENSION_CHECKS() ext_count,
-  };
-  bool exts[ext_count] = {};
-
   RDCLOG("Running GL replay on: %s / %s / %s", GL.glGetString(eGL_VENDOR),
          GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
 
@@ -93,14 +82,6 @@ bool CheckReplayContext()
 
     // skip the "GL_"
     ext += 3;
-
-#undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, glesver, extname)                                       \
-  if((!IsGLES && GLCoreVersion >= ver) || (IsGLES && GLCoreVersion >= glesver) || \
-     !strcmp(ext, STRINGIZE(extname)))                                            \
-    exts[extname] = true;
-
-    EXTENSION_CHECKS()
   }
 
   if(!extensionString.empty())
@@ -1584,13 +1565,13 @@ BufferCategory MakeBufferCategory(GLenum bufferTarget)
 {
   switch(bufferTarget)
   {
-    case eGL_ARRAY_BUFFER: return BufferCategory::Vertex; break;
-    case eGL_ELEMENT_ARRAY_BUFFER: return BufferCategory::Index; break;
-    case eGL_UNIFORM_BUFFER: return BufferCategory::Constants; break;
-    case eGL_SHADER_STORAGE_BUFFER: return BufferCategory::ReadWrite; break;
+    case eGL_ARRAY_BUFFER: return BufferCategory::Vertex;
+    case eGL_ELEMENT_ARRAY_BUFFER: return BufferCategory::Index;
+    case eGL_UNIFORM_BUFFER: return BufferCategory::Constants;
+    case eGL_SHADER_STORAGE_BUFFER: return BufferCategory::ReadWrite;
     case eGL_DRAW_INDIRECT_BUFFER:
     case eGL_DISPATCH_INDIRECT_BUFFER:
-    case eGL_PARAMETER_BUFFER_ARB: return BufferCategory::Indirect; break;
+    case eGL_PARAMETER_BUFFER_ARB: return BufferCategory::Indirect;
     default: break;
   }
   return BufferCategory::NoFlags;
@@ -2275,7 +2256,7 @@ GLenum MakeGLFormat(ResourceFormat fmt)
       case ResourceFormatType::R4G4B4A4: ret = eGL_RGBA4; break;
       case ResourceFormatType::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
       case ResourceFormatType::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
-      case ResourceFormatType::D16S8: return eGL_NONE; break;
+      case ResourceFormatType::D16S8: return eGL_NONE;
       case ResourceFormatType::ASTC:
         RDCWARN("ASTC can't be decoded unambiguously");
         return eGL_NONE;
