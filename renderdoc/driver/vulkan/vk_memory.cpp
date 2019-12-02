@@ -189,9 +189,9 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
   // invalidate/flush safely. This is at most 256 bytes which is likely already satisfied.
   ret.size = AlignUp(ret.size, nonCoherentAtomSize);
 
-  RDCDEBUG("Allocating 0x%llx with alignment 0x%llx in 0x%x for a %s (%s in %s)", ret.size,
-           mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image", ToStr(type).c_str(),
-           ToStr(scope).c_str());
+  RDCDEBUG("Allocating 0x%llx (0x%llx requested) with alignment 0x%llx in 0x%x for a %s (%s in %s)",
+           ret.size, mrq.size, mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image",
+           ToStr(type).c_str(), ToStr(scope).c_str());
 
   std::vector<MemoryAllocation> &blockList = m_MemoryBlocks[(size_t)scope];
 
@@ -332,6 +332,9 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     ret.offs = 0;
     ret.mem = chunk.mem;
   }
+
+  // ensure the returned size is accurate to what was requested, not what we padded
+  ret.size = mrq.size;
 
   return ret;
 }
