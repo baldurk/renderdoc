@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_command_list.h"
+#include <algorithm>
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_queue.h"

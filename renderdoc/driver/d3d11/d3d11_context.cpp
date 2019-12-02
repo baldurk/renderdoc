@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "driver/d3d11/d3d11_context.h"
+#include <algorithm>
 #include "driver/d3d11/d3d11_device.h"
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/d3d11/d3d11_renderstate.h"

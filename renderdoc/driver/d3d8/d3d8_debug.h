@@ -24,9 +24,7 @@
 
 #pragma once
 
-#include <list>
 #include <map>
-#include <utility>
 #include "driver/dx/official/d3d8.h"
 #include "stb/stb_truetype.h"
 #include "d3d8_common.h"

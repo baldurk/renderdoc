@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
 #include "../vk_core.h"
 #include "../vk_debug.h"
 #include "../vk_rendertext.h"

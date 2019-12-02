@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <float.h>
+#include <algorithm>
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "vk_core.h"

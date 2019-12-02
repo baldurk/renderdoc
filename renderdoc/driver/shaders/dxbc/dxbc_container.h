@@ -27,7 +27,6 @@
 
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"

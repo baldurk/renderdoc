@@ -24,6 +24,7 @@
 
 #include "vk_replay.h"
 #include <float.h>
+#include <algorithm>
 #include "driver/ihv/amd/amd_rgp.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/camera.h"

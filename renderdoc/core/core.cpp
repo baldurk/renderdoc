@@ -638,6 +638,13 @@ void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const std::vecto
   }
 }
 
+void RenderDoc::RegisterShutdownFunction(ShutdownFunction func)
+{
+  auto it = std::lower_bound(m_ShutdownFunctions.begin(), m_ShutdownFunctions.end(), func);
+  if(it == m_ShutdownFunctions.end() || *it != func)
+    m_ShutdownFunctions.insert(it, func);
+}
+
 bool RenderDoc::MatchClosestWindow(void *&dev, void *&wnd)
 {
   DeviceWnd dw(dev, wnd);
@@ -920,6 +927,13 @@ std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, in
   return overlayText;
 }
 
+void RenderDoc::QueueCapture(uint32_t frameNumber)
+{
+  auto it = std::lower_bound(m_QueuedFrameCaptures.begin(), m_QueuedFrameCaptures.end(), frameNumber);
+  if(it == m_QueuedFrameCaptures.end() || *it != frameNumber)
+    m_QueuedFrameCaptures.insert(it, frameNumber);
+}
+
 bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
 {
   bool ret = m_Cap > 0;
@@ -927,7 +941,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
   if(m_Cap > 0)
     m_Cap--;
 
-  std::set<uint32_t> frames;
+  std::vector<uint32_t> frames;
   frames.swap(m_QueuedFrameCaptures);
   for(auto it = frames.begin(); it != frames.end(); ++it)
   {
@@ -943,7 +957,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
     else
     {
       // not hit this yet, keep it around
-      m_QueuedFrameCaptures.insert(*it);
+      m_QueuedFrameCaptures.push_back(*it);
     }
   }
 

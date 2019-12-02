@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_manager.h"
+#include <algorithm>
 #include "vk_core.h"
 
 // debugging logging for barriers

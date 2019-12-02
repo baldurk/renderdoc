@@ -27,9 +27,7 @@
 
 #include <stdint.h>
 #include <map>
-#include <set>
 #include <string>
-#include <utility>
 #include <vector>
 #include "api/app/renderdoc_app.h"
 #include "api/replay/renderdoc_replay.h"
@@ -428,7 +426,7 @@ public:
   void ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args);
 
   int32_t GetForwardedPortSlot() { return Atomic::Inc32(&m_PortSlot); }
-  void RegisterShutdownFunction(ShutdownFunction func) { m_ShutdownFunctions.insert(func); }
+  void RegisterShutdownFunction(ShutdownFunction func);
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
   const std::string &GetConfigSetting(std::string name) { return m_ConfigSettings[name]; }
@@ -574,7 +572,7 @@ public:
   void TriggerCapture(uint32_t numFrames) { m_Cap = numFrames; }
   uint32_t GetOverlayBits() { return m_Overlay; }
   void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
-  void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
+  void QueueCapture(uint32_t frameNumber);
   void SetFocusKeys(RENDERDOC_InputButton *keys, int num)
   {
     m_FocusKeys.resize(num);
@@ -631,7 +629,7 @@ private:
   CaptureOptions m_Options;
   uint32_t m_Overlay;
 
-  std::set<uint32_t> m_QueuedFrameCaptures;
+  std::vector<uint32_t> m_QueuedFrameCaptures;
 
   uint32_t m_RemoteIdent;
   Threading::ThreadHandle m_RemoteThread;
@@ -667,7 +665,7 @@ private:
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
 
-  std::set<ShutdownFunction> m_ShutdownFunctions;
+  std::vector<ShutdownFunction> m_ShutdownFunctions;
 
   struct FrameCap
   {

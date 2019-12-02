@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "android.h"
+#include <set>
 #include <sstream>
 #include "api/replay/version.h"
 #include "core/core.h"

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
 #include "driver/dxgi/dxgi_common.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"

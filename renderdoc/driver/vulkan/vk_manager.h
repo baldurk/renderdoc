@@ -24,8 +24,6 @@
 
 #pragma once
 
-#include <algorithm>
-#include <utility>
 #include "core/resource_manager.h"
 #include "vk_resources.h"
 

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_resources.h"
 #include "strings/string_utils.h"

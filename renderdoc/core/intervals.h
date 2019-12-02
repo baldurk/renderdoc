@@ -23,7 +23,6 @@
 ******************************************************************************/
 #pragma once
 
-#include <algorithm>
 #include <map>
 #include "common/common.h"
 

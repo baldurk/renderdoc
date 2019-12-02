@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include "api/replay/renderdoc_replay.h"
 #include "common/wrapped_pool.h"
 #include "core/core.h"
@@ -464,64 +463,9 @@ struct GPUAddressRangeTracker
   std::vector<GPUAddressRange> addresses;
   Threading::RWLock addressLock;
 
-  void AddTo(const GPUAddressRange &range)
-  {
-    SCOPED_WRITELOCK(addressLock);
-    auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
-
-    addresses.insert(it, range);
-  }
-
-  void RemoveFrom(const GPUAddressRange &range)
-  {
-    {
-      SCOPED_WRITELOCK(addressLock);
-      auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
-
-      // there might be multiple buffers with the same range start, find the exact range for this
-      // buffer
-      while(it != addresses.end() && it->start == range.start)
-      {
-        if(it->id == range.id)
-        {
-          addresses.erase(it);
-          return;
-        }
-
-        ++it;
-      }
-    }
-
-    RDCERR("Couldn't find matching range to remove for %s", ToStr(range.id).c_str());
-  }
-
-  void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
-  {
-    id = ResourceId();
-    offs = 0;
-
-    if(addr == 0)
-      return;
-
-    GPUAddressRange range;
-
-    // this should really be a read-write lock
-    {
-      SCOPED_READLOCK(addressLock);
-
-      auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
-      if(it == addresses.end())
-        return;
-
-      range = *it;
-    }
-
-    if(addr < range.start || addr >= range.end)
-      return;
-
-    id = range.id;
-    offs = addr - range.start;
-  }
+  void AddTo(const GPUAddressRange &range);
+  void RemoveFrom(const GPUAddressRange &range);
+  void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs);
 };
 
 struct MapState

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
 #include "api/replay/version.h"
 #include "strings/string_utils.h"
 #include "vk_core.h"

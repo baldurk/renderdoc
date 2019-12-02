@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <float.h>
+#include <algorithm>
 #include "data/glsl_shaders.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "driver/shaders/spirv/spirv_gen.h"

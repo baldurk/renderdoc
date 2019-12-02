@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include "driver/d3d11/d3d11_device.h"
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/shaders/dxbc/dxbc_container.h"

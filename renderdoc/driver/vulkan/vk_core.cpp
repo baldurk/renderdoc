@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_core.h"
+#include <algorithm>
 #include "driver/ihv/amd/amd_rgp.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "jpeg-compressor/jpge.h"

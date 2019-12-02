@@ -28,7 +28,6 @@
 #include <guiddef.h>
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 #include "dxbc_bytecode.h"
 

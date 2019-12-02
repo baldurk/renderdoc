@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
 #include "../vk_core.h"
 
 VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
