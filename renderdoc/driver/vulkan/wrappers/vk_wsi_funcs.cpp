@@ -696,7 +696,7 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayingAndReading())
+  if(IsReplayingAndReading() && IsLoading(m_State))
   {
     AddEvent();
 
