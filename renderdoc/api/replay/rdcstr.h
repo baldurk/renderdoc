@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <ostream>
 #include <string>
 
 // special type for storing literals. This allows functions to force callers to pass them literals
@@ -767,11 +766,6 @@ inline bool operator!=(const char *const left, const rdcstr &right)
 inline bool operator!=(const std::string &left, const rdcstr &right)
 {
   return right != left;
-}
-
-inline std::ostream &operator<<(std::ostream &os, rdcstr const &str)
-{
-  return os << str.c_str();
 }
 
 #if defined(RENDERDOC_QT_COMPAT)

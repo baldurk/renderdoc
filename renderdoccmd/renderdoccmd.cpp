@@ -39,6 +39,11 @@ rdcstr DoStringise(const uint32_t &el)
   return oss.str();
 }
 
+inline std::ostream &operator<<(std::ostream &os, rdcstr const &str)
+{
+  return os << str.c_str();
+}
+
 #include <replay/renderdoc_tostr.inl>
 
 bool usingKillSignal = false;

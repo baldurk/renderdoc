@@ -34,6 +34,11 @@
 
 #include "official/catch.hpp"
 
+inline std::ostream &operator<<(std::ostream &os, rdcstr const &str)
+{
+  return os << str.c_str();
+}
+
 namespace Catch
 {
 template <>
