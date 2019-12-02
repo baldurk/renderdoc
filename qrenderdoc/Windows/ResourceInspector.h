@@ -77,6 +77,7 @@ protected:
 
 private:
   void HighlightUsage();
+  void SetResourceNameDisplay(const QString &name);
 
   Ui::ResourceInspector *ui;
   ICaptureContext &m_Ctx;

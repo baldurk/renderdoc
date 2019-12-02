@@ -103,7 +103,7 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  ui->resourceName->setText(tr("No Resource Selected"));
+  SetResourceNameDisplay(tr("No Resource Selected"));
 
   ui->resetName->hide();
   ui->resourceNameEdit->hide();
@@ -273,7 +273,7 @@ void ResourceInspector::Inspect(ResourceId id)
   {
     ANALYTIC_SET(UIFeatures.ResourceInspect, true);
 
-    ui->resourceName->setText(m_Ctx.GetResourceName(id));
+    SetResourceNameDisplay(m_Ctx.GetResourceName(id));
 
     ui->relatedResources->beginUpdate();
     ui->relatedResources->clear();
@@ -330,7 +330,7 @@ void ResourceInspector::Inspect(ResourceId id)
   else
   {
     m_Resource = ResourceId();
-    ui->resourceName->setText(tr("No Resource Selected"));
+    SetResourceNameDisplay(tr("No Resource Selected"));
   }
 
   ui->initChunks->setUpdatesEnabled(true);
@@ -348,12 +348,26 @@ void ResourceInspector::OnCaptureLoaded()
   m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
 }
 
+void ResourceInspector::SetResourceNameDisplay(const QString &name)
+{
+#if defined(RELEASE)
+  ui->resourceName->setText(name);
+#else
+  if(m_Resource != ResourceId())
+    ui->resourceName->setText(name + QFormatStr(" (%1)").arg(ToQStr(m_Resource)));
+  else
+    ui->resourceName->setText(name);
+#endif
+}
+
 void ResourceInspector::OnCaptureClosed()
 {
+  m_Resource = ResourceId();
+
   ui->renameResource->setEnabled(false);
   ui->resetName->hide();
 
-  ui->resourceName->setText(tr("No Resource Selected"));
+  SetResourceNameDisplay(tr("No Resource Selected"));
 
   ui->viewContents->hide();
 
@@ -363,8 +377,6 @@ void ResourceInspector::OnCaptureClosed()
   ui->initChunks->clearInternalExpansions();
   ui->relatedResources->clear();
   ui->resourceUsage->clear();
-
-  m_Resource = ResourceId();
 }
 
 void ResourceInspector::OnEventChanged(uint32_t eventId)
@@ -389,14 +401,17 @@ void ResourceInspector::on_renameResource_clicked()
   }
   else
   {
+    QString name = ui->resourceNameEdit->text();
+
     // apply the edit
-    ui->resourceName->setText(ui->resourceNameEdit->text());
+    SetResourceNameDisplay(name);
+
     ui->resourceNameEdit->hide();
     ui->resourceName->show();
 
     ui->resetName->show();
 
-    m_Ctx.SetResourceCustomName(m_Resource, ui->resourceName->text());
+    m_Ctx.SetResourceCustomName(m_Resource, name);
   }
 }
 
@@ -417,7 +432,7 @@ void ResourceInspector::on_resourceNameEdit_keyPress(QKeyEvent *event)
 
 void ResourceInspector::on_resetName_clicked()
 {
-  ui->resourceName->setText(m_Ctx.GetResourceName(m_Resource));
+  SetResourceNameDisplay(m_Ctx.GetResourceName(m_Resource));
 
   ui->resetName->hide();
 
