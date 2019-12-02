@@ -966,6 +966,12 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
 
 void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
 {
+  if(in.width == 0 || in.height == 0)
+  {
+    out = RDCThumb();
+    return;
+  }
+
   // code below assumes pitch_requirement is a power of 2 number
   RDCASSERT((in.pitch_requirement & (in.pitch_requirement - 1)) == 0);
 
@@ -1076,6 +1082,12 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
 }
 void RenderDoc::EncodePixelsPNG(const RDCThumb &in, RDCThumb &out)
 {
+  if(in.width == 0 || in.height == 0)
+  {
+    out = RDCThumb();
+    return;
+  }
+
   struct WriteCallbackData
   {
     std::vector<byte> buffer;
