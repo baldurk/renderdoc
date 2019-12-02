@@ -94,9 +94,17 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
 
   rdcarray<DrawcallDescription> draws = renderer->GetDrawcalls();
 
-  if(!draws.empty() && draws.back().flags & DrawFlags::Present)
+  DrawcallDescription *last = NULL;
+
+  if(!draws.empty())
+    last = &draws.back();
+
+  while(last && !last->children.empty())
+    last = &last->children.back();
+
+  if(last && last->flags & DrawFlags::Present)
   {
-    ResourceId id = draws.back().copyDestination;
+    ResourceId id = last->copyDestination;
     if(id != ResourceId())
       d.resourceId = id;
   }
