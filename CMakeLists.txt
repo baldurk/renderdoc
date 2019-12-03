@@ -328,7 +328,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        list(APPEND warning_flags -Wnewline-eof -Wunreachable-code-break -Wclass-varargs -Wcomma -Wstring-conversion)
+        list(APPEND warning_flags -Wnewline-eof -Wunreachable-code-break -Wclass-varargs -Wstring-conversion)
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.9)
+        list(APPEND warning_flags -Wcomma)
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0 AND NOT APPLE)
