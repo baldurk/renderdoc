@@ -95,7 +95,10 @@ endif()
 
 set(sources
     api/app/renderdoc_app.h
-    api/replay/basic_types.h
+    api/replay/rdcarray.h
+    api/replay/rdcdatetime.h
+    api/replay/rdcstr.h
+    api/replay/rdcpair.h
     api/replay/stringise.h
     api/replay/structured_data.h
     api/replay/capture_options.h

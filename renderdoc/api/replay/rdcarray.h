@@ -25,169 +25,16 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
+#include <stdint.h>    // for standard types
+#include <string.h>    // for memcpy, etc
+#include <initializer_list>
 #include <type_traits>
 #include <vector>
 
-typedef uint8_t byte;
-
-#ifndef DOCUMENT
-#define DOCUMENT(text)
+#ifdef RENDERDOC_EXPORTS
+#include <stdlib.h>    // for malloc/free
+void RENDERDOC_OutOfMemory(uint64_t sz);
 #endif
-
-#ifndef DOCUMENT2
-#define DOCUMENT2(text1, text2)
-#endif
-
-#ifndef DOCUMENT3
-#define DOCUMENT3(text1, text2, text3)
-#endif
-
-#ifndef DOCUMENT4
-#define DOCUMENT4(text1, text2, text3, text4)
-#endif
-
-// primarily here just to remove a dependency on QDateTime in the Qt UI, so we don't have to bind
-// against Qt at all in the interface.
-DOCUMENT("");
-struct rdcdatetime
-{
-  DOCUMENT("");
-  int32_t year = 0;
-  int32_t month = 0;
-  int32_t day = 0;
-  int32_t hour = 0;
-  int32_t minute = 0;
-  int32_t second = 0;
-  int32_t microsecond = 0;
-
-  rdcdatetime() = default;
-
-  rdcdatetime(int y, int mn, int d, int h = 0, int m = 0, int s = 0, int us = 0)
-      : year(y), month(mn), day(d), hour(h), minute(m), second(s), microsecond(us)
-  {
-  }
-
-  bool operator==(const rdcdatetime &o) const
-  {
-    return year == o.year && month == o.month && day == o.day && hour == o.hour &&
-           minute == o.minute && second == o.second && microsecond == o.microsecond;
-  }
-  bool operator!=(const rdcdatetime &o) const { return !(*this == o); }
-  bool operator<(const rdcdatetime &o) const
-  {
-    if(year != o.year)
-      return year < o.year;
-    if(month != o.month)
-      return month < o.month;
-    if(day != o.day)
-      return day < o.day;
-    if(hour != o.hour)
-      return hour < o.hour;
-    if(minute != o.minute)
-      return minute < o.minute;
-    if(second != o.second)
-      return second < o.second;
-    if(microsecond != o.microsecond)
-      return microsecond < o.microsecond;
-    return false;
-  }
-
-#if defined(RENDERDOC_QT_COMPAT)
-  rdcdatetime(const QDateTime &in)
-  {
-    year = in.date().year();
-    month = in.date().month();
-    day = in.date().day();
-    hour = in.time().hour();
-    minute = in.time().minute();
-    second = in.time().second();
-    microsecond = in.time().msec() * 1000;
-  }
-  operator QDateTime() const
-  {
-    return QDateTime(QDate(year, month, day), QTime(hour, minute, second, microsecond / 1000));
-  }
-  operator QVariant() const { return QVariant(QDateTime(*this)); }
-#endif
-};
-
-// here we define our own data structures that are ABI compatible between modules, as STL is not
-// safe to pass a module boundary.
-template <typename A, typename B>
-struct rdcpair
-{
-  A first;
-  B second;
-
-  rdcpair(const A &a, const B &b) : first(a), second(b) {}
-  rdcpair() = default;
-  rdcpair(const rdcpair<A, B> &o) = default;
-  rdcpair(rdcpair<A, B> &&o) = default;
-  ~rdcpair() = default;
-  inline void swap(rdcpair<A, B> &o)
-  {
-    std::swap(first, o.first);
-    std::swap(second, o.second);
-  }
-
-  template <typename A_, typename B_>
-  rdcpair<A, B> &operator=(const rdcpair<A_, B_> &o)
-  {
-    first = o.first;
-    second = o.second;
-    return *this;
-  }
-
-  rdcpair<A, B> &operator=(const rdcpair<A, B> &o)
-  {
-    first = o.first;
-    second = o.second;
-    return *this;
-  }
-
-  bool operator==(const rdcpair<A, B> &o) const { return first == o.first && second == o.second; }
-  bool operator<(const rdcpair<A, B> &o) const
-  {
-    if(first != o.first)
-      return first < o.first;
-    return second < o.second;
-  }
-};
-
-template <typename A, typename B>
-rdcpair<A, B> make_rdcpair(const A &a, const B &b)
-{
-  return rdcpair<A, B>(a, b);
-}
-
-template <typename A, typename B>
-rdcpair<A &, B &> rdctie(A &a, B &b)
-{
-  return rdcpair<A &, B &>(a, b);
-}
-
-// utility class that adds a NULL terminator to array operations only if T == char
-template <typename T>
-struct null_terminator
-{
-  // adds 1 to every allocation to ensure we have space. Happens invisibly so even capacity()
-  // doesn't know about it
-  inline static size_t allocCount(size_t c) { return c; }
-  // adds the NULL terminator after a resize operation
-  inline static void fixup(T *elems, size_t count) {}
-};
-
-template <>
-struct null_terminator<char>
-{
-  inline static size_t allocCount(size_t c) { return c + 1; }
-  // indexing 'off the end' of elems is safe because we over-allocated above
-  inline static void fixup(char *elems, size_t count) { elems[count] = 0; }
-};
 
 template <typename T, bool isStd = std::is_trivial<T>::value>
 struct ItemHelper
@@ -267,10 +114,6 @@ struct ItemDestroyHelper<T, true>
   static void destroyRange(T *first, size_t itemCount) {}
 };
 
-#ifdef RENDERDOC_EXPORTS
-void RENDERDOC_OutOfMemory(uint64_t sz);
-#endif
-
 template <typename T>
 struct rdcarray
 {
@@ -302,12 +145,7 @@ protected:
 #endif
   }
 
-  inline void setUsedCount(size_t newCount)
-  {
-    usedCount = newCount;
-    null_terminator<T>::fixup(elems, usedCount);
-  }
-
+  inline void setUsedCount(size_t newCount) { usedCount = newCount; }
 public:
   typedef T value_type;
 
@@ -360,14 +198,6 @@ public:
 
   void reserve(size_t s)
   {
-    // if we're empty then normally reserving s==0 would do nothing, but if we need to append a null
-    // terminator then we do actually need to allocate
-    if(s == 0 && capacity() == 0 && elems == NULL && null_terminator<T>::allocCount(0) > 0)
-    {
-      elems = allocate(null_terminator<T>::allocCount(0));
-      return;
-    }
-
     // nothing to do if we already have this much space. We only size up
     if(s <= capacity())
       return;
@@ -377,7 +207,7 @@ public:
     if(size_t(allocatedCount) * 2 > s)
       s = size_t(allocatedCount) * 2;
 
-    T *newElems = allocate(null_terminator<T>::allocCount(s));
+    T *newElems = allocate(s);
 
     // when elems is NULL, usedCount should also be 0, but add an extra check in here just to
     // satisfy coverity's static analysis which can't figure that out from the copy constructor
@@ -686,8 +516,6 @@ public:
     // copy construct the new elems
     ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
 
-    null_terminator<T>::fixup(elems, usedCount);
-
     return *this;
   }
 
@@ -709,8 +537,6 @@ public:
       i++;
     }
 
-    null_terminator<T>::fixup(elems, usedCount);
-
     return *this;
   }
 
@@ -730,8 +556,6 @@ public:
 
     // copy construct the new elems
     ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
-
-    null_terminator<T>::fixup(elems, usedCount);
 
     return *this;
   }
@@ -802,9 +626,8 @@ public:
 #endif
 };
 
-#include "rdcstr.h"
+typedef uint8_t byte;
 
-DOCUMENT("");
 struct bytebuf : public rdcarray<byte>
 {
   bytebuf() : rdcarray<byte>() {}
@@ -821,6 +644,3 @@ struct bytebuf : public rdcarray<byte>
   }
 #endif
 };
-
-typedef rdcpair<rdcstr, rdcstr> rdcstrpair;
-typedef rdcarray<rdcstrpair> rdcstrpairs;

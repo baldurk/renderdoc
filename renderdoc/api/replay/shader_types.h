@@ -26,7 +26,8 @@
 #pragma once
 
 #include <stdint.h>
-#include "basic_types.h"
+#include "rdcarray.h"
+#include "rdcstr.h"
 #include "replay_enums.h"
 
 DOCUMENT("A ``float`` 4 component vector.")

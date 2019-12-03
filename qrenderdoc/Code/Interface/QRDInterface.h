@@ -85,6 +85,9 @@ class QMenu;
 // we depend on the internal RenderDoc API, but the bindings for that are imported entirely
 #include "renderdoc_replay.h"
 
+typedef rdcpair<rdcstr, rdcstr> rdcstrpair;
+typedef rdcarray<rdcstrpair> rdcstrpairs;
+
 struct ICaptureContext;
 
 #include "Analytics.h"

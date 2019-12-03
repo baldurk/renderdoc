@@ -204,9 +204,6 @@
     <ClInclude Include="maths\half_convert.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="api\replay\basic_types.h">
-      <Filter>API\Replay</Filter>
-    </ClInclude>
     <ClInclude Include="api\replay\control_types.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
@@ -488,6 +485,15 @@
     </ClInclude>
     <ClInclude Include="core\remote_server.h">
       <Filter>Core\networking</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\rdcarray.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\rdcpair.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\rdcdatetime.h">
+      <Filter>API\Replay</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

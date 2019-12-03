@@ -69,6 +69,8 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
   #ifndef slots
   #define slots
   #endif
+
+  DECLARE_STRINGISE_TYPE(rdcstrpair);
 %}
 
 %include <stdint.i>

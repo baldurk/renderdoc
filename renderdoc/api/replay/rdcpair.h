@@ -1,7 +1,8 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 Baldur Karlsson
+ * Copyright (c) 2015-2019 Baldur Karlsson
+ * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,28 +23,58 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// this file exists just to wrap the *real* catch.hpp and define any configuration defines we always
-// want on.
+#pragma once
 
-#define CATCH_CONFIG_FALLBACK_STRINGIFIER ToStr
-#define CATCH_CONFIG_FORCE_FALLBACK_STRINGIFIER
-#define CATCH_CONFIG_INLINE_DEBUG_BREAK
-
-#include "api/replay/rdcstr.h"
-#include "api/replay/stringise.h"
-
-#include "official/catch.hpp"
-
-inline std::ostream &operator<<(std::ostream &os, rdcstr const &str)
+template <typename A, typename B>
+struct rdcpair
 {
-  return os << str.c_str();
+  A first;
+  B second;
+
+  rdcpair(const A &a, const B &b) : first(a), second(b) {}
+  rdcpair() = default;
+  rdcpair(const rdcpair<A, B> &o) = default;
+  rdcpair(rdcpair<A, B> &&o) = default;
+  ~rdcpair() = default;
+  inline void swap(rdcpair<A, B> &o)
+  {
+    rdcpair<A, B> tmp = *this;
+    *this = o;
+    o = tmp;
+  }
+
+  template <typename A_, typename B_>
+  rdcpair<A, B> &operator=(const rdcpair<A_, B_> &o)
+  {
+    first = o.first;
+    second = o.second;
+    return *this;
+  }
+
+  rdcpair<A, B> &operator=(const rdcpair<A, B> &o)
+  {
+    first = o.first;
+    second = o.second;
+    return *this;
+  }
+
+  bool operator==(const rdcpair<A, B> &o) const { return first == o.first && second == o.second; }
+  bool operator<(const rdcpair<A, B> &o) const
+  {
+    if(first != o.first)
+      return first < o.first;
+    return second < o.second;
+  }
+};
+
+template <typename A, typename B>
+rdcpair<A, B> make_rdcpair(const A &a, const B &b)
+{
+  return rdcpair<A, B>(a, b);
 }
 
-namespace Catch
+template <typename A, typename B>
+rdcpair<A &, B &> rdctie(A &a, B &b)
 {
-template <>
-struct StringMaker<rdcstr>
-{
-  static std::string convert(rdcstr const &value) { return value; }
-};
+  return rdcpair<A &, B &>(a, b);
 }

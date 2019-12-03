@@ -79,8 +79,11 @@
 %typemap(in) xcb_connection_t* = HWND;
 %typemap(in) wl_surface* = HWND;
 
-// completely ignore rdcdatetime, we custom convert to/from a native python datetime
+// completely ignore types that we custom convert to/from a native python type
 %ignore rdcdatetime;
+%ignore rdcstr;
+%ignore rdcliteral;
+%ignore rdcpair;
 
 // special handling for RENDERDOC_GetDefaultCaptureOptions to transform output parameter to a return value
 %typemap(in, numinputs=0) CaptureOptions *defaultOpts { $1 = new CaptureOptions; }
@@ -153,10 +156,6 @@
 %ignore rdcarray::removeOne;
 %ignore rdcarray::operator=;
 %ignore rdcarray::operator[];
-%ignore rdcstr::operator=;
-%ignore rdcstr::operator std::string;
-%ignore rdcpair::operator=;
-%ignore rdcpair::swap;
 
 // simple typemap to delete old byte arrays in a buffer list before assigning the new one
 %typemap(memberin) StructuredBufferList {
@@ -211,7 +210,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %include <stdint.i>
 
 %include "renderdoc_replay.h"
-%include "basic_types.h"
+%include "rdcarray.h"
 %include "stringise.h"
 %include "structured_data.h"
 %include "capture_options.h"

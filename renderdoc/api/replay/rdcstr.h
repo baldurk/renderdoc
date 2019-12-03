@@ -24,10 +24,16 @@
 
 #pragma once
 
+#include <stdint.h>    // for standard types
+#include <string.h>    // for memcpy, etc
 #include <string>
 
+#ifdef RENDERDOC_EXPORTS
+#include <stdlib.h>    // for malloc/free
+void RENDERDOC_OutOfMemory(uint64_t sz);
+#endif
+
 // special type for storing literals. This allows functions to force callers to pass them literals
-DOCUMENT("");
 class rdcliteral
 {
   const char *str;
@@ -49,11 +55,6 @@ inline rdcliteral operator"" _lit(const char *str, size_t len)
   return rdcliteral(str, len);
 }
 
-#ifdef RENDERDOC_EXPORTS
-void RENDERDOC_OutOfMemory(uint64_t sz);
-#endif
-
-DOCUMENT("");
 class rdcstr
 {
 private:
@@ -128,7 +129,6 @@ private:
   /////////////////////////////////////////////////////////////////
   // memory management, in a dll safe way
 
-  DOCUMENT("");
   static char *allocate(size_t count)
   {
     char *ret = NULL;

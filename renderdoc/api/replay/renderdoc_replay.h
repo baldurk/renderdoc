@@ -105,7 +105,7 @@
 #define RENDERDOC_API RENDERDOC_IMPORT_API
 #endif
 
-// needs to be declared up here for reference in basic_types
+// needs to be declared up here for reference in rdcarray/rdcstr
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(void *mem);
 typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(void *mem);
@@ -302,7 +302,14 @@ private:
 #endif
 };
 
-#include "basic_types.h"
+DOCUMENT("");
+
+typedef uint8_t byte;
+
+#include "rdcdatetime.h"
+#include "rdcpair.h"
+#include "rdcarray.h"
+#include "rdcstr.h"
 #include "stringise.h"
 #include "structured_data.h"
 
