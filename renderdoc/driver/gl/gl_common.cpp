@@ -437,12 +437,12 @@ void FetchEnabledExtensions()
   }
   else if(GL.glGetString)
   {
-    std::string extstr = (const char *)GL.glGetString(eGL_EXTENSIONS);
+    rdcstr extstr = (const char *)GL.glGetString(eGL_EXTENSIONS);
 
-    std::vector<std::string> extlist;
+    rdcarray<rdcstr> extlist;
     split(extstr, extlist, ' ');
 
-    for(const std::string &e : extlist)
+    for(const rdcstr &e : extlist)
       CheckExtFromString(e.c_str());
   }
 

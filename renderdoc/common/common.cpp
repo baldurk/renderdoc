@@ -404,8 +404,8 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
   char location[64] = {0};
 #if ENABLED(INCLUDE_LOCATION_IN_LOG)
-  std::string loc;
-  loc = get_basename(std::string(file));
+  rdcstr loc;
+  loc = get_basename(file);
   StringFormat::snprintf(location, 63, "% 20s(%4d) - ", loc.c_str(), line);
 #endif
 

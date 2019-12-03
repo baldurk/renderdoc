@@ -602,26 +602,6 @@ std::string ErrorString()
   return buf;
 }
 
-std::string getline(FILE *f)
-{
-  std::string ret;
-
-  while(!FileIO::feof(f))
-  {
-    char c = (char)::fgetc(f);
-
-    if(FileIO::feof(f))
-      break;
-
-    if(c != 0 && c != '\n')
-      ret.push_back(c);
-    else
-      break;
-  }
-
-  return ret;
-}
-
 size_t fread(void *buf, size_t elementSize, size_t count, FILE *f)
 {
   return ::fread(buf, elementSize, count, f);

@@ -855,8 +855,8 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
 
       for(const EnvironmentModification &e : env)
       {
-        std::string name = trim(e.name.c_str());
-        std::string value = e.value.c_str();
+        rdcstr name = e.name.trimmed();
+        rdcstr value = e.value;
 
         if(name == "")
           break;
@@ -882,16 +882,22 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
         cmdWithEnv += L" ";
 
         // escape the parameters
-        for(auto it = name.begin(); it != name.end(); ++it)
+        for(size_t it = 0; it < name.size(); it++)
         {
-          if(*it == '"')
-            it = name.insert(it, '\\') + 1;
+          if(name[it] == '"')
+          {
+            name.insert(it, '\\');
+            it++;
+          }
         }
 
-        for(auto it = value.begin(); it != value.end(); ++it)
+        for(size_t it = 0; it < value.size(); it++)
         {
-          if(*it == '"')
-            it = value.insert(it, '\\') + 1;
+          if(value[it] == '"')
+          {
+            value.insert(it, '\\');
+            it++;
+          }
         }
 
         if(name.back() == '\\')
@@ -975,8 +981,8 @@ ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<Environmen
     {
       for(const EnvironmentModification &e : env)
       {
-        std::string name = trim(e.name.c_str());
-        std::string value = e.value.c_str();
+        rdcstr name = e.name.trimmed();
+        rdcstr value = e.value;
         EnvMod mod = e.mod;
         EnvSep sep = e.sep;
 

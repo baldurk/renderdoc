@@ -24,7 +24,6 @@
  ******************************************************************************/
 
 #include "remote_server.h"
-#include <sstream>
 #include <utility>
 #include "android/android.h"
 #include "api/replay/renderdoc_replay.h"
@@ -905,9 +904,25 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 
   FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("remoteserver.conf").c_str(), "r");
 
-  while(f && !FileIO::feof(f))
+  rdcstr configFile;
+
+  if(f)
   {
-    std::string line = trim(FileIO::getline(f));
+    FileIO::fseek64(f, 0, SEEK_END);
+    configFile.resize((size_t)FileIO::ftell64(f));
+    FileIO::fseek64(f, 0, SEEK_SET);
+
+    FileIO::fread(configFile.data(), 1, configFile.size(), f);
+
+    FileIO::fclose(f);
+  }
+
+  rdcarray<rdcstr> lines;
+  split(configFile, lines, '\n');
+
+  for(rdcstr &line : lines)
+  {
+    line.trim();
 
     if(line == "")
       continue;
@@ -944,9 +959,6 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 
     RDCLOG("Malformed line '%s'. See documentation for file format.", line.c_str());
   }
-
-  if(f)
-    FileIO::fclose(f);
 
   if(listenRanges.empty())
   {

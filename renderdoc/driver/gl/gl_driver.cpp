@@ -1352,7 +1352,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         GL.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
       }
 
-      std::vector<std::string> implExts;
+      rdcarray<rdcstr> implExts;
 
       int ctxVersion = 0;
       bool ctxGLES = false;
@@ -1370,7 +1370,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       }
       else if(GL.glGetString)
       {
-        std::string implExtString = (const char *)GL.glGetString(eGL_EXTENSIONS);
+        rdcstr implExtString = (const char *)GL.glGetString(eGL_EXTENSIONS);
 
         split(implExtString, implExts, ' ');
       }
@@ -1385,8 +1385,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       {
         for(size_t i = 0, j = 0; i < implExts.size() && j < globalExts.size();)
         {
-          const std::string &a = implExts[i];
-          const std::string &b = globalExts[j];
+          const rdcstr &a = implExts[i];
+          const rdcstr &b = globalExts[j];
 
           if(a == b)
           {

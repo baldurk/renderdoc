@@ -956,7 +956,7 @@ public:
     ResourceId m_ID;
 
     std::string m_DebugInfoPath;
-    std::vector<std::string> *m_DebugInfoSearchPaths;
+    rdcarray<rdcstr> *m_DebugInfoSearchPaths;
 
     std::vector<byte> m_Bytecode;
 

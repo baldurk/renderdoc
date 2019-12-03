@@ -148,9 +148,9 @@ const char *Process::GetEnvVariable(const char *name)
                          StringFormat::Fmt("debug.rdoc.%s variable_is_not_set", name).c_str(), true,
                          &result);
 
-  static std::string settingsOutput;
+  static rdcstr settingsOutput;
 
-  settingsOutput = trim(result.strStdout);
+  settingsOutput = result.strStdout.trimmed();
 
   if(settingsOutput == "variable_is_not_set")
     return NULL;

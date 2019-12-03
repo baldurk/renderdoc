@@ -24,7 +24,6 @@
 
 #include "android_utils.h"
 #include <algorithm>
-#include <sstream>
 #include "core/core.h"
 #include "strings/string_utils.h"
 
@@ -110,7 +109,7 @@ ABI GetABI(const std::string &abiName)
 
 std::vector<ABI> GetSupportedABIs(const std::string &deviceID)
 {
-  std::string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout);
+  rdcstr adbAbi = adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout.trimmed();
 
   // these returned lists should be such that the first entry is the 'lowest command denominator' -
   // typically 32-bit.
@@ -145,30 +144,30 @@ std::string GetRenderDocPackageForABI(ABI abi, char sep)
 
 std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName)
 {
-  std::string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
+  rdcstr pkgPath = adbExecCommand(deviceID, "shell pm path " + packageName).strStdout.trimmed();
 
   // if there are multiple slices, the path will be returned on many lines. Take only the first
   // line, assuming all of the apks are in the same directory
-  if(pkgPath.find("\n") != std::string::npos)
+  if(pkgPath.find("\n") >= 0)
   {
-    std::vector<std::string> lines;
+    rdcarray<rdcstr> lines;
     split(pkgPath, lines, '\n');
-    pkgPath = trim(lines[0]);
+    pkgPath = lines[0].trimmed();
   }
 
-  if(pkgPath.empty() || pkgPath.find("package:") != 0 || pkgPath.find("base.apk") == std::string::npos)
+  if(pkgPath.empty() || pkgPath.find("package:") != 0 || pkgPath.find("base.apk") == -1)
     return pkgPath;
 
-  pkgPath.erase(pkgPath.begin(), pkgPath.begin() + strlen("package:"));
-  pkgPath.erase(pkgPath.end() - strlen("base.apk"), pkgPath.end());
+  pkgPath.erase(0, strlen("package:"));
+  pkgPath.erase(pkgPath.size() - strlen("base.apk"), ~0U);
 
   return pkgPath;
 }
 
 bool IsSupported(std::string deviceID)
 {
-  std::string api =
-      trim(Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout);
+  rdcstr api =
+      Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
 
   int apiVersion = atoi(api.c_str());
 
@@ -186,8 +185,8 @@ bool IsSupported(std::string deviceID)
 
 bool SupportsNativeLayers(const rdcstr &deviceID)
 {
-  std::string api =
-      trim(Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout);
+  rdcstr api =
+      Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
 
   int apiVersion = atoi(api.c_str());
 
@@ -203,24 +202,22 @@ std::string DetermineInstalledABI(const std::string &deviceID, const std::string
   RDCLOG("Checking installed ABI for %s", packageName.c_str());
   std::string abi;
 
-  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  rdcstr dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
   if(dump.empty())
     RDCERR("Unable to pm dump %s", packageName.c_str());
 
   // Walk through the output and look for primaryCpuAbi
-  std::istringstream contents(dump);
-  std::string line;
-  std::string prefix("primaryCpuAbi=");
-  while(std::getline(contents, line))
+  rdcstr prefix = "primaryCpuAbi=";
+  int offset = dump.find("primaryCpuAbi=");
+
+  if(offset >= 0)
   {
-    line = trim(line);
-    if(line.compare(0, prefix.size(), prefix) == 0)
-    {
-      // Extract the abi
-      abi = line.substr(line.find_last_of("=") + 1);
-      RDCLOG("primaryCpuAbi found: %s", abi.c_str());
-      break;
-    }
+    offset = dump.find('=', offset) + 1;
+
+    int newline = dump.find('\n', offset);
+
+    if(newline >= 0)
+      abi = dump.substr(offset, newline - offset).trimmed();
   }
 
   if(abi.empty())
@@ -240,10 +237,10 @@ rdcstr GetFriendlyName(const rdcstr &deviceID)
   // root commands into the log
   Android::adbExecCommand(deviceID, "root");
 
-  std::string manuf =
-      trim(Android::adbExecCommand(deviceID, "shell getprop ro.product.manufacturer").strStdout);
-  std::string model =
-      trim(Android::adbExecCommand(deviceID, "shell getprop ro.product.model").strStdout);
+  rdcstr manuf =
+      Android::adbExecCommand(deviceID, "shell getprop ro.product.manufacturer").strStdout.trimmed();
+  rdcstr model =
+      Android::adbExecCommand(deviceID, "shell getprop ro.product.model").strStdout.trimmed();
 
   std::string combined;
 
@@ -660,25 +657,25 @@ void LogcatThread::Tick()
   std::string command =
       StringFormat::Fmt("logcat -t %u -v brief -s renderdoc:* libc:* DEBUG:*", lineBacklog);
 
-  std::string logcat = trim(Android::adbExecCommand(deviceID, command, ".", true).strStdout);
+  rdcstr logcat = Android::adbExecCommand(deviceID, command, ".", true).strStdout.trimmed();
 
-  std::vector<std::string> lines;
+  rdcarray<rdcstr> lines;
   split(logcat, lines, '\n');
 
   // remove \n from any lines right now to prevent it breaking further processing
-  for(std::string &line : lines)
+  for(rdcstr &line : lines)
     if(!line.empty() && line.back() == '\r')
       line.pop_back();
 
   // only do any processing if we had a line last time that we know to start from.
   if(!lastLogcatLine.empty())
   {
-    auto it = std::find(lines.begin(), lines.end(), lastLogcatLine);
+    int idx = lines.indexOf(lastLogcatLine);
 
-    if(it != lines.end())
+    if(idx >= 0)
     {
       // remove everything up to and including that line
-      lines.erase(lines.begin(), it + 1);
+      lines.erase(0, idx + 1);
     }
     else
     {

@@ -354,8 +354,7 @@ void initAdb()
   Process::ProcessResult res = {};
   Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true, &res);
 
-  if(res.strStdout.find("daemon") != std::string::npos ||
-     res.strStderror.find("daemon") != std::string::npos)
+  if(res.strStdout.find("daemon") >= 0 || res.strStderror.find("daemon") >= 0)
   {
     RDCLOG("Started adb server");
   }

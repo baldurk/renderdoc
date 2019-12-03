@@ -314,7 +314,7 @@ private:
   D3D11ShaderCache *m_ShaderCache = NULL;
   D3D11ResourceManager *m_ResourceManager = NULL;
 
-  std::vector<std::string> m_ShaderSearchPaths;
+  rdcarray<rdcstr> m_ShaderSearchPaths;
 
   D3D11InitParams m_InitParams;
   uint64_t m_SectionVersion;
@@ -455,7 +455,7 @@ public:
     return m_LayoutDescs[layout];
   }
 
-  std::vector<std::string> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
+  rdcarray<rdcstr> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
 

@@ -120,7 +120,7 @@ public:
 
   virtual uint32_t GetShaderCompileFlags() const = 0;
 
-  std::vector<rdcpair<std::string, std::string> > Files;    // <filename, source>
+  rdcarray<rdcpair<rdcstr, rdcstr>> Files;    // <filename, source>
 
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
 

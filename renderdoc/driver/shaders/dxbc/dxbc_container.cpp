@@ -1225,9 +1225,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   {
     m_DXBCByteCode->SetDebugInfo(m_DebugInfo);
 
-    std::vector<std::vector<std::string>> fileLines;
+    rdcarray<rdcarray<rdcstr>> fileLines;
 
-    std::vector<std::string> fileNames;
+    rdcarray<rdcstr> fileNames;
 
     fileLines.resize(m_DebugInfo->Files.size());
     fileNames.resize(m_DebugInfo->Files.size());
@@ -1237,8 +1237,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
     for(size_t i = 0; i < m_DebugInfo->Files.size(); i++)
     {
-      std::vector<std::string> srclines;
-      std::vector<std::string> *dstFile =
+      rdcarray<rdcstr> srclines;
+      rdcarray<rdcstr> *dstFile =
           &fileLines[i];    // start off writing to the corresponding output file.
 
       size_t dstLine = 0;
@@ -1386,7 +1386,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
               // make a dummy file to write into that won't be used.
               fileNames.push_back(filename);
-              fileLines.push_back(std::vector<std::string>());
+              fileLines.push_back(rdcarray<rdcstr>());
 
               dstFile = &fileLines.back();
             }
@@ -1585,8 +1585,10 @@ TEST_CASE("Check DXBC flags are non-overlapping", "[dxbc]")
         continue;
 
       // no argument should be a subset of another argument
-      std::string arga = trim(a.arg);
-      std::string argb = trim(b.arg);
+      rdcstr arga = a.arg;
+      rdcstr argb = b.arg;
+      arga.trim();
+      argb.trim();
       INFO("a: '" << arga << "' b: '" << argb << "'");
       CHECK(strstr(arga.c_str(), argb.c_str()) == NULL);
       CHECK(strstr(argb.c_str(), arga.c_str()) == NULL);

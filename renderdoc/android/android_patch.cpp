@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <sstream>
 #include "3rdparty/miniz/miniz.h"
 #include "api/replay/version.h"
 #include "core/core.h"
@@ -40,21 +39,22 @@ bool RemoveAPKSignature(const std::string &apk)
   std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   // Get the list of files in META-INF
-  std::string fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  rdcstr fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
   if(fileList.empty())
     return false;
 
   // Walk through the output.  If it starts with META-INF, remove it.
   uint32_t fileCount = 0;
   uint32_t matchCount = 0;
-  std::istringstream contents(fileList);
-  std::string line;
-  std::string prefix("META-INF");
-  while(std::getline(contents, line))
+
+  rdcarray<rdcstr> lines;
+  split(fileList, lines, '\n');
+
+  for(rdcstr &line : lines)
   {
-    line = trim(line);
+    line.trim();
     fileCount++;
-    if(line.compare(0, prefix.size(), prefix) == 0)
+    if(line.beginsWith("META-INF"))
     {
       RDCDEBUG("Match found, removing  %s", line.c_str());
       execCommand(aapt, "remove \"" + apk + "\" " + line);
@@ -66,10 +66,11 @@ bool RemoveAPKSignature(const std::string &apk)
   // Ensure no hits on second pass through
   RDCDEBUG("Walk through file list again, ensure signature removed");
   fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
-  std::istringstream recheck(fileList);
-  while(std::getline(recheck, line))
+  split(fileList, lines, '\n');
+  for(rdcstr &line : lines)
   {
-    if(line.compare(0, prefix.size(), prefix) == 0)
+    line.trim();
+    if(line.beginsWith("META-INF"))
     {
       RDCERR("Match found, that means removal failed! %s", line.c_str());
       return false;
@@ -103,6 +104,7 @@ bool ExtractAndRemoveManifest(const std::string &apk, std::vector<byte> &manifes
         RDCLOG("Got manifest of %zu bytes", sz);
 
         manifest.insert(manifest.begin(), buf, buf + sz);
+        break;
       }
     }
   }
@@ -121,13 +123,14 @@ bool ExtractAndRemoveManifest(const std::string &apk, std::vector<byte> &manifes
   RDCDEBUG("Removing AndroidManifest.xml");
   execCommand(aapt, "remove \"" + apk + "\" AndroidManifest.xml");
 
-  std::string fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
-  std::vector<std::string> files;
+  rdcstr fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  rdcarray<rdcstr> files;
   split(fileList, files, ' ');
 
-  for(const std::string &f : files)
+  for(rdcstr &f : files)
   {
-    if(trim(f) == "AndroidManifest.xml")
+    f.trim();
+    if(f == "AndroidManifest.xml")
     {
       RDCERR("AndroidManifest.xml found, that means removal failed!");
       return false;
@@ -224,6 +227,7 @@ std::string GetAndroidDebugKey()
 
   return key;
 }
+
 bool DebugSignAPK(const std::string &apk, const std::string &workDir)
 {
   RDCLOG("Signing with debug key");
@@ -263,19 +267,14 @@ bool DebugSignAPK(const std::string &apk, const std::string &workDir)
   }
 
   // Check for signature
-  std::string list = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  rdcstr list = execCommand(aapt, "list \"" + apk + "\"").strStdout;
 
-  // Walk through the output.  If it starts with META-INF, we're good
-  std::istringstream contents(list);
-  std::string line;
-  std::string prefix("META-INF");
-  while(std::getline(contents, line))
+  list.insert(0, '\n');
+
+  if(list.find("\nMETA-INF") >= 0)
   {
-    if(line.compare(0, prefix.size(), prefix) == 0)
-    {
-      RDCLOG("Signature found, continuing...");
-      return true;
-    }
+    RDCLOG("Signature found, continuing...");
+    return true;
   }
 
   RDCERR("re-sign of APK failed!");
@@ -439,29 +438,28 @@ bool HasRootAccess(const std::string &deviceID)
 
   result = adbExecCommand(deviceID, "root");
 
-  std::string whoami = trim(adbExecCommand(deviceID, "shell whoami").strStdout);
+  rdcstr whoami = adbExecCommand(deviceID, "shell whoami").strStdout.trimmed();
   if(whoami == "root")
     return true;
 
-  std::string checksu =
-      trim(adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout);
+  rdcstr checksu =
+      adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout.trimmed();
   if(checksu == "found")
     return true;
 
   return false;
 }
 
-std::string GetFirstMatchingLine(const std::string &haystack, const std::string &needle)
+rdcstr GetFirstMatchingLine(const rdcstr &haystack, const rdcstr &needle)
 {
-  size_t needleOffset = haystack.find(needle);
+  int needleOffset = haystack.find(needle);
 
-  if(needleOffset == std::string::npos)
-    return "";
+  if(needleOffset == -1)
+    return rdcstr();
 
-  size_t nextLine = haystack.find('\n', needleOffset + 1);
+  int nextLine = haystack.find('\n', needleOffset + 1);
 
-  return haystack.substr(needleOffset,
-                         nextLine == std::string::npos ? nextLine : nextLine - needleOffset);
+  return haystack.substr(needleOffset, nextLine == -1 ? ~0U : size_t(nextLine - needleOffset));
 }
 
 bool IsDebuggable(const std::string &deviceID, const std::string &packageName)

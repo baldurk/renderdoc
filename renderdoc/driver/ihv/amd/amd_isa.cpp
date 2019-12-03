@@ -194,7 +194,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   Process::ProcessResult result = {};
   Process::LaunchProcess(amdspv.c_str(), get_dirname(amdspv).c_str(), cmdLine.c_str(), true, &result);
 
-  if(result.strStdout.find("SUCCESS") == std::string::npos)
+  if(result.strStdout.find("SUCCESS") < 0)
   {
     return "; Failed to Disassemble - " + result.strStdout;
   }
@@ -370,8 +370,8 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   Process::ProcessResult result = {};
   Process::LaunchProcess(vc.c_str(), get_dirname(vc).c_str(), cmdLine.c_str(), true, &result);
 
-  if(result.retCode != 0 || result.strStdout.find("Error") != std::string::npos ||
-     result.strStdout.empty() || !FileIO::exists(outPath.c_str()))
+  if(result.retCode != 0 || result.strStdout.find("Error") >= 0 || result.strStdout.empty() ||
+     !FileIO::exists(outPath.c_str()))
   {
     return "; Failed to Disassemble - check AMD driver is currently running\n\n; " + result.strStdout;
   }

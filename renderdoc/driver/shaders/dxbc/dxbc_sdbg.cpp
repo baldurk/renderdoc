@@ -85,10 +85,9 @@ SDBGChunk::SDBGChunk(void *data)
 
   for(size_t i = 0; i < m_FileHeaders.size(); i++)
   {
-    std::string filename =
-        std::string(asciiDatabase + m_FileHeaders[i].filenameOffset, m_FileHeaders[i].filenameLen);
-    std::string source =
-        std::string(asciiDatabase + m_FileHeaders[i].sourceOffset, m_FileHeaders[i].sourceLen);
+    rdcstr filename =
+        rdcstr(asciiDatabase + m_FileHeaders[i].filenameOffset, m_FileHeaders[i].filenameLen);
+    rdcstr source = rdcstr(asciiDatabase + m_FileHeaders[i].sourceOffset, m_FileHeaders[i].sourceLen);
 
     this->Files.push_back(make_rdcpair(filename, source));
   }

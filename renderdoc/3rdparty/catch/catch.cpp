@@ -44,21 +44,21 @@ struct AppVeyorListener : Catch::TestEventListenerBase
 {
   using TestEventListenerBase::TestEventListenerBase;    // inherit constructor
 
-  std::string errorList;
+  rdcstr errorList;
   double durationInSeconds = 0.0;
 
   struct TestCase
   {
     double durationInSeconds;
     bool passed;
-    std::string errorList;
-    std::string name;
-    std::string filename;
+    rdcstr errorList;
+    rdcstr name;
+    rdcstr filename;
 
-    std::string MakeJSON();
+    rdcstr MakeJSON();
   };
 
-  std::vector<TestCase> m_testcases;
+  rdcarray<TestCase> m_testcases;
 
   virtual bool assertionEnded(Catch::AssertionStats const &assertionStats) override
   {
@@ -153,7 +153,7 @@ struct AppVeyorListener : Catch::TestEventListenerBase
       if(!sep)
         return;
 
-      std::string hostname = std::string(url, sep);
+      rdcstr hostname = rdcstr(url, sep - url);
 
       url = sep + 1;
 
@@ -169,7 +169,7 @@ struct AppVeyorListener : Catch::TestEventListenerBase
 
       if(sock)
       {
-        std::string json;
+        rdcstr json;
 
         json += "[\n";
         for(size_t i = 0; i < m_testcases.size(); i++)
@@ -183,7 +183,7 @@ struct AppVeyorListener : Catch::TestEventListenerBase
         }
         json += "]";
 
-        std::string http;
+        rdcstr http;
         http += StringFormat::Fmt("POST /api/tests/batch HTTP/1.1\r\n");
         http += StringFormat::Fmt("Host: %s\r\n", hostname.c_str());
         http += "Connection: close\r\n";
@@ -201,11 +201,11 @@ struct AppVeyorListener : Catch::TestEventListenerBase
   }
 };
 
-static std::string escape(const std::string &input)
+static rdcstr escape(const rdcstr &input)
 {
-  std::string ret = input;
-  size_t i = ret.find_first_of("\"\n\\", 0);
-  while(i != std::string::npos)
+  rdcstr ret = input;
+  int i = ret.find_first_of("\"\n\\", 0);
+  while(i >= 0)
   {
     if(ret[i] == '"')
       ret.replace(i, 1, "\\\"");
@@ -220,9 +220,11 @@ static std::string escape(const std::string &input)
   return ret;
 }
 
-std::string AppVeyorListener::TestCase::MakeJSON()
+rdcstr AppVeyorListener::TestCase::MakeJSON()
 {
-  std::string json;
+  rdcstr json;
+
+  errorList.trim();
 
   return StringFormat::Fmt(
       R"({
@@ -237,7 +239,7 @@ std::string AppVeyorListener::TestCase::MakeJSON()
     "StdErr": ""
 })",
       escape(name).c_str(), escape(filename).c_str(), passed ? "Passed" : "Failed",
-      (int)RDCMAX(durationInSeconds * 1000.0, 0.0), escape(trim(errorList)).c_str());
+      (int)RDCMAX(durationInSeconds * 1000.0, 0.0), escape(errorList).c_str());
 }
 
 CATCH_REGISTER_LISTENER(AppVeyorListener)

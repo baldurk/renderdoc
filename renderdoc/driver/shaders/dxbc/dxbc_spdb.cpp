@@ -1693,39 +1693,40 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
   delete[] pages;
 
   // save the filenames in their original order
-  std::vector<std::string> filenames;
+  rdcarray<rdcstr> filenames;
   filenames.reserve(Files.size());
   for(size_t i = 0; i < Files.size(); i++)
     filenames.push_back(Files[i].first);
 
   // Sort files according to the order they come in the Names array, this seems to be more reliable
   // about placing the main file first.
-  std::sort(Files.begin(), Files.end(), [&Names](const rdcpair<std::string, std::string> &a,
-                                                 const rdcpair<std::string, std::string> &b) {
-    // any entries that aren't found in Names at all (like @cmdline that we add) will be sorted to
-    // the end.
-    size_t aIdx = ~0U, bIdx = ~0U;
+  std::sort(Files.begin(), Files.end(),
+            [&Names](const rdcpair<rdcstr, rdcstr> &a, const rdcpair<rdcstr, rdcstr> &b) {
+              // any entries that aren't found in Names at all (like @cmdline that we add) will be
+              // sorted to
+              // the end.
+              size_t aIdx = ~0U, bIdx = ~0U;
 
-    size_t i = 0;
-    for(auto it = Names.begin(); it != Names.end(); ++it)
-    {
-      if(it->second == a.first)
-        aIdx = i;
-      if(it->second == b.first)
-        bIdx = i;
+              size_t i = 0;
+              for(auto it = Names.begin(); it != Names.end(); ++it)
+              {
+                if(it->second == a.first)
+                  aIdx = i;
+                if(it->second == b.first)
+                  bIdx = i;
 
-      i++;
-    }
+                i++;
+              }
 
-    // if neither were found, sort by filename
-    if(aIdx == bIdx)
-      return a.first < b.first;
+              // if neither were found, sort by filename
+              if(aIdx == bIdx)
+                return a.first < b.first;
 
-    return aIdx < bIdx;
-  });
+              return aIdx < bIdx;
+            });
 
   // create a map from filename -> index
-  std::map<std::string, int32_t> remapping;
+  std::map<rdcstr, int32_t> remapping;
   for(size_t i = 0; i < Files.size(); i++)
     remapping[Files[i].first] = (int32_t)i;
 

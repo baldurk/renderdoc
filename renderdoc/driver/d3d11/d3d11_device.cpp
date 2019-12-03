@@ -111,8 +111,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
     D3D11MarkerRegion::device = this;
 
-    std::string shaderSearchPathString =
-        RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
+    rdcstr shaderSearchPathString = RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
     split(shaderSearchPathString, m_ShaderSearchPaths, ';');
 
     ResourceIDGen::SetReplayResourceIDs();

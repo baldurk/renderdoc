@@ -435,7 +435,7 @@ private:
   };
 
   std::vector<std::string> pdbRememberedPaths;
-  std::vector<std::string> pdbIgnores;
+  rdcarray<rdcstr> pdbIgnores;
   std::vector<Module> modules;
 
   char pipeMessageBuf[2048];
@@ -753,7 +753,7 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
     break;
   }
 
-  std::string ignores = StringFormat::Wide2UTF8(inputBuf);
+  rdcstr ignores = StringFormat::Wide2UTF8(inputBuf);
 
   {
     DWORD read =
@@ -1004,7 +1004,7 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
   }
 
   std::sort(pdbIgnores.begin(), pdbIgnores.end());
-  pdbIgnores.erase(std::unique(pdbIgnores.begin(), pdbIgnores.end()), pdbIgnores.end());
+  pdbIgnores.erase(std::unique(pdbIgnores.begin(), pdbIgnores.end()) - pdbIgnores.begin(), ~0U);
   merge(pdbIgnores, ignores, ';');
   WritePrivateProfileStringW(L"renderdoc", L"ignores", StringFormat::UTF82Wide(ignores).c_str(),
                              configPath.c_str());

@@ -24,7 +24,6 @@
 
 #include "android.h"
 #include <set>
-#include <sstream>
 #include "api/replay/version.h"
 #include "core/core.h"
 #include "core/remote_server.h"
@@ -78,14 +77,14 @@ std::string GetDefaultActivityForPackage(const std::string &deviceID, const std:
     return "";
   }
 
-  std::vector<std::string> lines;
+  rdcarray<rdcstr> lines;
   split(activity.strStdout, lines, '\n');
 
-  for(std::string &line : lines)
+  for(rdcstr &line : lines)
   {
-    line = trim(line);
+    line.trim();
 
-    if(!strncmp(line.c_str(), "name=", 5))
+    if(line.beginsWith("name="))
     {
       return line.substr(5);
     }
@@ -108,25 +107,23 @@ std::string GetDefaultActivityForPackage(const std::string &deviceID, const std:
 
   size_t numOfLines = lines.size();
   const char *intentFilter = "android.intent.action.MAIN:";
-  size_t intentFilterSize = strlen(intentFilter);
 
   for(size_t idx = 0; idx < numOfLines; idx++)
   {
-    std::string line = trim(lines[idx]);
-    if(!strncmp(line.c_str(), intentFilter, intentFilterSize) && idx + 1 < numOfLines)
+    lines[idx].trim();
+
+    if(lines[idx].beginsWith(intentFilter) && idx + 1 < numOfLines)
     {
-      std::string activityName = trim(lines[idx + 1]);
-      size_t startPos = activityName.find("/");
-      if(startPos == std::string::npos)
+      rdcstr activityName = lines[idx + 1].trimmed();
+      int startPos = activityName.find('/');
+      if(startPos < 0)
       {
         RDCWARN("Failed to find default activity");
         return "";
       }
-      size_t endPos = activityName.find(" ", startPos + 1);
-      if(endPos == std::string::npos)
-      {
-        endPos = activityName.length();
-      }
+      int endPos = activityName.find(' ', startPos + 1);
+      if(endPos < 0)
+        endPos = activityName.count();
       return activityName.substr(startPos + 1, endPos - startPos - 1);
     }
   }
@@ -143,22 +140,24 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
     Process::ProcessResult pidOutput =
         adbExecCommand(deviceID, StringFormat::Fmt("shell ps -A | grep %s", packageName.c_str()));
 
-    std::string output = trim(pidOutput.strStdout);
-    size_t space = output.find_first_of("\t ");
+    rdcstr &output = pidOutput.strStdout;
+
+    output.trim();
+    int space = output.find_first_of("\t ");
 
     // if we didn't get a response, try without the -A as some android devices don't support that
     // parameter
-    if(output.empty() || output.find(packageName) == std::string::npos || space == std::string::npos)
+    if(output.empty() || output.find(packageName) == -1 || space == -1)
     {
       pidOutput =
           adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", packageName.c_str()));
 
-      output = trim(pidOutput.strStdout);
+      output.trim();
       space = output.find_first_of("\t ");
     }
 
     // if we still didn't get a response, sleep and try again next time
-    if(output.empty() || output.find(packageName) == std::string::npos || space == std::string::npos)
+    if(output.empty() || output.find(packageName) == -1 || space == -1)
     {
       Threading::Sleep(200);
       continue;
@@ -190,14 +189,15 @@ bool CheckAndroidServerVersion(const std::string &deviceID, ABI abi)
   if(dump.empty())
     RDCERR("Unable to pm dump %s", packageName.c_str());
 
-  std::string versionCode = trim(GetFirstMatchingLine(dump, "versionCode="));
-  std::string versionName = trim(GetFirstMatchingLine(dump, "versionName="));
+  rdcstr versionCode = GetFirstMatchingLine(dump, "versionCode=").trimmed();
+  rdcstr versionName = GetFirstMatchingLine(dump, "versionName=").trimmed();
 
   // versionCode is not alone in this line, isolate it
   if(versionCode != "")
   {
-    size_t spaceOffset = versionCode.find(' ');
-    versionCode.erase(spaceOffset);
+    int32_t spaceOffset = versionCode.find(' ');
+    if(spaceOffset >= 0)
+      versionCode.erase(spaceOffset, ~0U);
 
     versionCode.erase(0, strlen("versionCode="));
   }
@@ -260,8 +260,8 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   if(FileIO::IsRelativePath(customPath))
     customPath = libDir + "/" + customPath;
 
-  if(!endswith(customPath, "/"))
-    customPath += "/";
+  if(customPath.back() != '/'))
+    customPath += '/';
 
   paths.push_back(customPath);
 #endif
@@ -331,8 +331,8 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
 
     if(!success)
     {
-      RDCLOG("Failed to install APK. stdout: %s, stderr: %s", trim(adbInstall.strStdout).c_str(),
-             trim(adbInstall.strStderror).c_str());
+      RDCLOG("Failed to install APK. stdout: %s, stderr: %s",
+             adbInstall.strStdout.trimmed().c_str(), adbInstall.strStderror.trimmed().c_str());
       RDCLOG("Retrying...");
       adbExecCommand(deviceID, "install -r \"" + apk + "\"");
 
@@ -363,7 +363,7 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
     return ReplayStatus::AndroidAPKInstallFailed;
   }
 
-  size_t lines = adbCheck.strStdout.find('\n') == std::string::npos ? 1 : 2;
+  size_t lines = adbCheck.strStdout.find('\n') == -1 ? 1 : 2;
 
   if(lines != abis.size())
     RDCWARN("Installation of some apks failed!");
@@ -416,15 +416,15 @@ rdcarray<rdcstr> EnumerateDevices()
 {
   rdcarray<rdcstr> ret;
 
-  std::string adbStdout = Android::adbExecCommand("", "devices", ".", true).strStdout;
+  rdcstr adbStdout = Android::adbExecCommand("", "devices", ".", true).strStdout;
 
-  std::vector<std::string> lines;
+  rdcarray<rdcstr> lines;
   split(adbStdout, lines, '\n');
   for(const std::string &line : lines)
   {
-    std::vector<std::string> tokens;
+    rdcarray<rdcstr> tokens;
     split(line, tokens, '\t');
-    if(tokens.size() == 2 && trim(tokens[1]) == "device")
+    if(tokens.size() == 2 && tokens[1].trimmed() == "device")
       ret.push_back(tokens[0]);
   }
 
@@ -485,14 +485,13 @@ struct AndroidRemoteServer : public RemoteServer
     {
       SCOPED_TIMER("Fetching android packages and activities");
 
-      std::string adbStdout =
-          Android::adbExecCommand(m_deviceID, "shell pm list packages -3").strStdout;
+      rdcstr adbStdout = Android::adbExecCommand(m_deviceID, "shell pm list packages -3").strStdout;
 
-      std::vector<std::string> lines;
+      rdcarray<rdcstr> lines;
       split(adbStdout, lines, '\n');
 
       std::vector<PathEntry> packages;
-      for(const std::string &line : lines)
+      for(const rdcstr &line : lines)
       {
         // hide our own internal packages
         if(strstr(line.c_str(), "package:org.renderdoc."))
@@ -501,7 +500,7 @@ struct AndroidRemoteServer : public RemoteServer
         if(!strncmp(line.c_str(), "package:", 8))
         {
           PathEntry pkg;
-          pkg.filename = trim(line.substr(8));
+          pkg.filename = line.substr(8).trimmed();
           pkg.size = 0;
           pkg.lastmod = 0;
           pkg.flags = PathProperty::Directory;
@@ -826,12 +825,12 @@ struct AndroidController : public IDeviceProtocolHandler
         return;
       }
 
-      std::string packagesOutput =
-          trim(Android::adbExecCommand(deviceID,
-                                       "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
-                   .strStdout);
+      rdcstr packagesOutput =
+          Android::adbExecCommand(deviceID,
+                                  "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
+              .strStdout.trimmed();
 
-      std::vector<std::string> packages;
+      rdcarray<rdcstr> packages;
       split(packagesOutput, packages, '\n');
 
       std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
@@ -1034,10 +1033,9 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     std::string installedPath = Android::GetPathForPackage(m_deviceID, packageName);
 
-    std::string RDCLib =
-        trim(Android::adbExecCommand(
-                 m_deviceID, "shell ls " + installedPath + "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
-                 .strStdout);
+    rdcstr RDCLib = Android::adbExecCommand(m_deviceID, "shell ls " + installedPath +
+                                                            "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
+                        .strStdout.trimmed();
 
     // some versions of adb/android return the error message on stdout, so try to detect those and
     // clear the output.
@@ -1046,7 +1044,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     // some versions of adb/android also don't print any error message at all! Look to see if the
     // wildcard glob is still present.
-    if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) != std::string::npos)
+    if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) >= 0)
       RDCLib.clear();
 
     if(RDCLib.empty())

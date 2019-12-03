@@ -283,30 +283,30 @@ static std::map<std::string, std::string> EnvStringToEnvMap(const char **envstri
   return ret;
 }
 
-static std::string shellExpand(const std::string &in)
+static rdcstr shellExpand(const rdcstr &in)
 {
-  std::string path = trim(in);
+  rdcstr path = in.trimmed();
 
   // if it begins with ./ then replace with working directory
   if(path[0] == '.' && path[1] == '/')
   {
     char cwd[1024] = {};
     getcwd(cwd, 1023);
-    return std::string(cwd) + path.substr(1);
+    return rdcstr(cwd) + path.substr(1);
   }
 
   // if it's ~/... then replace with $HOME and return
   if(path[0] == '~' && path[1] == '/')
-    return std::string(getenv("HOME")) + path.substr(1);
+    return rdcstr(getenv("HOME")) + path.substr(1);
 
   // if it's ~user/... then use getpwname
   if(path[0] == '~')
   {
-    size_t slash = path.find('/');
+    int slash = path.find('/');
 
-    std::string username;
+    rdcstr username;
 
-    if(slash != std::string::npos)
+    if(slash >= 0)
     {
       RDCASSERT(slash > 1);
       username = path.substr(1, slash - 1);
@@ -320,10 +320,10 @@ static std::string shellExpand(const std::string &in)
 
     if(pwdata)
     {
-      if(slash != std::string::npos)
-        return std::string(pwdata->pw_dir) + path.substr(slash);
+      if(slash >= 0)
+        return rdcstr(pwdata->pw_dir) + path.substr(slash);
 
-      return std::string(pwdata->pw_dir);
+      return rdcstr(pwdata->pw_dir);
     }
   }
 
@@ -419,8 +419,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   if(!app)
     return (pid_t)0;
 
-  std::string appName = app;
-  std::string workDir = (workingDir && workingDir[0]) ? workingDir : get_dirname(appName);
+  rdcstr appName = app;
+  rdcstr workDir = (workingDir && workingDir[0]) ? workingDir : get_dirname(appName);
 
 // handle funky apple .app folders that aren't actually executables
 #if ENABLED(RDOC_APPLE)

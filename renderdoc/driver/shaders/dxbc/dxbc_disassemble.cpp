@@ -502,7 +502,7 @@ void Program::MakeDisassemblyString()
 
   size_t debugInst = 0;
 
-  std::vector<std::vector<std::string>> fileLines;
+  rdcarray<rdcarray<rdcstr>> fileLines;
 
   // generate fileLines by splitting each file in the debug info
   if(m_DebugInfo)
@@ -555,7 +555,7 @@ void Program::MakeDisassemblyString()
         }
         else
         {
-          std::vector<std::string> &lines = fileLines[lineInfo.fileIndex];
+          rdcarray<rdcstr> &lines = fileLines[lineInfo.fileIndex];
 
           int32_t lineIdx = RDCMIN(lineInfo.lineStart, (uint32_t)lines.size() - 1);
 

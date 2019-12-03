@@ -47,7 +47,7 @@ enum class ToolDir
 std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist);
 bool toolExists(const std::string &path);
 
-std::string GetFirstMatchingLine(const std::string &haystack, const std::string &needle);
+rdcstr GetFirstMatchingLine(const rdcstr &haystack, const rdcstr &needle);
 
 bool IsSupported(std::string deviceID);
 bool SupportsNativeLayers(const rdcstr &deviceID);

@@ -420,8 +420,8 @@ private:
     float CharAspect;
 
     // extensions
-    std::vector<std::string> glExts;
-    std::string glExtsString;
+    rdcarray<rdcstr> glExts;
+    rdcstr glExtsString;
 
     // state
     GLResourceRecord *m_BufferRecord[16];

@@ -63,7 +63,7 @@ ExecuteResult InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModifica
                                 bool waitForExit);
 struct ProcessResult
 {
-  std::string strStdout, strStderror;
+  rdcstr strStdout, strStderror;
   int retCode;
 };
 uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine, bool internal,
@@ -296,8 +296,6 @@ size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f);
 bool exists(const char *filename);
 
 std::string ErrorString();
-
-std::string getline(FILE *f);
 
 uint64_t ftell64(FILE *f);
 void fseek64(FILE *f, uint64_t offset, int origin);
