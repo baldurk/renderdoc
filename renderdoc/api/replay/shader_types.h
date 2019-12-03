@@ -26,9 +26,11 @@
 #pragma once
 
 #include <stdint.h>
+#include "apidefs.h"
 #include "rdcarray.h"
 #include "rdcstr.h"
 #include "replay_enums.h"
+#include "stringise.h"
 
 DOCUMENT("A ``float`` 4 component vector.")
 struct FloatVecVal

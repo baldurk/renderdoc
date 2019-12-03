@@ -24,7 +24,10 @@
 
 #pragma once
 
+#include "apidefs.h"
+#include "rdcarray.h"
 #include "shader_types.h"
+#include "stringise.h"
 
 DOCUMENT("Information about a viewport.");
 struct Viewport

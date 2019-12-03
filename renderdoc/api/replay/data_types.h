@@ -25,7 +25,10 @@
 
 #pragma once
 
+#include "apidefs.h"
 #include "replay_enums.h"
+#include "resourceid.h"
+#include "stringise.h"
 
 DOCUMENT("A floating point four-component vector");
 struct FloatVector

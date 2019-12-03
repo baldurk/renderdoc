@@ -25,7 +25,6 @@
 #pragma once
 
 #include "common_pipestate.h"
-#include "shader_types.h"
 
 namespace D3D12Pipe
 {

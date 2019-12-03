@@ -29,424 +29,43 @@
 #include <stdint.h>
 #include <functional>
 
-// Guidelines for documentation:
-//
-// * If you only need a short string, use DOCUMENT("Here is my string");
-// * If your string is only just over the limit by clang-format, allow it to be reformatted and
-//   moved to a new line as necessary.
-// * If your string is a couple of lines long or a paragraph or more, use raw C++11 string literals
-//   like so:
-//   R"(Here is my string. It is fairly long so I am going to break the first line over a paragraph
-//   boundary like so, so that I have enough room to continue it.
-//
-//   A second paragraph can be used like so. Note that the first line is right after the opening
-//   quotation mark, but the terminating bracket and quote should be on a new line.
-//   )"
-// * Use :class:`ClassName` to refer to classes, :data:`ClassName.constant` to refer to constants or
-//   member variables, and :meth:`ClassName.method` to refer to member functions. You can also link
-//   to the external documentation with :ref:`external-ref-name`.
-// * For constants like ``None`` or ``True`` use the python term (i.e. ``None`` not ``NULL``) and
-//   surround with double backticks ``.
-// * Likewise use python types to refer to basic types - ``str``, ``int``, ``float``, etc.
-// * All values for enums should be documented in the docstring for the enum itself, you can't
-//   document the values. See the examples in replay_enums.h for the syntax
-// * Take care not to go too far over 100 columns, if you're using raw C++11 string literals then
-//   clang-format won't reformat them into the column limit.
-//
-#ifndef DOCUMENT
-#define DOCUMENT(text)
-#endif
-
-// There's a bug in visual assist that stops highlighting if a raw string is too long. It looks like
-// it happens when it reaches 128 lines long or ~5000 bytes which is quite suspicious.
-// Anyway since this doesn't come up that often, we split the following docstring in two part-way
-// through. Don't be alarmed, just move along
-#ifndef DOCUMENT2
-#define DOCUMENT2(text1, text2)
-#endif
-
-#ifndef DOCUMENT3
-#define DOCUMENT3(text1, text2, text3)
-#endif
-
-#ifndef DOCUMENT4
-#define DOCUMENT4(text1, text2, text3, text4)
-#endif
-
-#if defined(RENDERDOC_PLATFORM_WIN32)
-
-#define RENDERDOC_EXPORT_API __declspec(dllexport)
-#define RENDERDOC_IMPORT_API __declspec(dllimport)
-#define RENDERDOC_CC __cdecl
-
-#elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
-    defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_GGP)
-
-#define RENDERDOC_EXPORT_API __attribute__((visibility("default")))
-#define RENDERDOC_IMPORT_API
-
-#define RENDERDOC_CC
-
-#else
-
-#error "Unknown platform"
-
-#endif
+#include "apidefs.h"
 
 // this #define can be used to mark a program as a 'replay' program which should not be captured.
 // Any program used for such purpose must define and export this symbol in the main exe or one dll
 // that will be loaded before renderdoc.dll is loaded.
 #define REPLAY_PROGRAM_MARKER() \
   extern "C" RENDERDOC_EXPORT_API void RENDERDOC_CC renderdoc__replay__marker() {}
-// define the API visibility depending on whether we're exporting
-#ifdef RENDERDOC_EXPORTS
-#define RENDERDOC_API RENDERDOC_EXPORT_API
-#else
-#define RENDERDOC_API RENDERDOC_IMPORT_API
-#endif
+// declare ResourceId extremely early so that it can be referenced in structured_data.h
+
+DOCUMENT("");
+typedef uint8_t byte;
 
 // needs to be declared up here for reference in rdcarray/rdcstr
-
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(void *mem);
 typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(void *mem);
 
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz);
 typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
 
-#ifdef NO_ENUM_CLASS_OPERATORS
-
-#define BITMASK_OPERATORS(a)
-#define ITERABLE_OPERATORS(a)
-
-#else
-
-#include <type_traits>
-
-// helper template that allows the result of & to be cast back to the enum or explicitly cast to
-// bool for use in if() or ?: or so on or compared against 0.
-//
-// If you get an error about missing operator then you're probably doing something like
-// (bitfield & value) == 0 or (bitfield & value) != 0 or similar. Instead prefer:
-// !(bitfield & value)     or (bitfield & value) to make use of the bool cast directly
-template <typename enum_name>
-struct EnumCastHelper
-{
-public:
-  constexpr EnumCastHelper(enum_name v) : val(v) {}
-  constexpr operator enum_name() const { return val; }
-  constexpr explicit operator bool() const
-  {
-    typedef typename std::underlying_type<enum_name>::type etype;
-    return etype(val) != 0;
-  }
-
-private:
-  const enum_name val;
-};
-
-// helper templates for iterating over all values in an enum that has sequential values and is
-// to be used for array indices or something like that.
-template <typename enum_name>
-struct ValueIterContainer
-{
-  struct ValueIter
-  {
-    ValueIter(enum_name v) : val(v) {}
-    enum_name val;
-    enum_name operator*() const { return val; }
-    bool operator!=(const ValueIter &it) const { return !(val == *it); }
-    const inline enum_name operator++()
-    {
-      ++val;
-      return val;
-    }
-  };
-
-  ValueIter begin() { return ValueIter(enum_name::First); }
-  ValueIter end() { return ValueIter(enum_name::Count); }
-};
-
-template <typename enum_name>
-struct IndexIterContainer
-{
-  typedef typename std::underlying_type<enum_name>::type etype;
-
-  struct IndexIter
-  {
-    IndexIter(enum_name v) : val(v) {}
-    enum_name val;
-    etype operator*() const { return etype(val); }
-    bool operator!=(const IndexIter &it) const { return !(val == it.val); }
-    const inline enum_name operator++()
-    {
-      ++val;
-      return val;
-    }
-  };
-
-  IndexIter begin() { return IndexIter(enum_name::First); }
-  IndexIter end() { return IndexIter(enum_name::Count); }
-};
-
-template <typename enum_name>
-constexpr inline ValueIterContainer<enum_name> values()
-{
-  return ValueIterContainer<enum_name>();
-};
-
-template <typename enum_name>
-constexpr inline IndexIterContainer<enum_name> indices()
-{
-  return IndexIterContainer<enum_name>();
-};
-
-template <typename enum_name>
-constexpr inline size_t arraydim()
-{
-  typedef typename std::underlying_type<enum_name>::type etype;
-  return (size_t)etype(enum_name::Count);
-};
-
-// clang-format makes a even more of a mess of this multi-line macro than it usually does, for some
-// reason. So we just disable it since it's still readable and this isn't really the intended case
-// we are using clang-format for.
-
-// clang-format off
-#define BITMASK_OPERATORS(enum_name)                                           \
-                                                                               \
-constexpr inline enum_name operator|(enum_name a, enum_name b)                 \
-{                                                                              \
-  typedef typename std::underlying_type<enum_name>::type etype;                \
-  return enum_name(etype(a) | etype(b));                                       \
-}                                                                              \
-                                                                               \
-constexpr inline EnumCastHelper<enum_name> operator&(enum_name a, enum_name b) \
-{                                                                              \
-  typedef typename std::underlying_type<enum_name>::type etype;                \
-  return EnumCastHelper<enum_name>(enum_name(etype(a) & etype(b)));            \
-}                                                                              \
-                                                                               \
-constexpr inline enum_name operator~(enum_name a)                              \
-{                                                                              \
-  typedef typename std::underlying_type<enum_name>::type etype;                \
-  return enum_name(~etype(a));                                                 \
-}                                                                              \
-                                                                               \
-inline enum_name &operator|=(enum_name &a, enum_name b)                        \
-{ return a = a | b; }                                                          \
-                                                                               \
-inline enum_name &operator&=(enum_name &a, enum_name b)                        \
-{ return a = a & b; }
-
-#define ITERABLE_OPERATORS(enum_name)                                          \
-                                                                               \
-inline enum_name operator++(enum_name &a)                                      \
-{                                                                              \
-  typedef typename std::underlying_type<enum_name>::type etype;                \
-  return a = enum_name(etype(a)+1);                                            \
-}
-// clang-format on
-
-#endif
-
-#define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)
-
-// declare ResourceId extremely early so that it can be referenced in structured_data.h
-
-#ifdef RENDERDOC_EXPORTS
-struct ResourceId;
-
-namespace ResourceIDGen
-{
-// the only function allowed access to ResourceId internals, for allocating a new ID
-ResourceId GetNewUniqueID();
-};
-#endif
-
-// We give every resource a globally unique ID so that we can differentiate
-// between two textures allocated in the same memory (after the first is freed)
-//
-// it's a struct around a uint64_t to aid in template selection
-DOCUMENT(R"(This is an opaque identifier that uniquely locates a resource.
-
-.. note::
-  These IDs do not overlap ever - textures, buffers, shaders and samplers will all have unique IDs
-  and do not reuse the namespace. Likewise the IDs assigned for resources during capture  are not
-  re-used on replay - the corresponding resources created on replay to stand-in for capture-time
-  resources are given unique IDs and a mapping is stored to between the capture-time resource and
-  the replay-time one.
-)");
-struct ResourceId
-{
-  ResourceId() : id() {}
-#if defined(SWIG)
-  ResourceId(const ResourceId &other) : id(other.id) {}
-#endif
-  DOCUMENT("A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.");
-  inline static ResourceId Null() { return ResourceId(); }
-  DOCUMENT("Compares two ``ResourceId`` objects for equality.");
-  bool operator==(const ResourceId u) const { return id == u.id; }
-  DOCUMENT("Compares two ``ResourceId`` objects for inequality.");
-  bool operator!=(const ResourceId u) const { return id != u.id; }
-  DOCUMENT("Compares two ``ResourceId`` objects for less-than.");
-  bool operator<(const ResourceId u) const { return id < u.id; }
-#if defined(RENDERDOC_QT_COMPAT)
-  operator QVariant() const { return QVariant::fromValue(*this); }
-#endif
-
-private:
-  uint64_t id;
-
-#ifdef RENDERDOC_EXPORTS
-  friend ResourceId ResourceIDGen::GetNewUniqueID();
-#endif
-};
-
-DOCUMENT("");
-
-typedef uint8_t byte;
-
+// declare base types and stringise interface
+#include "rdcarray.h"
 #include "rdcdatetime.h"
 #include "rdcpair.h"
-#include "rdcarray.h"
 #include "rdcstr.h"
 #include "stringise.h"
+
+// define ResourceId, because it's a base type for structured data but needs the stringise interface
+#include "resourceid.h"
+
+// include all API types now
+#include "capture_options.h"
+#include "control_types.h"
+#include "data_types.h"
+#include "pipestate.h"
+#include "replay_enums.h"
+#include "shader_types.h"
 #include "structured_data.h"
-
-DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
-
-.. data:: Unknown
-
-  Unknown window type, no windowing data is passed and no native window is described.
-
-.. data:: Headless
-
-  The windowing data doesn't describe a real window but a virtual area, allowing all normal output
-  rendering to happen off-screen.
-  See :func:`CreateHeadlessWindowingData`.
-
-.. data:: Win32
-
-  The windowing data refers to a Win32 window. See :func:`CreateWin32WindowingData`.
-
-.. data:: Xlib
-
-  The windowing data refers to an Xlib window. See :func:`CreateXLibWindowingData`.
-
-.. data:: XCB
-
-  The windowing data refers to an XCB window. See :func:`CreateXCBWindowingData`.
-
-.. data:: Wayland
-
-  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
-
-.. data:: Android
-
-  The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
-
-.. data:: MacOS
-
-  The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
-  See :func:`CreateMacOSWindowingData`.
-)");
-enum class WindowingSystem : uint32_t
-{
-  Unknown,
-  Headless,
-  Win32,
-  Xlib,
-  XCB,
-  Android,
-  MacOS,
-  GGP,
-  Wayland,
-};
-
-DECLARE_REFLECTION_ENUM(WindowingSystem);
-
-// typedef the window data structs so this will compile on all platforms without system headers. We
-// only actually need the real definitions when we're using the data, otherwise it's mostly opaque
-// pointers or integers.
-
-// Win32
-typedef struct HWND__ *HWND;
-
-// xlib
-typedef struct _XDisplay Display;
-typedef unsigned long Drawable;
-
-// xcb
-struct xcb_connection_t;
-typedef uint32_t xcb_window_t;
-
-// wayland
-struct wl_display;
-struct wl_surface;
-
-// android
-struct ANativeWindow;
-
-// for swig bindings treat the windowing data struct as completely opaque
-#if defined(SWIG)
-
-DOCUMENT("An opaque structure created to hold windowing setup data");
-struct WindowingData
-{
-};
-
-#else
-
-struct WindowingData
-{
-  WindowingSystem system;
-
-  union
-  {
-    struct
-    {
-      int32_t width, height;
-    } headless;
-
-    struct
-    {
-      HWND window;
-    } win32;
-
-    struct
-    {
-      Display *display;
-      Drawable window;
-    } xlib;
-
-    struct
-    {
-      xcb_connection_t *connection;
-      xcb_window_t window;
-    } xcb;
-
-    struct
-    {
-      wl_display *display;
-      wl_surface *window;
-    } wayland;
-
-    struct
-    {
-      ANativeWindow *window;
-    } android;
-
-    struct
-    {
-      void *view;
-      void *layer;
-    } macOS;
-  };
-};
-
-DECLARE_REFLECTION_ENUM(WindowingData);
-
-#endif
 
 DOCUMENT(R"(Create a :class:`WindowingData` for no backing window, it will be headless.
 
@@ -586,62 +205,6 @@ inline const WindowingData CreateMacOSWindowingData(void *view, void *layer)
 
   return ret;
 }
-
-// declare metatype/reflection for ResourceId here as the struct itself is declared before including
-// all relevant headers above
-#if defined(RENDERDOC_QT_COMPAT)
-Q_DECLARE_METATYPE(ResourceId);
-#endif
-
-DECLARE_REFLECTION_STRUCT(ResourceId);
-
-#include "capture_options.h"
-#include "control_types.h"
-#include "data_types.h"
-#include "replay_enums.h"
-#include "shader_types.h"
-#include "pipestate.h"
-
-DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
-struct GlobalEnvironment
-{
-  DOCUMENT("");
-  GlobalEnvironment() = default;
-  GlobalEnvironment(const GlobalEnvironment &) = default;
-  GlobalEnvironment &operator=(const GlobalEnvironment &) = default;
-
-  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
-  Display *xlibDisplay = NULL;
-
-  DOCUMENT(
-      "The handle to the X display to use internally. If left ``NULL``, wayland cannot be used.");
-  wl_display *waylandDisplay = NULL;
-
-  DOCUMENT(R"(Whether to enumerate available GPUs. If the replay program is only being used for
-internal operation where enumerating GPUs would be too expensive or problematic, it can be disabled
-here.
-)");
-  bool enumerateGPUs = true;
-};
-
-DOCUMENT("The result of executing or injecting into a program.")
-struct ExecuteResult
-{
-  DOCUMENT("");
-  ExecuteResult() = default;
-  ExecuteResult(const ExecuteResult &) = default;
-  ExecuteResult &operator=(const ExecuteResult &) = default;
-
-  DOCUMENT(
-      "The :class:`ReplayStatus` resulting from the operation, indicating success or failure.");
-  ReplayStatus status;
-  DOCUMENT(R"(The ident where the new application is listening for target control, or 0 if something
-went wrong.
-)");
-  uint32_t ident;
-};
-
-DECLARE_REFLECTION_STRUCT(ExecuteResult);
 
 // there's not a good way to document a callback, so for lack of a better place we declare these
 // here and document them immediately below. They can be linked to from anywhere by name.

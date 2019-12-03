@@ -25,7 +25,9 @@
 
 #pragma once
 
+#include "apidefs.h"
 #include "data_types.h"
+#include "rdcarray.h"
 #include "replay_enums.h"
 
 DOCUMENT(R"(
@@ -789,3 +791,129 @@ The default is :data:`ReplayOptimisationLevel.Balanced`.
 };
 
 DECLARE_REFLECTION_STRUCT(ReplayOptions);
+
+// typedef the window data structs so this will compile on all platforms without system headers. We
+// only actually need the real definitions when we're using the data, otherwise it's mostly opaque
+// pointers or integers.
+
+// Win32
+typedef struct HWND__ *HWND;
+
+// xlib
+typedef struct _XDisplay Display;
+typedef unsigned long Drawable;
+
+// xcb
+struct xcb_connection_t;
+typedef uint32_t xcb_window_t;
+
+// wayland
+struct wl_display;
+struct wl_surface;
+
+// android
+struct ANativeWindow;
+
+// for swig bindings treat the windowing data struct as completely opaque
+#if defined(SWIG)
+
+DOCUMENT("An opaque structure created to hold windowing setup data");
+struct WindowingData
+{
+};
+
+#else
+
+struct WindowingData
+{
+  WindowingSystem system;
+
+  union
+  {
+    struct
+    {
+      int32_t width, height;
+    } headless;
+
+    struct
+    {
+      HWND window;
+    } win32;
+
+    struct
+    {
+      Display *display;
+      Drawable window;
+    } xlib;
+
+    struct
+    {
+      xcb_connection_t *connection;
+      xcb_window_t window;
+    } xcb;
+
+    struct
+    {
+      wl_display *display;
+      wl_surface *window;
+    } wayland;
+
+    struct
+    {
+      ANativeWindow *window;
+    } android;
+
+    struct
+    {
+      void *view;
+      void *layer;
+    } macOS;
+  };
+};
+
+DECLARE_STRINGISE_TYPE(WindowingData);
+
+#endif
+
+DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
+struct GlobalEnvironment
+{
+  DOCUMENT("");
+  GlobalEnvironment() = default;
+  GlobalEnvironment(const GlobalEnvironment &) = default;
+  GlobalEnvironment &operator=(const GlobalEnvironment &) = default;
+
+  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
+  Display *xlibDisplay = NULL;
+
+  DOCUMENT(
+      "The handle to the X display to use internally. If left ``NULL``, wayland cannot be used.");
+  wl_display *waylandDisplay = NULL;
+
+  DOCUMENT(R"(Whether to enumerate available GPUs. If the replay program is only being used for
+internal operation where enumerating GPUs would be too expensive or problematic, it can be disabled
+here.
+)");
+  bool enumerateGPUs = true;
+};
+
+DECLARE_REFLECTION_STRUCT(GlobalEnvironment);
+
+DOCUMENT("The result of executing or injecting into a program.")
+struct ExecuteResult
+{
+  DOCUMENT("");
+  ExecuteResult() = default;
+  ExecuteResult(const ExecuteResult &) = default;
+  ExecuteResult &operator=(const ExecuteResult &) = default;
+
+  DOCUMENT(
+      "The :class:`ReplayStatus` resulting from the operation, indicating success or failure.");
+  ReplayStatus status;
+  DOCUMENT(R"(The ident where the new application is listening for target control, or 0 if something
+went wrong.
+)");
+  uint32_t ident;
+};
+
+DECLARE_REFLECTION_STRUCT(ExecuteResult);

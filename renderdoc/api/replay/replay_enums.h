@@ -25,6 +25,9 @@
 
 #pragma once
 
+#include "apidefs.h"
+#include "stringise.h"
+
 DOCUMENT(R"(The types of several pre-defined and known sections. This allows consumers of the API
 to recognise and understand the contents of the section.
 
@@ -3513,6 +3516,58 @@ enum class ReplayOptimisationLevel : int32_t
 
 DECLARE_REFLECTION_ENUM(ReplayOptimisationLevel);
 ITERABLE_OPERATORS(ReplayOptimisationLevel);
+
+DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
+
+.. data:: Unknown
+
+  Unknown window type, no windowing data is passed and no native window is described.
+
+.. data:: Headless
+
+  The windowing data doesn't describe a real window but a virtual area, allowing all normal output
+  rendering to happen off-screen.
+  See :func:`CreateHeadlessWindowingData`.
+
+.. data:: Win32
+
+  The windowing data refers to a Win32 window. See :func:`CreateWin32WindowingData`.
+
+.. data:: Xlib
+
+  The windowing data refers to an Xlib window. See :func:`CreateXLibWindowingData`.
+
+.. data:: XCB
+
+  The windowing data refers to an XCB window. See :func:`CreateXCBWindowingData`.
+
+.. data:: Wayland
+
+  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
+
+.. data:: Android
+
+  The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
+
+.. data:: MacOS
+
+  The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
+  See :func:`CreateMacOSWindowingData`.
+)");
+enum class WindowingSystem : uint32_t
+{
+  Unknown,
+  Headless,
+  Win32,
+  Xlib,
+  XCB,
+  Android,
+  MacOS,
+  GGP,
+  Wayland,
+};
+
+DECLARE_REFLECTION_ENUM(WindowingSystem);
 
 #if defined(ENABLE_PYTHON_FLAG_ENUMS)
 

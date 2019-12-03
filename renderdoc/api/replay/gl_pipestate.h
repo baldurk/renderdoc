@@ -26,7 +26,6 @@
 #pragma once
 
 #include "common_pipestate.h"
-#include "data_types.h"
 
 namespace GLPipe
 {

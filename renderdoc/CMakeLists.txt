@@ -95,23 +95,24 @@ endif()
 
 set(sources
     api/app/renderdoc_app.h
+    api/replay/apidefs.h
+    api/replay/capture_options.h
+    api/replay/common_pipestate.h
+    api/replay/control_types.h
+    api/replay/data_types.h
     api/replay/rdcarray.h
     api/replay/rdcdatetime.h
-    api/replay/rdcstr.h
     api/replay/rdcpair.h
+    api/replay/rdcstr.h
+    api/replay/replay_enums.h
+    api/replay/resourceid.h
+    api/replay/shader_types.h
     api/replay/stringise.h
     api/replay/structured_data.h
-    api/replay/capture_options.h
-    api/replay/control_types.h
-    api/replay/common_pipestate.h
-    api/replay/d3d11_pipestate.h
-    api/replay/data_types.h
-    api/replay/gl_pipestate.h
-    api/replay/renderdoc_replay.h
-    api/replay/replay_enums.h
-    api/replay/shader_types.h
-    api/replay/vk_pipestate.h
     api/replay/version.h
+    api/replay/gl_pipestate.h
+    api/replay/vk_pipestate.h
+    api/replay/renderdoc_replay.h
     api/replay/renderdoc_tostr.inl
     common/common.cpp
     common/common.h

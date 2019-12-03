@@ -209,7 +209,9 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 
 %include <stdint.i>
 
+%include "apidefs.h"
 %include "renderdoc_replay.h"
+%include "resourceid.h"
 %include "rdcarray.h"
 %include "stringise.h"
 %include "structured_data.h"

@@ -25,6 +25,9 @@
 #pragma once
 
 #include <stdint.h>
+#include "apidefs.h"
+#include "rdcstr.h"
+#include "stringise.h"
 
 // see renderdoc_app.h RENDERDOC_CaptureOption - make sure any changes here are reflected there, to
 // the options or to the documentation
