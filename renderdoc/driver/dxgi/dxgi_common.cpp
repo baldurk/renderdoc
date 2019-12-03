@@ -1645,8 +1645,7 @@ static std::string GetDeviceProperty(HDEVINFO devs, PSP_DEVINFO_DATA data, const
 
   RDCASSERTEQUAL((uint32_t)type, DEVPROP_TYPE_STRING);
 
-  std::wstring string;
-  string.resize(bufSize);
+  rdcwstr string(bufSize);
   BOOL success =
       SetupDiGetDevicePropertyW(devs, data, key, &type, (PBYTE)string.data(), bufSize, &bufSize, 0);
 
@@ -1670,7 +1669,7 @@ static uint32_t HexToInt(char hex)
 
 std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
 {
-  std::string device = StringFormat::Wide2UTF8(desc.Description);
+  std::string device = StringFormat::Wide2UTF8(rdcwstr(desc.Description));
 
   // fixed GUID for graphics drivers, from
   // https://msdn.microsoft.com/en-us/library/windows/hardware/ff553426%28v=vs.85%29.aspx
@@ -2803,10 +2802,10 @@ void DoSerialise(SerialiserType &ser, DXGI_ADAPTER_DESC &el)
 
     if(ser.IsReading())
     {
-      std::wstring wdesc = StringFormat::UTF82Wide(Description);
+      rdcwstr wdesc = StringFormat::UTF82Wide(Description);
       RDCEraseEl(el.Description);
-      memcpy(el.Description, wdesc.data(),
-             RDCMIN(wdesc.size(), ARRAY_COUNT(el.Description) - 1) * sizeof(WCHAR));
+      memcpy(el.Description, wdesc.c_str(),
+             RDCMIN(wdesc.length(), ARRAY_COUNT(el.Description) - 1) * sizeof(WCHAR));
     }
   }
 

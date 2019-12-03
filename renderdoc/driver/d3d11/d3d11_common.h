@@ -207,7 +207,7 @@ inline std::string GetDebugName(T *pObj)
     if(SUCCEEDED(hr))
     {
       size /= 2;    // Convert from bytes read to wide char count
-      std::wstring sName(tmpBuf, size);
+      rdcwstr sName(tmpBuf, size);
       return StringFormat::Wide2UTF8(sName);
     }
   }

@@ -41,7 +41,7 @@
 #include "posix_network.h"
 
 // because strerror_r is a complete mess...
-static std::string errno_string(int err)
+static rdcstr errno_string(int err)
 {
   switch(err)
   {

@@ -247,9 +247,9 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   }
 
   // Check known paths for RenderDoc server
-  std::string libPath;
+  rdcstr libPath;
   FileIO::GetLibraryFilename(libPath);
-  std::string libDir = get_dirname(FileIO::GetFullPathname(libPath));
+  rdcstr libDir = get_dirname(FileIO::GetFullPathname(libPath));
 
   std::vector<std::string> paths;
 
@@ -955,8 +955,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
   std::string packageAndActivity = a && a[0] ? a : "";
   std::string intentArgs = c && c[0] ? c : "";
 
-  // we spin up a thread to Ping() every second, since StartAndroidPackageForCapture can block
-  // for a long time.
+  // we spin up a thread to Ping() every second, since starting a package can block for a long time.
   volatile int32_t done = 0;
   Threading::ThreadHandle pingThread = Threading::CreateThread([&done, this]() {
     bool ok = true;

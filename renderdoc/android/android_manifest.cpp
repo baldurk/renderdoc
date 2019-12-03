@@ -64,11 +64,11 @@ std::string GetStringPoolValue(ResStringPool_header *stringpool, ResStringPool_r
       len |= *(str++);
     }
 
-    std::wstring wstr;
+    rdcwstr wstr(len);
 
     // wchar_t isn't always 2 bytes, so we iterate over the uint16_t and cast.
     for(uint32_t i = 0; i < len; i++)
-      wstr.push_back(wchar_t(str[i]));
+      wstr[i] = wchar_t(str[i]);
 
     return StringFormat::Wide2UTF8(wstr);
   }
@@ -115,27 +115,20 @@ void ShiftStringPoolValue(Res_value &val, uint32_t insertedLocation)
 }
 
 template <typename T>
-void InsertBytes(std::vector<byte> &bytes, byte *pos, const T &data)
+void InsertBytes(bytebuf &bytes, byte *pos, const T &data)
 {
-  byte *start = &bytes[0];
   byte *byteData = (byte *)&data;
 
-  size_t offs = pos - start;
-
-  bytes.insert(bytes.begin() + offs, byteData, byteData + sizeof(T));
+  bytes.insert(pos - &bytes[0], byteData, sizeof(T));
 }
 
 template <>
-void InsertBytes(std::vector<byte> &bytes, byte *pos, const std::vector<byte> &data)
+void InsertBytes(bytebuf &bytes, byte *pos, const bytebuf &data)
 {
-  byte *start = &bytes[0];
-
-  size_t offs = pos - start;
-
-  bytes.insert(bytes.begin() + offs, data.begin(), data.end());
+  bytes.insert(pos - &bytes[0], data);
 }
 
-bool PatchManifest(std::vector<byte> &manifestBytes)
+bool PatchManifest(bytebuf &manifestBytes)
 {
   // Whether to insert a new string & resource ID at the start or end of the resource map table. I
   // can't find anything that indicates there is any required ordering to these, so either should be
@@ -508,15 +501,15 @@ bool PatchManifest(std::vector<byte> &manifestBytes)
       // insert the string, with length prefix and trailing NULL
       if(stringpool->flags & ResStringPool_header::UTF8_FLAG)
       {
-        std::vector<byte> bytes = {0xA, 0xA, 'd', 'e', 'b', 'u', 'g', 'g', 'a', 'b', 'l', 'e', 0};
+        bytebuf bytes = {0xA, 0xA, 'd', 'e', 'b', 'u', 'g', 'g', 'a', 'b', 'l', 'e', 0};
         shift = (uint32_t)bytes.size();
 
         InsertBytes(manifestBytes, stringData + stringOffsets[insertIdx], bytes);
       }
       else
       {
-        std::vector<byte> bytes = {0xA, 0x0, 'd', 0, 'e', 0, 'b', 0, 'u', 0, 'g', 0,
-                                   'g', 0,   'a', 0, 'b', 0, 'l', 0, 'e', 0, 0,   0};
+        bytebuf bytes = {0xA, 0x0, 'd', 0, 'e', 0, 'b', 0, 'u', 0, 'g', 0,
+                         'g', 0,   'a', 0, 'b', 0, 'l', 0, 'e', 0, 0,   0};
         shift = (uint32_t)bytes.size();
 
         InsertBytes(manifestBytes, stringData + stringOffsets[insertIdx], bytes);

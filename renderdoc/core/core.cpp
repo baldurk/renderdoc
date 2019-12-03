@@ -378,7 +378,7 @@ void RenderDoc::Initialise()
   // set default capture log - useful for when hooks aren't setup
   // through the UI (and a log file isn't set manually)
   {
-    std::string capture_filename;
+    rdcstr capture_filename;
 
     const char *base = "RenderDoc_app";
     if(IsReplayApp())
@@ -427,14 +427,14 @@ void RenderDoc::Initialise()
   m_ExHandler = NULL;
 
   {
-    std::string curFile;
+    rdcstr curFile;
     FileIO::GetExecutableFilename(curFile);
 
-    std::string f = strlower(curFile);
+    rdcstr f = strlower(curFile);
 
     // only create crash handler when we're not in renderdoccmd.exe (to prevent infinite loop as
     // the crash handler itself launches renderdoccmd.exe)
-    if(f.find("renderdoccmd.exe") == std::string::npos)
+    if(!f.contains("renderdoccmd.exe"))
     {
       RecreateCrashHandler();
     }

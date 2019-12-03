@@ -71,7 +71,7 @@ struct EmbeddedResourceType
   EmbeddedResourceType(const unsigned char *b, int l) : base(b), len(l) {}
   const unsigned char *base;
   int len;
-  std::string Get() const { return std::string(base, base + len); }
+  rdcstr Get() const { return rdcstr((char *)base, (size_t)len); }
 };
 
 #define EmbeddedResource(filename) \

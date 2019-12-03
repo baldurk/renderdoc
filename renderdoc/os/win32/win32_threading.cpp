@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include <time.h>
+#include "common/common.h"
 #include "os/os_specific.h"
 
 double Timing::GetTickFrequency()
@@ -175,11 +176,11 @@ int64_t nextTLSSlot = 0;
 
 struct TLSData
 {
-  std::vector<void *> data;
+  rdcarray<void *> data;
 };
 
 static CriticalSection *m_TLSListLock = NULL;
-static std::vector<TLSData *> *m_TLSList = NULL;
+static rdcarray<TLSData *> *m_TLSList = NULL;
 
 void Init()
 {
@@ -188,7 +189,7 @@ void Init()
     RDCFATAL("Can't allocate OS TLS slot");
 
   m_TLSListLock = new CriticalSection();
-  m_TLSList = new std::vector<TLSData *>();
+  m_TLSList = new rdcarray<TLSData *>();
 }
 
 void Shutdown()

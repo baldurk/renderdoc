@@ -333,8 +333,13 @@ RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *
                            const rdcarray<EnvironmentModification> &env, const char *capturefile,
                            const CaptureOptions &opts, bool waitForExit)
 {
-  return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, env, capturefile, opts,
-                                             waitForExit != 0);
+  rdcpair<ReplayStatus, uint32_t> status = Process::LaunchAndInjectIntoProcess(
+      app, workingDir, cmdLine, env, capturefile, opts, waitForExit != 0);
+
+  ExecuteResult ret;
+  ret.status = status.first;
+  ret.ident = status.second;
+  return ret;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(CaptureOptions *opts)
@@ -368,7 +373,13 @@ extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const char *capturefile, const CaptureOptions &opts, bool waitForExit)
 {
-  return Process::InjectIntoProcess(pid, env, capturefile, opts, waitForExit != 0);
+  rdcpair<ReplayStatus, uint32_t> status =
+      Process::InjectIntoProcess(pid, env, capturefile, opts, waitForExit != 0);
+
+  ExecuteResult ret;
+  ret.status = status.first;
+  ret.ident = status.second;
+  return ret;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(void *mem)
@@ -865,13 +876,13 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   return 1;
 #endif
 
-  std::string libPath;
+  rdcstr libPath;
   FileIO::GetLibraryFilename(libPath);
 
   libPath = get_dirname(libPath);
-  std::string modulePath = libPath + moduledir;
+  rdcstr modulePath = libPath + moduledir;
 
-  std::string moduleFilename = modulePath + "/" + modulename;
+  rdcstr moduleFilename = modulePath + "/" + modulename;
 
   if(!FileIO::exists(moduleFilename.c_str()))
   {
@@ -923,29 +934,28 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
     return 1;
   }
 
-  std::vector<std::wstring> wideArgs(args.size());
+  rdcarray<rdcwstr> wideArgs(args.size());
 
   for(size_t i = 0; i < args.size(); i++)
     wideArgs[i] = StringFormat::UTF82Wide(args[i]);
 
   // insert fake arguments to point at the script and our modules
-  wideArgs.insert(wideArgs.begin(),
-                  {
-                      L"python",
-                      // specify script path
-                      StringFormat::UTF82Wide(scriptPath),
-                      // specify native library path
-                      L"--renderdoc", StringFormat::UTF82Wide(libPath),
-                      // specify python module path
-                      L"--pyrenderdoc", StringFormat::UTF82Wide(modulePath),
-                      // force in-process as we can't fork out to python to pass args
-                      L"--in-process",
-                  });
+  wideArgs.insert(0, {
+                         L"python",
+                         // specify script path
+                         StringFormat::UTF82Wide(scriptPath),
+                         // specify native library path
+                         L"--renderdoc", StringFormat::UTF82Wide(libPath),
+                         // specify python module path
+                         L"--pyrenderdoc", StringFormat::UTF82Wide(modulePath),
+                         // force in-process as we can't fork out to python to pass args
+                         L"--in-process",
+                     });
 
-  std::vector<wchar_t *> wideArgStrings(wideArgs.size());
+  rdcarray<wchar_t *> wideArgStrings(wideArgs.size());
 
   for(size_t i = 0; i < wideArgs.size(); i++)
-    wideArgStrings[i] = &wideArgs[i][0];
+    wideArgStrings[i] = wideArgs[i].data();
 
   return mainFunc((int)wideArgStrings.size(), wideArgStrings.data());
 }

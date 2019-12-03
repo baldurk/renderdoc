@@ -47,9 +47,9 @@ static int soLocator = 0;
 namespace FileIO
 {
 // in posix/.../..._stringio.cpp
-std::string GetTempRootPath();
+rdcstr GetTempRootPath();
 
-std::string GetHomeFolderFilename()
+rdcstr GetHomeFolderFilename()
 {
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
@@ -57,14 +57,14 @@ std::string GetHomeFolderFilename()
   return homedir;
 }
 
-std::string GetTempFolderFilename()
+rdcstr GetTempFolderFilename()
 {
   return GetTempRootPath() + "/";
 }
 
-void CreateParentDirectory(const std::string &filename)
+void CreateParentDirectory(const rdcstr &filename)
 {
-  std::string fn = get_dirname(filename);
+  rdcstr fn = get_dirname(filename);
 
   // want trailing slash so that we create all directories
   fn.push_back('/');
@@ -72,9 +72,9 @@ void CreateParentDirectory(const std::string &filename)
   if(fn[0] != '/')
     return;
 
-  size_t offs = fn.find('/', 1);
+  int offs = fn.find('/', 1);
 
-  while(offs != std::string::npos)
+  while(offs >= 0)
   {
     // create directory path from 0 to offs by NULLing the
     // / at offs, mkdir, then set it back
@@ -82,11 +82,11 @@ void CreateParentDirectory(const std::string &filename)
     mkdir(fn.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     fn[offs] = '/';
 
-    offs = fn.find_first_of('/', offs + 1);
+    offs = fn.find('/', offs + 1);
   }
 }
 
-bool IsRelativePath(const std::string &path)
+bool IsRelativePath(const rdcstr &path)
 {
   if(path.empty())
     return false;
@@ -94,17 +94,17 @@ bool IsRelativePath(const std::string &path)
   return path.front() != '/';
 }
 
-std::string GetFullPathname(const std::string &filename)
+rdcstr GetFullPathname(const rdcstr &filename)
 {
   char path[PATH_MAX + 1] = {0};
   realpath(filename.c_str(), path);
 
-  return std::string(path);
+  return rdcstr(path);
 }
 
-std::string FindFileInPath(const std::string &fileName)
+rdcstr FindFileInPath(const rdcstr &fileName)
 {
-  std::string filePath;
+  rdcstr filePath;
 
   // Search the PATH directory list for the application (like shell which) to get the absolute path
   // Return "" if no exectuable found in the PATH list
@@ -120,7 +120,7 @@ std::string FindFileInPath(const std::string &fileName)
   const char *path = strtok(localPath, pathSeparator);
   while(path)
   {
-    std::string testPath(path);
+    rdcstr testPath(path);
     testPath += "/" + fileName;
     if(!access(testPath.c_str(), X_OK))
     {
@@ -134,14 +134,14 @@ std::string FindFileInPath(const std::string &fileName)
   return filePath;
 }
 
-std::string GetReplayAppFilename()
+rdcstr GetReplayAppFilename()
 {
   // look up the shared object's path via dladdr
   Dl_info info;
   dladdr((void *)&soLocator, &info);
-  std::string path = info.dli_fname ? info.dli_fname : "";
+  rdcstr path = info.dli_fname ? info.dli_fname : "";
   path = get_dirname(path);
-  std::string replay = path + "/qrenderdoc";
+  rdcstr replay = path + "/qrenderdoc";
 
   FILE *f = FileIO::fopen(replay.c_str(), "r");
   if(f)
@@ -188,10 +188,10 @@ std::string GetReplayAppFilename()
   return "qrenderdoc";
 }
 
-void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
-                     std::string &logging_filename, std::string &target)
+void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
+                     rdcstr &target)
 {
-  std::string path;
+  rdcstr path;
   GetExecutableFilename(path);
 
   const char *mod = strrchr(path.c_str(), '/');
@@ -202,7 +202,7 @@ void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
   else
     mod = "unknown";
 
-  target = std::string(mod);
+  target = rdcstr(mod);
 
   time_t t = time(NULL);
   tm now = *localtime(&t);
@@ -226,7 +226,7 @@ void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
            temp_folder, mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
            now.tm_min);
 
-  capture_filename = std::string(temp_filename);
+  capture_filename = rdcstr(temp_filename);
 
   snprintf(temp_filename, sizeof(temp_filename) - 1,
            "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName,
@@ -235,12 +235,12 @@ void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
   // set by UI when launching programs so all logging goes to the same file
   char *logfile_override = getenv("RENDERDOC_DEBUG_LOG_FILE");
   if(logfile_override)
-    logging_filename = std::string(logfile_override);
+    logging_filename = rdcstr(logfile_override);
   else
-    logging_filename = std::string(temp_filename);
+    logging_filename = rdcstr(temp_filename);
 }
 
-uint64_t GetModifiedTimestamp(const std::string &filename)
+uint64_t GetModifiedTimestamp(const rdcstr &filename)
 {
   struct ::stat st;
   int res = stat(filename.c_str(), &st);
@@ -318,9 +318,9 @@ void Delete(const char *path)
   unlink(path);
 }
 
-std::vector<PathEntry> GetFilesInDirectory(const char *path)
+void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
 {
-  std::vector<PathEntry> ret;
+  ret.clear();
 
   DIR *d = opendir(path);
 
@@ -334,7 +334,7 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
       flags = PathProperty::ErrorAccessDenied;
 
     ret.push_back(PathEntry(path, flags));
-    return ret;
+    return;
   }
 
   dirent *ent = NULL;
@@ -350,7 +350,7 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
     if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
       continue;
 
-    std::string fullpath = path;
+    rdcstr fullpath = path;
     fullpath += '/';
     fullpath += ent->d_name;
 
@@ -383,8 +383,6 @@ std::vector<PathEntry> GetFilesInDirectory(const char *path)
   // don't care if we hit an error or enumerated all files, just finish
 
   closedir(d);
-
-  return ret;
 }
 
 FILE *fopen(const char *filename, const char *mode)
@@ -392,7 +390,7 @@ FILE *fopen(const char *filename, const char *mode)
   return ::fopen(filename, mode);
 }
 
-std::string ErrorString()
+rdcstr ErrorString()
 {
   int err = errno;
 
@@ -462,11 +460,11 @@ void ReleaseFDAfterFork()
     close(log);
 }
 
-std::string logfile_readall(const char *filename)
+rdcstr logfile_readall(const char *filename)
 {
   FILE *f = FileIO::fopen(filename, "r");
 
-  std::string ret;
+  rdcstr ret;
 
   if(f == NULL)
     return ret;

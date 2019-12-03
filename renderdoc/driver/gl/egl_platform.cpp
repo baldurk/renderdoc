@@ -37,7 +37,7 @@ static void *GetEGLHandle()
   // has put it there.
   if(libEGL == "libEGL.dll")
   {
-    std::string libpath;
+    rdcstr libpath;
     FileIO::GetLibraryFilename(libpath);
     libpath = get_dirname(libpath);
 

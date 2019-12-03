@@ -50,7 +50,7 @@
 #define EmbeddedResource(filename) CONCAT(RESOURCE_, filename)
 
 #define GetEmbeddedResource(filename) GetDynamicEmbeddedResource(EmbeddedResource(filename))
-std::string GetDynamicEmbeddedResource(int resource);
+rdcstr GetDynamicEmbeddedResource(int resource);
 
 namespace OSUtility
 {

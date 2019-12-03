@@ -35,6 +35,7 @@ uint32_t strhash(const char *str, uint32_t existingHash = 5381);
 
 rdcstr get_basename(const rdcstr &path);
 rdcstr get_dirname(const rdcstr &path);
+rdcstr strip_extension(const rdcstr &path);
 
 void split(const rdcstr &in, rdcarray<rdcstr> &out, const char sep);
 void merge(const rdcarray<rdcstr> &in, rdcstr &out, const char sep);

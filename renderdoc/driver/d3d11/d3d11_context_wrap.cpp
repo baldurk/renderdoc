@@ -194,7 +194,7 @@ void WrappedID3D11DeviceContext::ThreadSafe_SetMarker(uint32_t col, const wchar_
   Annotation annot;
   annot.m_Type = Annotation::ANNOT_SETMARKER;
   annot.m_Col = col;
-  annot.m_Name = name;
+  annot.m_Name = StringFormat::Wide2UTF8(name);
 
   {
     SCOPED_LOCK(m_AnnotLock);
@@ -207,7 +207,7 @@ int WrappedID3D11DeviceContext::ThreadSafe_BeginEvent(uint32_t col, const wchar_
   Annotation annot;
   annot.m_Type = Annotation::ANNOT_BEGINEVENT;
   annot.m_Col = col;
-  annot.m_Name = name;
+  annot.m_Name = StringFormat::Wide2UTF8(name);
 
   {
     SCOPED_LOCK(m_AnnotLock);
@@ -259,8 +259,12 @@ void WrappedID3D11DeviceContext::DrainAnnotationQueue()
 
     switch(a.m_Type)
     {
-      case Annotation::ANNOT_SETMARKER: SetMarker(a.m_Col, a.m_Name.c_str()); break;
-      case Annotation::ANNOT_BEGINEVENT: PushMarker(a.m_Col, a.m_Name.c_str()); break;
+      case Annotation::ANNOT_SETMARKER:
+        SetMarker(a.m_Col, StringFormat::UTF82Wide(a.m_Name).c_str());
+        break;
+      case Annotation::ANNOT_BEGINEVENT:
+        PushMarker(a.m_Col, StringFormat::UTF82Wide(a.m_Name).c_str());
+        break;
       case Annotation::ANNOT_ENDEVENT: PopMarker(); break;
     }
   }

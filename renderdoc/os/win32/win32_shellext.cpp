@@ -117,7 +117,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
     RDCDEBUG("RDCThumbnailProvider Initialize read %d bytes from file", numRead);
 
-    std::vector<byte> captureHeader(buf, buf + numRead);
+    bytebuf captureHeader(buf, numRead);
 
     delete[] buf;
 
@@ -146,7 +146,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     return S_OK;
   }
 
-  void STDMETHODCALLTYPE ReadLegacyCaptureThumb(std::vector<byte> &captureHeader)
+  void STDMETHODCALLTYPE ReadLegacyCaptureThumb(rdcarray<byte> &captureHeader)
   {
     // we want to support old capture files, so we decode the thumbnail by hand here with the
     // old header.
@@ -232,7 +232,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       // eSectionFlag_LZ4Compressed
       if(sectionFlags & 0x2)
       {
-        std::vector<byte> uncompressed;
+        rdcarray<byte> uncompressed;
 
         LZ4_streamDecode_t lZ4Decomp = {};
         LZ4_setStreamDecode(&lZ4Decomp, NULL, 0);

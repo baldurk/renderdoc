@@ -24,7 +24,7 @@
  ******************************************************************************/
 
 #include "os/os_specific.h"
-#include <stdarg.h>
+#include "api/replay/control_types.h"
 #include "strings/string_utils.h"
 
 int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args);
@@ -53,7 +53,7 @@ int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
   return ::utf8printf(str, bufSize, format, args);
 }
 
-std::string Fmt(const char *format, ...)
+rdcstr Fmt(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -63,74 +63,19 @@ std::string Fmt(const char *format, ...)
 
   int size = StringFormat::vsnprintf(NULL, 0, format, args2);
 
-  char *buf = new char[size + 1];
-  StringFormat::vsnprintf(buf, size + 1, format, args);
-  buf[size] = 0;
+  rdcstr ret;
+  ret.resize(size);
+  StringFormat::vsnprintf(ret.data(), size + 1, format, args);
 
   va_end(args);
   va_end(args2);
 
-  std::string ret = buf;
-
-  delete[] buf;
-
   return ret;
-}
-
-int Wide2UTF8(wchar_t chr, char mbchr[4])
-{
-  // U+00000 -> U+00007F 1 byte  0xxxxxxx
-  // U+00080 -> U+0007FF 2 bytes 110xxxxx 10xxxxxx
-  // U+00800 -> U+00FFFF 3 bytes 1110xxxx 10xxxxxx 10xxxxxx
-  // U+10000 -> U+1FFFFF 4 bytes 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-
-  // upcast to uint32_t, so we do the same processing on windows where
-  // sizeof(wchar_t) == 2
-  uint32_t wc = (uint32_t)chr;
-
-  if(wc > 0x10FFFF)
-    wc = 0xFFFD;    // replacement character
-
-  if(wc <= 0x7f)
-  {
-    mbchr[0] = (char)wc;
-    return 1;
-  }
-  else if(wc <= 0x7ff)
-  {
-    mbchr[1] = 0x80 | (char)(wc & 0x3f);
-    wc >>= 6;
-    mbchr[0] = 0xC0 | (char)(wc & 0x1f);
-    return 2;
-  }
-  else if(wc <= 0xffff)
-  {
-    mbchr[2] = 0x80 | (char)(wc & 0x3f);
-    wc >>= 6;
-    mbchr[1] = 0x80 | (char)(wc & 0x3f);
-    wc >>= 6;
-    mbchr[0] = 0xE0 | (char)(wc & 0x0f);
-    wc >>= 4;
-    return 3;
-  }
-  else
-  {
-    // invalid codepoints above 0x10FFFF were replaced above
-    mbchr[3] = 0x80 | (char)(wc & 0x3f);
-    wc >>= 6;
-    mbchr[2] = 0x80 | (char)(wc & 0x3f);
-    wc >>= 6;
-    mbchr[1] = 0x80 | (char)(wc & 0x3f);
-    wc >>= 6;
-    mbchr[0] = 0xF0 | (char)(wc & 0x07);
-    wc >>= 3;
-    return 4;
-  }
 }
 
 };    // namespace StringFormat
 
-std::string Callstack::AddressDetails::formattedString(const char *commonPath)
+rdcstr Callstack::AddressDetails::formattedString(const char *commonPath)
 {
   char fmt[512] = {0};
 
@@ -138,8 +83,8 @@ std::string Callstack::AddressDetails::formattedString(const char *commonPath)
 
   if(commonPath)
   {
-    std::string common = strlower(std::string(commonPath));
-    std::string fn = strlower(filename.substr(0, common.length()));
+    rdcstr common = strlower(rdcstr(commonPath));
+    rdcstr fn = strlower(filename.substr(0, common.length()));
 
     if(common == fn)
     {
@@ -155,9 +100,9 @@ std::string Callstack::AddressDetails::formattedString(const char *commonPath)
   return fmt;
 }
 
-std::string OSUtility::MakeMachineIdentString(uint64_t ident)
+rdcstr OSUtility::MakeMachineIdentString(uint64_t ident)
 {
-  std::string ret = "";
+  rdcstr ret = "";
 
   if(ident & MachineIdent_Windows)
     ret += "Windows ";
@@ -204,7 +149,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 {
   SECTION("GetLibraryFilename")
   {
-    std::string libPath;
+    rdcstr libPath;
     FileIO::GetLibraryFilename(libPath);
     CHECK_FALSE(libPath.empty());
   }
@@ -237,7 +182,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
     CHECK(var);
-    CHECK(var == std::string("test_value"));
+    CHECK(var == rdcstr("test_value"));
 
     Process::RegisterEnvironmentModification(mod);
     Process::ApplyEnvironmentModification();
@@ -245,7 +190,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
     CHECK(var);
-    CHECK(var == std::string("test_value;test_value"));
+    CHECK(var == rdcstr("test_value;test_value"));
 
     mod.sep = EnvSep::Colon;
 
@@ -255,7 +200,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
     CHECK(var);
-    CHECK(var == std::string("test_value;test_value:test_value"));
+    CHECK(var == rdcstr("test_value;test_value:test_value"));
 
     mod.value = "prepend";
     mod.sep = EnvSep::SemiColon;
@@ -267,7 +212,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
     CHECK(var);
-    CHECK(var == std::string("prepend;test_value;test_value:test_value"));
+    CHECK(var == rdcstr("prepend;test_value;test_value:test_value"));
 
     mod.value = "reset";
     mod.sep = EnvSep::SemiColon;
@@ -279,7 +224,26 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
     CHECK(var);
-    CHECK(var == std::string("reset"));
+    CHECK(var == rdcstr("reset"));
+  };
+
+  SECTION("UTF-8 to wide conversion")
+  {
+    const rdcstr s = "ελληνικά";
+
+    rdcwstr ws = StringFormat::UTF82Wide(s);
+
+    CHECK(ws.length() == 8);
+    CHECK(ws[0] == L'\x3b5');
+    CHECK(ws[ws.length() - 1] == L'\x3ac');
+    CHECK(ws[ws.length()] == L'\0');
+
+    rdcstr s2 = StringFormat::Wide2UTF8(ws);
+
+    CHECK(s == s2);
+
+    CHECK(StringFormat::UTF82Wide(rdcstr()).length() == 0);
+    CHECK(StringFormat::UTF82Wide(rdcstr()).c_str()[0] == 0);
   };
 
   SECTION("Timing")

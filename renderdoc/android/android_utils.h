@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "api/replay/stringise.h"
 #include "android.h"
 
 // internal functions, shouldn't be used outside the android implementation - anything public goes
@@ -69,7 +70,7 @@ std::vector<ABI> GetSupportedABIs(const std::string &deviceID);
 std::string GetRenderDocPackageForABI(ABI abi, char sep = '.');
 std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName);
 
-bool PatchManifest(std::vector<byte> &manifest);
+bool PatchManifest(bytebuf &manifest);
 };
 
 DECLARE_REFLECTION_ENUM(Android::ABI);

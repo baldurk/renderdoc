@@ -417,7 +417,7 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   // check that there's only one layer registered, and it points to the same .so file that
   // we are running with in this instance of renderdoccmd
 
-  std::string librenderdoc_path;
+  rdcstr librenderdoc_path;
   FileIO::GetLibraryFilename(librenderdoc_path);
 
   if(librenderdoc_path.empty() || !FileExists(librenderdoc_path))
@@ -599,7 +599,7 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 
   std::string jsonPath = LayerRegistrationPath(idx);
   std::string path = GetSOFromJSON(jsonPath);
-  std::string libPath;
+  rdcstr libPath;
   FileIO::GetLibraryFilename(libPath);
 
   if(path != libPath)

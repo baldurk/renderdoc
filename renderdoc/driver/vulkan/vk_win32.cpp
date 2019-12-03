@@ -174,13 +174,13 @@ void *LoadVulkanLibrary()
   return Process::LoadModule("vulkan-1.dll");
 }
 
-std::wstring GetJSONPath(bool wow6432)
+rdcstr GetJSONPath(bool wow6432)
 {
-  std::string libPath;
+  rdcstr libPath;
   FileIO::GetLibraryFilename(libPath);
-  std::string jsonPath = get_dirname(FileIO::GetFullPathname(libPath));
+  rdcstr jsonPath = get_dirname(FileIO::GetFullPathname(libPath));
 
-  std::wstring jsonWide = StringFormat::UTF82Wide(jsonPath);
+  const rdcwstr jsonWide = StringFormat::UTF82Wide(jsonPath);
 
   if(jsonWide[1] == L':' && PathIsNetworkPathW(jsonWide.c_str()))
   {
@@ -200,7 +200,7 @@ std::wstring GetJSONPath(bool wow6432)
       {
         UNIVERSAL_NAME_INFOW *nameInfo = (UNIVERSAL_NAME_INFOW *)buf;
         RDCLOG("Converted %ls network path to %ls", jsonWide.c_str(), nameInfo->lpUniversalName);
-        jsonWide = nameInfo->lpUniversalName;
+        jsonPath = StringFormat::Wide2UTF8(nameInfo->lpUniversalName);
       }
       else
       {
@@ -216,11 +216,11 @@ std::wstring GetJSONPath(bool wow6432)
   }
 
   if(wow6432)
-    jsonWide += L"\\x86";
+    jsonPath += "\\x86";
 
-  jsonWide += L"\\renderdoc.json";
+  jsonPath += "\\renderdoc.json";
 
-  return jsonWide;
+  return jsonPath;
 }
 
 static HKEY GetImplicitLayersKey(bool writeable, bool wow6432)
@@ -256,8 +256,8 @@ static HKEY GetImplicitLayersKey(bool writeable, bool wow6432)
   return key;
 }
 
-bool ProcessImplicitLayersKey(HKEY key, const std::wstring &path,
-                              std::vector<std::string> *otherJSONs, bool deleteOthers)
+bool ProcessImplicitLayersKey(HKEY key, const rdcstr &path, std::vector<std::string> *otherJSONs,
+                              bool deleteOthers)
 {
   bool thisRegistered = false;
 
@@ -267,8 +267,8 @@ bool ProcessImplicitLayersKey(HKEY key, const std::wstring &path,
 
   LONG ret = RegEnumValueW(key, idx++, name, &nameSize, NULL, NULL, NULL, NULL);
 
-  std::wstring myJSON = path;
-  for(size_t i = 0; i < myJSON.size(); i++)
+  rdcwstr myJSON = StringFormat::UTF82Wide(path);
+  for(size_t i = 0; i < myJSON.length(); i++)
     myJSON[i] = towlower(myJSON[i]);
 
   while(ret == ERROR_SUCCESS)
@@ -302,12 +302,12 @@ bool ProcessImplicitLayersKey(HKEY key, const std::wstring &path,
 bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                     std::vector<std::string> &otherJSONs)
 {
-  std::wstring normalPath = GetJSONPath(false);
-  myJSONs.push_back(StringFormat::Wide2UTF8(normalPath));
+  rdcstr normalPath = GetJSONPath(false);
+  myJSONs.push_back(normalPath);
 
 #if ENABLED(RDOC_X64)
-  std::wstring wow6432Path = GetJSONPath(true);
-  myJSONs.push_back(StringFormat::Wide2UTF8(wow6432Path));
+  rdcstr wow6432Path = GetJSONPath(true);
+  myJSONs.push_back(wow6432Path);
 #endif
 
   HKEY key = GetImplicitLayersKey(false, false);
@@ -365,14 +365,15 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 
   if(key)
   {
-    std::wstring path = GetJSONPath(false);
+    rdcstr path = GetJSONPath(false);
 
     // this function will delete all non-matching renderdoc.json values, and return true if our own
     // is registered
     bool thisRegistered = ProcessImplicitLayersKey(key, path, NULL, true);
 
     if(!thisRegistered)
-      RegSetValueExW(key, path.c_str(), 0, REG_DWORD, (const BYTE *)&zero, sizeof(zero));
+      RegSetValueExW(key, StringFormat::UTF82Wide(path).c_str(), 0, REG_DWORD, (const BYTE *)&zero,
+                     sizeof(zero));
 
     RegCloseKey(key);
   }
@@ -384,14 +385,15 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 
     if(key)
     {
-      std::wstring path = GetJSONPath(true);
+      rdcstr path = GetJSONPath(true);
 
       // this function will delete all non-matching renderdoc.json values, and return true if our
       // own is registered
       bool thisRegistered = ProcessImplicitLayersKey(key, path, NULL, true);
 
       if(!thisRegistered)
-        RegSetValueExW(key, path.c_str(), 0, REG_DWORD, (const BYTE *)&zero, sizeof(zero));
+        RegSetValueExW(key, StringFormat::UTF82Wide(path).c_str(), 0, REG_DWORD,
+                       (const BYTE *)&zero, sizeof(zero));
 
       RegCloseKey(key);
     }

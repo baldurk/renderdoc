@@ -125,6 +125,22 @@ rdcstr get_dirname(const rdcstr &path)
   return base.substr(0, offset);
 }
 
+rdcstr strip_extension(const rdcstr &path)
+{
+  if(path.empty())
+    return path;
+
+  size_t offs = path.size() - 1;
+
+  while(offs > 0 && path[offs] != '.')
+    offs--;
+
+  if(offs == 0 && path[offs] != '.')
+    return path;
+
+  return path.substr(0, offs);
+}
+
 void split(const rdcstr &in, rdcarray<rdcstr> &out, const char sep)
 {
   if(in.empty())
@@ -262,6 +278,18 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(get_dirname("C:/windows/foo") == "C:/windows");
     CHECK(get_dirname("C:\\windows\\foo") == "C:\\windows");
     CHECK(get_dirname("C:\\windows\\path/mixed/slashes\\foo") == "C:\\windows\\path/mixed/slashes");
+  };
+
+  SECTION("strip_extension")
+  {
+    CHECK(strip_extension("foo.exe") == "foo");
+    CHECK(strip_extension("foo.exe.zip") == "foo.exe");
+    CHECK(strip_extension("foo..exe") == "foo.");
+    CHECK(strip_extension("foo") == "foo");
+    CHECK(strip_extension("") == "");
+    CHECK(strip_extension(".exe") == "");
+    CHECK(strip_extension(".config.txt") == ".config");
+    CHECK(strip_extension("bar/foo.exe") == "bar/foo");
   };
 
   SECTION("strupper")

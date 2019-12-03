@@ -72,7 +72,7 @@ public:
 
   // opens an existing file for read and/or modification. Error if file doesn't exist
   void Open(const char *filename);
-  void Open(const std::vector<byte> &buffer);
+  void Open(const bytebuf &buffer);
 
   bool CopyFileTo(const char *filename);
 
@@ -105,7 +105,7 @@ private:
 
   FILE *m_File = NULL;
   std::string m_Filename;
-  std::vector<byte> m_Buffer;
+  bytebuf m_Buffer;
 
   SectionProperties m_CurrentWritingProps;
 

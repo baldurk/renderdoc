@@ -621,9 +621,9 @@ private:
 
   FrameTimer m_FrameTimer;
 
-  std::string m_LoggingFilename;
+  rdcstr m_LoggingFilename;
 
-  std::string m_Target;
+  rdcstr m_Target;
   std::string m_CaptureFileTemplate;
   std::string m_CurrentLogFile;
   CaptureOptions m_Options;

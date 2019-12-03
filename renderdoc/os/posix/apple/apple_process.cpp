@@ -34,7 +34,7 @@ char **GetCurrentEnvironment()
   return *_NSGetEnviron();
 }
 
-std::string execcmd(const char *cmd)
+rdcstr execcmd(const char *cmd)
 {
   FILE *pipe = popen(cmd, "r");
 
@@ -43,7 +43,7 @@ std::string execcmd(const char *cmd)
 
   char buffer[128];
 
-  std::string result = "";
+  rdcstr result = "";
 
   while(!feof(pipe))
   {
@@ -63,8 +63,8 @@ bool isNewline(char c)
 
 int GetIdentPort(pid_t childPid)
 {
-  std::string lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
-  std::string result;
+  rdcstr lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
+  rdcstr result;
   uint32_t wait = 1;
   for(int i = 0; i < 10; ++i)
   {
@@ -85,7 +85,7 @@ int GetIdentPort(pid_t childPid)
   // <TEXT>
   // n*:<PORT>
 
-  std::string parseResult(result);
+  rdcstr parseResult(result);
   const size_t len = parseResult.length();
   if(parseResult[0] == 'p')
   {
@@ -107,8 +107,8 @@ int GetIdentPort(pid_t childPid)
       const char *netString("n*:");
       while(i < len)
       {
-        const size_t netStart = parseResult.find(netString, i);
-        if(netStart != std::string::npos)
+        const int netStart = parseResult.find(netString, i);
+        if(netStart >= 0)
         {
           tokenStart = netStart + strlen(netString);
           i = tokenStart;

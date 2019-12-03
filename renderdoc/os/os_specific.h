@@ -35,17 +35,21 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <functional>
-#include <map>
-#include <string>
-#include <vector>
-#include "api/replay/renderdoc_replay.h"
-#include "common/common.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcpair.h"
+#include "api/replay/rdcstr.h"
+#include "common/globalconfig.h"
 
 struct CaptureOptions;
+struct EnvironmentModification;
+struct PathEntry;
+enum class WindowingSystem : uint32_t;
+enum class ReplayStatus : uint32_t;
+typedef std::function<void(float)> RENDERDOC_ProgressCallback;
 
 namespace Process
 {
-void RegisterEnvironmentModification(EnvironmentModification modif);
+void RegisterEnvironmentModification(const EnvironmentModification &modif);
 
 void ApplyEnvironmentModification();
 
@@ -58,9 +62,10 @@ bool StartGlobalHook(const char *pathmatch, const char *capturefile, const Captu
 bool IsGlobalHookActive();
 void StopGlobalHook();
 
-ExecuteResult InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                                const char *capturefile, const CaptureOptions &opts,
-                                bool waitForExit);
+rdcpair<ReplayStatus, uint32_t> InjectIntoProcess(uint32_t pid,
+                                                  const rdcarray<EnvironmentModification> &env,
+                                                  const char *capturefile,
+                                                  const CaptureOptions &opts, bool waitForExit);
 struct ProcessResult
 {
   rdcstr strStdout, strStderror;
@@ -70,10 +75,10 @@ uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdL
                        ProcessResult *result = NULL);
 uint32_t LaunchScript(const char *script, const char *workingDir, const char *args, bool internal,
                       ProcessResult *result = NULL);
-ExecuteResult LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                         const rdcarray<EnvironmentModification> &env,
-                                         const char *capturefile, const CaptureOptions &opts,
-                                         bool waitForExit);
+rdcpair<ReplayStatus, uint32_t> LaunchAndInjectIntoProcess(
+    const char *app, const char *workingDir, const char *cmdLine,
+    const rdcarray<EnvironmentModification> &env, const char *capturefile,
+    const CaptureOptions &opts, bool waitForExit);
 bool IsModuleLoaded(const char *module);
 void *LoadModule(const char *module);
 void *GetFunctionAddress(void *module, const char *function);
@@ -239,11 +244,11 @@ public:
 struct AddressDetails
 {
   AddressDetails() : line(0) {}
-  std::string function;
-  std::string filename;
+  rdcstr function;
+  rdcstr filename;
   uint32_t line;
 
-  std::string formattedString(const char *commonPath = NULL);
+  rdcstr formattedString(const char *commonPath = NULL);
 };
 
 class StackResolver
@@ -265,28 +270,28 @@ bool GetLoadedModules(byte *buf, size_t &size);
 
 namespace FileIO
 {
-void GetDefaultFiles(const char *logBaseName, std::string &capture_filename,
-                     std::string &logging_filename, std::string &target);
-std::string GetHomeFolderFilename();
-std::string GetAppFolderFilename(const std::string &filename);
-std::string GetTempFolderFilename();
-std::string GetReplayAppFilename();
+void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
+                     rdcstr &target);
+rdcstr GetHomeFolderFilename();
+rdcstr GetAppFolderFilename(const rdcstr &filename);
+rdcstr GetTempFolderFilename();
+rdcstr GetReplayAppFilename();
 
-void CreateParentDirectory(const std::string &filename);
+void CreateParentDirectory(const rdcstr &filename);
 
-bool IsRelativePath(const std::string &path);
-std::string GetFullPathname(const std::string &filename);
-std::string FindFileInPath(const std::string &fileName);
+bool IsRelativePath(const rdcstr &path);
+rdcstr GetFullPathname(const rdcstr &filename);
+rdcstr FindFileInPath(const rdcstr &fileName);
 
-void GetExecutableFilename(std::string &selfName);
-void GetLibraryFilename(std::string &selfName);
+void GetExecutableFilename(rdcstr &selfName);
+void GetLibraryFilename(rdcstr &selfName);
 
-uint64_t GetModifiedTimestamp(const std::string &filename);
+uint64_t GetModifiedTimestamp(const rdcstr &filename);
 
 bool Copy(const char *from, const char *to, bool allowOverwrite);
 bool Move(const char *from, const char *to, bool allowOverwrite);
 void Delete(const char *path);
-std::vector<PathEntry> GetFilesInDirectory(const char *path);
+void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &entries);
 
 FILE *fopen(const char *filename, const char *mode);
 
@@ -295,7 +300,7 @@ size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f);
 
 bool exists(const char *filename);
 
-std::string ErrorString();
+rdcstr ErrorString();
 
 uint64_t ftell64(FILE *f);
 void fseek64(FILE *f, uint64_t offset, int origin);
@@ -317,10 +322,10 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename);
 
 // read the whole logfile into memory. This may race with processes writing, but it will read the
 // whole of the file at some point. Useful since normal file reading may fail on the shared logfile
-std::string logfile_readall(const char *filename);
+rdcstr logfile_readall(const char *filename);
 
 // utility functions
-inline bool dump(const char *filename, const void *buffer, size_t size)
+inline bool WriteAll(const char *filename, const void *buffer, size_t size)
 {
   FILE *f = FileIO::fopen(filename, "wb");
   if(f == NULL)
@@ -333,7 +338,20 @@ inline bool dump(const char *filename, const void *buffer, size_t size)
   return numWritten == size;
 }
 
-inline bool slurp(const char *filename, std::vector<unsigned char> &buffer)
+template <typename T>
+bool WriteAll(const char *filename, const rdcarray<T> &buffer)
+{
+  return WriteAll(filename, buffer.data(), buffer.size());
+}
+
+template <typename T>
+bool WriteAll(const char *filename, const rdcstr &buffer)
+{
+  return WriteAll(filename, buffer.c_str(), buffer.length());
+}
+
+template <typename T>
+bool ReadAll(const char *filename, rdcarray<T> &buffer)
 {
   FILE *f = FileIO::fopen(filename, "rb");
   if(f == NULL)
@@ -343,13 +361,32 @@ inline bool slurp(const char *filename, std::vector<unsigned char> &buffer)
   uint64_t size = ftell64(f);
   FileIO::fseek64(f, 0, SEEK_SET);
 
-  buffer.resize((size_t)size);
+  buffer.resize((size_t)size / sizeof(T));
 
-  size_t numRead = FileIO::fread(&buffer[0], 1, buffer.size(), f);
+  size_t numRead = FileIO::fread(&buffer[0], sizeof(T), buffer.size(), f);
 
   FileIO::fclose(f);
 
   return numRead == buffer.size();
+}
+
+inline bool ReadAll(const char *filename, rdcstr &str)
+{
+  FILE *f = FileIO::fopen(filename, "rb");
+  if(f == NULL)
+    return false;
+
+  FileIO::fseek64(f, 0, SEEK_END);
+  uint64_t size = ftell64(f);
+  FileIO::fseek64(f, 0, SEEK_SET);
+
+  str.resize((size_t)size);
+
+  size_t numRead = FileIO::fread(&str[0], 1, str.size(), f);
+
+  FileIO::fclose(f);
+
+  return numRead == str.size();
 }
 };
 
@@ -362,13 +399,45 @@ bool GetKeyState(int key);
 bool PlatformHasKeyInput();
 };
 
+// simple container for passing around temporary wide strings. We leave it immutable and manually
+// add the trailing NULL. These are used as rarely as possible but still needed for interacting with
+// windows/D3D APIs.
+struct rdcwstr : private rdcarray<wchar_t>
+{
+  rdcwstr() : rdcarray<wchar_t>() {}
+  rdcwstr(const wchar_t *str, size_t N) : rdcarray<wchar_t>(str, N)
+  {
+    // push null terminator
+    rdcarray<wchar_t>::push_back(0);
+  }
+  rdcwstr(const wchar_t *str)
+  {
+    while(*str)
+    {
+      rdcarray<wchar_t>::push_back(*str);
+      str++;
+    }
+    // push null terminator
+    rdcarray<wchar_t>::push_back(0);
+  }
+  template <size_t N>
+  rdcwstr(const wchar_t (&el)[N]) : rdcwstr(&el[0])
+  {
+  }
+  rdcwstr(size_t N) { resize(N + 1); }
+  wchar_t *data() { return rdcarray<wchar_t>::data(); }
+  const wchar_t *c_str() const { return rdcarray<wchar_t>::data(); }
+  using rdcarray<wchar_t>::operator[];
+  size_t length() const { return rdcarray<wchar_t>::size() - 1; }
+};
+
 // implemented per-platform
 namespace StringFormat
 {
 void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format);
 
-std::string Wide2UTF8(const std::wstring &s);
-std::wstring UTF82Wide(const std::string &s);
+rdcstr Wide2UTF8(const rdcwstr &str);
+rdcwstr UTF82Wide(const rdcstr &s);
 
 void Shutdown();
 };
@@ -382,9 +451,7 @@ int snprintf(char *str, size_t bufSize, const char *format, ...);
 
 void sntimef(char *str, size_t bufSize, const char *format);
 
-std::string Fmt(const char *format, ...);
-
-int Wide2UTF8(wchar_t chr, char mbchr[4]);
+rdcstr Fmt(const char *format, ...);
 };
 
 namespace OSUtility
@@ -434,7 +501,7 @@ enum MachineIdentBits
 };
 
 uint64_t GetMachineIdent();
-std::string MakeMachineIdentString(uint64_t ident);
+rdcstr MakeMachineIdentString(uint64_t ident);
 };
 
 namespace Bits
@@ -448,7 +515,7 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 // must #define:
 // __PRETTY_FUNCTION_SIGNATURE__ - undecorated function signature
 // GetEmbeddedResource(name_with_underscores_ext) - function/inline that returns the given file in a
-// std::string
+// rdcstr
 // OS_DEBUG_BREAK() - instruction that debugbreaks the debugger - define instead of function to
 // preserve callstacks
 // EndianSwapXX() for XX = 16, 32, 64

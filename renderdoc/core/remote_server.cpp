@@ -347,7 +347,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
-      std::vector<PathEntry> files = FileIO::GetFilesInDirectory(path.c_str());
+      rdcarray<PathEntry> files;
+      FileIO::GetFilesInDirectory(path.c_str(), files);
 
       {
         WRITE_DATA_SCOPE();
@@ -376,8 +377,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_CopyCaptureToRemote)
     {
-      std::string path;
-      std::string dummy, dummy2;
+      rdcstr path;
+      rdcstr dummy, dummy2;
       FileIO::GetDefaultFiles("remotecopy", path, dummy, dummy2);
 
       RDCLOG("Copying file to local path '%s'.", path.c_str());
@@ -843,8 +844,11 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       if(threadData->allowExecution)
       {
-        ret = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(), cmdLine.c_str(),
-                                                  env, "", opts, false);
+        rdcpair<ReplayStatus, uint32_t> status = Process::LaunchAndInjectIntoProcess(
+            app.c_str(), workingDir.c_str(), cmdLine.c_str(), env, "", opts, false);
+
+        ret.status = status.first;
+        ret.ident = status.second;
       }
       else
       {

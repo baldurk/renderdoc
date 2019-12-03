@@ -51,7 +51,7 @@ StreamReader::StreamReader(const byte *buffer, uint64_t bufferSize)
   m_Ownership = Ownership::Nothing;
 }
 
-StreamReader::StreamReader(const std::vector<byte> &buffer)
+StreamReader::StreamReader(const bytebuf &buffer)
 {
   m_InputSize = m_BufferSize = buffer.size();
   m_BufferHead = m_BufferBase = AllocAlignedBuffer(m_BufferSize);

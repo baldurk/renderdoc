@@ -318,12 +318,11 @@ void rdclog_filename(const char *filename)
 
     if(logfileHandle && previous.c_str())
     {
-      std::vector<unsigned char> previousContents;
-      FileIO::slurp(previous.c_str(), previousContents);
+      rdcstr previousContents;
+      FileIO::ReadAll(previous.c_str(), previousContents);
 
       if(!previousContents.empty())
-        FileIO::logfile_append(logfileHandle, (const char *)&previousContents[0],
-                               previousContents.size());
+        FileIO::logfile_append(logfileHandle, previousContents.c_str(), previousContents.size());
 
       FileIO::Delete(previous.c_str());
     }

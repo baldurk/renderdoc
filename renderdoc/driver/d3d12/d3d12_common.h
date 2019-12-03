@@ -80,7 +80,7 @@ inline std::string DecodeMarkerString(UINT Metadata, const void *pData, UINT Siz
   if(Metadata == PIX_EVENT_UNICODE_VERSION)
   {
     const wchar_t *w = (const wchar_t *)pData;
-    MarkerText = StringFormat::Wide2UTF8(std::wstring(w, w + Size / sizeof(wchar_t)));
+    MarkerText = StringFormat::Wide2UTF8(rdcwstr(w, Size / sizeof(wchar_t)));
     if(!MarkerText.empty() && (MarkerText.back() == ' ' || MarkerText.back() == 0))
       MarkerText.pop_back();
   }

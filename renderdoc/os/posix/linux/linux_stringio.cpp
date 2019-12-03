@@ -547,39 +547,39 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-std::string GetTempRootPath()
+rdcstr GetTempRootPath()
 {
   return "/tmp";
 }
 
-std::string GetAppFolderFilename(const std::string &filename)
+rdcstr GetAppFolderFilename(const rdcstr &filename)
 {
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
 
-  std::string ret = std::string(homedir) + "/.renderdoc/";
+  rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   return ret + filename;
 }
 
-void GetExecutableFilename(std::string &selfName)
+void GetExecutableFilename(rdcstr &selfName)
 {
   char path[512] = {0};
   readlink("/proc/self/exe", path, 511);
 
-  selfName = std::string(path);
+  selfName = rdcstr(path);
 }
 
 int LibraryLocator = 42;
 
-void GetLibraryFilename(std::string &selfName)
+void GetLibraryFilename(rdcstr &selfName)
 {
   // this is a hack, but the only reliable way to find the absolute path to the library.
   // dladdr would be fine but it returns the wrong result for symbols in the library
 
-  std::string librenderdoc_path;
+  rdcstr librenderdoc_path;
 
   FILE *f = fopen("/proc/self/maps", "r");
 
@@ -654,7 +654,7 @@ void GetLibraryFilename(std::string &selfName)
       char *end = strchr(c, '\n');
 
       if(end)
-        librenderdoc_path = std::string(c, end - c);
+        librenderdoc_path = rdcstr(c, end - c);
     }
 
     delete[] map_string;
@@ -697,13 +697,13 @@ void Shutdown()
   iconvUTF82Wide = (iconv_t)-1;
 }
 
-std::string Wide2UTF8(const std::wstring &s)
+rdcstr Wide2UTF8(const rdcwstr &s)
 {
   // include room for null terminator, assuming unicode input (not ucs)
   // utf-8 characters can be max 4 bytes.
   size_t len = (s.length() + 1) * 4;
 
-  std::vector<char> charBuffer(len);
+  rdcarray<char> charBuffer(len);
 
   size_t ret;
 
@@ -738,16 +738,16 @@ std::string Wide2UTF8(const std::wstring &s)
   // convert to string from null-terminated string - utf-8 never contains
   // 0 bytes before the null terminator, and this way we don't care if
   // charBuffer is larger than the string
-  return std::string(&charBuffer[0]);
+  return rdcstr(&charBuffer[0]);
 }
 
-std::wstring UTF82Wide(const std::string &s)
+rdcwstr UTF82Wide(const rdcstr &s)
 {
   // include room for null terminator, for ascii input we need at least as many output chars as
   // input.
   size_t len = s.length() + 1;
 
-  std::vector<wchar_t> wcharBuffer(len);
+  rdcarray<wchar_t> wcharBuffer(len);
 
   size_t ret;
 
@@ -780,7 +780,7 @@ std::wstring UTF82Wide(const std::string &s)
   }
 
   // convert to string from null-terminated string
-  return std::wstring(&wcharBuffer[0]);
+  return rdcwstr(&wcharBuffer[0]);
 }
 };
 

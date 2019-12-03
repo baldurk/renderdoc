@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <map>
 #include "api/app/renderdoc_app.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
@@ -224,19 +225,19 @@ static void SetupZombieCollectionHandler()
 namespace FileIO
 {
 void ReleaseFDAfterFork();
-std::string FindFileInPath(const std::string &fileName);
+rdcstr FindFileInPath(const rdcstr &fileName);
 };
 
-static const std::string GetAbsoluteAppPathFromName(const std::string &appName)
+static const rdcstr GetAbsoluteAppPathFromName(const rdcstr &appName)
 {
-  std::string appPath;
+  rdcstr appPath;
 
   // If the application name contains a slash character convert it to an absolute path and return it
-  if(appName.find("/") != std::string::npos)
+  if(appName.contains("/"))
   {
     char realpathBuffer[PATH_MAX];
-    std::string appDir = get_dirname(appName);
-    std::string appBasename = get_basename(appName);
+    rdcstr appDir = get_dirname(appName);
+    rdcstr appBasename = get_basename(appName);
     realpath(appDir.c_str(), realpathBuffer);
     appPath = realpathBuffer;
     appPath += "/" + appBasename;
@@ -247,15 +248,15 @@ static const std::string GetAbsoluteAppPathFromName(const std::string &appName)
   return FileIO::FindFileInPath(appName);
 }
 
-static std::vector<EnvironmentModification> &GetEnvModifications()
+static rdcarray<EnvironmentModification> &GetEnvModifications()
 {
-  static std::vector<EnvironmentModification> envCallbacks;
+  static rdcarray<EnvironmentModification> envCallbacks;
   return envCallbacks;
 }
 
-static std::map<std::string, std::string> EnvStringToEnvMap(const char **envstring)
+static std::map<rdcstr, rdcstr> EnvStringToEnvMap(const char **envstring)
 {
-  std::map<std::string, std::string> ret;
+  std::map<rdcstr, rdcstr> ret;
 
   const char **e = envstring;
 
@@ -269,11 +270,8 @@ static std::map<std::string, std::string> EnvStringToEnvMap(const char **envstri
       continue;
     }
 
-    std::string name;
-    std::string value;
-
-    name.assign(*e, equals);
-    value = equals + 1;
+    rdcstr name = rdcstr(*e, equals - *e);
+    rdcstr value = equals + 1;
 
     ret[name] = value;
 
@@ -330,7 +328,7 @@ static rdcstr shellExpand(const rdcstr &in)
   return path;
 }
 
-void Process::RegisterEnvironmentModification(EnvironmentModification modif)
+void Process::RegisterEnvironmentModification(const EnvironmentModification &modif)
 {
   GetEnvModifications().push_back(modif);
 }
@@ -346,15 +344,14 @@ void Process::ApplyEnvironmentModification()
 {
   // turn environment string to a UTF-8 map
   char **currentEnvironment = GetCurrentEnvironment();
-  std::map<std::string, std::string> currentEnv =
-      EnvStringToEnvMap((const char **)currentEnvironment);
-  std::vector<EnvironmentModification> &modifications = GetEnvModifications();
+  std::map<rdcstr, rdcstr> currentEnv = EnvStringToEnvMap((const char **)currentEnvironment);
+  rdcarray<EnvironmentModification> &modifications = GetEnvModifications();
 
   for(size_t i = 0; i < modifications.size(); i++)
   {
     EnvironmentModification &m = modifications[i];
 
-    std::string value = currentEnv[m.name.c_str()];
+    rdcstr value = currentEnv[m.name.c_str()];
 
     switch(m.mod)
     {
@@ -375,7 +372,7 @@ void Process::ApplyEnvironmentModification()
       {
         if(!value.empty())
         {
-          std::string prep = m.value;
+          rdcstr prep = m.value;
           if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
             prep += ":";
           else if(m.sep == EnvSep::SemiColon)
@@ -426,7 +423,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 #if ENABLED(RDOC_APPLE)
   if(appName.size() > 5 && appName.rfind(".app") == appName.size() - 4)
   {
-    std::string realAppName = appName + "/Contents/MacOS/" + get_basename(appName);
+    rdcstr realAppName = appName + "/Contents/MacOS/" + get_basename(appName);
     realAppName.erase(realAppName.size() - 4);
 
     if(FileIO::exists(realAppName.c_str()))
@@ -466,7 +463,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 
     c = cmdLine;
 
-    std::string a;
+    rdcstr a;
 
     argc = 0;    // current argument we're fetching
 
@@ -559,7 +556,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     }
   }
 
-  const std::string appPath(GetAbsoluteAppPathFromName(appName));
+  const rdcstr appPath(GetAbsoluteAppPathFromName(appName));
 
   pid_t childPid = 0;
 
@@ -624,9 +621,9 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   return childPid;
 }
 
-ExecuteResult Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                                         const char *logfile, const CaptureOptions &opts,
-                                         bool waitForExit)
+rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
+    uint32_t pid, const rdcarray<EnvironmentModification> &env, const char *logfile,
+    const CaptureOptions &opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
   return {ReplayStatus::InjectionFailed, 0};
@@ -667,14 +664,14 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
       {
         stdoutRead = read(stdoutPipe[0], chBuf, sizeof(chBuf));
         if(stdoutRead > 0)
-          result->strStdout += std::string(chBuf, stdoutRead);
+          result->strStdout += rdcstr(chBuf, stdoutRead);
       } while(stdoutRead > 0);
 
       do
       {
         stderrRead = read(stderrPipe[0], chBuf, sizeof(chBuf));
         if(stderrRead > 0)
-          result->strStderror += std::string(chBuf, stderrRead);
+          result->strStderror += rdcstr(chBuf, stderrRead);
 
       } while(stderrRead > 0);
     }
@@ -691,16 +688,15 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
                                bool internal, ProcessResult *result)
 {
   // Change parameters to invoke command interpreter
-  std::string args = "-lc \"" + std::string(script) + " " + std::string(argList) + "\"";
+  rdcstr args = "-lc \"" + rdcstr(script) + " " + rdcstr(argList) + "\"";
 
   return LaunchProcess("bash", workingDir, args.c_str(), internal, result);
 }
 
-ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                                  const char *cmdLine,
-                                                  const rdcarray<EnvironmentModification> &envList,
-                                                  const char *capturefile,
-                                                  const CaptureOptions &opts, bool waitForExit)
+rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
+    const char *app, const char *workingDir, const char *cmdLine,
+    const rdcarray<EnvironmentModification> &envList, const char *capturefile,
+    const CaptureOptions &opts, bool waitForExit)
 {
   if(app == NULL || app[0] == 0)
   {
@@ -710,8 +706,8 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
 
   // turn environment string to a UTF-8 map
   char **currentEnvironment = GetCurrentEnvironment();
-  std::map<std::string, std::string> env = EnvStringToEnvMap((const char **)currentEnvironment);
-  std::vector<EnvironmentModification> modifications = GetEnvModifications();
+  std::map<rdcstr, rdcstr> env = EnvStringToEnvMap((const char **)currentEnvironment);
+  rdcarray<EnvironmentModification> modifications = GetEnvModifications();
 
   for(const EnvironmentModification &e : envList)
     modifications.push_back(e);
@@ -719,7 +715,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   if(capturefile == NULL)
     capturefile = "";
 
-  std::string binpath, libpath, ownlibpath;
+  rdcstr binpath, libpath, ownlibpath;
   {
     FileIO::GetExecutableFilename(binpath);
     binpath = get_dirname(binpath);
@@ -738,14 +734,14 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   FileIO::GetLibraryFilename(ownlibpath);
   ownlibpath = get_dirname(ownlibpath);
 
-  std::string libfile = "librenderdoc" LIB_SUFFIX;
+  rdcstr libfile = "librenderdoc" LIB_SUFFIX;
 
 // on macOS, the path must be absolute
 #if ENABLED(RDOC_APPLE)
   libfile = libpath + "/" + libfile;
 #endif
 
-  std::string optstr = opts.EncodeAsString();
+  rdcstr optstr = opts.EncodeAsString();
 
   modifications.push_back(
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, binpath.c_str()));
@@ -766,7 +762,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   {
     EnvironmentModification &m = modifications[i];
 
-    std::string &value = env[m.name.c_str()];
+    rdcstr &value = env[m.name.c_str()];
 
     switch(m.mod)
     {
@@ -807,7 +803,7 @@ ExecuteResult Process::LaunchAndInjectIntoProcess(const char *app, const char *w
   int i = 0;
   for(auto it = env.begin(); it != env.end(); it++)
   {
-    std::string envline = it->first + "=" + it->second;
+    rdcstr envline = it->first + "=" + it->second;
     envp[i] = new char[envline.size() + 1];
     memcpy(envp[i], envline.c_str(), envline.size() + 1);
     i++;

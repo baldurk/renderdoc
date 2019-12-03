@@ -81,7 +81,7 @@ public:
   StreamReader(StreamInvalidType);
   StreamReader(StreamDummyType);
   StreamReader(const byte *buffer, uint64_t bufferSize);
-  StreamReader(const std::vector<byte> &buffer);
+  StreamReader(const bytebuf &buffer);
 
   StreamReader(Network::Socket *sock, Ownership own);
   StreamReader(FILE *file, uint64_t fileSize, Ownership own);

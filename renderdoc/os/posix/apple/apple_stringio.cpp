@@ -61,31 +61,31 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-std::string GetTempRootPath()
+rdcstr GetTempRootPath()
 {
   return "/tmp";
 }
 
-std::string GetAppFolderFilename(const std::string &filename)
+rdcstr GetAppFolderFilename(const rdcstr &filename)
 {
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
 
-  std::string ret = std::string(homedir) + "/.renderdoc/";
+  rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   return ret + filename;
 }
 
-void GetExecutableFilename(std::string &selfName)
+void GetExecutableFilename(rdcstr &selfName)
 {
   char path[512] = {0};
 
   uint32_t pathSize = (uint32_t)sizeof(path);
   if(_NSGetExecutablePath(path, &pathSize) == 0)
   {
-    selfName = std::string(path);
+    selfName = rdcstr(path);
   }
   else
   {
@@ -94,7 +94,7 @@ void GetExecutableFilename(std::string &selfName)
     memset(allocPath, 0, pathSize);
     if(_NSGetExecutablePath(path, &pathSize) == 0)
     {
-      selfName = std::string(path);
+      selfName = rdcstr(path);
     }
     else
     {
@@ -110,12 +110,12 @@ void GetExecutableFilename(std::string &selfName)
   readlink(selfName.c_str(), path, 511);
 
   if(path[0] != 0)
-    selfName = std::string(path);
+    selfName = rdcstr(path);
 }
 
 int LibraryLocator = 42;
 
-void GetLibraryFilename(std::string &selfName)
+void GetLibraryFilename(rdcstr &selfName)
 {
   Dl_info info;
   if(dladdr(&LibraryLocator, &info))
@@ -154,13 +154,13 @@ void Shutdown()
   iconvUTF82Wide = (iconv_t)-1;
 }
 
-std::string Wide2UTF8(const std::wstring &s)
+rdcstr Wide2UTF8(const rdcwstr &s)
 {
   // include room for null terminator, assuming unicode input (not ucs)
   // utf-8 characters can be max 4 bytes.
   size_t len = (s.length() + 1) * 4;
 
-  std::vector<char> charBuffer(len);
+  rdcarray<char> charBuffer(len);
 
   size_t ret;
 
@@ -195,16 +195,16 @@ std::string Wide2UTF8(const std::wstring &s)
   // convert to string from null-terminated string - utf-8 never contains
   // 0 bytes before the null terminator, and this way we don't care if
   // charBuffer is larger than the string
-  return std::string(&charBuffer[0]);
+  return rdcstr(&charBuffer[0]);
 }
 
-std::wstring UTF82Wide(const std::string &s)
+rdcwstr UTF82Wide(const rdcstr &s)
 {
   // include room for null terminator, for ascii input we need at least as many output chars as
   // input.
   size_t len = s.length() + 1;
 
-  std::vector<wchar_t> wcharBuffer(len);
+  rdcarray<wchar_t> wcharBuffer(len);
 
   size_t ret;
 
@@ -237,7 +237,7 @@ std::wstring UTF82Wide(const std::string &s)
   }
 
   // convert to string from null-terminated string
-  return std::wstring(&wcharBuffer[0]);
+  return rdcwstr(&wcharBuffer[0]);
 }
 };
 

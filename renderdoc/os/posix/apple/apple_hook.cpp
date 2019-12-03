@@ -34,16 +34,16 @@
 
 Threading::CriticalSection libLock;
 
-static std::map<std::string, std::vector<FunctionLoadCallback>> libraryCallbacks;
-static std::set<std::string> libraryHooks;
-static std::vector<FunctionHook> functionHooks;
+static std::map<rdcstr, rdcarray<FunctionLoadCallback>> libraryCallbacks;
+static std::set<rdcstr> libraryHooks;
+static rdcarray<FunctionHook> functionHooks;
 static std::set<void *> libraryHandles;
 
 void *interposed_dlopen(const char *filename, int flag)
 {
   void *handle = dlopen(filename, flag);
 
-  std::string baseFilename = filename ? get_basename(std::string(filename)) : "";
+  rdcstr baseFilename = filename ? get_basename(rdcstr(filename)) : "";
 
   {
     SCOPED_LOCK(libLock);
@@ -104,7 +104,7 @@ void LibraryHooks::EndHookRegistration()
   // them for the dyld interposing)
   for(auto it = libraryCallbacks.begin(); it != libraryCallbacks.end(); ++it)
   {
-    std::string libName = it->first;
+    rdcstr libName = it->first;
     void *handle = dlopen(libName.c_str(), RTLD_NOW | RTLD_GLOBAL);
 
     if(handle)
@@ -149,7 +149,7 @@ void LibraryHooks::RegisterLibraryHook(char const *name, FunctionLoadCallback cb
   SCOPED_LOCK(libLock);
 
   // we match by basename for library hooks
-  libraryHooks.insert(get_basename(std::string(name)));
+  libraryHooks.insert(get_basename(rdcstr(name)));
 
   if(cb)
     libraryCallbacks[name].push_back(cb);

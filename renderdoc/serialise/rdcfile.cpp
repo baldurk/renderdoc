@@ -288,7 +288,7 @@ void RDCFile::Open(const char *path)
   Init(reader);
 }
 
-void RDCFile::Open(const std::vector<byte> &buffer)
+void RDCFile::Open(const bytebuf &buffer)
 {
   m_Buffer = buffer;
   m_File = NULL;

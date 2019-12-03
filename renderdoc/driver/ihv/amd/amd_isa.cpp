@@ -186,7 +186,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
       tempPath.c_str(), stageName, tempPath.c_str(), stageName, tempPath.c_str(), stageName,
       tempPath.c_str(), stageName, tempPath.c_str(), tempPath.c_str());
 
-  FileIO::dump(inPath.c_str(), shaderBytes.data(), shaderBytes.size());
+  FileIO::WriteAll(inPath.c_str(), shaderBytes);
 
   // try to locate the amdspv relative to our running program
   std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
@@ -204,29 +204,24 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   FileIO::Delete(StringFormat::Fmt("%sout.log", tempPath.c_str()).c_str());
   FileIO::Delete(StringFormat::Fmt("%sout.bin", tempPath.c_str()).c_str());
 
-  std::string ret;
+  rdcstr ret;
 
   if(amdil)
   {
-    std::vector<byte> data;
-    FileIO::slurp(StringFormat::Fmt("%sout.il", tempPath.c_str()).c_str(), data);
-
-    ret = std::string(data.data(), data.data() + data.size());
+    FileIO::ReadAll(StringFormat::Fmt("%sout.il", tempPath.c_str()).c_str(), ret);
   }
   else
   {
-    std::vector<byte> data;
-    FileIO::slurp(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str(), data);
-
-    ret = std::string(data.data(), data.data() + data.size());
+    FileIO::ReadAll(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str(), ret);
 
     std::string statsfile = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
 
     if(FileIO::exists(statsfile.c_str()))
     {
-      FileIO::slurp(statsfile.c_str(), data);
+      rdcstr stats;
+      FileIO::ReadAll(statsfile.c_str(), stats);
 
-      ret += std::string(data.data(), data.data() + data.size());
+      ret += "\n\n" + stats;
     }
   }
 
@@ -234,9 +229,9 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   FileIO::Delete(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str());
   FileIO::Delete(StringFormat::Fmt("%sstats.txt", tempPath.c_str()).c_str());
 
-  std::string header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
+  rdcstr header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
 
-  ret.insert(ret.begin(), header.begin(), header.end());
+  ret.insert(0, header.begin(), header.size());
 
   return ret;
 }
@@ -362,7 +357,7 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   if(!found)
     return "; Invalid ISA Target specified";
 
-  FileIO::dump(inPath.c_str(), shaderBytes.data(), shaderBytes.size());
+  FileIO::WriteAll(inPath.c_str(), shaderBytes);
 
   // try to locate the amdspv relative to our running program
   std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
@@ -380,30 +375,28 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   FileIO::Delete(inPath.c_str());
   FileIO::Delete(binPath.c_str());
 
-  std::string ret;
+  rdcstr ret;
 
   {
-    std::vector<byte> data;
-    FileIO::slurp(outPath.c_str(), data);
-    ret = std::string(data.data(), data.data() + data.size());
+    FileIO::ReadAll(outPath.c_str(), ret);
 
     while(ret.back() == '\0')
       ret.pop_back();
 
     if(FileIO::exists(statsPath.c_str()))
     {
-      FileIO::slurp(statsPath.c_str(), data);
-      ret += "\n\n";
-      ret += std::string(data.data(), data.data() + data.size());
+      rdcstr stats;
+      FileIO::ReadAll(statsPath.c_str(), stats);
+      ret += "\n\n" + stats;
     }
   }
 
   FileIO::Delete(outPath.c_str());
   FileIO::Delete(statsPath.c_str());
 
-  std::string header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
+  rdcstr header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
 
-  ret.insert(ret.begin(), header.begin(), header.end());
+  ret.insert(0, header.begin(), header.size());
 
   return ret;
 }

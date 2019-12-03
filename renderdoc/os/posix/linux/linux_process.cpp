@@ -38,17 +38,18 @@ char **GetCurrentEnvironment()
   return environ;
 }
 
-std::vector<int> getSockets(pid_t childPid)
+rdcarray<int> getSockets(pid_t childPid)
 {
-  std::vector<int> sockets;
-  std::string dirPath = StringFormat::Fmt("/proc/%d/fd", (int)childPid);
-  std::vector<PathEntry> files = FileIO::GetFilesInDirectory(dirPath.c_str());
+  rdcarray<int> sockets;
+  rdcstr dirPath = StringFormat::Fmt("/proc/%d/fd", (int)childPid);
+  rdcarray<PathEntry> files;
+  FileIO::GetFilesInDirectory(dirPath.c_str(), files);
   if(files.empty())
     return sockets;
 
   for(const PathEntry &file : files)
   {
-    std::string target = StringFormat::Fmt("%s/%s", dirPath.c_str(), file.filename.c_str());
+    rdcstr target = StringFormat::Fmt("%s/%s", dirPath.c_str(), file.filename.c_str());
     char linkname[1024];
     ssize_t length = readlink(target.c_str(), linkname, 1023);
     if(length == -1)
@@ -67,7 +68,7 @@ int GetIdentPort(pid_t childPid)
 {
   int ret = 0;
 
-  std::string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
+  rdcstr procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
 
   int waitTime = INITIAL_WAIT_TIME;
 
@@ -87,7 +88,7 @@ int GetIdentPort(pid_t childPid)
       continue;
     }
 
-    std::vector<int> sockets = getSockets(childPid);
+    rdcarray<int> sockets = getSockets(childPid);
 
     // read through the proc file to check for an open listen socket
     while(ret == 0 && !feof(f))
@@ -107,8 +108,7 @@ int GetIdentPort(pid_t childPid)
 
       // find open listen socket on 0.0.0.0:port
       if(num == 4 && hexip == 0 && hexport >= RenderDoc_FirstTargetControlPort &&
-         hexport <= RenderDoc_LastTargetControlPort &&
-         std::find(sockets.begin(), sockets.end(), inode) != sockets.end())
+         hexport <= RenderDoc_LastTargetControlPort && sockets.contains(inode))
       {
         ret = hexport;
       }

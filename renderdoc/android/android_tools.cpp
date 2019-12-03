@@ -79,7 +79,8 @@ std::string getToolInSDK(ToolDir subdir, const std::string &jdkroot, const std::
         // otherwise we need to find the build-tools versioned folder
         toolpath = sdkroot + "/build-tools/";
 
-        std::vector<PathEntry> paths = FileIO::GetFilesInDirectory(toolpath.c_str());
+        rdcarray<PathEntry> paths;
+        FileIO::GetFilesInDirectory(toolpath.c_str(), paths);
 
         if(paths.empty())
           break;
@@ -275,9 +276,9 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 
   // finally try to locate it in our own distributed android subfolder
   {
-    std::string libpath;
+    rdcstr libpath;
     FileIO::GetLibraryFilename(libpath);
-    std::string libdir = get_dirname(FileIO::GetFullPathname(libpath));
+    rdcstr libdir = get_dirname(FileIO::GetFullPathname(libpath));
 
     toolpath = libdir + "/plugins/android/" + toolname;
     if(toolExists(toolpath))

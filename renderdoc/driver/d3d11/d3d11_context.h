@@ -200,7 +200,7 @@ private:
       ANNOT_ENDEVENT
     } m_Type;
     uint32_t m_Col;
-    std::wstring m_Name;
+    rdcstr m_Name;
   };
   std::vector<Annotation> m_AnnotationQueue;
   Threading::CriticalSection m_AnnotLock;

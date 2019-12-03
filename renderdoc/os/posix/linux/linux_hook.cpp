@@ -35,9 +35,9 @@
 
 Threading::CriticalSection libLock;
 
-static std::map<std::string, std::vector<FunctionLoadCallback>> libraryCallbacks;
-static std::vector<std::string> libraryHooks;
-static std::vector<FunctionHook> functionHooks;
+static std::map<rdcstr, rdcarray<FunctionLoadCallback>> libraryCallbacks;
+static rdcarray<rdcstr> libraryHooks;
+static rdcarray<FunctionHook> functionHooks;
 
 void *intercept_dlopen(const char *filename, int flag, void *ret);
 void plthook_lib(void *handle);
@@ -148,7 +148,7 @@ static void CheckLoadedLibraries()
   // them and call callbacks.
   for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
   {
-    std::string libName = *it;
+    rdcstr libName = *it;
     void *handle = realdlopen(libName.c_str(), RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
 
     if(handle)
@@ -159,7 +159,7 @@ static void CheckLoadedLibraries()
           *hook.orig = dlsym(handle, hook.function.c_str());
       }
 
-      std::vector<FunctionLoadCallback> callbacks;
+      rdcarray<FunctionLoadCallback> callbacks;
 
       // don't call callbacks again if the library is dlopen'd again
       libraryCallbacks[libName].swap(callbacks);
@@ -185,11 +185,11 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
   if(flag & RTLD_DEEPBIND)
     plthook_lib(ret);
 
-  std::string base = get_basename(filename);
+  rdcstr base = get_basename(filename);
 
   for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
   {
-    const std::string &libName = *it;
+    const rdcstr &libName = *it;
     if(*it == base)
     {
       RDCDEBUG("Redirecting dlopen to ourselves for %s", filename);
@@ -200,7 +200,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
           *hook.orig = dlsym(ret, hook.function.c_str());
       }
 
-      std::vector<FunctionLoadCallback> callbacks;
+      rdcarray<FunctionLoadCallback> callbacks;
 
       // don't call callbacks again if the library is dlopen'd again
       libraryCallbacks[libName].swap(callbacks);
@@ -259,7 +259,7 @@ void LibraryHooks::RegisterLibraryHook(char const *name, FunctionLoadCallback cb
 {
   SCOPED_LOCK(libLock);
 
-  if(std::find(libraryHooks.begin(), libraryHooks.end(), name) == libraryHooks.end())
+  if(libraryHooks.contains(name))
     libraryHooks.push_back(name);
 
   if(cb)

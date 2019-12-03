@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include "common/common.h"
+
 #define DECLARE_EMBED(filename)                   \
   extern unsigned char CONCAT(data_, filename)[]; \
   extern int CONCAT(CONCAT(data_, filename), _len);

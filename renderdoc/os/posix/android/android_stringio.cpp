@@ -56,25 +56,25 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-std::string GetTempRootPath()
+rdcstr GetTempRootPath()
 {
   // Save captures in the app's private /sdcard directory, which doesnt require
   // WRITE_EXTERNAL_STORAGE permissions. There is no security enforced here,
   // so the replay server can load it as it has READ_EXTERNAL_STORAGE.
   // This is the same as returned by getExternalFilesDir(). It might possibly change in the future.
-  std::string package;
+  rdcstr package;
   GetExecutableFilename(package);
   return "/sdcard/Android/data/" + package + "/files";
 }
 
-std::string GetAppFolderFilename(const std::string &filename)
+rdcstr GetAppFolderFilename(const rdcstr &filename)
 {
-  return GetTempRootPath() + std::string("/") + filename;
+  return GetTempRootPath() + rdcstr("/") + filename;
 }
 
 // For RenderDoc's apk, this returns our package name
 // For other APKs, we use it to get the writable temp directory.
-void GetExecutableFilename(std::string &selfName)
+void GetExecutableFilename(rdcstr &selfName)
 {
   char buf[4096];
   snprintf(buf, sizeof(buf), "/proc/%u/cmdline", getpid());
@@ -91,12 +91,12 @@ void GetExecutableFilename(std::string &selfName)
   }
 
   // Strip any process name from cmdline (android:process)
-  std::string cmdline = buf;
-  std::string filename = cmdline.substr(0, cmdline.find(":"));
+  rdcstr cmdline = buf;
+  rdcstr filename = cmdline.substr(0, cmdline.find(":"));
   selfName = filename;
 }
 
-void GetLibraryFilename(std::string &selfName)
+void GetLibraryFilename(rdcstr &selfName)
 {
   RDCERR("GetLibraryFilename is not defined on Android");
   GetExecutableFilename(selfName);
@@ -105,13 +105,13 @@ void GetLibraryFilename(std::string &selfName)
 
 namespace StringFormat
 {
-std::string Wide2UTF8(const std::wstring &s)
+rdcstr Wide2UTF8(const rdcwstr &s)
 {
   RDCFATAL("Converting wide strings to UTF-8 is not supported on Android!");
   return "";
 }
 
-std::wstring UTF82Wide(const std::string &s)
+rdcwstr UTF82Wide(const rdcstr &s)
 {
   RDCFATAL("Converting UTF-8 to wide strings is not supported on Android!");
   return L"";

@@ -36,7 +36,7 @@ static BOOL add_hooks()
   wchar_t curFile[512];
   GetModuleFileNameW(NULL, curFile, 512);
 
-  std::string f = get_basename(strlower(StringFormat::Wide2UTF8(curFile)));
+  rdcstr f = get_basename(strlower(StringFormat::Wide2UTF8(curFile)));
 
   // bail immediately if we're in a system process. We don't want to hook, log, anything -
   // this instance is being used for a shell extension.

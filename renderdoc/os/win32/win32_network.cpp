@@ -25,6 +25,7 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "common/common.h"
 #include "os/os_specific.h"
 
 #ifndef WSA_FLAG_NO_HANDLE_INHERIT
@@ -35,7 +36,7 @@
 #define WSA_FLAG_OVERLAPPED 0x01
 #endif
 
-static std::string wsaerr_string(int err)
+static rdcstr wsaerr_string(int err)
 {
   switch(err)
   {
@@ -407,7 +408,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
 
-  std::wstring whost = StringFormat::UTF82Wide(std::string(host));
+  rdcwstr whost = StringFormat::UTF82Wide(rdcstr(host));
 
   addrinfoW *addrResult = NULL;
   int res = GetAddrInfoW(whost.c_str(), portwstr, &hints, &addrResult);

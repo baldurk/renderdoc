@@ -27,6 +27,57 @@
 // grisu2 double-to-string function, returns number of digits written to digits array
 int grisu2(uint64_t mantissa, int exponent, char digits[18], int &kout);
 
+static int wchar2multibyte(wchar_t chr, char mbchr[4])
+{
+  // U+00000 -> U+00007F 1 byte  0xxxxxxx
+  // U+00080 -> U+0007FF 2 bytes 110xxxxx 10xxxxxx
+  // U+00800 -> U+00FFFF 3 bytes 1110xxxx 10xxxxxx 10xxxxxx
+  // U+10000 -> U+1FFFFF 4 bytes 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+  // upcast to uint32_t, so we do the same processing on windows where
+  // sizeof(wchar_t) == 2
+  uint32_t wc = (uint32_t)chr;
+
+  if(wc > 0x10FFFF)
+    wc = 0xFFFD;    // replacement character
+
+  if(wc <= 0x7f)
+  {
+    mbchr[0] = (char)wc;
+    return 1;
+  }
+  else if(wc <= 0x7ff)
+  {
+    mbchr[1] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[0] = 0xC0 | (char)(wc & 0x1f);
+    return 2;
+  }
+  else if(wc <= 0xffff)
+  {
+    mbchr[2] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[1] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[0] = 0xE0 | (char)(wc & 0x0f);
+    wc >>= 4;
+    return 3;
+  }
+  else
+  {
+    // invalid codepoints above 0x10FFFF were replaced above
+    mbchr[3] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[2] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[1] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[0] = 0xF0 | (char)(wc & 0x07);
+    wc >>= 3;
+    return 4;
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // functions for appending to output (handling running out of buffer space)
 
@@ -922,7 +973,7 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
       // convert single wide character to UTF-8 sequence, at most
       // 4 characters
       char mbchr[4];
-      int seqlen = StringFormat::Wide2UTF8(chr, mbchr);
+      int seqlen = wchar2multibyte(chr, mbchr);
       appendstring(output, actualsize, end, mbchr, seqlen);
     }
     else
@@ -954,7 +1005,7 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
         len = RDCMIN(len, precision);
 
       // convert the substring to UTF-8
-      std::string str = StringFormat::Wide2UTF8(std::wstring(ws, ws + len));
+      rdcstr str = StringFormat::Wide2UTF8(rdcwstr(ws, len));
 
       // add left padding, if necessary
       if(formatter.Width != FormatterParams::NoWidth && len < width &&
@@ -1449,11 +1500,11 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     RDCCOMPILE_ASSERT(sizeof(bufa) == sizeof(ref), "ref is mis-sized for test");
 
     {
-      INFO("bufa is '" << std::string(bufa) << "', ref is '" << ref << "'");
+      INFO("bufa is '" << rdcstr(bufa) << "', ref is '" << ref << "'");
       CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
     {
-      INFO("bufb is '" << std::string(bufb) << "', ref is '" << ref << "'");
+      INFO("bufb is '" << rdcstr(bufb) << "', ref is '" << ref << "'");
       CHECK(memcmp(bufb, ref, sizeof(ref)) == 0);
     }
 
@@ -1461,7 +1512,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     {
       memset(bufa, 'a', sizeof(bufa));
       a = utf8printf_wrapper(bufa, sizeof(bufa), "%d foo", largenum);
-      INFO("bufa is '" << std::string(bufa) << "'");
+      INFO("bufa is '" << rdcstr(bufa) << "'");
       CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
   };
@@ -1486,11 +1537,11 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     RDCCOMPILE_ASSERT(sizeof(ref) <= sizeof(bufb), "ref is mis-sized for test");
 
     {
-      INFO("bufa is '" << std::string(bufa) << "', ref is '" << ref << "'");
+      INFO("bufa is '" << rdcstr(bufa) << "', ref is '" << ref << "'");
       CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
     {
-      INFO("bufb is '" << std::string(bufb) << "', ref is '" << ref << "'");
+      INFO("bufb is '" << rdcstr(bufb) << "', ref is '" << ref << "'");
       CHECK(memcmp(bufb, ref, sizeof(ref)) == 0);
     }
   };
@@ -1515,11 +1566,11 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     RDCCOMPILE_ASSERT(sizeof(ref) <= sizeof(bufb), "ref is mis-sized for test");
 
     {
-      INFO("bufa is '" << std::string(bufa) << "', ref is '" << ref << "'");
+      INFO("bufa is '" << rdcstr(bufa) << "', ref is '" << ref << "'");
       CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
     {
-      INFO("bufb is '" << std::string(bufb) << "', ref is '" << ref << "'");
+      INFO("bufb is '" << rdcstr(bufb) << "', ref is '" << ref << "'");
       CHECK(memcmp(bufb, ref, sizeof(ref)) == 0);
     }
   };
@@ -1545,15 +1596,15 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     refb[19] = 'b';
 
     {
-      INFO("bufa is '" << std::string(bufa) << "', refa is '" << refa << "'");
-      INFO("bufa+12 is '" << std::string(bufa + 12, bufa + 20) << "', refa+12 is '"
-                          << std::string(refa + 12, refa + 20) << "'");
+      INFO("bufa is '" << rdcstr(bufa) << "', refa is '" << refa << "'");
+      INFO("bufa+12 is '" << rdcstr(bufa + 12, 8) << "', refa+12 is '" << rdcstr(refa + 12, 8)
+                          << "'");
       CHECK(memcmp(bufa, refa, sizeof(refa)) == 0);
     }
     {
-      INFO("bufb is '" << std::string(bufb) << "', refb is '" << refb << "'");
-      INFO("bufb+12 is '" << std::string(bufb + 12, bufb + 20) << "', refb+12 is '"
-                          << std::string(refb + 12, refb + 20) << "'");
+      INFO("bufb is '" << rdcstr(bufb) << "', refb is '" << refb << "'");
+      INFO("bufb+12 is '" << rdcstr(bufb + 12, 8) << "', refb+12 is '" << rdcstr(refb + 12, 8)
+                          << "'");
       CHECK(memcmp(bufb, refb, sizeof(refb)) == 0);
     }
   };
@@ -1570,8 +1621,8 @@ TEST_CASE("utf8printf standard string formatters", "[utf8printf]")
     CHECK(StringFormat::Fmt("%lc", wc) == "á");
   };
 
-  const std::string s = "ελληνικά";
-  const std::wstring ws = L"\x3b5\x3bb\x3bb\x3b7\x3bd\x3b9\x3ba\x3ac";
+  const rdcstr s = "ελληνικά";
+  const rdcwstr ws = L"\x3b5\x3bb\x3bb\x3b7\x3bd\x3b9\x3ba\x3ac";
 
   SECTION("Basic strings")
   {

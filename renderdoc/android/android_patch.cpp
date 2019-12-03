@@ -79,7 +79,7 @@ bool RemoveAPKSignature(const std::string &apk)
   return true;
 }
 
-bool ExtractAndRemoveManifest(const std::string &apk, std::vector<byte> &manifest)
+bool ExtractAndRemoveManifest(const std::string &apk, bytebuf &manifest)
 {
   // pull out the manifest with miniz
   mz_zip_archive zip;
@@ -103,7 +103,7 @@ bool ExtractAndRemoveManifest(const std::string &apk, std::vector<byte> &manifes
 
         RDCLOG("Got manifest of %zu bytes", sz);
 
-        manifest.insert(manifest.begin(), buf, buf + sz);
+        manifest = bytebuf(buf, sz);
         break;
       }
     }
@@ -140,13 +140,12 @@ bool ExtractAndRemoveManifest(const std::string &apk, std::vector<byte> &manifes
   return true;
 }
 
-bool AddManifestToAPK(const std::string &apk, const std::string &tmpDir,
-                      const std::vector<byte> &manifest)
+bool AddManifestToAPK(const std::string &apk, const std::string &tmpDir, const bytebuf &manifest)
 {
   std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   // write the manifest to disk
-  FileIO::dump((tmpDir + "AndroidManifest.xml").c_str(), manifest.data(), manifest.size());
+  FileIO::WriteAll((tmpDir + "AndroidManifest.xml").c_str(), manifest);
 
   // run aapt to add the manifest
   Process::ProcessResult result =
@@ -538,7 +537,7 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
   std::string tmpDir = FileIO::GetTempFolderFilename();
   std::string origAPK(tmpDir + package + ".orig.apk");
   std::string alignedAPK(origAPK + ".aligned.apk");
-  std::vector<byte> manifest;
+  bytebuf manifest;
 
   // Try the following steps, bailing if anything fails
   if(!Android::PullAPK(deviceID, pkgPath, origAPK))

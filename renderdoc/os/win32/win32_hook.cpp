@@ -32,6 +32,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
@@ -90,11 +91,11 @@ struct DllHookset
   bool hooksfetched = false;
   // if we have multiple copies of the dll loaded (unlikely), the other module handles will be
   // stored here
-  std::vector<HMODULE> altmodules;
-  std::vector<FunctionHook> FunctionHooks;
+  rdcarray<HMODULE> altmodules;
+  rdcarray<FunctionHook> FunctionHooks;
   DWORD OrdinalBase = 0;
-  std::vector<std::string> OrdinalNames;
-  std::vector<FunctionLoadCallback> Callbacks;
+  rdcarray<rdcstr> OrdinalNames;
+  rdcarray<FunctionLoadCallback> Callbacks;
   Threading::CriticalSection ordinallock;
 
   void FetchOrdinalNames()
@@ -157,12 +158,12 @@ struct CachedHookData
     RDCEraseEl(lowername);
   }
 
-  std::map<std::string, DllHookset> DllHooks;
+  std::map<rdcstr, DllHookset> DllHooks;
   HMODULE ownmodule;
   Threading::CriticalSection lock;
   char lowername[512];
 
-  std::set<std::string> ignores;
+  std::set<rdcstr> ignores;
 
   bool missedOrdinals;
 
@@ -242,7 +243,7 @@ struct CachedHookData
           DWORD err = GetLastError();
           char *slash = strrchr(filename, L'\\');
 
-          std::string basename = slash ? strlower(std::string(slash + 1)) : "";
+          rdcstr basename = slash ? strlower(rdcstr(slash + 1)) : "";
 
           if(err == 0 && basename == it->first)
           {
@@ -596,7 +597,7 @@ static void HookAllModules()
       }
     }
 
-    std::vector<FunctionLoadCallback> callbacks;
+    rdcarray<FunctionLoadCallback> callbacks;
     // don't call callbacks next time
     callbacks.swap(it->second.Callbacks);
 
@@ -627,10 +628,13 @@ static bool IsAPISet(const wchar_t *filename)
 
 static bool IsAPISet(const char *filename)
 {
-  std::wstring wfn;
+  size_t len = strlen(filename);
+  rdcwstr wfn(len);
+
   // assume ASCII not UTF, just upcast plainly to wchar_t
-  while(*filename)
-    wfn.push_back(wchar_t(*filename++));
+  for(size_t i = 0; i < len; i++)
+    wfn[i] = wchar_t(filename[i]);
+
   return IsAPISet(wfn.c_str());
 }
 
@@ -825,17 +829,17 @@ void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionH
       return;
     }
   }
-  s_HookData->DllHooks[strlower(std::string(libraryName))].FunctionHooks.push_back(hook);
+  s_HookData->DllHooks[strlower(rdcstr(libraryName))].FunctionHooks.push_back(hook);
 }
 
 void LibraryHooks::RegisterLibraryHook(const char *libraryName, FunctionLoadCallback loadedCallback)
 {
-  s_HookData->DllHooks[strlower(std::string(libraryName))].Callbacks.push_back(loadedCallback);
+  s_HookData->DllHooks[strlower(rdcstr(libraryName))].Callbacks.push_back(loadedCallback);
 }
 
 void LibraryHooks::IgnoreLibrary(const char *libraryName)
 {
-  std::string lowername = libraryName;
+  rdcstr lowername = libraryName;
 
   for(size_t i = 0; i < lowername.size(); i++)
     lowername[i] = (char)tolower(lowername[i]);

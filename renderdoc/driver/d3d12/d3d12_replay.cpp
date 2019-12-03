@@ -568,8 +568,7 @@ std::string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderRefl
     if(!strncmp((char *)iter, "<shader", 7))
       contents = std::string((char *)iter, (char *)iter + strlen((char *)iter));
     else if(!wcsncmp((wchar_t *)iter, L"<shader", 7))
-      contents = StringFormat::Wide2UTF8(
-          std::wstring((wchar_t *)iter, (wchar_t *)iter + wcslen((wchar_t *)iter)));
+      contents = StringFormat::Wide2UTF8((wchar_t *)iter);
 
     delete[] data;
 
