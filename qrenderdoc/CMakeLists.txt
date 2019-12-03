@@ -29,6 +29,10 @@ set(QMAKE_LDFLAGS "")
 set(QMAKE_CXXFLAGS "")
 set(SWIG_FLAGS "")
 
+if(RELEASE_MODE)
+    set(QMAKE_CONFIG "release")
+endif()
+
 if(ENABLE_ASAN)
     set (QMAKE_CXXFLAGS "-fsanitize=address -fno-omit-frame-pointer")
     set (QMAKE_LDFLAGS "-fsanitize=address")
@@ -41,7 +45,7 @@ endif()
 
 if(STATIC_QRENDERDOC)
     set(QMAKE_CXXFLAGS "-DSTATIC_QRENDERDOC=1")
-    set(QMAKE_CONFIG "debug static")
+    set(QMAKE_CONFIG "${QMAKE_CONFIG} static")
     set(QMAKE_LDFLAGS "-lutil")
 endif()
 
