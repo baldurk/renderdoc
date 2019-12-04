@@ -450,8 +450,6 @@ int vsnprintf(char *str, size_t bufSize, const char *format, va_list v);
 int snprintf(char *str, size_t bufSize, const char *format, ...);
 
 void sntimef(char *str, size_t bufSize, const char *format);
-
-rdcstr Fmt(const char *format, ...);
 };
 
 namespace OSUtility
@@ -513,14 +511,9 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 };
 
 // must #define:
-// __PRETTY_FUNCTION_SIGNATURE__ - undecorated function signature
 // GetEmbeddedResource(name_with_underscores_ext) - function/inline that returns the given file in a
 // rdcstr
-// OS_DEBUG_BREAK() - instruction that debugbreaks the debugger - define instead of function to
-// preserve callstacks
 // EndianSwapXX() for XX = 16, 32, 64
-// DELIBERATE_FALLTHROUGH(); - maps either to something to silence deliberate fallthrough warnings,
-// or an empty string, depending on compiler support
 
 #if ENABLED(RDOC_WIN32)
 #include "win32/win32_specific.h"

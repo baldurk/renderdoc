@@ -31,7 +31,7 @@
 
 #include "intel_gl_counters.h"
 
-const static std::vector<std::string> metricSetBlacklist = {
+const static rdcarray<rdcstr> metricSetBlacklist = {
     // Used for testing HW is programmed correctly.
     "TestOa",
     // Used to plumb raw data from the GL driver to metrics-discovery.
@@ -45,9 +45,9 @@ IntelGlCounters::~IntelGlCounters()
 {
 }
 
-std::vector<GPUCounter> IntelGlCounters::GetPublicCounterIds() const
+rdcarray<GPUCounter> IntelGlCounters::GetPublicCounterIds() const
 {
-  std::vector<GPUCounter> counters;
+  rdcarray<GPUCounter> counters;
 
   for(const IntelGlCounter &c : m_Counters)
     counters.push_back(c.desc.counter);
@@ -124,8 +124,7 @@ void IntelGlCounters::addQuery(GLuint queryId)
   if(GL.glGetError() != eGL_NONE)
     return;
 
-  if(std::find(metricSetBlacklist.begin(), metricSetBlacklist.end(), query.name) !=
-     metricSetBlacklist.end())
+  if(metricSetBlacklist.contains(query.name))
     return;
 
   m_Queries[query.queryId] = query;
@@ -146,9 +145,9 @@ bool IntelGlCounters::Init()
     return false;
 
 #if defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_LINUX)
-  std::ifstream f("/proc/sys/dev/i915/perf_stream_paranoid");
-  std::string contents;
-  std::getline(f, contents);
+  rdcstr contents;
+  FileIO::ReadAll("/proc/sys/dev/i915/perf_stream_paranoid", contents);
+  contents.trim();
   if(!contents.empty())
   {
     int paranoid = std::stoi(contents);
@@ -214,7 +213,7 @@ void IntelGlCounters::EndPass()
 {
   // Flush all of the pass' queries to ensure we can begin further samples
   // with a different pass.
-  std::vector<uint8_t> data(m_Queries[m_EnabledQueries[m_passIndex]].size);
+  rdcarray<uint8_t> data(m_Queries[m_EnabledQueries[m_passIndex]].size);
   GLuint len;
   uint32_t nSamples = (uint32_t)m_glQueries.size() / (m_passIndex + 1);
 
@@ -266,18 +265,18 @@ void IntelGlCounters::CopyData(void *dest, const IntelGlCounter &counter, uint32
   uint32_t pass = CounterPass(counter);
   uint32_t queryHandle = m_glQueries[maxSampleIndex * pass + sample];
 
-  std::vector<uint8_t> data(m_Queries[m_EnabledQueries[pass]].size);
+  rdcarray<uint8_t> data(m_Queries[m_EnabledQueries[pass]].size);
   GLuint len;
   GL.glGetPerfQueryDataINTEL(queryHandle, 0, (GLsizei)data.size(), &data[0], &len);
 
   memcpy(dest, &data[counter.offset], counter.desc.resultByteWidth);
 }
 
-std::vector<CounterResult> IntelGlCounters::GetCounterData(uint32_t maxSampleIndex,
-                                                           const std::vector<uint32_t> &eventIDs,
-                                                           const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> IntelGlCounters::GetCounterData(uint32_t maxSampleIndex,
+                                                        const rdcarray<uint32_t> &eventIDs,
+                                                        const rdcarray<GPUCounter> &counters)
 {
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
 
   RDCASSERT((maxSampleIndex * m_EnabledQueries.size()) == m_glQueries.size());
 

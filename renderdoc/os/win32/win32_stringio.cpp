@@ -32,7 +32,9 @@
 #include <time.h>
 #include <set>
 #include "api/app/renderdoc_app.h"
+#include "api/replay/data_types.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 

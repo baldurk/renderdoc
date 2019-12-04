@@ -181,6 +181,7 @@
     <ClInclude Include="common\common.h" />
     <ClInclude Include="common\custom_assert.h" />
     <ClInclude Include="common\dds_readwrite.h" />
+    <ClInclude Include="common\formatting.h" />
     <ClInclude Include="common\globalconfig.h" />
     <ClInclude Include="common\shader_cache.h" />
     <ClInclude Include="common\threading.h" />

@@ -25,6 +25,7 @@
 #include "nv_counters.h"
 #include "common/common.h"
 #include "core/plugins.h"
+#include "os/os_specific.h"
 
 #define NVPM_INITGUID
 #include "official/PerfKit/include/NvPmApi.h"
@@ -32,11 +33,11 @@
 
 struct EnumCountersCtx
 {
-  std::vector<GPUCounter> m_ExternalIds;
-  std::vector<uint32_t> m_InternalIds;
-  std::vector<CounterDescription> m_ExternalDescriptors;
-  std::vector<uint32_t> m_InternalDescriptors;
-  std::vector<char> m_TmpStr;
+  rdcarray<GPUCounter> m_ExternalIds;
+  rdcarray<uint32_t> m_InternalIds;
+  rdcarray<CounterDescription> m_ExternalDescriptors;
+  rdcarray<uint32_t> m_InternalDescriptors;
+  rdcarray<char> m_TmpStr;
 
   NvPmApi *m_NvPmApi;
 
@@ -192,9 +193,9 @@ bool NVCounters::Init()
 #if ENABLED(RDOC_WIN32)
 
 #if ENABLED(RDOC_X64)
-  std::string dllPath = LocatePluginFile("nv/counters/x64", "NvPmApi.Core.dll");
+  rdcstr dllPath = LocatePluginFile("nv/counters/x64", "NvPmApi.Core.dll");
 #else
-  std::string dllPath = LocatePluginFile("nv/counters/x86", "NvPmApi.Core.dll");
+  rdcstr dllPath = LocatePluginFile("nv/counters/x86", "NvPmApi.Core.dll");
 #endif
 
 #endif
@@ -262,7 +263,7 @@ bool NVCounters::Init(ID3D11Device *pDevice)
   return true;
 }
 
-bool NVCounters::PrepareExperiment(const std::vector<GPUCounter> &counters, uint32_t objectsCount)
+bool NVCounters::PrepareExperiment(const rdcarray<GPUCounter> &counters, uint32_t objectsCount)
 {
   if(NvPmResultFails(m_NvPmApi->RemoveAllCounters(m_NvPmCtx),
                      "call to 'NvPmApi::RemoveAllCounters'"))
@@ -318,8 +319,7 @@ uint32_t NVCounters::BeginExperiment() const
   return NumPasses;
 }
 
-void NVCounters::EndExperiment(const std::vector<uint32_t> &eventIds,
-                               std::vector<CounterResult> &Result) const
+void NVCounters::EndExperiment(const rdcarray<uint32_t> &eventIds, rdcarray<CounterResult> &Result) const
 {
   NvPmResultFails(m_NvPmApi->EndExperiment(m_NvPmCtx), "call to 'NvPmApi::EndExperiment'");
 

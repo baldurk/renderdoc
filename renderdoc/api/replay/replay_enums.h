@@ -3445,6 +3445,11 @@ enum class EnvSep : uint32_t
 
 DECLARE_REFLECTION_ENUM(EnvSep);
 
+// see comment in common.h
+#if !defined(LOGTYPE_DEFINED)
+
+#define LOGTYPE_DEFINED
+
 DOCUMENT(R"(The type of a log message
 
 .. data:: Debug
@@ -3467,7 +3472,7 @@ DOCUMENT(R"(The type of a log message
 
   The log message indicates a fatal error occurred which is impossible to recover from.
 )");
-enum class LogType : int32_t
+enum class LogType : uint32_t
 {
   Debug,
   First = Debug,
@@ -3478,6 +3483,10 @@ enum class LogType : int32_t
   Count,
 };
 
+#endif
+
+// this is OUTSIDE the #endif because we don't declare these in common.h, so in case they're needed
+// we define them here
 DECLARE_REFLECTION_ENUM(LogType);
 
 ITERABLE_OPERATORS(LogType);
@@ -3504,7 +3513,7 @@ DOCUMENT(R"(The level of optimisation used in
   This could result in side-effects like data from one replay being visible early in another replay,
   if it's known that the data will be overwritten before being used.
 )");
-enum class ReplayOptimisationLevel : int32_t
+enum class ReplayOptimisationLevel : uint32_t
 {
   NoOptimisation,
   First = NoOptimisation,

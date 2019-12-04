@@ -25,7 +25,10 @@
 
 #pragma once
 
-#include "common/common.h"
+#if !defined(CONCAT)
+#define CONCAT2(a, b) a##b
+#define CONCAT(a, b) CONCAT2(a, b)
+#endif
 
 #define DECLARE_EMBED(filename)                   \
   extern unsigned char CONCAT(data_, filename)[]; \

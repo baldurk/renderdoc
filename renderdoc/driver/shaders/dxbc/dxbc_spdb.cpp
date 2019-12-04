@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include <algorithm>
+#include "common/formatting.h"
 #include "dxbc_container.h"
 
 #include "official/cvinfo.h"

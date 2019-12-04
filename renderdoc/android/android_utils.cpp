@@ -24,6 +24,7 @@
 
 #include "android_utils.h"
 #include <algorithm>
+#include "common/formatting.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 

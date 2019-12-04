@@ -206,9 +206,9 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
-  std::vector<GPUCounter> EnumerateCounters();
+  rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
-  std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
 
   ResourceId CreateProxyTexture(const TextureDescription &templateTex);
   void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data, size_t dataSize);
@@ -272,17 +272,17 @@ private:
   void CreateSOBuffers();
   void ShutdownStreamOut();
 
-  std::vector<CounterResult> FetchCountersAMD(const std::vector<GPUCounter> &counters);
-  std::vector<CounterResult> FetchCountersNV(const std::vector<GPUCounter> &counters);
-  std::vector<CounterResult> FetchCountersIntel(const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCountersAMD(const rdcarray<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCountersNV(const rdcarray<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCountersIntel(const rdcarray<GPUCounter> &counters);
 
   void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
-  void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, std::vector<uint32_t> &eventIDs,
+  void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
                      const DrawcallDescription &drawnode);
-  void FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex, std::vector<uint32_t> &eventIDs,
+  void FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
                     const DrawcallDescription &drawnode);
-  void FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex,
-                       std::vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode);
+  void FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
+                       const DrawcallDescription &drawnode);
 
   void SerializeImmediateContext();
 

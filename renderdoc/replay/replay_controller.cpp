@@ -539,9 +539,7 @@ rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounte
 {
   CHECK_REPLAY_THREAD();
 
-  std::vector<GPUCounter> counterArray(counters.begin(), counters.end());
-
-  return m_pDevice->FetchCounters(counterArray);
+  return m_pDevice->FetchCounters(counters);
 }
 
 rdcarray<GPUCounter> ReplayController::EnumerateCounters()

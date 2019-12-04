@@ -25,6 +25,7 @@
 #include "dds_readwrite.h"
 #include <stdint.h>
 #include "common/common.h"
+#include "os/os_specific.h"
 
 static const uint32_t dds_fourcc = MAKE_FOURCC('D', 'D', 'S', ' ');
 

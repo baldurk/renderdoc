@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
+#include "common/formatting.h"
 #include "streamio.h"
 
 // function to deallocate anything from a serialise. Default impl

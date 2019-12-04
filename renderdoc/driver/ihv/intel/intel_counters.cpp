@@ -24,14 +24,20 @@
 
 #include "common/common.h"
 
+// some headers that DriverStorePath.h needs but doesn't include
+#include <windows.h>
+#include <new>
+#include <string>
+
 #include "official/DriverStorePath.h"
 #include "intel_counters.h"
 
 #include <set>
+#include "driver/dx/official/d3d11.h"
 
-const static std::vector<std::string> metricSetBlacklist = {"TestOa"};
+const static rdcarray<rdcstr> metricSetBlacklist = {"TestOa"};
 
-HMODULE IntelCounters::m_MDLibraryHandle = 0;
+void *IntelCounters::m_MDLibraryHandle = 0;
 IMetricsDevice_1_5 *IntelCounters::m_metricsDevice = NULL;
 OpenMetricsDevice_fn IntelCounters::OpenMetricsDevice = NULL;
 CloseMetricsDevice_fn IntelCounters::CloseMetricsDevice = NULL;
@@ -51,9 +57,9 @@ IntelCounters::~IntelCounters()
   m_metricsDevice = NULL;
 
   if(m_MDLibraryHandle)
-    FreeLibrary(m_MDLibraryHandle);
+    FreeLibrary((HMODULE)m_MDLibraryHandle);
 
-  m_MDLibraryHandle = (HMODULE)0;
+  m_MDLibraryHandle = NULL;
   OpenMetricsDevice = NULL;
   CloseMetricsDevice = NULL;
 }
@@ -63,16 +69,17 @@ void IntelCounters::Load()
   if(m_metricsDevice)
     return;
 
-  m_MDLibraryHandle = LoadDynamicLibrary(L"igdmd64.dll", NULL, 0);
+  m_MDLibraryHandle = (void *)LoadDynamicLibrary(L"igdmd64.dll", NULL, 0);
   if(!m_MDLibraryHandle)
     return;
 
-  OpenMetricsDevice = (OpenMetricsDevice_fn)GetProcAddress(m_MDLibraryHandle, "OpenMetricsDevice");
+  OpenMetricsDevice =
+      (OpenMetricsDevice_fn)GetProcAddress((HMODULE)m_MDLibraryHandle, "OpenMetricsDevice");
   if(!OpenMetricsDevice)
     return;
 
   CloseMetricsDevice =
-      (CloseMetricsDevice_fn)GetProcAddress(m_MDLibraryHandle, "CloseMetricsDevice");
+      (CloseMetricsDevice_fn)GetProcAddress((HMODULE)m_MDLibraryHandle, "CloseMetricsDevice");
   if(!CloseMetricsDevice)
     return;
 
@@ -97,10 +104,10 @@ bool IntelCounters::Init(void *pContext)
      (deviceParams->Version.MajorNumber == 1 && deviceParams->Version.MinorNumber < 1))
   {
     CloseMetricsDevice(m_metricsDevice);
-    FreeLibrary(m_MDLibraryHandle);
+    FreeLibrary((HMODULE)m_MDLibraryHandle);
 
     m_metricsDevice = NULL;
-    m_MDLibraryHandle = (HMODULE)0;
+    m_MDLibraryHandle = NULL;
     OpenMetricsDevice = NULL;
     CloseMetricsDevice = NULL;
     return false;
@@ -116,11 +123,11 @@ CounterDescription IntelCounters::GetCounterDescription(GPUCounter counter)
   return m_Counters[GPUCounterToCounterIndex(counter)];
 }
 
-std::vector<CounterDescription> IntelCounters::EnumerateCounters()
+rdcarray<CounterDescription> IntelCounters::EnumerateCounters()
 {
   m_Counters.clear();
   m_allMetricSets.clear();
-  std::set<std::string> addedMetrics;
+  std::set<rdcstr> addedMetrics;
   TMetricsDeviceParams_1_2 *deviceParams = m_metricsDevice->GetParams();
   for(unsigned int i = 0; i < deviceParams->ConcurrentGroupsCount; ++i)
   {
@@ -138,8 +145,7 @@ std::vector<CounterDescription> IntelCounters::EnumerateCounters()
       m_allMetricSets.push_back(metricSet);
       TMetricSetParams_1_0 *setParams = metricSet->GetParams();
 
-      if(std::find(metricSetBlacklist.begin(), metricSetBlacklist.end(), setParams->SymbolName) !=
-         metricSetBlacklist.end())
+      if(metricSetBlacklist.contains(setParams->SymbolName))
         continue;
 
       for(unsigned int k = 0; k < setParams->MetricsCount; ++k)
@@ -288,15 +294,15 @@ void IntelCounters::EnableCounter(GPUCounter index)
 {
   uint32_t metricSetIdx = m_metricLocation[index].first;
   IMetricSet_1_1 *metricSet = m_allMetricSets[metricSetIdx];
-  auto iter = std::find(m_subscribedMetricSets.begin(), m_subscribedMetricSets.end(), metricSet);
-  if(iter == m_subscribedMetricSets.end())
+  int idx = m_subscribedMetricSets.indexOf(metricSet);
+  if(idx < 0)
   {
     m_subscribedMetricSets.push_back(metricSet);
     metricSetIdx = (uint32_t)m_subscribedMetricSets.size() - 1;
   }
   else
   {
-    metricSetIdx = (uint32_t)(iter - m_subscribedMetricSets.begin());
+    metricSetIdx = (uint32_t)idx;
   }
   m_subscribedMetricsByCounterSet[metricSetIdx].push_back(index);
 }
@@ -401,10 +407,10 @@ void IntelCounters::EndSample()
   m_sampleIndex++;
 }
 
-std::vector<CounterResult> IntelCounters::GetCounterData(const std::vector<uint32_t> &eventIDs,
-                                                         const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> IntelCounters::GetCounterData(const rdcarray<uint32_t> &eventIDs,
+                                                      const rdcarray<GPUCounter> &counters)
 {
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
   for(uint32_t sample = 0; sample < (uint32_t)eventIDs.size(); sample++)
   {
     for(size_t counter = 0; counter < counters.size(); counter++)

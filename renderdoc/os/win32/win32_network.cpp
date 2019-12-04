@@ -26,6 +26,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 #ifndef WSA_FLAG_NO_HANDLE_INHERIT

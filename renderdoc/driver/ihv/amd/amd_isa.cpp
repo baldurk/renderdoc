@@ -24,30 +24,32 @@
 
 #include "amd_isa.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "core/plugins.h"
+#include "os/os_specific.h"
 #include "strings/string_utils.h"
 #include "amd_isa_devices.h"
 
 namespace GCNISA
 {
 #if ENABLED(RDOC_WIN32)
-static const std::string amdspv_name = "amdspv.exe";
-static const std::string virtualcontext_name = "VirtualContext.exe";
+static const rdcstr amdspv_name = "amdspv.exe";
+static const rdcstr virtualcontext_name = "VirtualContext.exe";
 #else
-static const std::string amdspv_name = "amdspv.sh";
-static const std::string virtualcontext_name = "VirtualContext";
+static const rdcstr amdspv_name = "amdspv.sh";
+static const rdcstr virtualcontext_name = "VirtualContext";
 #endif
 
-std::string pluginPath = "amd/isa";
+rdcstr pluginPath = "amd/isa";
 
 // in amd_isa_<plat>.cpp
-std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target);
+rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target);
 
 static bool IsSupported(ShaderEncoding encoding)
 {
   if(encoding == ShaderEncoding::GLSL)
   {
-    std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
+    rdcstr vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
     Process::ProcessResult result = {};
     Process::LaunchProcess(vc.c_str(), get_dirname(vc).c_str(), "", true, &result);
@@ -62,7 +64,7 @@ static bool IsSupported(ShaderEncoding encoding)
   if(encoding == ShaderEncoding::SPIRV)
   {
     // TODO need to check if an AMD context is running
-    std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
+    rdcstr amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
     Process::ProcessResult result = {};
     Process::LaunchProcess(amdspv.c_str(), get_dirname(amdspv).c_str(), "", true, &result);
@@ -77,7 +79,7 @@ static bool IsSupported(ShaderEncoding encoding)
   // we only need to check if we can get atidxx64.dll
   if(encoding == ShaderEncoding::DXBC)
   {
-    std::string test = DisassembleDXBC(bytebuf(), "");
+    rdcstr test = DisassembleDXBC(bytebuf(), "");
 
     return test.empty();
   }
@@ -85,7 +87,7 @@ static bool IsSupported(ShaderEncoding encoding)
   return false;
 }
 
-void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
+void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
 {
   targets.reserve(asicCount + 1);
 
@@ -122,7 +124,7 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
   }
 }
 
-std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const std::string &target)
+rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdcstr &target)
 {
   if(!IsSupported(ShaderEncoding::SPIRV))
   {
@@ -134,7 +136,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
 ; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
   }
 
-  std::string cmdLine = "-Dall -l";
+  rdcstr cmdLine = "-Dall -l";
 
   bool found = false;
 
@@ -176,8 +178,8 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
     case ShaderStage::Count: return "; Cannot identify shader type";
   }
 
-  std::string tempPath = FileIO::GetTempFolderFilename() + "rdoc_isa__";
-  std::string inPath = StringFormat::Fmt("%sin.spv", tempPath.c_str());
+  rdcstr tempPath = FileIO::GetTempFolderFilename() + "rdoc_isa__";
+  rdcstr inPath = StringFormat::Fmt("%sin.spv", tempPath.c_str());
 
   cmdLine += StringFormat::Fmt(
       " -set in.spv=\"%sin.spv\" out.%s.palIlText=\"%sout.il\" out.%s.isa=\"%sout.bin\" "
@@ -189,7 +191,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   FileIO::WriteAll(inPath.c_str(), shaderBytes);
 
   // try to locate the amdspv relative to our running program
-  std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
+  rdcstr amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
   Process::ProcessResult result = {};
   Process::LaunchProcess(amdspv.c_str(), get_dirname(amdspv).c_str(), cmdLine.c_str(), true, &result);
@@ -214,7 +216,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   {
     FileIO::ReadAll(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str(), ret);
 
-    std::string statsfile = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
+    rdcstr statsfile = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
 
     if(FileIO::exists(statsfile.c_str()))
     {
@@ -236,7 +238,7 @@ std::string DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, cons
   return ret;
 }
 
-std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const std::string &target)
+rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcstr &target)
 {
   if(!IsSupported(ShaderEncoding::GLSL))
   {
@@ -279,14 +281,14 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
     case ShaderStage::Count: return "; Cannot identify shader type";
   }
 
-  std::string tempPath = FileIO::GetTempFolderFilename() + "rdoc_isa__";
-  std::string inPath = StringFormat::Fmt("%sin.%s", tempPath.c_str(), stageName);
-  std::string outPath = StringFormat::Fmt("%sout.txt", tempPath.c_str());
-  std::string binPath = StringFormat::Fmt("%sout.bin", tempPath.c_str());
-  std::string statsPath = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
-  std::string ilPath = StringFormat::Fmt("%sil.txt", tempPath.c_str());
+  rdcstr tempPath = FileIO::GetTempFolderFilename() + "rdoc_isa__";
+  rdcstr inPath = StringFormat::Fmt("%sin.%s", tempPath.c_str(), stageName);
+  rdcstr outPath = StringFormat::Fmt("%sout.txt", tempPath.c_str());
+  rdcstr binPath = StringFormat::Fmt("%sout.bin", tempPath.c_str());
+  rdcstr statsPath = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
+  rdcstr ilPath = StringFormat::Fmt("%sil.txt", tempPath.c_str());
 
-  std::string cmdLine = "\"";
+  rdcstr cmdLine = "\"";
 
   // ISA disassembly
   for(int i = 0; i < 6; i++)
@@ -360,7 +362,7 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   FileIO::WriteAll(inPath.c_str(), shaderBytes);
 
   // try to locate the amdspv relative to our running program
-  std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
+  rdcstr vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
   Process::ProcessResult result = {};
   Process::LaunchProcess(vc.c_str(), get_dirname(vc).c_str(), cmdLine.c_str(), true, &result);
@@ -401,8 +403,8 @@ std::string DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const
   return ret;
 }
 
-std::string Disassemble(ShaderEncoding encoding, ShaderStage stage, const bytebuf &shaderBytes,
-                        const std::string &target)
+rdcstr Disassemble(ShaderEncoding encoding, ShaderStage stage, const bytebuf &shaderBytes,
+                   const rdcstr &target)
 {
   if(encoding == ShaderEncoding::DXBC)
     return DisassembleDXBC(shaderBytes, target);

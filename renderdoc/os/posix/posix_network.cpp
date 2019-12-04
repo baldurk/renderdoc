@@ -35,6 +35,9 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <string>
+#include "api/replay/data_types.h"
+#include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 

@@ -24,8 +24,9 @@
 
 #include <string.h>
 #include "api/app/renderdoc_app.h"
-#include "api/replay/renderdoc_replay.h"    // for RENDERDOC_API to export the RENDERDOC_GetAPI function
+#include "api/replay/apidefs.h"    // for RENDERDOC_API to export the RENDERDOC_GetAPI function
 #include "common/common.h"
+#include "common/formatting.h"
 #include "core/core.h"
 #include "hooks/hooks.h"
 #include "serialise/rdcfile.h"

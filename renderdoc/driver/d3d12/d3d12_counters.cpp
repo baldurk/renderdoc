@@ -30,9 +30,9 @@
 #include "d3d12_common.h"
 #include "d3d12_device.h"
 
-std::vector<GPUCounter> D3D12Replay::EnumerateCounters()
+rdcarray<GPUCounter> D3D12Replay::EnumerateCounters()
 {
-  std::vector<GPUCounter> ret;
+  rdcarray<GPUCounter> ret;
 
   ret.push_back(GPUCounter::EventGPUDuration);
   ret.push_back(GPUCounter::InputVerticesRead);
@@ -50,8 +50,7 @@ std::vector<GPUCounter> D3D12Replay::EnumerateCounters()
 
   if(m_pAMDCounters)
   {
-    std::vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
-    ret.insert(ret.end(), amdCounters.begin(), amdCounters.end());
+    ret.append(m_pAMDCounters->GetPublicCounterIds());
   }
 
   return ret;
@@ -191,7 +190,7 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
 struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
 {
   D3D12AMDDrawCallback(WrappedID3D12Device *dev, D3D12Replay *rp, uint32_t &sampleIndex,
-                       std::vector<uint32_t> &eventIDs)
+                       rdcarray<uint32_t> &eventIDs)
       : m_pDevice(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
@@ -261,18 +260,18 @@ struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
   uint32_t *m_pSampleId;
   WrappedID3D12Device *m_pDevice;
   D3D12Replay *m_pReplay;
-  std::vector<uint32_t> *m_pEventIds;
+  rdcarray<uint32_t> *m_pEventIds;
   std::set<ID3D12GraphicsCommandList *> m_begunCommandLists;
 
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  std::vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 void D3D12Replay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
-                                std::vector<uint32_t> *eventIDs)
+                                rdcarray<uint32_t> *eventIDs)
 {
   uint32_t maxEID = m_pDevice->GetQueue()->GetMaxEID();
 
@@ -282,13 +281,13 @@ void D3D12Replay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
   m_pDevice->ReplayLog(*eventStartID, maxEID, eReplay_Full);
 }
 
-std::vector<CounterResult> D3D12Replay::FetchCountersAMD(const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> D3D12Replay::FetchCountersAMD(const rdcarray<GPUCounter> &counters)
 {
   ID3D12Device *d3dDevice = m_pDevice->GetReal();
 
   if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Dx12, (void *)d3dDevice))
   {
-    return std::vector<CounterResult>();
+    return rdcarray<CounterResult>();
   }
 
   uint32_t sessionID = m_pAMDCounters->CreateSession();
@@ -309,7 +308,7 @@ std::vector<CounterResult> D3D12Replay::FetchCountersAMD(const std::vector<GPUCo
 
   uint32_t sampleIndex = 0;
 
-  std::vector<uint32_t> eventIDs;
+  rdcarray<uint32_t> eventIDs;
 
   for(uint32_t i = 0; i < passCount; i++)
   {
@@ -328,7 +327,7 @@ std::vector<CounterResult> D3D12Replay::FetchCountersAMD(const std::vector<GPUCo
 
   m_pAMDCounters->EndSesssion(sessionID);
 
-  std::vector<CounterResult> ret =
+  rdcarray<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
 
   for(size_t i = 0; i < m_pAMDDrawCallback->m_AliasEvents.size(); i++)
@@ -427,7 +426,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   ID3D12QueryHeap *m_TimerQueryHeap;
   ID3D12QueryHeap *m_PipeStatsQueryHeap;
   ID3D12QueryHeap *m_OcclusionQueryHeap;
-  std::vector<rdcpair<uint32_t, bool> > m_Results;
+  rdcarray<rdcpair<uint32_t, bool> > m_Results;
 
   uint32_t m_NumStatsQueries;
   uint32_t m_NumTimestampQueries;
@@ -436,14 +435,14 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  std::vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-std::vector<CounterResult> D3D12Replay::FetchCounters(const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &counters)
 {
   uint32_t maxEID = m_pDevice->GetQueue()->GetMaxEID();
 
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
   if(counters.empty())
   {
     RDCERR("No counters specified to FetchCounters");
@@ -452,14 +451,14 @@ std::vector<CounterResult> D3D12Replay::FetchCounters(const std::vector<GPUCount
 
   SCOPED_TIMER("Fetch Counters, counters to fetch %u", counters.size());
 
-  std::vector<GPUCounter> d3dCounters;
+  rdcarray<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
                [](const GPUCounter &c) { return !IsAMDCounter(c); });
 
   if(m_pAMDCounters)
   {
     // Filter out the AMD counters
-    std::vector<GPUCounter> amdCounters;
+    rdcarray<GPUCounter> amdCounters;
     std::copy_if(counters.begin(), counters.end(), std::back_inserter(amdCounters),
                  [](const GPUCounter &c) { return IsAMDCounter(c); });
 

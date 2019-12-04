@@ -24,6 +24,7 @@
 
 #include <time.h>
 #include <unistd.h>
+#include "common/common.h"
 #include "os/os_specific.h"
 
 void CacheDebuggerPresent();

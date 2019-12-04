@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "glslang_compile.h"
+#include "api/replay/rdcstr.h"
 #include "common/common.h"
 
 #undef min

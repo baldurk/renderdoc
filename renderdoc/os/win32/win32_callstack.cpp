@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include "common/formatting.h"
 #include "core/core.h"
 #include "dbghelp/dbghelp.h"
 #include "os/os_specific.h"

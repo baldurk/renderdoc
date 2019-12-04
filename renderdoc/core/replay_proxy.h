@@ -487,10 +487,10 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(ResourceId, GetLiveID, ResourceId id);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<GPUCounter>, EnumerateCounters);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<GPUCounter>, EnumerateCounters);
   IMPLEMENT_FUNCTION_PROXIED(CounterDescription, DescribeCounter, GPUCounter counterID);
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<CounterResult>, FetchCounters,
-                             const std::vector<GPUCounter> &counterID);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<CounterResult>, FetchCounters,
+                             const rdcarray<GPUCounter> &counterID);
 
   IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId pipeline, ResourceId shader,
                              std::string entryPoint, uint32_t cbufSlot,

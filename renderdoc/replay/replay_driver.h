@@ -29,6 +29,39 @@
 #include "core/core.h"
 #include "maths/vec.h"
 
+template <typename T, BucketRecordType bucketType = T::BucketType>
+struct BucketForRecord
+{
+  static size_t Get(size_t value);
+};
+
+template <typename T>
+struct BucketForRecord<T, BucketRecordType::Linear>
+{
+  static size_t Get(size_t value)
+  {
+    const size_t size = T::BucketSize;
+    const size_t count = T::BucketCount;
+    const size_t maximum = size * count;
+    const size_t index = (value < maximum) ? (value / size) : (count - 1);
+    return index;
+  }
+};
+
+template <typename T>
+struct BucketForRecord<T, BucketRecordType::Pow2>
+{
+  static size_t Get(size_t value)
+  {
+    const size_t count = T::BucketCount;
+    static_assert(count <= (sizeof(size_t) * 8),
+                  "Unexpected correspondence between bucket size and sizeof(size_t)");
+    const size_t maximum = (size_t)1 << count;
+    const size_t index = (value < maximum) ? (size_t)(Log2Floor(value)) : (count - 1);
+    return index;
+  }
+};
+
 struct FrameRecord
 {
   FrameDescription frameInfo;
@@ -135,9 +168,9 @@ public:
   virtual void RemoveReplacement(ResourceId id) = 0;
   virtual void FreeTargetResource(ResourceId id) = 0;
 
-  virtual std::vector<GPUCounter> EnumerateCounters() = 0;
+  virtual rdcarray<GPUCounter> EnumerateCounters() = 0;
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
-  virtual std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counterID) = 0;
+  virtual rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counterID) = 0;
 
   virtual void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
                                     uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,

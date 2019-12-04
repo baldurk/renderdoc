@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <string>
+#include "api/replay/rdcstr.h"
 
 typedef void *DevDriverAPIContext;
 
@@ -38,7 +38,7 @@ public:
 
   bool Initialised();
 
-  bool TriggerCapture(const std::string &path);
+  bool TriggerCapture(const rdcstr &path);
   bool HasCapture();
   bool DriverSupportsInterop();
 

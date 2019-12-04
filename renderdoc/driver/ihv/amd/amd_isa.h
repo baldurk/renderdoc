@@ -24,13 +24,14 @@
 
 #pragma once
 
-#include <vector>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
+#include "api/replay/replay_enums.h"
 
 namespace GCNISA
 {
-void GetTargets(GraphicsAPI api, std::vector<std::string> &targets);
+void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets);
 
-std::string Disassemble(ShaderEncoding api, ShaderStage stage, const bytebuf &shaderBytes,
-                        const std::string &target);
+rdcstr Disassemble(ShaderEncoding api, ShaderStage stage, const bytebuf &shaderBytes,
+                   const rdcstr &target);
 };

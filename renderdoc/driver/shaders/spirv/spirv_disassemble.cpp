@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "common/formatting.h"
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
 

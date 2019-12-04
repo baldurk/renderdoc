@@ -37,6 +37,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "api/app/renderdoc_app.h"
+#include "api/replay/data_types.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"

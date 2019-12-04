@@ -27,6 +27,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "api/replay/version.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "core/core.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -226,16 +227,29 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char 
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
-  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), LogType::Comment, "EXT", "external",
-                0, "%s", text);
+  rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, LogType::Comment, "EXT", "external", 0, "%s", text);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
                                                                 const char *file, unsigned int line,
                                                                 const char *text)
 {
-  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), type, project ? project : "UNK?",
+  rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, type, project ? project : "UNK?",
                 file ? file : "unknown", line, "%s", text);
+
+  // see comment in common.h
+  RDCCOMPILE_ASSERT((uint32_t)LogType::Debug == (uint32_t)LogType__Internal::Debug,
+                    "External and internal LogType enums must match");
+  RDCCOMPILE_ASSERT((uint32_t)LogType::Comment == (uint32_t)LogType__Internal::Comment,
+                    "External and internal LogType enums must match");
+  RDCCOMPILE_ASSERT((uint32_t)LogType::Warning == (uint32_t)LogType__Internal::Warning,
+                    "External and internal LogType enums must match");
+  RDCCOMPILE_ASSERT((uint32_t)LogType::Error == (uint32_t)LogType__Internal::Error,
+                    "External and internal LogType enums must match");
+  RDCCOMPILE_ASSERT((uint32_t)LogType::Fatal == (uint32_t)LogType__Internal::Fatal,
+                    "External and internal LogType enums must match");
+  RDCCOMPILE_ASSERT(ENUM_ARRAY_SIZE(LogType) == 5,
+                    "External and internal LogType enums must match");
 
 #if ENABLED(DEBUGBREAK_ON_ERROR_LOG)
   if(type == LogType::Error)

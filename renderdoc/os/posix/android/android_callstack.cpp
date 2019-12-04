@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "common/common.h"
 #include "os/os_specific.h"
 
 class AndroidCallstack : public Callstack::Stackwalk

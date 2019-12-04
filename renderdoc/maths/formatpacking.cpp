@@ -25,6 +25,7 @@
 #include "formatpacking.h"
 #include <float.h>
 #include <math.h>
+#include "api/replay/rdcpair.h"
 #include "common/common.h"
 
 Vec3f ConvertFromR11G11B10(uint32_t data)

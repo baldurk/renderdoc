@@ -33,7 +33,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <map>
-#include "api/app/renderdoc_app.h"
+//#include "api/app/renderdoc_app.h"
+#include "api/replay/capture_options.h"
+#include "api/replay/control_types.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"

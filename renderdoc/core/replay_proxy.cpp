@@ -671,13 +671,13 @@ ResourceId ReplayProxy::GetLiveID(ResourceId id)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-std::vector<CounterResult> ReplayProxy::Proxied_FetchCounters(ParamSerialiser &paramser,
-                                                              ReturnSerialiser &retser,
-                                                              const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> ReplayProxy::Proxied_FetchCounters(ParamSerialiser &paramser,
+                                                           ReturnSerialiser &retser,
+                                                           const rdcarray<GPUCounter> &counters)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_FetchCounters;
   ReplayProxyPacket packet = eReplayProxy_FetchCounters;
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
 
   {
     BEGIN_PARAMS();
@@ -696,18 +696,18 @@ std::vector<CounterResult> ReplayProxy::Proxied_FetchCounters(ParamSerialiser &p
   return ret;
 }
 
-std::vector<CounterResult> ReplayProxy::FetchCounters(const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> ReplayProxy::FetchCounters(const rdcarray<GPUCounter> &counters)
 {
   PROXY_FUNCTION(FetchCounters, counters);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-std::vector<GPUCounter> ReplayProxy::Proxied_EnumerateCounters(ParamSerialiser &paramser,
-                                                               ReturnSerialiser &retser)
+rdcarray<GPUCounter> ReplayProxy::Proxied_EnumerateCounters(ParamSerialiser &paramser,
+                                                            ReturnSerialiser &retser)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_EnumerateCounters;
   ReplayProxyPacket packet = eReplayProxy_EnumerateCounters;
-  std::vector<GPUCounter> ret;
+  rdcarray<GPUCounter> ret;
 
   {
     BEGIN_PARAMS();
@@ -725,7 +725,7 @@ std::vector<GPUCounter> ReplayProxy::Proxied_EnumerateCounters(ParamSerialiser &
   return ret;
 }
 
-std::vector<GPUCounter> ReplayProxy::EnumerateCounters()
+rdcarray<GPUCounter> ReplayProxy::EnumerateCounters()
 {
   PROXY_FUNCTION(EnumerateCounters);
 }

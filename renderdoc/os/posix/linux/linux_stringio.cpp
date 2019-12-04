@@ -34,6 +34,8 @@
 #include <unistd.h>
 #include <set>
 #include "api/app/renderdoc_app.h"
+#include "api/replay/replay_enums.h"
+#include "common/common.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
@@ -41,16 +43,23 @@
 #if ENABLED(RDOC_XLIB)
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#else
+typedef struct _XDisplay Display;
 #endif
 
 #if ENABLED(RDOC_XCB)
 #include <X11/keysym.h>
 #include <xcb/xcb_keysyms.h>
+#else
+struct xcb_connection_t;
 #endif
 
 #if ENABLED(RDOC_WAYLAND)
 #include <linux/input.h>
 #include <wayland-client.h>
+#else
+struct wl_display;
+struct wl_surface;
 #endif
 
 namespace Keyboard

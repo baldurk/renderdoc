@@ -81,7 +81,7 @@ AMDRGPControl::AMDRGPControl()
   RDCLOG("Attempting to enable AMD RGP Interop");
 
   // manually load in the DevDriverAPI dll and set up the function table
-  std::string dllName("DevDriverAPI");
+  rdcstr dllName("DevDriverAPI");
 
 #if ENABLED(RDOC_WIN32)
 #if ENABLED(RDOC_X64)
@@ -94,7 +94,7 @@ AMDRGPControl::AMDRGPControl()
 #endif
 
   // first try in the plugin location it will be in distributed builds
-  std::string dllPath = LocatePluginFile("amd/rgp", dllName.c_str());
+  rdcstr dllPath = LocatePluginFile("amd/rgp", dllName.c_str());
 
   void *module = Process::LoadModule(dllPath.c_str());
   if(module == NULL)
@@ -167,7 +167,7 @@ bool AMDRGPControl::Initialised()
   return m_RGPContext != NULL;
 }
 
-bool AMDRGPControl::TriggerCapture(const std::string &path)
+bool AMDRGPControl::TriggerCapture(const rdcstr &path)
 {
   if(m_RGPContext == NULL)
     return false;
@@ -232,8 +232,8 @@ bool AMDRGPControl::DriverSupportsInterop()
 
 TEST_CASE("Check that markers are distinct for begin and end", "[amd]")
 {
-  std::string beginMark = AMDRGPControl::GetBeginMarker();
-  std::string endMark = AMDRGPControl::GetEndMarker();
+  rdcstr beginMark = AMDRGPControl::GetBeginMarker();
+  rdcstr endMark = AMDRGPControl::GetEndMarker();
 
   CHECK(beginMark != endMark);
   CHECK(beginMark != "");

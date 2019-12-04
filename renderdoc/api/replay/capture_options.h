@@ -29,6 +29,8 @@
 #include "rdcstr.h"
 #include "stringise.h"
 
+typedef uint8_t byte;
+
 // see renderdoc_app.h RENDERDOC_CaptureOption - make sure any changes here are reflected there, to
 // the options or to the documentation
 DOCUMENT(R"(Sets up configuration and options for optional features either at capture time or at API

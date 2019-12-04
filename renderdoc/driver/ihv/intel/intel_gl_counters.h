@@ -25,9 +25,9 @@
 #pragma once
 
 #include <map>
-#include <vector>
 
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/replay_enums.h"
 
 typedef unsigned int GLuint;
 
@@ -44,7 +44,7 @@ public:
   bool Init();
   ~IntelGlCounters();
 
-  std::vector<GPUCounter> GetPublicCounterIds() const;
+  rdcarray<GPUCounter> GetPublicCounterIds() const;
   CounterDescription GetCounterDescription(GPUCounter index) const;
 
   void EnableCounter(GPUCounter index);
@@ -61,9 +61,8 @@ public:
   void BeginSample(uint32_t sampleID);
   void EndSample();
 
-  std::vector<CounterResult> GetCounterData(uint32_t maxSampleIndex,
-                                            const std::vector<uint32_t> &eventIDs,
-                                            const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> GetCounterData(uint32_t maxSampleIndex, const rdcarray<uint32_t> &eventIDs,
+                                         const rdcarray<GPUCounter> &counters);
 
 private:
   static uint32_t GPUCounterToCounterIndex(GPUCounter counter)
@@ -79,13 +78,13 @@ private:
     GLuint type = 0;
     GLuint dataType = 0;
   };
-  std::vector<IntelGlCounter> m_Counters;
-  std::map<std::string, IntelGlCounter> m_CounterNames;
+  rdcarray<IntelGlCounter> m_Counters;
+  std::map<rdcstr, IntelGlCounter> m_CounterNames;
 
   struct IntelGlQuery
   {
     GLuint queryId = 0;
-    std::string name;
+    rdcstr name;
     GLuint size = 0;
   };
   std::map<GLuint, IntelGlQuery> m_Queries;
@@ -95,9 +94,9 @@ private:
   uint32_t CounterPass(const IntelGlCounter &counter);
   void CopyData(void *dest, const IntelGlCounter &counter, uint32_t sample, uint32_t maxSampleIndex);
 
-  std::vector<uint32_t> m_EnabledQueries;
+  rdcarray<uint32_t> m_EnabledQueries;
 
   uint32_t m_passIndex;
 
-  std::vector<GLuint> m_glQueries;
+  rdcarray<GLuint> m_glQueries;
 };

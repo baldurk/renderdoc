@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "common/common.h"
+#include "os/os_specific.h"
 
 // grisu2 double-to-string function, returns number of digits written to digits array
 int grisu2(uint64_t mantissa, int exponent, char digits[18], int &kout);
@@ -1454,6 +1455,7 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include "3rdparty/catch/catch.hpp"
+#include "common/formatting.h"
 
 int utf8printf_wrapper(char *buf, size_t bufsize, const char *fmt, ...)
 {

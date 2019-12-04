@@ -104,7 +104,6 @@
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-VK.h">
       <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
-    <ClInclude Include="amd_rgp.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterAccessor.h">
       <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
@@ -113,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="official\RGA\Common\AsicReg\devices.h">
       <Filter>official\RGA\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="amd_rgp.h">
+      <Filter>RGP</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -25,7 +25,9 @@
 #include "glsl_shaders.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "driver/shaders/spirv/glslang_compile.h"
+#include "os/os_specific.h"
 
 #define GLSL_HEADERS(HEADER) \
   HEADER(glsl_globals)       \

@@ -28,8 +28,6 @@
 #include <signal.h>
 #include "data/embedded_files.h"
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
-
 // this works on all supported clang versions
 #if defined(__clang__)
 
@@ -48,8 +46,6 @@
   } while(0)
 
 #endif
-
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
 
 #if ENABLED(RDOC_APPLE)
 

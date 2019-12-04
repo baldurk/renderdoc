@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "common/formatting.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"

@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "common/common.h"
 #include "os/os_specific.h"
 
 namespace Threading

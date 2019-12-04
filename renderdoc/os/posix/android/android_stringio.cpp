@@ -25,6 +25,7 @@
 #include <android/log.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "common/common.h"
 #include "os/os_specific.h"
 
 #define LOGCAT_TAG "renderdoc"

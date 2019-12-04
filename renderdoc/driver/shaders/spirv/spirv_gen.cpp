@@ -59,6 +59,7 @@
 
 #include "spirv_gen.h"
 #include "os/os_specific.h"
+#include "common/formatting.h"
 #include "spirv_op_helpers.h"
 
 template <>

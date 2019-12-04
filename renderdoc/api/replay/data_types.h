@@ -26,6 +26,7 @@
 #pragma once
 
 #include "apidefs.h"
+#include "rdcarray.h"
 #include "replay_enums.h"
 #include "resourceid.h"
 #include "stringise.h"

@@ -25,6 +25,7 @@
 #include "android.h"
 #include <set>
 #include "api/replay/version.h"
+#include "common/formatting.h"
 #include "core/core.h"
 #include "core/remote_server.h"
 #include "strings/string_utils.h"

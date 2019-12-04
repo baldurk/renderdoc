@@ -26,7 +26,7 @@
 
 namespace GCNISA
 {
-std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target)
+rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
 {
   return "Disassembling D3D shaders is only supported on windows";
 }

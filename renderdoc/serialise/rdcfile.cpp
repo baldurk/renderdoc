@@ -28,6 +28,7 @@
 #include "3rdparty/stb/stb_image.h"
 #include "api/replay/version.h"
 #include "common/dds_readwrite.h"
+#include "common/formatting.h"
 #include "lz4io.h"
 #include "zstdio.h"
 

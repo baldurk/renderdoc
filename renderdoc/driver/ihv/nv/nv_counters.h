@@ -25,8 +25,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <vector>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/data_types.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/replay_enums.h"
 
 struct ID3D11Device;
 
@@ -38,18 +39,18 @@ public:
 
   bool Init(ID3D11Device *pDevice);
 
-  std::vector<GPUCounter> GetPublicCounterIds() const { return m_ExternalIds; }
+  rdcarray<GPUCounter> GetPublicCounterIds() const { return m_ExternalIds; }
   CounterDescription GetCounterDescription(GPUCounter counterID) const
   {
     const uint32_t LocalId = (uint32_t)counterID - (uint32_t)GPUCounter::FirstNvidia;
     return m_ExternalDescriptors[LocalId];
   }
 
-  bool PrepareExperiment(const std::vector<GPUCounter> &counters, uint32_t objectsCount);
+  bool PrepareExperiment(const rdcarray<GPUCounter> &counters, uint32_t objectsCount);
 
   // returns num passes
   uint32_t BeginExperiment() const;
-  void EndExperiment(const std::vector<uint32_t> &eventIds, std::vector<CounterResult> &Result) const;
+  void EndExperiment(const rdcarray<uint32_t> &eventIds, rdcarray<CounterResult> &Result) const;
 
   void BeginPass(uint32_t passIdx) const;
   void EndPass(uint32_t passIdx) const;
@@ -65,10 +66,10 @@ private:
   uint64_t m_NvPmCtx;
   uint32_t m_ObjectsCount;
 
-  std::vector<GPUCounter> m_ExternalIds;
-  std::vector<uint32_t> m_InternalIds;
-  std::vector<GPUCounter> m_SelectedExternalIds;
-  std::vector<uint32_t> m_SelectedInternalIds;
-  std::vector<CounterDescription> m_ExternalDescriptors;
-  std::vector<uint32_t> m_InternalDescriptors;
+  rdcarray<GPUCounter> m_ExternalIds;
+  rdcarray<uint32_t> m_InternalIds;
+  rdcarray<GPUCounter> m_SelectedExternalIds;
+  rdcarray<uint32_t> m_SelectedInternalIds;
+  rdcarray<CounterDescription> m_ExternalDescriptors;
+  rdcarray<uint32_t> m_InternalDescriptors;
 };

@@ -27,6 +27,8 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 char **GetCurrentEnvironment()

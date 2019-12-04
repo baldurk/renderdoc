@@ -28,6 +28,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"

@@ -73,7 +73,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
   return false;
 #else
 
-  std::string dllName("GPUPerfAPI");
+  rdcstr dllName("GPUPerfAPI");
 
   switch(apiType)
   {
@@ -99,7 +99,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
 #endif
 
   // first try in the plugin location it will be in distributed builds
-  std::string dllPath = LocatePluginFile("amd/counters", dllName.c_str());
+  rdcstr dllPath = LocatePluginFile("amd/counters", dllName.c_str());
 
   void *module = Process::LoadModule(dllPath.c_str());
   if(module == NULL)
@@ -263,9 +263,10 @@ std::map<uint32_t, CounterDescription> AMDCounters::EnumerateCounters()
   return counters;
 }
 
-std::vector<GPUCounter> AMDCounters::GetPublicCounterIds() const
+rdcarray<GPUCounter> AMDCounters::GetPublicCounterIds() const
 {
-  std::vector<GPUCounter> ret;
+  rdcarray<GPUCounter> ret;
+  ret.reserve(m_PublicToInternalCounter.size());
 
   for(const std::pair<GPUCounter, uint32_t> &entry : m_PublicToInternalCounter)
     ret.push_back(entry.first);
@@ -529,11 +530,11 @@ void AMDCounters::DeleteSession(uint32_t sessionId)
   }
 }
 
-std::vector<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
-                                                       const std::vector<uint32_t> &eventIDs,
-                                                       const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
+                                                    const rdcarray<uint32_t> &eventIDs,
+                                                    const rdcarray<GPUCounter> &counters)
 {
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
 
   bool isReady = false;
 

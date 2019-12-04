@@ -501,6 +501,9 @@
     <ClInclude Include="api\replay\resourceid.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="common\formatting.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

@@ -24,6 +24,7 @@
 
 #include <utility>
 #include "common/common.h"
+#include "common/formatting.h"
 #include "serialise/rdcfile.h"
 
 ReplayStatus exportChrome(const char *filename, const RDCFile &rdc, const SDFile &structData,

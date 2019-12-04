@@ -138,9 +138,9 @@ void VulkanReplay::convertKhrCounterResult(CounterResult &rdcResult,
   }
 }
 
-std::vector<GPUCounter> VulkanReplay::EnumerateCounters()
+rdcarray<GPUCounter> VulkanReplay::EnumerateCounters()
 {
-  std::vector<GPUCounter> ret;
+  rdcarray<GPUCounter> ret;
 
   VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
 
@@ -186,8 +186,7 @@ std::vector<GPUCounter> VulkanReplay::EnumerateCounters()
 
   if(m_pAMDCounters)
   {
-    std::vector<GPUCounter> amdCounters = m_pAMDCounters->GetPublicCounterIds();
-    ret.insert(ret.end(), amdCounters.begin(), amdCounters.end());
+    ret.append(m_pAMDCounters->GetPublicCounterIds());
   }
 
   return ret;
@@ -349,7 +348,7 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
 {
   VulkanAMDDrawCallback(WrappedVulkan *dev, VulkanReplay *rp, uint32_t &sampleIndex,
-                        std::vector<uint32_t> &eventIDs)
+                        rdcarray<uint32_t> &eventIDs)
       : m_pDriver(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
   {
     m_pDriver->SetDrawcallCB(this);
@@ -418,17 +417,17 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   uint32_t *m_pSampleId;
   WrappedVulkan *m_pDriver;
   VulkanReplay *m_pReplay;
-  std::vector<uint32_t> *m_pEventIds;
+  rdcarray<uint32_t> *m_pEventIds;
   std::set<VkCommandBuffer> m_begunCommandBuffers;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  std::vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
-                                 std::vector<uint32_t> *eventIDs)
+                                 rdcarray<uint32_t> *eventIDs)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
@@ -438,14 +437,14 @@ void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
   m_pDriver->ReplayLog(*eventStartID, maxEID, eReplay_Full);
 }
 
-std::vector<CounterResult> VulkanReplay::FetchCountersAMD(const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter> &counters)
 {
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
   if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Vk, (void *)&context))
   {
-    return std::vector<CounterResult>();
+    return {};
   }
 
   uint32_t sessionID = m_pAMDCounters->CreateSession();
@@ -466,7 +465,7 @@ std::vector<CounterResult> VulkanReplay::FetchCountersAMD(const std::vector<GPUC
 
   uint32_t sampleIndex = 0;
 
-  std::vector<uint32_t> eventIDs;
+  rdcarray<uint32_t> eventIDs;
 
   for(uint32_t i = 0; i < passCount; i++)
   {
@@ -485,7 +484,7 @@ std::vector<CounterResult> VulkanReplay::FetchCountersAMD(const std::vector<GPUC
 
   m_pAMDCounters->EndSesssion(sessionID);
 
-  std::vector<CounterResult> ret =
+  rdcarray<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
 
   for(size_t i = 0; i < m_pAMDDrawCallback->m_AliasEvents.size(); i++)
@@ -566,17 +565,17 @@ struct VulkanKHRCallback : public VulkanDrawcallCallback
   WrappedVulkan *m_pDriver;
   VulkanReplay *m_pReplay;
   VkQueryPool m_QueryPool;
-  std::vector<uint32_t> m_Results;
+  rdcarray<uint32_t> m_Results;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  std::vector<std::pair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<std::pair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-std::vector<CounterResult> VulkanReplay::FetchCountersKHR(const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter> &counters)
 {
-  std::vector<uint32_t> counterIndices;
+  rdcarray<uint32_t> counterIndices;
   for(const GPUCounter &c : counters)
     counterIndices.push_back(FromKHRCounter(c));
 
@@ -595,7 +594,7 @@ std::vector<CounterResult> VulkanReplay::FetchCountersKHR(const std::vector<GPUC
   if(vkr != VK_SUCCESS)
   {
     RDCWARN("Unable to acquire profiling lock: %s", ToStr(vkr).c_str());
-    return std::vector<CounterResult>();
+    return {};
   }
 
   uint32_t maxEID = m_pDriver->GetMaxEID();
@@ -638,7 +637,7 @@ std::vector<CounterResult> VulkanReplay::FetchCountersKHR(const std::vector<GPUC
     m_pDriver->SetSubmitChain(NULL);
   }
 
-  std::vector<VkPerformanceCounterResultKHR> perfResults;
+  rdcarray<VkPerformanceCounterResultKHR> perfResults;
   perfResults.resize(cb.m_Results.size() * counters.size());
 
   vkr = ObjDisp(dev)->GetQueryPoolResults(
@@ -651,7 +650,7 @@ std::vector<CounterResult> VulkanReplay::FetchCountersKHR(const std::vector<GPUC
 
   ObjDisp(dev)->ReleaseProfilingLockKHR(Unwrap(dev));
 
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
     for(size_t c = 0; c < counters.size(); c++)
@@ -761,28 +760,28 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   VkQueryPool m_TimeStampQueryPool;
   VkQueryPool m_OcclusionQueryPool;
   VkQueryPool m_PipeStatsQueryPool;
-  std::vector<uint32_t> m_Results;
+  rdcarray<uint32_t> m_Results;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
   // we'll just be told which other EIDs alias this event.
-  std::vector<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
+  rdcarray<rdcpair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCounter> &counters)
+rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &counters)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
-  std::vector<GPUCounter> vkCounters;
+  rdcarray<GPUCounter> vkCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkCounters),
                [](const GPUCounter &c) { return IsGenericCounter(c); });
 
-  std::vector<CounterResult> ret;
+  rdcarray<CounterResult> ret;
 
   if(m_pAMDCounters)
   {
     // Filter out the AMD counters
-    std::vector<GPUCounter> amdCounters;
+    rdcarray<GPUCounter> amdCounters;
     std::copy_if(counters.begin(), counters.end(), std::back_inserter(amdCounters),
                  [](const GPUCounter &c) { return IsAMDCounter(c); });
 
@@ -792,13 +791,12 @@ std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCoun
     }
   }
 
-  std::vector<GPUCounter> vkKHRCounters;
+  rdcarray<GPUCounter> vkKHRCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(vkKHRCounters),
                [](const GPUCounter &c) { return IsVulkanExtendedCounter(c); });
   if(!vkKHRCounters.empty())
   {
-    std::vector<CounterResult> khrResults = FetchCountersKHR(vkKHRCounters);
-    ret.insert(ret.end(), khrResults.begin(), khrResults.end());
+    ret.append(FetchCountersKHR(vkKHRCounters));
   }
 
   VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
@@ -896,7 +894,7 @@ std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCoun
   // replay the events to perform all the queries
   m_pDriver->ReplayLog(0, maxEID, eReplay_Full);
 
-  std::vector<uint64_t> m_TimeStampData;
+  rdcarray<uint64_t> m_TimeStampData;
   m_TimeStampData.resize(cb.m_Results.size() * 2);
 
   vkr = ObjDisp(dev)->GetQueryPoolResults(
@@ -907,7 +905,7 @@ std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCoun
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), timeStampPool, NULL);
 
-  std::vector<uint64_t> m_OcclusionData;
+  rdcarray<uint64_t> m_OcclusionData;
   m_OcclusionData.resize(cb.m_Results.size());
   if(occlusionPool != VK_NULL_HANDLE)
   {
@@ -920,7 +918,7 @@ std::vector<CounterResult> VulkanReplay::FetchCounters(const std::vector<GPUCoun
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);
   }
 
-  std::vector<uint64_t> m_PipeStatsData;
+  rdcarray<uint64_t> m_PipeStatsData;
   m_PipeStatsData.resize(cb.m_Results.size() * 11);
   if(pipeStatsPool != VK_NULL_HANDLE)
   {

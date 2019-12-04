@@ -79,8 +79,8 @@ float SRGB8_lookuptable[256] = {
 
 void rdcassert(const char *msg, const char *file, unsigned int line, const char *func)
 {
-  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), LogType::Error, RDCLOG_PROJECT,
-                file, line, "Assertion failed: %s", msg);
+  rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, LogType::Error, RDCLOG_PROJECT, file, line,
+                "Assertion failed: %s", msg);
 }
 
 #if 0
@@ -389,6 +389,14 @@ static void write_newline(char *output)
 void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *project,
                    const char *file, unsigned int line, const char *fmt, ...)
 {
+  if(utcTime == FILL_AUTO_VALUE)
+    utcTime = Timing::GetUTCTime();
+
+  static uint32_t curpid = Process::GetCurrentPID();
+
+  if(pid == FILL_AUTO_VALUE)
+    pid = curpid;
+
   va_list args;
   va_start(args, fmt);
 

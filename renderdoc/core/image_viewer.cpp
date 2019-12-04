@@ -215,17 +215,14 @@ public:
   std::vector<EventUsage> GetUsage(ResourceId id) { return std::vector<EventUsage>(); }
   bool IsRenderOutput(ResourceId id) { return false; }
   ResourceId GetLiveID(ResourceId id) { return id; }
-  std::vector<GPUCounter> EnumerateCounters() { return std::vector<GPUCounter>(); }
+  rdcarray<GPUCounter> EnumerateCounters() { return {}; }
   CounterDescription DescribeCounter(GPUCounter counterID)
   {
     CounterDescription desc = {};
     desc.counter = counterID;
     return desc;
   }
-  std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters)
-  {
-    return std::vector<CounterResult>();
-  }
+  rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters) { return {}; }
   void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
                             uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars, const bytebuf &data)
   {

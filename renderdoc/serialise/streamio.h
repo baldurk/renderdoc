@@ -28,6 +28,7 @@
 #include <functional>
 #include <vector>
 #include "common/common.h"
+#include "os/os_specific.h"
 
 enum class Ownership
 {

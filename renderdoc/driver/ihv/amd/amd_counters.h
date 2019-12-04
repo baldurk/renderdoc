@@ -25,8 +25,9 @@
 #pragma once
 
 #include <map>
-#include <vector>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/data_types.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/replay_enums.h"
 #include "driver/vulkan/official/vulkan.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
 
@@ -49,7 +50,7 @@ public:
   ~AMDCounters();
 
   bool Init(ApiType apiType, void *pContext);
-  std::vector<GPUCounter> GetPublicCounterIds() const;
+  rdcarray<GPUCounter> GetPublicCounterIds() const;
 
   CounterDescription GetCounterDescription(GPUCounter counter);
 
@@ -77,9 +78,9 @@ public:
   void EndSample(void *pCommandList = NULL);
 
   // Session data retrieval
-  std::vector<CounterResult> GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
-                                            const std::vector<uint32_t> &eventIDs,
-                                            const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> GetCounterData(uint32_t sessionID, uint32_t maxSampleIndex,
+                                         const rdcarray<uint32_t> &eventIDs,
+                                         const rdcarray<GPUCounter> &counters);
 
 private:
   bool IsSessionReady(uint32_t sessionIndex);
@@ -97,7 +98,7 @@ private:
   };
 
   GPACmdListInfo m_gpaCmdListInfo;
-  std::vector<GPA_SessionId> m_gpaSessionInfo;
+  rdcarray<GPA_SessionId> m_gpaSessionInfo;
 
   ApiType m_apiType;
   uint32_t m_gpaSessionCounter;

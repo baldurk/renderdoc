@@ -24,6 +24,7 @@
 
 #include "amd_isa.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "core/plugins.h"
 #include "official/RGA/Common/AmdDxGsaCompile.h"
 #include "official/RGA/elf/elf32.h"
@@ -45,7 +46,7 @@ https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
 
 namespace GCNISA
 {
-extern std::string pluginPath;
+extern rdcstr pluginPath;
 
 static HMODULE GetAMDModule()
 {
@@ -73,7 +74,7 @@ void SafelyCompile(PfnAmdDxGsaCompileShader compileShader, AmdDxGsaCompileShader
   }
 }
 
-std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &target)
+rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
 {
   HMODULE mod = GetAMDModule();
 
@@ -150,7 +151,7 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
   const uint32_t numChunks = *dxbc;
   dxbc++;
 
-  std::vector<uint32_t> chunkOffsets;
+  rdcarray<uint32_t> chunkOffsets;
   for(uint32_t i = 0; i < numChunks; i++)
   {
     if(dxbc >= end)
@@ -198,7 +199,7 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
 
   const Elf32_Ehdr *elfHeader = (const Elf32_Ehdr *)elf;
 
-  std::string ret;
+  rdcstr ret;
 
   // minimal code to extract data from ELF. We assume the ELF we got back is well-formed.
   if(IS_ELF(*elfHeader) && elfHeader->e_ident[EI_CLASS] == ELFCLASS32)
@@ -242,8 +243,8 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
 
     if(stats && !amdil)
     {
-      std::string statStr = StringFormat::Fmt(
-          R"(; -------- Statistics ---------------------
+      ret.insert(0, StringFormat::Fmt(
+                        R"(; -------- Statistics ---------------------
 ; SGPRs: %u out of %u used
 ; VGPRs: %u out of %u used
 ; LDS: %u out of %u bytes used
@@ -251,16 +252,13 @@ std::string DisassembleDXBC(const bytebuf &shaderBytes, const std::string &targe
 ; Instructions: %u ALU, %u Control Flow, %u TFETCH
 
 )",
-          stats->numSgprsUsed, stats->availableSgprs, stats->numVgprsUsed, stats->availableVgprs,
-          stats->usedLdsBytes, stats->availableLdsBytes, stats->usedScratchBytes, stats->numAluInst,
-          stats->numControlFlowInst, stats->numTfetchInst);
-
-      ret.insert(ret.begin(), statStr.begin(), statStr.end());
+                        stats->numSgprsUsed, stats->availableSgprs, stats->numVgprsUsed,
+                        stats->availableVgprs, stats->usedLdsBytes, stats->availableLdsBytes,
+                        stats->usedScratchBytes, stats->numAluInst, stats->numControlFlowInst,
+                        stats->numTfetchInst));
     }
 
-    std::string header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
-
-    ret.insert(ret.begin(), header.begin(), header.end());
+    ret.insert(0, StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str()));
   }
   else
   {

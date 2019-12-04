@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "gl_common.h"
+#include "common/formatting.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 #include "gl_dispatch_table.h"

@@ -25,11 +25,45 @@
 
 #pragma once
 
-#include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include "api/replay/renderdoc_replay.h"
+#include <time.h>
 #include "globalconfig.h"
+
+// we allow a small amount of leakage from OS-specific to avoid including os_specific.h which is
+// heavier than we need. These are macros so can't be declared and then later defined, and are
+// fortunately not too messy as it's basically windows vs. everyone else.
+#if ENABLED(RDOC_WIN32)
+
+#define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
+#define OS_DEBUG_BREAK() __debugbreak()
+
+#else
+
+#include <signal.h>
+
+#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
+#define OS_DEBUG_BREAK() raise(SIGTRAP)
+
+#if defined(__clang__)
+
+#define DELIBERATE_FALLTHROUGH() [[clang::fallthrough]]
+
+#elif defined(__GNUC__) && (__GNUC__ >= 7)
+
+// works on GCC 7.0 and up. Before then there was no warning, so we're fine
+#define DELIBERATE_FALLTHROUGH() __attribute__((fallthrough))
+
+#endif
+
+#endif
+
+// pre-declare some OS-specific functions we need to reference in the header here.
+
+namespace OSUtility
+{
+void ForceCrash();
+bool DebuggerPresent();
+};
 
 /////////////////////////////////////////////////
 // Utility macros
@@ -99,8 +133,6 @@
 #define CONCAT2(a, b) a##b
 #define CONCAT(a, b) CONCAT2(a, b)
 
-#include "os/os_specific.h"
-
 #define RDCEraseMem(a, b) memset(a, 0, b)
 #define RDCEraseEl(a) memset(&a, 0, sizeof(a))
 
@@ -158,6 +190,8 @@ inline T AlignUpPtr(T x, A a)
 bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &diffEnd);
 uint32_t CalcNumMips(int Width, int Height, int Depth);
 
+typedef uint8_t byte;
+
 byte *AllocAlignedBuffer(uint64_t size, uint64_t alignment = 64);
 void FreeAlignedBuffer(byte *buf);
 
@@ -178,41 +212,15 @@ inline size_t Log2Floor(size_t value)
 }
 #endif
 
-template <typename T, BucketRecordType bucketType = T::BucketType>
-struct BucketForRecord
-{
-  static size_t Get(size_t value);
-};
-
-template <typename T>
-struct BucketForRecord<T, BucketRecordType::Linear>
-{
-  static size_t Get(size_t value)
-  {
-    const size_t size = T::BucketSize;
-    const size_t count = T::BucketCount;
-    const size_t maximum = size * count;
-    const size_t index = (value < maximum) ? (value / size) : (count - 1);
-    return index;
-  }
-};
-
-template <typename T>
-struct BucketForRecord<T, BucketRecordType::Pow2>
-{
-  static size_t Get(size_t value)
-  {
-    const size_t count = T::BucketCount;
-    static_assert(count <= (sizeof(size_t) * 8),
-                  "Unexpected correspondence between bucket size and sizeof(size_t)");
-    const size_t maximum = (size_t)1 << count;
-    const size_t index = (value < maximum) ? (size_t)(Log2Floor(value)) : (count - 1);
-    return index;
-  }
-};
-
 /////////////////////////////////////////////////
 // Debugging features
+
+#if !defined(DELIBERATE_FALLTHROUGH)
+#define DELIBERATE_FALLTHROUGH() \
+  do                             \
+  {                              \
+  } while(0)
+#endif
 
 #define RDCDUMP()            \
   do                         \
@@ -287,6 +295,36 @@ struct BucketForRecord<T, BucketRecordType::Pow2>
 // perform any operations necessary to flush the log
 void rdclog_flush();
 
+// we want to use the same log enum publicly and privately but we can't redefine the enum. So we let
+// each header define it depending on which comes first (since we don't necessarily know if the
+// other will be included after). Each defines LOGTYPE_DEFINED when it defines the enum, and uses
+// that to gate definition.
+//
+// The public header just skips the definition entirely, the internal header also declares it as
+// LogType__Internal so that we can assert that they're the same.
+#if !defined(LOGTYPE_DEFINED)
+
+#define LOGTYPE_DEFINED
+#define LOGTYPE_ENUM_NAME LogType
+
+#else
+
+#define LOGTYPE_ENUM_NAME LogType__Internal
+
+#endif
+
+// must match the definition in replay_enums.h
+enum class LOGTYPE_ENUM_NAME : uint32_t
+{
+  Debug,
+  First = Debug,
+  Comment,
+  Warning,
+  Error,
+  Fatal,
+  Count,
+};
+
 // actual low-level print to log output streams defined (useful for if we need to print
 // fatal error messages from within the more complex log function).
 void rdclogprint_int(LogType type, const char *fullMsg, const char *msg);
@@ -299,8 +337,10 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg);
 void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *project,
                    const char *file, unsigned int line, const char *fmt, ...);
 
-#define rdclog(type, ...)                                                                       \
-  rdclog_direct(Timing::GetUTCTime(), Process::GetCurrentPID(), type, RDCLOG_PROJECT, __FILE__, \
+#define FILL_AUTO_VALUE 0x10203040
+
+#define rdclog(type, ...)                                                                 \
+  rdclog_direct(time_t(FILL_AUTO_VALUE), FILL_AUTO_VALUE, type, RDCLOG_PROJECT, __FILE__, \
                 __LINE__, __VA_ARGS__)
 
 const char *rdclog_getfilename();

@@ -24,6 +24,7 @@
 
 #include "spirv_common.h"
 #include "common/common.h"
+#include "common/formatting.h"
 
 template <>
 rdcstr DoStringise(const rdcspv::Id &el)

@@ -317,9 +317,9 @@ public:
 
   ResourceId GetLiveID(ResourceId id);
 
-  std::vector<GPUCounter> EnumerateCounters();
+  rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
-  std::vector<CounterResult> FetchCounters(const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
                  CompType typeCast, float pixel[4]);
@@ -722,19 +722,19 @@ private:
   void CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::Image &iminfo,
                           CompType typeCast, TextureDisplayViews &views);
 
-  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, std::vector<uint32_t> *eventIDs);
+  void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs);
 
-  std::vector<CounterResult> FetchCountersAMD(const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCountersAMD(const rdcarray<GPUCounter> &counters);
 
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
 
   VulkanAMDDrawCallback *m_pAMDDrawCallback = NULL;
 
-  std::vector<CounterResult> FetchCountersKHR(const std::vector<GPUCounter> &counters);
+  rdcarray<CounterResult> FetchCountersKHR(const rdcarray<GPUCounter> &counters);
 
-  std::vector<VkPerformanceCounterKHR> m_KHRCounters;
-  std::vector<VkPerformanceCounterDescriptionKHR> m_KHRCountersDescriptions;
+  rdcarray<VkPerformanceCounterKHR> m_KHRCounters;
+  rdcarray<VkPerformanceCounterDescriptionKHR> m_KHRCountersDescriptions;
 
   void convertKhrCounterResult(CounterResult &rdcResult,
                                const VkPerformanceCounterResultKHR &khrResult,

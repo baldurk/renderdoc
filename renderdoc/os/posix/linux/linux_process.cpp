@@ -24,6 +24,9 @@
 
 #include <unistd.h>
 #include <algorithm>
+#include "api/replay/data_types.h"
+#include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 extern char **environ;

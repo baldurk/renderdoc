@@ -24,6 +24,7 @@
 
 #include <utility>
 #include "common/common.h"
+#include "common/formatting.h"
 #include "serialise/rdcfile.h"
 
 #include "3rdparty/miniz/miniz.h"

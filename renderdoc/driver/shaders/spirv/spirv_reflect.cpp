@@ -25,6 +25,7 @@
 #include "spirv_reflect.h"
 #include <limits.h>
 #include <algorithm>
+#include "common/formatting.h"
 #include "maths/half_convert.h"
 #include "replay/replay_driver.h"
 #include "spirv_editor.h"

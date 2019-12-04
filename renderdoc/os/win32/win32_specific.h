@@ -33,15 +33,6 @@
 #include <windows.h>
 #include "data/resource.h"
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
-
-#define OS_DEBUG_BREAK() __debugbreak()
-
-#define DELIBERATE_FALLTHROUGH() \
-  do                             \
-  {                              \
-  } while(0)
-
 #define EndianSwap16(x) _byteswap_ushort(x)
 #define EndianSwap32(x) _byteswap_ulong(x)
 #define EndianSwap64(x) _byteswap_uint64(x)

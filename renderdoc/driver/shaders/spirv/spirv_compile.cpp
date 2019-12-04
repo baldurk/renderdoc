@@ -24,6 +24,7 @@
 
 #include "spirv_compile.h"
 #include "common/common.h"
+#include "common/formatting.h"
 #include "glslang_compile.h"
 
 #undef min

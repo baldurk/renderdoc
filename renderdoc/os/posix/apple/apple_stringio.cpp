@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
+#include "common/common.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
 

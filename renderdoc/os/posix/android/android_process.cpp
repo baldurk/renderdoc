@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include <unistd.h>
+#include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 

@@ -30,6 +30,7 @@
 #include <tchar.h>
 #include <tlhelp32.h>
 #include <string>
+#include "common/formatting.h"
 #include "core/core.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"

@@ -25,6 +25,7 @@
 
 #include "dxbc_debug.h"
 #include <algorithm>
+#include "common/formatting.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "maths/formatpacking.h"
 #include "replay/replay_driver.h"
