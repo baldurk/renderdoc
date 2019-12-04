@@ -895,7 +895,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 }
 
 void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
-                                   RENDERDOC_KillCallback killReplay,
+                                   std::function<bool()> killReplay,
                                    RENDERDOC_PreviewWindowCallback previewWindow)
 {
   Network::Socket *sock = Network::CreateServerSocket(listenhost, port, 1);

@@ -23,13 +23,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_context.h"
+#include "d3d11_context.h"
 #include <algorithm>
-#include "driver/d3d11/d3d11_device.h"
-#include "driver/d3d11/d3d11_manager.h"
-#include "driver/d3d11/d3d11_renderstate.h"
-#include "driver/d3d11/d3d11_resources.h"
 #include "strings/string_utils.h"
+#include "d3d11_device.h"
+#include "d3d11_manager.h"
+#include "d3d11_renderstate.h"
+#include "d3d11_replay.h"
+#include "d3d11_resources.h"
 
 WRAPPED_POOL_INST(WrappedID3D11DeviceContext);
 WRAPPED_POOL_INST(WrappedID3D11CommandList);
@@ -1220,8 +1221,9 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   if(IsLoading(m_State))
   {
-    m_pDevice->GetFrameRecord().drawcallList = m_ParentDrawcall.children;
-    m_pDevice->GetFrameRecord().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
+    m_pDevice->GetReplay()->WriteFrameRecord().drawcallList = m_ParentDrawcall.children;
+    m_pDevice->GetReplay()->WriteFrameRecord().frameInfo.debugMessages =
+        m_pDevice->GetDebugMessages();
 
     for(auto it = WrappedID3D11Buffer::m_BufferList.begin();
         it != WrappedID3D11Buffer::m_BufferList.end(); ++it)

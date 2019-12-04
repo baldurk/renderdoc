@@ -37,12 +37,13 @@
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 
-GLReplay::GLReplay()
+GLReplay::GLReplay(WrappedOpenGL *d)
 {
+  m_pDriver = d;
+
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(GLReplay));
 
-  m_pDriver = NULL;
   m_Proxy = false;
 
   m_Degraded = false;
@@ -165,11 +166,6 @@ std::vector<WindowingSystem> GLReplay::GetSupportedWindowSystems()
 #endif
 
   return ret;
-}
-
-FrameRecord GLReplay::GetFrameRecord()
-{
-  return m_pDriver->GetFrameRecord();
 }
 
 ResourceId GLReplay::GetLiveID(ResourceId id)

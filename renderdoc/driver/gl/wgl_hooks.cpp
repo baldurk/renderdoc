@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/gl/gl_driver.h"
-#include "driver/gl/wgl_dispatch_table.h"
 #include "hooks/hooks.h"
+#include "gl_driver.h"
+#include "wgl_dispatch_table.h"
 
 class WGLHook : LibraryHook
 {

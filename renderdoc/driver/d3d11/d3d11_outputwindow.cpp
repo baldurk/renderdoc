@@ -25,6 +25,7 @@
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
+#include "d3d11_replay.h"
 
 void D3D11Replay::OutputWindow::MakeRTV()
 {

@@ -31,6 +31,7 @@
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "vk_debug.h"
+#include "vk_replay.h"
 
 #include "stb/stb_image_write.h"
 
@@ -115,7 +116,7 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
   rdcspv::Init();
   RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
-  m_Replay.SetDriver(this);
+  m_Replay = new VulkanReplay(this);
 
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
   tempMemoryTLSSlot = Threading::AllocateTLSSlot();
@@ -193,6 +194,8 @@ WrappedVulkan::~WrappedVulkan()
     delete[] m_ThreadTempMem[i]->memory;
     delete m_ThreadTempMem[i];
   }
+
+  delete m_Replay;
 }
 
 VkCommandBuffer WrappedVulkan::GetNextCmd()
@@ -1374,8 +1377,8 @@ bool WrappedVulkan::Serialise_CaptureScope(SerialiserType &ser)
 
   if(IsReplayingAndReading())
   {
-    m_FrameRecord.frameInfo.frameNumber = frameNumber;
-    RDCEraseEl(m_FrameRecord.frameInfo.stats);
+    GetReplay()->WriteFrameRecord().frameInfo.frameNumber = frameNumber;
+    RDCEraseEl(GetReplay()->WriteFrameRecord().frameInfo.stats);
   }
 
   return true;
@@ -2080,6 +2083,11 @@ void WrappedVulkan::Present(void *dev, void *wnd)
   }
 }
 
+ResourceDescription &WrappedVulkan::GetResourceDesc(ResourceId id)
+{
+  return GetReplay()->GetResourceDesc(id);
+}
+
 void WrappedVulkan::AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix)
 {
   ResourceDescription &descr = GetReplay()->GetResourceDesc(id);
@@ -2197,7 +2205,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
-      m_FrameRecord.frameInfo.fileOffset = offsetStart;
+      GetReplay()->WriteFrameRecord().frameInfo.fileOffset = offsetStart;
 
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
@@ -2240,15 +2248,16 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
   // and in future use this file.
   m_StructuredFile = &m_StoredStructuredData;
 
-  m_FrameRecord.frameInfo.uncompressedFileSize =
+  GetReplay()->WriteFrameRecord().frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;
-  m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
-  m_FrameRecord.frameInfo.persistentSize = frameDataSize;
-  m_FrameRecord.frameInfo.initDataSize =
+  GetReplay()->WriteFrameRecord().frameInfo.compressedFileSize =
+      rdc->GetSectionProperties(sectionIdx).compressedSize;
+  GetReplay()->WriteFrameRecord().frameInfo.persistentSize = frameDataSize;
+  GetReplay()->WriteFrameRecord().frameInfo.initDataSize =
       chunkInfos[(VulkanChunk)SystemChunk::InitialContents].totalsize;
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
-           m_FrameRecord.frameInfo.persistentSize);
+           GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
   // ensure the capture at least created a device and fetched a queue.
   if(!IsStructuredExporting(m_State))
@@ -2436,9 +2445,9 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
   if(IsLoading(m_State))
   {
-    GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
+    GetReplay()->WriteFrameRecord().drawcallList = m_ParentDrawcall.Bake();
 
-    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
+    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
 
     m_ParentDrawcall.children.clear();
   }

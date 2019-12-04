@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "vk_core.h"
 #include "vk_debug.h"
+#include "vk_replay.h"
 
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"

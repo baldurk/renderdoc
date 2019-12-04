@@ -26,7 +26,6 @@
 #include <algorithm>
 #include "common/common.h"
 #include "data/glsl_shaders.h"
-#include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "strings/string_utils.h"

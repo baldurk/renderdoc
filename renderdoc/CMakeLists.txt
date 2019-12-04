@@ -165,6 +165,7 @@ set(sources
     maths/matrix.cpp
     maths/matrix.h
     maths/quat.h
+    maths/vec.cpp
     maths/vec.h
     os/os_specific.cpp
     os/os_specific.h

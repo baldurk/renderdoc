@@ -25,9 +25,9 @@
 
 #pragma once
 
-#include "driver/d3d11/d3d11_device.h"
-#include "driver/d3d11/d3d11_manager.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
+#include "d3d11_device.h"
+#include "d3d11_manager.h"
 
 D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr);
 ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr);

@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/gl/gl_common.h"
-#include "driver/gl/wgl_dispatch_table.h"
+#include "gl_common.h"
+#include "wgl_dispatch_table.h"
 
 #define WINDOW_CLASS_NAME L"renderdocGLclass"
 

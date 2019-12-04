@@ -75,7 +75,6 @@ inline uint32_t ConvertToR10G10B10A2(Vec4f data)
 }
 
 Vec3f ConvertFromR11G11B10(uint32_t data);
-
 uint32_t ConvertToR11G11B10(Vec3f data);
 
 inline Vec4f ConvertFromB5G5R5A1(uint16_t data)
@@ -96,44 +95,10 @@ inline Vec4f ConvertFromB4G4R4A4(uint16_t data)
                (float)((data >> 8) & 0xf) / 15.0f, (float)((data >> 12) & 0xf) / 15.0f);
 }
 
-extern float SRGB8_lookuptable[256];
-
-inline float ConvertFromSRGB8(uint8_t comp)
-{
-  return SRGB8_lookuptable[comp];
-}
-
-inline float ConvertSRGBToLinear(float srgbF)
-{
-  if(srgbF <= 0.04045f)
-    return srgbF / 12.92f;
-
-  if(srgbF < 0.0f)
-    srgbF = 0.0f;
-  else if(srgbF > 1.0f)
-    srgbF = 1.0f;
-
-  return powf((0.055f + srgbF) / 1.055f, 2.4f);
-}
-
-inline Vec4f ConvertSRGBToLinear(Vec4f srgbF)
-{
-  return Vec4f(ConvertSRGBToLinear(srgbF.x), ConvertSRGBToLinear(srgbF.y),
-               ConvertSRGBToLinear(srgbF.z), srgbF.w);
-}
-
-inline float ConvertLinearToSRGB(float linear)
-{
-  if(linear <= 0.0031308f)
-    return 12.92f * linear;
-
-  if(linear < 0.0f)
-    linear = 0.0f;
-  else if(linear > 1.0f)
-    linear = 1.0f;
-
-  return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
-}
+float ConvertFromSRGB8(uint8_t comp);
+float ConvertSRGBToLinear(float srgbF);
+Vec4f ConvertSRGBToLinear(Vec4f srgbF);
+float ConvertLinearToSRGB(float linear);
 
 typedef uint8_t byte;
 

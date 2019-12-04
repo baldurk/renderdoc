@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/gl/egl_dispatch_table.h"
-#include "driver/gl/gl_driver.h"
 #include "hooks/hooks.h"
+#include "egl_dispatch_table.h"
+#include "gl_driver.h"
 
 #if ENABLED(RDOC_POSIX)
 #include <dlfcn.h>

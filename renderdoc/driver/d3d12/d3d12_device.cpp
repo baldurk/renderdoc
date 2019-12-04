@@ -36,6 +36,7 @@
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_rendertext.h"
+#include "d3d12_replay.h"
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
 
@@ -61,6 +62,11 @@ std::string WrappedID3D12Device::GetChunkName(uint32_t idx)
     return ToStr((SystemChunk)idx);
 
   return ToStr((D3D12Chunk)idx);
+}
+
+D3D12DebugManager *WrappedID3D12Device::GetDebugManager()
+{
+  return m_Replay->GetDebugManager();
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D12InfoQueue::AddRef()
@@ -206,6 +212,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_SectionVersion = D3D12InitParams::CurrentVersion;
 
+  m_Replay = new D3D12Replay(this);
+
   m_StructuredFile = &m_StoredStructuredData;
 
   RDCEraseEl(m_D3D12Opts);
@@ -262,8 +270,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_DummyInfoQueue.m_pDevice = this;
   m_DummyDebug.m_pDevice = this;
   m_WrappedDebug.m_pDevice = this;
-
-  m_Replay.SetDevice(this);
 
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
   tempMemoryTLSSlot = Threading::AllocateTLSSlot();
@@ -485,7 +491,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
     SAFE_RELEASE(it->second);
   }
 
-  m_Replay.DestroyResources();
+  m_Replay->DestroyResources();
 
   DestroyInternalResources();
 
@@ -534,6 +540,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_DELETE(m_ResourceList);
   SAFE_DELETE(m_PipelineList);
+
+  delete m_Replay;
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -1699,8 +1707,8 @@ bool WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 
   if(IsReplayMode(m_State))
   {
-    m_FrameRecord.frameInfo.frameNumber = frameNumber;
-    RDCEraseEl(m_FrameRecord.frameInfo.stats);
+    GetReplay()->WriteFrameRecord().frameInfo.frameNumber = frameNumber;
+    RDCEraseEl(GetReplay()->WriteFrameRecord().frameInfo.stats);
   }
 
   return true;
@@ -2743,7 +2751,7 @@ void WrappedID3D12Device::CreateInternalResources()
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);
 
-  m_Replay.CreateResources();
+  m_Replay->CreateResources();
 
   WrappedID3D12Shader::InternalResources(false);
 }
@@ -3060,6 +3068,11 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
   return true;
 }
 
+ResourceDescription &WrappedID3D12Device::GetResourceDesc(ResourceId id)
+{
+  return GetReplay()->GetResourceDesc(id);
+}
+
 void WrappedID3D12Device::AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix)
 {
   ResourceDescription &descr = GetReplay()->GetResourceDesc(id);
@@ -3171,7 +3184,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
-      m_FrameRecord.frameInfo.fileOffset = offsetStart;
+      GetReplay()->WriteFrameRecord().frameInfo.fileOffset = offsetStart;
 
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
@@ -3220,11 +3233,11 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   if(!IsStructuredExporting(m_State))
   {
-    GetFrameRecord().drawcallList = m_Queue->GetParentDrawcall().Bake();
+    GetReplay()->WriteFrameRecord().drawcallList = m_Queue->GetParentDrawcall().Bake();
 
     m_Queue->GetParentDrawcall().children.clear();
 
-    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
+    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
 
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
@@ -3253,15 +3266,16 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 #endif
 
-  m_FrameRecord.frameInfo.uncompressedFileSize =
+  GetReplay()->WriteFrameRecord().frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;
-  m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
-  m_FrameRecord.frameInfo.persistentSize = frameDataSize;
-  m_FrameRecord.frameInfo.initDataSize =
+  GetReplay()->WriteFrameRecord().frameInfo.compressedFileSize =
+      rdc->GetSectionProperties(sectionIdx).compressedSize;
+  GetReplay()->WriteFrameRecord().frameInfo.persistentSize = frameDataSize;
+  GetReplay()->WriteFrameRecord().frameInfo.initDataSize =
       chunkInfos[(D3D12Chunk)SystemChunk::InitialContents].totalsize;
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
-           m_FrameRecord.frameInfo.persistentSize);
+           GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
   return ReplayStatus::Succeeded;
 }
@@ -3328,7 +3342,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       cmd.m_Partial[D3D12CommandData::Secondary].Reset();
       cmd.m_RenderState = D3D12RenderState();
       cmd.m_RenderState.m_ResourceManager = GetResourceManager();
-      cmd.m_RenderState.m_DebugManager = m_Replay.GetDebugManager();
+      cmd.m_RenderState.m_DebugManager = m_Replay->GetDebugManager();
     }
 
     // we'll need our own command list if we're replaying just a subsection

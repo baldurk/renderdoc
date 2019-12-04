@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/gl/gl_common.h"
-#include "driver/gl/glx_dispatch_table.h"
+#include "gl_common.h"
+#include "glx_dispatch_table.h"
 
 static bool X11ErrorSeen = false;
 

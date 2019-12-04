@@ -24,6 +24,7 @@
 
 #include "dxbc_compile.h"
 #include "common/common.h"
+#include "os/os_specific.h"
 #include "strings/string_utils.h"
 
 // gives us an address to identify this dll with

@@ -26,7 +26,6 @@
 
 #define INITGUID
 
-#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "driver/dx/official/D3D12Downlevel.h"
 #include "driver/dx/official/d3d12.h"

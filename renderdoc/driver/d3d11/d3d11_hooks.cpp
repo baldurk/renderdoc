@@ -23,10 +23,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_device.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "driver/ihv/amd/official/DXExt/AmdDxExtApi.h"
 #include "hooks/hooks.h"
+#include "d3d11_device.h"
 
 #if ENABLED(RDOC_X64)
 

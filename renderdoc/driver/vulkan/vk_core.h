@@ -26,16 +26,17 @@
 
 #include <vector>
 #include "common/timing.h"
-#include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
 #include "vk_common.h"
 #include "vk_info.h"
 #include "vk_manager.h"
-#include "vk_replay.h"
 #include "vk_state.h"
 
 class VulkanShaderCache;
+class VulkanDebugManager;
+class VulkanResourceManager;
 class VulkanTextRenderer;
+class VulkanReplay;
 
 struct VkInitParams
 {
@@ -298,7 +299,7 @@ private:
   Threading::CriticalSection m_ThreadTempMemLock;
   std::vector<TempMem *> m_ThreadTempMem;
 
-  VulkanReplay m_Replay;
+  VulkanReplay *m_Replay;
   ReplayOptions m_ReplayOptions;
 
   VkInitParams m_InitParams;
@@ -353,7 +354,6 @@ private:
   uint32_t m_FrameCounter = 0;
 
   std::vector<FrameDescription> m_CapturedFrames;
-  FrameRecord m_FrameRecord;
   std::vector<DrawcallDescription *> m_Drawcalls;
 
   struct PhysicalDeviceData
@@ -838,6 +838,8 @@ private:
 
   // replay
 
+  ResourceDescription &GetResourceDesc(ResourceId id);
+
   bool Prepare_SparseInitialState(WrappedVkBuffer *buf);
   bool Prepare_SparseInitialState(WrappedVkImage *im);
   template <typename SerialiserType>
@@ -936,7 +938,7 @@ public:
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
   VulkanShaderCache *GetShaderCache() { return m_ShaderCache; }
   CaptureState GetState() { return m_State; }
-  VulkanReplay *GetReplay() { return &m_Replay; }
+  VulkanReplay *GetReplay() { return m_Replay; }
   // replay interface
   bool Prepare_InitialState(WrappedVkRes *res);
   uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
@@ -963,7 +965,6 @@ public:
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
-  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Events.back().eventId; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId);

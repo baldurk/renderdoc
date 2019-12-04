@@ -40,130 +40,6 @@
 #include "strings/string_utils.h"
 #include "tinyexr/tinyexr.h"
 
-float ConvertComponent(const ResourceFormat &fmt, const byte *data)
-{
-  if(fmt.compByteWidth == 8)
-  {
-    // we just downcast
-    const uint64_t *u64 = (const uint64_t *)data;
-    const int64_t *i64 = (const int64_t *)data;
-
-    if(fmt.compType == CompType::Double || fmt.compType == CompType::Float)
-    {
-      return float(*(const double *)u64);
-    }
-    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u64);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i64);
-    }
-  }
-  else if(fmt.compByteWidth == 4)
-  {
-    const uint32_t *u32 = (const uint32_t *)data;
-    const int32_t *i32 = (const int32_t *)data;
-
-    if(fmt.compType == CompType::Float || fmt.compType == CompType::Depth)
-    {
-      return *(const float *)u32;
-    }
-    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u32);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i32);
-    }
-  }
-  else if(fmt.compByteWidth == 3 && fmt.compType == CompType::Depth)
-  {
-    // 24-bit depth is a weird edge case we need to assemble it by hand
-    const uint8_t *u8 = (const uint8_t *)data;
-
-    uint32_t depth = 0;
-    depth |= uint32_t(u8[1]);
-    depth |= uint32_t(u8[2]) << 8;
-    depth |= uint32_t(u8[3]) << 16;
-
-    return float(depth) / float(16777215.0f);
-  }
-  else if(fmt.compByteWidth == 2)
-  {
-    const uint16_t *u16 = (const uint16_t *)data;
-    const int16_t *i16 = (const int16_t *)data;
-
-    if(fmt.compType == CompType::Float)
-    {
-      return ConvertFromHalf(*u16);
-    }
-    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u16);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i16);
-    }
-    // 16-bit depth is UNORM
-    else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::Depth)
-    {
-      return float(*u16) / 65535.0f;
-    }
-    else if(fmt.compType == CompType::SNorm)
-    {
-      float f = -1.0f;
-
-      if(*i16 == -32768)
-        f = -1.0f;
-      else
-        f = ((float)*i16) / 32767.0f;
-
-      return f;
-    }
-  }
-  else if(fmt.compByteWidth == 1)
-  {
-    const uint8_t *u8 = (const uint8_t *)data;
-    const int8_t *i8 = (const int8_t *)data;
-
-    if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u8);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i8);
-    }
-    else if(fmt.compType == CompType::UNormSRGB)
-    {
-      return SRGB8_lookuptable[*u8];
-    }
-    else if(fmt.compType == CompType::UNorm)
-    {
-      return float(*u8) / 255.0f;
-    }
-    else if(fmt.compType == CompType::SNorm)
-    {
-      float f = -1.0f;
-
-      if(*i8 == -128)
-        f = -1.0f;
-      else
-        f = ((float)*i8) / 127.0f;
-
-      return f;
-    }
-  }
-
-  RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, fmt.compType);
-
-  return 0.0f;
-}
-
 static void fileWriteFunc(void *context, void *data, int size)
 {
   FileIO::fwrite(data, 1, size, (FILE *)context);
@@ -1208,9 +1084,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
                               : RenderDoc::Inst().DarkCheckerboardColor();
           }
 
-          col.x = powf(col.x, 1.0f / 2.2f);
-          col.y = powf(col.y, 1.0f / 2.2f);
-          col.z = powf(col.z, 1.0f / 2.2f);
+          col.x = ConvertLinearToSRGB(col.x);
+          col.y = ConvertLinearToSRGB(col.y);
+          col.z = ConvertLinearToSRGB(col.z);
 
           FloatVector pixel = FloatVector(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f,
                                           float(a) / 255.0f);

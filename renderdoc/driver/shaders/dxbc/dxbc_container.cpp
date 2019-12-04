@@ -27,11 +27,12 @@
 #include <algorithm>
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
-#include "driver/dx/official/d3dcompiler.h"
 #include "driver/shaders/dxil/dxil_bytecode.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "dxbc_bytecode.h"
+
+#include "driver/dx/official/d3dcompiler.h"
 
 namespace DXBC
 {

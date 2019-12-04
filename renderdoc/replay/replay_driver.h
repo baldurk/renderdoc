@@ -257,6 +257,24 @@ public:
                               const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };
 
+// for protocols, we extend the public interface a bit to add callbacks for remapping connection
+// ports (typically to some port forwarded on localhost)
+struct IDeviceProtocolHandler : public IDeviceProtocolController
+{
+  virtual rdcstr GetDeviceID(const rdcstr &URL)
+  {
+    rdcstr ret = URL;
+    int offs = ret.find("://");
+    if(offs > 0)
+      ret.erase(0, offs + 3);
+    return ret;
+  }
+
+  virtual rdcstr RemapHostname(const rdcstr &deviceID) = 0;
+  virtual uint16_t RemapPort(const rdcstr &deviceID, uint16_t srcPort) = 0;
+  virtual IRemoteServer *CreateRemoteServer(Network::Socket *sock, const rdcstr &deviceID) = 0;
+};
+
 // utility functions useful in any driver implementation
 void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
                            rdcarray<DrawcallDescription> &draws);

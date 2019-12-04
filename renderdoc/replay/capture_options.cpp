@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "api/replay/capture_options.h"
 #include <float.h>
 #include "api/app/renderdoc_app.h"
-#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "core/core.h"
 
@@ -171,6 +171,8 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
 
 CaptureOptions::CaptureOptions()
 {
+  // since we're reading from all bytes even padding etc, memset to 0
+  RDCEraseEl(*this);
   allowVSync = true;
   allowFullscreen = true;
   apiValidation = false;

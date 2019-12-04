@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include "api/replay/stringise.h"
 #include "common/common.h"
 #include "common/wrapped_pool.h"
 #include "driver/dx/official/dxgi1_6.h"

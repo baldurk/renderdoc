@@ -24,9 +24,9 @@
  ******************************************************************************/
 
 #include <winsock2.h>
-#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "hooks/hooks.h"
+#include "os/os_specific.h"
 #include "strings/string_utils.h"
 
 typedef int(WSAAPI *PFN_WSASTARTUP)(__in WORD wVersionRequested, __out LPWSADATA lpWSAData);
@@ -229,15 +229,13 @@ private:
     {
       RDCDEBUG("Intercepting %s", entryPoint);
 
-      rdcarray<EnvironmentModification> env;
-
       // inherit logfile and capture options
-      ExecuteResult res = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, env,
-                                                      RenderDoc::Inst().GetCaptureFileTemplate(),
-                                                      RenderDoc::Inst().GetCaptureOptions(), false);
+      rdcpair<ReplayStatus, uint32_t> res = Process::InjectIntoProcess(
+          lpProcessInformation->dwProcessId, {}, RenderDoc::Inst().GetCaptureFileTemplate(),
+          RenderDoc::Inst().GetCaptureOptions(), false);
 
-      if(res.status == ReplayStatus::Succeeded)
-        RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, res.ident);
+      if(res.first == ReplayStatus::Succeeded)
+        RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, res.second);
     }
 
     if(resume)

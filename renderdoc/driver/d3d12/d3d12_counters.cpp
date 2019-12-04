@@ -29,6 +29,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_common.h"
 #include "d3d12_device.h"
+#include "d3d12_replay.h"
 
 rdcarray<GPUCounter> D3D12Replay::EnumerateCounters()
 {

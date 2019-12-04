@@ -22,12 +22,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "api/replay/renderdoc_replay.h"
+#include "common/globalconfig.h"
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcpair.h"
+#include "api/replay/rdcstr.h"
 #include "common/globalconfig.h"
 #include "common/timing.h"
 #include "os/os_specific.h"
-
-#if ENABLED(ENABLE_UNIT_TESTS)
 
 #include "3rdparty/catch/catch.hpp"
 

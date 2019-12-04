@@ -23,16 +23,17 @@
  ******************************************************************************/
 
 #include <float.h>
+#include <math.h>
 #include <algorithm>
 #include "data/glsl_shaders.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "driver/shaders/spirv/spirv_gen.h"
-#include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
+#include "vk_replay.h"
 #include "vk_shader_cache.h"
 
 #define VULKAN 1

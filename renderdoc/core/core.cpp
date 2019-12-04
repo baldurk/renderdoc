@@ -28,6 +28,7 @@
 #include <algorithm>
 #include "api/replay/version.h"
 #include "common/common.h"
+#include "common/threading.h"
 #include "hooks/hooks.h"
 #include "maths/formatpacking.h"
 #include "replay/replay_driver.h"
@@ -1031,20 +1032,9 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
         float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
         float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
 
-        if(linearR < 0.0031308f)
-          dst[0] = byte(255.0f * (12.92f * linearR));
-        else
-          dst[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
-
-        if(linearG < 0.0031308f)
-          dst[1] = byte(255.0f * (12.92f * linearG));
-        else
-          dst[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
-
-        if(linearB < 0.0031308f)
-          dst[2] = byte(255.0f * (12.92f * linearB));
-        else
-          dst[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
+        dst[0] = byte(255.0f * ConvertLinearToSRGB(linearR));
+        dst[1] = byte(255.0f * ConvertLinearToSRGB(linearG));
+        dst[2] = byte(255.0f * ConvertLinearToSRGB(linearB));
       }
       else
       {
@@ -1651,6 +1641,33 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
   }
 
   RenderDoc::Inst().SetProgress(CaptureProgress::FileWriting, 1.0f);
+}
+
+void RenderDoc::AddChildProcess(uint32_t pid, uint32_t ident)
+{
+  SCOPED_LOCK(m_ChildLock);
+  m_Children.push_back(make_rdcpair(pid, ident));
+}
+
+std::vector<rdcpair<uint32_t, uint32_t> > RenderDoc::GetChildProcesses()
+{
+  SCOPED_LOCK(m_ChildLock);
+  return m_Children;
+}
+
+std::vector<CaptureData> RenderDoc::GetCaptures()
+{
+  SCOPED_LOCK(m_CaptureLock);
+  return m_Captures;
+}
+
+void RenderDoc::MarkCaptureRetrieved(uint32_t idx)
+{
+  SCOPED_LOCK(m_CaptureLock);
+  if(idx < m_Captures.size())
+  {
+    m_Captures[idx].retrieved = true;
+  }
 }
 
 void RenderDoc::AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap)

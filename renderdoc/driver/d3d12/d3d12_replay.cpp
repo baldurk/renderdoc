@@ -81,9 +81,9 @@ D3D12Pipe::RegisterSpace &get_space(rdcarray<D3D12Pipe::RegisterSpace> &dstSpace
   return dstSpaces.back();
 }
 
-D3D12Replay::D3D12Replay()
+D3D12Replay::D3D12Replay(WrappedID3D12Device *d)
 {
-  m_pDevice = NULL;
+  m_pDevice = d;
   m_Proxy = false;
 
   m_HighlightCache.driver = this;
@@ -631,11 +631,6 @@ void D3D12Replay::FreeCustomShader(ResourceId id)
 
     SAFE_RELEASE(resource);
   }
-}
-
-FrameRecord D3D12Replay::GetFrameRecord()
-{
-  return m_pDevice->GetFrameRecord();
 }
 
 ResourceId D3D12Replay::GetLiveID(ResourceId id)

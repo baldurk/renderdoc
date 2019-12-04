@@ -27,7 +27,6 @@
 
 #include <list>
 #include <map>
-#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "d3d11_common.h"
 #include "d3d11_manager.h"

@@ -312,7 +312,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         RDCASSERTEQUAL(hr, S_OK);
 
         m_pDevice->AddResource(BakedCommandList, ResourceType::CommandBuffer, "Baked Command List");
-        m_pDevice->GetReplay()->GetResourceDesc(BakedCommandList).initialisationChunks.clear();
+        m_pDevice->GetResourceDesc(BakedCommandList).initialisationChunks.clear();
         m_pDevice->DerivedResource(CommandList, BakedCommandList);
         m_pDevice->DerivedResource(pAllocator, BakedCommandList);
         if(pInitialState)
@@ -380,7 +380,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         // reset state
         D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[BakedCommandList].state;
         state.m_ResourceManager = GetResourceManager();
-        state.m_DebugManager = m_pDevice->GetReplay()->GetDebugManager();
+        state.m_DebugManager = m_pDevice->GetDebugManager();
         state.pipe = GetResID(pInitialState);
       }
     }
@@ -1433,14 +1433,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
     unwrappedRTs.resize(RTVs.size());
     for(size_t i = 0; i < RTVs.size(); i++)
     {
-      unwrappedRTs[i] =
-          Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
+      unwrappedRTs[i] = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE unwrappedDSV = {};
     if(DSV.GetResResourceId() != ResourceId())
     {
-      unwrappedDSV = Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV));
+      unwrappedDSV = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(DSV));
     }
 
     if(IsActiveReplaying(m_State))
@@ -3457,7 +3456,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   if(exec.countBuf)
   {
     bytebuf data;
-    m_pDevice->GetReplay()->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
+    m_pDevice->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
     count = RDCMIN(count, *(uint32_t *)&data[0]);
   }
 
@@ -3865,8 +3864,8 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
   }
 
   bytebuf data;
-  m_pDevice->GetReplay()->GetDebugManager()->GetBufferData(exec.argBuf, exec.argOffs,
-                                                           count * comSig->sig.ByteStride, data);
+  m_pDevice->GetDebugManager()->GetBufferData(exec.argBuf, exec.argOffs,
+                                              count * comSig->sig.ByteStride, data);
 
   byte *dataPtr = &data[0];
 
@@ -4382,7 +4381,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
     SERIALISE_ELEMENT_LOCAL(DSV, *GetWrapped(DepthStencilView)).Named("DepthStencilView"_lit);
 
     if(IsReplayingAndReading())
-      DepthStencilView = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV);
+      DepthStencilView = m_pDevice->GetDebugManager()->GetTempDescriptor(DSV);
   }
   else
   {
@@ -4479,7 +4478,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
     SERIALISE_ELEMENT_LOCAL(RTV, *GetWrapped(RenderTargetView)).Named("RenderTargetView"_lit);
 
     if(IsReplayingAndReading())
-      RenderTargetView = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(RTV);
+      RenderTargetView = m_pDevice->GetDebugManager()->GetTempDescriptor(RTV);
   }
   else
   {
@@ -4572,7 +4571,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
     SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle"_lit);
 
     if(IsReplayingAndReading())
-      ViewCPUHandle = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(UAV);
+      ViewCPUHandle = m_pDevice->GetDebugManager()->GetTempDescriptor(UAV);
   }
   else
   {
@@ -4677,7 +4676,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
     SERIALISE_ELEMENT_LOCAL(UAV, *GetWrapped(ViewCPUHandle)).Named("ViewCPUHandle"_lit);
 
     if(IsReplayingAndReading())
-      ViewCPUHandle = m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(UAV);
+      ViewCPUHandle = m_pDevice->GetDebugManager()->GetTempDescriptor(UAV);
   }
   else
   {

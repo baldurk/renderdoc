@@ -25,10 +25,10 @@
 
 #include "d3d11_common.h"
 #include "core/core.h"
-#include "driver/d3d11/d3d11_renderstate.h"
-#include "driver/d3d11/d3d11_resources.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
+#include "d3d11_renderstate.h"
+#include "d3d11_resources.h"
 
 WrappedID3D11Device *D3D11MarkerRegion::device;
 

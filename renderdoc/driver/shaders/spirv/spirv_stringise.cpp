@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/stringise.h"
 #include "common/common.h"
 
 template <>

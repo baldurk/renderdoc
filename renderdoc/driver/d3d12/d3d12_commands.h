@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "d3d12_common.h"
 #include "d3d12_state.h"

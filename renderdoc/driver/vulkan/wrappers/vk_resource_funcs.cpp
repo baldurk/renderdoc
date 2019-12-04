@@ -909,8 +909,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
 
     ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
 
-    GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
-    GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+    GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+    GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
 
     AddResourceCurChunk(memOrigId);
     AddResourceCurChunk(resOrigId);
@@ -1016,8 +1016,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
     layout.boundMemoryOffset = memoryOffset;
     layout.boundMemorySize = mrq.size;
 
-    GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
-    GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+    GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+    GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
 
     AddResourceCurChunk(memOrigId);
     AddResourceCurChunk(resOrigId);
@@ -2017,8 +2017,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
       if(!ok)
         return false;
 
-      GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
-      GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+      GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+      GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
 
       AddResourceCurChunk(memOrigId);
       AddResourceCurChunk(resOrigId);
@@ -2138,8 +2138,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       imageLayouts.boundMemoryOffset = bindInfo.memoryOffset;
       imageLayouts.boundMemorySize = mrq.size;
 
-      GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
-      GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+      GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+      GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
 
       AddResourceCurChunk(memOrigId);
       AddResourceCurChunk(resOrigId);

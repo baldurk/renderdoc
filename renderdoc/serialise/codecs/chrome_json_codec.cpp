@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <utility>
+#include "api/replay/structured_data.h"
 #include "common/common.h"
 #include "common/formatting.h"
 #include "serialise/rdcfile.h"

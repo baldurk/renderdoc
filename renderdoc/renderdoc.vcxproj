@@ -436,6 +436,7 @@
     <ClCompile Include="maths\camera.cpp" />
     <ClCompile Include="maths\formatpacking.cpp" />
     <ClCompile Include="maths\matrix.cpp" />
+    <ClCompile Include="maths\vec.cpp" />
     <ClCompile Include="os\os_specific.cpp" />
     <ClCompile Include="os\posix\android\android_callstack.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>

@@ -23,13 +23,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_resources.h"
+#include "d3d11_resources.h"
 #include "3rdparty/lz4/lz4.h"
 #include "api/app/renderdoc_app.h"
-#include "driver/d3d11/d3d11_context.h"
-#include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "driver/shaders/dxbc/dxbc_reflect.h"
+#include "d3d11_context.h"
+#include "d3d11_renderstate.h"
 
 WRAPPED_POOL_INST(WrappedID3D11Buffer);
 WRAPPED_POOL_INST(WrappedID3D11Texture1D);

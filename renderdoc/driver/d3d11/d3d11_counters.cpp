@@ -31,6 +31,7 @@
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
+#include "d3d11_replay.h"
 
 rdcarray<GPUCounter> D3D11Replay::EnumerateCounters()
 {
@@ -487,8 +488,7 @@ rdcarray<CounterResult> D3D11Replay::FetchCountersAMD(const rdcarray<GPUCounter>
 
 rdcarray<CounterResult> D3D11Replay::FetchCountersNV(const rdcarray<GPUCounter> &counters)
 {
-  const FrameRecord &frameRecord = m_pDevice->GetFrameRecord();
-  const FrameStatistics &frameStats = frameRecord.frameInfo.stats;
+  const FrameStatistics &frameStats = m_FrameRecord.frameInfo.stats;
 
   const uint32_t objectsCount = frameStats.draws.calls + frameStats.dispatches.calls + 1;
 

@@ -29,6 +29,11 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcpair.h"
+#include "api/replay/rdcstr.h"
+#include "api/replay/replay_enums.h"
+#include "api/replay/shader_types.h"
 #include "common/common.h"
 #include "spirv_common.h"
 

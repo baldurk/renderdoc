@@ -251,8 +251,8 @@ enum TexDisplayFlags
 class VulkanReplay : public IReplayDriver
 {
 public:
-  VulkanReplay();
-
+  VulkanReplay(WrappedVulkan *d);
+  virtual ~VulkanReplay() {}
   void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }
   void SetProxy(bool p) { m_Proxy = p; }
   bool IsRemoteProxy() { return m_Proxy; }
@@ -261,7 +261,6 @@ public:
   void CreateResources();
   void DestroyResources();
 
-  void SetDriver(WrappedVulkan *d) { m_pDriver = d; }
   DriverInformation GetDriverInfo() { return m_DriverInfo; }
   rdcarray<GPUDevice> GetAvailableGPUs();
   APIProperties GetAPIProperties();
@@ -284,7 +283,8 @@ public:
 
   std::vector<EventUsage> GetUsage(ResourceId id);
 
-  FrameRecord GetFrameRecord();
+  FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
+  FrameRecord GetFrameRecord() { return m_FrameRecord; }
   std::vector<DebugMessage> GetDebugMessages();
 
   void SavePipelineState(uint32_t eventId);
@@ -502,6 +502,8 @@ private:
   HighlightCache m_HighlightCache;
 
   bool m_Proxy;
+
+  FrameRecord m_FrameRecord;
 
   WrappedVulkan *m_pDriver = NULL;
   VkDevice m_Device = VK_NULL_HANDLE;

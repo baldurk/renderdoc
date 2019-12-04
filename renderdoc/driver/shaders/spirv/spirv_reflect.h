@@ -25,7 +25,6 @@
 #pragma once
 
 #include <vector>
-#include "api/replay/renderdoc_replay.h"
 #include "spirv_common.h"
 #include "spirv_processor.h"
 

@@ -31,7 +31,7 @@
 #include "d3d11_common.h"
 #include "d3d11_renderstate.h"
 
-struct D3D11DebugManager;
+class D3D11DebugManager;
 
 class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;
@@ -98,7 +98,7 @@ enum TexDisplayFlags
 class D3D11Replay : public IReplayDriver
 {
 public:
-  D3D11Replay();
+  D3D11Replay(WrappedID3D11Device *d);
   ~D3D11Replay();
 
   void SetProxy(bool p, bool warp)
@@ -109,7 +109,6 @@ public:
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
 
-  void SetDevice(WrappedID3D11Device *d);
   void CreateResources(IDXGIFactory *factory);
   void DestroyResources();
 
@@ -137,8 +136,8 @@ public:
 
   std::vector<EventUsage> GetUsage(ResourceId id);
 
-  FrameRecord GetFrameRecord();
-
+  FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
+  FrameRecord GetFrameRecord() { return m_FrameRecord; }
   void SavePipelineState(uint32_t eventId);
   const D3D11Pipe::State *GetD3D11PipelineState() { return &m_CurPipelineState; }
   const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
@@ -482,6 +481,8 @@ private:
 
   std::vector<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;
+
+  FrameRecord m_FrameRecord;
 
   D3D11Pipe::State m_CurPipelineState;
 };

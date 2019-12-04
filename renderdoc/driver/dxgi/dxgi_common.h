@@ -24,7 +24,9 @@
 
 #pragma once
 
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/data_types.h"
+#include "api/replay/replay_enums.h"
+#include "api/replay/stringise.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/dx/official/dxgi1_5.h"
 #include "maths/vec.h"
@@ -67,6 +69,8 @@ Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo);
 D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo);
 
 void WarnUnknownGUID(const char *name, REFIID riid);
+
+struct ReplayOptions;
 
 std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc);
 void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,

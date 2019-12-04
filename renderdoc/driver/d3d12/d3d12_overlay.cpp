@@ -26,7 +26,6 @@
 #include "data/resource.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
-#include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
@@ -36,6 +35,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
+#include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"

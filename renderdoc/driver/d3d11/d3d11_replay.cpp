@@ -44,12 +44,14 @@
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
-D3D11Replay::D3D11Replay()
+D3D11Replay::D3D11Replay(WrappedID3D11Device *d)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D11Replay));
 
-  m_pDevice = NULL;
+  m_pDevice = d;
+  m_pImmediateContext = d->GetImmediateContext();
+
   m_Proxy = false;
   m_WARP = false;
 
@@ -71,12 +73,6 @@ void D3D11Replay::Shutdown()
   m_ProxyResources.clear();
 
   m_pDevice->Release();
-}
-
-void D3D11Replay::SetDevice(WrappedID3D11Device *d)
-{
-  m_pDevice = d;
-  m_pImmediateContext = d->GetImmediateContext();
 }
 
 void D3D11Replay::CreateResources(IDXGIFactory *factory)
@@ -504,11 +500,6 @@ void D3D11Replay::FreeCustomShader(ResourceId id)
 
     SAFE_RELEASE(resource);
   }
-}
-
-FrameRecord D3D11Replay::GetFrameRecord()
-{
-  return m_pDevice->GetFrameRecord();
 }
 
 std::vector<EventUsage> D3D11Replay::GetUsage(ResourceId id)

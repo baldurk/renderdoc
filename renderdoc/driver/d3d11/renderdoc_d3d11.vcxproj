@@ -164,6 +164,9 @@
     <ProjectReference Include="..\ihv\intel\Intel.vcxproj">
       <Project>{7fcb5fc5-1dbd-4da6-83a0-6ba4e945bda5}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\ihv\nv\NV.vcxproj">
+      <Project>{40349ad9-5558-4df4-84e2-11934de90a11}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">
       <Project>{c43ff27e-a155-4852-88ec-5ce9334c07a8}</Project>
       <Private>false</Private>

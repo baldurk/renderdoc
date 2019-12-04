@@ -27,7 +27,7 @@
 
 #include <map>
 #include <set>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/resourceid.h"
 #include "common/threading.h"
 #include "core/core.h"
 #include "os/os_specific.h"

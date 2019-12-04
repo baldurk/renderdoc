@@ -212,7 +212,7 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
 
 struct GPUQueries
 {
-  GLuint obj[ENUM_ARRAY_SIZE(GPUCounter)];
+  GLuint obj[arraydim<GPUCounter>()];
   uint32_t eventId;
 };
 

@@ -22,12 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/gl/apple_gl_hook_defs.h"
-#include "driver/gl/gl_common.h"
-#include "driver/gl/gl_dispatch_table.h"
-#include "driver/gl/gl_dispatch_table_defs.h"
-#include "driver/gl/gl_driver.h"
 #include "hooks/hooks.h"
+#include "apple_gl_hook_defs.h"
+#include "gl_common.h"
+#include "gl_dispatch_table.h"
+#include "gl_dispatch_table_defs.h"
+#include "gl_driver.h"
 
 #if ENABLED(RDOC_POSIX)
 #include <dlfcn.h>

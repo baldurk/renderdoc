@@ -59,9 +59,13 @@
 // We need to disable clang-format since this file is programmatically generated
 // clang-format off
 
+#include <functional>
 #include <set>
 #include <stdint.h>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/apidefs.h"
+#include "api/replay/rdcstr.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/stringise.h"
 
 #undef None
 #undef CopyMemory
@@ -16319,33 +16323,33 @@ struct OpSubgroupAvcSicGetInterRawSadsINTEL
 };
 
 template<typename T>
-inline std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const T &el)
+inline rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const T &el)
 {
   return ToStr(el);
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const Id &el);
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const Id &el);
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr &el);
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr &el);
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el);
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el);
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el);
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el);
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefIdRef &el);
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefIdRef &el);
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ImageOperandsAndParamDatas &el);template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::LoopControlAndParamDatas &el);template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::MemoryAccessAndParamDatas &el);template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ExecutionModeAndParamData &el);template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::DecorationAndParamData &el);
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ImageOperandsAndParamDatas &el);template<>
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::LoopControlAndParamDatas &el);template<>
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::MemoryAccessAndParamDatas &el);template<>
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ExecutionModeAndParamData &el);template<>
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::DecorationAndParamData &el);
 
 template<typename U>
-inline std::string ParamsToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcarray<U> &ids)
+inline rdcstr ParamsToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcarray<U> &ids)
 {
-  std::string ret = "{";
+  rdcstr ret = "{";
   for(size_t i=0; i < ids.size(); i++)
   {
     ret += ParamToStr(idName, ids[i]);
@@ -16361,7 +16365,7 @@ struct OpDecoder
   OpDecoder(const ConstIter &it);
 
   static void AddUsedIDs(std::set<Id> &usedids, const ConstIter &it);
-  static std::string Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal);
+  static rdcstr Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal);
   
   Op op;
   uint16_t wordCount;

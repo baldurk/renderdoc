@@ -26,8 +26,10 @@
 #include <set>
 #include "api/replay/version.h"
 #include "common/formatting.h"
+#include "common/threading.h"
 #include "core/core.h"
 #include "core/remote_server.h"
+#include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"
 

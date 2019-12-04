@@ -25,6 +25,8 @@
 #pragma once
 
 #include <map>
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
 #include "llvm_bitreader.h"
 
 namespace LLVMBC

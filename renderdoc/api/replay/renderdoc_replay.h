@@ -27,7 +27,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <functional>
 
 #include "apidefs.h"
 
@@ -53,10 +52,8 @@ typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
 #include "rdcdatetime.h"
 #include "rdcpair.h"
 #include "rdcstr.h"
-#include "stringise.h"
-
-// define ResourceId, because it's a base type for structured data but needs the stringise interface
 #include "resourceid.h"
+#include "stringise.h"
 
 // include all API types now
 #include "capture_options.h"
@@ -206,50 +203,11 @@ inline const WindowingData CreateMacOSWindowingData(void *view, void *layer)
   return ret;
 }
 
-// there's not a good way to document a callback, so for lack of a better place we declare these
-// here and document them immediately below. They can be linked to from anywhere by name.
-typedef std::function<bool()> RENDERDOC_KillCallback;
-typedef std::function<void(float)> RENDERDOC_ProgressCallback;
-typedef std::function<WindowingData(bool, const rdcarray<WindowingSystem> &)> RENDERDOC_PreviewWindowCallback;
-
 DOCUMENT(R"(A stateful output handle that contains the current configuration for one particular view
 of the capture. This allows multiple outputs to run independently without interfering with each
 other.
 
 The different types are enumerated in :class:`ReplayOutputType`.
-
-.. function:: KillCallback()
-
-  Not an actual member function - the signature for any ``KillCallback`` callbacks.
-
-  Called whenever some on-going blocking process needs to determine if it should close.
-
-  :return: Whether or not the process should be killed.
-  :rtype: ``bool``
-
-.. function:: ProgressCallback()
-
-  Not an actual member function - the signature for any ``ProgressCallback`` callbacks.
-
-  Called by an on-going blocking process to update a progress bar or similar user feedback.
-
-  The progress value will go from 0.0 to 1.0 as the process completes. Any other value will indicate
-  that the process has completed
-
-  :param float progress: The latest progress amount.
-
-.. function:: PreviewWindowCallback()
-
-  Not an actual member function - the signature for any ``PreviewWindowCallback`` callbacks.
-
-  Called when a preview window could optionally be opened to display some information. It will be
-  called repeatedly with :paramref:`active` set to ``True`` to allow any platform-specific message
-  pumping.
-
-  :param bool active: ``True`` if a preview window is active/opened, ``False`` if it has closed.
-  :return: The windowing data for a preview window, or empty/default values if no window should be
-    created.
-  :rtype: WindowingData
 
 .. data:: NoResult
 
@@ -400,6 +358,39 @@ protected:
 
 DOCUMENT(R"(The primary interface to access the information in a capture and the current state, as
 well as control the replay and analysis functionality available.
+
+.. function:: KillCallback()
+
+  Not an actual member function - the signature for any ``KillCallback`` callbacks.
+
+  Called whenever some on-going blocking process needs to determine if it should close.
+
+  :return: Whether or not the process should be killed.
+  :rtype: ``bool``
+
+.. function:: ProgressCallback()
+
+  Not an actual member function - the signature for any ``ProgressCallback`` callbacks.
+
+  Called by an on-going blocking process to update a progress bar or similar user feedback.
+
+  The progress value will go from 0.0 to 1.0 as the process completes. Any other value will indicate
+  that the process has completed
+
+  :param float progress: The latest progress amount.
+
+.. function:: PreviewWindowCallback()
+
+  Not an actual member function - the signature for any ``PreviewWindowCallback`` callbacks.
+
+  Called when a preview window could optionally be opened to display some information. It will be
+  called repeatedly with :paramref:`active` set to ``True`` to allow any platform-specific message
+  pumping.
+
+  :param bool active: ``True`` if a preview window is active/opened, ``False`` if it has closed.
+  :return: The windowing data for a preview window, or empty/default values if no window should be
+    created.
+  :rtype: WindowingData
 
 .. data:: NoPreference
 

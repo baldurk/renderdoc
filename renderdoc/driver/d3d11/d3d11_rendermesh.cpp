@@ -28,6 +28,7 @@
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
+#include "d3d11_replay.h"
 #include "d3d11_resources.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"

@@ -319,7 +319,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &c
 
 #else
 
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/apidefs.h"
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
                                                                  const rdcarray<rdcstr> &args)

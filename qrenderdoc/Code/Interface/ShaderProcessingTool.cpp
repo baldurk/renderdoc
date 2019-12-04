@@ -28,11 +28,11 @@
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
-static const QString glsl_stage4[ENUM_ARRAY_SIZE(ShaderStage)] = {
+static const QString glsl_stage4[arraydim<ShaderStage>()] = {
     lit("vert"), lit("tesc"), lit("tese"), lit("geom"), lit("frag"), lit("comp"),
 };
 
-static const QString hlsl_stage2[ENUM_ARRAY_SIZE(ShaderStage)] = {
+static const QString hlsl_stage2[arraydim<ShaderStage>()] = {
     lit("vs"), lit("hs"), lit("ds"), lit("gs"), lit("ps"), lit("cs"),
 };
 

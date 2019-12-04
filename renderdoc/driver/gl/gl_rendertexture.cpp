@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "gl_driver.h"

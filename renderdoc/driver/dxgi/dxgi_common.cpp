@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "dxgi_common.h"
+#include "api/replay/control_types.h"
 #include "common/common.h"
 #include "common/threading.h"
 #include "serialise/serialiser.h"

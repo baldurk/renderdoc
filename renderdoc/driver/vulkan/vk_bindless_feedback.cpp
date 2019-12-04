@@ -27,6 +27,7 @@
 #include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "vk_core.h"
 #include "vk_debug.h"
+#include "vk_replay.h"
 #include "vk_shader_cache.h"
 
 struct feedbackData

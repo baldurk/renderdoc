@@ -30,20 +30,35 @@
 #include <string>
 #include <vector>
 #include "api/app/renderdoc_app.h"
-#include "api/replay/renderdoc_replay.h"
-#include "common/threading.h"
+#include "api/replay/apidefs.h"
+#include "api/replay/capture_options.h"
+#include "api/replay/control_types.h"
+#include "api/replay/stringise.h"
 #include "common/timing.h"
-#include "maths/vec.h"
 #include "os/os_specific.h"
 
 class Chunk;
 struct RDCThumb;
+struct ReplayOptions;
 
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f);
 void LogReplayOptions(const ReplayOptions &opts);
 
 enum class RDCDriver : uint32_t;
+
+class IRemoteDriver;
+class IReplayDriver;
+
+class StreamReader;
+class RDCFile;
+struct SDFile;
+enum class VulkanLayerFlags : uint32_t;
+
+namespace Callstack
+{
+class StackResolver;
+}
 
 struct ICrashHandler
 {
@@ -60,23 +75,7 @@ struct IFrameCapturer
   virtual bool DiscardFrameCapture(void *dev, void *wnd) = 0;
 };
 
-// for protocols, we extend the public interface a bit to add callbacks for remapping connection
-// ports (typically to some port forwarded on localhost)
-struct IDeviceProtocolHandler : public IDeviceProtocolController
-{
-  virtual rdcstr GetDeviceID(const rdcstr &URL)
-  {
-    rdcstr ret = URL;
-    int offs = ret.find("://");
-    if(offs > 0)
-      ret.erase(0, offs + 3);
-    return ret;
-  }
-
-  virtual rdcstr RemapHostname(const rdcstr &deviceID) = 0;
-  virtual uint16_t RemapPort(const rdcstr &deviceID, uint16_t srcPort) = 0;
-  virtual IRemoteServer *CreateRemoteServer(Network::Socket *sock, const rdcstr &deviceID) = 0;
-};
+struct IDeviceProtocolHandler;
 
 // In most cases you don't need to check these individually, use the utility functions below
 // to determine if you're in a capture or replay state. There are utility functions for each
@@ -204,11 +203,6 @@ enum class RDCDriver : uint32_t
 
 DECLARE_REFLECTION_ENUM(RDCDriver);
 
-namespace Callstack
-{
-class StackResolver;
-}
-
 enum ReplayLogType
 {
   eReplay_Full,
@@ -328,12 +322,6 @@ inline constexpr float FakeProgress(uint32_t x, uint32_t maxX)
   return 1.0f - (1.0f / (x * (4.0f / float(maxX)) + 1));
 }
 
-class IRemoteDriver;
-class IReplayDriver;
-
-class StreamReader;
-class RDCFile;
-
 typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
                                              IRemoteDriver **driver);
 typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, const ReplayOptions &opts,
@@ -422,7 +410,7 @@ public:
   void Shutdown();
 
   uint64_t GetMicrosecondTimestamp() { return uint64_t(m_Timer.GetMicroseconds()); }
-  const GlobalEnvironment GetGlobalEnvironment() { return m_GlobalEnv; }
+  const GlobalEnvironment &GetGlobalEnvironment() { return m_GlobalEnv; }
   void ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args);
 
   int32_t GetForwardedPortSlot() { return Atomic::Inc32(&m_PortSlot); }
@@ -451,31 +439,12 @@ public:
   RDCFile *CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePixels &fp);
   void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
-  void AddChildProcess(uint32_t pid, uint32_t ident)
-  {
-    SCOPED_LOCK(m_ChildLock);
-    m_Children.push_back(make_rdcpair(pid, ident));
-  }
-  std::vector<rdcpair<uint32_t, uint32_t> > GetChildProcesses()
-  {
-    SCOPED_LOCK(m_ChildLock);
-    return m_Children;
-  }
+  void AddChildProcess(uint32_t pid, uint32_t ident);
+  std::vector<rdcpair<uint32_t, uint32_t> > GetChildProcesses();
 
-  std::vector<CaptureData> GetCaptures()
-  {
-    SCOPED_LOCK(m_CaptureLock);
-    return m_Captures;
-  }
+  std::vector<CaptureData> GetCaptures();
 
-  void MarkCaptureRetrieved(uint32_t idx)
-  {
-    SCOPED_LOCK(m_CaptureLock);
-    if(idx < m_Captures.size())
-    {
-      m_Captures[idx].retrieved = true;
-    }
-  }
+  void MarkCaptureRetrieved(uint32_t idx);
 
   void RegisterReplayProvider(RDCDriver driver, ReplayDriverProvider provider);
   void RegisterRemoteProvider(RDCDriver driver, RemoteDriverProvider provider);
@@ -515,10 +484,10 @@ public:
       m_VulkanInstall(systemLevel);
   }
 
-  Vec4f LightCheckerboardColor() { return m_LightChecker; }
-  Vec4f DarkCheckerboardColor() { return m_DarkChecker; }
-  void SetLightCheckerboardColor(const Vec4f &col) { m_LightChecker = col; }
-  void SetDarkCheckerboardColor(const Vec4f &col) { m_DarkChecker = col; }
+  FloatVector LightCheckerboardColor() { return m_LightChecker; }
+  FloatVector DarkCheckerboardColor() { return m_DarkChecker; }
+  void SetLightCheckerboardColor(const FloatVector &col) { m_LightChecker = col; }
+  void SetDarkCheckerboardColor(const FloatVector &col) { m_DarkChecker = col; }
   bool IsDarkTheme() { return m_DarkTheme; }
   void SetDarkTheme(bool dark) { m_DarkTheme = dark; }
   ReplayStatus CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver);
@@ -701,8 +670,8 @@ private:
     }
   };
 
-  Vec4f m_LightChecker = Vec4f(0.81f, 0.81f, 0.81f, 1.0f);
-  Vec4f m_DarkChecker = Vec4f(0.57f, 0.57f, 0.57f, 1.0f);
+  FloatVector m_LightChecker = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
+  FloatVector m_DarkChecker = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
   bool m_DarkTheme = false;
 
   int m_CapturesActive;
@@ -713,7 +682,7 @@ private:
 
   IFrameCapturer *MatchFrameCapturer(void *dev, void *wnd);
 
-  bool m_VendorExts[ENUM_ARRAY_SIZE(VendorExtensions)] = {};
+  bool m_VendorExts[arraydim<VendorExtensions>()] = {};
 
   volatile bool m_TargetControlThreadShutdown;
   volatile bool m_ControlClientThreadShutdown;

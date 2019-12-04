@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include <math.h>
 #include <stdint.h>
 
 struct Vec2f
@@ -49,7 +48,7 @@ public:
     return Vec3f(y * o.z - z * o.y, z * o.x - x * o.z, x * o.y - y * o.x);
   }
 
-  inline float Length() const { return sqrtf(Dot(*this)); }
+  float Length() const;
   inline void Normalise()
   {
     float l = Length();
@@ -61,6 +60,8 @@ public:
   float x, y, z;
 };
 
+struct FloatVector;
+
 struct Vec4f
 {
   Vec4f(float X = 0.0f, float Y = 0.0f, float Z = 0.0f, float W = 0.0f)
@@ -70,7 +71,9 @@ struct Vec4f
     z = Z;
     w = W;
   }
+  Vec4f(const FloatVector &v);
   operator Vec3f() const { return Vec3f(x, y, z); }
+  operator FloatVector() const;
   float x, y, z, w;
 };
 

@@ -693,7 +693,7 @@ public:
       {
         device->AddResource(GetResourceID(), ResourceType::Shader, "Shader");
 
-        ResourceDescription &desc = device->GetReplay()->GetResourceDesc(GetResourceID());
+        ResourceDescription &desc = device->GetResourceDesc(GetResourceID());
         // this will be appended to in the function above.
         desc.initialisationChunks.clear();
 

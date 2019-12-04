@@ -1134,7 +1134,7 @@ QString D3DSemanticString(const SigParameter &sig)
   if(sig.systemValue == ShaderBuiltin::Undefined)
     return sig.semanticIdxName;
 
-  QString sysValues[ENUM_ARRAY_SIZE(ShaderBuiltin)] = {
+  QString sysValues[arraydim<ShaderBuiltin>()] = {
       lit("SV_Undefined"),
       lit("SV_Position"),
       lit("Unsupported (PointSize)"),

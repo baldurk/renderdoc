@@ -60,7 +60,8 @@
 // clang-format off
 
 #include <stdint.h>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/apidefs.h"
+#include "api/replay/stringise.h"
 
 #undef None
 #undef CopyMemory

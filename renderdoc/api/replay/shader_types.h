@@ -30,6 +30,7 @@
 #include "rdcarray.h"
 #include "rdcstr.h"
 #include "replay_enums.h"
+#include "resourceid.h"
 #include "stringise.h"
 
 DOCUMENT("A ``float`` 4 component vector.")

@@ -26,7 +26,7 @@
 #pragma once
 
 #include "core/resource_manager.h"
-#include "driver/gl/gl_common.h"
+#include "gl_common.h"
 
 size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalformat);
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);

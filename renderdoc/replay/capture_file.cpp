@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "jpeg-compressor/jpge.h"

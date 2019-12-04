@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2018-2019 Baldur Karlsson
+ * Copyright (c) 2019 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,38 +22,24 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "vec.h"
+#include <math.h>
+#include "api/replay/data_types.h"
 
-#include <map>
-#include <string>
-#include <vector>
-#include "driver/dx/official/d3d11_4.h"
-#include "d3d12_common.h"
-
-class WrappedID3D11Device;
-
-class D3D12ShaderCache
+float Vec3f::Length() const
 {
-public:
-  D3D12ShaderCache();
-  ~D3D12ShaderCache();
+  return sqrtf(Dot(*this));
+}
 
-  std::string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                            const char *profile, ID3DBlob **srcblob);
+Vec4f::Vec4f(const FloatVector &v)
+{
+  x = v.x;
+  y = v.y;
+  z = v.z;
+  w = v.w;
+}
 
-  D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
-  ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
-                        D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
-                        UINT NumStaticSamplers = 0,
-                        const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
-  ID3DBlob *MakeRootSig(const D3D12RootSignature &rootsig);
-  ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
-
-  void SetCaching(bool enabled) { m_CacheShaders = enabled; }
-private:
-  static const uint32_t m_ShaderCacheMagic = 0xf000baba;
-  static const uint32_t m_ShaderCacheVersion = 3;
-
-  bool m_ShaderCacheDirty = false, m_CacheShaders = false;
-  std::map<uint32_t, ID3DBlob *> m_ShaderCache;
-};
+Vec4f::operator FloatVector() const
+{
+  return FloatVector(x, y, z, w);
+}

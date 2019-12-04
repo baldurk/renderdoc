@@ -13,7 +13,7 @@
 #include "winapifamily.h"
 
 // Current name of the DLL shipped in the same SDK as this header.
-
+#include "d3dcommon.h"
 
 
 #define D3DCOMPILER_DLL_W L"d3dcompiler_47.dll"

@@ -23,10 +23,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_renderstate.h"
-#include "driver/d3d11/d3d11_context.h"
-#include "driver/d3d11/d3d11_device.h"
-#include "driver/d3d11/d3d11_resources.h"
+#include "d3d11_renderstate.h"
+#include "d3d11_context.h"
+#include "d3d11_device.h"
+#include "d3d11_resources.h"
 
 D3D11RenderState::D3D11RenderState(D3D11RenderState::EmptyInit)
 {

@@ -22,12 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
+
+#include "driver/dx/official/d3dcompiler.h"
 
 void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS)
 {

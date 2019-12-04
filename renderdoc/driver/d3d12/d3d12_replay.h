@@ -53,7 +53,7 @@ enum TexDisplayFlags
 class D3D12Replay : public IReplayDriver
 {
 public:
-  D3D12Replay();
+  D3D12Replay(WrappedID3D12Device *d);
 
   D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
   void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }
@@ -63,7 +63,6 @@ public:
   void Initialise(IDXGIFactory1 *factory);
   void Shutdown();
 
-  void SetDevice(WrappedID3D12Device *d) { m_pDevice = d; }
   void CreateResources();
   void DestroyResources();
   DriverInformation GetDriverInfo() { return m_DriverInfo; }
@@ -90,8 +89,8 @@ public:
 
   std::vector<EventUsage> GetUsage(ResourceId id);
 
-  FrameRecord GetFrameRecord();
-
+  FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
+  FrameRecord GetFrameRecord() { return m_FrameRecord; }
   void SavePipelineState(uint32_t eventId);
   const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
   const D3D12Pipe::State *GetD3D12PipelineState() { return &m_PipelineState; }
@@ -421,6 +420,8 @@ private:
   bool m_ISAAvailable = false;
 
   D3D12Pipe::State m_PipelineState;
+
+  FrameRecord m_FrameRecord;
 
   WrappedID3D12Device *m_pDevice = NULL;
 

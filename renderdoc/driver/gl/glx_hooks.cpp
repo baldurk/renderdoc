@@ -23,9 +23,9 @@
  ******************************************************************************/
 
 #include <dlfcn.h>
-#include "driver/gl/gl_driver.h"
-#include "driver/gl/glx_dispatch_table.h"
 #include "hooks/hooks.h"
+#include "gl_driver.h"
+#include "glx_dispatch_table.h"
 
 namespace Keyboard
 {

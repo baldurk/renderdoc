@@ -25,6 +25,7 @@
 
 #include "gl_renderstate.h"
 #include "gl_driver.h"
+#include "gl_replay.h"
 
 struct EnableDisableCap
 {

@@ -27,18 +27,18 @@
 
 #include <stdint.h>
 #include <map>
-#include "api/replay/renderdoc_replay.h"
 #include "common/threading.h"
 #include "common/timing.h"
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "d3d11_common.h"
 #include "d3d11_manager.h"
-#include "d3d11_replay.h"
 #include "d3d11_video.h"
 
+class D3D11DebugManager;
 class D3D11TextRenderer;
 class D3D11ShaderCache;
+class D3D11Replay;
 
 #ifndef D3D11_1_UAV_SLOT_COUNT
 #define D3D11_1_UAV_SLOT_COUNT 64
@@ -291,7 +291,7 @@ private:
     eInitialContents_ClearDSV = 2,
   };
 
-  D3D11Replay m_Replay;
+  D3D11Replay *m_Replay;
 
   WrappedD3D11Multithread m_WrappedMultithread;
   DummyID3D11InfoQueue m_DummyInfoQueue;
@@ -387,7 +387,6 @@ private:
   std::vector<DebugMessage> m_DebugMessages;
 
   std::vector<FrameDescription> m_CapturedFrames;
-  FrameRecord m_FrameRecord;
   std::vector<DrawcallDescription *> m_Drawcalls;
 
 public:
@@ -420,7 +419,7 @@ public:
   D3D11ShaderCache *GetShaderCache() { return m_ShaderCache; }
   D3D11ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D11DebugManager *GetDebugManager() { return m_DebugManager; }
-  D3D11Replay *GetReplay() { return &m_Replay; }
+  D3D11Replay *GetReplay() { return m_Replay; }
   Threading::CriticalSection &D3DLock() { return m_D3DLock; }
   bool D3DThreadSafe() const { return m_D3DThreadSafe; }
   void SetD3DThreadSafe(bool safe) { m_D3DThreadSafe = safe; }
@@ -433,9 +432,9 @@ public:
   void ReleaseResource(ID3D11DeviceChild *pResource);
 
   ResourceId GetResourceID() { return m_ResourceID; }
-  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  FrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
+  ResourceDescription &GetResourceDesc(ResourceId id);
+  FrameStatistics &GetFrameStats();
 
   void ReplayPushEvent() { m_ReplayEventCount++; }
   void ReplayPopEvent() { m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1); }

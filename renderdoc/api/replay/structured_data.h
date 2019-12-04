@@ -25,8 +25,10 @@
 #pragma once
 
 #include <stdint.h>
+#include "apidefs.h"
 #include "rdcarray.h"
 #include "rdcstr.h"
+#include "resourceid.h"
 #include "stringise.h"
 
 DOCUMENT(R"(The basic irreducible type of an object. Every other more complex type is built on these.

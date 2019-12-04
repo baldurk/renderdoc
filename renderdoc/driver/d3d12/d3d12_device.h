@@ -26,7 +26,6 @@
 
 #include <stdint.h>
 #include <map>
-#include "api/replay/renderdoc_replay.h"
 #include "common/threading.h"
 #include "common/timing.h"
 #include "common/wrapped_pool.h"
@@ -35,7 +34,6 @@
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
 #include "d3d12_manager.h"
-#include "d3d12_replay.h"
 
 struct IAmdExtD3DFactory;
 
@@ -57,6 +55,7 @@ class WrappedID3D12Device;
 class WrappedID3D12Resource1;
 class WrappedID3D12PipelineState;
 
+class D3D12Replay;
 class D3D12TextRenderer;
 class D3D12ShaderCache;
 class D3D12DebugManager;
@@ -394,7 +393,7 @@ private:
   DummyID3D12DebugDevice m_DummyDebug;
   WrappedID3D12DebugDevice m_WrappedDebug;
 
-  D3D12Replay m_Replay;
+  D3D12Replay *m_Replay;
   D3D12ShaderCache *m_ShaderCache = NULL;
   D3D12TextRenderer *m_TextRenderer = NULL;
 
@@ -433,7 +432,6 @@ private:
 
   uint32_t m_FrameCounter = 0;
   std::vector<FrameDescription> m_CapturedFrames;
-  FrameRecord m_FrameRecord;
   std::vector<DrawcallDescription *> m_Drawcalls;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
@@ -545,12 +543,11 @@ public:
   static std::string GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
-  D3D12DebugManager *GetDebugManager() { return m_Replay.GetDebugManager(); }
+  D3D12DebugManager *GetDebugManager();
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(IDXGISwapper *swapper);
-  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
@@ -558,6 +555,7 @@ public:
   void AddDebugMessage(const DebugMessage &msg);
   std::vector<DebugMessage> GetDebugMessages();
 
+  ResourceDescription &GetResourceDesc(ResourceId id);
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
   void DerivedResource(ResourceId parent, ResourceId child);
   void DerivedResource(ID3D12DeviceChild *parent, ResourceId child);
@@ -584,7 +582,7 @@ public:
   const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }
   CaptureState GetState() { return m_State; }
-  D3D12Replay *GetReplay() { return &m_Replay; }
+  D3D12Replay *GetReplay() { return m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   void ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers);

@@ -25,14 +25,15 @@
 
 #pragma once
 
+#include <functional>
 #include "apidefs.h"
 #include "data_types.h"
 #include "rdcarray.h"
 #include "replay_enums.h"
 
-DOCUMENT(R"(
-Contains the details of a single element of data (such as position or texture
-co-ordinates) within a mesh.)");
+DOCUMENT(R"(Contains the details of a single element of data (such as position or texture
+co-ordinates) within a mesh.
+)");
 struct MeshFormat
 {
   MeshFormat()
@@ -917,3 +918,10 @@ went wrong.
 };
 
 DECLARE_REFLECTION_STRUCT(ExecuteResult);
+
+// there's not a good way to document a callback, so for lack of a better place we declare these
+// here and document them in the main IReplayController. They can be linked to from anywhere by
+// name.
+typedef std::function<bool()> RENDERDOC_KillCallback;
+typedef std::function<void(float)> RENDERDOC_ProgressCallback;
+typedef std::function<WindowingData(bool, const rdcarray<WindowingSystem> &)> RENDERDOC_PreviewWindowCallback;

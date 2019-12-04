@@ -826,14 +826,14 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         }
 
         AddResource(BakedCommandBuffer, ResourceType::CommandBuffer, "Baked Command Buffer");
-        GetReplay()->GetResourceDesc(BakedCommandBuffer).initialisationChunks.clear();
+        GetResourceDesc(BakedCommandBuffer).initialisationChunks.clear();
         DerivedResource(device, BakedCommandBuffer);
         DerivedResource(AllocateInfo.commandPool, BakedCommandBuffer);
 
         // do this one manually since there's no live version of the swapchain, and
         // DerivedResource() assumes we're passing it a live ID (or live resource)
-        GetReplay()->GetResourceDesc(CommandBuffer).derivedResources.push_back(BakedCommandBuffer);
-        GetReplay()->GetResourceDesc(BakedCommandBuffer).parentResources.push_back(CommandBuffer);
+        GetResourceDesc(CommandBuffer).derivedResources.push_back(BakedCommandBuffer);
+        GetResourceDesc(BakedCommandBuffer).parentResources.push_back(CommandBuffer);
 
         // whenever a vkCmd command-building chunk asks for the command buffer, it
         // will get our baked version.

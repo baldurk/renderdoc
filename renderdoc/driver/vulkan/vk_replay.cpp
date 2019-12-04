@@ -24,10 +24,10 @@
 
 #include "vk_replay.h"
 #include <float.h>
+#include <math.h>
 #include <algorithm>
 #include "driver/ihv/amd/amd_rgp.h"
 #include "driver/shaders/spirv/spirv_compile.h"
-#include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
@@ -44,12 +44,12 @@ static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 static const char *AMDShaderInfoTarget = "AMD_shader_info disassembly";
 static const char *KHRExecutablePropertiesTarget = "KHR_pipeline_executable_properties";
 
-VulkanReplay::VulkanReplay()
+VulkanReplay::VulkanReplay(WrappedVulkan *d)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(VulkanReplay));
 
-  m_pDriver = NULL;
+  m_pDriver = d;
   m_Proxy = false;
 
   m_HighlightCache.driver = this;
@@ -269,11 +269,6 @@ ResourceId VulkanReplay::GetLiveID(ResourceId id)
   if(!m_pDriver->GetResourceManager()->HasLiveResource(id))
     return ResourceId();
   return m_pDriver->GetResourceManager()->GetLiveID(id);
-}
-
-FrameRecord VulkanReplay::GetFrameRecord()
-{
-  return m_pDriver->GetFrameRecord();
 }
 
 std::vector<DebugMessage> VulkanReplay::GetDebugMessages()

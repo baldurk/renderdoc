@@ -26,6 +26,7 @@
 #include "../vk_core.h"
 #include "../vk_debug.h"
 #include "../vk_rendertext.h"
+#include "../vk_replay.h"
 #include "../vk_shader_cache.h"
 #include "api/replay/version.h"
 #include "strings/string_utils.h"
@@ -259,7 +260,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     SAFE_DELETE_ARRAY(props);
   }
 
-  if(!m_Replay.IsRemoteProxy())
+  if(!m_Replay->IsRemoteProxy())
   {
     size_t i = 0;
     for(const std::string &ext : supportedExtensions)
@@ -314,7 +315,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
      std::find(params.Extensions.begin(), params.Extensions.end(),
                VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == params.Extensions.end())
   {
-    if(!m_Replay.IsRemoteProxy())
+    if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_debug_utils");
     params.Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
@@ -322,7 +323,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
           std::find(params.Extensions.begin(), params.Extensions.end(),
                     VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == params.Extensions.end())
   {
-    if(!m_Replay.IsRemoteProxy())
+    if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_debug_report");
     params.Extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
   }
@@ -343,7 +344,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
      std::find(params.Extensions.begin(), params.Extensions.end(),
                VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == params.Extensions.end())
   {
-    if(!m_Replay.IsRemoteProxy())
+    if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_validation_features");
     params.Extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
 
@@ -354,7 +355,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
           std::find(params.Extensions.begin(), params.Extensions.end(),
                     VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) == params.Extensions.end())
   {
-    if(!m_Replay.IsRemoteProxy())
+    if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_validation_flags");
     params.Extensions.push_back(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME);
 
@@ -834,7 +835,7 @@ void WrappedVulkan::Shutdown()
   for(size_t i = 0; i < m_ReplayPhysicalDevices.size(); i++)
     GetResourceManager()->ReleaseWrappedResource(m_ReplayPhysicalDevices[i]);
 
-  m_Replay.DestroyResources();
+  m_Replay->DestroyResources();
 
   m_IndirectBuffer.Destroy();
 
@@ -2717,7 +2718,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
 
-    m_Replay.SetDriverInformation(m_PhysicalDeviceData.props);
+    m_Replay->SetDriverInformation(m_PhysicalDeviceData.props);
 
     // MoltenVK reports 0x3fffffff for this limit so just ignore that value if it comes up
     RDCASSERT(m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets <
@@ -2751,7 +2752,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     m_DebugManager = new VulkanDebugManager(this);
 
-    m_Replay.CreateResources();
+    m_Replay->CreateResources();
 
     SetDebugMessageSink(sink);
   }

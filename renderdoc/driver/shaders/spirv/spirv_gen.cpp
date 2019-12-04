@@ -1466,37 +1466,37 @@ namespace rdcspv
 {
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const Id &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const Id &el)
 {
   return idName(el);
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcstr &el)
 {
   return "\"" + el + "\"";
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairLiteralIntegerIdRef &el)
 {
   return StringFormat::Fmt("[%u, %s]", el.first, idName(el.second).c_str());
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefLiteralInteger &el)
 {
   return StringFormat::Fmt("[%s, %u]", idName(el.first).c_str(), el.second);
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefIdRef &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdRefIdRef &el)
 {
   return StringFormat::Fmt("[%s, %s]", idName(el.first).c_str(), idName(el.second).c_str());
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ImageOperandsAndParamDatas &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ImageOperandsAndParamDatas &el)
 {
   rdcstr ret;
   
@@ -1539,7 +1539,7 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::LoopControlAndParamDatas &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::LoopControlAndParamDatas &el)
 {
   rdcstr ret;
   
@@ -1572,7 +1572,7 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::MemoryAccessAndParamDatas &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::MemoryAccessAndParamDatas &el)
 {
   rdcstr ret;
   
@@ -1599,7 +1599,7 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ExecutionModeAndParamData &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::ExecutionModeAndParamData &el)
 {
   rdcstr ret = ToStr(el.value);
 
@@ -1645,7 +1645,7 @@ std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rd
 }
 
 template<>
-std::string ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::DecorationAndParamData &el)
+rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv::DecorationAndParamData &el)
 {
   rdcstr ret = ToStr(el.value);
 
@@ -4629,9 +4629,9 @@ void OpDecoder::AddUsedIDs(std::set<Id> &usedids, const ConstIter &it)
   }
 }
 
-std::string OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal)
+rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal)
 {
-  std::string ret;
+  rdcstr ret;
   switch(it.opcode())
   {
     case rdcspv::Op::Nop:

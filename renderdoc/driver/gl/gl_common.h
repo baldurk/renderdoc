@@ -260,8 +260,6 @@ struct GLWindowingData
 #error "Unknown platform"
 #endif
 
-#include "api/replay/renderdoc_replay.h"
-
 struct GLPlatform
 {
   // simple wrapper for OS functions to make/delete a context
@@ -382,8 +380,6 @@ typedef BOOL(APIENTRY *PFNWGLDXOBJECTACCESSNVPROC)(HANDLE hObject, GLenum access
 typedef BOOL(APIENTRY *PFNWGLDXLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
 typedef BOOL(APIENTRY *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
 #endif
-
-#include "api/replay/renderdoc_replay.h"
 
 // bit of a hack, to work around C4127: conditional expression is constant
 // on template parameters
@@ -571,6 +567,9 @@ void ClearGLErrors();
 
 GLuint GetBoundVertexBuffer(GLuint idx);
 GLint GetNumVertexBuffers();
+
+struct ShaderReflection;
+struct ShaderBindpointMapping;
 
 void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *refl,
                                    ShaderBindpointMapping &mapping);

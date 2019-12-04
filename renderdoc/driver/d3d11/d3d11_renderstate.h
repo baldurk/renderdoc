@@ -27,7 +27,7 @@
 
 #include "common/common.h"
 #include "core/core.h"
-#include "driver/d3d11/d3d11_manager.h"
+#include "d3d11_manager.h"
 
 class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;

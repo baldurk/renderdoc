@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "dxbc_bytecode.h"
+#include "common/formatting.h"
+#include "os/os_specific.h"
 #include "dxbc_container.h"
 
 namespace DXBCBytecode

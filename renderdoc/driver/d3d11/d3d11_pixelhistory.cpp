@@ -23,15 +23,17 @@
  ******************************************************************************/
 
 #include "data/resource.h"
-#include "driver/d3d11/d3d11_renderstate.h"
-#include "driver/d3d11/d3d11_resources.h"
 #include "maths/formatpacking.h"
 #include "maths/vec.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
+#include "d3d11_device.h"
 #include "d3d11_manager.h"
+#include "d3d11_renderstate.h"
+#include "d3d11_replay.h"
+#include "d3d11_resources.h"
 
 /*
  * The general algorithm for pixel history is this:

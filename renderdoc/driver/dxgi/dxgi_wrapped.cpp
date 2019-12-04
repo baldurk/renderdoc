@@ -23,9 +23,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/dxgi/dxgi_wrapped.h"
+#include "dxgi_wrapped.h"
 #include "core/core.h"
 #include "serialise/serialiser.h"
+#include "dxgi_common.h"
 
 ID3D11Resource *UnwrapDXResource(void *dxObject);
 IDXGIResource *UnwrapDXGIResource(void *dxgiObject);

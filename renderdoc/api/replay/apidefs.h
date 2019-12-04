@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 // Guidelines for documentation:
 //
 // * If you only need a short string, use DOCUMENT("Here is my string");
@@ -183,11 +185,13 @@ constexpr inline IndexIterContainer<enum_name> indices()
 };
 
 template <typename enum_name>
-constexpr inline size_t arraydim()
+constexpr inline unsigned int arraydim()
 {
   typedef typename std::underlying_type<enum_name>::type etype;
-  return (size_t)etype(enum_name::Count);
+  return (unsigned int)etype(enum_name::Count);
 };
+
+#define ENUM_ARRAY_SIZE(enum_name) int(enum_name::Count)
 
 // clang-format makes a even more of a mess of this multi-line macro than it usually does, for some
 // reason. So we just disable it since it's still readable and this isn't really the intended case
@@ -230,5 +234,3 @@ inline enum_name operator++(enum_name &a)                                      \
 // clang-format on
 
 #endif
-
-#define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)

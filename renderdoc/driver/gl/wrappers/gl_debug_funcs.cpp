@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "../gl_driver.h"
+#include "../gl_replay.h"
 #include "common/common.h"
 #include "strings/string_utils.h"
 

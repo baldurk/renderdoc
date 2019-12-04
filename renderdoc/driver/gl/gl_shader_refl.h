@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "replay/replay_driver.h"
 #include "gl_dispatch_table.h"
 
 class WrappedOpenGL;

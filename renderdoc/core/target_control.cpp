@@ -25,9 +25,11 @@
 
 #include "android/android.h"
 #include "api/replay/renderdoc_replay.h"
+#include "common/threading.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "os/os_specific.h"
+#include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
 
 static const uint32_t TargetControlProtocolVersion = 5;

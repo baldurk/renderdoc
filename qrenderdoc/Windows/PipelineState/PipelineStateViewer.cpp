@@ -643,7 +643,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
 {
   QString hlsl = lit("// HLSL function stub generated\n\n");
 
-  const QString textureDim[ENUM_ARRAY_SIZE(TextureType)] = {
+  const QString textureDim[arraydim<TextureType>()] = {
       lit("Unknown"),          lit("Buffer"),      lit("Texture1D"),      lit("Texture1DArray"),
       lit("Texture2D"),        lit("TextureRect"), lit("Texture2DArray"), lit("Texture2DMS"),
       lit("Texture2DMSArray"), lit("Texture3D"),   lit("TextureCube"),    lit("TextureCubeArray"),

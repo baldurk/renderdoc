@@ -23,9 +23,9 @@
  ******************************************************************************/
 
 #include "core/plugins.h"
-#include "driver/gl/egl_dispatch_table.h"
-#include "driver/gl/gl_common.h"
 #include "strings/string_utils.h"
+#include "egl_dispatch_table.h"
+#include "gl_common.h"
 
 static void *GetEGLHandle()
 {

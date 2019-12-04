@@ -93,13 +93,12 @@ enum TexDisplayFlags
 class GLReplay : public IReplayDriver
 {
 public:
-  GLReplay();
-
+  GLReplay(WrappedOpenGL *d);
+  virtual ~GLReplay() {}
   void SetProxy(bool p) { m_Proxy = p; }
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
 
-  void SetDriver(WrappedOpenGL *d) { m_pDriver = d; }
   DriverInformation GetDriverInfo() { return m_DriverInfo; }
   rdcarray<GPUDevice> GetAvailableGPUs();
   APIProperties GetAPIProperties();
@@ -124,8 +123,8 @@ public:
 
   std::vector<EventUsage> GetUsage(ResourceId id);
 
-  FrameRecord GetFrameRecord();
-
+  FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
+  FrameRecord GetFrameRecord() { return m_FrameRecord; }
   void SavePipelineState(uint32_t eventId);
   const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
   const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
@@ -432,6 +431,8 @@ private:
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   GLPipe::State m_CurPipelineState;
+
+  FrameRecord m_FrameRecord;
 
   DriverInformation m_DriverInfo;
 

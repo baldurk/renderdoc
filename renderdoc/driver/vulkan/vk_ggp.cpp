@@ -22,8 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "api/replay/renderdoc_replay.h"
-
 #include "vk_core.h"
 #include "vk_replay.h"
 

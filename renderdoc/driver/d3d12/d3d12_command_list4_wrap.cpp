@@ -90,11 +90,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
           (D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *)pDepthStencil;
 
       for(UINT i = 0; i < NumRenderTargets; i++)
-        rts[i].cpuDescriptor =
-            Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
+        rts[i].cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
 
       if(ds)
-        ds->cpuDescriptor = Unwrap(m_pDevice->GetReplay()->GetDebugManager()->GetTempDescriptor(DSV));
+        ds->cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(DSV));
     }
 
     if(IsActiveReplaying(m_State))

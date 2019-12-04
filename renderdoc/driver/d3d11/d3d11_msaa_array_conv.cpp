@@ -24,6 +24,7 @@
 
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
+#include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
 
 struct Tex2DMSToArrayStateTracker

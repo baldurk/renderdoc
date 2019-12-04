@@ -24,9 +24,7 @@
 
 #pragma once
 
-#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
-#include "replay/replay_driver.h"
 #include "vk_common.h"
 #include "vk_core.h"
 

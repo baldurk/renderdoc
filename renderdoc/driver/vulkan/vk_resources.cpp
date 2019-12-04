@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_resources.h"
+#include "maths/vec.h"
 #include "vk_info.h"
 
 WRAPPED_POOL_INST(WrappedVkInstance)

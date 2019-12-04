@@ -884,6 +884,9 @@
     <ClCompile Include="maths\formatpacking.cpp">
       <Filter>Common\Maths</Filter>
     </ClCompile>
+    <ClCompile Include="maths\vec.cpp">
+      <Filter>Common\Maths</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

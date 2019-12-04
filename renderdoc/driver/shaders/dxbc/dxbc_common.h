@@ -27,6 +27,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "api/replay/shader_types.h"
 
 namespace DXBC
 {

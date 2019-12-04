@@ -34,6 +34,7 @@
 #include "d3d11_debug.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_rendertext.h"
+#include "d3d11_replay.h"
 #include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
 
@@ -188,6 +189,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_pImmediateContext->GetScratchSerialiser().SetChunkMetadataRecording(
       m_ScratchSerialiser.GetChunkMetadataRecording());
 
+  m_Replay = new D3D11Replay(this);
+
   m_pInfoQueue = NULL;
   if(realDevice)
   {
@@ -234,8 +237,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   {
     RDCDEBUG("Couldn't get ID3D11InfoQueue.");
   }
-
-  m_Replay.SetDevice(this);
 
   if(realDevice)
     m_DebugManager = new D3D11DebugManager(this);
@@ -292,7 +293,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     SAFE_RELEASE(it->second);
 
-  m_Replay.DestroyResources();
+  m_Replay->DestroyResources();
 
   SAFE_DELETE(m_DebugManager);
   SAFE_DELETE(m_TextRenderer);
@@ -328,6 +329,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
     RDCASSERT(WrappedID3D11Texture2D1::m_TextureList.empty());
     RDCASSERT(WrappedID3D11Texture3D1::m_TextureList.empty());
   }
+
+  delete m_Replay;
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -1084,9 +1087,9 @@ bool WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
 
   if(IsReplayMode(m_State))
   {
-    m_FrameRecord.frameInfo.frameNumber = frameNumber;
+    GetReplay()->WriteFrameRecord().frameInfo.frameNumber = frameNumber;
 
-    FrameStatistics &stats = m_FrameRecord.frameInfo.stats;
+    FrameStatistics &stats = GetReplay()->WriteFrameRecord().frameInfo.stats;
     RDCEraseEl(stats);
 
     // #mivance GL/Vulkan don't set this so don't get stats in window
@@ -1196,7 +1199,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
-      m_FrameRecord.frameInfo.fileOffset = offsetStart;
+      GetReplay()->WriteFrameRecord().frameInfo.fileOffset = offsetStart;
 
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
@@ -1239,7 +1242,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   if(!IsStructuredExporting(m_State))
   {
-    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
+    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
 
     // propagate any UAV names onto counter buffers
     std::vector<ResourceId> counterBuffers;
@@ -1280,15 +1283,16 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 #endif
 
-  m_FrameRecord.frameInfo.uncompressedFileSize =
+  GetReplay()->WriteFrameRecord().frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;
-  m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
-  m_FrameRecord.frameInfo.persistentSize = frameDataSize;
-  m_FrameRecord.frameInfo.initDataSize =
+  GetReplay()->WriteFrameRecord().frameInfo.compressedFileSize =
+      rdc->GetSectionProperties(sectionIdx).compressedSize;
+  GetReplay()->WriteFrameRecord().frameInfo.persistentSize = frameDataSize;
+  GetReplay()->WriteFrameRecord().frameInfo.initDataSize =
       chunkInfos[(D3D11Chunk)SystemChunk::InitialContents].totalsize;
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
-           m_FrameRecord.frameInfo.persistentSize);
+           GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
   return ReplayStatus::Succeeded;
 }
@@ -2537,4 +2541,14 @@ const DrawcallDescription *WrappedID3D11Device::GetDrawcall(uint32_t eventId)
     return NULL;
 
   return m_Drawcalls[eventId];
+}
+
+ResourceDescription &WrappedID3D11Device::GetResourceDesc(ResourceId id)
+{
+  return GetReplay()->GetResourceDesc(id);
+}
+
+FrameStatistics &WrappedID3D11Device::GetFrameStats()
+{
+  return GetReplay()->WriteFrameRecord().frameInfo.stats;
 }

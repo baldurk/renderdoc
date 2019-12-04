@@ -26,13 +26,8 @@
 
 #include <stdint.h>
 #include <map>
-#include <set>
-#include <string>
 #include <vector>
-#include "api/replay/renderdoc_replay.h"
-#include "common/common.h"
 #include "spirv_common.h"
-#include "spirv_op_helpers.h"
 #include "spirv_processor.h"
 
 namespace rdcspv
@@ -219,6 +214,7 @@ private:
   std::vector<uint32_t> &m_ExternalSPIRV;
 };
 
+/*
 inline bool operator<(const OpDecorate &a, const OpDecorate &b)
 {
   if(a.target != b.target)
@@ -233,5 +229,6 @@ inline bool operator==(const OpDecorate &a, const OpDecorate &b)
 {
   return a.target == b.target && !memcmp(&a.decoration, &b.decoration, sizeof(a.decoration));
 }
+*/
 
 };    // namespace rdcspv

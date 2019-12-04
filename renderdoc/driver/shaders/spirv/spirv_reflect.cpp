@@ -29,6 +29,7 @@
 #include "maths/half_convert.h"
 #include "replay/replay_driver.h"
 #include "spirv_editor.h"
+#include "spirv_op_helpers.h"
 
 void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,

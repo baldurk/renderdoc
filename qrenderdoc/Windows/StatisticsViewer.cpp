@@ -221,7 +221,7 @@ void StatisticsViewer::AppendConstantBindStatistics()
   // structure for a given type with known integral types (or arrays
   // thereof), but given we're heading for a Qt/C++ rewrite of the UI
   // perhaps best not to dwell too long on that
-  ConstantBindStats totalConstantsPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
+  ConstantBindStats totalConstantsPerStage[arraydim<ShaderStage>()];
   memset(&totalConstantsPerStage, 0, sizeof(totalConstantsPerStage));
   for(auto s : indices<ShaderStage>())
   {
@@ -313,7 +313,7 @@ void StatisticsViewer::AppendSamplerBindStatistics()
   // #mivance see AppendConstantBindStatistics
   const SamplerBindStats &reference = frameInfo.stats.samplers[0];
 
-  SamplerBindStats totalSamplersPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
+  SamplerBindStats totalSamplersPerStage[arraydim<ShaderStage>()];
   memset(&totalSamplersPerStage, 0, sizeof(totalSamplersPerStage));
   for(auto s : indices<ShaderStage>())
   {
@@ -379,7 +379,7 @@ void StatisticsViewer::AppendResourceBindStatistics()
   // #mivance see AppendConstantBindStatistics
   const ResourceBindStats &reference = frameInfo.stats.resources[0];
 
-  ResourceBindStats totalResourcesPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
+  ResourceBindStats totalResourcesPerStage[arraydim<ShaderStage>()];
   memset(&totalResourcesPerStage, 0, sizeof(totalResourcesPerStage));
   for(auto s : indices<ShaderStage>())
   {

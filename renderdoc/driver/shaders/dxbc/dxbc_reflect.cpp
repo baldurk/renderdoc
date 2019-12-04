@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "dxbc_reflect.h"
-#include "api/replay/renderdoc_replay.h"
 #include "common/formatting.h"
 #include "core/core.h"
 #include "dxbc_container.h"

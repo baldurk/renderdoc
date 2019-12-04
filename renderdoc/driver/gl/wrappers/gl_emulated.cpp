@@ -26,10 +26,10 @@
 // emulated where possible, so we can simplify most codepaths by just assuming they're
 // present elsewhere and using them unconditionally.
 
-#include "driver/gl/gl_common.h"
-#include "driver/gl/gl_dispatch_table.h"
-#include "driver/gl/gl_driver.h"
-#include "driver/gl/gl_resources.h"
+#include "../gl_common.h"
+#include "../gl_dispatch_table.h"
+#include "../gl_driver.h"
+#include "../gl_resources.h"
 #include "driver/shaders/spirv/glslang_compile.h"
 
 namespace glEmulate
@@ -3348,6 +3348,7 @@ void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
 #include "../gl_shader_refl.h"
 #include "3rdparty/catch/catch.hpp"
 #include "data/glsl_shaders.h"
+#include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 
 GLint APIENTRY _testStub_GetUniformLocation(GLuint program, const GLchar *name)

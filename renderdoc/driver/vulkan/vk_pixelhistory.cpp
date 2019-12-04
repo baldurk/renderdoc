@@ -26,8 +26,8 @@
 #include <vector>
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
-#include "driver/vulkan/vk_debug.h"
-#include "driver/vulkan/vk_replay.h"
+#include "vk_debug.h"
+#include "vk_replay.h"
 #include "vk_shader_cache.h"
 
 bool isDirectWrite(ResourceUsage usage)

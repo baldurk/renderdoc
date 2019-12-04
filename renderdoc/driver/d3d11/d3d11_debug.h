@@ -27,9 +27,9 @@
 
 #include <list>
 #include <map>
-#include "api/replay/renderdoc_replay.h"
 #include "driver/dx/official/d3d11_4.h"
 #include "replay/replay_driver.h"
+#include "d3d11_common.h"
 
 class Camera;
 class Vec3f;
@@ -95,7 +95,7 @@ struct TextureShaderDetails
   ID3D11ShaderResourceView *srv[eTexType_Max];
 };
 
-struct D3D11DebugManager
+class D3D11DebugManager
 {
 public:
   D3D11DebugManager(WrappedID3D11Device *wrapper);

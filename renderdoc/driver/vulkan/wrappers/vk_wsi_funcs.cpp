@@ -240,8 +240,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
 
     // do this one manually since there's no live version of the swapchain, and DerivedResource()
     // assumes we're passing it a live ID (or live resource)
-    GetReplay()->GetResourceDesc(Swapchain).derivedResources.push_back(SwapchainImage);
-    GetReplay()->GetResourceDesc(SwapchainImage).parentResources.push_back(Swapchain);
+    GetResourceDesc(Swapchain).derivedResources.push_back(SwapchainImage);
+    GetResourceDesc(SwapchainImage).parentResources.push_back(Swapchain);
 
     m_CreationInfo.m_Image[GetResID(swapInfo.images[SwapchainImageIndex].im)] =
         m_CreationInfo.m_Image[Swapchain];

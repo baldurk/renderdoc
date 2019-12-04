@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <float.h>
+#include <math.h>
 #include <algorithm>
 #include "common/common.h"
 #include "strings/string_utils.h"

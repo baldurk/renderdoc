@@ -29,6 +29,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
+#include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
 
 bool D3D12Replay::CreateSOBuffers()

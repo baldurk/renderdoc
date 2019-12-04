@@ -32,6 +32,7 @@
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "miniz/miniz.h"
+#include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 
 // these entry points are for the replay/analysis side - not for the application.
@@ -206,10 +207,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkC
                                                                FloatVector lightChecker,
                                                                bool darkTheme)
 {
-  RenderDoc::Inst().SetDarkCheckerboardColor(
-      Vec4f(darkChecker.x, darkChecker.y, darkChecker.z, darkChecker.w));
-  RenderDoc::Inst().SetLightCheckerboardColor(
-      Vec4f(lightChecker.x, lightChecker.y, lightChecker.z, lightChecker.w));
+  RenderDoc::Inst().SetDarkCheckerboardColor(darkChecker);
+  RenderDoc::Inst().SetLightCheckerboardColor(lightChecker);
   RenderDoc::Inst().SetDarkTheme(darkTheme);
 }
 
@@ -248,8 +247,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, co
                     "External and internal LogType enums must match");
   RDCCOMPILE_ASSERT((uint32_t)LogType::Fatal == (uint32_t)LogType__Internal::Fatal,
                     "External and internal LogType enums must match");
-  RDCCOMPILE_ASSERT(ENUM_ARRAY_SIZE(LogType) == 5,
+  RDCCOMPILE_ASSERT((uint32_t)LogType::Count == (uint32_t)LogType__Internal::Count,
                     "External and internal LogType enums must match");
+  RDCCOMPILE_ASSERT(arraydim<LogType>() == 5, "External and internal LogType enums must match");
 
 #if ENABLED(DEBUGBREAK_ON_ERROR_LOG)
   if(type == LogType::Error)

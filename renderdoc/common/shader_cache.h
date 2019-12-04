@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <map>
+#include "common/common.h"
 #include "os/os_specific.h"
 
 template <typename ResultType, typename ShaderCallbacks>

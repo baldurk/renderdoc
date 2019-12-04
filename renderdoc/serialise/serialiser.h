@@ -28,7 +28,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/structured_data.h"
 #include "common/formatting.h"
 #include "streamio.h"
 

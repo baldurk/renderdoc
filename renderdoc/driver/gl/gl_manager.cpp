@@ -23,9 +23,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/gl/gl_manager.h"
+#include "gl_manager.h"
 #include <algorithm>
-#include "driver/gl/gl_driver.h"
+#include "gl_driver.h"
 
 GLResourceManager::GLResourceManager(CaptureState &state, WrappedOpenGL *driver)
     : ResourceManager(state), m_Driver(driver), m_SyncName(1)

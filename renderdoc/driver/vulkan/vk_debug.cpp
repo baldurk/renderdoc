@@ -32,6 +32,7 @@
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "vk_core.h"
+#include "vk_replay.h"
 #include "vk_shader_cache.h"
 
 #define VULKAN 1

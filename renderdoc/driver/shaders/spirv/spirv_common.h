@@ -27,7 +27,7 @@
 #include <stdint.h>
 #include <map>
 #include <vector>
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/stringise.h"
 #include "common/common.h"
 #include "spirv_gen.h"
 

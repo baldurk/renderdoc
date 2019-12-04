@@ -30,13 +30,13 @@
 #include "common/timing.h"
 #include "core/core.h"
 #include "driver/shaders/spirv/spirv_reflect.h"
-#include "replay/replay_driver.h"
 #include "gl_common.h"
 #include "gl_dispatch_table.h"
 #include "gl_manager.h"
 #include "gl_renderstate.h"
-#include "gl_replay.h"
 #include "gl_resources.h"
+
+class GLReplay;
 
 namespace glslang
 {
@@ -125,7 +125,7 @@ private:
 
   bool m_UsesVRMarkers;
 
-  GLReplay m_Replay;
+  GLReplay *m_Replay = NULL;
   RDCDriver m_DriverType;
 
   struct ArrayMSPrograms
@@ -238,7 +238,6 @@ private:
   }
 
   std::vector<FrameDescription> m_CapturedFrames;
-  FrameRecord m_FrameRecord;
   std::vector<DrawcallDescription *> m_Drawcalls;
 
   // replay
@@ -573,7 +572,7 @@ public:
   static std::string GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   CaptureState GetState() { return m_State; }
-  GLReplay *GetReplay() { return &m_Replay; }
+  GLReplay *GetReplay() { return m_Replay; }
   WriteSerialiser &GetSerialiser() { return m_ScratchSerialiser; }
   void SetDriverType(RDCDriver type) { m_DriverType = type; }
   bool isGLESMode() { return m_DriverType == RDCDriver::OpenGLES; }
@@ -614,7 +613,6 @@ public:
 
   GLuint GetFakeVAO0() { return m_Global_VAO0; }
   GLuint GetCurrentDefaultFBO() { return m_CurrentDefaultFBO; }
-  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventId);
 
   const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }

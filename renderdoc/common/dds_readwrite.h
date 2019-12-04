@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "api/replay/renderdoc_replay.h"
+#include "api/replay/data_types.h"
 
 struct dds_data
 {

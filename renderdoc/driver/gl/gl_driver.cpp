@@ -30,6 +30,7 @@
 #include "jpeg-compressor/jpge.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
+#include "gl_replay.h"
 
 std::map<uint64_t, GLWindowingData> WrappedOpenGL::m_ActiveContexts;
 
@@ -615,7 +616,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   // by default we assume OpenGL driver
   SetDriverType(RDCDriver::OpenGL);
 
-  m_Replay.SetDriver(this);
+  m_Replay = new GLReplay(this);
 
   m_StructuredFile = &m_StoredStructuredData;
 
@@ -967,6 +968,8 @@ WrappedOpenGL::~WrappedOpenGL()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+
+  delete m_Replay;
 }
 
 ContextPair &WrappedOpenGL::GetCtx()
@@ -2610,8 +2613,8 @@ bool WrappedOpenGL::Serialise_CaptureScope(SerialiserType &ser)
 
   if(IsReplayingAndReading())
   {
-    m_FrameRecord.frameInfo.frameNumber = frameNumber;
-    RDCEraseEl(m_FrameRecord.frameInfo.stats);
+    GetReplay()->WriteFrameRecord().frameInfo.frameNumber = frameNumber;
+    RDCEraseEl(GetReplay()->WriteFrameRecord().frameInfo.stats);
   }
 
   return true;
@@ -3269,7 +3272,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
-      m_FrameRecord.frameInfo.fileOffset = offsetStart;
+      GetReplay()->WriteFrameRecord().frameInfo.fileOffset = offsetStart;
 
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
@@ -3321,14 +3324,16 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
   // and in future use this file.
   m_StructuredFile = &m_StoredStructuredData;
 
-  m_FrameRecord.frameInfo.uncompressedFileSize =
+  GetReplay()->WriteFrameRecord().frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;
-  m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
-  m_FrameRecord.frameInfo.persistentSize = frameDataSize;
-  m_FrameRecord.frameInfo.initDataSize = chunkInfos[(GLChunk)SystemChunk::InitialContents].totalsize;
+  GetReplay()->WriteFrameRecord().frameInfo.compressedFileSize =
+      rdc->GetSectionProperties(sectionIdx).compressedSize;
+  GetReplay()->WriteFrameRecord().frameInfo.persistentSize = frameDataSize;
+  GetReplay()->WriteFrameRecord().frameInfo.initDataSize =
+      chunkInfos[(GLChunk)SystemChunk::InitialContents].totalsize;
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
-           m_FrameRecord.frameInfo.persistentSize);
+           GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
   return ReplayStatus::Succeeded;
 }
@@ -5070,10 +5075,10 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
   if(IsLoading(m_State))
   {
-    GetFrameRecord().drawcallList = m_ParentDrawcall.children;
-    GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
+    GetReplay()->WriteFrameRecord().drawcallList = m_ParentDrawcall.children;
+    GetReplay()->WriteFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
-    SetupDrawcallPointers(m_Drawcalls, GetFrameRecord().drawcallList);
+    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
 
     // it's easier to remove duplicate usages here than check it as we go.
     // this means if textures are bound in multiple places in the same draw
