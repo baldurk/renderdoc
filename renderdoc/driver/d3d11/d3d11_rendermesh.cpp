@@ -33,7 +33,7 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-void D3D11Replay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
+void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
 {
   if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
@@ -368,16 +368,16 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &se
     FloatVector activeVertex;
 
     // primitive this vert is a part of (red prim, optional)
-    std::vector<FloatVector> activePrim;
+    rdcarray<FloatVector> activePrim;
 
     // for patch lists, to show other verts in patch (green dots, optional)
     // for non-patch lists, we use the activePrim and adjacentPrimVertices
     // to show what other verts are related
-    std::vector<FloatVector> inactiveVertices;
+    rdcarray<FloatVector> inactiveVertices;
 
     // adjacency (line or tri, strips or lists) (green prims, optional)
     // will be N*M long, N adjacent prims of M verts each. M = primSize below
-    std::vector<FloatVector> adjacentPrimVertices;
+    rdcarray<FloatVector> adjacentPrimVertices;
 
     D3D11_PRIMITIVE_TOPOLOGY primTopo =
         D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;    // tri or line list

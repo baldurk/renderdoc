@@ -84,9 +84,9 @@ public:
   void Create(const char *filename);
 
   ContainerError ErrorCode() const { return m_Error; }
-  std::string ErrorString() const { return m_ErrorString; }
+  rdcstr ErrorString() const { return m_ErrorString; }
   RDCDriver GetDriver() const { return m_Driver; }
-  const std::string &GetDriverName() const { return m_DriverName; }
+  const rdcstr &GetDriverName() const { return m_DriverName; }
   uint64_t GetMachineIdent() const { return m_MachineIdent; }
   const RDCThumb &GetThumbnail() const { return m_Thumb; }
   int SectionIndex(SectionType type) const;
@@ -98,13 +98,13 @@ public:
 
   // Only valid if GetDriver returns RDCDriver::Image, passes over the underlying FILE * for use
   // loading the image directly, since the RDC container isn't there to read from a section.
-  FILE *StealImageFileHandle(std::string &filename);
+  FILE *StealImageFileHandle(rdcstr &filename);
 
 private:
   void Init(StreamReader &reader);
 
   FILE *m_File = NULL;
-  std::string m_Filename;
+  rdcstr m_Filename;
   bytebuf m_Buffer;
 
   SectionProperties m_CurrentWritingProps;
@@ -112,12 +112,12 @@ private:
   uint32_t m_SerVer = 0;
 
   RDCDriver m_Driver = RDCDriver::Unknown;
-  std::string m_DriverName;
+  rdcstr m_DriverName;
   uint64_t m_MachineIdent = 0;
   RDCThumb m_Thumb;
 
   ContainerError m_Error = ContainerError::NoError;
-  std::string m_ErrorString;
+  rdcstr m_ErrorString;
 
   struct SectionLocation
   {
@@ -126,7 +126,7 @@ private:
     uint64_t diskLength;
   };
 
-  std::vector<SectionProperties> m_Sections;
-  std::vector<SectionLocation> m_SectionLocations;
-  std::vector<std::vector<byte>> m_MemorySections;
+  rdcarray<SectionProperties> m_Sections;
+  rdcarray<SectionLocation> m_SectionLocations;
+  rdcarray<bytebuf> m_MemorySections;
 };

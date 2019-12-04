@@ -27,7 +27,6 @@
 
 #include <stdarg.h>
 #include <stdint.h>
-#include <string>
 #include "os/os_specific.h"
 #include "common.h"
 
@@ -94,7 +93,7 @@ public:
   double GetMaxFrameTime() const { return m_MaxFrametime; }
 private:
   PerformanceTimer m_HighPrecisionTimer;
-  std::vector<double> m_FrameTimes;
+  rdcarray<double> m_FrameTimes;
   double m_TotalTime;
   double m_AvgFrametime;
   double m_MinFrametime;
@@ -130,7 +129,7 @@ public:
 private:
   const char *m_File;
   unsigned int m_Line;
-  std::string m_Message;
+  rdcstr m_Message;
   PerformanceTimer m_Timer;
 };
 

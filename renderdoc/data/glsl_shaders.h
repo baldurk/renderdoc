@@ -31,17 +31,16 @@ enum class ShaderType
 };
 
 #include <functional>
-#include <string>
-#include <vector>
+#include "api/replay/rdcstr.h"
 
-std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int version,
-                               const std::string &defines = "");
+rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version,
+                          const rdcstr &defines = "");
 
 // for unit tests
 struct ShaderReflection;
 struct ShaderBindpointMapping;
 enum class ShaderStage : uint32_t;
 using ReflectionMaker =
-    std::function<void(ShaderStage stage, const std::string &source, const std::string &entryPoint,
+    std::function<void(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
                        ShaderReflection &refl, ShaderBindpointMapping &mapping)>;
 void TestGLSLReflection(ShaderType testType, ReflectionMaker compile);

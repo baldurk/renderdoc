@@ -42,7 +42,7 @@
 struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, VkDescriptorSetLayout descSetLayout,
-                             VkDescriptorSet descSet, const std::vector<uint32_t> &events)
+                             VkDescriptorSet descSet, const rdcarray<uint32_t> &events)
       : m_pDriver(vk),
         m_DescSetLayout(descSetLayout),
         m_DescSet(descSet),
@@ -261,7 +261,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   WrappedVulkan *m_pDriver;
   VkDescriptorSetLayout m_DescSetLayout;
   VkDescriptorSet m_DescSet;
-  const std::vector<uint32_t> &m_Events;
+  const rdcarray<uint32_t> &m_Events;
 
   // cache modified pipelines
   struct CachedPipeline
@@ -355,7 +355,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   }
 
   // we just patch up to 32-bit since we'll be adding more indices and we might overflow 16-bit.
-  std::vector<uint32_t> patchedIndices;
+  rdcarray<uint32_t> patchedIndices;
 
   ::PatchLineStripIndexBuffer(draw, idx8, idx16, idx32, patchedIndices);
 
@@ -400,7 +400,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
 
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                        DebugOverlay overlay, uint32_t eventId,
-                                       const std::vector<uint32_t> &passEvents)
+                                       const rdcarray<uint32_t> &passEvents)
 {
   const VkDevDispatchTable *vt = ObjDisp(m_Device);
 
@@ -1568,7 +1568,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -1694,7 +1694,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
 
       DoPipelineBarrier(cmd, 1, &barrier);
 
-      std::vector<uint32_t> events = passEvents;
+      rdcarray<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::QuadOverdrawDraw)
         events.clear();
@@ -1708,7 +1708,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       {
         const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
         if(draw->flags & DrawFlags::BeginPass)
-          events.erase(events.begin());
+          events.erase(0);
       }
 
       VkImage quadImg;
@@ -1950,7 +1950,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       m_pDriver->SubmitCmds();
 #endif
 
-      std::vector<uint32_t> events = passEvents;
+      rdcarray<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::TriangleSizeDraw)
         events.clear();
@@ -1961,7 +1961,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
 
         // remove any non-drawcalls, like the pass boundary.
         if(!draw || !(draw->flags & DrawFlags::Drawcall))
-          events.erase(events.begin());
+          events.erase(0);
         else
           break;
       }

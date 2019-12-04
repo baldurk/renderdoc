@@ -43,7 +43,7 @@
 struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 {
   D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, D3D12_SHADER_BYTECODE quadWrite,
-                            const std::vector<uint32_t> &events, PortableHandle uav)
+                            const rdcarray<uint32_t> &events, PortableHandle uav)
       : m_pDevice(dev), m_QuadWritePS(quadWrite), m_Events(events), m_UAV(uav)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
@@ -54,7 +54,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
   {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
+    if(!m_Events.contains(eid))
       return;
 
     // we customise the pipeline to disable framebuffer writes, but perform normal testing
@@ -156,7 +156,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
   bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
   {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
+    if(!m_Events.contains(eid))
       return false;
 
     // restore the render state and go ahead with the real draw
@@ -185,7 +185,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
   WrappedID3D12Device *m_pDevice;
   D3D12_SHADER_BYTECODE m_QuadWritePS;
-  const std::vector<uint32_t> &m_Events;
+  const rdcarray<uint32_t> &m_Events;
   PortableHandle m_UAV;
 
   // cache modified pipelines
@@ -202,7 +202,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
 ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                       DebugOverlay overlay, uint32_t eventId,
-                                      const std::vector<uint32_t> &passEvents)
+                                      const rdcarray<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
@@ -647,7 +647,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   }
   else if(overlay == DebugOverlay::ClearBeforePass || overlay == DebugOverlay::ClearBeforeDraw)
   {
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -759,7 +759,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
     {
       SCOPED_TIMER("Triangle size");
 
-      std::vector<uint32_t> events = passEvents;
+      rdcarray<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::TriangleSizeDraw)
         events.clear();
@@ -770,7 +770,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
         // remove any non-drawcalls, like the pass boundary.
         if(!(draw->flags & DrawFlags::Drawcall))
-          events.erase(events.begin());
+          events.erase(0);
         else
           break;
       }
@@ -953,7 +953,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   {
     SCOPED_TIMER("Quad Overdraw");
 
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::QuadOverdrawDraw)
       events.clear();

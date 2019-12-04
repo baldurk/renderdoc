@@ -121,7 +121,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   // D3D12 guarantees that queues are thread-safe
   Threading::CriticalSection m_Lock;
 
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   WriteSerialiser &GetThreadSerialiser();
 
@@ -136,7 +136,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
 
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
   static const int AllocPoolCount = 16;

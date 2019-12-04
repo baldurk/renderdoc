@@ -1811,7 +1811,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   drv.glDeleteShader(dummyFrag);
 }
 
-void GLReplay::InitPostVSBuffers(const std::vector<uint32_t> &passEvents)
+void GLReplay::InitPostVSBuffers(const rdcarray<uint32_t> &passEvents)
 {
   uint32_t prev = 0;
 

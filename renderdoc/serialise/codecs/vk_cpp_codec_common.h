@@ -23,11 +23,7 @@
 ******************************************************************************/
 #pragma once
 
-#include <string.h>
-
-#include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "serialise/rdcfile.h"
 
@@ -42,21 +38,21 @@ inline const char *Type(SDObject *ptr)
   // crawl through the entire SDObject list and patch every object ignoring Vulkan
   // specifics.
 
-  // Vulkan doesn't use std::string, so need to cast it to const char *
+  // Vulkan doesn't use string objects, so need to cast it to const char *
   if(ptr->IsString() || ptr->type.name == "string")
     return "const char* ";
 
   return ptr->type.name.c_str();
 }
 
-inline std::string ValueStr(SDObject *ptr)
+inline rdcstr ValueStr(SDObject *ptr)
 {
   RDCASSERT(ptr->IsSimpleType());
-  std::string result;
+  rdcstr result;
 
   if(ptr->IsBuffer())
   {
-    std::string buf_name = ptr->AsString();
+    rdcstr buf_name = ptr->AsString();
     RDCASSERT(!buf_name.empty());
     // A value for for a Buffer is it's $name.data().
     result = buf_name + ".data()";
@@ -88,7 +84,7 @@ inline std::string ValueStr(SDObject *ptr)
   }
   else if(ptr->IsString())
   {
-    std::string escaped;
+    rdcstr escaped;
     escaped.reserve(ptr->data.str.size());
     for(char c : ptr->data.str)
     {
@@ -122,7 +118,7 @@ inline std::string ValueStr(SDObject *ptr)
           break;
       }
     }
-    result = std::string("\"") + escaped + std::string("\"");
+    result = "\"" + escaped + "\"";
   }
   return result;
 }
@@ -144,8 +140,8 @@ inline uint64_t CanonicalUnionBranch(SDObject *ptr)
   return 0;
 }
 
-typedef std::vector<SDObject *> SDObjectVec;
-typedef SDObjectVec::iterator SDObjectVecIter;
+typedef rdcarray<SDObject *> SDObjectVec;
+typedef SDObject *SDObjectVecIter;
 
 typedef std::map<uint64_t, SDObject *> SDObjectIDMap;
 typedef SDObjectIDMap::iterator SDObjectIDMapIter;
@@ -155,8 +151,8 @@ typedef std::map<uint64_t, SDObjectVec> SDObjectVecIDMap;
 typedef SDObjectVecIDMap::iterator SDObjectVecIDMapIter;
 typedef std::pair<uint64_t, SDObjectVec> SDObjectVecIDMapPair;
 
-typedef std::vector<SDChunk *> SDChunkVec;
-typedef SDChunkVec::iterator SDChunkVecIter;
+typedef rdcarray<SDChunk *> SDChunkVec;
+typedef SDChunk *SDChunkVecIter;
 
 typedef std::map<uint64_t, SDChunk *> SDChunkIDMap;
 typedef SDChunkIDMap::iterator SDChunkIDMapIter;

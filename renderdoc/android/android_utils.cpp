@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "android_utils.h"
+#include <ctype.h>
 #include <algorithm>
 #include "common/formatting.h"
 #include "common/threading.h"
@@ -36,7 +37,7 @@ bool IsHostADB(const char *hostname)
   return !strncmp(hostname, "adb:", 4);
 }
 
-void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::string &deviceID)
+void ExtractDeviceIDAndIndex(const rdcstr &hostname, int &index, rdcstr &deviceID)
 {
   if(!IsHostADB(hostname.c_str()))
     return;
@@ -59,41 +60,41 @@ void ExtractDeviceIDAndIndex(const std::string &hostname, int &index, std::strin
   deviceID = c;
 }
 
-std::string GetPackageName(const std::string &packageAndActivity)
+rdcstr GetPackageName(const rdcstr &packageAndActivity)
 {
   if(packageAndActivity.empty())
     return "";
 
-  size_t start = 0;
+  int32_t start = 0;
   if(packageAndActivity[0] == '/')
     start++;
 
-  size_t activitySep = packageAndActivity.find('/', start);
+  int32_t activitySep = packageAndActivity.find('/', start);
 
-  if(activitySep == std::string::npos)
+  if(activitySep < 0)
     return packageAndActivity.substr(start);
 
   return packageAndActivity.substr(start, activitySep - start);
 }
 
-std::string GetActivityName(const std::string &packageAndActivity)
+rdcstr GetActivityName(const rdcstr &packageAndActivity)
 {
   if(packageAndActivity.empty())
     return "";
 
-  size_t start = 0;
+  int32_t start = 0;
   if(packageAndActivity[0] == '/')
     start++;
 
-  size_t activitySep = packageAndActivity.find('/', start);
+  int32_t activitySep = packageAndActivity.find('/', start);
 
-  if(activitySep == std::string::npos)
+  if(activitySep < 0)
     return "";
 
   return packageAndActivity.substr(activitySep + 1);
 }
 
-ABI GetABI(const std::string &abiName)
+ABI GetABI(const rdcstr &abiName)
 {
   if(abiName == "armeabi-v7a")
     return ABI::armeabi_v7a;
@@ -109,7 +110,21 @@ ABI GetABI(const std::string &abiName)
   return ABI::unknown;
 }
 
-std::vector<ABI> GetSupportedABIs(const std::string &deviceID)
+rdcstr GetPlainABIName(ABI abi)
+{
+  switch(abi)
+  {
+    case ABI::arm64_v8a: return "arm64";
+    case ABI::armeabi_v7a: return "arm32";
+    case ABI::x86_64: return "x64";
+    case ABI::x86: return "x86";
+    default: break;
+  }
+
+  return "unsupported";
+}
+
+rdcarray<ABI> GetSupportedABIs(const rdcstr &deviceID)
 {
   rdcstr adbAbi = adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout.trimmed();
 
@@ -127,24 +142,12 @@ std::vector<ABI> GetSupportedABIs(const std::string &deviceID)
   return {};
 }
 
-std::string GetRenderDocPackageForABI(ABI abi, char sep)
+rdcstr GetRenderDocPackageForABI(ABI abi)
 {
-  std::string ret = RENDERDOC_ANDROID_PACKAGE_BASE;
-  ret += sep;
-
-  switch(abi)
-  {
-    case ABI::arm64_v8a: return ret + "arm64";
-    case ABI::armeabi_v7a: return ret + "arm32";
-    case ABI::x86_64: return ret + "x64";
-    case ABI::x86: return ret + "x86";
-    default: break;
-  }
-
-  return ret + "unknown";
+  return RENDERDOC_ANDROID_PACKAGE_BASE "." + GetPlainABIName(abi);
 }
 
-std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName)
+rdcstr GetPathForPackage(const rdcstr &deviceID, const rdcstr &packageName)
 {
   rdcstr pkgPath = adbExecCommand(deviceID, "shell pm path " + packageName).strStdout.trimmed();
 
@@ -166,7 +169,7 @@ std::string GetPathForPackage(const std::string &deviceID, const std::string &pa
   return pkgPath;
 }
 
-bool IsSupported(std::string deviceID)
+bool IsSupported(rdcstr deviceID)
 {
   rdcstr api =
       Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
@@ -199,10 +202,10 @@ bool SupportsNativeLayers(const rdcstr &deviceID)
   return false;
 }
 
-std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName)
+rdcstr DetermineInstalledABI(const rdcstr &deviceID, const rdcstr &packageName)
 {
   RDCLOG("Checking installed ABI for %s", packageName.c_str());
-  std::string abi;
+  rdcstr abi;
 
   rdcstr dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
   if(dump.empty())
@@ -244,7 +247,7 @@ rdcstr GetFriendlyName(const rdcstr &deviceID)
   rdcstr model =
       Android::adbExecCommand(deviceID, "shell getprop ro.product.model").strStdout.trimmed();
 
-  std::string combined;
+  rdcstr combined;
 
   if(manuf.empty() && model.empty())
     combined = "";
@@ -285,11 +288,11 @@ struct LogLine
   time_t timestamp = 0;
   uint32_t pid = 0;
   LogType logtype = LogType::Comment;
-  std::string filename;
+  rdcstr filename;
   uint32_t line_number = 0;
-  std::string message;
+  rdcstr message;
 
-  bool parse(const std::string &line)
+  bool parse(const rdcstr &line)
   {
 #define EXPECT_CHAR(c)                       \
   if(idx >= line.length() || line[idx] != c) \
@@ -454,11 +457,7 @@ struct LogLine
     }
 
     // strip spaces
-    while(!filename.empty() && isspace(filename[0]))
-      filename.erase(0, 1);
-
-    while(!filename.empty() && isspace(filename.back()))
-      filename.pop_back();
+    filename.trim();
 
     if(filename.empty())
       return false;
@@ -481,19 +480,14 @@ struct LogLine
     EXPECT_CHAR('-');
     EXPECT_CHAR(' ');
 
-    std::string logtype_str;
+    rdcstr logtype_str;
     while(idx < line.length() && line[idx] != '-')
     {
       logtype_str.push_back(line[idx]);
       idx++;
     }
 
-    // strip spaces
-    while(!logtype_str.empty() && isspace(logtype_str[0]))
-      logtype_str.erase(0);
-
-    while(!logtype_str.empty() && isspace(logtype_str.back()))
-      logtype_str.pop_back();
+    logtype_str.trim();
 
     if(logtype_str == "Debug")
       logtype = LogType::Debug;
@@ -529,9 +523,9 @@ struct LogLine
 // we need to keep track of logcat threads, so that if we start a new one up on a device before the
 // old one has finished, we don't start overlapping and double-printing messages.
 static Threading::CriticalSection logcatThreadLock;
-static std::map<std::string, LogcatThread *> logcatThreads;
+static std::map<rdcstr, LogcatThread *> logcatThreads;
 
-LogcatThread *ProcessLogcat(std::string deviceID)
+LogcatThread *ProcessLogcat(rdcstr deviceID)
 {
   LogcatThread *ret = NULL;
 
@@ -656,7 +650,7 @@ void LogcatThread::Tick()
   //    DEBUG:*      // or from DEBUG (prints crash messages)
   //
   // This gives us all messages from renderdoc since the last timestamp.
-  std::string command =
+  rdcstr command =
       StringFormat::Fmt("logcat -t %u -v brief -s renderdoc:* libc:* DEBUG:*", lineBacklog);
 
   rdcstr logcat = Android::adbExecCommand(deviceID, command, ".", true).strStdout.trimmed();
@@ -684,7 +678,7 @@ void LogcatThread::Tick()
       RDCWARN("Couldn't find last line. Potentially missed logcat messages.");
     }
 
-    for(const std::string &line : lines)
+    for(const rdcstr &line : lines)
     {
       LogLine logline;
 
@@ -808,7 +802,7 @@ TEST_CASE("Test that log line parsing is robust", "[android]")
 
   SECTION("Invalid strings - truncated")
   {
-    std::string truncated =
+    rdcstr truncated =
         R"(I/renderdoc( 1234): @1234567812345678@ RDOC 001234: [01:02:03]         filename.cpp( 123) - Warning - H)";
 
     LogLine working;

@@ -32,10 +32,10 @@
 
 namespace Android
 {
-Process::ProcessResult execScript(const std::string &script, const std::string &args,
-                                  const std::string &workDir = ".", bool silent = false);
-Process::ProcessResult execCommand(const std::string &exe, const std::string &args,
-                                   const std::string &workDir = ".", bool silent = false);
+Process::ProcessResult execScript(const rdcstr &script, const rdcstr &args,
+                                  const rdcstr &workDir = ".", bool silent = false);
+Process::ProcessResult execCommand(const rdcstr &exe, const rdcstr &args,
+                                   const rdcstr &workDir = ".", bool silent = false);
 
 enum class ToolDir
 {
@@ -45,14 +45,14 @@ enum class ToolDir
   BuildToolsLib,
   PlatformTools,
 };
-std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist);
-bool toolExists(const std::string &path);
+rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist);
+bool toolExists(const rdcstr &path);
 
 rdcstr GetFirstMatchingLine(const rdcstr &haystack, const rdcstr &needle);
 
-bool IsSupported(std::string deviceID);
+bool IsSupported(rdcstr deviceID);
 bool SupportsNativeLayers(const rdcstr &deviceID);
-std::string DetermineInstalledABI(const std::string &deviceID, const std::string &packageName);
+rdcstr DetermineInstalledABI(const rdcstr &deviceID, const rdcstr &packageName);
 rdcstr GetFriendlyName(const rdcstr &deviceID);
 
 // supported ABIs
@@ -65,10 +65,11 @@ enum class ABI
   x86_64,
 };
 
-ABI GetABI(const std::string &abiName);
-std::vector<ABI> GetSupportedABIs(const std::string &deviceID);
-std::string GetRenderDocPackageForABI(ABI abi, char sep = '.');
-std::string GetPathForPackage(const std::string &deviceID, const std::string &packageName);
+ABI GetABI(const rdcstr &abiName);
+rdcstr GetPlainABIName(ABI abi);
+rdcarray<ABI> GetSupportedABIs(const rdcstr &deviceID);
+rdcstr GetRenderDocPackageForABI(ABI abi);
+rdcstr GetPathForPackage(const rdcstr &deviceID, const rdcstr &packageName);
 
 bool PatchManifest(bytebuf &manifest);
 };

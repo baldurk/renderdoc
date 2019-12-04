@@ -301,14 +301,14 @@ ResourceDescription &D3D12Replay::GetResourceDesc(ResourceId id)
   return m_Resources[it->second];
 }
 
-const std::vector<ResourceDescription> &D3D12Replay::GetResources()
+const rdcarray<ResourceDescription> &D3D12Replay::GetResources()
 {
   return m_Resources;
 }
 
-std::vector<ResourceId> D3D12Replay::GetBuffers()
+rdcarray<ResourceId> D3D12Replay::GetBuffers()
 {
-  std::vector<ResourceId> ret;
+  rdcarray<ResourceId> ret;
 
   for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
     if(it->second->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -317,9 +317,9 @@ std::vector<ResourceId> D3D12Replay::GetBuffers()
   return ret;
 }
 
-std::vector<ResourceId> D3D12Replay::GetTextures()
+rdcarray<ResourceId> D3D12Replay::GetTextures()
 {
-  std::vector<ResourceId> ret;
+  rdcarray<ResourceId> ret;
 
   for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
   {
@@ -462,12 +462,12 @@ ShaderReflection *D3D12Replay::GetShader(ResourceId pipeline, ResourceId shader,
   return NULL;
 }
 
-std::vector<std::string> D3D12Replay::GetDisassemblyTargets()
+rdcarray<rdcstr> D3D12Replay::GetDisassemblyTargets()
 {
-  std::vector<std::string> ret;
+  rdcarray<rdcstr> ret;
 
   // DXBC is always first
-  ret.insert(ret.begin(), DXBCDisassemblyTarget);
+  ret.push_back(DXBCDisassemblyTarget);
 
   if(!m_ISAChecked && m_TexRender.BlendPipe)
   {
@@ -498,8 +498,8 @@ std::vector<std::string> D3D12Replay::GetDisassemblyTargets()
   return ret;
 }
 
-std::string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                           const std::string &target)
+rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                      const rdcstr &target)
 {
   WrappedID3D12Shader *sh =
       m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->resourceId);
@@ -640,7 +640,7 @@ ResourceId D3D12Replay::GetLiveID(ResourceId id)
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
-std::vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
+rdcarray<EventUsage> D3D12Replay::GetUsage(ResourceId id)
 {
   return m_pDevice->GetQueue()->GetUsage(id);
 }
@@ -2423,7 +2423,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 
 bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
                                float minval, float maxval, bool channels[4],
-                               std::vector<uint32_t> &histogram)
+                               rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -2601,9 +2601,9 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
   return false;
 }
 
-std::vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
+rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
 {
-  std::vector<uint32_t> passEvents;
+  rdcarray<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
@@ -2691,9 +2691,9 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
   GetDebugManager()->GetBufferData(buffer, offset, length, retData);
 }
 
-void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
-                                       std::string entryPoint, uint32_t cbufSlot,
-                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
+                                       uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                                       const bytebuf &data)
 {
   if(shader == ResourceId())
     return;
@@ -2772,21 +2772,19 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
                                rootData.empty() ? data : rootData);
 }
 
-std::vector<DebugMessage> D3D12Replay::GetDebugMessages()
+rdcarray<DebugMessage> D3D12Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
 }
 
-void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
-                              const std::string &entry, const ShaderCompileFlags &compileFlags,
-                              ShaderStage type, ResourceId *id, std::string *errors)
+void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                              const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                              ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  if(id == NULL || errors == NULL)
-  {
-    if(id)
-      *id = ResourceId();
-    return;
-  }
+  bytebuf compiledDXBC;
+
+  const byte *dxbcBytes = source.data();
+  size_t dxbcLength = source.size();
 
   if(sourceEncoding == ShaderEncoding::HLSL)
   {
@@ -2804,7 +2802,7 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
       case ShaderStage::Compute: profile = "cs_5_1"; break;
       default:
         RDCERR("Unexpected type in BuildShader!");
-        *id = ResourceId();
+        id = ResourceId();
         return;
     }
 
@@ -2812,33 +2810,35 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
     hlsl.assign((const char *)source.data(), source.size());
 
     ID3DBlob *blob = NULL;
-    *errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
-                                                         profile, &blob);
+    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags, profile,
+                                                        &blob);
 
     if(blob == NULL)
     {
-      *id = ResourceId();
+      id = ResourceId();
       return;
     }
 
-    source.clear();
-    source.assign((byte *)blob->GetBufferPointer(), blob->GetBufferSize());
+    compiledDXBC.assign((byte *)blob->GetBufferPointer(), blob->GetBufferSize());
+
+    dxbcBytes = compiledDXBC.data();
+    dxbcLength = compiledDXBC.size();
 
     SAFE_RELEASE(blob);
   }
 
   D3D12_SHADER_BYTECODE byteCode;
-  byteCode.BytecodeLength = source.size();
-  byteCode.pShaderBytecode = source.data();
+  byteCode.BytecodeLength = dxbcLength;
+  byteCode.pShaderBytecode = dxbcBytes;
 
   WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_pDevice, NULL);
 
-  *id = sh->GetResourceID();
+  id = sh->GetResourceID();
 }
 
-void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                    ShaderStage type, ResourceId *id, std::string *errors)
+void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                    const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId &id, rdcstr &errors)
 {
   ShaderCompileFlags debugCompileFlags =
       DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
@@ -3564,9 +3564,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   SAFE_RELEASE(tmpTexture);
 }
 
-void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                    ShaderStage type, ResourceId *id, std::string *errors)
+void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                    const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId &id, rdcstr &errors)
 {
   BuildShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
@@ -3669,11 +3669,11 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
 
 #pragma region not yet implemented
 
-std::vector<PixelModification> D3D12Replay::PixelHistory(std::vector<EventUsage> events,
-                                                         ResourceId target, uint32_t x, uint32_t y,
-                                                         const Subresource &sub, CompType typeCast)
+rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> events,
+                                                      ResourceId target, uint32_t x, uint32_t y,
+                                                      const Subresource &sub, CompType typeCast)
 {
-  return std::vector<PixelModification>();
+  return {};
 }
 
 ResourceId D3D12Replay::CreateProxyTexture(const TextureDescription &templateTex)

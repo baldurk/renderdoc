@@ -36,7 +36,7 @@ ReplayStatus exportChrome(const char *filename, const RDCFile &rdc, const SDFile
   if(!f)
     return ReplayStatus::FileIOFailed;
 
-  std::string str;
+  rdcstr str;
 
   // add header, customise this as needed.
   str = R"({

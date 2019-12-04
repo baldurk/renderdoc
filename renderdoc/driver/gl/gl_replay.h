@@ -55,7 +55,7 @@ struct GLPostVSData
     uint32_t instStride = 0;
 
     // complex case - expansion per instance
-    std::vector<InstData> instData;
+    rdcarray<InstData> instData;
 
     bool useIndices = false;
     GLuint idxBuf = 0;
@@ -104,24 +104,23 @@ public:
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
-  const std::vector<ResourceDescription> &GetResources();
+  const rdcarray<ResourceDescription> &GetResources();
 
-  std::vector<ResourceId> GetBuffers();
+  rdcarray<ResourceId> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
-  std::vector<ResourceId> GetTextures();
+  rdcarray<ResourceId> GetTextures();
   TextureDescription GetTexture(ResourceId id);
 
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
-  std::vector<std::string> GetDisassemblyTargets();
-  std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                const std::string &target);
+  rdcarray<rdcstr> GetDisassemblyTargets();
+  rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target);
 
-  std::vector<DebugMessage> GetDebugMessages();
+  rdcarray<DebugMessage> GetDebugMessages();
 
-  std::vector<EventUsage> GetUsage(ResourceId id);
+  rdcarray<EventUsage> GetUsage(ResourceId id);
 
   FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
@@ -136,9 +135,9 @@ public:
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
   const SDFile &GetStructuredFile();
 
-  std::vector<uint32_t> GetPassEvents(uint32_t eventId);
+  rdcarray<uint32_t> GetPassEvents(uint32_t eventId);
 
-  std::vector<WindowingSystem> GetSupportedWindowSystems();
+  rdcarray<WindowingSystem> GetSupportedWindowSystems();
 
   AMDRGPControl *GetRGPControl() { return NULL; }
   uint64_t MakeOutputWindow(WindowingData window, bool depth);
@@ -154,7 +153,7 @@ public:
   void FlipOutputWindow(uint64_t id);
 
   void InitPostVSBuffers(uint32_t eventId);
-  void InitPostVSBuffers(const std::vector<uint32_t> &passEvents);
+  void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents);
 
   ResourceId GetLiveID(ResourceId id);
 
@@ -163,7 +162,7 @@ public:
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
                  float *maxval);
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                    float maxval, bool channels[4], std::vector<uint32_t> &histogram);
+                    float maxval, bool channels[4], rdcarray<uint32_t> &histogram);
 
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
                               MeshDataStage stage);
@@ -179,17 +178,17 @@ public:
   CounterDescription DescribeCounter(GPUCounter counterID);
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
 
-  void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
+  void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws,
                   const MeshDisplay &cfg);
 
   rdcarray<ShaderEncoding> GetCustomShaderEncodings() { return {ShaderEncoding::GLSL}; }
   rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {ShaderEncoding::GLSL}; }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
-                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         std::string *errors);
-  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
-                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         std::string *errors);
+  void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
+                         rdcstr &errors);
+  void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
+                         rdcstr &errors);
   void FreeCustomShader(ResourceId id);
 
   bool RenderTexture(TextureDisplay cfg);
@@ -199,13 +198,12 @@ public:
 
   void RenderHighlightBox(float w, float h, float scale);
 
-  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
                             uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
                             const bytebuf &data);
 
-  std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
-                                              uint32_t x, uint32_t y, const Subresource &sub,
-                                              CompType typeCast);
+  rdcarray<PixelModification> PixelHistory(rdcarray<EventUsage> events, ResourceId target, uint32_t x,
+                                           uint32_t y, const Subresource &sub, CompType typeCast);
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -217,7 +215,7 @@ public:
 
   ResourceId RenderOverlay(ResourceId id, CompType typeCast, FloatVector clearCol,
                            DebugOverlay overlay, uint32_t eventId,
-                           const std::vector<uint32_t> &passEvents);
+                           const rdcarray<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
 
@@ -237,8 +235,8 @@ public:
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
   bool HasDebugContext() { return m_DebugCtx != NULL; }
 private:
-  void OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked,
-                                  std::string prefix, const rdcarray<ShaderConstant> &variables,
+  void OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked, rdcstr prefix,
+                                  const rdcarray<ShaderConstant> &variables,
                                   rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, bool stencil,
@@ -355,7 +353,7 @@ private:
     GLuint triHighlightBuffer;
 
     GLuint feedbackObj;
-    std::vector<GLuint> feedbackQueries;
+    rdcarray<GLuint> feedbackQueries;
     GLuint feedbackBuffer;
     uint64_t feedbackBufferSize = 32 * 1024 * 1024;
 
@@ -427,7 +425,7 @@ private:
 
   WrappedOpenGL *m_pDriver;
 
-  std::vector<ResourceDescription> m_Resources;
+  rdcarray<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   GLPipe::State m_CurPipelineState;

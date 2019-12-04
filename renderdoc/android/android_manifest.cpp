@@ -32,7 +32,7 @@ const uint32_t addingStringIndex = 0x8b8b8b8b;
 
 namespace Android
 {
-std::string GetStringPoolValue(ResStringPool_header *stringpool, ResStringPool_ref ref)
+rdcstr GetStringPoolValue(ResStringPool_header *stringpool, ResStringPool_ref ref)
 {
   byte *base = (byte *)stringpool;
 
@@ -94,7 +94,7 @@ std::string GetStringPoolValue(ResStringPool_header *stringpool, ResStringPool_r
     else
       str += 2;
 
-    return std::string((char *)str, (char *)(str + len));
+    return rdcstr((char *)str, len);
   }
 }
 
@@ -254,7 +254,7 @@ bool PatchManifest(bytebuf &manifestBytes)
 
     ResXMLTree_attrExt *startElement = (ResXMLTree_attrExt *)(cur + node->headerSize);
 
-    std::string name = GetStringPoolValue(stringpool, startElement->name);
+    rdcstr name = GetStringPoolValue(stringpool, startElement->name);
 
     if(name != "application")
     {
@@ -285,7 +285,7 @@ bool PatchManifest(bytebuf &manifestBytes)
       ResXMLTree_attribute *attribute =
           (ResXMLTree_attribute *)(attributesStart + startElement->attributeSize * i);
 
-      std::string attr = GetStringPoolValue(stringpool, attribute->name);
+      rdcstr attr = GetStringPoolValue(stringpool, attribute->name);
 
       if(attr != "debuggable")
         continue;
@@ -375,7 +375,7 @@ bool PatchManifest(bytebuf &manifestBytes)
     {
       if(resourceMapping[i] == debuggableResourceId)
       {
-        std::string str = GetStringPoolValue(stringpool, {i});
+        rdcstr str = GetStringPoolValue(stringpool, {i});
 
         if(str != "debuggable")
         {
@@ -401,7 +401,7 @@ bool PatchManifest(bytebuf &manifestBytes)
     // search the stringpool for the schema, it should be there already.
     for(uint32_t i = 0; i < stringpool->stringCount; i++)
     {
-      std::string val = GetStringPoolValue(stringpool, {i});
+      rdcstr val = GetStringPoolValue(stringpool, {i});
       if(val == "http://schemas.android.com/apk/res/android")
       {
         debuggable.ns.index = i;
@@ -533,8 +533,10 @@ bool PatchManifest(bytebuf &manifestBytes)
         RDCDEBUG("Inserting %u padding bytes to align %u up to %u", paddingLen,
                  stringpool->header.size, alignedSize);
 
-        InsertBytes(manifestBytes, base + stringpool->header.size,
-                    std::vector<byte>((size_t)paddingLen, 0));
+        bytebuf padding;
+        padding.resize(paddingLen);
+
+        InsertBytes(manifestBytes, base + stringpool->header.size, padding);
 
         stringpool->header.size += paddingLen;
       }

@@ -148,13 +148,13 @@ rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
 
   rdcarray<rdcstr> ret;
 
-  std::vector<std::string> targets = m_pDevice->GetDisassemblyTargets();
+  rdcarray<rdcstr> targets = m_pDevice->GetDisassemblyTargets();
 
   ret.reserve(targets.size());
-  for(const std::string &t : targets)
+  for(const rdcstr &t : targets)
     ret.push_back(t);
 
-  for(const std::string &t : m_GCNTargets)
+  for(const rdcstr &t : m_GCNTargets)
     ret.push_back(t);
 
   return ret;
@@ -165,7 +165,7 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
 {
   CHECK_REPLAY_THREAD();
 
-  for(const std::string &t : m_GCNTargets)
+  for(const rdcstr &t : m_GCNTargets)
     if(t == target)
       return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
 
@@ -303,7 +303,7 @@ void ReplayController::AddFakeMarkers()
   if(ContainsMarker(draws))
     return;
 
-  std::vector<DrawcallDescription> ret;
+  rdcarray<DrawcallDescription> ret;
 
   int depthpassID = 1;
   int copypassID = 1;
@@ -711,7 +711,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     // otherwise take all mips, as by default
   }
 
-  std::vector<byte *> subdata;
+  rdcarray<byte *> subdata;
 
   bool downcast = false;
 
@@ -1480,9 +1480,9 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
   if(id == ResourceId())
     return ret;
 
-  std::vector<EventUsage> usage = m_pDevice->GetUsage(id);
+  rdcarray<EventUsage> usage = m_pDevice->GetUsage(id);
 
-  std::vector<EventUsage> events;
+  rdcarray<EventUsage> events;
 
   for(size_t i = 0; i < usage.size(); i++)
   {
@@ -1594,7 +1594,7 @@ rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Su
 {
   CHECK_REPLAY_THREAD();
 
-  std::vector<uint32_t> hist;
+  rdcarray<uint32_t> hist;
 
   m_pDevice->GetHistogram(m_pDevice->GetLiveID(textureId), sub, typeCast, minval, maxval, channels,
                           hist);
@@ -1694,7 +1694,7 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
     return "";
   }
 
-  std::string path = FileIO::GetTempFolderFilename() + "/renderdoc_rgp_capture.rgp";
+  rdcstr path = FileIO::GetTempFolderFilename() + "/renderdoc_rgp_capture.rgp";
 
   ReplayOutput *output = CreateOutput(window, ReplayOutputType::Texture);
 
@@ -1828,15 +1828,15 @@ void ReplayController::ShutdownOutput(IReplayOutput *output)
 {
   CHECK_REPLAY_THREAD();
 
-  for(auto it = m_Outputs.begin(); it != m_Outputs.end(); ++it)
-  {
-    if((IReplayOutput *)*it == output)
+  m_Outputs.removeOneIf([output](const ReplayOutput *o) {
+    if((IReplayOutput *)o == output)
     {
-      delete *it;
-      m_Outputs.erase(it);
-      return;
+      delete o;
+      return true;
     }
-  }
+
+    return false;
+  });
 
   RDCERR("Unrecognised output");
 }
@@ -1876,7 +1876,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
         StringFormat::Fmt("Shader Encoding '%s' is not supported", ToStr(sourceEncoding).c_str()));
 
   ResourceId id;
-  std::string errs;
+  rdcstr errs;
 
   switch(type)
   {
@@ -1889,7 +1889,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
     default: RDCERR("Unexpected type in BuildShader!"); return rdcpair<ResourceId, rdcstr>();
   }
 
-  m_pDevice->BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, &id, &errs);
+  m_pDevice->BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errs);
 
   if(id != ResourceId())
     m_TargetResources.insert(id);
@@ -1904,7 +1904,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
   CHECK_REPLAY_THREAD();
 
   ResourceId id;
-  std::string errs;
+  rdcstr errs;
 
   switch(type)
   {
@@ -1919,7 +1919,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
 
   RDCLOG("Building custom shader");
 
-  m_pDevice->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, &id, &errs);
+  m_pDevice->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errs);
 
   if(id != ResourceId())
   {
@@ -2024,7 +2024,7 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
 
   {
-    std::vector<ResourceId> ids = m_pDevice->GetBuffers();
+    rdcarray<ResourceId> ids = m_pDevice->GetBuffers();
 
     m_Buffers.resize(ids.size());
 
@@ -2033,7 +2033,7 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   }
 
   {
-    std::vector<ResourceId> ids = m_pDevice->GetTextures();
+    rdcarray<ResourceId> ids = m_pDevice->GetTextures();
 
     m_Textures.resize(ids.size());
 

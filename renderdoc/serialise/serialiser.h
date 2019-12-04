@@ -26,8 +26,6 @@
 
 #include <list>
 #include <set>
-#include <string>
-#include <vector>
 #include "api/replay/structured_data.h"
 #include "common/formatting.h"
 #include "streamio.h"
@@ -52,7 +50,7 @@ void Deserialise(const T &el)
   template void DoSerialise(Serialiser<SerialiserMode::Writing> &, type &); \
   template void DoSerialise(Serialiser<SerialiserMode::Reading> &, type &);
 
-typedef std::string (*ChunkLookup)(uint32_t chunkType);
+typedef rdcstr (*ChunkLookup)(uint32_t chunkType);
 
 enum class SerialiserFlags
 {
@@ -136,7 +134,7 @@ public:
   static uint64_t GetChunkAlignment() { return ChunkAlignment; }
   void *GetUserData() { return m_pUserData; }
   void SetUserData(void *userData) { m_pUserData = userData; }
-  void SetStringDatabase(std::set<std::string> *db) { m_ExtStringDB = db; }
+  void SetStringDatabase(std::set<rdcstr> *db) { m_ExtStringDB = db; }
   // jumps to the byte after the current chunk, can be called any time after BeginChunk
   void SkipCurrentChunk();
 
@@ -173,7 +171,7 @@ public:
   uint32_t BeginChunk(uint32_t chunkID, uint64_t byteLength);
   void EndChunk();
 
-  std::string GetCurChunkName()
+  rdcstr GetCurChunkName()
   {
     if(m_ChunkLookup)
       return m_ChunkLookup(m_ChunkMetadata.chunkID);
@@ -641,7 +639,7 @@ public:
   Serialiser &Serialise(const rdcliteral &name, char (&el)[N],
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
-    std::string str;
+    rdcstr str;
     if(IsWriting())
       str = el;
     Serialise(name, str, flags);
@@ -1141,7 +1139,7 @@ public:
     return SerialiseNullable(name, (T *&)el, flags);
   }
 
-  Serialiser &SerialiseStream(const std::string &name, StreamReader &stream,
+  Serialiser &SerialiseStream(const rdcstr &name, StreamReader &stream,
                               RENDERDOC_ProgressCallback progress = RENDERDOC_ProgressCallback())
   {
     RDCCOMPILE_ASSERT(IsWriting(), "Can't read into a StreamReader");
@@ -1162,7 +1160,7 @@ public:
     return *this;
   }
 
-  Serialiser &SerialiseStream(const std::string &name, StreamWriter &stream,
+  Serialiser &SerialiseStream(const rdcstr &name, StreamWriter &stream,
                               RENDERDOC_ProgressCallback progress)
   {
     RDCCOMPILE_ASSERT(IsReading(), "Can't write from a StreamWriter");
@@ -1453,7 +1451,7 @@ public:
       }
       else
       {
-        std::string str;
+        rdcstr str;
         str.resize(len);
         if(len > 0)
           m_Read->Read(&str[0], len);
@@ -1564,19 +1562,19 @@ private:
   bool m_InternalElement = false;
   SDFile m_StructData;
   SDFile *m_StructuredFile = &m_StructData;
-  std::vector<SDObject *> m_StructureStack;
+  rdcarray<SDObject *> m_StructureStack;
 
   uint32_t m_ChunkFlags = 0;
   SDChunkMetaData m_ChunkMetadata;
 
   // a database of strings read from the file, useful when serialised structures
   // expect a char* to return and point to static memory
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   // external storage - so the string storage can persist after the lifetime of the serialiser
-  std::set<std::string> *m_ExtStringDB = NULL;
+  std::set<rdcstr> *m_ExtStringDB = NULL;
 
-  const char *StringDB(const std::string &s)
+  const char *StringDB(const rdcstr &s)
   {
     if(m_ExtStringDB)
     {

@@ -432,7 +432,7 @@ private:
 
   uint32_t m_FrameCounter = 0;
   std::vector<FrameDescription> m_CapturedFrames;
-  std::vector<DrawcallDescription *> m_Drawcalls;
+  rdcarray<DrawcallDescription *> m_Drawcalls;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
@@ -453,7 +453,7 @@ private:
   D3D12ResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
 
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_DeviceRecord;
@@ -540,7 +540,7 @@ public:
   WriteSerialiser &GetThreadSerialiser();
 
   ID3D12Device *GetReal() { return m_pDevice; }
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
   D3D12DebugManager *GetDebugManager();

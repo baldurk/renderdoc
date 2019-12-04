@@ -170,9 +170,8 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
 
     // we have to do the send/receive on threads since it is blocking
 
-    std::vector<uint64_t> receivedValues;
-    std::vector<uint64_t> list = {1,  1,  2,   3,   5,   8,   13,  21,  34,
-                                  55, 89, 144, 233, 377, 610, 987, 1597};
+    rdcarray<uint64_t> receivedValues;
+    rdcarray<uint64_t> list = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597};
 
     // Tracks the lifetime of each thread.
     volatile int32_t threadA = 0, threadB = 0;
@@ -256,7 +255,7 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
       // keep reading indefinitely until we hit an error (i.e. socket disconnected)
       while(!reader.IsErrored())
       {
-        receivedValues.insert(receivedValues.end(), tmp, tmp + ARRAY_COUNT(tmp));
+        receivedValues.append(tmp, ARRAY_COUNT(tmp));
         reader.Read(tmp);
       }
 

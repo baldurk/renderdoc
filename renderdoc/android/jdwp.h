@@ -323,24 +323,24 @@ struct Location
 struct Method
 {
   methodID id;
-  std::string name;
-  std::string signature;
+  rdcstr name;
+  rdcstr signature;
   int32_t modBits;
 };
 
 struct Field
 {
   fieldID id;
-  std::string name;
-  std::string signature;
+  rdcstr name;
+  rdcstr signature;
   int32_t modBits;
 };
 
 struct VariableSlot
 {
   uint64_t codeIndex;
-  std::string name;
-  std::string signature;
+  rdcstr name;
+  rdcstr signature;
   uint32_t length;
   int32_t slot;
 };
@@ -373,7 +373,7 @@ struct Event
     threadID thread;
     TypeTag refTypeTag;
     referenceTypeID typeID;
-    std::string signature;
+    rdcstr signature;
     union
     {
       // get around strict aliasing
@@ -406,13 +406,13 @@ private:
   uint32_t length = 0;
   uint32_t id = 0;
   Error error = Error::None;
-  std::vector<byte> data;
+  bytebuf data;
 };
 
 // a helper class for reading/writing the payload of a packet, with endian swapping.
 struct CommandData
 {
-  CommandData(std::vector<byte> &dataStore) : data(dataStore) {}
+  CommandData(bytebuf &dataStore) : data(dataStore) {}
   template <typename T>
   CommandData &Read(T &val)
   {
@@ -433,7 +433,7 @@ struct CommandData
   // called when we've finished reading, to ensure we consumed all the data
   void Done() { RDCASSERT(offs == data.size(), offs, data.size()); }
 private:
-  std::vector<byte> &data;
+  bytebuf &data;
   size_t offs = 0;
 
   void ReadBytes(void *bytes, size_t length);
@@ -442,9 +442,9 @@ private:
 
 // overloads for the basic types we want to read and write
 template <>
-CommandData &CommandData::Read(std::string &str);
+CommandData &CommandData::Read(rdcstr &str);
 template <>
-CommandData &CommandData::Write(const std::string &str);
+CommandData &CommandData::Write(const rdcstr &str);
 template <>
 CommandData &CommandData::Read(taggedObjectID &id);
 template <>
@@ -500,13 +500,13 @@ public:
   void SetupIDSizes();
 
   // get the type handle for a given JNI signature
-  referenceTypeID GetType(const std::string &signature);
+  referenceTypeID GetType(const rdcstr &signature);
 
   // get the type handle for an object
   referenceTypeID GetType(objectID obj);
 
   // get a field handle. If signature is empty, it's ignored for matching
-  fieldID GetField(referenceTypeID type, const std::string &name, const std::string &signature = "");
+  fieldID GetField(referenceTypeID type, const rdcstr &name, const rdcstr &signature = "");
 
   // get the value of a static field
   value GetFieldValue(referenceTypeID type, fieldID field);
@@ -514,29 +514,29 @@ public:
   // get a method handle. If signature is empty, it's ignored for matching
   // The actual class for the method (possibly a parent of 'type') will be returned in methClass if
   // non-NULL
-  methodID GetMethod(referenceTypeID type, const std::string &name,
-                     const std::string &signature = "", referenceTypeID *methClass = NULL);
+  methodID GetMethod(referenceTypeID type, const rdcstr &name, const rdcstr &signature = "",
+                     referenceTypeID *methClass = NULL);
 
   // get local variable slots
-  std::vector<VariableSlot> GetLocalVariables(referenceTypeID type, methodID method);
+  rdcarray<VariableSlot> GetLocalVariables(referenceTypeID type, methodID method);
 
   // get a thread's stack frames
-  std::vector<StackFrame> GetCallStack(threadID thread);
+  rdcarray<StackFrame> GetCallStack(threadID thread);
 
   // get the this pointer for a given stack frame
   objectID GetThis(threadID thread, frameID frame);
 
   // get the value of a string object
-  std::string GetString(objectID str);
+  rdcstr GetString(objectID str);
 
   // resume the VM and wait for an event to happen, filtered by some built-in filters or a callback.
   // Returns the matching event and leaves the VM suspended, or an empty event if there was a
   // problem
-  Event WaitForEvent(EventKind kind, const std::vector<EventFilter> &eventFilters,
+  Event WaitForEvent(EventKind kind, const rdcarray<EventFilter> &eventFilters,
                      EventFilterFunction filterCallback);
 
   // create a new string reference on the given thread
-  value NewString(threadID thread, const std::string &str);
+  value NewString(threadID thread, const rdcstr &str);
 
   // get/set local variables
   value GetLocalValue(threadID thread, frameID frame, int32_t slot, Tag tag);
@@ -544,7 +544,7 @@ public:
 
   // invoke a static method
   value InvokeStatic(threadID thread, classID clazz, methodID method,
-                     const std::vector<value> &arguments,
+                     const rdcarray<value> &arguments,
                      InvokeOptions options = InvokeOptions::SingleThreaded)
   {
     // instance detects if object is empty, and invokes as static
@@ -552,7 +552,7 @@ public:
   }
   // invoke an instance method
   value InvokeInstance(threadID thread, classID clazz, methodID method, objectID object,
-                       const std::vector<value> &arguments,
+                       const rdcarray<value> &arguments,
                        InvokeOptions options = InvokeOptions::SingleThreaded);
 
 private:
@@ -566,7 +566,7 @@ private:
   void ReadEvent(CommandData &data, Event &ev);
 
   classID GetSuper(classID clazz);
-  std::string GetSignature(referenceTypeID typeID);
-  std::vector<Method> GetMethods(referenceTypeID searchClass);
+  rdcstr GetSignature(referenceTypeID typeID);
+  rdcarray<Method> GetMethods(referenceTypeID searchClass);
 };
 };

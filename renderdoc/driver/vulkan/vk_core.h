@@ -307,7 +307,7 @@ private:
 
   StreamReader *m_FrameReader = NULL;
 
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   VkResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
@@ -354,7 +354,7 @@ private:
   uint32_t m_FrameCounter = 0;
 
   std::vector<FrameDescription> m_CapturedFrames;
-  std::vector<DrawcallDescription *> m_Drawcalls;
+  rdcarray<DrawcallDescription *> m_Drawcalls;
 
   struct PhysicalDeviceData
   {
@@ -933,7 +933,7 @@ public:
 
   APIProperties APIProps;
 
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
   VulkanShaderCache *GetShaderCache() { return m_ShaderCache; }

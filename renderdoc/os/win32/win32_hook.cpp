@@ -31,7 +31,6 @@
 #include <functional>
 #include <map>
 #include <set>
-#include <vector>
 #include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"

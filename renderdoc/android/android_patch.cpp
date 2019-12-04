@@ -33,11 +33,11 @@ static const char keystoreName[] = "renderdoc.keystore";
 
 namespace Android
 {
-bool RemoveAPKSignature(const std::string &apk)
+bool RemoveAPKSignature(const rdcstr &apk)
 {
   RDCLOG("Checking for existing signature");
 
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   // Get the list of files in META-INF
   rdcstr fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
@@ -80,7 +80,7 @@ bool RemoveAPKSignature(const std::string &apk)
   return true;
 }
 
-bool ExtractAndRemoveManifest(const std::string &apk, bytebuf &manifest)
+bool ExtractAndRemoveManifest(const rdcstr &apk, bytebuf &manifest)
 {
   // pull out the manifest with miniz
   mz_zip_archive zip;
@@ -119,7 +119,7 @@ bool ExtractAndRemoveManifest(const std::string &apk, bytebuf &manifest)
   if(manifest.empty())
     return false;
 
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   RDCDEBUG("Removing AndroidManifest.xml");
   execCommand(aapt, "remove \"" + apk + "\" AndroidManifest.xml");
@@ -141,9 +141,9 @@ bool ExtractAndRemoveManifest(const std::string &apk, bytebuf &manifest)
   return true;
 }
 
-bool AddManifestToAPK(const std::string &apk, const std::string &tmpDir, const bytebuf &manifest)
+bool AddManifestToAPK(const rdcstr &apk, const rdcstr &tmpDir, const bytebuf &manifest)
 {
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   // write the manifest to disk
   FileIO::WriteAll((tmpDir + "AndroidManifest.xml").c_str(), manifest);
@@ -161,13 +161,13 @@ bool AddManifestToAPK(const std::string &apk, const std::string &tmpDir, const b
   return true;
 }
 
-bool RealignAPK(const std::string &apk, std::string &alignedAPK, const std::string &tmpDir)
+bool RealignAPK(const rdcstr &apk, rdcstr &alignedAPK, const rdcstr &tmpDir)
 {
-  std::string zipalign = getToolPath(ToolDir::BuildTools, "zipalign", false);
+  rdcstr zipalign = getToolPath(ToolDir::BuildTools, "zipalign", false);
 
   // Re-align the APK for performance
   RDCLOG("Realigning APK");
-  std::string errOut =
+  rdcstr errOut =
       execCommand(zipalign, "-f 4 \"" + apk + "\" \"" + alignedAPK + "\"", tmpDir).strStderror;
 
   if(!errOut.empty())
@@ -192,22 +192,22 @@ bool RealignAPK(const std::string &apk, std::string &alignedAPK, const std::stri
   return false;
 }
 
-std::string GetAndroidDebugKey()
+rdcstr GetAndroidDebugKey()
 {
-  std::string keystore = getToolPath(ToolDir::None, keystoreName, false);
+  rdcstr keystore = getToolPath(ToolDir::None, keystoreName, false);
 
   // if we found the keystore, use that.
   if(FileIO::exists(keystore.c_str()))
     return keystore;
 
   // otherwise, see if we generated a temporary one
-  std::string key = FileIO::GetTempFolderFilename() + keystoreName;
+  rdcstr key = FileIO::GetTempFolderFilename() + keystoreName;
 
   if(FileIO::exists(key.c_str()))
     return key;
 
   // locate keytool and use it to generate a keystore
-  std::string create;
+  rdcstr create;
   create += " -genkey";
   create += " -keystore \"" + key + "\"";
   create += " -storepass android";
@@ -218,7 +218,7 @@ std::string GetAndroidDebugKey()
   create += " -validity 10000";
   create += " -dname \"CN=, OU=, O=, L=, S=, C=\"";
 
-  std::string keytool = getToolPath(ToolDir::Java, "keytool", false);
+  rdcstr keytool = getToolPath(ToolDir::Java, "keytool", false);
 
   Process::ProcessResult result = execCommand(keytool, create);
 
@@ -228,16 +228,16 @@ std::string GetAndroidDebugKey()
   return key;
 }
 
-bool DebugSignAPK(const std::string &apk, const std::string &workDir)
+bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
 {
   RDCLOG("Signing with debug key");
 
-  std::string aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
-  std::string apksigner = getToolPath(ToolDir::BuildToolsLib, "apksigner.jar", false);
+  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr apksigner = getToolPath(ToolDir::BuildToolsLib, "apksigner.jar", false);
 
-  std::string debugKey = GetAndroidDebugKey();
+  rdcstr debugKey = GetAndroidDebugKey();
 
-  std::string args;
+  rdcstr args;
   args += " sign ";
   args += " --ks \"" + debugKey + "\" ";
   args += " --ks-pass pass:android ";
@@ -245,7 +245,7 @@ bool DebugSignAPK(const std::string &apk, const std::string &workDir)
   args += " --ks-key-alias androiddebugkey ";
   args += "\"" + apk + "\"";
 
-  if(apksigner.find(".jar") == std::string::npos)
+  if(!apksigner.contains(".jar"))
   {
     // if we found the non-jar version, then the jar wasn't located and we found the wrapper script
     // in PATH. Execute it as a script
@@ -254,11 +254,11 @@ bool DebugSignAPK(const std::string &apk, const std::string &workDir)
   else
   {
     // otherwise, find and invoke java on the .jar
-    std::string java = getToolPath(ToolDir::Java, "java", false);
+    rdcstr java = getToolPath(ToolDir::Java, "java", false);
 
-    std::string signerdir = get_dirname(FileIO::GetFullPathname(apksigner));
+    rdcstr signerdir = get_dirname(FileIO::GetFullPathname(apksigner));
 
-    std::string javaargs;
+    rdcstr javaargs;
     javaargs += " \"-Djava.ext.dirs=" + signerdir + "\"";
     javaargs += " -jar \"" + apksigner + "\"";
     javaargs += args;
@@ -281,15 +281,14 @@ bool DebugSignAPK(const std::string &apk, const std::string &workDir)
   return false;
 }
 
-bool UninstallOriginalAPK(const std::string &deviceID, const std::string &packageName,
-                          const std::string &workDir)
+bool UninstallOriginalAPK(const rdcstr &deviceID, const rdcstr &packageName, const rdcstr &workDir)
 {
   RDCLOG("Uninstalling previous version of application");
 
   adbExecCommand(deviceID, "uninstall " + packageName, workDir);
 
   // Wait until uninstall completes
-  std::string uninstallResult;
+  rdcstr uninstallResult;
   uint32_t elapsed = 0;
   uint32_t timeout = 10000;    // 10 seconds
   while(elapsed < timeout)
@@ -309,8 +308,8 @@ bool UninstallOriginalAPK(const std::string &deviceID, const std::string &packag
   return false;
 }
 
-bool ReinstallPatchedAPK(const std::string &deviceID, const std::string &apk, const std::string &abi,
-                         const std::string &packageName, const std::string &workDir)
+bool ReinstallPatchedAPK(const rdcstr &deviceID, const rdcstr &apk, const rdcstr &abi,
+                         const rdcstr &packageName, const rdcstr &workDir)
 {
   RDCLOG("Reinstalling APK");
 
@@ -320,7 +319,7 @@ bool ReinstallPatchedAPK(const std::string &deviceID, const std::string &apk, co
     adbExecCommand(deviceID, "install --abi " + abi + " \"" + apk + "\"", workDir);
 
   // Wait until re-install completes
-  std::string reinstallResult;
+  rdcstr reinstallResult;
   uint32_t elapsed = 0;
   uint32_t timeout = 10000;    // 10 seconds
   while(elapsed < timeout)
@@ -343,8 +342,8 @@ bool ReinstallPatchedAPK(const std::string &deviceID, const std::string &apk, co
 bool CheckPatchingRequirements()
 {
   // check for required tools for patching
-  std::vector<rdcpair<ToolDir, std::string>> requirements;
-  std::vector<std::string> missingTools;
+  rdcarray<rdcpair<ToolDir, rdcstr>> requirements;
+  rdcarray<rdcstr> missingTools;
   requirements.push_back({ToolDir::BuildTools, "aapt"});
   requirements.push_back({ToolDir::BuildTools, "zipalign"});
   requirements.push_back({ToolDir::BuildToolsLib, "apksigner.jar"});
@@ -352,7 +351,7 @@ bool CheckPatchingRequirements()
 
   for(uint32_t i = 0; i < requirements.size(); i++)
   {
-    std::string tool = getToolPath(requirements[i].first, requirements[i].second, true);
+    rdcstr tool = getToolPath(requirements[i].first, requirements[i].second, true);
 
     // if we located the tool, we're fine.
     if(toolExists(tool))
@@ -364,12 +363,12 @@ bool CheckPatchingRequirements()
 
   // keytool is special - we look for a debug key first
   {
-    std::string key = getToolPath(ToolDir::None, keystoreName, true);
+    rdcstr key = getToolPath(ToolDir::None, keystoreName, true);
 
     if(key.empty())
     {
       // if we don't have the debug key, check that we can find keytool. First in our normal search
-      std::string tool = getToolPath(ToolDir::Java, "keytool", true);
+      rdcstr tool = getToolPath(ToolDir::Java, "keytool", true);
 
       if(tool.empty())
       {
@@ -389,7 +388,7 @@ bool CheckPatchingRequirements()
   return true;
 }
 
-bool PullAPK(const std::string &deviceID, const std::string &pkgPath, const std::string &apk)
+bool PullAPK(const rdcstr &deviceID, const rdcstr &pkgPath, const rdcstr &apk)
 {
   RDCLOG("Pulling APK to patch");
 
@@ -414,19 +413,19 @@ bool PullAPK(const std::string &deviceID, const std::string &pkgPath, const std:
   return false;
 }
 
-void CopyAPK(const std::string &deviceID, const std::string &pkgPath, const std::string &copyPath)
+void CopyAPK(const rdcstr &deviceID, const rdcstr &pkgPath, const rdcstr &copyPath)
 {
   RDCLOG("Copying APK to %s", copyPath.c_str());
   adbExecCommand(deviceID, "shell cp " + pkgPath + " " + copyPath);
 }
 
-void RemoveAPK(const std::string &deviceID, const std::string &path)
+void RemoveAPK(const rdcstr &deviceID, const rdcstr &path)
 {
   RDCLOG("Removing APK from %s", path.c_str());
   adbExecCommand(deviceID, "shell rm -f " + path);
 }
 
-bool HasRootAccess(const std::string &deviceID)
+bool HasRootAccess(const rdcstr &deviceID)
 {
   RDCLOG("Checking for root access on %s", deviceID.c_str());
 
@@ -462,13 +461,13 @@ rdcstr GetFirstMatchingLine(const rdcstr &haystack, const rdcstr &needle)
   return haystack.substr(needleOffset, nextLine == -1 ? ~0U : size_t(nextLine - needleOffset));
 }
 
-bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
+bool IsDebuggable(const rdcstr &deviceID, const rdcstr &packageName)
 {
   RDCLOG("Checking that APK is debuggable");
 
-  std::string info = adbExecCommand(deviceID, "shell dumpsys package " + packageName).strStdout;
+  rdcstr info = adbExecCommand(deviceID, "shell dumpsys package " + packageName).strStdout;
 
-  std::string pkgFlags = GetFirstMatchingLine(info, "pkgFlags=[");
+  rdcstr pkgFlags = GetFirstMatchingLine(info, "pkgFlags=[");
 
   if(pkgFlags == "")
   {
@@ -476,7 +475,7 @@ bool IsDebuggable(const std::string &deviceID, const std::string &packageName)
     return false;
   }
 
-  return pkgFlags.find("DEBUGGABLE") != std::string::npos;
+  return pkgFlags.contains("DEBUGGABLE");
 }
 };
 
@@ -511,7 +510,7 @@ RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, A
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
     const char *URL, const char *packageAndActivity, RENDERDOC_ProgressCallback progress)
 {
-  std::string package = Android::GetPackageName(packageAndActivity);
+  rdcstr package = Android::GetPackageName(packageAndActivity);
 
   Process::ProcessResult result = {};
 
@@ -530,21 +529,21 @@ extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePacka
 
   progress(0.02f);
 
-  std::string abi = Android::DetermineInstalledABI(deviceID, package);
+  rdcstr abi = Android::DetermineInstalledABI(deviceID, package);
 
   // Find the APK on the device
-  std::string pkgPath = Android::GetPathForPackage(deviceID, package) + "base.apk";
+  rdcstr pkgPath = Android::GetPathForPackage(deviceID, package) + "base.apk";
 
-  std::string tmpDir = FileIO::GetTempFolderFilename();
-  std::string origAPK(tmpDir + package + ".orig.apk");
-  std::string alignedAPK(origAPK + ".aligned.apk");
+  rdcstr tmpDir = FileIO::GetTempFolderFilename();
+  rdcstr origAPK(tmpDir + package + ".orig.apk");
+  rdcstr alignedAPK(origAPK + ".aligned.apk");
   bytebuf manifest;
 
   // Try the following steps, bailing if anything fails
   if(!Android::PullAPK(deviceID, pkgPath, origAPK))
   {
     // Copy the APK to public storage, then try to pull again
-    std::string copyPath = "/sdcard/" + package + ".copy.apk";
+    rdcstr copyPath = "/sdcard/" + package + ".copy.apk";
     Android::CopyAPK(deviceID, pkgPath, copyPath);
     bool success = Android::PullAPK(deviceID, copyPath, origAPK);
     Android::RemoveAPK(deviceID, copyPath);

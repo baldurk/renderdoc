@@ -1181,8 +1181,8 @@ void VulkanReplay::ClearPostVSCache()
 
 void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
                                             VkDescriptorPool &descpool,
-                                            std::vector<VkDescriptorSetLayout> &setLayouts,
-                                            std::vector<VkDescriptorSet> &descSets,
+                                            rdcarray<VkDescriptorSetLayout> &setLayouts,
+                                            rdcarray<VkDescriptorSet> &descSets,
                                             VkShaderStageFlagBits patchedBindingStage,
                                             const VkDescriptorSetLayoutBinding *newBindings,
                                             size_t newBindingsCount)
@@ -1545,8 +1545,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   VkDevice dev = m_Device;
 
   VkDescriptorPool descpool;
-  std::vector<VkDescriptorSetLayout> setLayouts;
-  std::vector<VkDescriptorSet> descSets;
+  rdcarray<VkDescriptorSetLayout> setLayouts;
+  rdcarray<VkDescriptorSet> descSets;
 
   VkPipelineLayout pipeLayout;
 
@@ -3225,7 +3225,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
 struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
 {
-  VulkanInitPostVSCallback(WrappedVulkan *vk, const std::vector<uint32_t> &events)
+  VulkanInitPostVSCallback(WrappedVulkan *vk, const rdcarray<uint32_t> &events)
       : m_pDriver(vk), m_Events(events)
   {
     m_pDriver->SetDrawcallCB(this);
@@ -3233,7 +3233,7 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   ~VulkanInitPostVSCallback() { m_pDriver->SetDrawcallCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
+    if(m_Events.contains(eid))
       m_pDriver->GetReplay()->InitPostVSBuffers(eid);
   }
 
@@ -3250,15 +3250,15 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
-    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
+    if(m_Events.contains(primary))
       m_pDriver->GetReplay()->AliasPostVSBuffers(primary, alias);
   }
 
   WrappedVulkan *m_pDriver;
-  const std::vector<uint32_t> &m_Events;
+  const rdcarray<uint32_t> &m_Events;
 };
 
-void VulkanReplay::InitPostVSBuffers(const std::vector<uint32_t> &events)
+void VulkanReplay::InitPostVSBuffers(const rdcarray<uint32_t> &events)
 {
   // first we must replay up to the first event without replaying it. This ensures any
   // non-command buffer calls like memory unmaps etc all happen correctly before this

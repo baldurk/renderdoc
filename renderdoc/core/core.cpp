@@ -263,7 +263,7 @@ void RenderDoc::RecreateCrashHandler()
 #if ENABLED(RDOC_WIN32)
   // there are way too many invalid reports coming from chrome, completely disable the crash handler
   // in that case.
-  std::string exename;
+  rdcstr exename;
   FileIO::GetExecutableFilename(exename);
   exename = strlower(exename);
 
@@ -513,7 +513,7 @@ void RenderDoc::Shutdown()
   }
 }
 
-void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args)
+void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const rdcarray<rdcstr> &args)
 {
   m_GlobalEnv = env;
 
@@ -643,7 +643,7 @@ void RenderDoc::RegisterShutdownFunction(ShutdownFunction func)
 {
   auto it = std::lower_bound(m_ShutdownFunctions.begin(), m_ShutdownFunctions.end(), func);
   if(it == m_ShutdownFunctions.end() || *it != func)
-    m_ShutdownFunctions.insert(it, func);
+    m_ShutdownFunctions.insert(it - m_ShutdownFunctions.begin(), func);
 }
 
 bool RenderDoc::MatchClosestWindow(void *&dev, void *&wnd)
@@ -770,7 +770,7 @@ bool RenderDoc::IsTargetControlConnected()
   return !RenderDoc::Inst().m_SingleClientName.empty();
 }
 
-std::string RenderDoc::GetTargetControlUsername()
+rdcstr RenderDoc::GetTargetControlUsername()
 {
   SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
   return RenderDoc::Inst().m_SingleClientName;
@@ -829,18 +829,18 @@ void RenderDoc::CycleActiveWindow()
   }
 }
 
-std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)
+rdcstr RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)
 {
   const bool activeWindow = (flags & eOverlay_ActiveWindow);
   const bool capturesEnabled = (flags & eOverlay_CaptureDisabled) == 0;
 
   uint32_t overlay = GetOverlayBits();
 
-  std::string overlayText = ToStr(driver) + ". ";
+  rdcstr overlayText = ToStr(driver) + ". ";
 
   if(activeWindow)
   {
-    std::vector<RENDERDOC_InputButton> keys = GetCaptureKeys();
+    rdcarray<RENDERDOC_InputButton> keys = GetCaptureKeys();
 
     if(capturesEnabled)
     {
@@ -905,7 +905,7 @@ std::string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, in
   }
   else if(capturesEnabled)
   {
-    std::vector<RENDERDOC_InputButton> keys = GetFocusKeys();
+    rdcarray<RENDERDOC_InputButton> keys = GetFocusKeys();
 
     overlayText += "Inactive window.";
 
@@ -932,7 +932,7 @@ void RenderDoc::QueueCapture(uint32_t frameNumber)
 {
   auto it = std::lower_bound(m_QueuedFrameCaptures.begin(), m_QueuedFrameCaptures.end(), frameNumber);
   if(it == m_QueuedFrameCaptures.end() || *it != frameNumber)
-    m_QueuedFrameCaptures.insert(it, frameNumber);
+    m_QueuedFrameCaptures.insert(it - m_QueuedFrameCaptures.begin(), frameNumber);
 }
 
 bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
@@ -942,7 +942,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
   if(m_Cap > 0)
     m_Cap--;
 
-  std::vector<uint32_t> frames;
+  rdcarray<uint32_t> frames;
   frames.swap(m_QueuedFrameCaptures);
   for(auto it = frames.begin(); it != frames.end(); ++it)
   {
@@ -1070,6 +1070,7 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
     }
   }
 }
+
 void RenderDoc::EncodePixelsPNG(const RDCThumb &in, RDCThumb &out)
 {
   if(in.width == 0 || in.height == 0)
@@ -1080,13 +1081,12 @@ void RenderDoc::EncodePixelsPNG(const RDCThumb &in, RDCThumb &out)
 
   struct WriteCallbackData
   {
-    std::vector<byte> buffer;
+    bytebuf buffer;
 
     static void writeData(void *context, void *data, int size)
     {
       WriteCallbackData *pThis = (WriteCallbackData *)context;
-      const byte *start = (const byte *)data;
-      pThis->buffer.insert(pThis->buffer.end(), start, start + size);
+      pThis->buffer.append((const byte *)data, size);
     }
   };
 
@@ -1105,7 +1105,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
 {
   RDCFile *ret = new RDCFile;
 
-  std::string suffix = StringFormat::Fmt("_frame%u", frameNum);
+  rdcstr suffix = StringFormat::Fmt("_frame%u", frameNum);
 
   if(frameNum == ~0U)
     suffix = "_capture";
@@ -1198,7 +1198,7 @@ void RenderDoc::RegisterStructuredProcessor(RDCDriver driver, StructuredProcesso
 
 void RenderDoc::RegisterCaptureExporter(CaptureExporter exporter, CaptureFileFormat description)
 {
-  std::string filetype = description.extension;
+  rdcstr filetype = description.extension;
 
   for(const CaptureFileFormat &fmt : m_ImportExportFormats)
   {
@@ -1220,7 +1220,7 @@ void RenderDoc::RegisterCaptureExporter(CaptureExporter exporter, CaptureFileFor
 void RenderDoc::RegisterCaptureImportExporter(CaptureImporter importer, CaptureExporter exporter,
                                               CaptureFileFormat description)
 {
-  std::string filetype = description.extension;
+  rdcstr filetype = description.extension;
 
   for(const CaptureFileFormat &fmt : m_ImportExportFormats)
   {
@@ -1313,9 +1313,9 @@ IDeviceProtocolHandler *RenderDoc::GetDeviceProtocol(const rdcstr &protocol)
   return NULL;
 }
 
-std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
+rdcarray<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
 {
-  std::vector<CaptureFileFormat> ret = m_ImportExportFormats;
+  rdcarray<CaptureFileFormat> ret = m_ImportExportFormats;
 
   std::sort(ret.begin(), ret.end());
 
@@ -1327,7 +1327,7 @@ std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
     rdc.openSupported = true;
     rdc.convertSupported = true;
 
-    ret.insert(ret.begin(), rdc);
+    ret.insert(0, rdc);
   }
 
   return ret;
@@ -1484,17 +1484,17 @@ std::map<RDCDriver, bool> RenderDoc::GetActiveDrivers()
   return ret;
 }
 
-std::map<RDCDriver, std::string> RenderDoc::GetReplayDrivers()
+std::map<RDCDriver, rdcstr> RenderDoc::GetReplayDrivers()
 {
-  std::map<RDCDriver, std::string> ret;
+  std::map<RDCDriver, rdcstr> ret;
   for(auto it = m_ReplayDriverProviders.begin(); it != m_ReplayDriverProviders.end(); ++it)
     ret[it->first] = ToStr(it->first);
   return ret;
 }
 
-std::map<RDCDriver, std::string> RenderDoc::GetRemoteDrivers()
+std::map<RDCDriver, rdcstr> RenderDoc::GetRemoteDrivers()
 {
-  std::map<RDCDriver, std::string> ret;
+  std::map<RDCDriver, rdcstr> ret;
 
   for(auto it = m_RemoteDriverProviders.begin(); it != m_RemoteDriverProviders.end(); ++it)
     ret[it->first] = ToStr(it->first);
@@ -1649,13 +1649,13 @@ void RenderDoc::AddChildProcess(uint32_t pid, uint32_t ident)
   m_Children.push_back(make_rdcpair(pid, ident));
 }
 
-std::vector<rdcpair<uint32_t, uint32_t> > RenderDoc::GetChildProcesses()
+rdcarray<rdcpair<uint32_t, uint32_t> > RenderDoc::GetChildProcesses()
 {
   SCOPED_LOCK(m_ChildLock);
   return m_Children;
 }
 
-std::vector<CaptureData> RenderDoc::GetCaptures()
+rdcarray<CaptureData> RenderDoc::GetCaptures()
 {
   SCOPED_LOCK(m_CaptureLock);
   return m_Captures;

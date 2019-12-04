@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <map>
-#include <vector>
 #include "common/common.h"
 #include "common/formatting.h"
 #include "os/os_specific.h"

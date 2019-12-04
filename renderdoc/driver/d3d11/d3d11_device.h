@@ -339,7 +339,7 @@ private:
   bool m_D3DThreadSafe = false;
 
   WriteSerialiser m_ScratchSerialiser;
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   ResourceId m_ResourceID;
   D3D11ResourceRecord *m_DeviceRecord;
@@ -387,7 +387,7 @@ private:
   std::vector<DebugMessage> m_DebugMessages;
 
   std::vector<FrameDescription> m_CapturedFrames;
-  std::vector<DrawcallDescription *> m_Drawcalls;
+  rdcarray<DrawcallDescription *> m_Drawcalls;
 
 public:
   static const int AllocPoolCount = 4;
@@ -415,7 +415,7 @@ public:
   void AddResourceCurChunk(ResourceId id);
 
   ID3D11Device *GetReal() { return m_pDevice; }
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
   D3D11ShaderCache *GetShaderCache() { return m_ShaderCache; }
   D3D11ResourceManager *GetResourceManager() { return m_ResourceManager; }
   D3D11DebugManager *GetDebugManager() { return m_DebugManager; }

@@ -114,25 +114,25 @@ public:
 
   virtual APIProperties GetAPIProperties() = 0;
 
-  virtual const std::vector<ResourceDescription> &GetResources() = 0;
+  virtual const rdcarray<ResourceDescription> &GetResources() = 0;
 
-  virtual std::vector<ResourceId> GetBuffers() = 0;
+  virtual rdcarray<ResourceId> GetBuffers() = 0;
   virtual BufferDescription GetBuffer(ResourceId id) = 0;
 
-  virtual std::vector<ResourceId> GetTextures() = 0;
+  virtual rdcarray<ResourceId> GetTextures() = 0;
   virtual TextureDescription GetTexture(ResourceId id) = 0;
 
-  virtual std::vector<DebugMessage> GetDebugMessages() = 0;
+  virtual rdcarray<DebugMessage> GetDebugMessages() = 0;
 
   virtual rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) = 0;
   virtual ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
                                       ShaderEntryPoint entry) = 0;
 
-  virtual std::vector<std::string> GetDisassemblyTargets() = 0;
-  virtual std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                        const std::string &target) = 0;
+  virtual rdcarray<rdcstr> GetDisassemblyTargets() = 0;
+  virtual rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                   const rdcstr &target) = 0;
 
-  virtual std::vector<EventUsage> GetUsage(ResourceId id) = 0;
+  virtual rdcarray<EventUsage> GetUsage(ResourceId id) = 0;
 
   virtual void SavePipelineState(uint32_t eventId) = 0;
   virtual const D3D11Pipe::State *GetD3D11PipelineState() = 0;
@@ -146,10 +146,10 @@ public:
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
   virtual const SDFile &GetStructuredFile() = 0;
 
-  virtual std::vector<uint32_t> GetPassEvents(uint32_t eventId) = 0;
+  virtual rdcarray<uint32_t> GetPassEvents(uint32_t eventId) = 0;
 
   virtual void InitPostVSBuffers(uint32_t eventId) = 0;
-  virtual void InitPostVSBuffers(const std::vector<uint32_t> &passEvents) = 0;
+  virtual void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents) = 0;
 
   virtual ResourceId GetLiveID(ResourceId id) = 0;
 
@@ -160,9 +160,9 @@ public:
   virtual void GetTextureData(ResourceId tex, const Subresource &sub,
                               const GetTextureDataParams &params, bytebuf &data) = 0;
 
-  virtual void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                 const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                 ShaderStage type, ResourceId *id, std::string *errors) = 0;
+  virtual void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                 const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                 ShaderStage type, ResourceId &id, rdcstr &errors) = 0;
   virtual rdcarray<ShaderEncoding> GetTargetShaderEncodings() = 0;
   virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual void RemoveReplacement(ResourceId id) = 0;
@@ -172,13 +172,13 @@ public:
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
   virtual rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counterID) = 0;
 
-  virtual void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+  virtual void FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
                                     uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
                                     const bytebuf &data) = 0;
 
-  virtual std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events,
-                                                      ResourceId target, uint32_t x, uint32_t y,
-                                                      const Subresource &sub, CompType typeCast) = 0;
+  virtual rdcarray<PixelModification> PixelHistory(rdcarray<EventUsage> events, ResourceId target,
+                                                   uint32_t x, uint32_t y, const Subresource &sub,
+                                                   CompType typeCast) = 0;
   virtual ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
   virtual ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
@@ -188,7 +188,7 @@ public:
 
   virtual ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                    DebugOverlay overlay, uint32_t eventId,
-                                   const std::vector<uint32_t> &passEvents) = 0;
+                                   const rdcarray<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
@@ -206,7 +206,7 @@ class IReplayDriver : public IRemoteDriver
 public:
   virtual bool IsRemoteProxy() = 0;
 
-  virtual std::vector<WindowingSystem> GetSupportedWindowSystems() = 0;
+  virtual rdcarray<WindowingSystem> GetSupportedWindowSystems() = 0;
 
   virtual AMDRGPControl *GetRGPControl() = 0;
 
@@ -225,7 +225,7 @@ public:
   virtual bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
                          float *maxval) = 0;
   virtual bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                            float maxval, bool channels[4], std::vector<uint32_t> &histogram) = 0;
+                            float maxval, bool channels[4], rdcarray<uint32_t> &histogram) = 0;
   virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
                          CompType typeCast, float pixel[4]) = 0;
 
@@ -237,13 +237,13 @@ public:
   virtual ResourceId CreateProxyBuffer(const BufferDescription &templateBuf) = 0;
   virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;
 
-  virtual void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
+  virtual void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws,
                           const MeshDisplay &cfg) = 0;
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
-  virtual void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                 const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                 ShaderStage type, ResourceId *id, std::string *errors) = 0;
+  virtual void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                 const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                 ShaderStage type, ResourceId &id, rdcstr &errors) = 0;
   virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                        CompType typeCast) = 0;
@@ -276,15 +276,15 @@ struct IDeviceProtocolHandler : public IDeviceProtocolController
 };
 
 // utility functions useful in any driver implementation
-void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
+void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
                            rdcarray<DrawcallDescription> &draws);
 
 // for hardware/APIs that can't do line rasterization, manually expand any triangle input topology
 // to a linestrip with strip restart indices.
 void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
-                               uint32_t *idx32, std::vector<uint32_t> &patchedIndices);
+                               uint32_t *idx32, rdcarray<uint32_t> &patchedIndices);
 
-void PatchTriangleFanRestartIndexBufer(std::vector<uint32_t> &patchedIndices, uint32_t restartIndex);
+void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint32_t restartIndex);
 
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput);
 
@@ -306,14 +306,14 @@ struct HighlightCache
 
   bool idxData;
   bytebuf vertexData;
-  std::vector<uint32_t> indices;
+  rdcarray<uint32_t> indices;
 
   void CacheHighlightingData(uint32_t eventId, const MeshDisplay &cfg);
 
   bool FetchHighlightPositions(const MeshDisplay &cfg, FloatVector &activeVertex,
-                               std::vector<FloatVector> &activePrim,
-                               std::vector<FloatVector> &adjacentPrimVertices,
-                               std::vector<FloatVector> &inactiveVertices);
+                               rdcarray<FloatVector> &activePrim,
+                               rdcarray<FloatVector> &adjacentPrimVertices,
+                               rdcarray<FloatVector> &inactiveVertices);
 
   static FloatVector InterpretVertex(const byte *data, uint32_t vert, uint32_t vertexByteStride,
                                      const ResourceFormat &fmt, const byte *end, bool &valid);

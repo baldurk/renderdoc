@@ -125,7 +125,7 @@ rdcstr DoStringise(const RemoteServerPacket &el)
   END_ENUM_STRINGISE();
 }
 
-std::string GetRemoteServerChunkName(uint32_t idx)
+rdcstr GetRemoteServerChunkName(uint32_t idx)
 {
   if(idx < eRemoteServer_RemoteServerCount)
     return ToStr((RemoteServerPacket)idx);
@@ -261,7 +261,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
   }
 
-  std::vector<std::string> tempFiles;
+  rdcarray<rdcstr> tempFiles;
   IRemoteDriver *remoteDriver = NULL;
   IReplayDriver *replayDriver = NULL;
   ReplayProxy *proxy = NULL;
@@ -308,7 +308,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     {
       reader.EndChunk();
 
-      std::map<RDCDriver, std::string> drivers = RenderDoc::Inst().GetRemoteDrivers();
+      std::map<RDCDriver, rdcstr> drivers = RenderDoc::Inst().GetRemoteDrivers();
       uint32_t count = (uint32_t)drivers.size();
 
       WRITE_DATA_SCOPE();
@@ -318,7 +318,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       for(auto it = drivers.begin(); it != drivers.end(); ++it)
       {
         RDCDriver driverType = it->first;
-        const std::string &driverName = it->second;
+        const rdcstr &driverName = it->second;
 
         SERIALISE_ELEMENT(driverType);
         SERIALISE_ELEMENT(driverName);
@@ -328,7 +328,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     {
       reader.EndChunk();
 
-      std::string home = FileIO::GetHomeFolderFilename();
+      rdcstr home = FileIO::GetHomeFolderFilename();
 
       {
         WRITE_DATA_SCOPE();
@@ -338,7 +338,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_ListDir)
     {
-      std::string path;
+      rdcstr path;
 
       {
         READ_DATA_SCOPE();
@@ -358,7 +358,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_CopyCaptureFromRemote)
     {
-      std::string path;
+      rdcstr path;
 
       {
         READ_DATA_SCOPE();
@@ -415,7 +415,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_TakeOwnershipCapture)
     {
-      std::string path;
+      rdcstr path;
 
       {
         READ_DATA_SCOPE();
@@ -456,7 +456,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_OpenLog)
     {
-      std::string path;
+      rdcstr path;
       ReplayOptions opts;
 
       {
@@ -588,7 +588,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       {
         StreamReader *sectionReader = rdc->ReadSection(sectionIndex);
 
-        std::vector<byte> buf;
+        bytebuf buf;
         buf.resize((size_t)sectionReader->GetSize());
         success = sectionReader->Read(buf.data(), sectionReader->GetSize());
 
@@ -665,7 +665,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     {
       reader.EndChunk();
 
-      std::string driver = rdc ? rdc->GetDriverName() : "";
+      rdcstr driver = rdc ? rdc->GetDriverName() : "";
       {
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_GetDriverName);
@@ -686,7 +686,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_FindSectionByName)
     {
-      std::string name;
+      rdcstr name;
 
       {
         READ_DATA_SCOPE();
@@ -825,7 +825,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
     else if(type == eRemoteServer_ExecuteAndInject)
     {
-      std::string app, workingDir, cmdLine, logfile;
+      rdcstr app, workingDir, cmdLine, logfile;
       CaptureOptions opts;
       rdcarray<EnvironmentModification> env;
 
@@ -903,7 +903,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
   if(sock == NULL)
     return;
 
-  std::vector<rdcpair<uint32_t, uint32_t> > listenRanges;
+  rdcarray<rdcpair<uint32_t, uint32_t> > listenRanges;
   bool allowExecution = true;
 
   FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("remoteserver.conf").c_str(), "r");
@@ -998,7 +998,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 
   ClientThread *activeClientData = NULL;
 
-  std::vector<ClientThread *> inactives;
+  rdcarray<ClientThread *> inactives;
 
   while(!killReplay())
   {
@@ -1015,7 +1015,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
         Threading::JoinThread(inactives[i]->thread);
         Threading::CloseThread(inactives[i]->thread);
         delete inactives[i];
-        inactives.erase(inactives.begin() + i);
+        inactives.erase(i);
         break;
       }
     }
@@ -1234,7 +1234,7 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
   writer->SetStreamingMode(true);
   reader->SetStreamingMode(true);
 
-  std::map<RDCDriver, std::string> m = RenderDoc::Inst().GetReplayDrivers();
+  std::map<RDCDriver, rdcstr> m = RenderDoc::Inst().GetReplayDrivers();
 
   m_Proxies.reserve(m.size());
   for(auto it = m.begin(); it != m.end(); ++it)
@@ -1335,7 +1335,7 @@ rdcarray<rdcstr> RemoteServer::RemoteSupportedReplays()
       for(uint32_t i = 0; i < count; i++)
       {
         RDCDriver driverType = RDCDriver::Unknown;
-        std::string driverName = "";
+        rdcstr driverName = "";
 
         SERIALISE_ELEMENT(driverType);
         SERIALISE_ELEMENT(driverName);
@@ -1420,9 +1420,9 @@ ExecuteResult RemoteServer::ExecuteAndInject(const char *a, const char *w, const
                                              const rdcarray<EnvironmentModification> &env,
                                              const CaptureOptions &opts)
 {
-  std::string app = a && a[0] ? a : "";
-  std::string workingDir = w && w[0] ? w : "";
-  std::string cmdline = c && c[0] ? c : "";
+  rdcstr app = a && a[0] ? a : "";
+  rdcstr workingDir = w && w[0] ? w : "";
+  rdcstr cmdline = c && c[0] ? c : "";
 
   {
     WRITE_DATA_SCOPE();
@@ -1458,7 +1458,7 @@ ExecuteResult RemoteServer::ExecuteAndInject(const char *a, const char *w, const
 void RemoteServer::CopyCaptureFromRemote(const char *remotepath, const char *localpath,
                                          RENDERDOC_ProgressCallback progress)
 {
-  std::string path = remotepath;
+  rdcstr path = remotepath;
 
   {
     WRITE_DATA_SCOPE();
@@ -1501,7 +1501,7 @@ rdcstr RemoteServer::CopyCaptureToRemote(const char *filename, RENDERDOC_Progres
     ser.SerialiseStream(filename, fileStream, progress);
   }
 
-  std::string path;
+  rdcstr path;
 
   {
     READ_DATA_SCOPE();
@@ -1524,7 +1524,7 @@ rdcstr RemoteServer::CopyCaptureToRemote(const char *filename, RENDERDOC_Progres
 
 void RemoteServer::TakeOwnershipCapture(const char *filename)
 {
-  std::string path = filename;
+  rdcstr path = filename;
 
   {
     WRITE_DATA_SCOPE();
@@ -1664,7 +1664,7 @@ rdcstr RemoteServer::DriverName()
     SCOPED_SERIALISE_CHUNK(eRemoteServer_GetDriverName);
   }
 
-  std::string driverName = "";
+  rdcstr driverName = "";
 
   {
     READ_DATA_SCOPE();

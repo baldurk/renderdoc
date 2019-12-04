@@ -249,7 +249,7 @@ class EGLPlatform : public GLPlatform
           EGL_NONE,
       };
 
-      std::vector<GLVersion> versions = GetReplayVersions(RDCDriver::OpenGLES);
+      rdcarray<GLVersion> versions = GetReplayVersions(RDCDriver::OpenGLES);
 
       for(GLVersion v : versions)
       {

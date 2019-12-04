@@ -26,7 +26,6 @@
 #pragma once
 
 #include <set>
-#include <vector>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "core/core.h"
@@ -100,7 +99,7 @@ private:
   ResourceId m_OverlayResourceId;
   ResourceId m_CustomShaderResourceId;
 
-  std::vector<OutputPair> m_Thumbnails;
+  rdcarray<OutputPair> m_Thumbnails;
 
   float m_ContextX;
   float m_ContextY;
@@ -109,7 +108,7 @@ private:
   uint32_t m_EventID;
   ReplayOutputType m_Type;
 
-  std::vector<uint32_t> passEvents;
+  rdcarray<uint32_t> passEvents;
 
   int32_t m_Width;
   int32_t m_Height;
@@ -228,7 +227,7 @@ private:
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;
-  std::vector<DrawcallDescription *> m_Drawcalls;
+  rdcarray<DrawcallDescription *> m_Drawcalls;
 
   uint64_t m_ThreadID;
 
@@ -246,7 +245,7 @@ private:
   const VKPipe::State *m_VulkanPipelineState;
   PipeState m_PipeState;
 
-  std::vector<ReplayOutput *> m_Outputs;
+  rdcarray<ReplayOutput *> m_Outputs;
 
   rdcarray<ResourceDescription> m_Resources;
   rdcarray<BufferDescription> m_Buffers;

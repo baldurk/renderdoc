@@ -254,7 +254,7 @@ D3D11ResourceManager *WrappedID3D11DeviceContext::GetResourceManager()
   return m_pDevice->GetResourceManager();
 }
 
-std::string WrappedID3D11DeviceContext::GetChunkName(uint32_t idx)
+rdcstr WrappedID3D11DeviceContext::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);

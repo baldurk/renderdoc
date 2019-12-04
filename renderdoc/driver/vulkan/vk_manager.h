@@ -471,7 +471,7 @@ private:
                               const VkInitialContents *initial);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
-  std::vector<ResourceId> InitialContentResources();
+  rdcarray<ResourceId> InitialContentResources();
 
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;

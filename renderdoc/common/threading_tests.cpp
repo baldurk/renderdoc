@@ -35,8 +35,8 @@ TEST_CASE("Test spin lock", "[threading]")
 {
   int finalValue = 0;
 
-  std::vector<Threading::ThreadHandle> threads;
-  std::vector<int> threadcount;
+  rdcarray<Threading::ThreadHandle> threads;
+  rdcarray<int> threadcount;
 
   threads.resize(8);
   threadcount.resize(8);

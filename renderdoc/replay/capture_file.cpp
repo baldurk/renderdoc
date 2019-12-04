@@ -34,10 +34,8 @@
 
 static void writeToByteVector(void *context, void *data, int size)
 {
-  std::vector<byte> *vec = (std::vector<byte> *)context;
-  byte *start = (byte *)data;
-  byte *end = start + size;
-  vec->insert(vec->end(), start, end);
+  bytebuf *buf = (bytebuf *)context;
+  buf->append((byte *)data, size);
 }
 
 static RDCDriver driverFromName(const char *driverName)
@@ -184,7 +182,7 @@ private:
 
   SDFile m_StructuredData;
 
-  std::string m_DriverName, m_Ident, m_ErrorString;
+  rdcstr m_DriverName, m_Ident, m_ErrorString;
   ReplaySupport m_Support = ReplaySupport::Unsupported;
 };
 
@@ -245,14 +243,12 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
 
-  std::vector<byte> vec(buffer.begin(), buffer.end());
-
   if(importer)
   {
     ReplayStatus ret;
 
     {
-      StreamReader reader(vec);
+      StreamReader reader(buffer);
       m_RDC = new RDCFile;
       ret = importer(NULL, reader, m_RDC, m_StructuredData, progress);
     }
@@ -273,7 +269,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
       progress(0.0f);
 
     m_RDC = new RDCFile;
-    m_RDC->Open(vec);
+    m_RDC->Open(buffer);
 
     if(progress)
       progress(1.0f);
@@ -628,13 +624,13 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
       }
     }
 
-    std::vector<byte> encodedBytes;
+    bytebuf encodedBytes;
 
     switch(type)
     {
       case FileType::Raw:
       {
-        encodedBytes.assign(thumbpixels, thumbpixels + (thumbwidth * thumbheight * 3));
+        encodedBytes.assign(thumbpixels, thumbwidth * thumbheight * 3);
         break;
       }
       case FileType::JPG:
@@ -778,7 +774,7 @@ bool CaptureFile::InitResolver(RENDERDOC_ProgressCallback progress)
 
   StreamReader *reader = m_RDC->ReadSection(idx);
 
-  std::vector<byte> buf;
+  bytebuf buf;
   buf.resize((size_t)reader->GetSize());
   bool success = reader->Read(buf.data(), reader->GetSize());
 

@@ -149,7 +149,7 @@ private:
   bool m_NeedUpdateSubWorkaround;
 
   WriteSerialiser m_ScratchSerialiser;
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   ResourceId m_CurContextId;
 
@@ -219,7 +219,7 @@ private:
   std::list<DrawcallDescription *> m_DrawcallStack;
 
   D3D11ResourceManager *GetResourceManager();
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
 
   template <typename SerialiserType>
   void Serialise_DebugMessages(SerialiserType &ser);

@@ -27,6 +27,7 @@
 #include "common/common.h"
 #include "common/formatting.h"
 #include "serialise/rdcfile.h"
+#include "strings/string_utils.h"
 
 #include "3rdparty/miniz/miniz.h"
 #include "3rdparty/pugixml/pugixml.hpp"
@@ -43,7 +44,7 @@ static const char *typeNames[] = {
 };
 
 template <typename inttype>
-std::string GetBufferName(inttype i)
+rdcstr GetBufferName(inttype i)
 {
   return StringFormat::Fmt("%06u", (uint32_t)i);
 }
@@ -88,7 +89,7 @@ static constexpr byte FromHex(const char c)
                                      : (c >= 'a' && c <= 'f' ? byte(c - 'a') + 10 : 0));
 }
 
-static void HexEncode(const std::vector<byte> &in, std::string &out)
+static void HexEncode(const bytebuf &in, rdcstr &out)
 {
   const size_t bytesPerLine = 32;
   const size_t bytesPerGroup = 4;
@@ -105,7 +106,7 @@ static void HexEncode(const std::vector<byte> &in, std::string &out)
   out = "\n";
 
   // accumulate ascii representation for each line
-  std::string ascii;
+  rdcstr ascii;
 
   size_t i = 0;
   for(byte c : in)
@@ -151,7 +152,7 @@ static void HexEncode(const std::vector<byte> &in, std::string &out)
   }
 }
 
-static void HexDecode(const char *str, const char *end, std::vector<byte> &out)
+static void HexDecode(const char *str, const char *end, bytebuf &out)
 {
   out.reserve((end - str) / 2);
 
@@ -372,7 +373,7 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
     pugi::xml_node type = xSection.append_child("type");
     type.text() = (uint32_t)props.type;
 
-    std::vector<byte> contents;
+    bytebuf contents;
     contents.resize((size_t)reader->GetSize());
     reader->Read(contents.data(), reader->GetSize());
 
@@ -386,7 +387,7 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
     else
     {
       // encode to simple hex. Not efficient, but easy.
-      std::string hexdata;
+      rdcstr hexdata;
       hexdata.reserve(contents.size() * 2);
       HexEncode(contents, hexdata);
       data.text().set(hexdata.c_str());
@@ -456,7 +457,7 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   SDObject *ret =
       new SDObject(obj.attribute("name").as_string(), obj.attribute("typename").as_string());
 
-  std::string name = obj.name();
+  rdcstr name = obj.name();
 
   for(size_t i = 0; i < ARRAY_COUNT(typeNames); i++)
   {
@@ -580,7 +581,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
     }
 
     RDCDriver driver = (RDCDriver)xDriver.attribute("id").as_uint();
-    std::string driverName = xDriver.text().as_string();
+    rdcstr driverName = xDriver.text().as_string();
 
     pugi::xml_node xIdent = xDriver.next_sibling();
 
@@ -697,7 +698,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
     }
     else
     {
-      std::vector<byte> decoded;
+      bytebuf decoded;
       HexDecode(str, str + len, decoded);
       writer->Write(decoded.data(), decoded.size());
     }
@@ -787,12 +788,11 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
   return ReplayStatus::Succeeded;
 }
 
-static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file,
+static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
                                 const StructuredBufferList &buffers,
                                 RENDERDOC_ProgressCallback progress)
 {
-  std::string zipFile = filename;
-  zipFile.erase(zipFile.size() - 4);    // remove the .xml, leave only the .zip
+  rdcstr zipFile = strip_extension(filename);
 
   mz_zip_archive zip;
   memset(&zip, 0, sizeof(zip));
@@ -869,12 +869,10 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
   return ReplayStatus::Succeeded;
 }
 
-static bool ZIP2Buffers(const std::string &filename, ThumbTypeAndData &thumb,
-                        ThumbTypeAndData &extThumb, StructuredBufferList &buffers,
-                        RENDERDOC_ProgressCallback progress)
+static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTypeAndData &extThumb,
+                        StructuredBufferList &buffers, RENDERDOC_ProgressCallback progress)
 {
-  std::string zipFile = filename;
-  zipFile.erase(zipFile.size() - 4);    // remove the .xml, leave only the .zip
+  rdcstr zipFile = strip_extension(filename);
 
   if(!FileIO::exists(zipFile.c_str()))
   {

@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <ctype.h>
+
 rdcstr PipeState::GetResourceLayout(ResourceId id) const
 {
   if(IsCaptureLoaded())
@@ -697,7 +699,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && striequal(semName, std::string(layouts[j].semanticName)))
+          if(i != j && striequal(semName, rdcstr(layouts[j].semanticName)))
           {
             needsSemanticIdx = true;
             break;

@@ -22,15 +22,16 @@
 * THE SOFTWARE.
 ******************************************************************************/
 
-#include "intervals.h"
 #include "common/globalconfig.h"
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
+#include "api/replay/rdcarray.h"
+#include "intervals.h"
+
 #include "3rdparty/catch/catch.hpp"
 
 #include <stdint.h>
-#include <vector>
 
 struct Interval
 {
@@ -39,7 +40,7 @@ struct Interval
   uint64_t end;
 };
 
-void check_intervals(Intervals<uint64_t> &value, const std::vector<Interval> &expected)
+void check_intervals(Intervals<uint64_t> &value, const rdcarray<Interval> &expected)
 {
   auto i = value.begin();
   auto j = expected.begin();
@@ -53,7 +54,7 @@ void check_intervals(Intervals<uint64_t> &value, const std::vector<Interval> &ex
   CHECK((j == expected.end()));
 }
 
-Intervals<uint64_t> make_intervals(const std::vector<Interval> &intervals)
+Intervals<uint64_t> make_intervals(const rdcarray<Interval> &intervals)
 {
   Intervals<uint64_t> res;
   for(auto i = intervals.begin(); i != intervals.end(); i++)

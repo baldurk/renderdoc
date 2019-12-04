@@ -26,7 +26,6 @@
 
 #include <stdio.h>
 #include <functional>
-#include <vector>
 #include "common/common.h"
 #include "os/os_specific.h"
 
@@ -252,7 +251,7 @@ private:
   Ownership m_Ownership;
 
   // callbacks that will be invoked when this stream is being destroyed
-  std::vector<StreamCloseCallback> m_Callbacks;
+  rdcarray<StreamCloseCallback> m_Callbacks;
 };
 
 class StreamWriter
@@ -503,7 +502,7 @@ private:
   Ownership m_Ownership;
 
   // callbacks that will be invoked when this stream is being destroyed
-  std::vector<StreamCloseCallback> m_Callbacks;
+  rdcarray<StreamCloseCallback> m_Callbacks;
 };
 
 void StreamTransfer(StreamWriter *writer, StreamReader *reader, RENDERDOC_ProgressCallback progress);

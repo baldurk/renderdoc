@@ -56,7 +56,7 @@ void WrappedID3D12Device::RemoveQueue(WrappedID3D12CommandQueue *queue)
     RDCERR("Unknown wrapped queue %p being remvoed", queue);
 }
 
-std::string WrappedID3D12Device::GetChunkName(uint32_t idx)
+rdcstr WrappedID3D12Device::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);

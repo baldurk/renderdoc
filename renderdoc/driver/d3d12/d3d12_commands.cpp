@@ -452,7 +452,7 @@ WriteSerialiser &WrappedID3D12CommandQueue::GetThreadSerialiser()
   return m_pDevice->GetThreadSerialiser();
 }
 
-std::string WrappedID3D12CommandQueue::GetChunkName(uint32_t idx)
+rdcstr WrappedID3D12CommandQueue::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);
@@ -1073,7 +1073,7 @@ WriteSerialiser &WrappedID3D12GraphicsCommandList::GetThreadSerialiser()
   return m_pDevice->GetThreadSerialiser();
 }
 
-std::string WrappedID3D12GraphicsCommandList::GetChunkName(uint32_t idx)
+rdcstr WrappedID3D12GraphicsCommandList::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);

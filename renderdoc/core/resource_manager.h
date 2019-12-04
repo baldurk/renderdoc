@@ -370,14 +370,7 @@ struct ResourceRecord
   void RemoveChunk(Chunk *chunk)
   {
     LockChunks();
-    for(auto it = m_Chunks.begin(); it != m_Chunks.end(); ++it)
-    {
-      if(it->second == chunk)
-      {
-        m_Chunks.erase(it);
-        break;
-      }
-    }
+    m_Chunks.removeOneIf([chunk](const rdcpair<int32_t, Chunk *> &c) { return c.second == chunk; });
     UnlockChunks();
   }
 
@@ -500,7 +493,7 @@ protected:
     return Atomic::Inc32(&globalIDCounter);
   }
 
-  std::vector<rdcpair<int32_t, Chunk *>> m_Chunks;
+  rdcarray<rdcpair<int32_t, Chunk *>> m_Chunks;
   Threading::CriticalSection *m_ChunkLock;
 
   std::map<ResourceId, FrameRefType> m_FrameRefs;
@@ -661,7 +654,7 @@ protected:
                                       const InitialContentData *initialData) = 0;
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
   virtual void Apply_InitialState(WrappedResourceType live, const InitialContentData &initial) = 0;
-  virtual std::vector<ResourceId> InitialContentResources();
+  virtual rdcarray<ResourceId> InitialContentResources();
 
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
   // bottleneck
@@ -908,7 +901,7 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
 
   SCOPED_LOCK(m_Lock);
 
-  std::vector<WrittenRecord> WrittenRecords;
+  rdcarray<WrittenRecord> WrittenRecords;
 
   // reasonable estimate, and these records are small
   WrittenRecords.reserve(m_FrameReferencedResources.size());
@@ -1055,7 +1048,7 @@ void ResourceManager<Configuration>::CreateInitialContents(ReadSerialiser &ser)
 
   std::set<ResourceId> neededInitials;
 
-  std::vector<WrittenRecord> WrittenRecords;
+  rdcarray<WrittenRecord> WrittenRecords;
   SERIALISE_ELEMENT(WrittenRecords);
 
   for(const WrittenRecord &wr : WrittenRecords)
@@ -1089,7 +1082,7 @@ template <typename Configuration>
 void ResourceManager<Configuration>::ApplyInitialContents()
 {
   RDCDEBUG("Applying initial contents");
-  std::vector<ResourceId> resources = InitialContentResources();
+  rdcarray<ResourceId> resources = InitialContentResources();
   for(auto it = resources.begin(); it != resources.end(); ++it)
   {
     ResourceId id = *it;
@@ -1101,9 +1094,9 @@ void ResourceManager<Configuration>::ApplyInitialContents()
 }
 
 template <typename Configuration>
-std::vector<ResourceId> ResourceManager<Configuration>::InitialContentResources()
+rdcarray<ResourceId> ResourceManager<Configuration>::InitialContentResources()
 {
-  std::vector<ResourceId> resources;
+  rdcarray<ResourceId> resources;
   for(auto it = m_InitialContents.begin(); it != m_InitialContents.end(); ++it)
   {
     ResourceId id = it->first;

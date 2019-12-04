@@ -1072,7 +1072,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 
   if(!idxs.empty())
   {
-    std::vector<uint32_t> idxtmp;
+    rdcarray<uint32_t> idxtmp;
 
     // if it's a triangle fan that allows restart, we'll have to unpack it.
     // Allocate enough space for the list on the GPU, and enough temporary space to upcast into

@@ -203,9 +203,9 @@ const SDFile &VulkanReplay::GetStructuredFile()
   return m_pDriver->GetStructuredFile();
 }
 
-std::vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
+rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
 {
-  std::vector<uint32_t> passEvents;
+  rdcarray<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
@@ -271,7 +271,7 @@ ResourceId VulkanReplay::GetLiveID(ResourceId id)
   return m_pDriver->GetResourceManager()->GetLiveID(id);
 }
 
-std::vector<DebugMessage> VulkanReplay::GetDebugMessages()
+rdcarray<DebugMessage> VulkanReplay::GetDebugMessages()
 {
   return m_pDriver->GetDebugMessages();
 }
@@ -290,14 +290,14 @@ ResourceDescription &VulkanReplay::GetResourceDesc(ResourceId id)
   return m_Resources[it->second];
 }
 
-const std::vector<ResourceDescription> &VulkanReplay::GetResources()
+const rdcarray<ResourceDescription> &VulkanReplay::GetResources()
 {
   return m_Resources;
 }
 
-std::vector<ResourceId> VulkanReplay::GetTextures()
+rdcarray<ResourceId> VulkanReplay::GetTextures()
 {
-  std::vector<ResourceId> texs;
+  rdcarray<ResourceId> texs;
 
   for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
   {
@@ -311,9 +311,9 @@ std::vector<ResourceId> VulkanReplay::GetTextures()
   return texs;
 }
 
-std::vector<ResourceId> VulkanReplay::GetBuffers()
+rdcarray<ResourceId> VulkanReplay::GetBuffers()
 {
-  std::vector<ResourceId> bufs;
+  rdcarray<ResourceId> bufs;
 
   for(auto it = m_pDriver->m_CreationInfo.m_Buffer.begin();
       it != m_pDriver->m_CreationInfo.m_Buffer.end(); ++it)
@@ -441,9 +441,9 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId shader
   return &shad->second.GetReflection(entry.name, pipeline).refl;
 }
 
-std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
+rdcarray<rdcstr> VulkanReplay::GetDisassemblyTargets()
 {
-  std::vector<std::string> ret;
+  rdcarray<rdcstr> ret;
 
   if(m_pDriver->GetExtensions(NULL).ext_AMD_shader_info)
     ret.push_back(AMDShaderInfoTarget);
@@ -452,7 +452,7 @@ std::vector<std::string> VulkanReplay::GetDisassemblyTargets()
     ret.push_back(KHRExecutablePropertiesTarget);
 
   // default is always first
-  ret.insert(ret.begin(), SPIRVDisassemblyTarget);
+  ret.insert(0, SPIRVDisassemblyTarget);
 
   // could add canonical disassembly here if spirv-dis is available
   // Ditto for SPIRV-cross (to glsl/hlsl)
@@ -533,8 +533,8 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
   }
 }
 
-std::string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                            const std::string &target)
+rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                       const rdcstr &target)
 {
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(
       GetResourceManager()->GetLiveID(refl->resourceId));
@@ -1906,9 +1906,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
 }
 
-void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
-                                        std::string entryPoint, uint32_t cbufSlot,
-                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
+                                        uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                                        const bytebuf &data)
 {
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
 
@@ -2470,7 +2470,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
 
 bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
                                 float minval, float maxval, bool channels[4],
-                                std::vector<uint32_t> &histogram)
+                                rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -2777,14 +2777,14 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
 
   uint32_t *buckets = (uint32_t *)m_Histogram.m_HistogramReadback.Map(NULL);
 
-  histogram.assign(buckets, buckets + HGRAM_NUM_BUCKETS);
+  histogram.assign(buckets, HGRAM_NUM_BUCKETS);
 
   m_Histogram.m_HistogramReadback.Unmap();
 
   return true;
 }
 
-std::vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
+rdcarray<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 {
   return m_pDriver->GetUsage(id);
 }
@@ -3848,9 +3848,9 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   }
 }
 
-void VulkanReplay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                     const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                     ShaderStage type, ResourceId *id, std::string *errors)
+void VulkanReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
   BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
@@ -3917,9 +3917,9 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   return GetResID(GetDebugManager()->GetCustomTexture());
 }
 
-void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                     const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                     ShaderStage type, ResourceId *id, std::string *errors)
+void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
   std::vector<uint32_t> spirv;
 
@@ -3937,7 +3937,7 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
       case ShaderStage::Compute: stage = rdcspv::ShaderStage::Compute; break;
       default:
         RDCERR("Unexpected type in BuildShader!");
-        *id = ResourceId();
+        id = ResourceId();
         return;
     }
 
@@ -3950,8 +3950,8 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
 
     if(spirv.empty())
     {
-      *id = ResourceId();
-      *errors = output;
+      id = ResourceId();
+      errors = output;
       return;
     }
   }
@@ -3973,7 +3973,7 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sour
   VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &module);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  *id = GetResID(module);
+  id = GetResID(module);
 }
 
 void VulkanReplay::FreeTargetResource(ResourceId id)

@@ -58,7 +58,7 @@ static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
                              DrawFlags::APICalls));
 }
 
-static DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
+static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
                                                   rdcarray<DrawcallDescription> &draws,
                                                   DrawcallDescription *parent,
                                                   DrawcallDescription *&previous)
@@ -117,7 +117,7 @@ static DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescriptio
   return ret;
 }
 
-void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
+void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
                            rdcarray<DrawcallDescription> &draws)
 {
   DrawcallDescription *previous = NULL;
@@ -130,7 +130,7 @@ void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
   // joining the 'real' linked list after one step.
 
   previous = NULL;
-  std::vector<DrawcallDescription *> markers;
+  rdcarray<DrawcallDescription *> markers;
 
   for(DrawcallDescription *draw : drawcallTable)
   {
@@ -165,7 +165,7 @@ void SetupDrawcallPointers(std::vector<DrawcallDescription *> &drawcallTable,
 }
 
 void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
-                               uint32_t *idx32, std::vector<uint32_t> &patchedIndices)
+                               uint32_t *idx32, rdcarray<uint32_t> &patchedIndices)
 {
   const uint32_t restart = 0xffffffff;
 
@@ -258,12 +258,12 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 #undef IDX_VALUE
 }
 
-void PatchTriangleFanRestartIndexBufer(std::vector<uint32_t> &patchedIndices, uint32_t restartIndex)
+void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint32_t restartIndex)
 {
   if(patchedIndices.empty())
     return;
 
-  std::vector<uint32_t> newIndices;
+  rdcarray<uint32_t> newIndices;
 
   uint32_t firstIndex = patchedIndices[0];
 
@@ -427,7 +427,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
 {
   for(size_t v = 0; v < invars.size(); v++)
   {
-    std::string basename = invars[v].name;
+    rdcstr basename = invars[v].name;
 
     uint8_t rows = invars[v].type.descriptor.rows;
     uint8_t cols = invars[v].type.descriptor.columns;
@@ -447,7 +447,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
       var.type = VarType::Float;
       var.rowMajor = rowMajor;
 
-      std::vector<ShaderVariable> varmembers;
+      rdcarray<ShaderVariable> varmembers;
 
       if(isArray)
       {
@@ -509,10 +509,10 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
         var.rows = 0;
         var.columns = 0;
 
-        std::vector<ShaderVariable> varmembers;
+        rdcarray<ShaderVariable> varmembers;
         varmembers.resize(elems);
 
-        std::string base = outvars[outIdx].name;
+        rdcstr base = outvars[outIdx].name;
 
         for(uint32_t e = 0; e < elems; e++)
         {
@@ -678,7 +678,7 @@ uint64_t inthash(ResourceId id, uint64_t seed)
 
 void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &cfg)
 {
-  std::string ident;
+  rdcstr ident;
 
   uint64_t newKey = 5381;
 
@@ -800,9 +800,9 @@ void HighlightCache::CacheHighlightingData(uint32_t eventId, const MeshDisplay &
 }
 
 bool HighlightCache::FetchHighlightPositions(const MeshDisplay &cfg, FloatVector &activeVertex,
-                                             std::vector<FloatVector> &activePrim,
-                                             std::vector<FloatVector> &adjacentPrimVertices,
-                                             std::vector<FloatVector> &inactiveVertices)
+                                             rdcarray<FloatVector> &activePrim,
+                                             rdcarray<FloatVector> &adjacentPrimVertices,
+                                             rdcarray<FloatVector> &inactiveVertices)
 {
   bool valid = true;
 

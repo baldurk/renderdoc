@@ -108,12 +108,11 @@ void CommandData::ReadBytes(void *bytes, size_t length)
 
 void CommandData::WriteBytes(const void *bytes, size_t length)
 {
-  const byte *start = (const byte *)bytes;
-  data.insert(data.end(), start, start + length);
+  data.append((const byte *)bytes, length);
 }
 
 template <>
-CommandData &CommandData::Read(std::string &str)
+CommandData &CommandData::Read(rdcstr &str)
 {
   uint32_t length = 0;
   Read(length);
@@ -123,7 +122,7 @@ CommandData &CommandData::Read(std::string &str)
 }
 
 template <>
-CommandData &CommandData::Write(const std::string &str)
+CommandData &CommandData::Write(const rdcstr &str)
 {
   uint32_t length = (uint32_t)str.size();
   Write(length);

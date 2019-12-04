@@ -108,7 +108,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
   writer.SetStreamingMode(true);
   reader.SetStreamingMode(true);
 
-  std::string target = RenderDoc::Inst().GetCurrentTarget();
+  rdcstr target = RenderDoc::Inst().GetCurrentTarget();
   uint32_t mypid = Process::GetCurrentPID();
 
   {
@@ -141,8 +141,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
   const int progresstime = 100;    // update capture progress every 100ms
   int curtime = 0;
 
-  std::vector<CaptureData> captures;
-  std::vector<rdcpair<uint32_t, uint32_t> > children;
+  rdcarray<CaptureData> captures;
+  rdcarray<rdcpair<uint32_t, uint32_t> > children;
   std::map<RDCDriver, bool> drivers;
   float prevCaptureProgress = captureProgress;
   uint32_t prevWindows = 0;
@@ -160,8 +160,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
     std::map<RDCDriver, bool> curdrivers = RenderDoc::Inst().GetActiveDrivers();
 
-    std::vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
-    std::vector<rdcpair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
+    rdcarray<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+    rdcarray<rdcpair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
 
     uint32_t curWindows = RenderDoc::Inst().GetCapturableWindowCount();
 
@@ -204,7 +204,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
       captures.push_back(caps[idx]);
 
-      std::string path = FileIO::GetFullPathname(captures.back().path);
+      rdcstr path = FileIO::GetFullPathname(captures.back().path);
 
       bytebuf buf;
 
@@ -339,7 +339,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
           SCOPED_SERIALISE_CHUNK(ePacket_CopyCapture);
           SERIALISE_ELEMENT(id);
 
-          std::string filename = caps[id].path;
+          rdcstr filename = caps[id].path;
 
           StreamReader fileStream(FileIO::fopen(filename.c_str(), "rb"));
           ser.SerialiseStream(filename, fileStream);
@@ -403,8 +403,8 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
       continue;
     }
 
-    std::string existingClient;
-    std::string newClient;
+    rdcstr existingClient;
+    rdcstr newClient;
     uint32_t version;
     bool kick = false;
 
@@ -472,7 +472,7 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 
       ser.SetStreamingMode(true);
 
-      std::string target = RenderDoc::Inst().GetCurrentTarget();
+      rdcstr target = RenderDoc::Inst().GetCurrentTarget();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_Busy);
         SERIALISE_ELEMENT(TargetControlProtocolVersion);
@@ -498,12 +498,12 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 struct TargetControl : public ITargetControl
 {
 public:
-  TargetControl(Network::Socket *sock, std::string clientName, bool forceConnection)
+  TargetControl(Network::Socket *sock, rdcstr clientName, bool forceConnection)
       : m_Socket(sock),
         reader(new StreamReader(sock, Ownership::Nothing), Ownership::Stream),
         writer(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream)
   {
-    std::vector<byte> payload;
+    bytebuf payload;
 
     writer.SetStreamingMode(true);
     reader.SetStreamingMode(true);
@@ -856,10 +856,10 @@ private:
   Network::Socket *m_Socket;
   WriteSerialiser writer;
   ReadSerialiser reader;
-  std::string m_Target, m_API, m_BusyClient;
+  rdcstr m_Target, m_API, m_BusyClient;
   uint32_t m_Version, m_PID;
 
-  std::map<uint32_t, std::string> m_CaptureCopies;
+  std::map<uint32_t, rdcstr> m_CaptureCopies;
 };
 
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(

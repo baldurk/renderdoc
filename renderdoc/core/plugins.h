@@ -22,6 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <string>
+#include "api/replay/rdcstr.h"
 
-std::string LocatePluginFile(const std::string &path, const std::string &fileName);
+rdcstr LocatePluginFile(const rdcstr &path, const rdcstr &fileName);

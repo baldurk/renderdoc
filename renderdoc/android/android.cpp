@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "android.h"
+#include <ctype.h>
 #include <set>
 #include "api/replay/version.h"
 #include "common/formatting.h"
@@ -35,7 +36,7 @@
 
 namespace Android
 {
-void adbForwardPorts(uint16_t portbase, const std::string &deviceID, uint16_t jdwpPort, int pid,
+void adbForwardPorts(uint16_t portbase, const rdcstr &deviceID, uint16_t jdwpPort, int pid,
                      bool silent)
 {
   const char *forwardCommand = "forward tcp:%i localabstract:renderdoc_%i";
@@ -67,7 +68,7 @@ uint16_t GetJdwpPort()
   return portBase + portIndex;
 }
 
-std::string GetDefaultActivityForPackage(const std::string &deviceID, const std::string &packageName)
+rdcstr GetDefaultActivityForPackage(const rdcstr &deviceID, const rdcstr &packageName)
 {
   Process::ProcessResult activity =
       adbExecCommand(deviceID, StringFormat::Fmt("shell cmd package resolve-activity"
@@ -135,7 +136,7 @@ std::string GetDefaultActivityForPackage(const std::string &deviceID, const std:
   return "";
 }
 
-int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
+int GetCurrentPID(const rdcstr &deviceID, const rdcstr &packageName)
 {
   // try 5 times, 200ms apart to find the pid
   for(int i = 0; i < 5; i++)
@@ -182,13 +183,13 @@ int GetCurrentPID(const std::string &deviceID, const std::string &packageName)
   return 0;
 }
 
-bool CheckAndroidServerVersion(const std::string &deviceID, ABI abi)
+bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
 {
   // assume all servers are updated at the same rate. Only check first ABI's version
-  std::string packageName = GetRenderDocPackageForABI(abi);
+  rdcstr packageName = GetRenderDocPackageForABI(abi);
   RDCLOG("Checking installed version of %s on %s", packageName.c_str(), deviceID.c_str());
 
-  std::string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  rdcstr dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
   if(dump.empty())
     RDCERR("Unable to pm dump %s", packageName.c_str());
 
@@ -219,9 +220,9 @@ bool CheckAndroidServerVersion(const std::string &deviceID, ABI abi)
   }
 
   // Compare the server's versionCode and versionName with the host's for compatibility
-  std::string hostVersionCode = std::string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) +
-                                std::string(STRINGIZE(RENDERDOC_VERSION_MINOR));
-  std::string hostVersionName = GitVersionHash;
+  rdcstr hostVersionCode =
+      rdcstr(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + rdcstr(STRINGIZE(RENDERDOC_VERSION_MINOR));
+  rdcstr hostVersionName = GitVersionHash;
 
   // False positives will hurt us, so check for explicit matches
   if((hostVersionCode == versionCode) && (hostVersionName == versionName))
@@ -237,11 +238,11 @@ bool CheckAndroidServerVersion(const std::string &deviceID, ABI abi)
   return false;
 }
 
-ReplayStatus InstallRenderDocServer(const std::string &deviceID)
+ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
 {
   ReplayStatus status = ReplayStatus::Succeeded;
 
-  std::vector<ABI> abis = GetSupportedABIs(deviceID);
+  rdcarray<ABI> abis = GetSupportedABIs(deviceID);
 
   if(abis.empty())
   {
@@ -254,7 +255,7 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   FileIO::GetLibraryFilename(libPath);
   rdcstr libDir = get_dirname(FileIO::GetFullPathname(libPath));
 
-  std::vector<std::string> paths;
+  rdcarray<rdcstr> paths;
 
 #if defined(RENDERDOC_APK_PATH)
   string customPath(RENDERDOC_APK_PATH);
@@ -269,8 +270,7 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   paths.push_back(customPath);
 #endif
 
-  std::string suff = GetRenderDocPackageForABI(abis[0], '-');
-  suff.erase(0, strlen(RENDERDOC_ANDROID_PACKAGE_BASE));
+  rdcstr suff = GetPlainABIName(abis[0]);
 
   paths.push_back(libDir + "/plugins/android/");                                 // Windows install
   paths.push_back(libDir + "/../share/renderdoc/plugins/android/");              // Linux install
@@ -281,14 +281,14 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   paths.push_back(libDir + "/../../../../../build-android" + suff + "/bin/");    // macOS ABI build
 
   // use the first ABI for searching
-  std::string apk = GetRenderDocPackageForABI(abis[0]);
-  std::string apksFolder;
+  rdcstr apk = GetRenderDocPackageForABI(abis[0]);
+  rdcstr apksFolder;
 
   for(uint32_t i = 0; i < paths.size(); i++)
   {
     RDCLOG("Checking for server APK in %s", paths[i].c_str());
 
-    std::string apkpath = paths[i] + apk + ".apk";
+    rdcstr apkpath = paths[i] + apk + ".apk";
 
     if(FileIO::exists(apkpath.c_str()))
     {
@@ -311,13 +311,9 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   {
     apk = apksFolder;
 
-    size_t abiSuffix = apk.find(suff);
-    if(abiSuffix != std::string::npos)
-    {
-      std::string abisuff = GetRenderDocPackageForABI(abi, '-');
-      abisuff.erase(0, strlen(RENDERDOC_ANDROID_PACKAGE_BASE));
-      apk.replace(abiSuffix, suff.size(), abisuff);
-    }
+    int abiSuffix = apk.find(suff);
+    if(abiSuffix >= 0)
+      apk.replace(abiSuffix, suff.size(), GetPlainABIName(abi));
 
     apk += GetRenderDocPackageForABI(abi) + ".apk";
 
@@ -374,9 +370,9 @@ ReplayStatus InstallRenderDocServer(const std::string &deviceID)
   return status;
 }
 
-bool RemoveRenderDocAndroidServer(const std::string &deviceID)
+bool RemoveRenderDocAndroidServer(const rdcstr &deviceID)
 {
-  std::vector<ABI> abis = GetSupportedABIs(deviceID);
+  rdcarray<ABI> abis = GetSupportedABIs(deviceID);
 
   if(abis.empty())
     return false;
@@ -386,13 +382,12 @@ bool RemoveRenderDocAndroidServer(const std::string &deviceID)
 
   for(ABI abi : abis)
   {
-    std::string packageName = GetRenderDocPackageForABI(abi);
+    rdcstr packageName = GetRenderDocPackageForABI(abi);
 
     adbExecCommand(deviceID, "uninstall " + packageName);
 
     // Ensure uninstall succeeded
-    std::string adbCheck =
-        adbExecCommand(deviceID, "shell pm list packages " + packageName).strStdout;
+    rdcstr adbCheck = adbExecCommand(deviceID, "shell pm list packages " + packageName).strStdout;
 
     if(!adbCheck.empty())
     {
@@ -404,7 +399,7 @@ bool RemoveRenderDocAndroidServer(const std::string &deviceID)
   return true;
 }
 
-void ResetCaptureSettings(const std::string &deviceID)
+void ResetCaptureSettings(const rdcstr &deviceID)
 {
   Android::adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :", ".", true);
   Android::adbExecCommand(deviceID, "shell settings delete global enable_gpu_debug_layers", ".",
@@ -423,7 +418,7 @@ rdcarray<rdcstr> EnumerateDevices()
 
   rdcarray<rdcstr> lines;
   split(adbStdout, lines, '\n');
-  for(const std::string &line : lines)
+  for(const rdcstr &line : lines)
   {
     rdcarray<rdcstr> tokens;
     split(line, tokens, '\t');
@@ -493,7 +488,7 @@ struct AndroidRemoteServer : public RemoteServer
       rdcarray<rdcstr> lines;
       split(adbStdout, lines, '\n');
 
-      std::vector<PathEntry> packages;
+      rdcarray<PathEntry> packages;
       for(const rdcstr &line : lines)
       {
         // hide our own internal packages
@@ -522,7 +517,7 @@ struct AndroidRemoteServer : public RemoteServer
 
       bool activitySection = false;
 
-      for(const std::string &line : lines)
+      for(const rdcstr &line : lines)
       {
         // the activity section ends when we reach a line that starts at column 0, which is the
         // start of a section. Reset the flag to false
@@ -530,7 +525,7 @@ struct AndroidRemoteServer : public RemoteServer
           activitySection = false;
 
         // if this is the start of the activity section, set the flag to true
-        if(line.find("Activity Resolver Table:") != std::string::npos)
+        if(line.contains("Activity Resolver Table:"))
           activitySection = true;
 
         // if the flag is false, skip
@@ -538,7 +533,7 @@ struct AndroidRemoteServer : public RemoteServer
           continue;
 
         // quick check, look for a /
-        if(line.find('/') == std::string::npos)
+        if(!line.contains('/'))
           continue;
 
         // line should be something like: '    78f9sba com.package.name/.NameOfActivity .....'
@@ -560,7 +555,7 @@ struct AndroidRemoteServer : public RemoteServer
         c++;
 
         // expect the package now. Search to see if it's one of the ones we listed above
-        std::string package;
+        rdcstr package;
 
         for(const PathEntry &p : packages)
           if(!strncmp(c, p.filename.c_str(), p.filename.size()))
@@ -598,7 +593,7 @@ struct AndroidRemoteServer : public RemoteServer
       if(!package.empty() && package[0] == '/')
         package.erase(0, 1);
 
-      std::vector<PathEntry> activities;
+      rdcarray<PathEntry> activities;
 
       for(const Activity &act : m_AndroidActivities)
       {
@@ -836,7 +831,7 @@ struct AndroidController : public IDeviceProtocolHandler
       rdcarray<rdcstr> packages;
       split(packagesOutput, packages, '\n');
 
-      std::vector<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
+      rdcarray<Android::ABI> abis = Android::GetSupportedABIs(deviceID);
 
       RDCLOG("Starting RenderDoc server, supported ABIs:");
       for(Android::ABI abi : abis)
@@ -955,8 +950,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 {
   LazilyStartLogcatThread();
 
-  std::string packageAndActivity = a && a[0] ? a : "";
-  std::string intentArgs = c && c[0] ? c : "";
+  rdcstr packageAndActivity = a && a[0] ? a : "";
+  rdcstr intentArgs = c && c[0] ? c : "";
 
   // we spin up a thread to Ping() every second, since starting a package can block for a long time.
   volatile int32_t done = 0;
@@ -972,11 +967,11 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     ret.status = ReplayStatus::UnknownError;
     ret.ident = RenderDoc_FirstTargetControlPort;
 
-    std::string packageName =
+    rdcstr packageName =
         Android::GetPackageName(packageAndActivity);    // Remove leading '/' if any
 
     // adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.jake.cube1
-    std::string activityName = Android::GetActivityName(packageAndActivity);
+    rdcstr activityName = Android::GetActivityName(packageAndActivity);
 
     // if the activity name isn't specified, get the default one
     if(activityName.empty() || activityName == "#DefaultActivity")
@@ -1000,8 +995,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
       // set up environment variables for the package, and point to ourselves for vulkan and GLES
       // layers
-      std::string installedABI = Android::DetermineInstalledABI(m_deviceID, packageName);
-      std::string layerPackage = GetRenderDocPackageForABI(Android::GetABI(installedABI));
+      rdcstr installedABI = Android::DetermineInstalledABI(m_deviceID, packageName);
+      rdcstr layerPackage = GetRenderDocPackageForABI(Android::GetABI(installedABI));
       Android::adbExecCommand(m_deviceID, "shell settings put global enable_gpu_debug_layers 1");
       Android::adbExecCommand(m_deviceID, "shell settings put global gpu_debug_app " + packageName);
       Android::adbExecCommand(m_deviceID,
@@ -1033,7 +1028,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
                             StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPOPTS %s",
                                               opts.EncodeAsString().c_str()));
 
-    std::string installedPath = Android::GetPathForPackage(m_deviceID, packageName);
+    rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);
 
     rdcstr RDCLib = Android::adbExecCommand(m_deviceID, "shell ls " + installedPath +
                                                             "/lib/*/" RENDERDOC_ANDROID_LIBRARY)

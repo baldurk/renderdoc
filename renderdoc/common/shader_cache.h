@@ -32,7 +32,7 @@ template <typename ResultType, typename ShaderCallbacks>
 bool LoadShaderCache(const char *filename, const uint32_t magicNumber, const uint32_t versionNumber,
                      std::map<uint32_t, ResultType> &resultCache, const ShaderCallbacks &callbacks)
 {
-  std::string shadercache = FileIO::GetAppFolderFilename(filename);
+  rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
   FILE *f = FileIO::fopen(shadercache.c_str(), "rb");
 
@@ -154,7 +154,7 @@ template <typename ResultType, typename ShaderCallbacks>
 void SaveShaderCache(const char *filename, uint32_t magicNumber, uint32_t versionNumber,
                      const std::map<uint32_t, ResultType> &cache, const ShaderCallbacks &callbacks)
 {
-  std::string shadercache = FileIO::GetAppFolderFilename(filename);
+  rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
   FILE *f = FileIO::fopen(shadercache.c_str(), "wb");
 

@@ -108,9 +108,9 @@ struct EventInfo
 
 #if 1
 
-std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
-                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                          const Subresource &sub, CompType typeCast)
+rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> events,
+                                                       ResourceId target, uint32_t x, uint32_t y,
+                                                       const Subresource &sub, CompType typeCast)
 {
   VULKANNOTIMP("PixelHistory");
   return std::vector<PixelModification>();
@@ -1152,9 +1152,9 @@ VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspect
   return imgLayout;
 }
 
-std::vector<PixelModification> VulkanReplay::PixelHistory(std::vector<EventUsage> events,
-                                                          ResourceId target, uint32_t x, uint32_t y,
-                                                          const Subresource &sub, CompType typeCast)
+rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> events,
+                                                       ResourceId target, uint32_t x, uint32_t y,
+                                                       const Subresource &sub, CompType typeCast)
 {
   RDCDEBUG("PixelHistory: pixel: (%u, %u) with %u events", x, y, events.size());
   std::vector<PixelModification> history;

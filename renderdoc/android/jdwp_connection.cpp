@@ -28,7 +28,7 @@ namespace JDWP
 {
 // short helper functions to read/write vectors - always preceeded by an int length
 template <typename inner>
-void ReadVector(CommandData &data, std::vector<inner> &vec,
+void ReadVector(CommandData &data, rdcarray<inner> &vec,
                 std::function<void(CommandData &data, inner &i)> process)
 {
   int32_t count = 0;
@@ -40,7 +40,7 @@ void ReadVector(CommandData &data, std::vector<inner> &vec,
 }
 
 template <typename inner>
-void WriteVector(CommandData &data, const std::vector<inner> &vec,
+void WriteVector(CommandData &data, const rdcarray<inner> &vec,
                  std::function<void(CommandData &data, const inner &i)> process)
 {
   int32_t count = (int32_t)vec.size();
@@ -199,7 +199,7 @@ void Connection::Resume()
   SendReceive(cmd);
 }
 
-referenceTypeID Connection::GetType(const std::string &signature)
+referenceTypeID Connection::GetType(const rdcstr &signature)
 {
   Command cmd(CommandSet::VirtualMachine, 2);
   cmd.GetData().Write(signature);
@@ -237,8 +237,8 @@ referenceTypeID Connection::GetType(objectID obj)
   return ret;
 }
 
-methodID Connection::GetMethod(referenceTypeID type, const std::string &name,
-                               const std::string &signature, referenceTypeID *methClass)
+methodID Connection::GetMethod(referenceTypeID type, const rdcstr &name, const rdcstr &signature,
+                               referenceTypeID *methClass)
 {
   referenceTypeID searchClass = type;
 
@@ -249,7 +249,7 @@ methodID Connection::GetMethod(referenceTypeID type, const std::string &name,
              GetSignature(searchClass).c_str());
              */
 
-    std::vector<Method> methods = GetMethods(searchClass);
+    rdcarray<Method> methods = GetMethods(searchClass);
 
     for(const Method &m : methods)
     {
@@ -267,7 +267,7 @@ methodID Connection::GetMethod(referenceTypeID type, const std::string &name,
   return {};
 }
 
-std::vector<VariableSlot> Connection::GetLocalVariables(referenceTypeID type, methodID method)
+rdcarray<VariableSlot> Connection::GetLocalVariables(referenceTypeID type, methodID method)
 {
   Command cmd(CommandSet::Method, 2);
   cmd.GetData().Write(type).Write(method);
@@ -276,7 +276,7 @@ std::vector<VariableSlot> Connection::GetLocalVariables(referenceTypeID type, me
     return {};
 
   int32_t argumentCount = 0;
-  std::vector<VariableSlot> slots;
+  rdcarray<VariableSlot> slots;
 
   CommandData data = cmd.GetData();
   data.Read(argumentCount);    // unused for now
@@ -288,8 +288,7 @@ std::vector<VariableSlot> Connection::GetLocalVariables(referenceTypeID type, me
   return slots;
 }
 
-fieldID Connection::GetField(referenceTypeID type, const std::string &name,
-                             const std::string &signature)
+fieldID Connection::GetField(referenceTypeID type, const rdcstr &name, const rdcstr &signature)
 {
   Command cmd(CommandSet::ReferenceType, 4);
   cmd.GetData().Write(type);
@@ -297,7 +296,7 @@ fieldID Connection::GetField(referenceTypeID type, const std::string &name,
   if(!SendReceive(cmd))
     return {};
 
-  std::vector<Field> fields;
+  rdcarray<Field> fields;
   CommandData data = cmd.GetData();
   ReadVector<Field>(data, fields, [](CommandData &d, Field &f) {
     d.Read(f.id).Read(f.name).Read(f.signature).Read(f.modBits);
@@ -330,7 +329,7 @@ value Connection::GetFieldValue(referenceTypeID type, fieldID field)
   return ret;
 }
 
-std::vector<StackFrame> Connection::GetCallStack(threadID thread)
+rdcarray<StackFrame> Connection::GetCallStack(threadID thread)
 {
   Command cmd(CommandSet::ThreadReference, 6);
   // always fetch full stack
@@ -339,7 +338,7 @@ std::vector<StackFrame> Connection::GetCallStack(threadID thread)
   if(!SendReceive(cmd))
     return {};
 
-  std::vector<StackFrame> ret;
+  rdcarray<StackFrame> ret;
   CommandData data = cmd.GetData();
   ReadVector<StackFrame>(data, ret,
                          [](CommandData &d, StackFrame &f) { d.Read(f.id).Read(f.location); });
@@ -389,7 +388,7 @@ void Connection::ReadEvent(CommandData &data, Event &ev)
   }
 }
 
-Event Connection::WaitForEvent(EventKind kind, const std::vector<EventFilter> &eventFilters,
+Event Connection::WaitForEvent(EventKind kind, const rdcarray<EventFilter> &eventFilters,
                                EventFilterFunction filterCallback)
 {
   int32_t eventRequestID = 0;
@@ -429,7 +428,7 @@ Event Connection::WaitForEvent(EventKind kind, const std::vector<EventFilter> &e
   while(!reader.IsErrored())
   {
     SuspendPolicy suspendPolicy;
-    std::vector<Event> events;
+    rdcarray<Event> events;
 
     Command msg;
     msg.Recv(reader);
@@ -477,7 +476,7 @@ Event Connection::WaitForEvent(EventKind kind, const std::vector<EventFilter> &e
   return {};
 }
 
-value Connection::NewString(threadID thread, const std::string &str)
+value Connection::NewString(threadID thread, const rdcstr &str)
 {
   Command cmd(CommandSet::VirtualMachine, 11);
   cmd.GetData().Write(str);
@@ -519,7 +518,7 @@ void Connection::SetLocalValue(threadID thread, frameID frame, int32_t slot, val
 }
 
 value Connection::InvokeInstance(threadID thread, classID clazz, methodID method, objectID object,
-                                 const std::vector<value> &arguments, InvokeOptions options)
+                                 const rdcarray<value> &arguments, InvokeOptions options)
 {
   Command cmd;
   CommandData data = cmd.GetData();
@@ -561,7 +560,7 @@ value Connection::InvokeInstance(threadID thread, classID clazz, methodID method
   return returnValue;
 }
 
-std::string Connection::GetString(objectID str)
+rdcstr Connection::GetString(objectID str)
 {
   Command cmd(CommandSet::StringReference, 1);
   cmd.GetData().Write(str);
@@ -569,7 +568,7 @@ std::string Connection::GetString(objectID str)
   if(!SendReceive(cmd))
     return "";
 
-  std::string ret;
+  rdcstr ret;
   cmd.GetData().Read(ret).Done();
   return ret;
 }
@@ -587,7 +586,7 @@ classID Connection::GetSuper(classID clazz)
   return ret;
 }
 
-std::string Connection::GetSignature(referenceTypeID typeID)
+rdcstr Connection::GetSignature(referenceTypeID typeID)
 {
   Command cmd(CommandSet::ReferenceType, 1);
   cmd.GetData().Write(typeID);
@@ -595,12 +594,12 @@ std::string Connection::GetSignature(referenceTypeID typeID)
   if(!SendReceive(cmd))
     return {};
 
-  std::string ret;
+  rdcstr ret;
   cmd.GetData().Read(ret).Done();
   return ret;
 }
 
-std::vector<Method> Connection::GetMethods(referenceTypeID searchClass)
+rdcarray<Method> Connection::GetMethods(referenceTypeID searchClass)
 {
   Command cmd(CommandSet::ReferenceType, 5);
   cmd.GetData().Write(searchClass);
@@ -608,7 +607,7 @@ std::vector<Method> Connection::GetMethods(referenceTypeID searchClass)
   if(!SendReceive(cmd))
     return {};
 
-  std::vector<Method> ret;
+  rdcarray<Method> ret;
   CommandData data = cmd.GetData();
   ReadVector<Method>(data, ret, [](CommandData &d, Method &m) {
     d.Read(m.id).Read(m.name).Read(m.signature).Read(m.modBits);

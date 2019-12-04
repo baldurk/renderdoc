@@ -787,7 +787,7 @@ void ReplayOutput::DisplayMesh()
   mesh.second.vertexResourceId = m_pDevice->GetLiveID(mesh.second.vertexResourceId);
   mesh.second.indexResourceId = m_pDevice->GetLiveID(mesh.second.indexResourceId);
 
-  std::vector<MeshFormat> secondaryDraws;
+  rdcarray<MeshFormat> secondaryDraws;
 
   // we choose a pallette here so that the colours stay consistent (i.e the
   // current draw is always the same colour), but also to indicate somewhat

@@ -38,7 +38,7 @@
 
 class EmbeddedIncluder : public glslang::TShader::Includer
 {
-#define DECL(header) std::string header = GetEmbeddedResource(CONCAT(glsl_, CONCAT(header, _h)));
+#define DECL(header) rdcstr header = GetEmbeddedResource(CONCAT(glsl_, CONCAT(header, _h)));
   GLSL_HEADERS(DECL)
 #undef DECL
 
@@ -68,13 +68,12 @@ public:
   virtual void releaseInclude(IncludeResult *result) override { delete result; }
 };
 
-std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int version,
-                               const std::string &defines)
+rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, const rdcstr &defines)
 {
   // shader stage doesn't matter for us since we're just pre-processing.
   glslang::TShader sh(EShLangFragment);
 
-  std::string combined;
+  rdcstr combined;
 
   if(type == ShaderType::GLSLES)
   {
@@ -93,7 +92,7 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
 
   // glslang requires the google extension, but we don't want it in the final shader, so remember it
   // and remove it later.
-  std::string include_ext = "#extension GL_GOOGLE_include_directive : require\n";
+  rdcstr include_ext = "#extension GL_GOOGLE_include_directive : require\n";
 
   combined += include_ext;
 
@@ -130,23 +129,28 @@ std::string GenerateGLSLShader(const std::string &shader, ShaderType type, int v
   else if(type == ShaderType::GLSPIRV)
     flags = EShMessages(flags | EShMsgSpvRules);
 
-  std::string ret;
+  rdcstr ret;
+  bool success;
 
-  bool success =
-      sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false, flags, &ret, incl);
+  {
+    std::string outstr;
+    success =
+        sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false, flags, &outstr, incl);
+    ret = outstr;
+  }
 
-  size_t offs = ret.find(include_ext);
-  if(offs != std::string::npos)
+  int offs = ret.find(include_ext);
+  if(offs >= 0)
     ret.erase(offs, include_ext.size());
 
   // strip any #line directives that got added
   offs = ret.find("\n#line ");
-  while(offs != std::string::npos)
+  while(offs >= 0)
   {
-    size_t eol = ret.find('\n', offs + 2);
+    int eol = ret.find('\n', offs + 2);
 
-    if(eol == std::string::npos)
-      ret.erase(offs + 1);
+    if(eol < 0)
+      ret.erase(offs + 1, ~0U);
     else
       ret.erase(offs + 1, eol - offs);
 
@@ -182,7 +186,7 @@ void TestGLSLReflection(ShaderType testType, ReflectionMaker compile)
 
     SECTION("GL global uniforms")
     {
-      std::string source = R"(
+      rdcstr source = R"(
 #version 450 core
 
 layout(location = 100) uniform vec3 global_var[5];
@@ -256,7 +260,7 @@ void main() {
 
     SECTION("GL atomic counters")
     {
-      std::string source = R"(
+      rdcstr source = R"(
 #version 450 core
 
 layout(binding = 0) uniform atomic_uint atom;
@@ -307,7 +311,7 @@ void main() {
 
     SECTION("Vulkan separate sampler objects")
     {
-      std::string source = R"(
+      rdcstr source = R"(
 #version 450 core
 
 layout (set=1, binding=2) uniform sampler S;
@@ -391,7 +395,7 @@ void main() {
 
     SECTION("Vulkan specialization constants")
     {
-      std::string source = R"(
+      rdcstr source = R"(
 #version 450 core
 
 layout(constant_id = 17) const int foo = 12;
@@ -470,7 +474,7 @@ void main() {
 
     SECTION("Vulkan push constants")
     {
-      std::string source = R"(
+      rdcstr source = R"(
 #version 450 core
 
 layout(push_constant) uniform push
@@ -563,7 +567,7 @@ void main() {
 
   SECTION("Debug information")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 layout(location = 3) in vec2 a_input;
@@ -623,7 +627,7 @@ void main() {
 
   SECTION("Input and output signatures")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 layout(location = 3) in vec2 a_input;
@@ -764,7 +768,7 @@ void main() {
 
   SECTION("constant buffers")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 struct glstruct
@@ -968,7 +972,7 @@ void main() {
 
   SECTION("Textures")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 layout(binding = 3) uniform sampler2D tex2D;
@@ -1050,7 +1054,7 @@ void main() {
 
   SECTION("SSBOs")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 struct glstruct
@@ -1341,7 +1345,7 @@ void main() {
 
   SECTION("vertex shader fixed function outputs")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 void main() {
@@ -1375,7 +1379,7 @@ void main() {
       }
     }
 
-    std::string source2 = R"(
+    rdcstr source2 = R"(
 #version 450 core
 
 void main() {
@@ -1426,7 +1430,7 @@ void main() {
 
   SECTION("matrix and array outputs")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 layout(location = 0) out vec3 outarr[3];
@@ -1598,7 +1602,7 @@ void main()
 
   SECTION("shader input/output blocks")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 layout(triangles) in;
@@ -1713,7 +1717,7 @@ void main()
 
   SECTION("Arrays of opaque resources")
   {
-    std::string source = R"(
+    rdcstr source = R"(
 #version 450 core
 
 layout(binding = 2, std430) buffer ssbo

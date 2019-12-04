@@ -1042,7 +1042,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
   }
 }
 
-void D3D11Replay::InitPostVSBuffers(const std::vector<uint32_t> &passEvents)
+void D3D11Replay::InitPostVSBuffers(const rdcarray<uint32_t> &passEvents)
 {
   uint32_t prev = 0;
 

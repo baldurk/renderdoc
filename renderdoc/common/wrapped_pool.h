@@ -233,7 +233,7 @@ private:
   };
 
   ItemPool m_ImmediatePool;
-  std::vector<ItemPool *> m_AdditionalPools;
+  rdcarray<ItemPool *> m_AdditionalPools;
 
   friend typename FriendMaker<WrapType>::Type;
 };

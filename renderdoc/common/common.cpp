@@ -26,7 +26,6 @@
 #include "common.h"
 #include <stdarg.h>
 #include <string.h>
-#include <string>
 #include "common/threading.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
@@ -246,7 +245,7 @@ uint64_t Log2Floor(uint64_t value)
 }
 #endif
 
-static std::string logfile;
+static rdcstr logfile;
 static FileIO::LogFileHandle *logfileHandle = NULL;
 
 const char *rdclog_getfilename()
@@ -256,7 +255,7 @@ const char *rdclog_getfilename()
 
 void rdclog_filename(const char *filename)
 {
-  std::string previous = logfile;
+  rdcstr previous = logfile;
 
   logfile = "";
   if(filename && filename[0])
@@ -458,7 +457,7 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
   {
     char backup[2];
 
-    std::string prefixText(base, size_t(prefixEnd - base));
+    rdcstr prefixText(base, size_t(prefixEnd - base));
 
     bool first = true;
 

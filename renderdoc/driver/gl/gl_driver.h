@@ -148,7 +148,7 @@ private:
   ReplayOptions m_ReplayOptions;
 
   WriteSerialiser m_ScratchSerialiser;
-  std::set<std::string> m_StringDB;
+  std::set<rdcstr> m_StringDB;
 
   StreamReader *m_FrameReader = NULL;
 
@@ -238,7 +238,7 @@ private:
   }
 
   std::vector<FrameDescription> m_CapturedFrames;
-  std::vector<DrawcallDescription *> m_Drawcalls;
+  rdcarray<DrawcallDescription *> m_Drawcalls;
 
   // replay
 
@@ -569,7 +569,7 @@ public:
   APIProperties APIProps;
 
   uint64_t GetLogVersion() { return m_SectionVersion; }
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   CaptureState GetState() { return m_State; }
   GLReplay *GetReplay() { return m_Replay; }
@@ -652,7 +652,7 @@ public:
     std::vector<std::string> sources;
     std::vector<std::string> includepaths;
     rdcspv::Reflector spirv;
-    std::string disassembly;
+    rdcstr disassembly;
     ShaderReflection reflection;
     int version;
 

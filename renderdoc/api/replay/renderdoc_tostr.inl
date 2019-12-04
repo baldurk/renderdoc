@@ -459,12 +459,12 @@ rdcstr DoStringise(const QualityHint &el)
 template <>
 rdcstr DoStringise(const TextureFilter &el)
 {
-  std::string filter = "";
-  std::string filtPrefix = "";
-  std::string filtVal = "";
+  rdcstr filter = "";
+  rdcstr filtPrefix = "";
+  rdcstr filtVal = "";
 
-  std::string filters[] = {ToStr(el.minify), ToStr(el.magnify), ToStr(el.mip)};
-  std::string filterPrefixes[] = {"Min", "Mag", "Mip"};
+  rdcstr filters[] = {ToStr(el.minify), ToStr(el.magnify), ToStr(el.mip)};
+  rdcstr filterPrefixes[] = {"Min", "Mag", "Mip"};
 
   for(int a = 0; a < 3; a++)
   {

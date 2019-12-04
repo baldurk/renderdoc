@@ -40,7 +40,7 @@
 
 ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                       DebugOverlay overlay, uint32_t eventId,
-                                      const std::vector<uint32_t> &passEvents)
+                                      const rdcarray<uint32_t> &passEvents)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, false);
 
@@ -572,7 +572,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   }
   else if(overlay == DebugOverlay::ClearBeforePass || overlay == DebugOverlay::ClearBeforeDraw)
   {
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -659,7 +659,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
 
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::TriangleSizeDraw)
       events.clear();
@@ -785,7 +785,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   {
     SCOPED_TIMER("Quad Overdraw");
 
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::QuadOverdrawDraw)
       events.clear();

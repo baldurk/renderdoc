@@ -3565,7 +3565,7 @@ void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
 
   RDCASSERT(entryPoint == "main");
 
-  std::map<RDCDriver, std::string> replays = RenderDoc::Inst().GetReplayDrivers();
+  std::map<RDCDriver, rdcstr> replays = RenderDoc::Inst().GetReplayDrivers();
 
   if(replays.find(RDCDriver::OpenGL) != replays.end())
     status = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::OpenGL, &driver);
@@ -3577,12 +3577,12 @@ void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
   }
 
   ResourceId id;
-  std::string errors;
+  rdcstr errors;
   bytebuf buf;
   buf.resize(source.size());
   memcpy(buf.data(), source.data(), source.size());
-  driver->BuildCustomShader(ShaderEncoding::GLSL, buf, "main", ShaderCompileFlags(), stage, &id,
-                            &errors);
+  driver->BuildCustomShader(ShaderEncoding::GLSL, buf, "main", ShaderCompileFlags(), stage, id,
+                            errors);
 
   if(id == ResourceId())
   {

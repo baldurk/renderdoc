@@ -27,8 +27,6 @@
 
 #include <stdint.h>
 #include <map>
-#include <string>
-#include <vector>
 #include "api/app/renderdoc_app.h"
 #include "api/replay/apidefs.h"
 #include "api/replay/capture_options.h"
@@ -226,11 +224,12 @@ ITERABLE_OPERATORS(VendorExtensions);
 
 struct CaptureData
 {
-  CaptureData(std::string p, uint64_t t, RDCDriver d, uint32_t f)
+  CaptureData() : timestamp(0), driver(RDCDriver::Unknown), frameNumber(0), retrieved(false) {}
+  CaptureData(rdcstr p, uint64_t t, RDCDriver d, uint32_t f)
       : path(p), timestamp(t), driver(d), frameNumber(f), retrieved(false)
   {
   }
-  std::string path;
+  rdcstr path;
   uint64_t timestamp;
   RDCDriver driver;
   uint32_t frameNumber;
@@ -336,8 +335,8 @@ typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc
                                         RENDERDOC_ProgressCallback progress);
 typedef IDeviceProtocolHandler *(*ProtocolHandler)();
 
-typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
-                                 std::vector<std::string> &otherJSONs);
+typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
+                                 rdcarray<rdcstr> &otherJSONs);
 typedef void (*VulkanLayerInstall)(bool systemLevel);
 
 typedef void (*ShutdownFunction)();
@@ -411,14 +410,14 @@ public:
 
   uint64_t GetMicrosecondTimestamp() { return uint64_t(m_Timer.GetMicroseconds()); }
   const GlobalEnvironment &GetGlobalEnvironment() { return m_GlobalEnv; }
-  void ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args);
+  void ProcessGlobalEnvironment(GlobalEnvironment env, const rdcarray<rdcstr> &args);
 
   int32_t GetForwardedPortSlot() { return Atomic::Inc32(&m_PortSlot); }
   void RegisterShutdownFunction(ShutdownFunction func);
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
-  const std::string &GetConfigSetting(std::string name) { return m_ConfigSettings[name]; }
-  void SetConfigSetting(std::string name, std::string value) { m_ConfigSettings[name] = value; }
+  const rdcstr &GetConfigSetting(rdcstr name) { return m_ConfigSettings[name]; }
+  void SetConfigSetting(rdcstr name, rdcstr value) { m_ConfigSettings[name] = value; }
   void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
                           RENDERDOC_PreviewWindowCallback previewWindow);
 
@@ -440,9 +439,9 @@ public:
   void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident);
-  std::vector<rdcpair<uint32_t, uint32_t> > GetChildProcesses();
+  rdcarray<rdcpair<uint32_t, uint32_t> > GetChildProcesses();
 
-  std::vector<CaptureData> GetCaptures();
+  rdcarray<CaptureData> GetCaptures();
 
   void MarkCaptureRetrieved(uint32_t idx);
 
@@ -464,13 +463,13 @@ public:
   rdcarray<rdcstr> GetSupportedDeviceProtocols();
   IDeviceProtocolHandler *GetDeviceProtocol(const rdcstr &protocol);
 
-  std::vector<CaptureFileFormat> GetCaptureFileFormats();
+  rdcarray<CaptureFileFormat> GetCaptureFileFormats();
   rdcarray<GPUDevice> GetAvailableGPUs();
 
   void SetVulkanLayerCheck(VulkanLayerCheck callback) { m_VulkanCheck = callback; }
   void SetVulkanLayerInstall(VulkanLayerInstall callback) { m_VulkanInstall = callback; }
-  bool NeedVulkanLayerRegistration(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
-                                   std::vector<std::string> &otherJSONs)
+  bool NeedVulkanLayerRegistration(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
+                                   rdcarray<rdcstr> &otherJSONs)
   {
     if(m_VulkanCheck)
       return m_VulkanCheck(flags, myJSONs, otherJSONs);
@@ -496,8 +495,8 @@ public:
 
   bool HasReplaySupport(RDCDriver driverType);
 
-  std::map<RDCDriver, std::string> GetReplayDrivers();
-  std::map<RDCDriver, std::string> GetRemoteDrivers();
+  std::map<RDCDriver, rdcstr> GetReplayDrivers();
+  std::map<RDCDriver, rdcstr> GetRemoteDrivers();
 
   bool HasReplayDriver(RDCDriver driver) const;
   bool HasRemoteDriver(RDCDriver driver) const;
@@ -507,7 +506,7 @@ public:
 
   uint32_t GetTargetControlIdent() const { return m_RemoteIdent; }
   bool IsTargetControlConnected();
-  std::string GetTargetControlUsername();
+  rdcstr GetTargetControlUsername();
 
   void Tick();
 
@@ -555,8 +554,8 @@ public:
       m_CaptureKeys[i] = keys[i];
   }
 
-  const std::vector<RENDERDOC_InputButton> &GetFocusKeys() { return m_FocusKeys; }
-  const std::vector<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
+  const rdcarray<RENDERDOC_InputButton> &GetFocusKeys() { return m_FocusKeys; }
+  const rdcarray<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
   bool ShouldTriggerCapture(uint32_t frameNumber);
 
   enum
@@ -565,7 +564,7 @@ public:
     eOverlay_CaptureDisabled = 0x2,
   };
 
-  std::string GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
+  rdcstr GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
 
   void CycleActiveWindow();
   uint32_t GetCapturableWindowCount() { return (uint32_t)m_WindowFrameCapturers.size(); }
@@ -581,8 +580,8 @@ private:
 
   uint32_t m_Cap;
 
-  std::vector<RENDERDOC_InputButton> m_FocusKeys;
-  std::vector<RENDERDOC_InputButton> m_CaptureKeys;
+  rdcarray<RENDERDOC_InputButton> m_FocusKeys;
+  rdcarray<RENDERDOC_InputButton> m_CaptureKeys;
 
   GlobalEnvironment m_GlobalEnv;
 
@@ -593,12 +592,12 @@ private:
   rdcstr m_LoggingFilename;
 
   rdcstr m_Target;
-  std::string m_CaptureFileTemplate;
-  std::string m_CurrentLogFile;
+  rdcstr m_CaptureFileTemplate;
+  rdcstr m_CurrentLogFile;
   CaptureOptions m_Options;
   uint32_t m_Overlay;
 
-  std::vector<uint32_t> m_QueuedFrameCaptures;
+  rdcarray<uint32_t> m_QueuedFrameCaptures;
 
   uint32_t m_RemoteIdent;
   Threading::ThreadHandle m_RemoteThread;
@@ -613,28 +612,28 @@ private:
   std::map<rdcstr, RENDERDOC_ProgressCallback> m_ProgressCallbacks;
 
   Threading::CriticalSection m_CaptureLock;
-  std::vector<CaptureData> m_Captures;
+  rdcarray<CaptureData> m_Captures;
 
   Threading::CriticalSection m_ChildLock;
-  std::vector<rdcpair<uint32_t, uint32_t> > m_Children;
+  rdcarray<rdcpair<uint32_t, uint32_t> > m_Children;
 
-  std::map<std::string, std::string> m_ConfigSettings;
+  std::map<rdcstr, rdcstr> m_ConfigSettings;
 
   std::map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   std::map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
   std::map<RDCDriver, StructuredProcessor> m_StructProcesssors;
 
-  std::vector<CaptureFileFormat> m_ImportExportFormats;
-  std::map<std::string, CaptureImporter> m_Importers;
-  std::map<std::string, CaptureExporter> m_Exporters;
+  rdcarray<CaptureFileFormat> m_ImportExportFormats;
+  std::map<rdcstr, CaptureImporter> m_Importers;
+  std::map<rdcstr, CaptureExporter> m_Exporters;
 
   std::map<rdcstr, ProtocolHandler> m_Protocols;
 
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
 
-  std::vector<ShutdownFunction> m_ShutdownFunctions;
+  rdcarray<ShutdownFunction> m_ShutdownFunctions;
 
   struct FrameCap
   {
@@ -687,7 +686,7 @@ private:
   volatile bool m_TargetControlThreadShutdown;
   volatile bool m_ControlClientThreadShutdown;
   Threading::CriticalSection m_SingleClientLock;
-  std::string m_SingleClientName;
+  rdcstr m_SingleClientName;
 
   PerformanceTimer m_Timer;
 

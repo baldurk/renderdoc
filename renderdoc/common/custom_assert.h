@@ -105,25 +105,25 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define RDCASSERTMSG(msg, ...)                                                            \
-  do                                                                                      \
-  {                                                                                       \
-    if(!(RDCASSERT_IFCOND(__VA_ARGS__)))                                                  \
-    {                                                                                     \
-      const char custommsg[] = msg;                                                       \
-      (void)custommsg;                                                                    \
-      std::string assertmsg = "'" STRINGIZE(RDCASSERT_GETCOND(__VA_ARGS__)) "' ";         \
-      assertmsg += (sizeof(custommsg) > 1) ? msg " " : "";                                \
-      std::string failmsg;                                                                \
-      RDCASSERT_FAILMSG(__VA_ARGS__);                                                     \
-      if(!failmsg.empty())                                                                \
-      {                                                                                   \
-        failmsg.pop_back();                                                               \
-        failmsg.pop_back();                                                               \
-      }                                                                                   \
-      std::string combinedmsg = assertmsg + (failmsg.empty() ? "" : "(" + failmsg + ")"); \
-      rdcassert(combinedmsg.c_str(), __FILE__, __LINE__, __PRETTY_FUNCTION_SIGNATURE__);  \
-      rdclog_flush();                                                                     \
-      RDCBREAK();                                                                         \
-    }                                                                                     \
+#define RDCASSERTMSG(msg, ...)                                                           \
+  do                                                                                     \
+  {                                                                                      \
+    if(!(RDCASSERT_IFCOND(__VA_ARGS__)))                                                 \
+    {                                                                                    \
+      const char custommsg[] = msg;                                                      \
+      (void)custommsg;                                                                   \
+      rdcstr assertmsg = "'" STRINGIZE(RDCASSERT_GETCOND(__VA_ARGS__)) "' ";             \
+      assertmsg += (sizeof(custommsg) > 1) ? msg " " : "";                               \
+      rdcstr failmsg;                                                                    \
+      RDCASSERT_FAILMSG(__VA_ARGS__);                                                    \
+      if(!failmsg.empty())                                                               \
+      {                                                                                  \
+        failmsg.pop_back();                                                              \
+        failmsg.pop_back();                                                              \
+      }                                                                                  \
+      rdcstr combinedmsg = assertmsg + (failmsg.empty() ? "" : "(" + failmsg + ")");     \
+      rdcassert(combinedmsg.c_str(), __FILE__, __LINE__, __PRETTY_FUNCTION_SIGNATURE__); \
+      rdclog_flush();                                                                    \
+      RDCBREAK();                                                                        \
+    }                                                                                    \
   } while((void)0, 0)

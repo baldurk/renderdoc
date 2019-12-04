@@ -915,7 +915,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 }
 
-std::string WrappedOpenGL::GetChunkName(uint32_t idx)
+rdcstr WrappedOpenGL::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);

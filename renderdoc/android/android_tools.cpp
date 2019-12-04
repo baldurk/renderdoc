@@ -30,16 +30,16 @@
 namespace Android
 {
 static bool adbKillServer = false;
-bool toolExists(const std::string &path)
+bool toolExists(const rdcstr &path)
 {
   if(path.empty())
     return false;
   return FileIO::exists(path.c_str()) || FileIO::exists((path + ".exe").c_str());
 }
-std::string getToolInSDK(ToolDir subdir, const std::string &jdkroot, const std::string &sdkroot,
-                         const std::string &toolname)
+rdcstr getToolInSDK(ToolDir subdir, const rdcstr &jdkroot, const rdcstr &sdkroot,
+                    const rdcstr &toolname)
 {
-  std::string toolpath;
+  rdcstr toolpath;
 
   switch(subdir)
   {
@@ -87,7 +87,7 @@ std::string getToolInSDK(ToolDir subdir, const std::string &jdkroot, const std::
           break;
 
         uint32_t bestversion = 0;
-        std::string bestpath;
+        rdcstr bestpath;
 
         for(const PathEntry &path : paths)
         {
@@ -153,8 +153,8 @@ std::string getToolInSDK(ToolDir subdir, const std::string &jdkroot, const std::
 
 struct ToolPathCache
 {
-  std::string sdk, jdk;
-  std::map<std::string, std::string> paths;
+  rdcstr sdk, jdk;
+  std::map<rdcstr, rdcstr> paths;
 };
 
 static ToolPathCache &getCache()
@@ -163,7 +163,7 @@ static ToolPathCache &getCache()
   return *cache;
 }
 
-std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkExist)
+rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist)
 {
   // search path for tools:
   // 1. First look relative to the configured paths, these come from the user manually setting them
@@ -178,8 +178,8 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   // its client-server setup, so if we run our bundled adb that might be newer than the user's, they
   // will then get fighting back and forth when trying to run their own.
 
-  std::string sdk = RenderDoc::Inst().GetConfigSetting("androidSDKPath");
-  std::string jdk = RenderDoc::Inst().GetConfigSetting("androidJDKPath");
+  rdcstr sdk = RenderDoc::Inst().GetConfigSetting("androidSDKPath");
+  rdcstr jdk = RenderDoc::Inst().GetConfigSetting("androidJDKPath");
 
   ToolPathCache &cache = getCache();
 
@@ -195,7 +195,7 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   if(toolExists(cache.paths[toolname]))
     return cache.paths[toolname];
 
-  std::string &toolpath = cache.paths[toolname];
+  rdcstr &toolpath = cache.paths[toolname];
 
   // first try according to the configured paths
   toolpath = getToolInSDK(subdir, jdk, sdk, toolname);
@@ -215,10 +215,9 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
 
     // if the tool name contains a .jar then try stripping that and look for the non-.jar version in
     // the PATH.
-    if(toolname.find(".jar") != std::string::npos)
+    if(toolname.contains(".jar"))
     {
-      toolpath = toolname;
-      toolpath.erase(toolpath.rfind(".jar"), 4);
+      toolpath = strip_extension(toolname);
       toolpath = FileIO::FindFileInPath(toolpath);
 
       if(toolExists(toolpath))
@@ -257,13 +256,13 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   // Library folder first, then the global folder
   if(sdk.empty() || !FileIO::exists(sdk.c_str()))
   {
-    std::string librarySDK = FileIO::GetHomeFolderFilename() + "/Library/Android/sdk";
+    rdcstr librarySDK = FileIO::GetHomeFolderFilename() + "/Library/Android/sdk";
     sdk = FileIO::exists(librarySDK.c_str()) ? librarySDK : "";
   }
 
   if(sdk.empty() || !FileIO::exists(sdk.c_str()))
   {
-    std::string librarySDK = "/Library/Android/sdk";
+    rdcstr librarySDK = "/Library/Android/sdk";
     sdk = FileIO::exists(librarySDK.c_str()) ? librarySDK : "";
   }
 #endif
@@ -303,8 +302,8 @@ std::string getToolPath(ToolDir subdir, const std::string &toolname, bool checkE
   // otherwise we at least return the tool name so that there's something to try and run
   return toolname;
 }
-Process::ProcessResult execScript(const std::string &script, const std::string &args,
-                                  const std::string &workDir, bool silent)
+Process::ProcessResult execScript(const rdcstr &script, const rdcstr &args, const rdcstr &workDir,
+                                  bool silent)
 {
   if(!silent)
     RDCLOG("SCRIPT: %s", script.c_str());
@@ -313,8 +312,8 @@ Process::ProcessResult execScript(const std::string &script, const std::string &
   Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), true, &result);
   return result;
 }
-Process::ProcessResult execCommand(const std::string &exe, const std::string &args,
-                                   const std::string &workDir, bool silent)
+Process::ProcessResult execCommand(const rdcstr &exe, const rdcstr &args, const rdcstr &workDir,
+                                   bool silent)
 {
   if(!silent)
     RDCLOG("COMMAND: %s '%s'", exe.c_str(), args.c_str());
@@ -323,12 +322,12 @@ Process::ProcessResult execCommand(const std::string &exe, const std::string &ar
   Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), true, &result);
   return result;
 }
-Process::ProcessResult adbExecCommand(const std::string &device, const std::string &args,
-                                      const std::string &workDir, bool silent)
+Process::ProcessResult adbExecCommand(const rdcstr &device, const rdcstr &args,
+                                      const rdcstr &workDir, bool silent)
 {
-  std::string adb = getToolPath(ToolDir::PlatformTools, "adb", false);
+  rdcstr adb = getToolPath(ToolDir::PlatformTools, "adb", false);
   Process::ProcessResult result;
-  std::string deviceArgs;
+  rdcstr deviceArgs;
   if(device.empty())
     deviceArgs = args;
   else
@@ -338,9 +337,9 @@ Process::ProcessResult adbExecCommand(const std::string &device, const std::stri
 void initAdb()
 {
   // we don't use adbExecCommand because we need to be sure we don't wait for it to exit
-  std::string adb = getToolPath(ToolDir::PlatformTools, "adb", false);
-  std::string workdir = ".";
-  if(adb.find('/') != std::string::npos || adb.find('\\') != std::string::npos)
+  rdcstr adb = getToolPath(ToolDir::PlatformTools, "adb", false);
+  rdcstr workdir = ".";
+  if(adb.contains('/') || adb.contains('\\'))
     workdir = get_dirname(adb);
 
   RDCLOG("Initialising adb using '%s'", adb.c_str());

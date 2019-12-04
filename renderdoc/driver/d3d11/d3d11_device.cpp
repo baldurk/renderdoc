@@ -781,7 +781,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   return m_RefCounter.QueryInterface(riid, ppvObject);
 }
 
-std::string WrappedID3D11Device::GetChunkName(uint32_t idx)
+rdcstr WrappedID3D11Device::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);
@@ -1245,7 +1245,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
     SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
 
     // propagate any UAV names onto counter buffers
-    std::vector<ResourceId> counterBuffers;
+    rdcarray<ResourceId> counterBuffers;
     GetDebugManager()->GetCounterBuffers(counterBuffers);
 
     for(ResourceId buffId : counterBuffers)

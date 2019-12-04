@@ -26,9 +26,9 @@
 #include "hooks.h"
 #include "common/common.h"
 
-static std::vector<LibraryHook *> &LibList()
+static rdcarray<LibraryHook *> &LibList()
 {
-  static std::vector<LibraryHook *> libs;
+  static rdcarray<LibraryHook *> libs;
   return libs;
 }
 

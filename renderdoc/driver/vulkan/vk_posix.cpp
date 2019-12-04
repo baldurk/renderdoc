@@ -260,8 +260,8 @@ extern unsigned char driver_vulkan_renderdoc_json[];
 extern int driver_vulkan_renderdoc_json_len;
 
 #if ENABLED(RDOC_ANDROID)
-bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
-                                    std::vector<std::string> &otherJSONs)
+bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
+                                    rdcarray<rdcstr> &otherJSONs)
 {
   return false;
 }
@@ -399,8 +399,8 @@ void MakeParentDirs(std::string file)
   mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
-bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
-                                    std::vector<std::string> &otherJSONs)
+bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
+                                    rdcarray<rdcstr> &otherJSONs)
 {
   // see if the user has suppressed all this checking as a "I know what I'm doing" measure
 

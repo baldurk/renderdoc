@@ -1649,7 +1649,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
 }
 
 bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                            float maxval, bool channels[4], std::vector<uint32_t> &histogram)
+                            float maxval, bool channels[4], rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval || texid == ResourceId())
     return false;
@@ -2047,7 +2047,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     byte *idxs = new byte[numIndices * cfg.position.indexByteStride];
     memset(idxs, 0, numIndices * cfg.position.indexByteStride);
 
-    std::vector<uint32_t> outidxs;
+    rdcarray<uint32_t> outidxs;
     outidxs.resize(numIndices);
 
     drv.glBindBuffer(eGL_COPY_READ_BUFFER, ib);

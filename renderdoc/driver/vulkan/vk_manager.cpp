@@ -940,9 +940,9 @@ void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, const VkIniti
   return m_Core->Apply_InitialState(live, initial);
 }
 
-std::vector<ResourceId> VulkanResourceManager::InitialContentResources()
+rdcarray<ResourceId> VulkanResourceManager::InitialContentResources()
 {
-  std::vector<ResourceId> resources =
+  rdcarray<ResourceId> resources =
       ResourceManager<VulkanResourceManagerConfiguration>::InitialContentResources();
   std::sort(resources.begin(), resources.end(), [this](ResourceId a, ResourceId b) {
     return m_InitialContents[a].data.type < m_InitialContents[b].data.type;

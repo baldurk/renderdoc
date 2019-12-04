@@ -456,7 +456,7 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFla
   return eventId;
 }
 
-std::string WrappedVulkan::GetChunkName(uint32_t idx)
+rdcstr WrappedVulkan::GetChunkName(uint32_t idx)
 {
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);

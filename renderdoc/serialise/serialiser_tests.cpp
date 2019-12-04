@@ -46,7 +46,7 @@ void WriteAllBasicTypes(WriteSerialiser &ser)
   double k = 11.11011011;
   float l = 12.12012012f;
 
-  std::string m = "mmmm";
+  rdcstr m = "mmmm";
   char n[5] = "nnnn";
   const char *s = "ssss";
 
@@ -113,7 +113,7 @@ TEST_CASE("Read/write basic types", "[serialiser][structured]")
     double k;
     float l;
 
-    std::string m;
+    rdcstr m;
     char n[5];
     const char *s;
 
@@ -159,8 +159,8 @@ TEST_CASE("Read/write basic types", "[serialiser][structured]")
     CHECK(l == 12.12012012f);
 
     CHECK(m == "mmmm");
-    CHECK(std::string(n) == "nnnn");
-    CHECK(std::string(s) == "ssss");
+    CHECK(rdcstr(n) == "nnnn");
+    CHECK(rdcstr(s) == "ssss");
 
     CHECK(t[0] == 20);
     CHECK(t[1] == 20);
@@ -187,7 +187,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
   {
     ReadSerialiser ser(new StreamReader(buf->GetData(), buf->GetOffset()), Ownership::Stream);
 
-    ChunkLookup testChunkLoop = [](uint32_t) -> std::string { return "TestChunk"; };
+    ChunkLookup testChunkLoop = [](uint32_t) -> rdcstr { return "TestChunk"; };
 
     ser.ConfigureStructuredExport(testChunkLoop, true);
 
@@ -207,7 +207,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     double k;
     float l;
 
-    std::string m;
+    rdcstr m;
     char n[5];
     const char *s;
 
@@ -532,7 +532,7 @@ TEST_CASE("Read/write chunk metadata", "[serialiser]")
   {
     ReadSerialiser ser(new StreamReader(buf->GetData(), buf->GetOffset()), Ownership::Stream);
 
-    ChunkLookup testChunkLoop = [](uint32_t) -> std::string { return "TestChunk"; };
+    ChunkLookup testChunkLoop = [](uint32_t) -> rdcstr { return "TestChunk"; };
 
     ser.ConfigureStructuredExport(testChunkLoop, true);
 
@@ -575,7 +575,7 @@ TEST_CASE("Verify multiple chunks can be merged", "[serialiser][chunks]")
   };
 
   // write some chunks individually
-  std::vector<Chunk *> chunks;
+  rdcarray<Chunk *> chunks;
   {
     WriteSerialiser ser(new StreamWriter(StreamWriter::DefaultScratchSize), Ownership::Stream);
 
@@ -595,7 +595,7 @@ TEST_CASE("Verify multiple chunks can be merged", "[serialiser][chunks]")
     {
       SCOPED_SERIALISE_CHUNK(STRING_AND_INT);
 
-      std::string s = "string in STRING_AND_INT";
+      rdcstr s = "string in STRING_AND_INT";
       int i = 4096;
 
       SERIALISE_ELEMENT(s);
@@ -695,7 +695,7 @@ TEST_CASE("Verify multiple chunks can be merged", "[serialiser][chunks]")
         }
         case STRING_AND_INT:
         {
-          std::string s;
+          rdcstr s;
           int i = 0;
 
           SERIALISE_ELEMENT(s);
@@ -732,8 +732,8 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     {
       SCOPED_SERIALISE_CHUNK(5);
 
-      std::vector<int> v;
-      rdcpair<float, std::string> p;
+      rdcarray<int> v;
+      rdcpair<float, rdcstr> p;
       std::list<uint16_t> l;
 
       v.push_back(1);
@@ -769,8 +769,8 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
     CHECK(chunkID == 5);
 
-    std::vector<int> v;
-    rdcpair<float, std::string> p;
+    rdcarray<int> v;
+    rdcpair<float, rdcstr> p;
     std::list<uint16_t> l;
 
     SERIALISE_ELEMENT(v);
@@ -814,12 +814,12 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
   {
     ReadSerialiser ser(new StreamReader(buf->GetData(), buf->GetOffset()), Ownership::Stream);
 
-    ser.ConfigureStructuredExport([](uint32_t) -> std::string { return "TestChunk"; }, true);
+    ser.ConfigureStructuredExport([](uint32_t) -> rdcstr { return "TestChunk"; }, true);
 
     ser.ReadChunk<uint32_t>();
     {
-      std::vector<int32_t> v;
-      rdcpair<float, std::string> p;
+      rdcarray<int32_t> v;
+      rdcpair<float, rdcstr> p;
       std::list<uint16_t> l;
 
       SERIALISE_ELEMENT(v);
@@ -967,9 +967,9 @@ void DoSerialise(SerialiserType &ser, struct1 &el)
 
 struct struct2
 {
-  std::string name;
-  std::vector<float> floats;
-  std::vector<struct1> viewports;
+  rdcstr name;
+  rdcarray<float> floats;
+  rdcarray<struct1> viewports;
 };
 
 DECLARE_REFLECTION_STRUCT(struct2);
@@ -1018,7 +1018,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     SERIALISE_ELEMENT(enumVal);
 
-    std::vector<struct1> sparseStructArray;
+    rdcarray<struct1> sparseStructArray;
 
     sparseStructArray.resize(10);
 
@@ -1059,7 +1059,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     SERIALISE_ELEMENT(enumVal);
 
-    std::vector<struct1> sparseStructArray;
+    rdcarray<struct1> sparseStructArray;
 
     SERIALISE_ELEMENT(sparseStructArray);
 
@@ -1119,7 +1119,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
   {
     ReadSerialiser ser(new StreamReader(buf->GetData(), buf->GetOffset()), Ownership::Stream);
 
-    ser.ConfigureStructuredExport([](uint32_t) -> std::string { return "TestChunk"; }, true);
+    ser.ConfigureStructuredExport([](uint32_t) -> rdcstr { return "TestChunk"; }, true);
 
     ser.ReadChunk<uint32_t>();
     {
@@ -1127,7 +1127,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
       SERIALISE_ELEMENT(enumVal);
 
-      std::vector<struct1> sparseStructArray;
+      rdcarray<struct1> sparseStructArray;
 
       SERIALISE_ELEMENT(sparseStructArray);
 

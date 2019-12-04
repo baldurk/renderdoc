@@ -168,11 +168,11 @@ public:
     return ReplayStatus::Succeeded;
   }
   AMDRGPControl *GetRGPControl() { return NULL; }
-  std::vector<WindowingSystem> GetSupportedWindowSystems()
+  rdcarray<WindowingSystem> GetSupportedWindowSystems()
   {
     if(m_Proxy)
       return m_Proxy->GetSupportedWindowSystems();
-    return std::vector<WindowingSystem>();
+    return rdcarray<WindowingSystem>();
   }
   uint64_t MakeOutputWindow(WindowingData window, bool depth)
   {
@@ -311,7 +311,7 @@ public:
   }
 
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                    float maxval, bool channels[4], std::vector<uint32_t> &histogram)
+                    float maxval, bool channels[4], rdcarray<uint32_t> &histogram)
   {
     if(m_Proxy)
     {
@@ -326,8 +326,7 @@ public:
     return false;
   }
 
-  void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
-                  const MeshDisplay &cfg)
+  void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
     if(m_Proxy && cfg.position.vertexResourceId != ResourceId())
     {
@@ -351,7 +350,7 @@ public:
         proxiedCfg.position.indexResourceId = m_ProxyBufferIds[proxiedCfg.position.indexResourceId];
       }
 
-      std::vector<MeshFormat> secDraws = secondaryDraws;
+      rdcarray<MeshFormat> secDraws = secondaryDraws;
 
       for(size_t i = 0; i < secDraws.size(); i++)
       {
@@ -402,9 +401,9 @@ public:
     return ~0U;
   }
 
-  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
-                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         std::string *errors)
+  void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
+                         rdcstr &errors)
   {
     if(m_Proxy)
     {
@@ -412,10 +411,8 @@ public:
     }
     else
     {
-      if(id)
-        *id = ResourceId();
-      if(errors)
-        *errors = "Unsupported BuildShader call on proxy without local renderer";
+      id = ResourceId();
+      errors = "Unsupported BuildShader call on proxy without local renderer";
     }
   }
 
@@ -461,26 +458,26 @@ public:
   const SDFile &GetStructuredFile() { return m_StructuredFile; }
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 
-  IMPLEMENT_FUNCTION_PROXIED(const std::vector<ResourceDescription> &, GetResources);
+  IMPLEMENT_FUNCTION_PROXIED(const rdcarray<ResourceDescription> &, GetResources);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<ResourceId>, GetBuffers);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceId>, GetBuffers);
   IMPLEMENT_FUNCTION_PROXIED(BufferDescription, GetBuffer, ResourceId id);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<ResourceId>, GetTextures);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceId>, GetTextures);
   IMPLEMENT_FUNCTION_PROXIED(TextureDescription, GetTexture, ResourceId id);
 
   IMPLEMENT_FUNCTION_PROXIED(APIProperties, GetAPIProperties);
   IMPLEMENT_FUNCTION_PROXIED(DriverInformation, GetDriverInfo);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<GPUDevice>, GetAvailableGPUs);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<DebugMessage>, GetDebugMessages);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<DebugMessage>, GetDebugMessages);
 
   IMPLEMENT_FUNCTION_PROXIED(void, SavePipelineState, uint32_t eventId);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplayLog, uint32_t endEventID, ReplayLogType replayType);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<uint32_t>, GetPassEvents, uint32_t eventId);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<uint32_t>, GetPassEvents, uint32_t eventId);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<EventUsage>, GetUsage, ResourceId id);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<EventUsage>, GetUsage, ResourceId id);
   IMPLEMENT_FUNCTION_PROXIED(FrameRecord, GetFrameRecord);
 
   IMPLEMENT_FUNCTION_PROXIED(bool, IsRenderOutput, ResourceId id);
@@ -493,7 +490,7 @@ public:
                              const rdcarray<GPUCounter> &counterID);
 
   IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId pipeline, ResourceId shader,
-                             std::string entryPoint, uint32_t cbufSlot,
+                             rdcstr entryPoint, uint32_t cbufSlot,
                              rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, GetBufferData, ResourceId buff, uint64_t offset, uint64_t len,
@@ -502,27 +499,27 @@ public:
                              const GetTextureDataParams &params, bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, uint32_t eventId);
-  IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, const std::vector<uint32_t> &passEvents);
+  IMPLEMENT_FUNCTION_PROXIED(void, InitPostVSBuffers, const rdcarray<uint32_t> &passEvents);
   IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventId, uint32_t instID,
                              uint32_t viewID, MeshDataStage stage);
 
   IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, CompType typeCast,
                              FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                             const std::vector<uint32_t> &passEvents);
+                             const rdcarray<uint32_t> &passEvents);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
   IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId pipeline, ResourceId,
                              ShaderEntryPoint entry);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<std::string>, GetDisassemblyTargets);
-  IMPLEMENT_FUNCTION_PROXIED(std::string, DisassembleShader, ResourceId pipeline,
-                             const ShaderReflection *refl, const std::string &target);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<rdcstr>, GetDisassemblyTargets);
+  IMPLEMENT_FUNCTION_PROXIED(rdcstr, DisassembleShader, ResourceId pipeline,
+                             const ShaderReflection *refl, const rdcstr &target);
 
   IMPLEMENT_FUNCTION_PROXIED(void, FreeTargetResource, ResourceId id);
 
-  IMPLEMENT_FUNCTION_PROXIED(std::vector<PixelModification>, PixelHistory,
-                             std::vector<EventUsage> events, ResourceId target, uint32_t x,
-                             uint32_t y, const Subresource &sub, CompType typeCast);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<PixelModification>, PixelHistory, rdcarray<EventUsage> events,
+                             ResourceId target, uint32_t x, uint32_t y, const Subresource &sub,
+                             CompType typeCast);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugVertex, uint32_t eventId, uint32_t vertid,
                              uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace, DebugPixel, uint32_t eventId, uint32_t x, uint32_t y,
@@ -531,9 +528,10 @@ public:
                              const uint32_t groupid[3], const uint32_t threadid[3]);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEncoding>, GetTargetShaderEncodings);
-  IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, ShaderEncoding sourceEncoding, bytebuf source,
-                             const std::string &entry, const ShaderCompileFlags &compileFlags,
-                             ShaderStage type, ResourceId *id, std::string *errors);
+  IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, ShaderEncoding sourceEncoding,
+                             const bytebuf &source, const rdcstr &entry,
+                             const ShaderCompileFlags &compileFlags, ShaderStage type,
+                             ResourceId &id, rdcstr &errors);
   IMPLEMENT_FUNCTION_PROXIED(void, ReplaceResource, ResourceId from, ResourceId to);
   IMPLEMENT_FUNCTION_PROXIED(void, RemoveReplacement, ResourceId id);
 
@@ -710,11 +708,11 @@ private:
   APIProperties m_APIProps;
   std::map<ResourceId, TextureDescription> m_TextureInfo;
 
-  std::vector<DrawcallDescription *> m_Drawcalls;
+  rdcarray<DrawcallDescription *> m_Drawcalls;
 
   SDFile m_StructuredFile;
 
-  std::vector<ResourceDescription> m_Resources;
+  rdcarray<ResourceDescription> m_Resources;
 
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12Pipe::State m_D3D12PipelineState;

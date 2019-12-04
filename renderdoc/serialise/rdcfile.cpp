@@ -488,7 +488,7 @@ void RDCFile::Init(StreamReader &reader)
       if(reader.IsErrored() || reader.AtEnd())
         RETURNERROR(ContainerError::Corrupt, "Invalid truncated ASCII data section");
 
-      std::string name;
+      rdcstr name;
 
       c = 0;
 
@@ -837,7 +837,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     StreamWriter *w = new StreamWriter(64 * 1024);
 
     w->AddCloseCallback([this, props, w]() {
-      m_MemorySections.push_back(std::vector<byte>(w->GetData(), w->GetData() + w->GetOffset()));
+      m_MemorySections.push_back(bytebuf(w->GetData(), (size_t)w->GetOffset()));
 
       m_Sections.push_back(props);
       m_Sections.back().compressedSize = m_Sections.back().uncompressedSize =
@@ -877,7 +877,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     return new StreamWriter(StreamWriter::InvalidStream);
   }
 
-  std::string name = props.name;
+  rdcstr name = props.name;
   SectionType type = props.type;
 
   // normalise names for known sections
@@ -928,16 +928,16 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
         FILE *origFile = m_File;
 
         // save the sections
-        std::vector<SectionProperties> origSections = m_Sections;
-        std::vector<SectionLocation> origSectionLocations = m_SectionLocations;
+        rdcarray<SectionProperties> origSections = m_Sections;
+        rdcarray<SectionLocation> origSectionLocations = m_SectionLocations;
 
         SectionLocation oldCaptureLocation = m_SectionLocations[0];
 
         // remove section 0, the frame capture, since it will be fixed up separately
-        origSections.erase(origSections.begin());
-        origSectionLocations.erase(origSectionLocations.begin());
+        origSections.erase(0);
+        origSectionLocations.erase(0);
 
-        std::string tempFilename = FileIO::GetTempFolderFilename() + "capture_rewrite.rdc";
+        rdcstr tempFilename = FileIO::GetTempFolderFilename() + "capture_rewrite.rdc";
 
         // create the file, this will overwrite m_File with the new file and file header using the
         // existing loaded metadata
@@ -1018,15 +1018,15 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
       RDCASSERT(index >= 0);
 
-      std::vector<bytebuf> origSectionData;
-      std::vector<uint64_t> origHeaderSizes;
+      rdcarray<bytebuf> origSectionData;
+      rdcarray<uint64_t> origHeaderSizes;
 
       uint64_t overwriteLocation = m_SectionLocations[index].headerOffset;
       uint64_t oldLength = m_SectionLocations[index].diskLength;
 
       // erase the target section. The others will be moved up to match
-      m_Sections.erase(m_Sections.begin() + index);
-      m_SectionLocations.erase(m_SectionLocations.begin() + index);
+      m_Sections.erase(index);
+      m_SectionLocations.erase(index);
 
       origSectionData.reserve(NumSections() - index);
       origHeaderSizes.reserve(NumSections() - index);
@@ -1207,7 +1207,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
   return compWriter ? compWriter : fileWriter;
 }
 
-FILE *RDCFile::StealImageFileHandle(std::string &filename)
+FILE *RDCFile::StealImageFileHandle(rdcstr &filename)
 {
   if(m_Driver != RDCDriver::Image)
   {

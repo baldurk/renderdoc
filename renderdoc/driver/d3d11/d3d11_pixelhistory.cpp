@@ -281,11 +281,11 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
     SAFE_RELEASE(curCSUAV[i]);
 }
 
-std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage> events,
-                                                         ResourceId target, uint32_t x, uint32_t y,
-                                                         const Subresource &sub, CompType typeCast)
+rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> events,
+                                                      ResourceId target, uint32_t x, uint32_t y,
+                                                      const Subresource &sub, CompType typeCast)
 {
-  std::vector<PixelModification> history;
+  rdcarray<PixelModification> history;
 
   // this function needs a *huge* amount of tidying, refactoring and documenting.
 
@@ -2006,7 +2006,7 @@ std::vector<PixelModification> D3D11Replay::PixelHistory(std::vector<EventUsage>
     PixelModification mod = history[h];
 
     for(int32_t f = 1; f < frags; f++)
-      history.insert(history.begin() + h + 1, mod);
+      history.insert(h + 1, mod);
 
     for(int32_t f = 0; f < frags; f++)
     {

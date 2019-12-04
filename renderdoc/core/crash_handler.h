@@ -80,11 +80,11 @@ public:
                                          RenderDoc::Inst().IsReplayApp() ? L"1" : L"0"),
     };
 
-    std::wstring wideStr = StringFormat::UTF82Wide(std::string(FULL_VERSION_STRING));
+    std::wstring wideStr = StringFormat::UTF82Wide(rdcstr(FULL_VERSION_STRING));
     breakpadCustomInfo[0].set_value(wideStr.c_str());
-    wideStr = StringFormat::UTF82Wide(std::string(RDCGETLOGFILE()));
+    wideStr = StringFormat::UTF82Wide(rdcstr(RDCGETLOGFILE()));
     breakpadCustomInfo[1].set_value(wideStr.c_str());
-    wideStr = StringFormat::UTF82Wide(std::string(GitVersionHash));
+    wideStr = StringFormat::UTF82Wide(rdcstr(GitVersionHash));
     breakpadCustomInfo[2].set_value(wideStr.c_str());
 
     google_breakpad::CustomClientInfo custom = {&breakpadCustomInfo[0],

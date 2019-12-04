@@ -32,7 +32,7 @@
 namespace JDWP
 {
 void InjectVulkanLayerSearchPath(Connection &conn, threadID thread, int32_t slotIdx,
-                                 const std::string &libPath)
+                                 const rdcstr &libPath)
 {
   referenceTypeID stringClass = conn.GetType("Ljava/lang/String;");
   methodID stringConcat = conn.GetMethod(stringClass, "concat");
@@ -48,7 +48,7 @@ void InjectVulkanLayerSearchPath(Connection &conn, threadID thread, int32_t slot
   }
 
   // get the callstack frames
-  std::vector<StackFrame> stack = conn.GetCallStack(thread);
+  rdcarray<StackFrame> stack = conn.GetCallStack(thread);
 
   if(stack.empty())
   {
@@ -96,7 +96,7 @@ void InjectVulkanLayerSearchPath(Connection &conn, threadID thread, int32_t slot
   conn.SetLocalValue(thread, stack[0].id, slotIdx, temp);
 }
 
-bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
+bool InjectLibraries(const rdcstr &deviceID, Network::Socket *sock)
 {
   Connection conn(sock);
 
@@ -146,7 +146,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
     abi = Android::ABI::armeabi_v7a;
   }
 
-  std::string libPath = Android::GetPathForPackage(deviceID, Android::GetRenderDocPackageForABI(abi));
+  rdcstr libPath = Android::GetPathForPackage(deviceID, Android::GetRenderDocPackageForABI(abi));
 
   switch(abi)
   {
@@ -213,7 +213,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 
     if(vulkanLoaderMethod)
     {
-      std::vector<VariableSlot> slots = conn.GetLocalVariables(vulkanLoaderClass, vulkanLoaderMethod);
+      rdcarray<VariableSlot> slots = conn.GetLocalVariables(vulkanLoaderClass, vulkanLoaderMethod);
 
       int32_t slotIdx = -1, thisSlotIdx = -1;
       bool slot4Exists = false;
@@ -305,7 +305,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
   }
 
   // get the callstack frames
-  std::vector<StackFrame> stack = conn.GetCallStack(thread);
+  rdcarray<StackFrame> stack = conn.GetCallStack(thread);
 
   if(stack.empty())
   {
@@ -431,7 +431,7 @@ bool InjectLibraries(const std::string &deviceID, Network::Socket *sock)
 
 namespace Android
 {
-bool InjectWithJDWP(const std::string &deviceID, uint16_t jdwpport)
+bool InjectWithJDWP(const rdcstr &deviceID, uint16_t jdwpport)
 {
   Network::Socket *sock = Network::CreateClientSocket("localhost", jdwpport, 500);
 

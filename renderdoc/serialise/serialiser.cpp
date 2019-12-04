@@ -38,7 +38,7 @@ void DumpObject(FileIO::LogFileHandle *log, const rdcstr &indent, SDObject *obj)
 {
   if(obj->NumChildren() > 0)
   {
-    std::string msg =
+    rdcstr msg =
         StringFormat::Fmt("%s%s%s %s:\n", indent.c_str(), obj->type.name.c_str(),
                           obj->type.basetype == SDBasic::Array ? "[]" : "", obj->name.c_str());
     FileIO::logfile_append(log, msg.c_str(), msg.size());
@@ -67,16 +67,16 @@ void DumpObject(FileIO::LogFileHandle *log, const rdcstr &indent, SDObject *obj)
       case SDBasic::Character: val = ToStr(obj->data.basic.c); break;
       case SDBasic::Resource: val = ToStr(obj->data.basic.id); break;
     }
-    std::string msg = StringFormat::Fmt("%s%s %s = %s\n", indent.c_str(), obj->type.name.c_str(),
-                                        obj->name.c_str(), val.c_str());
+    rdcstr msg = StringFormat::Fmt("%s%s %s = %s\n", indent.c_str(), obj->type.name.c_str(),
+                                   obj->name.c_str(), val.c_str());
     FileIO::logfile_append(log, msg.c_str(), msg.size());
   }
 }
 
 void DumpChunk(bool reading, FileIO::LogFileHandle *log, SDChunk *chunk)
 {
-  std::string msg = StringFormat::Fmt("%s %s @ %llu:\n", reading ? "Read" : "Wrote",
-                                      chunk->name.c_str(), chunk->metadata.timestampMicro);
+  rdcstr msg = StringFormat::Fmt("%s %s @ %llu:\n", reading ? "Read" : "Wrote", chunk->name.c_str(),
+                                 chunk->metadata.timestampMicro);
   FileIO::logfile_append(log, msg.c_str(), msg.size());
   DumpObject(log, "  ", chunk);
 }
@@ -173,7 +173,7 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
 
   if(ExportStructure())
   {
-    std::string name = m_ChunkLookup ? m_ChunkLookup(chunkID) : "";
+    rdcstr name = m_ChunkLookup ? m_ChunkLookup(chunkID) : "";
 
     if(name.empty())
       name = "<Unknown Chunk>";
@@ -435,7 +435,7 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
 
   if(ExportStructure())
   {
-    std::string name = m_ChunkLookup ? m_ChunkLookup(chunkID) : "";
+    rdcstr name = m_ChunkLookup ? m_ChunkLookup(chunkID) : "";
 
     if(name.empty())
       name = "<Unknown Chunk>";

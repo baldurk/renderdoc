@@ -318,7 +318,7 @@ struct GLVersion
   int minor;
 };
 
-std::vector<GLVersion> GetReplayVersions(RDCDriver api);
+rdcarray<GLVersion> GetReplayVersions(RDCDriver api);
 
 #if defined(RENDERDOC_SUPPORT_GL)
 

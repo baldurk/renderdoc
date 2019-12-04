@@ -273,7 +273,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(rdcstr &
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
                                                                    const rdcarray<rdcstr> &args)
 {
-  std::vector<std::string> argsVec;
+  rdcarray<rdcstr> argsVec;
   argsVec.reserve(args.size());
   for(const rdcstr &a : args)
     argsVec.push_back(a.c_str());
@@ -318,7 +318,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char 
 
   if(logfile && logfile[0])
   {
-    std::string contents = FileIO::logfile_readall(logfile);
+    rdcstr contents = FileIO::logfile_readall(logfile);
     mz_zip_writer_add_mem(&zip, "error.log", contents.data(), contents.length(), MZ_BEST_COMPRESSION);
   }
 
@@ -565,8 +565,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC
 RENDERDOC_NeedVulkanLayerRegistration(VulkanLayerRegistrationInfo *info)
 {
   VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
-  std::vector<std::string> myJSONs;
-  std::vector<std::string> otherJSONs;
+  rdcarray<rdcstr> myJSONs;
+  rdcarray<rdcstr> otherJSONs;
 
   bool ret = RenderDoc::Inst().NeedVulkanLayerRegistration(flags, myJSONs, otherJSONs);
 
@@ -660,7 +660,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumbe
         DWORD Version = (RENDERDOC_VERSION_MAJOR << 24) | (RENDERDOC_VERSION_MINOR << 16);
         DWORD VersionMajor = RENDERDOC_VERSION_MAJOR;
         DWORD VersionMinor = RENDERDOC_VERSION_MINOR;
-        std::string DisplayVersion = MAJOR_MINOR_VERSION_STRING ".0";
+        rdcstr DisplayVersion = MAJOR_MINOR_VERSION_STRING ".0";
 
         RegSetValueExA(subkey, "Version", 0, REG_DWORD, (const BYTE *)&Version, sizeof(Version));
         RegSetValueExA(subkey, "VersionMajor", 0, REG_DWORD, (const BYTE *)&VersionMajor,
@@ -683,9 +683,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumbe
 #endif
 }
 
-static std::string ResourceFormatName(const ResourceFormat &fmt)
+static rdcstr ResourceFormatName(const ResourceFormat &fmt)
 {
-  std::string ret;
+  rdcstr ret;
 
   if(fmt.Special())
   {
@@ -861,7 +861,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const Re
   name = ResourceFormatName(fmt);
 }
 
-static void TestPrintMsg(const std::string &msg)
+static void TestPrintMsg(const rdcstr &msg)
 {
   OSUtility::WriteOutput(OSUtility::Output_DebugMon, msg.c_str());
   OSUtility::WriteOutput(OSUtility::Output_StdErr, msg.c_str());
@@ -873,17 +873,17 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
 #if ENABLED(RDOC_WIN32)
   const char *moduledir = "/pymodules";
   const char *modulename = "renderdoc.pyd";
-  std::string pythonlibs[] = {"python3?.dll"};
+  rdcstr pythonlibs[] = {"python3?.dll"};
 #elif ENABLED(RDOC_LINUX)
   const char *moduledir = "";
   const char *modulename = "renderdoc.so";
   // we don't care about pymalloc or not
-  std::string pythonlibs[] = {"libpython3.?m.so.1.0", "libpython3.?.so.1.0", "libpython3.?m.so",
-                              "libpython3.?.so"};
+  rdcstr pythonlibs[] = {"libpython3.?m.so.1.0", "libpython3.?.so.1.0", "libpython3.?m.so",
+                         "libpython3.?.so"};
 #else
   const char *moduledir = "";
   const char *modulename = "";
-  std::string pythonlibs[] = {};
+  rdcstr pythonlibs[] = {};
   TestPrintMsg(
       "Running functional tests not directly supported on this platform.\n"
       "Try running util/test/run_tests.py manually.\n");
@@ -908,7 +908,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   // directories from the library will put us at the project root. This is the most common scenario
   // and we don't add handling for locating the script elsewhere as in that case the user can run it
   // directly. This is just intended as a useful shortcut for common cases.
-  std::string scriptPath = libPath + "/../../util/test/run_tests.py";
+  rdcstr scriptPath = libPath + "/../../util/test/run_tests.py";
 
   if(!FileIO::exists(scriptPath.c_str()))
   {
@@ -918,7 +918,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
 
   void *handle = NULL;
 
-  for(std::string py : pythonlibs)
+  for(rdcstr py : pythonlibs)
   {
     // patch up the python minor version
     char *ver = strchr(&py[0], '?');

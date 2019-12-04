@@ -1307,7 +1307,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
 {
   D3D12InitPostVSCallback(WrappedID3D12Device *dev, D3D12Replay *replay,
-                          const std::vector<uint32_t> &events)
+                          const rdcarray<uint32_t> &events)
       : m_pDevice(dev), m_Replay(replay), m_Events(events)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
@@ -1315,7 +1315,7 @@ struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
   ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
   {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
+    if(m_Events.contains(eid))
       m_Replay->InitPostVSBuffers(eid);
   }
 
@@ -1328,16 +1328,16 @@ struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
   void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) override {}
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
-    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
+    if(m_Events.contains(primary))
       m_Replay->AliasPostVSBuffers(primary, alias);
   }
 
   WrappedID3D12Device *m_pDevice;
   D3D12Replay *m_Replay;
-  const std::vector<uint32_t> &m_Events;
+  const rdcarray<uint32_t> &m_Events;
 };
 
-void D3D12Replay::InitPostVSBuffers(const std::vector<uint32_t> &events)
+void D3D12Replay::InitPostVSBuffers(const rdcarray<uint32_t> &events)
 {
   // first we must replay up to the first event without replaying it. This ensures any
   // non-command buffer calls like memory unmaps etc all happen correctly before this

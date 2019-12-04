@@ -26,7 +26,6 @@
 #include <string.h>
 #include <algorithm>
 #include <map>
-#include <string>
 #include "3rdparty/plthook/plthook.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"

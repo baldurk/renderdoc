@@ -620,8 +620,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   VkDeviceAddress bufferAddress = 0;
 
   VkDescriptorPool descpool = VK_NULL_HANDLE;
-  std::vector<VkDescriptorSetLayout> setLayouts;
-  std::vector<VkDescriptorSet> descSets;
+  rdcarray<VkDescriptorSetLayout> setLayouts;
+  rdcarray<VkDescriptorSet> descSets;
 
   VkPipelineLayout pipeLayout = VK_NULL_HANDLE;
 

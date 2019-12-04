@@ -28,6 +28,7 @@
 
 #define CATCH_CONFIG_RUNNER
 #define CATCH_CONFIG_NOSTDOUT
+
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "catch.hpp"
@@ -320,6 +321,8 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &c
 #else
 
 #include "api/replay/apidefs.h"
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
                                                                  const rdcarray<rdcstr> &args)

@@ -26,15 +26,15 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
-std::string LocatePluginFile(const std::string &path, const std::string &fileName)
+rdcstr LocatePluginFile(const rdcstr &path, const rdcstr &fileName)
 {
-  std::string ret;
+  rdcstr ret;
 
   rdcstr libpath;
   FileIO::GetLibraryFilename(libpath);
   libpath = get_dirname(libpath);
 
-  std::vector<std::string> paths;
+  rdcarray<rdcstr> paths;
 
 #if defined(RENDERDOC_PLUGINS_PATH)
   string customPath(RENDERDOC_PLUGINS_PATH);
@@ -72,7 +72,7 @@ std::string LocatePluginFile(const std::string &path, const std::string &fileNam
 
   for(uint32_t i = 0; i < paths.size(); i++)
   {
-    std::string check = paths[i] + "/" + path + "/" + fileName;
+    rdcstr check = paths[i] + "/" + path + "/" + fileName;
     if(FileIO::exists(check.c_str()))
     {
       ret = check;

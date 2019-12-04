@@ -383,7 +383,7 @@ class WGLPlatform : public GLPlatform
 
     rc = NULL;
 
-    std::vector<GLVersion> versions = GetReplayVersions(api);
+    rdcarray<GLVersion> versions = GetReplayVersions(api);
 
     for(GLVersion v : versions)
     {

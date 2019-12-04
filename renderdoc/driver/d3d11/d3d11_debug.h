@@ -118,7 +118,7 @@ public:
       return it->second;
     return NULL;
   }
-  void GetCounterBuffers(std::vector<ResourceId> &ret)
+  void GetCounterBuffers(rdcarray<ResourceId> &ret)
   {
     for(auto pair : m_CounterBufferToUAV)
       ret.push_back(pair.first);

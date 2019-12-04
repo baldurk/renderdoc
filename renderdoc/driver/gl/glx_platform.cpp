@@ -382,7 +382,7 @@ class GLXPlatform : public GLPlatform
     {
       X11ErrorHandler prev = XSetErrorHandler(&NonFatalX11ErrorHandler);
 
-      std::vector<GLVersion> versions = GetReplayVersions(api);
+      rdcarray<GLVersion> versions = GetReplayVersions(api);
 
       for(GLVersion v : versions)
       {

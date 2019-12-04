@@ -256,7 +256,7 @@ static HKEY GetImplicitLayersKey(bool writeable, bool wow6432)
   return key;
 }
 
-bool ProcessImplicitLayersKey(HKEY key, const rdcstr &path, std::vector<std::string> *otherJSONs,
+bool ProcessImplicitLayersKey(HKEY key, const rdcstr &path, rdcarray<rdcstr> *otherJSONs,
                               bool deleteOthers)
 {
   bool thisRegistered = false;
@@ -299,8 +299,8 @@ bool ProcessImplicitLayersKey(HKEY key, const rdcstr &path, std::vector<std::str
   return thisRegistered;
 }
 
-bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
-                                    std::vector<std::string> &otherJSONs)
+bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
+                                    rdcarray<rdcstr> &otherJSONs)
 {
   rdcstr normalPath = GetJSONPath(false);
   myJSONs.push_back(normalPath);

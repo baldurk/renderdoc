@@ -149,7 +149,7 @@ private:
     D3D12_COMMAND_LIST_TYPE type;
   } m_Init;
 
-  static std::string GetChunkName(uint32_t idx);
+  static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
   static const int AllocPoolCount = 8192;

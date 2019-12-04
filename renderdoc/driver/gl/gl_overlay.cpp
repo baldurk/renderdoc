@@ -229,7 +229,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
 
 ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                    DebugOverlay overlay, uint32_t eventId,
-                                   const std::vector<uint32_t> &passEvents)
+                                   const rdcarray<uint32_t> &passEvents)
 {
   WrappedOpenGL &drv = *m_pDriver;
 
@@ -477,7 +477,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
 
       const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
-      std::vector<uint32_t> patchedIndices;
+      rdcarray<uint32_t> patchedIndices;
 
       // readback the index buffer data
       if(idxbuf)
@@ -513,7 +513,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       else
       {
         // generate 'index' list
-        std::vector<uint32_t> idxs;
+        rdcarray<uint32_t> idxs;
         idxs.resize(draw->numIndices);
         for(uint32_t i = 0; i < draw->numIndices; i++)
           idxs[i] = i;
@@ -914,7 +914,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
@@ -971,7 +971,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
     *v = Vec4f(rs.Viewports[0].width, rs.Viewports[0].height);
     drv.glUnmapBuffer(eGL_COPY_WRITE_BUFFER);
 
-    std::vector<uint32_t> events = passEvents;
+    rdcarray<uint32_t> events = passEvents;
 
     if(overlay == DebugOverlay::TriangleSizeDraw)
       events.clear();
@@ -1340,7 +1340,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
       drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-      std::vector<uint32_t> events = passEvents;
+      rdcarray<uint32_t> events = passEvents;
 
       if(overlay == DebugOverlay::QuadOverdrawDraw)
         events.clear();

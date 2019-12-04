@@ -33,8 +33,6 @@
 #include <shlobj.h>
 #include <tchar.h>
 #include <algorithm>
-#include <string>
-#include <vector>
 #include "common/formatting.h"
 #include "core/core.h"
 #include "dbghelp/dbghelp.h"

@@ -455,18 +455,13 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId pipeline, ResourceId shader,
   return &ret;
 }
 
-std::vector<std::string> D3D11Replay::GetDisassemblyTargets()
+rdcarray<rdcstr> D3D11Replay::GetDisassemblyTargets()
 {
-  std::vector<std::string> ret;
-
-  // DXBC is always first
-  ret.insert(ret.begin(), DXBCDisassemblyTarget);
-
-  return ret;
+  return {DXBCDisassemblyTarget};
 }
 
-std::string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                           const std::string &target)
+rdcstr D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                      const rdcstr &target)
 {
   auto it =
       WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
@@ -502,12 +497,12 @@ void D3D11Replay::FreeCustomShader(ResourceId id)
   }
 }
 
-std::vector<EventUsage> D3D11Replay::GetUsage(ResourceId id)
+rdcarray<EventUsage> D3D11Replay::GetUsage(ResourceId id)
 {
   return m_pDevice->GetImmediateContext()->GetUsage(id);
 }
 
-std::vector<DebugMessage> D3D11Replay::GetDebugMessages()
+rdcarray<DebugMessage> D3D11Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
 }
@@ -583,14 +578,14 @@ ResourceDescription &D3D11Replay::GetResourceDesc(ResourceId id)
   return m_Resources[it->second];
 }
 
-const std::vector<ResourceDescription> &D3D11Replay::GetResources()
+const rdcarray<ResourceDescription> &D3D11Replay::GetResources()
 {
   return m_Resources;
 }
 
-std::vector<ResourceId> D3D11Replay::GetBuffers()
+rdcarray<ResourceId> D3D11Replay::GetBuffers()
 {
-  std::vector<ResourceId> ret;
+  rdcarray<ResourceId> ret;
 
   ret.reserve(WrappedID3D11Buffer::m_BufferList.size());
 
@@ -653,9 +648,9 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
   return ret;
 }
 
-std::vector<ResourceId> D3D11Replay::GetTextures()
+rdcarray<ResourceId> D3D11Replay::GetTextures()
 {
-  std::vector<ResourceId> ret;
+  rdcarray<ResourceId> ret;
 
   ret.reserve(WrappedID3D11Texture1D::m_TextureList.size() +
               WrappedID3D11Texture2D1::m_TextureList.size() +
@@ -1560,9 +1555,9 @@ const SDFile &D3D11Replay::GetStructuredFile()
   return m_pDevice->GetStructuredFile();
 }
 
-std::vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
+rdcarray<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
 {
-  std::vector<uint32_t> passEvents;
+  rdcarray<uint32_t> passEvents;
 
   const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
@@ -1800,7 +1795,7 @@ bool D3D11Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 
 bool D3D11Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
                                float minval, float maxval, bool channels[4],
-                               std::vector<uint32_t> &histogram)
+                               rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -2508,16 +2503,14 @@ D3D11DebugManager *D3D11Replay::GetDebugManager()
   return m_pDevice->GetDebugManager();
 }
 
-void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
-                              const std::string &entry, const ShaderCompileFlags &compileFlags,
-                              ShaderStage type, ResourceId *id, std::string *errors)
+void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                              const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                              ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  if(id == NULL || errors == NULL)
-  {
-    if(id)
-      *id = ResourceId();
-    return;
-  }
+  bytebuf compiledDXBC;
+
+  const byte *dxbcBytes = source.data();
+  size_t dxbcLength = source.size();
 
   if(sourceEncoding == ShaderEncoding::HLSL)
   {
@@ -2535,7 +2528,7 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
       case ShaderStage::Compute: profile = "cs_5_0"; break;
       default:
         RDCERR("Unexpected type in BuildShader!");
-        *id = ResourceId();
+        id = ResourceId();
         return;
     }
 
@@ -2544,17 +2537,19 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
 
     ID3DBlob *blob = NULL;
 
-    *errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
-                                                         profile, &blob);
+    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags, profile,
+                                                        &blob);
 
     if(blob == NULL)
     {
-      *id = ResourceId();
+      id = ResourceId();
       return;
     }
 
-    source.clear();
-    source.assign((byte *)blob->GetBufferPointer(), blob->GetBufferSize());
+    compiledDXBC.assign((byte *)blob->GetBufferPointer(), blob->GetBufferSize());
+
+    dxbcBytes = compiledDXBC.data();
+    dxbcLength = compiledDXBC.size();
 
     SAFE_RELEASE(blob);
   }
@@ -2564,109 +2559,109 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, bytebuf source,
     case ShaderStage::Vertex:
     {
       ID3D11VertexShader *sh = NULL;
-      HRESULT hr = m_pDevice->CreateVertexShader(source.data(), source.size(), NULL, &sh);
+      HRESULT hr = m_pDevice->CreateVertexShader(dxbcBytes, dxbcLength, NULL, &sh);
 
       if(sh != NULL)
       {
-        *id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
+        id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
       }
       else
       {
-        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
-        *id = ResourceId();
+        errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
+        id = ResourceId();
       }
       return;
     }
     case ShaderStage::Hull:
     {
       ID3D11HullShader *sh = NULL;
-      HRESULT hr = m_pDevice->CreateHullShader(source.data(), source.size(), NULL, &sh);
+      HRESULT hr = m_pDevice->CreateHullShader(dxbcBytes, dxbcLength, NULL, &sh);
 
       if(sh != NULL)
       {
-        *id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
+        id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
       }
       else
       {
-        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
-        *id = ResourceId();
+        errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
+        id = ResourceId();
       }
       return;
     }
     case ShaderStage::Domain:
     {
       ID3D11DomainShader *sh = NULL;
-      HRESULT hr = m_pDevice->CreateDomainShader(source.data(), source.size(), NULL, &sh);
+      HRESULT hr = m_pDevice->CreateDomainShader(dxbcBytes, dxbcLength, NULL, &sh);
 
       if(sh != NULL)
       {
-        *id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
+        id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
       }
       else
       {
-        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
-        *id = ResourceId();
+        errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
+        id = ResourceId();
       }
       return;
     }
     case ShaderStage::Geometry:
     {
       ID3D11GeometryShader *sh = NULL;
-      HRESULT hr = m_pDevice->CreateGeometryShader(source.data(), source.size(), NULL, &sh);
+      HRESULT hr = m_pDevice->CreateGeometryShader(dxbcBytes, dxbcLength, NULL, &sh);
 
       if(sh != NULL)
       {
-        *id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
+        id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
       }
       else
       {
-        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
-        *id = ResourceId();
+        errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
+        id = ResourceId();
       }
       return;
     }
     case ShaderStage::Pixel:
     {
       ID3D11PixelShader *sh = NULL;
-      HRESULT hr = m_pDevice->CreatePixelShader(source.data(), source.size(), NULL, &sh);
+      HRESULT hr = m_pDevice->CreatePixelShader(dxbcBytes, dxbcLength, NULL, &sh);
 
       if(sh != NULL)
       {
-        *id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
+        id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
       }
       else
       {
-        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
-        *id = ResourceId();
+        errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
+        id = ResourceId();
       }
       return;
     }
     case ShaderStage::Compute:
     {
       ID3D11ComputeShader *sh = NULL;
-      HRESULT hr = m_pDevice->CreateComputeShader(source.data(), source.size(), NULL, &sh);
+      HRESULT hr = m_pDevice->CreateComputeShader(dxbcBytes, dxbcLength, NULL, &sh);
 
       if(sh != NULL)
       {
-        *id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
+        id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
       }
       else
       {
-        *errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
-        *id = ResourceId();
+        errors = StringFormat::Fmt("Failed to create shader: %s", ToStr(hr).c_str());
+        id = ResourceId();
       }
       return;
     }
     default: break;
   }
 
-  RDCERR("Unexpected type in BuildShader!");
-  *id = ResourceId();
+  errors = "Unexpected type in BuildShader!";
+  id = ResourceId();
 }
 
-void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                    ShaderStage type, ResourceId *id, std::string *errors)
+void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                    const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId &id, rdcstr &errors)
 {
   ShaderCompileFlags debugCompileFlags =
       DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
@@ -2674,9 +2669,9 @@ void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf sourc
   BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
 }
 
-void D3D11Replay::BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source,
-                                    const std::string &entry, const ShaderCompileFlags &compileFlags,
-                                    ShaderStage type, ResourceId *id, std::string *errors)
+void D3D11Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
+                                    const rdcstr &entry, const ShaderCompileFlags &compileFlags,
+                                    ShaderStage type, ResourceId &id, rdcstr &errors)
 {
   BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
@@ -2808,9 +2803,9 @@ void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
   }
 }
 
-void D3D11Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader,
-                                       std::string entryPoint, uint32_t cbufSlot,
-                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+void D3D11Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
+                                       uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                                       const bytebuf &data)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);
 

@@ -160,8 +160,8 @@ void split(const rdcstr &in, rdcarray<rdcstr> &out, const char sep)
     out.clear();
   }
 
-  size_t begin = 0;
-  int end = in.find(sep);
+  int32_t begin = 0;
+  int32_t end = in.find(sep);
 
   while(end >= 0)
   {
@@ -171,7 +171,7 @@ void split(const rdcstr &in, rdcarray<rdcstr> &out, const char sep)
     end = in.find(sep, begin);
   }
 
-  if(begin < in.size() || (begin == in.size() && in.back() == sep))
+  if(begin < in.count() || (begin == in.count() && in.back() == sep))
     out.push_back(in.substr(begin));
 }
 

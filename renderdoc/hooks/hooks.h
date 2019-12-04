@@ -34,7 +34,7 @@ struct FunctionHook
   FunctionHook() : orig(NULL), hook(NULL) {}
   FunctionHook(const char *f, void **o, void *d) : function(f), orig(o), hook(d) {}
   bool operator<(const FunctionHook &h) const { return function < h.function; }
-  std::string function;
+  rdcstr function;
   void **orig;
   void *hook;
 };
@@ -186,7 +186,7 @@ struct LibraryHook
 private:
   friend class LibraryHooks;
 
-  static std::vector<LibraryHook *> m_Libraries;
+  static rdcarray<LibraryHook *> m_Libraries;
 };
 
 template <typename FuncType>

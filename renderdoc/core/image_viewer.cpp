@@ -72,7 +72,7 @@ public:
   bool IsRemoteProxy() { return true; }
   void Shutdown() { delete this; }
   // pass through necessary operations to proxy
-  std::vector<WindowingSystem> GetSupportedWindowSystems()
+  rdcarray<WindowingSystem> GetSupportedWindowSystems()
   {
     return m_Proxy->GetSupportedWindowSystems();
   }
@@ -129,7 +129,7 @@ public:
     return m_Proxy->GetMinMax(m_TextureID, sub, typeCast, minval, maxval);
   }
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                    float maxval, bool channels[4], std::vector<uint32_t> &histogram)
+                    float maxval, bool channels[4], rdcarray<uint32_t> &histogram)
   {
     return m_Proxy->GetHistogram(m_TextureID, sub, typeCast, minval, maxval, channels, histogram);
   }
@@ -156,9 +156,9 @@ public:
   {
     return m_Proxy->GetCustomShaderEncodings();
   }
-  void BuildCustomShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
-                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         std::string *errors)
+  void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
+                         rdcstr &errors)
   {
     m_Proxy->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
   }
@@ -169,8 +169,8 @@ public:
     m_CustomTexID = m_Proxy->ApplyCustomShader(shader, m_TextureID, sub, typeCast);
     return m_CustomTexID;
   }
-  const std::vector<ResourceDescription> &GetResources() { return m_Resources; }
-  std::vector<ResourceId> GetTextures() { return {m_TextureID}; }
+  const rdcarray<ResourceDescription> &GetResources() { return m_Resources; }
+  rdcarray<ResourceId> GetTextures() { return {m_TextureID}; }
   TextureDescription GetTexture(ResourceId id) { return m_TexDetails; }
   void GetTextureData(ResourceId tex, const Subresource &sub, const GetTextureDataParams &params,
                       bytebuf &data)
@@ -188,12 +188,11 @@ public:
     return ReplayStatus::Succeeded;
   }
   const SDFile &GetStructuredFile() { return m_File; }
-  void RenderMesh(uint32_t eventId, const std::vector<MeshFormat> &secondaryDraws,
-                  const MeshDisplay &cfg)
+  void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
   }
-  std::vector<ResourceId> GetBuffers() { return std::vector<ResourceId>(); }
-  std::vector<DebugMessage> GetDebugMessages() { return std::vector<DebugMessage>(); }
+  rdcarray<ResourceId> GetBuffers() { return rdcarray<ResourceId>(); }
+  rdcarray<DebugMessage> GetDebugMessages() { return rdcarray<DebugMessage>(); }
   BufferDescription GetBuffer(ResourceId id)
   {
     BufferDescription ret;
@@ -211,8 +210,8 @@ public:
   const GLPipe::State *GetGLPipelineState() { return NULL; }
   const VKPipe::State *GetVulkanPipelineState() { return NULL; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType) {}
-  std::vector<uint32_t> GetPassEvents(uint32_t eventId) { return std::vector<uint32_t>(); }
-  std::vector<EventUsage> GetUsage(ResourceId id) { return std::vector<EventUsage>(); }
+  rdcarray<uint32_t> GetPassEvents(uint32_t eventId) { return rdcarray<uint32_t>(); }
+  rdcarray<EventUsage> GetUsage(ResourceId id) { return rdcarray<EventUsage>(); }
   bool IsRenderOutput(ResourceId id) { return false; }
   ResourceId GetLiveID(ResourceId id) { return id; }
   rdcarray<GPUCounter> EnumerateCounters() { return {}; }
@@ -223,13 +222,13 @@ public:
     return desc;
   }
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters) { return {}; }
-  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, std::string entryPoint,
+  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
                             uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars, const bytebuf &data)
   {
   }
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}
   void InitPostVSBuffers(uint32_t eventId) {}
-  void InitPostVSBuffers(const std::vector<uint32_t> &eventId) {}
+  void InitPostVSBuffers(const rdcarray<uint32_t> &eventId) {}
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID, MeshDataStage stage)
   {
     MeshFormat ret;
@@ -238,7 +237,7 @@ public:
   }
   ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                            DebugOverlay overlay, uint32_t eventId,
-                           const std::vector<uint32_t> &passEvents)
+                           const rdcarray<uint32_t> &passEvents)
   {
     return ResourceId();
   }
@@ -247,18 +246,16 @@ public:
   {
     return NULL;
   }
-  std::vector<std::string> GetDisassemblyTargets() { return {"N/A"}; }
-  std::string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                const std::string &target)
+  rdcarray<rdcstr> GetDisassemblyTargets() { return {"N/A"}; }
+  rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target)
   {
     return "";
   }
   void FreeTargetResource(ResourceId id) {}
-  std::vector<PixelModification> PixelHistory(std::vector<EventUsage> events, ResourceId target,
-                                              uint32_t x, uint32_t y, const Subresource &sub,
-                                              CompType typeCast)
+  rdcarray<PixelModification> PixelHistory(rdcarray<EventUsage> events, ResourceId target, uint32_t x,
+                                           uint32_t y, const Subresource &sub, CompType typeCast)
   {
-    return std::vector<PixelModification>();
+    return rdcarray<PixelModification>();
   }
   ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset)
@@ -281,14 +278,12 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void BuildTargetShader(ShaderEncoding sourceEncoding, bytebuf source, const std::string &entry,
-                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId *id,
-                         std::string *errors)
+  void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
+                         const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
+                         rdcstr &errors)
   {
-    if(id)
-      *id = ResourceId();
-    if(errors)
-      *errors = "Building target shaders is unsupported";
+    id = ResourceId();
+    errors = "Building target shaders is unsupported";
   }
   void ReplaceResource(ResourceId from, ResourceId to) {}
   void RemoveReplacement(ResourceId id) {}
@@ -324,9 +319,9 @@ private:
   FrameRecord m_FrameRecord;
   D3D11Pipe::State m_PipelineState;
   IReplayDriver *m_Proxy;
-  std::string m_Filename;
+  rdcstr m_Filename;
   ResourceId m_TextureID, m_CustomTexID;
-  std::vector<ResourceDescription> m_Resources;
+  rdcarray<ResourceDescription> m_Resources;
   SDFile m_File;
   TextureDescription m_TexDetails;
 };
@@ -336,7 +331,7 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   if(!rdc)
     return ReplayStatus::InternalError;
 
-  std::string filename;
+  rdcstr filename;
   FILE *f = rdc->StealImageFileHandle(filename);
 
   if(!f)
@@ -351,7 +346,7 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     uint64_t size = FileIO::ftell64(f);
     FileIO::fseek64(f, 0, SEEK_SET);
 
-    std::vector<byte> buffer;
+    bytebuf buffer;
     buffer.resize((size_t)size);
 
     FileIO::fread(&buffer[0], 1, buffer.size(), f);
@@ -532,7 +527,7 @@ void ImageViewer::RefreshFile()
 
     FileIO::fseek64(f, 0, SEEK_SET);
 
-    std::vector<byte> buffer;
+    bytebuf buffer;
     buffer.resize((size_t)fileSize);
 
     FileIO::fread(buffer.data(), 1, buffer.size(), f);
